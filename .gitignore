@@ -1,0 +1,36 @@
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Maven
+target/
+*.ser
+*.ec
+
+# Intellij
+*.ipr
+*.iml
+*.iws
+.idea/
+
+# Other
+.DS_Store
+.clover
+build.log
+atlassian-ide-plugin.xml
+dependency-reduced-pom.xml
+out
+
+# Zion
+.zion/
+variables.properties
+# Node
+node_modules/
+.yarn/
+
+# Local server data
+.data/
+
+# Local Claude Code worktrees
+.claude/

@@ -1,0 +1,680 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum</groupId>
+    <artifactId>astrum-common-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <groupId>org.globalart.astrum.common.components</groupId>
+  <artifactId>astrum-common-components-parent</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>api</module>
+    <module>formats</module>
+    <module>astrum-audit</module>
+    <module>astrum-audit-plugin</module>
+    <module>astrum-base</module>
+    <module>astrum-blobstore</module>
+    <module>astrum-blobstore-api</module>
+    <module>astrum-blobstore-file</module>
+    <module>astrum-blobstore-s3</module>
+    <module>astrum-blobstore-tasks</module>
+    <module>astrum-bootstrap-spring</module>
+    <module>astrum-cache</module>
+    <module>astrum-capability</module>
+    <module>astrum-cleanup</module>
+    <module>astrum-cleanup-config</module>
+    <module>astrum-common</module>
+    <module>astrum-configuration</module>
+    <module>astrum-core</module>
+    <module>astrum-coreui-plugin</module>
+    <module>astrum-crypto</module>
+    <module>astrum-datastore</module>
+    <module>astrum-datastore-api</module>
+    <module>astrum-datastore-h2</module>
+    <module>astrum-datastore-mybatis</module>
+    <module>astrum-distributed-event-service-api</module>
+    <module>astrum-email</module>
+    <module>astrum-example-content</module>
+    <module>astrum-extender-spring</module>
+    <module>astrum-formfields</module>
+    <module>astrum-httpclient</module>
+    <module>astrum-jetty-log</module>
+    <module>astrum-jmx</module>
+    <module>astrum-logging</module>
+    <module>astrum-mime</module>
+    <module>astrum-onboarding-plugin</module>
+    <module>astrum-outbound-request-context</module>
+    <module>astrum-plugin-api</module>
+    <module>astrum-quartz</module>
+    <module>astrum-rapture</module>
+    <module>astrum-repository-config</module>
+    <module>astrum-repository-content</module>
+    <module>astrum-repository-httpbridge</module>
+    <module>astrum-repository-services</module>
+    <module>astrum-repository-view</module>
+    <module>astrum-scheduling</module>
+    <module>astrum-script</module>
+    <module>astrum-script-plugin</module>
+    <module>astrum-search-sql</module>
+    <module>astrum-selector</module>
+    <module>astrum-servlet</module>
+    <module>astrum-siesta</module>
+    <module>astrum-spring</module>
+    <module>astrum-ssl</module>
+    <module>astrum-ssl-plugin</module>
+    <module>astrum-supportzip-api</module>
+    <module>astrum-task-log-cleanup</module>
+    <module>astrum-test-common</module>
+    <module>astrum-test-db</module>
+    <module>astrum-testsupport</module>
+    <module>astrum-thread</module>
+    <module>astrum-transaction</module>
+    <module>astrum-ui-plugin</module>
+    <module>astrum-upgrade</module>
+    <module>astrum-validation</module>
+    <module>astrum-version</module>
+    <module>astrum-webhooks</module>
+    <module>astrum-webresources-api</module>
+	<module>security</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- BUILDSUPPORT -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-all</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- COMPONENTS -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-audit</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-audit-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-base</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-blobstore</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-blobstore-api</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-blobstore-file</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-blobstore-s3</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-blobstore-tasks</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-bootstrap-spring</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-cache</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-capability</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-cleanup</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-cleanup-config</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-common</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-configuration</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-core</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+	  
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-coreui-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-crypto</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-datastore</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-datastore-api</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-datastore-h2</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-datastore-mybatis</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-distributed-event-service-api</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-email</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-example-content</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-extender-spring</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-formfields</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-httpclient</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-jetty-log</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-jmx</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-logging</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-mime</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-onboarding-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-outbound-request-context</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-plugin-api</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-quartz</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-rapture</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-config</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-content</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-httpbridge</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-services</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-view</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-scheduling</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-script</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-script-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-search-sql</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-selector</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-servlet</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-siesta</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-spring</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-ssl</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-ssl-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-supportzip-api</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-task-log-cleanup</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-test-common</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-test-db</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-testsupport</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-thread</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-transaction</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-ui-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-upgrade</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-validation</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-version</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-webhooks</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-webresources-api</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <!-- API -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-api-extdirect-common</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-api-rest-common</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-extdirect</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-rest</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-rest-client</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-rest-jackson2</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-swagger</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <!-- SECURITY -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-security</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-default-role-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-oidc-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <!-- FORMATS -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-maven</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-apt</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-raw</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-p2</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-cargo</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-cocoapods</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-conan</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-r</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-conda</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-docker</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-alpine</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-golang</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-nuget</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-pypi</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-composer</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-npm</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-helm</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjrt</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>dev.aspectj</groupId>
+        <artifactId>aspectj-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

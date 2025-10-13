@@ -1,0 +1,1432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.globalart.astrum</groupId>
+  <artifactId>astrum-parent</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <description>${project.name}</description>
+  <packaging>pom</packaging>
+
+  <version>3.96.4-01</version>
+
+  <inceptionYear>2008</inceptionYear>
+  <url>http://astrum.globalart.dev/</url>
+
+  <organization>
+    <name>GlobalArt</name>
+    <url>https://globalart.dev</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>Eclipse Public License</name>
+      <url>http://www.eclipse.org/legal/epl-v10.html</url>
+    </license>
+  </licenses>
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/GlobalArtInc/astrum/issues</url>
+  </issueManagement>
+
+  <scm>
+    <connection>scm:git:https://github.com/GlobalArtInc/astrum.git</connection>
+    <developerConnection>scm:git:git@github.com:GlobalArtInc/astrum.git</developerConnection>
+    <url>https://github.com/GlobalArtInc/astrum</url>
+  </scm>
+
+  <prerequisites>
+    <!-- Mostly meaningless, though site plugin uses this; Minimum version controlled by enforcer plugin -->
+    <maven>3.9.6</maven>
+  </prerequisites>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
+    <build.timestamp>${maven.build.timestamp}</build.timestamp>
+    <project.build.outputTimestamp>X</project.build.outputTimestamp>
+    <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
+    <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
+    <failsafe.timeout>600</failsafe.timeout>
+    <failsafe.failIfNoSpecifiedTests>false</failsafe.failIfNoSpecifiedTests>
+
+    <!--
+    Define astrum versions.  The 'astrum.version' property always refers to the version of the current project.
+    These values must always be constants; 'astrum.version' will get update automatically by set-version.
+    -->
+    <astrum.version>3.96.4-01</astrum.version>
+    <astrum2.version>2.15.1-02</astrum2.version>
+
+    <spring-boot.version>4.1.0</spring-boot.version>
+    <spring.version>7.0.8</spring.version>
+
+    <!-- Default empty argLine for JaCoCo agent, will be populated by jacoco:prepare-agent -->
+    <argLine/>
+
+    <!-- Define the node version used by the frontend-maven-plugin -->
+    <node.version>v22.19.0</node.version>
+    <!-- NOTE: We use corepack (bundled with Node 16.9+) to manage yarn instead of downloading it.
+         This avoids CVE-2025-9308 in yarn 1.x by using Yarn 4.9.1 specified in package.json's
+         "packageManager" field. Corepack reads this field and uses the correct yarn version.
+         See: https://nodejs.org/api/corepack.html -->
+    <corepack.version>v0.31.0</corepack.version>
+    <npm.install>install --immutable</npm.install>
+    <npm.skipTests>false</npm.skipTests>
+    <npm.build>build-all</npm.build>
+
+    <!-- logging configuration used in logback config files to control test logging -->
+    <test.log.level>INFO</test.log.level>
+    <it.test.log.level>INFO</it.test.log.level>
+
+    <!--
+    Default compile support for Java21
+    -->
+    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+
+    <!--
+    Sonar configuration.
+    -->
+    <sonar.branch>3.0</sonar.branch>
+
+    <!--
+    Default optimization settings for optimized "prod" aggregate sources.
+    -->
+    <extjs.omit>true</extjs.omit>
+    <extjs.omit.debug>true</extjs.omit.debug>
+    <extjs.omit.assert>true</extjs.omit.assert>
+    <maven.yuicompressor.nomunge>false</maven.yuicompressor.nomunge>
+    <maven.yuicompressor.nominify>false</maven.yuicompressor.nominify>
+    <maven.yuicompressor.disableOptimizations>false</maven.yuicompressor.disableOptimizations>
+    <maven.yuicompressor.linebreakpos>-1</maven.yuicompressor.linebreakpos>
+
+    <!-- including installers in the process significantly increases time required for staging -->
+    <staging.progressTimeout>60</staging.progressTimeout>
+
+    <test.argLine>
+      --add-exports=java.base/sun.nio.ch=ALL-UNNAMED
+      --add-opens=java.base/java.lang=ALL-UNNAMED
+      --add-opens=java.base/java.net=ALL-UNNAMED
+      --add-opens=java.base/java.util=ALL-UNNAMED
+      --add-exports=java.base/sun.security.x509=ALL-UNNAMED
+      --add-exports=java.base/sun.security.rsa=ALL-UNNAMED
+      --add-exports=java.base/sun.security.pkcs=ALL-UNNAMED
+    </test.argLine>
+
+    <test.includedGroups></test.includedGroups>
+
+    <test.excludedGroups>
+      org.globalart.astrum.content.testsuite.groups.PostgresTestGroup
+    </test.excludedGroups>
+
+
+    <!-- fabric8 container naming pattern: {imageName}-{buildTimestamp}-{index} -->
+    <docker.containerNamePattern>%n-%t-%i</docker.containerNamePattern>
+
+    <!-- max heap memory for surefire-plugin -->
+    <surefire.maxHeap>-Xmx768M</surefire.maxHeap>
+    <mockito.version>5.23.0</mockito.version>
+    <aspectjtools.version>1.9.25.1</aspectjtools.version>
+
+    <!--
+    Force httpcore5 above what OpenSAML transitively drags in and above the Spring Boot BOM pin
+    (5.4.2), both of which carry two Security-High CVEs. 5.4.3 patches both:
+      - CVE-2026-54399 (CVSS 8.7) HTTP/1.1 message parser uncontrolled resource consumption
+      - CVE-2026-54428 (CVSS 7.5) HTTP/2 HPACK decoder DoS before SETTINGS ACK
+    See ASTRUM-53738. Remove this pin once Spring Boot BOM ships 5.4.3+.
+    -->
+    <httpcore5.version>5.4.3</httpcore5.version>
+
+    <!--
+    Force the log4j family above the 2.19.0 that PortEx (com.github.katjahahn:portex)
+    transitively drags in, which carries a Security-Medium CVE:
+      - CVE-2026-49844 (CVSS 6.3) improper encoding of non-finite floating-point
+        values during MapMessage JSON serialization (CWE-116)
+    2.25.5 is the first release with no policy violations for this component.
+    See ASTRUM-53922. Remove this pin once the transitive dependencies ship 2.25.5+.
+    -->
+    <log4j.version>2.25.5</log4j.version>
+
+    <!--
+    Force jboss-logging above the 3.4.3.Final that the Spring Boot BOM pins, which lacks
+    the getMessageLogger(MethodHandles.Lookup, Class, String) method introduced in 3.5.0.
+    RESTEasy 7.0.0 (also on the classpath) was compiled against 3.5+ and calls this method
+    during static initialisation of LogMessages, crashing the Jetty thread before it can
+    bind to the HTTP port. 3.6.1.Final is the version already present in the local repository.
+    Remove this pin once the Spring Boot BOM ships jboss-logging 3.5.0+.
+    -->
+    <jboss.logging.version>3.6.1.Final</jboss.logging.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- ASTRUM-53738: pin httpcore5 to a patched version (see property above). -->
+      <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5</artifactId>
+        <version>${httpcore5.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5-h2</artifactId>
+        <version>${httpcore5.version}</version>
+      </dependency>
+      <!-- ASTRUM-53922: pin the whole log4j family to a patched version (see property above). -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>${log4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- Pin jboss-logging above 3.4.3.Final (Spring Boot BOM default) — see property above. -->
+      <dependency>
+        <groupId>org.jboss.logging</groupId>
+        <artifactId>jboss-logging</artifactId>
+        <version>${jboss.logging.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <modules>
+    <module>public</module>
+  </modules>
+
+  <build>
+    <defaultGoal>install</defaultGoal>
+    <resources>
+      <resource>
+        <directory>${project.basedir}/src/main/resources</directory>
+        <filtering>false</filtering>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>${project.basedir}/src/main/filtered-resources</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>${project.basedir}/src/main/resources-filtered</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </resource>
+    </resources>
+    <testResources>
+      <testResource>
+        <directory>${project.basedir}/src/test/resources</directory>
+        <filtering>false</filtering>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </testResource>
+      <testResource>
+        <directory>${project.basedir}/src/test/filtered-resources</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </testResource>
+      <testResource>
+        <directory>${project.basedir}/src/test/resources-filtered</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </testResource>
+    </testResources>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.6.3</version>
+          <configuration>
+            <notimestamp>true</notimestamp>
+            <doclint>none</doclint>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>3.1.3</version>
+          <configuration>
+            <deployAtEnd>true</deployAtEnd>
+            <retryFailedDeploymentCount>2</retryFailedDeploymentCount>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>3.1.3</version>
+          <configuration>
+            <allowIncompleteProjects>true</allowIncompleteProjects>
+          </configuration>
+        </plugin>
+
+        <!--
+        Additional configuration for release; enable additional profiles.
+        -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>3.1.1</version>
+          <configuration>
+            <autoVersionSubmodules>true</autoVersionSubmodules>
+            <goals>deploy</goals>
+            <localCheckout>true</localCheckout>
+            <pushChanges>false</pushChanges>
+            <mavenExecutorId>forked-path</mavenExecutorId>
+            <useReleaseProfile>false</useReleaseProfile>
+            <releaseProfiles>release,optimize</releaseProfiles>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.3.1</version>
+          <configuration>
+            <propertiesEncoding>ISO-8859-1</propertiesEncoding>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.globalart.astrum.common.maven.plugins</groupId>
+          <artifactId>extjs-maven-plugin</artifactId>
+          <version>3.96.4-01</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>aggregate-js</goal>
+              </goals>
+              <configuration>
+                <sourceDirectory>${project.basedir}/src/main/resources/static/rapture</sourceDirectory>
+                <outputFile>${project.build.outputDirectory}/static/rapture/${project.artifactId}-debug.js</outputFile>
+                <omitFlags>
+                  <debug>${extjs.omit.debug}</debug>
+                  <assert>${extjs.omit.assert}</assert>
+                </omitFlags>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
+          <groupId>org.globalart.plugins</groupId>
+          <artifactId>yuicompressor-maven-plugin</artifactId>
+          <version>1.1.0</version>
+          <configuration>
+            <jswarn>false</jswarn>
+          </configuration>
+          <executions>
+            <execution>
+              <id>plugin-js</id>
+              <goals>
+                <goal>aggregate-js</goal>
+              </goals>
+              <configuration>
+                <output>${project.build.outputDirectory}/static/rapture/${project.artifactId}-prod.js</output>
+                <sourceDirectory>${project.build.outputDirectory}/static/rapture</sourceDirectory>
+                <includes>
+                  <include>${project.artifactId}-debug.js</include>
+                </includes>
+              </configuration>
+            </execution>
+            <execution>
+              <id>plugin-css</id>
+              <goals>
+                <goal>aggregate-css</goal>
+              </goals>
+              <configuration>
+                <output>${project.build.outputDirectory}/static/rapture/resources/${project.artifactId}-prod.css</output>
+                <sourceDirectory>${project.basedir}/src/main/resources/static/rapture/resources</sourceDirectory>
+                <includes>
+                  <include>${project.artifactId}-debug.css</include>
+                </includes>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
+          <groupId>com.github.eirslett</groupId>
+          <artifactId>frontend-maven-plugin</artifactId>
+          <version>1.15.1</version>
+
+          <configuration>
+            <nodeVersion>${node.version}</nodeVersion>
+            <corepackVersion>${corepack.version}</corepackVersion>
+            <workingDirectory>${project.basedir}</workingDirectory>
+            <installDirectory>${project.build.directory}</installDirectory>
+            <environmentVariables>
+              <JEST_SUITE_NAME>React-Tests</JEST_SUITE_NAME>
+              <CI>true</CI>
+            </environmentVariables>
+          </configuration>
+
+          <executions>
+            <execution>
+              <id>install node and corepack</id>
+              <goals>
+                <goal>install-node-and-corepack</goal>
+              </goals>
+              <phase>generate-resources</phase>
+            </execution>
+            <execution>
+              <id>yarn install</id>
+              <goals>
+                <goal>corepack</goal>
+              </goals>
+              <phase>generate-resources</phase>
+              <configuration>
+                <arguments>yarn ${npm.install}</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>yarn run build</id>
+              <goals>
+                <goal>corepack</goal>
+              </goals>
+              <phase>compile</phase>
+              <configuration>
+                <arguments>yarn ${npm.build}</arguments>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+
+
+        <plugin>
+          <groupId>dev.aspectj</groupId>
+          <artifactId>aspectj-maven-plugin</artifactId>
+          <version>1.14.1</version>
+          <configuration>
+            <showWeaveInfo>true</showWeaveInfo>
+            <verbose>true</verbose>
+            <Xlint>ignore</Xlint>
+            <encoding>UTF-8</encoding>
+            <source>21</source>
+            <target>21</target>
+            <argumentFileDirectory>${project.build.directory}/aspectj</argumentFileDirectory>
+            <aspectLibraries>
+              <aspectLibrary>
+                <groupId>org.globalart.astrum.common.components</groupId>
+                <artifactId>astrum-transaction</artifactId>
+              </aspectLibrary>
+              <aspectLibrary>
+                <groupId>org.globalart.astrum.common.components</groupId>
+                <artifactId>astrum-common</artifactId>
+              </aspectLibrary>
+              <aspectLibrary>
+                <groupId>org.globalart.astrum.common.components</groupId>
+                <artifactId>astrum-security</artifactId>
+              </aspectLibrary>
+              <aspectLibrary>
+                <groupId>org.globalart.astrum.common.components</groupId>
+                <artifactId>astrum-validation</artifactId>
+              </aspectLibrary>
+            </aspectLibraries>
+          </configuration>
+          <executions>
+            <execution>
+              <id>aspectj-compile</id>
+              <goals>
+                <goal>compile</goal>
+              </goals>
+              <configuration>
+                <argumentFileName>compile.lst</argumentFileName>
+              </configuration>
+            </execution>
+            <execution>
+              <id>aspectj-test-compile</id>
+              <goals>
+                <goal>test-compile</goal>
+              </goals>
+              <configuration>
+                <argumentFileName>test-compile.lst</argumentFileName>
+              </configuration>
+            </execution>
+          </executions>
+          <dependencies>
+            <dependency>
+              <groupId>org.aspectj</groupId>
+              <artifactId>aspectjtools</artifactId>
+              <version>${aspectjtools.version}</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+
+        <plugin>
+          <groupId>io.fabric8</groupId>
+          <artifactId>docker-maven-plugin</artifactId>
+          <version>0.43.4</version>
+        </plugin>
+
+        <plugin>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>3.0.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot.version}</version>
+          <configuration>
+            <excludes>
+              <exclude>
+                <groupId>org.globalart.astrum.common.assemblies</groupId>
+                <artifactId>astrum-base-overlay</artifactId>
+              </exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+        <plugin>
+          <!-- see private/developer-documentation/getting-started/formatting.md -->
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <version>3.8.0</version>
+
+          <configuration>
+            <ratchetFrom>origin/main</ratchetFrom>
+
+            <formats>
+              <format>
+                <includes>
+                  <include>*.java</include>
+                </includes>
+                <excludes>
+                  <exclude>target/generated-sources/**/*.java</exclude>
+                </excludes>
+                <trimTrailingWhitespace/>
+                <endWithNewline/>
+              </format>
+            </formats>
+            <java>
+              <removeUnusedImports/>
+
+              <eclipse>
+                <file>${maven.multiModuleProjectDirectory}/globalart-config/globalart-eclipse.xml</file>
+              </eclipse>
+            </java>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-plugin-plugin</artifactId>
+          <version>3.15.2</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.4.0</version>
+          <configuration>
+            <redirectTestOutputToFile>${maven.test.redirectTestOutputToFile}</redirectTestOutputToFile>
+            <failIfNoSpecifiedTests>${surefire.failIfNoSpecifiedTests}</failIfNoSpecifiedTests>
+            <systemPropertyVariables>
+              <java.awt.headless>true</java.awt.headless>
+              <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
+            </systemPropertyVariables>
+            <useSystemClassLoader>false</useSystemClassLoader>
+            <forkCount>1</forkCount>
+            <forkNode implementation="org.apache.maven.plugin.surefire.extensions.LegacyForkNodeFactory"/>
+            <reuseForks>true</reuseForks>
+            <argLine>
+              @{argLine}
+              ${test.argLine}
+              ${surefire.maxHeap}
+              -XX:MaxDirectMemorySize=2G
+              -XX:+HeapDumpOnOutOfMemoryError
+              -XX:HeapDumpPath=${project.build.directory}/surefire-reports
+              -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+              -Xshare:off
+            </argLine>
+            <excludes>
+              <exclude>**/Abstract*</exclude>
+              <exclude>**/*$*</exclude>
+              <exclude>**/*Tests</exclude>
+            </excludes>
+            <groups>${test.includedGroups}</groups>
+            <excludedGroups>${test.excludedGroups}</excludedGroups>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+          <configuration>
+            <source>${maven.compiler.source}</source>
+            <target>${maven.compiler.target}</target>
+            <parameters>true</parameters>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.ruleoftech</groupId>
+          <artifactId>markdown-page-generator-plugin</artifactId>
+          <version>2.4.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.14</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-antrun-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>3.7.1</version>
+          <configuration>
+            <tarLongFileMode>gnu</tarLongFileMode>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>3.4.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.4.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.7.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.5.0</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>extra-enforcer-rules</artifactId>
+              <version>1.8.0</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-invoker-plugin</artifactId>
+          <version>3.7.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.4.2</version>
+          <configuration>
+            <archive>
+              <manifest>
+                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+              </manifest>
+            </archive>
+          </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.codehaus.plexus</groupId>
+              <artifactId>plexus-archiver</artifactId>
+              <version>4.10.0</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jarsigner-plugin</artifactId>
+          <version>3.0.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <version>3.24.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-remote-resources-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-scm-plugin</artifactId>
+          <version>2.1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.6.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.20.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>3.3.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>3.4.0</version>
+          <configuration>
+            <trimStackTrace>false</trimStackTrace>
+            <forkCount>1</forkCount>
+            <reuseForks>false</reuseForks>
+            <redirectTestOutputToFile>${maven.test.redirectTestOutputToFile}</redirectTestOutputToFile>
+            <failIfNoSpecifiedTests>${failsafe.failIfNoSpecifiedTests}</failIfNoSpecifiedTests>
+            <forkedProcessTimeoutInSeconds>${failsafe.timeout}</forkedProcessTimeoutInSeconds>
+            <systemPropertyVariables>
+              <java.awt.headless>true</java.awt.headless>
+              <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-war-plugin</artifactId>
+          <version>3.4.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.felix</groupId>
+          <artifactId>maven-bundle-plugin</artifactId>
+          <version>5.1.2</version>
+          <configuration>
+            <instructions>
+              <Bundle-Description>${project.description}</Bundle-Description>
+            </instructions>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.gmavenplus</groupId>
+          <artifactId>gmavenplus-plugin</artifactId>
+          <version>3.0.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>animal-sniffer-maven-plugin</artifactId>
+          <version>1.24</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>3.6.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>buildnumber-maven-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.4.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.eclipse.sisu</groupId>
+          <artifactId>sisu-maven-plugin</artifactId>
+          <version>0.3.5</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>2.17.1</version>
+          <configuration>
+            <allowMajorUpdates>false</allowMajorUpdates>
+            <ruleSet>
+              <ignoreVersions>
+                <ignoreVersion>
+                  <type>regex</type>
+                  <version>.+-(alpha.+|beta.+|M1)</version>
+                </ignoreVersion>
+              </ignoreVersions>
+            </ruleSet>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.github.wvengen</groupId>
+          <artifactId>proguard-maven-plugin</artifactId>
+          <version>2.6.1</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-environment</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <fail>true</fail>
+              <rules>
+                <!--
+                Require Maven 3.9.6+ for java25 support
+                -->
+                <requireMavenVersion>
+                  <version>[3.9.6,)</version>
+                </requireMavenVersion>
+
+                <!--
+                Require Java 25+
+                -->
+                <requireJavaVersion>
+                  <version>[25,)</version>
+                </requireJavaVersion>
+
+                <!--
+                Resolving these issues after the fact is VERY tedious
+                -->
+                <banDuplicatePomDependencyVersions/>
+              </rules>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>enforce-dependencies</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <fail>true</fail>
+              <rules>
+                <bannedDependencies>
+                  <searchTransitive>true</searchTransitive>
+                  <excludes>
+                    <!--
+                    Velocity 1.4 is banned, org.apache.velocity:velocity should be used instead.
+                    -->
+                    <exclude>velocity:velocity</exclude>
+                    <exclude>velocity:velocity-dep</exclude>
+
+                    <!--
+                    Conflicts with slf4j.
+                    -->
+                    <exclude>commons-logging:*</exclude>
+
+                    <!--
+                    Security hazard: osvdb-58760
+                    -->
+                    <exclude>commons-vfs:commons-vfs</exclude>
+
+                    <!--
+                    Ban all old commons-beanutils
+                    -->
+                    <exclude>commons-beanutils:commons-beanutils</exclude>
+                    <exclude>commons-beanutils:commons-beanutils-core</exclude>
+                    <exclude>commons-collections:commons-collections</exclude>
+                    <!--
+                    Security hazard: osvdb-68314
+                    -->
+                    <exclude>xmlrpc:*</exclude>
+
+                    <!--
+                    Ban old versions of apache shiro.
+                    -->
+                    <exclude>*:jsecurity</exclude>
+
+                    <!--
+                    Ban apis which are part of Java 6.
+                    -->
+                    <!--<exclude>*:activation</exclude>-->
+                    <!--<exclude>*:stax-api</exclude>-->
+                    <!--<exclude>*:jaxb-api</exclude>-->
+                    <!--<exclude>*:xml-apis</exclude>-->
+
+                    <!--
+                    Ban junit which includes old, or improper hamcrest.
+                    -->
+                    <exclude>junit:junit:(,4.10]</exclude>
+                    <exclude>junit:junit-dep</exclude>
+
+                    <!--
+                    Ban old servlet apis.
+                    -->
+                    <exclude>javax.servlet:servlet-api</exclude>
+                    <exclude>org.mortbay.jetty:servlet-api</exclude>
+                    <exclude>org.mortbay.jetty:servlet-api-2.5</exclude>
+
+                    <!--
+                    Ban uber mockito and legacy module
+                    -->
+                    <exclude>org.mockito:mockito-all</exclude>
+                    <exclude>org.mockito:mockito-inline</exclude>
+
+                    <!--
+                    Ban hamcrest so we can require compatible version (see includes).
+                    -->
+                    <exclude>org.hamcrest:*</exclude>
+
+                    <!--
+                    Ban uber hamcrest.
+                    -->
+                    <exclude>org.hamcrest:hamcrest-all:*</exclude>
+
+                    <!--
+                    Ban log4j.
+                    -->
+                    <exclude>log4j:*</exclude>
+
+                    <!--
+                    CVE-2021-44228
+                    -->
+                    <exclude>org.apache.logging.log4j:log4j-core:(,2.15.0)</exclude>
+                    <exclude>ch.qos.logback:logback-classic:(,1.2.9)</exclude>
+
+                    <!--
+                    Ban old bouncycastle.
+                    -->
+                    <exclude>org.bouncycastle:*-jdk14:*</exclude>
+                    <exclude>org.bouncycastle:*-jdk15:*</exclude>
+                    <exclude>org.bouncycastle:*-jdk15on:*</exclude>
+                    <exclude>org.bouncycastle:*-jdk15to18:*</exclude>
+                    <exclude>bouncycastle:*-jdk14:*</exclude>
+                    <exclude>bouncycastle:*-jdk15:*</exclude>
+
+                    <!--
+                    Ban old javax.mail
+                    -->
+                    <exclude>javax.mail:mail:*</exclude>
+
+                    <!--
+                    Ban old jaxb
+                    -->
+                    <exclude>javax.xml.bind:jaxb-api:*</exclude>
+                    <exclude>com.sun.xml.bind:jaxb-core:*</exclude>
+                    <exclude>com.sun.xml.bind:jaxb-impl:*</exclude>
+
+                    <!--
+                      Ban gRCP's shaded netty, use grpc-netty if netty is still part of Astrum
+                    -->
+                    <exclude>io.grpc:grpc-netty-shaded:*</exclude>
+                  </excludes>
+
+                  <!--
+                  Exceptions to excludes.
+                  -->
+                  <includes>
+                    <!--
+                    Allow hamcrest 1.3
+                    -->
+                    <include>org.hamcrest:*:1.3</include>
+                  </includes>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+          <execution>
+            <id>enforce-best-practices</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <fail>true</fail>
+              <rules>
+                <requireNoRepositories>
+                  <message>Never define repositories in pom.xml, use a repository manager instead</message>
+                </requireNoRepositories>
+                <requireProfileIdsExist>
+                  <message>Do not ask for profiles to be activated that do not exist</message>
+                </requireProfileIdsExist>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>build-identity</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+            <configuration>
+              <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
+              <buildNumberPropertyName>build.revision</buildNumberPropertyName>
+              <scmBranchPropertyName>build.branch</scmBranchPropertyName>
+
+              <!-- separate from build.timestamp, which uses a less precise format -->
+              <timestampPropertyName>build.when</timestampPropertyName>
+              <timestampFormat>yyyy-MM-dd-HHmm-ssS</timestampFormat>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>attach-sources</id>
+      <activation>
+        <property>
+          <name>!sources.skip</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+                <configuration>
+                  <includePom>true</includePom>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>pre-check</id>
+      <build>
+        <plugins>
+          <plugin>
+            <!-- the default behavior is to run the apply goal, which will apply linting to edited files -->
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>apply</goal>
+                </goals>
+                <phase>validate</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>globalart</id>
+      <activation>
+        <property>
+          <name>!public</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <!-- the default behavior is to run the apply goal, which will apply linting to edited files -->
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>apply</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>public</id>
+      <activation>
+        <property>
+          <name>public</name>
+        </property>
+      </activation>
+      <properties>
+        <!-- override yarn build -->
+        <npm.install>install</npm.install>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>h2-unit-tests</id>
+      <properties>
+        <test.excludedGroups>
+          org.globalart.astrum.content.testsuite.groups.PostgresTestGroup
+        </test.excludedGroups>
+      </properties>
+    </profile>
+
+    <!--
+    Includes building of private modules when the sources are present.
+    -->
+    <profile>
+      <id>include-private</id>
+      <activation>
+        <file>
+          <exists>private/pom.xml</exists>
+        </file>
+      </activation>
+      <modules>
+        <module>private</module>
+      </modules>
+    </profile>
+
+    <!--
+    Enable verbose logging for unit tests; defaults to DEBUG.
+    -->
+    <profile>
+      <id>test.debug</id>
+      <activation>
+        <property>
+          <name>test.debug</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <properties>
+        <test.log.level>DEBUG</test.log.level>
+      </properties>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <configuration>
+                <systemPropertyVariables>
+                  <test.log.level>${test.log.level}</test.log.level>
+                </systemPropertyVariables>
+              </configuration>
+            </plugin>
+            <plugin>
+              <groupId>com.ruleoftech</groupId>
+              <artifactId>markdown-page-generator-plugin</artifactId>
+              <version>2.4.2</version>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+
+    <!--
+    Enable animal-sniffer to verify JDK compatibility.
+    -->
+    <profile>
+      <id>animal-sniffer</id>
+      <activation>
+        <property>
+          <name>sniff</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>animal-sniffer-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+    Disable optimization for "prod" aggregate sources.
+    -->
+    <profile>
+      <id>disable-optimize</id>
+      <properties>
+        <extjs.omit>false</extjs.omit>
+        <maven.yuicompressor.nominify>true</maven.yuicompressor.nominify>
+        <maven.yuicompressor.nomunge>true</maven.yuicompressor.nomunge>
+        <maven.yuicompressor.disableOptimizations>true</maven.yuicompressor.disableOptimizations>
+        <maven.yuicompressor.linebreakpos>0</maven.yuicompressor.linebreakpos>
+      </properties>
+    </profile>
+
+    <!--
+    Execute jslint on javascript sources.
+    -->
+    <profile>
+      <id>jslint</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.globalart.plugins</groupId>
+            <artifactId>yuicompressor-maven-plugin</artifactId>
+            <configuration>
+              <sourceDirectory>${project.basedir}/src/main/resources/static/rapture</sourceDirectory>
+              <jslintOptions>
+                <!-- ignore whitespace rules -->
+                <white>true</white>
+                <!-- do not require 'use strict' -->
+                <sloppy>true</sloppy>
+                <!-- allow to do comments -->
+                <todo>true</todo>
+                <!-- allow subscript notation -->
+                <sub>true</sub>
+              </jslintOptions>
+            </configuration>
+            <executions>
+              <execution>
+                <id>plugin-jslint</id>
+                <goals>
+                  <goal>jslint</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+    Support for loading projects in Eclipse.
+    -->
+    <profile>
+      <id>m2e</id>
+      <activation>
+        <property>
+          <name>m2e.version</name>
+        </property>
+      </activation>
+      <properties>
+        <maven.project.sourceRoots.warningsDisabled>true</maven.project.sourceRoots.warningsDisabled>
+      </properties>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.globalart.plugins</groupId>
+              <artifactId>yuicompressor-maven-plugin</artifactId>
+              <configuration>
+                <required>false</required>
+              </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.eclipse.m2e</groupId>
+              <artifactId>lifecycle-mapping</artifactId>
+              <version>1.0.0</version>
+              <configuration>
+                <lifecycleMappingMetadata>
+                  <pluginExecutions>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <versionRange>[2.5.1,)</versionRange>
+                        <goals>
+                          <goal>copy</goal>
+                          <goal>unpack</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore/>
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-plugin-plugin</artifactId>
+                        <versionRange>[3.2,)</versionRange>
+                        <goals>
+                          <goal>descriptor</goal>
+                          <goal>helpmojo</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore/>
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <versionRange>[1.7,)</versionRange>
+                        <goals>
+                          <goal>run</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore/>
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>org.apache.servicemix.tooling</groupId>
+                        <artifactId>depends-maven-plugin</artifactId>
+                        <versionRange>[1.2,)</versionRange>
+                        <goals>
+                          <goal>generate-depends-file</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <execute/>
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>org.globalart.astrum.common.maven.plugins</groupId>
+                        <artifactId>extjs-maven-plugin</artifactId>
+                        <versionRange>[3.0.0-03,)</versionRange>
+                        <goals>
+                          <goal>aggregate-js</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <execute/>
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <versionRange>[1.7.5,)</versionRange>
+                        <goals>
+                          <goal>npm</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore/>
+                      </action>
+                    </pluginExecution>
+                    <pluginExecution>
+                      <pluginExecutionFilter>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <versionRange>[0.7,)</versionRange>
+                        <goals>
+                          <goal>install-node-and-corepack</goal>
+                          <goal>corepack</goal>
+                        </goals>
+                      </pluginExecutionFilter>
+                      <action>
+                        <ignore/>
+                      </action>
+                    </pluginExecution>
+                  </pluginExecutions>
+                </lifecycleMappingMetadata>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+
+    <profile>
+      <!-- Make the npm test executions aware of the skipTests property -->
+      <id>skipNpmTests-skipTests</id>
+      <activation>
+        <property>
+          <name>skipTests</name>
+        </property>
+      </activation>
+      <properties>
+        <npm.skipTests>true</npm.skipTests>
+      </properties>
+    </profile>
+
+    <profile>
+      <!-- Make the npm test executions aware of the maven.test.skip property -->
+      <id>skipNpmTests-maven.test.skip</id>
+      <activation>
+        <property>
+          <name>maven.test.skip</name>
+        </property>
+      </activation>
+      <properties>
+        <npm.skipTests>true</npm.skipTests>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>ci</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <configuration>
+              <!-- when the ci profile is activated, we skip the apply goal -->
+              <!-- spotless:check is now ran during the static analysis stage when `useSpotless: true` -->
+              <applySkip>true</applySkip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>buildsupport-coverage</id>
+      <properties>
+        <jacoco.skip>false</jacoco.skip>
+      </properties>
+      <build>
+        <plugins>
+          <!-- attach jacoco's report goal to the verify phase -->
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>prepare-agent</id>
+                <goals>
+                  <goal>prepare-agent</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>report</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>report</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+    Includes the OCI integration-test module (ASTRUM-42721) when its pom is present.
+    The module is never built by default; it is built only when invoked explicitly with
+    `-pl testsuite/oci-integration-tests -am` and exercised via `-Pit` which wires failsafe.
+    -->
+    <profile>
+      <id>include-oci-integration-tests</id>
+      <activation>
+        <file>
+          <exists>testsuite/oci-integration-tests/pom.xml</exists>
+        </file>
+      </activation>
+      <modules>
+        <module>testsuite/oci-integration-tests</module>
+      </modules>
+    </profile>
+
+  </profiles>
+
+</project>
