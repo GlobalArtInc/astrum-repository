@@ -1,0 +1,140 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.buildsupport</groupId>
+    <artifactId>astrum-common-buildsupport-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common-buildsupport-commons</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>2.20.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>1.16.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.18.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>1.14.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-csv</artifactId>
+        <version>1.10.0</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: commons-fileupload 1.x is built on javax.servlet. Migrated to
+           commons-fileupload2-jakarta-servlet6 (Jakarta Servlet 6.0 API, matching
+           Jetty 12 EE10). Package rename: org.apache.commons.fileupload →
+           org.apache.commons.fileupload2.core / .jakarta.servlet6. Consumers must
+           update their imports. The companion -jakarta-servlet5 artifact (Jakarta
+           Servlet 5.0) is NOT compatible with Servlet 6.0 — mixing them with directjngine
+           2.3.0 (which depends on servlet6) produces a runtime
+           NoClassDefFoundError on JakartaServletFileUpload at startup. -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-fileupload2-jakarta-servlet6</artifactId>
+        <!-- ASTRUM-46395: pinned to 2.0.0-M4 to match directjngine 2.3.0's compile
+             target. M5 of commons-fileupload2 renamed several methods on
+             AbstractFileUpload (setSizeMax -> setMaxSize, setFileSizeMax ->
+             setMaxFileSize); directjngine 2.3.0 calls the M4 names from its
+             UploadFormPostRequestProcessor.createFileUploader. With M5 on the
+             classpath, ext.direct file-upload servlets fail at init with
+             NoSuchMethodError on setSizeMax(long). Until a newer directjngine
+             is published that targets M5+, stay on M4 across all three
+             commons-fileupload2 artifacts (servlet6, core, and the implicit
+             servlet5 if anyone reintroduces it). -->
+        <version>2.0.0-M4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-fileupload2-core</artifactId>
+        <version>2.0.0-M4</version>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-cli</groupId>
+        <artifactId>commons-cli</artifactId>
+        <version>1.9.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>4.4</version>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-configuration</groupId>
+        <artifactId>commons-configuration</artifactId>
+        <version>1.10</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>1.26.1</version>
+      </dependency>
+
+      <!-- commons-compress dependency for xz support -->
+      <dependency>
+        <groupId>org.tukaani</groupId>
+        <artifactId>xz</artifactId>
+        <version>1.10</version>
+      </dependency>
+
+      <dependency>
+        <!-- ASTRUM-46395: commons-email 1.6 returned javax.mail.Session; commons-email2-jakarta
+             is the Jakarta Mail variant (returns jakarta.mail.Session). Package rename:
+             org.apache.commons.mail → org.apache.commons.mail2.jakarta (Email, HtmlEmail, etc.)
+             and org.apache.commons.mail2.core (EmailException, EmailConstants, EmailUtils). -->
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-email2-jakarta</artifactId>
+        <version>2.0.0-M1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-email2-core</artifactId>
+        <version>2.0.0-M1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-jexl3</artifactId>
+        <version>3.1</version>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+</project>

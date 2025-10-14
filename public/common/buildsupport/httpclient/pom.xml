@@ -1,0 +1,86 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.buildsupport</groupId>
+    <artifactId>astrum-common-buildsupport-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common-buildsupport-httpclient</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.14</version>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpmime</artifactId>
+        <version>4.5.13</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>4.4.15</version>
+      </dependency>
+
+      <!--
+        ASTRUM-53729 / ASTRUM-53728: force the Apache HttpComponents Client 5 / Core 5 stack to the matched,
+        upstream-tested 5.6.2 / 5.4.3 release set to clear Security-High denial-of-service CVEs flagged by
+        GlobalArt IQ. These arrive transitively via OpenSAML (astrum-saml-plugin ->
+        spring-security-saml2-service-provider -> opensaml-saml-impl -> httpclient5), pinned by the Shibboleth
+        parent at vulnerable versions:
+          - httpcore5 5.2.5    CVE-2026-54399 (CVSS 8.7) - HTTP/1.1 message-parser DoS
+          - httpcore5-h2 5.2.4 CVE-2026-54428 (CVSS 7.5) - HTTP/2 HPACK-decoder DoS
+        OpenSAML uses httpclient5 at runtime (SAML metadata resolution / SOAP), so the artifacts cannot be
+        excluded without risking SAML failures. httpcore5 5.4.3 is the version httpclient5 ships with natively
+        only as of httpclient5 5.6.2 (see httpclient5-parent <httpcore.version>5.4.3</httpcore.version>), so we
+        move the whole stack to that matched set rather than run an untested client5(5.3.1)/core5(5.4.3) skew.
+        httpcore5 / httpcore5-h2 are still pinned explicitly because opensaml-saml-impl declares httpcore5
+        directly (at 5.2.5), which would otherwise win nearest-conflict resolution over httpclient5's
+        transitive 5.4.3. All four versions are policy-compliant with no known vulnerabilities per GlobalArt IQ.
+      -->
+      <dependency>
+        <groupId>org.apache.httpcomponents.client5</groupId>
+        <artifactId>httpclient5</artifactId>
+        <version>5.6.4</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.httpcomponents.client5</groupId>
+        <artifactId>httpclient5-cache</artifactId>
+        <version>5.6.4</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5</artifactId>
+        <version>5.4.3</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5-h2</artifactId>
+        <version>5.4.3</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+</project>

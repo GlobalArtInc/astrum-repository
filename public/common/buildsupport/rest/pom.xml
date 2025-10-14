@@ -1,0 +1,298 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.buildsupport</groupId>
+    <artifactId>astrum-common-buildsupport-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common-buildsupport-rest</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <properties>
+    <jackson2.version>2.22.2</jackson2.version>
+    <!-- ASTRUM-46395: Jakarta XML Binding 4.0 for Jakarta EE 10 (was 2.3.3). -->
+    <jaxb.version>4.0.5</jaxb.version>
+    <!-- ASTRUM-46395: RESTEasy 7.x is the Jakarta EE 10 / JAX-RS 3.1 line.
+         Artifact rename: resteasy-jaxrs → resteasy-core. -->
+    <resteasy.version>7.0.0.Final</resteasy.version>
+    <!-- ASTRUM-46395: Swagger 1.x → OpenAPI 3.x (swagger-core 2.2.x).
+         The -jakarta classifier variants are required when running on Jakarta JAX-RS 3.1.
+         Swagger 1.x is incompatible with jakarta.ws.rs.* and must be replaced. -->
+    <swagger.version>2.2.35</swagger.version>
+    <!-- ASTRUM-46395: legacy swagger-annotations 1.x is no longer required — the @Api*
+         sweep migrated all 390 consumer files to OpenAPI 3.x (@Tag/@Operation/@Schema
+         from io.swagger.v3.oas.annotations.*). -->
+    <snakeyaml.version>2.4</snakeyaml.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <dependency>
+        <groupId>jakarta.xml.bind</groupId>
+        <artifactId>jakarta.xml.bind-api</artifactId>
+        <version>${jaxb.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>jakarta.activation</groupId>
+            <artifactId>jakarta.activation-api</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.glassfish.jaxb</groupId>
+        <artifactId>jaxb-runtime</artifactId>
+        <version>${jaxb.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation-api</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <!-- ASTRUM-46395: javax.ws.rs-api replaced by jakarta.ws.rs-api 3.1 (JAX-RS 3.1).
+           Version pinned; RESTEasy 7 pulls this in transitively but pinning protects us
+           from any future transitive downgrade. -->
+      <dependency>
+        <groupId>jakarta.ws.rs</groupId>
+        <artifactId>jakarta.ws.rs-api</artifactId>
+        <version>3.1.0</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: jakarta.servlet-api 6.0 is required at compile time for any module
+           using HttpServletRequest etc. when running on RESTEasy 7. The Jetty EE10 BOM
+           supplies this transitively, but pinning here keeps modules that don't depend on
+           Jetty (e.g. astrum-siesta) able to compile. -->
+      <dependency>
+        <groupId>jakarta.servlet</groupId>
+        <artifactId>jakarta.servlet-api</artifactId>
+        <version>6.0.0</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: jakarta.validation-api 3.0.x is required by RESTEasy 7. The version
+           is pinned in buildsupport/other/pom.xml. -->
+
+      <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>1.23.1</version>
+      </dependency>
+
+      <!--
+      FIXME: Remove all xstream?
+      -->
+      <dependency>
+        <groupId>com.thoughtworks.xstream</groupId>
+        <artifactId>xstream</artifactId>
+        <version>1.4.21</version>
+        <exclusions>
+          <exclusion>
+            <groupId>xmlpull</groupId>
+            <artifactId>xmlpull</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>xpp3</groupId>
+            <artifactId>xpp3_min</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.servicemix.bundles</groupId>
+        <artifactId>org.apache.servicemix.bundles.xpp3</artifactId>
+        <version>1.1.4c_7</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.sun.xml.fastinfoset</groupId>
+        <artifactId>FastInfoset</artifactId>
+        <version>1.2.18</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.ning</groupId>
+        <artifactId>compress-lzf</artifactId>
+        <version>1.1.2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${snakeyaml.version}</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: OpenAPI 3.x annotations and JAX-RS 2/3 integration (jakarta variants).
+           These replace io.swagger:swagger-jaxrs:1.x. The legacy io.swagger:swagger-annotations:1.x
+           artifact has been removed entirely — the @Api*/@ApiOperation/@ApiModelProperty
+           annotations across the codebase were migrated to @Tag/@Operation/@Schema from
+           io.swagger.v3.oas.annotations.*. -->
+      <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-annotations-jakarta</artifactId>
+        <version>${swagger.version}</version>
+      </dependency>
+
+
+
+      <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-jaxrs2-jakarta</artifactId>
+        <version>${swagger.version}</version>
+        <exclusions>
+          <!--
+          We do our own scanning of JAX-RS @Named components
+          -->
+          <exclusion>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-core-jakarta</artifactId>
+        <version>${swagger.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-models-jakarta</artifactId>
+        <version>${swagger.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-integration-jakarta</artifactId>
+        <version>${swagger.version}</version>
+      </dependency>
+
+      <!--
+      RESTEasy
+      -->
+
+      <!-- ASTRUM-46395: RESTEasy 7 renamed resteasy-jaxrs to resteasy-core.
+           Consumers that currently depend on resteasy-jaxrs must update their GAV. -->
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-core</artifactId>
+        <version>${resteasy.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation-api</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-jaxb-provider</artifactId>
+        <version>${resteasy.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-multipart-provider</artifactId>
+        <version>${resteasy.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.james</groupId>
+            <artifactId>apache-mime4j</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.james</groupId>
+        <artifactId>apache-mime4j-core</artifactId>
+        <version>0.8.12</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-atom-provider</artifactId>
+        <version>${resteasy.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-client</artifactId>
+        <version>${resteasy.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-jackson2-provider</artifactId>
+        <version>${resteasy.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-validator-provider</artifactId>
+        <version>${resteasy.version}</version>
+      </dependency>
+
+      <!--
+      Jackson 2.x
+      -->
+
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson2.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+
+      <!-- ASTRUM-46395: removed dependencyManagement entry for the javax-flavored
+           jackson-module-jaxb-annotations. The Jakarta replacement
+           jackson-module-jakarta-xmlbind-annotations is brought in transitively via
+           jackson-jakarta-rs-* providers, so the legacy artifact is no longer needed.
+           Keeping a managed entry only invites a future regression: a consumer that
+           declares it would once again pull javax.xml.bind onto the runtime classpath
+           and trigger the NoClassDefFoundError on XmlElement seen at startup. -->
+
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>3.2.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+</project>

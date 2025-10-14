@@ -1,0 +1,508 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.buildsupport</groupId>
+    <artifactId>astrum-common-buildsupport-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common-buildsupport-other</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <properties>
+    <!--
+       Updates to AWS or Azure SDKs should also examine their expected netty dependencies, and potentially adjust
+       the netty BOM import
+    -->
+    <aws-java-sdk.version>2.33.5</aws-java-sdk.version>
+    <woodstox-core.version>6.7.0</woodstox-core.version>
+    <!--
+      IMPORTANT: When upgrading azure-storage-blob.version check if the security override
+      of azure-core-http-netty can be removed from dependencyManagement below.
+     -->
+    <azure-storage-blob.version>12.31.2</azure-storage-blob.version>
+    <azure-identity.version>1.18.0</azure-identity.version>
+    <azure-json.version>1.5.0</azure-json.version>
+    <!-- ASTRUM-46395: jakarta-mail.version is now unused. The runtime Mail implementation is
+         com.sun.mail:jakarta.mail:2.0.2 (pulled in by commons-email2-jakarta), pinned
+         explicitly below to address ASTRUM-50522 (CVE-2025-7962). The Eclipse Angus pin
+         that previously consumed this version was removed because nothing on the dep
+         tree pulled in org.eclipse.angus:jakarta.mail - leaving the pin in place would
+         have been dead code. Property kept defined-but-unused for one more release in
+         case downstream developer scripts grep for it. -->
+    <jakarta-mail.version>2.0.3</jakarta-mail.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>33.4.8-jre</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.j2objc</groupId>
+            <artifactId>j2objc-annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>animal-sniffer-annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>listenablefuture</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>3.0.2</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: dropped vestigial javax.annotation-api / javax.enterprise:cdi-api /
+           javax.inject:javax.inject / javax.interceptor-api version pins. None of these
+           coordinates appear on any compile or test classpath after the EE10 migration, and
+           the distribution-level enforcer bans (javax.{servlet,inject,ws.rs,validation,
+           enterprise,el,interceptor,transaction,xml.bind}:*) prevent transitive
+           reintroduction. -->
+
+      <dependency>
+        <groupId>jakarta.inject</groupId>
+        <artifactId>jakarta.inject-api</artifactId>
+        <version>2.0.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>2.21.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.velocity</groupId>
+        <artifactId>velocity-engine-core</artifactId>
+        <version>2.4</version>
+      </dependency>
+
+      <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>2.10.14</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.hdrhistogram</groupId>
+        <artifactId>HdrHistogram</artifactId>
+        <version>2.2.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tika</groupId>
+        <artifactId>tika-core</artifactId>
+        <version>3.2.2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-annotations</artifactId>
+        <version>1.24</version>
+      </dependency>
+
+      <dependency>
+        <groupId>eu.bitwalker</groupId>
+        <artifactId>UserAgentUtils</artifactId>
+        <version>1.21</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: Jakarta Validation 3.0.x for Jakarta EE 10 / RESTEasy 7. The 2.0.x
+           series is the Jakarta EE 8 line and is incompatible with RESTEasy 7's
+           ResteasyViolationException. -->
+      <dependency>
+        <groupId>jakarta.validation</groupId>
+        <artifactId>jakarta.validation-api</artifactId>
+        <version>3.0.2</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: org.glassfish:jakarta.el:3.0.4 is misnamed — despite its
+           artifactId, the classes inside are still in the javax.el.* package. It
+           does NOT provide jakarta.el.ELManager, which Hibernate Validator 8 needs at
+           runtime. The correct Jakarta EL 5.0 reference implementation is
+           org.glassfish.expressly:expressly (the renamed/relocated Eclipse Expressly
+           project), which depends on jakarta.el:jakarta.el-api:5.0.x transitively.
+           Without this, *every* test that calls Validation.buildDefaultValidatorFactory()
+           throws HV000183 "Unable to initialize 'jakarta.el.ExpressionFactory'". -->
+      <dependency>
+        <groupId>org.glassfish.expressly</groupId>
+        <artifactId>expressly</artifactId>
+        <version>5.0.0</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: Hibernate Validator 8.x is the Jakarta Validation 3.0 implementation
+           (Hibernate Validator 6.x targets Jakarta Validation 2.0). -->
+      <dependency>
+        <groupId>org.hibernate.validator</groupId>
+        <artifactId>hibernate-validator</artifactId>
+        <version>8.0.2.Final</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.quartz-scheduler</groupId>
+        <artifactId>quartz</artifactId>
+        <version>2.3.2</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.mchange</groupId>
+            <artifactId>c3p0</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.mchange</groupId>
+            <artifactId>mchange-commons-java</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP-java6</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>com.vividsolutions</groupId>
+        <artifactId>jts</artifactId>
+        <version>1.13</version>
+      </dependency>
+
+      <!-- javax.transaction-api retained for astrum-repository-services test scope only;
+           the distribution-level enforcer ban prevents this from leaking into runtime. -->
+      <dependency>
+        <groupId>javax.transaction</groupId>
+        <artifactId>javax.transaction-api</artifactId>
+        <version>1.2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.thoughtworks.paranamer</groupId>
+        <artifactId>paranamer</artifactId>
+        <version>2.8</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-interpolation</artifactId>
+        <version>1.27</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-utils</artifactId>
+        <version>4.0.3</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-xml</artifactId>
+        <version>4.1.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>javax.cache</groupId>
+        <artifactId>cache-api</artifactId>
+        <version>1.1.1</version>
+      </dependency>
+
+      <!-- ASTRUM-46395: ehcache 3.9.x is compiled against javax.xml.bind.*, which was
+           removed from the JDK in Java 11 and is not part of Jakarta EE 10. ehcache
+           3.10+ ships a separate "jakarta" classifier whose XML config code uses
+           jakarta.xml.bind.*. Without the classifier the bytecode still references
+           javax.xml.bind.ValidationEventHandler, which fails to load at runtime
+           (NoClassDefFoundError) on Java 25. -->
+      <dependency>
+        <groupId>org.ehcache</groupId>
+        <artifactId>ehcache</artifactId>
+        <version>3.10.8</version>
+        <classifier>jakarta</classifier>
+      </dependency>
+
+      <dependency>
+        <groupId>com.squareup</groupId>
+        <artifactId>tape</artifactId>
+        <version>1.2.3</version>
+      </dependency>
+
+      <!-- 2.3.35 is the first release fixing the localized-lookup path traversal (CVE-2026-84939); do not lower. -->
+      <dependency>
+        <groupId>org.freemarker</groupId>
+        <artifactId>freemarker</artifactId>
+        <version>2.3.35</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mozilla</groupId>
+        <artifactId>rhino</artifactId>
+        <version>1.7.15.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.atlassian.crowd.client</groupId>
+        <artifactId>atlassian-crowd-rest-client</artifactId>
+        <version>1.1</version>
+        <exclusions>
+          <!-- We provide an http client 4 implementation -->
+          <exclusion>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+          </exclusion>
+          <!-- Exclude dependencies which are provided by NX core. -->
+          <exclusion>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.redline-rpm</groupId>
+        <artifactId>redline</artifactId>
+        <version>1.2.5</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpg-jdk15on</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.jimfs</groupId>
+        <artifactId>jimfs</artifactId>
+        <version>1.1</version>
+      </dependency>
+
+      <!--
+        ASTRUM-54504: Upgrade netty-bom to 4.2.17.Final to resolve the netty-handler
+        hostname verification bypass on the OpenSSL client path (Java 25+), the SNI
+        routing bypass via fragmented ClientHello, CVE-2026-59902 (transport-sctp)
+        and CVE-2026-59903 (codec-http CORS Vary).
+        ASTRUM-54004: Upgrade netty-bom to 4.2.16.Final to resolve CVE-2026-56819
+        (netty-codec-http2 memory leak in the HTTP/2 decompressor - CWE-401,
+        CVSS 7.5, GHSA-93wv-jw9v-4972).
+        ASTRUM-53122: Upgrade netty-bom to 4.2.15.Final to resolve CVE-2026-42587
+        (codec-http/http2 decompression limit bypass - CVSS 8.7). The earlier
+        4.2.14.Final upgrade addressed the following CVEs but not 42587:
+        - CVE-2026-42577 (epoll transport DoS - CVSS 8.7)
+        - CVE-2026-42578 (handler-proxy HTTP header injection - CVSS 7.5)
+        - CVE-2026-42579 (codec-dns domain name validation - CVSS 7.5)
+        - CVE-2026-42580, 42581, 42584, 42585, 41417 (codec-http request smuggling - CVSS 5.3-8.7)
+        - CVE-2026-42583 (codec-compression memory allocation DoS - CVSS 7.5)
+      -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>4.2.17.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>io.projectreactor</groupId>
+        <artifactId>reactor-bom</artifactId>
+        <version>2025.0.6</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>aws-core</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>s3</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sts</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>kms</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>jmespath-java</artifactId>
+        <version>2.0.0-preview-2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>cloudwatch</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>cloudwatchmetrics</artifactId>
+        <version>2.0.0-preview-2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>dynamodb</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>ecr</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>apache-client</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>s3-transfer-manager</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>cloudwatch-metric-publisher</artifactId>
+        <version>${aws-java-sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.santuario</groupId>
+        <artifactId>xmlsec</artifactId>
+        <version>2.3.4</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.servicemix.specs</groupId>
+        <artifactId>org.apache.servicemix.specs.activation-api-1.1</artifactId>
+        <version>2.9.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.fasterxml.woodstox</groupId>
+        <artifactId>woodstox-core</artifactId>
+        <version>${woodstox-core.version}</version>
+      </dependency>
+
+      <!-- Azure dependencies for blob storage functionality -->
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-storage-blob</artifactId>
+        <version>${azure-storage-blob.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-identity</artifactId>
+        <version>${azure-identity.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-json</artifactId>
+        <version>${azure-json.version}</version>
+      </dependency>
+
+      <!--
+        Security fix: azure-storage-blob 12.31.2 depends on azure-core-http-netty 1.16.0,
+        which includes vulnerable netty-codec and netty-codec-http (version 4.1.124.Final).
+        Overriding to 1.16.1 to address these vulnerabilities.
+
+        TODO: Remove this override after azure-storage-blob updates its dependency to 1.16.1 or higher.
+              Check for updates when upgrading azure-storage-blob.version above.
+      -->
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-core-http-netty</artifactId>
+        <version>1.16.2</version>
+      </dependency>
+
+      <!-- ASTRUM-46395 + ASTRUM-50522 (CVE-2025-7962): pin com.sun.mail:jakarta.mail to the
+           patched 2.0.2 release. The EE-9-era com.sun.mail coordinates are what
+           commons-email2-jakarta:2.0.0-M1 references directly in its bytecode, so we cannot
+           swap to the post-EE-9 successor org.eclipse.angus:jakarta.mail without forking
+           commons-email. Verified that nothing on the dep tree pulls in
+           org.eclipse.angus:jakarta.mail, so an Angus pin would be dead code. -->
+      <dependency>
+        <groupId>com.sun.mail</groupId>
+        <artifactId>jakarta.mail</artifactId>
+        <version>2.0.2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.goodies</groupId>
+        <artifactId>package-url-java</artifactId>
+        <version>1.1.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>1.82.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>dev.sigstore</groupId>
+        <artifactId>sigstore-java</artifactId>
+        <version>2.2.0</version>
+        <!--
+          Consider updating grpc-bom when updating the version
+
+          Remove grpc-bom if removing this dependency
+         -->
+        <exclusions>
+          <exclusion>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty-shaded</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+</project>

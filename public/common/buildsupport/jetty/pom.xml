@@ -1,0 +1,48 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.buildsupport</groupId>
+    <artifactId>astrum-common-buildsupport-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common-buildsupport-jetty</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <properties>
+    <eclipse-jetty.version>12.1.11</eclipse-jetty.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- ASTRUM-46395: javax.servlet-api 4.0.1 removed; jakarta.servlet-api 6.0 is
+           supplied via the dependency-management entry in buildsupport/rest/pom.xml. -->
+
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-bom</artifactId>
+        <version>${eclipse-jetty.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+
+      <!-- ASTRUM-46395 Phase 3: jetty-ee8-bom retired in favor of jetty-ee10-bom.
+           Jetty 12 EE10 supplies jakarta.servlet-api 6.0 transitively via this BOM.
+           (The phase 1 spike imported this BOM alongside the EE8 BOM; on phase 3
+           the EE8 import is gone so this is now the sole servlet-api source.) -->
+      <dependency>
+        <groupId>org.eclipse.jetty.ee10</groupId>
+        <artifactId>jetty-ee10-bom</artifactId>
+        <version>${eclipse-jetty.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+</project>

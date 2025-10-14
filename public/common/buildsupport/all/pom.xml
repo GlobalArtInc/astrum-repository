@@ -1,0 +1,151 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.buildsupport</groupId>
+    <artifactId>astrum-common-buildsupport-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common-buildsupport-all</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- IMPORTS -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-commons</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-db</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-groovy</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-httpclient</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-internal</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-jetty</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-jruby</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-logging</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-maven</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-metrics</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-other</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-rest</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-security</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-spring</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-testing</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-ui</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+</project>

@@ -1,0 +1,42 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum</groupId>
+    <artifactId>astrum-common-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <groupId>org.globalart.astrum.common.buildsupport</groupId>
+  <artifactId>astrum-common-buildsupport-parent</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <properties>
+  </properties>
+
+  <modules>
+    <module>commons</module>
+    <module>db</module>
+    <module>groovy</module>
+    <module>httpclient</module>
+    <module>internal</module>
+    <module>jetty</module>
+    <module>jruby</module>
+    <module>logging</module>
+    <module>maven</module>
+    <module>metrics</module>
+    <module>other</module>
+    <module>rest</module>
+    <module>security</module>
+    <module>spring</module>
+    <module>testing</module>
+    <module>ui</module>
+
+    <!-- aggregator -->
+    <module>all</module>
+  </modules>
+</project>

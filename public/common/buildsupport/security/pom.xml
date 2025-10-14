@@ -1,0 +1,200 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.buildsupport</groupId>
+    <artifactId>astrum-common-buildsupport-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common-buildsupport-security</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <properties>
+    <apache-shiro.version>2.2.1</apache-shiro.version>
+    <bouncycastle.version>1.85</bouncycastle.version>
+    <bcpkix.fips.version>2.1.12</bcpkix.fips.version>
+    <bcpg.fips.version>2.1.13</bcpg.fips.version>
+    <bcutil.fips.version>2.1.7</bcutil.fips.version>
+    <bc.fips.version>2.1.3</bc.fips.version>
+    <java-jwt.version>3.16.0</java-jwt.version>
+    <nimbusds.jwt.version>10.2</nimbusds.jwt.version>
+    <nimbusds.oauth2.version>11.23.1</nimbusds.oauth2.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- jwt -->
+
+      <dependency>
+        <groupId>com.auth0</groupId>
+        <artifactId>java-jwt</artifactId>
+        <version>${java-jwt.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>oauth2-oidc-sdk</artifactId>
+        <version>${nimbusds.oauth2.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>nimbus-jose-jwt</artifactId>
+        <version>${nimbusds.jwt.version}</version>
+      </dependency>
+
+      <!-- shiro -->
+
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-core</artifactId>
+        <version>${apache-shiro.version}</version>
+        <!-- ASTRUM-46395: jakarta classifier swaps Shiro to its Jakarta EE 9+ build (jakarta.servlet) -->
+        <classifier>jakarta</classifier>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+          </exclusion>
+          <!--
+          Shiro 2.x split the former fat-jar into separate modules. shiro-core:jakarta
+          NO LONGER contains shiro-lang/shiro-cache/shiro-crypto-*/shiro-config-*/shiro-event,
+          so the previous blanket "org.apache.shiro:*" exclusion (safe under 1.13.0's fat-jar)
+          would now strip required runtime classes. Those split modules are servlet-free
+          single-flavor artifacts pulled transitively by this POM and must be kept. Only the
+          servlet-touching shiro-web / shiro-spring still ship a jakarta classifier; their
+          unclassified (javax.servlet) variants are excluded on those declarations below.
+          -->
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-web</artifactId>
+        <version>${apache-shiro.version}</version>
+        <!-- ASTRUM-46395: jakarta classifier swaps Shiro to its Jakarta EE 9+ build (jakarta.servlet) -->
+        <classifier>jakarta</classifier>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+          </exclusion>
+          <!--
+          ASTRUM-46395 (Shiro 2.x): shiro-web:jakarta's POM still references the UNCLASSIFIED
+          (javax.servlet) shiro-core plus the javax servlet/jsp APIs. Left in, the javax-flavored
+          shiro-core ships alongside our shiro-core:jakarta declaration above, reproducing the
+          split-package collision in org.apache.shiro.web.*. Exclude only those javax-flavored
+          transitives, NOT the whole org.apache.shiro group, since the 2.x split modules
+          (shiro-lang/shiro-cache/shiro-crypto-*/shiro-config-*/shiro-event) are required and
+          arrive via shiro-core:jakarta.
+          -->
+          <exclusion>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-core</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>javax.servlet.jsp</groupId>
+            <artifactId>jsp-api</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-spring</artifactId>
+        <version>${apache-shiro.version}</version>
+        <!-- ASTRUM-46395: jakarta classifier swaps Shiro to its Jakarta EE 9+ build (jakarta.servlet) -->
+        <classifier>jakarta</classifier>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+          </exclusion>
+          <!--
+          ASTRUM-46395 (Shiro 2.x): shiro-spring:jakarta's POM references the unclassified
+          shiro-core and shiro-web, smuggling the javax.servlet variant onto the runtime
+          classpath alongside our :jakarta declarations. Exclude only those javax-flavored
+          servlet artifacts; the required 2.x split modules still arrive via shiro-core:jakarta.
+          See the comment block on shiro-web above for the full justification.
+          -->
+          <exclusion>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-core</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-web</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>javax.servlet.jsp</groupId>
+            <artifactId>jsp-api</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpg-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcutil-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpg-fips</artifactId>
+        <version>${bcpg.fips.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bc-fips</artifactId>
+        <version>${bc.fips.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-fips</artifactId>
+        <version>${bcpkix.fips.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+</project>
