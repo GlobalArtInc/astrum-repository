@@ -1,0 +1,47 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum</groupId>
+    <artifactId>astrum-common-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <groupId>org.globalart.astrum.common.maven.plugins</groupId>
+  <artifactId>astrum-common-maven-plugins-parent</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>extjs-maven-plugin</module>
+    <module>yuicompressor-maven-plugin</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- BUILDSUPPORT -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-all</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-common-components-parent</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+</project>
