@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.maven.plugins</groupId>
+    <artifactId>astrum-common-maven-plugins-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>extjs-maven-plugin</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>maven-plugin</packaging>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- IMPORTS -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-all</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-plugin-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.maven.plugin-tools</groupId>
+      <artifactId>maven-plugin-annotations</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!--
+    Maven plugins are still allowed to use plexus-utils
+    -->
+    <dependency>
+      <groupId>org.codehaus.plexus</groupId>
+      <artifactId>plexus-utils</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mozilla</groupId>
+      <artifactId>rhino</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-testsupport</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-plugin-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>descriptor</goal>
+              <goal>helpmojo</goal>
+            </goals>
+            <configuration>
+              <!--
+              HACK: This appears required, or the help mojo generation will fail?
+              -->
+              <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
