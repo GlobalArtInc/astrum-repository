@@ -1,0 +1,133 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.components</groupId>
+    <artifactId>astrum-common-components-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-configuration</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-logging</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-version</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.resolver</groupId>
+      <artifactId>maven-resolver-util</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>jakarta.inject</groupId>
+      <artifactId>jakarta.inject-api</artifactId>
+    </dependency>
+
+    <!--
+    ASTRUM-46395: removed direct dependency on javax.annotation:javax.annotation-api:1.2.
+    The only javax.annotation.* imports in this module are Nullable / Nonnull / concurrent.*,
+    which all live in com.google.code.findbugs:jsr305 (already on the classpath transitively).
+    The legitimately-needed jakarta.annotation-api (PostConstruct/PreDestroy/Resource) is
+    brought in transitively via spring-boot-starter, version-managed by the Spring Boot BOM.
+    Dropping this declaration removes javax.annotation-api-1.2.jar - a JEE-7-era artifact
+    that was unused at compile time - from the runtime classpath.
+    -->
+
+    <!-- ASTRUM-46395: javax.servlet-api 4.0.1 → jakarta.servlet-api 6.0 (Jakarta EE 10 / RESTEasy 7) -->
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>animal-sniffer-annotations</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-cli</groupId>
+      <artifactId>commons-cli</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-joda</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-parameter-names</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-annotation</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-testsupport</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>dev.aspectj</groupId>
+        <artifactId>aspectj-maven-plugin</artifactId>
+        <configuration>
+          <aspectLibraries combine.self="override"/>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
