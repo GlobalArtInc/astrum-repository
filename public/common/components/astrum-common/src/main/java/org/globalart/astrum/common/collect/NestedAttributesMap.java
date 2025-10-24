@@ -1,0 +1,133 @@
+
+package org.globalart.astrum.common.collect;
+
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
+/**
+ * Nested {@link AttributesMap} supporting parent/child relationship.
+ *
+ * @since 3.0
+ */
+public class NestedAttributesMap
+    extends AttributesMap
+{
+  @VisibleForTesting
+  static final String SEPARATOR = "::";
+
+  @JsonProperty
+  @Nullable
+  private NestedAttributesMap parent;
+
+  @JsonProperty
+  private String key;
+
+  public NestedAttributesMap() {
+    super();
+  }
+
+  public NestedAttributesMap(final String key, final Map<String, Object> backing) {
+    this(null, key, backing);
+  }
+
+  @VisibleForTesting
+  NestedAttributesMap(
+      @Nullable final NestedAttributesMap parent,
+      final String key,
+      final Map<String, Object> backing)
+  {
+    super(backing);
+    this.parent = parent;
+    this.key = checkNotNull(key);
+  }
+
+  /**
+   * Returns the parent of this attributes or null if there is none.
+   */
+  @Nullable
+  public NestedAttributesMap getParent() {
+    return parent;
+  }
+
+  @VisibleForTesting
+  String getParentKey() {
+    if (parent != null) {
+      // fully-qualify parent key if it has a grandparent
+      if (parent.parent != null) {
+        return parent.getParentKey() + SEPARATOR + parent.getKey();
+      }
+      return parent.getKey();
+    }
+    return null;
+  }
+
+  /**
+   * Return the nested attributes key.
+   */
+  public String getKey() {
+    return key;
+  }
+
+  /**
+   * Returns the key of this nested container qualified with parent if there is one.
+   */
+  @VisibleForTesting
+  String getQualifiedKey() {
+    if (parent != null) {
+      return getParentKey() + SEPARATOR + key;
+    }
+    return key;
+  }
+
+  /**
+   * Include qualified key in missing key message.
+   */
+  @Override
+  protected String missingKeyMessage(final String key) {
+    return "Missing: {" + getQualifiedKey() + "} " + key;
+  }
+
+  /**
+   * Create new backing for new children attributes backing.
+   */
+  protected Map<String, Object> newChildBacking() {
+    return Maps.newHashMap();
+  }
+
+  /**
+   * Returns nested children attributes for given name.
+   */
+  @SuppressWarnings("unchecked")
+  public NestedAttributesMap child(final String name) {
+    checkNotNull(name);
+
+    Object child = backing.get(name);
+    if (child == null) {
+      child = newChildBacking();
+      backing.put(name, child);
+    }
+    else {
+      checkState(child instanceof Map, "child '%s' not a Map", name);
+    }
+    // noinspection unchecked,ConstantConditions
+    return new NestedAttributesMap(this, name, (Map<String, Object>) child);
+  }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName() + "{" +
+        "parent=" + getParentKey() +
+        ", key='" + key + '\'' +
+        ", backing=" + backing +
+        '}';
+  }
+
+}
