@@ -1,0 +1,12 @@
+
+<aspectj>
+    <aspects>
+        <aspect name="org.globalart.astrum.common.stateguard.GuardedAspect"/>
+        <aspect name="org.globalart.astrum.common.stateguard.StateGuardAspect"/>
+        <aspect name="org.globalart.astrum.common.stateguard.TransitionsAspect"/>
+        <weaver options="-verbose -showWeaveInfo">
+            <include within="org.globalart.astrum.*"/>
+            <include within="com.globalart.astrum.*"/>
+        </weaver>
+    </aspects>
+</aspectj>
