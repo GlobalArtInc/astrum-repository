@@ -1,0 +1,276 @@
+
+package org.globalart.astrum.common.stateguard;
+
+import java.util.function.Supplier;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.globalart.astrum.common.stateguard.StateGuardTest.State.DESTROYED;
+import static org.globalart.astrum.common.stateguard.StateGuardTest.State.FAILED;
+import static org.globalart.astrum.common.stateguard.StateGuardTest.State.INITIALISED;
+import static org.globalart.astrum.common.stateguard.StateGuardTest.State.NEW;
+import static org.globalart.astrum.common.stateguard.StateGuardTest.State.STARTED;
+import static org.globalart.astrum.common.stateguard.StateGuardTest.State.STOPPED;
+
+/**
+ * Tests for {@link StateGuard}.
+ */
+public class StateGuardTest
+
+{
+  private StateGuard underTest;
+
+  @Before
+  public void setUp() {
+    underTest = new StateGuard.Builder()
+        .initial(NEW)
+        .failure(FAILED)
+        .create();
+
+    assertThat(underTest.getCurrent(), is(NEW));
+  }
+
+  @Test
+  public void testBasicTransition() throws Exception {
+    TriggeredAction action = new TriggeredAction();
+    underTest.transition(INITIALISED)
+        .from(NEW)
+        .run(action);
+
+    assertThat(underTest.getCurrent(), is(INITIALISED));
+    assertTrue(action.triggered);
+  }
+
+  @Test
+  public void testNestedTransition() throws Exception {
+    underTest.transition(INITIALISED)
+        .from(NEW)
+        .run(new NopAction());
+    assertThat(underTest.getCurrent(), is(INITIALISED));
+
+    underTest.transition(STARTED)
+        .from(INITIALISED)
+        .run(new NopAction());
+    assertThat(underTest.getCurrent(), is(STARTED));
+
+    TriggeredAction stoppedAction = new TriggeredAction();
+
+    boolean[] triggered = new boolean[1];
+    Action<?> destroyedAction = new Action<Void>()
+    {
+      @Override
+      public Void run() throws Exception {
+        if (underTest.is(STARTED)) {
+          underTest.transition(STOPPED)
+              .from(STARTED)
+              .run(stoppedAction);
+        }
+        assertThat(underTest.getCurrent(), is(STOPPED));
+        triggered[0] = true;
+        return null;
+      }
+    };
+
+    underTest.transition(DESTROYED)
+        .run(destroyedAction);
+
+    assertThat(underTest.getCurrent(), is(DESTROYED));
+    assertTrue(stoppedAction.triggered);
+    assertTrue(triggered[0]);
+  }
+
+  @Test
+  public void testInvalidTransition() {
+    TriggeredAction action = new TriggeredAction();
+
+    Transition transition = underTest.transition(STARTED).from(INITIALISED);
+    assertThrows(IllegalStateException.class, () -> transition.run(action));
+
+    assertThat(underTest.getCurrent(), is(NEW));
+    assertFalse(action.triggered);
+  }
+
+  /*
+   * transition with action failing with exception
+   */
+  @Test
+  public void testTransitionWithActionFailingWithException() {
+    Transition transition = underTest.transition(INITIALISED).from(NEW);
+    assertThrows(FailureException.class, () -> transition.run(new Action<Void>()
+    {
+      @Override
+      public Void run() throws Exception {
+        throw new FailureException();
+      }
+    }));
+
+    assertThat(underTest.getCurrent(), is(FAILED));
+  }
+
+  @Test
+  public void testTransitionWithActionIgnoringException() {
+    Transition transition =
+        underTest.transition(INITIALISED, false, new Class[]{FailureException.class}, true).from(NEW);
+    Action<Void> action = new Action<Void>()
+    {
+      @Override
+      public Void run() throws Exception {
+        throw new FailureException();
+      }
+    };
+    assertThrows(FailureException.class, () -> transition.run(action));
+
+    assertThat(underTest.getCurrent(), is(INITIALISED));
+  }
+
+  @Test
+  public void testTransition_withActionFailingWithError() {
+    Transition transition = underTest.transition(INITIALISED).from(NEW);
+    Action<Void> action = new Action<Void>()
+    {
+      @Override
+      public Void run() throws Exception {
+        throw new FailureError();
+      }
+    };
+    assertThrows(FailureError.class, () -> transition.run(action));
+
+    assertThat(underTest.getCurrent(), is(FAILED));
+  }
+
+  @Test
+  public void testTransition_withMethodInvocationFailingWithException() {
+    assertThrows(FailureException.class, () -> new Target(FailureException::new).transition());
+
+    assertThat(underTest.getCurrent(), is(FAILED));
+  }
+
+  @Test
+  public void testTransition_withMethodInvocationFailingWithError() {
+    assertThrows(FailureError.class, () -> new Target(FailureError::new).transition());
+
+    assertThat(underTest.getCurrent(), is(FAILED));
+  }
+
+  @Test
+  public void testBasicGuard() throws Exception {
+    TriggeredAction action = new TriggeredAction();
+    underTest.guard(NEW)
+        .run(action);
+
+    assertThat(underTest.getCurrent(), is(NEW));
+    assertTrue(action.triggered);
+  }
+
+  @Test
+  public void testInvalidGuard() {
+    TriggeredAction action = new TriggeredAction();
+
+    Guard guard = underTest.guard(INITIALISED);
+    assertThrows(IllegalStateException.class, () -> guard.run(action));
+
+    assertThat(underTest.getCurrent(), is(NEW));
+    assertFalse(action.triggered);
+  }
+
+  @Test
+  public void testGuard_withMethodInvocationFailingWithException() {
+    assertThrows(FailureException.class, () -> new Target(FailureException::new).guarded());
+
+    assertThat(underTest.getCurrent(), is(NEW));
+  }
+
+  @Test
+  public void testGuard_withMethodInvocationFailingWithError() {
+    assertThrows(FailureError.class, () -> new Target(FailureError::new).guarded());
+
+    assertThat(underTest.getCurrent(), is(NEW));
+  }
+
+  static class State
+  {
+    public static final String NEW = "NEW";
+
+    public static final String INITIALISED = "INITIALISED";
+
+    public static final String STARTED = "STARTED";
+
+    public static final String STOPPED = "STOPPED";
+
+    public static final String DESTROYED = "DESTROYED";
+
+    public static final String FAILED = "FAILED";
+  }
+
+  private static class TriggeredAction
+      implements Action<Void>
+  {
+    boolean triggered = false;
+
+    @Override
+    public Void run() throws Exception {
+      triggered = true;
+      return null;
+    }
+  }
+
+  private static class NopAction
+      implements Action<Void>
+  {
+    @Override
+    public Void run() throws Exception {
+      return null;
+    }
+  }
+
+  private class Target
+      implements StateGuardAware
+  {
+    Supplier<? extends Throwable> failureType;
+
+    public Target(final Supplier<? extends Throwable> failureType) {
+      this.failureType = failureType;
+    }
+
+    @Override
+    public StateGuard getStateGuard() {
+      return underTest;
+    }
+
+    @Transitions(from = NEW, to = INITIALISED)
+    public void transition() throws Throwable {
+      if (failureType != null) {
+        throw failureType.get();
+      }
+    }
+
+    @Guarded(by = NEW)
+    public void guarded() throws Throwable {
+      if (failureType != null) {
+        throw failureType.get();
+      }
+    }
+  }
+
+  private static class FailureException
+      extends Exception
+  {
+    FailureException() {
+      super("FAILED");
+    }
+  }
+
+  private static class FailureError
+      extends Error
+  {
+    FailureError() {
+      super("FAILED");
+    }
+  }
+}
