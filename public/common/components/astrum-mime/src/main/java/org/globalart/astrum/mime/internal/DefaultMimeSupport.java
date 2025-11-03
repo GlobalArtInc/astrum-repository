@@ -1,0 +1,188 @@
+
+package org.globalart.astrum.mime.internal;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.mime.MimeRule;
+import org.globalart.astrum.mime.MimeRulesSource;
+import org.globalart.astrum.mime.MimeSupport;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.detect.Detector;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
+import org.apache.tika.mime.MediaType;
+import org.apache.tika.mime.MimeTypes;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Default {@link MimeSupport} implementation based on Apache Tika.
+ *
+ * @since 2.0
+ */
+@Primary
+@Component
+public class DefaultMimeSupport
+    implements MimeSupport
+{
+  private final TikaConfig tikaConfig;
+
+  /**
+   * "Low" level Tika detector, as {@link org.apache.tika.Tika} hides too much.
+   */
+  private final Detector detector;
+
+  /**
+   * A loading cache of extension to MIME type.
+   */
+  private final LoadingCache<String, List<String>> extensionToMimeTypeCache;
+
+  @Autowired
+  public DefaultMimeSupport() {
+    this(new AstrumMimeTypes());
+  }
+
+  @VisibleForTesting
+  public DefaultMimeSupport(final AstrumMimeTypes astrumMimeTypes) {
+    this.tikaConfig = TikaConfig.getDefaultConfig();
+    this.detector = tikaConfig.getDetector();
+
+    // create the cache
+    extensionToMimeTypeCache =
+        CacheBuilder.newBuilder().maximumSize(500).build(new CacheLoader<String, List<String>>()
+        {
+          @Override
+          public List<String> load(final String key) throws Exception {
+            final List<String> detected = Lists.newArrayList();
+            final MimeRule mimeType = astrumMimeTypes.getMimeRuleForExtension(key);
+            if (mimeType != null) {
+              // add Astrum matches first
+              detected.addAll(mimeType.getMimetypes());
+              if (mimeType.isOverride()) {
+                return detected;
+              }
+            }
+            // ask Tika too
+            final Metadata metadata = new Metadata();
+            metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, "dummy." + key);
+            MediaType mediaType = detector.detect(null, metadata);
+            // unravel to least specific
+            unravel(detected, mediaType);
+            return detected;
+          }
+        });
+  }
+
+  @Nonnull
+  @Override
+  public String guessMimeTypeFromPath(final String path, final MimeRulesSource... mimeRulesSources) {
+    return guessMimeTypesListFromPath(path, mimeRulesSources).get(0);
+  }
+
+  @Nonnull
+  @Override
+  public List<String> guessMimeTypesListFromPath(final String path, final MimeRulesSource... mimeRulesSources) {
+    checkNotNull(path);
+    List<String> mimeTypes = new ArrayList<>();
+    for (MimeRulesSource mimeRulesSource : mimeRulesSources) {
+      final MimeRule mimeRule = mimeRulesSource.getRuleForName(path);
+      if (mimeRule != null) {
+        mimeTypes.addAll(mimeRule.getMimetypes());
+        if (mimeRule.isOverride()) {
+          return mimeTypes;
+        }
+      }
+    }
+    mimeTypes.addAll(guessMimeTypesListFromPath(path));
+    return mimeTypes;
+  }
+
+  @Nonnull
+  @Override
+  public String detectMimeType(final InputStream input, @Nullable final String fileName) throws IOException {
+    return detectMimeTypes(input, fileName).get(0);
+  }
+
+  @Nonnull
+  @Override
+  public List<String> detectMimeTypes(final InputStream input, @Nullable final String fileName) throws IOException {
+    checkNotNull(input);
+
+    List<String> detected = Lists.newArrayList();
+    Metadata metadata = new Metadata();
+    if (fileName != null) {
+      metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, fileName);
+    }
+
+    MediaType mediaType;
+    try (final TikaInputStream tis = TikaInputStream.get(input)) {
+      mediaType = detector.detect(tis, metadata);
+    }
+
+    // unravel to least specific
+    unravel(detected, mediaType);
+
+    if (detected.isEmpty()) {
+      detected.add(MimeTypes.OCTET_STREAM);
+    }
+
+    return detected;
+  }
+
+  /**
+   * Uses extension to mime types cache backed by {@link AstrumMimeTypes} and Tika registry.
+   */
+  @Nonnull
+  private List<String> guessMimeTypesListFromPath(final String path) {
+    checkNotNull(path);
+    final String pathExtension = Files.getFileExtension(path);
+    try {
+      final List<String> mimeTypes = new ArrayList<>();
+      List<String> extBasedTypes = extensionToMimeTypeCache.get(pathExtension);
+      if (extBasedTypes != null && !extBasedTypes.isEmpty()) {
+        mimeTypes.addAll(extBasedTypes);
+      }
+      if (mimeTypes.isEmpty()) {
+        mimeTypes.add(MimeTypes.OCTET_STREAM);
+      }
+      return mimeTypes;
+    }
+    catch (ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Unravels media type by aliases and supertype recursively.
+   */
+  private void unravel(final List<String> detected, final MediaType mt) {
+    detected.add(mt.getBaseType().toString());
+    // add aliases, for example "application/xml" type has "text/xml" alias
+    for (MediaType alias : tikaConfig.getMediaTypeRegistry().getAliases(mt)) {
+      detected.add(alias.getBaseType().toString());
+    }
+    // add super types if augmented with "+suffix"
+    // Note: Tika supports +xml and +zip only
+    if (mt.getSubtype().endsWith("+xml") || mt.getSubtype().endsWith("+zip")) {
+      detected.add(tikaConfig.getMediaTypeRegistry().getSupertype(mt).toString());
+    }
+  }
+}
