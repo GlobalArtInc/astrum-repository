@@ -1,0 +1,133 @@
+
+package org.globalart.astrum.bootstrap.entrypoint;
+
+import java.util.regex.Pattern;
+
+// ASTRUM-46395: deleted JavaxProviderDefaultListableBeanFactory shim. Spring 6's stock
+// DefaultListableBeanFactory natively supports jakarta.inject.Provider; the shim was only
+// needed while we still had javax.inject.Provider consumers, all of which migrated to
+// jakarta.inject.Provider in Phase 3.
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import jakarta.inject.Named;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
+import org.springframework.context.annotation.FullyQualifiedAnnotationBeanNameGenerator;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.core.type.filter.RegexPatternTypeFilter;
+import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Application listener on {@link ContextRefreshedEvent} to perform a component scan of the Astrum packages. it performs
+ * a scan and refreshes a children context including the scanned components.
+ */
+@Component
+public class SpringComponentScan
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private static final String CHILDREN_CONTEXT_ID = "astrum-spring-component-scan";
+
+  private static final Pattern ENTRYPOINT_PACKAGES_PATTERN =
+      Pattern.compile("(org|com)\\.globalart\\.astrum\\.bootstrap\\.entrypoint\\..*");
+
+  private static final String[] JAVA_PACKAGES_FOR_ASTRUM_SCANNING =
+      {"org.globalart.astrum", "com.globalart.astrum"};
+
+  private final ConfigurableApplicationContext parentContext;
+
+  public SpringComponentScan(
+      final ConfigurableApplicationContext applicationContext)
+  {
+    this.parentContext = checkNotNull(applicationContext);
+  }
+
+  /**
+   * Upon the completion of this method, the component scan done by the @SpringBootApplication and any @ComponentScan
+   * annotations has completed. Meaning the app has started, selected the proper edition of astrum, and now needs to scan
+   * the (org|com)/globalart/astrum packages for any classes from modules that need to be checked for loading. Each of the
+   * modules may potentially do @ComponentScan of their own module for injection if custom scanning is required.
+   */
+  public ApplicationContext finishBootstrapComponentScanning() {
+    log.info("Scanning for components in packages: {}", (Object) JAVA_PACKAGES_FOR_ASTRUM_SCANNING);
+
+    AnnotationConfigApplicationContext childContext = getChildContext();
+    // create a new scanner for the child context
+    ClassPathBeanDefinitionScanner scanner = new ClassPathBeanDefinitionScanner(childContext);
+    // recognize JSR-330 @Component
+    scanner.addIncludeFilter(new AnnotationTypeFilter(Named.class));
+    // exclude bootstrap.entrypoint packages already scanned on application init
+    scanner.addExcludeFilter(new RegexPatternTypeFilter(ENTRYPOINT_PACKAGES_PATTERN));
+    scanner.addExcludeFilter(new RegexPatternTypeFilter(
+        Pattern.compile("com\\.globalart\\.astrum\\.licensing\\.ext\\.(builder|bootstrap\\.internal).*")));
+    scanner.setBeanNameGenerator(new FullyQualifiedAnnotationBeanNameGenerator());
+
+    scanner.getBeanDefinitionDefaults().setAutowireMode(AbstractBeanDefinition.AUTOWIRE_CONSTRUCTOR);
+
+    scanner.scan(JAVA_PACKAGES_FOR_ASTRUM_SCANNING);
+
+    log.debug("triggering context refresh on child context");
+    childContext.refresh();
+
+    log.debug("component scan complete");
+
+    return childContext;
+  }
+
+  /**
+   * Create a child context to perform component scan. With this approach we isolate the context refresh from the parent
+   * context.
+   *
+   * <p>
+   * ASTRUM-46395: explicitly set the child's {@link org.springframework.core.env.Environment} to the parent's,
+   * rather than relying on {@code setParent(...)}'s implicit {@code Environment#merge}. The merge call only
+   * appends property sources from the parent <em>at the moment {@code setParent} runs</em>; subsequent reads
+   * from the child's environment do not delegate to the parent. {@code ApplicationLauncher} adds
+   * {@code astrum.edition} to the parent context's environment via a {@code MapPropertySource} just before this
+   * method runs, so the merge usually catches it — but in stricter timing scenarios (observed when booting the
+   * cloud-aws assembly with the stock Spring 6 {@code DefaultListableBeanFactory} replacing our Phase 1 shim),
+   * the child's environment was being read for {@code @ConditionalOnEdition} evaluation before any property
+   * sources had been propagated, causing {@link
+   * com.globalart.astrum.bootstrap.entrypoint.conditional.OnEditionCondition} to reject every cloud-only bean
+   * with the message "astrum.edition property is not yet available". The downstream symptom was a
+   * {@code NoSuchBeanDefinitionException} for {@code RepositoryManager} when the capability registry tried to
+   * autowire a {@code FirewallRepositoryNameValidator}.
+   *
+   * <p>
+   * Using {@code setEnvironment(parentEnv)} sidesteps the merge entirely — the child reads the parent's
+   * environment directly, so anything added to the parent before this method runs (and anything added after
+   * but before the second-pass scan completes) is visible during condition evaluation.
+   *
+   * <p>
+   * Visible for testing — see {@code SpringComponentScanTest}, which pins the
+   * {@code childContext.getEnvironment() == parentContext.getEnvironment()} contract so a future
+   * refactor can't silently revert to the implicit merge.
+   */
+  @VisibleForTesting
+  AnnotationConfigApplicationContext getChildContext() {
+    DefaultListableBeanFactory beanFactory =
+        new DefaultListableBeanFactory(parentContext.getBeanFactory());
+
+    AnnotationConfigApplicationContext childContext = new AnnotationConfigApplicationContext(beanFactory);
+    childContext.setParent(parentContext);
+    // ASTRUM-46395: see method-level Javadoc. Must come AFTER setParent so we override the merged copy.
+    childContext.setEnvironment(parentContext.getEnvironment());
+    childContext.setId(CHILDREN_CONTEXT_ID);
+
+    PropertySourcesPlaceholderConfigurer configurer = new PropertySourcesPlaceholderConfigurer();
+    configurer.setEnvironment(parentContext.getEnvironment()); // use parent context environment
+    childContext.addBeanFactoryPostProcessor(configurer);
+
+    return childContext;
+  }
+}
