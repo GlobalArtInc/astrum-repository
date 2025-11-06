@@ -1,0 +1,269 @@
+
+package org.globalart.astrum.extender;
+
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.globalart.astrum.common.PrecedenceConstants;
+import org.springframework.core.annotation.Order;
+
+import org.globalart.astrum.common.lifecycle.Lifecycle;
+import org.globalart.astrum.common.app.ManagedComponentRegistrar;
+import org.globalart.astrum.common.app.ManagedLifecycle;
+import org.globalart.astrum.common.app.ManagedLifecycle.Phase;
+import org.globalart.astrum.common.app.ManagedLifecycleManager;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.reverse;
+import static java.lang.Math.max;
+import static org.globalart.astrum.common.app.FeatureFlags.STARTUP_TASKS_DELAY_SECONDS_VALUE;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.KERNEL;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.OFF;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.TASKS;
+
+/**
+ * Manages any {@link Lifecycle} components annotated with {@link ManagedLifecycle}.
+ * <p>
+ * Components are managed during their appropriate phase in order of their priority.
+ */
+@Component
+public class AstrumLifecycleManager
+    extends ManagedLifecycleManager
+{
+  private static final Phase[] PHASES = Phase.values();
+
+  private final Multimap<Phase, Lifecycle> components = HashMultimap.create();
+
+  private volatile Phase currentPhase = OFF;
+
+  private final int timeToDelay;
+
+  private final ApplicationContext context;
+
+  // Lazily resolved once the context has refreshed (all singletons exist before any phase runs); registrars are
+  // static singletons for the life of the context, so a single lookup is sufficient.
+  private volatile Collection<ManagedComponentRegistrar> registrars;
+
+  @Autowired
+  public AstrumLifecycleManager(
+      @Value(STARTUP_TASKS_DELAY_SECONDS_VALUE) final int timeToDelay,
+      final ApplicationContext context)
+  {
+    this.timeToDelay = timeToDelay;
+    this.context = checkNotNull(context);
+  }
+
+  @Override
+  public Phase getCurrentPhase() {
+    return currentPhase;
+  }
+
+  @Override
+  public synchronized void to(final Phase targetPhase) throws Exception { // NOSONAR
+    if (targetPhase == OFF) {
+      declareShutdown();
+    }
+    else if (isShuttingDown()) {
+      return; // cannot go back once shutdown has begun
+    }
+
+    final int target = targetPhase.ordinal();
+    int current = currentPhase.ordinal();
+
+    log.debug("Getting lifecycle managed components up to phase {}", current < target ? targetPhase : currentPhase);
+    ListMultimap<Phase, Lifecycle> lifeCyclesInPhase =
+        getLifecyclesInPhase(current < target ? targetPhase : currentPhase);
+
+    // moving forwards to later phase, start components in priority order
+    while (current < target) {
+      Phase nextPhase = PHASES[++current];
+      log.info("Start {}", nextPhase);
+      boolean propagateNonTaskErrors = !TASKS.equals(nextPhase);
+      for (Lifecycle entry : lifeCyclesInPhase.get(nextPhase)) {
+        if (nextPhase.equals(TASKS) && timeToDelay > 0) {
+          delayStartUpTask(nextPhase, entry, propagateNonTaskErrors);
+        }
+        else {
+          startComponent(nextPhase, entry, propagateNonTaskErrors);
+        }
+      }
+      currentPhase = nextPhase;
+    }
+
+    // rolling back to earlier phase, stop components in reverse priority order
+    while (current > target) {
+      Phase prevPhase = PHASES[--current];
+      log.info("Stop {}", currentPhase);
+      for (Lifecycle entry : reverse(lifeCyclesInPhase.get(currentPhase))) {
+        stopComponent(currentPhase, entry, false);
+      }
+      currentPhase = prevPhase;
+    }
+  }
+
+  @Override
+  public void bounce(final Phase bouncePhase) throws Exception {
+    Phase targetPhase = currentPhase;
+    // re-run the given phase by moving to just before it before moving back
+    if (bouncePhase.ordinal() <= targetPhase.ordinal()) {
+      if (bouncePhase == KERNEL) {
+        System.setProperty("karaf.restart", "true");
+      }
+      to(Phase.values()[max(0, bouncePhase.ordinal() - 1)]);
+    }
+    else {
+      targetPhase = bouncePhase; // bounce phase is later, just move to it
+    }
+    to(targetPhase);
+  }
+
+  /**
+   * Starts the given lifecycle component, propagating lifecycle errors only when requested.
+   */
+  private void startComponent(
+      final Phase phase,
+      final Lifecycle lifecycle,
+      final boolean propagateErrors) throws Exception
+  {
+    try {
+      if (components.put(phase, lifecycle)) {
+        log.debug("Start {}: {}", phase, lifecycle);
+        lifecycle.start();
+        // Notify registrars only after a successful start so a component is never wired up while half-initialised.
+        notifyRegistrars(lifecycle, true);
+      }
+    }
+    catch (Exception | LinkageError e) {
+      if (propagateErrors) {
+        throw e;
+      }
+      log.warn("Problem starting {}: {}", phase, lifecycle, e);
+    }
+  }
+
+  /**
+   * Stops the given lifecycle component, propagating lifecycle errors only when requested.
+   */
+  private void stopComponent(
+      final Phase phase,
+      final Lifecycle lifecycle,
+      final boolean propagateErrors) throws Exception
+  {
+    try {
+      if (components.remove(phase, lifecycle)) {
+        log.debug("Stop {}: {}", phase, lifecycle);
+        // Notify registrars before the component stops so it is withdrawn while still fully operational.
+        notifyRegistrars(lifecycle, false);
+        lifecycle.stop();
+      }
+    }
+    catch (Exception | LinkageError e) {
+      log.warn("Problem stopping {}: {}", phase, lifecycle, e);
+      if (propagateErrors) {
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Notifies every {@link ManagedComponentRegistrar} that a component has started (after its {@code start()}) or is
+   * about to stop (before its {@code stop()}). A misbehaving registrar is logged and skipped so it cannot break the
+   * lifecycle transition of the component itself.
+   */
+  private void notifyRegistrars(final Lifecycle lifecycle, final boolean started) {
+    for (ManagedComponentRegistrar registrar : getRegistrars()) {
+      try {
+        if (started) {
+          registrar.onStarted(lifecycle);
+        }
+        else {
+          registrar.onStopping(lifecycle);
+        }
+      }
+      catch (Exception e) {
+        log.warn("Registrar {} failed handling {} of {}",
+            registrar.getClass().getName(), started ? "start" : "stop", lifecycle, e);
+      }
+    }
+  }
+
+  private Collection<ManagedComponentRegistrar> getRegistrars() {
+    // Safe without extra synchronization: getRegistrars() is only reached from to(), which is
+    // synchronized, so at most one thread performs the lazy lookup. The volatile field then
+    // guarantees any later reader observes the fully-published collection.
+    Collection<ManagedComponentRegistrar> local = registrars;
+    if (local == null) {
+      local = context.getBeansOfType(ManagedComponentRegistrar.class).values();
+      registrars = local;
+    }
+    return local;
+  }
+
+  private void delayStartUpTask(final Phase phase, final Lifecycle lifecycle, final boolean propagateErrors) {
+    final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    scheduledExecutorService.schedule(() -> {
+      try {
+        startComponent(phase, lifecycle, propagateErrors);
+      }
+      catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }, timeToDelay, TimeUnit.SECONDS);
+  }
+
+  /**
+   * Creates a multilevel index containing all managed lifecycles up to and including the target phase.
+   */
+  private ListMultimap<Phase, Lifecycle> getLifecyclesInPhase(final Phase targetPhase) {
+    ListMultimap<Phase, Lifecycle> lifecyclesInPhase = ArrayListMultimap.create();
+
+    final int target = targetPhase.ordinal();
+
+    List<Lifecycle> lifecycles = new ArrayList<>(context.getBeansOfType(Lifecycle.class).values());
+    // Make sure the lifecycles are processed in order (lower @Order value = higher precedence = first)
+    lifecycles.sort((o1, o2) -> {
+      int order1 = getOrder(o1.getClass());
+      int order2 = getOrder(o2.getClass());
+      return Integer.compare(order1, order2);
+    });
+
+    log.info("Indexing lifecycle managed components up to phase {}", targetPhase);
+
+    for (Lifecycle entry : lifecycles) {
+      ManagedLifecycle managedLifecycle = getAnnotation(ManagedLifecycle.class, entry.getClass());
+      if (managedLifecycle != null && managedLifecycle.phase().ordinal() <= target) {
+        lifecyclesInPhase.put(managedLifecycle.phase(), entry);
+      }
+    }
+
+    return lifecyclesInPhase;
+  }
+
+  @VisibleForTesting
+  static int getOrder(final Class<?> clazz) {
+    Order orderAnnotation = getAnnotation(Order.class, clazz);
+    // Use DEFAULT_PRECEDENCE (0) for unannotated components to preserve historical ordering
+    return orderAnnotation != null ? orderAnnotation.value() : PrecedenceConstants.DEFAULT_PRECEDENCE;
+  }
+
+  @VisibleForTesting
+  static <A extends Annotation> A getAnnotation(final Class<A> annotation, final Class<?> clazz) {
+    Class<?> impl = clazz.toString().contains("$$SpringCGLIB$$") ? clazz.getSuperclass() : clazz;
+    return impl.getAnnotation(annotation);
+  }
+}

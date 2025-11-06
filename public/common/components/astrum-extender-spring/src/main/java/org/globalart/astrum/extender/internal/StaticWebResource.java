@@ -1,0 +1,86 @@
+
+package org.globalart.astrum.extender.internal;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.globalart.astrum.mime.MimeSupport;
+import org.globalart.astrum.webresources.UrlWebResource;
+import org.globalart.astrum.webresources.WebResource;
+import org.globalart.astrum.webresources.WebResourceBundle;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.stereotype.Component;
+
+/**
+ * {@link WebResourceBundle} that exposes any resources found under /static.
+ */
+@Qualifier("static")
+@Component
+public class StaticWebResource
+    implements WebResourceBundle
+{
+  private static final String PREFIX_PATTERN = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX + "/%s/**/";
+
+  // ----------------------------------------------------------------------
+  // Implementation fields
+  // ----------------------------------------------------------------------
+
+  private final List<WebResource> staticResources = new ArrayList<WebResource>();
+
+  @Autowired
+  public StaticWebResource(final ApplicationContext context, final MimeSupport mimeSupport) throws IOException {
+    addAvailableResource(context, mimeSupport, "static");
+    addAvailableResource(context, mimeSupport, "assets");
+  }
+
+  // ----------------------------------------------------------------------
+  // Public methods
+  // ----------------------------------------------------------------------
+
+  @Override
+  public List<WebResource> getResources() {
+    return staticResources;
+  }
+
+  // ----------------------------------------------------------------------
+  // Implementation methods
+  // ----------------------------------------------------------------------
+  private static String getPublishedPath(final URL resourceURL) {
+    final String path = resourceURL.toExternalForm();
+    int index = path.indexOf("jar!/");
+    if (index > 0) {
+      return path.substring(index + 4);
+    }
+
+    // Note: It appears as though this code is never hit, as far as I can tell from running on local
+    // all the instances of /static/ also contain the above jar!/ match so we never reach this line
+    // I am not going to remove this presently because I cannot be sure this will be the case on all systems,
+    // but I'm leaving this here for future discovery
+    index = path.indexOf("/static/");
+    if (index > 0) {
+      return path.substring(index);
+    }
+    return null;
+  }
+
+  private void addAvailableResource(
+      final ApplicationContext context,
+      final MimeSupport mimeSupport,
+      final String dirPath) throws IOException
+  {
+    for (Resource resource : context.getResources(PREFIX_PATTERN.formatted(dirPath))) {
+      URL url = resource.getURL();
+      final String path = getPublishedPath(url);
+      if (path != null && !path.endsWith("/")) {
+        staticResources.add(new UrlWebResource(url, path, mimeSupport.guessMimeTypeFromPath(path)));
+      }
+    }
+  }
+}
