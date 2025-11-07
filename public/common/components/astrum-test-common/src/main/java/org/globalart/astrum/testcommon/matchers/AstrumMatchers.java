@@ -1,0 +1,186 @@
+
+package org.globalart.astrum.testcommon.matchers;
+
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.hamcrest.TypeSafeMatcher;
+import org.joda.time.DateTime;
+import org.slf4j.event.Level;
+
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.globalart.astrum.testcommon.extensions.LoggingExtension.convert;
+
+public class AstrumMatchers
+{
+  /**
+   * Matches the DateTime specified ignoring chronology
+   */
+  public static Matcher<DateTime> time(final DateTime dateTime) {
+    return new TypeSafeMatcher<DateTime>()
+    {
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("a DateTime ").appendText(" ").appendValue(dateTime.toString());
+      }
+
+      @Override
+      protected boolean matchesSafely(final DateTime item) {
+        return dateTime.isEqual(item);
+      }
+    };
+  }
+
+  /**
+   * Matches the OffsetDateTime specified ignoring chronology
+   */
+  public static Matcher<OffsetDateTime> time(final OffsetDateTime dateTime) {
+    return new TypeSafeMatcher<OffsetDateTime>()
+    {
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("an OffsetDateTime ").appendText(" ").appendValue(dateTime.toString());
+      }
+
+      @Override
+      protected boolean matchesSafely(final OffsetDateTime item) {
+        return dateTime.isEqual(item);
+      }
+    };
+  }
+
+  /**
+   * Utility method combining logLevel, loggedArguments and logMessage
+   */
+  public static Matcher<ILoggingEvent> logged(final Level level, final String message, final Object... arguments) {
+    return allOf(logLevel(level), logMessage(message), loggedArguments(arguments));
+  }
+
+  /**
+   * Matches {@link ILoggingEvent} instances with the provided list of arguments
+   *
+   * @param arguments the arguments expected to be associated with the log event
+   */
+  public static Matcher<ILoggingEvent> loggedArguments(final Object... arguments) {
+    List<Object> expected = List.of(arguments);
+    return new TypeSafeMatcher<ILoggingEvent>()
+    {
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("an log event with arguments ").appendText(" ");
+        expected.stream()
+            .forEach(description::appendValue);
+      }
+
+      @Override
+      protected boolean matchesSafely(final ILoggingEvent item) {
+        return expected.equals(List.of(item.getArgumentArray()));
+      }
+    };
+  }
+
+  /**
+   * Matches {@link ILoggingEvent} instances with the provided {@link Level}
+   *
+   * @param level the logging level to match events with
+   */
+  public static Matcher<ILoggingEvent> logLevel(final Level level) {
+    return new TypeSafeMatcher<ILoggingEvent>()
+    {
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("an log event with level ").appendText(" ").appendValue(level.toString());
+      }
+
+      @Override
+      protected boolean matchesSafely(final ILoggingEvent item) {
+        return convert(level).equals(item.getLevel());
+      }
+    };
+  }
+
+  public static Matcher<ILoggingEvent> logMessage(final String message) {
+    return logMessage(is(message));
+  }
+
+  /**
+   * Matches {@link ILoggingEvent} instances messages with the provided {@link Matcher<String>}
+   *
+   * @param messageMatcher the matcher to match the logging event's message with
+   */
+  public static Matcher<ILoggingEvent> logMessage(final Matcher<String> messageMatcher) {
+    return new TypeSafeMatcher<ILoggingEvent>()
+    {
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("an log event with message matching ")
+            .appendText(" ")
+            .appendDescriptionOf(messageMatcher);
+      }
+
+      @Override
+      protected boolean matchesSafely(final ILoggingEvent item) {
+        return messageMatcher.matches(item.getMessage());
+      }
+    };
+  }
+
+  /**
+   * Matches {@link ILoggingEvent} instances formatted messages with the provided {@link Matcher<String>}
+   *
+   * @param messageMatcher the matcher to match the logging event's message with
+   */
+  public static Matcher<ILoggingEvent> formattedMessage(final Matcher<String> messageMatcher) {
+    return new TypeSafeMatcher<ILoggingEvent>()
+    {
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("an log event with message matching ")
+            .appendText(" ")
+            .appendDescriptionOf(messageMatcher);
+      }
+
+      @Override
+      protected boolean matchesSafely(final ILoggingEvent item) {
+        return messageMatcher.matches(item.getFormattedMessage());
+      }
+    };
+  }
+
+  /*
+   * Creates a {@link Matcher} for {@link Stream}. Note that the stream cannot have been consumed,
+   * and that the matcher is a termainl operation for the Stream.
+   */
+  @SafeVarargs
+  public static <E> Matcher<Stream<E>> streamContains(final E... items) {
+    List<E> actual = new ArrayList<>();
+    Matcher<Iterable<? extends E>> iterableMatcher = contains(items);
+
+    return new TypeSafeDiagnosingMatcher<Stream<E>>(Stream.class)
+    {
+
+      @Override
+      public void describeTo(final Description description) {
+        iterableMatcher.describeTo(description);
+      }
+
+      @Override
+      protected boolean matchesSafely(final Stream<E> item, final Description mismatchDescription) {
+        if (actual.isEmpty()) {
+          item.collect(Collectors.toCollection(() -> actual));
+        }
+
+        return iterableMatcher.matches(actual);
+      }
+    };
+  }
+}
