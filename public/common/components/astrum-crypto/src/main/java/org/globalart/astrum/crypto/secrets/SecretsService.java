@@ -1,0 +1,138 @@
+
+package org.globalart.astrum.crypto.secrets;
+
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.crypto.internal.error.CipherException;
+
+/**
+ * Service responsible for storing secrets (e.g. passwords) with reversible encryption.
+ */
+public interface SecretsService
+    extends SecretsFactory
+{
+  String SECRETS_MIGRATION_VERSION = "2.2";
+
+  /**
+   * Encrypts the token using the current key and stores it in the DB.
+   * <p>
+   * Callers are responsible for removing the secrets (use {@link SecretsService#remove(Secret)} for this).
+   * 
+   * @implNote if the system is not ready, will use {@link org.globalart.astrum.crypto.LegacyCipherFactory.PbeCipher} to
+   *           encrypt values
+   */
+  Secret encrypt(String purpose, char[] secret, @Nullable String userId) throws CipherException;
+
+  /**
+   * Encrypts the token using the current key and stores it in the DB.
+   * <p>
+   * Callers are responsible for removing the secrets (use {@link SecretsService#remove(Secret)} for this).
+   * 
+   * @implNote if the system is not ready, will use {@link org.globalart.astrum.crypto.maven.MavenCipher} to encrypt
+   *           values
+   */
+  Secret encryptMaven(String purpose, char[] secret, @Nullable String userid) throws CipherException;
+
+  /**
+   * Removes a previously stored secret, if a legacy secret is sent does nothing.
+   *
+   * @param secret the secret to be removed
+   */
+  void remove(Secret secret);
+
+  /**
+   * Changes the current encryption key to the specified key ID
+   */
+  void reEncrypt(SecretData secretData, String keyId) throws CipherException;
+
+  /**
+   * Checks if there are any secrets that have not been re-encrypted with the default key.
+   */
+  boolean isReEncryptRequired();
+
+  /**
+   * Exports the encrypted secret value for the given secret ID token.
+   * This is used during configuration export to get the encrypted value that can be imported into another system.
+   *
+   * @param secretId the secret ID token (e.g., "_123" or legacy encrypted string)
+   * @return the encrypted secret string, or null if the secret ID is null or the secret cannot be found
+   */
+  String exportEncrypted(String secretId);
+
+  /**
+   * Imports an encrypted secret value into the secrets store.
+   * This is used during configuration import to create a new secret entry with an existing encrypted value.
+   *
+   * @param purpose the purpose of the secret (e.g., "email", "ldap")
+   * @param encryptedValue the encrypted secret string (PHC format or legacy encrypted string)
+   * @param userId the user performing the import, may be null
+   * @return a Secret instance with the new ID
+   * @throws CipherException if the import fails
+   */
+  Secret importEncrypted(String purpose, String encryptedValue, String userId) throws CipherException;
+
+  /**
+   * Imports an encrypted secret value into the secrets store, using an optional migration cipher password
+   * for decryption.
+   * This is used during configuration import to create a new secret entry with an existing encrypted value
+   * that was encrypted with a different key.
+   *
+   * @param purpose the purpose of the secret (e.g., "email", "ldap")
+   * @param encryptedValue the encrypted secret string (PHC format or legacy encrypted string)
+   * @param userId the user performing the import, may be null
+   * @param decryptionCipherPassword optional password to use for decrypting the imported secret, may be null
+   * @return a Secret instance with the new ID
+   * @throws CipherException if the import fails
+   */
+  Secret importEncrypted(
+      String purpose,
+      String encryptedValue,
+      String userId,
+      @Nullable String decryptionCipherPassword) throws CipherException;
+
+  /**
+   * Exports a secret re-encrypted with a custom password for migration purposes.
+   * Decrypts the secret using the instance key, then re-encrypts with the provided password.
+   * This is the inverse of importEncrypted(password) - enabling cross-instance migration.
+   *
+   * @param secretId the secret ID token (e.g., "_123" or legacy encrypted string)
+   * @param customPassword the password to use for export encryption
+   * @return PHC format encrypted string suitable for import on another instance
+   * @throws CipherException if the secret cannot be found or export fails
+   */
+  String exportEncryptedWithPassword(String secretId, String customPassword) throws CipherException;
+
+  /**
+   * Encrypts plaintext with a custom password for migration purposes.
+   * This is useful for encrypting raw values that aren't stored as Secret objects yet.
+   * Mirrors importEncrypted() which can accept plaintext encrypted values.
+   *
+   * @param plaintext the plaintext value to encrypt
+   * @param customPassword the password to use for encryption
+   * @return PHC format encrypted string
+   * @throws CipherException if encryption fails
+   */
+  String encryptPlaintextWithPassword(String plaintext, String customPassword) throws CipherException;
+
+  /**
+   * Encrypts raw bytes with the given password using the migration cipher.
+   * Prefer this over {@link #encryptPlaintextWithPassword(String, String)} when the caller holds
+   * secret material as a {@code byte[]} that can be explicitly zeroed after use, avoiding the
+   * creation of an intermediate {@code String} that lingers on the heap.
+   *
+   * @param plaintext the bytes to encrypt
+   * @param customPassword the password to use for encryption
+   * @return PHC format encrypted string
+   * @throws CipherException if encryption fails
+   */
+  String encryptBytesWithPassword(byte[] plaintext, String customPassword) throws CipherException;
+
+  /**
+   * Checks if a secret ID exists in the store.
+   *
+   * @param secretId the secret ID token (e.g., "_123")
+   * @return true if the secret exists, false otherwise. Returns {@code false} if the secret ID has an
+   *         invalid format or if the secret store is temporarily unavailable.
+   */
+  boolean exists(String secretId);
+}
