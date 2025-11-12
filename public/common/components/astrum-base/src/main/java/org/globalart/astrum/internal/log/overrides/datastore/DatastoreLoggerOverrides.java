@@ -1,0 +1,152 @@
+
+package org.globalart.astrum.internal.log.overrides.datastore;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.bootstrap.entrypoint.configuration.ApplicationDirectories;
+import org.globalart.astrum.common.app.ManagedLifecycle;
+import org.globalart.astrum.common.entity.Continuation;
+import org.globalart.astrum.common.log.LoggerLevel;
+import org.globalart.astrum.internal.log.overrides.LogbackLoggerOverridesSupport;
+import org.globalart.astrum.internal.log.LoggerOverrides;
+
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.common.app.FeatureFlags.DATASTORE_CLUSTERED_ENABLED;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.STORAGE;
+import org.springframework.stereotype.Component;
+
+/**
+ * {@link LoggerOverrides} datastore implementation.
+ */
+@Component
+@Primary
+@ManagedLifecycle(phase = STORAGE)
+@ConditionalOnProperty(name = DATASTORE_CLUSTERED_ENABLED, havingValue = "true")
+public class DatastoreLoggerOverrides
+    extends LogbackLoggerOverridesSupport
+    implements LoggerOverrides
+{
+  private final LoggingOverridesStore loggingLevelsStore;
+
+  private final Map<String, LoggerLevel> loggerLevels = new ConcurrentHashMap<>();
+
+  private final ReentrantReadWriteLock loggerLevelsLock = new ReentrantReadWriteLock();
+
+  @Autowired
+  public DatastoreLoggerOverrides(
+      final ApplicationDirectories appDirectories,
+      final LoggingOverridesStore loggingLevelsStore)
+  {
+    super(appDirectories);
+    this.loggingLevelsStore = checkNotNull(loggingLevelsStore);
+  }
+
+  @Override
+  public void load() {
+    loggerLevels.clear();
+    if (logbackFileExists()) {
+      try {
+        loggerLevels.putAll(readFromFile());
+      }
+      catch (Exception e) {
+        Throwables.throwIfUnchecked(e);
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  @Override
+  protected void doStart() throws Exception {
+    log.debug("Load overrides from datastore");
+    load();
+    syncWithDBAndGet();
+
+    // if override level is loaded from xml file but not presented in db - migrate it
+
+    List<LoggingOverridesData> levelsMigrateToDb = loggerLevels.entrySet()
+        .stream()
+        .filter(entry -> !loggingLevelsStore.exists(entry.getKey()))
+        .map(entry -> new LoggingOverridesData(entry.getKey(), entry.getValue().toString()))
+        .collect(Collectors.toList());
+
+    // Apply the freshly-synced overrides to logback directly, at this (STORAGE) phase. The store owns
+    // both loading and applying its overrides; it does not depend on LogbackLogManager or the EventManager
+    // (which is not available until EVENTS).
+    applyToLogback(loggerLevels);
+
+    levelsMigrateToDb.forEach(loggingLevelsStore::create);
+  }
+
+  @Override
+  public Map<String, LoggerLevel> syncWithDBAndGet() {
+    loggerLevelsLock.writeLock().lock();
+    try {
+      Continuation<LoggingOverridesData> levels = loggingLevelsStore.readRecords();
+      levels.forEach(data -> loggerLevels.put(data.getName(), LoggerLevel.valueOf(data.getLevel())));
+      return loggerLevels;
+    }
+    finally {
+      loggerLevelsLock.writeLock().unlock();
+    }
+  }
+
+  @Override
+  public void reset() {
+    loggerLevels.clear();
+    loggingLevelsStore.deleteAllRecords();
+  }
+
+  @Override
+  public void set(final String name, final LoggerLevel level) {
+    loggerLevels.put(name, level);
+
+    LoggingOverridesData data = new LoggingOverridesData(name, level.toString());
+    if (loggingLevelsStore.exists(name)) {
+      loggingLevelsStore.update(data);
+    }
+    else {
+      loggingLevelsStore.create(data);
+    }
+  }
+
+  @Nullable
+  @Override
+  public LoggerLevel get(final String name) {
+    return loggerLevels.get(name);
+  }
+
+  @Nullable
+  @Override
+  public LoggerLevel remove(final String name) {
+    LoggerLevel removed = loggerLevels.remove(name);
+    loggingLevelsStore.deleteByName(name);
+    return removed;
+  }
+
+  @Override
+  public boolean contains(final String name) {
+    return loggerLevels.containsKey(name);
+  }
+
+  @Override
+  public Iterator<Entry<String, LoggerLevel>> iterator() {
+    return ImmutableMap.copyOf(loggerLevels).entrySet().iterator();
+  }
+
+  @Override
+  public void save() {
+    // empty. method 'set' writes data to db directly
+  }
+}
