@@ -1,0 +1,109 @@
+
+package org.globalart.astrum.internal.web;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.globalart.astrum.common.app.WebFilterPriority;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Filter for sanitizing http header values
+ *
+ * @since 3.2
+ */
+@Order(WebFilterPriority.WEB)
+@WebFilter("/*")
+@Component
+public class HeaderPatternFilter
+    implements Filter
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private static final String PATTERNS_PROPERTIES_FILE = "http-headers-patterns.properties";
+
+  private ImmutableMap<String, Pattern> validHeaderPatterns;
+
+  @Override
+  public void init(final FilterConfig filterConfig) throws ServletException {
+    ImmutableMap.Builder<String, Pattern> builder = new ImmutableMap.Builder<>();
+    Properties properties = new Properties();
+    try (InputStream stream = getClass().getResourceAsStream(PATTERNS_PROPERTIES_FILE)) {
+      properties.load(stream);
+    }
+    catch (IOException ioe) {
+      log.error("IOException loading {} as a resource stream", PATTERNS_PROPERTIES_FILE, ioe);
+    }
+    for (String key : properties.stringPropertyNames()) {
+      String val = properties.getProperty(key);
+      try {
+        builder.put(key, Pattern.compile(val));
+      }
+      catch (PatternSyntaxException pse) {
+        log.error("unable to compile the pattern for the header '{}', failed pattern is '{}', skipping", key, val, pse);
+      }
+    }
+
+    validHeaderPatterns = builder.build();
+  }
+
+  @Override
+  public void doFilter(
+      final ServletRequest request,
+      final ServletResponse response,
+      final FilterChain chain) throws IOException, ServletException
+  {
+    if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
+      HttpServletRequest httpRequest = (HttpServletRequest) request;
+      HttpServletResponse httpResponse = (HttpServletResponse) response;
+      for (Entry<String, Pattern> entry : validHeaderPatterns.entrySet()) {
+        if (checkForBadHeader(httpRequest.getHeaders(entry.getKey()), entry.getValue())) {
+          log.warn("rejecting request from {} due to invalid header '{}: {}'", request.getRemoteHost(), entry.getKey(),
+              Joiner.on(",").join(Collections.list(httpRequest.getHeaders(entry.getKey()))));
+          httpResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+        }
+      }
+    }
+    chain.doFilter(request, response);
+  }
+
+  @Override
+  public void destroy() {
+    // ignore
+  }
+
+  private static boolean checkForBadHeader(final Enumeration<String> headers, final Pattern expression) {
+    while (headers != null && headers.hasMoreElements()) {
+      String header = headers.nextElement();
+      if (!Strings.isNullOrEmpty(header) && !expression.matcher(header).matches()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+}
