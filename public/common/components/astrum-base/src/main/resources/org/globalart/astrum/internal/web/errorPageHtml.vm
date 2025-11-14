@@ -1,0 +1,55 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>$esc.html($errorCode) - GlobalArt Astrum Repository</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+#* START favicon links and meta
+ * favicon set for multiple browsers, OS shortcuts, etc.
+ * Generated at Real Favicon Generator, https://realfavicongenerator.net/
+ *
+ * Associated files not referenced explicitly in link or meta tags:
+ *    mstile-*.png      - Win8+ desktop support
+ *    browserconfig.xml - Win8+ desktop support
+ *    apple-touch-icon.png  - OSX Safari desktop support
+*#
+## Safari on MacOS and iOS
+  <link rel="icon" type="image/png" href="$relativePath/static/rapture/resources/safari-favicon-32x32.png?$urlSuffix" sizes="32x32">
+  <link rel="mask-icon" href="$relativePath/static/rapture/resources/favicon-white.svg?$urlSuffix" color="#6D5EF5">
+## classic favicon, shown in browser tabs
+  <link rel="icon" type="image/png" href="$relativePath/static/rapture/resources/favicon.svg?$urlSuffix" sizes="16x16">
+## END favicon links
+
+  <link rel="stylesheet" type="text/css" href="$relativePath/static/css/astrum-content.css?$urlSuffix"/>
+  <link rel="stylesheet" type="text/css" href="$relativePath/static/css/error-styles.css?$urlSuffix"/>
+</head>
+<body>
+<div class="astrum-header">
+  <a href="$relativePath">
+    <div class="product-logo">
+      <img src="$relativePath/static/rapture/resources/globalart-repository-logo-nav.png?$urlSuffix" alt="Product logo"/>
+    </div>
+  </a>
+</div>
+
+<div class="astrum-body">
+  <div class="content-header">
+    <img src="$relativePath/static/rapture/resources/404-error-image.svg?$urlSuffix" alt="404 Error illustration" aria-role="presentation"/>
+    <span class="title">Error $esc.html($errorCode)</span>
+    <span class="description">$esc.html($errorName)</span>
+  </div>
+  <div class="content-body">
+    <div class="content-section">
+      $esc.html($errorDescription)
+    </div>
+    #if($errorCause)
+      <div class="content-section">
+        <pre>$esc.html(${errorCause.trace})</pre>
+      </div>
+    #end
+  </div>
+</div>
+</body>
+</html>

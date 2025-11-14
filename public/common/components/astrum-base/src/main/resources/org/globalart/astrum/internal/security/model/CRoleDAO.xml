@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.internal.security.model.CRoleDAO">
+
+  <insert id="createSchema">
+    CREATE TABLE IF NOT EXISTS role (
+      id          VARCHAR(200) NOT NULL,
+      name        VARCHAR(200) NOT NULL,
+      description VARCHAR(400) NULL,
+      privileges  ${JSON_TYPE} NOT NULL,
+      roles       ${JSON_TYPE} NOT NULL,
+      read_only   BOOLEAN      NOT NULL,
+      version     INT          NOT NULL DEFAULT 1,
+
+      CONSTRAINT pk_role_id PRIMARY KEY (id)
+    );
+  </insert>
+
+  <select id="browse" resultType="CRoleData">
+    SELECT * FROM role;
+  </select>
+
+  <insert id="create" parameterType="CRoleData">
+    INSERT INTO role(id, name, description, privileges, roles, read_only, version)
+        VALUES (#{id}, #{name}, #{description}, #{privileges}, #{roles}, #{readOnly}, #{version});
+  </insert>
+
+  <select id="read" resultType="CRoleData">
+    SELECT * FROM role WHERE id = #{value};
+  </select>
+
+  <update id="update" parameterType="CRoleData">
+    UPDATE role SET name = #{name}, description = #{description}, privileges = #{privileges},
+           roles = #{roles}, read_only = #{readOnly}, version = #{version}
+           WHERE id = #{id};
+  </update>
+
+  <delete id="delete">
+    DELETE FROM role WHERE id = #{value};
+  </delete>
+
+  <select id="readByIds" resultType="CRoleData">
+    SELECT * FROM role WHERE id IN
+    <foreach collection="ids" item="id" open="(" separator="," close=")">
+      #{id}
+    </foreach>
+  </select>
+
+</mapper>

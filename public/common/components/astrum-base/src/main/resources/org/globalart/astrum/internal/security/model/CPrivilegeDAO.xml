@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.internal.security.model.CPrivilegeDAO">
+
+  <insert id="createSchema">
+    CREATE TABLE IF NOT EXISTS privilege (
+      id          VARCHAR(200) NOT NULL,
+      name        VARCHAR(200) NOT NULL,
+      description VARCHAR(400) NULL,
+      type        VARCHAR(100) NOT NULL,
+      properties  ${JSON_TYPE} NOT NULL,
+      read_only   BOOLEAN      NOT NULL,
+      version     INT          NOT NULL DEFAULT 1,
+
+      CONSTRAINT pk_privilege_id PRIMARY KEY (id)
+    );
+
+    <!-- Index handled by PrivilegeIndexMigrationStep_2_46 to avoid lock contention (ASTRUM-49154) -->
+  </insert>
+
+  <select id="browse" resultType="CPrivilegeData">
+    SELECT * FROM privilege;
+  </select>
+
+  <insert id="create" parameterType="CPrivilegeData">
+    INSERT INTO privilege(id, name, description, type, properties, read_only, version)
+        VALUES (#{id}, #{name}, #{description}, #{type}, #{properties}, #{readOnly}, #{version});
+  </insert>
+
+  <select id="read" resultType="CPrivilegeData">
+    SELECT * FROM privilege WHERE id = #{value};
+  </select>
+
+  <select id="readByName" resultType="CPrivilegeData">
+    SELECT * FROM privilege WHERE name = #{value};
+  </select>
+
+  <select id="findByIds" resultType="CPrivilegeData" parameterType="java.util.Set">
+    SELECT * FROM privilege
+    <where>
+      <foreach collection="ids" item="ids" index="index" open="id IN (" close=")" separator=",">
+        #{ids}
+      </foreach>
+    </where>
+  </select>
+
+  <update id="update" parameterType="CPrivilegeData">
+    UPDATE privilege SET name = #{name}, description = #{description}, type = #{type},
+        properties = #{properties}, read_only = #{readOnly}, version = #{version}
+        WHERE id = #{id};
+  </update>
+
+  <update id="updateByName" parameterType="CPrivilegeData">
+    UPDATE privilege SET name = #{name}, description = #{description}, type = #{type},
+                         properties = #{properties}, read_only = #{readOnly}, version = #{version}
+    WHERE name = #{name};
+  </update>
+
+  <delete id="delete">
+    DELETE FROM privilege WHERE id = #{value};
+  </delete>
+
+  <delete id="deleteByName">
+    DELETE FROM privilege WHERE name = #{value};
+  </delete>
+
+</mapper>
