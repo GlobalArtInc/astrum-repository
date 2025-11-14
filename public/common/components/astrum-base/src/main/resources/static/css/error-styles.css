@@ -1,0 +1,65 @@
+
+
+body {
+  background-color: hsla(228, 44%, 97%, 1);
+}
+.astrum-body {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  height: 100vh;
+  position: initial;
+  flex-direction: column;
+  background-color: hsla(228, 44%, 97%, 1);
+  color: hsla(60, 4%, 20%, 1);
+  padding-top: 100px;
+  font-family: Open Sans, sans-serif;
+  line-height: 1.5;
+}
+
+.astrum-body .content-header {
+  position: initial;
+  display: flex;
+  flex-direction: column;
+  background: none;
+  align-items: center;
+}
+
+.astrum-body img {
+  margin: 0;
+}
+
+.astrum-body .content-header .title {
+  margin-top: 30px;
+  font-size: 80px;
+}
+
+.astrum-body .content-header .description {
+  font-size: 32px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 30px;
+}
+
+.astrum-body .content-body {
+  position: initial;
+}
+
+.astrum-body .content-section {
+  background: none;
+  border: none;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+.astrum-header {
+  background-color: white;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  border: 1px solid hsl(228, 44%, 80%);
+}
+
+.astrum-header .product-logo img {
+    height: 32px;
+}

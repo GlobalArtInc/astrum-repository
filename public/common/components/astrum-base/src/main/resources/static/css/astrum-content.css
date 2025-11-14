@@ -1,0 +1,178 @@
+
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: #dddddd;
+  margin: 0;
+  padding: 0;
+}
+
+body.htmlIndex {
+  padding: 0.5em;
+}
+
+.astrum-header {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 40px;
+  padding: 2px 4px 2px 16px;
+
+  font-size: 0;
+
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.astrum-header a {
+  color: #FFFFFF;
+  text-decoration: none;
+}
+.astrum-header a:hover,
+.astrum-header a:focus {
+  color: #96CAEE;
+}
+.astrum-header a:active {
+  color: #0F4976;
+}
+
+
+.astrum-header .product-logo {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.astrum-header .product-id {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.astrum-header .product-id__line-1 {
+  font-size: 20px;
+  line-height: 1.2em;
+}
+.astrum-header .product-id__line-2 {
+  font-size: 11px;
+  line-height: 1.1em;
+}
+
+.astrum-header .product-logo img {
+  vertical-align: middle;
+  border: 0;
+}
+
+.astrum-header .product-name {
+  display: inline-block;
+  letter-spacing: 0.05em;
+  font-weight: 100;
+}
+.astrum-header .product-spec {
+  display: inline-block;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+
+
+.astrum-body {
+  padding: 0 20px 0 20px;
+  position: absolute;
+  left: 0;
+  top: 40px;
+  right: 0;
+  bottom: 0;
+  border-left: #cbcbcb 1px solid;
+  border-right: #cbcbcb 1px solid;
+  background-color: #f4f4f4;
+}
+
+.astrum-body img {
+  float: left;
+  margin-right: 10px;
+}
+
+.astrum-body .content-header {
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 10px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #dddddd;
+  z-index: 1;
+}
+
+.astrum-body .content-header .title {
+  font-size: 26px;
+}
+
+.astrum-body .content-header .description {
+  font-size: 13px;
+  padding-left: 6px;
+  font-weight: normal;
+}
+
+.astrum-body .content-body {
+  position: absolute;
+  top: 53px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 0 10px 0;
+  margin: 0 10px 0 10px;
+  overflow: auto;
+}
+
+.astrum-body .content-section {
+  font-size: 13px;
+  line-height: 20px;
+  background-color: #ffffff;
+  border: #dddddd solid 1px;
+  word-wrap: break-word;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+/*
+ * Tabular data
+ */
+
+.content-section table {
+  font-size: 13px;
+  margin-top: 13px;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.content-section tbody tr:nth-child(odd) {
+  background-color: #FAFAFA;
+}
+
+.content-section th,
+.content-section td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 24px 5px 5px;
+  border-bottom: solid 1px #EDEDED;
+}
+
+/* Force the first column to have a fixed width */
+.content-section td:first-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.content-section th:last-child,
+.content-section td:last-child {
+  padding-right: 5px;
+}
+
+.content-section th {
+  font-weight: normal;
+  font-style: italic;
+}
