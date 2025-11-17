@@ -1,0 +1,294 @@
+
+package org.globalart.astrum.internal.log;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.Map;
+
+import org.globalart.astrum.bootstrap.entrypoint.configuration.ApplicationDirectories;
+import org.globalart.astrum.common.entity.Continuation;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.common.log.LogConfigurationCustomizer;
+import org.globalart.astrum.common.log.LoggerLevel;
+import org.globalart.astrum.datastore.mybatis.ContinuationArrayList;
+import org.globalart.astrum.internal.log.overrides.datastore.DatastoreLoggerOverrides;
+import org.globalart.astrum.internal.log.overrides.datastore.LoggerOverridesEvent;
+import org.globalart.astrum.internal.log.overrides.datastore.LoggerOverridesEvent.Action;
+import org.globalart.astrum.internal.log.overrides.datastore.LoggingOverridesData;
+import org.globalart.astrum.internal.log.overrides.datastore.LoggingOverridesStore;
+import org.globalart.astrum.testcommon.event.SimpleEventManager;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.FileAppender;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.Mock;
+import org.springframework.context.ApplicationContext;
+import com.google.common.collect.ImmutableSet;
+
+import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.globalart.astrum.internal.log.LogbackLogManager.getLogFor;
+
+/**
+ * Tests for {@link LogbackLogManager}.
+ */
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class LogbackLogManagerTest
+{
+  @Mock
+  private ApplicationContext applicationContext;
+
+  private String fooLoggerName;
+
+  private String barLoggerName;
+
+  @Before
+  public void setUp() {
+    // generate some unique logger names to avoid having to mock up logback which is used by tests
+    fooLoggerName = "foo" + System.currentTimeMillis();
+    barLoggerName = "bar" + System.currentTimeMillis();
+  }
+
+  /**
+   * Ensure if a customizer configures a level a logger is created with that level, and if a customizer configures a
+   * default that it does not create a logger.
+   */
+  @Test
+  public void testRegisterCustomization_createsLoggerAndIgnoresDefault() throws Exception {
+    LogConfigurationCustomizer customizer = configuration -> {
+      configuration.setLoggerLevel(fooLoggerName, LoggerLevel.DEBUG);
+      configuration.setLoggerLevel(barLoggerName, LoggerLevel.DEFAULT);
+    };
+
+    when(applicationContext.getBeansOfType(LogConfigurationCustomizer.class)).thenReturn(Map.of("", customizer));
+
+    LogbackLogManager underTest = new LogbackLogManager(mock(EventManager.class), new MemoryLoggerOverrides());
+    underTest.setApplicationContext(applicationContext);
+
+    LoggerContext context = LogbackLogManager.loggerContext();
+
+    // verify default state
+    assertThat(context.exists(fooLoggerName), nullValue());
+    assertThat(context.exists(barLoggerName), nullValue());
+
+    // start the manager
+    underTest.start();
+
+    // verify customization was applied
+    assertThat(context.getLogger(fooLoggerName).getLevel(), is(Level.DEBUG));
+
+    // DEFAULT logger should not have been created
+    assertThat(context.exists(barLoggerName), nullValue());
+  }
+
+  @Test
+  public void testRegisterCustomization_overridesOverrideCustomizer() throws Exception {
+    LogConfigurationCustomizer customizer =
+        configuration -> configuration.setLoggerLevel(fooLoggerName, LoggerLevel.DEBUG);
+    when(applicationContext.getBeansOfType(LogConfigurationCustomizer.class)).thenReturn(Map.of("", customizer));
+
+    MemoryLoggerOverrides overrides = new MemoryLoggerOverrides();
+    overrides.set(fooLoggerName, LoggerLevel.ERROR);
+    LogbackLogManager underTest = new LogbackLogManager(mock(EventManager.class), overrides);
+    underTest.setApplicationContext(applicationContext);
+
+    LoggerContext context = LogbackLogManager.loggerContext();
+
+    // verify default state
+    assertThat(context.exists(fooLoggerName), nullValue());
+
+    // start the manager
+    underTest.start();
+
+    // verify customization was applied
+    assertThat(context.getLogger(fooLoggerName).getLevel(), is(Level.ERROR));
+  }
+
+  @Test
+  public void testGetLogFor() {
+    Appender notFile = mock(Appender.class);
+    when(notFile.getName()).thenReturn("astrum.log");
+
+    FileAppender astrumLog = mock(FileAppender.class);
+    when(astrumLog.getName()).thenReturn("astrum.log");
+    when(astrumLog.getFile()).thenReturn("/var/log/astrum.log");
+
+    FileAppender clusterLog = mock(FileAppender.class);
+    when(clusterLog.getName()).thenReturn("clustered.log");
+    when(clusterLog.getFile()).thenReturn("/var/log/clustered.log");
+
+    assertThat(getLogFor("astrum.log", asList(notFile, astrumLog, clusterLog)).get(), is("astrum.log"));
+    assertThat(getLogFor("clustered.log", asList(notFile, astrumLog, clusterLog)).get(), is("clustered.log"));
+    assertThat(getLogFor("not_a_log.log", asList(notFile, astrumLog, clusterLog)).isPresent(), is(false));
+  }
+
+  @Test
+  public void testReloadOverridesFromDatastoreInvoked() throws Exception {
+    // unique per run so the process-global logback context is not polluted by other tests
+    String loggerName = "datastoreOverride" + System.nanoTime();
+    EventManager eventManager = mock(EventManager.class);
+    LoggingOverridesStore store = mock(LoggingOverridesStore.class);
+
+    Continuation<LoggingOverridesData> data = new ContinuationArrayList<LoggingOverridesData>()
+    {
+      {
+        add(new LoggingOverridesData(loggerName, LoggerLevel.DEBUG.toString()));
+      }
+    };
+    when(store.readRecords()).thenReturn(data);
+
+    DatastoreLoggerOverrides overrides = new DatastoreLoggerOverrides(
+        mock(ApplicationDirectories.class), store);
+
+    LogbackLogManager underTest = new LogbackLogManager(eventManager, overrides);
+    underTest.setApplicationContext(applicationContext);
+
+    LoggerContext context = LogbackLogManager.loggerContext();
+    // precondition: no level applied to the live logback logger yet
+    assertThat(context.exists(loggerName), nullValue());
+
+    underTest.start();
+    // DatastoreLoggerOverrides applies its DB-synced overrides to logback itself at the STORAGE phase
+    // (self-contained: no callback into LogbackLogManager and no event).
+    overrides.start();
+
+    // the store's overrides are tracked...
+    Map<String, LoggerLevel> overriddenLoggers = underTest.getOverriddenLoggers();
+    assertThat(overriddenLoggers.size(), is(1));
+    assertThat(overriddenLoggers.get(loggerName).toString(), is(LoggerLevel.DEBUG.toString()));
+
+    // ...and, crucially, applyToLogback actually pushed the level onto the live logback logger. This assertion
+    // fails if the direct-apply call in DatastoreLoggerOverrides.doStart() is removed.
+    assertThat(context.getLogger(loggerName).getLevel(), is(Level.DEBUG));
+  }
+
+  @Test
+  public void testLoggerOverridesEventProcessed() {
+    EventManager eventManager = new SimpleEventManager();
+    LogbackLogManager underTest = new LogbackLogManager(eventManager, mock(DatastoreLoggerOverrides.class));
+    underTest.setApplicationContext(applicationContext);
+    String testName = "test";
+    String testLevel = "TRACE";
+
+    eventManager.register(underTest);
+    LoggerOverridesEvent changeEvent = new LoggerOverridesEvent(testName, testLevel, Action.CHANGE);
+    changeEvent.setRemoteNodeId("nodeId");
+    eventManager.post(changeEvent);
+    LoggerContext context = LogbackLogManager.loggerContext();
+
+    await().atMost(10, SECONDS)
+        .untilAsserted(() -> assertThat(context.getLogger(testName).getLevel(), is(Level.toLevel(testLevel))));
+
+    LoggerOverridesEvent resetEvent = new LoggerOverridesEvent(testName, null, Action.RESET);
+    resetEvent.setRemoteNodeId("nodeId");
+    eventManager.post(resetEvent);
+
+    await().atMost(10, SECONDS)
+        .untilAsserted(() -> assertThat(context.getLogger(testName).getLevel(), is(nullValue())));
+  }
+
+  @Test
+  public void testResetRootLoggerEventProcessed() {
+    EventManager eventManager = new SimpleEventManager();
+    LoggerContext context = LogbackLogManager.loggerContext();
+    LogbackLogManager underTest = new LogbackLogManager(eventManager, mock(DatastoreLoggerOverrides.class));
+    underTest.setApplicationContext(applicationContext);
+    eventManager.register(underTest);
+
+    // change ROOT log level
+    LoggerOverridesEvent changeEvent = new LoggerOverridesEvent("ROOT", "DEBUG", Action.CHANGE);
+    changeEvent.setRemoteNodeId("nodeId");
+    eventManager.post(changeEvent);
+
+    await().atMost(10, SECONDS).untilAsserted(() -> assertThat(context.getLogger("ROOT").getLevel(), is(Level.DEBUG)));
+
+    // reset ROOT log level back to INFO
+    LoggerOverridesEvent resetEvent = new LoggerOverridesEvent("ROOT", null, Action.RESET);
+    resetEvent.setRemoteNodeId("nodeId");
+    eventManager.post(resetEvent);
+
+    await().atMost(10, SECONDS).untilAsserted(() -> assertThat(context.getLogger("ROOT").getLevel(), is(Level.INFO)));
+  }
+
+  @Test
+  public void testResetAllLoggersEventProcessed() {
+    EventManager eventManager = new SimpleEventManager();
+    LoggerContext context = LogbackLogManager.loggerContext();
+    LoggerOverrides memoryLoggerOverrides = new MemoryLoggerOverrides();
+    LogbackLogManager underTest = new LogbackLogManager(eventManager, memoryLoggerOverrides);
+    underTest.setApplicationContext(applicationContext);
+    eventManager.register(underTest);
+
+    // send event with updating 2 loggers
+    LoggerOverridesEvent changeEvent = new LoggerOverridesEvent("org.bar", "TRACE", Action.CHANGE);
+    changeEvent.setRemoteNodeId("nodeId");
+    eventManager.post(changeEvent);
+    LoggerOverridesEvent changeEvent2 = new LoggerOverridesEvent("org.foo", "DEBUG", Action.CHANGE);
+    changeEvent2.setRemoteNodeId("nodeId");
+    eventManager.post(changeEvent2);
+
+    // check that loggers were set.
+    await().atMost(10, SECONDS)
+        .untilAsserted(() -> assertThat(context.getLogger("org.bar").getLevel(), is(Level.TRACE)));
+    await().atMost(10, SECONDS)
+        .untilAsserted(() -> assertThat(context.getLogger("org.foo").getLevel(), is(Level.DEBUG)));
+
+    // reset all loggers
+    LoggerOverridesEvent resetEvent = new LoggerOverridesEvent(null, null, Action.RESET_ALL);
+    resetEvent.setRemoteNodeId("nodeId");
+    eventManager.post(resetEvent);
+
+    await().atMost(10, SECONDS)
+        .untilAsserted(() -> assertThat(context.getLogger("org.bar").getLevel(), is(nullValue())));
+    await().atMost(10, SECONDS)
+        .untilAsserted(() -> assertThat(context.getLogger("org.foo").getLevel(), is(nullValue())));
+  }
+
+  @Test
+  public void testLoggerLevelWhenLogNotFound() throws Exception {
+    EventManager eventManager = new SimpleEventManager();
+    LogbackLogManager underTest = spy(new LogbackLogManager(eventManager, mock(DatastoreLoggerOverrides.class)));
+    underTest.setApplicationContext(applicationContext);
+    underTest.start();
+    String testFileName = "foo";
+
+    when(underTest.getAllLogFiles(testFileName)).thenReturn(Collections.emptySet());
+
+    underTest.getLogFile(testFileName);
+
+    verify(underTest).logFileNotFound(testFileName);
+  }
+
+  @Test
+  public void testNoLogWhenFileFound() throws Exception {
+    EventManager eventManager = new SimpleEventManager();
+    LogbackLogManager underTest = spy(new LogbackLogManager(eventManager, mock(DatastoreLoggerOverrides.class)));
+    underTest.setApplicationContext(applicationContext);
+    String testFileName = "foo";
+    underTest.start();
+
+    when(underTest.getAllLogFiles(testFileName)).thenReturn(ImmutableSet.of(new File(testFileName)));
+
+    File result = underTest.getLogFile(testFileName);
+
+    verify(underTest, times(0)).logFileNotFound(any());
+
+    assertEquals(testFileName, result.getName());
+  }
+}

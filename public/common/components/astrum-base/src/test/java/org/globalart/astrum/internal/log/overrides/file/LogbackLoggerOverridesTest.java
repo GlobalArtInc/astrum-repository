@@ -1,0 +1,121 @@
+
+package org.globalart.astrum.internal.log.overrides.file;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
+import org.globalart.astrum.common.log.LoggerLevel;
+
+import ch.qos.logback.classic.Logger;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.LoggerFactory;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+
+/**
+ * Tests for {@link LogbackLoggerOverrides}.
+ */
+public class LogbackLoggerOverridesTest
+{
+  private static final org.slf4j.Logger log = LoggerFactory.getLogger(LogbackLoggerOverridesTest.class);
+
+  @Rule
+  public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+  private File file;
+
+  private LogbackLoggerOverrides underTest;
+
+  @Before
+  public void setUp() throws Exception {
+    file = temporaryFolder.newFile("logback-overrides.tmp");
+    underTest = new LogbackLoggerOverrides(file);
+  }
+
+  @Test
+  public void testSave_writtenInLogbackXMLFormat() throws Exception {
+    underTest.set(Logger.ROOT_LOGGER_NAME, LoggerLevel.WARN);
+    underTest.set("foo", LoggerLevel.ERROR);
+    underTest.set("bar", LoggerLevel.INFO);
+    underTest.save();
+
+    assertThat(file.exists(), is(true));
+
+    String xml = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+
+    log.info("XML:\n{}", xml);
+
+    assertThat(xml, is(getExpectedXml(false)));
+  }
+
+  @Test
+  public void testLoad_fromLogbackXMLFormat() throws Exception {
+    String xmlString =
+        "<included>" +
+            System.lineSeparator() +
+            "<logger name=\"foo\" level=\"ERROR\"/>" +
+            System.lineSeparator() +
+            "<logger name=\"bar\" level=\"INFO\"/>" +
+            System.lineSeparator() +
+            "</included>";
+    Files.write(file.toPath(), xmlString.getBytes(StandardCharsets.UTF_8));
+
+    log.info("XML:\n{}", new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8));
+
+    underTest.load();
+
+    assertThat(underTest.get("foo"), is(LoggerLevel.ERROR));
+    assertThat(underTest.get("bar"), is(LoggerLevel.INFO));
+  }
+
+  @Test
+  public void testReset_removesLoggerElements() throws IOException {
+    underTest.set("foo", LoggerLevel.ERROR);
+    underTest.set("bar", LoggerLevel.INFO);
+    underTest.save();
+    assertThat(file.exists(), is(true));
+
+    underTest.reset();
+    assertThat(file.exists(), is(true));
+
+    String xml = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+
+    log.info("XML:\n{}", xml);
+
+    assertThat(xml, is(getExpectedXml(true)));
+  }
+
+  private String getExpectedXml(boolean afterReset) {
+    StringBuilder xml = new StringBuilder();
+    xml.append("<?xml version='1.0' encoding='UTF-8'?>");
+    xml.append(System.lineSeparator());
+    xml.append(System.lineSeparator());
+    xml.append("<!--");
+    xml.append(System.lineSeparator());
+    xml.append("DO NOT EDIT - Automatically generated; User-customized logging levels");
+    xml.append(System.lineSeparator());
+    xml.append("-->");
+    xml.append(System.lineSeparator());
+    xml.append(System.lineSeparator());
+    xml.append("<included>");
+    xml.append(System.lineSeparator());
+    if (!afterReset) {
+      xml.append("  <logger name='bar' level='INFO'/>");
+      xml.append(System.lineSeparator());
+      xml.append("  <logger name='ROOT' level='WARN'/>");
+      xml.append(System.lineSeparator());
+      xml.append("  <logger name='foo' level='ERROR'/>");
+      xml.append(System.lineSeparator());
+    }
+    xml.append("</included>");
+    xml.append(System.lineSeparator());
+
+    return xml.toString();
+  }
+}

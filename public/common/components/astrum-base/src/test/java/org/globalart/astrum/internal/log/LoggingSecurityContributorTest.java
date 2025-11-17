@@ -1,0 +1,33 @@
+
+package org.globalart.astrum.internal.log;
+
+import org.globalart.astrum.security.config.CPrivilege;
+import org.globalart.astrum.security.config.MemorySecurityConfiguration;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import static java.util.stream.Collectors.toList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+
+public class LoggingSecurityContributorTest
+{
+  private LoggingSecurityContributor underTest;
+
+  @Before
+  public void setup() {
+    underTest = new LoggingSecurityContributor();
+  }
+
+  @Test
+  public void testGetContribution() {
+    MemorySecurityConfiguration config = underTest.getContribution();
+    assertThat(config.getUsers().size(), is(0));
+    assertThat(config.getUserRoleMappings().size(), is(0));
+    assertThat(config.getRoles().size(), is(0));
+    assertThat(config.getPrivileges().stream().map(CPrivilege::getId).collect(toList()),
+        containsInAnyOrder("as-logging-all", "as-logging-read", "as-logging-update", "as-logging-mark"));
+  }
+}

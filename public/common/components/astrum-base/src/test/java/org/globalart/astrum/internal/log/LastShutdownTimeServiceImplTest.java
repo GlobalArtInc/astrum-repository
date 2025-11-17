@@ -1,0 +1,161 @@
+
+package org.globalart.astrum.internal.log;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+import org.globalart.astrum.common.log.LogManager;
+
+import org.apache.commons.io.input.ReversedLinesFileReader;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.Mock;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.globalart.astrum.common.log.LogManager.DEFAULT_LOGGER;
+
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class LastShutdownTimeServiceImplTest
+{
+
+  private static final String START_MARKER = "startMarker";
+
+  private static final String GROUP_NAME = "time";
+
+  @Mock
+  private LogManager logManager;
+
+  @Mock
+  private File astrumFile;
+
+  @Mock
+  private ReversedLinesFileReader reader;
+
+  private Pattern pattern;
+
+  private DateFormat dateFormat;
+
+  private LastShutdownTimeServiceImpl lastShutdownTimeService;
+
+  @Before
+  public void setup() {
+    pattern = Pattern.compile("(?<time>\\d{4}-\\d{2}-\\d{2})");
+
+    when(logManager.getLogFileForLogger(DEFAULT_LOGGER)).thenReturn(Optional.of(astrumFile));
+
+    dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+  }
+
+  @Test
+  public void missingAstrumYieldsEmpty() {
+    when(logManager.getLogFor(DEFAULT_LOGGER)).thenReturn(Optional.of("astrum.log"));
+    when(logManager.getLogFile("astrum.log")).thenReturn(null);
+    lastShutdownTimeService = new LastShutdownTimeServiceImpl(logManager, true);
+    assertThat(lastShutdownTimeService.estimateLastShutdownTime().isPresent(), equalTo(false));
+  }
+
+  @Test
+  public void emptyAstrumYieldsEmpty() {
+    File emptyFile = mock(File.class);
+    when(emptyFile.length()).thenReturn(0L);
+
+    when(logManager.getLogFor(DEFAULT_LOGGER)).thenReturn(Optional.of("astrum.log"));
+    when(logManager.getLogFile("astrum.log")).thenReturn(emptyFile);
+    lastShutdownTimeService = new LastShutdownTimeServiceImpl(logManager, true);
+    assertThat(lastShutdownTimeService.estimateLastShutdownTime().isPresent(), equalTo(false));
+  }
+
+  @Test
+  public void parsesLineCorrectly() throws IOException, ParseException {
+    when(reader.readLine())
+        .thenReturn("Not a matching line")
+        .thenReturn("2009-01-01 Part of new startup")
+        .thenReturn(START_MARKER)
+        .thenReturn("Not a matching line")
+        .thenReturn("2008-01-01 Last line of old shutdown")
+        .thenReturn(null);
+
+    lastShutdownTimeService = new LastShutdownTimeServiceImpl(logManager, true);
+
+    Optional<Date> result =
+        lastShutdownTimeService.findShutdownTimeInLog(reader, START_MARKER, pattern, 1000, GROUP_NAME, dateFormat);
+
+    assertThat(result.isPresent(), equalTo(true));
+    assertThat(result.get(), equalTo(new SimpleDateFormat("yyyy-MM-dd").parse("2008-01-01")));
+  }
+
+  @Test
+  public void noStartupMarkerIndicatesNoPrevShutdown() throws IOException, ParseException {
+    when(reader.readLine())
+        .thenReturn("Not a matching line")
+        .thenReturn("2009-01-01 Part of new startup")
+        .thenReturn("Not a matching line")
+        .thenReturn("2008-01-01 Just some line")
+        .thenReturn(null);
+
+    lastShutdownTimeService = new LastShutdownTimeServiceImpl(logManager, true);
+
+    Optional<Date> result =
+        lastShutdownTimeService.findShutdownTimeInLog(reader, START_MARKER, pattern, 1000, GROUP_NAME, dateFormat);
+
+    assertThat(result.isPresent(), equalTo(false));
+  }
+
+  @Test
+  public void ensureObeysLineLimit() throws IOException, ParseException {
+    when(reader.readLine())
+        .thenReturn("Not a matching line")
+        .thenReturn("2009-01-01 Part of new startup")
+        .thenReturn(START_MARKER)
+        .thenReturn("Not a matching line")
+        .thenReturn("2008-01-01 Last line of old shutdown")
+        .thenReturn(null);
+
+    lastShutdownTimeService = new LastShutdownTimeServiceImpl(logManager, true);
+
+    Optional<Date> result =
+        lastShutdownTimeService.findShutdownTimeInLog(reader, START_MARKER, pattern, 4, GROUP_NAME, dateFormat);
+
+    assertThat(result.isPresent(), equalTo(false));
+    verify(reader, times(4)).readLine();
+  }
+
+  @Test
+  public void disablingServiceAccessesNothing() throws IOException {
+    lastShutdownTimeService = new LastShutdownTimeServiceImpl(logManager, false);
+
+    Optional<Date> result = lastShutdownTimeService.estimateLastShutdownTime();
+
+    assertThat(result.isPresent(), equalTo(false));
+    verify(reader, never()).readLine();
+  }
+
+  @Test
+  public void handleMissingStartMarker() throws Exception {
+    ReversedLinesFileReader realReader = new ReversedLinesFileReader(
+        Paths.get(getClass().getResource("no-start-marker.log").toURI()), Charset.defaultCharset());
+
+    lastShutdownTimeService = new LastShutdownTimeServiceImpl(logManager, true);
+
+    Optional<Date> result =
+        lastShutdownTimeService.findShutdownTimeInLog(realReader, START_MARKER, pattern, 1000, GROUP_NAME, dateFormat);
+
+    assertThat(result.isPresent(), equalTo(false));
+  }
+}
