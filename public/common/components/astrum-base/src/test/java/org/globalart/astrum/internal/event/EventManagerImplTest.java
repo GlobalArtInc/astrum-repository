@@ -1,0 +1,224 @@
+
+package org.globalart.astrum.internal.event;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.globalart.astrum.common.event.EventAware.Asynchronous;
+import org.globalart.astrum.common.event.EventHelper;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.security.subject.FakeAlmightySubject;
+
+import com.google.common.base.Throwables;
+import com.google.common.eventbus.Subscribe;
+import org.junit.Test;
+
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+
+public class EventManagerImplTest
+{
+  @Test
+  public void dispatchOrder() throws Exception {
+    EventManagerImpl underTest = new EventManagerImpl(newEventExecutor());
+    underTest.start();
+    ReentrantHandler handler = new ReentrantHandler(underTest);
+
+    underTest.register(handler);
+    underTest.post("a string");
+
+    assertThat(handler.firstCalled, is("handle2"));
+  }
+
+  @Test
+  public void ignoresEventsPostedBeforeStarted() {
+    EventManagerImpl underTest = new EventManagerImpl(newEventExecutor());
+    ReentrantHandler handler = new ReentrantHandler(underTest);
+    underTest.register(handler);
+
+    // EventManager not started (pre-EVENTS): the post must be dropped without delivery and without throwing
+    underTest.post("a string");
+
+    assertThat(handler.firstCalled, is(nullValue()));
+  }
+
+  @Test
+  public void ignoresEventsPostedAfterStopped() throws Exception {
+    EventManagerImpl underTest = new EventManagerImpl(newEventExecutor());
+    underTest.start();
+    ReentrantHandler handler = new ReentrantHandler(underTest);
+    underTest.register(handler);
+
+    underTest.stop();
+
+    // After shutdown the manager is no longer started: the post must be dropped without delivery or throwing
+    underTest.post("a string");
+
+    assertThat(handler.firstCalled, is(nullValue()));
+  }
+
+  private static class ReentrantHandler
+  {
+    private final EventManager eventManager;
+
+    private String firstCalled = null;
+
+    ReentrantHandler(final EventManager eventManager) {
+      this.eventManager = eventManager;
+    }
+
+    @Subscribe
+    public void handle1(final String event) {
+      eventManager.post(1);
+      if (firstCalled == null) {
+        firstCalled = "handle1";
+      }
+    }
+
+    @Subscribe
+    public void handle2(final Integer event) {
+      if (firstCalled == null) {
+        firstCalled = "handle2";
+      }
+    }
+  }
+
+  @Test
+  public void asyncInheritsIsReplicating() throws Exception {
+    EventExecutor executor = newEventExecutor();
+    EventManagerImpl underTest = new EventManagerImpl(executor);
+    underTest.start();
+    AsyncReentrantHandler handler = new AsyncReentrantHandler(underTest);
+    underTest.register(handler);
+
+    executor.start(); // enable multi-threaded mode
+
+    // non-replicating case
+    FakeAlmightySubject.forUserId("testUser")
+        .execute(
+            () -> underTest.post("a string"));
+
+    await().atMost(5, TimeUnit.SECONDS).until(underTest::isCalmPeriod);
+
+    // handled two events, neither were replicating
+    assertThat(handler.handledCount.get(), is(2));
+    assertThat(handler.replicatingCount.get(), is(0));
+
+    // replicating case
+    FakeAlmightySubject.forUserId("testUser")
+        .execute(
+            () -> EventHelper.asReplicating(
+                () -> underTest.post("a string")));
+
+    await().atMost(5, TimeUnit.SECONDS).until(underTest::isCalmPeriod);
+
+    // handled two more events, both were replicating
+    assertThat(handler.handledCount.get(), is(4));
+    assertThat(handler.replicatingCount.get(), is(2));
+
+    executor.stop(); // go back to single-threaded mode
+  }
+
+  private static class AsyncReentrantHandler
+      implements Asynchronous
+  {
+    private final EventManager eventManager;
+
+    private final AtomicInteger handledCount = new AtomicInteger();
+
+    private final AtomicInteger replicatingCount = new AtomicInteger();
+
+    AsyncReentrantHandler(final EventManager eventManager) {
+      this.eventManager = eventManager;
+    }
+
+    @Subscribe
+    public void handle1(final String event) {
+      eventManager.post(2.0f);
+
+      handledCount.incrementAndGet();
+      if (EventHelper.isReplicating()) {
+        replicatingCount.incrementAndGet();
+      }
+    }
+
+    @Subscribe
+    public void handle2(final Float event) {
+      handledCount.incrementAndGet();
+      if (EventHelper.isReplicating()) {
+        replicatingCount.incrementAndGet();
+      }
+    }
+  }
+
+  @Test
+  public void singleThreadedOnShutdown() throws Exception {
+    EventExecutor executor = newEventExecutor();
+    EventManagerImpl underTest = new EventManagerImpl(executor);
+    underTest.start();
+    AsyncHandler handler = new AsyncHandler();
+    underTest.register(handler);
+
+    FakeAlmightySubject.forUserId("testUser").execute(() -> underTest.post("first"));
+
+    // executor is initially in single-threaded mode
+
+    assertThat(handler.handledByThread, hasSize(1));
+    assertThat(handler.handledByThread.get(0), is(Thread.currentThread()));
+
+    executor.start(); // enable multi-threaded mode
+
+    FakeAlmightySubject.forUserId("testUser").execute(() -> underTest.post("foo"));
+    FakeAlmightySubject.forUserId("testUser").execute(() -> underTest.post("bar"));
+
+    executor.stop(); // waits for threads to finish
+
+    assertThat(handler.handledByThread, hasSize(3));
+    assertThat(handler.handledByThread.get(1), is(not(Thread.currentThread())));
+    assertThat(handler.handledByThread.get(2), is(not(Thread.currentThread())));
+    assertThat(handler.handledByThread.get(1), is(not(handler.handledByThread.get(2))));
+
+    // executor is now back in single-threaded mode
+
+    FakeAlmightySubject.forUserId("testUser").execute(() -> underTest.post("last"));
+
+    assertThat(handler.handledByThread, hasSize(4));
+    assertThat(handler.handledByThread.get(3), is(Thread.currentThread()));
+  }
+
+  @Test
+  public void singleThreadedOnShutdownWhenReplicating() {
+    EventHelper.asReplicating(() -> {
+      try {
+        singleThreadedOnShutdown();
+      }
+      catch (Exception e) {
+        Throwables.throwIfUnchecked(e);
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
+  private static EventExecutor newEventExecutor() {
+    return new EventExecutor(false, 0, Duration.ofSeconds(0), false, false);
+  }
+
+  private static class AsyncHandler
+      implements Asynchronous
+  {
+    private final List<Thread> handledByThread = new CopyOnWriteArrayList<>();
+
+    @Subscribe
+    public void handle(final String event) throws Exception {
+      handledByThread.add(Thread.currentThread());
+      Thread.sleep(100); // make sure events are handled by different threads from the pool
+    }
+  }
+}
