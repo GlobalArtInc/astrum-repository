@@ -1,0 +1,114 @@
+
+package org.globalart.astrum.internal.jwt;
+
+import java.time.OffsetDateTime;
+
+import org.globalart.astrum.audit.AuditData;
+import org.globalart.astrum.audit.AuditRecorder;
+import org.globalart.astrum.security.JwtHelper;
+import org.globalart.astrum.security.jwt.JwtSessionRevocationService;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class JwtSessionInvalidatorImplTest
+{
+  @Mock
+  private JwtSessionRevocationService revocationService;
+
+  @Mock
+  private JwtHelper jwtHelper;
+
+  @Mock
+  private AuditRecorder auditRecorder;
+
+  private JwtSessionInvalidatorImpl underTest;
+
+  @BeforeEach
+  void setup() {
+    when(jwtHelper.getExpirySeconds()).thenReturn(1800);
+    underTest = new JwtSessionInvalidatorImpl(revocationService, jwtHelper, auditRecorder);
+  }
+
+  @Test
+  void invalidate_callsInvalidateUserOnRevocationService_withNowAndNowPlusJwtLifetime() {
+    OffsetDateTime before = OffsetDateTime.now();
+
+    int count = underTest.invalidateSessionsForUser("alice", "default", "password change");
+
+    assertThat(count, is(1));
+
+    ArgumentCaptor<OffsetDateTime> cutoffCaptor = ArgumentCaptor.forClass(OffsetDateTime.class);
+    ArgumentCaptor<OffsetDateTime> validUntilCaptor = ArgumentCaptor.forClass(OffsetDateTime.class);
+    verify(revocationService).invalidateUser(
+        eq("alice"), eq("default"), cutoffCaptor.capture(), validUntilCaptor.capture());
+
+    OffsetDateTime cutoff = cutoffCaptor.getValue();
+    OffsetDateTime validUntil = validUntilCaptor.getValue();
+    OffsetDateTime after = OffsetDateTime.now();
+
+    assertThat(!cutoff.isBefore(before), is(true));
+    assertThat(!cutoff.isAfter(after), is(true));
+    assertThat(validUntil.isAfter(cutoff), is(true));
+    // validUntil ≈ cutoff + 1800s (within a small skew)
+    long gapSeconds = java.time.Duration.between(cutoff, validUntil).getSeconds();
+    assertThat(gapSeconds, is(1800L));
+  }
+
+  @Test
+  void invalidate_auditRecorded_whenSuccess() {
+    when(auditRecorder.isEnabled()).thenReturn(true);
+
+    underTest.invalidateSessionsForUser("alice", "default", "password change");
+
+    ArgumentCaptor<AuditData> captor = ArgumentCaptor.forClass(AuditData.class);
+    verify(auditRecorder).record(captor.capture());
+
+    AuditData data = captor.getValue();
+    assertThat(data.getDomain(), is("security.session"));
+    assertThat(data.getType(), is("user-session-invalidation"));
+    assertThat(data.getAttributes().get("username"), is("alice"));
+    assertThat(data.getAttributes().get("sessionType"), is("jwt"));
+    assertThat(data.getAttributes().get("sessionCount"), is("1"));
+    assertThat(data.getAttributes().get("reason"), is("password change"));
+  }
+
+  @Test
+  void invalidate_auditNotRecorded_whenAuditDisabled() {
+    when(auditRecorder.isEnabled()).thenReturn(false);
+
+    underTest.invalidateSessionsForUser("alice", "default", "password change");
+
+    verify(auditRecorder, never()).record(any(AuditData.class));
+  }
+
+  @Test
+  void invalidate_serviceThrows_returnsZero_andDoesNotAudit() {
+    doThrow(new RuntimeException("boom")).when(revocationService)
+        .invalidateUser(anyString(), anyString(), any(), any());
+    when(auditRecorder.isEnabled()).thenReturn(true);
+
+    int count = underTest.invalidateSessionsForUser("alice", "default", "password change");
+
+    assertThat(count, is(0));
+    verify(auditRecorder, never()).record(any(AuditData.class));
+  }
+}
