@@ -1,0 +1,17 @@
+# Rust
+target/
+
+# Node
+node_modules/
+
+# Local server data
+.data/
+
+# Editors and systems
+.idea/
+.DS_Store
+
+# Local Claude Code worktrees
+.claude/*
+!.claude/CLAUDE.md
+!.claude/rewrite/
