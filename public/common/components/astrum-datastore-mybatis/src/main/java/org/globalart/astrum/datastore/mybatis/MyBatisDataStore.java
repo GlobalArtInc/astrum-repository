@@ -1,0 +1,1063 @@
+
+package org.globalart.astrum.datastore.mybatis;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+import javax.sql.DataSource;
+
+import org.globalart.astrum.bootstrap.entrypoint.configuration.ApplicationDirectories;
+import org.globalart.astrum.common.app.FeatureFlags;
+import org.globalart.astrum.common.app.ManagedLifecycleManager;
+import org.globalart.astrum.common.entity.Continuation;
+import org.globalart.astrum.common.entity.EntityId;
+import org.globalart.astrum.common.entity.EntityUUID;
+import org.globalart.astrum.common.io.FileFinder;
+import org.globalart.astrum.common.log.LogManager;
+import org.globalart.astrum.common.log.LoggerLevel;
+import org.globalart.astrum.common.stateguard.Guarded;
+import org.globalart.astrum.common.stateguard.StatePrerequisitesInvalidException;
+import org.globalart.astrum.common.thread.TcclBlock;
+import org.globalart.astrum.crypto.LegacyCipherFactory.PbeCipher;
+import org.globalart.astrum.crypto.internal.CryptoHelperImpl;
+import org.globalart.astrum.crypto.internal.MavenCipherImpl;
+import org.globalart.astrum.datastore.DataStoreSupport;
+import org.globalart.astrum.datastore.TransactionalStoreSupport;
+import org.globalart.astrum.datastore.api.DataAccess;
+import org.globalart.astrum.datastore.api.DataAccessException;
+import org.globalart.astrum.datastore.api.DataStore;
+import org.globalart.astrum.datastore.api.Expects;
+import org.globalart.astrum.datastore.api.SchemaTemplate;
+import org.globalart.astrum.datastore.mybatis.handlers.AttributesTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.DateTimeTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.EncryptedStringTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.EntityUUIDTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.ExternalMetadataTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.LenientUUIDTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.ListTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.MapTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.NestedAttributesMapTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.PasswordCharacterArrayTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.PrincipalCollectionTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.QuotingTypeHandler;
+import org.globalart.astrum.datastore.mybatis.handlers.SetTypeHandler;
+import org.globalart.astrum.security.PasswordHelper;
+import org.globalart.astrum.transaction.TransactionIsolation;
+
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
+import com.google.common.base.Splitter.MapSplitter;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Resources;
+import com.google.common.reflect.TypeToken;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.pool.HikariPool;
+import com.zaxxer.hikari.util.PropertyElf;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.lang3.reflect.TypeUtils;
+import org.apache.ibatis.builder.xml.XMLConfigBuilder;
+import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.mapping.VendorDatabaseIdProvider;
+import org.apache.ibatis.plugin.Interceptor;
+import org.apache.ibatis.reflection.factory.DefaultObjectFactory;
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
+import org.apache.ibatis.type.BaseTypeHandler;
+import org.apache.ibatis.type.OffsetDateTimeTypeHandler;
+import org.apache.ibatis.type.TypeAliasRegistry;
+import org.apache.ibatis.type.TypeHandler;
+import org.apache.ibatis.type.TypeHandlerRegistry;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.Ordered;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Splitter.onPattern;
+import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.Files.exists;
+import static java.nio.file.Files.newInputStream;
+import static java.util.Arrays.asList;
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static java.util.regex.Pattern.DOTALL;
+import static java.util.regex.Pattern.compile;
+import static org.apache.ibatis.session.TransactionIsolationLevel.SERIALIZABLE;
+import static org.globalart.astrum.common.metrics.MetricsConstants.ASTRUM_METRICS_REGISTRY_NAME;
+import static org.globalart.astrum.common.stateguard.StateGuardLifecycleSupport.State.STARTED;
+import static org.globalart.astrum.common.text.Strings2.isBlank;
+import static org.globalart.astrum.common.text.Strings2.lower;
+import static org.globalart.astrum.common.thread.TcclBlock.begin;
+import static org.globalart.astrum.crypto.PhraseService.LEGACY_PHRASE_SERVICE;
+import static org.globalart.astrum.datastore.mybatis.MyBatisDataStoreDescriptor.ADVANCED;
+import static org.globalart.astrum.datastore.mybatis.MyBatisDataStoreDescriptor.JDBC_URL;
+import static org.globalart.astrum.datastore.mybatis.MyBatisDataStoreDescriptor.SCHEMA;
+import static org.globalart.astrum.datastore.mybatis.PlaceholderTypes.configurePlaceholderTypes;
+import static org.globalart.astrum.datastore.mybatis.SensitiveAttributes.buildSensitiveAttributeFilter;
+
+/**
+ * MyBatis {@link DataStore}.
+ */
+@Qualifier(MyBatisDataStoreDescriptor.NAME)
+@Component
+@SuppressWarnings("rawtypes")
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+public class MyBatisDataStore
+    extends DataStoreSupport<MyBatisDataSession>
+    implements Ordered
+{
+  private static final String REGISTERED_MESSAGE = "Registered {}";
+
+  public static final String H2_DATABASE = "H2";
+
+  private static final Splitter BY_LINE = onPattern("\\r?\\n").trimResults().omitEmptyStrings();
+
+  private static final Splitter KEY_VALUE = onPattern("[=:]").limit(2).trimResults().omitEmptyStrings();
+
+  // package-private for reuse by MyBatisDataStoreDescriptor.validate() — the validator MUST parse
+  // identically to the runtime injection below to prevent a parser-differential bypass.
+  static final MapSplitter TO_MAP = BY_LINE.withKeyValueSeparator(KEY_VALUE);
+
+  private static final Pattern MAPPER_BODY = compile(".*<mapper[^>]*>(.*)</mapper>", DOTALL);
+
+  private static final int DEFAULT_CONTENT_STORE_MAX_POOL_SIZE = 30;
+
+  private static final int DEFAULT_CONTENT_STORE_MIN_IDLE = 2;
+
+  /**
+   * Default initialization timeout for HikariCP in milliseconds.
+   * Applies to all PostgreSQL database connections managed by this data store and
+   * allows up to 10 seconds for database connectivity to be established during startup.
+   * This is especially beneficial for cloud deployments, such as ECS/Fargate task
+   * restarts, where network latency or database provisioning delays may occur.
+   */
+  private static final long DEFAULT_INITIALIZATION_FAIL_TIMEOUT_MS = 10000L;
+
+  private final List<TransactionalStoreSupport> declaredAccessTypes;
+
+  private final List<TypeHandler> declaredTypeHandlers;
+
+  private final Set<Class<?>> registeredAccessTypes = new HashSet<>();
+
+  private final PbeCipher databaseCipher;
+
+  private final PasswordHelper passwordHelper;
+
+  private final ApplicationDirectories directories;
+
+  private final LogManager logManager;
+
+  private ManagedLifecycleManager managedLifecycleManager;
+
+  private HikariDataSource dataSource;
+
+  private Configuration mybatisConfig;
+
+  private Optional<Configuration> previousConfig = empty();
+
+  @Nullable
+  private Predicate<String> sensitiveAttributeFilter;
+
+  private final boolean orientWarning;
+
+  private final boolean internalMetricsEnabled;
+
+  @Autowired
+  public MyBatisDataStore(
+      @Qualifier("mybatis") final PbeCipher databaseCipher,
+      final PasswordHelper passwordHelper,
+      final ApplicationDirectories directories,
+      final LogManager logManager,
+      @Lazy final List<TransactionalStoreSupport> declaredAccessTypes,
+      @Lazy final List<TypeHandler> declaredTypeHandlers,
+      @Value(FeatureFlags.ORIENT_WARNING_NAMED_VALUE) final boolean orientWarning,
+      @Value(FeatureFlags.METRICS_INTERNAL_ENABLED_NAMED_VALUE) final boolean internalMetricsEnabled)
+  {
+    checkState(databaseCipher instanceof MyBatisCipher);
+    this.databaseCipher = checkNotNull(databaseCipher);
+    this.passwordHelper = checkNotNull(passwordHelper);
+    this.directories = checkNotNull(directories);
+    this.logManager = checkNotNull(logManager);
+
+    useMyBatisClassLoaderForEntityProxies();
+
+    this.declaredAccessTypes = checkNotNull(declaredAccessTypes);
+    this.declaredTypeHandlers = checkNotNull(declaredTypeHandlers);
+    this.orientWarning = orientWarning;
+    this.internalMetricsEnabled = internalMetricsEnabled;
+  }
+
+  @VisibleForTesting
+  public MyBatisDataStore() {
+    try {
+      // use static configuration for testing
+      this.databaseCipher = new MyBatisCipher();
+      MavenCipherImpl passwordCipher = new MavenCipherImpl(new CryptoHelperImpl(false));
+      this.passwordHelper = new PasswordHelper(passwordCipher, LEGACY_PHRASE_SERVICE);
+    }
+    catch (Exception e) {
+      throw new IllegalStateException("Unexpected error during setup", e);
+    }
+    this.directories = null;
+    this.logManager = null;
+
+    this.declaredAccessTypes = List.of();
+    this.declaredTypeHandlers = List.of();
+    this.orientWarning = false;
+    this.internalMetricsEnabled = true;
+  }
+
+  @Override
+  protected void doStart(final String storeName, final Map<String, String> attributes) throws Exception {
+    // Silence Hikari Logging for this block as we will throw any necessary exceptions and we expect some exceptions
+    // that should not be logged at ERROR level.
+    // We also have to null-check because there is a constructor just for testing that will break otherwise, which is
+    // a terrible idea but apparently somebody thought it made sense.
+    LoggerLevel originalHikariPoolLogLevel = LoggerLevel.DEFAULT;
+    if (logManager != null) {
+      originalHikariPoolLogLevel = logManager.getLoggerLevel(HikariPool.class.getName());
+      logManager.setLoggerLevelDirect(HikariPool.class.getName(), LoggerLevel.OFF);
+    }
+
+    if (directories != null) {
+      verifyOrientDatabaseDoesNotExist();
+    }
+
+    HikariConfig hikariConfig = configureHikari(storeName, attributes);
+    dataSource = new HikariDataSource(hikariConfig);
+
+    if (logManager != null) {
+      // Re-enable Hikari logging
+      logManager.setLoggerLevelDirect(HikariPool.class.getName(), originalHikariPoolLogLevel);
+    }
+
+    Environment environment = new Environment(storeName, new JdbcTransactionFactory(), dataSource);
+
+    if (previousConfig.isPresent()) {
+      mybatisConfig = previousConfig.get();
+      mybatisConfig.setEnvironment(environment);
+    }
+    else {
+      mybatisConfig = configureMyBatis(environment);
+
+      registerCommonTypeHandlers();
+
+      // register the appropriate type handlers with the store
+      declaredTypeHandlers.forEach(this::register);
+    }
+    findDaos();
+  }
+
+  @EventListener
+  public void onApplicationEvent(final ContextRefreshedEvent event) {
+    log.trace("onApplicationEvent {}", event);
+    if (isStarted()) {
+      findDaos();
+    }
+  }
+
+  @Override
+  public int getOrder() {
+    return -1;
+  }
+
+  private void findDaos() {
+    declaredAccessTypes
+        .stream()
+        .map(TransactionalStoreSupport::getDaoClass)
+        .forEach(this::register);
+  }
+
+  @Override
+  protected void doStop() throws Exception {
+    previousConfig = ofNullable(mybatisConfig);
+    mybatisConfig = null;
+    try {
+      // Execute H2 SHUTDOWN if this is an H2 database
+      if (isH2Database()) {
+        log.info("Shutting down H2 database");
+        executeH2Shutdown();
+      }
+      else if (internalMetricsEnabled) {
+        // Clean up metrics for PostgreSQL datastores
+        cleanupPostgresqlMetrics();
+      }
+
+      dataSource.close();
+    }
+    finally {
+      dataSource = null;
+    }
+  }
+
+  /**
+   * Cleans up PostgreSQL metrics for this datastore by removing all metrics from the shared registry
+   * that match the datastore's name prefix. This ensures stale metrics are removed when a datastore
+   * is stopped to prevent metric name conflicts when a new datastore with the same name is created.
+   */
+  private void cleanupPostgresqlMetrics() {
+    String metricsPrefix = configuration.getName().replace("-", "_") + ".pool.";
+    MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(ASTRUM_METRICS_REGISTRY_NAME);
+    metricRegistry.removeMatching(MetricFilter.startsWith(metricsPrefix));
+  }
+
+  /**
+   * Determines whether this datastore is configured to use an H2 database by checking the JDBC URL.
+   * This is used to determine whether to execute the H2 SHUTDOWN command or clean up PostgreSQL metrics.
+   *
+   * @return {@code true} if the JDBC URL starts with "jdbc:h2:", {@code false} otherwise
+   */
+  @VisibleForTesting
+  boolean isH2Database() {
+    String jdbcUrl = configuration.getAttributes().get("jdbcUrl");
+    return jdbcUrl != null && jdbcUrl.toLowerCase().contains("jdbc:h2:");
+  }
+
+  private void executeH2Shutdown() {
+    if (dataSource.isClosed()) {
+      log.debug("Data source is already closed, skipping H2 SHUTDOWN command");
+      return;
+    }
+
+    try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+      statement.execute("SHUTDOWN");
+      log.info("Executed H2 SHUTDOWN command");
+    }
+    catch (SQLException e) {
+      if (isDatabaseAlreadyClosed(e)) {
+        log.debug("H2 database was already closed during shutdown");
+      }
+      else {
+        log.warn("Failed to execute H2 SHUTDOWN command", e);
+      }
+    }
+  }
+
+  private boolean isDatabaseAlreadyClosed(final SQLException e) {
+    return e.getMessage() != null &&
+        e.getMessage().contains("Database is already closed") &&
+        e.getErrorCode() == 90121;
+  }
+
+  @Override
+  public void register(final Class<? extends DataAccess> accessType) {
+    if (!registeredAccessTypes.add(accessType) || accessType.isAnnotationPresent(SchemaTemplate.class)) {
+      return; // skip registration if we've already seen this type or this is a template
+    }
+
+    registerSimpleAliases(accessType);
+    registerDataAccessMapper(accessType);
+
+    // finally create the schema for this DAO
+    info("Creating schema for {}", accessType.getSimpleName());
+    try (SqlSession session = new DataAccessSqlSession(mybatisConfig)) {
+      DataAccess dao = session.getMapper(accessType);
+      // Creating schema with retry mechanism to avoid failures in HA mode when nodes run simultaneously
+      DataAccessException exception = null;
+      int tries = 0;
+      while (tries < 5) {
+        try {
+          dao.createSchema();
+          dao.extendSchema();
+          session.commit();
+          exception = null;
+          break;
+        }
+        catch (DataAccessException dae) {
+          exception = dae;
+          log.debug("Schema creation failed", dae);
+          session.rollback();
+          try {
+            Thread.sleep(100L);
+          }
+          catch (InterruptedException e) {
+            log.warn("Schema creation thread interrupted, proceeding with creation");
+          }
+          tries++;
+        }
+      }
+      if (exception != null) {
+        throw exception;
+      }
+    }
+  }
+
+  @Override
+  public void unregister(final Class<? extends DataAccess> accessType) {
+    // unregistration of custom access types is not supported
+  }
+
+  @Guarded(by = STARTED)
+  @Override
+  public MyBatisDataSession openSession() {
+    return new MyBatisDataSession(new DataAccessSqlSession(mybatisConfig));
+  }
+
+  @Guarded(by = STARTED)
+  @Override
+  public MyBatisDataSession openSession(final TransactionIsolation isolationLevel) {
+    return switch (isolationLevel) {
+      case SERIALIZABLE -> new MyBatisDataSession(new DataAccessSqlSession(mybatisConfig, SERIALIZABLE));
+      default -> new MyBatisDataSession(new DataAccessSqlSession(mybatisConfig));
+    };
+  }
+
+  @Guarded(by = STARTED)
+  @Override
+  public Connection openConnection() throws SQLException {
+    return dataSource.getConnection();
+  }
+
+  @Guarded(by = STARTED)
+  @Override
+  public DataSource getDataSource() {
+    return dataSource;
+  }
+
+  @Guarded(by = STARTED)
+  @Override
+  public void backup(final String location) throws SQLException {
+    try (Connection conn = openConnection()) {
+      if (H2_DATABASE.equals(conn.getMetaData().getDatabaseProductName())) {
+        try (PreparedStatement backupStmt = conn.prepareStatement("BACKUP TO ?")) {
+          backupStmt.setString(1, location);
+          backupStmt.execute();
+        }
+      }
+      else {
+        throw new UnsupportedOperationException("The underlying database is not supported for backup.");
+      }
+    }
+  }
+
+  @Autowired
+  public void setManagedLifecycleManager(@Lazy final ManagedLifecycleManager managedLifecycleManager) {
+    this.managedLifecycleManager = checkNotNull(managedLifecycleManager);
+  }
+
+  private void verifyOrientDatabaseDoesNotExist() throws Exception {
+    if (orientWarning && isOrientDbPresent() && (isSqlDbConfigured())) {
+      log.warn(
+          "Database directory contains unsupported legacy database files; remove legacy files as soon as possible.");
+    }
+    else if (orientWarning && isOrientDbPresent() && !(isSqlDbConfigured())) {
+      StringBuilder buf = new StringBuilder();
+      buf.append("\n-------------------------------------------------------------------------------------------" +
+          "----------------------------------------------------------------------------------\n\n");
+      buf.append("This instance is using a legacy Orient database. " +
+          "\nYou must migrate to H2 or PostgreSQL before upgrading to this version. " +
+          "See our database migration help documentation at: " +
+          "\nhttps://links.globalart.dev/products/astrum/docs/unsupported-db.");
+      buf.append("\n\n-----------------------------------------------------------------------------------------" +
+          "------------------------------------------------------------------------------------\n\n");
+      log.error(buf.toString());
+      managedLifecycleManager.shutdownWithExitCode(1);
+      throw new StatePrerequisitesInvalidException(
+          "An unsupported orient database is present in the database directory, " +
+              "you need to migrate your data before running this version of astrum");
+    }
+  }
+
+  private boolean isOrientDbPresent() {
+    Path dbPath = directories.getWorkDirectory("db", false).toPath();
+    Set<String> orientFolderNames = ImmutableSet.of("config", "security", "component");
+
+    return FileFinder.pathContainsFolder(dbPath, orientFolderNames);
+  }
+
+  private boolean isH2DbPresent() {
+    Path dbPath = directories.getWorkDirectory("db", false).toPath();
+    Path h2Db = dbPath.resolve("astrum.mv.db");
+
+    return Files.exists(h2Db);
+  }
+
+  private static boolean isJdbcUrlSet() {
+    String systemProperty = System.getProperty("astrum.datastore.astrum.jdbcUrl");
+    String environmentVariable = System.getenv("ASTRUM_DATASTORE_ASTRUM_JDBCURL");
+
+    if (systemProperty != null) {
+      return true;
+    }
+    return environmentVariable != null;
+  }
+
+  private boolean checkAstrumStorePropertyExists() {
+    Path fabricPath = directories.getWorkDirectory("etc/fabric").toPath();
+    Path astrumStorePropertiesPath = fabricPath.resolve("astrum-store.properties");
+
+    Properties properties = new Properties();
+
+    try (InputStream input = Files.newInputStream(astrumStorePropertiesPath)) {
+      properties.load(input);
+    }
+    catch (IOException e) {
+      return false;
+    }
+
+    return properties.getProperty(JDBC_URL).startsWith("jdbc:postgresql");
+  }
+
+  private boolean isSqlDbConfigured() {
+    return isJdbcUrlSet() || isH2DbPresent() || checkAstrumStorePropertyExists();
+  }
+
+  /**
+   * Supplies the populated Hikari configuration for this store.
+   */
+  @VisibleForTesting
+  HikariConfig configureHikari(final String storeName, final Map<String, String> attributes) {
+    Properties properties = new Properties();
+    // Use a unique pool name per datastore to avoid metric name conflicts when multiple datastores
+    // are created in the same JVM (e.g., during tests). HikariCP uses the pool name in metric names.
+    properties.put("poolName", storeName.replace("-", "_"));
+    properties.putAll(attributes);
+    if (properties.getProperty(JDBC_URL, "").contains("${karaf.data}")) {
+      String jdbcUrl = properties.getProperty(JDBC_URL);
+      jdbcUrl = jdbcUrl.replace("${karaf.data}", directories.getWorkDirectory("db", true).toString());
+      log.info("jdbcUrl updated to {}", jdbcUrl);
+      properties.setProperty(JDBC_URL, jdbcUrl);
+    }
+    // Parse advanced attributes and split them by destination: keys that match a real
+    // HikariConfig pool-level property (e.g. initializationFailTimeout, maximumPoolSize) are
+    // applied to the pool config as before; everything else is a JDBC driver-level connection
+    // property (e.g. loggerLevel, socketTimeout) and must go to the DataSource instead, or
+    // HikariConfig's own Properties constructor rejects it with "Property X does not exist on
+    // target class HikariConfig" (ASTRUM-53610).
+    Object advanced = properties.remove(ADVANCED);
+    Map<String, String> driverProperties = new LinkedHashMap<>();
+    if (advanced instanceof String) {
+      Set<String> hikariPropertyNames = PropertyElf.getPropertyNames(HikariConfig.class);
+      TO_MAP.split((String) advanced).forEach((key, value) -> {
+        if (hikariPropertyNames.contains(key)) {
+          properties.putIfAbsent(key, value);
+        }
+        else {
+          driverProperties.put(key, value);
+        }
+      });
+    }
+
+    // Hikari doesn't like blank schemas in its config
+    if (isBlank(properties.getProperty(SCHEMA))) {
+      properties.remove(SCHEMA);
+    }
+
+    HikariConfig hikariConfig = new HikariConfig(properties);
+
+    // Setup postgresql specific config
+    if (properties.getProperty(JDBC_URL, "").startsWith("jdbc:postgresql")) {
+      configureHikariForPostgresql(hikariConfig, properties);
+    }
+
+    driverProperties.forEach(hikariConfig::addDataSourceProperty);
+
+    return hikariConfig;
+  }
+
+  /**
+   * Configures HikariCP for PostgreSQL database connections.
+   * <p>
+   * This method sets up PostgreSQL-specific configuration including:
+   * <ul>
+   * <li>Driver class name</li>
+   * <li>Data source properties for string type handling</li>
+   * <li>Default maximum pool size (100)</li>
+   * <li>Default initialization timeout (10 seconds)</li>
+   * <li>Unique pool name for metrics isolation</li>
+   * <li>Metric registry with cleanup of stale metrics</li>
+   * </ul>
+   *
+   * @param hikariConfig the HikariConfig to configure
+   * @param properties the application properties, used to check for configuration existence
+   */
+  private void configureHikariForPostgresql(final HikariConfig hikariConfig, final Properties properties) {
+    hikariConfig.setDriverClassName("org.postgresql.Driver");
+    // workaround https://github.com/pgjdbc/pgjdbc/issues/265
+    hikariConfig.addDataSourceProperty("stringtype", "unspecified");
+
+    if (!properties.containsKey("maximumPoolSize")) {
+      hikariConfig.setMaximumPoolSize(DEFAULT_CONTENT_STORE_MAX_POOL_SIZE);
+    }
+
+    if (!properties.containsKey("minimumIdle")) {
+      hikariConfig.setMinimumIdle(Math.min(DEFAULT_CONTENT_STORE_MIN_IDLE, hikariConfig.getMaximumPoolSize()));
+    }
+
+    if (!properties.containsKey("initializationFailTimeout")) {
+      // Allow more time for database connectivity during startup, especially in cloud environments
+      // where network latency or database provisioning delays may occur
+      hikariConfig.setInitializationFailTimeout(DEFAULT_INITIALIZATION_FAIL_TIMEOUT_MS);
+    }
+
+    // When reusing the same shared registry across multiple datastore instances (common in tests),
+    // we need to remove existing metrics with the same pool name prefix to avoid conflicts.
+    // This must be done BEFORE setting the metric registry so the new datastore doesn't inherit
+    // old metrics with the same prefix.
+    if (internalMetricsEnabled) {
+      cleanupPostgresqlMetrics();
+      hikariConfig.setMetricRegistry(SharedMetricRegistries.getOrCreate(ASTRUM_METRICS_REGISTRY_NAME));
+    }
+  }
+
+  /**
+   * Supplies the populated MyBatis configuration for this store.
+   */
+  private Configuration configureMyBatis(final Environment environment) throws IOException {
+    Configuration myBatisConfig = loadMyBatisConfiguration(environment);
+
+    String databaseId = new VendorDatabaseIdProvider().getDatabaseId(environment.getDataSource());
+    info("MyBatis databaseId: {}", databaseId);
+
+    // configuration elements that must always be applied
+    myBatisConfig.setEnvironment(environment);
+    myBatisConfig.setDatabaseId(databaseId);
+    myBatisConfig.setMapUnderscoreToCamelCase(true);
+    myBatisConfig.setReturnInstanceForEmptyRow(true);
+    myBatisConfig.setObjectFactory(new DefaultObjectFactory()
+    {
+      @Override
+      public <T> boolean isCollection(final Class<T> type) {
+        // modify MyBatis behaviour to let it map collection results to Iterable
+        return Iterable.class.isAssignableFrom(type) || super.isCollection(type);
+      }
+
+      @Override
+      protected Class<?> resolveInterface(final Class<?> type) {
+        if (type == Continuation.class) {
+          return ContinuationArrayList.class;
+        }
+        return super.resolveInterface(type);
+      }
+    });
+
+    return myBatisConfig;
+  }
+
+  /**
+   * Register common {@link TypeHandler}s.
+   */
+  @SuppressWarnings("unchecked")
+  private void registerCommonTypeHandlers() {
+    boolean lenient = configurePlaceholderTypes(mybatisConfig);
+
+    // register raw/simple mappers first
+    register(new ListTypeHandler());
+    register(new SetTypeHandler());
+    register(new MapTypeHandler());
+    register(new DateTimeTypeHandler());
+    register(new OffsetDateTimeTypeHandler());
+    register(new ExternalMetadataTypeHandler());
+
+    // mapping of entity ids needs some extra handling
+    TypeHandler entityIdHandler = new EntityUUIDTypeHandler(lenient);
+    register(EntityUUID.class, entityIdHandler);
+    register(EntityId.class, entityIdHandler);
+    if (lenient) {
+      // also support querying by UUID string when database may not have a UUID type
+      register(new LenientUUIDTypeHandler());
+    }
+
+    // generate new entity ids on-demand
+    register(new EntityInterceptor());
+
+    // security handlers that used to only exist in the config store
+    register(new PasswordCharacterArrayTypeHandler(passwordHelper));
+    register(new PrincipalCollectionTypeHandler());
+    registerDetached(new EncryptedStringTypeHandler()); // detached so it doesn't apply to all Strings
+    registerDetached(new QuotingTypeHandler()); // detached so it doesn't apply to all Strings
+
+    // enable automatic encryption of sensitive JSON fields in the config store
+    sensitiveAttributeFilter = buildSensitiveAttributeFilter(mybatisConfig);
+
+    // finally register more complex mappers on top of the raw/simple mappers - this way we can have
+    // automatic encryption on by default while individual DAOs can choose to use the raw mapper(s)
+    // (for example if they handle encryption themselves outside of the persistence layer)
+
+    register(new AttributesTypeHandler());
+    register(new NestedAttributesMapTypeHandler());
+  }
+
+  /**
+   * Loads the MyBatis configuration for this store.
+   */
+  @VisibleForTesting
+  protected Configuration loadMyBatisConfiguration(final Environment environment) throws IOException {
+    if (directories == null) {
+      info("Using default MyBatis configuration");
+      return new Configuration();
+    }
+
+    Path configPath = myBatisConfigPath(environment);
+
+    info("Loading MyBatis configuration from {}", configPath);
+    try (InputStream in = newInputStream(configPath); TcclBlock block = begin(getClass())) {
+      return new XMLConfigBuilder(in, null, new Properties()).parse();
+    }
+  }
+
+  /**
+   * Returns the path to the MyBatis configuration to use for this store.
+   */
+  private Path myBatisConfigPath(final Environment environment) {
+    Path fabricPath = directories.getConfigDirectory("fabric").toPath();
+    Path configPath = fabricPath.resolve(environment.getId() + "-store-mybatis.xml");
+    if (!exists(configPath)) {
+      // fallback to the shared MyBatis configuration
+      configPath = fabricPath.resolve("mybatis.xml");
+    }
+    return configPath;
+  }
+
+  /**
+   * Register simple package-less aliases for all parameter and return types in the DAO.
+   */
+  private void registerSimpleAliases(final Class<? extends DataAccess> accessType) {
+    TypeAliasRegistry registry = mybatisConfig.getTypeAliasRegistry();
+
+    TypeToken.of(accessType).getTypes().forEach(type -> {
+      Map<TypeVariable<?>, Type> typeArguments =
+          type.getType() instanceof ParameterizedType pt ? TypeUtils.getTypeArguments(pt) : Map.of();
+      for (Method method : type.getRawType().getDeclaredMethods()) {
+        for (Type typeArg : method.getGenericParameterTypes()) {
+          Class<?> arg = TypeToken.of(typeArguments.getOrDefault(typeArg, typeArg)).getRawType();
+          registerSimpleAlias(registry, arg);
+        }
+        Type returnType = method.getGenericReturnType();
+        if (returnType != null && !Void.class.equals(returnType)) {
+          Class<?> returnClass = TypeToken.of(TypeUtils.unrollVariables(typeArguments, returnType)).getRawType();
+          registerSimpleAlias(registry, returnClass);
+        }
+      }
+    });
+  }
+
+  /**
+   * Registers a simple package-less alias for the resolved type.
+   */
+  private void registerSimpleAlias(final TypeAliasRegistry registry, final Class<?> clazz) {
+    if (!clazz.isPrimitive() && !clazz.getName().startsWith("java.")) {
+      try {
+        registry.registerAlias(clazz);
+      }
+      catch (RuntimeException | LinkageError e) {
+        debug("Unable to register type alias", e);
+      }
+    }
+  }
+
+  /**
+   * Registers the {@link DataAccess} type with MyBatis.
+   */
+  private void registerDataAccessMapper(final Class<? extends DataAccess> accessType) {
+    Class<?> templateType = findTemplateType(accessType);
+    if (templateType != null) {
+      registerTemplatedMapper(accessType, templateType);
+    }
+    else {
+      registerSimpleMapper(accessType);
+    }
+    debug(REGISTERED_MESSAGE, accessType.getSimpleName());
+  }
+
+  /**
+   * Searches the directly declared interfaces for one annotated with {@link SchemaTemplate}.
+   */
+  @Nullable
+  private static Class<?> findTemplateType(final Class<? extends DataAccess> accessType) {
+    for (Class<?> candidate : accessType.getInterfaces()) {
+      if (candidate.isAnnotationPresent(SchemaTemplate.class)) {
+        return candidate;
+      }
+    }
+    return null; // accessType does not directly extend an interface annotated with @SchemaTemplate
+  }
+
+  /**
+   * Registers a simple {@link DataAccess} type with MyBatis.
+   */
+  private void registerSimpleMapper(final Class<? extends DataAccess> accessType) {
+    // make sure any types expected by the access type are registered first
+    Expects expects = accessType.getAnnotation(Expects.class);
+    if (expects != null) {
+      asList(expects.value()).forEach(this::register);
+    }
+
+    // MyBatis will load the corresponding XML schema
+    mybatisConfig.addMapper(accessType);
+  }
+
+  /**
+   * Registers a templated {@link DataAccess} type with MyBatis.
+   */
+  @SuppressWarnings("unchecked")
+  private void registerTemplatedMapper(final Class<? extends DataAccess> accessType, final Class<?> templateType) {
+
+    // make sure any types expected by the template are registered first
+    Expects expects = templateType.getAnnotation(Expects.class);
+    if (expects != null) {
+      asList(expects.value()).forEach(expectedType -> {
+        if (expectedType.isAnnotationPresent(SchemaTemplate.class)) {
+          // also a template which we need to resolve using the current context
+          register(expectedAccessType(accessType, templateType, expectedType));
+        }
+        else {
+          register(expectedType);
+        }
+      });
+    }
+
+    // lower-case prefix of the access type, excluding the package; for example MavenAssetDAO / AssetDAO = maven
+    String prefix = extractPrefix(accessType.getSimpleName(), templateType.getSimpleName());
+
+    // the variable in the schema XML that we'll replace with the local prefix
+    String placeholder = templateType.getAnnotation(SchemaTemplate.class).value();
+
+    // load and populate the template's mapper XML
+    String xml = loadMapperXml(templateType, true)
+        .replace("${namespace}", accessType.getName())
+        .replace("${" + placeholder + '}', prefix);
+
+    // now append the access type's mapper XML if it has one (this is where it can define extra fields/methods)
+    String includeXml = loadMapperXml(accessType, false);
+    Matcher mapperBody = MAPPER_BODY.matcher(includeXml);
+    if (mapperBody.find()) {
+      xml = xml.replace("</mapper>", format("<!-- %s -->%s</mapper>", accessType.getName(), mapperBody.group(1)));
+    }
+
+    try {
+      log.trace(xml);
+
+      XMLMapperBuilder xmlParser = new XMLMapperBuilder(
+          new ByteArrayInputStream(xml.getBytes(UTF_8)),
+          mybatisConfig,
+          accessType.getName(),
+          mybatisConfig.getSqlFragments(),
+          accessType.getName());
+
+      xmlParser.parse();
+
+      // when the type is not visible from this classloader then MyBatis will prepare the mapper
+      // but not do the final registration - so this call is needed to complete the registration
+      if (!mybatisConfig.hasMapper(accessType)) {
+        mybatisConfig.addMapper(accessType);
+      }
+    }
+    catch (RuntimeException e) {
+      log.warn(xml, e);
+      throw e;
+    }
+  }
+
+  /**
+   * Finds the expected access type for the expected template type, given the current access and template types.
+   */
+  private Class expectedAccessType(
+      final Class currentAccessType,
+      final Class currentTemplateType,
+      final Class expectedTemplateType)
+  {
+    String currentTemplateName = currentTemplateType.getSimpleName();
+    String expectedTemplateName = expectedTemplateType.getSimpleName();
+
+    // MavenAssetDAO -> s/AssetDAO/ComponentDAO/ -> MavenComponentDAO
+    String currentAccessName = currentAccessType.getSimpleName();
+    String expectedAccessName = currentAccessName.replace(currentTemplateName, expectedTemplateName);
+
+    // check registered types first (includes UT registered DAOs) before searching declared DAOs
+    Class expectedAccessType = findRegisteredAccessType(expectedAccessName)
+        .orElseGet(() -> findDeclaredAccessType(expectedAccessName)
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Access type " + expectedAccessName + " expected by " + currentAccessType + " is missing")));
+
+    // sanity check that this type has the expected class hierarchy
+    checkArgument(expectedTemplateType.isAssignableFrom(expectedAccessType),
+        "%s must extend %s", expectedAccessType, expectedTemplateType);
+
+    return expectedAccessType;
+  }
+
+  /**
+   * Returns the first DAO with the given simpleName registered with this store.
+   */
+  private Optional<Class<?>> findRegisteredAccessType(final String simpleName) {
+    return registeredAccessTypes.stream()
+        .filter(accessType -> simpleName.equals(accessType.getSimpleName()))
+        .findFirst();
+  }
+
+  /**
+   * Returns the first DAO with the given simpleName declared by a plugin/bundle.
+   */
+  private Optional<? extends Class> findDeclaredAccessType(final String simpleName) {
+    return daos(declaredAccessTypes)
+        .filter(accessType -> simpleName.equals(accessType.getSimpleName()))
+        .findFirst();
+  }
+
+  /**
+   * Returns the lower-case form of the prefix after removing templateName from accessName.
+   */
+  private static String extractPrefix(final String accessName, final String templateName) {
+    checkArgument(accessName.endsWith(templateName), "%s must end with %s", accessName, templateName);
+    String prefix = lower(accessName.substring(0, accessName.length() - templateName.length()));
+    checkArgument(!prefix.isEmpty(), "%s must add a prefix to %s", accessName, templateName);
+    return prefix;
+  }
+
+  /**
+   * Absolute resource path to the type's mapper XML.
+   */
+  private static String mapperXmlPath(final Class type) {
+    return '/' + type.getName().replace('.', '/') + ".xml";
+  }
+
+  /**
+   * Attempts to load the type's mapper XML. If the XML is missing and required then it throws
+   * {@link IllegalArgumentException}. If it is not required then it returns the empty string.
+   */
+  private static String loadMapperXml(final Class type, final boolean required) {
+    URL resource = type.getResource(mapperXmlPath(type));
+    checkArgument(!required || resource != null, "XML resource for %s is missing", type);
+    try {
+      return resource != null ? Resources.toString(resource, UTF_8) : "";
+    }
+    catch (IOException e) {
+      throw new UncheckedIOException("Cannot read " + resource, e);
+    }
+  }
+
+  /**
+   * Registers the given {@link Interceptor} with MyBatis.
+   */
+  @VisibleForTesting
+  public void register(final Interceptor interceptor) {
+    mybatisConfig.addInterceptor(interceptor);
+    debug(REGISTERED_MESSAGE, interceptor.getClass().getSimpleName());
+  }
+
+  /**
+   * Registers the given {@link TypeHandler} with MyBatis.
+   */
+  @VisibleForTesting
+  public void register(final TypeHandler<?> handler) {
+    prepare(handler).register(handler);
+    debug(REGISTERED_MESSAGE, handler.getClass().getSimpleName());
+  }
+
+  /**
+   * Registers the given {@link TypeHandler} with MyBatis binding it to an explicit type.
+   */
+  private <T> void register(final Class<T> type, final TypeHandler<? extends T> handler) {
+    prepare(handler).register(type, handler);
+    debug(REGISTERED_MESSAGE, handler.getClass().getSimpleName() + " (" + type.getSimpleName() + ")");
+  }
+
+  /**
+   * Registers the given {@link TypeHandler} with MyBatis without binding it to any type.
+   */
+  private <T> void registerDetached(final TypeHandler<? extends T> handler) {
+    prepare(handler).register(null, null, handler);
+    debug(REGISTERED_MESSAGE, handler.getClass().getSimpleName() + " (detached)");
+  }
+
+  /**
+   * Prepare the {@link TypeHandler} for use with this datastore.
+   */
+  private TypeHandlerRegistry prepare(final TypeHandler<?> handler) {
+    if (handler instanceof CipherAwareTypeHandler<?>) {
+      ((CipherAwareTypeHandler<?>) handler).setCipher(databaseCipher);
+    }
+
+    registerSimpleAlias(mybatisConfig.getTypeAliasRegistry(), handler.getClass());
+    Type handledType = ((BaseTypeHandler) handler).getRawType();
+    if (handledType instanceof Class<?>) {
+      registerSimpleAlias(mybatisConfig.getTypeAliasRegistry(), (Class<?>) handledType);
+    }
+    return mybatisConfig.getTypeHandlerRegistry();
+  }
+
+  /**
+   * Force use of MyBatis {@link ClassLoader} when generating entity proxies.
+   */
+  private void useMyBatisClassLoaderForEntityProxies() {
+
+    // MyBatis uses an embedded copy of Javassist to generate proxies for lazy entities
+    // which by default uses the entity classloader. Unfortunately the proxies also want
+    // to see the Javassist proxy package which is embedded in MyBatis but not exported.
+
+    // To workaround this visibility issue we need to set a custom 'ClassLoaderProvider'
+    // that always returns the MyBatis classloader. This can see the embedded Javassist
+    // code as well as the entity (thanks to MyBatis having "DynamicImport-Package:*")
+
+    // This isn't as clean as it could be because we can't refer directly to these types.
+    // Instead we need to use reflection and a JDK proxy to create and set our provider.
+
+    try {
+      ClassLoader myBatisLoader = Configuration.class.getClassLoader();
+
+      String proxyFactoryName = "org.apache.ibatis.javassist.util.proxy.ProxyFactory";
+      Class<?> proxyFactoryClass = myBatisLoader.loadClass(proxyFactoryName);
+      String classLoaderProviderName = proxyFactoryName + "$ClassLoaderProvider";
+      Class<?>[] classLoaderProviderApi = {myBatisLoader.loadClass(classLoaderProviderName)};
+      Field classLoaderProviderField = proxyFactoryClass.getField("classLoaderProvider");
+
+      classLoaderProviderField.set(null, Proxy.newProxyInstance(myBatisLoader,
+          classLoaderProviderApi, (proxy, method, args) -> myBatisLoader));
+    }
+    catch (Exception | LinkageError e) {
+      log.warn("Problem applying MyBatis proxy workaround", e);
+    }
+  }
+
+  @VisibleForTesting
+  void setDataSource(final HikariDataSource dataSource) {
+    this.dataSource = dataSource;
+  }
+
+  private static Stream<Class<DataAccess>> daos(final List<TransactionalStoreSupport> stores) {
+    return stores.stream()
+        .map(TransactionalStoreSupport::getDaoClass);
+  }
+}
