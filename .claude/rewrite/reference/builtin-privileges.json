@@ -1,0 +1,2456 @@
+[
+ {
+  "type": "application",
+  "name": "as-accesstokens-all",
+  "description": "All permissions for Accesstokens",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "accesstokens"
+ },
+ {
+  "type": "application",
+  "name": "as-accesstokens-create",
+  "description": "Create permission for Accesstokens",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "accesstokens"
+ },
+ {
+  "type": "application",
+  "name": "as-accesstokens-delete",
+  "description": "Delete permission for Accesstokens",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "accesstokens"
+ },
+ {
+  "type": "application",
+  "name": "as-accesstokens-read",
+  "description": "Read permission for Accesstokens",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "accesstokens"
+ },
+ {
+  "type": "application",
+  "name": "as-accesstokens-update",
+  "description": "Update permission for Accesstokens",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "accesstokens"
+ },
+ {
+  "type": "wildcard",
+  "name": "as-all",
+  "description": "All permissions",
+  "readOnly": true,
+  "pattern": "astrum:*"
+ },
+ {
+  "type": "application",
+  "name": "as-analytics-all",
+  "description": "All permissions for Analytics",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "analytics"
+ },
+ {
+  "type": "application",
+  "name": "as-apikey-all",
+  "description": "All permissions for APIKey",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "apikey"
+ },
+ {
+  "type": "application",
+  "name": "as-atlas-all",
+  "description": "All permissions for Support Tools",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "atlas"
+ },
+ {
+  "type": "application",
+  "name": "as-audit-all",
+  "description": "All permissions for Audit",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "audit"
+ },
+ {
+  "type": "application",
+  "name": "as-audit-read",
+  "description": "Read Audit",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "audit"
+ },
+ {
+  "type": "application",
+  "name": "as-blobstores-all",
+  "description": "All permissions for Blobstores",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "blobstores"
+ },
+ {
+  "type": "application",
+  "name": "as-blobstores-create",
+  "description": "Create permission for Blobstores",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "blobstores"
+ },
+ {
+  "type": "application",
+  "name": "as-blobstores-delete",
+  "description": "Delete permission for Blobstores",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "blobstores"
+ },
+ {
+  "type": "application",
+  "name": "as-blobstores-read",
+  "description": "Read permission for Blobstores",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "blobstores"
+ },
+ {
+  "type": "application",
+  "name": "as-blobstores-update",
+  "description": "Update permission for Blobstores",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "blobstores"
+ },
+ {
+  "type": "application",
+  "name": "as-bundles-all",
+  "description": "All permissions for Bundles",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "bundles"
+ },
+ {
+  "type": "application",
+  "name": "as-bundles-read",
+  "description": "Read permission for Bundles",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "bundles"
+ },
+ {
+  "type": "application",
+  "name": "as-capabilities-all",
+  "description": "All permissions for Capabilities",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "capabilities"
+ },
+ {
+  "type": "application",
+  "name": "as-capabilities-create",
+  "description": "Create permission for Capabilities",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "capabilities"
+ },
+ {
+  "type": "application",
+  "name": "as-capabilities-delete",
+  "description": "Delete permission for Capabilities",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "capabilities"
+ },
+ {
+  "type": "application",
+  "name": "as-capabilities-read",
+  "description": "Read permission for Capabilities",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "capabilities"
+ },
+ {
+  "type": "application",
+  "name": "as-capabilities-update",
+  "description": "Update permission for Capabilities",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "capabilities"
+ },
+ {
+  "type": "application",
+  "name": "as-component-upload",
+  "description": "Upload component permission",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "domain": "component"
+ },
+ {
+  "type": "application",
+  "name": "as-datastores-all",
+  "description": "All permissions for Datastores",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "datastores"
+ },
+ {
+  "type": "application",
+  "name": "as-datastores-create",
+  "description": "Create permission for Datastores",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "datastores"
+ },
+ {
+  "type": "application",
+  "name": "as-datastores-delete",
+  "description": "Delete permission for Datastores",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "datastores"
+ },
+ {
+  "type": "application",
+  "name": "as-datastores-read",
+  "description": "Read permission for Datastores",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "datastores"
+ },
+ {
+  "type": "application",
+  "name": "as-datastores-update",
+  "description": "Update permission for Datastores",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "datastores"
+ },
+ {
+  "type": "application",
+  "name": "as-ldap-all",
+  "description": "All permissions for Ldap",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "ldap"
+ },
+ {
+  "type": "application",
+  "name": "as-ldap-create",
+  "description": "Create permission for Ldap",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "ldap"
+ },
+ {
+  "type": "application",
+  "name": "as-ldap-delete",
+  "description": "Delete permission for Ldap",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "ldap"
+ },
+ {
+  "type": "application",
+  "name": "as-ldap-read",
+  "description": "Read permission for Ldap",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "ldap"
+ },
+ {
+  "type": "application",
+  "name": "as-ldap-update",
+  "description": "Update permission for Ldap",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "ldap"
+ },
+ {
+  "type": "application",
+  "name": "as-logging-all",
+  "description": "All permissions for Logging",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "logging"
+ },
+ {
+  "type": "application",
+  "name": "as-logging-mark",
+  "description": "Mark permission for Logging",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "domain": "logging"
+ },
+ {
+  "type": "application",
+  "name": "as-logging-read",
+  "description": "Read permission for Logging",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "logging"
+ },
+ {
+  "type": "application",
+  "name": "as-logging-update",
+  "description": "Update permission for Logging",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "logging"
+ },
+ {
+  "type": "application",
+  "name": "as-metrics-all",
+  "description": "All permissions for Metrics",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "metrics"
+ },
+ {
+  "type": "application",
+  "name": "as-privileges-all",
+  "description": "All permissions for Privileges",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "privileges"
+ },
+ {
+  "type": "application",
+  "name": "as-privileges-create",
+  "description": "Create permission for Privileges",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "privileges"
+ },
+ {
+  "type": "application",
+  "name": "as-privileges-delete",
+  "description": "Delete permission for Privileges",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "privileges"
+ },
+ {
+  "type": "application",
+  "name": "as-privileges-read",
+  "description": "Read permission for Privileges",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "privileges"
+ },
+ {
+  "type": "application",
+  "name": "as-privileges-update",
+  "description": "Update permission for Privileges",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "privileges"
+ },
+ {
+  "type": "repository-admin",
+  "name": "as-repository-admin-*-*-*",
+  "description": "All privileges for all repository administration",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-admin",
+  "name": "as-repository-admin-*-*-add",
+  "description": "Add privilege for all repository administration",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-admin",
+  "name": "as-repository-admin-*-*-browse",
+  "description": "Browse privilege for all repository administration",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-admin",
+  "name": "as-repository-admin-*-*-delete",
+  "description": "Delete privilege for all repository administration",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-admin",
+  "name": "as-repository-admin-*-*-edit",
+  "description": "Edit privilege for all repository administration",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-admin",
+  "name": "as-repository-admin-*-*-read",
+  "description": "Read privilege for all repository administration",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-*-*-*",
+  "description": "All permissions for all repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-*-*-add",
+  "description": "Add permissions for all repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-*-*-browse",
+  "description": "Browse permissions for all repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-*-*-delete",
+  "description": "Delete permissions for all repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-*-*-edit",
+  "description": "Edit permissions for all repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-*-*-read",
+  "description": "Read permissions for all repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "*",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-alpine-*-*",
+  "description": "All privileges for all 'alpine'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "alpine",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-alpine-*-add",
+  "description": "Add privilege for all 'alpine'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "alpine",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-alpine-*-browse",
+  "description": "Browse privilege for all 'alpine'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "alpine",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-alpine-*-delete",
+  "description": "Delete privilege for all 'alpine'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "alpine",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-alpine-*-edit",
+  "description": "Edit privilege for all 'alpine'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "alpine",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-alpine-*-read",
+  "description": "Read privilege for all 'alpine'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "alpine",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-apt-*-*",
+  "description": "All privileges for all 'apt'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "apt",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-apt-*-add",
+  "description": "Add privilege for all 'apt'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "apt",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-apt-*-browse",
+  "description": "Browse privilege for all 'apt'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "apt",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-apt-*-delete",
+  "description": "Delete privilege for all 'apt'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "apt",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-apt-*-edit",
+  "description": "Edit privilege for all 'apt'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "apt",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-apt-*-read",
+  "description": "Read privilege for all 'apt'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "apt",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cargo-*-*",
+  "description": "All privileges for all 'cargo'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "cargo",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cargo-*-add",
+  "description": "Add privilege for all 'cargo'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "cargo",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cargo-*-browse",
+  "description": "Browse privilege for all 'cargo'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "cargo",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cargo-*-delete",
+  "description": "Delete privilege for all 'cargo'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "cargo",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cargo-*-edit",
+  "description": "Edit privilege for all 'cargo'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "cargo",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cargo-*-read",
+  "description": "Read privilege for all 'cargo'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "cargo",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cocoapods-*-*",
+  "description": "All privileges for all 'cocoapods'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "cocoapods",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cocoapods-*-add",
+  "description": "Add privilege for all 'cocoapods'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "cocoapods",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cocoapods-*-browse",
+  "description": "Browse privilege for all 'cocoapods'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "cocoapods",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cocoapods-*-delete",
+  "description": "Delete privilege for all 'cocoapods'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "cocoapods",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cocoapods-*-edit",
+  "description": "Edit privilege for all 'cocoapods'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "cocoapods",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-cocoapods-*-read",
+  "description": "Read privilege for all 'cocoapods'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "cocoapods",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-composer-*-*",
+  "description": "All privileges for all 'composer'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "composer",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-composer-*-add",
+  "description": "Add privilege for all 'composer'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "composer",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-composer-*-browse",
+  "description": "Browse privilege for all 'composer'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "composer",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-composer-*-delete",
+  "description": "Delete privilege for all 'composer'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "composer",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-composer-*-edit",
+  "description": "Edit privilege for all 'composer'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "composer",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-composer-*-read",
+  "description": "Read privilege for all 'composer'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "composer",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conan-*-*",
+  "description": "All privileges for all 'conan'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "conan",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conan-*-add",
+  "description": "Add privilege for all 'conan'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "conan",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conan-*-browse",
+  "description": "Browse privilege for all 'conan'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "conan",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conan-*-delete",
+  "description": "Delete privilege for all 'conan'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "conan",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conan-*-edit",
+  "description": "Edit privilege for all 'conan'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "conan",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conan-*-read",
+  "description": "Read privilege for all 'conan'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "conan",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conda-*-*",
+  "description": "All privileges for all 'conda'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "conda",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conda-*-add",
+  "description": "Add privilege for all 'conda'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "conda",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conda-*-browse",
+  "description": "Browse privilege for all 'conda'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "conda",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conda-*-delete",
+  "description": "Delete privilege for all 'conda'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "conda",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conda-*-edit",
+  "description": "Edit privilege for all 'conda'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "conda",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-conda-*-read",
+  "description": "Read privilege for all 'conda'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "conda",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-docker-*-*",
+  "description": "All privileges for all 'docker'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "docker",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-docker-*-add",
+  "description": "Add privilege for all 'docker'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "docker",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-docker-*-browse",
+  "description": "Browse privilege for all 'docker'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "docker",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-docker-*-delete",
+  "description": "Delete privilege for all 'docker'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "docker",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-docker-*-edit",
+  "description": "Edit privilege for all 'docker'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "docker",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-docker-*-read",
+  "description": "Read privilege for all 'docker'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "docker",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-gitlfs-*-*",
+  "description": "All privileges for all 'gitlfs'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "gitlfs",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-gitlfs-*-add",
+  "description": "Add privilege for all 'gitlfs'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "gitlfs",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-gitlfs-*-browse",
+  "description": "Browse privilege for all 'gitlfs'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "gitlfs",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-gitlfs-*-delete",
+  "description": "Delete privilege for all 'gitlfs'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "gitlfs",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-gitlfs-*-edit",
+  "description": "Edit privilege for all 'gitlfs'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "gitlfs",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-gitlfs-*-read",
+  "description": "Read privilege for all 'gitlfs'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "gitlfs",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-go-*-*",
+  "description": "All privileges for all 'go'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "go",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-go-*-add",
+  "description": "Add privilege for all 'go'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "go",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-go-*-browse",
+  "description": "Browse privilege for all 'go'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "go",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-go-*-delete",
+  "description": "Delete privilege for all 'go'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "go",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-go-*-edit",
+  "description": "Edit privilege for all 'go'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "go",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-go-*-read",
+  "description": "Read privilege for all 'go'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "go",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-helm-*-*",
+  "description": "All privileges for all 'helm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "helm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-helm-*-add",
+  "description": "Add privilege for all 'helm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "helm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-helm-*-browse",
+  "description": "Browse privilege for all 'helm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "helm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-helm-*-delete",
+  "description": "Delete privilege for all 'helm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "helm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-helm-*-edit",
+  "description": "Edit privilege for all 'helm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "helm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-helm-*-read",
+  "description": "Read privilege for all 'helm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "helm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-huggingface-*-*",
+  "description": "All privileges for all 'huggingface'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "huggingface",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-huggingface-*-add",
+  "description": "Add privilege for all 'huggingface'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "huggingface",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-huggingface-*-browse",
+  "description": "Browse privilege for all 'huggingface'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "huggingface",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-huggingface-*-delete",
+  "description": "Delete privilege for all 'huggingface'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "huggingface",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-huggingface-*-edit",
+  "description": "Edit privilege for all 'huggingface'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "huggingface",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-huggingface-*-read",
+  "description": "Read privilege for all 'huggingface'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "huggingface",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-maven2-*-*",
+  "description": "All privileges for all 'maven2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "maven2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-maven2-*-add",
+  "description": "Add privilege for all 'maven2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "maven2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-maven2-*-browse",
+  "description": "Browse privilege for all 'maven2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "maven2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-maven2-*-delete",
+  "description": "Delete privilege for all 'maven2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "maven2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-maven2-*-edit",
+  "description": "Edit privilege for all 'maven2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "maven2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-maven2-*-read",
+  "description": "Read privilege for all 'maven2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "maven2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-npm-*-*",
+  "description": "All privileges for all 'npm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "npm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-npm-*-add",
+  "description": "Add privilege for all 'npm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "npm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-npm-*-browse",
+  "description": "Browse privilege for all 'npm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "npm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-npm-*-delete",
+  "description": "Delete privilege for all 'npm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "npm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-npm-*-edit",
+  "description": "Edit privilege for all 'npm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "npm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-npm-*-read",
+  "description": "Read privilege for all 'npm'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "npm",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-nuget-*-*",
+  "description": "All privileges for all 'nuget'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "nuget",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-nuget-*-add",
+  "description": "Add privilege for all 'nuget'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "nuget",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-nuget-*-browse",
+  "description": "Browse privilege for all 'nuget'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "nuget",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-nuget-*-delete",
+  "description": "Delete privilege for all 'nuget'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "nuget",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-nuget-*-edit",
+  "description": "Edit privilege for all 'nuget'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "nuget",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-nuget-*-read",
+  "description": "Read privilege for all 'nuget'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "nuget",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-p2-*-*",
+  "description": "All privileges for all 'p2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "p2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-p2-*-add",
+  "description": "Add privilege for all 'p2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "p2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-p2-*-browse",
+  "description": "Browse privilege for all 'p2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "p2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-p2-*-delete",
+  "description": "Delete privilege for all 'p2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "p2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-p2-*-edit",
+  "description": "Edit privilege for all 'p2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "p2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-p2-*-read",
+  "description": "Read privilege for all 'p2'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "p2",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-pypi-*-*",
+  "description": "All privileges for all 'pypi'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "pypi",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-pypi-*-add",
+  "description": "Add privilege for all 'pypi'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "pypi",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-pypi-*-browse",
+  "description": "Browse privilege for all 'pypi'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "pypi",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-pypi-*-delete",
+  "description": "Delete privilege for all 'pypi'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "pypi",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-pypi-*-edit",
+  "description": "Edit privilege for all 'pypi'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "pypi",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-pypi-*-read",
+  "description": "Read privilege for all 'pypi'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "pypi",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-r-*-*",
+  "description": "All privileges for all 'r'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "r",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-r-*-add",
+  "description": "Add privilege for all 'r'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "r",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-r-*-browse",
+  "description": "Browse privilege for all 'r'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "r",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-r-*-delete",
+  "description": "Delete privilege for all 'r'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "r",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-r-*-edit",
+  "description": "Edit privilege for all 'r'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "r",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-r-*-read",
+  "description": "Read privilege for all 'r'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "r",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-raw-*-*",
+  "description": "All privileges for all 'raw'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "raw",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-raw-*-add",
+  "description": "Add privilege for all 'raw'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "raw",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-raw-*-browse",
+  "description": "Browse privilege for all 'raw'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "raw",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-raw-*-delete",
+  "description": "Delete privilege for all 'raw'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "raw",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-raw-*-edit",
+  "description": "Edit privilege for all 'raw'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "raw",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-raw-*-read",
+  "description": "Read privilege for all 'raw'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "raw",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-rubygems-*-*",
+  "description": "All privileges for all 'rubygems'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "rubygems",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-rubygems-*-add",
+  "description": "Add privilege for all 'rubygems'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "rubygems",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-rubygems-*-browse",
+  "description": "Browse privilege for all 'rubygems'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "rubygems",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-rubygems-*-delete",
+  "description": "Delete privilege for all 'rubygems'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "rubygems",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-rubygems-*-edit",
+  "description": "Edit privilege for all 'rubygems'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "rubygems",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-rubygems-*-read",
+  "description": "Read privilege for all 'rubygems'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "rubygems",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-swift-*-*",
+  "description": "All privileges for all 'swift'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "swift",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-swift-*-add",
+  "description": "Add privilege for all 'swift'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "swift",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-swift-*-browse",
+  "description": "Browse privilege for all 'swift'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "swift",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-swift-*-delete",
+  "description": "Delete privilege for all 'swift'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "swift",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-swift-*-edit",
+  "description": "Edit privilege for all 'swift'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "swift",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-swift-*-read",
+  "description": "Read privilege for all 'swift'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "swift",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-terraform-*-*",
+  "description": "All privileges for all 'terraform'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "terraform",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-terraform-*-add",
+  "description": "Add privilege for all 'terraform'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "terraform",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-terraform-*-browse",
+  "description": "Browse privilege for all 'terraform'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "terraform",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-terraform-*-delete",
+  "description": "Delete privilege for all 'terraform'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "terraform",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-terraform-*-edit",
+  "description": "Edit privilege for all 'terraform'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "terraform",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-terraform-*-read",
+  "description": "Read privilege for all 'terraform'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "terraform",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-yum-*-*",
+  "description": "All privileges for all 'yum'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "format": "yum",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-yum-*-add",
+  "description": "Add privilege for all 'yum'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "ADD"
+  ],
+  "format": "yum",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-yum-*-browse",
+  "description": "Browse privilege for all 'yum'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "BROWSE"
+  ],
+  "format": "yum",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-yum-*-delete",
+  "description": "Delete privilege for all 'yum'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "DELETE"
+  ],
+  "format": "yum",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-yum-*-edit",
+  "description": "Edit privilege for all 'yum'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "EDIT"
+  ],
+  "format": "yum",
+  "repository": "*"
+ },
+ {
+  "type": "repository-view",
+  "name": "as-repository-view-yum-*-read",
+  "description": "Read privilege for all 'yum'-format repository views",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "format": "yum",
+  "repository": "*"
+ },
+ {
+  "type": "application",
+  "name": "as-roles-all",
+  "description": "All permissions for Roles",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "roles"
+ },
+ {
+  "type": "application",
+  "name": "as-roles-create",
+  "description": "Create permission for Roles",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "roles"
+ },
+ {
+  "type": "application",
+  "name": "as-roles-delete",
+  "description": "Delete permission for Roles",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "roles"
+ },
+ {
+  "type": "application",
+  "name": "as-roles-read",
+  "description": "Read permission for Roles",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "roles"
+ },
+ {
+  "type": "application",
+  "name": "as-roles-update",
+  "description": "Update permission for Roles",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "roles"
+ },
+ {
+  "type": "application",
+  "name": "as-search-read",
+  "description": "Read permission for Search",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "search"
+ },
+ {
+  "type": "application",
+  "name": "as-selectors-all",
+  "description": "All permissions for Selectors",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "selectors"
+ },
+ {
+  "type": "application",
+  "name": "as-selectors-create",
+  "description": "Create permission for Selectors",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "selectors"
+ },
+ {
+  "type": "application",
+  "name": "as-selectors-delete",
+  "description": "Delete permission for Selectors",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "selectors"
+ },
+ {
+  "type": "application",
+  "name": "as-selectors-read",
+  "description": "Read permission for Selectors",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "selectors"
+ },
+ {
+  "type": "application",
+  "name": "as-selectors-update",
+  "description": "Update permission for Selectors",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "selectors"
+ },
+ {
+  "type": "application",
+  "name": "as-settings-all",
+  "description": "All permissions for Settings",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "settings"
+ },
+ {
+  "type": "application",
+  "name": "as-settings-read",
+  "description": "Read permission for Settings",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "settings"
+ },
+ {
+  "type": "application",
+  "name": "as-settings-update",
+  "description": "Update permission for Settings",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "settings"
+ },
+ {
+  "type": "application",
+  "name": "as-ssl-truststore-all",
+  "description": "All permissions for Ssl-truststore",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "ssl-truststore"
+ },
+ {
+  "type": "application",
+  "name": "as-ssl-truststore-create",
+  "description": "Create permission for Ssl-truststore",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "ssl-truststore"
+ },
+ {
+  "type": "application",
+  "name": "as-ssl-truststore-delete",
+  "description": "Delete permission for Ssl-truststore",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "ssl-truststore"
+ },
+ {
+  "type": "application",
+  "name": "as-ssl-truststore-read",
+  "description": "Read permission for Ssl-truststore",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "ssl-truststore"
+ },
+ {
+  "type": "application",
+  "name": "as-ssl-truststore-update",
+  "description": "Update permission for Ssl-truststore",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "ssl-truststore"
+ },
+ {
+  "type": "application",
+  "name": "as-tasks-all",
+  "description": "All permissions for Tasks",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "tasks"
+ },
+ {
+  "type": "application",
+  "name": "as-tasks-create",
+  "description": "Create permission for Tasks",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "tasks"
+ },
+ {
+  "type": "application",
+  "name": "as-tasks-delete",
+  "description": "Delete permission for Tasks",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "tasks"
+ },
+ {
+  "type": "application",
+  "name": "as-tasks-read",
+  "description": "Read permission for Tasks",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "tasks"
+ },
+ {
+  "type": "application",
+  "name": "as-tasks-run",
+  "description": "Run permission for Scheduled Tasks",
+  "readOnly": true,
+  "actions": [
+   "START",
+   "STOP"
+  ],
+  "domain": "tasks"
+ },
+ {
+  "type": "application",
+  "name": "as-tasks-update",
+  "description": "Update permission for Tasks",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "tasks"
+ },
+ {
+  "type": "application",
+  "name": "as-uploader-metadata-read",
+  "description": "Read permission for Uploader Metadata",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "uploader-metadata"
+ },
+ {
+  "type": "application",
+  "name": "as-users-all",
+  "description": "All permissions for Users",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "users"
+ },
+ {
+  "type": "application",
+  "name": "as-users-create",
+  "description": "Create permission for Users",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "users"
+ },
+ {
+  "type": "application",
+  "name": "as-users-delete",
+  "description": "Delete permission for Users",
+  "readOnly": true,
+  "actions": [
+   "DELETE",
+   "READ"
+  ],
+  "domain": "users"
+ },
+ {
+  "type": "application",
+  "name": "as-users-read",
+  "description": "Read permission for Users",
+  "readOnly": true,
+  "actions": [
+   "READ"
+  ],
+  "domain": "users"
+ },
+ {
+  "type": "application",
+  "name": "as-users-update",
+  "description": "Update permission for Users",
+  "readOnly": true,
+  "actions": [
+   "EDIT",
+   "READ"
+  ],
+  "domain": "users"
+ },
+ {
+  "type": "application",
+  "name": "as-userschangepw",
+  "description": "Change password permission",
+  "readOnly": true,
+  "actions": [
+   "ADD",
+   "READ"
+  ],
+  "domain": "userschangepw"
+ },
+ {
+  "type": "application",
+  "name": "as-wonderland-all",
+  "description": "All permissions for Wonderland",
+  "readOnly": true,
+  "actions": [
+   "ALL"
+  ],
+  "domain": "wonderland"
+ }
+]
