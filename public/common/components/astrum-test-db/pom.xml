@@ -1,0 +1,53 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.components</groupId>
+    <artifactId>astrum-common-components-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-test-db</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+
+  <properties>
+    <!-- this is a bundle used only by tests -->
+    <clm.skip>true</clm.skip>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-datastore-mybatis</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-testsupport</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-postgresql</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-db</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>
