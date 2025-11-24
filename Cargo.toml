@@ -1,0 +1,138 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "3.0.0-dev"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+repository = "https://github.com/GlobalArtInc/astrum-repository"
+
+[workspace.dependencies]
+astrum-api = { path = "crates/astrum-api" }
+astrum-blob = { path = "crates/astrum-blob" }
+astrum-content = { path = "crates/astrum-content" }
+astrum-format-alpine = { path = "crates/astrum-format-alpine" }
+astrum-format-ansible = { path = "crates/astrum-format-ansible" }
+astrum-format-apt = { path = "crates/astrum-format-apt" }
+astrum-format-cargo = { path = "crates/astrum-format-cargo" }
+astrum-format-cocoapods = { path = "crates/astrum-format-cocoapods" }
+astrum-format-composer = { path = "crates/astrum-format-composer" }
+astrum-format-conan = { path = "crates/astrum-format-conan" }
+astrum-format-conda = { path = "crates/astrum-format-conda" }
+astrum-format-docker = { path = "crates/astrum-format-docker" }
+astrum-format-gitlfs = { path = "crates/astrum-format-gitlfs" }
+astrum-format-go = { path = "crates/astrum-format-go" }
+astrum-format-helm = { path = "crates/astrum-format-helm" }
+astrum-format-huggingface = { path = "crates/astrum-format-huggingface" }
+astrum-format-maven = { path = "crates/astrum-format-maven" }
+astrum-format-npm = { path = "crates/astrum-format-npm" }
+astrum-format-nuget = { path = "crates/astrum-format-nuget" }
+astrum-format-p2 = { path = "crates/astrum-format-p2" }
+astrum-format-pub = { path = "crates/astrum-format-pub" }
+astrum-format-pypi = { path = "crates/astrum-format-pypi" }
+astrum-format-r = { path = "crates/astrum-format-r" }
+astrum-format-raw = { path = "crates/astrum-format-raw" }
+astrum-format-swift = { path = "crates/astrum-format-swift" }
+astrum-format-terraform = { path = "crates/astrum-format-terraform" }
+astrum-mail = { path = "crates/astrum-mail" }
+astrum-outbound = { path = "crates/astrum-outbound" }
+astrum-format-rubygems = { path = "crates/astrum-format-rubygems" }
+astrum-format-yum = { path = "crates/astrum-format-yum" }
+astrum-db = { path = "crates/astrum-db" }
+astrum-logging = { path = "crates/astrum-logging" }
+astrum-notify = { path = "crates/astrum-notify" }
+astrum-repo = { path = "crates/astrum-repo" }
+astrum-security = { path = "crates/astrum-security" }
+astrum-server = { path = "crates/astrum-server" }
+astrum-tasks = { path = "crates/astrum-tasks" }
+astrum-testkit = { path = "crates/astrum-testkit" }
+
+aes = "0.8"
+aes-gcm = "0.10"
+anyhow = "1"
+argon2 = { version = "0.5", features = ["std"] }
+async-trait = "0.1"
+aws-config = { version = "1", default-features = false, features = ["rt-tokio", "behavior-version-latest"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", "http-1x", "behavior-version-latest"] }
+aws-smithy-http-client = { version = "1", features = ["rustls-ring"] }
+axum = "0.8"
+base64 = "0.22"
+bzip2 = "0.6"
+bytes = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+clap = { version = "4", features = ["derive"] }
+des = "0.8"
+flate2 = "1"
+futures-util = "0.3"
+hex = "0.4"
+hmac = "0.12"
+http-body-util = "0.1"
+httpdate = "1"
+hyper-util = { version = "0.1", features = ["server-auto", "service", "tokio"] }
+infer = "0.19"
+ldap3_lber = "=0.8.1"
+ldap3_proto = "0.8.1"
+lzma-rs = "0.3"
+md-5 = "0.10"
+migrator = { package = "sqlmig", version = "0.2.1" }
+mime_guess = "2"
+multer = "3"
+percent-encoding = "2"
+pgp = { version = "0.21", default-features = false }
+quick-xml = "0.42"
+rand = "0.9"
+rand_core06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }
+rand08 = { package = "rand", version = "0.8" }
+rcgen = "0.14"
+regex = "1"
+regex-syntax = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "stream", "http2", "socks"] }
+ring = "0.17"
+rsa = "0.9"
+rustix = { version = "1", features = ["fs"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
+rustls-native-certs = "0.8"
+ruzstd = "0.9"
+s3s = "0.17"
+s3s-fs = "0.17"
+sea-orm = { version = "1.1", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-json", "with-uuid", "postgres-array"] }
+semver = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_norway = "0.9"
+sha1 = "0.10"
+sha2 = "0.10"
+subtle = "2"
+tar = { version = "0.4", default-features = false }
+tempfile = "3"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "net", "io-util", "fs", "time"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "logging", "tls12"] }
+tokio-util = { version = "0.7", features = ["io"] }
+toml = "1"
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.7", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+url = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+x509-parser = "0.18"
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
+
+[profile.test]
+debug = "line-tables-only"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
