@@ -1,0 +1,50 @@
+[
+ {
+  "id": "AccessTokenRealm",
+  "name": "Access Token Realm"
+ },
+ {
+  "id": "CargoToken",
+  "name": "Cargo Bearer Token Realm"
+ },
+ {
+  "id": "ConanToken",
+  "name": "Conan Bearer Token Realm"
+ },
+ {
+  "id": "DefaultRole",
+  "name": "Default Role Realm"
+ },
+ {
+  "id": "DockerToken",
+  "name": "Docker Bearer Token Realm"
+ },
+ {
+  "id": "LdapRealm",
+  "name": "LDAP Realm"
+ },
+ {
+  "id": "AstrumAuthenticatingRealm",
+  "name": "Local Authenticating Realm"
+ },
+ {
+  "id": "NpmToken",
+  "name": "npm Bearer Token Realm"
+ },
+ {
+  "id": "NuGetApiKey",
+  "name": "NuGet API-Key Realm"
+ },
+ {
+  "id": "OAuth2Realm",
+  "name": "OpenID Connect Realm"
+ },
+ {
+  "id": "RubyGemsApiKey",
+  "name": "RubyGems API Key Realm"
+ },
+ {
+  "id": "TerraformToken",
+  "name": "Terraform Bearer Token Realm"
+ }
+]
