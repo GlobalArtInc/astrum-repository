@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.testdb.example.template.plastic.PlasticSprocketDAO">
+
+  <insert id="extendSchema">
+    ALTER TABLE IF EXISTS plastic_sprocket ADD IF NOT EXISTS notes VARCHAR;
+  </insert>
+
+</mapper>
