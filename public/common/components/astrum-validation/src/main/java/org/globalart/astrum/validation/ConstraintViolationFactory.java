@@ -1,0 +1,127 @@
+
+package org.globalart.astrum.validation;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.inject.Provider;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintValidatorContext.ConstraintViolationBuilder;
+import jakarta.validation.ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Payload;
+import jakarta.validation.Validator;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import org.springframework.stereotype.Component;
+
+/**
+ * Factory of {@link ConstraintViolation}s to be used (rarely) for manual validation.
+ *
+ * @since 3.0
+ */
+@Component
+public class ConstraintViolationFactory
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private final Provider<Validator> validatorProvider;
+
+  @Autowired
+  public ConstraintViolationFactory(final Provider<Validator> validatorProvider) {
+    this.validatorProvider = checkNotNull(validatorProvider);
+  }
+
+  /**
+   * Create a violation with specified path and message.
+   *
+   * @param path violation path
+   * @param message violation message
+   * @return created violation
+   */
+  public ConstraintViolation<?> createViolation(final String path, final String message) {
+    checkNotNull(path);
+    checkNotNull(message);
+    return validatorProvider.get().validate(new HelperBean(path, message)).iterator().next();
+  }
+
+  /**
+   * Bean passing path/message.
+   */
+  @HelperAnnotation
+  private static class HelperBean
+  {
+    private final String path;
+
+    private final String message;
+
+    public HelperBean(final String path, final String message) {
+      this.path = path;
+      this.message = message;
+    }
+
+    public String getPath() {
+      return path;
+    }
+
+    public String getMessage() {
+      return message;
+    }
+  }
+
+  /**
+   * Annotation to trigger validation.
+   *
+   * @since 3.0
+   */
+  @Target({TYPE})
+  @Retention(RUNTIME)
+  @Constraint(validatedBy = HelperValidator.class)
+  @Documented
+  private @interface HelperAnnotation
+  {
+    String message() default "";
+
+    Class<?>[] groups() default {};
+
+    Class<? extends Payload>[] payload() default {};
+  }
+
+  /**
+   * {@link HelperAnnotation} validator.
+   */
+  private static class HelperValidator
+      extends ConstraintValidatorSupport<HelperAnnotation, HelperBean>
+  {
+    @Override
+    public boolean isValid(final HelperBean bean, final ConstraintValidatorContext context) {
+      context.disableDefaultConstraintViolation();
+
+      // build a custom property path
+      ConstraintViolationBuilder builder =
+          context.buildConstraintViolationWithTemplate(getEscapeHelper().stripJavaEl(bean.getMessage()));
+      NodeBuilderCustomizableContext nodeBuilder = null;
+      for (String part : bean.getPath().split("\\.")) {
+        if (nodeBuilder == null) {
+          nodeBuilder = builder.addPropertyNode(part);
+        }
+        else {
+          nodeBuilder = nodeBuilder.addPropertyNode(part);
+        }
+      }
+      if (nodeBuilder != null) {
+        nodeBuilder.addConstraintViolation();
+      }
+
+      return false;
+    }
+  }
+}
