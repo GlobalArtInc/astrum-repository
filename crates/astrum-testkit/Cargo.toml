@@ -1,0 +1,33 @@
+[package]
+name = "astrum-testkit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+astrum-db.workspace = true
+axum.workspace = true
+base64.workspace = true
+bytes.workspace = true
+futures-util.workspace = true
+hmac.workspace = true
+hyper-util.workspace = true
+ldap3_lber.workspace = true
+ldap3_proto.workspace = true
+md-5.workspace = true
+rand.workspace = true
+rcgen.workspace = true
+ring.workspace = true
+rustls.workspace = true
+s3s.workspace = true
+s3s-fs.workspace = true
+sea-orm.workspace = true
+serde_json.workspace = true
+sha1.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+tokio.workspace = true
+tokio-rustls.workspace = true
+tokio-util = { workspace = true, features = ["codec"] }
+url.workspace = true
