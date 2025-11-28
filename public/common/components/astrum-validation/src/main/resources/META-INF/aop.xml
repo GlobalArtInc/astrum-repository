@@ -1,0 +1,10 @@
+
+<aspectj>
+    <aspects>
+        <aspect name="org.globalart.astrum.validation.internal.ValidationAspect"/>
+        <weaver options="-verbose -showWeaveInfo">
+            <include within="org.globalart.astrum.*"/>
+            <include within="com.globalart.astrum.*"/>
+        </weaver>
+    </aspects>
+</aspectj>
