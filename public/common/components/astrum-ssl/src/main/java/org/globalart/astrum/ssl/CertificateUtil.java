@@ -1,0 +1,224 @@
+
+package org.globalart.astrum.ssl;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.math.BigInteger;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
+
+import com.google.common.hash.Hashing;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Simple utility methods when dealing with certificates.
+ * <p/>
+ * In order to use the methods decodePEMFormattedCertificate or serializeCertificateInPEM, the BouncyCastleProvider
+ * must be registered. <BR/>
+ * <BR/>
+ * 
+ * <pre>
+ * <code>
+ *    if (Security.getProvider("BC") == null) {
+ *        Security.addProvider(new BouncyCastleProvider());
+ *    }
+ * </code>
+ * </pre>
+ *
+ * @since 3.0
+ */
+public final class CertificateUtil
+{
+  private static final Logger log = LoggerFactory.getLogger(CertificateUtil.class);
+
+  private CertificateUtil() {
+    // empty
+  }
+
+  public static X509Certificate generateCertificate(
+      final PublicKey publicKey,
+      final PrivateKey privateKey,
+      final String algorithm,
+      final int validDays,
+      final String commonName,
+      final String orgUnit,
+      final String organization,
+      final String locality,
+      final String state,
+      final String country) throws CertificateEncodingException
+  {
+
+    X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
+
+    if (commonName != null) {
+      nameBuilder.addRDN(BCStyle.CN, commonName);
+    }
+    if (orgUnit != null) {
+      nameBuilder.addRDN(BCStyle.OU, orgUnit);
+    }
+    if (organization != null) {
+      nameBuilder.addRDN(BCStyle.O, organization);
+    }
+    if (locality != null) {
+      nameBuilder.addRDN(BCStyle.L, locality);
+    }
+    if (state != null) {
+      nameBuilder.addRDN(BCStyle.ST, state);
+    }
+    if (country != null) {
+      nameBuilder.addRDN(BCStyle.C, country);
+    }
+
+    X500Name issuerDN = nameBuilder.build();
+
+    long now = System.currentTimeMillis();
+    long expire = now + (long) validDays * 24 * 60 * 60 * 1000;
+
+    Date startDate = new Date(now);
+    Date endDate = new Date(expire);
+    BigInteger serialNumber = BigInteger.valueOf(now);
+
+    X509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(
+        issuerDN, serialNumber, startDate, endDate, issuerDN, publicKey);
+
+    try {
+      ContentSigner signer = new JcaContentSignerBuilder(algorithm).build(privateKey);
+      X509CertificateHolder certificateHolder = certificateBuilder.build(signer);
+      return new JcaX509CertificateConverter().getCertificate(certificateHolder);
+    }
+    catch (Exception e) {
+      throw new CertificateEncodingException("Error generating X.509 certificate", e);
+    }
+  }
+
+  /**
+   * Serialize a certificate into a PEM formatted String.
+   *
+   * @param certificate the certificate to be serialized.
+   * @return the certificate in PEM format
+   * @throws IOException thrown if the certificate cannot be converted into the PEM format.
+   */
+  public static String serializeCertificateInPEM(final Certificate certificate) throws IOException {
+    StringWriter buff = new StringWriter();
+    try (JcaPEMWriter writer = new JcaPEMWriter(buff)) {
+      writer.writeObject(certificate);
+    }
+    return buff.toString();
+  }
+
+  /**
+   * Decodes a PEM formatted certificate.
+   *
+   * @param pemFormattedCertificate text to be decoded as a PEM certificate.
+   * @return the Certificate decoded from the input text.
+   * @throws CertificateParsingException
+   *           thrown if the PEM formatted string cannot be parsed into a Certificate.
+   */
+  public static Certificate decodePEMFormattedCertificate(
+      final String pemFormattedCertificate) throws CertificateException
+  {
+    log.trace("Parsing PEM formatted certificate string:\n{}", pemFormattedCertificate);
+
+    // make sure we have something to parse
+    if (pemFormattedCertificate != null) {
+      StringReader stringReader = new StringReader(pemFormattedCertificate);
+
+      try (PEMParser pemReader = new PEMParser(stringReader)) {
+        Object object = pemReader.readObject();
+        log.trace("Object found while paring PEM formatted string: {}", object);
+
+        if (object instanceof X509CertificateHolder) {
+          X509CertificateHolder holder = (X509CertificateHolder) object;
+          JcaX509CertificateConverter converter = new JcaX509CertificateConverter();
+          return converter.getCertificate(holder);
+        }
+      }
+      catch (IOException e) {
+        throw new CertificateParsingException(
+            "Failed to parse valid certificate from expected PEM formatted certificate:\n"
+                + pemFormattedCertificate,
+            e);
+      }
+    }
+
+    // cert was not a valid object
+    throw new CertificateParsingException(
+        "Failed to parse valid certificate from expected PEM formatted certificate:\n" + pemFormattedCertificate);
+  }
+
+  /**
+   * Calculates the SHA1 of a Certificate.
+   */
+  public static String calculateSha1(final Certificate certificate) throws CertificateEncodingException {
+    checkNotNull(certificate);
+    return Hashing.sha1().hashBytes(certificate.getEncoded()).toString().toUpperCase(Locale.US);
+  }
+
+  /**
+   * Calculates the SHA1 of a Certificate and formats for readability,
+   * such as {@code 64:C4:44:A9:02:F7:F0:02:16:AA:C3:43:0B:BF:ED:44:C8:81:87:CD}.
+   */
+  public static String calculateFingerprint(final Certificate certificate) throws CertificateEncodingException {
+    String sha1Hash = calculateSha1(certificate);
+    return encode(sha1Hash, ':', 2);
+  }
+
+  public static Map<String, String> getIssuerRdns(final X509Certificate certificate) throws InvalidNameException {
+    return getRdns(certificate.getIssuerX500Principal().getName());
+  }
+
+  public static Map<String, String> getSubjectRdns(final X509Certificate certificate) throws InvalidNameException {
+    return getRdns(certificate.getSubjectX500Principal().getName());
+  }
+
+  private static Map<String, String> getRdns(final String dn) throws InvalidNameException {
+    Map<String, String> rdns = new HashMap<>();
+    LdapName ldapName = new LdapName(dn);
+    for (Rdn rdn : ldapName.getRdns()) {
+      rdns.put(rdn.getType(), rdn.getValue().toString());
+    }
+    return rdns;
+  }
+
+  private static String encode(final String input, final char separator, final int delay) {
+    StringBuilder buff = new StringBuilder();
+
+    int i = 0;
+    for (char c : input.toCharArray()) {
+      if (i != 0 && i % delay == 0) {
+        buff.append(separator);
+      }
+      buff.append(c);
+      i++;
+    }
+
+    return buff.toString();
+  }
+}
