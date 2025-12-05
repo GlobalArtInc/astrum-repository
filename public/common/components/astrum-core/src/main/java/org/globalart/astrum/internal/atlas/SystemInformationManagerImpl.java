@@ -1,0 +1,112 @@
+
+package org.globalart.astrum.internal.atlas;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.cache.Cache;
+import javax.cache.configuration.Factory;
+import javax.cache.configuration.MutableConfiguration;
+import javax.cache.expiry.CreatedExpiryPolicy;
+import javax.cache.expiry.Duration;
+import javax.cache.expiry.ExpiryPolicy;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.common.lifecycle.LifecycleSupport;
+import org.globalart.astrum.cache.CacheHelper;
+import org.globalart.astrum.common.app.ManagedLifecycle;
+import org.globalart.astrum.common.atlas.SystemInformationGenerator;
+import org.globalart.astrum.common.atlas.SystemInformationManager;
+
+import org.springframework.beans.factory.annotation.Value;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.SERVICES;
+import org.springframework.stereotype.Component;
+
+/**
+ * Default {@link SystemInformationManager}
+ */
+@ManagedLifecycle(phase = SERVICES)
+@Component
+public class SystemInformationManagerImpl
+    extends LifecycleSupport
+    implements SystemInformationManager
+{
+  private static final String CACHE_NAME = "SYSTEM_INFORMATION";
+
+  private static final String SYSTEM_INFO_KEY = "systemInfo";
+
+  private final SystemInformationGenerator systemInformationGenerator;
+
+  private final CacheHelper cacheHelper;
+
+  private final int cacheDurationSec;
+
+  private Cache<String, Map<String, Object>> localCache;
+
+  @Autowired
+  public SystemInformationManagerImpl(
+      final SystemInformationGenerator systemInformationGenerator,
+      final CacheHelper cacheHelper,
+      @Value("${astrum.system.info.cache.duration:3600}") final int cacheDurationSec)
+  {
+    this.systemInformationGenerator = checkNotNull(systemInformationGenerator);
+    this.cacheHelper = checkNotNull(cacheHelper);
+
+    checkState(cacheDurationSec >= 0, "Initial cache duration should be positive");
+    this.cacheDurationSec = cacheDurationSec;
+  }
+
+  @Override
+  protected void doStart() {
+    maybeCreateCache();
+  }
+
+  @Override
+  public Map<String, Object> getSystemInfo() {
+    Map<String, Object> systemInfo = localCache.get(SYSTEM_INFO_KEY);
+    if (Objects.isNull(systemInfo)) {
+      Map<String, Object> report = generateReport();
+      log.debug("Caching system information report into {} cache.", CACHE_NAME);
+      localCache.put(SYSTEM_INFO_KEY, report);
+      return Collections.unmodifiableMap(report);
+    }
+    log.debug("Getting system information report from {} cache.", CACHE_NAME);
+    return Collections.unmodifiableMap(systemInfo);
+  }
+
+  private Map<String, Object> generateReport() {
+    Map<String, Object> report = systemInformationGenerator.report();
+    return report.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+  }
+
+  @Override
+  protected void doStop() {
+    maybeDestroyCache();
+  }
+
+  private void maybeCreateCache() {
+    if (Objects.isNull(localCache)) {
+      log.debug("Creating {} for system information.", CACHE_NAME);
+      Duration duration = new Duration(TimeUnit.SECONDS, cacheDurationSec);
+      Factory<ExpiryPolicy> expiryPolicyFactory = CreatedExpiryPolicy.factoryOf(duration);
+      MutableConfiguration<String, Map<String, Object>> config =
+          new MutableConfiguration<String, Map<String, Object>>()
+              .setStoreByValue(false)
+              .setExpiryPolicyFactory(expiryPolicyFactory)
+              .setManagementEnabled(true)
+              .setStatisticsEnabled(true);
+      localCache = cacheHelper.maybeCreateCache(CACHE_NAME, config);
+      log.debug("Created {} cache for system information", CACHE_NAME);
+    }
+  }
+
+  private void maybeDestroyCache() {
+    cacheHelper.maybeDestroyCache(CACHE_NAME);
+  }
+}
