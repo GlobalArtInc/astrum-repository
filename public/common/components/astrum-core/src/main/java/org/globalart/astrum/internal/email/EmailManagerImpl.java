@@ -1,0 +1,317 @@
+
+package org.globalart.astrum.internal.email;
+
+import java.util.Objects;
+import java.util.Properties;
+import java.util.function.Function;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.inject.Provider;
+import jakarta.mail.Session;
+import javax.net.ssl.SSLContext;
+
+import org.globalart.astrum.common.concurrent.Mutex;
+import org.globalart.astrum.capability.CapabilityContext;
+import org.globalart.astrum.capability.CapabilityReference;
+import org.globalart.astrum.capability.CapabilityRegistry;
+import org.globalart.astrum.common.event.EventAware;
+import org.globalart.astrum.common.event.EventHelper;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.common.text.Strings2;
+import org.globalart.astrum.crypto.secrets.Secret;
+import org.globalart.astrum.crypto.secrets.SecretsService;
+import org.globalart.astrum.email.EmailConfiguration;
+import org.globalart.astrum.email.EmailConfigurationChangedEvent;
+import org.globalart.astrum.email.EmailManager;
+import org.globalart.astrum.security.UserIdHelper;
+import org.globalart.astrum.ssl.TrustStore;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
+import com.google.common.eventbus.Subscribe;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.mail2.jakarta.Email;
+import org.apache.commons.mail2.core.EmailConstants;
+import org.apache.commons.mail2.core.EmailException;
+import org.apache.commons.mail2.jakarta.SimpleEmail;
+import org.springframework.context.annotation.Lazy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+/**
+ * Default {@link EmailManager}.
+ *
+ * @since 3.0
+ */
+@Component
+public class EmailManagerImpl
+    implements EmailManager, EventAware
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private static final String PASSWORD_PLACEHOLDER = "#~NXRM~PLACEHOLDER~PASSWORD~#";
+
+  public static final String EMAIL_CONFIGURATION_SOURCE = "email-configuration";
+
+  private final EventManager eventManager;
+
+  private final EmailConfigurationStore store;
+
+  private final TrustStore trustStore;
+
+  private final Function<EmailConfiguration, EmailConfiguration> defaults;
+
+  private final Mutex lock = new Mutex();
+
+  private final Provider<CapabilityRegistry> capabilityRegistryProvider;
+
+  private EmailConfiguration configuration;
+
+  private final SecretsService secretsService;
+
+  @Autowired
+  public EmailManagerImpl(
+      final EventManager eventManager,
+      final EmailConfigurationStore store,
+      @Lazy final TrustStore trustStore,
+      @Qualifier("initial") final Function<EmailConfiguration, EmailConfiguration> defaults,
+      final Provider<CapabilityRegistry> capabilityRegistryProvider,
+      final SecretsService secretsService)
+  {
+    this.eventManager = checkNotNull(eventManager);
+    this.store = checkNotNull(store);
+    this.trustStore = checkNotNull(trustStore);
+    this.defaults = checkNotNull(defaults);
+    this.capabilityRegistryProvider = capabilityRegistryProvider;
+    this.secretsService = checkNotNull(secretsService);
+  }
+
+  /**
+   * Load configuration from store, or use defaults.
+   */
+  private EmailConfiguration loadConfiguration() {
+    EmailConfiguration model = store.load();
+
+    // use defaults if no configuration was loaded from the store
+    if (model == null) {
+      model = defaults.apply(store.newConfiguration());
+
+      // default config must not be null
+      checkNotNull(model);
+
+      log.info("Using default configuration: {}", model);
+    }
+    else {
+      log.info("Loaded configuration: {}", model);
+    }
+
+    return model;
+  }
+
+  /**
+   * Return configuration, loading if needed.
+   *
+   * The result model should be considered _immutable_ unless copied.
+   */
+  private EmailConfiguration getConfigurationInternal() {
+    synchronized (lock) {
+      if (configuration == null) {
+        configuration = loadConfiguration();
+      }
+      return configuration;
+    }
+  }
+
+  @Override
+  public EmailConfiguration getConfiguration() {
+    return getConfigurationInternal().copy();
+  }
+
+  @Override
+  public void setConfiguration(final EmailConfiguration configuration, final String password) {
+    checkNotNull(configuration);
+
+    EmailConfiguration model = configuration.copy();
+
+    log.info("Saving configuration: {}", model);
+
+    synchronized (lock) {
+      Secret oldPass = getConfiguration().getPassword();
+      Secret newPass = null;
+      if (!StringUtils.isBlank(password) && !PASSWORD_PLACEHOLDER.equals(password)) {
+        newPass = secretsService.encrypt(EMAIL_CONFIGURATION_SOURCE, password.toCharArray(), UserIdHelper.get());
+        model.setPassword(newPass);
+      }
+      else if (PASSWORD_PLACEHOLDER.equals(password)) {
+        model.setPassword(oldPass);
+      }
+      try {
+        store.save(model);
+      }
+      catch (Exception e) {
+        if (Objects.nonNull(newPass)) {
+          secretsService.remove(newPass);
+        }
+        throw e;
+      }
+      if (Objects.nonNull(oldPass) && model.getPassword() != oldPass) {
+        secretsService.remove(oldPass);
+      }
+      this.configuration = model;
+    }
+
+    eventManager.post(new EmailConfigurationChangedEvent(model));
+  }
+
+  @Subscribe
+  public void onStoreChanged(final EmailConfigurationChanged event) {
+    if (EventHelper.isReplicating()) {
+      log.debug("Reloading configuration after change by node {}", event.getRemoteNodeId());
+      synchronized (lock) {
+        configuration = loadConfiguration();
+      }
+    }
+  }
+
+  /**
+   * Apply server configuration to email.
+   */
+  @VisibleForTesting
+  Email apply(final EmailConfiguration configuration, final Email mail, final String password) throws EmailException {
+    mail.setHostName(configuration.getHost());
+    mail.setSmtpPort(configuration.getPort());
+    if (!Strings.isNullOrEmpty(configuration.getUsername()) || !Strings.isNullOrEmpty(password)) {
+      mail.setAuthentication(configuration.getUsername(), password);
+    }
+
+    mail.setStartTLSEnabled(configuration.isStartTlsEnabled());
+    mail.setStartTLSRequired(configuration.isStartTlsRequired());
+    mail.setSSLOnConnect(configuration.isSslOnConnectEnabled());
+    mail.setSSLCheckServerIdentity(configuration.isSslCheckServerIdentityEnabled());
+    mail.setSslSmtpPort(Integer.toString(configuration.getPort()));
+
+    // default from address
+    if (mail.getFromAddress() == null) {
+      mail.setFrom(configuration.getFromAddress());
+    }
+
+    // apply subject prefix if configured
+    String subjectPrefix = configuration.getSubjectPrefix();
+    if (subjectPrefix != null) {
+      String subject = mail.getSubject();
+      mail.setSubject(String.format("%s %s", subjectPrefix, subject));
+    }
+
+    boolean sslOnConnect = configuration.isSslOnConnectEnabled();
+    boolean startTls = configuration.isStartTlsEnabled();
+    // do this last (mail properties are set up from the email fields when you get the mail session)
+    if (configuration.isAstrumTrustStoreEnabled() && (sslOnConnect || startTls)) {
+      SSLContext context = trustStore.getSSLContext();
+      Session session = mail.getMailSession();
+      Properties properties = session.getProperties();
+      properties.remove(EmailConstants.MAIL_SMTP_SOCKET_FACTORY_CLASS);
+      properties.put("mail.smtp.ssl.socketFactory", context.getSocketFactory());
+
+      if (sslOnConnect) {
+        properties.put(EmailConstants.MAIL_SMTP_SSL_ENABLE, true); // mail.smtp.ssl.enable=true
+      }
+      else {
+        properties.remove(EmailConstants.MAIL_SMTP_SSL_ENABLE); // remove to avoid forcing SSL
+      }
+    }
+
+    return mail;
+  }
+
+  @Override
+  public void send(final Email mail) throws EmailException {
+    checkNotNull(mail);
+
+    EmailConfiguration model = getConfigurationInternal();
+    if (model.isEnabled()) {
+      Email prepared = apply(model, mail, getPassword(model));
+      sendMail(prepared);
+    }
+    else {
+      log.warn("No email enabled but asked to send anyway.");
+    }
+  }
+
+  @Override
+  public void sendVerification(
+      final EmailConfiguration configuration,
+      final String password,
+      final String address) throws EmailException
+  {
+    checkNotNull(configuration);
+    Email mail = createVerificationEmail(address);
+    if (PASSWORD_PLACEHOLDER.equals(password)) {
+      mail = apply(configuration, mail, getPassword(getConfigurationInternal()));
+    }
+    else {
+      mail = apply(configuration, mail, password);
+    }
+    sendMail(mail);
+  }
+
+  @Override
+  public void sendVerification(final EmailConfiguration configuration, final String address) throws EmailException {
+    checkNotNull(configuration);
+    Email mail = createVerificationEmail(address);
+    mail = apply(configuration, mail, getPassword(configuration));
+    sendMail(mail);
+  }
+
+  private Email createVerificationEmail(final String address) throws EmailException {
+    checkNotNull(address);
+    Email mail = new SimpleEmail();
+    mail.setSubject("Email configuration verification");
+    mail.addTo(address);
+    mail.setMsg(constructMessage("Verification successful"));
+    return mail;
+  }
+
+  private static String getPassword(final EmailConfiguration configuration) {
+    return Objects.nonNull(configuration.getPassword())
+        ? String.valueOf(
+            configuration.getPassword().decrypt())
+        : Strings2.EMPTY;
+  }
+
+  @Override
+  public EmailConfiguration newConfiguration() {
+    return store.newConfiguration();
+  }
+
+  @Override
+  public String constructMessage(final String message) {
+    return capabilityRegistryProvider.get()
+        .getAll()
+        .stream()
+        .map(CapabilityReference::context)
+        .filter(context -> context.type().toString().equals("baseurl"))
+        .filter(CapabilityContext::isEnabled)
+        .map(capabilityContext -> capabilityContext.properties().get("url"))
+        .findFirst()
+        .map(url -> "Message from: " + url + "\n\n" + message)
+        .orElse(message);
+  }
+
+  private void sendMail(final Email mail) throws EmailException {
+    ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+    try {
+      // ASTRUM-46395: javax.mail → jakarta.mail. Setting the TCCL to the mail session
+      // class's classloader is still required so the Mail SPI can find providers.
+      Thread.currentThread().setContextClassLoader(jakarta.mail.Session.class.getClassLoader());
+      mail.send();
+    }
+    finally {
+      Thread.currentThread().setContextClassLoader(currentClassLoader);
+    }
+  }
+
+}
