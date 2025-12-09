@@ -1,0 +1,443 @@
+
+package org.globalart.astrum.internal.httpclient;
+
+import java.net.URI;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.inject.Provider;
+
+import org.globalart.astrum.common.concurrent.Mutex;
+import org.globalart.astrum.common.app.ManagedLifecycle;
+import org.globalart.astrum.common.event.EventAware;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.common.stateguard.Guarded;
+import org.globalart.astrum.common.stateguard.StateGuardLifecycleSupport;
+import org.globalart.astrum.httpclient.HttpClientManager;
+import org.globalart.astrum.httpclient.HttpClientPlan;
+import org.globalart.astrum.httpclient.HttpClientPlan.Customizer;
+import org.globalart.astrum.httpclient.config.ConfigurationCustomizer;
+import org.globalart.astrum.httpclient.config.HttpClientConfiguration;
+import org.globalart.astrum.httpclient.config.HttpClientConfigurationChangedEvent;
+import org.globalart.astrum.outbound.context.OutboundRequestContext;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
+import com.google.common.eventbus.Subscribe;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.protocol.HttpContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.SERVICES;
+import static org.globalart.astrum.common.stateguard.StateGuardLifecycleSupport.State.STARTED;
+import static org.globalart.astrum.logging.task.TaskLoggingMarkers.OUTBOUND_REQUESTS_LOG_ONLY;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+/**
+ * Default {@link HttpClientManager}.
+ *
+ * @since 3.0
+ */
+@Component
+@ManagedLifecycle(phase = SERVICES)
+@Order(Ordered.HIGHEST_PRECEDENCE) // make sure this starts early
+public class HttpClientManagerImpl
+    extends StateGuardLifecycleSupport
+    implements HttpClientManager, EventAware
+{
+  static final String HTTPCLIENT_OUTBOUND_LOGGER_NAME = "org.globalart.astrum.httpclient.outbound";
+
+  static final String HTTPCLIENT_OUTBOUND_REQ_LOGGER_NAME = "outboundRequests";
+
+  private static final String CTX_REQ_STOPWATCH = "request.stopwatch";
+
+  private static final String CTX_REQ_URI = "request.uri";
+
+  private final Logger outboundLog = LoggerFactory.getLogger(HTTPCLIENT_OUTBOUND_LOGGER_NAME);
+
+  private final Logger outboundReqLog = LoggerFactory.getLogger(HTTPCLIENT_OUTBOUND_REQ_LOGGER_NAME);
+
+  private final EventManager eventManager;
+
+  private final HttpClientConfigurationStore store;
+
+  private final Provider<HttpClientConfiguration> defaults;
+
+  private final SharedHttpClientConnectionManager sharedConnectionManager;
+
+  private final DefaultsCustomizer defaultsCustomizer;
+
+  private final Mutex lock = new Mutex();
+
+  private HttpClientConfiguration configuration;
+
+  @Autowired
+  public HttpClientManagerImpl(
+      final EventManager eventManager,
+      final HttpClientConfigurationStore store,
+      @Qualifier("initial") final Provider<HttpClientConfiguration> defaults,
+      final SharedHttpClientConnectionManager sharedConnectionManager,
+      final DefaultsCustomizer defaultsCustomizer)
+  {
+    this.eventManager = checkNotNull(eventManager);
+
+    this.store = checkNotNull(store);
+    log.debug("Store: {}", store);
+
+    this.defaults = checkNotNull(defaults);
+    log.debug("Defaults: {}", defaults);
+
+    this.sharedConnectionManager = checkNotNull(sharedConnectionManager);
+    this.defaultsCustomizer = checkNotNull(defaultsCustomizer);
+  }
+
+  //
+  // Lifecycle
+  //
+
+  @Override
+  protected void doStart() throws Exception {
+    sharedConnectionManager.start();
+  }
+
+  @Override
+  protected void doStop() throws Exception {
+    sharedConnectionManager.stop();
+  }
+
+  //
+  // Configuration
+  //
+
+  /**
+   * Load configuration from store, or use defaults.
+   */
+  private HttpClientConfiguration loadConfiguration() {
+    HttpClientConfiguration model = store.load();
+
+    // use defaults if no configuration was loaded from the store
+    if (model == null) {
+      model = defaults.get();
+
+      // default config must not be null
+      checkNotNull(model);
+
+      log.info("Using default configuration: {}", model);
+    }
+    else {
+      log.info("Loaded configuration: {}", model);
+    }
+
+    return model;
+  }
+
+  /**
+   * Return configuration, loading if needed.
+   *
+   * The result model should be considered _immutable_ unless copied.
+   */
+  private HttpClientConfiguration getConfigurationInternal() {
+    synchronized (lock) {
+      if (configuration == null) {
+        configuration = loadConfiguration();
+      }
+      return configuration;
+    }
+  }
+
+  /**
+   * Return _copy_ of configuration.
+   */
+  @Override
+  @Guarded(by = STARTED)
+  public HttpClientConfiguration getConfiguration() {
+    return getConfigurationInternal().copy();
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  public void setConfiguration(final HttpClientConfiguration configuration) {
+    checkNotNull(configuration);
+
+    HttpClientConfiguration model = configuration.copy();
+    log.info("Saving configuration: {}", model);
+    synchronized (lock) {
+      store.save(model);
+      this.configuration = model;
+    }
+
+    evictConnectionPool();
+    eventManager.post(new HttpClientConfigurationChangedEvent(model));
+  }
+
+  @Subscribe
+  public void onStoreChanged(final HttpClientConfigurationEvent event) {
+    if (!event.isLocal()) {
+      log.debug("Reloading configuration after change by node {}", event.getRemoteNodeId());
+      HttpClientConfiguration model;
+      synchronized (lock) {
+        configuration = model = loadConfiguration();
+      }
+      evictConnectionPool();
+      eventManager.post(new HttpClientConfigurationChangedEvent(model));
+    }
+  }
+
+  private void evictConnectionPool() {
+    sharedConnectionManager.closeExpiredConnections();
+    sharedConnectionManager.closeIdleConnections(0, TimeUnit.MILLISECONDS);
+  }
+
+  //
+  // Instance creation
+  //
+
+  @Override
+  @Guarded(by = STARTED)
+  public CloseableHttpClient create(@Nullable final HttpClientPlan.Customizer customizer) {
+    return prepare(customizer).build();
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  public CloseableHttpClient create() {
+    // create with defaults only
+    return create(null);
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  public HttpClientBuilder prepare(@Nullable final Customizer customizer) {
+    final HttpClientPlan plan = httpClientPlan();
+
+    // attach connection manager early, so customizer has chance to replace it if needed
+    plan.getClient().setConnectionManager(sharedConnectionManager);
+
+    // apply defaults
+    defaultsCustomizer.customize(plan);
+
+    // apply globals
+    new ConfigurationCustomizer(getConfigurationInternal()).customize(plan);
+
+    // apply instance customization
+    if (customizer != null) {
+      customizer.customize(plan);
+    }
+
+    // apply plan to builder
+    HttpClientBuilder builder = plan.getClient();
+    // User agent must be set here to apply to all apache http requests, including over proxies
+    String userAgent = plan.getUserAgent();
+    if (userAgent != null) {
+      setUserAgent(builder, userAgent);
+    }
+    builder.setDefaultConnectionConfig(plan.getConnection().build());
+    builder.setDefaultSocketConfig(plan.getSocket().build());
+    builder.setDefaultRequestConfig(plan.getRequest().build());
+    builder.setDefaultCredentialsProvider(plan.getCredentials());
+
+    builder.addInterceptorFirst(
+        (HttpRequest request, HttpContext context) -> {
+          // add custom http-context attributes
+          for (Entry<String, Object> entry : plan.getAttributes().entrySet()) {
+            // only set context attribute if not already set, to allow per request overrides
+            if (context.getAttribute(entry.getKey()) == null) {
+              context.setAttribute(entry.getKey(), entry.getValue());
+            }
+          }
+
+          // add custom http-request headers
+          for (Entry<String, String> entry : plan.getHeaders().entrySet()) {
+            request.addHeader(entry.getKey(), entry.getValue());
+          }
+        });
+    builder.addInterceptorLast(
+        (HttpRequest httpRequest, HttpContext httpContext) -> {
+          httpContext.setAttribute(CTX_REQ_STOPWATCH, Stopwatch.createStarted());
+          httpContext.setAttribute(CTX_REQ_URI, getRequestURI(httpContext));
+          if (outboundLog.isDebugEnabled()) {
+            outboundLog.debug("{} > {}", httpContext.getAttribute(CTX_REQ_URI), httpRequest.getRequestLine());
+          }
+        });
+    builder.addInterceptorLast(
+        (HttpResponse httpResponse, HttpContext httpContext) -> {
+          URI requestURI = (URI) httpContext.getAttribute(CTX_REQ_URI);
+          if (nonTwoHundredStatusCode(httpResponse)) {
+            if (requestURI != null) {
+              Stopwatch stopwatch = (Stopwatch) httpContext.getAttribute(CTX_REQ_STOPWATCH);
+              outboundLog.debug("{} < {} @ {}", requestURI, httpResponse.getStatusLine(), stopwatch);
+            }
+            printOutboundLogNonTwoHundredStatusCode(httpResponse, httpContext);
+          }
+          else {
+            if (requestURI != null) {
+              Stopwatch stopwatch = (Stopwatch) httpContext.getAttribute(CTX_REQ_STOPWATCH);
+              outboundLog.debug("{} < {}", requestURI, httpResponse.getStatusLine());
+            }
+            printOutboundLogTwoHundredStatusCode(httpResponse, httpContext);
+          }
+        });
+    return builder;
+  }
+
+  public boolean nonTwoHundredStatusCode(HttpResponse httpResponse) {
+    int statusCode = httpResponse.getStatusLine().getStatusCode();
+    return statusCode < 200 || statusCode >= 300;
+  }
+
+  private void printOutboundLogNonTwoHundredStatusCode(final HttpResponse httpResponse, final HttpContext httpContext) {
+    SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss Z");
+
+    HttpRequest request = ((HttpClientContext) httpContext).getRequest();
+    String userAgent = getRequestHeader(request, "User-Agent");
+    int statusCode = httpResponse.getStatusLine().getStatusCode();
+    long responseLength = 0;
+    if (null != httpResponse.getEntity())
+      responseLength = httpResponse.getEntity().getContentLength();
+    Stopwatch stopwatch = (Stopwatch) httpContext.getAttribute(CTX_REQ_STOPWATCH);
+    String logMessage = String.format("[%s] %s \"%s %s %s\" %d %d %d %s [%s]",
+        dateFormat.format(new Date()),
+        getAuthUser(httpContext),
+        request.getRequestLine().getMethod(),
+        getRequestURI(httpContext),
+        request.getRequestLine().getProtocolVersion(),
+        statusCode,
+        responseLength,
+        stopwatch.elapsed(TimeUnit.MILLISECONDS),
+        "-",
+        Thread.currentThread().getName());
+    outboundReqLog.info(OUTBOUND_REQUESTS_LOG_ONLY, "{}", logMessage);
+  }
+
+  private void printOutboundLogTwoHundredStatusCode(final HttpResponse httpResponse, final HttpContext httpContext) {
+    HttpRequest request = ((HttpClientContext) httpContext).getRequest();
+    int statusCode = httpResponse.getStatusLine().getStatusCode();
+    long responseLength = 0;
+    if (null != httpResponse.getEntity())
+      responseLength = httpResponse.getEntity().getContentLength();
+    Stopwatch stopwatch = (Stopwatch) httpContext.getAttribute(CTX_REQ_STOPWATCH);
+    String requestUri = getRequestURI(httpContext).toString();
+
+    String logMessage = String.format("[%s] %s \"%s %s %s\" %d %d %s %s [%s]",
+        OutboundRequestContext.TIMESTAMP_PLACEHOLDER,
+        getAuthUser(httpContext),
+        request.getRequestLine().getMethod(),
+        requestUri,
+        request.getRequestLine().getProtocolVersion(),
+        statusCode,
+        responseLength,
+        stopwatch.elapsed(TimeUnit.MILLISECONDS),
+        OutboundRequestContext.ELAPSED_TIME_PLACEHOLDER,
+        Thread.currentThread().getName());
+
+    OutboundRequestContext.setFormattedString(logMessage);
+  }
+
+  private String getRequestHeader(final HttpRequest request, final String name) {
+    if (request.containsHeader(name))
+      return request.getFirstHeader(name).getValue();
+    else
+      return null;
+  }
+
+  @Override
+  public HttpClientConfiguration newConfiguration() {
+    return store.newConfiguration();
+  }
+
+  /**
+   * Allows for verification on unverifiable final method. NOTE: if you modify the behavior of this
+   * method beyond simply delegating to {@link HttpClientBuilder#setUserAgent}, write a unit test for it.
+   */
+  @VisibleForTesting
+  void setUserAgent(HttpClientBuilder builder, String value) {
+    builder.setUserAgent(value);
+  }
+
+  @VisibleForTesting
+  HttpClientPlan httpClientPlan() {
+    return new HttpClientPlan();
+  }
+
+  private String getAuthUser(final HttpContext context) {
+    final HttpClientContext clientContext = HttpClientContext.adapt(context);
+    final Credentials credentials = clientContext.getCredentialsProvider().getCredentials(AuthScope.ANY);
+    if (null != credentials && null != credentials.getUserPrincipal())
+      return credentials.getUserPrincipal().getName();
+    else
+      return "-";
+  }
+
+  /**
+   * Creates absolute request URI with full path from passed in context.
+   * Preserves URI encoding to avoid decoding special characters in logs.
+   */
+  @Nonnull
+  @VisibleForTesting
+  URI getRequestURI(final HttpContext context) {
+    final HttpClientContext clientContext = HttpClientContext.adapt(context);
+    final HttpRequest httpRequest = clientContext.getRequest();
+    final HttpHost target = clientContext.getTargetHost();
+
+    try {
+      URI uri;
+      if (httpRequest instanceof HttpUriRequest) {
+        uri = ((HttpUriRequest) httpRequest).getURI();
+      }
+      else {
+        uri = URI.create(httpRequest.getRequestLine().getUri());
+      }
+
+      if (uri.isAbsolute()) {
+        return uri;
+      }
+
+      // Build absolute URI manually to preserve encoding
+      // URIUtils.resolve() decodes the URI
+      String scheme = target.getSchemeName();
+      String host = target.getHostName();
+      int port = target.getPort();
+      String path = uri.getRawPath();
+      String query = uri.getRawQuery();
+      String fragment = uri.getRawFragment();
+
+      StringBuilder absoluteUri = new StringBuilder();
+      absoluteUri.append(scheme).append("://").append(host);
+      if (port != -1) {
+        absoluteUri.append(':').append(port);
+      }
+      if (path != null) {
+        absoluteUri.append(path);
+      }
+      if (query != null) {
+        absoluteUri.append('?').append(query);
+      }
+      if (fragment != null) {
+        absoluteUri.append('#').append(fragment);
+      }
+
+      return URI.create(absoluteUri.toString());
+    }
+    catch (Exception e) {
+      log.warn("Could not create absolute request URI", e);
+      return URI.create(target.toURI());
+    }
+  }
+}
