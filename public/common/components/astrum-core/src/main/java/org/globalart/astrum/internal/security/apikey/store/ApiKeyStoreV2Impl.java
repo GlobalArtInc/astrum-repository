@@ -1,0 +1,330 @@
+
+package org.globalart.astrum.internal.security.apikey.store;
+
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
+import org.globalart.astrum.crypto.secrets.Secret;
+import org.globalart.astrum.crypto.secrets.SecretsService;
+import org.globalart.astrum.datastore.ConfigStoreSupport;
+import org.globalart.astrum.datastore.api.DataSessionSupplier;
+import org.globalart.astrum.datastore.api.DuplicateKeyException;
+import org.globalart.astrum.internal.security.apikey.ApiKeyInternal;
+import org.globalart.astrum.transaction.Transactional;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.shiro.subject.PrincipalCollection;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * An {@link ApiKeyStore} implementation which makes use of {@link SecretsService}
+ */
+@Component
+@Qualifier("v2")
+public class ApiKeyStoreV2Impl
+    extends ConfigStoreSupport<ApiKeyV2DAO>
+    implements ApiKeyStore
+{
+  private final SecretsService secretsService;
+
+  @Autowired
+  public ApiKeyStoreV2Impl(
+      final DataSessionSupplier sessionSupplier,
+      final SecretsService secretsService)
+  {
+    super(sessionSupplier);
+    this.secretsService = checkNotNull(secretsService);
+  }
+
+  @Transactional
+  @Override
+  public Collection<ApiKeyInternal> browse(final String domain) {
+    return dao().browse(domain);
+  }
+
+  @Transactional
+  @Override
+  public Collection<ApiKeyInternal> browseByCreatedDate(final String domain, final OffsetDateTime date) {
+    return dao().browseCreatedAfter(domain, date);
+  }
+
+  @Transactional
+  @Override
+  public Collection<ApiKeyInternal> browseAll(final int page, final int pageSize) {
+    return dao().browseAll(page * pageSize, pageSize);
+  }
+
+  @Transactional
+  @Override
+  public Collection<ApiKeyInternal> browsePaginated(final String domain, final int page, final int pageSize) {
+    return dao().browsePaginated(domain, page, pageSize);
+  }
+
+  @Transactional
+  @Override
+  public int count(final String domain) {
+    return dao().count(domain);
+  }
+
+  @Override
+  public int deleteApiKey(final String domain, final PrincipalCollection principals) {
+    return findApiKey(domain, principals)
+        .map(this::deleteApiKey)
+        .orElse(0);
+  }
+
+  @Override
+  public int deleteApiKeys(final OffsetDateTime expiration) {
+    return findCreatedBefore(expiration).stream()
+        .map(ApiKeyV2Data.class::cast)
+        .mapToInt(this::deleteApiKey)
+        .sum();
+  }
+
+  @Transactional
+  @Override
+  public int deleteApiKeys(final String domain, final OffsetDateTime expiration) {
+    Collection<ApiKeyInternal> expiredKeys = dao().browseByDomainCreatedBefore(domain, expiration);
+
+    if (expiredKeys.isEmpty()) {
+      return 0;
+    }
+
+    int count = dao().deleteApiKeysByDomainAndExpiration(domain, expiration);
+
+    expiredKeys.stream()
+        .map(ApiKeyV2Data.class::cast)
+        .map(ApiKeyV2Data::getSecret)
+        .forEach(secretsService::remove);
+
+    return count;
+  }
+
+  @Override
+  public int deleteApiKeys(final PrincipalCollection principals) {
+    return findApiKeysForUser(principals)
+        .mapToInt(this::deleteApiKey)
+        .sum();
+  }
+
+  @Override
+  public int deleteApiKeys(final String domain) {
+    return browse(domain).stream()
+        .map(ApiKeyV2Data.class::cast)
+        .mapToInt(this::deleteApiKey)
+        .sum();
+  }
+
+  @Transactional
+  @Override
+  public Optional<ApiKeyInternal> getApiKey(final String domain, final PrincipalCollection principals) {
+    checkNotNull(domain);
+    checkNotNull(principals);
+
+    return findApiKey(domain, principals)
+        .map(ApiKeyInternal.class::cast);
+  }
+
+  @Override
+  public Optional<ApiKeyInternal> getApiKeyByToken(final String domain, final char[] apiKey) {
+    Optional<ApiKeyInternal> storedKey = findPrincipals(domain, accessKey(apiKey));
+
+    return storedKey.filter(key -> fixedTimeEquals(
+        ((ApiKeyV2Data) key).getSecret().decrypt(),
+        secret(apiKey)));
+  }
+
+  @Transactional
+  protected Optional<ApiKeyInternal> findPrincipals(final String domain, final String accessKey) {
+    return dao().findPrincipals(domain, accessKey);
+  }
+
+  private static boolean fixedTimeEquals(final char[] a, final char[] b) {
+    int result = 0;
+    for (int i = 0; i < a.length; i++) {
+      result |= a[i] ^ b[i];
+    }
+    return result == 0;
+  }
+
+  @Override
+  public void persistApiKey(
+      final String domain,
+      final PrincipalCollection principals,
+      final char[] apiKey,
+      final OffsetDateTime created)
+  {
+    persistApiKey(domain, principals, apiKey, created, null, null);
+  }
+
+  @Override
+  public void persistApiKey(
+      final String domain,
+      final PrincipalCollection principals,
+      final char[] apiKey,
+      final OffsetDateTime created,
+      final String creatorUserId,
+      final String creatorRealm)
+  {
+    ApiKeyV2Data token = (ApiKeyV2Data) newApiKey(domain, principals, apiKey, created, creatorUserId, creatorRealm);
+
+    try {
+      persistApiKey(token, 1);
+    }
+    catch (RuntimeException e) {
+      log.debug("Failed to save key, cleaning up secret", e);
+
+      secretsService.remove(token.getSecret());
+
+      throw e;
+    }
+  }
+
+  private ApiKeyInternal newApiKey(
+      final String domain,
+      final PrincipalCollection principals,
+      final char[] apiKey,
+      final OffsetDateTime created)
+  {
+    return newApiKey(domain, principals, apiKey, created, null, null);
+  }
+
+  private ApiKeyInternal newApiKey(
+      final String domain,
+      final PrincipalCollection principals,
+      final char[] apiKey,
+      final OffsetDateTime created,
+      final String creatorUserId,
+      final String creatorRealm)
+  {
+    Secret encrypted = secretsService.encrypt(domain, secret(apiKey), principals.getPrimaryPrincipal().toString());
+
+    return new ApiKeyV2Data(domain, principals, accessKey(apiKey), encrypted, created, creatorUserId, creatorRealm);
+  }
+
+  private void persistApiKey(final ApiKeyV2Data token, final int retryCount) {
+    try {
+      doSave(token);
+    }
+    catch (DuplicateKeyException e) {
+      if (log.isDebugEnabled()) {
+        log.debug("Failed to persist token for {} in domain {} remaining retries {}", token.getPrimaryPrincipal(),
+            token.getDomain(), retryCount);
+      }
+
+      if (retryCount == 0 || token.getCreated() != null && getApiKey(token.getDomain(), token.getPrincipals())
+          .map(ApiKeyInternal::getCreated)
+          .filter(token.getCreated()::isBefore)
+          .isPresent()) {
+        throw e;
+      }
+
+      if (log.isDebugEnabled()) {
+        log.debug("Replacing existing key for {} in {}", token.getPrimaryPrincipal(), token.getDomain());
+      }
+      deleteApiKey(token.getDomain(), token.getPrincipals());
+      persistApiKey(token, retryCount - 1);
+    }
+  }
+
+  @Transactional
+  @Override
+  public void updateApiKey(final ApiKeyInternal from, final PrincipalCollection newPrincipal) {
+    ApiKeyV2Data fromToken = (ApiKeyV2Data) from;
+
+    dao().updatePrincipal(new ApiKeyV2Data(from.getDomain(), newPrincipal, fromToken.getAccessKey(),
+        fromToken.getSecret(), fromToken.getCreated()));
+  }
+
+  @Transactional
+  @Override
+  public Iterable<PrincipalCollection> browsePrincipals() {
+    return dao().browsePrincipals();
+  }
+
+  protected int deleteApiKey(final ApiKeyV2Data apiTokenData) {
+    int count = doDelete(apiTokenData);
+
+    secretsService.remove(apiTokenData.getSecret());
+
+    return count;
+  }
+
+  /*
+   * This method should only be called if the associated secret has been deleted.
+   */
+  @Transactional
+  protected int doDelete(final ApiKeyV2Data apiTokenData) {
+    return dao().deleteApiKey(apiTokenData);
+  }
+
+  @Transactional
+  protected Collection<ApiKeyV2Data> findCreatedBefore(final OffsetDateTime date) {
+    return dao().browseCreatedBefore(date);
+  }
+
+  @Transactional
+  protected Optional<ApiKeyV2Data> findApiKey(final String domain, final PrincipalCollection principals) {
+    checkNotNull(domain);
+    checkNotNull(principals);
+
+    return dao().findApiKey(domain, principals.getPrimaryPrincipal().toString())
+        .stream()
+        .filter(principalMatcher(principals))
+        .findFirst();
+  }
+
+  @Transactional
+  protected Stream<ApiKeyV2Data> findApiKeysForUser(final PrincipalCollection principals) {
+    checkNotNull(principals);
+
+    return dao().findApiKeysForUser(principals.getPrimaryPrincipal().toString())
+        .stream()
+        .filter(principalMatcher(principals));
+  }
+
+  @Transactional
+  @Override
+  public Collection<ApiKeyInternal> browseFiltered(
+      final String domain,
+      final String realm,
+      final String username,
+      final int skip,
+      final int limit)
+  {
+    return dao().browseFiltered(domain, realm, username, skip, limit);
+  }
+
+  @Transactional
+  @Override
+  public int countFiltered(final String domain, final String realm, final String username) {
+    return dao().countFiltered(domain, realm, username);
+  }
+
+  @Transactional
+  protected void doSave(final ApiKeyV2Data token) {
+    dao().save(token);
+  }
+
+  private static Predicate<ApiKeyV2Data> principalMatcher(final PrincipalCollection collection) {
+    return apiKeyData -> apiKeyData.getPrincipals().equals(collection);
+  }
+
+  @VisibleForTesting
+  static String accessKey(final char[] apiKey) {
+    return new String(apiKey, 0, apiKey.length / 2);
+  }
+
+  @VisibleForTesting
+  static char[] secret(final char[] apiKey) {
+    return Arrays.copyOfRange(apiKey, apiKey.length / 2, apiKey.length);
+  }
+}
