@@ -1,0 +1,5 @@
+
+<h4>Node ID</h4>
+<div>
+    <pre>$esc.html($nodeId)</pre>
+</div>

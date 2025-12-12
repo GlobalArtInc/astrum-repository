@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.internal.kv.AstrumKeyValueDAO">
+  <insert id="createSchema" databaseId="PostgreSQL">
+    CREATE TABLE IF NOT EXISTS astrum_key_value
+    (
+      key     VARCHAR UNIQUE           NOT NULL,
+      type    VARCHAR                  NOT NULL,
+      value   ${JSON_TYPE}             NOT NULL,
+      created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+      CONSTRAINT pk_astrum_key_value PRIMARY KEY (key)
+    );
+
+    <!-- Indexes handled by AstrumKeyValueIndexesMigrationStep_2_42 to avoid lock contention (ASTRUM-49154) -->
+  </insert>
+
+  <insert id="createSchema" databaseId="H2">
+    CREATE TABLE IF NOT EXISTS astrum_key_value
+    (
+      `key`     VARCHAR UNIQUE           NOT NULL,
+      `type`    VARCHAR                  NOT NULL,
+      `value`   ${JSON_TYPE}             NOT NULL,
+      created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+      CONSTRAINT pk_astrum_key_value PRIMARY KEY (`key`)
+      );
+
+    <!-- Indexes handled by AstrumKeyValueIndexesMigrationStep_2_42 to avoid lock contention (ASTRUM-49154) -->
+  </insert>
+
+  <select id="get" resultType="org.globalart.astrum.kv.AstrumKeyValue" databaseId="PostgreSQL">
+    SELECT key, type, value
+    FROM astrum_key_value
+    WHERE key = #{key}
+  </select>
+
+  <select id="get" resultType="org.globalart.astrum.kv.AstrumKeyValue" databaseId="H2">
+    SELECT `key`, type, `value`
+    FROM astrum_key_value
+    WHERE `key` = #{key}
+  </select>
+
+  <select id="count" resultType="int">
+    SELECT count(*)
+    FROM astrum_key_value;
+  </select>
+
+  <update id="set" parameterType="org.globalart.astrum.kv.AstrumKeyValue" databaseId="PostgreSQL">
+    INSERT INTO astrum_key_value(key, type, value, created)
+    VALUES (#{key}, #{type}, #{value}, now())
+    ON CONFLICT (key)
+      DO UPDATE SET type    = #{type},
+                    value   = #{value},
+                    created = now();
+  </update>
+
+  <update id="set" parameterType="org.globalart.astrum.kv.AstrumKeyValue" databaseId="H2">
+     MERGE INTO astrum_key_value KEY(`key`) VALUES (#{key} , #{type} , #{value} , now())
+  </update>
+
+  <delete id="remove" databaseId="PostgreSQL">
+    DELETE
+    FROM astrum_key_value
+    WHERE key = #{key};
+  </delete>
+
+  <delete id="remove" databaseId="H2">
+    DELETE
+    FROM astrum_key_value
+    WHERE `key` = #{key};
+  </delete>
+
+</mapper>
