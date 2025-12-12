@@ -1,0 +1,7 @@
+
+
+Task $taskInfo.name with ID $taskInfo.id has completed.
+
+Started: $taskInfo.lastRunState.runStarted
+Duration: $formattedDuration
+End State: $taskInfo.lastRunState.endState

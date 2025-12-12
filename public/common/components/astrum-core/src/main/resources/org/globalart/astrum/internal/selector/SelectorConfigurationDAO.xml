@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.internal.selector.SelectorConfigurationDAO">
+
+  <insert id="createSchema">
+    CREATE TABLE IF NOT EXISTS selector_configuration (
+      name        VARCHAR(200) NOT NULL,
+      type        VARCHAR(100) NOT NULL,
+      description VARCHAR(400) NULL,
+      attributes  ${JSON_TYPE} NOT NULL,
+
+      CONSTRAINT pk_selector_configuration_name PRIMARY KEY (name)
+    );
+  </insert>
+
+  <select id="browse" resultType="SelectorConfigurationData">
+    SELECT * FROM selector_configuration;
+  </select>
+
+  <insert id="create" parameterType="SelectorConfigurationData">
+    INSERT INTO selector_configuration (name, type, description, attributes)
+        VALUES (#{name}, #{type}, #{description}, #{attributes});
+  </insert>
+
+  <select id="read" resultType="SelectorConfigurationData">
+    SELECT * FROM selector_configuration WHERE name = #{value};
+  </select>
+
+  <update id="update" parameterType="SelectorConfigurationData">
+    UPDATE selector_configuration SET
+        type = #{type}, description = #{description}, attributes = #{attributes}
+        WHERE name = #{name};
+  </update>
+
+  <delete id="delete">
+    DELETE FROM selector_configuration WHERE name = #{value};
+  </delete>
+
+</mapper>

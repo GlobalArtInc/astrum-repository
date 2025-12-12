@@ -1,0 +1,7 @@
+
+Task ID: $taskInfo.id
+Task Name: $taskInfo.name
+#if($stackTrace)
+Stack-trace:
+$stackTrace
+#end
