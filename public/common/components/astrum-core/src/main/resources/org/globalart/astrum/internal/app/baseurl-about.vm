@@ -1,0 +1,6 @@
+
+Specify the reverse proxy base URL for your instance to be used in email notifications.
+
+<p>
+  Use this feature only if you have a reverse proxy in front of Astrum Repository Manager that presents a different base URL.
+</p>
