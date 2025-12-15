@@ -1,0 +1,379 @@
+
+package org.globalart.astrum.internal.security.apikey.store;
+
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import org.globalart.astrum.datastore.api.DataSession;
+import org.globalart.astrum.datastore.api.DataStore;
+import org.globalart.astrum.internal.security.apikey.ApiKeyInternal;
+import org.globalart.astrum.testdb.DataSessionRule;
+
+import com.google.common.collect.Iterables;
+import org.apache.shiro.subject.PrincipalCollection;
+import org.apache.shiro.subject.SimplePrincipalCollection;
+import org.assertj.db.type.Table;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+
+import static org.assertj.db.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.globalart.astrum.datastore.api.DataStoreManager.DEFAULT_DATASTORE_NAME;
+
+public class ApiKeyDAOTest
+{
+  private static final String DOMAIN = "domain";
+
+  private static final String ANOTHER_DOMAIN = "a domain";
+
+  private static final char[] API_KEY1 = "api_key".toCharArray();
+
+  private static final char[] API_KEY2 = "api_key2".toCharArray();
+
+  private static final char[] API_KEY3 = "api_key3".toCharArray();
+
+  private static final char[] API_KEY4 = "api_key4".toCharArray();
+
+  private static final String A_PRINCIPAL = "p1";
+
+  private static final String ANOTHER_PRINCIPAL = "a_p1";
+
+  private static final String A_REALM = "realm1";
+
+  private static final String ANOTHER_REALM = "another_realm";
+
+  ApiKeyDAO apiKeyDAO;
+
+  DataSession<?> session;
+
+  @Rule
+  public DataSessionRule sessionRule =
+      new DataSessionRule().access(ApiKeyDAO.class).handle(new ApiKeyTokenTypeHandler());
+
+  @Before
+  public void setup() {
+    session = sessionRule.openSession(DEFAULT_DATASTORE_NAME);
+    apiKeyDAO = session.access(ApiKeyDAO.class);
+  }
+
+  @After
+  public void cleanup() {
+    session.close();
+  }
+
+  /*
+   * create should successfully create and fetch an ApiKey record
+   */
+  @Test
+  public void testCreate() {
+    ApiKeyData apiKeyEntity = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+
+    apiKeyDAO.save(apiKeyEntity);
+
+    ApiKeyInternal savedApiKey = findApiKey(DOMAIN, A_PRINCIPAL).get();
+    assertSavedApiKey(savedApiKey, API_KEY1);
+  }
+
+  /*
+   * Create the same user in different realms
+   */
+  @Test
+  public void testCreate_differentRealm() {
+    OffsetDateTime created = OffsetDateTime.now();
+    ApiKeyData apiKeyEntity = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL, A_REALM, created);
+    ApiKeyData apiKeyEntity2 = anApiKeyEntity(API_KEY2, DOMAIN, A_PRINCIPAL, ANOTHER_REALM, created);
+
+    withDao(dao -> dao.save(apiKeyEntity));
+    withDao(dao -> dao.save(apiKeyEntity2));
+
+    assertThat(table()).hasNumberOfRows(2);
+  }
+
+  /*
+   * update should successfully update matching ApiKey record
+   */
+  @Test
+  public void testUpdate() {
+    ApiKeyData apiKeyEntity = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    withDao(dao -> dao.save(apiKeyEntity));
+
+    apiKeyEntity.setPrincipals(principalCollection(ANOTHER_PRINCIPAL, ANOTHER_REALM));
+
+    withDao(dao -> dao.update(apiKeyEntity));
+
+    ApiKeyInternal updatedApiKey = findApiKey(DOMAIN, ANOTHER_PRINCIPAL).get();
+    assertSavedApiKey(updatedApiKey, API_KEY1);
+  }
+
+  /*
+   * delete should successfully delete matching ApiKey record
+   */
+  public void testDelete() {
+    ApiKeyData entity1 = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    ApiKeyData entity2 = anApiKeyEntity(API_KEY2, DOMAIN, ANOTHER_PRINCIPAL);
+    apiKeyDAO.save(entity1);
+    apiKeyDAO.save(entity2);
+
+    Optional<ApiKeyInternal> savedApiKey1 = findApiKey(DOMAIN, A_PRINCIPAL);
+    Optional<ApiKeyInternal> savedApiKey2 = findApiKey(DOMAIN, ANOTHER_PRINCIPAL);
+
+    assertTrue(savedApiKey1.isPresent());
+    assertTrue(savedApiKey2.isPresent());
+
+    apiKeyDAO.deleteKey(DOMAIN, new ApiKeyToken(API_KEY1));
+    savedApiKey1 = findApiKey(DOMAIN, A_PRINCIPAL);
+    savedApiKey2 = findApiKey(DOMAIN, ANOTHER_PRINCIPAL);
+    assertFalse(savedApiKey1.isPresent());
+    assertTrue(savedApiKey2.isPresent());
+  }
+
+  /*
+   * browse should fetch all records
+   */
+  @Test
+  public void testBrowsePrincipals() {
+    ApiKeyData entity1 = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    ApiKeyData entity2 = anApiKeyEntity(API_KEY2, DOMAIN, ANOTHER_PRINCIPAL);
+    apiKeyDAO.save(entity1);
+    apiKeyDAO.save(entity2);
+
+    Collection<PrincipalCollection> allRecords = (Collection<PrincipalCollection>) apiKeyDAO.browsePrincipals();
+    assertThat(allRecords, hasSize(2));
+    assertThat(allRecords.stream().map(PrincipalCollection::getPrimaryPrincipal).collect(Collectors.toList()),
+        containsInAnyOrder(A_PRINCIPAL, ANOTHER_PRINCIPAL));
+  }
+
+  /*
+   * findApiKey should fetch records matching given domain and primary principal
+   */
+  @Test
+  public void testFindApiKey() {
+    apiKeyDAO.save(anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL));
+    apiKeyDAO.save(anApiKeyEntity(API_KEY2, DOMAIN, ANOTHER_PRINCIPAL));
+    apiKeyDAO.save(anApiKeyEntity(API_KEY3, ANOTHER_DOMAIN, A_PRINCIPAL));
+    apiKeyDAO.save(anApiKeyEntity(API_KEY4, ANOTHER_DOMAIN, ANOTHER_PRINCIPAL));
+
+    Collection<ApiKeyInternal> result = apiKeyDAO.findApiKeys(DOMAIN, A_PRINCIPAL);
+    assertSavedApiKey(Iterables.getFirst(result, null), API_KEY1);
+
+    //
+    result = apiKeyDAO.findApiKeys(DOMAIN, ANOTHER_PRINCIPAL);
+    assertSavedApiKey(Iterables.getFirst(result, null), API_KEY2);
+
+    result = apiKeyDAO.findApiKeys(ANOTHER_DOMAIN, A_PRINCIPAL);
+    assertSavedApiKey(Iterables.getFirst(result, null), API_KEY3);
+
+    result = apiKeyDAO.findApiKeys(ANOTHER_DOMAIN, ANOTHER_PRINCIPAL);
+    assertSavedApiKey(Iterables.getFirst(result, null), API_KEY4);
+  }
+
+  /*
+   * findPrincipals should fetch records matching given domain and api key
+   */
+  @Test
+  public void testFindPrincipals() {
+    ApiKeyData apiKeyEntity = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    ApiKeyData anotherApiKeyEntity = anApiKeyEntity(API_KEY2, DOMAIN, ANOTHER_PRINCIPAL);
+    apiKeyDAO.save(apiKeyEntity);
+    apiKeyDAO.save(anotherApiKeyEntity);
+
+    Optional<ApiKeyInternal> result = apiKeyDAO.findPrincipals(DOMAIN, new ApiKeyToken(API_KEY1));
+    assertThat(result.get().getPrincipals().getPrimaryPrincipal(), is(A_PRINCIPAL));
+
+    result = apiKeyDAO.findPrincipals(DOMAIN, new ApiKeyToken(API_KEY2));
+    assertThat(result.get().getPrincipals().getPrimaryPrincipal(), is(ANOTHER_PRINCIPAL));
+  }
+
+  @Test
+  public void testCount() {
+    ApiKeyData entity1 = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    ApiKeyData entity2 = anApiKeyEntity(API_KEY2, ANOTHER_DOMAIN, ANOTHER_PRINCIPAL);
+    apiKeyDAO.save(entity1);
+    apiKeyDAO.save(entity2);
+
+    assertThat(apiKeyDAO.count(DOMAIN), is(1));
+  }
+
+  @Test
+  public void testBrowse() {
+    ApiKeyData entity1 = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    ApiKeyData entity2 = anApiKeyEntity(API_KEY2, DOMAIN, ANOTHER_PRINCIPAL);
+    apiKeyDAO.save(entity1);
+    apiKeyDAO.save(entity2);
+    apiKeyDAO.save(anApiKeyEntity(API_KEY2, ANOTHER_DOMAIN, A_PRINCIPAL));
+
+    assertThat(apiKeyDAO.browse(DOMAIN), containsInAnyOrder(token(entity1), token(entity2)));
+  }
+
+  @Test
+  public void testBrowseByCreatedDate() {
+    ApiKeyData entity1 = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    ApiKeyData entity2 = anApiKeyEntity(API_KEY2, DOMAIN, ANOTHER_PRINCIPAL);
+
+    OffsetDateTime entity1Date = OffsetDateTime.of(2021, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime entity2Date = OffsetDateTime.of(2022, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+
+    entity1.setCreated(entity1Date);
+    entity2.setCreated(entity2Date);
+
+    apiKeyDAO.save(entity1);
+    apiKeyDAO.save(entity2);
+    apiKeyDAO.save(anApiKeyEntity(API_KEY2, ANOTHER_DOMAIN, A_PRINCIPAL));
+
+    assertThat(apiKeyDAO.browseByCreatedDate(DOMAIN, entity2Date.minusSeconds(1L)), contains(token(entity2)));
+  }
+
+  @Test
+  public void testBrowseAllSince() {
+    ApiKeyData entity1 = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    ApiKeyData entity2 = anApiKeyEntity(API_KEY2, DOMAIN, ANOTHER_PRINCIPAL);
+
+    OffsetDateTime entity1Date = OffsetDateTime.of(2021, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime entity2Date = OffsetDateTime.of(2022, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+
+    entity1.setCreated(entity1Date);
+    entity2.setCreated(entity2Date);
+
+    apiKeyDAO.save(entity1);
+    apiKeyDAO.save(entity2);
+
+    assertThat(apiKeyDAO.browseAllSince(entity2Date.minusSeconds(1L), 10), contains(token(entity2)));
+  }
+
+  @Test
+  public void testDeleteApiKeysByDomain() {
+    // keys in different domains
+    ApiKeyData entity1 = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL);
+    ApiKeyData entity2 = anApiKeyEntity(API_KEY2, ANOTHER_DOMAIN, ANOTHER_PRINCIPAL);
+    apiKeyDAO.save(entity1);
+    apiKeyDAO.save(entity2);
+
+    // Sanity check
+    assertThat(apiKeyDAO.browse(DOMAIN), hasSize(1));
+
+    // Remove keys in DOMAIN
+    int deleted = apiKeyDAO.deleteApiKeysByDomain(DOMAIN);
+    assertThat(deleted, is(1));
+
+    // Verify only keys in DOMAIN were removed
+    assertThat(apiKeyDAO.browse(DOMAIN), empty());
+    assertThat(apiKeyDAO.browse(ANOTHER_DOMAIN), hasSize(1));
+  }
+
+  @Test
+  public void testDeleteApiKeyByExpirationDate() {
+    OffsetDateTime createdToday = OffsetDateTime.now().plusMinutes(5);
+    ApiKeyData entity1 = anApiKeyEntity(API_KEY1, DOMAIN, A_PRINCIPAL, A_REALM, createdToday);
+
+    OffsetDateTime createdYesterday = OffsetDateTime.now().minusDays(1);
+    ApiKeyData entity2 = anApiKeyEntity(API_KEY2, ANOTHER_DOMAIN, ANOTHER_PRINCIPAL, ANOTHER_REALM, createdYesterday);
+
+    apiKeyDAO.save(entity1);
+    apiKeyDAO.save(entity2);
+
+    OffsetDateTime expiration = OffsetDateTime.now();
+
+    // Sanity check
+    assertThat(apiKeyDAO.browse(DOMAIN), hasSize(1));
+
+    // Remove my expiration date
+    int deleted = apiKeyDAO.deleteApiKeyByExpirationDate(expiration);
+    assertThat(deleted, is(1));
+
+    assertThat(apiKeyDAO.browse(DOMAIN), hasSize(1));
+    assertThat(apiKeyDAO.browse(ANOTHER_DOMAIN), empty());
+  }
+
+  private static ApiKeyData anApiKeyEntity(
+      final char[] apiKey,
+      final String domain,
+      final String primaryPrincipal)
+  {
+    OffsetDateTime created = OffsetDateTime.now();
+    return anApiKeyEntity(apiKey, domain, primaryPrincipal, A_REALM, created);
+  }
+
+  private static ApiKeyData anApiKeyEntity(
+      final char[] apiKey,
+      final String domain,
+      final String primaryPrincipal,
+      final String realm,
+      final OffsetDateTime created)
+  {
+    PrincipalCollection principalCollection = principalCollection(primaryPrincipal, realm);
+    return anApiKeyEntity(apiKey, domain, principalCollection, created);
+  }
+
+  private static ApiKeyData anApiKeyEntity(
+      final char[] apiKey,
+      final String domain,
+      final PrincipalCollection principal,
+      final OffsetDateTime created)
+  {
+    ApiKeyData data = new ApiKeyData();
+    data.setDomain(domain);
+    data.setPrincipals(principal);
+    data.setApiKey(apiKey);
+    data.setCreated(created);
+    return data;
+  }
+
+  private Optional<ApiKeyInternal> findApiKey(final String domain, final String primaryPrincipal) {
+    return apiKeyDAO.findApiKeys(domain, primaryPrincipal)
+        .stream()
+        .findFirst();
+  }
+
+  private Table table() {
+    DataStore<?> dataStore = sessionRule.getDataStore(DEFAULT_DATASTORE_NAME).orElseThrow(RuntimeException::new);
+    return new Table(dataStore.getDataSource(), "api_key");
+  }
+
+  private void withDao(final Consumer<ApiKeyDAO> consumer) {
+    try (DataSession<?> sess = sessionRule.openSerializableTransactionSession(DEFAULT_DATASTORE_NAME)) {
+      consumer.accept(sess.access(ApiKeyDAO.class));
+      sess.getTransaction().commit();
+    }
+  }
+
+  private static SimplePrincipalCollection principalCollection(final String principal, final String realm) {
+    return new SimplePrincipalCollection(principal, realm);
+  }
+
+  private static void assertSavedApiKey(final ApiKeyInternal actualApiKey, final char[] expectedApiKey) {
+    assertThat(new String(actualApiKey.getApiKey()), is(new String(expectedApiKey)));
+  }
+
+  private static Matcher<ApiKeyInternal> token(final ApiKeyInternal key) {
+    return new TypeSafeMatcher<ApiKeyInternal>(ApiKeyInternal.class)
+    {
+      @Override
+      public void describeTo(final Description description) {
+        description.appendValue(key);
+      }
+
+      @Override
+      protected boolean matchesSafely(final ApiKeyInternal item) {
+        return item.getPrincipals().equals(key.getPrincipals()) && item.getDomain().equals(key.getDomain())
+            && Arrays.equals(item.getApiKey(), key.getApiKey());
+      }
+    };
+  }
+}
