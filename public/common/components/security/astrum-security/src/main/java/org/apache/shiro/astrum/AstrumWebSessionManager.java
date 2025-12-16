@@ -1,0 +1,103 @@
+
+package org.apache.shiro.astrum;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.common.app.FeatureFlags;
+
+import org.apache.shiro.session.Session;
+import org.apache.shiro.session.mgt.SessionContext;
+import org.apache.shiro.session.mgt.SessionValidationScheduler;
+import org.apache.shiro.web.servlet.Cookie;
+import org.apache.shiro.web.session.mgt.DefaultWebSessionManager;
+import org.apache.shiro.web.session.mgt.WebSessionManager;
+import org.apache.shiro.web.util.WebUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+/**
+ * Custom {@link WebSessionManager}.
+ *
+ * This session manager predates the more recent JWT session management in org.globalart.astrum.security. It's used
+ * in for single node deployments typically, however it is not used for Pro deployments using SAML (HA or not).
+ */
+@Component
+public class AstrumWebSessionManager
+    extends DefaultWebSessionManager
+{
+  private static final Logger log = LoggerFactory.getLogger(AstrumWebSessionManager.class);
+
+  public static final String DEFAULT_ASTRUM_SESSION_COOKIE_NAME = "NXSESSIONID";
+
+  private static final ThreadLocal<Boolean> requestIsHttps = ThreadLocal.withInitial(() -> Boolean.TRUE);
+
+  @Autowired
+  public void configureProperties(
+      @Value("${shiro.globalSessionTimeout:" + DEFAULT_GLOBAL_SESSION_TIMEOUT + "}") final long globalSessionTimeout,
+      @Value("${astrum.sessionCookieName:" + DEFAULT_ASTRUM_SESSION_COOKIE_NAME + "}") final String sessionCookieName,
+      @Value("${astrum.session.enabled:true}") final boolean sessionEnabled,
+      @Value(FeatureFlags.NXSESSIONID_SECURE_COOKIE_NAMED_VALUE) final boolean cookieSecure)
+  {
+    setGlobalSessionTimeout(globalSessionTimeout);
+    log.info("Global session timeout: {} ms", getGlobalSessionTimeout());
+
+    setSessionIdCookieEnabled(sessionEnabled);
+    Cookie cookie = getSessionIdCookie();
+    cookie.setName(sessionCookieName);
+    cookie.setSecure(cookieSecure);
+    log.info("Session-cookie prototype: name={}, secure={}", cookie.getName(), cookie.isSecure());
+  }
+
+  /**
+   * Overrides the {@link #onStart(Session, SessionContext)} to first check to see if the request is coming
+   * on a secure channel.
+   *
+   * @param session
+   * @param context
+   */
+  @Override
+  protected void onStart(final Session session, final SessionContext context) {
+    if (WebUtils.isHttp((context))) {
+      requestIsHttps.set(WebUtils.getHttpRequest(context).isSecure());
+    }
+    try {
+      super.onStart(session, context);
+    }
+    finally {
+      if (WebUtils.isHttp(context)) {
+        requestIsHttps.remove();
+      }
+    }
+  }
+
+  /**
+   * {@link #getSessionIdCookie()} in the parent returns a "template" cookie that is passed in as an argument.
+   * It represents our ONLY injection point to set the Secure flag. If we blindly set the secure flag and the
+   * request came in on a plain text HTTP only channel, the browser will refuse it. We need a way to know
+   * if the cookie will be used on an HTTPS channel or not.
+   *
+   * @return the cookie template, including a value for {@link Cookie#isSecure()} appropriate for the request.
+   */
+  @Override
+  public Cookie getSessionIdCookie() {
+    Cookie cookie = super.getSessionIdCookie();
+    boolean templateValue = cookie.isSecure();
+    boolean requestIsSecure = requestIsHttps.get();
+    log.trace("setting Secure flag on session cookie: systemValue={}, requestIsSecure={}", templateValue,
+        requestIsSecure);
+    cookie.setSecure(templateValue && requestIsSecure);
+    return cookie;
+  }
+
+  /**
+   * See https://issues.globalart.dev/browse/ASTRUM-5727, https://issues.apache.org/jira/browse/SHIRO-443
+   */
+  @Override
+  protected synchronized void enableSessionValidation() {
+    final SessionValidationScheduler scheduler = getSessionValidationScheduler();
+    if (scheduler == null) {
+      super.enableSessionValidation();
+    }
+  }
+}
