@@ -1,0 +1,114 @@
+
+package org.globalart.astrum.security.anonymous;
+
+import java.util.Date;
+import java.util.Set;
+
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.HttpServletRequest;
+
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.security.ClientInfo;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.net.HttpHeaders;
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.inject.Provider;
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.ThreadContext;
+import org.apache.shiro.web.servlet.AdviceFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.newSetFromMap;
+
+/**
+ * Binds special anonymous subject if current subject is guest and anonymous access is enabled.
+ *
+ * @see AnonymousManager
+ * @since 3.0
+ */
+@WebFilter(filterName = AnonymousFilter.NAME)
+@Component
+public class AnonymousFilter
+    extends AdviceFilter
+{
+  public static final String NAME = "nx-anonymous";
+
+  private static final int CACHE_SIZE = 100;
+
+  private static final String ORIGINAL_SUBJECT = AnonymousFilter.class.getName() + ".originalSubject";
+
+  private static final Logger log = LoggerFactory.getLogger(AnonymousFilter.class);
+
+  private final Provider<AnonymousManager> anonymousManager;
+
+  private final Provider<EventManager> eventManager;
+
+  // keep a record of the most recent accesses
+  private final Set<ClientInfo> cache = newSetFromMap(
+      CacheBuilder.newBuilder().maximumSize(CACHE_SIZE).<ClientInfo, Boolean>build().asMap());
+
+  @Autowired
+  public AnonymousFilter(final Provider<AnonymousManager> anonymousManager, final Provider<EventManager> eventManager) {
+    this.anonymousManager = checkNotNull(anonymousManager);
+    this.eventManager = checkNotNull(eventManager);
+  }
+
+  @Override
+  protected boolean preHandle(final ServletRequest request, final ServletResponse response) throws Exception {
+    Subject subject = SecurityUtils.getSubject();
+    AnonymousManager manager = anonymousManager.get();
+
+    if ((subject.getPrincipal() == null || isAnonymousUser(manager, subject))
+        && manager.isEnabled()) {
+      request.setAttribute(ORIGINAL_SUBJECT, subject);
+      subject = manager.buildSubject();
+      ThreadContext.bind(subject);
+      log.trace("Bound anonymous subject: {}", subject);
+
+      // fire an event if we haven't already seen this ClientInfo since the server started
+      if (request instanceof HttpServletRequest) {
+        String userId = manager.getConfiguration().getUserId();
+        ClientInfo clientInfo = ClientInfo
+            .builder()
+            .userId(userId)
+            .remoteIP(request.getRemoteAddr())
+            .userAgent(((HttpServletRequest) request).getHeader(HttpHeaders.USER_AGENT))
+            .path(((HttpServletRequest) request).getServletPath())
+            .build();
+        if (cache.add(clientInfo)) {
+          log.trace("Tracking new anonymous access from: {}", clientInfo);
+          eventManager.get().post(new AnonymousAccessEvent(clientInfo, new Date()));
+        }
+      }
+    }
+
+    return true;
+  }
+
+  @Override
+  public void afterCompletion(
+      final ServletRequest request,
+      final ServletResponse response,
+      final Exception exception) throws Exception
+  {
+    Subject subject = (Subject) request.getAttribute(ORIGINAL_SUBJECT);
+    if (subject != null) {
+      log.trace("Binding original subject: {}", subject);
+      ThreadContext.bind(subject);
+    }
+  }
+
+  private boolean isAnonymousUser(final AnonymousManager manager, final Subject subject) {
+    if (manager == null || manager.getConfiguration() == null || manager.getConfiguration().getUserId() == null) {
+      return false;
+    }
+    return manager.getConfiguration().getUserId().equals(subject.getPrincipals().getPrimaryPrincipal());
+  }
+}
