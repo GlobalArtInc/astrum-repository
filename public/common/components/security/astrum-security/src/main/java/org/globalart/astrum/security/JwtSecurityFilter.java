@@ -1,0 +1,205 @@
+
+package org.globalart.astrum.security;
+
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Date;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+
+import org.globalart.astrum.audit.AuditData;
+import org.globalart.astrum.audit.AuditRecorder;
+import org.globalart.astrum.common.text.Strings2;
+import org.globalart.astrum.security.jwt.JwtSessionRevocationService;
+import org.globalart.astrum.security.jwt.JwtVerificationException;
+
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.shiro.session.mgt.SimpleSession;
+import org.apache.shiro.subject.PrincipalCollection;
+import org.apache.shiro.subject.SimplePrincipalCollection;
+import org.apache.shiro.web.filter.mgt.FilterChainResolver;
+import org.apache.shiro.web.mgt.WebSecurityManager;
+import org.apache.shiro.web.subject.WebSubject;
+import org.apache.shiro.web.subject.support.WebDelegatingSubject;
+import org.apache.shiro.web.util.WebUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Arrays.stream;
+import static org.globalart.astrum.common.app.FeatureFlags.JWT_ENABLED;
+import static org.globalart.astrum.security.JwtHelper.JWT_COOKIE_NAME;
+import static org.globalart.astrum.security.JwtHelper.REALM;
+import static org.globalart.astrum.security.JwtHelper.USER;
+import static org.globalart.astrum.security.JwtHelper.USER_SESSION_ID;
+
+/**
+ * JWT security filter.
+ *
+ * @since 3.38
+ */
+@WebFilter("/*")
+@ConditionalOnProperty(value = JWT_ENABLED, havingValue = "true")
+public class JwtSecurityFilter
+    extends SecurityFilter
+{
+  private final JwtHelper jwtHelper;
+
+  private final JwtSessionRevocationService jwtSessionRevocationService;
+
+  private final AuditRecorder auditRecorder;
+
+  private static final Logger log = LoggerFactory.getLogger(JwtSecurityFilter.class);
+
+  @Autowired
+  public JwtSecurityFilter(
+      final WebSecurityManager webSecurityManager,
+      final FilterChainResolver filterChainResolver,
+      final JwtHelper jwtHelper,
+      final JwtSessionRevocationService jwtSessionRevocationService,
+      final AuditRecorder auditRecorder)
+  {
+    super(webSecurityManager, filterChainResolver);
+    this.jwtHelper = checkNotNull(jwtHelper);
+    this.jwtSessionRevocationService = checkNotNull(jwtSessionRevocationService);
+    this.auditRecorder = checkNotNull(auditRecorder);
+  }
+
+  @Override
+  protected WebSubject createSubject(final ServletRequest request, final ServletResponse response) {
+    Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+
+    if (cookies != null) {
+      Optional<Cookie> jwtCookie = stream(cookies)
+          .filter(cookie -> cookie.getName().equals(JWT_COOKIE_NAME))
+          .findFirst();
+
+      if (jwtCookie.isPresent()) {
+        Cookie cookie = jwtCookie.get();
+
+        SimpleSession session = new SimpleSession(request.getRemoteHost());
+        DecodedJWT decodedJwt;
+        String jwt = cookie.getValue();
+        if (!Strings2.isEmpty(jwt)) {
+          try {
+            decodedJwt = jwtHelper.verifyJwt(jwt);
+          }
+          catch (JwtVerificationException e) {
+            log.debug("Expire and reset the JWT cookie due to the error: {}", e.getMessage());
+            cookie.setValue("");
+            cookie.setMaxAge(0);
+            WebUtils.toHttp(response).addCookie(cookie);
+
+            return super.createSubject(request, response);
+          }
+
+          Claim userSessionIdClaim = decodedJwt.getClaim(USER_SESSION_ID);
+          String userSessionId = userSessionIdClaim != null && !userSessionIdClaim.isNull()
+              ? userSessionIdClaim.asString()
+              : null;
+          Claim userClaim = decodedJwt.getClaim(USER);
+          String username = userClaim != null && !userClaim.isNull() ? userClaim.asString() : null;
+          Claim realmClaim = decodedJwt.getClaim(REALM);
+          String realmName = realmClaim != null && !realmClaim.isNull() ? realmClaim.asString() : null;
+
+          // Session-level revocation (logout)
+          if (userSessionId != null && jwtSessionRevocationService.isRevoked(userSessionId)) {
+            return rejectAndFallback(request, response, cookie, username, userSessionId,
+                "Attempt to use revoked JWT token detected and blocked.");
+          }
+
+          // User-level invalidation covers password change, user deletion and user deactivation:
+          // DefaultSecuritySystem invokes SessionInvalidator on each of these paths, which records
+          // a cutoff timestamp read here. Any JWT issued before that cutoff is rejected without a
+          // per-request lookup against the user store.
+          Date issuedAt = decodedJwt.getIssuedAt();
+          if (username != null && issuedAt != null) {
+            OffsetDateTime iat = issuedAt.toInstant().atOffset(ZoneOffset.UTC);
+            if (jwtSessionRevocationService.isUserInvalidatedAfter(username, iat)) {
+              return rejectAndFallback(request, response, cookie, username,
+                  userSessionId != null ? userSessionId : "unknown",
+                  "Attempt to use JWT token issued before user invalidation "
+                      + "(password change, user deletion, or user deactivation).");
+            }
+          }
+
+          if (username == null || realmName == null) {
+            log.debug("Invalid JWT token: missing user or realm claim");
+            cookie.setValue("");
+            cookie.setMaxAge(0);
+            WebUtils.toHttp(response).addCookie(cookie);
+            return super.createSubject(request, response);
+          }
+
+          PrincipalCollection principals = new SimplePrincipalCollection(username, realmName);
+
+          session.setTimeout(TimeUnit.SECONDS.toMillis(jwtHelper.getExpirySeconds()));
+          session.setAttribute(JWT_COOKIE_NAME, jwt);
+
+          return new WebDelegatingSubject(
+              principals,
+              true,
+              request.getRemoteHost(),
+              session,
+              true,
+              request,
+              response,
+              getSecurityManager());
+        }
+      }
+    }
+    return super.createSubject(request, response);
+  }
+
+  /**
+   * Common handling when a JWT must not be accepted: log a security-warn line, emit an audit
+   * record, clear the JWT cookie on the response, and return the fallback unauthenticated
+   * subject from the super filter. Covers both per-session revocation (logout) and per-user
+   * invalidation (password change) so the two paths share the same observable behavior.
+   */
+  private WebSubject rejectAndFallback(
+      final ServletRequest request,
+      final ServletResponse response,
+      final Cookie cookie,
+      final String username,
+      final String sessionId,
+      final String reason)
+  {
+    String remoteAddr = request.getRemoteAddr();
+    String remoteHost = request.getRemoteHost();
+
+    log.warn("SECURITY: {} Username: {}, Session ID: {}, Remote IP: {}, Remote Host: {}",
+        reason, username, sessionId, remoteAddr, remoteHost);
+
+    if (auditRecorder.isEnabled()) {
+      AuditData data = new AuditData();
+      data.setDomain("security.jwt");
+      data.setType("revoked-token-attempt");
+      data.setContext(username);
+      data.setTimestamp(new Date());
+      data.setInitiator(username + "/" + remoteAddr);
+
+      data.getAttributes().put("username", username);
+      data.getAttributes().put("sessionId", sessionId);
+      data.getAttributes().put("remoteAddr", remoteAddr);
+      data.getAttributes().put("remoteHost", remoteHost);
+
+      auditRecorder.record(data);
+    }
+
+    cookie.setValue("");
+    cookie.setMaxAge(0);
+    WebUtils.toHttp(response).addCookie(cookie);
+
+    return super.createSubject(request, response);
+  }
+}

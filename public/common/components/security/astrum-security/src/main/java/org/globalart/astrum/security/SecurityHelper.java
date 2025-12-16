@@ -1,0 +1,216 @@
+
+package org.globalart.astrum.security;
+
+import java.util.Arrays;
+import java.util.stream.StreamSupport;
+
+import org.globalart.astrum.security.authz.WildcardPermission2;
+
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authz.AuthorizationException;
+import org.apache.shiro.authz.Permission;
+import org.apache.shiro.mgt.SecurityManager;
+import org.apache.shiro.subject.Subject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import org.springframework.stereotype.Component;
+
+// NOTE: Specifically not using SecuritySystem here as that is a legacy api and has a lot of cruft
+
+/**
+ * Security helper.
+ *
+ * Exposed to add additional support around security as well as to promote testability via mocks.
+ *
+ * @since 3.0
+ */
+@Component
+public class SecurityHelper
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  /**
+   * Returns current security manager.
+   */
+  public SecurityManager getSecurityManager() {
+    return SecurityUtils.getSecurityManager();
+  }
+
+  /**
+   * Returns current subject.
+   */
+  public Subject subject() {
+    return SecurityUtils.getSubject();
+  }
+
+  /**
+   * Ensure subject has given permissions.
+   *
+   * @throws AuthorizationException
+   */
+  public void ensurePermitted(final Subject subject, final Permission... permissions) {
+    checkNotNull(subject);
+    checkNotNull(permissions);
+    checkArgument(permissions.length != 0);
+
+    if (log.isTraceEnabled()) {
+      log.trace("Ensuring subject '{}' has permissions: {}", subject.getPrincipal(), Arrays.toString(permissions));
+    }
+    subject.checkPermissions(Arrays.asList(permissions));
+  }
+
+  /**
+   * Ensure subject has any of the given permissions.
+   *
+   * @throws AuthorizationException
+   */
+  public void ensureAnyPermitted(final Subject subject, final Permission... permissions) {
+    checkNotNull(subject);
+    checkNotNull(permissions);
+    checkArgument(permissions.length != 0);
+
+    if (log.isTraceEnabled()) {
+      log.trace("Ensuring subject '{}' has any of the following permissions: {}", subject.getPrincipal(),
+          Arrays.toString(permissions));
+    }
+
+    if (!anyPermitted(subject, permissions)) {
+      throw new AuthorizationException("User is not permitted: " +
+          (permissions.length > 1 ? "[" + permissions[0] + ", ...]" : permissions[0]));
+    }
+  }
+
+  /**
+   * Ensure current subject has given permissions.
+   *
+   * @throws AuthorizationException
+   */
+  public void ensurePermitted(final Permission... permissions) {
+    ensurePermitted(subject(), permissions);
+  }
+
+  /**
+   * Check if subject has ANY of the given permissions.
+   */
+  public boolean anyPermitted(final Subject subject, final Permission... permissions) {
+    checkNotNull(subject);
+    checkNotNull(permissions);
+    checkArgument(permissions.length != 0);
+
+    boolean trace = log.isTraceEnabled();
+    if (trace) {
+      log.trace("Checking if subject '{}' has ANY of these permissions: {}",
+          subject.getPrincipal(), Arrays.toString(permissions));
+    }
+    for (Permission permission : permissions) {
+      if (subject.isPermitted(permission)) {
+        if (trace) {
+          log.trace("Subject '{}' has permission: {}", subject.getPrincipal(), permission);
+        }
+        return true;
+      }
+    }
+    if (trace) {
+      log.trace("Subject '{}' missing required permissions: {}",
+          subject.getPrincipal(), Arrays.toString(permissions));
+    }
+    return false;
+  }
+
+  /**
+   * Check if subject has ANY of the given permissions.
+   */
+  public boolean anyPermitted(final Subject subject, final Iterable<Permission> permissions) {
+    return anyPermitted(
+        subject,
+        StreamSupport.stream(permissions.spliterator(), false).toArray(Permission[]::new));
+  }
+
+  /**
+   * Check if current subject has ANY of the given permissions.
+   */
+  public boolean anyPermitted(final Permission... permissions) {
+    return anyPermitted(subject(), permissions);
+  }
+
+  /**
+   * Check if subject has ALL of the given permissions.
+   */
+  public boolean allPermitted(final Subject subject, final Permission... permissions) {
+    checkNotNull(subject);
+    checkNotNull(permissions);
+    checkArgument(permissions.length != 0);
+
+    boolean trace = log.isTraceEnabled();
+    if (trace) {
+      log.trace("Checking if subject '{}' has ALL of these permissions: {}",
+          subject.getPrincipal(), Arrays.toString(permissions));
+    }
+    for (Permission permission : permissions) {
+      if (!subject.isPermitted(permission)) {
+        if (trace) {
+          log.trace("Subject '{}' missing permission: {}", subject.getPrincipal(), permission);
+        }
+        return false;
+      }
+    }
+
+    if (trace) {
+      log.trace("Subject '{}' has required permissions: {}",
+          subject.getPrincipal(), Arrays.toString(permissions));
+    }
+    return true;
+  }
+
+  /**
+   * Check if current subject has ALL of the given permissions.
+   */
+  public boolean allPermitted(final Permission... permissions) {
+    return allPermitted(subject(), permissions);
+  }
+
+  /**
+   * Check which permissions the subject has.
+   *
+   * @since 3.13
+   */
+  public boolean[] isPermitted(final Subject subject, final Permission... permissions) {
+    checkNotNull(subject);
+    checkNotNull(permissions);
+    checkArgument(permissions.length != 0);
+
+    boolean trace = log.isTraceEnabled();
+    if (trace) {
+      log.trace("Checking which permissions subject '{}' has in: {}", subject.getPrincipal(),
+          Arrays.toString(permissions));
+    }
+    boolean[] results = subject.isPermitted(Arrays.asList(permissions));
+    if (trace) {
+      log.trace("Subject '{}' has permissions: [{}] results {}", subject.getPrincipal(), Arrays.toString(permissions),
+          results);
+    }
+    return results;
+  }
+
+  /**
+   * Check which permissions the current subject has.
+   *
+   * @since 3.13
+   */
+  public boolean[] isPermitted(final Permission... permissions) {
+    return isPermitted(subject(), permissions);
+  }
+
+  /**
+   * Check whether the astrum allow everything permission is permitted. That is to say a check will be done to see if
+   * the permission `astrum:*` was set on the current {@link #subject()}
+   *
+   * @since 3.22
+   */
+  public boolean isAllPermitted() {
+    return isPermitted(new WildcardPermission2("astrum:*"))[0];
+  }
+}
