@@ -1,0 +1,403 @@
+
+package org.globalart.astrum.security.internal.rest;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Response.Status;
+
+import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.rest.WebApplicationMessageException;
+import org.globalart.astrum.security.SecurityHelper;
+import org.globalart.astrum.security.SecuritySystem;
+import org.globalart.astrum.security.authz.NoSuchAuthorizationManagerException;
+import org.globalart.astrum.security.authz.WildcardPermission2;
+import org.globalart.astrum.security.internal.rest.ApiAccessResultXo.EntityRefXo;
+import org.globalart.astrum.security.internal.rest.ApiAccessResultXo.PermissionChainXo;
+import org.globalart.astrum.security.internal.rest.ApiAccessResultXo.RelatedEndpointXo;
+import org.globalart.astrum.security.privilege.Privilege;
+import org.globalart.astrum.security.role.NoSuchRoleException;
+import org.globalart.astrum.security.role.Role;
+import org.globalart.astrum.security.role.RoleIdentifier;
+import org.globalart.astrum.security.user.User;
+import org.globalart.astrum.security.user.UserManager;
+import org.globalart.astrum.security.user.UserNotFoundException;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import org.apache.shiro.authz.Permission;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.apache.shiro.authz.permission.RolePermissionResolver;
+import org.apache.shiro.subject.SimplePrincipalCollection;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.globalart.astrum.common.app.FeatureFlags.PREVIEW_UI_SETTINGS_ENABLED;
+
+/**
+ * REST resource for checking API access for users and roles.
+ */
+@Component
+@Consumes(APPLICATION_JSON)
+@Produces(APPLICATION_JSON)
+@ConditionalOnProperty(name = PREVIEW_UI_SETTINGS_ENABLED, havingValue = "true", matchIfMissing = true)
+@Path(ApiAccessCheckResource.RESOURCE_PATH)
+@Tag(name = "Security management: API access")
+public class ApiAccessCheckResource
+    implements Resource, ApiAccessCheckResourceDoc
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  static final String RESOURCE_PATH = "internal/ui/security/access-check";
+
+  private static final String GENERIC_NOT_FOUND_MESSAGE = "\"User or role not found or access denied\"";
+
+  private final SecuritySystem securitySystem;
+
+  private final SecurityHelper securityHelper;
+
+  private final EndpointPermissionRegistry endpointPermissionRegistry;
+
+  private final RolePermissionResolver rolePermissionResolver;
+
+  @Autowired
+  public ApiAccessCheckResource(
+      final SecuritySystem securitySystem,
+      final SecurityHelper securityHelper,
+      final EndpointPermissionRegistry endpointPermissionRegistry,
+      final RolePermissionResolver rolePermissionResolver)
+  {
+    this.securitySystem = checkNotNull(securitySystem);
+    this.securityHelper = checkNotNull(securityHelper);
+    this.endpointPermissionRegistry = checkNotNull(endpointPermissionRegistry);
+    this.rolePermissionResolver = checkNotNull(rolePermissionResolver);
+  }
+
+  /**
+   * Check if current user is an admin (has astrum:* permission).
+   */
+  private boolean isAdmin() {
+    return securityHelper.isAllPermitted();
+  }
+
+  /**
+   * Get the current user's ID, or null if not authenticated.
+   */
+  private String getCurrentUserId() {
+    try {
+      User currentUser = securitySystem.currentUser();
+      return currentUser != null ? currentUser.getUserId() : null;
+    }
+    catch (UserNotFoundException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Check if the request requires admin privileges.
+   * Admin is required when:
+   * - Checking another user's permissions (userId specified and different from current user)
+   * - Checking any role's permissions (roleId specified)
+   */
+  private void enforceAuthorizationPolicy(final ApiAccessCheckXo request) {
+    String currentUserId = getCurrentUserId();
+
+    // Checking a role requires admin
+    if (request.getRoleId() != null) {
+      if (!isAdmin()) {
+        throw new WebApplicationMessageException(
+            Status.FORBIDDEN,
+            "\"Administrator privileges required to check role permissions\"",
+            APPLICATION_JSON);
+      }
+      return;
+    }
+
+    // Checking another user requires admin
+    if (request.getUserId() != null && !request.getUserId().equals(currentUserId)) {
+      if (!isAdmin()) {
+        throw new WebApplicationMessageException(
+            Status.FORBIDDEN,
+            "\"Administrator privileges required to check other users' permissions\"",
+            APPLICATION_JSON);
+      }
+    }
+  }
+
+  @Override
+  @POST
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:settings:read")
+  @Operation(summary = "Check if a user or role has access to an API endpoint")
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Access check result",
+          content = @Content(schema = @Schema(implementation = ApiAccessResultXo.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid request - userId and roleId are mutually exclusive"),
+      @ApiResponse(responseCode = "403", description = "Insufficient permissions"),
+      @ApiResponse(responseCode = "404", description = "User or role not found")
+  })
+  public ApiAccessResultXo checkAccess(
+      @Parameter(description = "Access check request", required = true) @NotNull @Valid final ApiAccessCheckXo request)
+  {
+    // Guard: if the registry has not yet been populated (e.g. onContextRefreshed failed or
+    // has not fired yet), every getPermissionForEndpoint call returns null — which would
+    // silently make every endpoint appear public. Fail fast with 503 instead.
+    if (!endpointPermissionRegistry.isReady()) {
+      throw new WebApplicationMessageException(
+          Status.SERVICE_UNAVAILABLE,
+          "\"Permission registry is not yet available — try again after startup completes\"",
+          APPLICATION_JSON);
+    }
+
+    // Validate that userId and roleId are mutually exclusive
+    if (request.getUserId() != null && request.getRoleId() != null) {
+      throw new WebApplicationMessageException(
+          Status.BAD_REQUEST,
+          "\"userId and roleId are mutually exclusive - specify only one\"",
+          APPLICATION_JSON);
+    }
+
+    // CRITICAL #1: Enforce authorization policy - admin required to check others
+    enforceAuthorizationPolicy(request);
+
+    ApiEndpointPermission endpointInfo = endpointPermissionRegistry.getEndpointInfo(
+        request.getEndpoint(), request.getMethod());
+
+    // Primary permission string (first in list) — used for display, chains, and related endpoints
+    String requiredPermission = endpointInfo != null && endpointInfo.getPermissions() != null
+        && !endpointInfo.getPermissions().isEmpty()
+            ? endpointInfo.getPermissions().get(0).getPermission()
+            : null;
+
+    boolean hasAccess;
+    List<PermissionChainXo> chains;
+
+    if (request.getRoleId() != null) {
+      // Check access for a specific role (admin only - enforced above)
+      hasAccess = checkRoleAccessAll(request.getRoleId(), endpointInfo);
+      chains = buildRoleChains(request.getRoleId(), requiredPermission);
+    }
+    else {
+      // Check access for a user (current user if not specified)
+      String userId = request.getUserId();
+      if (userId == null) {
+        // Use current user
+        userId = getCurrentUserId();
+        if (userId == null) {
+          throw new WebApplicationMessageException(
+              Status.BAD_REQUEST,
+              "\"No user specified and no current user session\"",
+              APPLICATION_JSON);
+        }
+      }
+
+      hasAccess = checkUserAccessAll(userId, endpointInfo);
+      chains = buildUserChains(userId, requiredPermission);
+    }
+
+    // Get related endpoints
+    List<RelatedEndpointXo> relatedEndpoints = getRelatedEndpoints(requiredPermission);
+
+    // CRITICAL #2: Filter sensitive data for non-admins
+    // Only admins can see the full permission chain and related endpoints
+    if (!isAdmin()) {
+      chains = null;
+      relatedEndpoints = null;
+    }
+
+    return new ApiAccessResultXo(hasAccess, requiredPermission, chains, relatedEndpoints);
+  }
+
+  private boolean checkUserAccessAll(final String userId, final ApiEndpointPermission endpointInfo) {
+    if (endpointInfo == null || endpointInfo.getPermissions() == null || endpointInfo.getPermissions().isEmpty()) {
+      // No permission required (public endpoint)
+      return true;
+    }
+
+    try {
+      securitySystem.getUser(userId);
+      SimplePrincipalCollection principals = new SimplePrincipalCollection(userId, "AstrumAuthorizingRealm");
+      List<ApiPermissionRequirement> perms = endpointInfo.getPermissions();
+      String logical = perms.get(0).getLogical();
+      if ("OR".equals(logical)) {
+        return perms.stream().anyMatch(r -> securitySystem.isPermitted(principals, r.getPermission()));
+      }
+      else {
+        return perms.stream().allMatch(r -> securitySystem.isPermitted(principals, r.getPermission()));
+      }
+    }
+    catch (UserNotFoundException e) {
+      log.debug("User not found during access check: {}", userId);
+      throw new WebApplicationMessageException(
+          Status.BAD_REQUEST,
+          GENERIC_NOT_FOUND_MESSAGE,
+          APPLICATION_JSON);
+    }
+  }
+
+  private boolean checkRoleAccessAll(final String roleId, final ApiEndpointPermission endpointInfo) {
+    if (endpointInfo == null || endpointInfo.getPermissions() == null || endpointInfo.getPermissions().isEmpty()) {
+      return true;
+    }
+
+    try {
+      Collection<Permission> rolePermissions = rolePermissionResolver.resolvePermissionsInRole(roleId);
+      List<ApiPermissionRequirement> perms = endpointInfo.getPermissions();
+      String logical = perms.get(0).getLogical();
+      if ("OR".equals(logical)) {
+        return perms.stream().anyMatch(r -> {
+          WildcardPermission2 required = new WildcardPermission2(r.getPermission());
+          return rolePermissions.stream().anyMatch(p -> p.implies(required));
+        });
+      }
+      else {
+        return perms.stream().allMatch(r -> {
+          WildcardPermission2 required = new WildcardPermission2(r.getPermission());
+          return rolePermissions.stream().anyMatch(p -> p.implies(required));
+        });
+      }
+    }
+    catch (Exception e) {
+      log.debug("Error checking role access for role {}: {}", roleId, e.getMessage());
+      return false;
+    }
+  }
+
+  private List<PermissionChainXo> buildUserChains(final String userId, final String requiredPermission) {
+    List<PermissionChainXo> chains = new ArrayList<>();
+
+    if (requiredPermission == null) {
+      return chains;
+    }
+
+    try {
+      User user = securitySystem.getUser(userId);
+      EntityRefXo userRef = new EntityRefXo(userId, user.getName());
+
+      // Check each role the user has
+      for (RoleIdentifier roleId : user.getRoles()) {
+        try {
+          Role role = securitySystem.getAuthorizationManager(UserManager.DEFAULT_SOURCE).getRole(roleId.getRoleId());
+          List<PermissionChainXo> roleChains = buildRoleChainsInternal(role, userRef, requiredPermission);
+          chains.addAll(roleChains);
+        }
+        catch (NoSuchAuthorizationManagerException | NoSuchRoleException e) {
+          log.trace("Could not find role {} for user {}", roleId.getRoleId(), userId);
+        }
+      }
+    }
+    catch (UserNotFoundException e) {
+      log.debug("User not found: {}", userId);
+    }
+
+    return chains;
+  }
+
+  private List<PermissionChainXo> buildRoleChains(final String roleId, final String requiredPermission) {
+    if (requiredPermission == null) {
+      return List.of();
+    }
+
+    try {
+      Role role = securitySystem.getAuthorizationManager(UserManager.DEFAULT_SOURCE).getRole(roleId);
+      return buildRoleChainsInternal(role, null, requiredPermission);
+    }
+    catch (NoSuchAuthorizationManagerException | NoSuchRoleException e) {
+      // MEDIUM #4: Use generic error to prevent role enumeration
+      log.debug("Role not found during access check: {}", roleId);
+      throw new WebApplicationMessageException(
+          Status.BAD_REQUEST,
+          GENERIC_NOT_FOUND_MESSAGE,
+          APPLICATION_JSON);
+    }
+  }
+
+  private List<PermissionChainXo> buildRoleChainsInternal(
+      final Role role,
+      final EntityRefXo userRef,
+      final String requiredPermission)
+  {
+    List<PermissionChainXo> chains = new ArrayList<>();
+    EntityRefXo roleRef = new EntityRefXo(role.getRoleId(), role.getName());
+
+    WildcardPermission2 required = new WildcardPermission2(requiredPermission);
+
+    // Check direct privileges on the role
+    Set<Privilege> allPrivileges = securitySystem.listPrivileges();
+    for (String privilegeId : role.getPrivileges()) {
+      Privilege privilege = allPrivileges.stream()
+          .filter(p -> p.getId().equals(privilegeId))
+          .findFirst()
+          .orElse(null);
+
+      if (privilege != null && privilege.getPermission() != null) {
+        if (privilege.getPermission().implies(required)) {
+          EntityRefXo privilegeRef = new EntityRefXo(privilege.getId(), privilege.getName());
+          chains.add(new PermissionChainXo(userRef, roleRef, privilegeRef, privilege.getPermission().toString()));
+        }
+      }
+    }
+
+    // Check nested roles recursively
+    for (String nestedRoleId : role.getRoles()) {
+      try {
+        Role nestedRole = securitySystem.getAuthorizationManager(UserManager.DEFAULT_SOURCE).getRole(nestedRoleId);
+        List<PermissionChainXo> nestedChains = buildRoleChainsInternal(nestedRole, userRef, requiredPermission);
+        // Update chains to include the parent role
+        for (PermissionChainXo chain : nestedChains) {
+          if (chain.getRole() != null) {
+            // Create a combined chain showing the path
+            EntityRefXo combinedRole = new EntityRefXo(
+                roleRef.getId() + " -> " + chain.getRole().getId(),
+                roleRef.getName() + " -> " + chain.getRole().getName());
+            chains.add(new PermissionChainXo(userRef, combinedRole, chain.getPrivilege(), chain.getPermission()));
+          }
+        }
+      }
+      catch (NoSuchAuthorizationManagerException | NoSuchRoleException e) {
+        log.trace("Could not find nested role {}", nestedRoleId);
+      }
+    }
+
+    return chains;
+  }
+
+  private List<RelatedEndpointXo> getRelatedEndpoints(final String permission) {
+    if (permission == null) {
+      return List.of();
+    }
+
+    return endpointPermissionRegistry.getEndpointsForPermission(permission)
+        .stream()
+        // Only the primary permission is surfaced in the related-endpoints list: this view is
+        // a human-readable hint for the UI, not a full authorization contract. Endpoints that
+        // declare multiple @RequiresPermissions entries still enforce all of them at runtime;
+        // we intentionally drop the extras here to keep the display concise.
+        .map(ep -> new RelatedEndpointXo(
+            ep.getHttpMethod(),
+            ep.getPathPattern(),
+            ep.getDescription(),
+            permission))
+        .collect(Collectors.toList());
+  }
+}
