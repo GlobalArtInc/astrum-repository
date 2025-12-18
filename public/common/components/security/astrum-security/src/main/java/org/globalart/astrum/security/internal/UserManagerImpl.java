@@ -1,0 +1,373 @@
+
+package org.globalart.astrum.security.internal;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.common.Description;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.security.SecuritySystem;
+import org.globalart.astrum.security.config.CRole;
+import org.globalart.astrum.security.config.CUser;
+import org.globalart.astrum.security.config.CUserRoleMapping;
+import org.globalart.astrum.security.config.SecurityConfigurationManager;
+import org.globalart.astrum.security.role.RoleIdentifier;
+import org.globalart.astrum.security.user.AbstractUserManager;
+import org.globalart.astrum.security.user.NoSuchRoleMappingException;
+import org.globalart.astrum.security.user.NoSuchUserManagerException;
+import org.globalart.astrum.security.user.RoleMappingUserManager;
+import org.globalart.astrum.security.user.User;
+import org.globalart.astrum.security.user.UserManager;
+import org.globalart.astrum.security.user.UserNotFoundException;
+import org.globalart.astrum.security.user.UserRoleMappingCreatedEvent;
+import org.globalart.astrum.security.user.UserRoleMappingDeletedEvent;
+import org.globalart.astrum.security.user.UserRoleMappingUpdatedEvent;
+import org.globalart.astrum.security.user.UserSearchCriteria;
+import org.globalart.astrum.security.user.UserStatus;
+import org.globalart.astrum.security.user.UserUpdatedEvent;
+
+import com.google.common.collect.Sets;
+import org.apache.shiro.authc.credential.PasswordService;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
+
+import static org.globalart.astrum.security.config.CUser.STATUS_ACTIVE;
+import static org.globalart.astrum.security.config.CUser.STATUS_CHANGE_PASSWORD;
+
+/**
+ * Default {@link UserManager}.
+ */
+@Primary
+@Component
+@Qualifier("default")
+@Description("Local")
+public class UserManagerImpl
+    extends AbstractUserManager
+    implements RoleMappingUserManager
+{
+  private final SecurityConfigurationManager configuration;
+
+  private final SecuritySystem securitySystem;
+
+  private final PasswordService passwordService;
+
+  private final PasswordValidator passwordValidator;
+
+  @Autowired
+  public UserManagerImpl(
+      final EventManager eventManager,
+      final SecurityConfigurationManager configuration,
+      @Lazy final SecuritySystem securitySystem,
+      final PasswordService passwordService,
+      final PasswordValidator passwordValidator)
+  {
+    super(eventManager);
+    this.configuration = configuration;
+    this.securitySystem = securitySystem;
+    this.passwordService = passwordService;
+    this.passwordValidator = passwordValidator;
+  }
+
+  protected CUser toUser(final User user) {
+    if (user == null) {
+      return null;
+    }
+
+    CUser secUser = configuration.newUser();
+
+    secUser.setId(user.getUserId());
+    secUser.setVersion(user.getVersion());
+    secUser.setFirstName(user.getFirstName());
+    secUser.setLastName(user.getLastName());
+    secUser.setEmail(user.getEmailAddress());
+    secUser.setStatus(user.getStatus().name());
+    // secUser.setPassword( password )// DO NOT set the users password!
+
+    return secUser;
+  }
+
+  protected User toUser(final CUser cUser, final Set<String> roleIds) {
+    if (cUser == null) {
+      return null;
+    }
+
+    User user = new User();
+
+    user.setUserId(cUser.getId());
+    user.setVersion(cUser.getVersion());
+    user.setFirstName(cUser.getFirstName());
+    user.setLastName(cUser.getLastName());
+    user.setEmailAddress(cUser.getEmail());
+    user.setSource(DEFAULT_SOURCE);
+    user.setStatus(UserStatus.valueOf(cUser.getStatus()));
+
+    try {
+      if (roleIds != null) {
+        user.setRoles(getUsersRoles(roleIds));
+      }
+      else {
+        user.setRoles(getUsersRoles(cUser.getId(), DEFAULT_SOURCE));
+      }
+    }
+    catch (UserNotFoundException e) {
+      // We should NEVER get here
+      log.warn("Could not find user: '{}' of source: '{}' while looking up the users roles.", cUser.getId(),
+          DEFAULT_SOURCE, e);
+    }
+
+    return user;
+  }
+
+  @Override
+  public Set<User> listUsers() {
+    Set<User> users = new HashSet<User>();
+
+    for (CUser user : configuration.listUsers()) {
+      users.add(toUser(user, null));
+    }
+
+    return users;
+  }
+
+  @Override
+  public Set<String> listUserIds() {
+    Set<String> userIds = new HashSet<String>();
+
+    for (CUser user : configuration.listUsers()) {
+      userIds.add(user.getId());
+    }
+
+    return userIds;
+  }
+
+  @Override
+  public User getUser(final String userId) throws UserNotFoundException {
+    return getUser(userId, null);
+  }
+
+  @Override
+  public User getUser(final String userId, final Set<String> roleIds) throws UserNotFoundException {
+    return toUser(configuration.readUser(userId), roleIds);
+  }
+
+  @Override
+  public String getSource() {
+    return DEFAULT_SOURCE;
+  }
+
+  @Override
+  public boolean supportsWrite() {
+    return true;
+  }
+
+  @Override
+  public User doAddUser(final User user, final String password) {
+    final CUser secUser = this.toUser(user);
+    secUser.setPassword(this.hashPassword(password));
+
+    configuration.createUser(secUser, getRoleIdsFromUser(user));
+    return user;
+  }
+
+  @Override
+  public void changePassword(final String userId, final String newPassword) throws UserNotFoundException {
+    final CUser secUser = configuration.readUser(userId);
+    if (STATUS_CHANGE_PASSWORD.equals(secUser.getStatus())) {
+      secUser.setStatus(STATUS_ACTIVE);
+    }
+    secUser.setPassword(hashPassword(newPassword));
+    configuration.updateUser(secUser);
+
+    User user = getUser(userId);
+    eventManager.post(new UserUpdatedEvent(user));
+  }
+
+  @Override
+  public User doUpdateUser(final User user) throws UserNotFoundException {
+    // we need to pull the users password off off the old user object
+    CUser oldSecUser = configuration.readUser(user.getUserId());
+    CUser newSecUser = toUser(user);
+    newSecUser.setPassword(oldSecUser.getPassword());
+
+    configuration.updateUser(newSecUser, getRoleIdsFromUser(user));
+    return user;
+  }
+
+  @Override
+  public User doDeleteUser(final String userId) throws UserNotFoundException {
+    User user = getUser(userId);
+    configuration.deleteUser(userId);
+    return user;
+  }
+
+  @Override
+  public Set<RoleIdentifier> getUsersRoles(final String userId, final String source) throws UserNotFoundException {
+    Set<RoleIdentifier> roles = new HashSet<>();
+
+    try {
+      CUserRoleMapping roleMapping = configuration.readUserRoleMapping(userId, source);
+      if (roleMapping != null) {
+        roles = getUsersRoles(roleMapping.getRoles());
+      }
+    }
+    catch (NoSuchRoleMappingException e) {
+      log.debug("No user role mapping found for user: {}", userId);
+    }
+
+    return roles;
+  }
+
+  private Set<RoleIdentifier> getUsersRoles(final Set<String> roleIds) {
+    if (roleIds == null || roleIds.isEmpty()) {
+      return Collections.emptySet();
+    }
+
+    // Filter out any null values defensively
+    Set<String> filteredRoleIds = roleIds.stream()
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+
+    if (filteredRoleIds.isEmpty()) {
+      return Collections.emptySet();
+    }
+
+    // Batch load all roles at once instead of one-by-one
+    List<CRole> cRoles = configuration.readRoles(filteredRoleIds);
+
+    final Set<RoleIdentifier> roles = new HashSet<>();
+    for (CRole cRole : cRoles) {
+      roles.add(new RoleIdentifier(DEFAULT_SOURCE, cRole.getId()));
+    }
+    return roles;
+  }
+
+  /**
+   * Returns all users from the DEFAULT source that fit the criteria. If no source is specified in the source
+   * criteria then it will also add all external users that have role mappings.
+   */
+  @Override
+  public Set<User> searchUsers(final UserSearchCriteria criteria) {
+    final Set<User> users = new HashSet<User>();
+
+    users.addAll(filterListInMemory(listUsers(), criteria));
+
+    if (criteria.getSource() == null) {
+      // we also need to search through the user role mappings.
+      List<CUserRoleMapping> roleMappings = configuration.listUserRoleMappings();
+      for (CUserRoleMapping roleMapping : roleMappings) {
+        if (!DEFAULT_SOURCE.equals(roleMapping.getSource())) {
+          if (matchesCriteria(roleMapping.getUserId(), roleMapping.getSource(), roleMapping.getRoles(),
+              criteria)) {
+            try {
+              User user = securitySystem.getUser(roleMapping.getUserId(), roleMapping.getSource());
+              users.add(user);
+            }
+            catch (UserNotFoundException e) {
+              log.debug("User: '{}' of source: '{}' could not be found.",
+                  roleMapping.getUserId(), roleMapping.getSource(), e);
+            }
+            catch (NoSuchUserManagerException e) {
+              log.warn("User: '{}' of source: '{}' could not be found.",
+                  roleMapping.getUserId(), roleMapping.getSource(), e);
+            }
+
+          }
+        }
+      }
+    }
+
+    return users;
+  }
+
+  @Override
+  public boolean isConfigured() {
+    return true;
+  }
+
+  private String hashPassword(final String clearPassword) {
+    passwordValidator.validate(clearPassword);
+    // set the password if its not null
+    if (clearPassword != null && clearPassword.trim().length() > 0) {
+      return this.passwordService.encryptPassword(clearPassword);
+    }
+
+    return clearPassword;
+  }
+
+  @Override
+  public void setUsersRoles(
+      final String userId,
+      final String userSource,
+      final Set<RoleIdentifier> roleIdentifiers) throws UserNotFoundException
+  {
+    // delete if no roleIdentifiers
+    if (roleIdentifiers == null || roleIdentifiers.isEmpty()) {
+      try {
+        configuration.deleteUserRoleMapping(userId, userSource);
+
+        eventManager.post(new UserRoleMappingDeletedEvent(userId, userSource));
+      }
+      catch (NoSuchRoleMappingException e) { // NOSONAR
+        log.debug("User role mapping for user: {} source: {} could not be deleted because it does not exist.",
+            userId, userSource);
+      }
+    }
+    else {
+      // try to update first
+      try {
+        CUserRoleMapping roleMapping = configuration.readUserRoleMapping(userId, userSource).clone();
+        roleMapping.setRoles(Sets.newHashSet());
+
+        updateRoles(roleMapping, roleIdentifiers);
+
+        configuration.updateUserRoleMapping(roleMapping);
+
+        eventManager.post(new UserRoleMappingUpdatedEvent(userId, userSource, roleMapping.getRoles()));
+      }
+      catch (NoSuchRoleMappingException e) { // NOSONAR
+        CUserRoleMapping roleMapping = configuration.newUserRoleMapping();
+        roleMapping.setUserId(userId);
+        roleMapping.setSource(userSource);
+
+        updateRoles(roleMapping, roleIdentifiers);
+
+        // update failed try create
+        log.debug("Update of user role mapping for user: {} source: {} did not exist, creating new one.",
+            userId, userSource);
+        configuration.createUserRoleMapping(roleMapping);
+
+        eventManager.post(new UserRoleMappingCreatedEvent(userId, userSource, roleMapping.getRoles()));
+      }
+    }
+  }
+
+  private void updateRoles(final CUserRoleMapping roleMapping, final Set<RoleIdentifier> roleIdentifiers) {
+    for (RoleIdentifier roleIdentifier : roleIdentifiers) {
+      if (getSource().equals(roleIdentifier.getSource())) {
+        roleMapping.addRole(roleIdentifier.getRoleId());
+      }
+    }
+  }
+
+  @Override
+  public String getAuthenticationRealmName() {
+    return AuthenticatingRealmImpl.NAME;
+  }
+
+  private Set<String> getRoleIdsFromUser(final User user) {
+    Set<String> roles = new HashSet<String>();
+    for (RoleIdentifier roleIdentifier : user.getRoles()) {
+      // TODO: should we just grab the Default roles?
+      // these users are managed by this realm so they should ONLY have roles from it anyway.
+      roles.add(roleIdentifier.getRoleId());
+    }
+    return roles;
+  }
+}

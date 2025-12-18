@@ -1,0 +1,121 @@
+
+package org.globalart.astrum.security.internal;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.security.SecurityApi;
+import org.globalart.astrum.security.SecuritySystem;
+import org.globalart.astrum.security.anonymous.AnonymousConfiguration;
+import org.globalart.astrum.security.anonymous.AnonymousManager;
+import org.globalart.astrum.security.authz.NoSuchAuthorizationManagerException;
+import org.globalart.astrum.security.role.Role;
+import org.globalart.astrum.security.role.RoleIdentifier;
+import org.globalart.astrum.security.user.NoSuchUserManagerException;
+import org.globalart.astrum.security.user.User;
+import org.globalart.astrum.security.user.UserNotFoundException;
+import org.globalart.astrum.security.user.UserStatus;
+
+import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.security.user.UserManager.DEFAULT_SOURCE;
+import org.springframework.stereotype.Component;
+
+/**
+ * @since 3.0
+ */
+@Component
+public class SecurityApiImpl
+    implements SecurityApi
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private final AnonymousManager anonymousManager;
+
+  private final SecuritySystem securitySystem;
+
+  @Autowired
+  public SecurityApiImpl(final AnonymousManager anonymousManager, final SecuritySystem securitySystem) {
+    this.anonymousManager = anonymousManager;
+    this.securitySystem = securitySystem;
+  }
+
+  @Override
+  public AnonymousConfiguration setAnonymousAccess(final boolean enabled) {
+    AnonymousConfiguration anonymousConfiguration = anonymousManager.getConfiguration();
+
+    if (!anonymousManager.isConfigured() || anonymousConfiguration.isEnabled() != enabled) {
+      anonymousConfiguration.setEnabled(enabled);
+      anonymousManager.setConfiguration(anonymousConfiguration);
+      log.info("Anonymous access configuration updated to: {}", anonymousConfiguration);
+    }
+    else {
+      log.info("Anonymous access configuration unchanged at: {}", anonymousConfiguration);
+    }
+    return anonymousConfiguration;
+  }
+
+  @Override
+  public User addUser(
+      final String id,
+      final String firstName,
+      final String lastName,
+      final String email,
+      final boolean active,
+      final String password,
+      final List<String> roleIds) throws NoSuchUserManagerException
+  {
+    User user = new User();
+    user.setUserId(checkNotNull(id));
+    user.setSource(DEFAULT_SOURCE);
+    user.setFirstName(checkNotNull(firstName));
+    user.setLastName(checkNotNull(lastName));
+    user.setEmailAddress(checkNotNull(email));
+    user.setStatus(active ? UserStatus.active : UserStatus.disabled);
+    user.setRoles(toIdentifiers(roleIds));
+
+    return securitySystem.addUser(user, password);
+  }
+
+  @Override
+  public Role addRole(
+      final String id,
+      final String name,
+      final String description,
+      final List<String> privileges,
+      final List<String> roles) throws NoSuchAuthorizationManagerException
+  {
+
+    Role role = new Role();
+    role.setRoleId(checkNotNull(id));
+    role.setSource(DEFAULT_SOURCE);
+    role.setName(checkNotNull(name));
+    role.setDescription(description);
+    role.setPrivileges(Sets.newHashSet(checkNotNull(privileges)));
+    role.setRoles(Sets.newHashSet(checkNotNull(roles)));
+
+    return securitySystem.getAuthorizationManager(DEFAULT_SOURCE).addRole(role);
+  }
+
+  @Override
+  public User setUserRoles(
+      final String userId,
+      final List<String> roleIds) throws UserNotFoundException, NoSuchUserManagerException
+  {
+    User user = securitySystem.getUser(userId, DEFAULT_SOURCE);
+    user.setRoles(toIdentifiers(roleIds));
+    return securitySystem.updateUser(user);
+  }
+
+  private static Set<RoleIdentifier> toIdentifiers(final Collection<String> roleIds) {
+    return checkNotNull(roleIds).stream()
+        .map(roleId -> new RoleIdentifier(DEFAULT_SOURCE, roleId))
+        .collect(Collectors.toSet());
+  }
+}
