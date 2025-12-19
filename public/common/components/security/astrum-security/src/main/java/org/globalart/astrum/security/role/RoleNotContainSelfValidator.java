@@ -1,0 +1,128 @@
+
+package org.globalart.astrum.security.role;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.ConstraintValidatorContext;
+
+import org.globalart.astrum.common.text.Strings2;
+import org.globalart.astrum.security.SecuritySystem;
+import org.globalart.astrum.security.authz.AuthorizationManager;
+import org.globalart.astrum.security.authz.NoSuchAuthorizationManagerException;
+import org.globalart.astrum.security.internal.AuthorizationManagerImpl;
+import org.globalart.astrum.validation.ConstraintValidatorSupport;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+/**
+ * {@link RoleNotContainSelf} validator.
+ *
+ * @since 3.10
+ */
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+public class RoleNotContainSelfValidator
+    extends ConstraintValidatorSupport<RoleNotContainSelf, Object> // Collection<String> expected
+{
+  private final AuthorizationManager authorizationManager;
+
+  private String idField;
+
+  private String roleIdsField;
+
+  private String message;
+
+  @Override
+  public void initialize(RoleNotContainSelf constraintAnnotation) {
+    this.idField = constraintAnnotation.id();
+    this.roleIdsField = constraintAnnotation.roleIds();
+    this.message = constraintAnnotation.message();
+  }
+
+  @Autowired
+  public RoleNotContainSelfValidator(final SecuritySystem securitySystem) throws NoSuchAuthorizationManagerException {
+    this.authorizationManager = checkNotNull(securitySystem).getAuthorizationManager(AuthorizationManagerImpl.SOURCE);
+  }
+
+  @Override
+  public boolean isValid(final Object value, final ConstraintValidatorContext context) {
+    log.trace("Validating role doesn't contain itself: {}", value);
+
+    String id = getId(value);
+    // this must be a create if there is no id
+    if (Strings2.isEmpty(id)) {
+      return true;
+    }
+
+    Set<String> processedRoleIds = new HashSet<>();
+    Collection<String> roleIds = getRoleIds(value);
+    for (String roleId : roleIds) {
+      if (containsRole(id, roleId, processedRoleIds)) {
+        context.disableDefaultConstraintViolation();
+        context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private String getId(Object obj) {
+    try {
+      Method m = obj.getClass().getMethod(idField);
+
+      return (String) m.invoke(obj);
+    }
+    catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
+      log.error("Unable to find method {} in object {}", idField, obj);
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Collection<String> getRoleIds(Object obj) {
+    try {
+      Method m = obj.getClass().getMethod(roleIdsField);
+
+      return (Collection<String>) m.invoke(obj);
+    }
+    catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
+      log.error("Unable to find method {} in object {}", roleIdsField, obj);
+      throw new RuntimeException(e);
+    }
+  }
+
+  private boolean containsRole(String roleId, String childRoleId, Set<String> processedRoleIds) {
+    if (processedRoleIds.contains(childRoleId)) {
+      return false;
+    }
+    processedRoleIds.add(childRoleId);
+
+    if (roleId.equals(childRoleId)) {
+      return true;
+    }
+
+    try {
+      Role childRole = authorizationManager.getRole(childRoleId);
+
+      for (String role : childRole.getRoles()) {
+        if (containsRole(roleId, role, processedRoleIds)) {
+          return true;
+        }
+      }
+    }
+    catch (NoSuchRoleException ignored) {
+      log.trace("Missing role {}", childRoleId);
+      // just ignore, other validator deals with this
+    }
+
+    return false;
+  }
+}
