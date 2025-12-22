@@ -1,0 +1,12 @@
+
+<aspectj>
+    <aspects>
+        <aspect name="org.globalart.astrum.security.aspect.RequiresAuthenticationAspect"/>
+        <aspect name="org.globalart.astrum.security.aspect.RequiresPermissionsAspect"/>
+        <aspect name="org.globalart.astrum.security.aspect.RequiresUserAspect"/>
+        <weaver options="-verbose -showWeaveInfo">
+            <include within="org.globalart.astrum.*"/>
+            <include within="com.globalart.astrum.*"/>
+        </weaver>
+    </aspects>
+</aspectj>
