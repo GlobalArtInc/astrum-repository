@@ -1,0 +1,309 @@
+
+package org.globalart.astrum.security.role.rest;
+
+import java.util.Comparator;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Response.Status;
+
+import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.rest.WebApplicationMessageException;
+import org.globalart.astrum.security.SecuritySystem;
+import org.globalart.astrum.security.authz.AuthorizationManager;
+import org.globalart.astrum.security.authz.NoSuchAuthorizationManagerException;
+import org.globalart.astrum.security.privilege.NoSuchPrivilegeException;
+import org.globalart.astrum.security.role.DuplicateRoleException;
+import org.globalart.astrum.security.role.NoSuchRoleException;
+import org.globalart.astrum.security.role.ReadonlyRoleException;
+import org.globalart.astrum.security.role.Role;
+import org.globalart.astrum.security.role.RoleAssignabilityChecker;
+import org.globalart.astrum.security.role.RoleContainsItselfException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import jakarta.validation.constraints.NotEmpty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.stream.Collectors.toList;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.globalart.astrum.security.user.UserManager.DEFAULT_SOURCE;
+
+/**
+ * @since 3.19
+ */
+@Consumes(APPLICATION_JSON)
+@Produces(APPLICATION_JSON)
+public class RoleApiResource
+    implements Resource, RoleApiResourceDoc
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  public static final String SOURCE_NOT_FOUND = "\"Source '%s' not found.\"";
+
+  public static final String ROLE_NOT_FOUND = "\"Role '%s' not found.\"";
+
+  public static final String ROLE_INTERNAL = "\"Role '%s' is internal and cannot be modified or deleted.\"";
+
+  public static final String ROLE_UNIQUE = "\"Role '%s' already exists, use a unique roleId.\"";
+
+  public static final String ROLE_CONFLICT = "\"The Role id '%s' does not match the id used in the path '%s'.\"";
+
+  public static final String CONTAINED_ROLE_NOT_FOUND = "\"Role '%s' contained in role '%s' not found.\"";
+
+  public static final String CONTAINED_PRIV_NOT_FOUND = "\"Privilege '%s' contained in role '%s' not found.\"";
+
+  public static final String ROLE_CONTAINS_ITSELF =
+      "\"Role '%s' cannot contain itself either directly or indirectly through child roles.\"";
+
+  private final SecuritySystem securitySystem;
+
+  private final RoleAssignabilityChecker roleAssignabilityChecker;
+
+  @Autowired
+  public RoleApiResource(
+      final SecuritySystem securitySystem,
+      final RoleAssignabilityChecker roleAssignabilityChecker)
+  {
+    this.securitySystem = checkNotNull(securitySystem);
+    this.roleAssignabilityChecker = checkNotNull(roleAssignabilityChecker);
+  }
+
+  @Override
+  @GET
+  @Path("/assignable")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:roles:read")
+  public List<RoleXOResponse> getAssignableRoles(
+      @DefaultValue(DEFAULT_SOURCE) @QueryParam("source") final String source)
+  {
+    log.debug("Getting assignable roles for current user");
+
+    try {
+      return securitySystem.listRoles(source)
+          .stream()
+          .filter(role -> roleAssignabilityChecker.isRoleAssignable(role.getRoleId()))
+          .map(RoleXOResponse::fromRole)
+          .sorted(Comparator.comparing(RoleXOResponse::getId))
+          .toList();
+    }
+    catch (NoSuchAuthorizationManagerException e) {
+      throw buildBadSourceException(source);
+    }
+  }
+
+  @Override
+  @GET
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:roles:read")
+  public List<RoleXOResponse> getRoles(@QueryParam("source") final String source) {
+    if (StringUtils.isEmpty(source)) {
+      return securitySystem.listRoles()
+          .stream()
+          .map(RoleXOResponse::fromRole)
+          .sorted(Comparator.comparing(RoleXOResponse::getId))
+          .collect(toList());
+    }
+    else {
+      try {
+        return securitySystem.listRoles(source)
+            .stream()
+            .map(RoleXOResponse::fromRole)
+            .sorted(Comparator.comparing(RoleXOResponse::getId))
+            .collect(toList());
+      }
+      catch (NoSuchAuthorizationManagerException e) {
+        throw buildBadSourceException(source);
+      }
+    }
+  }
+
+  @Override
+  @POST
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:roles:create")
+  public RoleXOResponse create(
+      @DefaultValue(DEFAULT_SOURCE) @QueryParam("source") final String source,
+      @NotNull @Valid final RoleXORequest roleXO)
+  {
+    try {
+      AuthorizationManager manager = securitySystem.getAuthorizationManager(source);
+      Role role = manager.addRole(fromXO(roleXO, source));
+      return RoleXOResponse.fromRole(role);
+    }
+    catch (NoSuchAuthorizationManagerException e) {
+      throw buildBadSourceException(source);
+    }
+    catch (DuplicateRoleException e) {
+      throw buildDuplicateRoleException(roleXO.getId());
+    }
+    catch (NoSuchRoleException e) {
+      throw buildContainedRoleNotFoundException(e.getRoleId(), roleXO.getId());
+    }
+    catch (NoSuchPrivilegeException e) {
+      throw buildContainedPrivilegeNotFoundException(e.getPrivilegeId(), roleXO.getId());
+    }
+    catch (RoleContainsItselfException e) {
+      throw buildRoleContainsItselfException(e.getRoleId());
+    }
+  }
+
+  @Override
+  @GET
+  @Path("/{id}")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:roles:read")
+  public RoleXOResponse getRole(
+      @DefaultValue(DEFAULT_SOURCE) @QueryParam("source") final String source,
+      @PathParam("id") @NotEmpty final String id)
+  {
+    try {
+      return RoleXOResponse.fromRole(securitySystem.getAuthorizationManager(source).getRole(id));
+    }
+    catch (NoSuchAuthorizationManagerException e) {
+      throw buildBadSourceException(source);
+    }
+    catch (NoSuchRoleException e) {
+      throw buildRoleNotFoundException(id);
+    }
+  }
+
+  @Override
+  @PUT
+  @Path("/{id}")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:roles:update")
+  public void update(
+      @PathParam("id") @NotEmpty final String id,
+      @DefaultValue(DEFAULT_SOURCE) @QueryParam("source") final String source,
+      @NotNull @Valid final RoleXORequest roleXO)
+  {
+    try {
+      if (!roleXO.getId().equals(id)) {
+        throw buildRoleConflictException(roleXO.getId(), id);
+      }
+
+      AuthorizationManager authorizationManager = securitySystem.getAuthorizationManager(source);
+      int latestVersion = authorizationManager.getRole(id).getVersion();
+      Role role = fromXO(roleXO, source);
+      role.setRoleId(id);
+      role.setVersion(latestVersion);
+
+      authorizationManager.updateRole(role);
+    }
+    catch (NoSuchAuthorizationManagerException e) {
+      throw buildBadSourceException(source);
+    }
+    catch (ReadonlyRoleException e) {
+      throw buildReadonlyRoleException(id);
+    }
+    catch (NoSuchRoleException e) {
+      if (e.getRoleId().equals(id)) {
+        throw buildRoleNotFoundException(e.getRoleId());
+      }
+      throw buildContainedRoleNotFoundException(e.getRoleId(), id);
+    }
+    catch (NoSuchPrivilegeException e) {
+      throw buildContainedPrivilegeNotFoundException(e.getPrivilegeId(), id);
+    }
+    catch (RoleContainsItselfException e) {
+      throw buildRoleContainsItselfException(e.getRoleId());
+    }
+  }
+
+  @Override
+  @DELETE
+  @Path("/{id}")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:roles:delete")
+  public void delete(
+      @PathParam("id") @NotEmpty final String id,
+      @DefaultValue(DEFAULT_SOURCE) @QueryParam("source") final String source)
+  {
+    try {
+      AuthorizationManager authorizationManager = securitySystem.getAuthorizationManager(source);
+      authorizationManager.deleteRole(id);
+    }
+    catch (NoSuchAuthorizationManagerException e) { // NOSONAR
+      throw buildBadSourceException(source);
+    }
+    catch (NoSuchRoleException e) { // NOSONAR
+      throw buildRoleNotFoundException(id);
+    }
+    catch (ReadonlyRoleException e) { // NOSONAR
+      throw buildReadonlyRoleException(id);
+    }
+  }
+
+  private WebApplicationMessageException buildBadSourceException(final String source) {
+    log.debug("attempt to use invalid source {}", source);
+    return new WebApplicationMessageException(Status.BAD_REQUEST, String.format(SOURCE_NOT_FOUND, source),
+        APPLICATION_JSON);
+  }
+
+  private WebApplicationMessageException buildDuplicateRoleException(final String id) {
+    log.debug("attempt to use duplicate role {}", id);
+    return new WebApplicationMessageException(Status.BAD_REQUEST, String.format(ROLE_UNIQUE, id), APPLICATION_JSON);
+  }
+
+  private WebApplicationMessageException buildReadonlyRoleException(final String id) {
+    log.debug("attempt to modify/delete readonly role {}", id);
+    return new WebApplicationMessageException(Status.BAD_REQUEST, String.format(ROLE_INTERNAL, id),
+        APPLICATION_JSON);
+  }
+
+  private WebApplicationMessageException buildRoleNotFoundException(final String id) {
+    log.debug("Role {} not found", id);
+    return new WebApplicationMessageException(Status.NOT_FOUND, String.format(ROLE_NOT_FOUND, id), APPLICATION_JSON);
+  }
+
+  private WebApplicationMessageException buildContainedRoleNotFoundException(
+      final String containedId,
+      final String roleId)
+  {
+    log.debug("Role {} in role {} not found", containedId, roleId);
+    return new WebApplicationMessageException(Status.BAD_REQUEST,
+        String.format(CONTAINED_ROLE_NOT_FOUND, containedId, roleId), APPLICATION_JSON);
+  }
+
+  private WebApplicationMessageException buildContainedPrivilegeNotFoundException(
+      final String containedId,
+      final String roleId)
+  {
+    log.debug("Privilege {} in role {} not found", containedId, roleId);
+    return new WebApplicationMessageException(Status.BAD_REQUEST,
+        String.format(CONTAINED_PRIV_NOT_FOUND, containedId, roleId), APPLICATION_JSON);
+  }
+
+  private WebApplicationMessageException buildRoleConflictException(final String xoId, final String pathId) {
+    log.debug("XO id {} and path id {} do not match", xoId, pathId);
+    return new WebApplicationMessageException(Status.CONFLICT, String.format(ROLE_CONFLICT, xoId, pathId),
+        APPLICATION_JSON);
+  }
+
+  private WebApplicationMessageException buildRoleContainsItselfException(final String roleId) {
+    log.debug("Role {} cannot contain itself either directly or indirectly.", roleId);
+    return new WebApplicationMessageException(Status.BAD_REQUEST, String.format(ROLE_CONTAINS_ITSELF, roleId),
+        APPLICATION_JSON);
+  }
+
+  private Role fromXO(final RoleXORequest roleXO, final String source) {
+    return new Role(roleXO.getId(), roleXO.getName(), roleXO.getDescription(), source, false,
+        roleXO.getRoles(), roleXO.getPrivileges());
+  }
+}
