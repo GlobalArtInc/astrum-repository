@@ -1,0 +1,297 @@
+
+package org.globalart.astrum.quartz;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.globalart.astrum.scheduling.TaskInfo;
+import org.globalart.astrum.scheduling.TaskInterruptedException;
+import org.globalart.astrum.scheduling.TaskState;
+import org.globalart.astrum.scheduling.events.TaskBlockedEvent;
+import org.globalart.astrum.scheduling.events.TaskEvent;
+import org.globalart.astrum.scheduling.events.TaskEventCanceled;
+import org.globalart.astrum.scheduling.events.TaskEventStarted;
+import org.globalart.astrum.scheduling.events.TaskEventStoppedCanceled;
+import org.globalart.astrum.scheduling.events.TaskEventStoppedDone;
+import org.globalart.astrum.scheduling.events.TaskEventStoppedFailed;
+import org.globalart.astrum.scheduling.events.TaskScheduledEvent;
+import org.globalart.astrum.scheduling.events.TaskStartedRunningEvent;
+
+import org.globalart.astrum.testdb.DatabaseTest;
+
+import com.google.common.collect.Lists;
+import com.google.common.eventbus.Subscribe;
+import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.awaitility.Awaitility.await;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+
+/**
+ * Tests for task eventing.
+ */
+class ScheduledTaskEventsTest
+    extends TaskSchedulerTestSupport
+{
+  private static final Logger log = LoggerFactory.getLogger(ScheduledTaskEventsTest.class);
+
+  private Listener listener;
+
+  @BeforeEach
+  void prepare() {
+    listener = new Listener();
+    eventManager.register(listener);
+    // reset the latch
+    SleeperTask.reset();
+
+    assertExecutedTaskCount(0);
+  }
+
+  @DatabaseTest
+  void goodRun() throws Exception {
+    // create the task
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID);
+
+    // give it some time to start
+    SleeperTask.youWait.await();
+
+    // make it be done
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+
+    // done
+    assertRunningTaskCount(0);
+    assertExecutedTaskCount(1);
+    assertThat(taskInfo.getCurrentState().getState(), equalTo(TaskState.WAITING));
+    assertThat(taskInfo.getLastRunState().getEndState(), equalTo(TaskState.OK));
+
+    // started, stoppedDone
+    assertThat(listener.arrivedEvents, hasSize(4));
+    assertThat(listener.arrivedEvents.get(0), instanceOf(TaskScheduledEvent.class));
+    assertThat(listener.arrivedEvents.get(1), instanceOf(TaskEventStarted.class));
+    assertThat(listener.arrivedEvents.get(2), instanceOf(TaskStartedRunningEvent.class));
+    assertThat(listener.arrivedEvents.get(3), instanceOf(TaskEventStoppedDone.class));
+  }
+
+  @DatabaseTest
+  void goodRunAfterBlocking() throws Exception {
+    // create task to block the next one
+    createTask(SleeperTaskDescriptor.TYPE_ID);
+
+    // give it some time to start
+    SleeperTask.youWait.await();
+
+    // create the task of interest
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID);
+
+    // allow scheduler to start task and find it blocked
+    await().atMost(RUN_TIMEOUT, MILLISECONDS)
+        .until(() -> TaskState.RUNNING_BLOCKED.equals(taskInfo.getCurrentState().getRunState()));
+
+    // signal tasks to complete
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+
+    // done
+    assertRunningTaskCount(0);
+    assertExecutedTaskCount(2);
+    assertThat(taskInfo.getCurrentState().getState(), equalTo(TaskState.WAITING));
+    assertThat(taskInfo.getLastRunState().getEndState(), equalTo(TaskState.OK));
+
+    // started, stoppedDone
+    List<Class<?>> arrivedEvents = listener.arrivedEvents.stream()
+        .filter(event -> event.getTaskInfo().getId().equals(taskInfo.getId()))
+        .map(event -> event.getClass())
+        .collect(Collectors.toList());
+    assertThat(arrivedEvents, contains(TaskScheduledEvent.class, TaskEventStarted.class, TaskBlockedEvent.class,
+        TaskStartedRunningEvent.class, TaskEventStoppedDone.class));
+  }
+
+  @DatabaseTest
+  void failedRunCheckedException() throws Exception {
+    SleeperTask.exception = new IOException("foo");
+
+    // create the task
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID);
+
+    // give it some time to start
+    SleeperTask.youWait.await();
+
+    // make it be done
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+
+    // done
+    assertRunningTaskCount(0);
+    assertExecutedTaskCount(1);
+    assertThat(taskInfo.getCurrentState().getState(), equalTo(TaskState.WAITING));
+    assertThat(taskInfo.getLastRunState().getEndState(), equalTo(TaskState.FAILED));
+
+    // started, stoppedDone
+    assertThat(listener.arrivedEvents, hasSize(4));
+    assertThat(listener.arrivedEvents.get(0), instanceOf(TaskScheduledEvent.class));
+    assertThat(listener.arrivedEvents.get(1), instanceOf(TaskEventStarted.class));
+    assertThat(listener.arrivedEvents.get(2), instanceOf(TaskStartedRunningEvent.class));
+    assertThat(listener.arrivedEvents.get(3), instanceOf(TaskEventStoppedFailed.class));
+    assertThat(((TaskEventStoppedFailed) listener.arrivedEvents.get(3)).getFailureCause(),
+        instanceOf(IOException.class));
+  }
+
+  @DatabaseTest
+  void failedRunRuntimeException() throws Exception {
+    SleeperTask.exception = new IllegalArgumentException("foo");
+
+    // create the task
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID);
+
+    // give it some time to start
+    SleeperTask.youWait.await();
+
+    // make it be done
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+
+    // done
+    assertRunningTaskCount(0);
+    assertExecutedTaskCount(1);
+    assertThat(taskInfo.getCurrentState().getState(), equalTo(TaskState.WAITING));
+    assertThat(taskInfo.getLastRunState().getEndState(), equalTo(TaskState.FAILED));
+
+    // started, stoppedFailed
+    assertThat(listener.arrivedEvents, hasSize(4));
+    assertThat(listener.arrivedEvents.get(0), instanceOf(TaskScheduledEvent.class));
+    assertThat(listener.arrivedEvents.get(1), instanceOf(TaskEventStarted.class));
+    assertThat(listener.arrivedEvents.get(2), instanceOf(TaskStartedRunningEvent.class));
+    assertThat(listener.arrivedEvents.get(3), instanceOf(TaskEventStoppedFailed.class));
+    assertThat(((TaskEventStoppedFailed) listener.arrivedEvents.get(3)).getFailureCause(),
+        instanceOf(IllegalArgumentException.class));
+  }
+
+  @DatabaseTest
+  void canceledRunWithNonCancelableTaskWithoutInterruption() throws Exception {
+    // create the task
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID);
+
+    // give it some time to start
+    SleeperTask.youWait.await();
+
+    // attempt to cancel it 3 times (w/o interruption)
+    taskInfo.getCurrentState().getFuture().cancel(false);
+    taskInfo.getCurrentState().getFuture().cancel(false);
+    taskInfo.getCurrentState().getFuture().cancel(false);
+
+    // make it be done
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+
+    // done
+    assertRunningTaskCount(0);
+    assertExecutedTaskCount(1);
+    assertThat(taskInfo.getCurrentState().getState(), equalTo(TaskState.WAITING));
+    assertThat(taskInfo.getLastRunState().getEndState(), equalTo(TaskState.OK));
+
+    // started, stoppedDone: task is not cancelable, hence, is "unaware" it was
+    // attempted to be canceled at all
+    assertThat(listener.arrivedEvents, hasSize(4));
+    assertThat(listener.arrivedEvents.get(0), instanceOf(TaskScheduledEvent.class));
+    assertThat(listener.arrivedEvents.get(1), instanceOf(TaskEventStarted.class));
+    assertThat(listener.arrivedEvents.get(2), instanceOf(TaskStartedRunningEvent.class));
+    assertThat(listener.arrivedEvents.get(3), instanceOf(TaskEventStoppedDone.class));
+  }
+
+  @DatabaseTest
+  void prematureCanceledRunWithNonCancelableTask() throws Exception {
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID, taskScheduler.getScheduleFactory().now());
+    taskInfo.getCurrentState().getFuture().cancel(false);
+    // do not use latches, as this task will not even start!
+
+    // done
+    Thread.sleep(100);
+    Thread.yield();
+    assertRunningTaskCount(0);
+    assertExecutedTaskCount(1);
+    assertThat(taskInfo.getCurrentState().getState(), equalTo(TaskState.OK));
+    assertThat(taskInfo.getLastRunState().getEndState(), equalTo(TaskState.CANCELED));
+
+    // started, stoppedDone: task is not cancelable, but it was canceled by framework
+    // even before it was started
+    assertThat(listener.arrivedEvents, hasSize(3));
+    assertThat(listener.arrivedEvents.get(0), instanceOf(TaskScheduledEvent.class));
+    assertThat(listener.arrivedEvents.get(1), instanceOf(TaskEventStarted.class));
+    assertThat(listener.arrivedEvents.get(2), instanceOf(TaskEventStoppedCanceled.class));
+  }
+
+  @DatabaseTest
+  void canceledRunWithNonCancelableTaskWithInterruption() throws Exception {
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID);
+    cancelledRun(taskInfo, true);
+  }
+
+  @DatabaseTest
+  void canceledRunWithCancelableTask() throws Exception {
+    final TaskInfo taskInfo = createTask(SleeperCancelableTaskDescriptor.TYPE_ID);
+    cancelledRun(taskInfo, true);
+  }
+
+  @DatabaseTest
+  void canceledRunByThrowingTaskInterruptedEx() throws Exception {
+    SleeperTask.exception = new TaskInterruptedException("foo", true);
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID);
+    cancelledRun(taskInfo, false);
+  }
+
+  @DatabaseTest
+  void canceledRunByThrowingInterruptedEx() throws Exception {
+    SleeperTask.exception = new InterruptedException("foo");
+    final TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID);
+    cancelledRun(taskInfo, false);
+  }
+
+  private void cancelledRun(final TaskInfo taskInfo, final boolean interrupt) throws InterruptedException {
+    // give it some time to start
+    SleeperTask.youWait.await();
+
+    if (interrupt) {
+      // cancel it w/ interruption
+      taskInfo.getCurrentState().getFuture().cancel(true);
+    }
+
+    // make it be done
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+
+    // done
+    assertRunningTaskCount(0);
+    assertExecutedTaskCount(1);
+    assertThat(taskInfo.getCurrentState().getState(), equalTo(TaskState.WAITING));
+    assertThat(taskInfo.getLastRunState().getEndState(), equalTo(TaskState.CANCELED));
+
+    // started, stoppedDone: task is not cancelable, hence, is "unaware" it was
+    // attempted to be canceled at all (no canceled events), still, end state is canceled
+    // as thread was interrupted
+    assertThat(listener.arrivedEvents, hasSize(5));
+    assertThat(listener.arrivedEvents.get(0), instanceOf(TaskScheduledEvent.class));
+    assertThat(listener.arrivedEvents.get(1), instanceOf(TaskEventStarted.class));
+    assertThat(listener.arrivedEvents.get(2), instanceOf(TaskStartedRunningEvent.class));
+    assertThat(listener.arrivedEvents.get(3), instanceOf(TaskEventCanceled.class));
+    assertThat(listener.arrivedEvents.get(4), instanceOf(TaskEventStoppedCanceled.class));
+  }
+
+  class Listener
+  {
+    final List<TaskEvent> arrivedEvents = Lists.newArrayList();
+
+    @Subscribe
+    public void on(final TaskEvent e) {
+      ScheduledTaskEventsTest.log.info("Observing task event {}", e);
+      arrivedEvents.add(e);
+    }
+  }
+}

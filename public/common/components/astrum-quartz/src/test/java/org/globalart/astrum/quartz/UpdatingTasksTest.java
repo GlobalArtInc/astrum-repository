@@ -1,0 +1,162 @@
+
+package org.globalart.astrum.quartz;
+
+import java.util.concurrent.Future;
+
+import org.globalart.astrum.scheduling.TaskConfiguration;
+import org.globalart.astrum.scheduling.TaskInfo;
+import org.globalart.astrum.scheduling.CurrentState;
+import org.globalart.astrum.scheduling.TaskState;
+
+import org.globalart.astrum.testdb.DatabaseTest;
+
+import org.junit.jupiter.api.BeforeEach;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+
+/**
+ * Tests for updating tasks.
+ */
+class UpdatingTasksTest
+    extends TaskSchedulerTestSupport
+{
+  @BeforeEach
+  void prepare() {
+    SleeperTask.reset();
+  }
+
+  /**
+   * Updating a non cancelable task that is not running.
+   */
+  @DatabaseTest
+  void updateNonRunningNonCancelableTask() {
+    TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID, taskScheduler.getScheduleFactory().manual());
+    TaskConfiguration taskConfiguration = taskInfo.getConfiguration();
+
+    assertThat(taskInfo, notNullValue());
+    assertThat(taskInfo.getId(), equalTo(taskConfiguration.getId()));
+    assertThat(taskInfo.getName(), equalTo(taskConfiguration.getName()));
+    assertThat(taskInfo.getConfiguration().getTypeId(), equalTo(taskConfiguration.getTypeId()));
+    assertThat(taskInfo.getConfiguration().getCreated(), notNullValue());
+    assertThat(taskInfo.getConfiguration().getUpdated(), notNullValue());
+
+    final CurrentState currentState = taskInfo.getCurrentState();
+    assertThat(currentState, notNullValue());
+    assertThat(currentState.getState(), equalTo(TaskState.WAITING));
+    assertThat(currentState.getRunState(), nullValue());
+    assertThat(currentState.getRunStarted(), nullValue());
+    assertThat(currentState.getFuture(), nullValue());
+
+    // update it
+    taskConfiguration.setString(SleeperTask.RESULT_KEY, "second");
+    taskInfo = taskScheduler.scheduleTask(taskConfiguration, taskScheduler.getScheduleFactory().manual());
+
+    assertThat(taskInfo.getCurrentState().getState(), equalTo(TaskState.WAITING));
+    assertThat(taskInfo.getConfiguration().getString(SleeperTask.RESULT_KEY), equalTo("second"));
+
+    // see what scheduler has
+    TaskInfo ti2 = taskScheduler.getTaskById(taskInfo.getId());
+    assertThat(ti2.getCurrentState().getState(), equalTo(TaskState.WAITING));
+    assertThat(ti2.getConfiguration().getString(SleeperTask.RESULT_KEY), equalTo("second"));
+  }
+
+  /**
+   * Updating a non cancelable task that is running.
+   */
+  @DatabaseTest
+  void updateRunningNonCancelableTask() throws Exception {
+    TaskInfo taskInfo = createTask(SleeperTaskDescriptor.TYPE_ID, taskScheduler.getScheduleFactory().manual());
+    TaskConfiguration taskConfiguration = taskInfo.getConfiguration();
+    taskInfo.runNow();
+
+    // give it some time to start
+    SleeperTask.youWait.await();
+
+    assertThat(taskInfo, notNullValue());
+    assertThat(taskInfo.getId(), equalTo(taskConfiguration.getId()));
+    assertThat(taskInfo.getName(), equalTo(taskConfiguration.getName()));
+    assertThat(taskInfo.getConfiguration().getTypeId(), equalTo(taskConfiguration.getTypeId()));
+    assertThat(taskInfo.getConfiguration().getCreated(), notNullValue());
+    assertThat(taskInfo.getConfiguration().getUpdated(), notNullValue());
+    assertRunningTaskCount(1);
+
+    final CurrentState currentState = taskInfo.getCurrentState();
+    assertThat(currentState, notNullValue());
+    assertThat(currentState.getState(), equalTo(TaskState.RUNNING));
+    assertThat(currentState.getRunState(), equalTo(TaskState.RUNNING));
+    assertThat(currentState.getRunStarted(), notNullValue());
+    assertThat(currentState.getRunStarted().getTime(), lessThan(System.currentTimeMillis()));
+    final Future<?> future = currentState.getFuture();
+    assertThat(future, notNullValue());
+
+    // TODO: behavior change: due to HealthCheckTask, currently this is NOT enforced (to throw if updating
+    // non-cancellable running task)
+    // As this is still okay thing to do, as once task is done, it will "pick up" new changes anyway
+    // update it
+    taskConfiguration.setString(SleeperTask.RESULT_KEY, "second");
+    // try {
+    taskInfo = taskScheduler.scheduleTask(taskConfiguration, taskScheduler.getScheduleFactory().manual());
+    // fail("Should fail");
+    // }
+    // catch (IllegalStateException e) {
+    // assertThat(e.getMessage(), containsString("running and not cancelable"));
+    // }
+
+    // make it be done
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+
+    // and block for the result
+    final String result = (String) future.get();
+    assertThat(result, equalTo(RESULT));
+
+    // done
+    assertTaskState(taskInfo, TaskState.WAITING);
+    assertRunningTaskCount(0);
+  }
+
+  @DatabaseTest
+  void taskDisableEnableResumesTask() throws Exception {
+    // create the task
+    final TaskConfiguration taskConfiguration =
+        taskScheduler.createTaskConfigurationInstance(SleeperTaskDescriptor.TYPE_ID);
+    taskConfiguration.setLong(SleeperTask.SLEEP_MILLIS_KEY, 0); // do not sleep
+    taskConfiguration.setString(SleeperTask.RESULT_KEY, "result");
+
+    TaskInfo taskInfo = taskScheduler.scheduleTask(taskConfiguration, taskScheduler.getScheduleFactory().manual());
+    Future future = taskInfo.runNow().getCurrentState().getFuture();
+    assertThat(future, notNullValue());
+
+    // give it some time to start and make it immediately done
+    SleeperTask.youWait.await();
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+    assertThat(future.get(), notNullValue());
+    assertTaskState(taskInfo, TaskState.WAITING);
+
+    SleeperTask.reset();
+
+    // disable-enable it
+    taskConfiguration.setEnabled(false);
+    taskInfo = taskScheduler.scheduleTask(taskConfiguration, taskScheduler.getScheduleFactory().manual());
+
+    assertThat("Disabled task should not produce a future result", taskInfo.runNow().getCurrentState().getFuture(),
+        nullValue());
+
+    taskConfiguration.setEnabled(true);
+    taskInfo = taskScheduler.scheduleTask(taskConfiguration, taskScheduler.getScheduleFactory().manual());
+
+    future = taskInfo.runNow().getCurrentState().getFuture();
+    assertThat(future, notNullValue());
+
+    // give it some time to start and make it immediately done
+    SleeperTask.youWait.await();
+    SleeperTask.meWait.countDown();
+    Thread.yield();
+    assertThat(future.get(), notNullValue());
+  }
+}
