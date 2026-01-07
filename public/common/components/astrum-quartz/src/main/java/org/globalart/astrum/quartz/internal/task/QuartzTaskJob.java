@@ -1,0 +1,315 @@
+
+package org.globalart.astrum.quartz.internal.task;
+
+import java.util.List;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.inject.Provider;
+
+import org.globalart.astrum.common.concurrent.Mutex;
+import org.globalart.astrum.common.app.BaseUrlManager;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.quartz.internal.QuartzSchedulerSPI;
+import org.globalart.astrum.scheduling.Cancelable;
+import org.globalart.astrum.scheduling.Task;
+import org.globalart.astrum.scheduling.TaskConfiguration;
+import org.globalart.astrum.scheduling.TaskFactory;
+import org.globalart.astrum.scheduling.TaskInfo;
+import org.globalart.astrum.scheduling.TaskInterruptedException;
+import org.globalart.astrum.scheduling.TaskState;
+import org.globalart.astrum.scheduling.events.TaskBlockedEvent;
+import org.globalart.astrum.scheduling.events.TaskEventCanceled;
+import org.globalart.astrum.scheduling.events.TaskStartedRunningEvent;
+
+import com.google.common.base.Throwables;
+import org.quartz.DisallowConcurrentExecution;
+import org.quartz.InterruptableJob;
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.quartz.PersistJobDataAfterExecution;
+import org.quartz.UnableToInterruptJobException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.globalart.astrum.quartz.internal.task.QuartzTaskUtils.configurationOf;
+import static org.globalart.astrum.quartz.internal.task.QuartzTaskUtils.updateJobData;
+import static org.globalart.astrum.scheduling.TaskState.RUNNING;
+import static org.globalart.astrum.scheduling.TaskState.RUNNING_BLOCKED;
+import static org.globalart.astrum.scheduling.TaskState.RUNNING_STARTING;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+/**
+ * Quartz {@link Job} wrapping a Astrum {@link Task}.
+ *
+ * Supports {@link InterruptableJob} but actual interrupt-ability depends on underlying tasks implementation.
+ *
+ * @since 3.0
+ */
+@PersistJobDataAfterExecution
+@DisallowConcurrentExecution
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+public class QuartzTaskJob
+    implements InterruptableJob
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private static final Mutex MUTEX = new Mutex();
+
+  private final EventManager eventManager;
+
+  private final Provider<QuartzSchedulerSPI> scheduler;
+
+  private final TaskFactory taskFactory;
+
+  private final BaseUrlManager baseUrlManager;
+
+  private JobExecutionContext context;
+
+  private QuartzTaskInfo taskInfo;
+
+  private QuartzTaskFuture taskFuture;
+
+  private Task task;
+
+  @Autowired
+  public QuartzTaskJob(
+      final EventManager eventManager,
+      final Provider<QuartzSchedulerSPI> scheduler,
+      final TaskFactory taskFactory,
+      final BaseUrlManager baseUrlManager)
+  {
+    this.eventManager = checkNotNull(eventManager);
+    this.scheduler = checkNotNull(scheduler);
+    this.taskFactory = checkNotNull(taskFactory);
+    this.baseUrlManager = checkNotNull(baseUrlManager);
+  }
+
+  @Override
+  public void execute(final JobExecutionContext context) throws JobExecutionException {
+    this.context = checkNotNull(context);
+    try {
+      doExecute();
+    }
+    catch (Exception e) {
+      Throwables.throwIfInstanceOf(e, JobExecutionException.class);
+      throw new JobExecutionException(e);
+    }
+    finally {
+      this.context = null;
+    }
+  }
+
+  private void doExecute() throws Exception {
+    Exception failure = null;
+    try {
+      // ASTRUM-51042: Check if listener initialization failed before proceeding
+      Exception initError = (Exception) context.get(QuartzTaskJobListener.INIT_ERROR_KEY);
+      if (initError != null) {
+        throw new IllegalStateException("Job context initialization failed in listener", initError);
+      }
+
+      // init all the needed members: context already set, taskInfo and future (to set thread)
+      taskInfo = (QuartzTaskInfo) context.get(QuartzTaskInfo.TASK_INFO_KEY);
+      checkState(taskInfo != null, "TaskInfo not found in context - listener may have failed");
+
+      taskFuture = (QuartzTaskFuture) context.get(QuartzTaskFuture.FUTURE_KEY);
+      checkState(taskFuture != null, "TaskFuture not found in context - listener may have failed");
+
+      taskFuture.setJobExecutingThread(Thread.currentThread());
+
+      // detect and set the application base-url
+      baseUrlManager.detectAndHoldUrl();
+
+      // create TaskConfiguration, and using that the Task
+      final TaskConfiguration config = configurationOf(context.getJobDetail());
+      task = taskFactory.create(config, taskInfo);
+      // after this point, cancellation will be handled okay too
+
+      try {
+        if (!taskFuture.isCancelled()) {
+          mayBlock();
+
+          if (!taskFuture.isCancelled()) {
+            try {
+              context.setResult(task.call());
+            }
+            finally {
+              // put back any state task modified to have it persisted
+              updateJobData(context.getJobDetail(), task.taskConfiguration());
+            }
+          }
+        }
+      }
+      catch (TaskInterruptedException e) {
+        log.info("Task {} : {} canceled, exception: {}", config.getId(), config.getTaskLogName(),
+            e.getMessage(), log.isDebugEnabled() ? e : null);
+
+        // cancel task if not already canceled when interrupted
+        QuartzTaskFuture future = taskInfo.getTaskFuture();
+        if (future != null && !future.isCancelled()) {
+          future.doCancel();
+          eventManager.post(new TaskEventCanceled(taskInfo));
+        }
+      }
+      catch (InterruptedException e) {
+        log.info("Task {} : {} interrupted, exception: {}", config.getId(), config.getTaskLogName(),
+            e.getMessage(), log.isDebugEnabled() ? e : null);
+
+        // non-cancelable task interrupted, treat as canceled to cleanup
+        QuartzTaskFuture future = taskInfo.getTaskFuture();
+        if (future != null) {
+          future.doCancel();
+          eventManager.post(new TaskEventCanceled(taskInfo));
+        }
+      }
+      catch (Exception e) {
+        log.warn("Task {} : {} execution failure", config.getId(), config.getTaskLogName(), e);
+        failure = e;
+      }
+    }
+    catch (Exception e) {
+      log.warn("Task {} instantiation failure", context.getJobDetail().getKey(), e);
+      failure = e;
+    }
+
+    // propagate any failure
+    if (failure != null) {
+      throw failure;
+    }
+  }
+
+  /**
+   * Waits for other tasks blocked by current task to finish.
+   */
+  private void mayBlock() throws Exception {
+    while (true) {
+      final List<TaskInfo> blockedBy;
+
+      // perform runState change exclusive to all other tasks
+      synchronized (MUTEX) {
+        // filter all tasks which are not the present task AND are RUNNING
+        blockedBy = blockedBy();
+
+        if (blockedBy.isEmpty()) {
+          // no tasks are blocked
+          log.trace("No blockers for task: {}", task);
+          markTaskAsRunning();
+          return;
+        }
+        TaskState previousRunState = taskFuture.getRunState();
+        taskFuture.setRunState(RUNNING_BLOCKED);
+        if (RUNNING_BLOCKED != previousRunState) {
+          // the loop might need multiple iterations but we only want to send the event for an actual state transition
+          eventManager.post(new TaskBlockedEvent(taskInfo));
+        }
+      }
+
+      log.trace("Task: {} is blocked by: {}", task, blockedBy);
+      // wait for all blocked tasks
+      try {
+        for (TaskInfo taskInfo : blockedBy) {
+          try {
+            Future<?> future = taskInfo.getCurrentState().getFuture();
+            if (future != null) {
+              future.get(1L, TimeUnit.MINUTES);
+            }
+            if (taskFuture.isCancelled()) {
+              return;
+            }
+          }
+          catch (TimeoutException e) {
+            log.trace("Wait for unblock expired", e);
+            throw new TaskInterruptedException("Blocked for too long, giving up", true);
+          }
+          catch (Exception e) {
+            // we don't care if other task failed or not, it will report itself
+            log.trace("Blocked task failed; ignoring", e);
+          }
+        }
+      }
+      catch (IllegalStateException e) {
+        // FIXME: refine, not clear this is actually what happens due to wide code block
+        // task got canceled: setRunState threw ISEx
+        break;
+      }
+    }
+  }
+
+  private void markTaskAsRunning() throws Exception {
+    log.trace("Task {} will be marked as running if it is not canceled", task);
+    if (!taskFuture.isCancelled()) {
+      log.trace("Task {} is not canceled, marking as running.", task);
+      taskFuture.setRunState(RUNNING);
+      eventManager.post(new TaskStartedRunningEvent(taskInfo));
+    }
+  }
+
+  /**
+   * Returns a list of tasks that are considered as "blocking" the execution of this task.
+   */
+  private List<TaskInfo> blockedBy() {
+    // filter all tasks which are not the present task
+    // AND are same type
+    // AND are RUNNING
+    // AND are not blocked
+    // AND are truly blocking (for blob store tasks, only if same blob store)
+    return scheduler.get()
+        .listsTasks()
+        .stream()
+        .filter(t -> !task.getId().equals(t.getId())
+            && task.taskConfiguration().getTypeId().equals(t.getConfiguration().getTypeId())
+            && t.getCurrentState().getState().isRunning()
+            && notStartingOrBlocked(t.getCurrentState().getRunState())
+            && isTrulyBlocking(t))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Determines if another task truly blocks this task.
+   * For blob store tasks, only block if working on the SAME blob store.
+   * For per-repository tasks (e.g. healthcheck) that declare no blob store, only block if
+   * working on the SAME repository, so tasks for different repositories run concurrently
+   * instead of serializing globally and flooding the audit log with blocked events (ASTRUM-51827).
+   * For other tasks, keep existing behavior (block all same-type tasks).
+   */
+  private boolean isTrulyBlocking(final TaskInfo otherTask) {
+    String blobStoreName = task.taskConfiguration().getString("blobstoreName");
+    if (blobStoreName != null) {
+      String otherBlobStoreName = otherTask.getConfiguration().getString("blobstoreName");
+      return blobStoreName.equals(otherBlobStoreName);
+    }
+    String repositoryName = task.taskConfiguration().getString("repositoryName");
+    if (repositoryName != null) {
+      String otherRepositoryName = otherTask.getConfiguration().getString("repositoryName");
+      return repositoryName.equals(otherRepositoryName);
+    }
+    return true;
+  }
+
+  private boolean notStartingOrBlocked(final TaskState runState) {
+    return !(RUNNING_STARTING == runState || RUNNING_BLOCKED == runState);
+  }
+
+  @Override
+  public void interrupt() throws UnableToInterruptJobException {
+    if (task instanceof Cancelable && !((Cancelable) task).isCanceled()) {
+      ((Cancelable) task).cancel();
+      eventManager.post(new TaskEventCanceled(taskInfo));
+    }
+    else if (task != null) {
+      log.info("Task not cancelable: {}", task.taskConfiguration().getTaskLogName());
+      throw new UnableToInterruptJobException("Task not cancelable: " + task);
+    }
+    // else premature/too-late; ignore
+  }
+}

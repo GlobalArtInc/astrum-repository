@@ -1,0 +1,220 @@
+
+package org.globalart.astrum.quartz.internal.task;
+
+import java.util.Date;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.quartz.internal.QuartzSchedulerSPI;
+import org.globalart.astrum.scheduling.Task;
+import org.globalart.astrum.scheduling.TaskState;
+import org.globalart.astrum.scheduling.schedule.Schedule;
+
+import com.google.common.base.Throwables;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.globalart.astrum.scheduling.TaskState.RUNNING_CANCELED;
+import static org.globalart.astrum.scheduling.TaskState.RUNNING_STARTING;
+
+/**
+ * Quartz {@link Task} {@link Future}.
+ *
+ * Created by {@link QuartzTaskJobListener} and stored in {@link JobExecutionContext}.
+ *
+ * @since 3.0
+ */
+public class QuartzTaskFuture
+    implements Future<Object>
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  /**
+   * Key used in job execution context to stick future in.
+   */
+  static final String FUTURE_KEY = QuartzTaskFuture.class.getName();
+
+  private final QuartzSchedulerSPI scheduler;
+
+  private final JobKey jobKey;
+
+  private final String taskLogName;
+
+  private final Date scheduledAt;
+
+  private final Schedule startedBy;
+
+  private final String triggerSource;
+
+  private final CountDownLatch countDownLatch;
+
+  private volatile Thread jobExecutingThread;
+
+  private volatile TaskState runState;
+
+  private volatile Date startedAt;
+
+  private Exception exception;
+
+  private Object result;
+
+  public QuartzTaskFuture(
+      final QuartzSchedulerSPI scheduler,
+      final JobKey jobKey,
+      final String taskLogName,
+      final Date scheduledAt,
+      final Schedule startedBy,
+      @Nullable final String triggerSource)
+  {
+    this.scheduler = checkNotNull(scheduler);
+    this.jobKey = checkNotNull(jobKey);
+    this.taskLogName = checkNotNull(taskLogName);
+    this.scheduledAt = checkNotNull(scheduledAt);
+    this.startedBy = checkNotNull(startedBy);
+    this.triggerSource = triggerSource;
+    this.countDownLatch = new CountDownLatch(1);
+    this.runState = RUNNING_STARTING;
+  }
+
+  // TODO: Sort out public access for non-overrides, may be better off as package-private
+
+  public void setJobExecutingThread(final Thread thread) {
+    this.jobExecutingThread = checkNotNull(thread);
+  }
+
+  public void setResult(final Object result, final Exception exception) {
+    this.result = result;
+    this.exception = exception;
+    this.jobExecutingThread = null;
+    countDownLatch.countDown();
+  }
+
+  public Date getScheduledAt() {
+    return new Date(scheduledAt.getTime());
+  }
+
+  public Date getStartedAt() {
+    Date effectiveStart;
+    effectiveStart = startedAt != null ? startedAt : scheduledAt;
+    return new Date(effectiveStart.getTime());
+  }
+
+  public Schedule getStartedBy() {
+    return startedBy;
+  }
+
+  public TaskState getRunState() {
+    return runState;
+  }
+
+  public void setRunState(final TaskState runState) {
+    checkState(runState.isRunning() && this.runState.ordinal() <= runState.ordinal(),
+        "Illegal run state transition: %s -> %s", this.runState, runState);
+
+    log.debug("Task {} : {} runState transition {} -> {}", jobKey.getName(), taskLogName, this.runState, runState);
+
+    // Capture the actual start time when task transitions to RUNNING state
+    if (runState == TaskState.RUNNING && startedAt == null) {
+      synchronized (this) {
+        if (startedAt == null) {
+          startedAt = new Date();
+        }
+      }
+    }
+
+    this.runState = runState;
+  }
+
+  @Override
+  public boolean cancel(final boolean mayInterruptIfRunning) {
+    boolean canceled = scheduler.cancelJob(jobKey);
+    Thread thread = this.jobExecutingThread;
+
+    if (!canceled && thread != null && mayInterruptIfRunning) {
+      // Yell about this, as this is dangerous
+      if (log.isDebugEnabled()) {
+        log.info("Task cancelling w/ interruption {} : {}", jobKey.getName(), taskLogName);
+      }
+      else {
+        log.info("Task cancelling w/ interruption {}", taskLogName);
+      }
+
+      thread.interrupt();
+      canceled = true;
+    }
+
+    if (canceled || runState == RUNNING_STARTING) {
+      // if canceled, or task not even started yet
+      doCancel();
+    }
+
+    return canceled;
+  }
+
+  public void doCancel() {
+    setRunState(RUNNING_CANCELED);
+    setResult(null, new CancellationException("Task canceled"));
+    if (log.isDebugEnabled()) {
+      log.info("Task canceled {} : {}", jobKey.getName(), taskLogName);
+    }
+    else {
+      log.info("Task canceled {}", taskLogName);
+    }
+  }
+
+  @Override
+  public boolean isCancelled() {
+    return runState == RUNNING_CANCELED;
+  }
+
+  @Override
+  public boolean isDone() {
+    return countDownLatch.getCount() == 0;
+  }
+
+  /**
+   * Returns the source that triggered the current task execution, if known.
+   *
+   * @since 3.1
+   */
+  @Nullable
+  public String getTriggerSource() {
+    return triggerSource;
+  }
+
+  private void maybePropagateException() throws InterruptedException, ExecutionException {
+    if (exception != null) {
+      Throwables.throwIfUnchecked(exception);
+      Throwables.throwIfInstanceOf(exception, InterruptedException.class);
+      Throwables.throwIfInstanceOf(exception, ExecutionException.class);
+      throw new ExecutionException("Job failure", exception);
+    }
+  }
+
+  @Override
+  public Object get() throws InterruptedException, ExecutionException {
+    countDownLatch.await();
+    maybePropagateException();
+    return result;
+  }
+
+  @Override
+  public Object get(
+      final long timeout,
+      final TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException
+  {
+    countDownLatch.await(timeout, unit);
+    maybePropagateException();
+    return result;
+  }
+}
