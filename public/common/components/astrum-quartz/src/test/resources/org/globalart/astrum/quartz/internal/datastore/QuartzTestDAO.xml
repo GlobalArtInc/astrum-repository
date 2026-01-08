@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.quartz.internal.datastore.QuartzTestDAO">
+  <insert id="createSchema" />
+
+  <select id="tables" resultType="String" databaseId="H2">
+    SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'QRTZ_%'
+  </select>
+
+  <select id="tables" resultType="String" databaseId="PostgreSQL">
+    SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'qrtz_%'
+  </select>
+
+  <select id="primaryKeys" resultType="String">
+    SELECT constraint_name FROM information_schema.table_constraints WHERE constraint_type = 'PRIMARY KEY'
+  </select>
+
+  <select id="foreignKeys" resultType="String">
+    SELECT constraint_name FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY'
+  </select>
+
+  <select id="indexes" resultType="String" databaseId="H2">
+    SELECT index_name FROM information_schema.indexes WHERE index_name LIKE 'IDX_QRTZ_%'
+  </select>
+
+  <select id="indexes" resultType="String" databaseId="PostgreSQL">
+    SELECT indexname FROM pg_indexes WHERE schemaname = 'public'
+  </select>
+
+  <select id="expectedIndexes" resultType="Integer" databaseId="H2">
+    SELECT 20 as count
+  </select>
+
+  <select id="expectedIndexes" resultType="Integer" databaseId="PostgreSQL">
+    SELECT 31 as count
+  </select>
+
+  <select id="getTableColumnType" resultType="String">
+    SELECT data_type
+    FROM information_schema.columns
+    WHERE table_name = #{table_name}
+      AND column_name = #{column_name}
+  </select>
+
+  <select id="getColumnCharacterLimit" resultType="String" databaseId="H2">
+    SELECT CHARACTER_MAXIMUM_LENGTH
+    FROM information_schema.columns
+    WHERE table_name = #{table_name}
+      AND column_name = #{column_name}
+  </select>
+</mapper>
