@@ -1,0 +1,257 @@
+
+package org.globalart.astrum.scheduling.internal.upgrade.datastore;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.common.app.ManagedLifecycle;
+import org.globalart.astrum.common.cooperation2.Cooperation2;
+import org.globalart.astrum.common.cooperation2.Cooperation2Selector;
+import org.globalart.astrum.common.event.EventAware;
+import org.globalart.astrum.common.event.EventAware.Asynchronous;
+import org.globalart.astrum.common.event.EventHelper;
+import org.globalart.astrum.common.scheduling.PeriodicJobService;
+import org.globalart.astrum.common.stateguard.Guarded;
+import org.globalart.astrum.common.stateguard.StateGuardLifecycleSupport;
+import org.globalart.astrum.common.upgrade.events.UpgradeCompletedEvent;
+import org.globalart.astrum.common.upgrade.events.UpgradeFailedEvent;
+import org.globalart.astrum.scheduling.ExternalTaskState;
+import org.globalart.astrum.scheduling.TaskConfiguration;
+import org.globalart.astrum.scheduling.TaskInfo;
+import org.globalart.astrum.scheduling.TaskScheduler;
+import org.globalart.astrum.scheduling.TaskState;
+import org.globalart.astrum.scheduling.UpgradeTaskScheduler;
+import org.globalart.astrum.scheduling.events.TaskEventStopped;
+import org.globalart.astrum.scheduling.events.TaskEventStoppedCanceled;
+import org.globalart.astrum.scheduling.events.TaskEventStoppedDone;
+import org.globalart.astrum.scheduling.events.TaskEventStoppedFailed;
+
+import com.google.common.eventbus.Subscribe;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.TASKS;
+import static org.globalart.astrum.common.stateguard.StateGuardLifecycleSupport.State.STARTED;
+import static org.globalart.astrum.scheduling.internal.upgrade.datastore.UpgradeTaskData.BLOCK_QUEUE_KEY;
+import org.springframework.stereotype.Component;
+
+/**
+ * An implementation of {@link UpgradeTaskScheduler} which attempts to run tasks scheduled through it in the order which
+ * they were provided.
+ * <p>
+ * When a task fails, or is canceled the queue will stop until a Astrum node restarts at which point it will resume the
+ * executing the queue. Uses events to identify when a task changes state.
+ */
+@Component
+@ManagedLifecycle(phase = TASKS)
+public class QueuingUpgradeTaskScheduler
+    extends StateGuardLifecycleSupport
+    implements EventAware, Asynchronous, UpgradeTaskScheduler
+{
+  private final boolean checkRequiresMigration;
+
+  private final Cooperation2 cooperation;
+
+  private final Duration delayOnStart;
+
+  private final PeriodicJobService periodicJobService;
+
+  private final TaskScheduler taskScheduler;
+
+  private final UpgradeTaskStore upgradeTaskStore;
+
+  @Autowired
+  public QueuingUpgradeTaskScheduler(
+      final PeriodicJobService periodicJobService,
+      final TaskScheduler taskScheduler,
+      final UpgradeTaskStore upgradeTaskStore,
+      @Value("${astrum.upgrade.tasks.checkOnStartup:true}") final boolean checkRequiresMigration,
+      @Value("${astrum.upgrade.tasks.delay:10s}") final Duration delayOnStart,
+      final Cooperation2Selector cooperation2Selector,
+      @Qualifier("distributed") @Nullable final Cooperation2Selector distributedCooperationSelector)
+  {
+    this.periodicJobService = checkNotNull(periodicJobService);
+    this.taskScheduler = checkNotNull(taskScheduler);
+    this.upgradeTaskStore = checkNotNull(upgradeTaskStore);
+    this.checkRequiresMigration = checkRequiresMigration;
+    this.delayOnStart = checkNotNull(delayOnStart);
+    Cooperation2Selector selector =
+        distributedCooperationSelector != null ? distributedCooperationSelector : cooperation2Selector;
+    this.cooperation = checkNotNull(selector.select()).configure().build("reschedule-upgrade-task");
+  }
+
+  @Override
+  public void schedule(final TaskConfiguration configuration) {
+    upgradeTaskStore.insert(new UpgradeTaskData(configuration.getId(), configuration.asMap()));
+  }
+
+  @Override
+  public void schedule(final TaskConfiguration configuration, final boolean blockQueue) {
+    if (!blockQueue) {
+      configuration.setBoolean(BLOCK_QUEUE_KEY, false);
+    }
+    upgradeTaskStore.insert(new UpgradeTaskData(configuration.getId(), configuration.asMap()));
+  }
+
+  /**
+   * On startup reschedule
+   *
+   * @throws Exception
+   */
+  @Override
+  protected void doStart() {
+    if (!checkRequiresMigration) {
+      log.warn("Configured not to reschedule failed upgrade tasks. This may lead to missing features or bugs.");
+      return;
+    }
+
+    periodicJobService.runOnce(this::maybeStartQueue, (int) delayOnStart.getSeconds());
+  }
+
+  /**
+   * Listens for local upgrade events, this is used to start the queue after upgrades so tasks aren't invoked during a
+   * rolling upgrade.
+   */
+  @Subscribe
+  public void on(final UpgradeCompletedEvent event) {
+    if (this.isStarted() && !EventHelper.isReplicating()) {
+      log.debug("Starting queue due to event {}", event);
+      maybeStartQueue();
+    }
+  }
+
+  /**
+   * Listens for local upgrade events, this is used to start the queue after upgrades so tasks aren't invoked during a
+   * rolling upgrade.
+   */
+  @Subscribe
+  public void on(final UpgradeFailedEvent event) {
+    if (this.isStarted() && !EventHelper.isReplicating()) {
+      log.debug("Starting queue due to event {}", event);
+      maybeStartQueue();
+    }
+  }
+
+  @Subscribe
+  public void on(final TaskEventStopped event) {
+    log.debug("on event: {}", event);
+
+    TaskInfo taskInfo = event.getTaskInfo();
+
+    if (event instanceof TaskEventStoppedFailed && upgradeTaskStore.markFailed(taskInfo.getId()) > 0) {
+      log.warn("Upgrade task did not complete: {}. Will retry on next startup.", taskInfo.getName());
+    }
+    else if (event instanceof TaskEventStoppedCanceled && upgradeTaskStore.markCanceled(taskInfo.getId()) > 0) {
+      log.warn("Upgrade task cancelled: {}. Will retry on next startup.", taskInfo.getName());
+      // Astrum could be shutting down and the task scheduler is canceling running jobs
+    }
+    else if (event instanceof TaskEventStoppedDone && upgradeTaskStore.deleteByTaskId(taskInfo.getId()) > 0) {
+      log.debug("Task {} completed.", taskInfo);
+      maybeStartQueue();
+    }
+  }
+
+  @Guarded(by = STARTED)
+  protected void maybeStartQueue() {
+    try {
+      cooperation.on(() -> {
+        List<UpgradeTaskData> tasks = upgradeTaskStore.browse().collect(Collectors.toList());
+        for (UpgradeTaskData task : tasks) {
+          boolean blockQueue = isBlockQueue(task);
+          if (notRunningAndNotDone(task)) {
+            scheduleTask(task);
+            if (blockQueue) {
+              return null;
+            }
+          }
+          if (blockQueue) {
+            return null;
+          }
+        }
+        return null;
+      })
+          .checkFunction(Optional::empty)
+          .cooperate("queue");
+    }
+    catch (Exception e) {
+      log.error("An error occurred while starting the upgrade task queue.", e);
+    }
+  }
+
+  /*
+   * Attempts to schedule a failed upgrade task.
+   *
+   * If the task is already running we skip the task
+   */
+  private TaskInfo scheduleTask(final UpgradeTaskData task) {
+    Optional<TaskInfo> taskInfo = upgradeTaskStore.read(task.getId())
+        .flatMap(this::getExistingTask);
+
+    String taskName = extractName(task);
+
+    try {
+      if (taskInfo.isPresent()) {
+        if (notRunningAndNotDone(taskInfo)) {
+          log.info("Re-running failed upgrade task {}", taskName);
+          taskInfo.get().runNow();
+        }
+        log.debug("Task already running for {}", taskName);
+        return taskInfo.get();
+      }
+
+      TaskConfiguration config = new TaskConfiguration();
+      log.info("Running failed upgrade task {}", taskName);
+      config.addAll(task.getConfiguration());
+      TaskInfo result = taskScheduler.submit(config);
+      task.setTaskId(result.getId());
+      upgradeTaskStore.update(task);
+      return result;
+    }
+    catch (Exception e) {
+      log.error("Failed to restart upgrade task: {}", taskName, e);
+      return null;
+    }
+  }
+
+  private boolean isBlockQueue(final UpgradeTaskData task) {
+    Map<String, String> config = task.getConfiguration();
+    if (config == null) {
+      return true;
+    }
+    return Boolean.parseBoolean(config.getOrDefault(BLOCK_QUEUE_KEY, Boolean.TRUE.toString()));
+  }
+
+  private boolean notRunningAndNotDone(final UpgradeTaskData upgradetask) {
+    log.trace("Checking state of taskId {}", upgradetask.getId());
+    return notRunningAndNotDone(getExistingTask(upgradetask));
+  }
+
+  private boolean notRunningAndNotDone(final Optional<TaskInfo> upgradeTask) {
+    return upgradeTask
+        .map(taskScheduler::toExternalTaskState)
+        .map(ExternalTaskState::getState)
+        .map(state -> !(state.isRunning() || TaskState.OK.equals(state)))
+        .orElse(true);
+  }
+
+  private Optional<TaskInfo> getExistingTask(final UpgradeTaskData upgradeTask) {
+    return Optional.ofNullable(taskScheduler.getTaskById(upgradeTask.getTaskId()));
+  }
+
+  private static String extractName(final UpgradeTaskData task) {
+    TaskConfiguration configuration = new TaskConfiguration();
+    configuration.addAll(task.getConfiguration());
+    return configuration.getName();
+  }
+
+  @Override
+  public TaskConfiguration createTaskConfigurationInstance(final String typeId) {
+    return taskScheduler.createTaskConfigurationInstance(typeId);
+  }
+}

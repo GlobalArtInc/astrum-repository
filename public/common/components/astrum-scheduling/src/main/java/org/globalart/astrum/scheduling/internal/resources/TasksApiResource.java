@@ -1,0 +1,145 @@
+
+package org.globalart.astrum.scheduling.internal.resources;
+
+import java.util.List;
+import java.util.concurrent.Future;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotAllowedException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.WebApplicationException;
+
+import org.globalart.astrum.rest.Page;
+import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.scheduling.TaskInfo;
+import org.globalart.astrum.scheduling.TaskScheduler;
+import org.globalart.astrum.scheduling.api.TaskXO;
+import org.globalart.astrum.scheduling.internal.resources.doc.TasksApiResourceDoc;
+
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.Response.Status.CONFLICT;
+import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static org.globalart.astrum.rest.APIConstants.V1_API_PREFIX;
+import org.springframework.stereotype.Component;
+
+/**
+ * @since 3.6
+ */
+@Component
+@Path(TasksApiResource.RESOURCE_URI)
+@Produces(APPLICATION_JSON)
+public class TasksApiResource
+    implements Resource, TasksApiResourceDoc
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  public static final String RESOURCE_URI = V1_API_PREFIX + "/tasks";
+
+  private static final String TRIGGER_SOURCE = "REST API";
+
+  private final TaskScheduler taskScheduler;
+
+  @Autowired
+  public TasksApiResource(final TaskScheduler taskScheduler) {
+    this.taskScheduler = checkNotNull(taskScheduler);
+  }
+
+  @Override
+  @GET
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:read")
+  public Page<TaskXO> getTasks(@QueryParam("type") final String type) {
+    List<TaskXO> taskXOs = taskScheduler.listsTasks()
+        .stream()
+        .filter(taskInfo -> taskInfo.getConfiguration().isVisible())
+        .filter(taskInfo -> typeParameterMatches(type, taskInfo))
+        .map(taskInfo -> TaskXO.fromTaskInfo(taskInfo, taskScheduler.toExternalTaskState(taskInfo)))
+        .collect(toList());
+
+    return new Page<>(taskXOs, null);
+  }
+
+  @Override
+  @GET
+  @Path("/{id}")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:read")
+  public TaskXO getTaskById(@PathParam("id") final String id) {
+    TaskInfo task = getTaskInfo(id);
+    return TaskXO.fromTaskInfo(task, taskScheduler.toExternalTaskState(task));
+  }
+
+  @Override
+  @POST
+  @Path("/{id}/run")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:start")
+  public void run(@PathParam("id") final String id) {
+    try {
+      TaskInfo taskInfo = getTaskInfo(id);
+
+      if (!taskInfo.getConfiguration().isEnabled()) {
+        throw new NotAllowedException(format("Task %s is disabled", id));
+      }
+
+      taskInfo.runNow(TRIGGER_SOURCE);
+    }
+    catch (NotFoundException | NotAllowedException e) {
+      throw e;
+    }
+    catch (Exception e) {
+      log.error("error running task with id {}", id, e);
+      throw new WebApplicationException(format("Error running task %s", id), INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Override
+  @POST
+  @Path("/{id}/stop")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:stop")
+  public void stop(@PathParam("id") final String id) {
+    try {
+      TaskInfo taskInfo = getTaskInfo(id);
+      Future<?> taskFuture = taskInfo.getCurrentState().getFuture();
+      if (taskFuture == null) {
+        throw new WebApplicationException(format("Task %s is not running", id), CONFLICT);
+      }
+      if (!taskFuture.cancel(false)) {
+        throw new WebApplicationException(format("Unable to stop task %s", id), CONFLICT);
+      }
+    }
+    catch (WebApplicationException webApplicationException) {
+      throw webApplicationException;
+    }
+    catch (Exception e) {
+      log.error("error stopping task with id {}", id, e);
+      throw new WebApplicationException(format("Error running task %s", id), INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  private TaskInfo getTaskInfo(final String id) {
+    return ofNullable(taskScheduler.getTaskById(id))
+        .filter(taskInfo -> taskInfo.getConfiguration().isVisible())
+        .orElseThrow(() -> new NotFoundException("Unable to locate task with id " + id));
+  }
+
+  private static boolean typeParameterMatches(final String type, final TaskInfo taskInfo) {
+    return type == null || type.isEmpty() || type.equals(taskInfo.getTypeId());
+  }
+}

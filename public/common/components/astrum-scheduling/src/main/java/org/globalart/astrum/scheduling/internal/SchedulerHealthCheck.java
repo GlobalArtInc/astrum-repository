@@ -1,0 +1,57 @@
+
+package org.globalart.astrum.scheduling.internal;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.inject.Provider;
+import org.globalart.astrum.scheduling.spi.SchedulerSPI;
+
+import com.codahale.metrics.health.HealthCheck;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+/**
+ * Scheduler health check that reports tasks with auto-recovered triggers.
+ *
+ * This check identifies two scenarios:
+ * - Jobs that have no trigger at all in the database (should not occur after startup, as triggers are
+ * auto-created during startup)
+ * - Triggers that were automatically recovered during system startup and marked with a recovery flag,
+ * indicating the task schedule needs to be reconfigured by an administrator
+ *
+ * The alert message provides clear instructions for administrators to navigate to the Tasks UI and
+ * reconfigure affected task schedules. This addresses ASTRUM-44603 by making the alert actionable.
+ *
+ * @since 3.17
+ */
+@Component
+@Qualifier("Scheduler")
+public class SchedulerHealthCheck
+    extends HealthCheck
+{
+  private final Provider<SchedulerSPI> scheduler;
+
+  @Autowired
+  public SchedulerHealthCheck(final Provider<SchedulerSPI> scheduler) {
+    this.scheduler = checkNotNull(scheduler);
+  }
+
+  @Override
+  protected Result check() {
+    List<String> missingTaskDescriptions = scheduler.get().getMissingTriggerDescriptions();
+    return missingTaskDescriptions.isEmpty() ? Result.healthy() : Result.unhealthy(reason(missingTaskDescriptions));
+  }
+
+  private String reason(final List<String> missingTaskDescriptions) {
+    String taskDescriptions = String.join(", ", missingTaskDescriptions);
+    return format("Missing triggers were auto-recovered for %s task%s: %s. " +
+        "Review and update each task's schedule (Administration > System > Tasks).",
+        missingTaskDescriptions.size(),
+        missingTaskDescriptions.size() == 1 ? "" : "s",
+        taskDescriptions);
+  }
+}
