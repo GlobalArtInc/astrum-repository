@@ -1,0 +1,97 @@
+
+package org.globalart.astrum.scheduling.internal;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.globalart.astrum.common.scheduling.PeriodicJobService.PeriodicJob;
+
+import org.awaitility.Awaitility;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+/**
+ * Tests for {@link PeriodicJobServiceImpl}
+ */
+public class PeriodicJobServiceImplTest
+
+{
+  private PeriodicJobServiceImpl service;
+
+  @Before
+  public void setUp() {
+    service = new PeriodicJobServiceImpl(10);
+  }
+
+  private boolean isRunning() {
+    try {
+      service.schedule(() -> {
+      }, 60).cancel();
+      return true;
+    }
+    catch (IllegalStateException | NullPointerException e) {
+      return false;
+    }
+  }
+
+  @SuppressWarnings("java:S2699") // sonar doesn't detect awaitility assertions
+                                  // https://jira.sonarsource.com/browse/SONARJAVA-3334
+  @Test
+  public void numberIncrementingTask() {
+    service.startUsing();
+
+    final AtomicInteger counter = new AtomicInteger();
+
+    PeriodicJob schedule = service.schedule(counter::incrementAndGet, 1);
+
+    Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> counter.get() > 0);
+
+    schedule.cancel();
+
+    service.stopUsing();
+  }
+
+  @Test
+  public void testConditionalLifecycle() {
+    assertThat(isRunning(), is(false));
+    service.startUsing();
+    assertThat(isRunning(), is(true));
+    service.startUsing();
+    assertThat(isRunning(), is(true));
+    service.stopUsing();
+    assertThat(isRunning(), is(true));
+    service.stopUsing();
+    assertThat(isRunning(), is(false));
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void testStopUsing_InvalidPrecondition() {
+    service.stopUsing();
+  }
+
+  @Test
+  public void testThreadPoolSize() {
+    expectException(-10);
+    expectException(-5);
+    expectException(-1);
+    expectException(0);
+    service = new PeriodicJobServiceImpl(1);
+    service = new PeriodicJobServiceImpl(5);
+    service = new PeriodicJobServiceImpl(10);
+  }
+
+  private void expectException(final int threadCount) {
+    try {
+      service = new PeriodicJobServiceImpl(threadCount);
+    }
+    catch (IllegalArgumentException e) {
+      String expectedError = String.format(
+          "PeriodicJobServiceImpl's configurable threadPool must be a positive integer, (%d) is not valid.",
+          threadCount);
+      assertThat(e.getMessage(), is(expectedError));
+    }
+  }
+}
