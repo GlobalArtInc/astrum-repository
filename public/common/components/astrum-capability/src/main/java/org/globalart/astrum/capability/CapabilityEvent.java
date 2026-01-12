@@ -1,0 +1,242 @@
+
+package org.globalart.astrum.capability;
+
+import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * {@link Capability} related events.
+ *
+ * @since capabilities 2.0
+ */
+public abstract class CapabilityEvent
+{
+  private final CapabilityReference reference;
+
+  public CapabilityEvent(final CapabilityReference reference) {
+    this.reference = checkNotNull(reference);
+  }
+
+  public CapabilityReference getReference() {
+    return reference;
+  }
+
+  @Override
+  public String toString() {
+    return getReference().toString();
+  }
+
+  /**
+   * Event fired after a capability was activated.
+   *
+   * @since capabilities 2.0
+   */
+  public static class AfterActivated
+      extends CapabilityEvent
+  {
+    public AfterActivated(final CapabilityReference reference) {
+      super(reference);
+    }
+
+    @Override
+    public String toString() {
+      return "Activated " + super.toString();
+    }
+
+  }
+
+  /**
+   * Event fired before a capability is passivated.
+   *
+   * @since capabilities 2.0
+   */
+  public static class BeforePassivated
+      extends CapabilityEvent
+  {
+    public BeforePassivated(
+        final CapabilityReference reference)
+    {
+      super(reference);
+    }
+
+    @Override
+    public String toString() {
+      return "Passivated " + super.toString();
+    }
+
+  }
+
+  /**
+   * Event fired before a capability is updated.
+   *
+   * @since capabilities 2.0
+   */
+  public static class BeforeUpdate
+      extends CapabilityEvent
+  {
+
+    private final Map<String, String> properties;
+
+    private final Map<String, String> previousProperties;
+
+    public BeforeUpdate(
+        final CapabilityReference reference,
+        final Map<String, String> properties,
+        final Map<String, String> previousProperties)
+    {
+      super(reference);
+      this.properties = checkNotNull(properties);
+      this.previousProperties = checkNotNull(previousProperties);
+    }
+
+    @Override
+    public String toString() {
+      return "Before update of " + super.toString();
+    }
+
+    public Map<String, String> properties() {
+      return properties;
+    }
+
+    public Map<String, String> previousProperties() {
+      return previousProperties;
+    }
+
+  }
+
+  /**
+   * Event fired after a capability was updated.
+   *
+   * @since capabilities 2.0
+   */
+  public static class AfterUpdate
+      extends CapabilityEvent
+  {
+
+    private final Map<String, String> properties;
+
+    private final Map<String, String> previousProperties;
+
+    public AfterUpdate(
+        final CapabilityReference reference,
+        final Map<String, String> properties,
+        final Map<String, String> previousProperties)
+    {
+      super(reference);
+      this.properties = checkNotNull(properties);
+      this.previousProperties = checkNotNull(previousProperties);
+    }
+
+    @Override
+    public String toString() {
+      return "After update of " + super.toString();
+    }
+
+    public Map<String, String> properties() {
+      return properties;
+    }
+
+    public Map<String, String> previousProperties() {
+      return previousProperties;
+    }
+
+  }
+
+  /**
+   * Event fired when a capability is created (added to registry).
+   * <p/>
+   * Called before {@link Capability#onCreate} / {@link Capability#onLoad} are called.
+   *
+   * @since capabilities 2.0
+   */
+  public static class Created
+      extends CapabilityEvent
+  {
+    public Created(final CapabilityReference reference) {
+      super(reference);
+    }
+
+    @Override
+    public String toString() {
+      return "Created " + super.toString();
+    }
+  }
+
+  /**
+   * Event fired when a capability is removed from registry.
+   * <p/>
+   * Called after {@link Capability#onRemove()} is called.
+   *
+   * @since capabilities 2.0
+   */
+  public static class AfterRemove
+      extends CapabilityEvent
+  {
+    public AfterRemove(final CapabilityReference reference) {
+      super(reference);
+    }
+
+    @Override
+    public String toString() {
+      return "After remove of " + super.toString();
+    }
+
+  }
+
+  /**
+   * Event fired when an exception occurred during a lifecycle callback method (create/load/update/activate/passivate).
+   *
+   * @since 2.7
+   */
+  public static class CallbackFailure
+      extends CapabilityEvent
+  {
+    private String failingAction;
+
+    private Exception failure;
+
+    public CallbackFailure(
+        final CapabilityReference reference,
+        final String failingAction,
+        final Exception failure)
+    {
+      super(reference);
+      this.failingAction = checkNotNull(failingAction);
+      this.failure = checkNotNull(failure);
+    }
+
+    @Override
+    public String toString() {
+      return failingAction + " Failed " + super.toString();
+    }
+
+    public Exception failure() {
+      return failure;
+    }
+
+    public String failingAction() {
+      return failingAction;
+    }
+  }
+
+  /**
+   * Event fired when an capability failure has been cleared.
+   *
+   * @since 2.7
+   */
+  public static class CallbackFailureCleared
+      extends CapabilityEvent
+  {
+    public CallbackFailureCleared(final CapabilityReference reference) {
+      super(reference);
+    }
+
+    @Override
+    public String toString() {
+      return "Error cleared " + super.toString();
+    }
+
+  }
+
+}

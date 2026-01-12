@@ -1,0 +1,121 @@
+
+package org.globalart.astrum.capability;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.common.text.Strings2;
+import org.globalart.astrum.crypto.secrets.SecretsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Support for {@link Capability} configuration implementations.
+ *
+ * @since 2.7
+ */
+public abstract class CapabilityConfigurationSupport
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  protected boolean isEmpty(final String value) {
+    return Strings2.isEmpty(value);
+  }
+
+  /**
+   * Re-throws {@link URISyntaxException} as runtime exception.
+   */
+  protected URI parseUri(final String value) {
+    try {
+      return new URI(value);
+    }
+    catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * If given value is null or empty, returns default.
+   *
+   * @see #parseUri(String)
+   */
+  protected URI parseUri(final String value, @Nullable final URI defaultValue) {
+    if (isEmpty(value)) {
+      return defaultValue;
+    }
+    return parseUri(value);
+  }
+
+  protected Boolean parseBoolean(@Nullable final String value, @Nullable final Boolean defaultValue) {
+    if (!isEmpty(value)) {
+      return Boolean.parseBoolean(value);
+    }
+    return defaultValue;
+  }
+
+  /**
+   * Parses the given string value as an integer or returns the specified default value if the string is {@code null}
+   * or empty.
+   *
+   * @since 3.1
+   */
+  protected Integer parseInteger(@Nullable final String value, @Nullable final Integer defaultValue) {
+    if (isEmpty(value)) {
+      return defaultValue;
+    }
+    return Integer.parseInt(value);
+  }
+
+  /**
+   * Decrypts a secret ID on-demand using the provided SecretsService.
+   * <p>
+   * This method handles the common pattern for capability password/secret fields:
+   * <ul>
+   * <li>Checks for null/empty secret IDs</li>
+   * <li>Handles missing secrets service (e.g., during validation)</li>
+   * <li>Strips underscore prefix from secret IDs (secrets service returns IDs with underscore prefix)</li>
+   * <li>Parses the secret ID as an integer and retrieves the encrypted secret</li>
+   * <li>Decrypts the secret and returns the plaintext value</li>
+   * <li>Handles invalid secret ID formats for backwards compatibility</li>
+   * </ul>
+   *
+   * @param secretId the secret ID (may be prefixed with underscore, e.g., "_123")
+   * @param secretsService the secrets service to decrypt the secret
+   * @return the decrypted secret value, or null if the secret is not found or empty
+   * @since 3.87
+   */
+  @Nullable
+  protected String decryptSecret(
+      @Nullable final String secretId,
+      @Nullable final SecretsService secretsService)
+  {
+    // Return null if secret ID is null or empty
+    if (secretId == null || secretId.isEmpty()) {
+      return secretId;
+    }
+
+    // If SecretsService not available (e.g., in tests or validation), return the value as-is
+    if (secretsService == null) {
+      log.debug("SecretsService not available, returning secret ID as-is");
+      return secretId;
+    }
+
+    // Decrypt using secret ID - secretsService.from() expects the secret ID string (e.g., "_1")
+    try {
+      char[] decryptedChars = secretsService.from(secretId).decrypt();
+      return String.valueOf(decryptedChars);
+    }
+    catch (IllegalArgumentException e) {
+      // Invalid secret ID format - typically legacy plaintext from pre-secrets-store data;
+      // logged at DEBUG to avoid log noise on unmigrated systems and to avoid leaking the value.
+      log.debug("Invalid secret ID format (possible legacy plaintext), returning as-is: {}", e.getMessage());
+      return secretId;
+    }
+    catch (Exception e) {
+      log.error("Failed to decrypt secret ID: {}", secretId, e);
+      return null;
+    }
+  }
+}
