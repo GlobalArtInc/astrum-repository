@@ -1,0 +1,7 @@
+
+<h2 style="color: red">$esc.html(${cause})</h2>
+<br/>
+<pre>
+$esc.html(${cause.trace})
+</pre>
+
