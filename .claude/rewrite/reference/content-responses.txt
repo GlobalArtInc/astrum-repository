@@ -1,0 +1,395 @@
+## create raw hosted m2-probe (ALLOW_ONCE)
+201
+## PUT /repository/m2-probe/dir/hello.txt
+HTTP/1.1 201 Created
+Content-Length: 0
+
+## PUT again (ALLOW_ONCE)
+HTTP/1.1 409 m2-probe/dir/hello.txt -  cannot be updated as asset already exists and redeploy is not allowed
+Content-Type: text/plain;charset=utf-8
+Content-Length: 95
+
+m2-probe/dir/hello.txt -  cannot be updated as asset already exists and redeploy is not allowed
+## GET
+HTTP/1.1 200 OK
+ETag: "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+Content-Disposition: attachment
+Last-Modified: Mon, 12 Oct 2026 14:10:44 GMT
+Content-Type: text/plain
+Content-Length: 0
+
+## HEAD
+HTTP/1.1 200 OK
+ETag: "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+Last-Modified: Mon, 12 Oct 2026 14:10:44 GMT
+Content-Type: text/plain
+Content-Length: 0
+
+## GET Range bytes=0-4
+HTTP/1.1 500 Server Error
+Content-Type: text/html;charset=utf-8
+Content-Length: 1351
+
+
+<html error page>
+
+## GET Range bytes=100-
+HTTP/1.1 500 Server Error
+Content-Type: text/html;charset=utf-8
+Content-Length: 1351
+
+
+<html error page>
+
+## If-None-Match "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+HTTP/1.1 304 Not Modified
+ETag: "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+Content-Disposition: attachment
+Content-Length: 0
+
+## If-Modified-Since Mon, 12 Oct 2026 14:10:44 GMT
+HTTP/1.1 304 Not Modified
+ETag: "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+Content-Disposition: attachment
+Content-Length: 0
+
+## GET missing
+HTTP/1.1 404 /dir/missing.txt
+Content-Disposition: attachment
+Content-Type: text/plain;charset=utf-8
+Content-Length: 16
+
+/dir/missing.txt
+## GET directory
+HTTP/1.1 404 You can?t browse this way
+Content-Type: text/plain;charset=utf-8
+Content-Length: 27
+
+You can’t browse this way
+## GET repo root
+HTTP/1.1 404 You can?t browse this way
+Content-Type: text/plain;charset=utf-8
+Content-Length: 27
+
+You can’t browse this way
+## GET unknown repo
+HTTP/1.1 404 Repository not found
+Content-Type: text/plain;charset=utf-8
+Content-Length: 20
+
+Repository not found
+## GET anonymous (anonymous off)
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: BASIC realm="GlobalArt Astrum Repository Manager"
+Content-Length: 0
+
+## components
+{
+  "items" : [ {
+    "id" : "bTItcHJvYmU6YmUxZTA4Y2U",
+    "repository" : "m2-probe",
+    "format" : "raw",
+    "group" : "/dir",
+    "name" : "/dir/hello.txt",
+    "version" : "",
+    "assets" : [ {
+      "downloadUrl" : "http://127.0.0.1:8081/repository/m2-probe/dir/hello.txt",
+      "path" : "/dir/hello.txt",
+      "id" : "bTItcHJvYmU6YmUxZTA4Y2U",
+      "repository" : "m2-probe",
+      "format" : "raw",
+      "checksum" : {
+        "md5" : "d41d8cd98f00b204e9800998ecf8427e",
+        "sha1" : "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha512" : "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+      },
+      "contentType" : "text/plain",
+      "lastModified" : "2026-10-12T14:10:44.269+00:00",
+      "lastDownloaded" : "2026-10-12T14:10:44.345+00:00",
+      "uploader" : "admin",
+      "uploaderIp" : "127.0.0.1",
+      "fileSize" : 0,
+      "blobCreated" : "2026-10-12T14:10:44.273+00:00",
+      "blobStoreName" : "default",
+      "blobUpdated" : "2026-10-12T14:10:44.269+00:00",
+      "blobRef" : "default@5b126f4d-7edf-4b93-a133-1a9639e7bcff@2026-10-12T14:10",
+      "lastVerified" : null,
+      "downloadCount" : 1,
+      "registryUrl" : null,
+      "raw" : { }
+    } ]
+  } ],
+  "continuationToken" : null
+}
+## assets
+{
+  "items" : [ {
+    "downloadUrl" : "http://127.0.0.1:8081/repository/m2-probe/dir/hello.txt",
+    "path" : "/dir/hello.txt",
+    "id" : "bTItcHJvYmU6YmUxZTA4Y2U",
+    "repository" : "m2-probe",
+    "format" : "raw",
+    "checksum" : {
+      "md5" : "d41d8cd98f00b204e9800998ecf8427e",
+      "sha1" : "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha512" : "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+    },
+    "contentType" : "text/plain",
+    "lastModified" : "2026-10-12T14:10:44.269+00:00",
+    "lastDownloaded" : "2026-10-12T14:10:44.345+00:00",
+    "uploader" : "admin",
+    "uploaderIp" : "127.0.0.1",
+    "fileSize" : 0,
+    "blobCreated" : "2026-10-12T14:10:44.273+00:00",
+    "blobStoreName" : "default",
+    "blobUpdated" : "2026-10-12T14:10:44.269+00:00",
+    "blobRef" : "default@5b126f4d-7edf-4b93-a133-1a9639e7bcff@2026-10-12T14:10",
+    "lastVerified" : null,
+    "downloadCount" : 1,
+    "registryUrl" : null,
+    "raw" : { }
+  } ],
+  "continuationToken" : null
+}
+## search
+{
+  "items" : [ {
+    "id" : "bTItcHJvYmU6YmUxZTA4Y2U",
+    "repository" : "m2-probe",
+    "format" : "raw",
+    "group" : "/dir",
+    "name" : "/dir/hello.txt",
+    "version" : "",
+    "assets" : [ {
+      "downloadUrl" : "http://127.0.0.1:8081/repository/m2-probe/dir/hello.txt",
+      "path" : "/dir/hello.txt",
+      "id" : "bTItcHJvYmU6YmUxZTA4Y2U",
+      "repository" : "m2-probe",
+      "format" : "raw",
+      "checksum" : {
+        "md5" : "d41d8cd98f00b204e9800998ecf8427e",
+        "sha1" : "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha512" : "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+      },
+      "contentType" : "text/plain",
+      "lastModified" : "2026-10-12T14:10:44.269+00:00",
+      "lastDownloaded" : "2026-10-12T14:10:44.345+00:00",
+      "uploader" : "admin",
+      "uploaderIp" : "127.0.0.1",
+      "fileSize" : 0,
+      "blobCreated" : "2026-10-12T14:10:44.273+00:00",
+      "blobStoreName" : "default",
+      "blobUpdated" : "2026-10-12T14:10:44.269+00:00",
+      "blobRef" : "default@5b126f4d-7edf-4b93-a133-1a9639e7bcff@2026-10-12T14:10",
+      "lastVerified" : null,
+      "downloadCount" : null,
+      "registryUrl" : null,
+      "raw" : { }
+    } ]
+  } ],
+  "continuationToken" : null
+}
+## search/assets q=hello
+{
+  "items" : [ {
+    "downloadUrl" : "http://127.0.0.1:8081/repository/m2-probe/dir/hello.txt",
+    "path" : "/dir/hello.txt",
+    "id" : "bTItcHJvYmU6YmUxZTA4Y2U",
+    "repository" : "m2-probe",
+    "format" : "raw",
+    "checksum" : {
+      "md5" : "d41d8cd98f00b204e9800998ecf8427e",
+      "sha1" : "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha512" : "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+    },
+    "contentType" : "text/plain",
+    "lastModified" : "2026-10-12T14:10:44.269+00:00",
+    "lastDownloaded" : "2026-10-12T14:10:44.345+00:00",
+    "uploader" : "admin",
+    "uploaderIp" : "127.0.0.1",
+    "fileSize" : 0,
+    "blobCreated" : "2026-10-12T14:10:44.273+00:00",
+    "blobStoreName" : "default",
+    "blobUpdated" : "2026-10-12T14:10:44.269+00:00",
+    "blobRef" : "default@5b126f4d-7edf-4b93-a133-1a9639e7bcff@2026-10-12T14:10",
+    "lastVerified" : null,
+    "downloadCount" : null,
+    "registryUrl" : null,
+    "raw" : { }
+  } ],
+  "continuationToken" : null
+}
+## browse HTML
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+Content-Length: 120
+
+{
+  "status-code" : 404,
+  "siesta-faultid" : "c8e66625-6825-4589-87d9-1d96d78d9e8b",
+  "status-message" : "NOT_FOUND"
+}
+## DELETE
+HTTP/1.1 204 No Content
+
+## DELETE again
+HTTP/1.1 404 /dir/hello.txt
+Content-Type: text/plain;charset=utf-8
+Content-Length: 14
+
+/dir/hello.txt
+## offline repo GET
+HTTP/1.1 503 Repository offline
+Content-Type: text/plain;charset=utf-8
+Content-Length: 18
+
+Repository offline
+## upload specs
+{
+  "format" : "raw",
+  "multipleUpload" : true,
+  "componentFields" : [ {
+    "name" : "directory",
+    "type" : "STRING",
+    "description" : "Destination for uploaded files (e.g. /path/to/files/)",
+    "optional" : false,
+    "group" : "Component attributes",
+    "groupHelpText" : null,
+    "options" : null
+  } ],
+  "assetFields" : [ {
+    "name" : "filename",
+    "type" : "STRING",
+    "description" : null,
+    "optional" : false,
+    "group" : null,
+    "groupHelpText" : null,
+    "options" : null
+  }, {
+    "name" : "asset",
+    "type" : "FILE",
+    "description" : null,
+    "optional" : false,
+    "group" : null,
+    "groupHelpText" : null,
+    "options" : null
+  } ]
+}
+online again 204
+## PUT -T hello.txt (12 bytes)
+HTTP/1.1 201 Created
+Content-Length: 0
+
+## PUT again (ALLOW)
+HTTP/1.1 201 Created
+Content-Length: 0
+
+## GET
+HTTP/1.1 200 OK
+ETag: "22596363b3de40b06f981fb85d82312e8c0ed511"
+Content-Disposition: inline
+Last-Modified: Mon, 12 Oct 2026 14:11:11 GMT
+Content-Type: text/plain
+Content-Length: 12
+
+hello world
+## Range 0-4
+HTTP/1.1 206 Partial Content
+ETag: "22596363b3de40b06f981fb85d82312e8c0ed511"
+Content-Range: bytes 0-4/12
+Content-Disposition: inline
+Last-Modified: Mon, 12 Oct 2026 14:11:11 GMT
+Content-Type: text/plain
+Content-Length: 5
+
+hello
+## Range 6-
+HTTP/1.1 206 Partial Content
+ETag: "22596363b3de40b06f981fb85d82312e8c0ed511"
+Content-Range: bytes 6-11/12
+Content-Disposition: inline
+Last-Modified: Mon, 12 Oct 2026 14:11:11 GMT
+Content-Type: text/plain
+Content-Length: 6
+
+world
+## Range -3
+HTTP/1.1 206 Partial Content
+ETag: "22596363b3de40b06f981fb85d82312e8c0ed511"
+Content-Range: bytes 9-11/12
+Content-Disposition: inline
+Last-Modified: Mon, 12 Oct 2026 14:11:11 GMT
+Content-Type: text/plain
+Content-Length: 3
+
+ld
+## Range 100-
+HTTP/1.1 416 Range Not Satisfiable
+Content-Disposition: inline
+Content-Type: text/html;charset=utf-8
+Content-Length: 1394
+
+
+<html error page>
+
+## Range multi
+HTTP/1.1 200 OK
+ETag: "22596363b3de40b06f981fb85d82312e8c0ed511"
+Content-Disposition: inline
+Last-Modified: Mon, 12 Oct 2026 14:11:11 GMT
+Content-Type: text/plain
+Content-Length: 12
+
+hello world
+## json file type
+201
+HTTP/1.1 200 OK
+ETag: "9f89c740ceb46d7418c924a78ac57941d5e96520"
+Last-Modified: Mon, 12 Oct 2026 14:11:12 GMT
+Content-Type: application/json
+Content-Length: 7
+
+## jar with text content (strict content type)
+HTTP/1.1 400 Detected content type [text/plain], but expected [application/java-archive]: /lib.jar
+Content-Type: text/plain;charset=utf-8
+Content-Length: 85
+
+Detected content type [text/plain], but expected [application/java-archive]: /lib.jar
+## path with spaces and plus
+201
+get 200
+## double slash
+200
+## POST to content path
+HTTP/1.1 405 POST
+Allow: GET,HEAD,PUT,DELETE
+Content-Type: text/plain;charset=utf-8
+Content-Length: 4
+
+## components after
+/a/b /a/b/hello.txt  ['/a/b/hello.txt']
+/ /x.json  ['/x.json']
+/ /lib.jar  []
+/sp ace /sp ace/a+b.txt  ['/sp ace/a+b.txt']
+## browse html
+## search/assets/download
+HTTP/1.1 404 Not Found
+Content-Type: text/plain;charset=utf-8
+Content-Length: 69
+
+## delete component
+204
+## get deleted component
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+Content-Length: 120
+
+{
+## upload via components API (raw)
+HTTP/1.1 204 No Content
+
+
