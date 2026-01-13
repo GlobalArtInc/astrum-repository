@@ -1,0 +1,108 @@
+
+package org.globalart.astrum.audit.internal;
+
+import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.audit.AuditData;
+import org.globalart.astrum.audit.AuditDataRecordedEvent;
+import org.globalart.astrum.audit.AuditRecorder;
+import org.globalart.astrum.audit.InitiatorProvider;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.common.node.NodeAccess;
+import org.globalart.astrum.security.UserIdHelper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.logging.task.TaskLoggingMarkers.AUDIT_LOG_ONLY;
+import org.springframework.stereotype.Component;
+
+/**
+ * Default {@link AuditRecorder} implementation.
+ *
+ * @since 3.1
+ */
+@Component
+public class AuditRecorderImpl
+    implements AuditRecorder
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private final EventManager eventManager;
+
+  private final NodeAccess nodeAccess;
+
+  private final InitiatorProvider initiatorProvider;
+
+  private final Logger auditLogger = LoggerFactory.getLogger("auditlog");
+
+  private volatile boolean enabled = false;
+
+  @Autowired
+  public AuditRecorderImpl(
+      final EventManager eventManager,
+      final NodeAccess nodeAccess,
+      final InitiatorProvider initiatorProvider)
+  {
+    this.eventManager = eventManager;
+    this.nodeAccess = nodeAccess;
+    this.initiatorProvider = initiatorProvider;
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return enabled;
+  }
+
+  public void setEnabled(final boolean enabled) {
+    this.enabled = enabled;
+  }
+
+  @Override
+  public void record(final AuditData data) {
+    checkNotNull(data);
+    checkNotNull(data.getDomain());
+    checkNotNull(data.getType());
+
+    if (enabled) {
+      // fill in timestamp, node-id and initiator if missing
+      if (data.getTimestamp() == null) {
+        data.setTimestamp(new Date());
+      }
+      if (data.getNodeId() == null) {
+        data.setNodeId(nodeAccess.getId());
+      }
+      if (data.getInitiator() == null) {
+        String initiator = initiatorProvider.get();
+        if (initiator.contains(UserIdHelper.UNKNOWN)) {
+          setInitiator(data, initiator);
+        }
+        else {
+          data.setInitiator(initiator);
+        }
+      }
+
+      try {
+        auditLogger.info(AUDIT_LOG_ONLY, new AuditDTO(data).toString());
+
+        eventManager.post(new AuditDataRecordedEvent(data));
+      }
+      catch (Exception e) {
+        log.warn("Failed to record audit data", e);
+      }
+    }
+  }
+
+  private void setInitiator(final AuditData data, final String initiator) {
+    if (data.getAttributes().containsKey("principal")) {
+      String newInitiator = initiator.replace(UserIdHelper.UNKNOWN, data.getAttributes().get("principal").toString());
+      data.setInitiator(newInitiator);
+    }
+    else {
+      data.setInitiator(initiator);
+    }
+  }
+
+}
