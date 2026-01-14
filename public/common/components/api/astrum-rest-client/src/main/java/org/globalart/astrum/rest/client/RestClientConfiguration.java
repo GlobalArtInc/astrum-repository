@@ -1,0 +1,68 @@
+
+package org.globalart.astrum.rest.client;
+
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+import jakarta.ws.rs.core.Configurable;
+
+import org.apache.http.client.HttpClient;
+
+/**
+ * REST client configuration.
+ *
+ * @since 3.1
+ */
+public class RestClientConfiguration
+{
+  // NOTE: Exposing JAX-RS api here to simplify advanced client semantics
+
+  public interface Customizer
+  {
+    void apply(Configurable<?> builder);
+  }
+
+  public static final RestClientConfiguration DEFAULTS = new RestClientConfiguration(null, null, false);
+
+  private final Supplier<HttpClient> httpClient;
+
+  private final Customizer customizer;
+
+  private final boolean useTrustStore;
+
+  private RestClientConfiguration(
+      @Nullable final Supplier<HttpClient> httpClient,
+      @Nullable final Customizer customizer,
+      final boolean useTrustStore)
+  {
+    this.httpClient = httpClient;
+    this.customizer = customizer;
+    this.useTrustStore = useTrustStore;
+  }
+
+  public RestClientConfiguration withHttpClient(@Nullable final Supplier<HttpClient> httpClient) {
+    return new RestClientConfiguration(httpClient, customizer, useTrustStore);
+  }
+
+  @Nullable
+  public Supplier<HttpClient> getHttpClient() {
+    return httpClient;
+  }
+
+  public RestClientConfiguration withCustomizer(@Nullable final Customizer customizer) {
+    return new RestClientConfiguration(httpClient, customizer, useTrustStore);
+  }
+
+  @Nullable
+  public Customizer getCustomizer() {
+    return customizer;
+  }
+
+  public RestClientConfiguration withUseTrustStore(final boolean useTrustStore) {
+    return new RestClientConfiguration(httpClient, customizer, useTrustStore);
+  }
+
+  public boolean getUseTrustStore() {
+    return useTrustStore;
+  }
+}
