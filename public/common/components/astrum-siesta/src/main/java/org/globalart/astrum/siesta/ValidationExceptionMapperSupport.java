@@ -1,0 +1,83 @@
+
+package org.globalart.astrum.siesta;
+
+import java.util.List;
+
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.GenericEntity;
+import jakarta.ws.rs.core.Request;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Variant;
+
+import org.globalart.astrum.rest.ExceptionMapperSupport;
+import org.globalart.astrum.rest.ValidationErrorXO;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+import static org.globalart.astrum.rest.MediaTypes.VND_VALIDATION_ERRORS_V1_JSON_TYPE;
+import static org.globalart.astrum.rest.MediaTypes.VND_VALIDATION_ERRORS_V1_XML_TYPE;
+
+/**
+ * Support class for exception mappers returning {@link Status#BAD_REQUEST} with {@link ValidationErrorXO}s in body.
+ *
+ * @since 3.0
+ */
+public abstract class ValidationExceptionMapperSupport<E extends Throwable>
+    extends ExceptionMapperSupport<E>
+{
+  private final List<Variant> variants;
+
+  public ValidationExceptionMapperSupport() {
+    this.variants = Variant.mediaTypes(
+        VND_VALIDATION_ERRORS_V1_JSON_TYPE,
+        VND_VALIDATION_ERRORS_V1_XML_TYPE,
+        APPLICATION_JSON_TYPE).add().build();
+  }
+
+  @Override
+  protected Response convert(final E exception, final String id) {
+    final Response.ResponseBuilder builder = Response.status(getStatus(exception));
+
+    final List<ValidationErrorXO> errors = getValidationErrors(exception);
+    if (errors != null && !errors.isEmpty()) {
+      final Variant variant = getRequest().selectVariant(variants);
+      if (variant != null) {
+        builder.type(variant.getMediaType())
+            .entity(
+                new GenericEntity<List<ValidationErrorXO>>(errors)
+                {
+                  @Override
+                  public String toString() {
+                    return getEntity().toString();
+                  }
+                });
+      }
+    }
+
+    return builder.build();
+  }
+
+  protected Status getStatus(final E exception) {
+    return Status.BAD_REQUEST;
+  }
+
+  protected abstract List<ValidationErrorXO> getValidationErrors(final E exception);
+
+  //
+  // Helpers
+  //
+
+  private Request request;
+
+  @Context
+  public void setRequest(final Request request) {
+    this.request = checkNotNull(request);
+  }
+
+  protected Request getRequest() {
+    checkState(request != null);
+    return request;
+  }
+}

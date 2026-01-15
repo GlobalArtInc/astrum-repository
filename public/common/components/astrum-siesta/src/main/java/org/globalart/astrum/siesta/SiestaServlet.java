@@ -1,0 +1,102 @@
+
+package org.globalart.astrum.siesta;
+
+import java.io.IOException;
+
+import org.springframework.beans.factory.annotation.Autowired;
+// ASTRUM-46395: javax.servlet → jakarta.servlet for RESTEasy 7 / Jakarta EE 10.
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebInitParam;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.ext.RuntimeDelegate;
+
+import org.globalart.astrum.rest.Component;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Siesta servlet.
+ *
+ * This is a thin wrapper around {@link ComponentContainer} which also handles {@link Component} registration.
+ *
+ * @since 3.0
+ */
+@org.springframework.stereotype.Component
+@WebServlet(urlPatterns = SiestaServlet.REST_SERVICE_MP + "/*",
+    initParams = @WebInitParam(name = "resteasy.servlet.mapping.prefix", value = SiestaServlet.REST_SERVICE_MP))
+public class SiestaServlet
+    extends HttpServlet
+{
+  public static final String REST_SERVICE_MP = "/service/rest";
+
+  private final Logger log = LoggerFactory.getLogger(getClass());
+
+  private final ComponentContainer componentContainer;
+
+  @Autowired
+  public SiestaServlet(final ComponentContainer componentContainer) {
+    this.componentContainer = checkNotNull(componentContainer);
+
+    log.debug("Component container: {}", componentContainer);
+  }
+
+  @Override
+  public void init(final ServletConfig config) throws ServletException {
+    super.init(config);
+
+    // TODO: Figure out what version of RESTEasy is used and log it
+
+    // Initialize container
+    componentContainer.init(config);
+    log.info("JAX-RS RuntimeDelegate: {}", RuntimeDelegate.getInstance());
+    log.info("Initialized");
+  }
+
+  @Override
+  public void service(
+      final HttpServletRequest request,
+      final HttpServletResponse response) throws ServletException, IOException
+  {
+    checkNotNull(request);
+    checkNotNull(response);
+
+    // Log the request URI+URL muck
+    String uri = request.getRequestURI();
+    if (request.getQueryString() != null) {
+      uri = String.format("%s?%s", uri, request.getQueryString());
+    }
+
+    if (log.isDebugEnabled()) {
+      log.debug("Processing: {} {} ({})", request.getMethod(), uri, request.getRequestURL());
+    }
+
+    if (log.isTraceEnabled()) {
+      log.trace("Context path: {}", request.getContextPath());
+      log.trace("Servlet path: {}", request.getServletPath());
+    }
+
+    MDC.put(getClass().getName(), uri);
+    try {
+      componentContainer.service(request, response);
+    }
+    finally {
+      MDC.remove(getClass().getName());
+    }
+  }
+
+  @Override
+  public void destroy() {
+    componentContainer.destroy();
+    super.destroy();
+
+    log.info("Destroyed");
+  }
+}
