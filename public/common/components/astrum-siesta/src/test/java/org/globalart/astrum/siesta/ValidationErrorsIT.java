@@ -1,0 +1,85 @@
+
+package org.globalart.astrum.siesta;
+
+import java.util.List;
+
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.GenericType;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response.StatusType;
+
+import org.globalart.astrum.rest.ValidationErrorXO;
+
+import org.junit.jupiter.api.Test;
+
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_XML_TYPE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.globalart.astrum.rest.MediaTypes.VND_VALIDATION_ERRORS_V1_JSON_TYPE;
+import static org.globalart.astrum.rest.MediaTypes.VND_VALIDATION_ERRORS_V1_XML_TYPE;
+
+/**
+ * Validation error response handling tests.
+ */
+class ValidationErrorsIT
+    extends SiestaTestSupport
+{
+  @Test
+  void put_multiple_manual_validations_XML() throws Exception {
+    put_multiple_manual_validations(APPLICATION_XML_TYPE, VND_VALIDATION_ERRORS_V1_XML_TYPE);
+  }
+
+  @Test
+  void put_multiple_manual_validations_JSON() throws Exception {
+    put_multiple_manual_validations(APPLICATION_JSON_TYPE, VND_VALIDATION_ERRORS_V1_JSON_TYPE);
+  }
+
+  private void put_multiple_manual_validations(final MediaType... mediaTypes) throws Exception {
+    UserXO sent = new UserXO();
+
+    Response response = client().target(url("validationErrors/manual/multiple"))
+        .request()
+        .accept(mediaTypes)
+        .put(Entity.entity(sent, mediaTypes[0]), Response.class);
+
+    assertThat(response.getStatusInfo(), is(equalTo((StatusType) Status.BAD_REQUEST)));
+    assertThat(response.getMediaType(), is(equalTo(mediaTypes[1])));
+
+    List<ValidationErrorXO> errors = response.readEntity(new GenericType<List<ValidationErrorXO>>()
+    {
+    });
+    assertThat(errors, hasSize(2));
+  }
+
+  @Test
+  void put_single_manual_validation_XML() throws Exception {
+    put_single_manual_validation(APPLICATION_XML_TYPE, VND_VALIDATION_ERRORS_V1_XML_TYPE);
+  }
+
+  @Test
+  void put_single_manual_validation_JSON() throws Exception {
+    put_single_manual_validation(APPLICATION_JSON_TYPE, VND_VALIDATION_ERRORS_V1_JSON_TYPE);
+  }
+
+  private void put_single_manual_validation(final MediaType... mediaTypes) throws Exception {
+    UserXO sent = new UserXO();
+
+    Response response = client().target(url("validationErrors/manual/single"))
+        .request()
+        .accept(mediaTypes)
+        .put(Entity.entity(sent, mediaTypes[0]), Response.class);
+
+    assertThat(response.getStatusInfo(), is(equalTo((StatusType) Status.BAD_REQUEST)));
+    assertThat(response.getMediaType(), is(equalTo(mediaTypes[1])));
+
+    List<ValidationErrorXO> errors = response.readEntity(new GenericType<List<ValidationErrorXO>>()
+    {
+    });
+    assertThat(errors, hasSize(1));
+  }
+}
