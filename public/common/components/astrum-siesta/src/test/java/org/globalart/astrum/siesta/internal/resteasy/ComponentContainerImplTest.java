@@ -1,0 +1,85 @@
+
+package org.globalart.astrum.siesta.internal.resteasy;
+
+import java.io.IOException;
+
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.jboss.resteasy.spi.ResteasyDeployment;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationContext;
+
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class ComponentContainerImplTest
+{
+  private ComponentContainerImpl underTest;
+
+  @Mock
+  private ApplicationContext context;
+
+  @Mock
+  private ServletConfig servletConfig;
+
+  @Mock
+  private ServletContext servletContext;
+
+  @Mock
+  private ResteasyProviderFactory providerFactory;
+
+  @Mock
+  private ResteasyDeployment deployment;
+
+  @Mock
+  private HttpServletRequest request;
+
+  @Mock
+  private HttpServletResponse response;
+
+  @BeforeEach
+  void setup() throws ServletException {
+    when(servletConfig.getServletContext()).thenReturn(servletContext);
+    when(deployment.getProviderFactory()).thenReturn(providerFactory);
+    underTest = spy(new ComponentContainerImpl(deployment, context));
+    underTest.init(servletConfig);
+  }
+
+  @AfterEach
+  void teardown() {
+    underTest.destroy();
+  }
+
+  @Test
+  void testInit() {
+    verify(deployment).start();
+    verify(underTest, never()).destroy();
+    verify(deployment, never()).stop();
+  }
+
+  @Test
+  void testDestroy() {
+    underTest.destroy();
+    verify(underTest).destroy();
+    verify(deployment).stop();
+  }
+
+  @Test
+  void testService() throws ServletException, IOException {
+    underTest.service(request, response);
+    verify(request).getMethod();
+  }
+}
