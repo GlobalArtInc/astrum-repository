@@ -1,0 +1,107 @@
+
+package org.globalart.astrum.api.rest.common.blobstore.s3.model;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Schema.AccessMode;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+/**
+ * Encapsulates the objects used to specify the configuration for an s3 blob store.
+ *
+ * @since 3.20
+ */
+@JsonInclude(NON_NULL)
+public class S3BlobStoreApiBucketConfiguration
+{
+  public static final String FAILOVER_BUCKETS = "failoverBuckets";
+
+  public static final String ACTIVE_REGION = "activeRegion";
+
+  @Valid
+  @NotNull
+  @Schema(description = "Details of the S3 bucket such as name and region", requiredMode = Schema.RequiredMode.REQUIRED)
+  private final S3BlobStoreApiBucket bucket;
+
+  @Schema(description = "Security details for granting access the S3 API")
+  private final S3BlobStoreApiBucketSecurity bucketSecurity;
+
+  @Schema(description = "The type of encryption to use if any")
+  private final S3BlobStoreApiEncryption encryption;
+
+  @Schema(description = "A custom endpoint URL, signer type and whether path style access is enabled")
+  private final S3BlobStoreApiAdvancedBucketConnection advancedBucketConnection;
+
+  @Valid
+  @Nullable
+  @Schema(
+      description = "A list of secondary buckets which have bidirectional replication enabled and should be used when Astrum is running in the region",
+      accessMode = AccessMode.READ_WRITE)
+  private final List<S3BlobStoreApiFailoverBucket> failoverBuckets;
+
+  @Nullable
+  @Schema(
+      description = "The active region based on bucket configuration, failover buckets, and EC2 region Astrum is running.",
+      accessMode = AccessMode.READ_ONLY)
+  private final String activeRegion;
+
+  @Schema(description = "Whether pre assigned URL is enabled or not.", example = "true",
+      accessMode = AccessMode.READ_WRITE)
+  private final Boolean preSignedUrlEnabled;
+
+  public S3BlobStoreApiBucketConfiguration(
+      @JsonProperty("bucket") final S3BlobStoreApiBucket bucket,
+      @JsonProperty("security") final S3BlobStoreApiBucketSecurity bucketSecurity,
+      @JsonProperty("encryption") final S3BlobStoreApiEncryption encryption,
+      @JsonProperty("advancedConnection") final S3BlobStoreApiAdvancedBucketConnection advancedBucketConnection,
+      @Nullable @JsonProperty(FAILOVER_BUCKETS) final List<S3BlobStoreApiFailoverBucket> failoverBuckets,
+      @Nullable @JsonProperty(ACTIVE_REGION) final String activeRegion,
+      @Nullable @JsonProperty("preSignedUrlEnabled") final Boolean preSignedUrlEnabled)
+  {
+    this.bucket = bucket;
+    this.bucketSecurity = bucketSecurity;
+    this.encryption = encryption;
+    this.advancedBucketConnection = advancedBucketConnection;
+    this.failoverBuckets = failoverBuckets;
+    this.activeRegion = activeRegion;
+    this.preSignedUrlEnabled = preSignedUrlEnabled;
+  }
+
+  public S3BlobStoreApiBucket getBucket() {
+    return bucket;
+  }
+
+  public S3BlobStoreApiBucketSecurity getBucketSecurity() {
+    return bucketSecurity;
+  }
+
+  public S3BlobStoreApiEncryption getEncryption() {
+    return encryption;
+  }
+
+  public S3BlobStoreApiAdvancedBucketConnection getAdvancedBucketConnection() {
+    return advancedBucketConnection;
+  }
+
+  @Nullable
+  public List<S3BlobStoreApiFailoverBucket> getFailoverBuckets() {
+    return failoverBuckets;
+  }
+
+  @Nullable
+  public String getActiveRegion() {
+    return activeRegion;
+  }
+
+  public Boolean getPreSignedUrlEnabled() {
+    return preSignedUrlEnabled;
+  }
+}
