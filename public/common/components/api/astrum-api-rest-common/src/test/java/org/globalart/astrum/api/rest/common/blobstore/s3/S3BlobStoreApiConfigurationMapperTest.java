@@ -1,0 +1,327 @@
+
+package org.globalart.astrum.api.rest.common.blobstore.s3;
+
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.function.Function;
+
+import org.globalart.astrum.blobstore.MockBlobStoreConfiguration;
+import org.globalart.astrum.blobstore.api.BlobStoreConfiguration;
+import org.globalart.astrum.blobstore.s3.S3BlobStoreConfigurationHelper;
+import org.globalart.astrum.blobstore.s3.internal.S3BlobStore;
+import org.globalart.astrum.common.collect.NestedAttributesMap;
+
+import org.globalart.astrum.api.rest.common.blobstore.model.BlobStoreApiSoftQuota;
+import org.globalart.astrum.api.rest.common.blobstore.s3.model.S3BlobStoreApiAdvancedBucketConnection;
+import org.globalart.astrum.api.rest.common.blobstore.s3.model.S3BlobStoreApiBucket;
+import org.globalart.astrum.api.rest.common.blobstore.s3.model.S3BlobStoreApiBucketConfiguration;
+import org.globalart.astrum.api.rest.common.blobstore.s3.model.S3BlobStoreApiBucketSecurity;
+import org.globalart.astrum.api.rest.common.blobstore.s3.model.S3BlobStoreApiEncryption;
+import org.globalart.astrum.api.rest.common.blobstore.s3.model.S3BlobStoreApiModel;
+
+import com.google.common.collect.ImmutableMap;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.when;
+import static org.globalart.astrum.blobstore.quota.BlobStoreQuotaSupport.LIMIT_KEY;
+import static org.globalart.astrum.blobstore.quota.BlobStoreQuotaSupport.ROOT_KEY;
+import static org.globalart.astrum.blobstore.quota.BlobStoreQuotaSupport.TYPE_KEY;
+import static org.globalart.astrum.blobstore.s3.S3BlobStoreConfigurationHelper.BUCKET_KEY;
+import static org.globalart.astrum.blobstore.s3.S3BlobStoreConfigurationHelper.BUCKET_PREFIX_KEY;
+import static org.globalart.astrum.blobstore.s3.S3BlobStoreConfigurationHelper.CONFIG_KEY;
+import static org.globalart.astrum.blobstore.s3.S3BlobStoreConfigurationHelper.FAILOVER_BUCKETS_KEY;
+import static org.globalart.astrum.blobstore.s3.internal.S3BlobStore.PRE_SIGNED_URL_ENABLED;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class S3BlobStoreApiConfigurationMapperTest
+{
+  private static final String BLOB_STORE_NAME = "anS3BlobStore";
+
+  private static final String QUOTA_TYPE = "spaceRemainingQuota";
+
+  private static final String S3_BUCKET_NAME = "theBucket";
+
+  private static final String BUCKET_PREFIX = "special_bucket";
+
+  private static final String AWS_REGION = "aws-region-1";
+
+  private static final String FAIL_OVER_REGION_1 = "failover-region-1";
+
+  private static final String FAIL_OVER_REGION_2 = "failover-region-2";
+
+  private static final String AN_IAM_ACCESS_KEY = "anAccessKey";
+
+  private static final String AN_IAM_SECRET_ACCESS_KEY = "aSecretAccessKey";
+
+  private static final String AN_IAM_ROLE = "anIamRole";
+
+  private static final String AN_IAM_SESSION_TOKEN = "anIamSessionToken";
+
+  private static final String S3_MANAGED_ENCRYPTION = "s3ManagedEncryption";
+
+  private static final String SUPER_SECURE_ENCRYPTION_KEY = "supersecurekey";
+
+  private static final String S3_ENDPOINT_URL = "s3://superbucketendpoint";
+
+  private static final String S3_SIGNER_TYPE = "s3SignerType";
+
+  private static final boolean FORCE_PATH_STYLE = true;
+
+  private static final int MAX_CONNECTION_POOL = 5;
+
+  private static final int QUOTA_LIMIT = 2;
+
+  private MockedStatic<DefaultAwsRegionProviderChain> regionProviderMock;
+
+  @Mock
+  private Region regionMock;
+
+  private Function<BlobStoreConfiguration, S3BlobStoreApiModel> underTest =
+      S3BlobStoreApiConfigurationMapper::map;
+
+  @Before
+  public void setup() throws Exception {
+    resetS3BlobStoreConfigHelper();
+
+    // Mock the static DefaultAwsRegionProviderChain
+    regionProviderMock = Mockito.mockStatic(DefaultAwsRegionProviderChain.class);
+
+    // Create a mock builder and chain
+    DefaultAwsRegionProviderChain.Builder mockBuilder = Mockito.mock(DefaultAwsRegionProviderChain.Builder.class);
+    DefaultAwsRegionProviderChain mockChain = Mockito.mock(DefaultAwsRegionProviderChain.class);
+
+    when(mockBuilder.build()).thenReturn(mockChain);
+    when(mockChain.getRegion()).thenReturn(regionMock);
+    when(regionMock.id()).thenReturn(AWS_REGION);
+
+    regionProviderMock.when(DefaultAwsRegionProviderChain::builder).thenReturn(mockBuilder);
+  }
+
+  @After
+  public void tearDown() {
+    if (regionProviderMock != null) {
+      regionProviderMock.close();
+    }
+  }
+
+  @Test
+  public void testCopyNonNullAttributes() {
+    BlobStoreConfiguration configuration = aMinimalBlobStoreConfiguration();
+
+    S3BlobStoreApiModel model = underTest.apply(configuration);
+    S3BlobStoreApiBucketConfiguration bucketConfiguration = model.getBucketConfiguration();
+
+    assertThat(model.getName(), is(BLOB_STORE_NAME));
+    assertRequiredBucketDetails(bucketConfiguration.getBucket());
+    assertThat(model.getSoftQuota(), nullValue());
+    assertThat(bucketConfiguration.getPreSignedUrlEnabled(), nullValue());
+    assertThat(bucketConfiguration.getBucketSecurity(), nullValue());
+    assertThat(bucketConfiguration.getEncryption(), nullValue());
+    assertThat(bucketConfiguration.getAdvancedBucketConnection(), nullValue());
+    assertThat(bucketConfiguration.getActiveRegion(), is(AWS_REGION));
+  }
+
+  @Test
+  public void shouldCopyPreSignedUrlWhenItIsSet() {
+    BlobStoreConfiguration configuration = aMinimalBlobStoreConfiguration();
+
+    configuration.attributes(CONFIG_KEY).set(PRE_SIGNED_URL_ENABLED, true);
+    assertThat(underTest.apply(configuration).getBucketConfiguration().getPreSignedUrlEnabled(), is(true));
+
+    configuration.attributes(CONFIG_KEY).set(PRE_SIGNED_URL_ENABLED, false);
+    assertThat(underTest.apply(configuration).getBucketConfiguration().getPreSignedUrlEnabled(), is(false));
+  }
+
+  @Test
+  public void testConvertConfigurationToModel() {
+    BlobStoreConfiguration configuration = aFullySetBlobStoreConfiguration();
+
+    S3BlobStoreApiModel model = underTest.apply(configuration);
+    S3BlobStoreApiBucketConfiguration bucketConfiguration = model.getBucketConfiguration();
+
+    assertThat(model.getName(), is(BLOB_STORE_NAME));
+    assertSoftQuota(model.getSoftQuota());
+    assertRequiredBucketDetails(bucketConfiguration.getBucket());
+    assertBucketSecurityDetails(bucketConfiguration.getBucketSecurity());
+    assertBucketEncryptionDetails(bucketConfiguration.getEncryption());
+    assertBucketAdvancedConnectionDetails(bucketConfiguration.getAdvancedBucketConnection());
+    assertThat(bucketConfiguration.getActiveRegion(), is(AWS_REGION));
+  }
+
+  @Test
+  public void testConvertConfigurationToModelEmptyStringMaxConnection() {
+    BlobStoreConfiguration configuration = aFullySetBlobStoreConfigurationWithEmptyStringMaxConnection();
+    S3BlobStoreApiModel model = underTest.apply(configuration);
+    S3BlobStoreApiBucketConfiguration bucketConfiguration = model.getBucketConfiguration();
+    assertThat(bucketConfiguration.getAdvancedBucketConnection().getMaxConnectionPoolSize(), nullValue());
+  }
+
+  @Test
+  public void testConvertConfigurationToModelWithFailoverBuckets() throws Exception {
+    when(regionMock.id()).thenReturn(FAIL_OVER_REGION_1);
+
+    BlobStoreConfiguration configuration = aFullySetBlobStoreConfiguration();
+    S3BlobStoreApiModel model = underTest.apply(configuration);
+    S3BlobStoreApiBucketConfiguration bucketConfiguration = model.getBucketConfiguration();
+
+    assertThat(bucketConfiguration.getFailoverBuckets(), notNullValue());
+    assertThat(bucketConfiguration.getFailoverBuckets().size(), is(2));
+    assertThat(bucketConfiguration.getFailoverBuckets().get(0).getRegion(), is(FAIL_OVER_REGION_1));
+    assertThat(bucketConfiguration.getFailoverBuckets().get(0).getBucketName(), is("bucket-1"));
+    assertThat(bucketConfiguration.getFailoverBuckets().get(1).getRegion(), is(FAIL_OVER_REGION_2));
+    assertThat(bucketConfiguration.getFailoverBuckets().get(1).getBucketName(), is("bucket-2"));
+
+    assertThat(bucketConfiguration.getActiveRegion(), is(FAIL_OVER_REGION_1));
+
+    resetS3BlobStoreConfigHelper();
+    when(regionMock.id()).thenReturn(FAIL_OVER_REGION_2);
+    model = underTest.apply(configuration);
+    bucketConfiguration = model.getBucketConfiguration();
+
+    assertThat(bucketConfiguration.getActiveRegion(), is(FAIL_OVER_REGION_2));
+  }
+
+  private static BlobStoreConfiguration aMinimalBlobStoreConfiguration() {
+    BlobStoreConfiguration configuration = new MockBlobStoreConfiguration();
+    configuration.setType(S3BlobStore.TYPE);
+    configuration.setName(BLOB_STORE_NAME);
+    fillRequiredBucketAttributes(configuration.attributes(CONFIG_KEY));
+    return configuration;
+  }
+
+  private static BlobStoreConfiguration aFullySetBlobStoreConfiguration() {
+    BlobStoreConfiguration configuration = new MockBlobStoreConfiguration();
+    configuration.setType(S3BlobStore.TYPE);
+    configuration.setName(BLOB_STORE_NAME);
+    createSoftQuota(configuration);
+    NestedAttributesMap bucketAttributes = configuration.attributes(CONFIG_KEY);
+    fillRequiredBucketAttributes(bucketAttributes);
+    fillOptionalBucketDetails(bucketAttributes);
+    return configuration;
+  }
+
+  private static BlobStoreConfiguration aFullySetBlobStoreConfigurationWithEmptyStringMaxConnection() {
+    BlobStoreConfiguration configuration = new MockBlobStoreConfiguration();
+    configuration.setType(S3BlobStore.TYPE);
+    configuration.setName(BLOB_STORE_NAME);
+    createSoftQuota(configuration);
+    NestedAttributesMap bucketAttributes = configuration.attributes(CONFIG_KEY);
+    fillRequiredBucketAttributes(bucketAttributes);
+    fillOptionalBucketDetailsEmptyStringMaxConnection(bucketAttributes);
+    return configuration;
+  }
+
+  private static void createSoftQuota(final BlobStoreConfiguration configuration) {
+    NestedAttributesMap softQuotaAttributes = configuration.attributes(ROOT_KEY);
+    softQuotaAttributes.set(TYPE_KEY, QUOTA_TYPE);
+    softQuotaAttributes.set(LIMIT_KEY, QUOTA_LIMIT);
+  }
+
+  private static void fillRequiredBucketAttributes(final NestedAttributesMap bucketAttributes) {
+    bucketAttributes.set(S3BlobStore.REGION_KEY, AWS_REGION);
+    bucketAttributes.set(BUCKET_KEY, S3_BUCKET_NAME);
+    bucketAttributes.set(BUCKET_PREFIX_KEY, BUCKET_PREFIX);
+  }
+
+  private static void fillOptionalBucketDetails(final NestedAttributesMap bucketAttributes) {
+    fillBucketSecurityDetails(bucketAttributes);
+    fillBucketEncryptionDetails(bucketAttributes);
+    fillBucketAdvancedConnectionDetails(bucketAttributes);
+    fillFailoverBucketDetails(bucketAttributes);
+  }
+
+  private static void fillOptionalBucketDetailsEmptyStringMaxConnection(final NestedAttributesMap bucketAttributes) {
+    fillBucketSecurityDetails(bucketAttributes);
+    fillBucketEncryptionDetails(bucketAttributes);
+    fillBucketAdvancedConnectionDetailsEmptyStringMaxConnection(bucketAttributes);
+  }
+
+  private static void fillBucketSecurityDetails(final NestedAttributesMap bucketAttributes) {
+    bucketAttributes.set(S3BlobStore.ACCESS_KEY_ID_KEY, AN_IAM_ACCESS_KEY);
+    bucketAttributes.set(S3BlobStore.SECRET_ACCESS_KEY_KEY, AN_IAM_SECRET_ACCESS_KEY);
+    bucketAttributes.set(S3BlobStore.ASSUME_ROLE_KEY, AN_IAM_ROLE);
+    bucketAttributes.set(S3BlobStore.SESSION_TOKEN_KEY, AN_IAM_SESSION_TOKEN);
+  }
+
+  private static void fillBucketEncryptionDetails(final NestedAttributesMap bucketAttributes) {
+    bucketAttributes.set(S3BlobStore.ENCRYPTION_TYPE, S3_MANAGED_ENCRYPTION);
+    bucketAttributes.set(S3BlobStore.ENCRYPTION_KEY, SUPER_SECURE_ENCRYPTION_KEY);
+  }
+
+  private static void fillBucketAdvancedConnectionDetails(final NestedAttributesMap bucketAttributes) {
+    bucketAttributes.set(S3BlobStore.ENDPOINT_KEY, S3_ENDPOINT_URL);
+    bucketAttributes.set(S3BlobStore.SIGNERTYPE_KEY, S3_SIGNER_TYPE);
+    bucketAttributes.set(S3BlobStore.FORCE_PATH_STYLE_KEY, FORCE_PATH_STYLE);
+    bucketAttributes.set(S3BlobStore.MAX_CONNECTION_POOL_KEY, MAX_CONNECTION_POOL);
+  }
+
+  private static void fillFailoverBucketDetails(final NestedAttributesMap bucketAttributes) {
+    Map<String, String> failoverBuckets =
+        ImmutableMap.of(FAIL_OVER_REGION_1, "bucket-1", FAIL_OVER_REGION_2, "bucket-2");
+    bucketAttributes.set(FAILOVER_BUCKETS_KEY, failoverBuckets);
+  }
+
+  private static void fillBucketAdvancedConnectionDetailsEmptyStringMaxConnection(
+      final NestedAttributesMap bucketAttributes)
+  {
+    bucketAttributes.set(S3BlobStore.ENDPOINT_KEY, S3_ENDPOINT_URL);
+    bucketAttributes.set(S3BlobStore.SIGNERTYPE_KEY, S3_SIGNER_TYPE);
+    bucketAttributes.set(S3BlobStore.FORCE_PATH_STYLE_KEY, FORCE_PATH_STYLE);
+    bucketAttributes.set(S3BlobStore.MAX_CONNECTION_POOL_KEY, "");
+  }
+
+  private static void assertSoftQuota(final BlobStoreApiSoftQuota softQuota) {
+    assertThat(softQuota.getType(), is(QUOTA_TYPE));
+    assertThat(softQuota.getLimit().intValue(), is(QUOTA_LIMIT));
+  }
+
+  private static void assertRequiredBucketDetails(final S3BlobStoreApiBucket s3BlobStoreBucket) {
+    assertThat(s3BlobStoreBucket.getRegion(), is(AWS_REGION));
+    assertThat(s3BlobStoreBucket.getName(), is(S3_BUCKET_NAME));
+    assertThat(s3BlobStoreBucket.getPrefix(), is(BUCKET_PREFIX));
+  }
+
+  private static void assertBucketSecurityDetails(final S3BlobStoreApiBucketSecurity bucketSecurity) {
+    assertThat(bucketSecurity.getAccessKeyId(), is(AN_IAM_ACCESS_KEY));
+    assertSecretAccessKeyIsNull(bucketSecurity);
+    assertThat(bucketSecurity.getRole(), is(AN_IAM_ROLE));
+    assertThat(bucketSecurity.getSessionToken(), is(AN_IAM_SESSION_TOKEN));
+  }
+
+  private static void assertSecretAccessKeyIsNull(final S3BlobStoreApiBucketSecurity bucketSecurity) {
+    assertThat(bucketSecurity.getSecretAccessKey(), nullValue());
+  }
+
+  private static void assertBucketEncryptionDetails(final S3BlobStoreApiEncryption s3BlobStoreEncryption) {
+    assertThat(s3BlobStoreEncryption.getEncryptionType(), is(S3_MANAGED_ENCRYPTION));
+    assertThat(s3BlobStoreEncryption.getEncryptionKey(), is(SUPER_SECURE_ENCRYPTION_KEY));
+  }
+
+  private static void assertBucketAdvancedConnectionDetails(
+      final S3BlobStoreApiAdvancedBucketConnection advancedBucketConnection)
+  {
+    assertThat(advancedBucketConnection.getEndpoint(), is(S3_ENDPOINT_URL));
+    assertThat(advancedBucketConnection.getSignerType(), is(S3_SIGNER_TYPE));
+    assertThat(advancedBucketConnection.getForcePathStyle(), is(FORCE_PATH_STYLE));
+    assertThat(advancedBucketConnection.getMaxConnectionPoolSize(), is(MAX_CONNECTION_POOL));
+  }
+
+  private void resetS3BlobStoreConfigHelper() throws Exception {
+    Field regionLoadedField = S3BlobStoreConfigurationHelper.class.getDeclaredField("regionLoaded");
+    regionLoadedField.setAccessible(true);
+    regionLoadedField.set(null, false);
+  }
+}
