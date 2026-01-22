@@ -1,0 +1,43 @@
+
+package org.globalart.astrum.blobstore.api;
+
+import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+
+/**
+ * Tests for {@link BlobStoreWarmingUpException}.
+ */
+public class BlobStoreWarmingUpExceptionTest
+{
+  @Test
+  public void testConstructorAndGetters() {
+    String blobStoreName = "test-s3-store";
+    BlobStoreWarmingUpException exception = new BlobStoreWarmingUpException(blobStoreName);
+
+    assertThat(exception.getBlobStoreName(), is(blobStoreName));
+    assertThat(exception.getMessage(), containsString(blobStoreName));
+    assertThat(exception.getMessage(), containsString("warming up"));
+    assertThat(exception.getMessage(), containsString("connection pools"));
+  }
+
+  @Test
+  public void testInheritsFromRuntimeException() {
+    BlobStoreWarmingUpException exception = new BlobStoreWarmingUpException("test-store");
+
+    // Should extend RuntimeException (temporary retry-able condition, not a permanent invalid state)
+    assertThat(exception instanceof RuntimeException, is(true));
+  }
+
+  @Test
+  public void testMessageFormat() {
+    String blobStoreName = "my-azure-store";
+    BlobStoreWarmingUpException exception = new BlobStoreWarmingUpException(blobStoreName);
+
+    String expectedMessage =
+        "Blob store 'my-azure-store' is still warming up connection pools, please retry in a moment";
+    assertThat(exception.getMessage(), is(expectedMessage));
+  }
+}

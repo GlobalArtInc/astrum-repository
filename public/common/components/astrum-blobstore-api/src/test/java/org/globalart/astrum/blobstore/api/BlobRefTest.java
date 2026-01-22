@@ -1,0 +1,249 @@
+
+package org.globalart.astrum.blobstore.api;
+
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+
+import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.fail;
+import static org.globalart.astrum.blobstore.api.BlobRef.DATE_TIME_FORMATTER;
+
+/**
+ * Tests for {@link BlobRef}.
+ *
+ * @since 3.0
+ */
+public class BlobRefTest
+{
+  private static final String STORE_NAME = "test-store";
+
+  private static final String NODE_ID = "ab761d55-5d9c22b6-3f38315a-75b3db34-0922a4d5";
+
+  private static final String BLOB_ID = "a8f3f56f-e895-4b6e-984a-1cf1f5107d36";
+
+  private static final String[] STORES = {"store-@:@:@name", "@", ":", "abc/+xy&%$#", "store-:@:@:@name-for-testing"};
+
+  private static final OffsetDateTime DATE_CREATED = OffsetDateTime.of(2024, 1, 1, 10, 30, 45, 0, ZoneOffset.UTC);
+
+  private static final String DATE_BASED_REF = DATE_CREATED.format(DATE_TIME_FORMATTER);
+
+  @Test
+  public void testToString() {
+    final BlobRef blobRef = new BlobRef(NODE_ID, STORE_NAME, BLOB_ID);
+    final String spec = blobRef.toString();
+    final BlobRef reconstituted = BlobRef.parse(spec);
+
+    assertThat(reconstituted, is(equalTo(blobRef)));
+  }
+
+  @Test
+  public void testParseCanonical() {
+    String blobRefString = String.format("%s@%s", STORE_NAME, BLOB_ID);
+    BlobRef parsed = BlobRef.parse(blobRefString);
+    assertParsed(parsed, STORE_NAME);
+  }
+
+  @Test
+  public void testParseLegacyOrient() {
+    String blobRefString = String.format("%s@%s:%s", STORE_NAME, NODE_ID, BLOB_ID);
+    BlobRef parsed = BlobRef.parse(blobRefString);
+    assertParsed(parsed, STORE_NAME);
+  }
+
+  @Test
+  public void testParseLegacySql() {
+    String blobRefString = String.format("%s:%s@%s", STORE_NAME, BLOB_ID, NODE_ID);
+    BlobRef parsed = BlobRef.parse(blobRefString);
+    assertParsed(parsed, STORE_NAME);
+  }
+
+  @Test
+  public void testParseCanonicalWithFuzzyChars() {
+    for (String storeName : STORES) {
+      String blobRefString = String.format("%s@%s", storeName, BLOB_ID);
+      BlobRef parsed = BlobRef.parse(blobRefString);
+      assertParsed(parsed, storeName);
+    }
+  }
+
+  @Test
+  public void testParseLegacyOrientWithFuzzyChars() {
+    for (String storeName : STORES) {
+      String blobRefString = String.format("%s@%s:%s", storeName, NODE_ID, BLOB_ID);
+      BlobRef parsed = BlobRef.parse(blobRefString);
+      assertParsed(parsed, storeName);
+    }
+  }
+
+  @Test
+  public void testParseLegacySqlWithFuzzyChars() {
+    for (String storeName : STORES) {
+      String blobRefString = String.format("%s:%s@%s", storeName, BLOB_ID, NODE_ID);
+      BlobRef parsed = BlobRef.parse(blobRefString);
+      assertParsed(parsed, storeName);
+    }
+  }
+
+  @Test
+  public void testDateBasedLayout() {
+    String blobRefString = String.format("%s@%s@%s", STORE_NAME, BLOB_ID, DATE_BASED_REF);
+    BlobRef parsed = BlobRef.parse(blobRefString);
+    assertThat(parsed.getBlob(), is(BLOB_ID));
+    assertThat(parsed.getStore(), is(STORE_NAME));
+    assertThat(parsed.getNode(), isEmptyOrNullString());
+    OffsetDateTime blobCreatedRef = parsed.getDateBasedRef();
+    assertThat(blobCreatedRef, notNullValue());
+    assertThat(blobCreatedRef.format(DATE_TIME_FORMATTER), is(DATE_CREATED.format(DATE_TIME_FORMATTER)));
+  }
+
+  private void assertParsed(final BlobRef parsed, final String storeName) {
+    assertThat(parsed.getBlob(), is(equalTo(BLOB_ID)));
+    assertThat(parsed.getStore(), is(equalTo(storeName)));
+    assertThat(parsed.getNode(), isEmptyOrNullString());
+    assertThat(parsed.getDateBasedRef(), nullValue());
+  }
+
+  @Test
+  public void testBlobRefIllegalFormat() {
+    assertParseFailure("wrong-blobref-format/string");
+    // empty blobstorename
+    assertParseFailure("@nodeid:blobid");
+    // empty nodeid
+    assertParseFailure("blobstore@:blobid");
+    // empty blobid
+    assertParseFailure("blobstore@nodeid:");
+    // no nodeid or blobid
+    assertParseFailure("blobstore@");
+  }
+
+  private static void assertParseFailure(final String blobref) {
+    try {
+      BlobRef.parse(blobref);
+      fail("Expected exception");
+    }
+    catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), startsWith("Not a valid blob reference"));
+    }
+  }
+
+  @Test
+  public void testGetBlobId() {
+    final BlobRef blobRef = new BlobRef(STORE_NAME, BLOB_ID);
+    final BlobId blobId = blobRef.getBlobId();
+    assertThat(blobId.asUniqueString(), is(equalTo(BLOB_ID)));
+    assertThat(blobId.getBlobCreatedRef(), nullValue());
+  }
+
+  @Test
+  public void testGetBlobIdWithDateBasedRef() {
+    final BlobRef blobRef = new BlobRef(null, STORE_NAME, BLOB_ID, DATE_CREATED);
+    final BlobId blobId = blobRef.getBlobId();
+    assertThat(blobId.asUniqueString(), is(equalTo(BLOB_ID)));
+    assertThat(blobId.getBlobCreatedRef(), is(equalTo(DATE_CREATED)));
+  }
+
+  @Test
+  public void testToStringWithDateBasedRef() {
+    final BlobRef blobRef = new BlobRef(null, STORE_NAME, BLOB_ID, DATE_CREATED);
+    final String expected = String.format("%s@%s@%s", STORE_NAME, BLOB_ID, DATE_BASED_REF);
+    assertThat(blobRef.toString(), is(equalTo(expected)));
+  }
+
+  @Test
+  public void testEqualsSameInstance() {
+    final BlobRef blobRef = new BlobRef(NODE_ID, STORE_NAME, BLOB_ID);
+    assertThat(blobRef.equals(blobRef), is(true));
+  }
+
+  @Test
+  public void testEqualsNull() {
+    final BlobRef blobRef = new BlobRef(NODE_ID, STORE_NAME, BLOB_ID);
+    assertThat(blobRef.equals(null), is(false));
+  }
+
+  @Test
+  public void testEqualsDifferentClass() {
+    final BlobRef blobRef = new BlobRef(NODE_ID, STORE_NAME, BLOB_ID);
+    assertThat(blobRef.equals("not a blob ref"), is(false));
+  }
+
+  @Test
+  public void testEqualsDifferentFieldValues() {
+    final BlobRef blobRef = new BlobRef(STORE_NAME, BLOB_ID);
+    assertThat(blobRef.equals(new BlobRef("other-store", BLOB_ID)), is(false));
+    assertThat(blobRef.equals(new BlobRef(STORE_NAME, NODE_ID)), is(false));
+    assertThat(blobRef.equals(new BlobRef(null, STORE_NAME, BLOB_ID, DATE_CREATED)), is(false));
+  }
+
+  @Test
+  public void testEqualsIgnoresNode() {
+    final BlobRef withNode = new BlobRef(NODE_ID, STORE_NAME, BLOB_ID);
+    final BlobRef withoutNode = new BlobRef(null, STORE_NAME, BLOB_ID);
+    assertThat(withNode, is(equalTo(withoutNode)));
+  }
+
+  @Test
+  public void testHashCodeConsistentForEqualInstances() {
+    final BlobRef one = new BlobRef(NODE_ID, STORE_NAME, BLOB_ID);
+    final BlobRef two = new BlobRef(null, STORE_NAME, BLOB_ID);
+    assertThat(one, is(equalTo(two)));
+    assertThat(one.hashCode(), is(equalTo(two.hashCode())));
+  }
+
+  @Test
+  public void testSimpleConstructorPopulatesFields() {
+    final BlobRef blobRef = new BlobRef(STORE_NAME, BLOB_ID);
+    assertThat(blobRef.getStore(), is(equalTo(STORE_NAME)));
+    assertThat(blobRef.getBlob(), is(equalTo(BLOB_ID)));
+    assertThat(blobRef.getNode(), nullValue());
+    assertThat(blobRef.getDateBasedRef(), nullValue());
+  }
+
+  @Test
+  public void testGetNodeReturnsConstructorValue() {
+    final BlobRef blobRef = new BlobRef(NODE_ID, STORE_NAME, BLOB_ID);
+    assertThat(blobRef.getNode(), is(equalTo(NODE_ID)));
+    assertThat(blobRef.getStore(), is(equalTo(STORE_NAME)));
+    assertThat(blobRef.getBlob(), is(equalTo(BLOB_ID)));
+    assertThat(blobRef.getDateBasedRef(), nullValue());
+  }
+
+  @Test
+  public void testGetDateBasedRefReturnsConstructorValue() {
+    final BlobRef blobRef = new BlobRef(null, STORE_NAME, BLOB_ID, DATE_CREATED);
+    assertThat(blobRef.getDateBasedRef(), is(equalTo(DATE_CREATED)));
+  }
+
+  @Test
+  public void testToStringWithoutDateBasedRef() {
+    final BlobRef blobRef = new BlobRef(NODE_ID, STORE_NAME, BLOB_ID);
+    assertThat(blobRef.toString(), is(equalTo(STORE_NAME + "@" + BLOB_ID)));
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testConstructorRequiresStore() {
+    new BlobRef(null, BLOB_ID);
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testConstructorRequiresBlob() {
+    new BlobRef(STORE_NAME, null);
+  }
+
+  @Test
+  public void testHashCodeDiffersForDifferentValues() {
+    final BlobRef base = new BlobRef(STORE_NAME, BLOB_ID);
+    assertThat(base.hashCode(), is(not(equalTo(new BlobRef("other-store", BLOB_ID).hashCode()))));
+    assertThat(base.hashCode(), is(not(equalTo(new BlobRef(STORE_NAME, NODE_ID).hashCode()))));
+    assertThat(base.hashCode(), is(not(equalTo(new BlobRef(null, STORE_NAME, BLOB_ID, DATE_CREATED).hashCode()))));
+  }
+}
