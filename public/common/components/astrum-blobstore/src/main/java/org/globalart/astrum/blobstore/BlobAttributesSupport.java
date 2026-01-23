@@ -1,0 +1,194 @@
+
+package org.globalart.astrum.blobstore;
+
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Properties;
+
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.blobstore.api.BlobAttributes;
+import org.globalart.astrum.blobstore.api.BlobMetrics;
+
+import org.joda.time.DateTime;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.blobstore.api.BlobAttributesConstants.*;
+
+/**
+ * A data holder for the content of each blob's .attribs.
+ *
+ * @since 3.12
+ */
+public abstract class BlobAttributesSupport<T extends Properties>
+    implements BlobAttributes
+{
+  private Map<String, String> headers;
+
+  private BlobMetrics metrics;
+
+  private boolean deleted = false;
+
+  private String deletedReason;
+
+  private DateTime deletedDateTime;
+
+  protected final T propertiesFile;
+
+  private String originalLocation;
+
+  private String softDeletedLocation;
+
+  protected BlobAttributesSupport(
+      final T propertiesFile,
+      @Nullable final Map<String, String> headers,
+      @Nullable final BlobMetrics metrics)
+  {
+    this.propertiesFile = checkNotNull(propertiesFile);
+    this.headers = headers;
+    this.metrics = metrics;
+  }
+
+  @Override
+  public Map<String, String> getHeaders() {
+    return headers;
+  }
+
+  @Override
+  public BlobMetrics getMetrics() {
+    return metrics;
+  }
+
+  @Override
+  public boolean isDeleted() {
+    return deleted;
+  }
+
+  @Override
+  public void setDeleted(final boolean deleted) {
+    this.deleted = deleted;
+  }
+
+  @Override
+  public void setDeletedReason(final String deletedReason) {
+    this.deletedReason = deletedReason;
+  }
+
+  @Override
+  public String getDeletedReason() {
+    return deletedReason != null ? deletedReason : "No reason supplied";
+  }
+
+  @Override
+  public DateTime getDeletedDateTime() {
+    return deletedDateTime;
+  }
+
+  @Override
+  public void setDeletedDateTime(final DateTime deletedDateTime) {
+    this.deletedDateTime = deletedDateTime;
+  }
+
+  @Override
+  public Properties getProperties() {
+    return new Properties(propertiesFile);
+  }
+
+  @Override
+  public void updateFrom(final BlobAttributes blobAttributes) {
+    headers = blobAttributes.getHeaders();
+    metrics = blobAttributes.getMetrics();
+    deleted = blobAttributes.isDeleted();
+    deletedReason = blobAttributes.getDeletedReason();
+    deletedDateTime = blobAttributes.getDeletedDateTime();
+  }
+
+  protected void readFrom(Properties properties) {
+    headers = new HashMap<>();
+    for (Entry<Object, Object> property : properties.entrySet()) {
+      String key = (String) property.getKey();
+      if (key.startsWith(HEADER_PREFIX)) {
+        headers.put(key.substring(HEADER_PREFIX.length()), String.valueOf(property.getValue()));
+      }
+    }
+
+    metrics = new BlobMetrics(
+        new DateTime(Long.parseLong(properties.getProperty(CREATION_TIME_ATTRIBUTE))),
+        properties.getProperty(SHA1_HASH_ATTRIBUTE),
+        Long.parseLong(properties.getProperty(CONTENT_SIZE_ATTRIBUTE)));
+
+    OffsetDateTime lastDownloaded = Optional.ofNullable(properties.getProperty(LAST_DOWNLOADED_ATTRIBUTE))
+        .map(OffsetDateTime::parse)
+        .orElse(null);
+    metrics.setLastDownloaded(lastDownloaded);
+
+    deleted = properties.containsKey(DELETED_ATTRIBUTE);
+    deletedReason = properties.getProperty(DELETED_REASON_ATTRIBUTE);
+    deletedDateTime = Optional.ofNullable(properties.getProperty(DELETED_DATETIME_ATTRIBUTE))
+        .map(p -> new DateTime(Long.parseLong(p)))
+        .orElse(null);
+    softDeletedLocation = properties.getProperty(SOFT_DELETED_LOCATION_ATTRIBUTE);
+    originalLocation = properties.getProperty(ORIGINAL_LOCATION_ATTRIBUTE);
+  }
+
+  protected void writeTo(final Properties properties) {
+    for (Entry<String, String> header : getHeaders().entrySet()) {
+      properties.put(HEADER_PREFIX + header.getKey(), header.getValue());
+    }
+    BlobMetrics blobMetrics = getMetrics();
+    properties.setProperty(SHA1_HASH_ATTRIBUTE, blobMetrics.getSha1Hash());
+    properties.setProperty(CONTENT_SIZE_ATTRIBUTE, Long.toString(blobMetrics.getContentSize()));
+    properties.setProperty(CREATION_TIME_ATTRIBUTE, Long.toString(blobMetrics.getCreationTime().getMillis()));
+
+    if (blobMetrics.getLastDownloaded() != null) {
+      properties.setProperty(LAST_DOWNLOADED_ATTRIBUTE, blobMetrics.getLastDownloaded().toString());
+    }
+    if (originalLocation != null) {
+      properties.put(ORIGINAL_LOCATION_ATTRIBUTE, originalLocation);
+    }
+    if (deleted) {
+      properties.put(DELETED_ATTRIBUTE, Boolean.toString(deleted));
+      properties.put(DELETED_REASON_ATTRIBUTE, getDeletedReason());
+      if (deletedDateTime != null) {
+        properties.put(DELETED_DATETIME_ATTRIBUTE, Long.toString(deletedDateTime.getMillis()));
+      }
+      if (softDeletedLocation != null) {
+        properties.put(SOFT_DELETED_LOCATION_ATTRIBUTE, softDeletedLocation);
+      }
+    }
+    else {
+      properties.remove(DELETED_ATTRIBUTE);
+      properties.remove(DELETED_REASON_ATTRIBUTE);
+      properties.remove(DELETED_DATETIME_ATTRIBUTE);
+      properties.remove(SOFT_DELETED_LOCATION_ATTRIBUTE);
+    }
+  }
+
+  @Override
+  public String toString() {
+    return propertiesFile.toString();
+  }
+
+  @Override
+  public void setOriginalLocation(final String path) {
+    originalLocation = path;
+  }
+
+  @Override
+  public Optional<String> getOriginalLocation() {
+    return Optional.ofNullable(originalLocation);
+  }
+
+  @Override
+  public void setSoftDeletedLocation(final String path) {
+    softDeletedLocation = path;
+  }
+
+  @Override
+  public Optional<String> getSoftDeletedLocation() {
+    return Optional.ofNullable(softDeletedLocation);
+  }
+}

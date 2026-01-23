@@ -1,0 +1,99 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.components</groupId>
+    <artifactId>astrum-common-components-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-blobstore</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-spring</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-blobstore-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-datastore-mybatis</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-thread</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-testsupport</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-test-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-rest</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-scheduling</artifactId>
+    </dependency>
+
+    <!-- ASTRUM-46395: io.swagger:swagger-annotations:1.x replaced by io.swagger.core.v3:swagger-annotations-jakarta:2.x -->
+    <dependency>
+      <groupId>io.swagger.core.v3</groupId>
+      <artifactId>swagger-annotations-jakarta</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-test-db</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.glassfish.jersey.core</groupId>
+      <artifactId>jersey-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+</project>
