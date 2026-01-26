@@ -1,0 +1,115 @@
+
+package org.globalart.astrum.blobstore.s3.internal;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Map;
+
+import org.globalart.astrum.blobstore.CloudBlobPropertiesSupport;
+
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import static org.globalart.astrum.blobstore.api.BlobAttributesConstants.HEADER_PREFIX;
+import static org.globalart.astrum.blobstore.api.BlobStore.TEMPORARY_BLOB_HEADER;
+
+/**
+ * Persistent properties file stored in AWS S3.
+ *
+ * @since 3.6.1
+ */
+public class S3PropertiesFile
+    extends CloudBlobPropertiesSupport<PutObjectRequest.Builder>
+{
+  private static final Logger log = LoggerFactory.getLogger(S3PropertiesFile.class);
+
+  private final EncryptingS3Client s3;
+
+  private final String bucket;
+
+  private final String key;
+
+  public S3PropertiesFile(final EncryptingS3Client s3, final String bucket, final String key) {
+    this.s3 = checkNotNull(s3);
+    this.bucket = checkNotNull(bucket);
+    this.key = checkNotNull(key);
+  }
+
+  public void load() throws IOException {
+    log.debug("Loading: {}/{}", bucket, key);
+
+    try (ResponseInputStream<GetObjectResponse> object = s3.getObject(bucket, key)) {
+      load(object);
+    }
+  }
+
+  @Override
+  public PutObjectRequest.Builder getMetadata() {
+    PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key);
+    maybePutTempBlobUserMetadata(requestBuilder);
+    return requestBuilder;
+  }
+
+  @Override
+  public ByteArrayOutputStream getData() throws IOException {
+    ByteArrayOutputStream bufferStream = new ByteArrayOutputStream();
+    store(bufferStream, null);
+    return bufferStream;
+  }
+
+  @Override
+  protected void write(final ByteArrayOutputStream data, final PutObjectRequest.Builder requestBuilder) {
+    log.debug("Storing: {}/{}", bucket, key);
+    byte[] buffer = data.toByteArray();
+    RequestBody requestBody = RequestBody.fromBytes(buffer);
+    s3.putObject(requestBuilder.build(), requestBody);
+  }
+
+  private void maybePutTempBlobUserMetadata(final PutObjectRequest.Builder requestBuilder) {
+    if (containsKey(HEADER_PREFIX + TEMPORARY_BLOB_HEADER)) {
+      requestBuilder.metadata(Map.of(TEMPORARY_BLOB_HEADER, "true"));
+    }
+  }
+
+  public boolean exists() throws IOException {
+    return s3.doesObjectExist(bucket, key);
+  }
+
+  public void remove() throws IOException {
+    s3.deleteObject(bucket, key);
+  }
+
+  public String toString() {
+    return format("s3://%s/%s %s", bucket, key, super.toString());
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (object instanceof S3PropertiesFile) {
+      S3PropertiesFile other = (S3PropertiesFile) object;
+      return s3.equals(other.s3) &&
+          bucket.equals(other.bucket) &&
+          key.equals(other.key) &&
+          super.equals(object);
+    }
+    else {
+      return false;
+    }
+  }
+
+  @Override
+  public int hashCode() {
+    return s3.hashCode() +
+        bucket.hashCode() +
+        key.hashCode() +
+        super.hashCode();
+  }
+}
