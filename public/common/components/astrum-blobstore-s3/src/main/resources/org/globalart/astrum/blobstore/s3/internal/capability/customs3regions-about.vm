@@ -1,0 +1,2 @@
+
+Specify the custom s3 regions to use for the blobstore, separated by commas.
