@@ -1,0 +1,179 @@
+
+package org.globalart.astrum.blobstore.compact.internal;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.globalart.astrum.blobstore.api.BlobStore;
+import org.globalart.astrum.blobstore.api.BlobStoreUsageChecker;
+import org.globalart.astrum.blobstore.common.BlobStoreParallelTaskSupport;
+import org.globalart.astrum.scheduling.RecoveryModeService;
+import org.globalart.astrum.logging.task.ProgressLogIntervalHelper;
+
+import org.springframework.beans.factory.annotation.Value;
+
+import static org.globalart.astrum.blobstore.common.BlobStoreParallelTaskSupport.ALL;
+import org.globalart.astrum.repository.move.ChangeRepositoryBlobStoreConfiguration;
+import org.globalart.astrum.repository.move.ChangeRepositoryBlobStoreStore;
+import org.globalart.astrum.scheduling.CancelableByRecoveryMode;
+import org.globalart.astrum.scheduling.CancelableHelper;
+import org.globalart.astrum.scheduling.TaskUtils;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
+import static org.globalart.astrum.blobstore.compact.internal.CompactBlobStoreTaskDescriptor.BLOBS_OLDER_THAN_FIELD_ID;
+import static org.globalart.astrum.logging.task.TaskLoggingMarkers.TASK_LOG_ONLY;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+/**
+ * Task to compact a given blob store.
+ *
+ * @since 3.0
+ */
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+public class CompactBlobStoreTask
+    extends BlobStoreParallelTaskSupport
+    implements CancelableByRecoveryMode
+{
+
+  private final Optional<ChangeRepositoryBlobStoreStore> changeBlobstoreStore;
+
+  private final BlobStoreUsageChecker blobStoreUsageChecker;
+
+  private final TaskUtils taskUtils;
+
+  private final RecoveryModeService recoveryModeService;
+
+  private final AtomicInteger processed = new AtomicInteger();
+
+  private final AtomicInteger failed = new AtomicInteger();
+
+  @Autowired
+  public CompactBlobStoreTask(
+      @Nullable final ChangeRepositoryBlobStoreStore changeBlobstoreStore,
+      final BlobStoreUsageChecker blobStoreUsageChecker,
+      final TaskUtils taskUtils,
+      @Nullable final RecoveryModeService recoveryModeService,
+      @Value("${astrum.compact.blobstore.concurrencyLimit:5}") final int concurrencyLimit)
+  {
+    super(concurrencyLimit);
+    this.changeBlobstoreStore = Optional.ofNullable(changeBlobstoreStore);
+    this.blobStoreUsageChecker = checkNotNull(blobStoreUsageChecker);
+    this.taskUtils = checkNotNull(taskUtils);
+    this.recoveryModeService = recoveryModeService;
+  }
+
+  @VisibleForTesting
+  void checkForConflicts(final String blobStoreName) {
+    if (recoveryModeService != null) {
+      recoveryModeService.ensureNotInRecoveryMode(getName());
+    }
+    taskUtils.checkForConflictingTasks(getId(), getName(), asList("repository.move"), ImmutableMap
+        .of("moveInitialBlobstore", asList(blobStoreName), "moveTargetBlobstore", asList(blobStoreName)));
+
+    checkForUnfinishedMoveTask(blobStoreName);
+  }
+
+  private void checkForUnfinishedMoveTask(final String blobStoreName) {
+    List<ChangeRepositoryBlobStoreConfiguration> existingMoves = changeBlobstoreStore
+        .map(store -> store.findByBlobStoreName(blobStoreName))
+        .orElseGet(Collections::emptyList);
+
+    if (!existingMoves.isEmpty()) {
+      log.info(TASK_LOG_ONLY, "found {} unfinished move tasks using blobstore '{}', unable to run task '{}'",
+          existingMoves.size(), blobStoreName, getName());
+
+      throw new IllegalStateException(
+          format("found unfinished move task(s) using blobstore '%s', task can't be executed", blobStoreName));
+    }
+  }
+
+  private Runnable compact(final ProgressLogIntervalHelper progress, final BlobStore blobStore) {
+    return () -> {
+      CancelableHelper.checkCancellation();
+
+      if (blobStore == null) {
+        log.warn("Unable to find blob store: {}", getBlobStoreField());
+        return;
+      }
+
+      String blobStoreName = blobStore.getBlobStoreConfiguration().getName();
+      log.debug("Starting compaction of blob store '{}'", blobStoreName);
+
+      try {
+        checkForConflicts(blobStoreName);
+      }
+      catch (Exception e) {
+        // Conflicting or in-progress work (e.g. an active move task or recovery mode) means we skip this
+        // blob store for now. This is not a compaction failure, so it must not fail the task.
+        log.warn("Skipping compaction of blob store '{}': {}", blobStoreName, e.getMessage());
+        log.debug("Conflict detail for blob store '{}'", blobStoreName, e);
+        return;
+      }
+
+      // Allow compaction failures to propagate: ParallelTaskSupport collects them and reports the task as
+      // failed, instead of the run silently appearing successful while soft-deleted blobs remain (ASTRUM-53394).
+      // Note: TaskInterruptedException thrown from a worker thread is collected by ParallelTaskSupport's
+      // exceptionHandler like any other exception; the primary thread polls CancelableHelper between futures
+      // to detect cancellation. Worker threads therefore complete their current blob store before stopping.
+      try {
+        blobStore.compact(blobStoreUsageChecker, getBlobsOlderThanField());
+      }
+      catch (Exception e) {
+        // Log before propagating so a per-store failure is visible in the task log even though
+        // ParallelTaskSupport.exceptionHandler collects exceptions silently.
+        log.error("Compaction of blob store '{}' failed ({} failure(s) so far): {}",
+            blobStoreName, failed.incrementAndGet(), e.getMessage());
+        throw e;
+      }
+
+      int count = processed.incrementAndGet();
+      log.debug("Completed compaction of blob store '{}'", blobStoreName);
+      progress.info("Compacted {} blob stores", count);
+    };
+  }
+
+  @Override
+  protected Object result() {
+    log.info("Compaction completed for {} blob stores", processed.get());
+    return processed.get();
+  }
+
+  @Override
+  public String getMessage() {
+    String blobStoreField = getBlobStoreField();
+    if (ALL.equals(blobStoreField)) {
+      return "Compacting all blob stores";
+    }
+    return format("Compacting [%s]", blobStoreField);
+  }
+
+  @Override
+  protected Stream<Runnable> jobStream(final ProgressLogIntervalHelper progress, final BlobStore blobStore) {
+    return Stream.of(compact(progress, blobStore));
+  }
+
+  /** compact applies to all types of blob stores */
+  @Override
+  protected boolean appliesTo(final BlobStore blobStore) {
+    return true;
+  }
+
+  private Duration getBlobsOlderThanField() {
+    return Duration.ofDays(getConfiguration().getInteger(BLOBS_OLDER_THAN_FIELD_ID, 0));
+  }
+}
