@@ -1,0 +1,95 @@
+
+package org.globalart.astrum.repository;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+import java.util.concurrent.locks.Lock;
+
+import org.globalart.astrum.repository.config.Configuration;
+
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+/**
+ * Repository facet.
+ *
+ * @since 3.0
+ */
+public interface Facet
+{
+  /**
+   * Attach repository to facet.
+   *
+   * @see Repository#attach(Facet)
+   */
+  void attach(Repository repository) throws Exception;
+
+  /**
+   * Validate configuration.
+   */
+  void validate(Configuration configuration) throws Exception;
+
+  /**
+   * Initialize facet.
+   */
+  void init() throws Exception;
+
+  /**
+   * Update facet.
+   *
+   * Called when repository configuration has changed.
+   */
+  void update() throws Exception;
+
+  /**
+   * Start facet.
+   *
+   * Facet has been previously initialized or updated.
+   */
+  void start() throws Exception;
+
+  /**
+   * Stop facet.
+   *
+   * Facet was previously started. Facet is stopped before applying {@link #update}.
+   */
+  void stop() throws Exception;
+
+  /**
+   * Get write lock from State Guard.
+   */
+  Lock getWriteLock() throws InterruptedException;
+
+  /**
+   * Delete facet.
+   *
+   * Allows facet to cope with contained repository being deleted and clean up persistent knowledge about the
+   * repository or its contents.
+   *
+   * Facet must have been previously stopped.
+   */
+  void delete() throws Exception;
+
+  /**
+   * Destroy facet.
+   *
+   * Allows facet to clean up resources. This is different than {@link #delete}.
+   *
+   * Facet is stopped before destruction.
+   */
+  void destroy() throws Exception;
+
+  /**
+   * Marks {@link Facet} interface and/or implementation as exposed.
+   *
+   * Exposed types can be accessed via {@link Repository#facet}.
+   */
+  @Documented
+  @Target(TYPE)
+  @Retention(RUNTIME)
+  @interface Exposed
+  {
+    // marker
+  }
+}
