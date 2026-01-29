@@ -1,0 +1,10 @@
+DROP TRIGGER IF EXISTS notification_asset_replaced ON asset;
+DROP TRIGGER IF EXISTS notification_asset_created ON asset;
+DROP TRIGGER IF EXISTS notification_component_deleted ON component;
+DROP TRIGGER IF EXISTS notification_component_created ON component;
+DROP FUNCTION IF EXISTS notification_asset_stored();
+DROP FUNCTION IF EXISTS notification_component_changed();
+DROP FUNCTION IF EXISTS notification_capture(text, text, text, text, text, text, bigint, text);
+DROP TABLE IF EXISTS notification_delivery;
+DROP TABLE IF EXISTS notification_change;
+DROP TABLE IF EXISTS notification_channel;
