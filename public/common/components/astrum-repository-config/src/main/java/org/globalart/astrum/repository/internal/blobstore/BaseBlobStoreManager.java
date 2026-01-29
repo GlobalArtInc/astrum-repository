@@ -1,0 +1,882 @@
+
+package org.globalart.astrum.repository.internal.blobstore;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.NoSuchFileException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.BooleanSupplier;
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.blobstore.BlobStoreDescriptor;
+import org.globalart.astrum.blobstore.BlobSupport;
+import org.globalart.astrum.blobstore.api.Blob;
+import org.globalart.astrum.blobstore.api.BlobAttributes;
+import org.globalart.astrum.blobstore.api.BlobId;
+import org.globalart.astrum.blobstore.api.BlobInputStreamException;
+import org.globalart.astrum.blobstore.api.BlobSession;
+import org.globalart.astrum.blobstore.api.BlobSessionSupplier;
+import org.globalart.astrum.blobstore.api.BlobStore;
+import org.globalart.astrum.blobstore.api.BlobStoreConfiguration;
+import org.globalart.astrum.blobstore.api.BlobStoreCreatedEvent;
+import org.globalart.astrum.blobstore.api.BlobStoreDeletedEvent;
+import org.globalart.astrum.blobstore.api.BlobStoreException;
+import org.globalart.astrum.blobstore.api.BlobStoreManager;
+import org.globalart.astrum.blobstore.api.BlobStoreNotFoundException;
+import org.globalart.astrum.blobstore.api.BlobStoreStartedEvent;
+import org.globalart.astrum.blobstore.api.BlobStoreStoppedEvent;
+import org.globalart.astrum.blobstore.api.BlobStoreUpdatedEvent;
+import org.globalart.astrum.blobstore.api.DefaultBlobStoreProvider;
+import org.globalart.astrum.blobstore.api.tasks.BlobStoreTaskService;
+import org.globalart.astrum.common.QualifierUtil;
+import org.globalart.astrum.common.collect.NestedAttributesMap;
+import org.globalart.astrum.common.event.EventAware;
+import org.globalart.astrum.common.event.EventConsumer;
+import org.globalart.astrum.common.event.EventHelper;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.common.node.NodeAccess;
+import org.globalart.astrum.common.stateguard.Guarded;
+import org.globalart.astrum.common.stateguard.StateGuardLifecycleSupport;
+import org.globalart.astrum.crypto.secrets.Secret;
+import org.globalart.astrum.crypto.secrets.SecretsService;
+import org.globalart.astrum.distributed.event.service.api.EventType;
+import org.globalart.astrum.distributed.event.service.api.common.BlobStoreDistributedConfigurationEvent;
+import org.globalart.astrum.repository.blobstore.BlobStoreConfigurationStore;
+import org.globalart.astrum.repository.manager.RepositoryManager;
+import org.globalart.astrum.repository.replication.ReplicationBlobStoreStatusManager;
+import org.globalart.astrum.security.UserIdHelper;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.eventbus.Subscribe;
+import jakarta.inject.Provider;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static org.globalart.astrum.common.stateguard.StateGuardLifecycleSupport.State.STARTED;
+import static org.globalart.astrum.distributed.event.service.api.EventType.DELETED;
+import static org.globalart.astrum.distributed.event.service.api.EventType.UPDATED;
+
+/**
+ * Default {@link BlobStoreManager} implementation.
+ *
+ * @since 3.0
+ */
+public abstract class BaseBlobStoreManager
+    extends StateGuardLifecycleSupport
+    implements BlobStoreManager, BlobSessionSupplier, EventAware
+{
+  protected static final String BLOBSTORE_CONFIG = "blobstore-config";
+
+  private final EventManager eventManager;
+
+  protected final Map<String, BlobStore> stores = Maps.newConcurrentMap();
+
+  protected final BlobStoreConfigurationStore store;
+
+  private final Map<String, BlobStoreDescriptor> blobStoreDescriptors;
+
+  private final Map<String, Provider<BlobStore>> blobStorePrototypes;
+
+  private final BooleanSupplier provisionDefaults;
+
+  private final Provider<RepositoryManager> repositoryManagerProvider;
+
+  private final BlobStoreTaskService blobStoreTaskService;
+
+  private final Provider<BlobStoreOverride> blobStoreOverrideProvider;
+
+  private final ReplicationBlobStoreStatusManager replicationBlobStoreStatusManager;
+
+  private final DefaultBlobStoreProvider blobstoreProvider;
+
+  private final SecretsService secretService;
+
+  protected BaseBlobStoreManager(
+      final EventManager eventManager, // NOSONAR
+      final BlobStoreConfigurationStore store,
+      final List<BlobStoreDescriptor> blobStoreDescriptorsList,
+      final List<Provider<BlobStore>> blobStorePrototypesList,
+      final Provider<RepositoryManager> repositoryManagerProvider,
+      final NodeAccess nodeAccess,
+      @Nullable final Boolean provisionDefaults,
+      @Nullable final DefaultBlobStoreProvider blobstoreProvider,
+      final BlobStoreTaskService blobStoreTaskService,
+      final Provider<BlobStoreOverride> blobStoreOverrideProvider,
+      final ReplicationBlobStoreStatusManager replicationBlobStoreStatusManager,
+      final SecretsService secretService)
+  {
+    this.eventManager = checkNotNull(eventManager);
+    this.store = checkNotNull(store);
+    this.blobStoreDescriptors = QualifierUtil.buildQualifierBeanMap(checkNotNull(blobStoreDescriptorsList));
+    this.blobStorePrototypes = QualifierUtil.buildQualifierBeanMap(checkNotNull(blobStorePrototypesList));
+    this.repositoryManagerProvider = checkNotNull(repositoryManagerProvider);
+    this.blobStoreTaskService = checkNotNull(blobStoreTaskService);
+    this.blobStoreOverrideProvider = blobStoreOverrideProvider;
+    this.replicationBlobStoreStatusManager = checkNotNull(replicationBlobStoreStatusManager);
+    this.blobstoreProvider = blobstoreProvider;
+    this.secretService = checkNotNull(secretService);
+
+    if (provisionDefaults != null) {
+      // explicit true/false setting, so honour that
+      this.provisionDefaults = provisionDefaults::booleanValue;
+    }
+    else {
+      // otherwise only create in non-clustered mode
+      this.provisionDefaults = () -> !nodeAccess.isClustered();
+    }
+  }
+
+  @Override
+  protected void doStart() throws Exception {
+    Optional.ofNullable(blobStoreOverrideProvider.get()).ifPresent(BlobStoreOverride::apply);
+    List<BlobStoreConfiguration> configurations = store.list();
+
+    if (blobstoreProvider != null && configurations.isEmpty() && provisionDefaults.getAsBoolean()) {
+      log.debug("No BlobStores configured; provisioning default BlobStore");
+      BlobStoreConfiguration defaultBlobStoreConfiguration = blobstoreProvider.get(this::newConfiguration);
+      encryptSensitiveAttributes(newConfiguration(), defaultBlobStoreConfiguration);
+      store.create(defaultBlobStoreConfiguration);
+      configurations = store.list();
+    }
+
+    // Capture the context classloader from the main thread to propagate to worker threads.
+    // This ensures parallel stream worker threads have access to application classes (e.g., JAXB).
+    ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+
+    log.info("Restoring {} BlobStores", configurations.size());
+    configurations.parallelStream().forEach(config -> {
+      Thread currentThread = Thread.currentThread();
+      ClassLoader originalClassLoader = currentThread.getContextClassLoader();
+      currentThread.setContextClassLoader(contextClassLoader);
+      try {
+        restoreBlobStore(config);
+      }
+      finally {
+        currentThread.setContextClassLoader(originalClassLoader);
+      }
+    });
+
+    log.info("Starting {} BlobStores", stores.size());
+    stores.entrySet().parallelStream().forEach(entry -> {
+      Thread currentThread = Thread.currentThread();
+      ClassLoader originalClassLoader = currentThread.getContextClassLoader();
+      currentThread.setContextClassLoader(contextClassLoader);
+      try {
+        startBlobStore(entry);
+      }
+      finally {
+        currentThread.setContextClassLoader(originalClassLoader);
+      }
+    });
+
+    log.info("Completed initialization");
+  }
+
+  protected void restoreBlobStore(final BlobStoreConfiguration configuration) {
+    log.debug("Restoring BlobStore: {}", configuration);
+    BlobStore blobStore = null;
+
+    try {
+      blobStore = blobStorePrototypes.get(configuration.getType()).get();
+      blobStore.init(configuration);
+    }
+    catch (Exception e) {
+      log.error("Unable to restore BlobStore {}", configuration.getName(), e);
+      onRestoreError(configuration.getName(), e);
+    }
+    finally {
+      if (blobStore != null) {
+        track(configuration.getName(), blobStore);
+      }
+    }
+  }
+
+  /**
+   * Called when restoring a blobstore fails. Default is a no-op (swallow and continue).
+   * Subclasses may override to propagate the error.
+   */
+  protected void onRestoreError(final String name, final Exception e) {
+    // no-op by default
+  }
+
+  protected void startBlobStore(final Entry<String, BlobStore> entry) {
+    String name = entry.getKey();
+    BlobStore blobStore = entry.getValue();
+    log.debug("Starting BlobStore: {}", name);
+    try {
+      blobStore.start();
+      eventManager.post(new BlobStoreStartedEvent(blobStore));
+    }
+    catch (Exception e) {
+      log.error("Unable to start BlobStore {}", name, e);
+      onStartError(name, e);
+    }
+  }
+
+  /**
+   * Called when starting a blobstore fails. Default is a no-op (swallow and continue).
+   * Subclasses may override to propagate the error.
+   */
+  protected void onStartError(final String name, final Exception e) {
+    // no-op by default
+  }
+
+  @Override
+  protected void doStop() throws Exception {
+    if (stores.isEmpty()) {
+      log.debug("No BlobStores defined");
+      return;
+    }
+
+    log.debug("Stopping {} BlobStores", stores.size());
+    for (Map.Entry<String, BlobStore> entry : stores.entrySet()) {
+      String name = entry.getKey();
+      BlobStore store = entry.getValue();
+      log.debug("Stopping blob-store: {}", name);
+      store.stop();
+      eventManager.post(new BlobStoreStoppedEvent(store));
+    }
+
+    stores.clear();
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  public Iterable<BlobStore> browse() {
+    return ImmutableList.copyOf(stores.values());
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  public BlobStore create(final BlobStoreConfiguration configuration) throws Exception {
+    checkNotNull(configuration);
+    log.debug("Creating BlobStore: {} with attributes: {}", configuration.getName(), configuration);
+    validateConfiguration(configuration, true);
+    List<Secret> encryptedAttributes = encryptSensitiveAttributes(newConfiguration(), configuration);
+    try {
+      BlobStore blobStore = getBlobStoreForCreate(configuration);
+      if (!EventHelper.isReplicating()) {
+        try {
+          store.create(configuration);
+          log.debug("BlobStore: {} created.", configuration.getName());
+        }
+        catch (Exception e) {
+          try {
+            blobStore.remove();
+          }
+          catch (Exception removeException) {
+            // if an error occurs on remove log and rethrow original to avoid losing the root cause
+            log.error("Error removing BlobStore {} after create failed", configuration.getName(), removeException);
+          }
+          throw e;
+        }
+      }
+
+      doCreate(blobStore, configuration);
+      log.debug("BlobStore: {} saved into local cache", configuration.getName());
+      eventManager.post(new BlobStoreDistributedConfigurationEvent(configuration.getName(), EventType.CREATED));
+      return blobStore;
+    }
+    catch (Exception e) {
+      encryptedAttributes.forEach(this::removeSecret);
+      throw e;
+    }
+  }
+
+  private BlobStore getBlobStoreForCreate(final BlobStoreConfiguration configuration) throws Exception {
+    BlobStore blobStore = blobStorePrototypes.get(configuration.getType()).get();
+    blobStore.init(configuration);
+    replicationBlobStoreStatusManager.initializeReplicationStatus(configuration);
+
+    blobStore.validateCanCreateAndUpdate();
+
+    return blobStore;
+  }
+
+  private void doCreate(final BlobStore blobStore, final BlobStoreConfiguration configuration) throws Exception {
+    checkNotNull(blobStore, "blobStore param is NULL");
+    checkNotNull(configuration, "configuration param is NULL");
+    final String blobStoreName = configuration.getName();
+    if (!stores.containsKey(blobStoreName)) {
+      track(blobStoreName, blobStore);
+      blobStore.start();
+      eventManager.post(new BlobStoreCreatedEvent(blobStore));
+      eventManager.post(new BlobStoreStartedEvent(blobStore));
+    }
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  public BlobStore update(final BlobStoreConfiguration configuration) throws Exception {
+    checkNotNull(configuration);
+    validateConfiguration(configuration, false);
+    BlobStore blobStore = getBlobStoreForUpdate(configuration);
+
+    if (!EventHelper.isReplicating()) {
+      List<Secret> encryptedAttributes = new ArrayList<>();
+      try {
+        encryptedAttributes = encryptSensitiveAttributes(blobStore.getBlobStoreConfiguration(), configuration);
+        store.update(configuration);
+      }
+      catch (Exception e) {
+        encryptedAttributes.forEach(this::removeSecret);
+        throw e;
+      }
+    }
+
+    doUpdate(blobStore, configuration);
+
+    eventManager.post(new BlobStoreDistributedConfigurationEvent(configuration.getName(), UPDATED));
+
+    return blobStore;
+  }
+
+  private BlobStore getBlobStoreForUpdate(final BlobStoreConfiguration configuration) throws Exception {
+    BlobStore blobStore = get(configuration.getName());
+    checkNotNull(blobStore);
+    blobStore.validateCanCreateAndUpdate();
+    log.debug("Updating BlobStore: {} with attributes: {}", configuration.getName(),
+        configuration);
+
+    return blobStore;
+  }
+
+  private void doUpdate(final BlobStore blobStore, final BlobStoreConfiguration configuration) throws Exception {
+    BlobStoreConfiguration currentBlobStoreConfiguration = blobStore.getBlobStoreConfiguration();
+
+    if (blobStore.isStarted()) {
+      blobStore.stop();
+      eventManager.post(new BlobStoreStoppedEvent(blobStore));
+    }
+
+    try {
+      blobStore.init(configuration);
+      blobStore.start();
+      executeIfNotReplicating(() -> removeEncryptedAttributes(currentBlobStoreConfiguration, configuration));
+      eventManager.post(new BlobStoreUpdatedEvent(blobStore));
+      eventManager.post(new BlobStoreStartedEvent(blobStore));
+    }
+    catch (BlobStoreException e) {
+      startWithConfig(blobStore, currentBlobStoreConfiguration);
+      executeIfNotReplicating(restoreOldConfiguration(currentBlobStoreConfiguration, configuration));
+      throw e;
+    }
+    catch (Exception e) {
+      log.error("Failed to update configuration", e);
+      startWithConfig(blobStore, currentBlobStoreConfiguration);
+      executeIfNotReplicating(restoreOldConfiguration(currentBlobStoreConfiguration, configuration));
+      throw new BlobStoreException("Failed to start blob store with new configuration.", null);
+    }
+  }
+
+  private Runnable restoreOldConfiguration(
+      final BlobStoreConfiguration oldConfig,
+      final BlobStoreConfiguration newConfig)
+  {
+    return () -> {
+      log.debug("Restoring old configuration for blob store name: '{}'", oldConfig.getName());
+      store.update(oldConfig);
+      removeEncryptedAttributes(newConfig, oldConfig);
+    };
+  }
+
+  private void executeIfNotReplicating(final Runnable action) {
+    if (!EventHelper.isReplicating()) {
+      action.run();
+    }
+  }
+
+  private void startWithConfig(final BlobStore blobStore, final BlobStoreConfiguration config) throws Exception {
+    if (blobStore.isStarted()) {
+      blobStore.stop();
+      eventManager.post(new BlobStoreStoppedEvent(blobStore));
+    }
+    blobStore.init(config);
+    blobStore.start();
+    eventManager.post(new BlobStoreStartedEvent(blobStore));
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  @Nullable
+  public BlobStore get(final String name) {
+    checkNotNull(name);
+
+    BlobStore blobStore = stores.get(name);
+    if (blobStore == null) {
+      final BlobStoreConfiguration configuration = store.read(name);
+      if (Objects.isNull(configuration)) {
+        return null;
+      }
+      try {
+        BlobStore validBS = getBlobStoreForCreate(configuration);
+        doCreate(validBS, configuration);
+        blobStore = stores.get(name);
+      }
+      catch (Exception e) {
+        throw new BlobStoreException("Could not start blobstore: " + name + ", reason: " + e.getMessage(), e, null);
+      }
+    }
+
+    return blobStore;
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  public void delete(final String name) throws Exception {
+    checkNotNull(name);
+    if (hasConflictingTasks(name)) {
+      throw new IllegalStateException("BlobStore " + name + " is in use by a Change Repository Blob Store task");
+    }
+    else if (!repositoryManagerProvider.get().isBlobstoreUsed(name)) {
+      forceDelete(name);
+    }
+    else {
+      throw new BlobStoreException("BlobStore " + name + " is in use and cannot be deleted", null);
+    }
+  }
+
+  @Override
+  public boolean hasConflictingTasks(final String blobStoreName) {
+    return blobStoreTaskService.isAnyTaskInUseForBlobStore(blobStoreName);
+  }
+
+  @Override
+  @Guarded(by = STARTED)
+  public void forceDelete(final String name) throws Exception {
+    checkNotNull(name);
+    log.debug("Deleting BlobStore: {}", name);
+    BlobStore blobStore = doForceDelete(name);
+
+    if (!EventHelper.isReplicating()) {
+      BlobStoreConfiguration blobStoreConfiguration = blobStore.getBlobStoreConfiguration();
+      store.delete(blobStoreConfiguration);
+      removeEncryptedAttributes(blobStoreConfiguration, newConfiguration());
+    }
+    eventManager.post(new BlobStoreDeletedEvent(blobStore));
+    eventManager.post(new BlobStoreDistributedConfigurationEvent(name, DELETED));
+  }
+
+  private BlobStore doForceDelete(final String blobStoreName) {
+    BlobStore blobStore = blobStore(blobStoreName);
+
+    try {
+      blobStore.shutdown();
+      blobStore.remove();
+    }
+    catch (Exception e) {
+      log.error("Error cleaning up blobStore {} while attempting to delete", blobStoreName, e);
+    }
+    untrack(blobStoreName);
+
+    return blobStore;
+  }
+
+  @Override
+  public boolean exists(final String name) {
+    return stores.keySet().stream().anyMatch(key -> key.equalsIgnoreCase(name));
+  }
+
+  @VisibleForTesting
+  BlobStore blobStore(final String name) {
+    BlobStore blobStore = stores.get(name);
+    checkState(blobStore != null, "Missing BlobStore: %s", name);
+    return blobStore;
+  }
+
+  @VisibleForTesting
+  protected void track(final String name, final BlobStore blobStore) {
+    log.debug("Tracking: {}", name);
+    stores.put(name, blobStore);
+  }
+
+  private void untrack(final String name) {
+    log.debug("Untracking: {}", name);
+    stores.remove(name);
+  }
+
+  @Subscribe
+  public void on(final BlobStoreDistributedConfigurationEvent event) throws Exception {
+    if (!EventHelper.isReplicating()) {
+      return;
+    }
+    final BlobStoreConfiguration configuration = store.read(event.getBlobStoreName());
+    String blobStoreName = event.getBlobStoreName();
+    EventType eventType = event.getEventType();
+    log.debug("Received {} event for the {} blob store", eventType, blobStoreName);
+
+    switch (eventType) {
+      case CREATED:
+        // Handle null configuration - may happen if config not yet replicated
+        if (configuration == null) {
+          log.warn("Received CREATED event for blob store '{}' but configuration not found in store. "
+              + "This may indicate a replication timing issue.", blobStoreName);
+          return;
+        }
+        validateConfiguration(configuration, true);
+        doCreate(getBlobStoreForCreate(configuration), configuration);
+        break;
+      case UPDATED:
+        // Handle null configuration - may happen if config not yet replicated
+        if (configuration == null) {
+          log.warn("Received UPDATED event for blob store '{}' but configuration not found in store. "
+              + "This may indicate a replication timing issue.", blobStoreName);
+          return;
+        }
+        doUpdate(getBlobStoreForUpdate(configuration), configuration);
+        break;
+      case DELETED:
+        BlobStore existingBlobStore = stores.get(blobStoreName);
+        if (existingBlobStore != null) {
+          BlobStore deletedBlobStore = doForceDelete(blobStoreName);
+          eventManager.post(new BlobStoreDeletedEvent(deletedBlobStore));
+        }
+        else {
+          log.debug("Received DELETED event for blob store '{}' but it is not tracked locally. "
+              + "May have been already deleted or never created on this node.", blobStoreName);
+        }
+        break;
+      default:
+        log.error("Unknown event type {}", eventType);
+    }
+  }
+
+  @Subscribe
+  public void on(final BlobStoreConfigurationCreatedEvent event) {
+    handleReplication(event, e -> create(e.getConfiguration()));
+  }
+
+  @Subscribe
+  public void on(final BlobStoreConfigurationDeletedEvent event) {
+    handleReplication(event, e -> forceDelete(e.getName()));
+  }
+
+  @Subscribe
+  public void on(final BlobStoreConfigurationUpdatedEvent event) {
+    handleReplication(event, e -> update(e.getConfiguration()));
+  }
+
+  private void handleReplication(
+      final BlobStoreConfigurationEvent event,
+      final EventConsumer<BlobStoreConfigurationEvent> consumer)
+  {
+    if (!event.isLocal()) {
+      try {
+        consumer.accept(event);
+      }
+      catch (Exception e) {
+        log.error("Failed to replicate: {}", event, e);
+      }
+    }
+  }
+
+  @Override
+  public long blobStoreUsageCount(final String blobStoreName) {
+    long count = 0;
+    for (BlobStore otherBlobStore : stores.values()) {
+      BlobStoreConfiguration otherBlobStoreConfig = otherBlobStore.getBlobStoreConfiguration();
+      BlobStoreDescriptor otherBlobStoreDescriptor = blobStoreDescriptors.get(otherBlobStoreConfig.getType());
+      if (otherBlobStoreDescriptor.configHasDependencyOn(otherBlobStoreConfig, blobStoreName)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  @Override
+  public boolean isConvertable(final String blobStoreName) {
+    BlobStore blobStore = get(blobStoreName);
+    return blobStore != null && blobStore.isGroupable() && blobStore.isWritable() &&
+        !store.findParent(blobStore.getBlobStoreConfiguration().getName()).isPresent() &&
+        !hasConflictingTasks(blobStoreName);
+  }
+
+  @Override
+  public Optional<String> getParent(final String blobStoreName) {
+    BlobStore blobStore = get(blobStoreName);
+    return blobStore == null ? empty() : store.findParent(blobStoreName).map(BlobStoreConfiguration::getName);
+  }
+
+  @Override
+  public BlobStoreConfiguration newConfiguration() {
+    return store.newConfiguration();
+  }
+
+  @Override
+  public void validateConfiguration(final BlobStoreConfiguration configuration, final boolean sanitize) {
+    checkNotNull(configuration, "configuration param is NULL");
+    BlobStoreDescriptor blobStoreDescriptor = blobStoreDescriptors.get(configuration.getType());
+    if (sanitize) {
+      blobStoreDescriptor.sanitizeConfig(configuration);
+    }
+    blobStoreDescriptor.validateConfig(configuration);
+  }
+
+  @Override
+  public BlobSession<?> openSession(final String storeName) {
+    return ofNullable(get(storeName)).orElseThrow(() -> new BlobStoreNotFoundException(storeName)).openSession();
+  }
+
+  @Override
+  public boolean existBlobFile(final BlobId blobId, final BlobStore blobStore) {
+    return blobStore.bytesExists(blobId);
+  }
+
+  private static final int MAX_MOVE_RETRIES = 3;
+
+  @Override
+  public Blob copyBlob(final BlobId blobId, final BlobStore srcBlobStore, final BlobStore destBlobStore) {
+    checkNotNull(blobId);
+    checkNotNull(srcBlobStore);
+    checkNotNull(destBlobStore);
+
+    BlobAttributes srcBlobAttributes = srcBlobStore.getBlobAttributes(blobId);
+    if (srcBlobAttributes == null) {
+      throw new BlobStoreException("Blob attributes not found for blob: " + blobId, null);
+    }
+    boolean isSrcDeleted = srcBlobAttributes.isDeleted();
+
+    Map<String, String> headers = srcBlobAttributes.getHeaders();
+
+    Blob newBlob = createBlobWithRetry(blobId, srcBlobStore, destBlobStore, headers);
+    destBlobStore.setBlobAttributes(newBlob.getId(), srcBlobAttributes);
+
+    ensureDeletedStateTransferred(blobId, newBlob.getId(), srcBlobStore, destBlobStore, isSrcDeleted);
+    log.debug("Copied blobId {} to blob store '{}'", blobId, destBlobStore.getBlobStoreConfiguration().getName());
+
+    return newBlob;
+  }
+
+  @Override
+  public Blob moveBlob(final BlobId blobId, final BlobStore srcBlobStore, final BlobStore destBlobStore) {
+    checkNotNull(srcBlobStore);
+    checkNotNull(destBlobStore);
+
+    BlobAttributes srcBlobAttributes = srcBlobStore.getBlobAttributes(blobId);
+    boolean isSrcDeleted = srcBlobAttributes.isDeleted();
+
+    Map<String, String> headers = srcBlobAttributes.getHeaders();
+
+    Blob newBlob;
+    if (srcBlobStore.isInternalMoveSupported(destBlobStore)) {
+      newBlob = srcBlobStore.moveInternal(destBlobStore, blobId, headers);
+    }
+    else {
+      newBlob = createBlobWithRetry(blobId, srcBlobStore, destBlobStore, headers);
+    }
+    destBlobStore.setBlobAttributes(newBlob.getId(), srcBlobAttributes);
+
+    ensureDeletedStateTransferred(blobId, newBlob.getId(), srcBlobStore, destBlobStore, isSrcDeleted);
+    log.debug("Created blobId {} in blob store '{}'", blobId, destBlobStore.getBlobStoreConfiguration().getName());
+
+    try {
+      srcBlobStore.deleteHard(blobId);
+      log.debug("Removed blobId {} from blob store '{}'", blobId, srcBlobStore.getBlobStoreConfiguration().getName());
+    }
+    catch (BlobStoreException e) {
+      log.warn("Failed to remove blobId {} from blob store '{}'", blobId,
+          srcBlobStore.getBlobStoreConfiguration().getName(), e);
+    }
+    return newBlob;
+  }
+
+  /**
+   * A blob may be deleted or un-deleted while it is being copied. To ensure that this is captured we need to propagate
+   * the change to the destination blob store. Once the copy is complete all updates should be routed to the blob in its
+   * new member blob store so it can be assumed that it will no longer change in the source and can be safely deleted.
+   */
+  private void ensureDeletedStateTransferred(
+      final BlobId oldBlobId,
+      final BlobId newBlobId,
+      final BlobStore srcBlobStore,
+      final BlobStore destBlobStore,
+      final boolean isSrcDeleted)
+  {
+    BlobAttributes currentSrcAttributes = srcBlobStore.getBlobAttributes(oldBlobId);
+    BlobAttributes destAttributes = destBlobStore.getBlobAttributes(newBlobId);
+
+    // Handle race condition - deleted state changed during move
+    if (currentSrcAttributes != null && destAttributes != null &&
+        currentSrcAttributes.isDeleted() != isSrcDeleted) {
+      destAttributes.setDeleted(!isSrcDeleted);
+      destBlobStore.setBlobAttributes(newBlobId, destAttributes);
+    }
+
+    // Mark soft-deleted blobs as stale so Compact task can clean them up
+    if (destAttributes != null && destAttributes.isDeleted()) {
+      markBlobAsStale(destBlobStore, newBlobId);
+    }
+  }
+
+  /**
+   * Marks a blob as stale in the destination blob store's cache.
+   * This syncs the in-memory stale flag with the persisted deleted flag.
+   */
+  private void markBlobAsStale(final BlobStore blobStore, final BlobId blobId) {
+    try {
+      Blob blob = blobStore.get(blobId, true);
+
+      if (blob == null) {
+        log.warn("Blob {} not found in destination after move, cannot mark as stale", blobId);
+        return;
+      }
+
+      if (blob instanceof BlobSupport cacheableBlob) {
+        cacheableBlob.markStale();
+        log.debug("Marked blob {} as stale in '{}'", blobId, blobStore.getBlobStoreConfiguration().getName());
+      }
+    }
+    catch (BlobStoreException e) {
+      log.warn("Failed to mark blob {} as stale: {}", blobId, e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Creates a blob with retry logic to handle race condition with temp file cleanup task.
+   * Each retry gets a fresh input stream from the source blob store.
+   */
+  private Blob createBlobWithRetry(
+      final BlobId blobId,
+      final BlobStore srcBlobStore,
+      final BlobStore destBlobStore,
+      final Map<String, String> headers)
+  {
+    InputStream srcInputStream = null;
+    for (int attempt = 1; attempt <= MAX_MOVE_RETRIES; attempt++) {
+      try {
+        srcInputStream = inputStreamOfBlob(srcBlobStore, blobId);
+        return destBlobStore.create(srcInputStream, headers, blobId);
+      }
+      catch (BlobStoreException e) {
+        closeQuietly(srcInputStream);
+        if (isRetryableTempFileException(e) && attempt < MAX_MOVE_RETRIES) {
+          log.warn("Temp file deleted during blob move (race condition with cleanup task), retrying ({}/{})",
+              attempt, MAX_MOVE_RETRIES);
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw new BlobStoreException("Failed to create blob after " + MAX_MOVE_RETRIES + " attempts", blobId);
+  }
+
+  /**
+   * Checks if the exception is a retryable NoSuchFileException for a temp file.
+   */
+  private boolean isRetryableTempFileException(final BlobStoreException e) {
+    if (e.getCause() instanceof NoSuchFileException) {
+      String file = ((NoSuchFileException) e.getCause()).getFile();
+      // Check for both Unix (/tmp/) and Windows (\tmp\) path separators
+      return file != null && (file.contains("/tmp/") || file.contains("\\tmp\\"));
+    }
+    return false;
+  }
+
+  private void closeQuietly(final InputStream inputStream) {
+    if (inputStream != null) {
+      try {
+        inputStream.close();
+      }
+      catch (IOException e) {
+        log.debug("Failed to close input stream", e);
+      }
+    }
+  }
+
+  private InputStream inputStreamOfBlob(final BlobStore blobStore, final BlobId blobId) {
+    try {
+      return Optional.of(blobId)
+          .map(r -> blobStore.get(r, true))
+          .map(Blob::getInputStream)
+          .orElseThrow(
+              () -> new IllegalStateException(format("Unable to get input stream from source %S with blobId: %s",
+                  blobStore.getBlobStoreConfiguration().getName(),
+                  blobId)));
+    }
+    catch (BlobStoreException ex) {
+      throw new BlobInputStreamException(ex, ex.getBlobId());
+    }
+  }
+
+  private List<Secret> encryptSensitiveAttributes(
+      final BlobStoreConfiguration oldBlobStoreConfiguration,
+      final BlobStoreConfiguration newblobStoreConfiguration)
+  {
+    String typeKey = newblobStoreConfiguration.getType();
+    NestedAttributesMap newBlobStoreTypeData = newblobStoreConfiguration.attributes(typeKey.toLowerCase());
+    NestedAttributesMap oldBlobStoreTypeData = oldBlobStoreConfiguration.attributes(typeKey.toLowerCase());
+    List<String> sensitiveAttributes = blobStoreDescriptors.get(typeKey).getSensitiveConfigurationFields();
+    List<Secret> secrets = new ArrayList<>();
+    for (String sensitiveAttrKey : sensitiveAttributes) {
+      String value =
+          Objects.equals(newBlobStoreTypeData.get(sensitiveAttrKey), oldBlobStoreTypeData.get(sensitiveAttrKey))
+              ? oldBlobStoreTypeData.get(sensitiveAttrKey, String.class)
+              : newBlobStoreTypeData.get(sensitiveAttrKey, String.class);
+
+      if (value != null) {
+        // Check if the value is already a secret ID (from configuration import)
+        // Secret IDs start with underscore (e.g., "_1", "_2")
+        if (value.startsWith("_") && value.length() > 1 && Character.isDigit(value.charAt(1))) {
+          log.debug("Skipping re-encryption for {}, already a secret ID: {}", sensitiveAttrKey, value);
+          // Value is already a secret ID, don't re-encrypt it but track it for cleanup
+          secrets.add(secretService.from(value));
+          continue;
+        }
+
+        Secret newSecret =
+            Objects.equals(newBlobStoreTypeData.get(sensitiveAttrKey), oldBlobStoreTypeData.get(sensitiveAttrKey))
+                ? secretService.encryptMaven(BLOBSTORE_CONFIG, secretService.from(value).decrypt(), UserIdHelper.get())
+                : secretService.encryptMaven(BLOBSTORE_CONFIG, value.toCharArray(), UserIdHelper.get());
+
+        newBlobStoreTypeData.set(sensitiveAttrKey, newSecret.getId());
+        secrets.add(newSecret);
+      }
+    }
+    return secrets;
+  }
+
+  private void removeEncryptedAttributes(
+      final BlobStoreConfiguration oldBlobStoreConfiguration,
+      final BlobStoreConfiguration newblobStoreConfiguration)
+  {
+    String typeKey = oldBlobStoreConfiguration.getType();
+    NestedAttributesMap newBlobStoreTypeData = newblobStoreConfiguration.attributes(typeKey.toLowerCase());
+    NestedAttributesMap oldBlobStoreTypeData = oldBlobStoreConfiguration.attributes(typeKey.toLowerCase());
+    List<String> sensitiveAttributes = blobStoreDescriptors.get(typeKey).getSensitiveConfigurationFields();
+    log.debug("Removing sensitive attributes from old store configuration. Blob store name: '{}'",
+        oldBlobStoreConfiguration.getName());
+    for (String sensitiveAttrKey : sensitiveAttributes) {
+      if (oldBlobStoreTypeData.get(sensitiveAttrKey) != null &&
+          !Objects.equals(newBlobStoreTypeData.get(sensitiveAttrKey), oldBlobStoreTypeData.get(sensitiveAttrKey))) {
+        String value = (String) oldBlobStoreTypeData.get(sensitiveAttrKey);
+        removeSecret(secretService.from(value));
+      }
+    }
+  }
+
+  private void removeSecret(final Secret secret) {
+    try {
+      secretService.remove(secret);
+    }
+    catch (Exception e) {
+      log.error("Failed to cleanup secret {} cause {}", secret.getId(), e.getMessage(),
+          log.isDebugEnabled() ? e : null);
+    }
+  }
+
+  @Override
+  public Map<String, BlobStore> getByName() {
+    return Collections.unmodifiableMap(stores);
+  }
+}
