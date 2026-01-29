@@ -1,0 +1,95 @@
+
+package org.globalart.astrum.repository.internal.blobstore.secrets.migration;
+
+import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.globalart.astrum.blobstore.api.BlobStore;
+import org.globalart.astrum.blobstore.api.BlobStoreConfiguration;
+import org.globalart.astrum.blobstore.api.BlobStoreManager;
+import org.globalart.astrum.crypto.secrets.Secret;
+import org.globalart.astrum.crypto.secrets.SecretsService;
+import org.globalart.astrum.scheduling.CancelableHelper;
+import org.globalart.astrum.security.secrets.SecretMigrationException;
+import org.globalart.astrum.security.secrets.SecretsMigrator;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+/**
+ * migrates existing values from the legacy secret format to the new secret format.
+ */
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+public class BlobStoreConfigSecretsMigrator
+    implements SecretsMigrator
+{
+  @VisibleForTesting
+  static final String S3_TYPE = "s3";
+
+  static final List<String> secretKeys = List.of("secretAccessKey", "sessionToken");
+
+  private final BlobStoreManager blobStoreManager;
+
+  private final SecretsService secretsService;
+
+  @Autowired
+  public BlobStoreConfigSecretsMigrator(final BlobStoreManager blobStoreManager, final SecretsService secretsService) {
+    this.blobStoreManager = checkNotNull(blobStoreManager);
+    this.secretsService = checkNotNull(secretsService);
+  }
+
+  @Override
+  public void migrate() throws SecretMigrationException {
+    for (BlobStore blobStore : blobStoreManager.browse()) {
+      CancelableHelper.checkCancellation();
+
+      try {
+        BlobStoreConfiguration currentConfig = blobStore.getBlobStoreConfiguration();
+
+        if (S3_TYPE.equalsIgnoreCase(currentConfig.getType())) {
+          maybeMigrateSecret(currentConfig);
+        }
+      }
+      catch (Exception e) {
+        throw new SecretMigrationException(
+            "unable to migrate secrets for blobstore: " + blobStore.getBlobStoreConfiguration().getName(), e);
+      }
+    }
+  }
+
+  private void maybeMigrateSecret(final BlobStoreConfiguration blobStoreConfiguration) throws Exception {
+    BlobStoreConfiguration blobStoreConfigurationCopy = blobStoreConfiguration.copy(blobStoreConfiguration.getName());
+    Map<String, Object> s3Attributes = blobStoreConfigurationCopy.getAttributes().get(S3_TYPE);
+
+    if (s3Attributes == null) {
+      return;
+    }
+
+    boolean requiresUpdate = false;
+
+    for (String secretKey : secretKeys) {
+      if (s3Attributes.containsKey(secretKey)) {
+        String secret = (String) s3Attributes.get(secretKey);
+        Secret existing = secretsService.from(secret);
+
+        if (isLegacyEncryptedString(existing)) {
+          requiresUpdate = true;
+          // put decrypted value in the map, so that it can be encrypted and saved back
+          s3Attributes.put(secretKey, new String(existing.decrypt()));
+        }
+      }
+    }
+
+    if (!requiresUpdate) {
+      return;
+    }
+    // update after all secrets have been migrated
+    blobStoreManager.update(blobStoreConfigurationCopy);
+  }
+}
