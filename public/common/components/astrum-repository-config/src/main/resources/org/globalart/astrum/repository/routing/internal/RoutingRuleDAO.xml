@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.repository.routing.internal.RoutingRuleDAO">
+
+  <insert id="createSchema">
+    CREATE TABLE IF NOT EXISTS repository_routing_rule (
+      id          ${UUID_TYPE} NOT NULL,
+      name        VARCHAR(200) NOT NULL,
+      mode        VARCHAR(100) NOT NULL,
+      description VARCHAR(400) NULL,
+      matchers    ${JSON_TYPE} NOT NULL,
+
+      CONSTRAINT pk_repository_routing_rule_id PRIMARY KEY (id),
+      CONSTRAINT pk_repository_routing_rule_name UNIQUE (name)
+    );
+  </insert>
+
+  <select id="browse" resultType="RoutingRuleData">
+    SELECT * FROM repository_routing_rule;
+  </select>
+
+  <insert id="create" parameterType="RoutingRuleData">
+    INSERT INTO repository_routing_rule (id, name, mode, description, matchers)
+        VALUES (#{id}, #{name}, #{mode}, #{description}, #{matchers});
+  </insert>
+
+  <select id="read" resultType="RoutingRuleData">
+    SELECT * FROM repository_routing_rule WHERE id = #{value};
+  </select>
+
+  <select id="readByName" resultType="RoutingRuleData">
+    SELECT * FROM repository_routing_rule WHERE name = #{value};
+  </select>
+
+  <update id="update" parameterType="RoutingRuleData">
+    UPDATE repository_routing_rule SET
+        mode = #{mode}, description = #{description}, matchers = #{matchers}
+        <!-- can only rename if we have 'id' to find the record -->
+        <if test="id != null">, name = #{name}</if>
+        <!-- use 'name' to find record when 'id' is not available -->
+        WHERE <choose><when test="id != null">id = #{id}</when>
+              <otherwise>name = #{name}</otherwise></choose>;
+  </update>
+
+  <delete id="delete">
+    DELETE FROM repository_routing_rule WHERE id = #{value};
+  </delete>
+
+  <delete id="deleteByName">
+    DELETE FROM repository_routing_rule WHERE name = #{value};
+  </delete>
+
+</mapper>
