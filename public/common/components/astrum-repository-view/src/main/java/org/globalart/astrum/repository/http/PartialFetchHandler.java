@@ -1,0 +1,156 @@
+
+package org.globalart.astrum.repository.http;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Nonnull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.repository.view.Context;
+import org.globalart.astrum.repository.view.Handler;
+import org.globalart.astrum.repository.view.Payload;
+import org.globalart.astrum.repository.view.Request;
+import org.globalart.astrum.repository.view.Response;
+import org.globalart.astrum.repository.view.Status;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.Range;
+import com.google.common.net.HttpHeaders;
+import org.apache.http.client.utils.DateUtils;
+import org.joda.time.DateTime;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import org.springframework.stereotype.Component;
+
+/**
+ * Implements partial-fetch semantics (as per RFC 2616) for {@link Status#isSuccessful() successful}
+ * responses with payloads.
+ *
+ * @since 3.0
+ */
+@Component
+public class PartialFetchHandler
+    implements Handler
+{
+  private final RangeParser rangeParser;
+
+  @Autowired
+  public PartialFetchHandler(final RangeParser rangeParser) {
+    this.rangeParser = checkNotNull(rangeParser);
+  }
+
+  @Nonnull
+  @Override
+  public Response handle(@Nonnull final Context context) throws Exception {
+    final Response response = context.proceed();
+
+    // Range requests only apply to GET
+    if (!HttpMethods.GET.equals(context.getRequest().getAction())) {
+      return response;
+    }
+
+    if (response.getStatus().getCode() != HttpStatus.OK) {
+      // We don't interfere with any non-200 responses
+      return response;
+    }
+
+    final Payload payload = response.getPayload();
+    if (payload == null) {
+      return response;
+    }
+
+    if (payload.getSize() == Payload.UNKNOWN_SIZE) {
+      // We can't do much if we don't know how big the payload is
+      return response;
+    }
+
+    final String rangeHeader = getHeaderValue(context.getRequest(), HttpHeaders.RANGE);
+    if (rangeHeader == null) {
+      return response;
+    }
+
+    final List<Range<Long>> ranges = rangeParser.parseRangeSpec(rangeHeader, payload.getSize());
+
+    if (ranges == null) {
+      // The ranges were not satisfiable
+      return HttpResponses.rangeNotSatisfiable(payload.getSize());
+    }
+
+    if (ranges.isEmpty()) {
+      // No ranges were specified, or they could not be parsed
+      return response;
+    }
+
+    if (ranges.size() > 1) {
+      return HttpResponses.notImplemented("Multiple ranges not supported.");
+    }
+
+    final String ifRangeHeader = getHeaderValue(context.getRequest(), HttpHeaders.IF_RANGE);
+    if (ifRangeHeader != null && !ifRangeHeaderMatches(response, ifRangeHeader)) {
+      return response;
+    }
+
+    Range<Long> requestedRange = ranges.get(0);
+
+    // Mutate the response
+    return partialResponse(response, payload, requestedRange);
+  }
+
+  /**
+   * Mutate the response into one that returns part of the payload.
+   */
+  private Response partialResponse(
+      final Response response,
+      final Payload payload,
+      final Range<Long> requestedRange)
+  {
+    Response.Builder builder = new Response.Builder()
+        .copy(response)
+        .status(Status.success(HttpStatus.PARTIAL_CONTENT));
+
+    Payload partialPayload = new PartialPayload(payload, requestedRange);
+    builder.payload(partialPayload);
+
+    // ResponseSender takes care of Content-Length header, via payload.size
+    builder.header(HttpHeaders.CONTENT_RANGE,
+        "bytes " + requestedRange.lowerEndpoint() + "-" + requestedRange.upperEndpoint() + "/" + payload.getSize());
+
+    return builder.build();
+  }
+
+  private static boolean ifRangeHeaderMatches(final Response response, final String ifRangeHeader) {
+    // If the if-range header starts with " it is an ETag
+    if (ifRangeHeader.startsWith("\"")) {
+      String responseEtagHeader = getHeaderValue(response, HttpHeaders.ETAG);
+      return ifRangeHeader.equals(responseEtagHeader);
+    }
+
+    // Otherwise, it is the last-modified date and time
+    DateTime ifRangeHeaderDateTimeValue = parseDateTime(ifRangeHeader);
+    if (ifRangeHeaderDateTimeValue != null) {
+      DateTime responseLastModifiedHeader = parseDateTime(getHeaderValue(response, HttpHeaders.LAST_MODIFIED));
+      return ifRangeHeaderDateTimeValue.equals(responseLastModifiedHeader);
+    }
+    else {
+      return false;
+    }
+  }
+
+  private static String getHeaderValue(final Request request, final String header) {
+    return request.getHeaders().get(header);
+  }
+
+  private static String getHeaderValue(final Response response, final String header) {
+    return response.getHeaders().get(header);
+  }
+
+  private static DateTime parseDateTime(final String stringValue) {
+    if (!Strings.isNullOrEmpty(stringValue)) {
+      final Date date = DateUtils.parseDate(stringValue);
+      if (date != null) {
+        return new DateTime(date.getTime());
+      }
+    }
+    return null;
+  }
+}
