@@ -1,0 +1,146 @@
+
+package org.globalart.astrum.repository.view;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.util.Optional;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.common.collect.AttributesMap;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.joda.time.DateTime;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Content, that is wrapped {@link Payload} with {@link AttributesMap}.
+ *
+ * @since 3.0
+ */
+public class Content
+    implements Payload
+{
+  /**
+   * Key of nested map of content related properties.
+   */
+  @VisibleForTesting
+  public static final String CONTENT = "content";
+
+  /**
+   * Key of content "Last-Modified" attribute, with type {@link DateTime}.
+   */
+  public static final String CONTENT_LAST_MODIFIED = "last_modified";
+
+  /**
+   * Key of content "ETag" attribute, with type {@link String}.
+   */
+  public static final String CONTENT_ETAG = "etag";
+
+  /**
+   * Key of content "Vary" attribute, with type {@link String}. The value is emitted on the HTTP
+   * {@code Vary} response header by {@code ContentHeadersHandler} to signal which request headers
+   * produced format-dependent responses (typically {@code Accept} for content negotiation).
+   */
+  public static final String CONTENT_VARY = "Vary";
+
+  /**
+   * Common prefix for external metadata attributes to be stored in {@link Content#attributes}
+   */
+  private static final String EXTERNAL_ATTRIBUTE = "external.%s";
+
+  public static final String EXTERNAL_LAST_MODIFIED = EXTERNAL_ATTRIBUTE.formatted(CONTENT_LAST_MODIFIED);
+
+  public static final String EXTERNAL_ETAG = EXTERNAL_ATTRIBUTE.formatted(CONTENT_ETAG);
+
+  private final Payload payload;
+
+  private final AttributesMap attributes;
+
+  private boolean disableRedirect = false;
+
+  public Content(final Payload payload) {
+    this.payload = checkNotNull(payload);
+    this.attributes = new AttributesMap();
+  }
+
+  /**
+   * Creates an instance based on the original replacing the payload. Note that attributes are referenced, not copied.
+   */
+  public Content(final Content originalContent, final Payload payload) {
+    this.payload = checkNotNull(payload);
+    this.attributes = originalContent.getAttributes();
+  }
+
+  /**
+   * @since 3.4
+   */
+  protected Content(final Payload payload, final AttributesMap attributes) {
+    this.payload = checkNotNull(payload);
+    this.attributes = checkNotNull(attributes);
+  }
+
+  @Override
+  public InputStream openInputStream() throws IOException {
+    return payload.openInputStream();
+  }
+
+  @Override
+  public long getSize() {
+    return payload.getSize();
+  }
+
+  @Nullable
+  @Override
+  public String getContentType() {
+    return payload.getContentType();
+  }
+
+  @Override
+  public void close() throws IOException {
+    payload.close();
+  }
+
+  @Override
+  public void copy(final InputStream inputStream, final OutputStream outputStream) throws IOException {
+    payload.copy(inputStream, outputStream);
+  }
+
+  public Payload getPayload() {
+    return payload;
+  }
+
+  @Nonnull
+  public AttributesMap getAttributes() {
+    return attributes;
+  }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName() + "{" +
+        "payload=" + payload +
+        ", attributes='" + attributes + '\'' +
+        '}';
+  }
+
+  /**
+   * disables redirect handling for this content.
+   */
+  public void setDisableRedirect() {
+    disableRedirect = true;
+  }
+
+  @Override
+  public boolean hasRedirect() {
+    return !disableRedirect && payload.hasRedirect();
+  }
+
+  @Override
+  public Optional<URL> getRedirectUrl(final String action, final String name) {
+    return disableRedirect ? Optional.empty() : payload.getRedirectUrl(action, name);
+  }
+}
