@@ -1,0 +1,98 @@
+
+package org.globalart.astrum.repository.view;
+
+import java.net.URISyntaxException;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import static org.hamcrest.Matchers.any;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.globalart.astrum.repository.view.ViewUtils.buildUrlWithParameters;
+
+public class ViewUtilsTest
+{
+  @Rule
+  public final ExpectedException exception = ExpectedException.none();
+
+  @Test
+  public void buildUrlsWithoutParameters() {
+    Parameters parameters = new Parameters();
+
+    assertThat(buildUrlWithParameters("http://www.example.com", parameters),
+        is("http://www.example.com"));
+    assertThat(buildUrlWithParameters("https://www.example.com", parameters),
+        is("https://www.example.com"));
+  }
+
+  @Test
+  public void buildUrlsWithSubpathsWithoutParameters() {
+    Parameters parameters = new Parameters();
+
+    assertThat(buildUrlWithParameters("http://www.example.com/foo", parameters),
+        is("http://www.example.com/foo"));
+    assertThat(buildUrlWithParameters("https://www.example.com/foo", parameters),
+        is("https://www.example.com/foo"));
+  }
+
+  @Test
+  public void buildUrlsWithSingleParameter() {
+    Parameters parameters = new Parameters();
+    parameters.set("a", "1");
+
+    assertThat(buildUrlWithParameters("http://www.example.com", parameters),
+        is("http://www.example.com?a=1"));
+    assertThat(buildUrlWithParameters("http://www.example.com/foo", parameters),
+        is("http://www.example.com/foo?a=1"));
+  }
+
+  @Test
+  public void buildUrlsWithMultipleParameters() {
+    Parameters parameters = new Parameters();
+    parameters.set("a", "1");
+    parameters.set("b", "2");
+
+    assertThat(buildUrlWithParameters("http://www.example.com", parameters),
+        is("http://www.example.com?a=1&b=2"));
+    assertThat(buildUrlWithParameters("http://www.example.com/foo", parameters),
+        is("http://www.example.com/foo?a=1&b=2"));
+  }
+
+  @Test
+  public void buildUrlsWithDuplicateParameters() {
+    Parameters parameters = new Parameters();
+    parameters.set("a", "1", "2");
+
+    assertThat(buildUrlWithParameters("http://www.example.com", parameters),
+        is("http://www.example.com?a=1&a=2"));
+    assertThat(buildUrlWithParameters("http://www.example.com/foo", parameters),
+        is("http://www.example.com/foo?a=1&a=2"));
+  }
+
+  @Test
+  public void buildUrlsWithCorrectlyEncodedParameters() {
+    Parameters parameters = new Parameters();
+    parameters.set("a", "what?");
+    parameters.set("b", "F=ma");
+    parameters.set("c", "hello world");
+    parameters.set("d", "1+2");
+
+    assertThat(buildUrlWithParameters("http://www.example.com", parameters),
+        is("http://www.example.com?a=what%3F&b=F%3Dma&c=hello+world&d=1%2B2"));
+  }
+
+  @Test
+  public void exceptionIsThrownOnInvalidUrl() {
+    exception.expect(IllegalArgumentException.class);
+    exception.expectCause(any(URISyntaxException.class));
+    exception.expectMessage("http://www.test hostname.com");
+    exception.expectMessage("test-parameter");
+    exception.expectMessage("test-value");
+
+    Parameters parameters = new Parameters();
+    parameters.set("test-parameter", "test-value");
+    buildUrlWithParameters("http://www.test hostname.com", parameters);
+  }
+}
