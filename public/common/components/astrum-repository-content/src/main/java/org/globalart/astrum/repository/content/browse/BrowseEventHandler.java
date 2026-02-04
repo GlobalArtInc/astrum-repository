@@ -1,0 +1,429 @@
+
+package org.globalart.astrum.repository.content.browse;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.common.app.ManagedLifecycle;
+import org.globalart.astrum.common.cooperation2.Cooperation2;
+import org.globalart.astrum.common.cooperation2.Cooperation2Factory;
+import org.globalart.astrum.common.db.DatabaseCheck;
+import org.globalart.astrum.repository.content.browse.capability.BrowseTrimService;
+import org.globalart.astrum.common.entity.EntityId;
+import org.globalart.astrum.common.event.EventAware;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.common.scheduling.PeriodicJobService;
+import org.globalart.astrum.common.scheduling.PeriodicJobService.PeriodicJob;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.browse.node.BrowseNodeEventHandler;
+import org.globalart.astrum.repository.browse.node.BrowseNodeEventHandlerSupport;
+import org.globalart.astrum.repository.content.browse.store.BrowseNodeData;
+import org.globalart.astrum.repository.content.event.asset.AssetCreatedEvent;
+import org.globalart.astrum.repository.content.event.asset.AssetDeletedEvent;
+import org.globalart.astrum.repository.content.event.asset.AssetEvent;
+import org.globalart.astrum.repository.content.event.asset.AssetPathChangedEvent;
+import org.globalart.astrum.repository.content.event.asset.AssetPurgedEvent;
+import org.globalart.astrum.repository.content.event.asset.AssetUploadedEvent;
+import org.globalart.astrum.repository.content.event.component.ComponentDeletedEvent;
+import org.globalart.astrum.repository.content.event.component.ComponentPurgedEvent;
+import org.globalart.astrum.repository.content.store.ContentStoreEvent;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.Subscribe;
+import org.springframework.beans.factory.annotation.Value;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.Integer.parseInt;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.SERVICES;
+import static org.globalart.astrum.repository.content.store.InternalIds.internalAssetId;
+import static org.globalart.astrum.repository.content.store.InternalIds.toExternalId;
+import org.springframework.stereotype.Component;
+
+/**
+ * Event handler that periodically updates the browse tree based on asset events.
+ *
+ * This handler runs in the same thread that triggered the event. It avoids doing too much
+ * work on that thread by simply marking the asset update as pending in a concurrent map.
+ * A scheduled task periodically grabs a page of assets and updates the tree.
+ *
+ * If the pending map gets too big events will start to be posted to flush additional pages.
+ * These events are handled by an asynchronous receiver using threads from the event pool.
+ *
+ * @since 3.26
+ */
+@ManagedLifecycle(phase = SERVICES)
+@Component
+public class BrowseEventHandler
+    extends BrowseNodeEventHandlerSupport
+    implements BrowseNodeEventHandler, EventAware // warning: don't make this EventAware.Asynchronous
+{
+  private static final String HANDLER_KEY_PREFIX = "astrum.browse.event.handler.";
+
+  private static final String FLUSH_ON_COUNT_KEY = HANDLER_KEY_PREFIX + "flushOnCount";
+
+  private static final String FLUSH_ON_SECONDS_KEY = HANDLER_KEY_PREFIX + "flushOnSeconds";
+
+  private static final String NO_PURGE_DELAY_KEY = HANDLER_KEY_PREFIX + "noPurgeDelay";
+
+  private final PeriodicJobService periodicJobService;
+
+  private final EventManager eventManager;
+
+  private final int flushOnCount;
+
+  private final int flushOnSeconds;
+
+  private final boolean noPurgeDelay;
+
+  private final FlushEventReceiver flushEventReceiver = new FlushEventReceiver();
+
+  private final Map<String, Repository> pendingAssets = new ConcurrentHashMap<>();
+
+  private final AtomicInteger pendingCount = new AtomicInteger();
+
+  private final Set<Repository> repositoriesToTrim = ConcurrentHashMap.newKeySet();
+
+  private final AtomicBoolean needsTrim = new AtomicBoolean();
+
+  private final Cooperation2 cooperation;
+
+  private Object flushMutex = new Object();
+
+  private PeriodicJob flushTask;
+
+  private final DatabaseCheck databaseCheck;
+
+  private final BrowseTrimService browseTrimService;
+
+  // simple flag stating whether or not there is a need to fire flush events
+  private volatile boolean flushQueued;
+
+  @Autowired
+  public BrowseEventHandler(
+      final Cooperation2Factory cooperation2Factory,
+      final PeriodicJobService periodicJobService,
+      final EventManager eventManager,
+      @Value("${astrum.browse.cooperation.enabled:true}") final boolean cooperationEnabled,
+      @Value("${astrum.browse.cooperation.majorTimeout:0s}") final Duration majorTimeout,
+      @Value("${astrum.browse.cooperation.minorTimeout:30s}") final Duration minorTimeout,
+      @Value("${" + FLUSH_ON_COUNT_KEY + ":100}") final int flushOnCount,
+      @Value("${" + FLUSH_ON_SECONDS_KEY + ":2}") final int flushOnSeconds,
+      @Value("${" + NO_PURGE_DELAY_KEY + ":true}") final boolean noPurgeDelay,
+      final DatabaseCheck databaseCheck,
+      final BrowseTrimService browseTrimService)
+  {
+    this.cooperation = checkNotNull(cooperation2Factory).configure()
+        .majorTimeout(majorTimeout)
+        .minorTimeout(minorTimeout)
+        .enabled(cooperationEnabled)
+        .build(getClass());
+
+    this.periodicJobService = checkNotNull(periodicJobService);
+    this.eventManager = checkNotNull(eventManager);
+    checkArgument(flushOnCount > 0, FLUSH_ON_COUNT_KEY + " must be positive");
+    this.flushOnCount = flushOnCount;
+    checkArgument(flushOnSeconds > 0, FLUSH_ON_SECONDS_KEY + " must be positive");
+    this.flushOnSeconds = flushOnSeconds;
+    this.noPurgeDelay = noPurgeDelay;
+    this.databaseCheck = checkNotNull(databaseCheck);
+    this.browseTrimService = checkNotNull(browseTrimService);
+
+    eventManager.register(flushEventReceiver);
+  }
+
+  @Override
+  protected void doStart() throws Exception {
+    if (flushOnCount > 1) {
+      periodicJobService.startUsing();
+      flushTask = periodicJobService.schedule(this::pollBrowseUpdateRequests, flushOnSeconds);
+    }
+  }
+
+  @Override
+  protected void doStop() throws Exception {
+    if (flushOnCount > 1) {
+      flushTask.cancel();
+      periodicJobService.stopUsing();
+    }
+  }
+
+  @AllowConcurrentEvents
+  @Subscribe
+  public void on(final AssetCreatedEvent event) {
+    if (shouldHandle()) {
+      markAssetAsPending(event);
+    }
+  }
+
+  @AllowConcurrentEvents
+  @Subscribe
+  public void on(final AssetUploadedEvent event) {
+    if (shouldHandle()) {
+      markAssetAsPending(event);
+    }
+  }
+
+  @AllowConcurrentEvents
+  @Subscribe
+  public void on(final AssetPathChangedEvent event) {
+    if (shouldHandle()) {
+      handleAssetPathChanged(event);
+    }
+  }
+
+  @AllowConcurrentEvents
+  @Subscribe
+  public void on(final AssetDeletedEvent event) {
+    if (shouldHandle()) {
+      markRepositoryForTrimming(event);
+    }
+  }
+
+  @AllowConcurrentEvents
+  @Subscribe
+  public void on(final AssetPurgedEvent event) {
+    if (shouldHandle()) {
+      markRepositoryForTrimming(event);
+    }
+  }
+
+  @AllowConcurrentEvents
+  @Subscribe
+  public void on(final ComponentDeletedEvent event) {
+    if (shouldHandle()) {
+      markRepositoryForTrimming(event);
+    }
+  }
+
+  @AllowConcurrentEvents
+  @Subscribe
+  public void on(final ComponentPurgedEvent event) {
+    if (shouldHandle()) {
+      markRepositoryForTrimming(event);
+    }
+  }
+
+  /**
+   * Marks asset as requiring updating in its browse tree.
+   */
+  private void markAssetAsPending(final AssetEvent event) {
+    Optional<Repository> repository = event.getRepository();
+    if (!repository.isPresent()) {
+      log.debug("Missing repository for event {}", event);
+      return;
+    }
+    // bump count if this is the first time we've seen this request key in this batch
+    if (pendingAssets.put(requestKey(event), repository.get()) == null) {
+      pendingCount.getAndIncrement();
+    }
+
+    // don't bother firing another event if one already waiting to be processed
+    // if there are lots of pending requests then reduce count by a page and
+    // trigger an asynchronous flush event (which will actually do the work)
+    if (!flushQueued && pendingCount.getAndUpdate(c -> c >= flushOnCount ? 0 : c) >= flushOnCount) {
+      flushQueued = true;
+      eventManager.post(new FlushEvent());
+    }
+  }
+
+  /**
+   * Marks repository as requiring trimming of its browse tree.
+   */
+  private void markRepositoryForTrimming(final ContentStoreEvent event) {
+    Optional<Repository> repository = event.getRepository();
+    if (!repository.isPresent()) {
+      log.debug("Unable to determine repository for trimming for event {}", event);
+      return;
+    }
+    repositoriesToTrim.add(repository.get());
+    needsTrim.set(true);
+
+    if (shouldTriggerImmediatePurge()) {
+      eventManager.post(new PurgeEvent());
+    }
+  }
+
+  private boolean shouldTriggerImmediatePurge() {
+    // If batch trim is enabled via capability, delay the purge (batching)
+    if (browseTrimService.isBatchTrimEnabled()) {
+      return false;
+    }
+    // Otherwise, use the property value (default behavior)
+    return noPurgeDelay;
+  }
+
+  /**
+   * Handles asset path changes by removing the stale browse-node leaf at the old path and
+   * scheduling re-creation of the tree at the new path.
+   */
+  private void handleAssetPathChanged(final AssetPathChangedEvent event) {
+    Optional<Repository> repository = event.getRepository();
+    if (!repository.isPresent()) {
+      log.debug("Missing repository for event {}", event);
+      return;
+    }
+
+    String oldPath = event.getOldPath();
+    if (oldPath != null) {
+      repository.get().optionalFacet(BrowseFacet.class).ifPresent(browseFacet -> {
+        browseFacet.getByRequestPath(oldPath)
+            .map(node -> ((BrowseNodeData) node).getNodeId())
+            .ifPresent(browseFacet::deleteByNodeId);
+      });
+    }
+
+    markAssetAsPending(event);
+  }
+
+  /**
+   * Marker event that indicates another page of components should be added to the browse tree.
+   */
+  private static class FlushEvent
+  {
+    // this event is a marker only
+  }
+
+  /**
+   * Marker event that indicates some repository browse trees need trimming of unused nodes.
+   */
+  private static class PurgeEvent
+  {
+    // this event is a marker only
+  }
+
+  /**
+   * Asynchronous receiver of {@link FlushEvent}s and {@link PurgeEvent}s.
+   */
+  private class FlushEventReceiver
+      implements EventAware.Asynchronous
+  {
+    @AllowConcurrentEvents
+    @Subscribe
+    public void on(final FlushEvent event) {
+      flushAssets();
+    }
+
+    @AllowConcurrentEvents
+    @Subscribe
+    public void on(final PurgeEvent event) {
+      maybeTrimRepositories();
+    }
+  }
+
+  /**
+   * Used by scheduled flush task to poll for work.
+   */
+  void pollBrowseUpdateRequests() {
+    if (pendingCount.get() > 0) {
+      flushAssets();
+    }
+
+    maybeTrimRepositories();
+  }
+
+  /**
+   * Grabs pending assets and updates the browse tree.
+   */
+  void flushAssets() {
+    Multimap<Repository, EntityId> requestsByRepository = ArrayListMultimap.create();
+
+    // only allow one thread to remove entries at a time while still allowing other threads to add entries
+    synchronized (flushMutex) {
+      // before we start processing, clear the queue flag so that the next
+      // flush event gets fired as expected
+      flushQueued = false;
+
+      // remove assets and invert them to get mapping from repository to assets
+      Iterator<Entry<String, Repository>> itr = pendingAssets.entrySet().iterator();
+      while (itr.hasNext()) {
+        Entry<String, Repository> entry = itr.next();
+
+        // these requests are scoped per-repository so it is safe to drop the format here
+        requestsByRepository.put(entry.getValue(), assetId(entry.getKey()));
+        itr.remove();
+      }
+
+      // deliver requests to the relevant repositories
+      requestsByRepository.asMap().forEach((repository, assetIds) -> {
+        try {
+          cooperation.on(() -> {
+            repository.optionalFacet(BrowseFacet.class)
+                .ifPresent(browseFacet -> browseFacet.addPathsToAssets(assetIds));
+            return null;
+          })
+              // We always need to process our assets regardless of what the remote node did
+              .checkFunction(Optional::empty)
+              .cooperate(repository.getName());
+        }
+        catch (IOException e) {
+          logWarning("An error occurred while processing browse nodes for {}", repository, e);
+        }
+      });
+    }
+
+  }
+
+  /**
+   * Trims all pending repositories of dangling nodes.
+   */
+  void maybeTrimRepositories() {
+    if (!browseTrimService.shouldAllowTrim()) {
+      return; // skip trimming based on capability settings
+    }
+    if (needsTrim.getAndSet(false)) {
+      Iterator<Repository> itr = repositoriesToTrim.iterator();
+      while (itr.hasNext()) {
+        Repository nextRepository = itr.next();
+        itr.remove(); // do the removal first so other threads can add the same repository to the set to trim
+        try {
+          cooperation.on(() -> {
+            nextRepository.optionalFacet(BrowseFacet.class).ifPresent(BrowseFacet::trimBrowseNodes);
+            return null;
+          })
+              // In order to guarantee the repository is trimmed we return an empty result if another thread initially
+              // won
+              .checkFunction(Optional::empty)
+              .cooperate(nextRepository.getName());
+        }
+        catch (IOException e) {
+          logWarning("An error occurred while trying to trim {}", nextRepository, e);
+        }
+      }
+    }
+  }
+
+  private void logWarning(final String message, final Repository repository, final Exception e) {
+    if (log.isDebugEnabled()) {
+      log.warn(message, repository.getName(), e);
+    }
+    else {
+      log.warn(message + " - {}", repository.getName(), e.getMessage());
+    }
+  }
+
+  /**
+   * Binds the format with the asset id to get a unique request key.
+   */
+  private String requestKey(final AssetEvent event) {
+    return event.getFormat() + ':' + internalAssetId(event.getAsset());
+  }
+
+  /**
+   * Extracts external asset id from request key; should only be done in the context of a repository/format.
+   */
+  private EntityId assetId(final String requestKey) {
+    return toExternalId(parseInt(requestKey.substring(requestKey.indexOf(':') + 1)));
+  }
+}
