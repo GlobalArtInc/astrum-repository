@@ -1,0 +1,179 @@
+
+package org.globalart.astrum.repository.content.kv;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.common.entity.Continuation;
+import org.globalart.astrum.datastore.api.ContentDataAccess;
+import org.globalart.astrum.datastore.api.Expects;
+import org.globalart.astrum.datastore.api.SchemaTemplate;
+import org.globalart.astrum.repository.content.store.ContentRepositoryDAO;
+
+import org.apache.ibatis.annotations.Param;
+
+/**
+ * Used to store arbitrary key-value types in a category for a specific repository.
+ *
+ * @implNote when adding for a new format it is necessary to extend KeyValueIndexesMigrationStepSupport to create
+ *           indexes
+ */
+@Expects({ContentRepositoryDAO.class})
+@SchemaTemplate("format")
+public interface KeyValueDAO
+    extends ContentDataAccess
+{
+  /**
+   * Get the value for a specified key
+   *
+   * @param repositoryId the repository for the scope
+   * @param category the storage category
+   * @param key the key of the data
+   * @return the result if it exists
+   */
+  Optional<String> get(
+      @Param("repositoryId") int repositoryId,
+      @Param("category") String category,
+      @Param("key") String key);
+
+  /**
+   * Get the value for a specified key
+   *
+   * @param repositoryId the repository for the scope
+   * @param category the storage category
+   * @param key the key of the data
+   * @return the result if it exists
+   */
+  Optional<KeyValue> getKeyValue(
+      @Param("repositoryId") int repositoryId,
+      @Param("category") String category,
+      @Param("key") String key);
+
+  /**
+   * Browse the key-value pairs in the specified repository with the provided category.
+   *
+   * @param repositoryId the repository for the scope
+   * @param category the storage category
+   * @param limit the page size
+   * @param continuationToken the continuation token
+   *
+   * @return the page of results
+   */
+  Continuation<KeyValue> browse(
+      @Param("repositoryId") int repositoryId,
+      @Param("category") String category,
+      @Param("limit") int limit,
+      @Nullable @Param("continuationToken") String continuationToken);
+
+  /**
+   * Browse the categories available for the repository.
+   *
+   * @param repositoryId the repositoryId
+   *
+   * @return a distinct list of categories.
+   */
+  List<String> browseCategories(@Param("repositoryId") int repositoryId);
+
+  /**
+   * Count the number of key-value pairs in the specified repository in the category.
+   *
+   * @param repositoryId the repository for the scope
+   * @param category the category to count the entries for
+   * @return
+   */
+  int count(@Param("repositoryId") int repositoryId, @Param("category") String category);
+
+  /**
+   * Find categories which contain the provided key.
+   *
+   * @param key the key to find
+   *
+   * @return a list of categories
+   */
+  List<String> findCategories(@Param("repositoryId") final int repositoryId, @Param("key") String key);
+
+  List<KeyValue> findByCategoryAndKeyLike(
+      @Param("repositoryId") int repositoryId,
+      @Nullable @Param("category") String category,
+      @Param("keyLike") String keyLike);
+
+  /**
+   * Set the value for a specific key in the provided category for the repository.
+   *
+   * @param repositoryId the repository for the scope
+   * @param category the storage category
+   * @param key the key for the data
+   * @param value the data to store
+   */
+  void set(
+      @Param("repositoryId") int repositoryId,
+      @Param("category") String category,
+      @Param("key") String key,
+      @Param("value") String value);
+
+  /**
+   * Sets the created date for all entries of a particular category. Useful when using the kv table as a cache like
+   * structure.
+   *
+   * @param repositoryId the repository for the scope
+   * @param category the storage category
+   * @param created the new created date
+   * @return the number of records updated
+   */
+  int setCreatedDate(
+      @Param("repositoryId") int repositoryId,
+      @Param("category") String category,
+      @Param("created") OffsetDateTime created);
+
+  /**
+   * Sets the created date for the specified key of a particular category. Useful when using the kv table as a cache
+   * like structure.
+   *
+   * @param repositoryId the repository for the scope
+   * @param category the storage category
+   * @param key the key for the data
+   * @param created the new created date
+   * @return the number of records updated
+   */
+  int setCreatedDateForKey(
+      @Param("repositoryId") int repositoryId,
+      @Param("category") String category,
+      @Param("key") String key,
+      @Param("created") OffsetDateTime created);
+
+  /**
+   * Remove the data associated with the specific category and key.
+   *
+   * @param repositoryId the repository for the scope
+   * @param category the storage category
+   * @param key the key for the data
+   */
+  void remove(@Param("repositoryId") int repositoryId, @Param("category") String category, @Param("key") String key);
+
+  /**
+   * Remove all keys of the specified category associated with the repository.
+   *
+   * @param repositoryId the repository to scope the changes for
+   * @param category the storage category
+   * @param limit the maximum number of records to delete
+   *
+   * @return the number of records removed
+   */
+  int removeAll(
+      @Param("repositoryId") int repositoryId,
+      @Nullable @Param("category") String category,
+      @Param("limit") int limit);
+
+  /**
+   * Remove all data associated with a repository
+   *
+   * @param repositoryId the repository to remove content for
+   * @param limit the maximum number of records to delete
+   *
+   * @return the number of records removed
+   */
+  int removeRepository(@Param("repositoryId") int repositoryId, @Param("limit") int limit);
+}
