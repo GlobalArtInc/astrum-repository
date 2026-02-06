@@ -1,0 +1,234 @@
+
+package org.globalart.astrum.repository.content.store;
+
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.blobstore.api.BlobRef;
+import org.globalart.astrum.blobstore.api.ExternalMetadata;
+import org.globalart.astrum.common.entity.Continuation;
+import org.globalart.astrum.datastore.api.ContentDataAccess;
+import org.globalart.astrum.datastore.api.SchemaTemplate;
+import org.globalart.astrum.repository.content.AssetBlob;
+import org.globalart.astrum.repository.content.AssetReconcileData;
+
+import org.apache.ibatis.annotations.Param;
+
+/**
+ * Asset blob {@link ContentDataAccess}.
+ *
+ * @since 3.20
+ */
+@SchemaTemplate("format")
+public interface AssetBlobDAO
+    extends ContentDataAccess
+{
+  /**
+   * Browse unused asset blobs in the content data store in a paged fashion.
+   *
+   * @param limit maximum number of asset blobs to return
+   * @param continuationToken optional token to continue from a previous request
+   * @return collection of asset blobs and the next continuation token
+   * @see Continuation#nextContinuationToken()
+   */
+  Continuation<AssetBlob> browseUnusedAssetBlobs(
+      @Param("limit") int limit,
+      @Param("blobCreatedDelayMinute") int blobCreatedDelayMinute,
+      @Param("continuationToken") @Nullable String continuationToken);
+
+  /**
+   * Browse asset blobs in the content data store in a paged fashion.
+   *
+   * @param limit maximum number of asset blobs to return
+   * @param continuationToken optional token to continue from a previous request
+   * @return collection of asset blobs and the next continuation token
+   * @see Continuation#nextContinuationToken()
+   */
+  Continuation<AssetBlob> browseAssetBlobs(
+      @Param("limit") int limit,
+      @Param("continuationToken") @Nullable String continuationToken);
+
+  /**
+   * Browse asset blobs whose blobref matches the blob store name
+   *
+   * @param limit
+   * @param blobStoreName
+   * @param continuationToken
+   * @return
+   */
+  Continuation<AssetBlob> browseAssetBlobsByBlobStore(
+      @Param("limit") int limit,
+      @Param("blobStoreName") String blobStoreName,
+      @Param("continuationToken") @Nullable String continuationToken);
+
+  /**
+   * Browse asset blobs in the content data store in a paged fashion.
+   *
+   * @param limit maximum number of asset blobs to return
+   * @param start start date
+   * @param end end date
+   * @param continuationToken optional token to continue from a previous request
+   * @return collection of asset blobs and the next continuation token
+   * @see Continuation#nextContinuationToken()
+   */
+  Continuation<AssetReconcileData> browseAssetBlobsWithinDuration(
+      @Param("limit") int limit,
+      @Param("start") OffsetDateTime start,
+      @Param("end") OffsetDateTime end,
+      @Param("continuationToken") @Nullable String continuationToken);
+
+  int countAssetBlobsWithinDuration(@Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
+
+  /**
+   * Creates the given asset blob in the content data store.
+   *
+   * @param assetBlob the asset blob to create
+   */
+  void createAssetBlob(AssetBlobData assetBlob);
+
+  /**
+   * Retrieves an asset blob from the content data store.
+   *
+   * @param blobRef the blob reference
+   * @return asset blob if it was found
+   */
+  Optional<AssetBlob> readAssetBlob(@Param("blobRef") BlobRef blobRef);
+
+  /**
+   * Deletes an asset blob from the content data store.
+   *
+   * @param blobRef the blob reference
+   * @return {@code true} if the asset blob was deleted
+   */
+  boolean deleteAssetBlob(@Param("blobRef") BlobRef blobRef);
+
+  /**
+   * Deletes batch of asset blobs from the content data store.
+   *
+   * @param blobRefIds the array of String with blobRefs
+   * @return number of asset blobs deleted from database
+   */
+  int deleteAssetBlobBatch(@Param("blobRefIds") String[] blobRefIds);
+
+  /**
+   * Deletes an asset blob along with asset.
+   *
+   * @param blobRef the blob reference
+   */
+  void deleteAssetBlobWithAsset(@Param("blobRef") BlobRef blobRef);
+
+  /**
+   * Generally it is recommended that this method not be called and let stores manage this value.
+   *
+   * @since 3.29
+   */
+  void setBlobCreated(@Param("blobRef") BlobRef blobRef, @Param("blobCreated") OffsetDateTime blobCreated);
+
+  /**
+   * Sets added to repository on the asset blob.
+   */
+  void setAddedToRepository(
+      @Param("blobRef") BlobRef blobRef,
+      @Param("addedToRepository") OffsetDateTime addedToRepository);
+
+  /**
+   * Sets the content type on the asset
+   *
+   * @param blobRef
+   * @param contentType
+   */
+  void setContentType(@Param("blobRef") BlobRef blobRef, @Param("contentType") String contentType);
+
+  /**
+   * Sets the checksums on the asset blob
+   *
+   * @param blobRef
+   * @param checksums
+   */
+  void setChecksums(@Param("blobRef") BlobRef blobRef, @Param("checksums") Map<String, String> checksums);
+
+  /**
+   * Sets the 'created by' on the asset
+   */
+  void setCreatedBy(@Param("blobRef") BlobRef blobRef, @Param("createdBy") String createdBy);
+
+  /**
+   * Sets the 'created by IP' on the asset
+   */
+  void setCreatedByIP(@Param("blobRef") BlobRef blobRef, @Param("createdByIP") String createdByIP);
+
+  /**
+   * Set the external metadata, generally this is done when the AssetBlob is created
+   */
+  void setExternalMetadata(@Param("blobRef") BlobRef blobRef, @Param("externalMetadata") ExternalMetadata metadata);
+
+  /**
+   * Browse asset blobs with legacy blobRef format {@code store-name:blob-id@node-id} in a paged fashion.
+   *
+   * @param limit maximum number of asset blobs to return
+   * @param continuationToken optional token to continue from a previous request
+   * @return collection of asset blobs and the next continuation token
+   */
+  Continuation<AssetBlob> browseAssetsWithLegacyBlobRef(
+      @Param("limit") int limit,
+      @Param("continuationToken") @Nullable String continuationToken);
+
+  /**
+   * Update asset blobs in a batch fashion.
+   *
+   * @param assetBlobs asset blobs for update
+   * @return {code true} if asset blobs were updated
+   */
+  boolean updateBlobRefs(@Param("assetBlobs") Collection<AssetBlob> assetBlobs);
+
+  /**
+   * Update asset blob.
+   *
+   * @param assetBlob asset blob for update
+   * @return {code true} if asset blob was updated
+   */
+  boolean updateBlobRef(@Param("assetBlobData") AssetBlob assetBlob);
+
+  /**
+   * Exist asset blobs with legacy blobRef format {@code store-name:blob-id@node-id}.
+   *
+   * @return Exist asset blobs with legacy blobRef format
+   */
+  boolean existsNotMigratedAssetBlobs();
+
+  /**
+   * Get repository name by blob reference.
+   *
+   * @param blobRef the blob reference
+   * @return the repository name
+   */
+  String getRepositoryName(@Param("blobRef") BlobRef blobRef);
+
+  /**
+   * Get path by blob reference.
+   *
+   * @param blobRef the blob reference
+   * @return the path
+   */
+  String getPathByBlobRef(@Param("blobRef") BlobRef blobRef);
+
+  List<AssetReconcileData> browseAssetBlobsByBlobRefs(@Param("blobRefs") List<BlobRef> blobRefs);
+
+  /**
+   * Retrieves an asset blob from the content data store based blobRef or path with repository.
+   *
+   * @param blobRef the blob reference
+   * @param path the blob path
+   * @param blobRef the blob repository
+   * @return asset blob if it was found
+   */
+  Optional<AssetBlob> readAssetBlobByPathAndRepository(
+      final @Param("blobRef") BlobRef blobRef,
+      final @Param("path") String path,
+      final @Param("repository") String repository);
+}
