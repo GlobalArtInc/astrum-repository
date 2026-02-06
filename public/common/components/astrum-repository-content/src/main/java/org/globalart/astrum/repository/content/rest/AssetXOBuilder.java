@@ -1,0 +1,170 @@
+
+package org.globalart.astrum.repository.content.rest;
+
+import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.blobstore.api.BlobRef;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.cache.CacheAttributeUtils;
+import org.globalart.astrum.repository.content.Asset;
+import org.globalart.astrum.repository.content.AssetBlob;
+import org.globalart.astrum.repository.rest.api.AssetXO;
+import org.globalart.astrum.repository.rest.api.AssetXODescriptor;
+import org.globalart.astrum.repository.rest.api.RepositoryItemIDXO;
+
+import static org.globalart.astrum.repository.content.store.InternalIds.internalAssetId;
+import static org.globalart.astrum.repository.content.store.InternalIds.toExternalId;
+
+/**
+ * Builds asset transfer objects for REST APIs.
+ *
+ * @since 3.26
+ */
+public class AssetXOBuilder
+{
+  // Defaults uploaderVisible=true: used by ConfigurationResource for migration, which must include all data
+  public static AssetXO fromEagerAsset(
+      final Asset asset,
+      final Repository repository,
+      final Map<String, AssetXODescriptor> assetDescriptors)
+  {
+    return fromEagerAsset(asset, repository, assetDescriptors, true);
+  }
+
+  /**
+   * Build AssetXO from an eagerly-loaded asset with blob information.
+   * Uses the actual blob_created timestamp for the blobCreated field.
+   */
+  public static AssetXO fromEagerAsset(
+      final Asset asset,
+      final Repository repository,
+      final Map<String, AssetXODescriptor> assetDescriptors,
+      final boolean uploaderVisible)
+  {
+    Date blobCreated = asset.blob()
+        .map(AssetBlob::blobCreated)
+        .map(OffsetDateTime::toInstant)
+        .map(Date::from)
+        .orElseGet(() -> Date.from(asset.created().toInstant()));
+
+    return doFromAsset(asset, repository, assetDescriptors, uploaderVisible)
+        .blobCreated(blobCreated)
+        .build();
+  }
+
+  public static AssetXO fromAsset(
+      final Asset asset,
+      final Repository repository,
+      final Map<String, AssetXODescriptor> assetDescriptors,
+      final boolean uploaderVisible)
+  {
+    // For backward compatibility, use asset.created() for blobCreated
+    Date blobCreated = Date.from(asset.created().toInstant());
+
+    return doFromAsset(asset, repository, assetDescriptors, uploaderVisible)
+        .blobCreated(blobCreated)
+        .build();
+  }
+
+  private static AssetXO.AssetXOBuilder doFromAsset(
+      final Asset asset,
+      final Repository repository,
+      final Map<String, AssetXODescriptor> assetDescriptors,
+      final boolean uploaderVisible)
+  {
+    String externalId = toExternalId(internalAssetId(asset)).getValue();
+
+    Optional<AssetBlob> assetBlob = asset.blob();
+
+    Map<String, String> checksum = assetBlob.map(AssetBlob::checksums)
+        .orElseGet(Collections::emptyMap);
+
+    String contentType = assetBlob.map(AssetBlob::contentType).orElse(null);
+    String format = repository.getFormat().getValue();
+    AssetXODescriptor descriptor = Optional.ofNullable(assetDescriptors).map(ad -> ad.get(format)).orElse(null);
+
+    String uploader = uploaderVisible ? assetBlob.flatMap(AssetBlob::createdBy).orElse(null) : null;
+    String uploaderIp = uploaderVisible ? assetBlob.flatMap(AssetBlob::createdByIp).orElse(null) : null;
+    long fileSize = assetBlob.map(AssetBlob::blobSize).orElse(0L);
+    String blobStoreName = assetBlob.map(AssetBlob::blobRef).map(blobRef -> blobRef.getStore()).orElse(null);
+
+    Date lastModified = assetBlob.map(AssetBlob::blobCreated)
+        .map(OffsetDateTime::toInstant)
+        .map(Date::from)
+        .orElseGet(() -> Date.from(asset.created().toInstant()));
+
+    // Extract new fields
+    Date blobUpdated = assetBlob.map(AssetBlob::blobCreated)
+        .map(OffsetDateTime::toInstant)
+        .map(Date::from)
+        .orElse(null);
+
+    String blobRef = assetBlob.map(AssetBlob::blobRef)
+        .map(BlobRef::toString)
+        .orElse(null);
+
+    Date lastVerified = CacheAttributeUtils.extractLastVerified(asset.attributes().backing());
+
+    return AssetXO.builder()
+        .path(asset.path())
+        .downloadUrl(repository.getUrl() + asset.path())
+        .id(new RepositoryItemIDXO(repository.getName(), externalId).getValue())
+        .repository(repository.getName())
+        .checksum(checksum)
+        .format(format)
+        .contentType(contentType)
+        .lastModified(lastModified)
+        .lastDownloaded(getLastDownloaded(asset))
+        .attributes(getExpandedAttributes(asset, format, assetDescriptors))
+        .uploader(uploader)
+        .uploaderIp(uploaderIp)
+        .fileSize(fileSize)
+        .blobStoreName(blobStoreName)
+        .blobUpdated(blobUpdated)
+        .blobRef(blobRef)
+        .lastVerified(lastVerified)
+        .registryUrl(descriptor != null ? descriptor.computeRegistryUrl(repository) : null);
+  }
+
+  @Nullable
+  private static Date getLastDownloaded(final Asset asset) {
+    return asset.lastDownloaded().map(offsetDateTime -> Date.from(offsetDateTime.toInstant())).orElse(null);
+  }
+
+  private static Map<String, Object> getExpandedAttributes(
+      final Asset asset,
+      final String format,
+      @Nullable final Map<String, AssetXODescriptor> assetDescriptors)
+  {
+    AssetXODescriptor descriptor = Optional.ofNullable(assetDescriptors)
+        .map(ad -> ad.get(format))
+        .orElse(null);
+
+    Set<String> exposedAttributeKeys = descriptor != null
+        ? descriptor.listExposedAttributeKeys()
+        : Collections.emptySet();
+
+    Map<String, Object> exposedAttributes = asset.attributes(format)
+        .backing()
+        .entrySet()
+        .stream()
+        .filter(entry -> exposedAttributeKeys.contains(entry.getKey()))
+        .filter(entry -> entry.getValue() != null)
+        .collect(Collectors.toMap(
+            Entry::getKey,
+            entry -> descriptor != null
+                ? descriptor.transformAttributeValue(entry.getKey(), entry.getValue())
+                : entry.getValue()));
+
+    return Collections.singletonMap(format, exposedAttributes);
+  }
+
+}
