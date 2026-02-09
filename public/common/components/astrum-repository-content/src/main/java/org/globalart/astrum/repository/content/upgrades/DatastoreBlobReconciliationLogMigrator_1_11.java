@@ -1,0 +1,160 @@
+
+package org.globalart.astrum.repository.content.upgrades;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.bootstrap.entrypoint.configuration.ApplicationDirectories;
+import org.globalart.astrum.upgrade.datastore.DatabaseMigrationStep;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyList;
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static org.globalart.astrum.blobstore.file.FileBlobStore.BASEDIR;
+import static org.globalart.astrum.blobstore.file.FileBlobStore.CONFIG_KEY;
+import static org.globalart.astrum.blobstore.file.FileBlobStore.PATH_KEY;
+import org.springframework.stereotype.Component;
+
+/**
+ * Moves each reconciliation log from ${karaf.data}/log/blobstore/${blobstore}/%date.log to &lt;blobstore
+ * root&gt;/reconciliation/%date.log
+ *
+ * @since 3.41
+ */
+@Component
+public class DatastoreBlobReconciliationLogMigrator_1_11
+    implements DatabaseMigrationStep
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  public static final String RECONCILIATION_DIRECTORY_NAME = "reconciliation";
+
+  protected static final String BLOBSTORE = "blobstore";
+
+  protected static final String BLOBSTORE_LOG_PATH = "log" + File.separator + BLOBSTORE;
+
+  protected static final String ATTRIBUTES = "attributes";
+
+  protected static final String TABLE_NAME = "blob_store_configuration";
+
+  private static final String QUERY = "SELECT * FROM %s WHERE name = ?";
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  private static final TypeReference<Map<String, Map<String, Object>>> ATTRIBUTES_TYPE_REF =
+      new TypeReference<Map<String, Map<String, Object>>>()
+      {
+      };
+
+  private final ApplicationDirectories applicationDirectories;
+
+  @Autowired
+  public DatastoreBlobReconciliationLogMigrator_1_11(final ApplicationDirectories applicationDirectories) {
+    this.applicationDirectories = checkNotNull(applicationDirectories);
+  }
+
+  @Override
+  public Optional<String> version() {
+    return Optional.of("1.11");
+  }
+
+  @Override
+  public void migrate(final Connection connection) throws Exception {
+    if (!tableExists(connection, TABLE_NAME)) {
+      log.info("Table {} does not exist. Skipping upgrade step.", TABLE_NAME);
+      return;
+    }
+
+    File reconciliationLogsBaseDirectory = applicationDirectories.getWorkDirectory(BLOBSTORE_LOG_PATH);
+    ofNullable(reconciliationLogsBaseDirectory)
+        .map(File::listFiles)
+        .ifPresent(blobStoreReconciliationLogDirs -> copyFiles(blobStoreReconciliationLogDirs, connection));
+
+    ofNullable(reconciliationLogsBaseDirectory).ifPresent(this::deleteDirectory);
+  }
+
+  private void deleteDirectory(final File reconciliationLogsBaseDirectory) {
+    try {
+      FileUtils.deleteDirectory(reconciliationLogsBaseDirectory);
+    }
+    catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  private void copyFiles(final File[] blobStoreReconciliationLogDirs, final Connection connection) {
+    log.info("Found reconciliation logs for {} blob stores to migrate", blobStoreReconciliationLogDirs.length);
+    for (File reconciliationLogDirectory : blobStoreReconciliationLogDirs) {
+      String blobStoreName = reconciliationLogDirectory.getName();
+      getBlobStorePath(blobStoreName, connection)
+          .map(this::toAbsoluteBlobStorePath)
+          .ifPresent(blobStorePath -> copyDirectoryContentsToBlobstore(reconciliationLogDirectory, blobStorePath));
+    }
+  }
+
+  private void copyDirectoryContentsToBlobstore(final File sourceDir, final Path blobStorePath) {
+    try {
+      Path destination = blobStorePath.resolve(RECONCILIATION_DIRECTORY_NAME);
+      List<File> logFiles = ofNullable(sourceDir.listFiles()).map(Arrays::asList).orElse(emptyList());
+      log.info("Copying reconciliation logs from {} to {}", sourceDir, destination);
+      FileUtils.copyToDirectory(logFiles, destination.toFile());
+      log.info("Copied reconciliation logs from {} to {}", sourceDir, destination);
+      FileUtils.deleteDirectory(sourceDir);
+    }
+    catch (IOException e) {
+      log.warn("Skipping copy of reconciliation logs contained in {} because of error", sourceDir, e);
+    }
+  }
+
+  private Optional<Path> getBlobStorePath(final String blobStoreName, final Connection connection) {
+    try (PreparedStatement statement = connection.prepareStatement(String.format(QUERY, TABLE_NAME))) {
+      statement.setString(1, blobStoreName);
+      final ResultSet resultSet = statement.executeQuery();
+
+      if (resultSet.next()) {
+        String attributeString = resultSet.getString(ATTRIBUTES);
+        log.info("attributes {}", attributeString);
+        Map<String, Map<String, Object>> nestedAttributesMap = MAPPER.readValue(attributeString, ATTRIBUTES_TYPE_REF);
+        return Optional.of(Paths.get(nestedAttributesMap.get(CONFIG_KEY).get(PATH_KEY).toString()));
+      }
+    }
+    catch (Exception ex) {
+      log.error(ex.getMessage(), ex);
+    }
+    return empty();
+  }
+
+  private Path toAbsoluteBlobStorePath(final Path configurationPath) {
+    if (configurationPath.isAbsolute()) {
+      return configurationPath;
+    }
+
+    Path baseDir = applicationDirectories.getWorkDirectory(BASEDIR).toPath();
+    try {
+      Path normalizedBase = baseDir.toRealPath().normalize();
+      return normalizedBase.resolve(configurationPath.normalize());
+    }
+    catch (IOException e) {
+      log.error("Error converting {} to absolute path.", baseDir);
+    }
+    return null;
+  }
+}
