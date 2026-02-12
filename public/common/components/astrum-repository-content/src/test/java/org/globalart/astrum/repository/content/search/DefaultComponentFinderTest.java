@@ -1,0 +1,135 @@
+
+package org.globalart.astrum.repository.content.search;
+
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.content.facet.ContentFacet;
+import org.globalart.astrum.repository.content.fluent.FluentComponent;
+import org.globalart.astrum.repository.content.fluent.FluentComponentBuilder;
+import org.globalart.astrum.repository.content.fluent.FluentComponents;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class DefaultComponentFinderTest
+{
+  @Mock
+  private Repository repository;
+
+  @Mock
+  private ContentFacet contentFacet;
+
+  @Mock
+  private FluentComponents components;
+
+  @Mock
+  private FluentComponent fluentComponent;
+
+  @Mock
+  private FluentComponentBuilder builder;
+
+  private DefaultComponentFinder underTest;
+
+  @Before
+  public void setUp() {
+    when(repository.facet(ContentFacet.class)).thenReturn(contentFacet);
+    when(contentFacet.components()).thenReturn(components);
+    when(components.name(anyString())).thenReturn(builder);
+    when(builder.namespace(anyString())).thenReturn(builder);
+    when(builder.version(anyString())).thenReturn(builder);
+
+    underTest = new DefaultComponentFinder();
+  }
+
+  @Test
+  public void testFindByNameNamespaceVersion() {
+    when(builder.find()).thenReturn(Optional.of(fluentComponent));
+
+    Stream<FluentComponent> result = underTest.findComponentsByModel(
+        repository, null, "org.example", "my-artifact", "1.0");
+
+    assertThat(result.count(), is(1L));
+    verify(components).name("my-artifact");
+    verify(builder).namespace("org.example");
+    verify(builder).version("1.0");
+  }
+
+  @Test
+  public void testFindByIdFirst() {
+    when(components.find(any())).thenReturn(Optional.of(fluentComponent));
+
+    Stream<FluentComponent> result = underTest.findComponentsByModel(
+        repository, "123", "org.example", "my-artifact", "1.0");
+
+    assertThat(result.count(), is(1L));
+    verify(components).find(any());
+    verify(components, never()).name(anyString());
+  }
+
+  @Test
+  public void testFallsBackToNameWhenIdNotFound() {
+    when(components.find(any())).thenReturn(Optional.empty());
+    when(builder.find()).thenReturn(Optional.of(fluentComponent));
+
+    Stream<FluentComponent> result = underTest.findComponentsByModel(
+        repository, "999", "org.example", "my-artifact", "1.0");
+
+    assertThat(result.count(), is(1L));
+    verify(components).find(any());
+    verify(components).name("my-artifact");
+  }
+
+  @Test
+  public void testReturnsEmptyStreamForNullRepository() {
+    Stream<FluentComponent> result = underTest.findComponentsByModel(
+        null, null, "org.example", "my-artifact", "1.0");
+
+    assertThat(result.count(), is(0L));
+  }
+
+  @Test
+  public void testReturnsEmptyStreamWhenNotFound() {
+    when(builder.find()).thenReturn(Optional.empty());
+
+    Stream<FluentComponent> result = underTest.findComponentsByModel(
+        repository, null, "org.example", "my-artifact", "1.0");
+
+    assertThat(result.count(), is(0L));
+  }
+
+  @Test
+  public void testHandlesNullNamespace() {
+    when(builder.find()).thenReturn(Optional.of(fluentComponent));
+
+    Stream<FluentComponent> result = underTest.findComponentsByModel(
+        repository, null, null, "my-artifact", "1.0");
+
+    assertThat(result.count(), is(1L));
+    verify(builder).namespace("");
+  }
+
+  @Test
+  public void testHandlesNullVersion() {
+    when(builder.find()).thenReturn(Optional.of(fluentComponent));
+
+    Stream<FluentComponent> result = underTest.findComponentsByModel(
+        repository, null, "ns", "name", null);
+
+    assertThat(result.count(), is(1L));
+    verify(builder).version("");
+  }
+}
