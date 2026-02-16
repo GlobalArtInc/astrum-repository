@@ -1,0 +1,300 @@
+
+package org.globalart.astrum.repository.httpbridge.internal;
+
+import java.io.IOException;
+import java.util.Enumeration;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.common.app.BaseUrlHolder;
+import org.globalart.astrum.repository.BadRequestException;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.http.HttpResponses;
+import org.globalart.astrum.repository.httpbridge.HttpResponseSender;
+import org.globalart.astrum.repository.httpbridge.internal.describe.DescribeType;
+import org.globalart.astrum.repository.httpbridge.internal.describe.Description;
+import org.globalart.astrum.repository.httpbridge.internal.describe.DescriptionHelper;
+import org.globalart.astrum.repository.httpbridge.internal.describe.DescriptionRenderer;
+import org.globalart.astrum.repository.manager.RepositoryManager;
+import org.globalart.astrum.repository.view.ContentTypes;
+import org.globalart.astrum.repository.view.Request;
+import org.globalart.astrum.repository.view.Response;
+import org.globalart.astrum.repository.view.ViewFacet;
+import org.globalart.astrum.repository.view.payloads.StringPayload;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HttpHeaders;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.shiro.authz.AuthorizationException;
+import org.apache.shiro.web.util.WebUtils;
+import org.eclipse.jetty.http.BadMessageException;
+import org.eclipse.jetty.io.QuietException;
+import org.jboss.logging.MDC;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Repository view servlet.
+ *
+ * @since 3.0
+ */
+@WebServlet(urlPatterns = ViewServlet.MOUNT_POINT)
+@Component
+public class ViewServlet
+    extends HttpServlet
+{
+  public static final String MOUNT_POINT = "/repository/*";
+
+  private static final Logger log = LoggerFactory.getLogger(ViewServlet.class);
+
+  @VisibleForTesting
+  static final String SANDBOX =
+      "sandbox allow-forms allow-modals allow-popups allow-presentation allow-scripts allow-top-navigation";
+
+  @VisibleForTesting
+  static final String P_DESCRIBE = "describe";
+
+  protected static final String REPOSITORY_NOT_FOUND_MESSAGE = "Repository not found";
+
+  private final RepositoryManager repositoryManager;
+
+  private final HttpResponseSenderSelector httpResponseSenderSelector;
+
+  private final DescriptionHelper descriptionHelper;
+
+  private final DescriptionRenderer descriptionRenderer;
+
+  @Autowired
+  public ViewServlet(
+      final RepositoryManager repositoryManager,
+      final HttpResponseSenderSelector httpResponseSenderSelector,
+      final DescriptionHelper descriptionHelper,
+      final DescriptionRenderer descriptionRenderer)
+  {
+
+    this.repositoryManager = checkNotNull(repositoryManager);
+    this.httpResponseSenderSelector = checkNotNull(httpResponseSenderSelector);
+    this.descriptionHelper = checkNotNull(descriptionHelper);
+    this.descriptionRenderer = checkNotNull(descriptionRenderer);
+  }
+
+  @Override
+  public void init(final ServletConfig config) throws ServletException {
+    super.init(config);
+    log.info("Initialized");
+  }
+
+  @Override
+  public void destroy() {
+    super.destroy();
+    log.info("Destroyed");
+  }
+
+  @Override
+  protected void service(
+      final HttpServletRequest httpRequest,
+      final HttpServletResponse httpResponse) throws ServletException, IOException
+  {
+    String uri = httpRequest.getRequestURI();
+    if (httpRequest.getQueryString() != null) {
+      uri = uri + "?" + httpRequest.getQueryString();
+    }
+
+    if (log.isDebugEnabled()) {
+      log.debug("Servicing: {} {} ({})", httpRequest.getMethod(), uri, httpRequest.getRequestURL());
+    }
+
+    MDC.put(getClass().getName(), uri);
+    try {
+      doService(httpRequest, httpResponse);
+      log.debug("Service completed");
+    }
+    catch (BadRequestException e) { // NOSONAR
+      log.warn("Bad request. Reason: {}", e.getMessage());
+      send(null, HttpResponses.badRequest(e.getMessage()), httpResponse);
+    }
+    catch (BadMessageException e) { // NOSONAR
+      log.trace("Bad request (malformed content): {} {}", httpRequest.getMethod(), uri, e);
+      send(null, HttpResponses.badRequest(e.getReason()), httpResponse);
+    }
+    catch (Exception e) {
+      if (isQuietException(e)) {
+        log.debug("Caught jetty QuietException", e);
+      }
+      else if (!(e instanceof AuthorizationException)) {
+        log.warn("Failure servicing: {} {}", httpRequest.getMethod(), uri, e);
+      }
+      Throwables.propagateIfPossible(e, ServletException.class, IOException.class);
+      throw new ServletException(e);
+    }
+    finally {
+      MDC.remove(getClass().getName());
+    }
+  }
+
+  /*
+   * Jetty uses QuietExceptions for failures outside the application such as the client disconnecting or invalid
+   * encoding.
+   */
+  private static boolean isQuietException(final Exception e) {
+    if (QuietException.isQuiet(e)) {
+      return true;
+    }
+    return Stream.of(e.getSuppressed())
+        .anyMatch(t -> t instanceof QuietException);
+  }
+
+  protected void doService(
+      final HttpServletRequest httpRequest,
+      final HttpServletResponse httpResponse) throws Exception
+  {
+    httpResponse.setHeader(HttpHeaders.CONTENT_SECURITY_POLICY, SANDBOX);
+    httpResponse.setHeader(HttpHeaders.X_XSS_PROTECTION, "0");
+
+    // resolve repository for request
+    final String pathInfo = httpRequest.getPathInfo();
+    final String normalizedPath = WebUtils.normalize(pathInfo);
+    RepositoryPath path = RepositoryPath.parse(normalizedPath);
+    log.debug("Parsed path: {} and normalized to {}", path, normalizedPath);
+
+    Repository repo = repository(path.getRepositoryName());
+    if (repo == null) {
+      send(null, HttpResponses.notFound(REPOSITORY_NOT_FOUND_MESSAGE), httpResponse);
+      return;
+    }
+    log.debug("Repository: {}", repo);
+
+    if (!repo.getConfiguration().isOnline()) {
+      send(null, HttpResponses.serviceUnavailable("Repository offline"), httpResponse);
+      return;
+    }
+
+    ViewFacet facet = repo.facet(ViewFacet.class);
+    log.debug("Dispatching to view facet: {}", facet);
+
+    // Dispatch the request
+    Request request = buildRequest(httpRequest, path.getRemainingPath());
+    dispatchAndSend(request, facet, httpResponseSenderSelector.sender(repo), httpResponse);
+  }
+
+  /**
+   * Build view request from {@link HttpServletRequest}.
+   */
+  private Request buildRequest(final HttpServletRequest httpRequest, final String path) {
+    Request.Builder builder = new Request.Builder()
+        .headers(new HttpHeadersAdapter(httpRequest))
+        .action(httpRequest.getMethod())
+        .path(path)
+        .parameters(new HttpParametersAdapter(httpRequest))
+        .payload(new HttpRequestPayloadAdapter(httpRequest));
+
+    if (HttpPartIteratorAdapter.isMultipart(httpRequest)) {
+      builder.multiparts(new HttpPartIteratorAdapter(httpRequest));
+    }
+
+    // copy http-servlet-request attributes
+    Enumeration<String> attributes = httpRequest.getAttributeNames();
+    while (attributes.hasMoreElements()) {
+      String name = attributes.nextElement();
+      builder.attribute(name, httpRequest.getAttribute(name));
+    }
+
+    return builder.build();
+  }
+
+  @VisibleForTesting
+  void dispatchAndSend(
+      final Request request,
+      final ViewFacet facet,
+      final HttpResponseSender sender,
+      final HttpServletResponse httpResponse) throws Exception
+  {
+    Response response = null;
+    Exception failure = null;
+    try {
+      response = facet.dispatch(request);
+    }
+    catch (Exception e) {
+      failure = e;
+    }
+
+    String describeFlags = request.getParameters().get(P_DESCRIBE);
+    log.trace("Describe flags: {}", describeFlags);
+    if (describeFlags != null) {
+      send(request, describe(request, response, failure, describeFlags), httpResponse);
+    }
+    else {
+      if (failure != null) {
+        throw failure;
+      }
+      log.debug("Request: {}", request);
+      sender.send(request, response, httpResponse);
+    }
+  }
+
+  @VisibleForTesting
+  Response describe(final Request request, final Response response, final Exception exception, final String flags) {
+    final Description description = new Description(ImmutableMap.of(
+        // placeholder for the describeHtml.vm
+        "path", StringEscapeUtils.escapeHtml4(request.getPath()),
+        "astrumUrl", BaseUrlHolder.get()));
+    if (exception != null) {
+      descriptionHelper.describeException(description, exception);
+    }
+    descriptionHelper.describeRequest(description, request);
+    if (response != null) {
+      descriptionHelper.describeResponse(description, response);
+    }
+
+    DescribeType type = DescribeType.parse(flags);
+    log.trace("Describe type: {}", type);
+    switch (type) {
+      case HTML: {
+        String html = descriptionRenderer.renderHtml(description);
+        return HttpResponses.ok(new StringPayload(html, ContentTypes.TEXT_HTML));
+      }
+      case JSON: {
+        String json = descriptionRenderer.renderJson(description);
+        return HttpResponses.ok(new StringPayload(json, ContentTypes.APPLICATION_JSON));
+      }
+      default:
+        throw new RuntimeException("Invalid describe-type: " + type);
+    }
+  }
+
+  /**
+   * Send with default sender.
+   *
+   * Needed in a few places _before_ we have a repository instance to determine its specific sender.
+   */
+  @VisibleForTesting
+  void send(
+      @Nullable final Request request,
+      final Response response,
+      final HttpServletResponse httpResponse) throws ServletException, IOException
+  {
+    httpResponseSenderSelector.defaultSender().send(request, response, httpResponse);
+  }
+
+  /**
+   * @return the named repository or {@code null}
+   */
+  @Nullable
+  private Repository repository(final String name) {
+    log.debug("Looking for repository: {}", name);
+    return repositoryManager.get(name);
+  }
+}
