@@ -1,0 +1,123 @@
+
+package org.globalart.astrum.repository.internal.search.index.task;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import org.globalart.astrum.common.app.ManagedLifecycle;
+import org.globalart.astrum.common.scheduling.PeriodicJobService;
+import org.globalart.astrum.common.stateguard.InvalidStateException;
+import org.globalart.astrum.common.stateguard.StateGuardLifecycleSupport;
+import org.globalart.astrum.repository.MissingFacetException;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.manager.RepositoryManager;
+import org.globalart.astrum.repository.search.index.SearchUpdateService;
+import org.globalart.astrum.rest.ValidationErrorsException;
+import org.globalart.astrum.scheduling.TaskConfiguration;
+import org.globalart.astrum.scheduling.TaskScheduler;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
+import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.TASKS;
+import static org.globalart.astrum.repository.internal.search.index.task.SearchUpdateTaskDescriptor.REPOSITORY_NAMES_FIELD_ID;
+
+/**
+ * Ad-hoc "manager" class that checks to see if any repository indexes are out of date, missed or need to be updated and
+ * schedules a task to do so.
+ *
+ * @since 3.37
+ */
+@Component
+@ManagedLifecycle(phase = TASKS)
+public class SearchUpdateTaskManager
+    extends StateGuardLifecycleSupport
+{
+  private final TaskScheduler taskScheduler;
+
+  private final RepositoryManager repositoryManager;
+
+  private final boolean enabled;
+
+  private final SearchUpdateService searchUpdateService;
+
+  private PeriodicJobService periodicJobService;
+
+  @Autowired
+  public SearchUpdateTaskManager(
+      final TaskScheduler taskScheduler,
+      final RepositoryManager repositoryManager,
+      final SearchUpdateService searchUpdateService,
+      final PeriodicJobService periodicJobService,
+      @Value("${astrum.search.updateIndexesOnStartup.enabled:true}") final boolean enabled)
+  {
+    this.taskScheduler = requireNonNull(taskScheduler);
+    this.repositoryManager = requireNonNull(repositoryManager);
+    this.searchUpdateService = requireNonNull(searchUpdateService);
+    this.periodicJobService = checkNotNull(periodicJobService);
+    this.enabled = enabled;
+  }
+
+  @Override
+  protected void doStart() {
+    if (!enabled) {
+      return;
+    }
+    periodicJobService.runOnce(this::maybeScheduleReIndex, 0);
+  }
+
+  private void maybeScheduleReIndex() {
+    try {
+      List<String> reindexList = StreamSupport.stream(repositoryManager.browse().spliterator(), false)
+          .filter(this::needsReindexSafely)
+          .map(Repository::getName)
+          .collect(Collectors.toList());
+
+      if (!reindexList.isEmpty()) {
+        boolean existingTask = taskScheduler.findAndSubmit(SearchUpdateTaskDescriptor.TYPE_ID);
+        if (!existingTask) {
+          runSearchUpdateTaskForRepositories(reindexList);
+        }
+      }
+    }
+    catch (Exception e) {
+      log.error("Failed to determine if any repository indexes needed to be updated", e);
+    }
+  }
+
+  private boolean needsReindexSafely(final Repository repository) {
+    try {
+      return searchUpdateService.needsReindex(repository);
+    }
+    catch (MissingFacetException | InvalidStateException e) {
+      // Repository was deleted concurrently mid-iteration (ASTRUM-53351); skip it and continue the sweep.
+      // See RepositoryTaskSupport.execute() for the full InvalidStateException trade-off rationale.
+      log.warn("Skipping search index check for repository '{}' as it appears to have been removed: {}",
+          repository.getName(), e.getMessage());
+      return false;
+    }
+  }
+
+  private void runSearchUpdateTaskForRepositories(final List<String> repositories) {
+    String repositoriesCsv = String.join(",", repositories);
+    TaskConfiguration configuration = taskScheduler
+        .createTaskConfigurationInstance(SearchUpdateTaskDescriptor.TYPE_ID);
+    configuration.setString(REPOSITORY_NAMES_FIELD_ID, repositoriesCsv);
+    configuration.setName("Update repository indexes - (" + repositoriesCsv + ")");
+    try {
+      taskScheduler.submit(configuration);
+    }
+    catch (ValidationErrorsException e) {
+      // In HA deployments, another node may have scheduled the same task between our
+      // findAndSubmit() check and this submit() call. This catch fires when one node's
+      // INSERT committed before the other's singleton guard ran. If both nodes pass the
+      // guard simultaneously (before either INSERT commits), both tasks are created and
+      // this catch is not reached — the guard reduces but does not fully eliminate the race.
+      log.warn("repository.search.update task was already scheduled by another node, skipping: {}", e.getMessage());
+    }
+  }
+}
