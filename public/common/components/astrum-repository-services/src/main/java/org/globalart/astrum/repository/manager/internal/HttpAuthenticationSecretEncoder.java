@@ -1,0 +1,207 @@
+
+package org.globalart.astrum.repository.manager.internal;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+import org.globalart.astrum.crypto.secrets.Secret;
+import org.globalart.astrum.crypto.secrets.SecretsService;
+import org.globalart.astrum.httpclient.config.AuthenticationConfiguration;
+import org.globalart.astrum.kv.KeyValueStore;
+import org.globalart.astrum.security.UserIdHelper;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Optional.ofNullable;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+/**
+ * Used for management of Repository authentication secrets (passwords and bearer tokens)
+ *
+ * @see org.globalart.astrum.repository.manager.RepositoryManager implementation
+ */
+@Component
+public class HttpAuthenticationSecretEncoder
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  public static final String BEARER_TOKEN_MIGRATION_STARTED = "bearer.token.migration.started";
+
+  private static final String PASSWORD = "password";
+
+  private static final String BEARER_TOKEN = "bearerToken";
+
+  private static final String BEARER_TOKEN_ID = "bearerTokenId";
+
+  private final SecretsService secretsService;
+
+  private final KeyValueStore keyValueStore;
+
+  @Autowired
+  public HttpAuthenticationSecretEncoder(final SecretsService secretsService, final KeyValueStore keyValueStore) {
+    this.secretsService = checkNotNull(secretsService);
+    this.keyValueStore = checkNotNull(keyValueStore);
+  }
+
+  private boolean isMigrationStarted() {
+    return keyValueStore.getBoolean(BEARER_TOKEN_MIGRATION_STARTED).orElse(false);
+  }
+
+  /**
+   * Encode password and bearer token if present in the provided attributes
+   */
+  public void encodeHttpAuthPassword(final Map<String, Map<String, Object>> attributes) {
+    getAuthentication(attributes).ifPresent(authentication -> {
+      authentication.computeIfPresent(PASSWORD, this::encryptValueIfNeeded);
+      if (isMigrationStarted()) {
+        authentication.computeIfPresent(BEARER_TOKEN_ID, this::encryptValueIfNeeded);
+        authentication.remove(BEARER_TOKEN);
+      }
+      else {
+        moveBearerTokenIdToBearerToken(authentication);
+      }
+    });
+  }
+
+  private String encryptValueIfNeeded(final String key, final Object value) {
+    if (value instanceof String) {
+      return encrypt((String) value);
+    }
+    return ((Secret) value).getId();
+  }
+
+  private void moveBearerTokenIdToBearerToken(final Map<String, Object> authentication) {
+    Object value = authentication.get(BEARER_TOKEN_ID);
+    if (value != null) {
+      authentication.put(BEARER_TOKEN, value);
+      authentication.remove(BEARER_TOKEN_ID);
+    }
+  }
+
+  /**
+   * Encode password and bearer token if present in the provided {@code newAttributes} and it is different from the
+   * value in {@code attributesToPrune}
+   */
+  public void encodeHttpAuthPassword(
+      final Map<String, Map<String, Object>> attributesToPrune,
+      final Map<String, Map<String, Object>> newAttributes)
+  {
+    getAuthentication(newAttributes).ifPresent(newAuth -> {
+      encodeAuthSecret(PASSWORD, newAuth, attributesToPrune);
+      if (isMigrationStarted()) {
+        encodeAuthSecret(BEARER_TOKEN_ID, newAuth, attributesToPrune);
+        newAuth.remove(BEARER_TOKEN);
+      }
+      else {
+        moveBearerTokenIdToBearerToken(newAuth);
+      }
+    });
+  }
+
+  /**
+   * Remove secret if password or bearer token is not in {@code persistedAttributes} or if present then remove secret
+   * only if the value in {@code attributesToPrune} and {@code persistedAttributes} are different
+   */
+  public void removeSecret(
+      final Map<String, Map<String, Object>> attributesToPrune,
+      final Map<String, Map<String, Object>> persistedAttributes)
+  {
+    getAuthentication(attributesToPrune).ifPresent(oldAuth -> {
+      if (oldAuth.containsKey(PASSWORD) && oldAuth.get(PASSWORD) != null) {
+        removeAuthSecret(attributesToPrune, persistedAttributes, PASSWORD);
+      }
+
+      if (oldAuth.containsKey(BEARER_TOKEN_ID) && oldAuth.get(BEARER_TOKEN_ID) != null) {
+        removeAuthSecret(attributesToPrune, persistedAttributes, BEARER_TOKEN_ID);
+      }
+    });
+  }
+
+  /**
+   * Remove secret for password or bearer token
+   */
+  public void removeSecret(final Map<String, Map<String, Object>> attributes) {
+    getAuthentication(attributes).ifPresent(auth -> {
+      if (isMigrationStarted()) {
+        if (auth.containsKey(BEARER_TOKEN_ID) && auth.get(BEARER_TOKEN_ID) != null) {
+          removeSecret(attributes, BEARER_TOKEN_ID);
+        }
+      }
+
+      if (auth.containsKey(PASSWORD) && auth.get(PASSWORD) != null) {
+        removeSecret(attributes, PASSWORD);
+      }
+    });
+  }
+
+  private void removeSecret(final Map<String, Map<String, Object>> attributes, final String authSecretKey) {
+    try {
+      getAuthentication(attributes).ifPresent(authentication -> {
+        final String authSecret = (String) authentication.get(authSecretKey);
+        log.debug("Removing secret.");
+        if (Objects.nonNull(authSecret)) {
+          secretsService.remove(secretsService.from(authSecret));
+        }
+      });
+    }
+    catch (Exception e) {
+      log.error(e.getMessage(), e);
+    }
+  }
+
+  private void removeAuthSecret(
+      final Map<String, Map<String, Object>> attributesToPrune,
+      final Map<String, Map<String, Object>> persistedAttributes,
+      final String authSecretKey)
+  {
+    final Optional<Map<String, Object>> newAuthentication = getAuthentication(persistedAttributes);
+    if (!newAuthentication.map(auth -> auth.get(authSecretKey)).isPresent()) {
+      log.debug("No new secret. Removing old secret.");
+      removeSecret(attributesToPrune, authSecretKey);
+      return;
+    }
+
+    newAuthentication.ifPresent(newAuth -> getAuthentication(attributesToPrune).ifPresent(oldAuth -> {
+      final String newPassword = (String) newAuth.get(authSecretKey);
+      final String oldPassword = (String) oldAuth.get(authSecretKey);
+      if (!StringUtils.equals(oldPassword, newPassword)) {
+        log.debug("Secret changed. Removing old secret.");
+        removeSecret(attributesToPrune, authSecretKey);
+      }
+    }));
+  }
+
+  private void encodeAuthSecret(
+      final String authSecretKey,
+      final Map<String, Object> authenticationDetails,
+      final Map<String, Map<String, Object>> attributesToPrune)
+  {
+    final String newAuthSecret = (String) authenticationDetails.get(authSecretKey);
+    final String oldAuthSecret =
+        (String) getAuthentication(attributesToPrune).map(oldAuth -> oldAuth.get(authSecretKey)).orElse(null);
+    if (StringUtils.isNotBlank(newAuthSecret) && !StringUtils.equals(oldAuthSecret, newAuthSecret)) {
+      log.debug("Secret changed. Creating new secret");
+      authenticationDetails.computeIfPresent(authSecretKey, (key, value) -> encrypt((String) value));
+    }
+  }
+
+  private String encrypt(final String value) {
+    return secretsService.encryptMaven(AuthenticationConfiguration.AUTHENTICATION_CONFIGURATION,
+        value.toCharArray(),
+        UserIdHelper.get()).getId();
+  }
+
+  private static Optional<Map<String, Object>> getAuthentication(final Map<String, Map<String, Object>> attributes) {
+    return ofNullable(attributes)
+        .map(attr -> attr.get("httpclient"))
+        .map(httpclient -> httpclient.get("authentication"))
+        .map(Map.class::cast)
+        .map(map -> ((Map<String, Object>) map));
+  }
+}
