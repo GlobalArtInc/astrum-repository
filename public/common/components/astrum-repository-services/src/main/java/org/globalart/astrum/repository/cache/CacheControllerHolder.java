@@ -1,0 +1,107 @@
+
+package org.globalart.astrum.repository.cache;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Holds controllers for the various standard or format specific cache types.
+ *
+ * @since 3.0
+ */
+public class CacheControllerHolder
+{
+  public static class CacheType
+  {
+    private final String typeName;
+
+    public CacheType(final String typeName) {
+      this.typeName = checkNotNull(typeName);
+    }
+
+    public String value() {
+      return typeName;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof CacheType)) {
+        return false;
+      }
+
+      CacheType cacheType = (CacheType) o;
+
+      return value().equals(cacheType.value());
+
+    }
+
+    @Override
+    public int hashCode() {
+      return value().hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return getClass().getSimpleName() + "{" +
+          "typeName='" + typeName + '\'' +
+          '}';
+    }
+  }
+
+  public static final CacheType CONTENT = new CacheType("CONTENT");
+
+  public static final CacheType METADATA = new CacheType("METADATA");
+
+  private final Map<CacheType, CacheController> controllers;
+
+  public CacheControllerHolder(
+      final CacheController contentCacheController,
+      final CacheController metadataCacheController)
+  {
+    controllers = new HashMap<>();
+    controllers.put(CONTENT, checkNotNull(contentCacheController));
+    controllers.put(METADATA, checkNotNull(metadataCacheController));
+  }
+
+  @Nonnull
+  public CacheController getContentCacheController() {
+    return checkNotNull(controllers.get(CONTENT));
+  }
+
+  @Nonnull
+  public CacheController getMetadataCacheController() {
+    return checkNotNull(controllers.get(METADATA));
+  }
+
+  @Nullable
+  public CacheController get(final CacheType cacheType) {
+    return controllers.get(checkNotNull(cacheType));
+  }
+
+  public CacheController require(final CacheType cacheType) {
+    return checkNotNull(get(cacheType), "Unexpected cache type: " + cacheType);
+  }
+
+  @Nullable
+  public CacheController set(final CacheType cacheType, @Nullable final CacheController cacheController) {
+    checkNotNull(cacheType);
+    if (cacheController == null) {
+      return controllers.remove(cacheType);
+    }
+    else {
+      return controllers.put(cacheType, cacheController);
+    }
+  }
+
+  public void invalidateCaches() {
+    controllers.values().forEach(CacheController::invalidateCache);
+  }
+}
