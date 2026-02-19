@@ -1,0 +1,140 @@
+
+package org.globalart.astrum.repository.rest.api;
+
+import java.util.List;
+import java.util.Objects;
+import jakarta.validation.constraints.Pattern;
+
+import org.globalart.astrum.repository.routing.RoutingMode;
+import org.globalart.astrum.repository.routing.RoutingRule;
+import org.globalart.astrum.validation.constraint.NamePatternConstants;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+public class RoutingRuleXO
+{
+  @Pattern(regexp = NamePatternConstants.REGEX, message = NamePatternConstants.MESSAGE)
+  private String name;
+
+  @Schema
+  private String description;
+
+  @Schema(description = "Determines what should be done with requests when their path matches any of the matchers")
+  private RoutingMode mode;
+
+  @Schema(
+      description = "Regular expressions used to identify request paths that are allowed or blocked (depending on mode)")
+  private List<String> matchers;
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  public RoutingMode getMode() {
+    return mode;
+  }
+
+  public void setMode(RoutingMode mode) {
+    this.mode = mode;
+  }
+
+  public List<String> getMatchers() {
+    return matchers;
+  }
+
+  public void setMatchers(List<String> matchers) {
+    this.matchers = matchers;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    RoutingRuleXO that = (RoutingRuleXO) o;
+    return Objects.equals(name, that.name);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name);
+  }
+
+  @Override
+  public String toString() {
+    return "RoutingRuleXO{" +
+        "name='" + name + '\'' +
+        ", description='" + description + '\'' +
+        ", mode=" + mode +
+        ", matchers=" + matchers +
+        '}';
+  }
+
+  public static RoutingRuleXO fromRoutingRule(RoutingRule routingRule) {
+    return new RoutingRuleXOBuilder()
+        .name(routingRule.name())
+        .description(routingRule.description())
+        .mode(routingRule.mode())
+        .matchers(routingRule.matchers())
+        .build();
+  }
+
+  public static RoutingRuleXOBuilder builder() {
+    return new RoutingRuleXOBuilder();
+  }
+
+  public static class RoutingRuleXOBuilder
+  {
+    private String name;
+
+    private String description;
+
+    private RoutingMode mode;
+
+    private List<String> matchers;
+
+    public RoutingRuleXOBuilder name(String name) {
+      this.name = name;
+      return this;
+    }
+
+    public RoutingRuleXOBuilder description(String description) {
+      this.description = description;
+      return this;
+    }
+
+    public RoutingRuleXOBuilder mode(RoutingMode mode) {
+      this.mode = mode;
+      return this;
+    }
+
+    public RoutingRuleXOBuilder matchers(List<String> matchers) {
+      this.matchers = matchers;
+      return this;
+    }
+
+    public RoutingRuleXO build() {
+      RoutingRuleXO routingRuleXO = new RoutingRuleXO();
+      routingRuleXO.setName(name);
+      routingRuleXO.setDescription(description);
+      routingRuleXO.setMode(mode);
+      routingRuleXO.setMatchers(matchers);
+      return routingRuleXO;
+    }
+  }
+}

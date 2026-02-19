@@ -1,0 +1,187 @@
+
+package org.globalart.astrum.repository.rest.api;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.globalart.astrum.common.collect.NestedAttributesMap;
+import org.globalart.astrum.common.text.Strings2;
+import org.globalart.astrum.repository.config.Configuration;
+import org.globalart.astrum.repository.rest.api.model.CleanupPolicyAttributes;
+import org.globalart.astrum.repository.rest.api.model.FirewallAttributes;
+import org.globalart.astrum.repository.firewall.FirewallMode;
+import org.globalart.astrum.repository.rest.api.model.HttpClientAttributes;
+import org.globalart.astrum.repository.rest.api.model.HttpClientConnectionAttributes;
+import org.globalart.astrum.repository.rest.api.model.HttpClientConnectionAuthenticationAttributes;
+import org.globalart.astrum.repository.rest.api.model.NegativeCacheAttributes;
+import org.globalart.astrum.repository.rest.api.model.ProxyAttributes;
+import org.globalart.astrum.repository.rest.api.model.ProxyRepositoryApiRequest;
+import org.globalart.astrum.repository.rest.api.model.ReplicationAttributes;
+import org.globalart.astrum.repository.rest.api.model.StorageAttributes;
+import org.globalart.astrum.repository.routing.RoutingRule;
+import org.globalart.astrum.repository.routing.RoutingRuleStore;
+
+import com.google.common.collect.Sets;
+
+import static java.util.Objects.nonNull;
+import static org.globalart.astrum.httpclient.HttpSchemes.HTTPS;
+import static org.globalart.astrum.repository.config.ConfigurationConstants.BLOB_STORE_NAME;
+import static org.globalart.astrum.repository.config.ConfigurationConstants.STORAGE;
+import static org.globalart.astrum.repository.config.ConfigurationConstants.STRICT_CONTENT_TYPE_VALIDATION;
+
+import org.globalart.astrum.rest.ValidationErrorsException;
+import org.springframework.stereotype.Component;
+
+/**
+ * @since 3.20
+ */
+@Component
+public class ProxyRepositoryApiRequestToConfigurationConverter<T extends ProxyRepositoryApiRequest>
+    extends AbstractRepositoryApiRequestToConfigurationConverter<T>
+{
+  private final RoutingRuleStore routingRuleStore;
+
+  @Autowired
+  public ProxyRepositoryApiRequestToConfigurationConverter(final RoutingRuleStore routingRuleStore) {
+    this.routingRuleStore = routingRuleStore;
+  }
+
+  @Override
+  public Configuration convert(final T request) {
+    Configuration configuration = super.convert(request);
+    convertRoutingRule(request, configuration);
+    convertStorage(request, configuration);
+    convertCleanup(request, configuration);
+    convertProxy(request, configuration);
+    convertNegativeCache(request, configuration);
+    convertHttpClient(request, configuration);
+    convertReplication(request, configuration);
+    convertFirewall(request, configuration);
+    return configuration;
+  }
+
+  protected boolean isPccsSupported() {
+    return false;
+  }
+
+  protected void convertFirewall(final T request, final Configuration configuration) {
+    FirewallAttributes firewall = request.getFirewall();
+    if (nonNull(firewall) && nonNull(firewall.getMode())) {
+      if (FirewallMode.PCCS == firewall.getMode() && !isPccsSupported()) {
+        throw new IllegalArgumentException(
+            "PCCS mode is only supported for npm and pypi repository formats.");
+      }
+      NestedAttributesMap firewallConfiguration =
+          configuration.attributes(FirewallAttributes.FIREWALL_CHILD_ATTRIBUTE_KEY);
+      firewallConfiguration.set(FirewallAttributes.MODE, firewall.getMode().name());
+    }
+  }
+
+  private void convertHttpClient(final T request, final Configuration configuration) {
+    HttpClientAttributes httpClient = request.getHttpClient();
+    if (nonNull(httpClient)) {
+      NestedAttributesMap httpClientConfiguration = configuration.attributes("httpclient");
+      httpClientConfiguration.set("blocked", httpClient.getBlocked() != null ? httpClient.getBlocked() : false);
+      httpClientConfiguration.set("autoBlock", httpClient.getAutoBlock() != null ? httpClient.getAutoBlock() : true);
+      HttpClientConnectionAttributes connection = httpClient.getConnection();
+      NestedAttributesMap connectionConfiguration = httpClientConfiguration.child("connection");
+      convertConnection(connection, connectionConfiguration, request.getProxy().getRemoteUrl().startsWith(HTTPS));
+      convertAuthentication(httpClient, httpClientConfiguration);
+    }
+  }
+
+  private void convertAuthentication(
+      final HttpClientAttributes httpClient,
+      final NestedAttributesMap httpClientConfiguration)
+  {
+    HttpClientConnectionAuthenticationAttributes authentication = httpClient.getAuthentication();
+    if (nonNull(authentication)) {
+      NestedAttributesMap authenticationConfiguration = httpClientConfiguration.child("authentication");
+      authenticationConfiguration.set("type", authentication.getType());
+      authenticationConfiguration.set("username", authentication.getUsername());
+      authenticationConfiguration.set("password", authentication.getPassword());
+      authenticationConfiguration.set("ntlmHost", authentication.getNtlmHost());
+      authenticationConfiguration.set("ntlmDomain", authentication.getNtlmDomain());
+      authenticationConfiguration.set("bearerTokenId", authentication.getBearerToken());
+    }
+  }
+
+  private void convertConnection(
+      final HttpClientConnectionAttributes connection,
+      final NestedAttributesMap connectionConfiguration,
+      final boolean isHttps)
+  {
+    if (nonNull(connection)) {
+      if (Boolean.TRUE.equals(connection.getUseTrustStore()) && !isHttps) {
+        throw new IllegalArgumentException("TrustStore is available only with HTTPS remote URLs");
+      }
+
+      connectionConfiguration.set("retries", connection.getRetries());
+      connectionConfiguration.set("userAgentSuffix", connection.getUserAgentSuffix());
+      connectionConfiguration.set("timeout", connection.getTimeout());
+      connectionConfiguration.set("enableCircularRedirects", connection.getEnableCircularRedirects());
+      connectionConfiguration.set("enableCookies", connection.getEnableCookies());
+      connectionConfiguration.set("useTrustStore", connection.getUseTrustStore());
+    }
+  }
+
+  private void convertNegativeCache(final T request, final Configuration configuration) {
+    NegativeCacheAttributes negativeCache = request.getNegativeCache();
+    if (nonNull(negativeCache)) {
+      NestedAttributesMap negativeCacheConfiguration = configuration.attributes("negativeCache");
+      negativeCacheConfiguration.set("enabled", negativeCache.getEnabled());
+      negativeCacheConfiguration.set("timeToLive", negativeCache.getTimeToLive());
+    }
+  }
+
+  private void convertProxy(final T request, final Configuration configuration) {
+    ProxyAttributes proxy = request.getProxy();
+    if (nonNull(proxy)) {
+      NestedAttributesMap proxyConfiguration = configuration.attributes("proxy");
+      proxyConfiguration.set("remoteUrl", proxy.getRemoteUrl());
+      proxyConfiguration.set("contentMaxAge", proxy.getContentMaxAge());
+      proxyConfiguration.set("metadataMaxAge", proxy.getMetadataMaxAge());
+      proxyConfiguration.set("preserveEncodedCharacters", proxy.getPreserveEncodedCharacters());
+    }
+  }
+
+  private void convertCleanup(final T request, final Configuration configuration) {
+    CleanupPolicyAttributes cleanup = request.getCleanup();
+    if (nonNull(cleanup)) {
+      NestedAttributesMap cleanupConfiguration = configuration.attributes("cleanup");
+      cleanupConfiguration.set("policyName", Sets.newHashSet(cleanup.getPolicyNames()));
+    }
+  }
+
+  private void convertStorage(final T request, final Configuration configuration) {
+    StorageAttributes storage = request.getStorage();
+    if (nonNull(storage)) {
+      NestedAttributesMap storageConfiguration = configuration.attributes(STORAGE);
+      storageConfiguration.set(BLOB_STORE_NAME, storage.getBlobStoreName());
+      storageConfiguration.set(STRICT_CONTENT_TYPE_VALIDATION, storage.getStrictContentTypeValidation());
+      maybeAddDataStoreName(configuration);
+    }
+  }
+
+  private void convertRoutingRule(final T request, final Configuration configuration) {
+    String routingRuleName = request.getRoutingRuleName();
+    if (!Strings2.isBlank(routingRuleName)) {
+      RoutingRule routingRule = routingRuleStore.getByName(routingRuleName);
+      if (nonNull(routingRule)) {
+        configuration.setRoutingRuleId(routingRule.id());
+      }
+      else {
+        String errorMessage = String.format("Routing rule '%s' does not exist.", routingRuleName);
+        throw new ValidationErrorsException("routingRuleName", errorMessage);
+      }
+    }
+  }
+
+  private void convertReplication(final T request, final Configuration configuration) {
+    ReplicationAttributes replication = request.getReplication();
+    if (nonNull(replication)) {
+      NestedAttributesMap replicationConfiguration = configuration.attributes("replication");
+      replicationConfiguration.set("preemptivePullEnabled", replication.getPreemptivePullEnabled());
+      replicationConfiguration.set("assetPathRegex", replication.getAssetPathRegex());
+    }
+  }
+}
