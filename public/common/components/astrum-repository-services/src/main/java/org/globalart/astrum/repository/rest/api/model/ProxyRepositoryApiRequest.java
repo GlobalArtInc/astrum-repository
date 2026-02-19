@@ -1,0 +1,114 @@
+
+package org.globalart.astrum.repository.rest.api.model;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+
+import com.fasterxml.jackson.annotation.JsonAlias;
+import org.globalart.astrum.repository.types.ProxyType;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+/**
+ * @since 3.20
+ */
+public class ProxyRepositoryApiRequest
+    extends AbstractRepositoryApiRequest
+{
+  @NotNull
+  @Valid
+  private final StorageAttributes storage;
+
+  @Valid
+  private final CleanupPolicyAttributes cleanup;
+
+  @NotNull
+  @Valid
+  private final ProxyAttributes proxy;
+
+  @NotNull
+  @Valid
+  private final NegativeCacheAttributes negativeCache;
+
+  @NotNull
+  @Valid
+  private final HttpClientAttributes httpClient;
+
+  private final String routingRuleName;
+
+  private final ReplicationAttributes replication;
+
+  /*
+   * Firewall attributes are an optional cross-format property; populated by Jackson via the
+   * {@code @JsonProperty} setter rather than the constructor so per-format subclasses don't
+   * need to thread it through their own constructors.
+   */
+  @Valid
+  private FirewallAttributes firewall;
+
+  @SuppressWarnings("squid:S00107") // suppress constructor parameter count
+  @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+  public ProxyRepositoryApiRequest(
+      @JsonProperty("name") final String name,
+      @JsonProperty("format") final String format,
+      @JsonProperty("online") final Boolean online,
+      @JsonProperty("storage") final StorageAttributes storage,
+      @JsonProperty("cleanup") final CleanupPolicyAttributes cleanup,
+      @JsonProperty("proxy") final ProxyAttributes proxy,
+      @JsonProperty("negativeCache") final NegativeCacheAttributes negativeCache,
+      @JsonProperty("httpClient") final HttpClientAttributes httpClient,
+      @JsonProperty("routingRuleName") @JsonAlias("routingRule") final String routingRuleName,
+      @JsonProperty("replication") @JsonInclude(value = Include.NON_EMPTY,
+          content = Include.NON_NULL) final ReplicationAttributes replication)
+  {
+    super(name, format, ProxyType.NAME, online);
+    this.storage = storage;
+    this.cleanup = cleanup;
+    this.proxy = proxy;
+    this.negativeCache = negativeCache;
+    this.httpClient = httpClient;
+    this.routingRuleName = routingRuleName;
+    this.replication = replication;
+  }
+
+  public StorageAttributes getStorage() {
+    return storage;
+  }
+
+  public CleanupPolicyAttributes getCleanup() {
+    return cleanup;
+  }
+
+  public ProxyAttributes getProxy() {
+    return proxy;
+  }
+
+  public NegativeCacheAttributes getNegativeCache() {
+    return negativeCache;
+  }
+
+  public HttpClientAttributes getHttpClient() {
+    return httpClient;
+  }
+
+  public String getRoutingRuleName() {
+    return routingRuleName;
+  }
+
+  public ReplicationAttributes getReplication() {
+    return replication;
+  }
+
+  public FirewallAttributes getFirewall() {
+    return firewall;
+  }
+
+  @JsonProperty("firewall")
+  public void setFirewall(final FirewallAttributes firewall) {
+    this.firewall = firewall;
+  }
+
+}
