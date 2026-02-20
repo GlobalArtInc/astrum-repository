@@ -1,0 +1,86 @@
+
+package org.globalart.astrum.repository.rest.internal;
+
+import java.util.List;
+
+import org.globalart.astrum.repository.rest.SearchMapping;
+import org.globalart.astrum.repository.rest.SearchMappings;
+import org.globalart.astrum.repository.rest.sql.SearchField;
+
+import com.google.common.collect.ImmutableList;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.globalart.astrum.repository.rest.sql.SearchField.FORMAT;
+import static org.globalart.astrum.repository.rest.sql.SearchField.KEYWORDS;
+import static org.globalart.astrum.repository.rest.sql.SearchField.LAST_MODIFIED;
+import static org.globalart.astrum.repository.rest.sql.SearchField.MD5;
+import static org.globalart.astrum.repository.rest.sql.SearchField.NAME;
+import static org.globalart.astrum.repository.rest.sql.SearchField.NAMESPACE;
+import static org.globalart.astrum.repository.rest.sql.SearchField.SHA1;
+import static org.globalart.astrum.repository.rest.sql.SearchField.SHA256;
+import static org.globalart.astrum.repository.rest.sql.SearchField.SHA512;
+import static org.globalart.astrum.repository.search.index.SearchConstants.IS_PRERELEASE_KEY;
+import static org.globalart.astrum.repository.search.index.SearchConstants.REPOSITORY_NAME;
+
+/**
+ * @since 3.7
+ */
+@Component
+@Qualifier("default")
+public class DefaultSearchMappings
+    implements SearchMappings
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  public static final String NAME_RAW = "name.raw";
+
+  public static final String NAME_RAW_ALIAS = "name";
+
+  public static final String GROUP_RAW = "group.raw";
+
+  public static final String VERSION = "version";
+
+  public static final String PRERELEASE = "prerelease";
+
+  public static final String KEYWORD_ALIAS = "q";
+
+  /*
+   * The four-argument SearchMapping constructor defaults exactMatch to TRUE, which compares the
+   * plain column with '=' (ExactTerm). The five-argument form with 'false' compares the tsvector
+   * column with '@@ to_tsquery(...)' (LenientTerm) instead -- see 'keyword' below.
+   *
+   * Do NOT switch 'format', 'group' or 'name' to lenient matching without reading
+   * private/developer-documentation/architecture/data/sql-search.md first. Composite btree indexes
+   * depend on those three producing plain-column equality; in particular
+   * idx_search_components_format_ns_name_version (ASTRUM-54219) stops being usable the moment the
+   * predicate becomes a tsvector match, and the paged component-version browse silently degrades
+   * to a bitmap scan over every row of the component. Results remain correct and nothing is
+   * logged, so the regression is invisible without
+   * ComponentVersionsSearchTableDAOTestSupport.componentVersionFilterUsesPlainColumnsNotTsvector, which guards it.
+   */
+  private static final List<SearchMapping> MAPPINGS = ImmutableList.of(
+      new SearchMapping(KEYWORD_ALIAS, "keyword", "Query by keyword", KEYWORDS, false),
+      new SearchMapping("repository", REPOSITORY_NAME, "Repository name", SearchField.REPOSITORY_NAME),
+      new SearchMapping("repositoryName", REPOSITORY_NAME, "Repository name", SearchField.REPOSITORY_NAME),
+      new SearchMapping("format", "format", "Query by format", FORMAT),
+      new SearchMapping("group", GROUP_RAW, "Component group", NAMESPACE),
+      new SearchMapping(NAME_RAW_ALIAS, NAME_RAW, "Component name", NAME),
+      new SearchMapping(VERSION, VERSION, "Component version", SearchField.VERSION),
+      new SearchMapping(PRERELEASE, IS_PRERELEASE_KEY, "Prerelease version flag", SearchField.PRERELEASE),
+      new SearchMapping("last_updated", "last_modified", "Asset last modified time", LAST_MODIFIED),
+      new SearchMapping("lastBlobUpdated", "last_modified", "Asset last modified time (UI)", LAST_MODIFIED),
+      new SearchMapping("md5", "assets.attributes.checksum.md5", "Specific MD5 hash of component's asset", MD5),
+      new SearchMapping("sha1", "assets.attributes.checksum.sha1", "Specific SHA-1 hash of component's asset", SHA1),
+      new SearchMapping("sha256", "assets.attributes.checksum.sha256", "Specific SHA-256 hash of component's asset",
+          SHA256),
+      new SearchMapping("sha512", "assets.attributes.checksum.sha512", "Specific SHA-512 hash of component's asset",
+          SHA512));
+
+  @Override
+  public Iterable<SearchMapping> get() {
+    return MAPPINGS;
+  }
+}
