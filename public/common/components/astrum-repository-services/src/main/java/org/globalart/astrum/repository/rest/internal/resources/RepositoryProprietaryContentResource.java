@@ -1,0 +1,146 @@
+
+
+package org.globalart.astrum.repository.rest.internal.resources;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response.Status;
+
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.config.Configuration;
+import org.globalart.astrum.repository.rest.api.AuthorizingRepositoryManager;
+import org.globalart.astrum.repository.types.HostedType;
+import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.rest.WebApplicationMessageException;
+import org.globalart.astrum.validation.Validate;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.globalart.astrum.repository.config.ConfigurationConstants.COMPONENT;
+import static org.globalart.astrum.repository.config.ConfigurationConstants.PROPRIETARY_COMPONENTS;
+import static org.globalart.astrum.rest.APIConstants.INTERNAL_API_PREFIX;
+import org.springframework.stereotype.Component;
+
+/**
+ * Internal API for UI that allows bulk (un)marking repositories as source of proprietary content to, in conjunction
+ * with IQ Server, protect against namespace conflict attacks.
+ *
+ * @since 3.30
+ */
+@Component
+@Path(RepositoryProprietaryContentResource.RESOURCE_URI)
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+public class RepositoryProprietaryContentResource
+    implements Resource
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  public static final String RESOURCE_URI = INTERNAL_API_PREFIX + "/proprietary-content";
+
+  private final AuthorizingRepositoryManager repositoryManager;
+
+  @Autowired
+  public RepositoryProprietaryContentResource(final AuthorizingRepositoryManager repositoryManager) {
+    this.repositoryManager = checkNotNull(repositoryManager);
+  }
+
+  /**
+   * @return list of repository names that are set as source of proprietary content
+   */
+  @GET
+  public List<String> get() {
+    return repositoryManager.getRepositoriesWithAdmin()
+        .stream()
+        .filter(repository -> repository.getConfiguration()
+            .attributes(COMPONENT)
+            .get(PROPRIETARY_COMPONENTS, Boolean.class, false))
+        .map(Repository::getName)
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Mark or unmark provided repositories as source of proprietary content
+   */
+  @RequiresAuthentication
+  @POST
+  @Validate
+  public void set(@NotNull @Valid final ProprietaryContentRequest request) {
+    List<String> failed = Lists.newArrayList();
+
+    request.getProprietary()
+        .stream()
+        .map(repositoryManager::getRepositoryWithAdmin)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .filter(this::isHostedRepository)
+        .forEach(repository -> {
+          Configuration configuration = repository.getConfiguration().copy();
+          configuration.attributes(COMPONENT).set(PROPRIETARY_COMPONENTS, true);
+          String repositoryName = repository.getName();
+          try {
+            repositoryManager.update(configuration);
+            log.info("Marked '{}' repository as source of proprietary content", repositoryName);
+          }
+          catch (Exception e) {
+            log.error("Failed to mark '{}' repository as source of proprietary content, {}", repositoryName,
+                log.isDebugEnabled() ? e : e.getMessage());
+            failed.add(repositoryName);
+          }
+        });
+
+    request.getNonProprietary()
+        .stream()
+        .map(repositoryManager::getRepositoryWithAdmin)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .filter(this::isHostedRepository)
+        .forEach(repository -> {
+          Configuration configuration = repository.getConfiguration().copy();
+          configuration.attributes(COMPONENT).set(PROPRIETARY_COMPONENTS, false);
+          String repositoryName = repository.getName();
+          try {
+            repositoryManager.update(configuration);
+            log.info("Unmarked '{}' repository as source of proprietary content", repositoryName);
+          }
+          catch (Exception e) {
+            log.error("Failed to unmark '{}' repository as source of proprietary content, {}", repositoryName,
+                log.isDebugEnabled() ? e : e.getMessage());
+            failed.add(repositoryName);
+          }
+        });
+
+    if (!failed.isEmpty()) {
+      throw new WebApplicationMessageException(Status.INTERNAL_SERVER_ERROR,
+          "\"Problem updating following repositories: " + Joiner.on(", ").join(failed) + "\"", APPLICATION_JSON);
+    }
+  }
+
+  private boolean isHostedRepository(final Repository repository) {
+    if (!HostedType.NAME.equals(repository.getType().getValue())) {
+      log.warn(
+          "Repository {} is not a hosted repository, proprietary component flag is not valid for non-hosted repositories",
+          repository.getName());
+      return false;
+    }
+
+    return true;
+  }
+}
