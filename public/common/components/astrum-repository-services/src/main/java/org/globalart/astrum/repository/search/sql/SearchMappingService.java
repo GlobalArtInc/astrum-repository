@@ -1,0 +1,56 @@
+
+package org.globalart.astrum.repository.search.sql;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.StreamSupport;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.repository.rest.SearchMappings;
+import org.globalart.astrum.repository.rest.sql.SearchField;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.springframework.stereotype.Component;
+
+/**
+ * Provides a mapping from search attribute or alias to {@link SearchField}
+ */
+@Component
+public class SearchMappingService
+{
+  private final Map<String, SearchField> attributeToField = new HashMap<>();
+
+  private final Map<String, Boolean> attributeToExactMatch = new HashMap<>();
+
+  @Autowired
+  public SearchMappingService(final List<SearchMappings> searchMappings) {
+    checkNotNull(searchMappings).stream()
+        .map(SearchMappings::get)
+        .flatMap(iterable -> StreamSupport.stream(iterable.spliterator(), false))
+        .forEach(mapping -> {
+          attributeToField.put(mapping.getAttribute(), mapping.getField());
+          attributeToExactMatch.put(mapping.getAttribute(), mapping.isExactMatch());
+          attributeToField.putIfAbsent(mapping.getAlias(), mapping.getField());
+          attributeToExactMatch.put(mapping.getAlias(), mapping.isExactMatch());
+        });
+  }
+
+  /**
+   * Provides the mapping from search attribute or alias to {@link SearchField}
+   */
+  public Optional<SearchField> getSearchField(final String identifier) {
+    return Optional.ofNullable(attributeToField.get(identifier));
+  }
+
+  /**
+   * Returns a boolean from search mappings indicating whether the field should be treated as an exact match. False is
+   * returned if the mapping is unknown.
+   */
+  public boolean isExactMatch(final String identifier) {
+    return Optional.ofNullable(attributeToExactMatch.get(identifier))
+        .orElse(Boolean.FALSE);
+  }
+}
