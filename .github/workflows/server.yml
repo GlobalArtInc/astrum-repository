@@ -1,0 +1,209 @@
+name: Server
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "web/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "LICENSE.txt"
+      - "NOTICE.txt"
+      - ".github/workflows/server.yml"
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "web/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "LICENSE.txt"
+      - "NOTICE.txt"
+      - ".github/workflows/server.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  check:
+    name: fmt, clippy, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: astrum
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      ASTRUM_TEST_DATABASE_URL: postgres://postgres:astrum@127.0.0.1:5432/postgres
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Install the toolchain from rust-toolchain.toml
+        run: |
+          rustup toolchain install
+          rustc --version
+          cargo --version
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --locked
+
+  web:
+    name: web UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: corepack pnpm lint
+
+      - name: Typecheck
+        run: corepack pnpm typecheck
+
+      - name: Test
+        run: corepack pnpm test
+
+      - name: Check the UI texts
+        run: corepack pnpm i18n:check
+
+      - name: Build
+        run: corepack pnpm build
+
+  image:
+    name: container image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Name the tags
+        id: tag
+        run: |
+          set -eu
+          revision="$(git rev-parse --short=7 HEAD)"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF#refs/tags/v}"
+            tags="$version latest"
+          else
+            version="$(date -u +%Y%m%d%H%M%S)-$revision"
+            tags="$version next-$version edge"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+          REVISION: ${{ steps.tag.outputs.revision }}
+        run: |
+          set -eu
+          docker build \
+            --build-arg VERSION="$VERSION" \
+            --build-arg GIT_REVISION="$REVISION" \
+            -t astrum-server:ci .
+          docker run --rm astrum-server:ci version
+
+      - name: Start it against PostgreSQL
+        run: |
+          set -eu
+          trap 'docker logs astrum-ci 2>&1 | tail -n 100 || true' ERR
+          docker network create astrum-ci
+          docker run -d --name astrum-ci-db --network astrum-ci -e POSTGRES_PASSWORD=astrum postgres:16
+          for i in $(seq 1 30); do
+            docker exec astrum-ci-db pg_isready -U postgres >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker run -d --name astrum-ci --network astrum-ci -p 127.0.0.1::8081 \
+            -e ASTRUM_DATABASE_URL=postgres://postgres:astrum@astrum-ci-db:5432/postgres \
+            astrum-server:ci
+          port="$(docker port astrum-ci 8081/tcp | head -n1 | sed 's/.*://')"
+          for i in $(seq 1 30); do
+            curl -fs "http://127.0.0.1:$port/service/rest/v1/status/writable" >/dev/null && break
+            if [ "$(docker inspect -f '{{.State.Running}}' astrum-ci)" != "true" ]; then
+              exit 1
+            fi
+            sleep 2
+          done
+          curl -fs "http://127.0.0.1:$port/service/rest/v1/status" >/dev/null
+          curl -fs "http://127.0.0.1:$port/service/rest/v1/status/writable" >/dev/null
+          curl -fs "http://127.0.0.1:$port/" | grep -q '<div id="root">'
+          curl -fs "http://127.0.0.1:$port/browse/x" | grep -q '<div id="root">'
+          curl -fsI "http://127.0.0.1:$port/browse/x" | grep -qi "^content-security-policy: default-src 'self'"
+          test "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/service/rest/v1/nothing")" = 404
+          docker exec astrum-ci astrum check
+          test "$(docker exec astrum-ci id -u)" = 200
+          docker exec astrum-ci test -d /astrum-data/tmp
+          docker stop -t 20 astrum-ci
+          test "$(docker inspect -f '{{.State.ExitCode}}' astrum-ci)" = 0
+          docker logs astrum-ci 2>&1 | grep stopped >/dev/null
+          echo "the image starts, serves its status and the UI, and stops cleanly"
+
+      - if: always()
+        run: docker rm -f astrum-ci astrum-ci-db >/dev/null 2>&1 || true
+
+      - name: Publish
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          TAGS: ${{ steps.tag.outputs.tags }}
+        run: |
+          set -eu
+          image=globalartltd/astrum-repository
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          for tag in $TAGS; do
+            docker tag astrum-server:ci "$image:$tag"
+            docker push "$image:$tag"
+            case "$tag" in
+              edge|latest) ;;
+              *) echo "published $image:$tag" ;;
+            esac
+          done
+          docker logout
