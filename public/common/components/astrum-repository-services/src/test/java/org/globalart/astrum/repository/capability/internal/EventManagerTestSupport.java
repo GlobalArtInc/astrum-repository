@@ -1,0 +1,102 @@
+
+package org.globalart.astrum.repository.capability.internal;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.globalart.astrum.capability.Condition;
+import org.globalart.astrum.capability.ConditionEvent.Satisfied;
+import org.globalart.astrum.capability.ConditionEvent.Unsatisfied;
+import org.globalart.astrum.common.event.EventManager;
+
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.junit.Before;
+import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+
+/**
+ * Support for tests using event bus.
+ *
+ * @since capabilities 2.0
+ */
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class EventManagerTestSupport
+{
+
+  @Mock
+  protected EventManager eventManager;
+
+  protected List<Object> eventManagerEvents;
+
+  @Before
+  public final void setUpEventManager() throws Exception {
+    eventManagerEvents = new ArrayList<Object>();
+
+    doAnswer(new Answer<Object>()
+    {
+
+      @Override
+      public Object answer(final InvocationOnMock invocation) throws Throwable {
+        eventManagerEvents.add(invocation.getArguments()[0]);
+        return null;
+      }
+
+    }).when(eventManager).post(any());
+  }
+
+  protected void verifyEventManagerEvents(final Matcher... matchers) {
+    assertThat(eventManagerEvents, contains(matchers));
+  }
+
+  protected void verifyNoEventManagerEvents() {
+    assertThat(eventManagerEvents, empty());
+  }
+
+  protected static Matcher<Object> satisfied(final Condition condition) {
+    return allOf(
+        instanceOf(Satisfied.class),
+        new BaseMatcher<Object>()
+        {
+          @Override
+          public boolean matches(final Object argument) {
+            return ((Satisfied) argument).getCondition() == condition;
+          }
+
+          @Override
+          public void describeTo(final Description description) {
+
+          }
+        });
+  }
+
+  protected static Matcher<Object> unsatisfied(final Condition condition) {
+    return allOf(
+        instanceOf(Unsatisfied.class),
+        new BaseMatcher<Object>()
+        {
+          @Override
+          public boolean matches(final Object argument) {
+            return ((Unsatisfied) argument).getCondition() == condition;
+          }
+
+          @Override
+          public void describeTo(final Description description) {
+
+          }
+        });
+  }
+
+}
