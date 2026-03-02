@@ -1,0 +1,89 @@
+
+package org.globalart.astrum.repository.manager.internal;
+
+import org.globalart.astrum.repository.Facet;
+import org.globalart.astrum.repository.FacetSupport;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
+
+public class FacetLookupTest
+{
+  private FacetLookup underTest;
+
+  @Before
+  public void setUp() {
+    underTest = new FacetLookup();
+  }
+
+  @Facet.Exposed
+  public interface ExampleFacet
+      extends Facet
+  {
+    // empty
+  }
+
+  public static class ExampleFacetSupport
+      extends FacetSupport
+      implements ExampleFacet
+  {
+    // empty
+  }
+
+  @Facet.Exposed
+  public static class MyExampleFacet
+      extends ExampleFacetSupport
+  {
+    // empty
+  }
+
+  public static class FacetNoExposure
+      extends FacetSupport
+  {
+    // empty
+  }
+
+  @Test
+  public void addAndGetFacet() {
+    MyExampleFacet facet1 = new MyExampleFacet();
+    underTest.add(facet1);
+
+    MyExampleFacet facet2 = underTest.get(MyExampleFacet.class);
+    assertThat(facet1, is(facet2));
+  }
+
+  @Test
+  public void addAndGetFacetExposure() {
+    MyExampleFacet facet1 = new MyExampleFacet();
+    underTest.add(facet1);
+
+    // lookup by exposed interface should return same instance
+    ExampleFacet facet2 = underTest.get(ExampleFacet.class);
+    assertThat(facet2, is(facet1));
+
+    // lookup by exposed concrete should return same instance
+    MyExampleFacet facet3 = underTest.get(MyExampleFacet.class);
+    assertThat(facet3, is(facet1));
+
+    // look up of non-exposed facet type returns null
+    ExampleFacetSupport facet4 = underTest.get(ExampleFacetSupport.class);
+    assertThat(facet4, is(nullValue()));
+  }
+
+  @Test
+  public void addFacetWithNothingExposed() {
+    FacetNoExposure facet1 = new FacetNoExposure();
+    assertThrows(Exception.class, () -> underTest.add(facet1));
+  }
+
+  @Test
+  public void addDuplicateFacetExposureDisallowed() {
+    underTest.add(new MyExampleFacet());
+    assertThrows(Exception.class, () -> underTest.add(new MyExampleFacet()));
+  }
+}
