@@ -1,0 +1,226 @@
+
+package org.globalart.astrum.repository.rest.api;
+
+import org.globalart.astrum.common.collect.NestedAttributesMap;
+import org.globalart.astrum.repository.config.Configuration;
+import org.globalart.astrum.repository.config.ConfigurationStore;
+import org.globalart.astrum.repository.config.internal.ConfigurationData;
+import org.globalart.astrum.repository.rest.api.model.HttpClientAttributes;
+import org.globalart.astrum.repository.rest.api.model.HttpClientConnectionAuthenticationAttributes;
+import org.globalart.astrum.repository.rest.api.model.ProxyAttributes;
+import org.globalart.astrum.repository.rest.api.model.ProxyRepositoryApiRequest;
+import org.globalart.astrum.repository.rest.api.model.StorageAttributes;
+import org.globalart.astrum.repository.rest.api.model.FirewallAttributes;
+import org.globalart.astrum.repository.routing.RoutingRuleStore;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+
+/**
+ * Unit test for {@link ProxyRepositoryApiRequestToConfigurationConverter}.
+ *
+ */
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class ProxyRepositoryApiRequestToConfigurationConverterTest
+{
+  @Mock
+  private RoutingRuleStore routingRuleStore;
+
+  @Mock
+  private ConfigurationStore configurationStore;
+
+  @Mock
+  private ProxyRepositoryApiRequest request;
+
+  private ProxyRepositoryApiRequestToConfigurationConverter<ProxyRepositoryApiRequest> underTest;
+
+  @Before
+  public void setup() {
+    when(configurationStore.newConfiguration()).thenReturn(new ConfigurationData());
+    underTest = new ProxyRepositoryApiRequestToConfigurationConverter<>(routingRuleStore);
+    underTest.setConfigurationStore(configurationStore);
+  }
+
+  @Test
+  public void testConvert_withBearerTokenAuthentication() {
+    // Arrange
+    String expectedBearerToken = "test-bearer-token-12345";
+    String expectedRemoteUrl = "https://registry.npmjs.org";
+
+    StorageAttributes storage = new StorageAttributes("default", true);
+    when(request.getStorage()).thenReturn(storage);
+
+    ProxyAttributes proxy = new ProxyAttributes(expectedRemoteUrl, 1440, 1440, null);
+    when(request.getProxy()).thenReturn(proxy);
+
+    HttpClientConnectionAuthenticationAttributes authentication =
+        new HttpClientConnectionAuthenticationAttributes("bearerToken", null, null, null, null, expectedBearerToken);
+
+    HttpClientAttributes httpClient = new HttpClientAttributes(false, true, null, authentication);
+    when(request.getHttpClient()).thenReturn(httpClient);
+
+    // Act
+    Configuration configuration = underTest.convert(request);
+
+    // Assert
+    assertThat(configuration, is(notNullValue()));
+
+    NestedAttributesMap httpClientConfig = configuration.attributes("httpclient");
+    assertThat(httpClientConfig, is(notNullValue()));
+
+    NestedAttributesMap authenticationConfig = httpClientConfig.child("authentication");
+    assertThat(authenticationConfig, is(notNullValue()));
+    assertThat(authenticationConfig.get("type"), is("bearerToken"));
+    assertThat(authenticationConfig.get("bearerTokenId"), is(expectedBearerToken));
+  }
+
+  @Test
+  public void testConvert_withUsernameAuthentication() {
+    // Arrange
+    String expectedUsername = "test-user";
+    String expectedPassword = "test-password";
+    String expectedRemoteUrl = "https://registry.npmjs.org";
+
+    StorageAttributes storage = new StorageAttributes("default", true);
+    when(request.getStorage()).thenReturn(storage);
+
+    ProxyAttributes proxy = new ProxyAttributes(expectedRemoteUrl, 1440, 1440, null);
+    when(request.getProxy()).thenReturn(proxy);
+
+    HttpClientConnectionAuthenticationAttributes authentication =
+        new HttpClientConnectionAuthenticationAttributes("username", expectedUsername, expectedPassword, null, null,
+            null);
+
+    HttpClientAttributes httpClient = new HttpClientAttributes(false, true, null, authentication);
+    when(request.getHttpClient()).thenReturn(httpClient);
+
+    // Act
+    Configuration configuration = underTest.convert(request);
+
+    // Assert
+    assertThat(configuration, is(notNullValue()));
+
+    NestedAttributesMap httpClientConfig = configuration.attributes("httpclient");
+    assertThat(httpClientConfig, is(notNullValue()));
+
+    NestedAttributesMap authenticationConfig = httpClientConfig.child("authentication");
+    assertThat(authenticationConfig, is(notNullValue()));
+    assertThat(authenticationConfig.get("type"), is("username"));
+    assertThat(authenticationConfig.get("username"), is(expectedUsername));
+    assertThat(authenticationConfig.get("password"), is(expectedPassword));
+  }
+
+  @Test
+  public void testConvert_withNtlmAuthentication() {
+    // Arrange
+    String expectedUsername = "test-user";
+    String expectedPassword = "test-password";
+    String expectedNtlmHost = "ntlm-host";
+    String expectedNtlmDomain = "ntlm-domain";
+    String expectedRemoteUrl = "https://registry.npmjs.org";
+
+    StorageAttributes storage = new StorageAttributes("default", true);
+    when(request.getStorage()).thenReturn(storage);
+
+    ProxyAttributes proxy = new ProxyAttributes(expectedRemoteUrl, 1440, 1440, null);
+    when(request.getProxy()).thenReturn(proxy);
+
+    HttpClientConnectionAuthenticationAttributes authentication =
+        new HttpClientConnectionAuthenticationAttributes("ntlm", expectedUsername, expectedPassword,
+            expectedNtlmHost, expectedNtlmDomain, null);
+
+    HttpClientAttributes httpClient = new HttpClientAttributes(false, true, null, authentication);
+    when(request.getHttpClient()).thenReturn(httpClient);
+
+    // Act
+    Configuration configuration = underTest.convert(request);
+
+    // Assert
+    assertThat(configuration, is(notNullValue()));
+
+    NestedAttributesMap httpClientConfig = configuration.attributes("httpclient");
+    assertThat(httpClientConfig, is(notNullValue()));
+
+    NestedAttributesMap authenticationConfig = httpClientConfig.child("authentication");
+    assertThat(authenticationConfig, is(notNullValue()));
+    assertThat(authenticationConfig.get("type"), is("ntlm"));
+    assertThat(authenticationConfig.get("username"), is(expectedUsername));
+    assertThat(authenticationConfig.get("password"), is(expectedPassword));
+    assertThat(authenticationConfig.get("ntlmHost"), is(expectedNtlmHost));
+    assertThat(authenticationConfig.get("ntlmDomain"), is(expectedNtlmDomain));
+  }
+
+  @Test
+  public void testConvert_withoutAuthentication() {
+    // Arrange
+    String expectedRemoteUrl = "https://registry.npmjs.org";
+
+    StorageAttributes storage = new StorageAttributes("default", true);
+    when(request.getStorage()).thenReturn(storage);
+
+    ProxyAttributes proxy = new ProxyAttributes(expectedRemoteUrl, 1440, 1440, null);
+    when(request.getProxy()).thenReturn(proxy);
+
+    HttpClientAttributes httpClient = new HttpClientAttributes(false, true, null, null);
+    when(request.getHttpClient()).thenReturn(httpClient);
+
+    // Act
+    Configuration configuration = underTest.convert(request);
+
+    // Assert
+    assertThat(configuration, is(notNullValue()));
+
+    NestedAttributesMap httpClientConfig = configuration.attributes("httpclient");
+    assertThat(httpClientConfig, is(notNullValue()));
+    assertThat(httpClientConfig.get("blocked"), is(false));
+    assertThat(httpClientConfig.get("autoBlock"), is(true));
+  }
+
+  @Test
+  public void testConvert_withPccsMode_throwsForUnsupportedFormat() {
+    FirewallAttributes firewall = new FirewallAttributes("PCCS");
+    when(request.getFirewall()).thenReturn(firewall);
+
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> underTest.convert(request));
+    assertTrue(ex.getMessage().contains("PCCS"));
+    assertTrue(ex.getMessage().contains("npm") && ex.getMessage().contains("pypi"));
+  }
+
+  @Test
+  public void testConvert_withNullBlockedAndAutoBlock() {
+    // Arrange
+    String expectedRemoteUrl = "https://registry.npmjs.org";
+
+    StorageAttributes storage = new StorageAttributes("default", true);
+    when(request.getStorage()).thenReturn(storage);
+
+    ProxyAttributes proxy = new ProxyAttributes(expectedRemoteUrl, 1440, 1440, null);
+    when(request.getProxy()).thenReturn(proxy);
+
+    // Create HttpClientAttributes with null blocked and autoBlock
+    HttpClientAttributes httpClient = new HttpClientAttributes(null, null, null, null);
+    when(request.getHttpClient()).thenReturn(httpClient);
+
+    // Act
+    Configuration configuration = underTest.convert(request);
+
+    // Assert
+    assertThat(configuration, is(notNullValue()));
+
+    NestedAttributesMap httpClientConfig = configuration.attributes("httpclient");
+    assertThat(httpClientConfig, is(notNullValue()));
+    // Verify defaults: blocked should default to false, autoBlock should default to true
+    assertThat(httpClientConfig.get("blocked"), is(false));
+    assertThat(httpClientConfig.get("autoBlock"), is(true));
+  }
+}
