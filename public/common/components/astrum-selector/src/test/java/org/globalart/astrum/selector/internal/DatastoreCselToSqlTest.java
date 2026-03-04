@@ -1,0 +1,166 @@
+
+package org.globalart.astrum.selector.internal;
+
+import org.globalart.astrum.selector.JexlEngine;
+import org.globalart.astrum.selector.SelectorSqlBuilder;
+
+import org.apache.commons.jexl3.parser.ASTJexlScript;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+public class DatastoreCselToSqlTest
+{
+  private JexlEngine jexlEngine = new JexlEngine();
+
+  private SelectorSqlBuilder builder;
+
+  private DatastoreCselToSql underTest = new DatastoreCselToSql();
+
+  @Before
+  public void createSqlBuilder() {
+    builder = new SelectorSqlBuilder();
+
+    builder.propertyAlias("a", "a_alias");
+    builder.propertyAlias("b", "b_alias");
+
+    builder.propertyPrefix("prop.");
+    builder.parameterPrefix(":");
+    builder.parameterNamePrefix("param_");
+  }
+
+  @Test
+  public void andTest() {
+    final ASTJexlScript script = jexlEngine.parseExpression("a==\"woof\" && b==\"meow\"");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryString(), is("a_alias = :param_0 and b_alias = :param_1"));
+    assertThat(builder.getQueryParameters().size(), is(2));
+    assertThat(builder.getQueryParameters().get("param_0"), is("woof"));
+    assertThat(builder.getQueryParameters().get("param_1"), is("meow"));
+  }
+
+  @Test
+  public void orTest() {
+    final ASTJexlScript script = jexlEngine.parseExpression("a==\"woof\" || b==\"meow\"");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryString(), is("a_alias = :param_0 or b_alias = :param_1"));
+    assertThat(builder.getQueryParameters().size(), is(2));
+    assertThat(builder.getQueryParameters().get("param_0"), is("woof"));
+    assertThat(builder.getQueryParameters().get("param_1"), is("meow"));
+  }
+
+  @Test
+  public void likeTest() {
+    final ASTJexlScript script = jexlEngine.parseExpression("a =^ \"woof\"");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryString(), is("a_alias like :param_0"));
+    assertThat(builder.getQueryParameters().size(), is(1));
+    assertThat(builder.getQueryParameters().get("param_0"), is("woof%"));
+  }
+
+  @Test
+  public void notEqualTest() {
+    final ASTJexlScript script = jexlEngine.parseExpression("a != \"woof\"");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryString(), is("(a_alias is null or a_alias <> :param_0)"));
+    assertThat(builder.getQueryParameters().size(), is(1));
+    assertThat(builder.getQueryParameters().get("param_0"), is("woof"));
+  }
+
+  @Test
+  public void parensTest() {
+    final ASTJexlScript script = jexlEngine.parseExpression("a==\"woof\" && (b==\"meow\" || b==\"purr\")");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryString(), is("a_alias = :param_0 and (b_alias = :param_1 or b_alias = :param_2)"));
+    assertThat(builder.getQueryParameters().size(), is(3));
+    assertThat(builder.getQueryParameters().get("param_0"), is("woof"));
+    assertThat(builder.getQueryParameters().get("param_1"), is("meow"));
+    assertThat(builder.getQueryParameters().get("param_2"), is("purr"));
+  }
+
+  @Test
+  public void refTest() {
+    final ASTJexlScript script = jexlEngine.parseExpression("a == dog.name");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryString(), is("a_alias = prop.name"));
+    assertThat(builder.getQueryParameters().size(), is(0));
+  }
+
+  @Test
+  public void regexpTest() {
+    ASTJexlScript script = jexlEngine.parseExpression("a =~ \"woof\"");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryString(), is("a_alias ~ :param_0"));
+    assertThat(builder.getQueryParameters().size(), is(1));
+    assertThat(builder.getQueryParameters().get("param_0"), is("^(woof)$"));
+
+    reset();
+
+    script = jexlEngine.parseExpression("a =~ \"woof$\"");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryParameters().get("param_0"), is("^(woof$)$"));
+
+    reset();
+
+    script = jexlEngine.parseExpression("a =~ \"^woof\"");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryParameters().get("param_0"), is("^(^woof)$"));
+
+    reset();
+
+    script = jexlEngine.parseExpression("a =~ \"^/woof|/woof/foo\"");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryParameters().get("param_0"), is("^(^/woof|/woof/foo)$"));
+  }
+
+  @Test
+  public void publicDocumentationExampleTest() {
+    // Test the public documentation example: progressive Maven path access
+    // format == "maven2" and (path == "/" or path == "/org/" or path == "/org/apache/" or path =^
+    // "/org/apache/commons/")
+    builder.propertyAlias("format", "format_field");
+    builder.propertyAlias("path", "path_field");
+
+    final ASTJexlScript script = jexlEngine.parseExpression(
+        "format == \"maven2\" and (path == \"/\" or path == \"/org/\" or path == \"/org/apache/\" or path =^ \"/org/apache/commons/\")");
+
+    script.childrenAccept(underTest, builder);
+
+    assertThat(builder.getQueryString(), is(
+        "format_field = :param_0 and (path_field = :param_1 or path_field = :param_2 or path_field = :param_3 or path_field like :param_4)"));
+
+    assertThat(builder.getQueryParameters().size(), is(5));
+    assertThat(builder.getQueryParameters().get("param_0"), is("maven2"));
+    assertThat(builder.getQueryParameters().get("param_1"), is("/"));
+    assertThat(builder.getQueryParameters().get("param_2"), is("/org/"));
+    assertThat(builder.getQueryParameters().get("param_3"), is("/org/apache/"));
+    assertThat(builder.getQueryParameters().get("param_4"), is("/org/apache/commons/%"));
+  }
+
+  private void reset() {
+    builder.clearQueryString();
+    builder.getQueryParameters().clear();
+  }
+}
