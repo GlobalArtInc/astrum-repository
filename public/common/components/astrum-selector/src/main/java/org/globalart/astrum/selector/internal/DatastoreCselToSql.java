@@ -1,0 +1,204 @@
+
+package org.globalart.astrum.selector.internal;
+
+import org.globalart.astrum.selector.CselToSql;
+import org.globalart.astrum.selector.ParserVisitorSupport;
+import org.globalart.astrum.selector.SelectorSqlBuilder;
+
+import org.apache.commons.jexl3.JexlException;
+import org.apache.commons.jexl3.parser.*;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+
+/**
+ * Walks the script, transforming CSEL expressions into data store appropriate SQL clauses.
+ *
+ * @since 3.24
+ */
+@Component
+@Qualifier("mybatis")
+public class DatastoreCselToSql
+    extends ParserVisitorSupport
+    implements CselToSql<SelectorSqlBuilder>
+{
+  private static final String EXPECTED_STRING_LITERAL = "Expected string literal";
+
+  @Override
+  public void transformCselToSql(final ASTJexlScript script, final SelectorSqlBuilder builder) {
+    script.childrenAccept(this, builder);
+  }
+
+  @Override
+  protected Object doVisit(final JexlNode node, final Object data) {
+    throw new JexlException(node,
+        "Expression not supported in CSEL selector, failing node is " + node.jexlInfo().toString());
+  }
+
+  /**
+   * Transform `a || b` into `a or b`
+   */
+  @Override
+  protected Object visit(final ASTOrNode node, final Object data) {
+    return transformOperator(node, "or", (SelectorSqlBuilder) data);
+  }
+
+  /**
+   * Transform `a && b` into `a and b`
+   */
+  @Override
+  protected Object visit(final ASTAndNode node, final Object data) {
+    return transformOperator(node, "and", (SelectorSqlBuilder) data);
+  }
+
+  /**
+   * Transform `a == b` into `a = b`
+   */
+  @Override
+  protected Object visit(final ASTEQNode node, final Object data) {
+    return transformOperator(node, "=", (SelectorSqlBuilder) data);
+  }
+
+  /**
+   * Transform `a =~ b` into `a ~ b`
+   */
+  @Override
+  protected Object visit(final ASTERNode node, final Object data) {
+    return transformMatchesOperator(node, "~", (SelectorSqlBuilder) data);
+  }
+
+  /**
+   * Transform `a =^ "something"` into `a like "something%"`
+   */
+  @Override
+  protected Object visit(final ASTSWNode node, final Object data) {
+    JexlNode leftChild = node.jjtGetChild(LEFT);
+    JexlNode rightChild = node.jjtGetChild(RIGHT);
+    if (rightChild instanceof ASTStringLiteral) {
+      transformStartsWithOperator(leftChild, (ASTStringLiteral) rightChild, (SelectorSqlBuilder) data);
+    }
+    else if (leftChild instanceof ASTStringLiteral) {
+      transformStartsWithOperator(rightChild, (ASTStringLiteral) leftChild, (SelectorSqlBuilder) data);
+    }
+    else {
+      throw new JexlException(node, EXPECTED_STRING_LITERAL);
+    }
+    return data;
+  }
+
+  /**
+   * Transform `a != b` into `(a is null or a <> b)`
+   */
+  @Override
+  protected Object visit(final ASTNENode node, final Object data) {
+    JexlNode leftChild = node.jjtGetChild(LEFT);
+    JexlNode rightChild = node.jjtGetChild(RIGHT);
+    if (rightChild instanceof ASTStringLiteral) {
+      transformNotEqualsOperator(leftChild, (ASTStringLiteral) rightChild, (SelectorSqlBuilder) data);
+    }
+    else if (leftChild instanceof ASTStringLiteral) {
+      transformNotEqualsOperator(rightChild, (ASTStringLiteral) leftChild, (SelectorSqlBuilder) data);
+    }
+    else {
+      throw new JexlException(node, EXPECTED_STRING_LITERAL);
+    }
+    return data;
+  }
+
+  /**
+   * Apply `( expression )`
+   */
+  @Override
+  protected Object visit(final ASTReferenceExpression node, final Object data) {
+    ((SelectorSqlBuilder) data).appendExpression(() -> node.childrenAccept(this, data));
+    return data;
+  }
+
+  /**
+   * Store string literals as parameters.
+   */
+  @Override
+  protected Object visit(final ASTStringLiteral node, final Object data) {
+    ((SelectorSqlBuilder) data).appendLiteral(node.getLiteral());
+    return data;
+  }
+
+  /**
+   * Transform identifiers into asset fields.
+   */
+  @Override
+  protected Object visit(final ASTIdentifier node, final Object data) {
+    ((SelectorSqlBuilder) data).appendProperty(node.getName());
+    return data;
+  }
+
+  /**
+   * Transform dotted references into format-specific attributes.
+   */
+  @Override
+  protected Object visit(final ASTReference node, final Object data) {
+    ASTIdentifierAccess subRef = (ASTIdentifierAccess) node.jjtGetChild(RIGHT);
+    ((SelectorSqlBuilder) data).appendProperty(subRef.getName());
+    return data;
+  }
+
+  protected SelectorSqlBuilder transformOperator(
+      final JexlNode node,
+      final String operator,
+      final SelectorSqlBuilder builder)
+  {
+    JexlNode leftChild = node.jjtGetChild(LEFT);
+    JexlNode rightChild = node.jjtGetChild(RIGHT);
+    leftChild.jjtAccept(this, builder);
+    builder.appendOperator(operator);
+    rightChild.jjtAccept(this, builder);
+    return builder;
+  }
+
+  protected SelectorSqlBuilder transformMatchesOperator(
+      final JexlNode node,
+      final String operator,
+      final SelectorSqlBuilder builder)
+  {
+    JexlNode leftChild = node.jjtGetChild(LEFT);
+    JexlNode rightChild = node.jjtGetChild(RIGHT);
+    leftChild.jjtAccept(this, builder);
+    builder.appendOperator(operator);
+    if (rightChild instanceof ASTStringLiteral) {
+      String pattern = ((ASTStringLiteral) rightChild).getLiteral();
+      if (pattern.charAt(0) != '^' || pattern.charAt(pattern.length() - 1) != '$') {
+        pattern = "^(" + pattern + ")$"; // match entire string
+      }
+      builder.appendLiteral(pattern);
+    }
+    else {
+      throw new JexlException(node, EXPECTED_STRING_LITERAL);
+    }
+    return builder;
+  }
+
+  private SelectorSqlBuilder transformStartsWithOperator(
+      final JexlNode node,
+      final ASTStringLiteral literal,
+      final SelectorSqlBuilder builder)
+  {
+    node.jjtAccept(this, builder);
+    builder.appendOperator("like");
+    builder.appendLiteral(literal.getLiteral() + '%');
+    return builder;
+  }
+
+  private SelectorSqlBuilder transformNotEqualsOperator(
+      final JexlNode node,
+      final ASTStringLiteral literal,
+      final SelectorSqlBuilder builder)
+  {
+    builder.appendExpression(() -> {
+      node.jjtAccept(this, builder);
+      builder.appendOperator("is null or");
+      node.jjtAccept(this, builder);
+      builder.appendOperator("<>");
+      literal.jjtAccept(this, builder);
+    });
+    return builder;
+  }
+}
