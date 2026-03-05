@@ -1,0 +1,164 @@
+
+package org.globalart.astrum.cleanup;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import jakarta.validation.ConstraintViolation;
+
+import org.globalart.astrum.cleanup.storage.CleanupPolicy;
+import org.globalart.astrum.cleanup.storage.CleanupPolicyStorage;
+import org.globalart.astrum.repository.Format;
+import org.globalart.astrum.repository.Recipe;
+import org.globalart.astrum.repository.config.Configuration;
+import org.globalart.astrum.repository.manager.RepositoryManager;
+import org.globalart.astrum.repository.types.ProxyType;
+import org.globalart.astrum.validation.ConstraintViolationFactory;
+
+import com.google.common.collect.ImmutableSet;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class CleanupConfigurationValidatorTest
+
+{
+  private static final String REPO_NAME = "repoName";
+
+  private static final String CLEANUP_KEY = "cleanup";
+
+  private static final String POLICY_NAME_KEY = "policyName";
+
+  private static final String POLICY_NAME = "policy";
+
+  private static final String FORMAT = "format";
+
+  @Mock
+  private ConstraintViolationFactory constraintFactory;
+
+  @Mock
+  private RepositoryManager repositoryManager;
+
+  @Mock
+  private CleanupPolicyStorage cleanupPolicyStorage;
+
+  @Mock
+  private Configuration configuration;
+
+  @Mock
+  private CleanupPolicy cleanupPolicy;
+
+  @Mock
+  private ConstraintViolation constraintViolation;
+
+  @Mock
+  private Recipe recipe;
+
+  @Mock
+  private Map<String, Map<String, Object>> attributes;
+
+  @Mock
+  private Map<String, Object> cleanupAttributes;
+
+  private List<Recipe> recipes = new ArrayList<>();
+
+  CleanupConfigurationValidator underTest;
+
+  @Before
+  public void setUp() throws Exception {
+    when(configuration.getRepositoryName()).thenReturn(REPO_NAME);
+    when(configuration.getAttributes()).thenReturn(attributes);
+    when(cleanupAttributes.containsKey(POLICY_NAME_KEY)).thenReturn(true);
+    when(cleanupAttributes.get(POLICY_NAME_KEY)).thenReturn(ImmutableSet.of(POLICY_NAME));
+    when(attributes.containsKey(CLEANUP_KEY)).thenReturn(true);
+    when(attributes.get(CLEANUP_KEY)).thenReturn(cleanupAttributes);
+    when(cleanupPolicyStorage.get(POLICY_NAME)).thenReturn(cleanupPolicy);
+    when(cleanupPolicy.getFormat()).thenReturn(FORMAT);
+    when(constraintFactory.createViolation(anyString(), anyString())).thenReturn(constraintViolation);
+
+    recipes.add(recipe);
+    when(repositoryManager.getAllSupportedRecipes()).thenReturn(recipes);
+    when(configuration.getRecipeName()).thenReturn(FORMAT + "-" + ProxyType.NAME);
+    when(recipe.getType()).thenReturn(new ProxyType());
+    when(recipe.getFormat()).thenReturn(new Format(FORMAT)
+    {
+    });
+
+    underTest = new CleanupConfigurationValidator(constraintFactory, repositoryManager, cleanupPolicyStorage);
+  }
+
+  @Test
+  public void whenRepositoryNotFoundReturnNull() {
+    when(repositoryManager.get(REPO_NAME)).thenReturn(null);
+
+    assertThat(underTest.validate(configuration), is(nullValue()));
+    verify(constraintFactory, times(0)).createViolation(anyString(), anyString());
+  }
+
+  @Test
+  public void whenAttributeNotFoundReturnNull() {
+    when(configuration.getAttributes()).thenReturn(null);
+
+    assertThat(underTest.validate(configuration), is(nullValue()));
+    verify(constraintFactory, times(0)).createViolation(anyString(), anyString());
+  }
+
+  @Test
+  public void whenCleanupAttributeNotFoundReturnNull() {
+    when(attributes.containsKey(CLEANUP_KEY)).thenReturn(false);
+
+    assertThat(underTest.validate(configuration), is(nullValue()));
+    verify(constraintFactory, times(0)).createViolation(anyString(), anyString());
+  }
+
+  @Test
+  public void whenPolicyNameNotFoundReturnNull() {
+    when(cleanupAttributes.containsKey(POLICY_NAME_KEY)).thenReturn(false);
+
+    assertThat(underTest.validate(configuration), is(nullValue()));
+    verify(constraintFactory, times(0)).createViolation(anyString(), anyString());
+  }
+
+  @Test
+  public void whenCleanupPolicyNotFoundReturnConstraintViolation() {
+    when(cleanupPolicyStorage.get(POLICY_NAME)).thenReturn(null);
+    assertThat(underTest.validate(configuration), is(constraintViolation));
+    verify(constraintFactory).createViolation(CLEANUP_KEY, "Cleanup Policy '" + POLICY_NAME + "' does not exist.");
+  }
+
+  @Test
+  public void whenPolicyNamesNotCollectionReturnConstraintViolation() {
+    when(cleanupAttributes.get(POLICY_NAME_KEY)).thenReturn("not-a-collection");
+
+    assertThat(underTest.validate(configuration), is(constraintViolation));
+    verify(constraintFactory).createViolation(CLEANUP_KEY, "Expected a collection for cleanup policy names.");
+  }
+
+  @Test
+  public void whenPolicyNameNotStringReturnConstraintViolation() {
+    when(cleanupAttributes.get(POLICY_NAME_KEY)).thenReturn(ImmutableSet.of(123)); // Integer instead of String
+
+    assertThat(underTest.validate(configuration), is(constraintViolation));
+    verify(constraintFactory).createViolation(CLEANUP_KEY, "Policy name should be a string.");
+  }
+
+  @Test
+  public void whenInvalidFormatReturnConstraintViolation() {
+    when(cleanupPolicy.getFormat()).thenReturn("other");
+
+    assertThat(underTest.validate(configuration), is(constraintViolation));
+    verify(constraintFactory).createViolation(anyString(), anyString());
+  }
+}
