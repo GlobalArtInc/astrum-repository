@@ -1,0 +1,114 @@
+
+package org.globalart.astrum.cleanup.internal.preview;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+import org.globalart.astrum.common.entity.Continuations;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.rest.api.AssetXO;
+import org.globalart.astrum.repository.rest.api.ComponentXO;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Component
+public class CsvCleanupPreviewContentWriter
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private static final String FORMULA_PREFIX_CHARS = "=+-@\t\r";
+
+  public void write(
+      final Repository repository,
+      final Stream<ComponentXO> components,
+      final OutputStream outputStream) throws IOException
+  {
+    log.debug("Creating CSV content for the repository {}.", repository.getName());
+
+    CSVFormat csvFormat = CSVFormat.EXCEL.builder()
+        .setHeader("Namespace", "Name", "Version", "Path", "Blob Store Name", "Asset Size", "Downloaded Date ISO-8601",
+            "Published Date ISO-8601")
+        .build();
+
+    AtomicInteger flushCount = new AtomicInteger();
+    AtomicInteger totalCount = new AtomicInteger();
+    try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+        CSVPrinter printer = new CSVPrinter(outputStreamWriter, csvFormat)) {
+
+      printer.flush();
+      components
+          .forEach(componentXO -> {
+            try {
+              for (AssetXO asset : componentXO.getAssets()) {
+                printer.printRecord(
+                    escapeFormulaInjection(componentXO.getGroup()),
+                    escapeFormulaInjection(componentXO.getName()),
+                    escapeFormulaInjection(componentXO.getVersion()),
+                    escapeFormulaInjection(asset.getPath()),
+                    escapeFormulaInjection(asset.getBlobStoreName()),
+                    asset.getFileSize(),
+                    getDate(asset.getLastDownloaded()),
+                    getDate(asset.getBlobCreated()));
+                totalCount.incrementAndGet();
+              }
+
+              if (flushCount.get() == Continuations.BROWSE_LIMIT) {
+                printer.flush();
+                flushCount.set(0);
+              }
+              else {
+                flushCount.incrementAndGet();
+              }
+            }
+            catch (IOException e) {
+              throw new UncheckedIOException(e);
+            }
+          });
+    }
+    catch (UncheckedIOException e) {
+      log.error("Unable to finish writing CSV content for the repository {}. {}.",
+          repository.getName(), e.getMessage(), log.isDebugEnabled() ? e : null);
+      throw new IOException(e);
+    }
+
+    log.debug("Finished CSV content for the repository {}. Total lines {}.", repository.getName(), totalCount.get());
+  }
+
+  /**
+   * Escapes values that could trigger formula injection in spreadsheet applications.
+   * If a value starts with a formula-triggering character (=, +, -, @, tab), prepends a single quote.
+   *
+   * @see <a href="https://owasp.org/www-community/attacks/CSV_Injection">OWASP CSV Injection</a>
+   */
+  static String escapeFormulaInjection(String value) {
+    if (value == null || value.isEmpty()) {
+      return value;
+    }
+    char firstChar = value.charAt(0);
+    if (FORMULA_PREFIX_CHARS.indexOf(firstChar) >= 0) {
+      return "'" + value;
+    }
+    return value;
+  }
+
+  private static String getDate(Date date) {
+    if (date == null) {
+      return "";
+    }
+    return formatDate(date);
+  }
+
+  public static String formatDate(Date date) {
+    return date.toInstant().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_INSTANT);
+  }
+}
