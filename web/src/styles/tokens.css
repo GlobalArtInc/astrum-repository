@@ -1,0 +1,227 @@
+:root,
+.light,
+.light-theme,
+[data-theme="light"] {
+  --gray-1: #fcfcfd;
+  --gray-2: #f7f7f9;
+  --gray-3: #f0f0f3;
+  --gray-4: #e9e9ee;
+  --gray-5: #e2e2e8;
+  --gray-6: #dbdbe2;
+  --gray-7: #cfcfd8;
+  --gray-8: #b9bac6;
+  --gray-9: #8b8d9a;
+  --gray-10: #80828f;
+  --gray-11: #5f6170;
+  --gray-12: #17171c;
+  --gray-a1: #00005503;
+  --gray-a2: #00004008;
+  --gray-a3: #0000330f;
+  --gray-a4: #00003a16;
+  --gray-a5: #0000351d;
+  --gray-a6: #00003224;
+  --gray-a7: #00003030;
+  --gray-a8: #00042f46;
+  --gray-a9: #00042174;
+  --gray-a10: #00041e7f;
+  --gray-a11: #00031ba0;
+  --gray-a12: #000005e8;
+  --gray-contrast: #fff;
+  --gray-surface: #fcfcfdcc;
+  --gray-indicator: #8b8d9a;
+  --gray-track: #8b8d9a;
+
+  --slate-1: #fcfcfd;
+  --slate-2: #f7f7f9;
+  --slate-3: #f0f0f3;
+  --slate-4: #e9e9ee;
+  --slate-5: #e2e2e8;
+  --slate-6: #dbdbe2;
+  --slate-7: #cfcfd8;
+  --slate-8: #b9bac6;
+  --slate-9: #8b8d9a;
+  --slate-10: #80828f;
+  --slate-11: #5f6170;
+  --slate-12: #17171c;
+  --slate-a1: #00005503;
+  --slate-a2: #00004008;
+  --slate-a3: #0000330f;
+  --slate-a4: #00003a16;
+  --slate-a5: #0000351d;
+  --slate-a6: #00003224;
+  --slate-a7: #00003030;
+  --slate-a8: #00042f46;
+  --slate-a9: #00042174;
+  --slate-a10: #00041e7f;
+  --slate-a11: #00031ba0;
+  --slate-a12: #000005e8;
+  --slate-contrast: #fff;
+  --slate-surface: #fcfcfdcc;
+  --slate-indicator: #8b8d9a;
+  --slate-track: #8b8d9a;
+
+  --blue-1: #fdfdff;
+  --blue-2: #f8f7ff;
+  --blue-3: #eeebff;
+  --blue-4: #e4dfff;
+  --blue-5: #d9d2ff;
+  --blue-6: #cbc2ff;
+  --blue-7: #b6aafa;
+  --blue-8: #9c8cf2;
+  --blue-9: #5b47e0;
+  --blue-10: #4f3bd2;
+  --blue-11: #4434c4;
+  --blue-12: #241a63;
+  --blue-a1: #5555ff03;
+  --blue-a2: #2000ff08;
+  --blue-a3: #2600ff14;
+  --blue-a4: #2800ff20;
+  --blue-a5: #2800ff2d;
+  --blue-a6: #2600ff3d;
+  --blue-a7: #2400f055;
+  --blue-a8: #2300e273;
+  --blue-a9: #1c00d4b8;
+  --blue-a10: #1a00c4c4;
+  --blue-a11: #1400b5cb;
+  --blue-a12: #0b0051e5;
+  --blue-contrast: #fff;
+  --blue-surface: #f8f7ffcc;
+  --blue-indicator: #5b47e0;
+  --blue-track: #5b47e0;
+}
+
+.dark,
+.dark-theme,
+[data-theme="dark"] {
+  --gray-1: #0e1015;
+  --gray-2: #151821;
+  --gray-3: #1a1d27;
+  --gray-4: #1f232e;
+  --gray-5: #242935;
+  --gray-6: #2b303d;
+  --gray-7: #353b4a;
+  --gray-8: #454c5e;
+  --gray-9: #6b7386;
+  --gray-10: #798195;
+  --gray-11: #9aa2b3;
+  --gray-12: #e7e9ef;
+  --gray-a1: #00000000;
+  --gray-a2: #8ea2f00e;
+  --gray-a3: #a7b6fa14;
+  --gray-a4: #a9bdf91c;
+  --gray-a5: #aec6fe23;
+  --gray-a6: #b6c9fd2c;
+  --gray-a7: #b9cdfe3a;
+  --gray-a8: #bdcffe50;
+  --gray-a9: #cddcfd7c;
+  --gray-a10: #d1defe8c;
+  --gray-a11: #dce7fead;
+  --gray-a12: #f6f8ffee;
+  --gray-contrast: #fff;
+  --gray-surface: #15182180;
+  --gray-indicator: #6b7386;
+  --gray-track: #6b7386;
+
+  --slate-1: #0e1015;
+  --slate-2: #151821;
+  --slate-3: #1a1d27;
+  --slate-4: #1f232e;
+  --slate-5: #242935;
+  --slate-6: #2b303d;
+  --slate-7: #353b4a;
+  --slate-8: #454c5e;
+  --slate-9: #6b7386;
+  --slate-10: #798195;
+  --slate-11: #9aa2b3;
+  --slate-12: #e7e9ef;
+  --slate-a1: #00000000;
+  --slate-a2: #8ea2f00e;
+  --slate-a3: #a7b6fa14;
+  --slate-a4: #a9bdf91c;
+  --slate-a5: #aec6fe23;
+  --slate-a6: #b6c9fd2c;
+  --slate-a7: #b9cdfe3a;
+  --slate-a8: #bdcffe50;
+  --slate-a9: #cddcfd7c;
+  --slate-a10: #d1defe8c;
+  --slate-a11: #dce7fead;
+  --slate-a12: #f6f8ffee;
+  --slate-contrast: #fff;
+  --slate-surface: #15182180;
+  --slate-indicator: #6b7386;
+  --slate-track: #6b7386;
+
+  --blue-1: #13121d;
+  --blue-2: #181628;
+  --blue-3: #26213f;
+  --blue-4: #2e2852;
+  --blue-5: #372f63;
+  --blue-6: #413972;
+  --blue-7: #4f4588;
+  --blue-8: #6354ad;
+  --blue-9: #6c59ea;
+  --blue-10: #7a68f2;
+  --blue-11: #cfc7ff;
+  --blue-12: #eae6ff;
+  --blue-a1: #9c49f809;
+  --blue-a2: #8759fc15;
+  --blue-a3: #936efe2e;
+  --blue-a4: #886bfd43;
+  --blue-a5: #896dff55;
+  --blue-a6: #8e76fe66;
+  --blue-a7: #927bfe7e;
+  --blue-a8: #9178fea6;
+  --blue-a9: #7560fee9;
+  --blue-a10: #806dfff1;
+  --blue-a11: #cfc7ffff;
+  --blue-a12: #eae6ffff;
+  --blue-contrast: #fff;
+  --blue-surface: #18162880;
+  --blue-indicator: #6c59ea;
+  --blue-track: #6c59ea;
+}
+
+:root,
+.light,
+.light-theme,
+[data-theme="light"] {
+  --gray-content-bg: #fafafb;
+  --color-background: var(--gray-content-bg);
+  --color-panel-solid: #ffffff;
+  --color-panel-translucent: rgb(255 255 255 / 0.7);
+  --color-surface: rgb(255 255 255 / 0.85);
+  --astrum-brand-mark: #5b47e0;
+  --astrum-chrome-bg: #ffffff;
+  --astrum-nav-text: #3c3e4a;
+  --astrum-input-bg: #f7f7f8;
+  --astrum-logo-text: #1c1f2a;
+  --astrum-logo-accent: #6d5ef5;
+}
+
+.dark,
+.dark-theme,
+[data-theme="dark"] {
+  --gray-content-bg: var(--gray-1);
+  --color-background: var(--gray-1);
+  --color-panel-solid: var(--gray-2);
+  --color-panel-translucent: var(--gray-a2);
+  --color-surface: var(--gray-a2);
+  --astrum-brand-mark: #8e7dff;
+  --astrum-chrome-bg: var(--gray-1);
+  --astrum-nav-text: #c5cad6;
+  --astrum-input-bg: #12151c;
+  --astrum-logo-text: #ffffff;
+  --astrum-logo-accent: #a99bff;
+}
+
+:root,
+.radix-themes {
+  --font-family-base: "Geist Variable", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --default-font-family: var(--font-family-base);
+  --heading-font-family: var(--font-family-base);
+  --font-family-mono:
+    "Geist Mono Variable", "Geist Mono", ui-monospace, "Roboto Mono", consolas, "Liberation Mono", menlo,
+    monospace;
+  --code-font-family: var(--font-family-mono);
+  --font-mono: var(--font-family-mono);
+}
