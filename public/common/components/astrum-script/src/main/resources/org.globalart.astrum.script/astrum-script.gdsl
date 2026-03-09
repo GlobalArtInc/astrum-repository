@@ -1,0 +1,13 @@
+package org.globalart.astrum.script
+
+// Create context for Groovy script files to allow completion for known apis.
+def context = context(filetypes: ['groovy'], scope: scriptScope())
+
+contributor(context) {
+  property name: 'security', type: 'org.globalart.astrum.security.internal.SecurityApiImpl'
+  property name: 'core', type: 'org.globalart.astrum.internal.provisioning.CoreApiImpl'
+  property name: 'repository', type: 'org.globalart.astrum.script.plugin.internal.provisioning.RepositoryApiImpl'
+  property name: 'blobStore', type: 'org.globalart.astrum.internal.provisioning.BlobStoreApiImpl'
+  property name: 'container', type: 'org.globalart.astrum.common.app.GlobalComponentLookupHelper', doc: 'Astrum Repository Manager Internal (subject to change without notice)'
+  property name: 'beanLocator', type: 'org.eclipse.sisu.inject.BeanLocator', doc: 'Astrum Repository Manager Internal (subject to change without notice)'
+}
