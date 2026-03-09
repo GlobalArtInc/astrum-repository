@@ -1,0 +1,140 @@
+
+package org.globalart.astrum.internal.script.groovy;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
+
+import org.globalart.astrum.bootstrap.entrypoint.configuration.ApplicationDirectories;
+import org.globalart.astrum.common.script.ScriptCleanupHandler;
+import org.globalart.astrum.internal.script.ScriptTask;
+
+import com.google.common.annotations.VisibleForTesting;
+import groovy.lang.Binding;
+import groovy.lang.GroovyClassLoader;
+import groovy.lang.Script;
+import org.codehaus.groovy.control.CompilerConfiguration;
+import org.codehaus.groovy.control.customizers.CompilationCustomizer;
+import org.codehaus.groovy.control.customizers.SecureASTCustomizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import static org.globalart.astrum.internal.script.ScriptServiceImpl.SCRIPT_CLEANUP_HANDLER;
+
+/**
+ * Groovy {@link ScriptEngineFactory}.
+ *
+ * @since 3.0
+ */
+@Component
+@Qualifier("groovy")
+public class GroovyScriptEngineFactory // NOSONAR
+    extends org.codehaus.groovy.jsr223.GroovyScriptEngineFactory
+{
+  private static final Logger log = LoggerFactory.getLogger(GroovyScriptEngineFactory.class);
+
+  private final ApplicationDirectories applicationDirectories;
+
+  private GroovyScriptEngine engine;
+
+  @Autowired
+  public GroovyScriptEngineFactory(
+      final ApplicationDirectories applicationDirectories)
+  {
+    this.applicationDirectories = checkNotNull(applicationDirectories);
+  }
+
+  private GroovyScriptEngine create() {
+    // custom the configuration of the compiler
+    CompilerConfiguration cc = new CompilerConfiguration();
+    cc.setTargetDirectory(new File(applicationDirectories.getTemporaryDirectory(), "groovy-classes"));
+    cc.setSourceEncoding("UTF-8");
+    cc.setScriptBaseClass(ScriptWithCleanup.class.getName());
+    cc.addCompilationCustomizers(secureASTCustomizer());
+    GroovyClassLoader gcl = new GroovyClassLoader(GroovyScriptEngineFactory.class.getClassLoader(), cc);
+
+    engine = new GroovyScriptEngine(gcl);
+
+    // HACK: For testing
+    log.info("Created engine: {}", engine);
+
+    return engine;
+  }
+
+  /**
+   * Secure potentially dangerous calls in scripts.
+   */
+  private CompilationCustomizer secureASTCustomizer() {
+    SecureASTCustomizer secureASTCustomizer = new SecureASTCustomizer();
+    secureASTCustomizer.setImportsBlacklist(Collections.singletonList("java.lang.System"));
+    secureASTCustomizer.setReceiversBlackList(Collections.singletonList(System.class.getName()));
+    secureASTCustomizer.setIndirectImportCheckEnabled(true);
+    return secureASTCustomizer;
+  }
+
+  // TODO: Groovy engine is thread-safe, so re-use the engine instance instead of creating new ones each time asked
+  // TODO: sort out if there are any issues with engine scope bindings, or other wrinkles involved with shared engine
+
+  // FIXME: Cope with the script-source -> class cache that the default impl has?
+  // FIXME: ... in addition to the class cache which the GCL has
+
+  @Override
+  public synchronized ScriptEngine getScriptEngine() {
+    if (engine == null) {
+      engine = create();
+    }
+    return engine;
+  }
+
+  @VisibleForTesting
+  static String getContext(final Binding binding) {
+    Optional<String> taskContext = getVariable(binding, "task", ScriptTask.class)
+        .map(ts -> format("Task '%s'", ts.getName()));
+    Optional<String> scriptContext = getVariable(binding, "scriptName", String.class)
+        .map(name -> format("Script '%s'", name));
+    return Stream.of(taskContext, scriptContext)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .findFirst()
+        .orElse("An unknown script");
+  }
+
+  private static <T> Optional<T> getVariable(final Binding binding, final String name, final Class<T> type) {
+    if (binding.hasVariable(name)) {
+      Object instance = binding.getVariable(name);
+      if (type.isInstance(instance)) {
+        return (Optional<T>) Optional.of(instance);
+      }
+    }
+    return Optional.empty();
+  }
+
+  public abstract static class ScriptWithCleanup
+      extends Script
+  {
+
+    @Override
+    public Object run() {
+      try {
+        return scriptBody();
+      }
+      finally {
+        Object scriptCleanupHelper = this.getBinding().getVariable(SCRIPT_CLEANUP_HANDLER);
+        if (scriptCleanupHelper instanceof ScriptCleanupHandler) {
+          ((ScriptCleanupHandler) scriptCleanupHelper).cleanup(getContext(this.getBinding()));
+        }
+      }
+    }
+
+    protected abstract Object scriptBody();
+  }
+}

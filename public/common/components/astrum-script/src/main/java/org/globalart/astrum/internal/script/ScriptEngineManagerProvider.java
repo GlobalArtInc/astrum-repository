@@ -1,0 +1,92 @@
+
+package org.globalart.astrum.internal.script;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptEngineManager;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.FactoryBean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Provides the {@link ScriptEngineManager}.
+ *
+ * @since 3.0
+ */
+@Primary
+@Component
+public class ScriptEngineManagerProvider
+    implements FactoryBean<ScriptEngineManager>
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  public static final String DEFAULT_LANGUAGE = "groovy";
+
+  // TODO: Could consider a Mediator, except the ScriptEngineManager provides no means to "unregister"
+
+  private final List<ScriptEngineFactory> factories;
+
+  @Autowired
+  public ScriptEngineManagerProvider(final List<ScriptEngineFactory> factories) {
+    this.factories = checkNotNull(factories);
+  }
+
+  @Override
+  public ScriptEngineManager getObject() {
+    // limit detection of engines to the runtime's default engines, other engines should register via Spring
+    ScriptEngineManager engineManager = new ScriptEngineManager(ClassLoader.getSystemClassLoader());
+
+    List<ScriptEngineFactory> available = new ArrayList<>();
+    available.addAll(engineManager.getEngineFactories()); // detected by runtime
+
+    // Register engine-factories detected via injection
+    for (ScriptEngineFactory factory : factories) {
+      log.debug("Registering engine-factory: {}", factory);
+
+      for (String name : factory.getNames()) {
+        engineManager.registerEngineName(name, factory);
+      }
+
+      for (String mimeType : factory.getMimeTypes()) {
+        engineManager.registerEngineMimeType(mimeType, factory);
+      }
+
+      for (String ext : factory.getExtensions()) {
+        engineManager.registerEngineExtension(ext, factory);
+      }
+
+      available.add(factory);
+    }
+
+    // Dump some information about detected engine factories
+    log.info("Detected {} engine-factories", available.size());
+
+    for (ScriptEngineFactory factory : available) {
+      log.info("Engine-factory: {} v{}; language={}, version={}, names={}, mime-types={}, extensions={}",
+          factory.getEngineName(),
+          factory.getEngineVersion(),
+          factory.getLanguageName(),
+          factory.getLanguageVersion(),
+          factory.getNames(),
+          factory.getMimeTypes(),
+          factory.getExtensions());
+    }
+
+    log.info("Default language: {}", DEFAULT_LANGUAGE);
+
+    return engineManager;
+  }
+
+  @Override
+  public Class<?> getObjectType() {
+    return ScriptEngineManager.class;
+  }
+}
