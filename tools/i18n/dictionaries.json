@@ -1,0 +1,12 @@
+{
+  "url": "https://api.ownlate.com",
+  "tokenEnv": "ASTRUM_OWNLATE_TOKEN",
+  "projectEnv": "ASTRUM_OWNLATE_PROJECT",
+  "source": "en",
+  "dictionaries": [
+    {
+      "web": "web/src",
+      "prefix": "web"
+    }
+  ]
+}
