@@ -1,0 +1,45 @@
+name: i18n
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: i18n-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dictionaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the dictionaries
+        run: node tools/i18n/i18n.mjs check
+
+      - name: Check the translations are pulled from Ownlate
+        env:
+          ASTRUM_OWNLATE_TOKEN: ${{ secrets.ASTRUM_OWNLATE_TOKEN }}
+          ASTRUM_OWNLATE_PROJECT: ${{ vars.ASTRUM_OWNLATE_PROJECT }}
+        run: |
+          set -eu
+          if [ -z "$ASTRUM_OWNLATE_TOKEN" ] || [ -z "$ASTRUM_OWNLATE_PROJECT" ]; then
+            echo "ASTRUM_OWNLATE_TOKEN or ASTRUM_OWNLATE_PROJECT is not set, skipping"
+            exit 0
+          fi
+          node tools/i18n/i18n.mjs pull
+          dictionaries=('web/src/*/strings/*')
+          changes="$(git status --porcelain -- "${dictionaries[@]}")"
+          if [ -n "$changes" ]; then
+            echo "$changes"
+            git diff --stat -- "${dictionaries[@]}"
+            echo "::error::Ownlate has translations that are not committed: run node tools/i18n/i18n.mjs pull"
+            exit 1
+          fi
