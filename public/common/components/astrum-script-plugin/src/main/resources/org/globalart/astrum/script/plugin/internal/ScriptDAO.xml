@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.script.plugin.internal.ScriptDAO">
+
+  <insert id="createSchema">
+    CREATE TABLE IF NOT EXISTS script (
+      name    VARCHAR(200) NOT NULL,
+      type    VARCHAR(100) NOT NULL,
+      content TEXT         NOT NULL,
+
+      CONSTRAINT pk_script_name PRIMARY KEY (name)
+    );
+  </insert>
+
+  <select id="browse" resultType="ScriptData">
+    SELECT * FROM script;
+  </select>
+
+  <insert id="create" parameterType="ScriptData">
+    INSERT INTO script (name, type, content) VALUES (#{name}, #{type}, #{content});
+  </insert>
+
+  <select id="read" resultType="ScriptData">
+    SELECT * FROM script WHERE name = #{value};
+  </select>
+
+  <update id="update" parameterType="ScriptData">
+    UPDATE script SET type = #{type}, content = #{content} WHERE name = #{name};
+  </update>
+
+  <delete id="delete">
+    DELETE FROM script WHERE name = #{value};
+  </delete>
+
+</mapper>
