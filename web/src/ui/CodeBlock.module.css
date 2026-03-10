@@ -1,0 +1,40 @@
+.theme {
+  min-width: 0;
+}
+
+.block {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid var(--gray-a5);
+  border-radius: 8px;
+  background: var(--gray-1);
+  color: var(--gray-12);
+}
+
+.head {
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--gray-11);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pre {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 0;
+  font-family: var(--code-font-family);
+  font-size: 13.5px;
+  line-height: 21.6px;
+  color: var(--gray-12);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
