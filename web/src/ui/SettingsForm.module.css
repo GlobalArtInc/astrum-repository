@@ -1,0 +1,183 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  max-width: 800px;
+  min-width: 0;
+}
+
+.top {
+  position: sticky;
+  top: 60px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  background: var(--color-background);
+  border-bottom: 1px solid var(--gray-a5);
+}
+
+.bar {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-6);
+}
+
+.barStart,
+.barEnd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.barEnd {
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.unsaved {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--amber-11);
+}
+
+.progress {
+  position: relative;
+  display: flex;
+  margin: var(--space-4) var(--space-6);
+  height: 8px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--gray-a3);
+}
+
+.progress > span {
+  height: 100%;
+  background: var(--accent-9);
+}
+
+.divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--gray-a5);
+}
+
+.inner {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  min-width: 0;
+}
+
+.wide {
+  max-width: none;
+}
+
+.wide .inner {
+  max-width: 800px;
+}
+
+.withProgress .inner {
+  margin-top: var(--space-5);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.section + .section {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--gray-a5);
+}
+
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-3);
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.sectionText {
+  margin: 0;
+  font-size: var(--font-size-2);
+  line-height: 20px;
+  color: var(--gray-11);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.fields div > label[for] {
+  order: -2;
+  line-height: 21px;
+}
+
+.fields div > [id$="-hint"] {
+  order: -1;
+  letter-spacing: 0.03px;
+  color: var(--gray-11);
+}
+
+.fields label:has(> :global(.rt-CheckboxRoot)) {
+  gap: 12px;
+  line-height: 21px;
+}
+
+.fields label > :global(.rt-CheckboxRoot) {
+  --checkbox-size: 22px;
+  flex: 0 0 auto;
+}
+
+.fields :global(.rt-SelectTrigger) {
+  height: var(--space-7);
+}
+
+.fields textarea {
+  min-height: 90px;
+}
+
+.large {
+  font-size: var(--font-size-2);
+}
+
+.large:global(.rt-variant-outline)[data-accent-color="gray"]:not(:disabled) {
+  color: var(--gray-12);
+}
+
+@media (max-width: 639px) {
+  .bar {
+    padding: 8px 16px;
+  }
+
+  .progress {
+    margin: 16px;
+  }
+
+  .inner {
+    padding: 16px;
+  }
+}
