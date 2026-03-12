@@ -1,0 +1,130 @@
+
+package org.globalart.astrum.upgrade.datastore;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import org.springframework.stereotype.Component;
+
+/**
+ * Duplicates the default methods from DatabaseMigrationStep in order to make a more testable object at runtime
+ * 
+ * @see DatabaseMigrationStep
+ */
+@Component
+public class DatabaseMigrationUtility
+{
+  public boolean isH2(final Connection conn) throws SQLException {
+    return "H2".equals(conn.getMetaData().getDatabaseProductName());
+  }
+
+  public boolean isPostgresql(final Connection conn) throws SQLException {
+    return "PostgreSQL".equals(conn.getMetaData().getDatabaseProductName());
+  }
+
+  public boolean tableExists(final Connection conn, final String tableName) throws SQLException {
+    if (isH2(conn)) {
+      try (PreparedStatement statement =
+          conn.prepareStatement("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?")) {
+        statement.setString(1, tableName.toUpperCase());
+        try (ResultSet results = statement.executeQuery()) {
+          return results.next();
+        }
+      }
+    }
+    else if (isPostgresql(conn)) {
+      try (PreparedStatement statement = conn.prepareStatement("SELECT to_regclass(?);")) {
+        statement.setString(1, tableName);
+        try (ResultSet results = statement.executeQuery()) {
+          if (!results.next()) {
+            return false;
+          }
+          Object oid = results.getObject(1);
+          return oid != null;
+        }
+      }
+    }
+    else {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  public boolean columnExists(
+      final Connection conn,
+      final String tableName,
+      final String columnName) throws SQLException
+  {
+    String sql = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE UPPER(TABLE_NAME) = ? AND UPPER(COLUMN_NAME) = ?";
+    try (PreparedStatement statement = conn.prepareStatement(sql)) {
+      statement.setString(1, tableName.toUpperCase());
+      statement.setString(2, columnName.toUpperCase());
+      try (ResultSet results = statement.executeQuery()) {
+        return results.next();
+      }
+    }
+  }
+
+  public boolean indexExists(final Connection conn, final String indexName) throws SQLException {
+    if (isPostgresql(conn)) {
+      String currentSchema = currentSchema(conn);
+      String sql = "SELECT * FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS" +
+          " WHERE UPPER(constraint_name) = ?" +
+          "   AND UPPER(constraint_schema) = ?";
+
+      try (PreparedStatement statement = conn.prepareStatement(sql)) {
+        statement.setString(1, indexName.toUpperCase());
+        statement.setString(2, currentSchema.toUpperCase());
+        try (ResultSet results = statement.executeQuery()) {
+          return results.next();
+        }
+      }
+    }
+    else if (isH2(conn)) {
+      String sql = "SELECT * FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS" +
+          " WHERE UPPER(constraint_name) = ?";
+      try (PreparedStatement statement = conn.prepareStatement(sql)) {
+        statement.setString(1, indexName.toUpperCase());
+        try (ResultSet results = statement.executeQuery()) {
+          return results.next();
+        }
+      }
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  public void createIndex(
+      final Connection conn,
+      final String indexName,
+      final String tableName,
+      final String columns) throws SQLException
+  {
+    String sql = "CREATE INDEX ";
+    if (isPostgresql(conn)) {
+      sql += "CONCURRENTLY ";
+    }
+    sql += "IF NOT EXISTS " + indexName + " ON " + tableName + " (" + columns + ")";
+    try (PreparedStatement statement = conn.prepareStatement(sql)) {
+      statement.execute();
+    }
+  }
+
+  public void dropIndex(final Connection conn, final String indexName) throws SQLException {
+    String sql = "DROP INDEX IF EXISTS " + indexName;
+    try (PreparedStatement statement = conn.prepareStatement(sql)) {
+      statement.execute();
+    }
+  }
+
+  public String currentSchema(final Connection conn) throws SQLException {
+    String sql = "select current_schema()";
+    try (PreparedStatement statement = conn.prepareStatement(sql)) {
+      try (ResultSet results = statement.executeQuery()) {
+        if (results.next()) {
+          return results.getString(1);
+        }
+      }
+    }
+    throw new IllegalStateException("Unable to determine current database schema");
+  }
+}
