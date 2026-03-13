@@ -1,0 +1,244 @@
+
+package org.globalart.astrum.repository.search.sql.query.h2;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.globalart.astrum.common.text.Strings2;
+import org.globalart.astrum.repository.search.sql.query.syntax.BooleanTerm;
+import org.globalart.astrum.repository.search.sql.query.syntax.ExactTerm;
+import org.globalart.astrum.repository.search.sql.query.syntax.LenientTerm;
+import org.globalart.astrum.repository.search.sql.query.syntax.Operand;
+import org.globalart.astrum.repository.search.sql.query.syntax.RegexWildcardTerm;
+import org.globalart.astrum.repository.search.sql.query.syntax.SingleValueTerm;
+import org.globalart.astrum.repository.search.sql.query.syntax.StringTerm;
+import org.globalart.astrum.repository.search.sql.query.syntax.WildcardTerm;
+
+import com.google.common.collect.Iterables;
+
+/**
+ * H2 implementation of fulltext search using LIKE queries instead of PostgreSQL's TSVECTOR.
+ *
+ * This builder converts search terms into LIKE expressions that work with H2's VARCHAR columns.
+ */
+public class H2FulltextSearchConditionBuilder
+    extends H2SearchConditionBuilder
+{
+  H2FulltextSearchConditionBuilder(final H2SearchDB db) {
+    super(db);
+  }
+
+  H2FulltextSearchConditionBuilder(final H2SearchDB db, final ConditionType conditionType) {
+    super(db, conditionType);
+  }
+
+  @Override
+  protected Optional<CharSequence> createQuery(
+      final H2SearchColumn column,
+      final Operand op,
+      final Collection<SingleValueTerm<?>> terms)
+  {
+    if (requiresTextSearch(column, terms)) {
+      return createTextSearch(column, op, terms);
+    }
+    return super.createQuery(column, op, terms);
+  }
+
+  /**
+   * Text search is used for columns that support it.
+   * For tokenized columns, we always use LIKE queries even for single exact terms because tokenized data
+   * is stored as space-separated values (e.g., "0.1 0 1"), not in PostgreSQL TSVECTOR format.
+   * For non-tokenized columns, we use exact matching for single exact terms.
+   */
+  private static boolean requiresTextSearch(final H2SearchColumn column, final Collection<SingleValueTerm<?>> terms) {
+    if (!column.supportsTextSearch()) {
+      return false;
+    }
+
+    // Tokenized columns always need LIKE matching
+    if (column.tokenized()) {
+      return true;
+    }
+
+    // Non-tokenized columns: use exact matching when there is a single exact term
+    if (terms.size() > 1) {
+      return true;
+    }
+    SingleValueTerm<?> term = Iterables.getOnlyElement(terms);
+
+    // RegexWildcardTerm is only used for single-value search scenarios, so it will never have multiple terms
+    // RegexWildcardTerm should use exact column with REGEX operand, not text search
+    if (term instanceof RegexWildcardTerm) {
+      return false;
+    }
+
+    return !(term instanceof ExactTerm || term instanceof BooleanTerm);
+  }
+
+  private Optional<CharSequence> createTextSearch(
+      final H2SearchColumn column,
+      final Operand operand,
+      final Collection<SingleValueTerm<?>> terms)
+  {
+    if (terms.stream().allMatch(term -> term instanceof StringTerm st && Strings2.isBlank(st.get()))) {
+      return Optional.empty();
+    }
+
+    String operator;
+    switch (operand) {
+      case EQ:
+        operator = " AND ";
+        break;
+      case ANY:
+      case IN:
+        operator = " OR ";
+        break;
+      case REGEX:
+        return super.createQuery(column, operand, terms);
+      default:
+        errors.withError("Unsupported operand " + operand + " for terms " + terms);
+        return Optional.empty();
+    }
+
+    // ASTRUM-50246: For columns that support exact matching with a single wildcard term,
+    // use prefix matching (starts-with) instead of contains matching
+    if (column.supportsExact() && terms.size() == 1
+        && Iterables.getOnlyElement(terms) instanceof WildcardTerm term) {
+      String value = term.get();
+      if (value.isBlank()) {
+        return Optional.empty();
+      }
+      return createPrefixLikeExpression(column, value);
+    }
+
+    List<String> likeExpressions = terms.stream()
+        .map(term -> createLikeExpression(column, term))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .map(CharSequence::toString)
+        .collect(Collectors.toList());
+
+    // ASTRUM-54104: when every term is dropped as blank, do not emit "()" — an empty bracket pair
+    // renders as invalid SQL "WHERE ()". The allMatch guard above covers all-blank StringTerms; materialising
+    // to a list and checking emptiness makes the "()" case structurally impossible for any future term type.
+    if (likeExpressions.isEmpty()) {
+      return Optional.empty();
+    }
+
+    String query = BRACKET_OPEN + String.join(operator, likeExpressions) + BRACKET_CLOSE;
+
+    return Optional.of(query);
+  }
+
+  /**
+   * Creates a LIKE expression for prefix matching (starts-with).
+   * Used for wildcard searches on columns that support exact matching.
+   */
+  private Optional<CharSequence> createPrefixLikeExpression(final H2SearchColumn column, final String value) {
+    String param = param(column.columnName());
+    // Remove trailing * and use % only at end for prefix matching
+    String cleanValue = value.replaceFirst("\\*$", "");
+    String likePattern = escapeLike(cleanValue) + "%";
+
+    parameters.put(param, likePattern);
+
+    // Use LOWER() for case-insensitive prefix search
+    return Optional.of("LOWER(" + column.columnName() + ") LIKE LOWER(" + placeholder(param) + ")");
+  }
+
+  /**
+   * Creates a LIKE expression for the term.
+   * H2 doesn't support full-text search, so we use case-insensitive LIKE queries.
+   */
+  private Optional<CharSequence> createLikeExpression(final H2SearchColumn column, final SingleValueTerm<?> term) {
+    String value = term.get().toString();
+
+    if (Strings2.isBlank(value)) {
+      return Optional.empty();
+    }
+
+    String param = param(column.columnName());
+    String likePattern;
+
+    if (term instanceof ExactTerm) {
+      // Exact match - wrap in % for contains search
+      likePattern = "%" + maybeHandleJsonExactTerm(column, escapeLike(value)) + "%";
+    }
+    else if (term instanceof WildcardTerm) {
+      // Wildcard - convert * to % for SQL LIKE
+      likePattern = "%" + maybeHandleJsonWildCardTerm(column, escapeLike(value).replace("*", "%")) + "%";
+    }
+    else if (term instanceof LenientTerm) {
+      // Lenient - treat as contains
+      likePattern = "%" + escapeLike(value) + "%";
+    }
+    else {
+      // Default - treat as contains
+      likePattern = "%" + escapeLike(value) + "%";
+    }
+
+    parameters.put(param, likePattern);
+
+    // Use LOWER() for case-insensitive search
+    return Optional.of("LOWER(" + column.columnName() + ") LIKE LOWER(" + placeholder(param) + ")");
+  }
+
+  /**
+   * Escape special characters in LIKE patterns
+   */
+  private String escapeLike(final String value) {
+    return value
+        .replace("\\", "\\\\") // Escape backslash first
+        .replace("%", "\\%") // Escape percent
+        .replace("_", "\\_"); // Escape underscore
+  }
+
+  private String maybeHandleJsonExactTerm(final H2SearchColumn column, final String value) {
+    return addJsonDelimitersIfNeeded(column, value, JsonQuotingMode.EXACT);
+  }
+
+  private String maybeHandleJsonWildCardTerm(final H2SearchColumn column, final String value) {
+    return addJsonDelimitersIfNeeded(column, value, JsonQuotingMode.WILDCARD);
+  }
+
+  /**
+   * Quoting mode for JSON column matching.
+   */
+  private enum JsonQuotingMode
+  {
+    /**
+     * Match exact JSON array element
+     */
+    EXACT,
+
+    /**
+     * Match JSON array element by prefix
+     */
+    WILDCARD
+  }
+
+  /**
+   * Adds JSON string delimiters to prevent incorrect substring matching in JSON columns.
+   *
+   * @param column the search column
+   * @param value the search value
+   * @param mode the quoting mode to apply
+   * @return the value with JSON delimiters if column is JSON, otherwise unchanged
+   */
+  private String addJsonDelimitersIfNeeded(
+      final H2SearchColumn column,
+      final String value,
+      final JsonQuotingMode mode)
+  {
+    if (!column.isJsonColumn()) {
+      return value;
+    }
+
+    return switch (mode) {
+      case EXACT -> "\"" + value + "\"";
+      case WILDCARD -> "\"" + value;
+    };
+  }
+}
