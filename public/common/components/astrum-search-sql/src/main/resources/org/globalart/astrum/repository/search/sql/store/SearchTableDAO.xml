@@ -1,0 +1,960 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.repository.search.sql.store.SearchTableDAO">
+  <insert id="createSchema" databaseId="PostgreSQL">
+    CREATE TABLE IF NOT EXISTS search_components
+    (
+      repository_id          INTEGER                  NOT NULL,
+      component_id           INTEGER                  NOT NULL,
+      format                 VARCHAR                  NOT NULL,
+      namespace              VARCHAR                  NOT NULL,
+      search_component_name  VARCHAR                  NOT NULL,
+      component_kind         VARCHAR                  NOT NULL,
+      version                VARCHAR                  NOT NULL,
+      last_modified          TIMESTAMP WITH TIME ZONE,
+      search_repository_name VARCHAR(200)             NOT NULL,
+      normalised_version     VARCHAR                  NOT NULL,
+      prerelease             BOOLEAN                  NOT NULL DEFAULT false,
+      keywords                         TSVECTOR,
+      md5                              TSVECTOR,
+      sha1                             TSVECTOR,
+      sha256                           TSVECTOR,
+      sha512                           TSVECTOR,
+      format_field_values_1            TSVECTOR,
+      format_field_values_2            TSVECTOR,
+      format_field_values_3            TSVECTOR,
+      format_field_values_4            TSVECTOR,
+      format_field_values_5            TSVECTOR,
+      format_field_values_6            TSVECTOR,
+      format_field_values_7            TSVECTOR,
+      uploaders                        TSVECTOR,
+      uploader_ips                     TSVECTOR,
+      paths                            VARCHAR,
+      tsvector_paths                   TSVECTOR,
+      tsvector_format                  TSVECTOR       NOT NULL,
+      tsvector_namespace               TSVECTOR       NOT NULL,
+      tsvector_search_component_name   TSVECTOR       NOT NULL,
+      tsvector_version                 TSVECTOR       NOT NULL,
+      tsvector_search_repository_name  TSVECTOR       NOT NULL,
+      tsvector_tags                    TSVECTOR,
+      entity_version                   INT,
+      attributes                       ${JSON_TYPE},
+      tags                             ${JSON_TYPE},
+      last_event_time                  TIMESTAMP      WITH TIME ZONE,
+      CONSTRAINT pk_search_components PRIMARY KEY (repository_id, component_id, format)
+      );
+
+    <!-- Indexes for search_components handled by SearchTableIndexesMigrationStep_2_53 to avoid lock contention (ASTRUM-49154) -->
+    <!-- Indexes on format, namespace, search_component_name, version were replaced with text_pattern_ops variants -->
+    <!-- by CreateSearchTextPatternOpsIndexTask (ASTRUM-51266) to support starts_with (^@) queries -->
+
+    <!-- The following 6 columns are now in CREATE TABLE (lines 37-38, 48-51) -->
+    <!-- SearchComponentsAdditionalColumnsMigrationStep handles adding them to existing databases -->
+    <!-- Columns: format_field_values_6, format_field_values_7, tsvector_tags, entity_version, attributes, tags -->
+
+    -- This is handled through an upgrade step as IF EXISTS cannot be used
+    -- ALTER TABLE search_components RENAME COLUMN component_created TO last_modified;
+
+    DROP INDEX IF EXISTS idx_search_components_paths;
+
+    <!-- pg_trgm extension and GIST index handled by SearchTableIndexesMigrationStep_2_53 to avoid lock contention (ASTRUM-49154) -->
+
+    CREATE TABLE IF NOT EXISTS search_assets
+    (
+      format            VARCHAR NOT NULL,
+      repository_id     INT NOT NULL,
+      component_id      INT NOT NULL,
+      asset_id          INT NOT NULL,
+      path              VARCHAR NOT NULL,
+      asset_format_value_1   VARCHAR,
+      asset_format_value_2   VARCHAR,
+      asset_format_value_3   VARCHAR,
+      asset_format_value_4   VARCHAR,
+      asset_format_value_5   VARCHAR,
+      asset_format_value_6   VARCHAR,
+      asset_format_value_7   VARCHAR,
+      asset_format_value_8   VARCHAR,
+      asset_format_value_9   VARCHAR,
+      asset_format_value_10   VARCHAR,
+      asset_format_value_11   VARCHAR,
+      asset_format_value_12   VARCHAR,
+      asset_format_value_13   VARCHAR,
+      asset_format_value_14   VARCHAR,
+      asset_format_value_15   VARCHAR,
+      asset_format_value_16   VARCHAR,
+      asset_format_value_17   VARCHAR,
+      asset_format_value_18   VARCHAR,
+      asset_format_value_19   VARCHAR,
+      asset_format_value_20   VARCHAR,
+      CONSTRAINT pk_search_assets PRIMARY KEY (format, repository_id, component_id, asset_id)
+    );
+
+    <!-- Indexes for search_assets handled by SearchTableIndexesMigrationStep_2_53 to avoid lock contention (ASTRUM-49154) -->
+
+  </insert>
+
+  <insert id="createSchema" databaseId="H2">
+    CREATE TABLE IF NOT EXISTS search_components
+    (
+    repository_id          INTEGER                  NOT NULL,
+    component_id           INTEGER                  NOT NULL,
+    format                 VARCHAR                  NOT NULL,
+    namespace              VARCHAR                  NOT NULL,
+    search_component_name  VARCHAR                  NOT NULL,
+    component_kind         VARCHAR                  NOT NULL,
+    version                VARCHAR                  NOT NULL,
+    last_modified          TIMESTAMP WITH TIME ZONE,
+    search_repository_name VARCHAR(200)             NOT NULL,
+    normalised_version     VARCHAR                  NOT NULL,
+    prerelease             BOOLEAN                  NOT NULL DEFAULT false,
+    uploaders              VARCHAR,
+    uploader_ips           VARCHAR,
+    last_event_time        TIMESTAMP WITH TIME ZONE,
+    entity_version         INT,
+    attributes             JSON,
+    tags                   JSON,
+    paths                  JSON,
+    keywords               VARCHAR,
+    md5                    VARCHAR,
+    sha1                   VARCHAR,
+    sha256                 VARCHAR,
+    sha512                 VARCHAR,
+    format_field_values_1  VARCHAR,
+    format_field_values_2  VARCHAR,
+    format_field_values_3  VARCHAR,
+    format_field_values_4  VARCHAR,
+    format_field_values_5  VARCHAR,
+    format_field_values_6  VARCHAR,
+    format_field_values_7  VARCHAR,
+    CONSTRAINT pk_search_components PRIMARY KEY (repository_id, component_id, format)
+    );
+
+    <!-- Indexes for search_components (H2) handled by SearchTableIndexesMigrationStep_2_53 to avoid lock contention (ASTRUM-49154) -->
+
+    CREATE TABLE IF NOT EXISTS search_assets
+    (
+      format            VARCHAR NOT NULL,
+      repository_id     INT NOT NULL,
+      component_id      INT NOT NULL,
+      asset_id          INT NOT NULL,
+      path              VARCHAR NOT NULL,
+      asset_format_value_1   VARCHAR,
+      asset_format_value_2   VARCHAR,
+      asset_format_value_3   VARCHAR,
+      asset_format_value_4   VARCHAR,
+      asset_format_value_5   VARCHAR,
+      asset_format_value_6   VARCHAR,
+      asset_format_value_7   VARCHAR,
+      asset_format_value_8   VARCHAR,
+      asset_format_value_9   VARCHAR,
+      asset_format_value_10   VARCHAR,
+      asset_format_value_11   VARCHAR,
+      asset_format_value_12   VARCHAR,
+      asset_format_value_13   VARCHAR,
+      asset_format_value_14   VARCHAR,
+      asset_format_value_15   VARCHAR,
+      asset_format_value_16   VARCHAR,
+      asset_format_value_17   VARCHAR,
+      asset_format_value_18   VARCHAR,
+      asset_format_value_19   VARCHAR,
+      asset_format_value_20   VARCHAR,
+      CONSTRAINT pk_search_assets PRIMARY KEY (format, repository_id, component_id, asset_id)
+    );
+  </insert>
+
+  <sql id="repositoryMatch">
+    repository_id = #{repositoryId}
+    AND format = #{format}
+  </sql>
+
+  <sql id="componentMatch">
+    <include refid="repositoryMatch"/>
+    AND component_id = #{componentId}
+  </sql>
+
+  <sql id="PKMatch">
+    <include refid="componentMatch"/>
+  </sql>
+
+  <resultMap id="searchTableData" type="org.globalart.astrum.repository.search.sql.store.SearchRecordData">
+    <id property="repositoryId" column="repository_id" />
+    <id property="componentId" column="component_id" />
+    <id property="format" column="format" />
+    <result property="namespace" column="namespace"/>
+    <result property="componentName" column="search_component_name"/>
+    <result property="componentKind" column="component_kind"/>
+    <result property="version" column="version"/>
+    <result property="normalisedVersion" column="normalised_version"/>
+    <result property="lastModified" column="last_modified"/>
+    <result property="repositoryName" column="search_repository_name"/>
+    <result property="prerelease" column="prerelease"/>
+  </resultMap>
+
+  <insert id="save" parameterType="SearchRecordData" databaseId="PostgreSQL">
+    <!-- Only insert if the component still exists - we achieve this by using the FROM clause below to check the existence of the component
+      In a multi node setup, as we can't use distributed cooperation for processing a if one node has deleted all the component records for a given repository in response to a
+      ContentRepositoryDeleted event, for a  then we don't want a delayed update from another node to re-introduce
+      any of those records.
+    -->
+      INSERT INTO search_components(repository_id, component_id, format, namespace, search_component_name, version,
+          search_repository_name, tsvector_format, tsvector_namespace, tsvector_version, tsvector_search_repository_name, component_kind,
+          normalised_version, prerelease, attributes, entity_version, paths, tsvector_search_component_name, uploaders, uploader_ips, tsvector_paths,
+          keywords, md5, sha1, sha256, sha512, format_field_values_1, format_field_values_2,
+          format_field_values_3, format_field_values_4, format_field_values_5, format_field_values_6, format_field_values_7, tsvector_tags, tags, last_modified)
+        SELECT
+           #{repositoryId}, #{componentId}, #{format}, #{namespace}, #{componentName}, #{version}, #{repositoryName},
+            to_tsvector('simple', coalesce(#{format}, '')),
+            COALESCE(<include refid="toTsVector"><property name="tokens" value="namespaceNames"/></include>, ''::tsvector),
+            COALESCE(<include refid="toTsVector"><property name="tokens" value="versionNames"/></include>, ''::tsvector),
+            to_tsvector('simple', CONCAT('/', coalesce(#{repositoryName}, ''))),
+            #{componentKind}, #{normalisedVersion}, #{prerelease}, #{attributes}, COALESCE(#{entityVersion}, 1),
+            <include refid="join"><property name="thePaths" value="paths"/></include>,
+            COALESCE(<include refid="toTsVector"><property name="tokens" value="aliasComponentNames"/></include>, ''::tsvector),
+            <include refid="toTsVector"><property name="tokens" value="uploaders"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="uploaderIps"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="paths"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="keywords"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="md5"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="sha1"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="sha256"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="sha512"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="formatFieldValues1"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="formatFieldValues2"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="formatFieldValues3"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="formatFieldValues4"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="formatFieldValues5"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="formatFieldValues6"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="formatFieldValues7"/></include>,
+            <include refid="toTsVector"><property name="tokens" value="tags"/></include>,
+            #{tags, typeHandler=ListTypeHandler},
+            #{lastModified}
+        FROM ${format}_component comp
+       WHERE component_id = #{componentId}
+         AND <choose>
+               <when test="entityVersion == null">comp.entity_version IS NULL</when>
+               <otherwise>#{entityVersion} = comp.entity_version</otherwise>
+             </choose>
+        <!-- 
+          The WHERE clause above ensures the component still exists
+          Thereby helping us avoid the need for DELET'ing threads to lock component ids
+        -->
+      ON CONFLICT ON CONSTRAINT pk_search_components
+      DO
+        UPDATE SET
+          attributes = #{attributes},
+          entity_version = COALESCE(#{entityVersion}, 1),
+          component_kind = #{componentKind},
+          prerelease = #{prerelease},
+          last_modified = #{lastModified},
+          uploaders = <include refid="toTsVector"><property name="tokens" value="uploaders"/></include>,
+          uploader_ips = <include refid="toTsVector"><property name="tokens" value="uploaderIps"/></include>,
+          paths = <include refid="join"><property name="thePaths" value="paths"/></include>,
+          tsvector_paths = <include refid="toTsVector"><property name="tokens" value="paths"/></include>,
+          keywords = <include refid="toTsVector"><property name="tokens" value="keywords"/></include>,
+          md5 = <include refid="toTsVector"><property name="tokens" value="md5"/></include>,
+          sha1 = <include refid="toTsVector"><property name="tokens" value="sha1"/></include>,
+          sha256 = <include refid="toTsVector"><property name="tokens" value="sha256"/></include>,
+          sha512 = <include refid="toTsVector"><property name="tokens" value="sha512"/></include>,
+          format_field_values_1 = <include refid="toTsVector"><property name="tokens" value="formatFieldValues1"/></include>,
+          format_field_values_2 = <include refid="toTsVector"><property name="tokens" value="formatFieldValues2"/></include>,
+          format_field_values_3 = <include refid="toTsVector"><property name="tokens" value="formatFieldValues3"/></include>,
+          format_field_values_4 = <include refid="toTsVector"><property name="tokens" value="formatFieldValues4"/></include>,
+          format_field_values_5 = <include refid="toTsVector"><property name="tokens" value="formatFieldValues5"/></include>,
+          format_field_values_6 = <include refid="toTsVector"><property name="tokens" value="formatFieldValues6"/></include>,
+          format_field_values_7 = <include refid="toTsVector"><property name="tokens" value="formatFieldValues7"/></include>,
+          tsvector_tags = <include refid="toTsVector"><property name="tokens" value="tags"/></include>,
+          tags = #{tags, typeHandler=ListTypeHandler}
+        WHERE EXISTS(SELECT component_id
+                       FROM ${format}_component
+                      WHERE component_id = #{componentId}
+                        AND <choose>
+                              <when test="entityVersion == null">entity_version IS NULL</when>
+                              <otherwise>#{entityVersion} = entity_version</otherwise>
+                            </choose>)
+        <!--
+          The EXISTS clause above ensures the component still exists
+          Thereby helping us avoid the need for DELET'ing threads to lock component ids
+        -->
+  </insert>
+
+  <insert id="save" parameterType="SearchRecordData" databaseId="H2">
+    -- H2 version without TSVECTOR support - stores searchable data as VARCHAR
+    -- Only insert if the component still exists
+    -- Uses simpler MERGE KEY syntax for H2 compatibility
+    MERGE INTO search_components (repository_id, component_id, format, namespace, search_component_name,
+      component_kind, version, last_modified, search_repository_name, normalised_version, prerelease,
+      uploaders, uploader_ips, entity_version, attributes, tags, paths, keywords, md5, sha1, sha256, sha512,
+      format_field_values_1, format_field_values_2, format_field_values_3, format_field_values_4,
+      format_field_values_5, format_field_values_6, format_field_values_7)
+    KEY(repository_id, component_id, format)
+    SELECT
+      #{repositoryId},
+      #{componentId},
+      #{format},
+      #{namespace},
+      #{componentName},
+      #{componentKind},
+      #{version},
+      #{lastModified},
+      #{repositoryName},
+      #{normalisedVersion},
+      #{prerelease},
+      <include refid="joinH2"><property name="thePaths" value="uploaders"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="uploaderIps"/></include>,
+      COALESCE(#{entityVersion}, 1),
+      #{attributes},
+      #{tags, typeHandler=ListTypeHandler},
+      #{paths, typeHandler=ListTypeHandler},
+      <include refid="joinH2"><property name="thePaths" value="keywords"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="md5"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="sha1"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="sha256"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="sha512"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="formatFieldValues1"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="formatFieldValues2"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="formatFieldValues3"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="formatFieldValues4"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="formatFieldValues5"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="formatFieldValues6"/></include>,
+      <include refid="joinH2"><property name="thePaths" value="formatFieldValues7"/></include>
+    FROM ${format}_component comp
+    WHERE comp.component_id = #{componentId}
+      AND <choose>
+            <when test="entityVersion == null">comp.entity_version IS NULL</when>
+            <otherwise>#{entityVersion} = comp.entity_version</otherwise>
+          </choose>
+  </insert>
+
+  <delete id="delete">
+    DELETE
+    FROM search_components
+    WHERE <include refid="PKMatch"/>
+  </delete>
+
+  <delete id="deleteSearchAssets">
+    DELETE
+    FROM search_assets
+    WHERE repository_id = #{repositoryId}
+    AND format = #{format}
+    <foreach collection="componentIds" item="componentId" open="AND component_id IN (" separator="," close=")">
+      ${componentId}
+    </foreach>
+  </delete>
+
+  <delete id="deleteComponentIds">
+    DELETE
+    FROM search_components
+    WHERE repository_id = #{repositoryId}
+      AND format = #{format}
+      <foreach collection="componentIds" item="componentId" open="AND component_id IN (" separator="," close=")">
+        ${componentId}
+      </foreach>
+  </delete>
+
+  <delete id="deleteAllForRepository" databaseId="PostgreSQL">
+    WITH toBeDeleted as (
+        SELECT component_id
+        FROM search_components
+        WHERE <include refid="repositoryMatch"/>
+    <if test="limit gt 0"> LIMIT ${limit}</if>)
+    DELETE
+    FROM search_components cs
+    WHERE <include refid="repositoryMatch"/>
+        AND cs.component_id IN (SELECT td.component_id FROM toBeDeleted td)
+  </delete>
+
+  <delete id="deleteAllForRepository" databaseId="H2">
+    DELETE FROM search_components
+    WHERE <include refid="repositoryMatch"/>
+    AND component_id IN (
+        SELECT component_id
+        FROM search_components
+        WHERE <include refid="repositoryMatch"/>
+        <if test="limit gt 0"> LIMIT ${limit}</if>
+    )
+  </delete>
+
+  <delete id="deleteAllSearchAssets" databaseId="PostgreSQL">
+    WITH toBeDeleted as (
+    SELECT component_id
+    FROM search_assets
+    WHERE <include refid="repositoryMatch"/>
+    <if test="limit gt 0"> LIMIT ${limit}</if>)
+    DELETE
+    FROM search_assets cs
+    WHERE <include refid="repositoryMatch"/>
+    AND cs.component_id IN (SELECT td.component_id FROM toBeDeleted td)
+  </delete>
+
+  <delete id="deleteAllSearchAssets" databaseId="H2">
+    DELETE FROM search_assets
+    WHERE <include refid="repositoryMatch"/>
+    AND component_id IN (
+        SELECT component_id
+        FROM search_assets
+        WHERE <include refid="repositoryMatch"/>
+        <if test="limit gt 0"> LIMIT ${limit}</if>
+    )
+  </delete>
+
+  <delete id="deleteOrphanedComponents" databaseId="PostgreSQL">
+    WITH toBeDeleted AS (
+        SELECT cs.component_id
+        FROM search_components cs
+        WHERE <include refid="repositoryMatch"/>
+          AND NOT EXISTS (
+              SELECT 1 FROM ${format}_component comp
+              WHERE comp.component_id = cs.component_id
+                AND comp.repository_id = cs.repository_id
+          )
+    <if test="limit gt 0"> LIMIT ${limit}</if>)
+    DELETE FROM search_components cs
+    WHERE <include refid="repositoryMatch"/>
+      AND cs.component_id IN (SELECT td.component_id FROM toBeDeleted td)
+  </delete>
+
+  <delete id="deleteOrphanedComponents" databaseId="H2">
+    DELETE FROM search_components
+    WHERE <include refid="repositoryMatch"/>
+      AND component_id IN (
+          SELECT cs.component_id
+          FROM search_components cs
+          WHERE <include refid="repositoryMatch"/>
+            AND NOT EXISTS (
+                SELECT 1 FROM ${format}_component comp
+                WHERE comp.component_id = cs.component_id
+                  AND comp.repository_id = cs.repository_id
+            )
+          <if test="limit gt 0"> LIMIT ${limit}</if>
+      )
+  </delete>
+
+  <delete id="deleteOrphanedAssets" databaseId="PostgreSQL">
+    WITH toBeDeleted AS (
+        SELECT sa.component_id
+        FROM search_assets sa
+        WHERE sa.repository_id = #{repositoryId}
+          AND sa.format = #{format}
+          AND NOT EXISTS (
+              SELECT 1 FROM search_components sc
+              WHERE sc.component_id = sa.component_id
+                AND sc.repository_id = sa.repository_id
+                AND sc.format = sa.format
+          )
+    <if test="limit gt 0"> LIMIT ${limit}</if>)
+    DELETE FROM search_assets cs
+    WHERE cs.repository_id = #{repositoryId}
+      AND cs.format = #{format}
+      AND cs.component_id IN (SELECT td.component_id FROM toBeDeleted td)
+  </delete>
+
+  <delete id="deleteOrphanedAssets" databaseId="H2">
+    DELETE FROM search_assets
+    WHERE repository_id = #{repositoryId}
+      AND format = #{format}
+      AND component_id IN (
+          SELECT sa.component_id
+          FROM search_assets sa
+          WHERE sa.repository_id = #{repositoryId}
+            AND sa.format = #{format}
+            AND NOT EXISTS (
+                SELECT 1 FROM search_components sc
+                WHERE sc.component_id = sa.component_id
+                  AND sc.repository_id = sa.repository_id
+                  AND sc.format = sa.format
+            )
+          <if test="limit gt 0"> LIMIT ${limit}</if>
+      )
+  </delete>
+
+  <resultMap id="searchDataMap" type="org.globalart.astrum.repository.search.sql.store.SearchResultData">
+    <id property="componentId" column="component_id" />
+    <id property="repositoryId" column="repository_id" />
+    <result property="namespace" column="namespace"/>
+    <result property="componentName" column="search_component_name"/>
+    <result property="version" column="version"/>
+    <result property="normalisedVersion" column="normalised_version"/>
+    <result property="repositoryName" column="search_repository_name"/>
+    <result property="format" column="format"/>
+    <result property="lastModified" column="last_modified" />
+    <result property="attributes" column="attributes" />
+    <result property="tags" column="tags" typeHandler="ListTypeHandler" />
+  </resultMap>
+
+  <select id="searchComponents" resultMap="searchDataMap" parameterType="SqlSearchRequest">
+    <!-- 
+      The prefixes 'cs' and 'ap' are used to prevent ambiguity in column names.
+      Be cautious when modifying them, as some classes rely on these prefixes for building filters.
+      IMPORTANT: When distinctNameAndNamespace=true, PostgreSQL requires that the ORDER BY clause
+      MUST start with cs.namespace, cs.search_component_name to match the DISTINCT ON expressions.
+      H2 is more lenient and does not enforce this requirement.
+      See ASTRUM-50690 for details on the bug caused by ORDER BY mismatch.
+    -->
+    SELECT
+        <if test="distinctNameAndNamespace == true">
+          DISTINCT ON (cs.namespace, cs.search_component_name)
+        </if>
+        cs.component_id,
+        cs.namespace,
+        cs.search_component_name,
+        cs.version,
+        cs.normalised_version,
+        cs.search_repository_name,
+        cs.format,
+        cs.last_modified,
+        attributes,
+        tags
+    FROM search_components cs
+    <if test="assetFilter != null and assetFilter != ''">
+      INNER JOIN (
+      SELECT
+        ap.format,
+        ap.repository_id,
+        ap.component_id
+      FROM search_assets ap
+      <where>
+        (${assetFilter})
+      </where>
+      GROUP BY ap.format, ap.repository_id, ap.component_id
+      ) content ON cs.format = content.format AND cs.repository_id = content.repository_id AND cs.component_id = content.component_id
+    </if>
+    <where>
+      <!-- ASTRUM-54104: guard against an empty-string filter (crafted query like q="" "" "") that would otherwise emit invalid SQL "WHERE ()" -->
+      <if test="filter != null and filter != ''">(${filter})</if>
+      <!-- Keyset pagination: efficiently skip to records after the cursor using index seek -->
+      <!-- This is O(log n) vs O(n) for OFFSET-based pagination -->
+      <if test="cursorFormat != null and cursorComponentId != null">
+        AND (cs.format, cs.component_id) &gt; (#{cursorFormat}, #{cursorComponentId})
+      </if>
+    </where>
+    ORDER BY
+    <if test="distinctNameAndNamespace == true">
+      cs.namespace, cs.search_component_name,
+    </if>
+    <if test="sortColumnName != null">
+      ${sortColumnName} ${sortDirection}
+      <if test="sortColumnName != defaultSortColumnName">, ${defaultSortColumnName}</if>
+      <if test="sortColumnName != secondDefaultSortColumnName">, ${secondDefaultSortColumnName}</if>
+    </if>
+    <if test="sortColumnName == null">
+      ${defaultSortColumnName} <if test="sortDirection != null">${sortDirection}</if>,
+      ${secondDefaultSortColumnName} <if test="sortDirection != null">${sortDirection}</if>
+    </if>
+    <if test="limit != null">LIMIT #{limit}</if>
+    <!-- Only use OFFSET when no keyset cursor is provided (first page or legacy tokens) -->
+    <if test="cursorFormat == null or cursorComponentId == null">OFFSET #{offset}</if>;
+  </select>
+
+  <select id="count" resultType="long" parameterType="SqlSearchRequest">
+    <!--
+      The prefixes 'cs' and 'ap' are used to prevent ambiguity in column names.
+      Be cautious when modifying them, as some classes rely on these prefixes for building filters.
+    -->
+    SELECT COUNT(cs.component_id)
+    FROM search_components cs
+    <if test="assetFilter != null and assetFilter != ''">
+      INNER JOIN (
+      SELECT
+      ap.format,
+      ap.repository_id,
+      ap.component_id
+      FROM search_assets ap
+      <where>
+        (${assetFilter})
+      </where>
+      GROUP BY ap.format, ap.repository_id, ap.component_id
+      ) content ON cs.format = content.format AND cs.repository_id = content.repository_id AND cs.component_id = content.component_id
+    </if>
+    <where>
+      <!-- ASTRUM-54104: guard against an empty-string filter (crafted query like q="" "" "") that would otherwise emit invalid SQL "WHERE ()" -->
+      <if test="filter != null and filter != ''">(${filter})</if>
+    </where>
+  </select>
+
+  <resultMap id="componentVersionMap" type="org.globalart.astrum.repository.search.sql.store.ComponentVersionData">
+    <result property="version" column="version"/>
+    <result property="normalisedVersion" column="normalised_version"/>
+    <result property="repositories" column="repositories"/>
+    <result property="lastModified" column="last_modified"/>
+  </resultMap>
+
+  <!--
+    Distinct versions of a component, one row per version, with the containing repositories
+    aggregated. Portable across PostgreSQL and H2: STRING_AGG(DISTINCT ...) and
+    COUNT(DISTINCT ...) are native to PostgreSQL and accepted by H2 2.x.
+    Deliberately does NOT use DISTINCT ON (PostgreSQL-only; see ASTRUM-50690).
+    ${filter} comes only from ExpressionBuilder; ${sortExpression} only from
+    ComponentVersionSortField.
+
+    Grouping on (version, normalised_version) while countComponentVersions counts DISTINCT
+    version alone is safe, and both must stay in step. Normalisation is a pure function of the
+    version string, so one version cannot yield two normalised forms — but the function itself
+    is chosen per format (MavenVersionNormalizer, RpmVersionNormalizer, NuGetVersionNormalizer,
+    ...), so what actually holds the two queries together is that ${filter} always pins a single
+    format. A caller that widened this query across formats could group one version into two
+    rows while the count still returned one, silently producing a short final page. Adding
+    normalised_version to the count is not the fix — the filter contract is.
+  -->
+  <select id="browseComponentVersions" resultMap="componentVersionMap"
+          parameterType="org.globalart.astrum.repository.search.sql.store.ComponentVersionSearchRequest">
+    SELECT
+      cs.version,
+      cs.normalised_version,
+      <!-- ORDER BY inside the aggregate: PostgreSQL does not otherwise promise an order for
+           STRING_AGG(DISTINCT ...), and an unstable repository list would make the CSV export
+           differ between two identical requests. Determinism here is by construction and is not
+           test-observable — small inputs come back sorted either way — so do not remove this on
+           the strength of the tests still passing.
+           The ORDER BY must stay after the separator: PostgreSQL reads an earlier one as the
+           whole argument list (leaving a one-argument string_agg that does not exist) and H2
+           rejects it outright. Verified against PostgreSQL 16 and H2 2.4.240. -->
+      STRING_AGG(DISTINCT cs.search_repository_name, ',' ORDER BY cs.search_repository_name) AS repositories,
+      MAX(cs.last_modified) AS last_modified
+    FROM search_components cs
+    <where>
+      <if test="filter != null">(${filter})</if>
+      <if test="versionLikePattern != null">
+        AND LOWER(cs.version) LIKE #{versionLikePattern} ESCAPE '\'
+      </if>
+    </where>
+    GROUP BY cs.version, cs.normalised_version
+    <!-- cs.version closes the order. normalised_version is not unique: distinct version strings
+         can normalise to the same value (MavenVersionNormalizer treats 1, 1.0 and 1.0.0 as equal,
+         and documents 2.0.a / 2.0.0.a as equivalent), so ordering by it alone leaves tied rows in
+         an order neither engine promises. With LIMIT/OFFSET that is not merely cosmetic: a tie
+         straddling a page boundary can come back on both pages and hide whichever row it
+         displaces, while the count query still reports both. cs.version is already in the GROUP BY,
+         so it is free to sort on. Do not fold this back into the conditional below — the default
+         sort IS cs.normalised_version, which is exactly the case that has no other tiebreaker.
+
+         The conditional tier stays DESC whatever the primary direction is: when two versions tie on
+         repository count or last_modified, newest-version-first is the useful presentation
+         regardless of how the user sorted the primary column. Only the final cs.version tier
+         follows ${sortDirection}, and its job is closing the order rather than presentation — any
+         deterministic direction there would do. -->
+    ORDER BY ${sortExpression} ${sortDirection}
+    <if test="sortExpression != 'cs.normalised_version'">, cs.normalised_version DESC</if>
+    , cs.version ${sortDirection}
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+
+  <select id="countComponentVersions" resultType="long"
+          parameterType="org.globalart.astrum.repository.search.sql.store.ComponentVersionSearchRequest">
+    SELECT COUNT(DISTINCT cs.version)
+    FROM search_components cs
+    <where>
+      <if test="filter != null">(${filter})</if>
+      <if test="versionLikePattern != null">
+        AND LOWER(cs.version) LIKE #{versionLikePattern} ESCAPE '\'
+      </if>
+    </where>
+  </select>
+
+  <insert id="saveAsset" parameterType="SearchAssetRecord"  databaseId="PostgreSQL">
+    INSERT INTO search_assets(format, repository_id, component_id, asset_id, path,
+    asset_format_value_1,asset_format_value_2,asset_format_value_3,asset_format_value_4,asset_format_value_5, asset_format_value_6,
+    asset_format_value_7,asset_format_value_8,asset_format_value_9,asset_format_value_10,asset_format_value_11, asset_format_value_12,
+    asset_format_value_13,asset_format_value_14,asset_format_value_15,asset_format_value_16,asset_format_value_17, asset_format_value_18, asset_format_value_19, asset_format_value_20)
+      SELECT
+        #{searchAssetRecord.format}, #{searchAssetRecord.repositoryId}, #{searchAssetRecord.componentId}, #{searchAssetRecord.assetId}, #{searchAssetRecord.path},
+        #{searchAssetRecord.assetFormatValue1},
+        #{searchAssetRecord.assetFormatValue2},
+        #{searchAssetRecord.assetFormatValue3},
+        #{searchAssetRecord.assetFormatValue4},
+        #{searchAssetRecord.assetFormatValue5},
+        #{searchAssetRecord.assetFormatValue6},
+        #{searchAssetRecord.assetFormatValue7},
+        #{searchAssetRecord.assetFormatValue8},
+        #{searchAssetRecord.assetFormatValue9},
+        #{searchAssetRecord.assetFormatValue10},
+        #{searchAssetRecord.assetFormatValue11},
+        #{searchAssetRecord.assetFormatValue12},
+        #{searchAssetRecord.assetFormatValue13},
+        #{searchAssetRecord.assetFormatValue14},
+        #{searchAssetRecord.assetFormatValue15},
+        #{searchAssetRecord.assetFormatValue16},
+        #{searchAssetRecord.assetFormatValue17},
+        #{searchAssetRecord.assetFormatValue18},
+        #{searchAssetRecord.assetFormatValue19},
+        #{searchAssetRecord.assetFormatValue20}
+      FROM ${searchAssetRecord.format}_asset a WHERE a.asset_id = #{searchAssetRecord.assetId}
+    ON CONFLICT ON CONSTRAINT pk_search_assets DO NOTHING
+  </insert>
+
+  <insert id="saveAsset" parameterType="SearchAssetRecord"  databaseId="H2">
+    MERGE INTO search_assets (format, repository_id, component_id, asset_id, path,
+              asset_format_value_1, asset_format_value_2, asset_format_value_3, asset_format_value_4, asset_format_value_5,
+              asset_format_value_6, asset_format_value_7, asset_format_value_8, asset_format_value_9, asset_format_value_10,
+              asset_format_value_11, asset_format_value_12, asset_format_value_13, asset_format_value_14, asset_format_value_15,
+              asset_format_value_16, asset_format_value_17, asset_format_value_18, asset_format_value_19, asset_format_value_20)
+    KEY(format, repository_id, component_id, asset_id)
+    SELECT
+      #{searchAssetRecord.format},
+      #{searchAssetRecord.repositoryId},
+      #{searchAssetRecord.componentId},
+      #{searchAssetRecord.assetId},
+      #{searchAssetRecord.path},
+      #{searchAssetRecord.assetFormatValue1},
+      #{searchAssetRecord.assetFormatValue2},
+      #{searchAssetRecord.assetFormatValue3},
+      #{searchAssetRecord.assetFormatValue4},
+      #{searchAssetRecord.assetFormatValue5},
+      #{searchAssetRecord.assetFormatValue6},
+      #{searchAssetRecord.assetFormatValue7},
+      #{searchAssetRecord.assetFormatValue8},
+      #{searchAssetRecord.assetFormatValue9},
+      #{searchAssetRecord.assetFormatValue10},
+      #{searchAssetRecord.assetFormatValue11},
+      #{searchAssetRecord.assetFormatValue12},
+      #{searchAssetRecord.assetFormatValue13},
+      #{searchAssetRecord.assetFormatValue14},
+      #{searchAssetRecord.assetFormatValue15},
+      #{searchAssetRecord.assetFormatValue16},
+      #{searchAssetRecord.assetFormatValue17},
+      #{searchAssetRecord.assetFormatValue18},
+      #{searchAssetRecord.assetFormatValue19},
+      #{searchAssetRecord.assetFormatValue20}
+    FROM ${searchAssetRecord.format}_asset a
+    WHERE a.asset_id = #{searchAssetRecord.assetId}
+  </insert>
+
+  <insert id="saveAssets" parameterType="java.util.Collection" databaseId="PostgreSQL">
+    INSERT INTO search_assets(format, repository_id, component_id, asset_id, path,
+                              asset_format_value_1,asset_format_value_2,asset_format_value_3,asset_format_value_4,asset_format_value_5, asset_format_value_6,
+                              asset_format_value_7,asset_format_value_8,asset_format_value_9,asset_format_value_10,asset_format_value_11, asset_format_value_12,
+                              asset_format_value_13,asset_format_value_14,asset_format_value_15,asset_format_value_16,asset_format_value_17, asset_format_value_18, asset_format_value_19, asset_format_value_20)
+    VALUES
+    <foreach collection="searchAssetRecords" separator="," item="searchAssetRecord">
+      ( #{searchAssetRecord.format}, #{searchAssetRecord.repositoryId}, #{searchAssetRecord.componentId}, #{searchAssetRecord.assetId}, #{searchAssetRecord.path},
+       #{searchAssetRecord.assetFormatValue1},
+       #{searchAssetRecord.assetFormatValue2},
+       #{searchAssetRecord.assetFormatValue3},
+       #{searchAssetRecord.assetFormatValue4},
+       #{searchAssetRecord.assetFormatValue5},
+       #{searchAssetRecord.assetFormatValue6},
+       #{searchAssetRecord.assetFormatValue7},
+       #{searchAssetRecord.assetFormatValue8},
+       #{searchAssetRecord.assetFormatValue9},
+       #{searchAssetRecord.assetFormatValue10},
+       #{searchAssetRecord.assetFormatValue11},
+       #{searchAssetRecord.assetFormatValue12},
+       #{searchAssetRecord.assetFormatValue13},
+       #{searchAssetRecord.assetFormatValue14},
+       #{searchAssetRecord.assetFormatValue15},
+       #{searchAssetRecord.assetFormatValue16},
+       #{searchAssetRecord.assetFormatValue17},
+       #{searchAssetRecord.assetFormatValue18},
+       #{searchAssetRecord.assetFormatValue19},
+       #{searchAssetRecord.assetFormatValue20}
+      )
+    </foreach>
+    ON CONFLICT ON CONSTRAINT pk_search_assets DO NOTHING
+  </insert>
+
+  <insert id="saveAssets" parameterType="java.util.Collection" databaseId="H2">
+    MERGE INTO search_assets(format, repository_id, component_id, asset_id, path,
+                              asset_format_value_1,asset_format_value_2,asset_format_value_3,asset_format_value_4,asset_format_value_5, asset_format_value_6,
+                              asset_format_value_7,asset_format_value_8,asset_format_value_9,asset_format_value_10,asset_format_value_11, asset_format_value_12,
+                              asset_format_value_13,asset_format_value_14,asset_format_value_15,asset_format_value_16,asset_format_value_17, asset_format_value_18, asset_format_value_19, asset_format_value_20)
+    VALUES
+    <foreach collection="searchAssetRecords" separator="," item="searchAssetRecord">
+      ( #{searchAssetRecord.format}, #{searchAssetRecord.repositoryId}, #{searchAssetRecord.componentId}, #{searchAssetRecord.assetId}, #{searchAssetRecord.path},
+       #{searchAssetRecord.assetFormatValue1},
+       #{searchAssetRecord.assetFormatValue2},
+       #{searchAssetRecord.assetFormatValue3},
+       #{searchAssetRecord.assetFormatValue4},
+       #{searchAssetRecord.assetFormatValue5},
+       #{searchAssetRecord.assetFormatValue6},
+       #{searchAssetRecord.assetFormatValue7},
+       #{searchAssetRecord.assetFormatValue8},
+       #{searchAssetRecord.assetFormatValue9},
+       #{searchAssetRecord.assetFormatValue10},
+       #{searchAssetRecord.assetFormatValue11},
+       #{searchAssetRecord.assetFormatValue12},
+       #{searchAssetRecord.assetFormatValue13},
+       #{searchAssetRecord.assetFormatValue14},
+       #{searchAssetRecord.assetFormatValue15},
+       #{searchAssetRecord.assetFormatValue16},
+       #{searchAssetRecord.assetFormatValue17},
+       #{searchAssetRecord.assetFormatValue18},
+       #{searchAssetRecord.assetFormatValue19},
+       #{searchAssetRecord.assetFormatValue20}
+      )
+    </foreach>
+  </insert>
+
+  <insert id="saveBatch" parameterType="java.util.List" databaseId="PostgreSQL">
+    INSERT INTO search_components(repository_id, component_id, format, namespace, search_component_name, version,
+      search_repository_name, tsvector_format, tsvector_namespace, tsvector_version, tsvector_search_repository_name,
+      component_kind, normalised_version, last_modified, prerelease, attributes, entity_version, paths, uploaders,
+      uploader_ips, tsvector_search_component_name, tsvector_paths, keywords, md5, sha1, sha256, sha512,
+      format_field_values_1, format_field_values_2, format_field_values_3, format_field_values_4, format_field_values_5, format_field_values_6,
+      format_field_values_7, tsvector_tags, tags)
+    VALUES
+    <foreach collection="searchData" separator="," item="item">
+      (#{item.repositoryId}, #{item.componentId},  #{item.format}, #{item.namespace},
+       #{item.componentName},#{item.version}, #{item.repositoryName},
+       to_tsvector('simple', COALESCE(#{item.format}, '')),
+      COALESCE(<include refid="toTsVector"><property name="tokens" value="item.namespaceNames"/></include>, ''::tsvector),
+      COALESCE(<include refid="toTsVector"><property name="tokens" value="item.versionNames"/></include>, ''::tsvector),
+       to_tsvector('simple', CONCAT('/', coalesce(#{item.repositoryName}, ''))), #{item.componentKind}, #{item.normalisedVersion},
+       #{item.lastModified}, #{item.prerelease}, #{item.attributes}, COALESCE(#{item.entityVersion}, 1),
+      <include refid="join"><property name="thePaths" value="item.paths"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.uploaders"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.uploaderIps"/></include>,
+      COALESCE(<include refid="toTsVector"><property name="tokens" value="item.aliasComponentNames"/></include>, ''::tsvector),
+      <include refid="toTsVector"><property name="tokens" value="item.paths"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.keywords"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.md5"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.sha1"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.sha256"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.sha512"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.formatFieldValues1"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.formatFieldValues2"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.formatFieldValues3"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.formatFieldValues4"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.formatFieldValues5"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.formatFieldValues6"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.formatFieldValues7"/></include>,
+      <include refid="toTsVector"><property name="tokens" value="item.tags"/></include>,
+      #{item.tags, typeHandler=ListTypeHandler})
+    </foreach>
+    ON CONFLICT ON CONSTRAINT pk_search_components
+    DO
+      UPDATE SET
+        namespace = "excluded".namespace,
+        search_component_name = "excluded".search_component_name,
+        version = "excluded".version,
+        search_repository_name = "excluded".search_repository_name,
+        tsvector_format = "excluded".tsvector_format,
+        tsvector_namespace = "excluded".tsvector_namespace,
+        tsvector_version = "excluded".tsvector_version,
+        tsvector_search_repository_name = "excluded".tsvector_search_repository_name,
+        component_kind = "excluded".component_kind,
+        normalised_version = "excluded".normalised_version,
+        last_modified = "excluded".last_modified,
+        prerelease = "excluded".prerelease,
+        attributes = "excluded".attributes,
+        entity_version = "excluded".entity_version,
+        paths = "excluded".paths,
+        uploaders = "excluded".uploaders,
+        uploader_ips = "excluded".uploader_ips,
+        tsvector_search_component_name = "excluded".tsvector_search_component_name,
+        tsvector_paths = "excluded".tsvector_paths,
+        keywords = "excluded".keywords,
+        md5 = "excluded".md5,
+        sha1 = "excluded".sha1,
+        sha256 = "excluded".sha256,
+        sha512 = "excluded".sha512,
+        format_field_values_1 = "excluded".format_field_values_1,
+        format_field_values_2 = "excluded".format_field_values_2,
+        format_field_values_3 = "excluded".format_field_values_3,
+        format_field_values_4 = "excluded".format_field_values_4,
+        format_field_values_5 = "excluded".format_field_values_5,
+        format_field_values_6 = "excluded".format_field_values_6,
+        format_field_values_7 = "excluded".format_field_values_7,
+        tsvector_tags = "excluded".tsvector_tags,
+        tags = "excluded".tags
+  </insert>
+
+  <insert id="saveBatch" parameterType="java.util.List" databaseId="H2">
+     MERGE INTO search_components (repository_id, component_id, format, namespace, search_component_name,
+           component_kind, version, last_modified, search_repository_name, normalised_version, prerelease,
+           uploaders, uploader_ips, entity_version, attributes, tags, paths, keywords, md5, sha1, sha256, sha512,
+           format_field_values_1, format_field_values_2, format_field_values_3, format_field_values_4,
+           format_field_values_5, format_field_values_6, format_field_values_7)
+    VALUES
+         <foreach collection="searchData" separator="," item="item">
+           (#{item.repositoryId},
+            #{item.componentId},
+            #{item.format},
+            #{item.namespace},
+            #{item.componentName},
+            #{item.componentKind},
+            #{item.version},
+            #{item.lastModified},
+            #{item.repositoryName},
+            #{item.normalisedVersion},
+            #{item.prerelease},
+            <include refid="joinH2"><property name="thePaths" value="item.uploaders"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.uploaderIps"/></include>,
+            COALESCE(#{item.entityVersion}, 1),
+            #{item.attributes},
+            #{item.tags, typeHandler=ListTypeHandler},
+            #{item.paths, typeHandler=ListTypeHandler},
+            <include refid="joinH2"><property name="thePaths" value="item.keywords"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.md5"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.sha1"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.sha256"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.sha512"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.formatFieldValues1"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.formatFieldValues2"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.formatFieldValues3"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.formatFieldValues4"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.formatFieldValues5"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.formatFieldValues6"/></include>,
+            <include refid="joinH2"><property name="thePaths" value="item.formatFieldValues7"/></include>)
+         </foreach>
+  </insert>
+
+  <sql id="toTsVector" databaseId="PostgreSQL">
+    <!--
+      Uses VALUES clause with direct ::tsvector casting to avoid both stack depth and tokenization issues.
+      The old || concatenation created deeply nested expression trees that exceeded PostgreSQL's stack limit.
+      The VALUES clause provides a flat structure (no nesting), while ::tsvector casting preserves exact lexemes
+      without tokenization (unlike to_tsvector which would break keywords into separate tokens).
+
+      This approach:
+      - Avoids stack depth issues: VALUES clause creates flat structure vs nested || expressions
+      - Preserves exact lexemes: ::tsvector casting treats each token as single lexeme
+      - Maintains compatibility: Output is identical to old || approach (exact same lexemes, no positions)
+    -->
+    <choose>
+      <when test="${tokens}.isEmpty()">null</when>
+      <otherwise>
+        (SELECT string_agg(LOWER(token)::tsvector::text, ' ')::tsvector FROM (VALUES <foreach collection="${tokens}" separator="," item="token">(#{token})</foreach>) AS t(token))
+      </otherwise>
+    </choose>
+  </sql>
+
+  <sql id="join" databaseId="PostgreSQL">
+    <choose>
+      <when test="${thePaths}.isEmpty()">null</when>
+      <otherwise>
+        (SELECT STRING_AGG('{' || path || '}', ' ')
+        FROM (VALUES <foreach collection="${thePaths}" separator="," item="path">(#{path}::VARCHAR)</foreach>
+        ) AS t(path))
+      </otherwise>
+    </choose>
+  </sql>
+
+  <sql id="joinH2" databaseId="H2">
+    <choose>
+      <when test="${thePaths}.isEmpty()">null</when>
+      <otherwise>
+        <foreach collection="${thePaths}" separator=" || ' ' || " item="path" open="(" close=")">
+          COALESCE(#{path}, '')
+        </foreach>
+      </otherwise>
+    </choose>
+  </sql>
+
+  <select id="hasRepositoryEntries" resultType="boolean">
+    SELECT EXISTS(SELECT 1 FROM search_components WHERE search_repository_name = #{repositoryName} LIMIT 1)
+  </select>
+
+  <select id="getSearchRepositories" resultMap="SearchRepositoryData">
+    SELECT DISTINCT format, search_repository_name, repository_id
+    FROM search_components;
+  </select>
+
+  <resultMap id="SearchRepositoryData"
+             type="org.globalart.astrum.repository.search.sql.store.SearchRepositoryData">
+    <constructor>
+      <arg column="search_repository_name" javaType="string"/>
+      <arg column="repository_id" javaType="int"/>
+      <arg column="format" javaType="string"/>
+    </constructor>
+  </resultMap>
+</mapper>
