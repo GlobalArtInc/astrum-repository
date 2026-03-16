@@ -1,0 +1,15 @@
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--gray-a5);
+}
