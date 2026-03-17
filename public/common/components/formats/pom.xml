@@ -1,0 +1,37 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.components</groupId>
+    <artifactId>astrum-common-components-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-common-components-formats-parent</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>astrum-repository-apt</module>
+    <module>astrum-repository-maven</module>
+    <module>astrum-repository-raw</module>
+    <module>astrum-repository-p2</module>
+    <module>astrum-repository-cargo</module>
+    <module>astrum-repository-cocoapods</module>
+    <module>astrum-repository-conan</module>
+    <module>astrum-repository-r</module>
+    <module>astrum-repository-conda</module>
+    <module>astrum-repository-docker</module>
+    <module>astrum-repository-alpine</module>
+    <module>astrum-repository-golang</module>
+    <module>astrum-repository-nuget</module>
+    <module>astrum-repository-pypi</module>
+    <module>astrum-repository-composer</module>
+    <module>astrum-repository-npm</module>
+    <module>astrum-repository-helm</module>
+  </modules>
+
+</project>
