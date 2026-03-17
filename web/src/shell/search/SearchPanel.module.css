@@ -1,0 +1,235 @@
+.container {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.field {
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  padding: 1px;
+  border-radius: 10px;
+  background: var(--astrum-input-bg);
+  box-shadow: inset 0 0 0 1px var(--gray-a5);
+  color: var(--gray-12);
+  cursor: text;
+}
+
+.field:has(.input:focus-visible),
+.field[data-focused] {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -1px;
+}
+
+.slot {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--gray-11);
+}
+
+.input {
+  all: unset;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-3);
+  line-height: 24px;
+  color: var(--gray-12);
+}
+
+.input:focus-visible {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--gray-a10);
+}
+
+.kbd {
+  display: flex;
+  align-items: center;
+  padding: 2px 6px;
+  border: 1px solid var(--gray-a5);
+  border-radius: 6px;
+  background: var(--color-panel-solid);
+  color: var(--gray-11);
+  font-family: var(--code-font-family);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.clear {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  margin: 0 12px;
+  border-radius: 3px;
+  color: var(--gray-11);
+  cursor: pointer;
+}
+
+.clear:hover {
+  background: var(--gray-a3);
+}
+
+.clear:focus-visible {
+  outline: 2px solid var(--accent-8);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid var(--gray-a6);
+  border-radius: 12px;
+  background: var(--color-panel-solid);
+  box-shadow: var(--shadow-5);
+  font-size: var(--font-size-2);
+  line-height: 20px;
+  color: var(--gray-12);
+}
+
+:global(.dark) .dropdown,
+:global([data-theme="dark"]) .dropdown {
+  background: var(--gray-3);
+  box-shadow:
+    0 16px 40px rgb(0 0 0 / 0.7),
+    0 2px 6px rgb(0 0 0 / 0.4);
+}
+
+.results {
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+}
+
+.hint {
+  padding: 8px 8px 8px;
+  color: var(--gray-11);
+}
+
+.group + .group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--gray-a4);
+}
+
+.groupTitle {
+  padding: 8px 8px 4px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--gray-11);
+}
+
+.groupList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--gray-12);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.item > svg {
+  flex-shrink: 0;
+  color: var(--gray-11);
+}
+
+.item[data-active="true"],
+.item:hover {
+  background: var(--accent-a3);
+}
+
+.item[data-active="true"]::after {
+  content: "↵";
+  flex-shrink: 0;
+  padding: 0 4px;
+  border: 1px solid var(--gray-a5);
+  border-radius: 4px;
+  background: var(--color-panel-solid);
+  color: var(--gray-11);
+  font-family: var(--code-font-family);
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--astrum-chrome-bg);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 60px;
+  padding: 0 8px;
+}
+
+.bar .container {
+  max-width: none;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.bar .field {
+  height: 44px;
+}
+
+.layer .bar .dropdown {
+  position: fixed;
+  top: 52px;
+  left: 0;
+  right: 0;
+  max-height: calc(100dvh - 60px);
+  overflow-y: auto;
+  border-width: 0 0 1px;
+  border-radius: 0 0 12px 12px;
+}
+
+.back {
+  all: unset;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  color: var(--gray-12);
+  cursor: pointer;
+}
+
+.back:hover {
+  background: var(--gray-a3);
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--accent-8);
+}
