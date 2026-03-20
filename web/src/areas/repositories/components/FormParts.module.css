@@ -1,0 +1,215 @@
+.add {
+  width: 100%;
+  height: 40px;
+}
+
+.members {
+  display: flex;
+  flex-direction: column;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--gray-6);
+  border-radius: 6px;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.member + .member {
+  border-top: 1px solid var(--gray-6);
+}
+
+.position {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--gray-a3);
+  color: var(--gray-a11);
+  font-size: 12px;
+}
+
+.memberName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.memberButtons {
+  display: inline-flex;
+  gap: 12px;
+}
+
+.membersEmpty {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--gray-11);
+}
+
+.cleanup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cleanupText {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.manage {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.manage:hover {
+  text-decoration: underline;
+}
+
+.cleanupLabel {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.transfer {
+  display: grid;
+  grid-template-columns: minmax(0, 350px) 48px minmax(0, 350px);
+  align-items: stretch;
+  margin-top: 4px;
+}
+
+.arrows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  height: 300px;
+  border: 1px solid var(--gray-6);
+  border-radius: 6px;
+  background: var(--gray-a2);
+  overflow: hidden;
+}
+
+.listHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gray-6);
+  background: var(--color-panel-solid);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+}
+
+.listTitle {
+  font-weight: 500;
+}
+
+.listCount {
+  color: var(--gray-11);
+}
+
+.listFilter {
+  padding: 8px;
+  border-bottom: 1px solid var(--gray-6);
+}
+
+.listBody {
+  flex: 1 1 auto;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--color-panel-solid);
+  overflow-y: auto;
+}
+
+.listItem {
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 21px;
+  cursor: pointer;
+  user-select: none;
+  overflow-wrap: anywhere;
+}
+
+.listItem:hover {
+  background: var(--gray-a3);
+}
+
+.listItem[aria-selected="true"] {
+  background: var(--accent-a3);
+}
+
+.listItem:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -2px;
+}
+
+.listBody[aria-disabled="true"] .listItem {
+  cursor: default;
+  color: var(--gray-a10);
+}
+
+.listEmpty {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-a11);
+}
+
+.cleanupError {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--red-11);
+}
+
+.cleanupHint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+  color: var(--gray-11);
+}
+
+@media (max-width: 639px) {
+  .transfer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .arrows {
+    flex-direction: row;
+    gap: 16px;
+    padding: 8px 0;
+  }
+
+  .arrows svg {
+    transform: rotate(90deg);
+  }
+}
