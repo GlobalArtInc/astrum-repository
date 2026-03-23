@@ -1,0 +1,95 @@
+
+package org.globalart.astrum.repository.maven.internal;
+
+import javax.annotation.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.mime.MimeRule;
+import org.globalart.astrum.mime.MimeRulesSource;
+import org.globalart.astrum.repository.maven.MavenPath;
+import org.globalart.astrum.repository.view.ContentTypes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+/**
+ * Maven 2 specific {@link MimeRulesSource} that specifies known and format specific file MIME types.
+ *
+ * @since 3.0
+ */
+@Component
+@Qualifier(Maven2Format.NAME)
+public class MavenMimeRulesSource
+    implements MimeRulesSource
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  /**
+   * Maven POMs.
+   */
+  public static final String POM_TYPE = ContentTypes.APPLICATION_XML;
+
+  /**
+   * Maven POMs.
+   */
+  private static final MimeRule POM_RULE = new MimeRule(true, POM_TYPE);
+
+  /**
+   * SHA1 and MD5 hashes.
+   */
+  public static final String HASH_TYPE = ContentTypes.TEXT_PLAIN;
+
+  /**
+   * SHA1 and MD5 hashes.
+   */
+  private static final MimeRule HASH_RULE = new MimeRule(true, HASH_TYPE);
+
+  /**
+   * Maven Repository Metadata.
+   */
+  public static final String METADATA_TYPE = ContentTypes.APPLICATION_XML;
+
+  /**
+   * Maven Repository Metadata.
+   */
+  private static final MimeRule METADATA_RULE = new MimeRule(true, METADATA_TYPE);
+
+  /**
+   * Maven PGP signature.
+   */
+  public static final String SIGNATURE_TYPE = "application/pgp-signature";
+
+  /**
+   * Maven PGP signature.
+   */
+  private static final MimeRule SIGNATURE_RULE = new MimeRule(true, SIGNATURE_TYPE, ContentTypes.TEXT_PLAIN);
+
+  private final Maven2MavenPathParser mavenPathParser;
+
+  @Autowired
+  public MavenMimeRulesSource(final Maven2MavenPathParser mavenPathParser) {
+    this.mavenPathParser = checkNotNull(mavenPathParser);
+  }
+
+  @Nullable
+  @Override
+  public MimeRule getRuleForName(final String name) {
+    MavenPath mavenPath = mavenPathParser.parsePath(name);
+    if (mavenPath.isPom()) {
+      return POM_RULE;
+    }
+    else if (mavenPath.isHash()) {
+      return HASH_RULE;
+    }
+    else if (mavenPath.isSignature()) {
+      return SIGNATURE_RULE;
+    }
+    else if (Constants.METADATA_FILENAME.equals(mavenPath.getFileName())) {
+      return METADATA_RULE;
+    }
+    // otherwise no format-specific rule, use common rules
+    return null;
+  }
+}

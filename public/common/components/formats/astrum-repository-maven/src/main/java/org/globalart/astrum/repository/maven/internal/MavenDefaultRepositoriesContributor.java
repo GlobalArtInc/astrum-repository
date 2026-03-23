@@ -1,0 +1,201 @@
+
+package org.globalart.astrum.repository.maven.internal;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.globalart.astrum.blobstore.api.BlobStoreManager;
+import org.globalart.astrum.repository.config.Configuration;
+import org.globalart.astrum.repository.config.WritePolicy;
+import org.globalart.astrum.repository.manager.DefaultRepositoriesContributor;
+import org.globalart.astrum.repository.manager.RepositoryManager;
+import org.globalart.astrum.repository.maven.ContentDisposition;
+import org.globalart.astrum.repository.maven.LayoutPolicy;
+import org.globalart.astrum.repository.maven.VersionPolicy;
+import org.globalart.astrum.repository.maven.internal.recipes.Maven2GroupRecipe;
+import org.globalart.astrum.repository.maven.internal.recipes.Maven2HostedRecipe;
+import org.globalart.astrum.repository.maven.internal.recipes.Maven2ProxyRecipe;
+
+import org.springframework.context.annotation.Lazy;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.repository.config.ConfigurationConstants.DATA_STORE_NAME;
+import org.springframework.stereotype.Component;
+
+/**
+ * Provide default hosted and proxy repositories for Maven.
+ *
+ * @since 3.0
+ */
+@Component
+public class MavenDefaultRepositoriesContributor
+    implements DefaultRepositoriesContributor
+{
+  private static final String STORAGE = "storage";
+
+  private static final String MAVEN = "maven";
+
+  static final String DEFAULT_RELEASE_REPO = "maven-releases";
+
+  static final String DEFAULT_SNAPSHOT_REPO = "maven-snapshots";
+
+  static final String DEFAULT_CENTRAL_REPO = "maven-central";
+
+  static final String DEFAULT_PUBLIC_REPO = "maven-public";
+
+  private final RepositoryManager repositoryManager;
+
+  @Autowired
+  public MavenDefaultRepositoriesContributor(@Lazy final RepositoryManager repositoryManager) {
+    this.repositoryManager = checkNotNull(repositoryManager);
+  }
+
+  @Override
+  public List<Configuration> getRepositoryConfigurations() {
+    return List.of(
+        newConfiguration(DEFAULT_RELEASE_REPO, Maven2HostedRecipe.NAME,
+            map(
+                MAVEN, maven(VersionPolicy.RELEASE, LayoutPolicy.STRICT),
+                STORAGE, storage(BlobStoreManager.DEFAULT_BLOBSTORE_NAME, WritePolicy.ALLOW_ONCE))),
+        newConfiguration(DEFAULT_SNAPSHOT_REPO, Maven2HostedRecipe.NAME,
+            map(
+                MAVEN, maven(VersionPolicy.SNAPSHOT, LayoutPolicy.STRICT),
+                STORAGE, storage(BlobStoreManager.DEFAULT_BLOBSTORE_NAME, WritePolicy.ALLOW))),
+        newConfiguration(DEFAULT_CENTRAL_REPO, Maven2ProxyRecipe.NAME,
+            map(
+                "httpclient", Map.of(
+                    "connection", map(
+                        "blocked", false,
+                        "autoBlock", true)),
+                MAVEN, maven(VersionPolicy.RELEASE, LayoutPolicy.PERMISSIVE),
+                "proxy", map(
+                    "remoteUrl", "https://repo1.maven.org/maven2/",
+                    "contentMaxAge", -1,
+                    "metadataMaxAge", 1440),
+                "negativeCache", map(
+                    "enabled", true,
+                    "timeToLive", 1440),
+                STORAGE, storage(BlobStoreManager.DEFAULT_BLOBSTORE_NAME))),
+        newConfiguration(DEFAULT_PUBLIC_REPO, Maven2GroupRecipe.NAME,
+            map(
+                MAVEN, maven(VersionPolicy.MIXED, LayoutPolicy.PERMISSIVE),
+                "group",
+                Map.of("memberNames", List.of(DEFAULT_RELEASE_REPO, DEFAULT_SNAPSHOT_REPO, DEFAULT_CENTRAL_REPO)),
+                STORAGE, storage(BlobStoreManager.DEFAULT_BLOBSTORE_NAME))));
+  }
+
+  private Configuration newConfiguration(
+      final String repositoryName,
+      final String recipeName,
+      final Map<String, Map<String, Object>> attributes)
+  {
+    Configuration config = repositoryManager.newConfiguration();
+    config.setRepositoryName(repositoryName);
+    config.setRecipeName(recipeName);
+    config.setOnline(true);
+    config.setAttributes(attributes);
+
+    return config;
+  }
+
+  private static Map<String, Object> maven(
+      final VersionPolicy versionPolicy,
+      final LayoutPolicy layout)
+  {
+    return map(
+        "versionPolicy", versionPolicy.toString(),
+        "layoutPolicy", layout.toString(),
+        "contentDisposition", ContentDisposition.ATTACHMENT);
+  }
+
+  private static Map<String, Object> storage(final String blobstoreName, final WritePolicy policy) {
+    return map(
+        "blobStoreName", blobstoreName,
+        "writePolicy", policy.toString(),
+        "strictContentTypeValidation", false,
+        DATA_STORE_NAME, "astrum");
+  }
+
+  private static Map<String, Object> storage(final String blobstoreName) {
+    return map(
+        "blobStoreName", blobstoreName,
+        "strictContentTypeValidation", false,
+        DATA_STORE_NAME, "astrum");
+  }
+
+  private static <E> Map<String, E> map(
+      final String key1,
+      final E value1,
+      final String key2,
+      final E value2)
+  {
+    Map<String, E> map = new HashMap<>();
+
+    map.put(key1, value1);
+    map.put(key2, value2);
+
+    return map;
+  }
+
+  private static <E> Map<String, E> map(
+      final String key1,
+      final E value1,
+      final String key2,
+      final E value2,
+      final String key3,
+      final E value3)
+  {
+    Map<String, E> map = new HashMap<>();
+
+    map.put(key1, value1);
+    map.put(key2, value2);
+    map.put(key3, value3);
+
+    return map;
+  }
+
+  private static <E> Map<String, E> map(
+      final String key1,
+      final E value1,
+      final String key2,
+      final E value2,
+      final String key3,
+      final E value3,
+      final String key4,
+      final E value4)
+  {
+    Map<String, E> map = new HashMap<>();
+
+    map.put(key1, value1);
+    map.put(key2, value2);
+    map.put(key3, value3);
+    map.put(key4, value4);
+
+    return map;
+  }
+
+  private static <E> Map<String, E> map(
+      final String key,
+      final E value,
+      final String key1,
+      final E value1,
+      final String key2,
+      final E value2,
+      final String key3,
+      final E value3,
+      final String key4,
+      final E value4)
+  {
+    Map<String, E> map = new HashMap<>();
+
+    map.put(key, value);
+    map.put(key1, value1);
+    map.put(key2, value2);
+    map.put(key3, value3);
+    map.put(key4, value4);
+
+    return map;
+  }
+}
