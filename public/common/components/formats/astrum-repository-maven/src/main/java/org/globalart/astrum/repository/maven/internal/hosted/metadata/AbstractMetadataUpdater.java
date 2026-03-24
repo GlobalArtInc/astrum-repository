@@ -1,0 +1,332 @@
+
+package org.globalart.astrum.repository.maven.internal.hosted.metadata;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import org.globalart.astrum.content.maven.MavenContentFacet;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.maven.MavenPath;
+import org.globalart.astrum.repository.maven.internal.Constants;
+import org.globalart.astrum.repository.maven.internal.group.RepositoryMetadataMerger;
+import org.globalart.astrum.repository.maven.internal.group.RepositoryMetadataMerger.Envelope;
+import org.globalart.astrum.repository.maven.internal.hosted.metadata.Maven2Metadata.Plugin;
+import org.globalart.astrum.repository.maven.internal.hosted.metadata.Maven2Metadata.Snapshot;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import org.apache.maven.artifact.repository.metadata.Metadata;
+import org.apache.maven.artifact.repository.metadata.SnapshotVersion;
+import org.apache.maven.artifact.repository.metadata.Versioning;
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Maven 2 repository metadata updater.
+ *
+ * @since 3.0
+ */
+public abstract class AbstractMetadataUpdater
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private final boolean update;
+
+  protected final Repository repository;
+
+  private final RepositoryMetadataMerger repositoryMetadataMerger;
+
+  private final boolean rebuildChecksums;
+
+  /**
+   * @param update Determines whether existing content should be updated or replaced.
+   * @param repository The {@link Repository} to update.
+   */
+  public AbstractMetadataUpdater(final boolean update, final Repository repository) {
+    this.update = update;
+    this.repository = checkNotNull(repository);
+    this.repositoryMetadataMerger = new RepositoryMetadataMerger();
+    this.rebuildChecksums = false;
+  }
+
+  /**
+   * @param update Determines whether existing content should be updated or replaced.
+   * @param repository The {@link Repository} to update.
+   * @param rebuildChecksums Whether to check for and regenerate missing checksums.
+   */
+  public AbstractMetadataUpdater(
+      final boolean update,
+      final Repository repository,
+      final boolean rebuildChecksums)
+  {
+    this.update = update;
+    this.repository = checkNotNull(repository);
+    this.repositoryMetadataMerger = new RepositoryMetadataMerger();
+    this.rebuildChecksums = rebuildChecksums;
+  }
+
+  /**
+   * Checks if the given G-level metadata path is also being used as GA-level metadata.
+   * This happens when a groupId like "a.b" creates metadata at /a/b/maven-metadata.xml,
+   * which collides with GA-level metadata for namespace="a" and name="b".
+   *
+   * @param metadataPath the G-level metadata path to check
+   * @return true if this path is also serving as GA-level metadata for a different component
+   */
+  protected boolean isPathUsedForGAMetadata(final MavenPath metadataPath) {
+    try {
+      // Extract the path segments
+      String path = metadataPath.getPath();
+      String metadataFileName = "/" + Constants.METADATA_FILENAME;
+      if (!path.endsWith(metadataFileName)) {
+        return false;
+      }
+
+      // Remove "/maven-metadata.xml" to get the base path
+      String basePath = path.substring(0, path.length() - metadataFileName.length());
+
+      // Split into segments: a/b -> ["a", "b"]
+      String[] segments = basePath.split("/");
+
+      // Filter empty segments (in case of leading slash)
+      List<String> nonEmptySegments = new ArrayList<>();
+      for (String segment : segments) {
+        if (!segment.isEmpty()) {
+          nonEmptySegments.add(segment);
+        }
+      }
+
+      if (nonEmptySegments.size() < 2) {
+        return false; // Need at least 2 segments for GA collision
+      }
+
+      // Check if the last segment is being used as an artifactId
+      // by treating everything before it as the namespace
+      String potentialArtifactId = nonEmptySegments.get(nonEmptySegments.size() - 1);
+
+      // Build the namespace from all segments except the last one
+      StringBuilder namespaceBuilder = new StringBuilder();
+      for (int i = 0; i < nonEmptySegments.size() - 1; i++) {
+        if (i > 0) {
+          namespaceBuilder.append(".");
+        }
+        namespaceBuilder.append(nonEmptySegments.get(i));
+      }
+      String potentialNamespace = namespaceBuilder.toString();
+
+      // Check if components exist with this namespace+name combination
+      MavenContentFacet contentFacet = repository.facet(MavenContentFacet.class);
+      Collection<String> baseVersions = contentFacet.getBaseVersions(potentialNamespace, potentialArtifactId);
+
+      if (!baseVersions.isEmpty()) {
+        log.debug(
+            "Path {} is also used for GA-level metadata (namespace={}, name={}), skipping deletion to prevent collision",
+            path, potentialNamespace, potentialArtifactId);
+        return true;
+      }
+
+      return false;
+    }
+    catch (Exception e) {
+      log.warn("Error checking if path is used for GA metadata: {}", metadataPath.getPath(), e);
+      // If we can't determine, assume it's being not used.
+      return false;
+    }
+  }
+
+  /**
+   * Processes metadata, depending on {@link #update} value and input value of metadata parameter. If input is
+   * non-null, will update or replace depending on value of {@link #update}. If input is null, will delete if {@link
+   * #update} is {@code false}.
+   */
+  public void processMetadata(final MavenPath metadataPath, final Maven2Metadata metadata) {
+    if (metadata != null) {
+      log.debug("Processing Metadata {} to Path {}", metadata, metadataPath.getPath());
+      if (update) {
+        update(metadataPath, metadata);
+      }
+      else {
+        replace(metadataPath, metadata);
+      }
+    }
+    else if (!update) {
+      // Before deleting G-level metadata, check if this path is also being used
+      // as GA-level metadata for a different component (path collision scenario)
+      if (!isPathUsedForGAMetadata(metadataPath)) {
+        log.debug("Deleting Metadata from {}", metadataPath.getPath());
+        delete(metadataPath);
+      }
+    }
+  }
+
+  /**
+   * Writes/updates metadata, merges existing one, if any.
+   */
+  @VisibleForTesting
+  protected void update(final MavenPath mavenPath, final Maven2Metadata metadata) {
+    log.debug("Updating Metadata in {}", mavenPath.getPath());
+    try {
+      checkNotNull(mavenPath);
+      checkNotNull(metadata);
+
+      final Optional<Metadata> oldMetadata = safeRead(mavenPath);
+      if (oldMetadata.isPresent()) {
+        final Metadata updated = repositoryMetadataMerger.merge(
+            ImmutableList.of(
+                new Envelope(repository.getName() + ":" + mavenPath.getPath(), oldMetadata.get()),
+                new Envelope("new:" + mavenPath.getPath(), toMetadata(metadata))));
+        writeIfChanged(mavenPath, oldMetadata.get(), updated);
+      }
+      else {
+        write(mavenPath, toMetadata(metadata));
+      }
+    }
+    catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Writes/overwrites metadata, replacing existing one, if any.
+   */
+  protected void replace(final MavenPath mavenPath, final Maven2Metadata metadata) {
+    log.debug("Replacing Metadata in {}", mavenPath.getPath());
+    try {
+      checkNotNull(mavenPath);
+      checkNotNull(metadata);
+
+      final Optional<Metadata> oldMetadata = safeRead(mavenPath);
+      if (oldMetadata.isPresent()) {
+        final Metadata updated = toMetadata(metadata);
+        writeIfChanged(mavenPath, oldMetadata.get(), updated);
+      }
+      else {
+        write(mavenPath, toMetadata(metadata));
+        log.debug("Wrote new metadata for {}", mavenPath.getPath());
+      }
+    }
+    catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /*
+   * Attempts to read the metadata, if an error occurs an empty optional is returned. This should be used when
+   * operations can safely proceed if the metadata can be overwritten.
+   */
+  private Optional<Metadata> safeRead(final MavenPath mavenPath) {
+    try {
+      return read(mavenPath);
+    }
+    catch (Exception e) {
+      log.warn("Encountered error reading {}", mavenPath, e);
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Converts NX VO into Apache Maven {@link Metadata}.
+   */
+  private Metadata toMetadata(final Maven2Metadata maven2Metadata) {
+    final Metadata result = new Metadata();
+    result.setModelVersion("1.1.0");
+    result.setGroupId(maven2Metadata.getGroupId());
+    result.setArtifactId(maven2Metadata.getArtifactId());
+    result.setVersion(maven2Metadata.getVersion());
+    if (maven2Metadata.getPlugins() != null) {
+      for (Plugin plugin : maven2Metadata.getPlugins()) {
+        final org.apache.maven.artifact.repository.metadata.Plugin mPlugin =
+            new org.apache.maven.artifact.repository.metadata.Plugin();
+        mPlugin.setArtifactId(plugin.getArtifactId());
+        mPlugin.setPrefix(plugin.getPrefix());
+        mPlugin.setName(plugin.getName());
+        result.addPlugin(mPlugin);
+      }
+    }
+    if (maven2Metadata.getBaseVersions() != null) {
+      final Versioning versioning = new Versioning();
+      versioning.setLatest(maven2Metadata.getBaseVersions().getLatest());
+      versioning.setRelease(maven2Metadata.getBaseVersions().getRelease());
+      versioning.setVersions(maven2Metadata.getBaseVersions().getVersions());
+      versioning.setLastUpdated(Constants.METADATA_DOTLESS_TIMESTAMP.print(maven2Metadata.getLastUpdated()));
+      result.setVersioning(versioning);
+    }
+    if (maven2Metadata.getSnapshots() != null) {
+      final Versioning versioning = result.getVersioning() != null ? result.getVersioning() : new Versioning();
+      final org.apache.maven.artifact.repository.metadata.Snapshot snapshot =
+          new org.apache.maven.artifact.repository.metadata.Snapshot();
+      if (maven2Metadata.getSnapshots().getSnapshotTimestamp() != null) {
+        snapshot.setTimestamp(Constants.METADATA_DOTTED_TIMESTAMP.print(
+            new DateTime(maven2Metadata.getSnapshots().getSnapshotTimestamp())));
+      }
+      snapshot.setBuildNumber(maven2Metadata.getSnapshots().getSnapshotBuildNumber());
+      versioning.setSnapshot(snapshot);
+
+      final List<SnapshotVersion> snapshotVersions = Lists.newArrayList();
+      for (Snapshot snap : maven2Metadata.getSnapshots().getSnapshots()) {
+        final SnapshotVersion snapshotVersion = new SnapshotVersion();
+        snapshotVersion.setExtension(snap.getExtension());
+        snapshotVersion.setClassifier(snap.getClassifier());
+        snapshotVersion.setVersion(snap.getVersion());
+        snapshotVersion.setUpdated(Constants.METADATA_DOTLESS_TIMESTAMP.print(snap.getLastUpdated()));
+        snapshotVersions.add(snapshotVersion);
+      }
+      versioning.setSnapshotVersions(snapshotVersions);
+      versioning.setLastUpdated(Constants.METADATA_DOTLESS_TIMESTAMP.print(maven2Metadata.getLastUpdated()));
+      result.setVersioning(versioning);
+    }
+    return result;
+  }
+
+  @VisibleForTesting
+  void writeIfChanged(
+      final MavenPath mavenPath,
+      final Metadata oldMetadata,
+      final Metadata newMetadata) throws IOException
+  {
+    boolean contentChanged = !repositoryMetadataMerger.metadataEquals(oldMetadata, newMetadata);
+    boolean checksumsMissing = rebuildChecksums && hasMissingChecksums(mavenPath);
+
+    if (contentChanged || checksumsMissing) {
+      if (checksumsMissing) {
+        log.debug("Metadata for {} has missing checksums, regenerating", mavenPath.getPath());
+      }
+      write(mavenPath, newMetadata);
+    }
+    else {
+      log.debug("Metadata for {} hasn't changed, skipping", mavenPath.getPath());
+    }
+  }
+
+  /**
+   * Checks if any checksum files are missing for the given metadata path.
+   *
+   * @param mavenPath the metadata path to check
+   * @return true if any checksum file is missing
+   */
+  protected boolean hasMissingChecksums(final MavenPath mavenPath) {
+    return false;
+  }
+
+  /**
+   * Writes passed in metadata as XML.
+   */
+  abstract protected void write(final MavenPath mavenPath, final Metadata metadata) throws IOException;
+
+  /**
+   * Reads metadata from XML.
+   */
+  abstract protected Optional<Metadata> read(final MavenPath mavenPath) throws IOException;
+
+  /**
+   * Deletes metadata.
+   */
+  abstract protected void delete(final MavenPath mavenPath);
+}
