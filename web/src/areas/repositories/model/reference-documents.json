@@ -1,0 +1,3387 @@
+{
+  "alpine/group/max": {
+    "alpineSigning": {},
+    "format": "alpine",
+    "group": {
+      "memberNames": ["m3-repo-alpine-hosted-min"]
+    },
+    "name": "m3-repo-alpine-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-alpine-group-max"
+  },
+  "alpine/group/min": {
+    "alpineSigning": null,
+    "format": "alpine",
+    "group": {
+      "memberNames": ["m3-repo-alpine-hosted-min"]
+    },
+    "name": "m3-repo-alpine-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-alpine-group-min"
+  },
+  "alpine/hosted/max": {
+    "alpineSigning": {},
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "alpine",
+    "name": "m3-repo-alpine-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-alpine-hosted-max"
+  },
+  "alpine/hosted/min": {
+    "alpineSigning": null,
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "alpine",
+    "name": "m3-repo-alpine-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-alpine-hosted-min"
+  },
+  "alpine/proxy/max": {
+    "alpineSigning": {},
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "alpine",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-alpine-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-alpine-proxy-max"
+  },
+  "alpine/proxy/min": {
+    "alpineSigning": null,
+    "cleanup": null,
+    "firewall": null,
+    "format": "alpine",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-alpine-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-alpine-proxy-min"
+  },
+  "apt/hosted/max": {
+    "apt": {
+      "distribution": "bookworm"
+    },
+    "aptSigning": {},
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "apt",
+    "name": "m3-repo-apt-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-apt-hosted-max"
+  },
+  "apt/hosted/min": {
+    "apt": {
+      "distribution": "bookworm"
+    },
+    "aptSigning": {},
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "apt",
+    "name": "m3-repo-apt-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-apt-hosted-min"
+  },
+  "apt/proxy/max": {
+    "apt": {
+      "distribution": "bookworm",
+      "enforceDistribution": true,
+      "flat": true
+    },
+    "aptSigning": {},
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "apt",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-apt-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-apt-proxy-max"
+  },
+  "apt/proxy/min": {
+    "apt": {
+      "distribution": null,
+      "enforceDistribution": false,
+      "flat": true
+    },
+    "aptSigning": null,
+    "cleanup": null,
+    "firewall": null,
+    "format": "apt",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-apt-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-apt-proxy-min"
+  },
+  "cargo/group/max": {
+    "cargo": {
+      "requireAuthentication": true
+    },
+    "format": "cargo",
+    "group": {
+      "memberNames": ["m3-repo-cargo-hosted-min"]
+    },
+    "name": "m3-repo-cargo-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-cargo-group-max"
+  },
+  "cargo/group/min": {
+    "cargo": {
+      "requireAuthentication": false
+    },
+    "format": "cargo",
+    "group": {
+      "memberNames": ["m3-repo-cargo-hosted-min"]
+    },
+    "name": "m3-repo-cargo-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-cargo-group-min"
+  },
+  "cargo/hosted/max": {
+    "cargo": {
+      "requireAuthentication": true
+    },
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "cargo",
+    "name": "m3-repo-cargo-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-cargo-hosted-max"
+  },
+  "cargo/hosted/min": {
+    "cargo": {
+      "requireAuthentication": false
+    },
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "cargo",
+    "name": "m3-repo-cargo-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-cargo-hosted-min"
+  },
+  "cargo/proxy/max": {
+    "cargo": {
+      "requireAuthentication": true
+    },
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "cargo",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-cargo-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-cargo-proxy-max"
+  },
+  "cargo/proxy/min": {
+    "cargo": {
+      "requireAuthentication": false
+    },
+    "cleanup": null,
+    "firewall": null,
+    "format": "cargo",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-cargo-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-cargo-proxy-min"
+  },
+  "cocoapods/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "cocoapods",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-cocoapods-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-cocoapods-proxy-max"
+  },
+  "cocoapods/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "cocoapods",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-cocoapods-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-cocoapods-proxy-min"
+  },
+  "composer/group/max": {
+    "format": "composer",
+    "group": {
+      "memberNames": ["m3-repo-composer-hosted-min"]
+    },
+    "name": "m3-repo-composer-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-composer-group-max"
+  },
+  "composer/group/min": {
+    "format": "composer",
+    "group": {
+      "memberNames": ["m3-repo-composer-hosted-min"]
+    },
+    "name": "m3-repo-composer-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-composer-group-min"
+  },
+  "composer/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "composer",
+    "name": "m3-repo-composer-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-composer-hosted-max"
+  },
+  "composer/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "composer",
+    "name": "m3-repo-composer-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-composer-hosted-min"
+  },
+  "composer/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "composer",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-composer-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-composer-proxy-max"
+  },
+  "composer/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "composer",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-composer-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-composer-proxy-min"
+  },
+  "conan/group/max": {
+    "format": "conan",
+    "group": {
+      "memberNames": ["m3-repo-conan-hosted-min"]
+    },
+    "name": "m3-repo-conan-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conan-group-max"
+  },
+  "conan/group/min": {
+    "format": "conan",
+    "group": {
+      "memberNames": ["m3-repo-conan-hosted-min"]
+    },
+    "name": "m3-repo-conan-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conan-group-min"
+  },
+  "conan/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "conan",
+    "name": "m3-repo-conan-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conan-hosted-max"
+  },
+  "conan/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "conan",
+    "name": "m3-repo-conan-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conan-hosted-min"
+  },
+  "conan/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "conanProxy": {
+      "conanVersion": "V1"
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "conan",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-conan-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conan-proxy-max"
+  },
+  "conan/proxy/min": {
+    "cleanup": null,
+    "conanProxy": {
+      "conanVersion": "V2"
+    },
+    "firewall": null,
+    "format": "conan",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-conan-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conan-proxy-min"
+  },
+  "conda/group/max": {
+    "format": "conda",
+    "group": {
+      "memberNames": ["m3-repo-conda-hosted-min"]
+    },
+    "name": "m3-repo-conda-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conda-group-max"
+  },
+  "conda/group/min": {
+    "format": "conda",
+    "group": {
+      "memberNames": ["m3-repo-conda-hosted-min"]
+    },
+    "name": "m3-repo-conda-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conda-group-min"
+  },
+  "conda/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "conda",
+    "name": "m3-repo-conda-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conda-hosted-max"
+  },
+  "conda/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "conda",
+    "name": "m3-repo-conda-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conda-hosted-min"
+  },
+  "conda/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "conda",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-conda-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conda-proxy-max"
+  },
+  "conda/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "conda",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-conda-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-conda-proxy-min"
+  },
+  "docker/group/max": {
+    "docker": {
+      "forceBasicAuth": false,
+      "pathEnabled": false,
+      "subdomain": "m3repogroup",
+      "v1Enabled": true
+    },
+    "format": "docker",
+    "group": {
+      "memberNames": ["m3-repo-docker-hosted-min"],
+      "writableMember": "m3-repo-docker-hosted-min"
+    },
+    "name": "m3-repo-docker-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-docker-group-max"
+  },
+  "docker/group/min": {
+    "docker": {
+      "forceBasicAuth": true,
+      "v1Enabled": false
+    },
+    "format": "docker",
+    "group": {
+      "memberNames": ["m3-repo-docker-hosted-min"]
+    },
+    "name": "m3-repo-docker-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-docker-group-min"
+  },
+  "docker/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "docker": {
+      "forceBasicAuth": false,
+      "pathEnabled": false,
+      "subdomain": "m3repohosted",
+      "v1Enabled": true
+    },
+    "format": "docker",
+    "name": "m3-repo-docker-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "latestPolicy": true,
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-docker-hosted-max"
+  },
+  "docker/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "docker": {
+      "forceBasicAuth": true,
+      "v1Enabled": false
+    },
+    "format": "docker",
+    "name": "m3-repo-docker-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "latestPolicy": null,
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-docker-hosted-min"
+  },
+  "docker/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "docker": {
+      "forceBasicAuth": false,
+      "pathEnabled": false,
+      "subdomain": "m3repoproxy",
+      "v1Enabled": true
+    },
+    "dockerProxy": {
+      "cacheForeignLayers": true,
+      "foreignLayerUrlWhitelist": [".*m3"],
+      "indexType": "CUSTOM",
+      "indexUrl": "https://m3-index.example.invalid/"
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "docker",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-docker-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-docker-proxy-max"
+  },
+  "docker/proxy/min": {
+    "cleanup": null,
+    "docker": {
+      "forceBasicAuth": true,
+      "v1Enabled": false
+    },
+    "dockerProxy": {
+      "cacheForeignLayers": false,
+      "foreignLayerUrlWhitelist": [],
+      "indexType": "REGISTRY"
+    },
+    "firewall": null,
+    "format": "docker",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-docker-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-docker-proxy-min"
+  },
+  "gitlfs/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "gitlfs",
+    "name": "m3-repo-gitlfs-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-gitlfs-hosted-max"
+  },
+  "gitlfs/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "gitlfs",
+    "name": "m3-repo-gitlfs-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-gitlfs-hosted-min"
+  },
+  "go/group/max": {
+    "format": "go",
+    "group": {
+      "memberNames": ["m3-repo-go-hosted-min"]
+    },
+    "name": "m3-repo-go-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-go-group-max"
+  },
+  "go/group/min": {
+    "format": "go",
+    "group": {
+      "memberNames": ["m3-repo-go-hosted-min"]
+    },
+    "name": "m3-repo-go-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-go-group-min"
+  },
+  "go/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "go",
+    "name": "m3-repo-go-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-go-hosted-max"
+  },
+  "go/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "go",
+    "name": "m3-repo-go-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-go-hosted-min"
+  },
+  "go/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "go",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-go-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-go-proxy-max"
+  },
+  "go/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "go",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-go-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-go-proxy-min"
+  },
+  "helm/group/max": {
+    "format": "helm",
+    "group": {
+      "memberNames": ["m3-repo-helm-hosted-min"]
+    },
+    "name": "m3-repo-helm-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-helm-group-max"
+  },
+  "helm/group/min": {
+    "format": "helm",
+    "group": {
+      "memberNames": ["m3-repo-helm-hosted-min"]
+    },
+    "name": "m3-repo-helm-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-helm-group-min"
+  },
+  "helm/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "helm",
+    "name": "m3-repo-helm-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-helm-hosted-max"
+  },
+  "helm/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "helm",
+    "name": "m3-repo-helm-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-helm-hosted-min"
+  },
+  "helm/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "helm",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-helm-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-helm-proxy-max"
+  },
+  "helm/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "helm",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-helm-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-helm-proxy-min"
+  },
+  "huggingface/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "huggingface",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-huggingface-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-huggingface-proxy-max"
+  },
+  "huggingface/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "huggingface",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-huggingface-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-huggingface-proxy-min"
+  },
+  "maven/group/max": {
+    "format": "maven2",
+    "group": {
+      "memberNames": ["m3-repo-maven-hosted-min"]
+    },
+    "name": "m3-repo-maven-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-maven-group-max"
+  },
+  "maven/group/min": {
+    "format": "maven2",
+    "group": {
+      "memberNames": ["m3-repo-maven-hosted-min"]
+    },
+    "name": "m3-repo-maven-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-maven-group-min"
+  },
+  "maven/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "maven2",
+    "maven": {
+      "contentDisposition": "INLINE",
+      "layoutPolicy": "PERMISSIVE",
+      "versionPolicy": "MIXED"
+    },
+    "name": "m3-repo-maven-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-maven-hosted-max"
+  },
+  "maven/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "maven2",
+    "maven": {
+      "contentDisposition": "ATTACHMENT",
+      "layoutPolicy": "PERMISSIVE",
+      "versionPolicy": "MIXED"
+    },
+    "name": "m3-repo-maven-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-maven-hosted-min"
+  },
+  "maven/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "maven2",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "preemptive": true,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "maven": {
+      "contentDisposition": "INLINE",
+      "layoutPolicy": "PERMISSIVE",
+      "versionPolicy": "MIXED"
+    },
+    "name": "m3-repo-maven-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "ALLOW"
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-maven-proxy-max"
+  },
+  "maven/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "maven2",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "maven": {
+      "contentDisposition": "ATTACHMENT",
+      "layoutPolicy": "PERMISSIVE",
+      "versionPolicy": "MIXED"
+    },
+    "name": "m3-repo-maven-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "ALLOW"
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-maven-proxy-min"
+  },
+  "npm/group/max": {
+    "format": "npm",
+    "group": {
+      "memberNames": ["m3-repo-npm-hosted-min"]
+    },
+    "name": "m3-repo-npm-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-npm-group-max"
+  },
+  "npm/group/min": {
+    "format": "npm",
+    "group": {
+      "memberNames": ["m3-repo-npm-hosted-min"]
+    },
+    "name": "m3-repo-npm-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-npm-group-min"
+  },
+  "npm/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "npm",
+    "name": "m3-repo-npm-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-npm-hosted-max"
+  },
+  "npm/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "npm",
+    "name": "m3-repo-npm-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-npm-hosted-min"
+  },
+  "npm/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "npm",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-npm-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "npm": {
+      "removeNonCataloged": true,
+      "removeQuarantined": true
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "ALLOW"
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-npm-proxy-max"
+  },
+  "npm/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "npm",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-npm-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "npm": {
+      "removeNonCataloged": false,
+      "removeQuarantined": false
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "ALLOW"
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-npm-proxy-min"
+  },
+  "nuget/group/max": {
+    "format": "nuget",
+    "group": {
+      "memberNames": ["m3-repo-nuget-hosted-min"]
+    },
+    "name": "m3-repo-nuget-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-nuget-group-max"
+  },
+  "nuget/group/min": {
+    "format": "nuget",
+    "group": {
+      "memberNames": ["m3-repo-nuget-hosted-min"]
+    },
+    "name": "m3-repo-nuget-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-nuget-group-min"
+  },
+  "nuget/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "nuget",
+    "name": "m3-repo-nuget-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-nuget-hosted-max"
+  },
+  "nuget/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "nuget",
+    "name": "m3-repo-nuget-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-nuget-hosted-min"
+  },
+  "nuget/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "nuget",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-nuget-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "nugetProxy": {
+      "nugetVersion": "V2",
+      "queryCacheItemMaxAge": 100
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-nuget-proxy-max"
+  },
+  "nuget/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "nuget",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-nuget-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "nugetProxy": {
+      "nugetVersion": "V3",
+      "queryCacheItemMaxAge": 3600
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-nuget-proxy-min"
+  },
+  "p2/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "p2",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-p2-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-p2-proxy-max"
+  },
+  "p2/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "p2",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-p2-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-p2-proxy-min"
+  },
+  "pypi/group/max": {
+    "format": "pypi",
+    "group": {
+      "memberNames": ["m3-repo-pypi-hosted-min"]
+    },
+    "name": "m3-repo-pypi-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-pypi-group-max"
+  },
+  "pypi/group/min": {
+    "format": "pypi",
+    "group": {
+      "memberNames": ["m3-repo-pypi-hosted-min"]
+    },
+    "name": "m3-repo-pypi-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-pypi-group-min"
+  },
+  "pypi/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "pypi",
+    "name": "m3-repo-pypi-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-pypi-hosted-max"
+  },
+  "pypi/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "pypi",
+    "name": "m3-repo-pypi-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-pypi-hosted-min"
+  },
+  "pypi/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "pypi",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-pypi-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-pypi-proxy-max"
+  },
+  "pypi/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "pypi",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-pypi-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-pypi-proxy-min"
+  },
+  "r/group/max": {
+    "format": "r",
+    "group": {
+      "memberNames": ["m3-repo-r-hosted-min"]
+    },
+    "name": "m3-repo-r-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-r-group-max"
+  },
+  "r/group/min": {
+    "format": "r",
+    "group": {
+      "memberNames": ["m3-repo-r-hosted-min"]
+    },
+    "name": "m3-repo-r-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-r-group-min"
+  },
+  "r/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "r",
+    "name": "m3-repo-r-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-r-hosted-max"
+  },
+  "r/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "r",
+    "name": "m3-repo-r-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-r-hosted-min"
+  },
+  "r/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "r",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-r-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-r-proxy-max"
+  },
+  "r/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "r",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-r-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-r-proxy-min"
+  },
+  "raw/group/max": {
+    "format": "raw",
+    "group": {
+      "memberNames": ["m3-repo-raw-hosted-min"]
+    },
+    "name": "m3-repo-raw-group-max",
+    "online": false,
+    "raw": {
+      "contentDisposition": "INLINE"
+    },
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "ALLOW"
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-raw-group-max"
+  },
+  "raw/group/min": {
+    "format": "raw",
+    "group": {
+      "memberNames": ["m3-repo-raw-hosted-min"]
+    },
+    "name": "m3-repo-raw-group-min",
+    "online": true,
+    "raw": {
+      "contentDisposition": "ATTACHMENT"
+    },
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "ALLOW"
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-raw-group-min"
+  },
+  "raw/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "raw",
+    "name": "m3-repo-raw-hosted-max",
+    "online": false,
+    "raw": {
+      "contentDisposition": "INLINE"
+    },
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-raw-hosted-max"
+  },
+  "raw/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "raw",
+    "name": "m3-repo-raw-hosted-min",
+    "online": true,
+    "raw": {
+      "contentDisposition": "ATTACHMENT"
+    },
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-raw-hosted-min"
+  },
+  "raw/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "raw",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-raw-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "raw": {
+      "contentDisposition": "INLINE"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "ALLOW"
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-raw-proxy-max"
+  },
+  "raw/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "raw",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-raw-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "raw": {
+      "contentDisposition": "ATTACHMENT"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "ALLOW"
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-raw-proxy-min"
+  },
+  "rubygems/group/max": {
+    "format": "rubygems",
+    "group": {
+      "memberNames": ["m3-repo-rubygems-hosted-min"]
+    },
+    "name": "m3-repo-rubygems-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-rubygems-group-max"
+  },
+  "rubygems/group/min": {
+    "format": "rubygems",
+    "group": {
+      "memberNames": ["m3-repo-rubygems-hosted-min"]
+    },
+    "name": "m3-repo-rubygems-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-rubygems-group-min"
+  },
+  "rubygems/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "rubygems",
+    "name": "m3-repo-rubygems-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-rubygems-hosted-max"
+  },
+  "rubygems/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "rubygems",
+    "name": "m3-repo-rubygems-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-rubygems-hosted-min"
+  },
+  "rubygems/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "rubygems",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-rubygems-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-rubygems-proxy-max"
+  },
+  "rubygems/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "rubygems",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-rubygems-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-rubygems-proxy-min"
+  },
+  "swift/group/max": {
+    "format": "swift",
+    "group": {
+      "memberNames": ["m3-repo-swift-hosted-min"]
+    },
+    "name": "m3-repo-swift-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-swift-group-max"
+  },
+  "swift/group/min": {
+    "format": "swift",
+    "group": {
+      "memberNames": ["m3-repo-swift-hosted-min"]
+    },
+    "name": "m3-repo-swift-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-swift-group-min"
+  },
+  "swift/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "swift",
+    "name": "m3-repo-swift-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-swift-hosted-max"
+  },
+  "swift/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "swift",
+    "name": "m3-repo-swift-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-swift-hosted-min"
+  },
+  "swift/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "swift",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-swift-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-swift-proxy-max"
+  },
+  "swift/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "swift",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-swift-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-swift-proxy-min"
+  },
+  "terraform/group/max": {
+    "format": "terraform",
+    "group": {
+      "memberNames": ["m3-repo-terraform-hosted-min"]
+    },
+    "name": "m3-repo-terraform-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "terraform": {
+      "registryHost": "m3-repo-group.example.invalid",
+      "requireAuthentication": true,
+      "upstreamHost": "registry.example.invalid"
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-terraform-group-max"
+  },
+  "terraform/group/min": {
+    "format": "terraform",
+    "group": {
+      "memberNames": ["m3-repo-terraform-hosted-min"]
+    },
+    "name": "m3-repo-terraform-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "terraform": {
+      "registryHost": null,
+      "requireAuthentication": false,
+      "upstreamHost": null
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-terraform-group-min"
+  },
+  "terraform/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "terraform",
+    "name": "m3-repo-terraform-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "terraform": {
+      "registryHost": "m3-repo-hosted.example.invalid",
+      "requireAuthentication": true,
+      "upstreamHost": "registry.example.invalid"
+    },
+    "terraformSigning": {},
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-terraform-hosted-max"
+  },
+  "terraform/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "terraform",
+    "name": "m3-repo-terraform-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "terraform": {
+      "registryHost": null,
+      "requireAuthentication": false,
+      "upstreamHost": null
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-terraform-hosted-min"
+  },
+  "terraform/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "terraform",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-terraform-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "terraform": {
+      "registryHost": "m3-repo-proxy.example.invalid",
+      "requireAuthentication": true,
+      "upstreamHost": "registry.example.invalid"
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-terraform-proxy-max"
+  },
+  "terraform/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "terraform",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-terraform-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "terraform": {
+      "registryHost": null,
+      "requireAuthentication": false,
+      "upstreamHost": null
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-terraform-proxy-min"
+  },
+  "yum/group/max": {
+    "format": "yum",
+    "group": {
+      "memberNames": ["m3-repo-yum-hosted-min"]
+    },
+    "name": "m3-repo-yum-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-yum-group-max",
+    "yumSigning": {}
+  },
+  "yum/group/min": {
+    "format": "yum",
+    "group": {
+      "memberNames": ["m3-repo-yum-hosted-min"]
+    },
+    "name": "m3-repo-yum-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-yum-group-min"
+  },
+  "yum/hosted/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "component": {
+      "proprietaryComponents": true
+    },
+    "format": "yum",
+    "name": "m3-repo-yum-hosted-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-yum-hosted-max",
+    "yum": {
+      "deployPolicy": "PERMISSIVE",
+      "repodataDepth": 2
+    },
+    "yumSigning": {}
+  },
+  "yum/hosted/min": {
+    "cleanup": null,
+    "component": {
+      "proprietaryComponents": false
+    },
+    "format": "yum",
+    "name": "m3-repo-yum-hosted-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false,
+      "writePolicy": "DENY"
+    },
+    "type": "hosted",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-yum-hosted-min",
+    "yum": {
+      "deployPolicy": "STRICT",
+      "repodataDepth": 0
+    }
+  },
+  "yum/proxy/max": {
+    "cleanup": {
+      "policyNames": []
+    },
+    "firewall": {
+      "mode": "AUDIT"
+    },
+    "format": "yum",
+    "httpClient": {
+      "authentication": {
+        "ntlmDomain": null,
+        "ntlmHost": null,
+        "type": "username",
+        "username": "m3-user"
+      },
+      "autoBlock": false,
+      "blocked": true,
+      "connection": {
+        "enableCircularRedirects": true,
+        "enableCookies": true,
+        "retries": 3,
+        "timeout": 30,
+        "useTrustStore": true,
+        "userAgentSuffix": "m3"
+      }
+    },
+    "name": "m3-repo-yum-proxy-max",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": false,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": true,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": ".*m3",
+      "preemptivePullEnabled": true
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-yum-proxy-max",
+    "yumSigning": {}
+  },
+  "yum/proxy/min": {
+    "cleanup": null,
+    "firewall": null,
+    "format": "yum",
+    "httpClient": {
+      "authentication": null,
+      "autoBlock": true,
+      "blocked": false,
+      "connection": {
+        "enableCircularRedirects": false,
+        "enableCookies": false,
+        "retries": null,
+        "timeout": null,
+        "useTrustStore": false,
+        "userAgentSuffix": null
+      }
+    },
+    "name": "m3-repo-yum-proxy-min",
+    "negativeCache": {
+      "enabled": false,
+      "timeToLive": 13
+    },
+    "online": true,
+    "proxy": {
+      "contentMaxAge": 11,
+      "metadataMaxAge": 12,
+      "preserveEncodedCharacters": false,
+      "remoteUrl": "https://repo1.maven.org/m3-repo/"
+    },
+    "replication": {
+      "assetPathRegex": null,
+      "preemptivePullEnabled": false
+    },
+    "routingRuleName": null,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "proxy",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-yum-proxy-min"
+  }
+}
