@@ -1,0 +1,122 @@
+
+package org.globalart.astrum.content.maven.internal;
+
+import org.globalart.astrum.repository.maven.MavenPath;
+import org.globalart.astrum.repository.maven.MavenPath.Coordinates;
+import org.globalart.astrum.repository.maven.MavenPathParser;
+import org.globalart.astrum.repository.view.Request;
+import org.globalart.astrum.selector.PropertiesResolver;
+import org.globalart.astrum.selector.VariableResolver;
+import org.globalart.astrum.selector.VariableSourceBuilder;
+
+import com.google.common.collect.ImmutableMap;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import static com.google.common.collect.ImmutableMap.of;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.globalart.astrum.repository.maven.MavenPath.SignatureType.GPG;
+
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class MavenVariableResolverAdapterTest
+
+{
+  private static final String ARTIFACT_PATH = "group/artifact/version/artifact-version.jar";
+
+  @Mock
+  private MavenPathParser mavenPathParser;
+
+  @Mock
+  private VariableSourceBuilder builder;
+
+  @Mock
+  private Request request;
+
+  @Mock
+  private MavenPath mavenPath;
+
+  @Captor
+  private ArgumentCaptor<PropertiesResolver<String>> propertiesResolverCaptor;
+
+  private final ImmutableMap<String, Object> asset = of("name", ARTIFACT_PATH);
+
+  @InjectMocks
+  private MavenVariableResolverAdapter mavenVariableResolverAdapter;
+
+  @Before
+  public void setup() {
+    Coordinates coordinates = new Coordinates(false, "org.mockito", "mockito-core",
+        "3.24", 3600L, 100, "3.24", "test", ".jar", GPG);
+    mockPathParsing(coordinates);
+  }
+
+  @Test
+  public void addFromRequestShouldAddCoordinatesToVariableSourceBuilder() {
+    mavenVariableResolverAdapter.addFromRequest(builder, request);
+
+    verifyCoordinatesSet();
+  }
+
+  @Test
+  public void addFromSourceLookupShouldAddCoordinatesToVariableSourceBuilder() {
+    mavenVariableResolverAdapter.addFromSourceLookup(builder, asset);
+
+    verifyCoordinatesSet();
+  }
+
+  @Test
+  public void addFromRequestShouldNotAddNullCoordinates() {
+    when(mavenPath.getCoordinates()).thenReturn(null);
+
+    mavenVariableResolverAdapter.addFromRequest(builder, request);
+
+    verify(builder, never()).addResolver(any(VariableResolver.class));
+  }
+
+  @Test
+  public void addFromSourceLookupShouldNotAddNullCoordinates() {
+    when(mavenPath.getCoordinates()).thenReturn(null);
+
+    mavenVariableResolverAdapter.addFromSourceLookup(builder, asset);
+
+    verify(builder, never()).addResolver(any(VariableResolver.class));
+  }
+
+  private void mockPathParsing(final Coordinates coordinates) {
+    when(request.getPath()).thenReturn(ARTIFACT_PATH);
+    when(mavenPathParser.parsePath(ARTIFACT_PATH)).thenReturn(mavenPath);
+    when(mavenPath.getCoordinates()).thenReturn(coordinates);
+  }
+
+  private void verifyCoordinatesSet() {
+    verify(builder).addResolver(propertiesResolverCaptor.capture());
+    PropertiesResolver<String> propertiesResolver = propertiesResolverCaptor.getValue();
+
+    assertTrue(propertiesResolver.resolve("coordinate.groupId").isPresent());
+    assertThat(propertiesResolver.resolve("coordinate.groupId").get(), is("org.mockito"));
+
+    assertTrue(propertiesResolver.resolve("coordinate.artifactId").isPresent());
+    assertThat(propertiesResolver.resolve("coordinate.artifactId").get(), is("mockito-core"));
+
+    assertTrue(propertiesResolver.resolve("coordinate.version").isPresent());
+    assertThat(propertiesResolver.resolve("coordinate.version").get(), is("3.24"));
+
+    assertTrue(propertiesResolver.resolve("coordinate.classifier").isPresent());
+    assertThat(propertiesResolver.resolve("coordinate.classifier").get(), is("test"));
+
+    assertTrue(propertiesResolver.resolve("coordinate.extension").isPresent());
+    assertThat(propertiesResolver.resolve("coordinate.extension").get(), is(".jar"));
+  }
+}
