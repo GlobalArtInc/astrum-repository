@@ -1,0 +1,174 @@
+
+package org.globalart.astrum.repository.maven.api;
+
+import java.util.Arrays;
+import java.util.function.Consumer;
+
+import org.globalart.astrum.common.app.BaseUrlHolder;
+import org.globalart.astrum.common.collect.NestedAttributesMap;
+import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.Type;
+import org.globalart.astrum.repository.config.Configuration;
+import org.globalart.astrum.repository.manager.internal.RepositoryImpl;
+import org.globalart.astrum.repository.maven.ContentDisposition;
+import org.globalart.astrum.repository.maven.LayoutPolicy;
+import org.globalart.astrum.repository.maven.VersionPolicy;
+import org.globalart.astrum.repository.maven.internal.Maven2Format;
+import org.globalart.astrum.repository.rest.api.model.AbstractApiRepository;
+import org.globalart.astrum.repository.rest.api.model.SimpleApiGroupRepository;
+import org.globalart.astrum.repository.routing.RoutingRuleStore;
+import org.globalart.astrum.repository.types.GroupType;
+import org.globalart.astrum.repository.types.HostedType;
+import org.globalart.astrum.repository.types.ProxyType;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.Mockito;
+
+import static com.google.common.collect.Maps.newHashMap;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.AdditionalMatchers.not;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class MavenApiRepositoryAdapterTest
+
+{
+  private MavenApiRepositoryAdapter underTest;
+
+  @Mock
+  private RoutingRuleStore routingRuleStore;
+
+  @Before
+  public void setup() {
+    underTest = new MavenApiRepositoryAdapter(routingRuleStore);
+    BaseUrlHolder.set("http://astrum-url", "");
+  }
+
+  @Test
+  public void testAdapt_groupRepository() throws Exception {
+    // No maven specific props so simple smoke test
+    Repository repository = createRepository(new GroupType(),
+        configuration -> configuration.attributes("group").set("memberNames", Arrays.asList("a", "b")));
+
+    SimpleApiGroupRepository groupRepository = (SimpleApiGroupRepository) underTest.adapt(repository);
+    assertRepository(groupRepository, "group", true);
+  }
+
+  @Test
+  public void testAdapt_hostedRepository() throws Exception {
+    Repository repository =
+        createRepository(new HostedType(), LayoutPolicy.STRICT, VersionPolicy.MIXED, ContentDisposition.INLINE);
+
+    MavenHostedApiRepository hostedRepository = (MavenHostedApiRepository) underTest.adapt(repository);
+    assertRepository(hostedRepository, "hosted", true);
+    assertThat(hostedRepository.getMaven().getLayoutPolicy(), is("STRICT"));
+    assertThat(hostedRepository.getMaven().getVersionPolicy(), is("MIXED"));
+    assertThat(hostedRepository.getMaven().getContentDisposition(), is("INLINE"));
+    // Check fields are populated, actual values validated with SimpleApiRepositoryAdapterTest
+    assertThat(hostedRepository.getCleanup(), nullValue());
+    assertThat(hostedRepository.getStorage(), notNullValue());
+  }
+
+  @Test
+  public void testAdapt_proxyRepository() throws Exception {
+    Repository repository =
+        createRepository(new ProxyType(), LayoutPolicy.STRICT, VersionPolicy.MIXED, ContentDisposition.INLINE);
+
+    MavenProxyApiRepository proxyRepository = (MavenProxyApiRepository) underTest.adapt(repository);
+    assertRepository(proxyRepository, "proxy", true);
+    assertThat(proxyRepository.getMaven().getLayoutPolicy(), is("STRICT"));
+    assertThat(proxyRepository.getMaven().getVersionPolicy(), is("MIXED"));
+    assertThat(proxyRepository.getMaven().getContentDisposition(), is("INLINE"));
+    // Check fields are populated, actual values validated with SimpleApiRepositoryAdapterTest
+    assertThat(proxyRepository.getCleanup(), nullValue());
+    assertThat(proxyRepository.getHttpClient(), notNullValue());
+    assertThat(proxyRepository.getNegativeCache(), notNullValue());
+    assertThat(proxyRepository.getProxy(), notNullValue());
+    assertThat(proxyRepository.getStorage(), notNullValue());
+  }
+
+  private static void assertRepository(
+      final AbstractApiRepository repository,
+      final String type,
+      final Boolean online)
+  {
+    assertThat(repository.getFormat(), is("maven2"));
+    assertThat(repository.getName(), is("my-repo"));
+    assertThat(repository.getOnline(), is(online));
+    assertThat(repository.getType(), is(type));
+    assertThat(repository.getUrl(), is(BaseUrlHolder.get() + "/repository/my-repo"));
+  }
+
+  private static Configuration config(final String repositoryName) {
+    Configuration configuration = mock(Configuration.class);
+    when(configuration.isOnline()).thenReturn(true);
+    when(configuration.getRepositoryName()).thenReturn(repositoryName);
+    when(configuration.attributes(not(eq("maven")))).thenReturn(new NestedAttributesMap("dummy", newHashMap()));
+    return configuration;
+  }
+
+  private static Repository createRepository(final Type type, final Consumer<Configuration> mutator) throws Exception {
+    Repository repository = new RepositoryImpl(Mockito.mock(EventManager.class), type, new Maven2Format());
+    Configuration configuration = config("my-repo");
+    mutator.accept(configuration);
+    repository.init(configuration);
+    return repository;
+  }
+
+  private static Repository createRepository(
+      final Type type,
+      final LayoutPolicy layoutPolicy,
+      final VersionPolicy versionPolicy,
+      final ContentDisposition contentDisposition) throws Exception
+  {
+    Repository repository = new RepositoryImpl(Mockito.mock(EventManager.class), type, new Maven2Format());
+
+    Configuration configuration = config("my-repo");
+    NestedAttributesMap maven = new NestedAttributesMap("maven", newHashMap());
+    maven.set("layoutPolicy", layoutPolicy.toString());
+    maven.set("versionPolicy", versionPolicy.toString());
+    maven.set("contentDisposition", contentDisposition.toString());
+    when(configuration.attributes("maven")).thenReturn(maven);
+    repository.init(configuration);
+    return repository;
+  }
+
+  @Test
+  public void testAdapt_hostedRepository_normalizesNullContentDispositionToInline() throws Exception {
+    Repository repository = createRepositoryWithNullContentDisposition(new HostedType());
+
+    MavenHostedApiRepository hostedRepository = (MavenHostedApiRepository) underTest.adapt(repository);
+    assertThat(hostedRepository.getMaven().getContentDisposition(), is("INLINE"));
+  }
+
+  @Test
+  public void testAdapt_proxyRepository_normalizesNullContentDispositionToInline() throws Exception {
+    Repository repository = createRepositoryWithNullContentDisposition(new ProxyType());
+
+    MavenProxyApiRepository proxyRepository = (MavenProxyApiRepository) underTest.adapt(repository);
+    assertThat(proxyRepository.getMaven().getContentDisposition(), is("INLINE"));
+  }
+
+  private static Repository createRepositoryWithNullContentDisposition(final Type type) throws Exception {
+    Repository repository = new RepositoryImpl(Mockito.mock(EventManager.class), type, new Maven2Format());
+
+    Configuration configuration = config("my-repo");
+    NestedAttributesMap maven = new NestedAttributesMap("maven", newHashMap());
+    maven.set("layoutPolicy", "STRICT");
+    maven.set("versionPolicy", "MIXED");
+    // Intentionally NOT setting contentDisposition - it will be null
+    when(configuration.attributes("maven")).thenReturn(maven);
+    repository.init(configuration);
+    return repository;
+  }
+}
