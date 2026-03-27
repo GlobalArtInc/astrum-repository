@@ -1,0 +1,170 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.card {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--gray-a5);
+  border-radius: 12px;
+  background: var(--color-panel-solid);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.path {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.path code {
+  min-width: 0;
+  font-family: var(--code-font-family);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--gray-11);
+  overflow-wrap: anywhere;
+}
+
+.title {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.version {
+  color: var(--accent-11);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: none;
+}
+
+.note {
+  margin: 16px 0 0;
+}
+
+.usage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+  min-width: 0;
+}
+
+.sectionTitle {
+  margin: 0;
+}
+
+.card > .sectionTitle {
+  margin-bottom: 12px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px 16px;
+  margin: 0;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+}
+
+.field {
+  display: contents;
+}
+
+.fields dt {
+  color: var(--gray-11);
+}
+
+.fields dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--gray-12);
+  overflow-wrap: anywhere;
+}
+
+.fields dd[data-mono="true"] {
+  font-family: var(--code-font-family);
+  font-size: 13px;
+}
+
+.accordion {
+  border-top: 1px solid var(--gray-a5);
+}
+
+.accordionHead {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 8px;
+  font-size: var(--font-size-2);
+  font-weight: 500;
+  color: var(--gray-12);
+  cursor: pointer;
+}
+
+.accordionHead:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -2px;
+  border-radius: var(--radius-2);
+}
+
+.accordionIcon {
+  color: var(--gray-11);
+  transition: transform 120ms ease;
+}
+
+.accordionIcon[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 767px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .fields dd {
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 639px) {
+  .card {
+    padding: 16px;
+  }
+}
