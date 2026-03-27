@@ -1,0 +1,244 @@
+.page {
+  box-sizing: border-box;
+  padding: 32px;
+  min-width: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.layout:has(> .content:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.aside {
+  padding: 16px 4px 0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.56px;
+  overflow-wrap: anywhere;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.filterText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.reset {
+  align-self: flex-start;
+}
+
+.facet {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.facet legend {
+  margin-bottom: 10px;
+  line-height: 20px;
+  padding: 0;
+  font-size: var(--font-size-2);
+  font-weight: 700;
+  color: var(--gray-12);
+}
+
+.sortFacet {
+  gap: var(--space-2);
+}
+
+.facetOption {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.facetLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.more {
+  align-self: flex-start;
+  margin-left: 0;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.table {
+  min-width: 0;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.name {
+  color: var(--gray-12);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.name:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+  border-radius: var(--radius-1);
+}
+
+.sort {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: var(--radius-1);
+}
+
+.sort:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+}
+
+.urlCell {
+  min-width: 0;
+}
+
+.url {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.urlText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--code-font-family);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+  color: var(--gray-11);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-4);
+  background: var(--color-panel-solid);
+}
+
+.cardMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.cardDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-9);
+}
+
+.cardDot[data-online="false"] {
+  background: var(--gray-8);
+}
+
+.cardName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--gray-12);
+  font-size: var(--font-size-3);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cardCopy {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 639px) {
+  .page {
+    padding: 16px;
+  }
+}
