@@ -1,0 +1,242 @@
+
+package org.globalart.astrum.repository.maven.internal.search;
+
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+public class MavenVersionNormalizerTest
+{
+  private final MavenVersionNormalizer underTest = new MavenVersionNormalizer();
+
+  @Test
+  public void testNullEmpty() {
+    assertEquals("", underTest.getNormalizedVersion(null));
+    assertEquals("", underTest.getNormalizedVersion(""));
+    assertEquals("", underTest.getNormalizedVersion(" "));
+  }
+
+  @Test
+  public void testVersionExpansion() {
+    assertVersionsEqual("1", "1.0");
+    assertVersionsEqual("1", "1.0.0");
+    assertVersionsEqual("1.0", "1.0.0");
+  }
+
+  @Test
+  public void testAliases() {
+    // ASTRUM-53161: ga/release/final are Maven-equivalent but now have deterministic ordering
+    // They produce DISTINCT normalized values (not equal) with bare form highest
+    assertVersionsEqual("1cr", "1rc");
+    assertVersionsEqual("1a1", "1-alpha-1");
+    assertVersionsEqual("1b2", "1-beta-2");
+    assertVersionsEqual("1m3", "1-milestone-3");
+  }
+
+  /**
+   * ASTRUM-53161: Equivalent RELEASE-bucket versions must have deterministic ordering.
+   * Bare/canonical form (1.0.0) should sort highest on descending sort.
+   */
+  @Test
+  public void testEquivalentReleaseVersionsHaveDeterministicOrdering() {
+    // Bare form should sort highest in descending order (lexicographically highest normalized value)
+    assertBareFormSortsHighest("1.0.0", "1.0.0-final");
+    assertBareFormSortsHighest("1.0.0", "1.0.0-ga");
+    assertBareFormSortsHighest("1.0.0", "1.0.0-release");
+
+    // Test with different version numbers
+    assertBareFormSortsHighest("2.0.0", "2.0.0-release");
+    assertBareFormSortsHighest("3.1.4", "3.1.4-ga");
+
+    // Verify that all labelled forms are distinct from bare form
+    assertDistinctNormalizedValues("1.0.0", "1.0.0-ga");
+    assertDistinctNormalizedValues("1.0.0", "1.0.0-release");
+    assertDistinctNormalizedValues("1.0.0", "1.0.0-final");
+  }
+
+  /**
+   * ASTRUM-53161: Labelled forms (ga, release, final) should be deterministic among themselves.
+   */
+  @Test
+  public void testLabelledFormsSortDeterministicallyAmongThemselves() {
+    // All labelled forms should have distinct normalized values
+    assertDistinctNormalizedValues("1.0.0-final", "1.0.0-ga", "1.0.0-release");
+
+    // When sorted ascending, order should be: final < ga < release (lexicographic on qualifier)
+    assertInOrder("1.0.0-final", "1.0.0-ga", "1.0.0-release");
+  }
+
+  /**
+   * ASTRUM-53161: Dot-separated release aliases (.ga, .release, .final) should also be deterministic.
+   */
+  @Test
+  public void testDotSeparatedReleaseAliasesAreDeterministic() {
+    assertBareFormSortsHighest("1.0.0", "1.0.0.final");
+    assertBareFormSortsHighest("1.0.0", "1.0.0.ga");
+    assertBareFormSortsHighest("1.0.0", "1.0.0.release");
+
+    assertDistinctNormalizedValues("1.0.0.final", "1.0.0.ga", "1.0.0.release");
+  }
+
+  /**
+   * ASTRUM-53161: Non-release qualifiers (alpha, beta, rc, SNAPSHOT) should not be affected.
+   */
+  @Test
+  public void testNonReleaseQualifiersNotAffected() {
+    // These are NOT in the RELEASE bucket, so they should still work as before
+    assertVersionsEqual("1.0.0-alpha", "1.0.0-alpha");
+    assertVersionsEqual("1.0.0-beta", "1.0.0-beta");
+    assertVersionsEqual("1.0.0-rc1", "1.0.0-rc1");
+
+    // Pre-release versions should sort below release
+    assertInOrder("1.0.0-alpha", "1.0.0-beta", "1.0.0-rc", "1.0.0");
+    assertInOrder("1.0.0-alpha", "1.0.0-ga");
+  }
+
+  private void assertBareFormSortsHighest(final String bareVersion, final String labelledVersion) {
+    String bareNormalized = underTest.getNormalizedVersion(bareVersion);
+    String labelledNormalized = underTest.getNormalizedVersion(labelledVersion);
+    // "Highest on descending sort" means bare normalized value should be lexicographically higher
+    // (because bare form has "~" suffix which has ASCII 126)
+    assertTrue(
+        String.format("Expected bare form '%s' (%s) to sort higher than labelled form '%s' (%s)",
+            bareVersion, bareNormalized, labelledVersion, labelledNormalized),
+        bareNormalized.compareTo(labelledNormalized) > 0);
+  }
+
+  private void assertDistinctNormalizedValues(final String... versions) {
+    for (int i = 0; i < versions.length; i++) {
+      for (int j = i + 1; j < versions.length; j++) {
+        String n1 = underTest.getNormalizedVersion(versions[i]);
+        String n2 = underTest.getNormalizedVersion(versions[j]);
+        assertTrue(
+            String.format("Expected distinct normalized values for '%s' and '%s' but got '%s' for both",
+                versions[i], versions[j], n1),
+            !n1.equals(n2));
+      }
+    }
+  }
+
+  @Test
+  public void testCaseInsensitive() {
+    assertVersionsEqual("1X", "1x");
+    assertVersionsEqual("1A", "1a");
+    assertVersionsEqual("1B", "1b");
+    assertVersionsEqual("1M", "1m");
+    // ASTRUM-53161: ga/release/final now produce distinct normalized values for determinism
+    // They are comparable per Maven spec but normalize differently for stable sort
+    assertVersionsEqual("1Cr", "1Rc");
+    assertVersionsEqual("1cR", "1rC");
+    assertVersionsEqual("1m3", "1Milestone3");
+    assertVersionsEqual("1m3", "1MileStone3");
+    assertVersionsEqual("1m3", "1MILESTONE3");
+  }
+
+  @Test
+  public void testNoSeparator() {
+    assertVersionsEqual("1a", "1-a");
+    assertVersionsEqual("1a", "1.0-a");
+    assertVersionsEqual("1a", "1.0.0-a");
+    assertVersionsEqual("1.0a", "1-a");
+    assertVersionsEqual("1.0.0a", "1-a");
+    assertVersionsEqual("1x", "1-x");
+    assertVersionsEqual("1x", "1.0-x");
+    assertVersionsEqual("1x", "1.0.0-x");
+    assertVersionsEqual("1.0x", "1-x");
+    assertVersionsEqual("1.0.0x", "1-x");
+    // ASTRUM-31494
+    assertVersionsEqual("1.0-", "1");
+  }
+
+  @Test
+  public void testOrder() {
+    assertInOrder("1-alpha2", "1-alpha-123", "1-beta-2", "1-beta123", "1-m2", "1-m11", "1-rc", "1-cr2", "1-rc123",
+        "1-sp2", "1-1", "1-2", "1-123");
+    assertInOrder("2.0", "2.0.a", "2.0.2", "2.0.123", "2.1.0", "2.1-a", "2.1b", "2.1-c", "2.1-1", "2.2", "2.123");
+    assertInOrder("11.a2", "11.a11", "11.b2", "11.b11", "11.m2", "11.m11", "11", "11.a", "11b", "11c", "11m");
+
+    assertInOrder("1", "2");
+    assertInOrder("1.5", "2");
+    assertInOrder("1", "2.5");
+    assertInOrder("1.0", "1.1");
+    assertInOrder("1.1", "1.2");
+    assertInOrder("1.0.0", "1.1");
+    assertInOrder("1.0.1", "1.1");
+    assertInOrder("1.1", "1.2.0");
+
+    assertInOrder("1.0-alpha-1", "1.0");
+    assertInOrder("1.0-alpha-1", "1.0-alpha-2");
+    assertInOrder("1.0-alpha-1", "1.0-beta-1");
+
+    assertInOrder("1.0", "1.0-1");
+    assertInOrder("1.0-1", "1.0-2");
+    assertInOrder("1.0.0", "1.0-1");
+
+    assertInOrder("2.0-1", "2.0.1");
+    assertInOrder("2.0.1-klm", "2.0.1-lmn");
+    assertInOrder("2.0.1", "2.0.1-xyz");
+
+    assertInOrder("2.0.1", "2.0.1-123");
+    assertInOrder("2.0.1-xyz", "2.0.1-123");
+  }
+
+  @Test
+  public void testSnapshotOrder() {
+    assertInOrder("1-20211022.164208-1", "1");
+    assertInOrder("1.0-beta-1", "1.0-20230122.854921-1");
+    assertInOrder("2.1-20190801.333981-1", "2.1.0");
+    assertInOrder("3-beta-1", "3.0.0-20100505.190345-1");
+  }
+
+  @Test
+  public void testUnrecognizedVersionDefaultsToOriginalLogic() {
+    assertEquals("asparagus.schoolbus", underTest.getNormalizedVersion("asparagus.schoolbus"));
+    assertEquals("000000001.000000002.000000003.000000004.000000005", underTest.getNormalizedVersion("1.2.3.4.5"));
+    assertEquals("develop-020211201.000171404-000000903",
+        underTest.getNormalizedVersion("develop-20211201.171404-903"));
+    assertEquals("javaMaven-000000000.000000004.000000000-020230506.000135309-000000009",
+        underTest.getNormalizedVersion("javaMaven-0.4.0-20230506.135309-9"));
+    assertEquals("000000001.000000001.000000049.b.develop-020230308.000153857-000000022",
+        underTest.getNormalizedVersion("1.1.49.develop-20230308.153857-22"));
+
+    assertEquals("000000001.000000008.000000000.b.build_and_publish_docker_image-020230308.000135309-000000022",
+        underTest.getNormalizedVersion("1.8.0-build_and_publish_docker_image-20230308.135309-22"));
+
+    assertEquals(
+        "000000001.000000031.000000000.b.build_000481184_special__request_000000002-020230619.000093516-000000004",
+        underTest.getNormalizedVersion("1.31-build_481184_special__request_2-20230619.093516-4"));
+
+    assertInOrder("develop-20211130.182421-895", "develop-20211130.203249-896", "develop-20211201.111154-898",
+        "develop-20211202.180605-904");
+    assertInOrder("javaMaven-0.4.0-20230506.135309-8", "javaMaven-0.4.0-20230506.135309-9");
+
+    assertInOrder("1.1.49.develop-20230308.153857-22", "1.1.49.develop-20230308.153857-23");
+    assertInOrder("1.8.0-build_and_publish_docker_image-20230308.153309-1",
+        "1.8.0-build_and_publish_docker_image-20230308.153309-2",
+        "1.8.0-build_and_publish_docker_image-20230308.153309-10",
+        "1.8.0-build_and_publish_docker_image-20230308.153309-11");
+
+    assertInOrder("1.31-build_481184_special__request_2-20230619.093516-4",
+        "1.31-build_481184_special__request_2-20230619.093516-5",
+        "1.31-build_481184_special__request_2-20230619.093816-2",
+        "1.31-build_481184_special__request_2-20230619.093916-1");
+  }
+
+  private void assertInOrder(String... versions) {
+    for (int i = 1; i < versions.length; i++) {
+      String v1 = versions[i - 1];
+      String n1 = underTest.getNormalizedVersion(v1);
+      for (int j = i; j < versions.length; j++) {
+        String v2 = versions[j];
+        String n2 = underTest.getNormalizedVersion(v2);
+        assertTrue(String.format("expected %s (%s) < %s (%s)", v1, n1, v2, n2), n1.compareTo(n2) < 0);
+        assertTrue(String.format("expected %s (%s) > %s (%s)", v2, n2, v1, n1), n2.compareTo(n1) > 0);
+      }
+    }
+  }
+
+  private void assertVersionsEqual(String v1, String v2) {
+    assertEquals(underTest.getNormalizedVersion(v1), underTest.getNormalizedVersion(v2));
+  }
+}
