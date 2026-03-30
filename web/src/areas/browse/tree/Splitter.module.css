@@ -1,0 +1,31 @@
+.splitter {
+  position: relative;
+  flex: 0 0 12px;
+  align-self: stretch;
+  cursor: col-resize;
+  touch-action: none;
+  border-radius: var(--radius-2);
+  outline: none;
+}
+
+.grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.splitter:hover .grip,
+.splitter:focus-visible .grip {
+  background: var(--accent-8);
+}
+
+.splitter:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 0;
+}
