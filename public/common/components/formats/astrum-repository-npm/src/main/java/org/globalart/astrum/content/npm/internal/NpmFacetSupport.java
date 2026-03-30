@@ -1,0 +1,316 @@
+
+package org.globalart.astrum.content.npm.internal;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+
+import javax.annotation.Nonnull;
+import jakarta.ws.rs.core.MediaType;
+
+import org.globalart.astrum.common.collect.NestedAttributesMap;
+import org.globalart.astrum.common.hash.HashAlgorithm;
+import org.globalart.astrum.repository.FacetSupport;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.content.Asset;
+import org.globalart.astrum.repository.content.fluent.FluentAsset;
+import org.globalart.astrum.repository.content.fluent.FluentComponent;
+import org.globalart.astrum.repository.content.fluent.FluentComponentBuilder;
+import org.globalart.astrum.content.npm.NpmContentFacet;
+import org.globalart.astrum.repository.npm.internal.NpmAttributes;
+import org.globalart.astrum.repository.npm.internal.NpmFormat;
+import org.globalart.astrum.repository.npm.internal.NpmFormatAttributesExtractor;
+import org.globalart.astrum.repository.npm.internal.NpmJsonUtils;
+import org.globalart.astrum.repository.npm.internal.NpmMetadataUtils;
+import org.globalart.astrum.repository.npm.internal.NpmPackageId;
+import org.globalart.astrum.repository.npm.internal.NpmPackageParser;
+import org.globalart.astrum.repository.view.Content;
+import org.globalart.astrum.repository.view.Payload;
+import org.globalart.astrum.repository.view.Response;
+import org.globalart.astrum.repository.view.payloads.BytesPayload;
+import org.globalart.astrum.repository.view.payloads.StreamPayload;
+import org.globalart.astrum.common.io.InputStreamSupplier;
+import org.globalart.astrum.repository.view.payloads.TempBlob;
+
+import org.slf4j.Logger;
+
+import static java.util.stream.Collectors.toList;
+import static org.globalart.astrum.common.hash.HashAlgorithm.SHA1;
+import static org.globalart.astrum.repository.http.HttpStatus.OK;
+import static org.globalart.astrum.repository.npm.internal.NpmJsonUtils.mapper;
+import static org.globalart.astrum.repository.npm.internal.NpmVersionComparator.extractNewestVersion;
+import static org.globalart.astrum.repository.view.ContentTypes.APPLICATION_JSON;
+import static org.globalart.astrum.repository.view.Status.success;
+
+/**
+ * @since 3.28
+ */
+public abstract class NpmFacetSupport
+    extends FacetSupport
+{
+  protected static final List<HashAlgorithm> HASH_ALGORITHMS = Collections.singletonList(SHA1);
+
+  protected final NpmPackageParser npmPackageParser;
+
+  protected NpmFacetSupport(final NpmPackageParser npmPackageParser) {
+    this.npmPackageParser = npmPackageParser;
+  }
+
+  /**
+   * Parses JSON content into map.
+   */
+  @Nonnull
+  protected NestedAttributesMap parse(final Supplier<InputStream> streamSupplier) throws IOException {
+    return NpmJsonUtils.parse(streamSupplier);
+  }
+
+  /**
+   * Formats an asset name for a tarball out of package name and tarball filename.
+   */
+  @Nonnull
+  public static String tarballAssetName(final NpmPackageId packageId, final String tarballName) {
+    return "/" + packageId.id() + "/-/" + tarballName;
+  }
+
+  /**
+   * Find a tarball component by package name and version in repository.
+   */
+  protected Optional<FluentComponent> findPackageTarballComponent(final NpmPackageId packageId, final String version) {
+    FluentComponentBuilder components = content().components().name(packageId.name()).version(version);
+
+    if (packageId.scope() != null) {
+      components.namespace(packageId.scope());
+    }
+    return components.find();
+  }
+
+  protected Optional<FluentAsset> findAsset(final String path) {
+    return content().assets().path(path).find();
+  }
+
+  /**
+   * Find a package root asset by package name in repository.
+   */
+  protected Optional<FluentAsset> findPackageRootAsset(final NpmPackageId packageId) {
+    return findAsset(NpmContentFacet.metadataPath(packageId));
+  }
+
+  /**
+   * Find a tarball asset by package name and tarball filename in repository.
+   */
+  protected Optional<FluentAsset> findTarballAsset(final NpmPackageId packageId, final String tarballName) {
+    return findAsset(tarballAssetName(packageId, tarballName));
+  }
+
+  /**
+   * Returns the package root JSON content by parsing it. It also decorates the JSON document with some fields.
+   */
+  protected static Optional<NestedAttributesMap> loadPackageRoot(
+      final NpmPackageId packageId,
+      final NpmContentFacet npmContentFacet) throws IOException {
+    Optional<Content> content = npmContentFacet.get(packageId);
+    if (!content.isPresent()) {
+      return Optional.empty();
+    }
+
+    try (InputStream in = content.get().openInputStream()) {
+      NestedAttributesMap metadata = NpmJsonUtils.parse(() -> in);
+      metadata.set(NpmMetadataUtils.META_ID, NpmContentFacet.metadataPath(packageId));
+      return Optional.of(metadata);
+    }
+  }
+
+  /**
+   * Returns a {@link Supplier} that will get the {@link InputStream} for the package root associated with the given
+   * {@link Asset}.
+   *
+   * return {@link InputStreamSupplier}
+   */
+  protected InputStreamSupplier openPackageRoot(final FluentAsset packageRootAsset) {
+    return () -> packageRootAssetToInputStream(packageRootAsset);
+  }
+
+  /**
+   * Returns a new {@link InputStream} that returns an error object. Mostly useful for NPM Responses that have already
+   * been written with a successful status (like a 200) but just before streaming out content found an issue preventing
+   * the intended content to be streamed out.
+   *
+   * @return InputStream
+   */
+  protected InputStream errorInputStream(final String message) {
+    NestedAttributesMap errorObject = new NestedAttributesMap("error", new HashMap<>());
+    errorObject.set("success", false);
+    errorObject.set("error", "Failed to stream response due to: " + message);
+    return new ByteArrayInputStream(NpmJsonUtils.bytes(errorObject));
+  }
+
+  /**
+   * Saves the package root JSON content by persisting content into root asset's blob. It also removes some transient
+   * fields from JSON document.
+   */
+  protected void savePackageRoot(
+      final NpmPackageId packageId,
+      final NestedAttributesMap packageRoot) throws IOException
+  {
+    packageRoot.remove("_attachments");
+    Date date = NpmMetadataUtils.maintainTime(packageRoot).toDate();
+
+    byte[] bytes = NpmJsonUtils.bytes(packageRoot);
+    FluentAsset asset = content().put(packageId, new StreamPayload(() -> new ByteArrayInputStream(bytes), bytes.length, MediaType.APPLICATION_JSON));
+    asset.withAttribute(NpmAttributes.P_NPM_LAST_MODIFIED, date);
+  }
+
+  protected Iterable<String> findPackageTarballComponents(final NpmPackageId packageId) {
+    return content().components().versions(packageId.scope(), packageId.name());
+  }
+
+  private static InputStream packageRootAssetToInputStream(final FluentAsset packageRootAsset) throws IOException {
+    return packageRootAsset.download().openInputStream();
+  }
+
+  /**
+   * Converts the tags to a {@link Content} containing the tags as a json object
+   */
+  static Content distTagsToContent(final NestedAttributesMap distTags) throws IOException {
+    final byte[] bytes = mapper.writeValueAsBytes(distTags.backing());
+    return new Content(new BytesPayload(bytes, APPLICATION_JSON));
+  }
+
+  /**
+   * Updates the packageRoot with this set of dist-tags
+   */
+  protected void updateDistTags(
+      final NpmPackageId packageId,
+      final String tag,
+      final Object version) throws IOException
+  {
+    Optional<NestedAttributesMap> optPackageRoot = loadPackageRoot(packageId, content());
+    if (optPackageRoot.isPresent()) {
+      NestedAttributesMap packageRoot = optPackageRoot.get();
+
+      NestedAttributesMap distTags = packageRoot.child(NpmMetadataUtils.DIST_TAGS);
+      distTags.set(tag, version);
+
+      savePackageRoot(packageId, packageRoot);
+    }
+  }
+
+  /**
+   * Deletes the {@param tag} from the packageRoot
+   */
+  protected void deleteDistTags(final NpmPackageId packageId, final String tag) throws IOException {
+    Optional<NestedAttributesMap> optPackageRoot = loadPackageRoot(packageId, content());
+    if (!optPackageRoot.isPresent()) {
+      return;
+    }
+    NestedAttributesMap packageRoot = optPackageRoot.get();
+
+    if (packageRoot.contains(NpmMetadataUtils.DIST_TAGS)) {
+      NestedAttributesMap distTags = packageRoot.child(NpmMetadataUtils.DIST_TAGS);
+      distTags.remove(tag);
+      savePackageRoot(packageId, packageRoot);
+    }
+  }
+
+  /**
+   * Removes all tags that are associated with a given {@param version}. If that version is also set as the
+   * latest, the new latest is also populated from the remaining package versions stored
+   */
+  protected void removeDistTagsFromTagsWithVersion(final NestedAttributesMap packageRoot, final String version) {
+    if (packageRoot.contains(NpmMetadataUtils.DIST_TAGS)) {
+      packageRoot.child(NpmMetadataUtils.DIST_TAGS).entries().removeIf(e -> version.equals(e.getValue()));
+    }
+  }
+
+  /**
+   * Merges the dist-tag responses from all members and merges the values
+   */
+  protected Response mergeDistTagResponse(final Map<Repository, Response> responses) {
+    final List<NestedAttributesMap> collection = responses.values().stream().map(Response::getPayload)
+        .filter(Objects::nonNull).map(NpmFacetSupport::readDistTagResponse).filter(Objects::nonNull).collect(toList());
+
+    final NestedAttributesMap merged = collection.get(0);
+    if (collection.size() > 1) {
+      collection.subList(1, collection.size())
+          .forEach(response -> response.backing().forEach(populateLatestVersion(merged)));
+    }
+
+    return new Response.Builder().status(success(OK))
+        .payload(new BytesPayload(NpmJsonUtils.bytes(merged), APPLICATION_JSON)).build();
+  }
+
+  /**
+   * Converts a Content to an NpmContent.
+   *
+   * @return A NpmContent
+   */
+  protected static NpmContent toNpmContent(final Content content)
+  {
+    NpmStreamPayload payload = new NpmStreamPayload(content::openInputStream, content.getContentType());
+    return new NpmContent(payload, content);
+  }
+
+  private static BiConsumer<String, Object> populateLatestVersion(final NestedAttributesMap merged) {
+    return (k, v) -> {
+      if (!merged.contains(k)) {
+        merged.set(k, v);
+      }
+      else {
+        final String newestVersion = extractNewestVersion.apply(merged.get(k, String.class), (String) v);
+        merged.set(k, newestVersion);
+      }
+    };
+  }
+
+  private static NestedAttributesMap readDistTagResponse(final Payload payload) {
+    try (InputStream is = payload.openInputStream()) {
+      return NpmJsonUtils.parse(() -> is);
+    }
+    catch (IOException ignore) { // NOSONAR
+    }
+    return null;
+  }
+
+  protected NpmContentFacet content() {
+    return getRepository().facet(NpmContentFacet.class);
+  }
+
+  protected Map<String, Object> maybeExtractFormatAttributes(
+      final String packageId,
+      final String version,
+      final TempBlob blob)
+  {
+    return formatAttributeExtractor(packageId, version, blob).apply(npmPackageParser, log);
+  }
+
+  static BiFunction<NpmPackageParser, Logger, Map<String, Object>> formatAttributeExtractor(
+      final String packageId,
+      final String version,
+      final TempBlob blob)
+  {
+    return (npmPackageParser, log) -> {
+      Map<String, Object> formatAttributes = npmPackageParser.parsePackageJson(blob::get);
+      if (formatAttributes.isEmpty()) {
+        log.warn("No format attributes found in package.json for npm package ID {} version {}, will not be searchable",
+            packageId, version);
+        return Collections.emptyMap();
+      }
+      else {
+        NestedAttributesMap attributes = new NestedAttributesMap(NpmFormat.NAME, new HashMap<>());
+        NpmFormatAttributesExtractor formatAttributesExtractor = new NpmFormatAttributesExtractor(formatAttributes);
+        formatAttributesExtractor.copyFormatAttributes(attributes);
+        return attributes.backing();
+      }
+    };
+  }
+}
