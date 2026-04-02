@@ -1,0 +1,13 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Simple index</title>
+</head>
+<body>
+#foreach($asset in $assets)
+<a href="$esc.html($asset.get('link'))">$esc.html($asset.get('name'))</a><br/>
+#end
+</body>
+</html>

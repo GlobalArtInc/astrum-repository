@@ -1,0 +1,13 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Links for $esc.html($name)</title>
+  <meta name="api-version" value="2"/>
+</head>
+<body><h1>Links for $esc.html($name)</h1>
+#foreach($asset in $assets)
+#set($dataRequiresPython = $asset.get('data-requires-python'))
+<a href="$esc.html($asset.get('link'))" rel="internal"#if("$!dataRequiresPython" != "") data-requires-python="$esc.html($dataRequiresPython)"#end#if($asset.containsKey('data-yanked')) data-yanked="$esc.html($asset.get('data-yanked'))"#end>$esc.html($asset.get('file'))</a><br/>
+#end
+</body>
+</html>
