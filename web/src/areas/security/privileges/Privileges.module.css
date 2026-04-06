@@ -1,0 +1,25 @@
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.lock {
+  flex: 0 0 auto;
+  color: var(--gray-9);
+}
+
+.permission {
+  display: inline;
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: var(--gray-3);
+  font-family: var(--code-font-family);
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--gray-12);
+  overflow-wrap: normal;
+  word-break: normal;
+}
