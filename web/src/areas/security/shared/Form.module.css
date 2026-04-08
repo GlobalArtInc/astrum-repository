@@ -1,0 +1,68 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 760px;
+  min-width: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.grow {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.mono {
+  font-family: var(--code-font-family);
+  font-size: var(--font-size-1);
+  overflow-wrap: anywhere;
+}
+
+.checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-2);
+}
+
+@media (max-width: 639px) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .actions > * {
+    flex: 1 1 auto;
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
