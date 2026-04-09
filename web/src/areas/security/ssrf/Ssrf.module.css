@@ -1,0 +1,34 @@
+.add {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-3);
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  min-height: 36px;
+  min-width: 0;
+}
+
+.entry + .entry {
+  border-top: 1px solid var(--gray-a4);
+}
