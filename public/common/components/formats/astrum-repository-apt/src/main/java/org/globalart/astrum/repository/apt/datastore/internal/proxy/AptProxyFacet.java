@@ -1,0 +1,254 @@
+
+package org.globalart.astrum.repository.apt.datastore.internal.proxy;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.globalart.astrum.common.collect.AttributesMap;
+import org.globalart.astrum.repository.Facet;
+import org.globalart.astrum.repository.MissingBlobException;
+import org.globalart.astrum.repository.apt.datastore.AptContentFacet;
+import org.globalart.astrum.repository.apt.datastore.internal.proxy.metadata.AptProxyMetadataFacet;
+import org.globalart.astrum.repository.apt.internal.snapshot.AptSnapshotHandler;
+import org.globalart.astrum.repository.apt.internal.snapshot.SnapshotItem;
+import org.globalart.astrum.repository.apt.internal.snapshot.SnapshotItem.ContentSpecifier;
+import org.globalart.astrum.repository.cache.CacheController;
+import org.globalart.astrum.repository.cache.CacheInfo;
+import org.globalart.astrum.repository.content.Asset;
+import org.globalart.astrum.repository.content.facet.ContentProxyFacetSupport;
+import org.globalart.astrum.repository.content.fluent.FluentAsset;
+import org.globalart.astrum.repository.httpclient.HttpClientFacet;
+import org.globalart.astrum.repository.proxy.ProxyFacet;
+import org.globalart.astrum.repository.proxy.ProxyServiceException;
+import org.globalart.astrum.repository.view.Content;
+import org.globalart.astrum.repository.view.Context;
+import org.globalart.astrum.repository.view.payloads.HttpEntityPayload;
+
+import com.google.common.base.Strings;
+import com.google.common.net.HttpHeaders;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.DateUtils;
+import org.apache.http.client.utils.HttpClientUtils;
+import org.joda.time.DateTime;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkState;
+import static org.globalart.astrum.repository.apt.debian.Utils.isDebPackageContentType;
+import static org.globalart.astrum.repository.apt.internal.ReleaseName.RELEASE;
+
+/**
+ * The implementation of a logic specific to the proxy repository
+ *
+ * @since 3.31
+ */
+@Component
+@Facet.Exposed
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+public class AptProxyFacet
+    extends ContentProxyFacetSupport
+{
+  public List<SnapshotItem> getSnapshotItems(final List<ContentSpecifier> specs) throws IOException {
+    return fetchLatest(specs);
+  }
+
+  @Override
+  protected Content getCachedContent(final Context context) {
+    return facet(AptContentFacet.class).get(assetPath(context)).orElse(null);
+  }
+
+  @Override
+  protected Content store(final Context context, final Content content) throws IOException {
+    String path = assetPath(context);
+    if (path.endsWith(RELEASE)) {
+      // Whenever we fetch a new release file, make sure we get the signature
+      // and package files that go along with it.
+      cacheControllerHolder.getMetadataCacheController().invalidateCache();
+      postCacheTokenEvent(getRepository(),
+          cacheControllerHolder.getMetadataCacheController().current().getCacheToken());
+    }
+
+    FluentAsset asset = facet(AptContentFacet.class).put(path, content).markAsCached(content);
+
+    // Store package metadata in KV store for .deb packages (enables O(1) metadata rebuilds)
+    if (isDebPackageContentType(path)) {
+      metadata().addPackageMetadata(asset);
+    }
+
+    return asset.download();
+  }
+
+  private AptProxyMetadataFacet metadata() {
+    return facet(AptProxyMetadataFacet.class);
+  }
+
+  @Override
+  protected String getUrl(final Context context) {
+    return assetPath(context);
+  }
+
+  @Override
+  protected String encodeUrl(final String url) {
+    // Only encode when EncodingHelper is not active (legacy mode)
+    if (getEncodingHelper() == null) {
+      return getEscapeHelper().uriSegments(url);
+    }
+    return url;
+  }
+
+  @Override
+  public CacheController getCacheController(final Context context) {
+    if (isDebPackageContentType(assetPath(context))) {
+      return cacheControllerHolder.getContentCacheController();
+    }
+    return cacheControllerHolder.getMetadataCacheController();
+  }
+
+  /**
+   * Gets the metadata cache controller directly (for generated metadata staleness checks).
+   */
+  public CacheController getMetadataCacheController() {
+    return cacheControllerHolder.getMetadataCacheController();
+  }
+
+  private String assetPath(final Context context) {
+    return context.getAttributes().require(AptSnapshotHandler.State.class).assetPath;
+  }
+
+  private List<SnapshotItem> fetchLatest(final List<ContentSpecifier> specs) throws IOException {
+    List<SnapshotItem> list = new ArrayList<>();
+    for (ContentSpecifier spec : specs) {
+      Optional<SnapshotItem> item = fetchLatest(spec);
+      if (item.isPresent()) {
+        list.add(item.get());
+      }
+    }
+    return list;
+  }
+
+  private Optional<SnapshotItem> fetchLatest(final ContentSpecifier spec) throws IOException {
+    ProxyFacet proxyFacet = facet(ProxyFacet.class);
+    HttpClientFacet httpClientFacet = facet(HttpClientFacet.class);
+    HttpClient httpClient = httpClientFacet.getHttpClient();
+    CacheController cacheController = cacheControllerHolder.getMetadataCacheController();
+    CacheInfo cacheInfo = cacheController.current();
+    Content oldVersion;
+    try {
+      oldVersion = facet(AptContentFacet.class).get(spec.path).orElse(null);
+    }
+    catch (MissingBlobException e) {
+      // Treat a missing blob as a cache miss so we fetch fresh from upstream
+      log.debug("Cached blob missing for {}, fetching fresh from upstream", spec.path);
+      oldVersion = null;
+    }
+
+    String encodedPath = getEscapeHelper().uriSegments(spec.path);
+    URI fetchUri = proxyFacet.getRemoteUrl().resolve(encodedPath);
+    HttpGet getRequest = buildFetchRequest(oldVersion, fetchUri);
+
+    HttpResponse response = httpClient.execute(getRequest);
+    try {
+      StatusLine status = response.getStatusLine();
+
+      if (status.getStatusCode() == HttpStatus.SC_OK) {
+        HttpEntity entity = response.getEntity();
+        Content fetchedContent = new Content(new HttpEntityPayload(response, entity));
+        AttributesMap contentAttrs = fetchedContent.getAttributes();
+        contentAttrs.set(Content.CONTENT_LAST_MODIFIED, getDateHeader(response, HttpHeaders.LAST_MODIFIED));
+        contentAttrs.set(Content.CONTENT_ETAG, getQuotedStringHeader(response, HttpHeaders.ETAG));
+        contentAttrs.set(CacheInfo.class, cacheInfo);
+        Content storedContent =
+            facet(AptContentFacet.class).put(spec.path, fetchedContent).markAsCached(fetchedContent).download();
+        return Optional.of(new SnapshotItem(spec, storedContent));
+      }
+
+      if (status.getStatusCode() == HttpStatus.SC_NOT_MODIFIED) {
+        checkState(oldVersion != null, "Received 304 without conditional GET (bad server?) from %s", fetchUri);
+        doIndicateVerified(oldVersion, cacheInfo, spec.path);
+        return Optional.of(new SnapshotItem(spec, oldVersion));
+      }
+      throwProxyExceptionForStatus(response);
+    }
+    finally {
+      HttpClientUtils.closeQuietly(response);
+    }
+
+    return Optional.empty();
+  }
+
+  private HttpGet buildFetchRequest(final Content oldVersion, final URI fetchUri) {
+    HttpGet getRequest = new HttpGet(fetchUri);
+    if (oldVersion != null) {
+      DateTime lastModified = oldVersion.getAttributes().get(Content.CONTENT_LAST_MODIFIED, DateTime.class);
+      if (lastModified != null) {
+        getRequest.addHeader(HttpHeaders.IF_MODIFIED_SINCE, DateUtils.formatDate(lastModified.toDate()));
+      }
+      final String etag = oldVersion.getAttributes().get(Content.CONTENT_ETAG, String.class);
+      if (etag != null) {
+        getRequest.addHeader(HttpHeaders.IF_NONE_MATCH, "\"" + etag + "\"");
+      }
+    }
+    return getRequest;
+  }
+
+  private DateTime getDateHeader(final HttpResponse response, final String name) {
+    Header h = response.getLastHeader(name);
+    if (h != null) {
+      try {
+        return new DateTime(DateUtils.parseDate(h.getValue()).getTime());
+      }
+      catch (Exception ex) {
+        log.warn("Invalid date '{}', will skip. {}", h, log.isDebugEnabled() ? ex : null);
+      }
+    }
+    return null;
+  }
+
+  private String getQuotedStringHeader(final HttpResponse response, final String name) {
+    Header h = response.getLastHeader(name);
+    if (h != null) {
+      String value = h.getValue();
+      if (!Strings.isNullOrEmpty(value)) {
+        if (value.startsWith("\"") && value.endsWith("\"")) {
+          return value.substring(1, value.length() - 1);
+        }
+        else {
+          return value;
+        }
+      }
+    }
+    return null;
+  }
+
+  protected void doIndicateVerified(final Content content, final CacheInfo cacheInfo, final String assetPath) {
+    AptContentFacet contentFacet = facet(AptContentFacet.class);
+
+    Asset asset = content.getAttributes().get(Asset.class);
+    if (asset != null) {
+      contentFacet.assets().with(asset).markAsCached(cacheInfo);
+      return;
+    }
+    facet(AptContentFacet.class).getAsset(assetPath)
+        .ifPresent(a -> contentFacet.assets().with(a).markAsCached(cacheInfo));
+  }
+
+  private void throwProxyExceptionForStatus(final HttpResponse httpResponse) {
+    final StatusLine status = httpResponse.getStatusLine();
+    if (HttpStatus.SC_UNAUTHORIZED == status.getStatusCode()
+        || HttpStatus.SC_PAYMENT_REQUIRED == status.getStatusCode()
+        || HttpStatus.SC_PROXY_AUTHENTICATION_REQUIRED == status.getStatusCode()
+        || HttpStatus.SC_INTERNAL_SERVER_ERROR <= status.getStatusCode()) {
+      throw new ProxyServiceException(httpResponse);
+    }
+  }
+}
