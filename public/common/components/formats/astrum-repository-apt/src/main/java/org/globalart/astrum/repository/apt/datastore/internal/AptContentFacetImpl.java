@@ -1,0 +1,291 @@
+
+package org.globalart.astrum.repository.apt.datastore.internal;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import org.globalart.astrum.repository.Facet;
+import org.globalart.astrum.repository.apt.AptFormat;
+import org.globalart.astrum.repository.apt.datastore.AptContentFacet;
+import org.globalart.astrum.repository.apt.internal.AptFacetHelper;
+import org.globalart.astrum.repository.apt.internal.AptPackageParser;
+import org.globalart.astrum.repository.apt.internal.debian.ControlFile;
+import org.globalart.astrum.repository.apt.internal.debian.PackageInfo;
+import org.globalart.astrum.repository.cache.CacheInfo;
+import org.globalart.astrum.repository.config.Configuration;
+import org.globalart.astrum.repository.config.ConfigurationFacet;
+import org.globalart.astrum.repository.config.WritePolicy;
+import org.globalart.astrum.repository.content.Asset;
+import org.globalart.astrum.repository.content.AssetBlob;
+import org.globalart.astrum.repository.content.AttributeChangeSet;
+import org.globalart.astrum.repository.content.AttributeOperation;
+import org.globalart.astrum.repository.content.facet.ContentFacetSupport;
+import org.globalart.astrum.repository.content.fluent.FluentAsset;
+import org.globalart.astrum.repository.content.fluent.FluentComponent;
+import org.globalart.astrum.repository.content.fluent.FluentQuery;
+import org.globalart.astrum.repository.content.store.AssetDAO;
+import org.globalart.astrum.repository.content.store.FormatStoreManager;
+import org.globalart.astrum.repository.content.utils.FormatAttributesUtils;
+import org.globalart.astrum.repository.types.HostedType;
+import org.globalart.astrum.repository.types.ProxyType;
+import org.globalart.astrum.repository.view.Content;
+import org.globalart.astrum.repository.view.Payload;
+import org.globalart.astrum.repository.view.payloads.TempBlob;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import jakarta.validation.constraints.NotNull;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.common.entity.Continuations.iterableOf;
+import static org.globalart.astrum.common.hash.HashAlgorithm.MD5;
+import static org.globalart.astrum.common.hash.HashAlgorithm.SHA1;
+import static org.globalart.astrum.common.hash.HashAlgorithm.SHA256;
+import static org.globalart.astrum.repository.apt.debian.Utils.isDebPackageContentType;
+import static org.globalart.astrum.repository.apt.internal.AptFacetHelper.normalizeAssetPath;
+import static org.globalart.astrum.repository.apt.internal.AptProperties.DEB;
+import static org.globalart.astrum.repository.apt.internal.AptProperties.P_ARCHITECTURE;
+import static org.globalart.astrum.repository.apt.internal.AptProperties.P_INDEX_SECTION;
+import static org.globalart.astrum.repository.apt.internal.AptProperties.P_PACKAGE_NAME;
+import static org.globalart.astrum.repository.apt.internal.AptProperties.P_PACKAGE_VERSION;
+
+/**
+ * Apt content facet
+ *
+ * @since 3.31
+ */
+@Facet.Exposed
+@Component
+@Qualifier(AptFormat.NAME)
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+public class AptContentFacetImpl
+    extends ContentFacetSupport
+    implements AptContentFacet
+{
+  @VisibleForTesting
+  static final String CONFIG_KEY = "apt";
+
+  @Autowired
+  public AptContentFacetImpl(
+      @Qualifier(AptFormat.NAME) final FormatStoreManager formatStoreManager)
+  {
+    super(formatStoreManager);
+  }
+
+  static class Config
+  {
+    @NotNull(groups = {HostedType.ValidationGroup.class})
+    public String distribution;
+
+    @NotNull(groups = {ProxyType.ValidationGroup.class})
+    public boolean flat;
+
+    public boolean enforceDistribution;
+  }
+
+  private Config config;
+
+  @Override
+  protected WritePolicy writePolicy(final Asset asset) {
+    WritePolicy writePolicy = super.writePolicy(asset);
+    if (WritePolicy.ALLOW_ONCE == writePolicy) {
+      String name = asset.path();
+      if (name.endsWith(".deb")) {
+        return WritePolicy.ALLOW_ONCE;
+      }
+      else {
+        return WritePolicy.ALLOW;
+      }
+    }
+    return writePolicy;
+  }
+
+  @Override
+  protected void doConfigure(final Configuration configuration) throws Exception {
+    super.doConfigure(configuration);
+    config = facet(ConfigurationFacet.class)
+        .readSection(configuration, CONFIG_KEY, Config.class);
+    log.debug("APT config: {}", config);
+  }
+
+  @Override
+  public String getDistribution() {
+    return config.distribution;
+  }
+
+  @Override
+  public boolean isFlat() {
+    return config.flat;
+  }
+
+  @Override
+  public boolean isEnforceDistribution() {
+    return config.enforceDistribution;
+  }
+
+  @Override
+  public Optional<FluentAsset> getAsset(final String path) {
+    return assets().path(normalizeAssetPath(path)).find();
+  }
+
+  @Override
+  public Optional<Content> get(final String assetPath) {
+    return assets().path(normalizeAssetPath(assetPath)).find().map(FluentAsset::download);
+  }
+
+  @Override
+  public FluentAsset put(final String path, final Payload content) throws IOException {
+    return put(path, content, null);
+  }
+
+  @Override
+  public FluentAsset put(
+      final String path,
+      final Payload payload,
+      @Nullable final PackageInfo packageInfo) throws IOException
+  {
+    String normalizedPath = normalizeAssetPath(path);
+
+    try (TempBlob tempBlob = blobs().ingest(payload, AptFacetHelper.hashAlgorithms)) {
+      return isDebPackageContentType(normalizedPath)
+          ? findOrCreateDebAsset(normalizedPath, tempBlob, packageInfo)
+          : findOrCreateMetadataAsset(tempBlob, normalizedPath);
+    }
+  }
+
+  private FluentAsset findOrCreateDebAsset(
+      final String path,
+      final TempBlob tempBlob,
+      @Nullable PackageInfo packageInfo) throws IOException
+  {
+    if (packageInfo == null) {
+      packageInfo = AptPackageParser.parsePackageInfo(tempBlob);
+    }
+
+    FluentAsset asset = assets()
+        .path(normalizeAssetPath(path))
+        .kind(DEB)
+        .component(findOrCreateComponent(packageInfo))
+        .blob(tempBlob)
+        .save();
+
+    ControlFile controlFile = packageInfo.getControlFile();
+    populateAttributes(packageInfo, asset, controlFile);
+
+    return asset;
+  }
+
+  private void populateAttributes(final PackageInfo info, final FluentAsset asset, final ControlFile controlFile) {
+    final Map<String, Object> formatAttributes = new HashMap<>();
+    formatAttributes.put(P_ARCHITECTURE, info.getArchitecture());
+    formatAttributes.put(P_PACKAGE_NAME, info.getPackageName());
+    formatAttributes.put(P_PACKAGE_VERSION, info.getVersion());
+    formatAttributes.put(P_INDEX_SECTION, buildIndexSection(controlFile, asset));
+
+    FormatAttributesUtils.setFormatAttributes(asset, formatAttributes);
+  }
+
+  private static String buildIndexSection(final ControlFile controlFile, final FluentAsset asset) {
+    AssetBlob assetBlob = asset.blob()
+        .orElseThrow(() -> new IllegalStateException(
+            "Impossible build " + P_INDEX_SECTION + ". Asset blob couldn't be found for asset: " + asset.path()));
+    final Map<String, String> checksums = assetBlob.checksums();
+
+    return controlFile.getParagraphs()
+        .get(0)
+        .withFields(Arrays.asList(
+            new ControlFile.ControlField("Filename", StringUtils.removeStart(asset.path(), '/')),
+            new ControlFile.ControlField("Size", Long.toString(assetBlob.blobSize())),
+            new ControlFile.ControlField("MD5Sum", checksums.get(MD5.name())),
+            new ControlFile.ControlField("SHA1", checksums.get(SHA1.name())),
+            new ControlFile.ControlField("SHA256", checksums.get(SHA256.name()))))
+        .toString();
+  }
+
+  @Override
+  public FluentAsset findOrCreateMetadataAsset(final TempBlob tempBlob, final String path) {
+    String normalizedPath = normalizeAssetPath(path);
+
+    // Check if asset already exists with CacheInfo (from upstream passthrough)
+    Optional<FluentAsset> existing = assets().path(normalizedPath).find();
+    boolean hadCacheInfo = existing.isPresent() &&
+        existing.get().attributes().contains(CacheInfo.CACHE);
+
+    // Save the asset with new blob
+    FluentAsset asset = assets()
+        .path(normalizedPath)
+        .blob(tempBlob)
+        .save();
+
+    // For generated metadata (proxy signing mode):
+    // 1. Clear CacheInfo if it exists (from upstream passthrough)
+    // 2. Always set lastModified to NOW (as millis) for proper staleness tracking
+    log.debug("Setting lastModified for generated metadata asset: {}", path);
+    AttributeChangeSet changes = new AttributeChangeSet();
+    if (hadCacheInfo) {
+      log.debug("Clearing CacheInfo from generated metadata asset: {}", path);
+      changes.attributes(AttributeOperation.REMOVE, CacheInfo.CACHE, null);
+    }
+    changes.attributes(AttributeOperation.SET, Content.CONTENT_LAST_MODIFIED, System.currentTimeMillis());
+    asset.attributes(changes);
+
+    return asset;
+  }
+
+  private FluentComponent findOrCreateComponent(final PackageInfo info) {
+    String name = info.getPackageName();
+    String version = info.getVersion();
+    String architecture = info.getArchitecture();
+
+    return components()
+        .name(name)
+        .version(version)
+        .namespace(architecture)
+        .getOrCreate();
+  }
+
+  @Override
+  public TempBlob getTempBlob(final Payload payload) {
+    checkNotNull(payload);
+    return blobs().ingest(payload, AptFacetHelper.hashAlgorithms);
+  }
+
+  @Override
+  public TempBlob getTempBlob(final InputStream in, @Nullable final String contentType) {
+    checkNotNull(in);
+    return blobs().ingest(in, contentType, AptFacetHelper.hashAlgorithms);
+  }
+
+  @Override
+  public void deleteAssetsByPrefix(final String pathPrefix) {
+    String filter = "repository_id = #{" + AssetDAO.FILTER_PARAMS + ".repositoryParam}" +
+        " AND path LIKE #{" + AssetDAO.FILTER_PARAMS + ".pathParam}" +
+        " AND component_id IS NULL";
+
+    Map<String, Object> params = ImmutableMap.of("repositoryParam", contentRepositoryId(),
+        "pathParam", pathPrefix + "%");
+
+    iterableOf(assets().byFilter(filter, params)::browse).forEach(FluentAsset::delete);
+  }
+
+  @Override
+  public Iterable<FluentAsset> getAptPackageAssets() {
+    FluentQuery<FluentAsset> query = assets().byFilter(
+        "kind = #{" + AssetDAO.FILTER_PARAMS + ".assetKindFilter}",
+        Collections.singletonMap("assetKindFilter", DEB));
+    return iterableOf(query::browse);
+  }
+}
