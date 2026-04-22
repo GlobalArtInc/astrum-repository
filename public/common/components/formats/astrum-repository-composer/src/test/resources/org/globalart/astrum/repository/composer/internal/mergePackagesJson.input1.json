@@ -1,0 +1,8 @@
+{
+  "metadata-url": "http://astrum.repo/base/repo1/p2/%package%.json",
+  "providers-url": "http://astrum.repo/base/repo1/p/%package%.json",
+  "available-packages": [
+    "vendor1/project1",
+    "vendor2/project2"
+  ]
+}
