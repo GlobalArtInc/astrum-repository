@@ -1,0 +1,219 @@
+.page {
+  box-sizing: border-box;
+  padding: 32px;
+  min-width: 0;
+}
+
+.gray {
+  color: var(--gray-a11);
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  padding: 0 4px 4px;
+}
+
+.filterSections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.wide {
+  width: 100%;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.heading p {
+  margin: 0 0 14px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.card {
+  min-width: 0;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.toggleCell.toggleCell {
+  width: 40px;
+  padding-left: 11px;
+}
+
+.toggle {
+  all: unset;
+  display: inline-flex;
+  cursor: pointer;
+  border-radius: var(--radius-1);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.badge.badge {
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.detailsCell.detailsCell {
+  padding-left: 11px;
+}
+
+.details {
+  padding: 16px;
+  background: var(--color-panel-solid);
+}
+
+.detailsTitle.detailsTitle {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.detailLines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.attributes.attributes {
+  display: block;
+  margin-top: 0;
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.message p {
+  margin: 0;
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.pagerInfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.pagerGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jump {
+  box-sizing: border-box;
+  width: 64px;
+  height: 40px;
+  padding: 7px 15px;
+  border: 1px solid var(--gray-a7);
+  border-radius: var(--radius-3);
+  background: #12151c;
+  color: var(--gray-12);
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.jump:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -1px;
+}
+
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.pageNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.pageButton.pageButton {
+  min-width: 30px;
+  padding: 0 10px;
+}
+
+.gap {
+  padding: 0 4px;
+  color: var(--gray-a11);
+}
+
+:global(.light) .jump {
+  background: #f7f7f8;
+}
+
+@media (max-width: 639px) {
+  .page {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 519px) {
+  .scroll :global(.rt-TableRoot) {
+    min-width: 760px;
+  }
+}
