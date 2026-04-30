@@ -1,0 +1,43 @@
+{
+  "onboarding.actions.skip": "Skip for now",
+  "onboarding.anonymous.intro": "Anonymous access lets people and clients browse and download repository content without signing in. You can change this later in the settings.",
+  "onboarding.anonymous.off": "Require sign-in",
+  "onboarding.anonymous.offText": "Every request needs credentials. Choose this for private content.",
+  "onboarding.anonymous.on": "Allow anonymous access",
+  "onboarding.anonymous.onText": "Anyone who can reach the server may read repositories that anonymous callers may see.",
+  "onboarding.anonymous.submit": "Continue",
+  "onboarding.anonymous.title": "Anonymous access",
+  "onboarding.done.finish": "Go to the dashboard",
+  "onboarding.done.text": "Astrum Repository is ready. Create repositories and users from the settings.",
+  "onboarding.done.title": "All set",
+  "onboarding.page.intro": "Two quick steps make this new server safe to use.",
+  "onboarding.page.later": "If you skip, this setup comes back at your next sign-in until the administrator password is changed.",
+  "onboarding.page.title": "Set up Astrum Repository",
+  "onboarding.password.changed": "The administrator password is changed",
+  "onboarding.password.confirm": "Repeat the new password",
+  "onboarding.password.current": "Current password",
+  "onboarding.password.currentHint": "The password from the file, the one you just signed in with",
+  "onboarding.password.file": "The first password was written to {path}. The file is deleted once the password is changed.",
+  "onboarding.password.hint": {
+    "one": "At least {count} character",
+    "other": "At least {count} characters"
+  },
+  "onboarding.password.intro": "You signed in with the generated first password. Choose your own before anything else.",
+  "onboarding.password.introOther": "The admin user still has the generated first password. Choose a new one for it.",
+  "onboarding.password.mismatch": "The passwords do not match",
+  "onboarding.password.new": "New password",
+  "onboarding.password.required": "Fill this in",
+  "onboarding.password.rule": {
+    "one": "Use at least {count} character",
+    "other": "Use at least {count} characters"
+  },
+  "onboarding.password.same": "Choose a password other than the current one",
+  "onboarding.password.submit": "Change password",
+  "onboarding.password.title": "Administrator password",
+  "onboarding.password.tooMany": "Too many wrong passwords. Wait a few minutes and try again.",
+  "onboarding.password.wrong": "The current password is wrong",
+  "onboarding.steps.anonymous": "Anonymous access",
+  "onboarding.steps.done": "Done",
+  "onboarding.steps.label": "Setup steps",
+  "onboarding.steps.password": "Password"
+}
