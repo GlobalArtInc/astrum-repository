@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.components</groupId>
+    <artifactId>astrum-common-components-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-rapture</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+
+  <properties>
+    <resource.url.suffix>?_v=${project.version}&amp;_dc=${resource.url.suffix.timestamp}</resource.url.suffix>
+    <sonar.sources>src/main/java,src/main/resources/static/rapture</sonar.sources>
+    <sonar.exclusions>
+      src/main/resources/static/rapture/baseapp-*.js
+    </sonar.exclusions>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-extdirect</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-capability</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-ui-plugin</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-base</artifactId>
+    </dependency>
+
+    <!-- ASTRUM-46395: rapture uses GsonBuilder directly in StateComponent,
+         WebResource constants in RaptureWebResourceBundle, and MimeSupport in
+         PublicFilesWebResourceBundle. These previously came in transitively but are
+         no longer reachable. Declare explicitly. -->
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-webresources-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-mime</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-annotation</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-testsupport</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-healthchecks</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-scheduling</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <excludePackageNames>
+            org.globalart.astrum.rapture.internal.branding:org.globalart.astrum.rapture.internal.security
+          </excludePackageNames>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.globalart.astrum.common.maven.plugins</groupId>
+        <artifactId>extjs-maven-plugin</artifactId>
+        <configuration>
+          <namespace>NX</namespace>
+          <excludes>
+            <exclude>baseapp-*.js</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.globalart.plugins</groupId>
+        <artifactId>yuicompressor-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>loading-css</id>
+            <goals>
+              <goal>aggregate-css</goal>
+            </goals>
+            <configuration>
+              <output>${project.build.outputDirectory}/static/rapture/resources/loading-prod.css</output>
+              <sourceDirectory>${project.basedir}/src/main/resources/static/rapture/resources</sourceDirectory>
+              <includes>
+                <include>loading-debug.css</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>resource-timestamp</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>create-timestamp</goal>
+            </goals>
+            <configuration>
+              <timestampPropertyName>resource.url.suffix.timestamp</timestampPropertyName>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- remove the _dc query parameter for non-SNAPSHOT versions -->
+            <id>resource-timestamp-clean</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>regex-property</goal>
+            </goals>
+            <configuration>
+              <name>resource.url.suffix</name>
+              <value>${resource.url.suffix}</value>
+              <regex><![CDATA[(_v=[\d\.\-]+)&_dc=\d+]]></regex>
+              <replacement>$1</replacement>
+              <failIfNoMatch>false</failIfNoMatch>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-react-sources</id>
+            <phase>package</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <zip destfile="${project.build.directory}/${project.artifactId}-${project.version}-sources.jar"
+                     update="true">
+                  <zipfileset dir="${project.basedir}/src/frontend" prefix="${project.artifactId}/src/frontend"/>
+                  <zipfileset dir="${project.basedir}" includes=".swcrc" prefix="${project.artifactId}"/>
+                  <zipfileset dir="${project.basedir}" includes="rspack*.js" prefix="${project.artifactId}"/>
+                  <zipfileset dir="${project.basedir}" includes="package.json" prefix="${project.artifactId}"/>
+                </zip>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>jslint</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.globalart.plugins</groupId>
+            <artifactId>yuicompressor-maven-plugin</artifactId>
+            <configuration>
+              <sourceDirectory>${project.basedir}/src/main/resources/static/rapture</sourceDirectory>
+              <excludes>
+                <exclude>Ext/ux/**</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>public</id>
+      <activation>
+        <property>
+          <name>public</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.eirslett</groupId>
+            <artifactId>frontend-maven-plugin</artifactId>
+
+            <executions>
+              <!--
+                DO NOT skip yarn install here!
+
+                Maven clean deletes target/ including node installation. The frontend-maven-plugin
+                must run yarn install to restore node_modules after clean, otherwise yarn build-all
+                fails with "Couldn't find the node_modules state file".
+
+                Running yarn install twice (once at root via script, once per module via Maven) is
+                expected and safe due to Yarn's caching.
+
+                See: ASTRUM-52614
+              -->
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
