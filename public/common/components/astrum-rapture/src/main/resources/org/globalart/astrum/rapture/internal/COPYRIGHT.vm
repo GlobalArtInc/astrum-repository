@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Copyright</title>
+  <style type="text/css">
+    body {
+      font-family: arial, tahoma, verdana, helvetica, sans-serif;
+      font-size: 14px;
+      p {
+        padding: 8px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+#if($edition == "COMMUNITY")
+  <p>
+    All use of and access to GlobalArt Astrum Repository Community Edition is governed by these 
+    <a href="http://links.globalart.dev/products/astrum/tos/ce" target="_blank" rel="noopener">terms and conditions</a>.
+  </p>
+#elseif($edition == "CORE")
+  <p>
+    GlobalArt Astrum Repository Core: The core functionality of Astrum Repository is offered to the Community under the terms of the 
+    <a href="http://links.globalart.dev/products/astrum/tos/oc" target="_blank" rel="noopener">Eclipse Public License</a>.
+  </p>
+#else
+  <p>
+    All use of and access to GlobalArt Astrum Repository Professional is governed by these
+    <a href="http://links.globalart.dev/products/astrum/tos/pro" target="_blank" rel="noopener">terms and conditions</a>.
+  </p>
+#end
+
+</body>
+</html>
