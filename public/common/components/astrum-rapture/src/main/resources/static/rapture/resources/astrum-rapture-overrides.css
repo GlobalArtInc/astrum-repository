@@ -1,0 +1,11 @@
+
+
+/**
+ * ExtJS decorative shadow element used by windows/modals.
+ *
+ * In some cases it can be layered above the active modal content and block interaction.
+ * This element is purely decorative, so it should never receive pointer events.
+ */
+.x-css-shadow {
+  pointer-events: none;
+}

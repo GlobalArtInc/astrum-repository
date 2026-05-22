@@ -1,0 +1,15 @@
+
+
+/**
+ * Custom Ext.form.field.Trigger art.
+ *
+ * Leaving these here vs. moving to baseapp since art exists here for clarity.
+ */
+
+.nx-form-fa-minus-circle-trigger {
+  background-image: url(images/form/fa-minus-circle-trigger.png);
+}
+
+.nx-form-fa-times-circle-trigger {
+  background-image: url(images/form/fa-times-circle-trigger.png);
+}
