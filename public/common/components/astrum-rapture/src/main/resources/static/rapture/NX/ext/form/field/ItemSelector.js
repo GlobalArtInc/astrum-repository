@@ -1,0 +1,351 @@
+
+/*global Ext*/
+
+/**
+ * Extension of Ext.ux.form.ItemSelector to allow better control over button configurations.
+ *
+ * @since 3.0
+ */
+Ext.define('NX.ext.form.field.ItemSelector', {
+  extend: 'Ext.ux.form.ItemSelector',
+  alias: 'widget.nx-itemselector',
+  requires: [
+    'Ext.ux.form.MultiSelect',
+    'NX.I18n'
+  ],
+
+  plugins: {
+    responsive: true
+  },
+  responsiveConfig: {
+    'width <= 1366': {
+      maxWidth: 600
+    },
+    'width <= 1600': {
+      maxWidth: 800
+    },
+    'width > 1600' : {
+      maxWidth: 1000
+    }
+  },
+  height: 300,
+  width: '100%',
+
+  disabledCls: 'nx-itemselector-disabled',
+  invalidCls: 'nx-invalid',
+
+  maskOnDisable: false,
+  selectionPlaceholder: null,
+  _toFieldSortersCleared: false,
+
+  /**
+   * Override super *private* impl so we can control the button configuration.
+   *
+   * @override
+   * @private
+   */
+  createButtons: function () {
+    var me = this,
+        buttons = me.callSuper();
+
+    if (!me.hideNavIcons) {
+      var i = 0;
+      Ext.Array.forEach(me.buttons, function (name) {
+        me.customizeButton(name, buttons[i++]);
+      });
+    }
+
+    return buttons;
+  },
+
+  /**
+   * Replace iconCls with glyph.
+   *
+   * @private
+   *
+   * @param name
+   * @param button
+   */
+  customizeButton: function (name, button) {
+    var icons = {
+      top: 'x-fa fa-angle-double-up',
+      up: 'x-fa fa-angle-up',
+      add: 'x-fa fa-angle-right',
+      remove: 'x-fa fa-angle-left',
+      addAll: 'x-fa fa-angle-double-right',
+      removeAll: 'x-fa fa-angle-double-left',
+      down: 'x-fa fa-angle-down',
+      bottom: 'x-fa fa-angle-double-down'
+    };
+
+    button.iconCls = icons[name];
+  },
+
+  createList: function (title) {
+    var me = this,
+        store = Ext.getStore(me.store),
+        tbar, listener;
+
+    // only create filter box for from field
+    if (!me.fromField) {
+      tbar = {
+        xtype: 'nx-searchbox',
+        cls: ['nx-searchbox', 'nx-filterbox'],
+        iconClass: 'fa-filter',
+        emptyText: NX.I18n.get('Form_Field_ItemSelector_Empty'),
+        searchDelay: 200,
+        listeners: {
+          search: me.onSearch,
+          searchcleared: me.onSearchCleared,
+          scope: me
+        }
+      };
+    }
+
+    listener = store.onAfter('load', function() {
+      if (me.fromField && me.fromField.boundList && me.fromField.boundList.getMaskTarget()) {
+        me.fromField.boundList.mask();
+        if (!me.fromField.boundList.disabled) {
+          me.fromField.boundList.unmask();
+        }
+      }
+    }, me, { destroyable: true });
+
+    me.on('destroy', listener.destroy, listener);
+
+    return Ext.create('Ext.ux.form.MultiSelect', {
+      // We don't want the multiselects themselves to act like fields,
+      // so override these methods to prevent them from including
+      // any of their values
+      submitValue: false,
+      isDirty: Ext.emptyFn,
+      getSubmitData: function () {
+        return null;
+      },
+      getModelData: function () {
+        return null;
+      },
+      cls: 'nx-multiselect',
+      flex: 1,
+      dragGroup: me.ddGroup,
+      dropGroup: me.ddGroup,
+      title: title,
+      store: {
+        model: store.model,
+        sorters: store.getSorters().items,
+        data: []
+      },
+      displayField: me.displayField,
+      valueField: me.valueField,
+      disabled: me.disabled,
+      listeners: {
+        boundList: {
+          scope: me,
+          itemdblclick: me.onItemDblClick,
+          drop: me.syncValue
+        }
+      },
+      tbar: tbar
+    });
+  },
+
+  onAddAllBtnClick:function() {
+    var me = this, items = me.fromField.getStore().getData().items;
+    while (items.length > 0) {
+      me.moveRec(true, items[0])
+    }
+  },
+
+  onRemoveAllBtnClick:function() {
+    var me = this, items = me.toField.getStore().getData().items;
+    while (items.length > 0) {
+      me.moveRec(false, items[0])
+    }
+  },
+
+  /**
+   * The "up/down" controls are meant to allow manual ordering in the selected (toField) list.
+   * However, the base implementation copies the main store's sorters into the toField store,
+   * which forces the selection to remain alphabetically sorted and makes manual reordering
+   * appear to do nothing. To keep the initial alphabetical order but allow manual ordering
+   * afterward, clear the toField store sorters once after initial population.
+   *
+   * @private
+   */
+  clearToFieldSortersOnce: function () {
+    const me = this;
+
+    if (me._toFieldSortersCleared) {
+      return;
+    }
+    if (!me.toField || !me.toField.getStore) {
+      return;
+    }
+    // Only do this for selectors that expose ordering controls.
+    if (!Ext.Array.contains(me.buttons || [], 'up') && !Ext.Array.contains(me.buttons || [], 'down') &&
+        !Ext.Array.contains(me.buttons || [], 'top') && !Ext.Array.contains(me.buttons || [], 'bottom')) {
+      return;
+    }
+
+    const toStore = me.toField.getStore();
+    if (!toStore) {
+      return;
+    }
+
+    // Ensure the current selection is alphabetically ordered once, then drop sorters
+    // so future up/down reordering sticks.
+    if (toStore.getCount && toStore.getCount() > 1 && me.displayField) {
+      toStore.sort(me.displayField, 'ASC');
+    }
+    if (toStore.getSorters && toStore.getSorters().removeAll) {
+      toStore.getSorters().removeAll();
+    }
+    else if (toStore.sorters && toStore.sorters.clear) {
+      toStore.sorters.clear();
+    }
+
+    me._toFieldSortersCleared = true;
+  },
+
+  /**
+   * Ext.ux.form.ItemSelector defers setting value if store is not loaded,
+   * which messes up the logic in Ext.form.Basic.setValues()
+   * when Ext.form.Basic.trackResetOnLoad is true.
+   *
+   * @override
+   */
+  setValue: function(value) {
+    if (this.store) {
+      if (this.valueAsString) {
+        if (Array.isArray(value)) {
+          this.callParent(arguments);
+        }
+        else {
+          this.callParent(value ? [value.split(',')] : undefined);
+        }
+      }
+      else {
+        this.callParent(arguments);
+      }
+    }
+
+    // HACK: force original value to reset, to prevent always dirty forms when store has not loaded when form initially sets values.
+    this.resetOriginalValue();
+
+    // Allow manual ordering after the initial (alphabetical) population.
+    this.clearToFieldSortersOnce();
+  },
+
+  /**
+   * Ensure we also handle the create-flow where values are built via add/remove actions
+   * (and not necessarily through setValue).
+   *
+   * @override
+   */
+  syncValue: function () {
+    this.callParent(arguments);
+    this.clearToFieldSortersOnce();
+  },
+
+  getValue: function() {
+    const me = this,
+        valueField = me.valueField,
+        parentValue = this.callParent();
+    var result = parentValue;
+
+    if(Array.isArray(parentValue)) {
+      result = Ext.Array.filter(parentValue, function(item) {
+        if (me.selectionPlaceholder) {
+          return me.selectionPlaceholder[valueField] !== item;
+        }
+        return true
+      });
+    }
+
+    if (this.valueAsString) {
+      return result.toString();
+    }
+    else {
+      return result;
+    }
+  },
+
+  // HACK: avoid exceptions when the store is reloaded
+  populateFromStore: function (store) {
+    var me = this,
+        fromStore = me.fromField.store;
+
+    if (fromStore) {
+      fromStore.removeAll();
+    }
+    me.callParent(arguments);
+  },
+
+  /**
+   * @private
+   */
+  onSearch: function (searchbox, value) {
+    var me = this;
+
+    me.fromField.store.filter({ id: 'filter', filterFn: function (model) {
+      var stringValue = model.get(me.displayField);
+      if (stringValue) {
+        stringValue = stringValue.toString();
+        return stringValue.toLowerCase().indexOf(value.toLowerCase()) !== -1;
+      }
+      return false;
+    }});
+  },
+
+  /**
+   * @private
+   */
+  onSearchCleared: function () {
+    this.fromField.store.clearFilter();
+  },
+
+  // HACK: Looks like original item selector forgot to unbind from store which results in NPEs in #populateFromStore
+  onDestroy: function () {
+    var me = this;
+
+    if (me.store) {
+      me.store.un('load', me.populateFromStore, me);
+    }
+    this.callParent();
+  },
+
+  getRecordsForValue: function () {
+    var me = this;
+    if (!me.store) {
+      return [];
+    }
+    return this.callParent(arguments);
+  },
+
+  onEnable: function() {
+    this.callParent(arguments);
+    Ext.each(this.query('boundlist'), function(list) {
+      list.unmask();
+    });
+  },
+
+  onDisable: function() {
+    this.callParent(arguments);
+    Ext.each(this.query('boundlist'), function(list) {
+      list.mask();
+    });
+  },
+  getSelections: function(list) {
+    const me = this,
+        valueField = me.valueField,
+        selected = this.callParent(arguments);
+
+    if(list === me.toField.boundList && me.selectionPlaceholder) {
+      return Ext.Array.filter(selected, function (item) {
+        return item.data[valueField] !== me.selectionPlaceholder[valueField];
+      });
+    } else {
+      return selected;
+    }
+  }
+});
