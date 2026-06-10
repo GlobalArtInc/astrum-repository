@@ -1,0 +1,121 @@
+
+/*global Ext*/
+
+/**
+ * Validation helpers.
+ *
+ * @since 3.0
+ */
+Ext.define('NX.util.Validator', {
+  singleton: true,
+  requires: [
+      'Ext.form.field.VTypes',
+      'NX.I18n'
+  ],
+
+  /**
+   * Changes to this property should be sync'd in:
+   * components/astrum-validation/src/main/java/org/globalart/astrum/validation/constraint/NamePatternConstants.java
+   * @private
+   */
+  nxNameRegex : /^[a-zA-Z0-9\-]{1}[a-zA-Z0-9_\-\.]*$/,
+
+  /**
+   * Removes the constraint for a maximum of 6 characters in the last element of the domain name, otherwise
+   * is the same as default ExtJS email vtype.
+   * @private
+   */
+  nxEmailRegex : /^(")?(?:[^\."])(?:(?:[\.])?(?:[\w\-!#$%&'*+/=?^_`{|}~]))*\1@(\w[\-\w]*\.?){1,5}([A-Za-z]){2,60}$/,
+
+  /**
+   * A regular expression to detect a valid hostname according to RFC 1123.
+   * See also http-headers-patterns.properties and HostnameValidator.java for other uses of this regex.
+   * @private
+   */
+  nxRfc1123HostRegex: new RegExp(
+    "^(((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))|" +
+     "(\\[(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\\])|" +
+     "(\\[((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)\\])|" +
+     "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|" +
+     "[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]))(:([0-9]+))?$"
+  ),
+
+  /**
+   * A regular expression to detect a possibly valid URL
+   * @private
+   */
+  nxUrlRegex: /^https?:\/\/[^"<>^`{|}]+$/i,
+
+  /**
+   * Looser URL regex for OCI proxy remote URLs. Accepts {@code http://}, {@code https://}, and
+   * the OCI URI conventions {@code oci://} and {@code oci+http://}. The backend's
+   * {@code OciProxyRepositoryApiRequestToConfigurationConverter#normalizeRemoteUrl} normalises
+   * those OCI schemes to {@code https}/{@code http} on save, so the UI must accept what the
+   * server already accepts.
+   * @private
+   */
+  nxOciUrlRegex: /^(https?|oci(\+http)?):\/\/[^"<>^`{|}]+$/i,
+
+  /**
+   * A regular expression to detect whether we have leading and trailing white space
+   *
+   * @private
+   */
+  nxLeadingAndTrailingWhiteSpaceRegex : /^[ \s]+|[ \s]+$/,
+
+  /**
+   * Regular expression to validate docker subdomain
+   * @private
+   */
+  nxSubdomainRegex : /^[a-zA-Z](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$/,
+
+  /**
+   * @public
+   * @param vtype {object}
+   */
+  registerVtype: function(vtype) {
+    Ext.apply(Ext.form.field.VTypes, vtype);
+  },
+
+  constructor: function () {
+    var me = this;
+
+    me.vtypes = [
+      {
+        'nx-name': function(val) {
+          return NX.util.Validator.nxNameRegex.test(val);
+        },
+        'nx-nameText': NX.I18n.get('Util_Validator_Text'),
+        'nx-email': function(val) {
+          return NX.util.Validator.nxEmailRegex.test(val);
+        },
+        'nx-emailText': Ext.form.field.VTypes.emailText,
+        'nx-hostname': function(val) {
+          return NX.util.Validator.nxRfc1123HostRegex.test(val);
+        },
+        'nx-hostnameText': NX.I18n.get('Util_Validator_Hostname'),
+        'nx-trim': function(val) {
+          return !NX.util.Validator.nxLeadingAndTrailingWhiteSpaceRegex.test(val);
+        },
+        'nx-trimText': NX.I18n.get('Util_Validator_Trim'),
+        'nx-url': function(val) {
+          return NX.util.Validator.nxUrlRegex.test(val);
+        },
+        'nx-urlText': NX.I18n.get('Util_Validator_Url'),
+        'nx-oci-url': function(val) {
+          return NX.util.Validator.nxOciUrlRegex.test(val);
+        },
+        'nx-oci-urlText': 'Must be a valid URL using http://, https://, oci://, or oci+http://',
+        'nx-subdomain': function(val) {
+          return NX.util.Validator.nxSubdomainRegex.test(val);
+        },
+        'nx-subdomainText': NX.I18n.get('Util_Validator_Subdomain_Text'),
+      }
+    ];
+
+    Ext.each(me.vtypes, function(vtype) {
+      me.registerVtype(vtype);
+    });
+  }
+
+});
