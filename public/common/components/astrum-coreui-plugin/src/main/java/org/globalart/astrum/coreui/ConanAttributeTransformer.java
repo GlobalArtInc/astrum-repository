@@ -1,0 +1,107 @@
+
+package org.globalart.astrum.coreui;
+
+import java.util.HashMap;
+import java.util.Map;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static java.util.Collections.emptyMap;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+/**
+ * This is used for transforming "infoBinary" attribute of a Conan asset.
+ */
+@Component
+@Qualifier(ConanAttributeTransformer.CONAN_FORMAT)
+public class ConanAttributeTransformer
+    implements AssetAttributeTransformer
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  static final String CONAN_FORMAT = "conan";
+
+  static final String INFO_BINARY_ATTRIBUTE = "infoBinary";
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  private static final TypeReference<Map<String, Object>> MAP_STRING_OBJECT =
+      new TypeReference<Map<String, Object>>()
+      {
+      };
+
+  /**
+   * Transforms the given {@link AssetXO} by expanding its "infoBinary"
+   * attribute with a map containing the same data with flattened keys.
+   *
+   * @param assetXO the asset to be transformed
+   */
+  @Override
+  public void transform(final AssetXO assetXO) {
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> formatAttributes =
+        (Map<String, Object>) assetXO.getAttributes().getOrDefault(assetXO.getFormat(), emptyMap());
+
+    if (formatAttributes.containsKey(INFO_BINARY_ATTRIBUTE)) {
+      updateFormatAttributesMap(formatAttributes);
+    }
+  }
+
+  private void updateFormatAttributesMap(Map<String, Object> formatAttributesMap) {
+    String json = formatAttributesMap.get(INFO_BINARY_ATTRIBUTE).toString();
+    try {
+      formatAttributesMap.putAll(getBinaryInfoAsMap(json));
+      formatAttributesMap.remove(INFO_BINARY_ATTRIBUTE);
+    }
+    catch (IllegalStateException e) {
+      log.debug("Failed to parse {} as json", json);
+    }
+  }
+
+  /**
+   * Converts a JSON string into a flattened map.
+   *
+   * @param json the JSON string to be converted
+   * @return a flattened map containing same data with flattened keys
+   */
+  private Map<String, Object> getBinaryInfoAsMap(final String json) {
+    Map<String, Object> binaryInfo = deserialize(json, MAP_STRING_OBJECT);
+    return flattenMap(binaryInfo, null);
+  }
+
+  /**
+   * Flattens a nested map into a single-level map with dot-separated keys.
+   *
+   * @param map the nested map to be flattened
+   * @param parentKey the parent key to be used as a prefix (can be null)
+   * @return a flattened map
+   */
+  private Map<String, Object> flattenMap(final Map<String, Object> map, final String parentKey) {
+    Map<String, Object> flattenedMap = new HashMap<>();
+    for (Map.Entry<String, ?> entry : map.entrySet()) {
+      String key = parentKey == null ? entry.getKey() : parentKey + "." + entry.getKey();
+      if (entry.getValue() instanceof Map) {
+        flattenedMap.putAll(flattenMap((Map<String, Object>) entry.getValue(), key));
+      }
+      else {
+        flattenedMap.put(key, entry.getValue());
+      }
+    }
+    return flattenedMap;
+  }
+
+  private <T> T deserialize(final String json, final TypeReference<T> type) {
+    try {
+      return OBJECT_MAPPER.readValue(json, type);
+    }
+    catch (JsonProcessingException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+}

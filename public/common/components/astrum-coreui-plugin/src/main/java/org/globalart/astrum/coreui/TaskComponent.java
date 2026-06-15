@@ -1,0 +1,616 @@
+
+package org.globalart.astrum.coreui;
+
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.inject.Provider;
+import jakarta.validation.Valid;
+import jakarta.validation.Validator;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.groups.Default;
+import jakarta.ws.rs.NotFoundException;
+
+import org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants;
+import org.globalart.astrum.common.time.UTC;
+import org.globalart.astrum.coreui.TaskXO.AdvancedSchedule;
+import org.globalart.astrum.coreui.TaskXO.OnceSchedule;
+import org.globalart.astrum.coreui.TaskXO.OnceToMonthlySchedule;
+import org.globalart.astrum.extdirect.DirectComponentSupport;
+import org.globalart.astrum.rapture.StateContributor;
+import org.globalart.astrum.scheduling.ExternalTaskState;
+import org.globalart.astrum.scheduling.TaskConfiguration;
+import org.globalart.astrum.scheduling.TaskDescriptor;
+import org.globalart.astrum.scheduling.TaskInfo;
+import org.globalart.astrum.scheduling.TaskScheduler;
+import org.globalart.astrum.scheduling.TaskState;
+import org.globalart.astrum.scheduling.TaskUtils;
+import org.globalart.astrum.scheduling.schedule.Cron;
+import org.globalart.astrum.scheduling.schedule.Daily;
+import org.globalart.astrum.scheduling.schedule.Hourly;
+import org.globalart.astrum.scheduling.schedule.Manual;
+import org.globalart.astrum.scheduling.schedule.Monthly;
+import org.globalart.astrum.scheduling.schedule.Monthly.CalendarDay;
+import org.globalart.astrum.scheduling.schedule.Now;
+import org.globalart.astrum.scheduling.schedule.Once;
+import org.globalart.astrum.scheduling.schedule.Schedule;
+import org.globalart.astrum.scheduling.schedule.Weekly;
+import org.globalart.astrum.scheduling.schedule.Weekly.Weekday;
+import org.globalart.astrum.validation.Validate;
+import org.globalart.astrum.validation.group.Create;
+import org.globalart.astrum.validation.group.Update;
+
+import com.codahale.metrics.annotation.ExceptionMetered;
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.softwarementors.extjs.djn.config.annotations.DirectAction;
+import com.softwarementors.extjs.djn.config.annotations.DirectMethod;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Value;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static java.util.stream.Collectors.toList;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.BLOB_STORE_NAME_FIELD_ID;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.END_DATE;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.REPOSITORY_NAME_FIELD_ID;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.SINCE_DAYS;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.SINCE_HOURS;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.SINCE_MINUTES;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.START_DATE;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.TASK_SCOPE;
+import static org.globalart.astrum.blobstore.api.tasks.ReconcileTaskConstants.TASK_SCOPE_DATES;
+import static org.globalart.astrum.repository.date.TimeZoneUtils.shiftMonthDay;
+import static org.globalart.astrum.repository.date.TimeZoneUtils.shiftWeekDay;
+import static org.globalart.astrum.scheduling.TaskState.CANCELED;
+import static org.globalart.astrum.scheduling.TaskState.FAILED;
+import static org.globalart.astrum.scheduling.TaskState.INTERRUPTED;
+import static org.globalart.astrum.scheduling.TaskState.OK;
+import org.springframework.stereotype.Component;
+
+@Component
+@DirectAction(action = "coreui_Task")
+public class TaskComponent
+    extends DirectComponentSupport
+    implements StateContributor
+{
+  private static final String TASK_RESULT_OK = "Ok";
+
+  private static final String TASK_RESULT_CANCELED = "Canceled";
+
+  private static final String TASK_RESULT_ERROR = "Error";
+
+  private static final String TASK_RESULT_INTERRUPTED = "Interrupted";
+
+  public static final String PLAN_RECONCILIATION_TASK_ID = "blobstore.planReconciliation";
+
+  public static final String EXECUTE_PLAN_RECONCILIATION_TASK_ID = "blobstore.executeReconciliationPlan";
+
+  public static final String PLAN_RECONCILIATION_TASK_OK_TEXT = " - Plan(s) is ready to run";
+
+  private final TaskScheduler taskScheduler;
+
+  private final Provider<Validator> validatorProvider;
+
+  private final boolean allowCreation;
+
+  private final TaskUtils taskUtils;
+
+  @Autowired
+  public TaskComponent(
+      final TaskScheduler taskScheduler,
+      final Provider<Validator> validatorProvider,
+      @Value("${astrum.scripts.allowCreation:false}") final boolean allowCreation,
+      TaskUtils taskUtils)
+  {
+    this.taskScheduler = checkNotNull(taskScheduler);
+    this.validatorProvider = checkNotNull(validatorProvider);
+    this.allowCreation = allowCreation;
+    this.taskUtils = taskUtils;
+  }
+
+  @Nullable
+  @Override
+  public Map<String, Object> getState() {
+    return ImmutableMap.of("allowScriptCreation", allowCreation);
+  }
+
+  /**
+   * Retrieve a list of scheduled tasks.
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresPermissions("astrum:tasks:read")
+  public List<TaskXO> read() {
+    List<TaskXO> tasks = taskScheduler.listsTasks()
+        .stream()
+        .filter(taskInfo -> taskInfo.getConfiguration().isVisible())
+        .map(this::asTaskXO)
+        .collect(toList());
+
+    return replaceDataRepairProperties(tasks);
+  }
+
+  /**
+   * Retrieve available task types.
+   *
+   * @return a list of task types
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresPermissions("astrum:tasks:read")
+  public List<TaskTypeXO> readTypes() {
+    return taskScheduler.getTaskFactory().getDescriptors().stream().map(TaskComponent::asTaskTypeXO).collect(toList());
+  }
+
+  /**
+   * Creates a task.
+   *
+   * @param taskXO to be created
+   * @return created task
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:create")
+  @Validate(groups = {Create.class, Default.class})
+  public TaskXO create(final @NotNull @Valid TaskXO taskXO) throws Exception {
+    final Schedule schedule = asSchedule(taskXO);
+
+    final TaskConfiguration taskConfiguration = taskScheduler.createTaskConfigurationInstance(taskXO.getTypeId());
+    checkState(taskConfiguration.isExposed(), "This task is not allowed to be created");
+
+    String taskName = taskXO.getName();
+    String taskType = taskXO.getTypeId();
+    Map<String, String> taskProperties = taskXO.getProperties();
+    taskUtils.validateTaskCreationForUI(taskName, taskType, taskProperties, schedule);
+
+    // Filter out dot-prefixed internal keys to prevent task hijacking (ASTRUM-52686)
+    taskXO.getProperties()
+        .entrySet()
+        .stream()
+        .filter(e -> e.getKey() != null && !e.getKey().startsWith("."))
+        .forEach(e -> taskConfiguration.setString(e.getKey(), e.getValue()));
+    taskConfiguration.setTypeId(taskXO.getTypeId());
+    taskConfiguration.setAlertEmail(taskXO.getAlertEmail());
+    taskConfiguration.setNotificationCondition(taskXO.getNotificationCondition());
+    taskConfiguration.setName(taskXO.getName());
+    taskConfiguration.setEnabled(taskXO.getEnabled());
+
+    final TaskInfo task = scheduleTask(() -> taskScheduler.scheduleTask(taskConfiguration, schedule));
+    log.debug("Created task with type '{}': {} {}", taskConfiguration.getClass(), taskConfiguration.getName(),
+        taskConfiguration.getId());
+    return asTaskXO(task);
+  }
+
+  /**
+   * Updates a task.
+   *
+   * @param taskXO to be updated
+   * @return updated task
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:update")
+  @Validate(groups = {Update.class, Default.class})
+  public TaskXO update(final @NotNull @Valid TaskXO taskXO) throws Exception {
+    TaskInfo task = taskScheduler.getTaskById(taskXO.getId());
+    validateState(taskXO.getId(), task);
+    if ("script".equals(task.getTypeId())) {
+      validateScriptUpdate(task, taskXO);
+    }
+
+    final Schedule schedule = asSchedule(taskXO, task);
+    final TaskConfiguration taskConfiguration = taskScheduler.createTaskConfigurationInstance(task.getTypeId());
+    taskConfiguration.setRunPreviousPlan(taskXO.isRunPreviousPlan());
+    taskConfiguration.apply(task.getConfiguration());
+    taskConfiguration.setEnabled(taskXO.getEnabled());
+    taskConfiguration.setName(taskXO.getName());
+    taskConfiguration.setAlertEmail(taskXO.getAlertEmail());
+    taskConfiguration.setNotificationCondition(taskXO.getNotificationCondition());
+    // Filter out dot-prefixed internal keys to prevent task hijacking (ASTRUM-52686)
+    taskXO.getProperties()
+        .entrySet()
+        .stream()
+        .filter(e -> e.getKey() != null && !e.getKey().startsWith("."))
+        .forEach(e -> taskConfiguration.setString(e.getKey(), e.getValue()));
+    taskConfiguration.setTypeId(task.getTypeId());
+
+    task = scheduleTask(() -> taskScheduler.scheduleTask(taskConfiguration, schedule));
+
+    return asTaskXO(task);
+  }
+
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:delete")
+  @Validate
+  public void remove(final @NotEmpty String id) {
+    TaskInfo taskInfo = taskScheduler.getTaskById(id);
+    if (taskInfo != null) {
+      taskInfo.remove();
+    }
+  }
+
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:start")
+  @Validate
+  public void run(final @NotEmpty String id) throws Exception {
+    TaskInfo taskInfo = taskScheduler.getTaskById(id);
+    if (taskInfo != null) {
+      taskInfo.runNow();
+    }
+  }
+
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:tasks:stop")
+  @Validate
+  public void stop(final @NotEmpty String id) {
+    taskScheduler.cancel(id, false);
+  }
+
+  private TaskXO asTaskXO(final TaskInfo taskInfo) {
+    ExternalTaskState externalTaskState = taskScheduler.toExternalTaskState(taskInfo);
+    TaskState taskState = externalTaskState.getState();
+    TaskState endTaskState = externalTaskState.getLastEndState();
+    Date lastRun = externalTaskState.getLastRunStarted();
+    Long runDuration = externalTaskState.getLastRunDuration();
+
+    TaskConfiguration configuration = taskInfo.getConfiguration();
+    TaskXO result = new TaskXO();
+    result.setId(taskInfo.getId());
+    result.setEnabled(configuration.isEnabled());
+    result.setName(taskInfo.getName());
+    result.setTypeId(configuration.getTypeId());
+    result.setTypeName(configuration.getTypeName());
+    result.setStatus(taskState.name());
+    String statusDescription = configuration.isEnabled() ? taskState.getDescription() : "Disabled";
+    if (taskInfo.getCurrentState().getState().isRunning() && configuration.getProgress() != null) {
+      statusDescription += ": " + configuration.getProgress();
+    }
+    result.setStatusDescription(statusDescription);
+    result.setSchedule(getSchedule(taskInfo.getSchedule()));
+    result.setLastRun(lastRun);
+    result.setLastRunResult(getLastRunResult(taskInfo, endTaskState, runDuration));
+    result.setNextRun(externalTaskState.getNextFireTime());
+    result.setRunnable(taskState.isWaiting());
+    result.setStoppable(taskState.isRunning());
+    result.setAlertEmail(configuration.getAlertEmail());
+    result.setNotificationCondition(configuration.getNotificationCondition());
+    result.setProperties(configuration.asMap());
+    result.setIsRunPreviousPlan(configuration.isRunPreviousPlan());
+
+    Schedule schedule = taskInfo.getSchedule();
+    if (schedule instanceof Once) {
+      result.setStartDate(((Once) schedule).getStartAt());
+    }
+    else if (schedule instanceof Hourly) {
+      result.setStartDate(((Hourly) schedule).getStartAt());
+    }
+    else if (schedule instanceof Daily) {
+      result.setStartDate(((Daily) schedule).getStartAt());
+    }
+    else if (schedule instanceof Weekly) {
+      result.setStartDate(((Weekly) schedule).getStartAt());
+      // expects integers with 1=SUN, 2=MON, etc...
+      result.setRecurringDays(
+          ((Weekly) schedule).getDaysToRun()
+              .stream()
+              .map(dayToRun -> dayToRun.ordinal() + 1)
+              .collect(toList())
+              .toArray(new Integer[]{}));
+    }
+    else if (schedule instanceof Monthly) {
+      result.setStartDate(((Monthly) schedule).getStartAt());
+      // expects ints, with 999 being the lastDayOfMonth
+      result.setRecurringDays(((Monthly) schedule).getDaysToRun()
+          .stream()
+          .map(dayToRun -> dayToRun.isLastDayOfMonth() ? 999 : dayToRun.getDay())
+          .collect(toList())
+          .toArray(new Integer[]{}));
+    }
+    else if (schedule instanceof Cron) {
+      result.setStartDate(((Cron) schedule).getStartAt());
+      result.setCronExpression(((Cron) schedule).getCronExpression());
+    }
+    result.setIsReadOnlyUi(configuration.getBoolean(".readOnlyUi", false));
+    return result;
+  }
+
+  private Schedule asSchedule(final TaskXO taskXO, final TaskInfo taskInfo) {
+    if (ReconcileTaskConstants.PLAN_RECONCILE_TYPE_ID.equals(taskInfo.getTypeId())) {
+      return taskScheduler.getScheduleFactory().manual();
+    }
+    return asSchedule(taskXO);
+  }
+
+  private Schedule asSchedule(final TaskXO taskXO) {
+    if ("advanced".equals(taskXO.getSchedule())) {
+      ZoneOffset clientZoneOffset = ZoneOffset.of(taskXO.getTimeZoneOffset());
+      validatorProvider.get().validate(taskXO, AdvancedSchedule.class);
+      return taskScheduler.getScheduleFactory().cron(new Date(), taskXO.getCronExpression(), clientZoneOffset.getId());
+    }
+    if (!"manual".equals(taskXO.getSchedule())) {
+      if (taskXO.getStartDate() == null) {
+        validatorProvider.get().validate(taskXO, OnceToMonthlySchedule.class);
+      }
+      ZoneOffset clientZoneOffset = ZoneOffset.of(taskXO.getTimeZoneOffset());
+      LocalDateTime startDateClient =
+          LocalDateTime.ofInstant(taskXO.getStartDate().toInstant(), ZoneId.of(clientZoneOffset.getId()));
+      LocalDateTime startDateServer =
+          LocalDateTime.ofInstant(taskXO.getStartDate().toInstant(), ZoneId.systemDefault());
+      Calendar date = Calendar.getInstance();
+      date.setTimeInMillis(taskXO.getStartDate().getTime());
+      date.set(Calendar.SECOND, 0);
+      date.set(Calendar.MILLISECOND, 0);
+      switch (taskXO.getSchedule()) {
+        case "once":
+          validatorProvider.get().validate(taskXO, OnceSchedule.class);
+          return taskScheduler.getScheduleFactory().once(date.getTime());
+
+        case "hourly":
+          return taskScheduler.getScheduleFactory().hourly(date.getTime());
+
+        case "daily":
+          return taskScheduler.getScheduleFactory().daily(date.getTime());
+
+        case "weekly":
+          return taskScheduler.getScheduleFactory()
+              .weekly(date.getTime(), Arrays.stream(taskXO.getRecurringDays())
+                  .map(recurringDay -> Weekday.values()[shiftWeekDay(recurringDay - 1, startDateClient,
+                      startDateServer)])
+                  .collect(Collectors.toSet()));
+
+        case "monthly":
+          return taskScheduler.getScheduleFactory()
+              .monthly(date.getTime(), Arrays.stream(taskXO.getRecurringDays())
+                  .map(recurringDay -> recurringDay == 999
+                      ? CalendarDay.lastDay()
+                      : CalendarDay.day(
+                          shiftMonthDay(recurringDay, startDateClient, startDateServer)))
+                  .collect(Collectors.toSet()));
+      }
+    }
+    return taskScheduler.getScheduleFactory().manual();
+  }
+
+  private List<TaskXO> replaceDataRepairProperties(final List<TaskXO> tasks) {
+    TaskXO planTask = tasks.stream()
+        .filter(taskXO -> PLAN_RECONCILIATION_TASK_ID.equals(taskXO.getTypeId()))
+        .findFirst()
+        .orElse(null);
+
+    if (planTask != null) {
+      Map<String, String> properties = planTask.getProperties();
+
+      if (properties == null) {
+        return tasks;
+      }
+
+      TaskXO executePlanTaskXO = tasks.stream()
+          .filter(taskXO -> EXECUTE_PLAN_RECONCILIATION_TASK_ID.equals(taskXO.getTypeId()))
+          .findFirst()
+          .orElse(null);
+
+      if (executePlanTaskXO == null) {
+        return tasks;
+      }
+
+      Map<String, String> planProperties = new HashMap<>();
+
+      planProperties.put(REPOSITORY_NAME_FIELD_ID, properties.get(REPOSITORY_NAME_FIELD_ID));
+      planProperties.put(BLOB_STORE_NAME_FIELD_ID, properties.get(BLOB_STORE_NAME_FIELD_ID));
+      planProperties.put(TASK_SCOPE, TASK_SCOPE_DATES);
+
+      String startDateValue = properties.get(START_DATE);
+      String endDateValue = properties.get(END_DATE);
+
+      if (startDateValue == null || startDateValue.isEmpty()) {
+        planProperties.putAll(calculateDateRange(properties, startDateValue));
+      }
+      else {
+        planProperties.put(START_DATE, startDateValue);
+        planProperties.put(END_DATE, endDateValue);
+      }
+
+      Map<String, String> executePlanProperties = new HashMap<>(executePlanTaskXO.getProperties());
+
+      executePlanProperties.putAll(planProperties);
+      ImmutableMap<String, String> combinedMap = ImmutableMap.copyOf(executePlanProperties.entrySet()
+          .stream()
+          .filter(entry -> entry.getKey() != null && entry.getValue() != null)
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+      executePlanTaskXO.setProperties(combinedMap);
+    }
+
+    return tasks;
+  }
+
+  private Map<String, String> calculateDateRange(
+      final Map<String, String> properties,
+      final String startDateValue)
+  {
+    Map<String, String> dateRangeMap = new HashMap<>();
+    try {
+      OffsetDateTime endDate = UTC.now();
+
+      int sinceDays = Integer.parseInt(!properties.get(SINCE_DAYS).matches("\\d+") ? "0" : properties.get(SINCE_DAYS));
+      int sinceHours =
+          Integer.parseInt(!properties.get(SINCE_HOURS).matches("\\d+") ? "0" : properties.get(SINCE_HOURS));
+      int sinceMinutes =
+          Integer.parseInt(!properties.get(SINCE_MINUTES).matches("\\d+") ? "0" : properties.get(SINCE_MINUTES));
+
+      OffsetDateTime startDate = endDate.minusDays(sinceDays)
+          .minusHours(sinceHours)
+          .minusMinutes(sinceMinutes);
+
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+      dateRangeMap.put(START_DATE, startDate.format(formatter));
+      dateRangeMap.put(END_DATE, endDate.format(formatter));
+    }
+    catch (Exception e) {
+      log.warn("Invalid start date format: {}", startDateValue, e);
+    }
+
+    return dateRangeMap;
+  }
+
+  @VisibleForTesting
+  void validateState(final String taskId, final TaskInfo taskInfo) {
+    if (taskInfo == null) {
+      throw new NotFoundException(String.format("Task with id '%s' not found", taskId));
+    }
+    ExternalTaskState externalTaskState = taskScheduler.toExternalTaskState(taskInfo);
+    if (externalTaskState.getState().isRunning()) {
+      throw new IllegalStateException(
+          "Task can not be edited while it is being executed or it is in line to be executed");
+    }
+  }
+
+  @VisibleForTesting
+  void validateScriptUpdate(final TaskInfo task, final TaskXO update) {
+    String originalSource = task.getConfiguration().getString("source");
+    String updateSource = update.getProperties().get("source");
+
+    if (!allowCreation && originalSource != null && !originalSource.equals(updateSource)) {
+      throw new IllegalStateException("Script source updates are not allowed");
+    }
+  }
+
+  /**
+   * Handle parsing errors at the quartz level, which include logically incorrect settings in addition to the purely
+   * syntactic validations (regex) we already apply.
+   */
+  private TaskInfo scheduleTask(Callable<TaskInfo> callable) throws Exception {
+    try {
+      return callable.call();
+    }
+    catch (Exception e) {
+      log.error("Failed to schedule task", e);
+      throw e;
+    }
+  }
+
+  private static String getSchedule(final Schedule schedule) {
+    if (schedule instanceof Manual) {
+      return "manual";
+    }
+    else if (schedule instanceof Now) {
+      return "internal";
+    }
+    else if (schedule instanceof Once) {
+      return "once";
+    }
+    else if (schedule instanceof Hourly) {
+      return "hourly";
+    }
+    else if (schedule instanceof Daily) {
+      return "daily";
+    }
+    else if (schedule instanceof Weekly) {
+      return "weekly";
+    }
+    else if (schedule instanceof Monthly) {
+      return "monthly";
+    }
+    else if (schedule instanceof Cron) {
+      return "advanced";
+    }
+    else {
+      // FIXME: Is this valid? There should be no other Schedule types other than handled above
+      return schedule.getClass().getName();
+    }
+  }
+
+  private static String getLastRunResult(final TaskInfo taskInfo, final TaskState endState, final Long runDuration) {
+    StringBuilder lastRunResult = new StringBuilder();
+
+    if (endState != null) {
+      if (OK.equals(endState)) {
+        lastRunResult.append(TASK_RESULT_OK);
+      }
+      else if (CANCELED.equals(endState)) {
+        lastRunResult.append(TASK_RESULT_CANCELED);
+      }
+      else if (FAILED.equals(endState)) {
+        lastRunResult.append(TASK_RESULT_ERROR);
+      }
+      else if (INTERRUPTED.equals(endState)) {
+        lastRunResult.append(TASK_RESULT_INTERRUPTED);
+      }
+      else {
+        lastRunResult.append(endState.name());
+      }
+
+      if (runDuration != null) {
+        long milliseconds = runDuration;
+
+        int hours = (int) ((milliseconds / 1000) / 3600);
+        int minutes = (int) ((milliseconds / 1000) / 60 - hours * 60);
+        int seconds = (int) ((milliseconds / 1000) % 60);
+
+        lastRunResult.append(" [");
+        if (hours != 0) {
+          lastRunResult.append(hours).append("h");
+        }
+        if (minutes != 0 || hours != 0) {
+          lastRunResult.append(minutes).append("m");
+        }
+        lastRunResult.append(seconds).append("s]");
+      }
+
+      appendPlanReconciliationText(lastRunResult, endState, taskInfo);
+    }
+    return lastRunResult.toString();
+  }
+
+  private static void appendPlanReconciliationText(StringBuilder lastRunResult, TaskState endState, TaskInfo taskInfo) {
+    if (OK.equals(endState) && taskInfo.getTypeId().equals(PLAN_RECONCILIATION_TASK_ID) &&
+        taskInfo.getConfiguration().getBoolean("dryRun", false)) {
+      lastRunResult.append(PLAN_RECONCILIATION_TASK_OK_TEXT);
+    }
+  }
+
+  private static TaskTypeXO asTaskTypeXO(final TaskDescriptor taskDescriptor) {
+    TaskTypeXO taskTypeXO = new TaskTypeXO();
+
+    taskTypeXO.setId(taskDescriptor.getId());
+    taskTypeXO.setName(taskDescriptor.getName());
+    taskTypeXO.setExposed(taskDescriptor.isExposed());
+    taskTypeXO.setConcurrentRun(taskDescriptor.allowConcurrentRun());
+    if (taskDescriptor.getFormFields() != null) {
+      taskTypeXO.setFormFields(taskDescriptor.getFormFields().stream().map(FormFieldXO::create).collect(toList()));
+    }
+    return taskTypeXO;
+  }
+}
