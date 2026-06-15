@@ -1,0 +1,132 @@
+
+package org.globalart.astrum.coreui.internal.log;
+
+import java.util.Collection;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+
+import org.globalart.astrum.common.log.LogManager;
+import org.globalart.astrum.common.log.LoggerLevel;
+import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.repository.BadRequestException;
+
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.stream.Collectors.toSet;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import org.springframework.stereotype.Component;
+
+@Component
+@Consumes(APPLICATION_JSON)
+@Produces(APPLICATION_JSON)
+@Path(LoggingConfigurationResource.RESOURCE_PATH)
+public class LoggingConfigurationResource
+    implements Resource
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  static final String RESOURCE_PATH = "internal/ui/loggingConfiguration";
+
+  private static final String ROOT = "ROOT";
+
+  private static final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+  private LogManager logManager;
+
+  @Autowired
+  public LoggingConfigurationResource(final LogManager logManager) {
+    this.logManager = checkNotNull(logManager);
+  }
+
+  @GET
+  @RequiresPermissions("astrum:logging:read")
+  public Collection<LoggerXO> readAll() {
+    lock.readLock().lock();
+    try {
+      return logManager.getEffectiveLoggersUpdatedByFetchedOverrides()
+          .entrySet()
+          .stream()
+          .map(LoggerXO::fromEntry)
+          .collect(toSet());
+    }
+    finally {
+      lock.readLock().unlock();
+    }
+  }
+
+  @POST
+  @Path("/reset")
+  @RequiresPermissions("astrum:logging:update")
+  public void resetAll() {
+    lock.writeLock().lock();
+    try {
+      logManager.resetLoggers();
+    }
+    finally {
+      lock.writeLock().unlock();
+    }
+  }
+
+  @GET
+  @Path("/{name}")
+  @RequiresPermissions("astrum:logging:read")
+  public LoggerXO read(@PathParam("name") final String name) {
+    lock.readLock().lock();
+    try {
+      LoggerXO logger = new LoggerXO();
+      logger.setName(name);
+      logger.setLevel(logManager.getLoggerEffectiveLevel(name));
+      logger.setOverride(logManager.getLoggers().containsKey(name));
+      return logger;
+    }
+    finally {
+      lock.readLock().unlock();
+    }
+  }
+
+  @PUT
+  @Path("/{name}")
+  @RequiresPermissions("astrum:logging:update")
+  public void update(@PathParam("name") final String name, final UpdateLoggingConfigurationRequest request) {
+    lock.writeLock().lock();
+    try {
+      if (request.getLevel() == LoggerLevel.DEFAULT) {
+        logManager.unsetLoggerLevel(name);
+      }
+      else {
+        logManager.setLoggerLevel(name, request.getLevel());
+      }
+    }
+    catch (IllegalArgumentException e) {
+      throw new BadRequestException(e.getMessage());
+    }
+    finally {
+      lock.writeLock().unlock();
+    }
+  }
+
+  @POST
+  @Path("/{name}/reset")
+  @RequiresPermissions("astrum:logging:update")
+  public void reset(@PathParam("name") final String name) {
+    lock.writeLock().lock();
+    try {
+      logManager.unsetLoggerLevel(name);
+    }
+    finally {
+      lock.writeLock().unlock();
+    }
+  }
+}
