@@ -1,0 +1,332 @@
+
+package org.globalart.astrum.coreui.internal.capability;
+
+import java.util.AbstractMap.SimpleEntry;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.groups.Default;
+
+import org.globalart.astrum.capability.Capability;
+import org.globalart.astrum.capability.CapabilityDescriptor;
+import org.globalart.astrum.capability.CapabilityDescriptorRegistry;
+import org.globalart.astrum.capability.CapabilityReference;
+import org.globalart.astrum.capability.CapabilityReferenceFilterBuilder.CapabilityReferenceFilter;
+import org.globalart.astrum.capability.CapabilityRegistry;
+import org.globalart.astrum.capability.CapabilityType;
+import org.globalart.astrum.capability.Tag;
+import org.globalart.astrum.internal.scheduling.SchedulerCapabilityDescriptor;
+import org.globalart.astrum.repository.capability.StorageSettingsCapabilityDescriptor;
+import org.globalart.astrum.capability.Taggable;
+import org.globalart.astrum.coreui.FormFieldXO;
+import org.globalart.astrum.extdirect.DirectComponent;
+import org.globalart.astrum.extdirect.DirectComponentSupport;
+import org.globalart.astrum.rapture.PasswordPlaceholder;
+import org.globalart.astrum.rapture.StateContributor;
+import org.globalart.astrum.validation.Validate;
+import org.globalart.astrum.validation.group.Create;
+import org.globalart.astrum.validation.group.Update;
+
+import com.codahale.metrics.annotation.ExceptionMetered;
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
+import com.softwarementors.extjs.djn.config.annotations.DirectAction;
+import com.softwarementors.extjs.djn.config.annotations.DirectMethod;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
+import static org.globalart.astrum.capability.CapabilityIdentity.capabilityIdentity;
+import static org.globalart.astrum.capability.CapabilityReferenceFilterBuilder.capabilities;
+import static org.globalart.astrum.capability.CapabilityType.capabilityType;
+import org.springframework.stereotype.Component;
+
+// FIXME: update action name after refactor to use coreui_*
+
+/**
+ * Capabilities {@link DirectComponent}.
+ */
+@Component
+@DirectAction(action = "capability_Capability")
+public class CapabilityComponent
+    extends DirectComponentSupport
+    implements StateContributor
+{
+  private static final CapabilityReferenceFilter ALL_CREATED = capabilities().includeNotExposed();
+
+  private static final CapabilityReferenceFilter ALL_ACTIVE = capabilities().includeNotExposed().active();
+
+  private final CapabilityDescriptorRegistry capabilityDescriptorRegistry;
+
+  private final CapabilityRegistry capabilityRegistry;
+
+  private static final Set<String> SYSTEM_CAPABILITY_TYPES = Set.of(
+      SchedulerCapabilityDescriptor.TYPE_ID,
+      StorageSettingsCapabilityDescriptor.TYPE_ID);
+
+  @Autowired
+  public CapabilityComponent(
+      final CapabilityDescriptorRegistry capabilityDescriptorRegistry,
+      final CapabilityRegistry capabilityRegistry)
+  {
+    this.capabilityDescriptorRegistry = checkNotNull(capabilityDescriptorRegistry);
+    this.capabilityRegistry = checkNotNull(capabilityRegistry);
+  }
+
+  /**
+   * Retrieves capabilities.
+   *
+   * @return a list of capabilities
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresPermissions("astrum:capabilities:read")
+  public List<CapabilityXO> read() {
+    capabilityRegistry.pullAndRefreshReferencesFromDB();
+    return capabilityRegistry.get(capabilities()).stream().map(this::asCapability).collect(toList());
+  }
+
+  /**
+   * Retrieve available capabilities types.
+   *
+   * @return a list of capability types
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresPermissions("astrum:capabilities:read")
+  public List<CapabilityTypeXO> readTypes() {
+    return Arrays.stream(capabilityDescriptorRegistry.getAll())
+        .filter(CapabilityDescriptor::isExposed)
+        .map(this::asCapabilityType)
+        .collect(toList());
+  }
+
+  /**
+   * Creates a capability.
+   *
+   * @param capabilityXO to be created
+   * @return created capability
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:capabilities:create")
+  @Validate(groups = {Create.class, Default.class})
+  public CapabilityXO create(final @NotNull @Valid CapabilityXO capabilityXO) {
+    return asCapability(capabilityRegistry.add(capabilityType(capabilityXO.getTypeId()), capabilityXO.getEnabled(),
+        capabilityXO.getNotes(), capabilityXO.getProperties()));
+  }
+
+  /**
+   * Updates a capability.
+   *
+   * @param capabilityXO to be updated
+   * @return updated capability
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:capabilities:update")
+  @Validate(groups = {Update.class, Default.class})
+  public CapabilityXO update(final @NotNull @Valid CapabilityXO capabilityXO) {
+    CapabilityReference capabilityReference = capabilityRegistry.get(capabilityIdentity(capabilityXO.getId()));
+    return asCapability(capabilityRegistry.update(capabilityIdentity(capabilityXO.getId()), capabilityXO.getEnabled(),
+        capabilityXO.getNotes(),
+        unfilterProperties(capabilityXO.getProperties(), capabilityReference.context().properties())));
+  }
+
+  /**
+   * Updates capability notes.
+   *
+   * @param capabilityNotesXO to be updated
+   * @return updated capability
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:capabilities:update")
+  @Validate(groups = {Update.class, Default.class})
+  public CapabilityXO updateNotes(final @NotNull @Valid CapabilityNotesXO capabilityNotesXO) {
+    CapabilityReference capabilityReference = capabilityRegistry.get(capabilityIdentity(capabilityNotesXO.getId()));
+    return asCapability(
+        capabilityRegistry.update(capabilityReference.context().id(), capabilityReference.context().isEnabled(),
+            capabilityNotesXO.getNotes(), capabilityReference.context().properties()));
+  }
+
+  /**
+   * Deletes a capability.
+   *
+   * @param id of capability to be deleted
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:capabilities:delete")
+  @Validate
+  public void remove(final @NotEmpty String id) {
+    CapabilityReference reference = capabilityRegistry.get(capabilityIdentity(id));
+    if (reference != null && isDefaultCapability(reference)) {
+      throw new IllegalArgumentException("Cannot delete system capability: " +
+          reference.context().descriptor().name());
+    }
+    capabilityRegistry.remove(capabilityIdentity(id));
+  }
+
+  /**
+   * Enables an existing capability.
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:capabilities:update")
+  @Validate
+  public void enable(final @NotEmpty String id) {
+    capabilityRegistry.enable(capabilityIdentity(id));
+  }
+
+  /**
+   * Disables an existing capability.
+   */
+  @DirectMethod
+  @Timed
+  @ExceptionMetered
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:capabilities:update")
+  @Validate
+  public void disable(final @NotEmpty String id) {
+    capabilityRegistry.disable(capabilityIdentity(id));
+  }
+
+  @Override
+  public Map<String, Object> getState() {
+    return ImmutableMap.of("capabilityCreatedTypes",
+        capabilityRegistry.get(ALL_CREATED).stream().map(this::capabilityToType).collect(toSet()),
+        "capabilityActiveTypes",
+        capabilityRegistry.get(ALL_ACTIVE).stream().map(this::capabilityToType).collect(toSet()));
+  }
+
+  private String capabilityToType(final CapabilityReference capabilityReference) {
+    return capabilityReference.context().descriptor().type().toString();
+  }
+
+  private CapabilityXO asCapability(final CapabilityReference reference) {
+    CapabilityDescriptor descriptor = reference.context().descriptor();
+    Capability capability = reference.capability();
+
+    CapabilityXO capabilityXO = new CapabilityXO();
+    capabilityXO.setId(reference.context().id().toString());
+    capabilityXO.setNotes(reference.context().notes());
+    capabilityXO.setTypeId(descriptor.type().toString());
+    capabilityXO.setTypeName(descriptor.name());
+    capabilityXO.setEnabled(reference.context().isEnabled());
+    capabilityXO.setActive(reference.context().isActive());
+    capabilityXO.setError(reference.context().hasFailure());
+    capabilityXO.setState("disabled");
+    capabilityXO.setStateDescription(reference.context().stateDescription());
+    capabilityXO.setProperties(filterProperties(reference.context().properties(), capability));
+    capabilityXO.setDisableWarningMessage(descriptor.getDisableWarningMessage());
+    capabilityXO.setDeleteWarningMessage(descriptor.getDeleteWarningMessage());
+    capabilityXO.setSystem(isDefaultCapability(reference));
+
+    if (capabilityXO.getEnabled() && capabilityXO.getError()) {
+      capabilityXO.setState("error");
+    }
+    else if (capabilityXO.getEnabled() && capabilityXO.getActive()) {
+      capabilityXO.setState("active");
+    }
+    else if (capabilityXO.getEnabled() && !capabilityXO.getActive()) {
+      capabilityXO.setState("passive");
+    }
+
+    if (capability.description() != null) {
+      capabilityXO.setDescription(capability.description());
+    }
+
+    if (capability.status() != null) {
+      capabilityXO.setStatus(capability.status());
+    }
+
+    Set<Tag> tags = new HashSet<>();
+    if (descriptor instanceof Taggable && ((Taggable) descriptor).getTags() != null) {
+      tags.addAll(((Taggable) descriptor).getTags());
+    }
+    if (capability instanceof Taggable && ((Taggable) capability).getTags() != null) {
+      tags.addAll(((Taggable) capability).getTags());
+    }
+    if (!tags.isEmpty()) {
+      capabilityXO.setTags(tags.stream().collect(toMap(Tag::key, Tag::value)));
+    }
+
+    return capabilityXO;
+  }
+
+  private CapabilityTypeXO asCapabilityType(final CapabilityDescriptor capabilityDescriptor) {
+    CapabilityTypeXO capabilityTypeXO = new CapabilityTypeXO();
+    capabilityTypeXO.setId(capabilityDescriptor.type().toString());
+    capabilityTypeXO.setName(capabilityDescriptor.name());
+    capabilityTypeXO.setAbout(capabilityDescriptor.about());
+    if (capabilityDescriptor.formFields() != null) {
+      capabilityTypeXO.setFormFields(
+          capabilityDescriptor.formFields().stream().map(FormFieldXO::create).collect(toList()));
+    }
+    return capabilityTypeXO;
+  }
+
+  private Map<String, String> filterProperties(final Map<String, String> properties, final Capability capability) {
+    return properties.entrySet()
+        .stream()
+        .filter(this::nonNullKeyAndValue)
+        .map(entry -> {
+          if (capability.isPasswordProperty(entry.getKey())) {
+            if ("PKI".equals(properties.get("authenticationType"))) {
+              return new SimpleEntry<>(entry.getKey(), "");
+            }
+            return new SimpleEntry<>(entry.getKey(), PasswordPlaceholder.get());
+          }
+          return entry;
+        })
+        .collect(toMap(Entry::getKey, Entry::getValue));
+  }
+
+  private Map<String, String> unfilterProperties(
+      final Map<String, String> properties,
+      final Map<String, String> referenceProperties)
+  {
+    return properties.entrySet()
+        .stream()
+        .filter(this::nonNullKeyAndValue)
+        .map(entry -> {
+          if (PasswordPlaceholder.is(entry.getValue())) {
+            return new SimpleEntry<>(entry.getKey(), referenceProperties.get(entry.getKey()));
+          }
+          return entry;
+        })
+        .collect(toMap(Entry::getKey, Entry::getValue));
+  }
+
+  private boolean nonNullKeyAndValue(final Entry<?, ?> entry) {
+    return entry != null && entry.getKey() != null && entry.getValue() != null;
+  }
+
+  private boolean isDefaultCapability(CapabilityReference reference) {
+    CapabilityType type = reference.context().descriptor().type();
+    return SYSTEM_CAPABILITY_TYPES.contains(type.toString());
+  }
+}

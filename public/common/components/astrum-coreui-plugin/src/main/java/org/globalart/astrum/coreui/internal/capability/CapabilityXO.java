@@ -1,0 +1,199 @@
+
+package org.globalart.astrum.coreui.internal.capability;
+
+import java.util.Map;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import org.globalart.astrum.capability.CapabilityTypeExists;
+import org.globalart.astrum.validation.group.Create;
+import org.globalart.astrum.validation.group.Update;
+
+public class CapabilityXO
+{
+  @NotEmpty(groups = Update.class)
+  private String id;
+
+  @NotBlank(groups = Create.class)
+  @CapabilityTypeExists(groups = Create.class)
+  private String typeId;
+
+  @NotNull
+  private Boolean enabled;
+
+  private String notes;
+
+  private Map<String, String> properties;
+
+  private Boolean active;
+
+  private Boolean error;
+
+  private String description;
+
+  private String state;
+
+  private String stateDescription;
+
+  private String status;
+
+  private String typeName;
+
+  private Map<String, String> tags;
+
+  private String disableWarningMessage;
+
+  private String deleteWarningMessage;
+
+  private Boolean isSystem = false;
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(final String id) {
+    this.id = id;
+  }
+
+  public String getTypeId() {
+    return typeId;
+  }
+
+  public void setTypeId(final String typeId) {
+    this.typeId = typeId;
+  }
+
+  public Boolean getEnabled() {
+    return enabled;
+  }
+
+  public void setEnabled(final Boolean enabled) {
+    this.enabled = enabled;
+  }
+
+  public String getNotes() {
+    return notes;
+  }
+
+  public void setNotes(final String notes) {
+    this.notes = notes;
+  }
+
+  public Map<String, String> getProperties() {
+    return properties;
+  }
+
+  public void setProperties(final Map<String, String> properties) {
+    this.properties = properties;
+  }
+
+  public Boolean getActive() {
+    return active;
+  }
+
+  public void setActive(final Boolean active) {
+    this.active = active;
+  }
+
+  public Boolean getError() {
+    return error;
+  }
+
+  public void setError(final Boolean error) {
+    this.error = error;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(final String description) {
+    this.description = description;
+  }
+
+  public String getState() {
+    return state;
+  }
+
+  public void setState(final String state) {
+    this.state = state;
+  }
+
+  public String getStateDescription() {
+    return stateDescription;
+  }
+
+  public void setStateDescription(final String stateDescription) {
+    this.stateDescription = stateDescription;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(final String status) {
+    this.status = status;
+  }
+
+  public String getTypeName() {
+    return typeName;
+  }
+
+  public void setTypeName(final String typeName) {
+    this.typeName = typeName;
+  }
+
+  public Map<String, String> getTags() {
+    return tags;
+  }
+
+  public void setTags(final Map<String, String> tags) {
+    this.tags = tags;
+  }
+
+  public String getDisableWarningMessage() {
+    return disableWarningMessage;
+  }
+
+  public void setDisableWarningMessage(final String disableWarningMessage) {
+    this.disableWarningMessage = disableWarningMessage;
+  }
+
+  public String getDeleteWarningMessage() {
+    return deleteWarningMessage;
+  }
+
+  public void setDeleteWarningMessage(final String deleteWarningMessage) {
+    this.deleteWarningMessage = deleteWarningMessage;
+  }
+
+  public Boolean isSystem() {
+    return isSystem;
+  }
+
+  public void setSystem(final Boolean isSystem) {
+    this.isSystem = isSystem;
+  }
+
+  @Override
+  public String toString() {
+    return "CapabilityXO(" +
+        "id:" + id + '\'' +
+        ", typeId:" + typeId +
+        ", enabled:" + enabled +
+        ", notes:" + notes +
+        ", properties:" + properties +
+        ", active:" + active +
+        ", error:" + error +
+        ", description:" + description +
+        ", state:" + state +
+        ", stateDescription:" + stateDescription +
+        ", status:" + status +
+        ", typeName:" + typeName +
+        ", tags:" + tags +
+        ", disableWarningMessage:" + disableWarningMessage +
+        ", deleteWarningMessage:" + deleteWarningMessage +
+        ")";
+  }
+}
