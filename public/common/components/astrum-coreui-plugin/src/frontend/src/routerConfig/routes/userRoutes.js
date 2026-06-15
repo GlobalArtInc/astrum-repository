@@ -1,0 +1,77 @@
+
+import { UIView } from '@uirouter/react';
+import { ROUTE_NAMES } from '../routeNames/routeNames';
+import { lazyLoad } from './lazyLoad';
+
+// Lazy load all route components for better code splitting
+const UserAccount = lazyLoad(() => import('../../components/pages/admin/UserAccount/UserAccount'));
+const NuGetApiToken = lazyLoad(() => import('../../components/pages/user/NuGetApiToken/NuGetApiToken'));
+const UserToken = lazyLoad(() => import('../../components/pages/user/UserToken/UserToken'));
+
+const USER = ROUTE_NAMES.USER;
+
+// for more info on how to define routes see private/developer-documentation/frontend/client-side-routing.md
+export const userRoutes = [
+  {
+    name: USER.DIRECTORY,
+    url: 'user',
+    component: UIView,
+    data: {
+      visibilityRequirements: {
+        ignoreForMenuVisibilityCheck: true,
+      },
+      title: USER.TITLE,
+    },
+  },
+
+  {
+    name: USER.ACCOUNT,
+    url: '/account',
+    component: UserAccount,
+    data: {
+      visibilityRequirements: {
+        requiresUser: true,
+      },
+      title: USER.TITLE,
+    },
+  },
+
+  {
+    name: USER.NUGETAPITOKEN,
+    url: '/NuGetApiToken',
+    component: NuGetApiToken,
+    data: {
+      visibilityRequirements: {
+        requiresUser: true,
+        permissions: ['astrum:apikey:*'],
+        statesEnabled: [
+          {
+            key: 'nugetApiKeyRealmEnabled',
+            defaultValue: false,
+          },
+        ],
+      },
+      title: USER.TITLE,
+    },
+  },
+
+  {
+    name: USER.USER_TOKEN,
+    url: '/usertoken',
+    component: UserToken,
+    data: {
+      visibilityRequirements: {
+        bundle: 'astrum-usertoken-plugin',
+        statesEnabled: [
+          {
+            key: 'userTokenRealmEnabled',
+            defaultValue: false,
+          },
+        ],
+        permissions: ['astrum:usertoken-current:read'],
+        editions: ['PRO'],
+      },
+      title: USER.TITLE,
+    },
+  },
+];

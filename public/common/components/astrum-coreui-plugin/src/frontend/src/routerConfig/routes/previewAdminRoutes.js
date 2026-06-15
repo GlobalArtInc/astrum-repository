@@ -1,0 +1,1131 @@
+
+/**
+ * Preview Admin Routes - Phase 4.0 Fork Infrastructure
+ * 
+ * Admin (Settings) routes for Preview UI.
+ * Uses ComingSoonPage for features being migrated.
+ * Uses SettingsPageLayoutRadix for secondary sidebar navigation.
+ * 
+ * IMPORTANT: Route names must match the default admin route names (with preview. prefix)
+ * so that useDefaultAdminRouteName() works correctly.
+ * 
+ * URL Structure (path-based routing):
+ * - /preview/admin/repositories → preview.admin.repository.repositories
+ * - /preview/admin/blobstores   → preview.admin.repository.blobstores
+ * - etc.
+ */
+
+import React from 'react';
+import {UIView} from '@uirouter/react';
+import {
+  Permissions,
+  withFeatureGate,
+  withCloudExcluded,
+  SettingsPageLayoutRadix,
+  SettingsHubPage,
+  GlobalArtTestHub,
+  GlobalArtInternalTestDashboard,
+  GlobalArtInternalTestSearchHc,
+  MalwareDashboardScenarioPage,
+  RepositoriesPage as RepositoriesPageRaw,
+  RepositoryProfilePage as RepositoryProfilePageRaw,
+  BlobStoresPage as BlobStoresPageRaw,
+  ContentSelectorsPage as ContentSelectorsPageRaw,
+  CleanupPoliciesPage as CleanupPoliciesPageRaw,
+  RoutingRulesPage as RoutingRulesPageRaw,
+  DataStorePage as DataStorePageRaw,
+  ProprietaryPage as ProprietaryPageRaw,
+  PrivilegesPage as PrivilegesPageRaw,
+  RolesPage as RolesPageRaw,
+  UsersPage as UsersPageRaw,
+  AnonymousPage as AnonymousPageRaw,
+  CrowdPage as CrowdPageRaw,
+  LdapPage as LdapPageRaw,
+  OAuth2Page as OAuth2PageRaw,
+  RealmsPage as RealmsPageRaw,
+  SamlPage as SamlPageRaw,
+  SslCertificatesPage as SslCertificatesPageRaw,
+  UserTokensPage as UserTokensPageRaw,
+  ServiceAccountTokensPage,
+  LogsPage as LogsPageRaw,
+  LoggingConfigPage as LoggingConfigPageRaw,
+  SystemInfoPage as SystemInfoPageRaw,
+  MetricHealthPage as MetricHealthPageRaw,
+  RecoveryModePage as RecoveryModePageRaw,
+  SupportRequestPage as SupportRequestPageRaw,
+  SupportZipPage as SupportZipPageRaw,
+  TasksPage as TasksPageRaw,
+  CapabilitiesPage as CapabilitiesPageRaw,
+  PreviewUiSettingsPage,
+  EmailPage as EmailPageRaw,
+  HttpPage as HttpPageRaw,
+  NodesPage as NodesPageRaw,
+  UsagePage,
+  UserAccountPage as UserAccountPageRaw,
+} from '@globalart/astrum-ui-plugin';
+import {lazyLoad} from './lazyLoad';
+
+// ui-plugin already exports these as React.lazy(); wrapping with lazyLoad() would double-wrap them.
+// Two distinct wrapper functions force React to unmount→remount when transitioning
+// between iqConnected and iqConnection (same underlying component, different element type).
+
+// GlobalArt-internal scenario route wraps MalwareDashboardScenarioPage with
+// a transition-param unwrapper. The named export from ui-plugin is the
+// underlying (non-default) export from MalwareDashboardTestPage.
+const GlobalArtInternalTestScenario = ({ transition }) => {
+  const id = transition?.params?.().scenarioId ?? 'A';
+  return React.createElement(MalwareDashboardScenarioPage, { scenarioId: id });
+};
+
+const globalartInternalRoutes = [
+  // Hub — index of all test pages
+  {
+    name: 'preview.test',
+    url: '/test',
+    component: GlobalArtTestHub,
+    data: { title: '[Internal] Test Hub' },
+  },
+  // Dashboard / MalwareStatusCard
+  {
+    name: 'preview.test-dashboard',
+    url: '/test-dashboard',
+    component: GlobalArtInternalTestDashboard,
+    data: { title: '[Internal] Test — Dashboard' },
+  },
+  {
+    name: 'preview.test-dashboard.scenario',
+    url: '/test-dashboard/scenario/:scenarioId',
+    component: GlobalArtInternalTestScenario,
+    data: { title: '[Internal] Dashboard Scenario' },
+  },
+  // Health Check cell permutations
+  {
+    name: 'preview.test-search-hc',
+    url: '/test-search-hc',
+    component: GlobalArtInternalTestSearchHc,
+    data: { title: '[Internal] Test — Health Check Cell' },
+  },
+];
+
+// =============================================================================
+// FEATURE-GATED PAGES
+// Each gated page wraps the ui-plugin export with ComingSoonPage in
+// production. Raw (ungated) components are imported above as <Name>Raw.
+// =============================================================================
+
+// Repository - Gated (Coming Soon in production, WIP accessible in dev only)
+const RepositoriesPage = withFeatureGate(RepositoriesPageRaw, 'repository.repositories', 'Repositories');
+const RepositoryProfilePage = withFeatureGate(RepositoryProfilePageRaw, 'repository.repositories', 'Repository Profile');
+const BlobStoresPage = withFeatureGate(BlobStoresPageRaw, 'repository.blobstores', 'Blob Stores');
+const ContentSelectorsPage = withFeatureGate(ContentSelectorsPageRaw, 'repository.selectors', 'Content Selectors');
+const CleanupPoliciesPage = withFeatureGate(CleanupPoliciesPageRaw, 'repository.cleanuppolicies', 'Cleanup Policies');
+const RoutingRulesPage = withFeatureGate(RoutingRulesPageRaw, 'repository.routingrules', 'Routing Rules');
+const DataStorePage = withFeatureGate(DataStorePageRaw, 'repository.datastore', 'Data Store');
+const ProprietaryPage = withFeatureGate(ProprietaryPageRaw, 'repository.proprietary', 'Proprietary');
+
+// Security - Gated
+const PrivilegesPage = withFeatureGate(PrivilegesPageRaw, 'security.privileges', 'Privileges');
+const RolesPage = withFeatureGate(RolesPageRaw, 'security.roles', 'Roles');
+const UsersPage = withFeatureGate(UsersPageRaw, 'security.users', 'Users');
+const AnonymousPage = withFeatureGate(AnonymousPageRaw, 'security.anonymous', 'Anonymous Access');
+const CrowdPage = withFeatureGate(CrowdPageRaw, 'security.crowd', 'Atlassian Crowd');
+const LdapPage = withFeatureGate(LdapPageRaw, 'security.ldap', 'LDAP');
+const OAuth2Page = withFeatureGate(OAuth2PageRaw, 'security.oauth2', 'OAuth 2.0');
+const RealmsPage = withFeatureGate(RealmsPageRaw, 'security.realms', 'Realms');
+const SamlPage = withFeatureGate(SamlPageRaw, 'security.saml', 'SAML');
+const SslCertificatesPage = withFeatureGate(SslCertificatesPageRaw, 'security.sslcertificates', 'SSL Certificates');
+const UserTokensPage = withFeatureGate(UserTokensPageRaw, 'security.usertokens', 'User Tokens');
+
+// Support - Gated (Logs and Logging Configuration are self-hosted only)
+const LogsPage = withCloudExcluded(
+  withFeatureGate(LogsPageRaw, 'support.logs', 'Logs'),
+  'Logs',
+);
+const LoggingConfigPage = withCloudExcluded(
+  withFeatureGate(LoggingConfigPageRaw, 'support.logging', 'Logging Configuration'),
+  'Logging Configuration',
+);
+const SystemInfoPage = withFeatureGate(SystemInfoPageRaw, 'support.systeminfo', 'System Information');
+const MetricHealthPage = withFeatureGate(MetricHealthPageRaw, 'support.metrics', 'Metric Health');
+const RecoveryModePage = RecoveryModePageRaw;
+const SupportRequestPage = withFeatureGate(SupportRequestPageRaw, 'support.supportrequest', 'Support Request');
+const SupportZipPage = withFeatureGate(SupportZipPageRaw, 'support.supportzip', 'Support ZIP');
+
+// System - Gated
+const TasksPage = withFeatureGate(TasksPageRaw, 'system.tasks', 'Tasks');
+const CapabilitiesPage = withFeatureGate(CapabilitiesPageRaw, 'system.capabilities', 'Capabilities');
+const EmailPage = withFeatureGate(EmailPageRaw, 'system.emailserver', 'Email Server');
+const HttpPage = withCloudExcluded(
+  withFeatureGate(HttpPageRaw, 'system.http', 'HTTP'),
+  'HTTP',
+);
+const NodesPage = withFeatureGate(NodesPageRaw, 'system.nodes', 'Nodes');
+
+// User Account
+const UserAccountPage = withFeatureGate(UserAccountPageRaw, 'useraccount', 'User Account');
+
+// =============================================================================
+// ROUTE DEFINITIONS
+// Route names MUST match default admin routes (preview.admin.repository.repositories, etc.)
+// URLs are flat at the admin level
+// =============================================================================
+
+// Exported separately so test pages can be registered at the preview.* level
+// (not preview.admin.*) — they render standalone without the Settings sidebar.
+export const globalartInternalTestRoutes = globalartInternalRoutes;
+
+export const previewAdminRoutes = [
+  // =============================================================================
+  // SETTINGS HUB - Standalone at preview.settings (no sidebar)
+  // =============================================================================
+  {
+    name: 'preview.settings',
+    url: '/settings',
+    component: SettingsHubPage,
+    data: {
+      title: 'Settings',
+      visibilityRequirements: {
+        requiresAnyPermission: [
+          Permissions.REPOSITORY_ADMIN.READ,
+          Permissions.BLOB_STORES.READ,
+          Permissions.SELECTORS.READ,
+          Permissions.PRIVILEGES.READ,
+          Permissions.ROLES.READ,
+          Permissions.USERS.READ,
+          Permissions.SETTINGS.READ,
+          Permissions.SSL_TRUSTSTORE.READ,
+          Permissions.LDAP.READ,
+          Permissions.USER_TOKENS_SETTINGS.READ,
+          'astrum:crowd:read',
+          Permissions.TASKS.READ,
+          Permissions.CAPABILITIES.READ,
+          Permissions.LOGGING.READ,
+          Permissions.ATLAS.READ,
+          Permissions.METRICS.READ,
+          Permissions.LICENSING.READ,
+        ],
+      },
+    },
+  },
+  // =============================================================================
+  // ROOT ADMIN ROUTE - Abstract parent for /admin paths
+  // =============================================================================
+  {
+    name: 'preview.admin',
+    url: '/admin',
+    abstract: true,
+    component: UIView,
+  },
+
+  // =============================================================================
+  // SETTINGS HUB REDIRECT - /admin/settings redirects to Settings Hub
+  // =============================================================================
+  {
+    name: 'preview.admin.settings',
+    url: '/settings',
+    redirectTo: 'preview.settings',
+  },
+
+  // =============================================================================
+  // ADMIN PAGES WRAPPER - Provides sidebar for all settings pages
+  // =============================================================================
+  {
+    name: 'preview.admin.pages',
+    url: '',
+    component: SettingsPageLayoutRadix,
+    data: {
+      visibilityRequirements: {
+        requiresAnyPermission: [
+          Permissions.REPOSITORY_ADMIN.READ,
+          Permissions.BLOB_STORES.READ,
+          Permissions.SELECTORS.READ,
+          Permissions.PRIVILEGES.READ,
+          Permissions.ROLES.READ,
+          Permissions.USERS.READ,
+          Permissions.SETTINGS.READ,
+          Permissions.SSL_TRUSTSTORE.READ,
+          Permissions.LDAP.READ,
+          Permissions.USER_TOKENS_SETTINGS.READ,
+          'astrum:crowd:read',
+          Permissions.TASKS.READ,
+          Permissions.CAPABILITIES.READ,
+          Permissions.LOGGING.READ,
+          Permissions.ATLAS.READ,
+          Permissions.METRICS.READ,
+          Permissions.LICENSING.READ,
+        ],
+      },
+    },
+  },
+
+  // =============================================================================
+  // REPOSITORY SECTION
+  // Names match: admin.repository.* → preview.admin.repository.*
+  // =============================================================================
+  {
+    name: 'preview.admin.repository',
+    url: '/repository',
+    redirectTo: 'preview.admin.repository.repositories.list', /* DO NOT CHANGE - blobstores not on cloud (Agent0 fix) */
+    component: UIView,
+    data: { title: 'Repository' },
+  },
+  {
+    name: 'preview.admin.repository.repositories',
+    url: '/repositories',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Repositories',
+      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js REPOSITORIES.ROOT), which uses a
+      // repository-admin prefix so a user with admin on any single repo can see the menu. A specific
+      // requiresPermission: 'astrum:repository-admin:*:*:read' would NOT be satisfied by a narrower
+      // per-repo grant, hiding the menu from users the Default UI shows it to.
+      visibilityRequirements: {
+        permissionPrefix: 'astrum:repository-admin',
+      },
+    },
+  },
+  {
+    name: 'preview.admin.repository.repositories.list',
+    url: '',
+    component: RepositoriesPage,
+    data: { title: 'Repositories' },
+  },
+  {
+    name: 'preview.admin.repository.repositories.create',
+    url: '/create',
+    component: RepositoriesPage,
+    data: { title: 'Create Repository' },
+  },
+  {
+    name: 'preview.admin.repository.repositories.createForm',
+    url: '/create/:format/:type',
+    component: RepositoriesPage,
+    data: { title: 'Create Repository' },
+  },
+  {
+    name: 'preview.admin.repository.repositories.detail',
+    url: '/:repositoryName?tab',
+    component: RepositoriesPage,
+    params: {
+      tab: { value: null, type: 'string', dynamic: true },
+    },
+    data: { title: 'Repository Details' },
+  },
+  {
+    name: 'preview.admin.repository.repositories.profile',
+    url: '/:repositoryName/profile?tab',
+    component: RepositoryProfilePage,
+    params: {
+      tab: { value: null, type: 'string', dynamic: true },
+    },
+    data: { title: 'Repository Profile' },
+    resolve: [
+      {
+        token: 'repositoryName',
+        deps: ['$stateParams'],
+        resolveFn: ($stateParams) => $stateParams.repositoryName,
+      },
+      {
+        token: 'context',
+        resolveFn: () => 'settings', // Settings context - shows Settings sidebar
+      },
+    ],
+  },
+  {
+    name: 'preview.admin.repository.blobstores',
+    url: '/blobstores',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Blob Stores',
+      visibilityRequirements: {
+        requiresPermission: Permissions.BLOB_STORES.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.repository.blobstores.list',
+    url: '',
+    component: BlobStoresPage,
+    data: { title: 'Blob Stores' },
+  },
+  {
+    name: 'preview.admin.repository.blobstores.create',
+    url: '/create',
+    component: BlobStoresPage,
+    data: { title: 'Create Blob Store' },
+  },
+  {
+    name: 'preview.admin.repository.blobstores.edit',
+    url: '/:type/:name',
+    component: BlobStoresPage,
+    data: { title: 'Edit Blob Store' },
+  },
+  {
+    name: 'preview.admin.repository.selectors',
+    url: '/selectors',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Content Selectors',
+      visibilityRequirements: {
+        requiresPermission: Permissions.SELECTORS.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.repository.selectors.list',
+    url: '',
+    component: ContentSelectorsPage,
+    data: { title: 'Content Selectors' },
+  },
+  {
+    name: 'preview.admin.repository.selectors.create',
+    url: '/create',
+    component: ContentSelectorsPage,
+    data: { title: 'Create Content Selector' },
+  },
+  {
+    name: 'preview.admin.repository.selectors.detail',
+    url: '/:name',
+    component: ContentSelectorsPage,
+    data: { title: 'Content Selector Details' },
+  },
+  {
+    name: 'preview.admin.repository.cleanuppolicies',
+    url: '/cleanup-policies',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Cleanup Policies',
+      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js CLEANUPPOLICIES.ROOT), which gates on
+      // astrum:* — the write endpoints require admin, and the menu must not surface to a
+      // settings:read-only user who would then hit a 403.
+      visibilityRequirements: {
+        requiresPermission: Permissions.ADMIN,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.repository.cleanuppolicies.list',
+    url: '',
+    component: CleanupPoliciesPage,
+    data: { title: 'Cleanup Policies' },
+  },
+  {
+    name: 'preview.admin.repository.cleanuppolicies.create',
+    url: '/create',
+    component: CleanupPoliciesPage,
+    data: { title: 'Create Cleanup Policy' },
+  },
+  {
+    name: 'preview.admin.repository.cleanuppolicies.detail',
+    url: '/:name',
+    component: CleanupPoliciesPage,
+    data: { title: 'Cleanup Policy Details' },
+  },
+  {
+    name: 'preview.admin.repository.routingrules',
+    url: '/routing-rules',
+    abstract: true,
+    redirectTo: 'preview.admin.repository.routingrules.list',
+    component: UIView,
+    data: {
+      title: 'Routing Rules',
+      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js ROUTINGRULES.ROOT). RoutingRulesResource
+      // requires astrum:* on every endpoint, including the GET/list — so settings:read here would show
+      // the menu but 403 on load.
+      visibilityRequirements: {
+        requiresPermission: Permissions.ADMIN,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.repository.routingrules.list',
+    url: '',
+    component: RoutingRulesPage,
+    data: { title: 'Routing Rules' },
+  },
+  {
+    name: 'preview.admin.repository.routingrules.create',
+    url: '/create',
+    component: RoutingRulesPage,
+    data: { title: 'Create Routing Rule' },
+  },
+  {
+    name: 'preview.admin.repository.routingrules.preview',
+    url: '/preview',
+    component: RoutingRulesPage,
+    data: { title: 'Routing Rules Preview' },
+  },
+  {
+    name: 'preview.admin.repository.routingrules.detail',
+    url: '/:name',
+    component: RoutingRulesPage,
+    data: { title: 'Routing Rule Details' },
+  },
+  {
+    name: 'preview.admin.repository.datastore',
+    url: '/datastore',
+    component: DataStorePage,
+    data: {
+      title: 'Data Store',
+      visibilityRequirements: {
+        // ASTRUM-54019: match Classic/Default UI (adminRoutes.js DATASTORE.ROOT). The Data Store
+        // screen is admin-only (astrum:*) AND only available with the pro-datastore bundle on
+        // PRO/COMMUNITY editions — without the bundle+editions gates the tile shows where the
+        // feature does not exist and then dead-ends.
+        bundle: 'astrum-pro-datastore-plugin',
+        requiresPermission: Permissions.ADMIN,
+        editions: ['PRO', 'COMMUNITY'],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.repository.proprietary',
+    url: '/proprietary',
+    component: ProprietaryPage,
+    data: {
+      title: 'Proprietary Repositories',
+      visibilityRequirements: {
+        requiresPermission: Permissions.SETTINGS.READ,
+      },
+    },
+  },
+
+  // =============================================================================
+  // SECURITY SECTION  
+  // Names match: admin.security.* → preview.admin.security.*
+  // =============================================================================
+  {
+    name: 'preview.admin.security',
+    url: '/security',
+    redirectTo: 'preview.admin.security.privileges.list',
+    component: UIView,
+    data: { title: 'Security' },
+  },
+  {
+    name: 'preview.admin.security.privileges',
+    url: '/privileges',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Privileges',
+      visibilityRequirements: {
+        requiresPermission: 'astrum:privileges:read',
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.privileges.list',
+    url: '',
+    component: PrivilegesPage,
+    data: {
+      title: 'Privileges',
+    },
+  },
+  {
+    name: 'preview.admin.security.privileges.create',
+    url: '/create',
+    component: PrivilegesPage,
+    data: { title: 'Create Privilege' },
+  },
+  {
+    name: 'preview.admin.security.privileges.createForm',
+    url: '/create/:typeId',
+    component: PrivilegesPage,
+    params: { typeId: { type: 'string', value: null, dynamic: true } },
+    data: { title: 'Create Privilege' },
+  },
+  {
+    // ASTRUM-52167: `?tab` keeps the active profile tab in the URL so it survives
+    // browser Back. `dynamic` avoids a remount on tab switch. Mirrors
+    // repositories.profile above.
+    name: 'preview.admin.security.privileges.profile',
+    url: '/:privilegeId/profile?tab',
+    component: PrivilegesPage,
+    params: {
+      tab: { value: null, type: 'string', dynamic: true },
+    },
+    data: { title: 'Privilege Profile' },
+  },
+  {
+    name: 'preview.admin.security.privileges.detail',
+    url: '/:privilegeId',
+    component: PrivilegesPage,
+    data: { title: 'Privilege Details' },
+  },
+  {
+    name: 'preview.admin.security.roles',
+    url: '/roles',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Roles',
+      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js ROLES.ROOT), which requires BOTH
+      // roles:read and privileges:read (permissions[] is AND).
+      visibilityRequirements: {
+        permissions: [Permissions.ROLES.READ, Permissions.PRIVILEGES.READ],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.roles.list',
+    url: '',
+    component: RolesPage,
+    data: {
+      title: 'Roles',
+    },
+  },
+  {
+    name: 'preview.admin.security.roles.create',
+    url: '/create',
+    component: RolesPage,
+    data: { title: 'Create Role' },
+  },
+  {
+    name: 'preview.admin.security.roles.detail',
+    url: '/:roleId',
+    component: RolesPage,
+    data: { title: 'Role Details' },
+  },
+  {
+    name: 'preview.admin.security.roles.profile',
+    url: '/:roleId/profile',
+    component: RolesPage,
+    data: { title: 'Role Profile' },
+  },
+  {
+    name: 'preview.admin.security.users',
+    url: '/users',
+    abstract: true,
+    redirectTo: 'preview.admin.security.users.list',
+    component: UIView,
+    data: {
+      title: 'Users',
+      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js USERS.ROOT), which requires BOTH
+      // users:read and roles:read (permissions[] is AND).
+      visibilityRequirements: {
+        permissions: [Permissions.USERS.READ, Permissions.ROLES.READ],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.users.list',
+    url: '',
+    component: UsersPage,
+    data: { title: 'Users' },
+  },
+  {
+    name: 'preview.admin.security.users.create',
+    url: '/create',
+    component: UsersPage,
+    data: { title: 'Create User' },
+  },
+  {
+    name: 'preview.admin.security.users.invite',
+    url: '/invite',
+    component: UsersPage,
+    data: { title: 'Invite User' },
+  },
+  {
+    name: 'preview.admin.security.users.detail',
+    url: '/:userId/:source',
+    component: UsersPage,
+    params: {
+      userId: { type: 'string', value: null, dynamic: true },
+      source: { type: 'string', value: null, dynamic: true },
+    },
+    data: { title: 'User Details' },
+  },
+  {
+    name: 'preview.admin.security.users.profile',
+    url: '/:userId/:source/profile',
+    component: UsersPage,
+    params: {
+      userId: { type: 'string', value: null, dynamic: true },
+      source: { type: 'string', value: null, dynamic: true },
+    },
+    data: { title: 'User Profile' },
+  },
+  {
+    name: 'preview.admin.security.anonymous',
+    url: '/anonymous',
+    component: AnonymousPage,
+    data: {
+      title: 'Anonymous Access',
+      visibilityRequirements: {
+        requiresPermission: Permissions.SETTINGS.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.ldap',
+    url: '/ldap',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'LDAP',
+      visibilityRequirements: {
+        bundle: 'astrum-ldap-plugin',
+        requiresPermission: Permissions.LDAP.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.ldap.list',
+    url: '',
+    component: LdapPage,
+    data: { title: 'LDAP' },
+  },
+  {
+    name: 'preview.admin.security.ldap.create',
+    url: '/create',
+    component: LdapPage,
+    data: { title: 'Create LDAP Server' },
+  },
+  {
+    name: 'preview.admin.security.ldap.detail',
+    url: '/:serverId',
+    component: LdapPage,
+    data: { title: 'LDAP Server Details' },
+  },
+  {
+    name: 'preview.admin.security.realms',
+    url: '/realms',
+    component: RealmsPage,
+    data: {
+      title: 'Realms',
+      visibilityRequirements: {
+        requiresPermission: Permissions.SETTINGS.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.sslcertificates',
+    url: '/sslcertificates',
+    abstract: true,
+    component: UIView,
+    data: { 
+      title: 'SSL Certificates',
+      visibilityRequirements: {
+        requiresPermission: 'astrum:ssl-truststore:read',
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.sslcertificates.list',
+    url: '',
+    component: SslCertificatesPage,
+    data: { title: 'SSL Certificates' },
+  },
+  {
+    name: 'preview.admin.security.usertoken',
+    url: '/user-tokens',
+    component: UserTokensPage,
+    data: {
+      title: 'User Tokens',
+      // ASTRUM-54019: match Classic/Default UI (adminRoutes.js USERTOKEN.ROOT) — usertoken-settings:read
+      // gated to PRO edition AND a valid usertoken license. Without the licenseValid gate the tile
+      // shows on PRO installs whose license does not include user tokens and then dead-ends.
+      visibilityRequirements: {
+        requiresPermission: Permissions.USER_TOKENS_SETTINGS.READ,
+        editions: ['PRO'],
+        licenseValid: [{ key: 'usertoken', defaultValue: false }],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.serviceaccounttokens',
+    url: '/service-account-tokens',
+    component: ServiceAccountTokensPage,
+    data: {
+      title: 'Service Account Tokens',
+      visibilityRequirements: {
+        requiresPermission: Permissions.SERVICE_ACCOUNTS.READ,
+        editions: ['PRO'],
+        statesEnabled: [{ key: 'serviceAccountEnabled', defaultValue: false }],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.saml',
+    url: '/saml',
+    component: SamlPage,
+    data: {
+      title: 'SAML',
+      visibilityRequirements: {
+        // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SAML.ROOT). SAML is admin-only
+        // (astrum:*) AND only available with the saml bundle on PRO — without the bundle+editions
+        // gates the tile shows where the feature does not exist and then dead-ends.
+        bundle: 'astrum-saml-plugin',
+        requiresPermission: Permissions.ADMIN,
+        editions: ['PRO'],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.oauth2',
+    url: '/oauth2',
+    component: OAuth2Page,
+    data: {
+      title: 'OpenID Connect',
+      visibilityRequirements: {
+        requiresPermission: Permissions.ADMIN,
+        statesEnabled: [{ key: 'oauth2Available', defaultValue: false }],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.security.crowd',
+    url: '/crowd',
+    component: CrowdPage,
+    data: {
+      title: 'Atlassian Crowd',
+      visibilityRequirements: {
+        // ASTRUM-54019: match Classic/Default UI (adminRoutes.js ATLASSIANCROWD.ROOT). Crowd is
+        // only available with the crowd bundle and a valid crowd license — without the
+        // bundle+licenseValid gates the tile shows where the feature does not exist and dead-ends.
+        bundle: 'astrum-crowd-plugin',
+        licenseValid: [{ key: 'crowd', defaultValue: false }],
+        permissions: ['astrum:crowd:read'],
+      },
+    },
+  },
+
+  // =============================================================================
+  // SUPPORT SECTION
+  // Names match: admin.support.* → preview.admin.support.*
+  // =============================================================================
+  {
+    name: 'preview.admin.support',
+    url: '/support',
+    redirectTo: 'preview.admin.support.logs.list',
+    component: UIView,
+    data: { title: 'Support' },
+  },
+  {
+    name: 'preview.admin.support.logs',
+    url: '/logs',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Logs',
+      visibilityRequirements: {
+        requiresPermission: Permissions.LOGGING.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.logs.list',
+    url: '',
+    component: LogsPage,
+    data: {
+      title: 'Logs',
+    },
+  },
+  {
+    name: 'preview.admin.support.logs.detail',
+    url: '/*filename',
+    component: LogsPage,
+    params: {
+      // raw: true preserves '/' in task log paths (e.g. tasks/foo.log)
+      // without it UIRouter would treat slashes as segment separators
+      filename: {value: null, raw: true, dynamic: true},
+    },
+    data: {
+      title: 'Log Viewer',
+    },
+  },
+  {
+    name: 'preview.admin.support.logging',
+    url: '/logging',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Logging',
+      visibilityRequirements: {
+        requiresPermission: Permissions.LOGGING.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.logging.list',
+    url: '',
+    component: LoggingConfigPage,
+    data: {
+      title: 'Logging',
+      visibilityRequirements: {
+        requiresPermission: Permissions.LOGGING.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.logging.create',
+    url: '/create',
+    component: LoggingConfigPage,
+    data: {
+      title: 'Create Logger',
+      visibilityRequirements: {
+        requiresPermission: Permissions.LOGGING.UPDATE,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.logging.detail',
+    url: '/:itemId',
+    component: LoggingConfigPage,
+    data: {
+      title: 'Logger Details',
+      visibilityRequirements: {
+        requiresPermission: Permissions.LOGGING.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.systeminformation',
+    url: '/systeminformation',
+    component: SystemInfoPage,
+    data: {
+      title: 'System Information',
+      visibilityRequirements: {
+        requiresPermission: 'astrum:atlas:read',
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.metrichealth',
+    url: '/metrichealth',
+    component: MetricHealthPage,
+    data: {
+      title: 'Metric Health',
+      visibilityRequirements: {
+        requiresPermission: 'astrum:metrics:read',
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.recoverymode',
+    url: '/recoverymode',
+    component: RecoveryModePage,
+    data: {
+      title: 'Recovery Mode',
+      visibilityRequirements: {
+        permissions: [Permissions.ADMIN],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.supportrequest',
+    url: '/supportrequest',
+    component: SupportRequestPage,
+    data: {
+      title: 'Support Request',
+      // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SUPPORTREQUEST.ROOT) — atlas:create
+      // gated to PRO. Preview previously gated on atlas:read, which showed the tile to users who
+      // lack the create permission the page actually requires.
+      visibilityRequirements: {
+        requiresPermission: Permissions.ATLAS.CREATE,
+        editions: ['PRO'],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.support.supportzip',
+    url: '/supportzip',
+    component: SupportZipPage,
+    data: {
+      title: 'Support ZIP',
+      // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SUPPORTZIP.ROOT) — atlas:read.
+      // Preview previously gated on the non-existent astrum:supportzip:read privilege.
+      visibilityRequirements: {
+        requiresPermission: Permissions.ATLAS.READ,
+      },
+    },
+  },
+
+  // =============================================================================
+  // SYSTEM SECTION
+  // Names match: admin.system.* → preview.admin.system.*
+  // =============================================================================
+  {
+    name: 'preview.admin.system',
+    url: '/system',
+    redirectTo: 'preview.admin.system.tasks.list',
+    component: UIView,
+    data: { title: 'System' },
+  },
+  {
+    name: 'preview.admin.system.tasks',
+    url: '/tasks',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Tasks',
+      visibilityRequirements: {
+        requiresPermission: Permissions.TASKS.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.system.tasks.list',
+    url: '',
+    component: TasksPage,
+    data: { title: 'Tasks' },
+  },
+  {
+    name: 'preview.admin.system.tasks.create',
+    url: '/create',
+    component: TasksPage,
+    data: { title: 'Create Task' },
+  },
+  {
+    name: 'preview.admin.system.tasks.createWithType',
+    url: '/create/:typeId',
+    component: TasksPage,
+    data: { title: 'Create Task' },
+  },
+  {
+    name: 'preview.admin.system.tasks.detail',
+    url: '/:taskId',
+    component: TasksPage,
+    data: { title: 'Task Details' },
+  },
+  {
+    name: 'preview.admin.system.capabilities',
+    url: '/capabilities',
+    abstract: true,
+    component: UIView,
+    data: {
+      title: 'Capabilities',
+      visibilityRequirements: {
+        requiresPermission: Permissions.CAPABILITIES.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.system.capabilities.list',
+    url: '',
+    component: CapabilitiesPage,
+    data: { title: 'Capabilities' },
+  },
+  {
+    name: 'preview.admin.system.capabilities.create',
+    url: '/create',
+    component: CapabilitiesPage,
+    data: { title: 'Create Capability' },
+  },
+  {
+    name: 'preview.admin.system.capabilities.createWithType',
+    url: '/create/:typeId',
+    component: CapabilitiesPage,
+    params: { typeId: { type: 'string', value: null, dynamic: true } },
+    data: { title: 'Create Capability' },
+  },
+  {
+    name: 'preview.admin.system.capabilities.detail',
+    url: '/:capabilityId',
+    component: CapabilitiesPage,
+    params: { capabilityId: { type: 'string', value: null, dynamic: true } },
+    data: { title: 'Capability Details' },
+  },
+  {
+    name: 'preview.admin.system.previewui',
+    url: '/previewui',
+    component: PreviewUiSettingsPage,
+    data: { 
+      title: 'Astrum One UI',
+      visibilityRequirements: {
+        permissions: [Permissions.SETTINGS.READ],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.system.emailserver',
+    url: '/emailserver',
+    component: EmailPage,
+    data: {
+      title: 'Email Server',
+      visibilityRequirements: {
+        requiresPermission: Permissions.SETTINGS.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.system.http',
+    url: '/http',
+    component: HttpPage,
+    data: {
+      title: 'HTTP',
+      visibilityRequirements: {
+        requiresPermission: Permissions.SETTINGS.READ,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.system.nodes',
+    url: '/nodes',
+    component: NodesPage,
+    data: {
+      title: 'Nodes',
+      visibilityRequirements: {
+        // ASTRUM-54048: match Classic/Default UI (adminRoutes.js NODES.ROOT), which gates on
+        // astrum:* — the Nodes screen is an admin-only screen.
+        requiresPermission: Permissions.ADMIN,
+      },
+    },
+  },
+  {
+    name: 'preview.admin.system.usage',
+    url: '/usage',
+    component: UsagePage,
+    data: {
+      title: 'Usage',
+      // ASTRUM-54048: Usage is a cloud-oriented feature — its Settings Hub card is cloudOnly, so
+      // this route is NOT surfaced in the self-hosted Settings menu (the card is filtered out).
+      // The gate here is therefore dormant on self-hosted. The value differs from the cloud route
+      // (settings:read) and the shared card (settings:read); note the underlying monthly-/daily-
+      // metrics APIs actually require astrum:*, so none of these frontend gates is backend-exact.
+      // Left as METRICS.READ (no behaviour change) since the route is not user-reachable here;
+      // realigning the metrics gates to astrum:* is tracked separately, out of this ticket's scope.
+      visibilityRequirements: {
+        permissions: [Permissions.METRICS.READ],
+      },
+    },
+  },
+
+  // =============================================================================
+  // GLOBALART INTERNAL TEST PAGES — now registered at preview.test* level
+  // (standalone, outside SettingsPageLayoutRadix) via globalartInternalTestRoutes
+  // export in routerConfig.js — removed from here (xtrz).
+  //
+  // Redirect stubs so bookmarked #preview/admin/test* URLs still work.
+  // =============================================================================
+  {
+    name: 'preview.admin.test',
+    url: '/test',
+    redirectTo: 'preview.test',
+  },
+  {
+    name: 'preview.admin.test-dashboard',
+    url: '/test-dashboard',
+    redirectTo: 'preview.test-dashboard',
+  },
+  {
+    name: 'preview.admin.test-search-hc',
+    url: '/test-search-hc',
+    redirectTo: 'preview.test-search-hc',
+  },
+
+  // =============================================================================
+  // USER ACCOUNT — redirect to standalone preview.user.account (outside Settings layout)
+  // =============================================================================
+  {
+    name: 'preview.admin.useraccount',
+    url: '/useraccount',
+    // Redirect so old/bookmarked links land on the standalone page, not Settings
+    redirectTo: 'preview.user.account',
+    data: { title: 'User Account' },
+  },
+];
