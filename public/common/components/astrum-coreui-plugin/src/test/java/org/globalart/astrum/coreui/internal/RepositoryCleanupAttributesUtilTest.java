@@ -1,0 +1,121 @@
+
+package org.globalart.astrum.coreui.internal;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.globalart.astrum.coreui.RepositoryXO;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.when;
+import static org.globalart.astrum.coreui.internal.RepositoryCleanupAttributesUtil.initializeCleanupAttributes;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+
+@RunWith(MockitoJUnitRunner.Silent.class)
+public class RepositoryCleanupAttributesUtilTest
+{
+  private static final String CLEANUP_ATTRIBUTES_KEY = "cleanup";
+
+  private static final String CLEANUP_NAME_KEY = "policyName";
+
+  @Mock
+  private RepositoryXO repositoryXO;
+
+  private Map<String, Map<String, Object>> attributes = new HashMap<>();
+
+  private Map<String, Object> cleanup = new HashMap<>();
+
+  @Before
+  public void setup() {
+    when(repositoryXO.getAttributes()).thenReturn(attributes);
+    attributes.put(CLEANUP_ATTRIBUTES_KEY, cleanup);
+    cleanup.put(CLEANUP_NAME_KEY, asList("policy1", "policy2"));
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void when_No_RepositoryXO_Provided_Should_Fail() {
+    initializeCleanupAttributes(null);
+  }
+
+  @Test
+  public void when_Policies_Provided_Should_Convert_Into_Set() {
+    initializeCleanupAttributes(repositoryXO);
+
+    assertThat(getCleanupPolicyNames(), is(instanceOf(Set.class)));
+  }
+
+  @Test
+  public void when_CleanupPolicies_Provided_Should_Return_Same_Policies_In_Order() {
+    List<String> listPolicyNames = getCleanupPolicyNamesAsList();
+    initializeCleanupAttributes(repositoryXO);
+
+    Set<String> setPolicyNames = getCleanupPolicyNamesAsSet();
+    assertThat(setPolicyNames, is(not(empty())));
+
+    int index = 0;
+    for (String policyName : getCleanupPolicyNamesAsSet()) {
+      assertThat(listPolicyNames.get(index), is(equalTo(policyName)));
+      index++;
+    }
+  }
+
+  @Test
+  public void when_Null_Policies_Provided_Should_Remove_Cleanup_Attribute() {
+    cleanup.put(CLEANUP_NAME_KEY, null);
+
+    initializeCleanupAttributes(repositoryXO);
+
+    assertThat(getCleanupAttribute(), is(nullValue()));
+  }
+
+  @Test
+  public void when_Empty_Policies_Provided_Should_Remove_Cleanup_Attribute() {
+    cleanup.put(CLEANUP_NAME_KEY, emptyList());
+
+    initializeCleanupAttributes(repositoryXO);
+
+    assertThat(getCleanupAttribute(), is(nullValue()));
+  }
+
+  @Test
+  public void when_No_CleanupAttribute_Provided_Should_Not_Add_It() {
+    attributes.put(CLEANUP_ATTRIBUTES_KEY, null);
+
+    initializeCleanupAttributes(repositoryXO);
+
+    assertThat(getCleanupAttribute(), is(nullValue()));
+  }
+
+  private Map<String, Object> getCleanupAttribute() {
+    return repositoryXO.getAttributes().get(CLEANUP_ATTRIBUTES_KEY);
+  }
+
+  private Object getCleanupPolicyNames() {
+    return getCleanupAttribute().get(CLEANUP_NAME_KEY);
+  }
+
+  @SuppressWarnings("unchecked")
+  private Set<String> getCleanupPolicyNamesAsSet() {
+    return (Set<String>) getCleanupPolicyNames();
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<String> getCleanupPolicyNamesAsList() {
+    return (List<String>) getCleanupPolicyNames();
+  }
+}
