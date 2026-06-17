@@ -1,0 +1,1448 @@
+
+package org.globalart.astrum.coreui.service;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+import org.globalart.astrum.common.QualifierUtil;
+import org.globalart.astrum.common.app.BaseUrlHolder;
+import org.globalart.astrum.common.app.GlobalComponentLookupHelper;
+import org.globalart.astrum.common.entity.EntityId;
+import org.globalart.astrum.coreui.RepositoryReferenceXO;
+import org.globalart.astrum.coreui.RepositoryStatusXO;
+import org.globalart.astrum.coreui.RepositoryXO;
+import org.globalart.astrum.extdirect.model.StoreLoadParameters;
+import org.globalart.astrum.repository.Format;
+import org.globalart.astrum.repository.Recipe;
+import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.Type;
+import org.globalart.astrum.common.stateguard.InvalidStateException;
+import org.globalart.astrum.repository.BadRequestException;
+import org.globalart.astrum.repository.cache.RepositoryCacheInvalidationService;
+import org.globalart.astrum.repository.config.Configuration;
+import org.globalart.astrum.repository.config.ConfigurationStore;
+import org.globalart.astrum.repository.config.SimpleConfiguration;
+import org.globalart.astrum.repository.httpclient.HttpClientFacet;
+import org.globalart.astrum.repository.manager.RepositoryManager;
+import org.globalart.astrum.repository.manager.internal.FailedRepositoryTracker;
+import org.globalart.astrum.repository.rest.api.RepositoryMetricsDTO;
+import org.globalart.astrum.repository.rest.api.RepositoryMetricsService;
+import org.globalart.astrum.repository.security.RepositoryAdminPermission;
+import org.globalart.astrum.repository.security.RepositoryPermissionChecker;
+import org.globalart.astrum.repository.types.HostedType;
+import org.globalart.astrum.repository.types.ProxyType;
+import org.globalart.astrum.scheduling.TaskScheduler;
+import org.globalart.astrum.security.SecurityHelper;
+import org.globalart.astrum.testcommon.extensions.AuthenticationExtension;
+import org.globalart.astrum.testcommon.extensions.AuthenticationExtension.WithUser;
+import org.globalart.astrum.testcommon.validation.ValidationExtension;
+
+import org.apache.shiro.authz.AuthorizationException;
+
+import com.google.common.collect.ImmutableMap;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Test for {@link RepositoryUiService}
+ */
+@MockitoSettings(strictness = Strictness.LENIENT)
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(ValidationExtension.class)
+@ExtendWith(AuthenticationExtension.class)
+@WithUser
+class RepositoryUiServiceTest
+{
+  @Mock
+  private RepositoryCacheInvalidationService repositoryCacheInvalidationService;
+
+  @Mock
+  private RepositoryManager repositoryManager;
+
+  @Mock
+  private RepositoryMetricsService repositoryMetricsService;
+
+  @Mock
+  private ConfigurationStore configurationStore;
+
+  @Mock
+  private SecurityHelper securityHelper;
+
+  @Mock
+  private Map<String, Recipe> recipes;
+
+  @Mock
+  private Recipe recipe;
+
+  @Mock
+  private TaskScheduler taskScheduler;
+
+  @Mock
+  private GlobalComponentLookupHelper typeLookup;
+
+  @Mock
+  private List<Format> formats;
+
+  @Mock
+  private RepositoryPermissionChecker repositoryPermissionChecker;
+
+  @Mock
+  private org.globalart.astrum.repository.manager.internal.FailedRepositoryTracker failedRepositoryTracker;
+
+  @Mock
+  private org.globalart.astrum.repository.manager.internal.HttpAuthenticationSecretEncoder httpAuthenticationSecretEncoder;
+
+  @Mock
+  private Format format;
+
+  @Mock
+  private Repository repository;
+
+  @Mock
+  private RepositoryXO repositoryXO;
+
+  @Mock
+  private Configuration configuration;
+
+  private RepositoryUiService underTest;
+
+  private MockedStatic<QualifierUtil> mockedStatic;
+
+  @Mock
+  private Map<String, Map<String, Object>> attributes;
+
+  @Mock
+  private Map<String, Object> storage;
+
+  private static final String REMOTE_URL_CHANGE_ERROR_MESSAGE =
+      "Remote URL has changed. " +
+          "Authentication credentials have been reset and must be re-entered.";
+
+  @BeforeEach
+  void setup() {
+    mockedStatic = Mockito.mockStatic(QualifierUtil.class);
+    mockRepository();
+    mockRecipes();
+    BaseUrlHolder.set("http://astrum-url", "");
+    when(format.getValue()).thenReturn("format");
+    when(repositoryManager.browse()).thenReturn(Collections.singleton(repository));
+    when(configurationStore.list()).thenReturn(Collections.singletonList(configuration));
+    when(repositoryManager.get(anyString())).thenReturn(repository);
+    when(repository.getConfiguration()).thenReturn(configuration);
+    when(configuration.copy()).thenReturn(configuration);
+    List<Recipe> recipeList = mock(List.class);
+    when(QualifierUtil.buildQualifierBeanMap(recipeList)).thenReturn(recipes);
+
+    underTest = Mockito.spy(new RepositoryUiService(repositoryCacheInvalidationService, repositoryManager,
+        repositoryMetricsService,
+        configurationStore, securityHelper, recipeList, taskScheduler, typeLookup, formats, repositoryPermissionChecker,
+        failedRepositoryTracker, httpAuthenticationSecretEncoder)
+    {
+      @Override
+      RepositoryXO asRepository(final Repository input) {
+        return repositoryXO;
+      }
+    });
+  }
+
+  @AfterEach
+  void teardown() {
+    mockedStatic.close();
+  }
+
+  @Test
+  void checkUserPermissionsOnFilter() {
+    underTest.filter(createParameters());
+    verify(repositoryPermissionChecker).userCanBrowseRepositories(any(Configuration[].class));
+  }
+
+  @Test
+  void filterForAutocomplete() {
+    List<RepositoryReferenceXO> repositories = getTestRepositories();
+    StoreLoadParameters storeLoadParameters = createParameters();
+    storeLoadParameters.setQuery("nug");
+    List<RepositoryReferenceXO> result =
+        RepositoryUiService.filterForAutocomplete(storeLoadParameters, repositories);
+    assertThat(result, hasSize(2));
+    assertThat(result.get(0).getName(), is("nuget-proxy"));
+    assertThat(result.get(1).getName(), is("nuget-hosted"));
+  }
+
+  @Test
+  void testRoutingRuleSet() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getFormat()).thenReturn("format");
+
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn("test");
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+
+    underTest.update(repositoryXO);
+
+    verify(configuration).setOnline(true);
+    verify(configuration).setRoutingRuleId(any(EntityId.class));
+    verify(configuration).setAttributes(testAttributes);
+  }
+
+  @Test
+  void testRoutingRuleCleared() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getFormat()).thenReturn("format");
+
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+
+    underTest.update(repositoryXO);
+
+    verify(configuration).setOnline(true);
+    verify(configuration).setRoutingRuleId(null);
+    verify(configuration).setAttributes(testAttributes);
+  }
+
+  @Test
+  void testPasswordPlaceholderIsRestoredOnUpdate() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    Map<String, Object> httpclient = new HashMap<>();
+    Map<String, Object> authentication = new HashMap<>();
+    authentication.put("type", "username");
+    authentication.put("username", "testuser");
+    authentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    httpclient.put("authentication", authentication);
+    testAttributes.put("httpclient", httpclient);
+
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("password", "_123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    underTest.update(repositoryXO);
+
+    assertThat(authentication.get("password"), is("_123"));
+  }
+
+  @Test
+  void testBearerTokenPlaceholderIsRestoredOnUpdate() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    Map<String, Object> httpclient = new HashMap<>();
+    Map<String, Object> authentication = new HashMap<>();
+    authentication.put("type", "bearerToken");
+    authentication.put("bearerTokenId", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    httpclient.put("authentication", authentication);
+    testAttributes.put("httpclient", httpclient);
+
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("bearerTokenId", "_456");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    underTest.update(repositoryXO);
+
+    assertThat(authentication.get("bearerTokenId"), is("_456"));
+  }
+
+  @Test
+  void testNewPasswordIsNotReplacedOnUpdate() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    Map<String, Object> httpclient = new HashMap<>();
+    Map<String, Object> authentication = new HashMap<>();
+    authentication.put("type", "username");
+    authentication.put("username", "testuser");
+    authentication.put("password", "newPassword123");
+    httpclient.put("authentication", authentication);
+    testAttributes.put("httpclient", httpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+
+    underTest.update(repositoryXO);
+
+    assertThat(authentication.get("password"), is("newPassword123"));
+  }
+
+  @Test
+  void testNewBearerTokenIsNotReplacedOnUpdate() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    Map<String, Object> httpclient = new HashMap<>();
+    Map<String, Object> authentication = new HashMap<>();
+    authentication.put("type", "bearerToken");
+    authentication.put("bearerTokenId", "ghp_newToken123456");
+    httpclient.put("authentication", authentication);
+    testAttributes.put("httpclient", httpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+
+    underTest.update(repositoryXO);
+
+    assertThat(authentication.get("bearerTokenId"), is("ghp_newToken123456"));
+  }
+
+  @Test
+  void testBearerTokenPlaceholderFallsBackToOldKeyForPreMigrationRepositories() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // UI sends bearerTokenId with placeholder (because filterAttributes replaces with placeholder)
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    Map<String, Object> httpclient = new HashMap<>();
+    Map<String, Object> authentication = new HashMap<>();
+    authentication.put("type", "bearerToken");
+    authentication.put("bearerTokenId", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    httpclient.put("authentication", authentication);
+    testAttributes.put("httpclient", httpclient);
+
+    // Pre-migration repository only has the old bearerToken key
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("bearerToken", "_789_old_token");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    underTest.update(repositoryXO);
+
+    // Should fallback to the old bearerToken value
+    assertThat(authentication.get("bearerTokenId"), is("_789_old_token"));
+  }
+
+  @Test
+  void testReadContainsRepoSize() {
+    String repoName = "testRepo";
+    String recipeName = "testRecipe";
+    Long repoSize = 123456L;
+    RepositoryMetricsDTO repoMetrics = new RepositoryMetricsDTO(repoName, repoSize);
+
+    when(configuration.getRecipeName()).thenReturn(recipeName);
+    when(repositoryMetricsService.get(anyString())).thenReturn(Optional.of(repoMetrics));
+    when(configuration.getRepositoryName()).thenReturn(repoName);
+    when(repositoryPermissionChecker.userHasRepositoryAdminPermissionFor(any(Iterable.class), anyString()))
+        .thenReturn(Collections.singletonList(configuration));
+    List<RepositoryXO> repos = underTest.read();
+    assertEquals(1, repos.size());
+    RepositoryXO repoXo = repos.get(0);
+    assertEquals(repoName, repoXo.getName());
+    assertEquals(Long.valueOf(123456), repoXo.getSize());
+    assertEquals("maven2", repoXo.getFormat());
+    assertEquals("hosted", repoXo.getType());
+  }
+
+  @Test
+  void testReadReferencesContainsExpectedInfo() {
+    List<Configuration> repoConfigurations = givenRepoConfigurations();
+    StoreLoadParameters parameters = createParameters();
+    doReturn(repoConfigurations).when(underTest).filter(parameters);
+
+    List<RepositoryReferenceXO> result = underTest.readReferences(parameters);
+
+    assertThat(result, hasSize(repoConfigurations.size()));
+
+    for (Configuration repoConfiguration : repoConfigurations) {
+      RepositoryReferenceXO reference = result.stream()
+          .filter(value -> Objects.equals(repoConfiguration.getRepositoryName(), value.getName()))
+          .findAny()
+          .orElseThrow(() -> new AssertionError(
+              String.format("Repository %s not found in results", repoConfiguration.getRepositoryName())));
+      Recipe recipe = recipes.get(repoConfiguration.getRecipeName());
+
+      assertThat(reference.getId(), is(repoConfiguration.getRepositoryName()));
+      assertThat(reference.getFormat(), is(recipe.getFormat().getValue()));
+      assertThat(reference.getBlobStoreName(), is(getAttribute(repoConfiguration, "storage.blobStoreName")));
+      assertThat(reference.getVersionPolicy(), is(getAttribute(repoConfiguration, "maven.versionPolicy")));
+      assertThat(reference.getType(), is(recipe.getType().getValue()));
+      assertThat(reference.getUrl(),
+          is(String.format("%s/repository/%s/", BaseUrlHolder.get(), repoConfiguration.getRepositoryName())));
+      assertThat(reference.getStatus().getRepositoryName(), is(repoConfiguration.getRepositoryName()));
+      assertThat(reference.getStatus().isOnline(), is(repoConfiguration.isOnline()));
+    }
+  }
+
+  private List<Configuration> givenRepoConfigurations() {
+    return List.of(
+        givenRepoConfiguration("repo1", "raw", "rawRecipe", "blobStore1", "strict", "testType", true),
+        givenRepoConfiguration("repo2", "maven", "mavenRecipe", "blobStore2", "none", "otherType", false));
+  }
+
+  private Configuration givenRepoConfiguration(
+      final String repoName,
+      final String formatValue,
+      final String recipeName,
+      final String blobStoreName,
+      final String versionPolicy,
+      final String typeValue,
+      final boolean isOnline)
+  {
+    Configuration c = new SimpleConfiguration();
+    Recipe recipe = Mockito.mock(Recipe.class);
+    Type type = Mockito.mock(Type.class);
+    Format format = Mockito.mock(Format.class);
+
+    c.setRepositoryName(repoName);
+    c.setRecipeName(recipeName);
+    c.setOnline(isOnline);
+    c.setAttributes(ImmutableMap.of(
+        "storage", ImmutableMap.of("blobStoreName", blobStoreName),
+        "maven", ImmutableMap.of("versionPolicy", versionPolicy)));
+
+    doReturn(type).when(recipe).getType();
+    doReturn(typeValue).when(type).getValue();
+    doReturn(format).when(recipe).getFormat();
+    doReturn(formatValue).when(format).getValue();
+
+    underTest.addRecipe(recipeName, recipe);
+    recipes.put(recipeName, recipe);
+
+    return c;
+  }
+
+  private List<RepositoryReferenceXO> getTestRepositories() {
+    RepositoryReferenceXO nugetRepoProxy = mock(RepositoryReferenceXO.class);
+    when(nugetRepoProxy.getName()).thenReturn("nuget-proxy");
+    RepositoryReferenceXO nugetRepoHosted = mock(RepositoryReferenceXO.class);
+    when(nugetRepoHosted.getName()).thenReturn("nuget-hosted");
+    RepositoryReferenceXO mavenRepoHosted = mock(RepositoryReferenceXO.class);
+    when(mavenRepoHosted.getName()).thenReturn("maven-hosted");
+    List<RepositoryReferenceXO> repositories = new ArrayList<>();
+    repositories.add(nugetRepoProxy);
+    repositories.add(nugetRepoHosted);
+    repositories.add(mavenRepoHosted);
+    return repositories;
+  }
+
+  private void mockRepository() {
+    when(repository.getName()).thenReturn("repository");
+    when(repository.getType()).thenReturn(new HostedType());
+    when(repository.getFormat()).thenReturn(format);
+  }
+
+  private void mockRecipes() {
+    when(recipe.getType()).thenReturn(new HostedType());
+    when(recipe.getFormat()).thenReturn(new Format("maven2")
+    {
+    });
+    recipes = new HashMap<>();
+    recipes.put("testRecipe", recipe);
+  }
+
+  private static StoreLoadParameters createParameters() {
+    StoreLoadParameters params = new StoreLoadParameters();
+    params.setFilter(Collections.emptyList());
+    return params;
+  }
+
+  private static Object getAttribute(final Configuration repository, final String path) {
+    Object currentValue = repository.getAttributes();
+    String[] parts = path.split("\\.");
+
+    for (String part : parts) {
+      if (currentValue instanceof Map) {
+        currentValue = ((Map<?, ?>) currentValue).get(part);
+      }
+      else {
+        throw new IllegalArgumentException();
+      }
+    }
+
+    return currentValue;
+  }
+
+  @Test
+  void testUpdateFailedRepository_successfulRecovery() throws Exception {
+    // Setup: Repository has failed and is being updated
+    String repoName = "failed-repo";
+    Type type = mock(Type.class);
+    when(repositoryXO.getName()).thenReturn(repoName);
+    when(repositoryXO.getFormat()).thenReturn("format");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+
+    // Mock configuration
+    Configuration storedConfiguration = mock(Configuration.class);
+    when(storedConfiguration.getRepositoryName()).thenReturn(repoName);
+    when(storedConfiguration.getRecipeName()).thenReturn("mockRecipe");
+    when(storedConfiguration.getAttributes()).thenReturn(new HashMap<>());
+    when(storedConfiguration.copy()).thenReturn(storedConfiguration);
+    when(storedConfiguration.isOnline()).thenReturn(true);
+
+    // Mock configuration store
+    when(configurationStore.list()).thenReturn(Collections.singletonList(storedConfiguration));
+
+    // Setup recipe for QualifierUtil
+    Recipe testRecipe = mock(Recipe.class);
+    when(testRecipe.getFormat()).thenReturn(format);
+    when(testRecipe.getType()).thenReturn(type);
+    when(format.getValue()).thenReturn("format");
+
+    // Create recipe list and mock QualifierUtil to return recipe map
+    List<Recipe> testRecipeList = Collections.singletonList(testRecipe);
+    Map<String, Recipe> testRecipesMap = new HashMap<>();
+    testRecipesMap.put("mockRecipe", testRecipe);
+    when(QualifierUtil.buildQualifierBeanMap(testRecipeList)).thenReturn(testRecipesMap);
+
+    // Mock failed repository tracker
+    when(failedRepositoryTracker.hasFailed(repoName)).thenReturn(true);
+
+    // Mock BaseRepositoryManager with successful retry
+    org.globalart.astrum.repository.manager.internal.BaseRepositoryManager baseRepositoryManager =
+        mock(org.globalart.astrum.repository.manager.internal.BaseRepositoryManager.class);
+    Repository recoveredRepo = mock(Repository.class);
+    when(recoveredRepo.getName()).thenReturn(repoName);
+    when(recoveredRepo.getType()).thenReturn(type);
+    when(recoveredRepo.getFormat()).thenReturn(format);
+    when(recoveredRepo.getConfiguration()).thenReturn(storedConfiguration);
+    when(baseRepositoryManager.retryFailedRepository(repoName)).thenReturn(Optional.of(recoveredRepo));
+
+    // Use real RepositoryUiService instance for this test
+    RepositoryUiService testService = new RepositoryUiService(repositoryCacheInvalidationService,
+        baseRepositoryManager, repositoryMetricsService, configurationStore, securityHelper,
+        testRecipeList, taskScheduler, typeLookup, formats, repositoryPermissionChecker,
+        failedRepositoryTracker, httpAuthenticationSecretEncoder);
+
+    // Execute: Update the failed repository
+    RepositoryXO result = testService.update(repositoryXO);
+
+    // Verify: Configuration was updated
+    verify(storedConfiguration).setOnline(true);
+    verify(storedConfiguration).setAttributes(testAttributes);
+    verify(configurationStore).update(storedConfiguration);
+
+    // Verify: Retry was attempted
+    verify(baseRepositoryManager).retryFailedRepository(repoName);
+  }
+
+  @Test
+  void testUpdateFailedRepository_stillFailing() throws Exception {
+    // Setup: Repository has failed and update doesn't fix it
+    String repoName = "failed-repo";
+    Type type = mock(Type.class);
+    when(repositoryXO.getName()).thenReturn(repoName);
+    when(repositoryXO.getFormat()).thenReturn("format");
+    when(repositoryXO.getOnline()).thenReturn(false);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    Map<String, Map<String, Object>> testAttributes = new HashMap<>();
+    when(repositoryXO.getAttributes()).thenReturn(testAttributes);
+
+    // Mock configuration
+    Configuration storedConfiguration = mock(Configuration.class);
+    when(storedConfiguration.getRepositoryName()).thenReturn(repoName);
+    when(storedConfiguration.getRecipeName()).thenReturn("mockRecipe");
+    when(storedConfiguration.getAttributes()).thenReturn(new HashMap<>());
+    when(storedConfiguration.copy()).thenReturn(storedConfiguration);
+    when(storedConfiguration.isOnline()).thenReturn(false);
+
+    // Mock configuration store
+    when(configurationStore.list()).thenReturn(Collections.singletonList(storedConfiguration));
+
+    // Setup recipe for QualifierUtil
+    Recipe testRecipe = mock(Recipe.class);
+    when(testRecipe.getFormat()).thenReturn(format);
+    when(testRecipe.getType()).thenReturn(type);
+    when(format.getValue()).thenReturn("format");
+
+    // Create recipe list and mock QualifierUtil to return recipe map
+    List<Recipe> testRecipeList = Collections.singletonList(testRecipe);
+    Map<String, Recipe> testRecipesMap = new HashMap<>();
+    testRecipesMap.put("mockRecipe", testRecipe);
+    when(QualifierUtil.buildQualifierBeanMap(testRecipeList)).thenReturn(testRecipesMap);
+
+    // Mock failed repository tracker
+    when(failedRepositoryTracker.hasFailed(repoName)).thenReturn(true);
+
+    // Mock BaseRepositoryManager with failed retry (returns empty)
+    org.globalart.astrum.repository.manager.internal.BaseRepositoryManager baseRepositoryManager =
+        mock(org.globalart.astrum.repository.manager.internal.BaseRepositoryManager.class);
+    when(baseRepositoryManager.retryFailedRepository(repoName)).thenReturn(Optional.empty());
+
+    // Use real RepositoryUiService instance for this test
+    RepositoryUiService testService = new RepositoryUiService(repositoryCacheInvalidationService,
+        baseRepositoryManager, repositoryMetricsService, configurationStore, securityHelper,
+        testRecipeList, taskScheduler, typeLookup, formats, repositoryPermissionChecker,
+        failedRepositoryTracker, httpAuthenticationSecretEncoder);
+
+    // Execute: Update the failed repository
+    RepositoryXO result = testService.update(repositoryXO);
+
+    // Verify: Configuration was updated
+    verify(storedConfiguration).setOnline(false);
+    verify(storedConfiguration).setAttributes(testAttributes);
+    verify(configurationStore).update(storedConfiguration);
+
+    // Verify: Retry was attempted but failed
+    verify(baseRepositoryManager).retryFailedRepository(repoName);
+  }
+
+  @Test
+  void testBuildStatusForConfigurationHandlesInvalidStateException() throws Exception {
+    when(recipe.getType()).thenReturn(new ProxyType());
+    when(configuration.getRecipeName()).thenReturn("testRecipe");
+    when(configuration.getRepositoryName()).thenReturn("proxy-repo");
+    when(configuration.isOnline()).thenReturn(true);
+    when(failedRepositoryTracker.getFailure(anyString())).thenReturn(Optional.empty());
+    when(repositoryPermissionChecker.userHasRepositoryAdminPermissionFor(any(Iterable.class), anyString()))
+        .thenReturn(Collections.singletonList(configuration));
+    HttpClientFacet httpClientFacet = mock(HttpClientFacet.class);
+    doReturn(httpClientFacet).when(repository).facet(HttpClientFacet.class);
+    when(httpClientFacet.getStatus()).thenThrow(new InvalidStateException("STOPPED", new String[]{"STARTED"}));
+
+    List<RepositoryStatusXO> result = underTest.readStatus(Collections.emptyMap());
+
+    assertThat(result, hasSize(1));
+    assertThat(result.get(0).getRepositoryName(), is("proxy-repo"));
+    assertThat(result.get(0).isOnline(), is(true));
+  }
+
+  @Test
+  void testBuildStatusForRepositoryHandlesInvalidStateException() throws Exception {
+    List<Recipe> freshRecipeList = Collections.singletonList(recipe);
+    when(QualifierUtil.buildQualifierBeanMap(freshRecipeList)).thenReturn(recipes);
+    RepositoryUiService service = new RepositoryUiService(repositoryCacheInvalidationService, repositoryManager,
+        repositoryMetricsService, configurationStore, securityHelper, freshRecipeList, taskScheduler,
+        typeLookup, formats, repositoryPermissionChecker, failedRepositoryTracker,
+        httpAuthenticationSecretEncoder);
+    when(repository.getType()).thenReturn(new ProxyType());
+    when(configuration.isOnline()).thenReturn(true);
+    HttpClientFacet httpClientFacet = mock(HttpClientFacet.class);
+    doReturn(httpClientFacet).when(repository).facet(HttpClientFacet.class);
+    when(httpClientFacet.getStatus()).thenThrow(new InvalidStateException("STOPPED", new String[]{"STARTED"}));
+
+    RepositoryXO result = service.asRepository(repository);
+
+    assertThat(result.getName(), is("repository"));
+    assertThat(result.getStatus().getRepositoryName(), is("repository"));
+  }
+
+  @Test
+  void testUpdateFailedRepository_nullRecipe() throws Exception {
+    String repoName = "failed-repo";
+
+    // Setup: Configuration with a recipe name that doesn't exist in recipes map
+    Configuration config = mock(Configuration.class);
+    when(config.getRepositoryName()).thenReturn(repoName);
+    when(config.getRecipeName()).thenReturn("nonexistent-recipe");
+    when(config.copy()).thenReturn(config);
+    when(config.getAttributes()).thenReturn(attributes);
+
+    when(configurationStore.list()).thenReturn(Collections.singletonList(config));
+    when(failedRepositoryTracker.hasFailed(repoName.toLowerCase())).thenReturn(true);
+
+    // Note: recipes HashMap naturally returns null for "nonexistent-recipe" since mockRecipes() only adds "testRecipe"
+
+    // Create a minimal RepositoryXO
+    RepositoryXO xo = new RepositoryXO();
+    xo.setName(repoName);
+    xo.setOnline(true);
+    xo.setAttributes(new HashMap<>());
+
+    // Execute: Should throw BadRequestException for null recipe
+    BadRequestException ex = assertThrows(BadRequestException.class, () -> underTest.update(xo));
+    assertThat(ex.getMessage(), is("Recipe not found for repository: failed-repo"));
+  }
+
+  /**
+   * Test: filter() excludes configurations with missing recipes
+   */
+  @Test
+  void testFilterConfigurationsWithMissingRecipes() {
+    Configuration validConfig = validConfig();
+
+    List<Configuration> allConfigs = new ArrayList<>();
+    allConfigs.add(validConfig);
+    allConfigs.add(invalidConfig());
+
+    when(configurationStore.list()).thenReturn(allConfigs);
+    when(repositoryPermissionChecker.userCanBrowseRepositories(any(Configuration[].class)))
+        .thenReturn(Collections.singletonList(validConfig));
+
+    Iterable<Configuration> result = underTest.filter(null);
+
+    List<Configuration> resultList = new ArrayList<>();
+    result.forEach(resultList::add);
+    assertThat(resultList.size(), is(1));
+    assertThat(resultList.get(0).getRepositoryName(), is("valid-repo"));
+  }
+
+  private Configuration invalidConfig() {
+    return mock(Configuration.class);
+  }
+
+  private Configuration validConfig() {
+    Configuration validConfig = mock(Configuration.class);
+    when(validConfig.getRepositoryName()).thenReturn("valid-repo");
+    when(validConfig.getRecipeName()).thenReturn("testRecipe"); // exists in recipes map
+
+    return validConfig;
+  }
+
+  private StoreLoadParameters params() {
+    StoreLoadParameters params = new StoreLoadParameters();
+    List<StoreLoadParameters.Filter> filters = new ArrayList<>();
+    StoreLoadParameters.Filter formatFilter = new StoreLoadParameters.Filter();
+    formatFilter.setProperty("format");
+    formatFilter.setValue("maven2");
+    filters.add(formatFilter);
+    params.setFilter(filters);
+    return params;
+  }
+
+  private Map<String, Map<String, Object>> attributes() {
+    Map<String, Object> storageAttr = new HashMap<>();
+    storageAttr.put("blobStoreName", "default");
+
+    return Map.of("storage", storageAttr);
+  }
+
+  /**
+   * Test: filter() with format parameter excludes configurations with missing recipes
+   */
+  @Test
+  void testFilterWithFormatFilterConfigurationsWithMissingRecipes() {
+    Configuration validConfig = validConfig();
+
+    List<Configuration> allConfigs = new ArrayList<>();
+    allConfigs.add(validConfig);
+    allConfigs.add(invalidConfig());
+
+    when(configurationStore.list()).thenReturn(allConfigs);
+    when(repositoryPermissionChecker.userCanBrowseRepositories(any(Configuration[].class)))
+        .thenReturn(Collections.singletonList(validConfig));
+
+    Iterable<Configuration> result = underTest.filter(params());
+
+    List<Configuration> resultList = new ArrayList<>();
+    result.forEach(resultList::add);
+    assertThat(resultList.size(), is(1));
+    assertThat(resultList.get(0).getRepositoryName(), is("valid-repo"));
+  }
+
+  /**
+   * Test: readReferences() excludes configurations with missing recipes
+   */
+  @Test
+  void testReadReferencesConfigurationsWithMissingRecipes() {
+    Configuration validConfig = validConfig();
+    when(validConfig.getAttributes()).thenReturn(attributes());
+
+    List<Configuration> allConfigs = new ArrayList<>();
+    allConfigs.add(validConfig);
+    allConfigs.add(invalidConfig());
+
+    when(configurationStore.list()).thenReturn(allConfigs);
+    when(repositoryPermissionChecker.userCanBrowseRepositories(any(Configuration[].class)))
+        .thenReturn(Collections.singletonList(validConfig));
+
+    StoreLoadParameters params = new StoreLoadParameters();
+    params.setFilter(Collections.emptyList());
+
+    // Execute: Should NOT throw NPE
+    List<RepositoryReferenceXO> result = underTest.readReferences(params);
+
+    // Verify: Only valid repository is returned
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0).getName(), is("valid-repo"));
+  }
+
+  /**
+   * Test: readReferences() with format filter excludes configurations with missing recipes (ASTRUM-53342)
+   */
+  @Test
+  void testReadReferences_withFormatFilter_excludesConfigurationsWithMissingRecipes() {
+    // Setup: Similar to above but with format filter
+    Configuration validConfig = validConfig();
+
+    when(validConfig.getAttributes()).thenReturn(attributes());
+
+    List<Configuration> allConfigs = new ArrayList<>();
+    allConfigs.add(validConfig);
+    allConfigs.add(invalidConfig());
+
+    when(configurationStore.list()).thenReturn(allConfigs);
+    when(repositoryPermissionChecker.userCanBrowseRepositories(any(Configuration[].class)))
+        .thenReturn(Collections.singletonList(validConfig));
+
+    // Execute: Should NOT throw NPE
+    List<RepositoryReferenceXO> result = underTest.readReferences(params());
+
+    // Verify: Only valid repository is returned
+    assertThat(result.size(), is(1));
+    assertThat(result.get(0).getName(), is("valid-repo"));
+  }
+
+  /**
+   * Test: getFormat() and getType() handle missing recipes gracefully via readReferences
+   * Tests private methods indirectly through public API
+   */
+  @Test
+  void testGetFormatAndGetTypeMissingRecipesGracefully() {
+    Configuration validConfig = validConfig();
+    when(validConfig.getAttributes()).thenReturn(attributes());
+
+    List<Configuration> allConfigs = new ArrayList<>();
+    allConfigs.add(validConfig);
+    allConfigs.add(invalidConfig());
+
+    when(configurationStore.list()).thenReturn(allConfigs);
+    when(repositoryPermissionChecker.userCanBrowseRepositories(any(Configuration[].class)))
+        .thenReturn(Collections.singletonList(validConfig)); // Only valid config passes permission check
+
+    StoreLoadParameters params = new StoreLoadParameters();
+    params.setFilter(Collections.emptyList());
+
+    // Execute: Should NOT throw NPE, invalid config should be filtered out
+    List<RepositoryReferenceXO> result = underTest.readReferences(params);
+
+    // Verify: Only valid repository is returned with correct format and type
+    assertThat(result.size(), is(1));
+    RepositoryReferenceXO ref = result.get(0);
+    assertThat(ref.getName(), is("valid-repo"));
+    assertThat(ref.getFormat(), is("maven2")); // getFormat returned correctly
+    assertThat(ref.getType(), is("hosted")); // getType returned correctly
+  }
+
+  /**
+   * Test: buildStatus() handles configuration with missing recipe gracefully via readReferences
+   * Tests private method indirectly through public API
+   */
+  @Test
+  void testBuildStatusMissingRecipeGracefully() {
+    Configuration config = validConfig();
+
+    when(config.getAttributes()).thenReturn(attributes());
+
+    when(configurationStore.list()).thenReturn(Collections.singletonList(config));
+    when(failedRepositoryTracker.getFailure("broken-repo")).thenReturn(Optional.empty());
+    // Should return empty list since the config with missing recipe is filtered out before this call
+    when(repositoryPermissionChecker.userCanBrowseRepositories(any(Configuration[].class)))
+        .thenReturn(Collections.emptyList());
+
+    StoreLoadParameters params = new StoreLoadParameters();
+    params.setFilter(Collections.emptyList());
+
+    // Execute: Should NOT throw NPE, config should be filtered out by filter()
+    // This tests both filter() and buildStatus() handling of missing recipes
+    List<RepositoryReferenceXO> result = underTest.readReferences(params);
+
+    // Verify: Empty result because missing recipe config is filtered out
+    assertThat(result.size(), is(0));
+  }
+
+  /**
+   * Test: buildStatus() returns proper status for failed repository
+   * Tests via readStatus public API
+   */
+  @Test
+  void testBuildStatus_returnsFailedStatusForFailedRepository() {
+    when(configuration.getRepositoryName()).thenReturn("failed-repo");
+    when(configuration.getRecipeName()).thenReturn("testRecipe");
+    when(configuration.isOnline()).thenReturn(false);
+
+    FailedRepositoryTracker.RepositoryFailure failure =
+        mock(org.globalart.astrum.repository.manager.internal.FailedRepositoryTracker.RepositoryFailure.class);
+    when(failure.getReason()).thenReturn("Recipe not found");
+    when(failedRepositoryTracker.getFailure("failed-repo")).thenReturn(Optional.of(failure));
+    when(repositoryPermissionChecker.userHasRepositoryAdminPermissionFor(any(Iterable.class), anyString()))
+        .thenReturn(Collections.singletonList(configuration));
+
+    // Execute via readStatus public API
+    Map<String, String> params = new HashMap<>();
+    List<RepositoryStatusXO> result = underTest.readStatus(params);
+
+    // Verify: Status shows failed state
+    assertThat(result.size(), is(1));
+    RepositoryStatusXO status = result.get(0);
+    assertThat(status.getRepositoryName(), is("failed-repo"));
+    assertThat(status.isOnline(), is(false));
+    assertThat(status.getDescription(), is("Failed to Initialize"));
+    assertThat(status.getReason(), is("Recipe not found"));
+  }
+
+  /**
+   * Test: filter() with multiple format filters
+   */
+  @Test
+  void testFilterMultipleFormatsConfigurationsWithMissingRecipes() {
+    Configuration mavenConfig = mock(Configuration.class);
+    when(mavenConfig.getRepositoryName()).thenReturn("maven-repo");
+    when(mavenConfig.getRecipeName()).thenReturn("testRecipe");
+
+    Configuration nugetConfig = mock(Configuration.class);
+    when(nugetConfig.getRepositoryName()).thenReturn("nuget-repo");
+    when(nugetConfig.getRecipeName()).thenReturn("nuget-recipe");
+
+    List<Configuration> allConfigs = new ArrayList<>();
+    allConfigs.add(mavenConfig);
+    allConfigs.add(invalidConfig());
+    allConfigs.add(nugetConfig);
+
+    when(configurationStore.list()).thenReturn(allConfigs);
+    when(repositoryPermissionChecker.userCanBrowseRepositories(any(Configuration[].class)))
+        .thenReturn(Collections.singletonList(mavenConfig));
+
+    Iterable<Configuration> result = underTest.filter(params());
+
+    List<Configuration> resultList = new ArrayList<>();
+    result.forEach(resultList::add);
+    assertThat(resultList.size(), is(1)); // Only maven, nuget recipe doesn't exist
+    assertThat(resultList.get(0).getRepositoryName(), is("maven-repo"));
+  }
+
+  /**
+   * Test: filter() with type filter excludes configurations with missing recipes
+   */
+  @Test
+  void testFilterTypeFilterConfigurationsWithMissingRecipes() {
+    Configuration validConfig = validConfig();
+
+    List<Configuration> allConfigs = new ArrayList<>();
+    allConfigs.add(validConfig);
+    allConfigs.add(invalidConfig());
+
+    when(configurationStore.list()).thenReturn(allConfigs);
+    when(repositoryPermissionChecker.userCanBrowseRepositories(any(Configuration[].class)))
+        .thenReturn(Collections.singletonList(validConfig));
+
+    Iterable<Configuration> result = underTest.filter(params());
+
+    List<Configuration> resultList = new ArrayList<>();
+    result.forEach(resultList::add);
+    assertThat(resultList.size(), is(1));
+    assertThat(resultList.get(0).getRepositoryName(), is("valid-repo"));
+  }
+
+  /**
+   * Test: All configurations have missing recipes (edge case)
+   */
+  @Test
+  void testFilterAllConfigurationsHaveMissingRecipesEmptyList() {
+
+    Configuration invalid2 = mock(Configuration.class);
+    when(invalid2.getRepositoryName()).thenReturn("invalid-2");
+    when(invalid2.getRecipeName()).thenReturn("missing-recipe-2");
+
+    List<Configuration> allConfigs = new ArrayList<>();
+    allConfigs.add(invalidConfig());
+    allConfigs.add(invalid2);
+
+    when(configurationStore.list()).thenReturn(allConfigs);
+
+    StoreLoadParameters params = new StoreLoadParameters();
+    params.setFilter(Collections.emptyList());
+
+    Iterable<Configuration> result = underTest.filter(params);
+
+    List<Configuration> resultList = new ArrayList<>();
+    result.forEach(resultList::add);
+    assertThat(resultList.size(), is(0));
+  }
+
+  @Test
+  void testRemoteUrlPathChangeBlocksWithPlaceholder() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with remoteUrl
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("type", "username");
+    storedAuthentication.put("password", "secret123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with only path changed - ANY URL change now triggers validation
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "https://repo.example.com/v2/"); // Different path = URL changed
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    newAuthentication.put("type", "username");
+    newAuthentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#"); // Placeholder = credential exfiltration
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should throw BadRequestException - ANY URL change with placeholder is blocked
+    org.globalart.astrum.repository.BadRequestException exception = assertThrows(
+        org.globalart.astrum.repository.BadRequestException.class,
+        () -> underTest.update(repositoryXO));
+    assertThat(exception.getMessage(), is(REMOTE_URL_CHANGE_ERROR_MESSAGE));
+  }
+
+  @Test
+  void testRemoteUrlPathChangeAllowedWithNewCredentials() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with remoteUrl
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("type", "username");
+    storedAuthentication.put("password", "oldSecret123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with path changed AND new credentials (legitimate change)
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "https://repo.example.com/v2/"); // Different path
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    newAuthentication.put("type", "username");
+    newAuthentication.put("password", "newSecret456"); // New credential = intentional change
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should NOT throw - user provided new credentials
+    underTest.update(repositoryXO);
+
+    // Verify new password was kept
+    assertThat(newAuthentication.get("password"), is("newSecret456"));
+  }
+
+  @Test
+  void testRemoteUrlHostChangeBlocksWithPlaceholder() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with remoteUrl and credentials
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("type", "username");
+    storedAuthentication.put("password", "secret123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with host changed AND placeholder (attack vector)
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "https://attacker.example.com/v1/"); // Different host
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    newAuthentication.put("type", "username");
+    newAuthentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#"); // Placeholder = credential exfiltration
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should throw BadRequestException
+    org.globalart.astrum.repository.BadRequestException exception = assertThrows(
+        org.globalart.astrum.repository.BadRequestException.class,
+        () -> underTest.update(repositoryXO));
+    assertThat(exception.getMessage(), is(REMOTE_URL_CHANGE_ERROR_MESSAGE));
+  }
+
+  @Test
+  void testRemoteUrlHostChangeAllowedWithNewCredentials() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with remoteUrl and credentials
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("type", "username");
+    storedAuthentication.put("password", "oldSecret123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with host changed AND new credentials (legitimate change)
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "https://new-repo.example.com/v1/"); // Different host
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    newAuthentication.put("type", "username");
+    newAuthentication.put("password", "newSecret456"); // New credential = intentional change
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should NOT throw - user provided new credentials
+    underTest.update(repositoryXO);
+
+    // Verify new password was kept
+    assertThat(newAuthentication.get("password"), is("newSecret456"));
+  }
+
+  @Test
+  void testRemoteUrlHostChangeAllowedWithEmptyCredentials() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with remoteUrl and credentials
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("password", "oldSecret123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with host changed AND no authentication (user cleared it intentionally)
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "https://new-repo.example.com/v1/"); // Different host
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    // Empty authentication = no authentication for new repo
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should NOT throw - user intentionally cleared credentials
+    underTest.update(repositoryXO);
+  }
+
+  @Test
+  void testRemoteUrlSchemeChangeBlocksWithPlaceholder() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with https
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("type", "username");
+    storedAuthentication.put("password", "secret123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with scheme changed and placeholder
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "http://repo.example.com/v1/"); // http instead of https = URL changed
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    newAuthentication.put("type", "username");
+    newAuthentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should throw BadRequestException - URL changed with placeholder
+    org.globalart.astrum.repository.BadRequestException exception = assertThrows(
+        org.globalart.astrum.repository.BadRequestException.class,
+        () -> underTest.update(repositoryXO));
+    assertThat(exception.getMessage(), is(REMOTE_URL_CHANGE_ERROR_MESSAGE));
+  }
+
+  @Test
+  void testRemoteUrlPortChangeBlocksWithPlaceholder() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with default port
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("type", "username");
+    storedAuthentication.put("password", "secret123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with different port and placeholder
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "https://repo.example.com:9443/v1/"); // Different port = URL changed
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    newAuthentication.put("type", "username");
+    newAuthentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should throw BadRequestException - URL changed with placeholder
+    org.globalart.astrum.repository.BadRequestException exception = assertThrows(
+        org.globalart.astrum.repository.BadRequestException.class,
+        () -> underTest.update(repositoryXO));
+    assertThat(exception.getMessage(), is(REMOTE_URL_CHANGE_ERROR_MESSAGE));
+  }
+
+  @Test
+  void testRemoteUrlHostChangeBlocksWithBearerTokenPlaceholder() {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with bearer token
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("type", "bearerToken");
+    storedAuthentication.put("bearerTokenId", "oldToken123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with host changed AND bearer token placeholder
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "https://attacker.example.com/v1/"); // Different host
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    newAuthentication.put("type", "bearerToken");
+    newAuthentication.put("bearerTokenId", "#~NXRM~PLACEHOLDER~PASSWORD~#"); // Placeholder
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should throw BadRequestException
+    org.globalart.astrum.repository.BadRequestException exception = assertThrows(
+        org.globalart.astrum.repository.BadRequestException.class,
+        () -> underTest.update(repositoryXO));
+    assertThat(exception.getMessage(), is(REMOTE_URL_CHANGE_ERROR_MESSAGE));
+  }
+
+  @Test
+  void testRemoteUrlHostChangeAllowedWithNewBearerToken() throws Exception {
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+
+    // Stored proxy config with bearer token
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    Map<String, Object> storedProxy = new HashMap<>();
+    storedProxy.put("remoteUrl", "https://repo.example.com/v1/");
+    storedAttributes.put("proxy", storedProxy);
+    Map<String, Object> storedHttpclient = new HashMap<>();
+    Map<String, Object> storedAuthentication = new HashMap<>();
+    storedAuthentication.put("bearerTokenId", "oldToken123");
+    storedHttpclient.put("authentication", storedAuthentication);
+    storedAttributes.put("httpclient", storedHttpclient);
+
+    // New attributes with host changed AND new bearer token
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    Map<String, Object> newProxy = new HashMap<>();
+    newProxy.put("remoteUrl", "https://new-repo.example.com/v1/"); // Different host
+    newAttributes.put("proxy", newProxy);
+    Map<String, Object> newHttpclient = new HashMap<>();
+    Map<String, Object> newAuthentication = new HashMap<>();
+    newAuthentication.put("bearerTokenId", "newToken456"); // New token
+    newHttpclient.put("authentication", newAuthentication);
+    newAttributes.put("httpclient", newHttpclient);
+
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+
+    // Should NOT throw - user provided new bearer token
+    underTest.update(repositoryXO);
+
+    // Verify new token was kept
+    assertThat(newAuthentication.get("bearerTokenId"), is("newToken456"));
+  }
+
+  @Test
+  void testNoProxyAttributesNoValidation() throws Exception {
+    Map<String, Map<String, Object>> storedAttributes = new HashMap<>();
+    storedAttributes.put("storage", Map.of("blobStoreName", "default"));
+
+    when(configuration.getAttributes()).thenReturn(storedAttributes);
+    when(configuration.copy()).thenReturn(configuration);
+
+    Map<String, Map<String, Object>> newAttributes = new HashMap<>();
+    newAttributes.put("storage", Map.of("blobStoreName", "default"));
+
+    when(repositoryXO.getName()).thenReturn("test");
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getRoutingRuleId()).thenReturn(null);
+    when(repositoryXO.getAttributes()).thenReturn(newAttributes);
+
+    underTest.update(repositoryXO);
+  }
+
+  @Test
+  void testIsRemoteUrlChangedDetectsChange() {
+    Map<String, Map<String, Object>> oldAttrs = Map.of("proxy", Map.of("remoteUrl", "https://old.example.com/v1/"));
+    Map<String, Map<String, Object>> newAttrs = Map.of("proxy", Map.of("remoteUrl", "https://new.example.com/v1/"));
+
+    assertThat(RepositoryUiService.isRemoteUrlChanged(oldAttrs, newAttrs), is(true));
+  }
+
+  @Test
+  void testIsRemoteUrlChangedSameUrl() {
+    Map<String, Map<String, Object>> oldAttrs = Map.of("proxy", Map.of("remoteUrl", "https://example.com/v1/"));
+    Map<String, Map<String, Object>> newAttrs = Map.of("proxy", Map.of("remoteUrl", "https://example.com/v1/"));
+
+    assertThat(RepositoryUiService.isRemoteUrlChanged(oldAttrs, newAttrs), is(false));
+  }
+
+  @Test
+  void testIsRemoteUrlChangedDifferentPath() {
+    Map<String, Map<String, Object>> oldAttrs = Map.of("proxy", Map.of("remoteUrl", "https://example.com/v1/"));
+    Map<String, Map<String, Object>> newAttrs = Map.of("proxy", Map.of("remoteUrl", "https://example.com/v2/"));
+
+    assertThat(RepositoryUiService.isRemoteUrlChanged(oldAttrs, newAttrs), is(true));
+  }
+
+  @Test
+  void testIsRemoteUrlChangedNoProxyAttributes() {
+    Map<String, Map<String, Object>> oldAttrs = Map.of("storage", Map.of("blobStoreName", "default"));
+    Map<String, Map<String, Object>> newAttrs = Map.of("storage", Map.of("blobStoreName", "default"));
+
+    assertThat(RepositoryUiService.isRemoteUrlChanged(oldAttrs, newAttrs), is(false));
+  }
+
+  // ASTRUM-52779: ExtDirect create must derive format from the recipe registry, not the caller-supplied DTO field
+
+  @Test
+  void create_permissionCheckedAgainstRecipeFormat_notClientSuppliedFormat() throws Exception {
+    // Given: a user who supplies format=raw (their permitted format) but recipe=testRecipe (which is maven2)
+    when(repositoryXO.getName()).thenReturn("my-repo");
+    when(repositoryXO.getFormat()).thenReturn("raw"); // attacker-controlled DTO field
+    when(repositoryXO.getRecipe()).thenReturn("testRecipe"); // testRecipe resolves to maven2 via mockRecipes()
+    when(repositoryXO.getOnline()).thenReturn(true);
+    when(repositoryXO.getAttributes()).thenReturn(new HashMap<>());
+    when(repositoryManager.newConfiguration()).thenReturn(configuration);
+    when(repositoryManager.create(configuration)).thenReturn(repository);
+
+    underTest.create(repositoryXO);
+
+    // The permission check must use the format from the recipe registry ("maven2"), not the DTO field ("raw")
+    ArgumentCaptor<org.apache.shiro.authz.Permission[]> permCaptor =
+        ArgumentCaptor.forClass(org.apache.shiro.authz.Permission[].class);
+    verify(securityHelper).ensurePermitted(permCaptor.capture());
+    org.apache.shiro.authz.Permission[] captured = permCaptor.getValue();
+    assertThat(captured.length, is(1));
+    assertThat(captured[0] instanceof RepositoryAdminPermission, is(true));
+    assertThat(((RepositoryAdminPermission) captured[0]).getFormat(), is("maven2"));
+  }
+
+  @Test
+  void create_deniedWhenUserLacksPermissionForRecipeFormat() throws Exception {
+    // Given: securityHelper rejects a permission check for the recipe's actual format
+    when(repositoryXO.getName()).thenReturn("my-repo");
+    when(repositoryXO.getFormat()).thenReturn("raw");
+    when(repositoryXO.getRecipe()).thenReturn("testRecipe"); // resolves to maven2
+    doThrow(new AuthorizationException("Unauthorized"))
+        .when(securityHelper)
+        .ensurePermitted(any(org.apache.shiro.authz.Permission[].class));
+
+    assertThrows(AuthorizationException.class, () -> underTest.create(repositoryXO));
+  }
+
+  @Test
+  void create_throwsBadRequestForUnknownRecipe() throws Exception {
+    // Given: the recipe name in the DTO does not exist in the registry
+    when(repositoryXO.getRecipe()).thenReturn("nonexistent-recipe");
+
+    BadRequestException ex = assertThrows(BadRequestException.class, () -> underTest.create(repositoryXO));
+    assertThat(ex.getMessage(), is("Recipe not found: nonexistent-recipe"));
+  }
+}
