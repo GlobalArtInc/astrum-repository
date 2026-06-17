@@ -1,0 +1,81 @@
+
+package org.globalart.astrum.coreui;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+
+import org.globalart.astrum.coreui.internal.UploadService;
+import org.globalart.astrum.repository.upload.UploadDefinition;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class UploadComponentTest
+{
+  @Mock
+  UploadService uploadService;
+
+  @InjectMocks
+  UploadComponent underTest;
+
+  @Test
+  void getUploadDefinitionsReturnsOnlyUiUploadDefinitions() {
+    UploadDefinition uiDef = new UploadDefinition("maven2", true, true, true,
+        Collections.emptyList(), Collections.emptyList());
+    UploadDefinition nonUiDef = new UploadDefinition("raw", false, true, false,
+        Collections.emptyList(), Collections.emptyList());
+
+    when(uploadService.getAvailableDefinitions()).thenReturn(Arrays.asList(uiDef, nonUiDef));
+
+    Collection<UploadDefinition> result = underTest.getUploadDefinitions();
+
+    assertThat(result, hasSize(1));
+    assertThat(result.iterator().next().getFormat(), is("maven2"));
+  }
+
+  @Test
+  void getUploadDefinitionsReturnsEmptyWhenNoUiUploads() {
+    UploadDefinition nonUiDef = new UploadDefinition("raw", false, true, false,
+        Collections.emptyList(), Collections.emptyList());
+
+    when(uploadService.getAvailableDefinitions()).thenReturn(Collections.singletonList(nonUiDef));
+
+    Collection<UploadDefinition> result = underTest.getUploadDefinitions();
+
+    assertThat(result, is(empty()));
+  }
+
+  @Test
+  void getUploadDefinitionsReturnsEmptyWhenNoDefinitions() {
+    when(uploadService.getAvailableDefinitions()).thenReturn(Collections.emptyList());
+
+    Collection<UploadDefinition> result = underTest.getUploadDefinitions();
+
+    assertThat(result, is(empty()));
+  }
+
+  @Test
+  void getUploadDefinitionsReturnsAllWhenAllAreUiUploads() {
+    UploadDefinition uiDef1 = new UploadDefinition("maven2", true, true, true,
+        Collections.emptyList(), Collections.emptyList());
+    UploadDefinition uiDef2 = new UploadDefinition("npm", true, false, false,
+        Collections.emptyList(), Collections.emptyList());
+
+    when(uploadService.getAvailableDefinitions()).thenReturn(Arrays.asList(uiDef1, uiDef2));
+
+    Collection<UploadDefinition> result = underTest.getUploadDefinitions();
+
+    assertThat(result, hasSize(2));
+  }
+}
