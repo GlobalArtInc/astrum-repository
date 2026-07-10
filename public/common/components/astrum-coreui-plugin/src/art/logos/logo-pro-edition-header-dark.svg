@@ -1,0 +1,12 @@
+<svg width="300" height="37" viewBox="0 0 300 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+<title>Astrum Repository</title>
+<defs>
+<linearGradient id="astrum-star" x1="1.0" y1="3.0" x2="34.0" y2="36.0" gradientUnits="userSpaceOnUse">
+<stop stop-color="#8B5CF6"/>
+<stop offset="1" stop-color="#3B82F6"/>
+</linearGradient>
+</defs>
+<path d="M17.5 3.0C19.02 13.28 23.72 17.98 34.0 19.5C23.72 21.02 19.02 25.72 17.5 36.0C15.98 25.72 11.28 21.02 1.0 19.5C11.28 17.98 15.98 13.28 17.5 3.0Z" fill="url(#astrum-star)"/>
+<path d="M33.5 1.0C33.95 4.01 34.98 5.05 38.0 5.5C34.98 5.95 33.95 6.99 33.5 10.0C33.05 6.99 32.02 5.95 29.0 5.5C32.02 5.05 33.05 4.01 33.5 1.0Z" fill="#A99BFF"/>
+<text x="45.0" y="27.5" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="27.0" font-weight="700" letter-spacing="-0.4" fill="#FFFFFF">astrum <tspan font-weight="600" fill="#A99BFF">repository</tspan></text>
+</svg>
