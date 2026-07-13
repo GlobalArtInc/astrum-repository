@@ -1,0 +1,160 @@
+
+
+// BEM modifiers — preserve inline-style output that previously lived in GlobalHeaderRadix.jsx.
+// Tokens (var(--gray-6), var(--space-3)) match the prior inline values exactly so AC#3
+// ("render identically") holds; do not retune to var(--color-border) — see ASTRUM-51836.
+.as-global-header-radix__sticky-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--gray-6);
+  background-color: var(--color-surface);
+}
+
+.as-global-header-radix__row {
+  width: 100%;
+}
+
+.as-global-header-radix__side {
+  flex-shrink: 0;
+}
+
+.as-global-header-radix__search {
+  flex: 1 1 0;
+  max-width: 600px;
+  min-width: 200px;
+  display: flex;
+  justify-content: center;
+}
+
+.as-global-header-radix__logo {
+  height: 32px;
+  display: block;
+}
+
+.as-global-header-radix__clickable {
+  cursor: pointer;
+
+  &--disabled {
+    cursor: not-allowed;
+  }
+}
+
+.as-global-header-radix.nx-global-header-2 {
+  grid-area: header !important;  // Force into grid
+  z-index: 100;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible; // Changed from hidden to allow autocomplete dropdown to show
+  box-sizing: border-box;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  // No custom padding - child Flex uses Radix px="4" for horizontal padding
+  padding-left: 0;
+  padding-right: 0;
+  
+  // Force ALL RSC buttons (NxButton) to use theme colors
+  .nx-btn {
+    color: var(--color-text) !important;
+    
+    &.nx-btn--icon-only {
+      color: var(--color-text) !important;
+    }
+    
+    .nx-icon {
+      color: var(--color-text) !important;
+    }
+    
+    svg {
+      color: var(--color-text) !important;
+    }
+  }
+  
+  // Force NxFontAwesomeIcon to use theme colors
+  .nx-icon {
+    color: var(--color-text) !important;
+  }
+  
+  // Force dropdown toggles
+  .nx-icon-dropdown__toggle {
+    color: var(--color-text) !important;
+    
+    .nx-icon {
+      color: var(--color-text) !important;
+    }
+  }
+  
+  // Force navigation dropdown (Help menu, Profile menu)
+  .nx-navigation-dropdown__toggle {
+    color: var(--color-text) !important;
+    
+    .nx-icon {
+      color: var(--color-text) !important;
+    }
+  }
+  
+  // SystemStatus bell icon
+  .fa-layers {
+    color: var(--color-text) !important;
+    
+    .nx-icon {
+      color: var(--color-text) !important;
+    }
+  }
+  
+  // Radix IconButton
+  .rt-IconButton {
+    color: var(--color-text) !important;
+  }
+  
+  // Radix Button
+  .rt-Button {
+    color: var(--color-text) !important;
+  }
+  
+  // Links
+  a {
+    color: var(--color-text) !important;
+  }
+  
+  [data-theme="dark"] & {
+    background-color: var(--color-surface);
+    border-bottom-color: var(--color-border);
+  }
+}
+
+// UI Switch Popover - ensure it floats above all content
+// This targets the Radix Popover.Content which renders via portal
+.rt-PopoverContent {
+  background-color: var(--color-panel-solid) !important;
+  z-index: 14999 !important;
+  border: 1px solid var(--gray-6) !important;
+  box-shadow: var(--shadow-5) !important;
+}
+
+// All Radix Dialog/AlertDialog content — ensure it floats above all content
+// Targets the actual Radix Themes class used by both Dialog and AlertDialog
+.rt-BaseDialogContent {
+  background-color: var(--color-panel-solid) !important;
+  z-index: 14999 !important;
+  border: 1px solid var(--gray-6) !important;
+  box-shadow: var(--shadow-5) !important;
+}
+
+// Dialog overlay (backdrop) - ensure it dims content behind
+.rt-BaseDialogOverlay {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  z-index: 14998 !important;
+}
+
+// Radix popper portal wrapper - must exceed the dialog overlay (14998) so that
+// Select/Tooltip/DropdownMenu dropdowns opened inside a dialog are not blocked
+// by the overlay's pointer-events.
+[data-radix-popper-content-wrapper] {
+  z-index: 15000 !important;
+}
