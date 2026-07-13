@@ -1,0 +1,16 @@
+
+
+.as-system-status-radix {
+  position: relative;
+}
+
+.as-system-status-radix__badge {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--red-9);
+  pointer-events: none;
+}
