@@ -1,0 +1,56 @@
+
+
+.as-system-notices {
+  grid-area: notices;
+  min-width: 0;
+
+  .nx-alert {
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .nx-system-notice {
+    white-space: normal;
+  }
+
+  .nx-system-notice.nx-system-notice--alert {
+    margin: 0;
+    padding: 0;
+
+    .nx-h3 {
+      margin-bottom: 0;
+    }
+  }
+
+  .banner-header {
+    color: var(--color-text-contrast);
+    margin-bottom: var(--nx-spacing-2x);
+  }
+
+  // create appropriate space between text and finalize button in finalize upgrade message
+  .as-upgrade-alert-needs-upgrade {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--nx-spacing-4x);
+
+    > :first-child {
+      flex: 1 1 320px;
+      min-width: 0;
+    }
+
+    .nx-btn {
+      flex-shrink: 0;
+    }
+  }
+
+  // create appropriate space between text and view details button in recovery mode message
+  .as-recovery-mode-alert {
+    display: flex;
+    justify-content: space-between;
+  }
+}

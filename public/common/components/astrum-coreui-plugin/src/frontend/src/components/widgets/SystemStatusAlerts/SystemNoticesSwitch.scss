@@ -1,0 +1,15 @@
+
+
+// In Preview UI both SystemAlerts and SystemNotices render. Each normally
+// claims `grid-area: notices`, which would overlap them. This wrapper takes the
+// notices row and stacks the two hosts vertically; children no longer need to
+// own the grid area.
+.as-notices-stack {
+  grid-area: notices;
+  min-width: 0;
+
+  > .as-system-alerts,
+  > .as-system-notices {
+    grid-area: auto;
+  }
+}
