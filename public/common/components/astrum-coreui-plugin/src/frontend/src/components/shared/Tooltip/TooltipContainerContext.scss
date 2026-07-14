@@ -1,0 +1,19 @@
+
+
+// Portal container div for Radix Tooltip / DropdownMenu / Select content rendered
+// inside the Theme subtree. The element is purely a portal target — zero hit area,
+// no visual paint.
+//
+// z-index 14999 sits above ExtJS animating components (10000) but below masks (20000+),
+// so header dropdowns / tooltips / popovers appear above ExtJS grids while modal masks
+// and loading overlays still cover them.
+.as-tooltip-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 14999;
+}
