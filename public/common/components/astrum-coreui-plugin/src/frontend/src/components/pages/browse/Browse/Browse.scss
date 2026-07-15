@@ -1,0 +1,16 @@
+
+.as-browse-list {
+  .as-table-cell-centered {
+    text-align: center;
+  }
+  .nx-btn-bar {
+    justify-content: flex-start;
+  }
+}
+
+.as-browse-tree {
+  .nx-loading-spinner {
+    padding-top: var(--nx-spacing-base);
+    padding-left: var(--nx-spacing-base);
+  }
+}

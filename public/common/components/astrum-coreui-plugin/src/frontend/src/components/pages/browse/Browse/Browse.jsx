@@ -1,0 +1,75 @@
+
+import React from 'react';
+import {assign} from 'xstate';
+import {useInterpret} from '@xstate/react';
+import {pickBy} from 'ramda';
+import {APIConstants, ListMachineUtils, ExtAPIUtils, ExtJS} from '@globalart/astrum-ui-plugin';
+
+import {Detail, Master, MasterDetail} from '@globalart/astrum-ui-plugin';
+
+import RepositoriesContextProvider from '../../admin/Repositories/RepositoriesContextProvider';
+import RepositoriesListMachine from '../../admin/Repositories/RepositoriesListMachine';
+import BrowseList from './BrowseList';
+import BrowseTree from './BrowseTree';
+
+const {EXT: {REPOSITORY: {ACTION, METHODS}}} = APIConstants;
+
+export default function Browse() {
+  const service = useInterpret(RepositoriesListMachine, {
+    actions: {
+      sortData: assign({
+        data: ({sortField, sortDirection, data}) => (data.slice().sort((a, b) => {
+          const dir = sortDirection === ListMachineUtils.ASC ? 1 : -1;
+          const left = a[sortField];
+          const right = b[sortField];
+
+          function isString(val) {
+            if (val === null) {
+              return true;
+            }
+            return typeof val === 'string';
+          }
+
+          function getObjWithoutRepoName(obj) {
+            return pickBy((_,k) => k!=='repositoryName', obj)
+          }
+
+          if (left === right) {
+            return 0;
+          }
+
+          if (typeof (left) === 'object' && typeof (right) === 'object') {
+            return JSON.stringify(getObjWithoutRepoName(a[sortField])).toLowerCase() > JSON.stringify(getObjWithoutRepoName(b[sortField])).toLowerCase() ? dir : -dir;
+          }
+          else if (isString(left) && isString(right)) {
+            return (left || "").toLowerCase() > (right || "").toLowerCase() ? dir : -dir;
+          }
+          else {
+            return left > right ? dir : -dir;
+          }
+        }))
+      })
+    },
+    services: {
+      fetchData: async () => {
+        await ExtJS.waitForPermissions();
+        const response = await ExtAPIUtils.extAPIRequest(ACTION, METHODS.READ_REFERENCES, {});
+        return response.data.result;
+      },
+      },
+    devTools: true
+  });
+
+  return (
+    <RepositoriesContextProvider service={service}>
+      <MasterDetail path="browse/browse">
+        <Master>
+          <BrowseList/>
+        </Master>
+        <Detail>
+          <BrowseTree/>
+        </Detail>
+      </MasterDetail>
+    </RepositoriesContextProvider>
+  );
+}
