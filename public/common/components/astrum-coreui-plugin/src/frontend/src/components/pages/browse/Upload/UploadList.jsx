@@ -1,0 +1,99 @@
+
+import React, { useCallback } from 'react';
+import {useMachine} from '@xstate/react';
+
+import {ListMachineUtils} from '@globalart/astrum-ui-plugin';
+import {
+  NxButton,
+  NxButtonBar,
+  NxFilterInput,
+  NxFontAwesomeIcon,
+  NxTable,
+  NxTile
+} from '@globalart/react-shared-components';
+
+import {faCopy, faUpload} from '@fortawesome/free-solid-svg-icons';
+
+import {
+  ContentBody,
+  PageHeader,
+  PageTitle,
+  Page
+} from '@globalart/astrum-ui-plugin';
+
+import UploadListMachine from './UploadListMachine';
+import UIStrings from '../../../../constants/UIStrings';
+import './UploadList.scss';
+import { useRouter } from '@uirouter/react';
+import { ROUTE_NAMES } from '../../../../routerConfig/routeNames/routeNames';
+import { copyUrl as defaultCopyUrl } from '../BrowseUtils';
+
+const {UPLOAD, FILTER} = UIStrings;
+const {COLUMNS, COPY_URL_TITLE} = UPLOAD.LIST;
+
+export default function UploadList({copyUrl = defaultCopyUrl} = {}) {
+  const router = useRouter();
+  const onEdit = useCallback(itemId => router.stateService.go(ROUTE_NAMES.BROWSE.UPLOAD.EDIT, { itemId }));
+
+  const [state, send] = useMachine(UploadListMachine, {devTools: true});
+  const {data, error, filter: filterText} = state.context;
+  const isLoading = state.matches('loading');
+
+  const nameSortDir = ListMachineUtils.getSortDirection('name', state.context);
+  const formatSortDir = ListMachineUtils.getSortDirection('format', state.context);
+  const sortByName = () => send({type: 'SORT_BY_NAME'});
+  const sortByFormat = () => send({type: 'SORT_BY_FORMAT'});
+
+  const filter = (value) => send({type: 'FILTER', filter: value});
+
+  return <Page className="as-upload">
+    <PageHeader>
+      <PageTitle icon={faUpload} {...UPLOAD.MENU}/>
+    </PageHeader>
+    <ContentBody className="as-upload-list">
+      <NxTile>
+        <NxTile.Header>
+            <NxTile.HeaderActions>
+              <NxFilterInput
+                  id="filter"
+                  onChange={filter}
+                  value={filterText}
+                  placeholder={FILTER}/>
+            </NxTile.HeaderActions>
+        </NxTile.Header>
+        <NxTile.Content>
+          <NxTable id="as-upload-list-repo-table">
+            <NxTable.Head>
+              <NxTable.Row>
+                <NxTable.Cell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</NxTable.Cell>
+                <NxTable.Cell onClick={sortByFormat} isSortable sortDir={formatSortDir}>{COLUMNS.FORMAT}</NxTable.Cell>
+                <NxTable.Cell>{COLUMNS.URL}</NxTable.Cell>
+                <NxTable.Cell chevron />
+              </NxTable.Row>
+            </NxTable.Head>
+            <NxTable.Body isLoading={isLoading} error={error} emptyMessage={UPLOAD.EMPTY_MESSAGE}>
+              {data.map(
+                ({name, format, url}) => (
+                  <NxTable.Row key={name} isClickable onClick={() => onEdit(name)}>
+                    <NxTable.Cell>{name}</NxTable.Cell>
+                    <NxTable.Cell>{format}</NxTable.Cell>
+                    <NxTable.Cell>
+                      <NxButtonBar>
+                        <NxButton
+                          variant="icon-only"
+                          title={COPY_URL_TITLE}
+                          onClick={(e) => copyUrl(e, url)}>
+                          <NxFontAwesomeIcon icon={faCopy} />
+                        </NxButton>
+                      </NxButtonBar>
+                    </NxTable.Cell>
+                    <NxTable.Cell chevron />
+                  </NxTable.Row>
+              ))}
+            </NxTable.Body>
+          </NxTable>
+        </NxTile.Content>
+      </NxTile>
+    </ContentBody>
+  </Page>
+}
