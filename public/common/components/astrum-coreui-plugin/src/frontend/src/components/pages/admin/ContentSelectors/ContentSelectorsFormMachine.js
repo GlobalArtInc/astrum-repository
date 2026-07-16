@@ -1,0 +1,134 @@
+
+import {assign} from 'xstate';
+import Axios from 'axios';
+
+import {ExtJS, FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
+
+import UIStrings from '../../../../constants/UIStrings';
+
+const baseUrl = 'service/rest/v1/security/content-selectors';
+const url = (name) => `${baseUrl}/${name}`;
+
+function isEdit({name}) {
+  return ValidationUtils.notBlank(name);
+}
+
+export default FormUtils.buildFormMachine({
+  id: 'ContentSelectorsFormMachine',
+  context: (context) => ({
+    ...context,
+    showDeleteModal: false
+  }),
+  config: (config) => ({
+    ...config,
+    states: {
+      ...config.states,
+      loaded: {
+        ...config.states.loaded,
+        on: {
+          ...config.states.loaded.on,
+          CONFIRM_DELETE: {
+            actions: assign({showDeleteModal: true})
+          },
+          HIDE_DELETE_MODAL: {
+            actions: assign({showDeleteModal: false})
+          },
+          DELETE: {
+            target: 'delete',
+            actions: assign({showDeleteModal: false})
+          }
+        }
+      }
+    }
+  })
+}).withConfig({
+  actions: {
+    validate: assign({
+      validationErrors: ({data}) => ({
+        name: ValidationUtils.validateNameField(data.name),
+        expression: ValidationUtils.isBlank(data.expression) ? UIStrings.ERROR.FIELD_REQUIRED : null
+      })
+    }),
+
+    onDeleteError: ({data}) => ExtJS.showErrorMessage(UIStrings.CONTENT_SELECTORS.MESSAGES.DELETE_ERROR(data.name)),
+
+    setSaveError: assign({
+      saveErrorData: ({data}) => data,
+      saveErrors: ({data}, event) => {
+        const error = event.data?.response?.data;
+
+        if (typeof error === 'string') {
+          if (error.includes('ORecordDuplicatedException')) {
+            return {
+              name: UIStrings.CONTENT_SELECTORS.MESSAGES.DUPLICATE_ERROR(data.name)
+            };
+          }
+          else if (error.includes('OTooBigIndexKeyException')) {
+            return {
+              name: UIStrings.CONTENT_SELECTORS.MESSAGES.NAME_TOO_LONG
+            }
+          }
+        }
+
+        if (error instanceof Array) {
+          let errors = {};
+          error.forEach(e => {
+            if (e.id.includes('PARAMETER ')) {
+              errors[e.id.replace(/PARAMETER /, '')] = e.message;
+            }
+            else if (e.id === 'HelperBean.expression') {
+              errors.expression = e.message;
+            }
+            else if (e.id === 'name') {
+              errors.name = e.message;
+            }
+            else {
+              console.error('Unhandled backend error', e);
+            }
+          });
+          return errors;
+        }
+
+        return {};
+      }
+    })
+  },
+  guards: {
+    isEdit: ({pristineData}) => isEdit(pristineData),
+    canDelete: () => true
+  },
+  services: {
+    fetchData: ({pristineData}) => {
+      if (isEdit(pristineData)) {
+        return Axios.get(url(pristineData.name));
+      }
+      else { // New
+        return Promise.resolve({
+          data: {
+            name: '',
+            type: 'CSEL',
+            description: '',
+            expression: ''
+          }
+        });
+      }
+    },
+    saveData: ({data, pristineData}) => {
+      if (isEdit(pristineData)) {
+        return Axios.put(url(data.name), {
+          description: data.description,
+          expression: data.expression
+        });
+      }
+      else { // New
+        return Axios.post(baseUrl, {
+          name: data.name,
+          description: data.description,
+          expression: data.expression
+        });
+      }
+    },
+
+    delete: ({data}) => Axios.delete(url(data.name))
+  }
+});
