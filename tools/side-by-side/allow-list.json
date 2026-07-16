@@ -1,0 +1,595 @@
+[
+  {
+    "id": "*",
+    "field": "header.accept-ranges",
+    "status": "accepted",
+    "reason": "The Rust server announces byte ranges (Accept-Ranges: bytes) on content it can serve in parts; the Java server serves the same ranges without announcing them. Clients send Range either way."
+  },
+  {
+    "id": "*",
+    "field": "*blobRef",
+    "status": "accepted",
+    "reason": "blobRef is the blob store's internal reference. The Java server appends the blob's creation time, the Rust server does not. No client reads it; the migrator maps blobs by their own ids."
+  },
+  {
+    "id": "*",
+    "field": "header.last-modified",
+    "status": "accepted",
+    "reason": "Last-Modified is sent by only one server on generated documents (pypi simple pages, rubygems indexes and Swift release lists on the Java side; Maven group metadata, 304 answers and Docker blobs on the Rust side). Clients revalidate these documents with ETag or fetch them again; artifacts carry it on both."
+  },
+  {
+    "id": "*",
+    "field": "header.content-disposition",
+    "status": "accepted",
+    "reason": "Content-Disposition only changes how a browser presents a download. The Java server also sends it on error pages, leaves it out of HEAD answers, adds it to derived checksum files and takes a group's value from the member; the Rust server sends it on GET and HEAD of stored files with the value of the repository that answers."
+  },
+  {
+    "id": "*",
+    "field": "header.content-type",
+    "reference": "application/x-gzip",
+    "candidate": "application/gzip",
+    "status": "accepted",
+    "reason": "The Java server detects .gz and .tgz files as application/x-gzip, the Rust server as application/gzip (RFC 6713). Migrated assets keep the type stored on the Java side; only new uploads differ."
+  },
+  {
+    "id": "*",
+    "field": "*contentType",
+    "reference": "\"application/x-gzip\"",
+    "candidate": "\"application/gzip\"",
+    "status": "accepted",
+    "reason": "Same as the Content-Type header: application/x-gzip on the Java side, application/gzip (RFC 6713) on the Rust side for new uploads."
+  },
+  {
+    "id": "*",
+    "field": "*downloadUrl",
+    "status": "accepted",
+    "reason": "The Rust server percent-encodes spaces, @ and : in downloadUrl; the Java server leaves them raw (a raw space makes its URL invalid). Both resolve to the same file."
+  },
+  {
+    "id": "*",
+    "field": "*uploader*",
+    "reference": "\"system\"",
+    "status": "accepted",
+    "reason": "The Java server records npm tarballs as uploaded by \"system\" from \"system\"; the Rust server records the user and address that published them."
+  },
+  {
+    "id": "*",
+    "field": "body[name=*].size",
+    "reference": "0",
+    "status": "accepted",
+    "reason": "GET /v1/repositories reports size 0 on the Java server for every repository; the Rust server reports the bytes of the repository's own assets (decided in M4 compat)."
+  },
+  {
+    "id": "*",
+    "field": "*lastVerified",
+    "reference": "null",
+    "status": "accepted",
+    "reason": "The Rust server sets lastVerified when it stores a Docker blob or manifest; the Java server leaves it empty for hosted content. Nothing reads it but proxy revalidation."
+  },
+  {
+    "id": "*",
+    "field": "header.www-authenticate",
+    "reference": "None",
+    "candidate": "basic",
+    "status": "accepted",
+    "reason": "Follows a status difference listed separately on the same step (429, 400 or 404 on the Java side where the Rust server answers 401 with its challenge)."
+  },
+  {
+    "id": "rest/privilege*",
+    "field": "*description",
+    "status": "accepted",
+    "reason": "Descriptions of built-in privileges are written afresh for the Rust server (clean-room rule); names, types, actions and patterns are the same."
+  },
+  {
+    "id": "rest/privileges",
+    "field": "body[name=as-script-*]",
+    "status": "accepted",
+    "reason": "The Groovy script API and its privileges are dropped (owner decision of 2026-10-12)."
+  },
+  {
+    "id": "rest/script",
+    "status": "accepted",
+    "reason": "The Groovy script API is dropped (owner decision of 2026-10-12)."
+  },
+  {
+    "id": "rest/served formats",
+    "status": "accepted",
+    "reason": "alpine, apt, cargo, cocoapods, composer, conan, conda, go, p2 and r are M4c formats, ported only on request; the migrator lists their repositories."
+  },
+  {
+    "id": "rest/task types",
+    "status": "open",
+    "reason": "Task types without a Rust counterpart: blobstore.delete-temp-files, create.browse.nodes, repository.rebuild-index, repository.trim-browse-tree (not needed: no browse tree or search index to rebuild), repository.maven.rebuild-metadata (metadata is derived on every read), repository.apt.rebuild.metadata (M4c), repository.maven.remove-snapshots, repository.maven.purge-unused-snapshots, repository.maven.repair-base-version and security.purge-api-keys. The two snapshot clean-up tasks are the ones production is likely to schedule: the owner decides whether they are ported or replaced by cleanup policies."
+  },
+  {
+    "id": "rest/status check",
+    "status": "accepted",
+    "reason": "The Rust server has its own set of health checks (M4 support track); the Java checks for upgrade tasks, re-encryption, scripting and JVM deadlocks have no meaning there."
+  },
+  {
+    "id": "rest/upload specs",
+    "field": "body[format=npm]",
+    "status": "accepted",
+    "reason": "The Rust server added an npm upload specification for the upload page (M3); the Java server has none."
+  },
+  {
+    "id": "rest/upload specs",
+    "field": "body[format=swift]",
+    "status": "open",
+    "reason": "The Java server offers a Swift upload specification (scope, name, version and the source archive) for the upload page and /v1/components; the Rust server publishes Swift releases only through the SE-0292 PUT. Proposal: add upload_spec and upload to astrum-format-swift on top of its publish code."
+  },
+  {
+    "id": "rest/lifecycle phase",
+    "status": "open",
+    "reason": "GET /v1/lifecycle/phase is not implemented on the Rust server (404; the Java server answers it with text/plain, hence its 406 to a JSON Accept). Nothing in production is known to call it; add it if a monitoring script does."
+  },
+  {
+    "id": "rest/truststore",
+    "status": "accepted",
+    "reason": "The Rust server has /v1/security/ssl/truststore (M4 outbound); the Java server does not, which is also why its repository form's certificate check fails."
+  },
+  {
+    "id": "rest/components without repository",
+    "field": "status",
+    "status": "accepted",
+    "reason": "The Java server answers a missing repository parameter with 422 and no message, the Rust server with 400 and a field message; scripts only see that the call was refused."
+  },
+  {
+    "id": "access/*",
+    "field": "status",
+    "reference": "429",
+    "status": "open",
+    "reason": "The Java server limits failed sign-ins per user and per token: from the fourth failure it answers 429 with a back-off that starts at 30 s and grows with every attempt, and it refuses the right password meanwhile (a harness run with ten wrong admin passwords kept the reference's admin locked for over 30 minutes until a restart). The Rust server limits only sign-ins through the UI (10 in 5 minutes). Proposal: count failed Basic and Bearer sign-ins per user and per client address in the Rust server too, with a capped back-off, so brute force is slowed without letting a stranger lock out an account for long."
+  },
+  {
+    "id": "access/right password after repeated failures",
+    "status": "open",
+    "reason": "Part of the sign-in rate limit of the Java server (see the entry for 429 above): while a user is limited it refuses the right password too."
+  },
+  {
+    "id": "access/malformed basic *",
+    "field": "status",
+    "reference": "400",
+    "candidate": "401",
+    "status": "accepted",
+    "reason": "A Basic header that is not base64 gets 400 from the Java server and 401 with a challenge from the Rust server; both refuse the request."
+  },
+  {
+    "id": "access/unknown bearer status",
+    "status": "open",
+    "reason": "The Java server ignores a Bearer token it does not know and treats the request as anonymous; the Rust server answers 401. With anonymous access on (as on production), a client sending a stale npm token would still read public content from the Java server but get 401 from the Rust server. This matters at the switch if format tokens (api_key_v2) are not migrated. Proposal: migrate the tokens, or let an unknown Bearer token fall back to the anonymous user."
+  },
+  {
+    "id": "access/*browse*",
+    "field": "status",
+    "reference": "404",
+    "status": "accepted",
+    "reason": "The HTML browse pages answer 404 to strangers on the Java server and 401 (or 403 for signed-in users without browse rights) on the Rust server, which keeps them consistent with the content URLs."
+  },
+  {
+    "id": "access/reader components other",
+    "field": "status",
+    "status": "accepted",
+    "reason": "The Rust server answers 404 for a repository the caller cannot see, so repository names do not leak; the Java server answers 403."
+  },
+  {
+    "id": "access/reader search",
+    "field": "status",
+    "status": "accepted",
+    "reason": "Searching a repository the caller cannot see returns an empty page on the Rust server and 403 on the Java server; neither returns content."
+  },
+  {
+    "id": "access/reader components",
+    "field": "*uploader*",
+    "candidate": "*",
+    "status": "open",
+    "reason": "The Java server hides uploader and uploaderIp from a caller with only read and browse rights; the Rust server shows them to anyone who may browse the asset. Proposal: show both only to callers who may administer the repository, after confirming the exact rule against the reference."
+  },
+  {
+    "id": "access/*traversal",
+    "status": "accepted",
+    "reason": "The Java server resolves ../ segments in content paths before routing (and so may answer from another repository); the Rust server refuses such paths with 400. Clients normalize URLs before sending them."
+  },
+  {
+    "id": "access/root",
+    "field": "status",
+    "status": "accepted",
+    "reason": "GET /repository/ is a 400 on the Java server and a 404 on the Rust server; no client requests it."
+  },
+  {
+    "id": "raw/*undetectable binary",
+    "status": "accepted",
+    "reason": "With strict content type validation the Java server refuses a file whose type it cannot detect (400 \"Content type could not be determined\"); the Rust server stores it as application/octet-stream. The Rust server accepts more; nothing is refused that the Java server accepts."
+  },
+  {
+    "id": "raw/*rest *",
+    "field": "*u.bin*",
+    "status": "accepted",
+    "reason": "Follows from the undetectable binary that only the Rust server accepted."
+  },
+  {
+    "id": "raw/group rest components",
+    "field": "body.items*",
+    "status": "accepted",
+    "reason": "Follows from the components without assets the Java server leaves behind after refused uploads: it lists them in groups as well, so a name refused in one member and stored in another appears twice there."
+  },
+  {
+    "id": "raw/range beyond",
+    "field": "header.content-range",
+    "status": "accepted",
+    "reason": "The Rust server adds Content-Range: bytes */<size> to a 416 answer as RFC 9110 asks; the Java server does not."
+  },
+  {
+    "id": "*/rest components",
+    "field": "body.items*",
+    "candidate": "<missing>",
+    "status": "accepted",
+    "reason": "When an upload is refused (strict content type, a broken chart), the Java server leaves a component without assets behind; the Rust server stores nothing."
+  },
+  {
+    "id": "helm/rest components",
+    "field": "body.items*",
+    "status": "accepted",
+    "reason": "Follows from the components without assets the Java server leaves behind after refused uploads, and from the chart only the Rust server accepts through POST api/charts."
+  },
+  {
+    "id": "maven/*",
+    "field": "header.content-type",
+    "reference": "application/octet-stream",
+    "candidate": "text/plain",
+    "status": "accepted",
+    "reason": "Checksum files (.sha1, .md5, ...) are derived on every read by the Rust server and served as text/plain; the Java server stores Maven's uploads as application/octet-stream. Maven reads only the hex digest."
+  },
+  {
+    "id": "maven/mvn deploy GET *maven-metadata.xml*",
+    "status": "accepted",
+    "reason": "The Rust server derives maven-metadata.xml from the stored artifacts, so it exists as soon as the first artifact of a deploy is stored (Maven then merges it and uploads it again, which the Rust server validates and drops); the Java server has it only after Maven uploads it."
+  },
+  {
+    "id": "maven/jar sha256",
+    "status": "accepted",
+    "reason": "The Rust server derives .sha256 and .sha512 for every artifact; the Java server has them only if the client uploaded them (Maven 3.9 uploads .sha1 and .md5)."
+  },
+  {
+    "id": "maven/jar sha512",
+    "status": "accepted",
+    "reason": "As for .sha256: derived by the Rust server, stored only if uploaded on the Java server."
+  },
+  {
+    "id": "maven/checksum after wrong put",
+    "status": "accepted",
+    "reason": "The Rust server validates uploaded checksum files and serves the checksum of the stored artifact; the Java server stores and serves whatever was uploaded, even a wrong digest."
+  },
+  {
+    "id": "maven/*",
+    "field": "header.etag",
+    "reference": "None",
+    "status": "accepted",
+    "reason": "The Rust server sends ETags for derived documents (folder listings, checksum files of derived metadata); the Java server sends none for them."
+  },
+  {
+    "id": "maven/rest * derived assets",
+    "status": "accepted",
+    "reason": "The Java server stores maven-metadata.xml, checksum files and archetype-catalog.xml as assets; the Rust server derives them on request, so the REST API lists only artifacts. The harness leaves these assets out of the listings it compares."
+  },
+  {
+    "id": "npm/*search*",
+    "field": "body.objects*",
+    "status": "accepted",
+    "reason": "npm search scores, maintainers and links are server-specific. The Rust server reports dist-tags.latest as a package's version, as the registry does; the Java server reports the highest version, even a pre-release."
+  },
+  {
+    "id": "npm/unpublish version",
+    "status": "accepted",
+    "reason": "npm unpublish of a single version fails on the Java server (500, then 400 on the retried PUT); the Rust server removes the version."
+  },
+  {
+    "id": "npm/npm * /repository/*/@sbs%2flib/-rev/*",
+    "field": "exists",
+    "status": "accepted",
+    "reason": "Follows from npm unpublish: the clients retry or continue differently after the Java server's 500."
+  },
+  {
+    "id": "npm/npm DELETE *",
+    "field": "exists",
+    "status": "accepted",
+    "reason": "Follows from npm unpublish, which only reaches the tarball delete on the Rust server."
+  },
+  {
+    "id": "npm/npm GET /repository/*/@sbs%2flib?write=true*",
+    "field": "exists",
+    "status": "accepted",
+    "reason": "Follows from npm unpublish, which reads the document once more on the Rust server."
+  },
+  {
+    "id": "npm/*",
+    "field": "*2.0.0-beta.1*",
+    "status": "accepted",
+    "reason": "Follows from npm unpublish: the unpublished pre-release remains on the Java server."
+  },
+  {
+    "id": "npm/view after unpublish",
+    "status": "accepted",
+    "reason": "Follows from npm unpublish: the unpublished pre-release remains on the Java server."
+  },
+  {
+    "id": "npm/rest components",
+    "field": "body.items*",
+    "status": "accepted",
+    "reason": "Follows from npm unpublish: the unpublished pre-release remains on the Java server."
+  },
+  {
+    "id": "npm/npm GET /repository/m5s-npm-group/*",
+    "status": "accepted",
+    "reason": "The Rust server sends ETag on package documents of groups and answers npm's revalidation with 304; the Java server sends no ETag and always the whole document."
+  },
+  {
+    "id": "npm/document group",
+    "status": "accepted",
+    "reason": "The Rust server sends ETag on package documents of groups; the Java server sends none."
+  },
+  {
+    "id": "npm/npm GET /repository/*?write=true*",
+    "field": "body._id",
+    "status": "accepted",
+    "reason": "The Java server answers npm's ?write=true read of a scoped package with \"_id\": \"/@scope/name\" (a leading slash); the Rust server with the package name. npm does not use the value."
+  },
+  {
+    "id": "npm/document abbreviated",
+    "status": "accepted",
+    "reason": "The Rust server answers Accept: application/vnd.npm.install-v1+json with the abbreviated document npm asks for; the Java server ignores the header and sends the full document."
+  },
+  {
+    "id": "npm/version document",
+    "status": "accepted",
+    "reason": "GET /<package>/<version> returns the version's manifest on the Rust server, as the registry API defines it; the Java server answers 400."
+  },
+  {
+    "id": "npm/*",
+    "field": "*.access",
+    "reference": "null",
+    "status": "accepted",
+    "reason": "The Java server adds \"access\": null to package documents; the Rust server leaves the unset field out."
+  },
+  {
+    "id": "pypi*/*",
+    "field": "header.content-type",
+    "candidate": "application/vnd.pypi.simple.v1+json",
+    "status": "accepted",
+    "reason": "The Rust server answers PEP 691 JSON when pip asks for it; the Java server always sends the HTML page. pip reads both."
+  },
+  {
+    "id": "pypi*/* simple json",
+    "field": "body",
+    "status": "accepted",
+    "reason": "The Java server answers the PEP 691 request with HTML; see the Content-Type entry."
+  },
+  {
+    "id": "pypi*/*simple project",
+    "field": "body",
+    "status": "accepted",
+    "reason": "The Rust server's simple pages announce PEP 658 metadata files (data-core-metadata, data-dist-info-metadata); the file names, hashes and data-requires-python are the same."
+  },
+  {
+    "id": "pypi/package metadata",
+    "status": "accepted",
+    "reason": "The Rust server serves PEP 658 .metadata files next to wheels; the Java server does not have them (404), so pip downloads the wheel to read its metadata."
+  },
+  {
+    "id": "pypi*/pip GET *.metadata",
+    "field": "exists",
+    "status": "accepted",
+    "reason": "pip fetches the PEP 658 metadata file from the Rust server because its JSON page announces it; see the package metadata entry."
+  },
+  {
+    "id": "pypi*/rest derived assets",
+    "status": "accepted",
+    "reason": "The Java server stores the simple pages as assets; the Rust server renders them and stores PEP 658 .metadata files instead."
+  },
+  {
+    "id": "raw-proxy/put to proxy",
+    "field": "header.allow",
+    "status": "accepted",
+    "reason": "Both refuse uploads to a proxy with 405; the Rust server also lists DELETE in Allow because it lets callers with delete rights remove a cached file."
+  },
+  {
+    "id": "raw-proxy/rest *",
+    "field": "*lastVerified",
+    "status": "accepted",
+    "reason": "After invalidate-cache the Rust server clears lastVerified of the cached files (they are fetched again on the next request); the Java server keeps the time and marks the cache invalid elsewhere."
+  },
+  {
+    "id": "maven-proxy/*",
+    "field": "*",
+    "reference": "404",
+    "status": "accepted",
+    "reason": "The Java server proxies checksum files from the remote and answers 404 when the remote has none; the Rust server derives .sha1, .md5, .sha256 and .sha512 of cached artifacts itself."
+  },
+  {
+    "id": "maven-proxy/*sha1*",
+    "status": "accepted",
+    "reason": "Follows from derived checksums: the Rust server answers .sha1 of a cached artifact itself, the Java server only when the remote has one."
+  },
+  {
+    "id": "maven-proxy/mvn get GET *.md5",
+    "field": "exists",
+    "status": "accepted",
+    "reason": "Maven asks for .md5 only after the Java server answered 404 to .sha1."
+  },
+  {
+    "id": "npm-proxy/*",
+    "field": "*time.*",
+    "status": "accepted",
+    "reason": "The Java server adds created and modified times (and a _rev) to cached package documents that lack them; the Rust server passes the remote's times through."
+  },
+  {
+    "id": "npm-proxy/*",
+    "field": "body._rev",
+    "status": "accepted",
+    "reason": "The Java server adds a _rev to cached package documents; the Rust server passes the remote document through."
+  },
+  {
+    "id": "npm-proxy/group document",
+    "field": "header.etag",
+    "status": "accepted",
+    "reason": "The Rust server sends ETag on package documents of groups; the Java server sends none."
+  },
+  {
+    "id": "docker/mount",
+    "status": "accepted",
+    "reason": "The Rust server mounts a blob from another hosted repository (201); the Java server falls back to a new upload session (202), which the registry API allows. docker then uploads the blob to the Java server."
+  },
+  {
+    "id": "helm/put provenance",
+    "field": "status",
+    "reference": "500",
+    "status": "accepted",
+    "reason": "A provenance file without a signature fails with 500 on the Java server and is refused with 400 and a reason on the Rust server."
+  },
+  {
+    "id": "helm/put not a chart",
+    "field": "status",
+    "reference": "500",
+    "status": "accepted",
+    "reason": "A file that is not a chart fails with 500 on the Java server and is refused with 400 and a reason on the Rust server."
+  },
+  {
+    "id": "helm/put in folder",
+    "field": "status",
+    "status": "accepted",
+    "reason": "The Java server accepts a chart in a sub-folder and lists it in index.yaml with a URL at the top of the repository, where it then answers 404; the Rust server refuses such uploads. Production charts in sub-folders keep their paths after migration and are listed with their real path."
+  },
+  {
+    "id": "helm/post chart",
+    "field": "header.content-type",
+    "status": "accepted",
+    "reason": "Follows from POST api/charts failing on the Java server (an HTML error page) and succeeding on the Rust server (JSON)."
+  },
+  {
+    "id": "helm/post chart",
+    "field": "status",
+    "status": "accepted",
+    "reason": "POST api/charts (the ChartMuseum style upload helm-push uses) stores the chart on the Rust server; the Java server fails with 500."
+  },
+  {
+    "id": "helm/put in folder",
+    "status": "accepted",
+    "reason": "Follows from the refused upload into a sub-folder (see the status entry)."
+  },
+  {
+    "id": "helm/index*",
+    "field": "body",
+    "status": "accepted",
+    "reason": "Follows from the chart in a sub-folder (listed only by the Java server) and the chart uploaded through api/charts (stored only by the Rust server). The Rust server's entries also carry digest, apiVersion and type."
+  },
+  {
+    "id": "helm/rest derived assets",
+    "status": "accepted",
+    "reason": "The Java server stores index.yaml as an asset; the Rust server renders it."
+  },
+  {
+    "id": "helm/rest assets",
+    "status": "accepted",
+    "reason": "Follows from the chart in a sub-folder (stored only by the Java server) and the chart posted to api/charts (stored only by the Rust server)."
+  },
+  {
+    "id": "helm/search",
+    "status": "accepted",
+    "reason": "Follows from the chart in a sub-folder (stored only by the Java server) and the chart posted to api/charts (stored only by the Rust server)."
+  },
+  {
+    "id": "nuget/service index",
+    "status": "accepted",
+    "reason": "The Rust server's V3 service index also lists SymbolPackagePublish; the other resources are the same."
+  },
+  {
+    "id": "nuget/service resources",
+    "status": "accepted",
+    "reason": "The Rust server's V3 service index also lists SymbolPackagePublish."
+  },
+  {
+    "id": "rubygems/*",
+    "field": "header.etag",
+    "status": "accepted",
+    "reason": "The servers compute ETags differently for gem indexes and the dependency API (SHA-1 on the Java side, MD5 on the Rust side, as Bundler expects for the compact index); the contents are the same."
+  },
+  {
+    "id": "rubygems/rest derived assets",
+    "status": "accepted",
+    "reason": "The Java server stores the gem indexes (versions, names, info, specs) as assets; the Rust server builds them on request, so deletes through the REST API show at once."
+  },
+  {
+    "id": "terraform/*discovery",
+    "status": "accepted",
+    "reason": "The Rust server answers Terraform's service discovery (/.well-known/terraform.json) without credentials, as the protocol expects; the Java server asks strangers to sign in while anonymous access is off."
+  },
+  {
+    "id": "terraform/rest *",
+    "field": "*checksum.*",
+    "status": "accepted",
+    "reason": "The provider's manifest.json is generated by each server; the Rust server writes the same keys in another order, so its checksums differ. Terraform reads it as JSON."
+  },
+  {
+    "id": "swift/*",
+    "field": "header.etag",
+    "status": "accepted",
+    "reason": "The Java server sends an ETag with Swift release lists and release metadata; the Rust server does not. SE-0292 does not ask for one and SwiftPM fetches these documents again."
+  },
+  {
+    "id": "yum/rest derived assets",
+    "status": "accepted",
+    "reason": "Both servers store the generated repodata files as assets, under names that carry their checksums; the files differ because they are generated at different times."
+  },
+  {
+    "id": "rest/repositorySettings",
+    "field": "*Signing.keypair",
+    "status": "accepted",
+    "mode": "existing",
+    "reason": "The Java server returns the private signing keys of apt, yum and terraform repositories in clear text from /v1/repositorySettings and the repository GET; the Rust server never returns stored secrets (M1 rule). Clients cannot read them back from either after the switch."
+  },
+  {
+    "id": "repo:*/config",
+    "field": "body.*Signing.keypair",
+    "status": "accepted",
+    "mode": "existing",
+    "reason": "As for /v1/repositorySettings: the Rust server never returns stored signing keys."
+  },
+  {
+    "id": "repo:*/derived assets",
+    "status": "accepted",
+    "mode": "existing",
+    "reason": "Files the Java server stores and the Rust server derives on request (Maven metadata and checksums, archetype catalogs, PyPI simple pages, RubyGems indexes, Helm index.yaml, npm package documents) are listed here and left out of the asset comparison; their content is compared through the format's own documents."
+  },
+  {
+    "id": "repositories/kept aside",
+    "status": "open",
+    "mode": "existing",
+    "reason": "Repositories of formats the Rust server does not serve yet (M4c). The migrator keeps their settings aside (setting migration.java.unsupportedRepositories) and lists them with their size in its report; their clients get 404 from the Rust server. They are left out of the other listings compared here."
+  },
+  {
+    "id": "rest/blobstores",
+    "field": "body[*].blobCount",
+    "status": "accepted",
+    "mode": "existing",
+    "reason": "The Java server counts every file it keeps: derived Maven checksums and metadata, index pages, soft-deleted blobs until compaction and the content of repositories kept aside. The Rust server counts the blobs it took over; the asset downloads compared per repository show that the content is the same."
+  },
+  {
+    "id": "rest/blobstores",
+    "field": "body[*].totalSizeInBytes",
+    "status": "accepted",
+    "mode": "existing",
+    "reason": "Follows from the different blob counts."
+  },
+  {
+    "id": "rest/capability types",
+    "status": "accepted",
+    "mode": "existing",
+    "reason": "The Java capabilities for audit, forwarded headers, node identity, the scheduler and onboarding are built into the Rust server; the migrator takes over the settings of base URL, UI and branding."
+  },
+  {
+    "id": "rest/tasks",
+    "status": "open",
+    "mode": "existing",
+    "reason": "The Rust server adds its own built-in tasks, and the migrator skips task types without a counterpart (asset blob cleanup per format, log cleanup, Maven snapshot removal); check the skipped tasks in the migration report."
+  }
+]
