@@ -1,0 +1,127 @@
+
+import React from 'react';
+import {useMachine} from '@xstate/react';
+import DOMPurify from 'dompurify';
+
+import {
+  faCheckCircle,
+  faExclamationCircle,
+  faMedkit,
+} from '@fortawesome/free-solid-svg-icons';
+
+import {ListMachineUtils} from '@globalart/astrum-ui-plugin';
+import {
+  NxFontAwesomeIcon,
+  NxTable,
+  NxTile,
+  NxH2,
+  NxBackButton,
+} from '@globalart/react-shared-components';
+
+import {
+  ContentBody,
+  PageTitle
+} from '@globalart/astrum-ui-plugin';
+
+import MetricHealthMachine from './MetricHealthMachine';
+
+import UIStrings from '../../../../constants/UIStrings';
+import {isClustered} from './MetricHealthHelper';
+
+const {METRIC_HEALTH} = UIStrings;
+
+export default function MetricHealthDetails({itemId, onDone}) {
+  const [state, send] = useMachine(MetricHealthMachine, {
+    devTools: true,
+    context: {itemId},
+  });
+  const isLoading = state.matches('loading');
+  const {data, error, name} = state.context;
+
+  const nameSortDir = ListMachineUtils.getSortDirection('name', state.context);
+  const messageSortDir = ListMachineUtils.getSortDirection(
+    'message',
+    state.context
+  );
+  const errorSortDir = ListMachineUtils.getSortDirection(
+    'error',
+    state.context
+  );
+
+  return (
+    <div>
+      <div>
+        <PageTitle
+          icon={faMedkit}
+          text={METRIC_HEALTH.MENU.text}
+          description={METRIC_HEALTH.MENU.detailsDescription}
+        />
+        {isClustered() && (
+          <NxBackButton
+            text={METRIC_HEALTH.BACK_BUTTON}
+            href="#admin/support/status"
+          />
+        )}
+      </div>
+      <ContentBody className="as-metric-health">
+        <NxTile>
+          {isClustered() && <NxH2>{name}</NxH2>}
+          <NxTable>
+            <NxTable.Head>
+              <NxTable.Row>
+                <NxTable.Cell hasIcon />
+                <NxTable.Cell
+                  onClick={() => send({type: 'SORT_BY_NAME'})}
+                  isSortable
+                  sortDir={nameSortDir}
+                >
+                  {METRIC_HEALTH.NAME_HEADER}
+                </NxTable.Cell>
+                <NxTable.Cell
+                  onClick={() => send({type: 'SORT_BY_MESSAGE'})}
+                  isSortable
+                  sortDir={messageSortDir}
+                >
+                  {METRIC_HEALTH.MESSAGE_HEADER}
+                </NxTable.Cell>
+                <NxTable.Cell
+                  onClick={() => send({type: 'SORT_BY_ERROR'})}
+                  isSortable
+                  sortDir={errorSortDir}
+                >
+                  {METRIC_HEALTH.ERROR_HEADER}
+                </NxTable.Cell>
+              </NxTable.Row>
+            </NxTable.Head>
+            <NxTable.Body
+              isLoading={isLoading}
+              error={error}
+              emptyMessage={METRIC_HEALTH.EMPTY_NODE}
+            >
+              {data.map((metric) => (
+                <NxTable.Row key={metric.name}>
+                  <NxTable.Cell hasIcon>
+                    <NxFontAwesomeIcon
+                      color={metric.healthy ? 'green' : 'red'}
+                      icon={
+                        metric.healthy ? faCheckCircle : faExclamationCircle
+                      }
+                    />
+                  </NxTable.Cell>
+                  <NxTable.Cell>{metric.name}</NxTable.Cell>
+                  <NxTable.Cell>
+                    {/* SECURITY FIX: Sanitize HTML to prevent XSS attacks */}
+                    <span dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(metric.message)}} />
+                  </NxTable.Cell>
+                  <NxTable.Cell>
+                    {metric.error ? metric.error.message : ''}
+                  </NxTable.Cell>
+                </NxTable.Row>
+              ))}
+            </NxTable.Body>
+          </NxTable>
+        </NxTile>
+      </ContentBody>
+    </div>
+  );
+}
