@@ -1,0 +1,65 @@
+
+/**
+ * @since 3.24
+ */
+
+.as-logs, .as-logs > .nx-page-main {
+  height: calc(100% + 36px);
+
+  .as-logs-list {
+    height: auto;
+  }
+
+  .as-logs-filter {
+    margin-left: auto;
+  }
+
+  [download] {
+    text-decoration: none;
+  }
+
+  .nx-form-row, .nx-form-group {
+    margin-bottom: 0;
+  }
+
+  .nx-form-row:last-of-type {
+    margin-left: auto;
+  }
+
+  .as-log-viewer-mark-text {
+    min-width: 216px;
+    margin-bottom: 0 !important;
+
+    .nx-text-input__invalid-message {
+      display: none;
+    }
+  }
+
+  .as-content-body {
+    height: calc(100% - 128px);
+
+    .as-log-viewer {
+      height: 100%;
+
+      .nx-tile-content {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    .log-viewer-size {
+      margin-right: 0;
+    }
+
+    .log-viewer-textarea {
+      border: var(--nx-border-default);
+      border-radius: var(--nx-border-radius);
+      padding: var(--nx-spacing-4x);
+      flex: 1;
+      color: var(--nx-color-text);
+      font-family: var(--font-family-mono);
+      font-size: var(--nx-font-size-xs);
+    }
+  }
+}
