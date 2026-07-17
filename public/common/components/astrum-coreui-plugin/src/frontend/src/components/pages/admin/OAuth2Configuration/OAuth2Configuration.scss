@@ -1,0 +1,15 @@
+
+
+.nx-oauth2-required-advice-left {
+  position: relative;
+  font-weight: bold;
+  &::before {
+    content: "* " !important;
+    color: red !important;
+    margin-right: 2px !important;
+  }
+}
+
+.nx-oauth2-text-input-medium .nx-text-input__input {
+  min-height: 120px !important;
+}
