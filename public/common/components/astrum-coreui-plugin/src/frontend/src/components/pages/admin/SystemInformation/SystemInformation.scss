@@ -1,0 +1,31 @@
+
+
+.as-system-information {
+  h2 {
+    margin-top: 0
+  }
+
+  table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .as-information--name {
+    column-width: 270px;
+    word-wrap: break-word;
+  }
+
+  .as-information--value {
+    word-break: break-all;
+    word-wrap: break-word;
+  }
+}
+
+.as-sys-info-node-selector {
+  display: flex;
+  justify-content: end;
+
+  .nx-form-group {
+    margin-bottom: 0;
+  }
+}
