@@ -1,0 +1,49 @@
+
+import React from 'react';
+
+import {NxH2, NxModal, NxButton, NxFooter, NxButtonBar} from '@globalart/react-shared-components';
+import {useRouter} from '@uirouter/react';
+import {ExtJS} from '@globalart/astrum-ui-plugin';
+
+import UIStrings from '../../../../constants/UIStrings';
+import {ROUTE_NAMES} from '../../../../routerConfig/routeNames/routeNames';
+
+const ADMIN = ROUTE_NAMES.ADMIN;
+
+const {
+  SSL_CERTIFICATES: {
+    ADD_FORM: {
+      MODAL: {HEADER, CONTENT, VIEW_BUTTON}
+    }
+  },
+  SETTINGS: {CANCEL_BUTTON_LABEL}
+} = UIStrings;
+
+export default function SslCertificatesAlreadyExistsModal({certificateId, cancel}) {
+  const router = useRouter();
+  const handleCancel = () => {
+    ExtJS.setDirtyStatus('SslCertificatesAddFormMachine', false);
+    cancel();
+  };
+  const goToCertificate = () => {
+    ExtJS.setDirtyStatus('SslCertificatesAddFormMachine', false);
+    router.stateService.go(ADMIN.SECURITY.SSLCERTIFICATES.EDIT, {itemId: encodeURIComponent(certificateId)});
+  };
+
+  return (
+    <NxModal onCancel={cancel} variant="narrow">
+      <NxModal.Header>
+        <NxH2>{HEADER}</NxH2>
+      </NxModal.Header>
+      <NxModal.Content>{CONTENT}</NxModal.Content>
+      <NxFooter>
+        <NxButtonBar>
+          <NxButton onClick={handleCancel}>{CANCEL_BUTTON_LABEL}</NxButton>
+          <NxButton onClick={goToCertificate} variant="primary">
+            {VIEW_BUTTON}
+          </NxButton>
+        </NxButtonBar>
+      </NxFooter>
+    </NxModal>
+  );
+}
