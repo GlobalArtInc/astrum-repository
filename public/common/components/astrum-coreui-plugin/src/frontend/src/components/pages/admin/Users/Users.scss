@@ -1,0 +1,23 @@
+
+
+.as-users-list {
+  .capitalize-status {
+    text-transform: capitalize;
+  }
+}
+
+.as-user-form {
+  .form-external-roles {
+    textarea {
+      min-height: 100px;
+    }
+  }
+  .read-only-external-roles {
+    width: 400px;
+    max-height: 100px;
+    overflow: auto;
+    .nx-read-only__data {
+      margin: 0;
+    }
+  }
+}
