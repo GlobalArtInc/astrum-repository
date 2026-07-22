@@ -1,0 +1,300 @@
+
+import React from 'react';
+import axios from 'axios';
+import {act} from 'react-dom/test-utils';
+import {waitFor, waitForElementToBeRemoved, within, screen, queryByLabelText, fireEvent} from '@testing-library/react';
+import {when} from 'jest-when';
+import userEvent from '@testing-library/user-event';
+
+import {ExtJS} from '@globalart/astrum-ui-plugin';
+import TestUtils from '@globalart/astrum-ui-plugin/src/frontend/src/interface/TestUtils';
+
+import UIStrings from '../../../../constants/UIStrings';
+import RoutingRulesForm from './RoutingRulesForm';
+import {UIRouter, useCurrentStateAndParams} from "@uirouter/react";
+import { getRouter } from '../../../../routerConfig/routerConfig';
+
+jest.mock('axios', () => ({
+  ...jest.requireActual('axios'), // Use most functions from actual axios
+  get: jest.fn(),
+  put: jest.fn(),
+  post: jest.fn(),
+  delete: jest.fn()
+}));
+
+jest.mock('@globalart/astrum-ui-plugin', () => ({
+  ...jest.requireActual('@globalart/astrum-ui-plugin'),
+  ExtJS: {
+    requestConfirmation: jest.fn(),
+    showErrorMessage: jest.fn(),
+    state: jest.fn().mockReturnValue({
+      getValue: jest.fn()
+    })
+  },
+  Utils: {
+    buildFormMachine: function(args) {
+      const machine = jest.requireActual('@globalart/astrum-ui-plugin').Utils.buildFormMachine(args);
+      return machine.withConfig({
+        actions: {
+          logSaveSuccess: jest.fn(),
+          logSaveError: jest.fn(),
+          logLoadError: jest.fn()
+        }
+      })
+    },
+    isInvalid: jest.requireActual('@globalart/astrum-ui-plugin').Utils.isInvalid,
+    isBlank: jest.requireActual('@globalart/astrum-ui-plugin').Utils.isBlank,
+    notBlank: jest.requireActual('@globalart/astrum-ui-plugin').Utils.notBlank,
+    fieldProps: jest.requireActual('@globalart/astrum-ui-plugin').Utils.fieldProps,
+    saveTooltip: jest.requireActual('@globalart/astrum-ui-plugin').Utils.saveTooltip
+  }
+}));
+
+const selectors = {
+  ...TestUtils.selectors,
+  ...TestUtils.formSelectors,
+  matcher: (index) => screen.queryByRole('textbox', { name: UIStrings.ROUTING_RULES.FORM.MATCHER_LABEL(index)}),
+  querySubmitButton: () => screen.queryByRole('button', {name: 'Create Routing Rule'})
+};
+
+jest.mock('@uirouter/react', () => ({
+  ...jest.requireActual('@uirouter/react'),
+  useCurrentStateAndParams: jest.fn(),
+}));
+
+describe('RoutingRulesForm', function() {
+  const CONFIRM = Promise.resolve();
+  const onDone = jest.fn();
+  const ROUTING_RULES_URL = (name) => `/service/rest/internal/ui/routing-rules/${name}`;
+
+  beforeEach(() => {
+    useCurrentStateAndParams.mockReset();
+  });
+
+  // When itemId is null, the create form is rendered
+  function renderEditView(itemId = null) {
+    useCurrentStateAndParams.mockReturnValue({params: {itemId}});
+    const router = getRouter();
+    const view = (
+      <UIRouter router={router}>
+        <RoutingRulesForm />
+      </UIRouter>
+    );
+    return renderView(view);
+  }
+
+  function renderView(view) {
+    return TestUtils.render(view, ({queryByLabelText, queryByText}) => ({
+      name: () => queryByLabelText(UIStrings.ROUTING_RULES.FORM.NAME_LABEL),
+      description: () => queryByLabelText(UIStrings.ROUTING_RULES.FORM.DESCRIPTION_LABEL),
+      mode: () => queryByLabelText(UIStrings.ROUTING_RULES.FORM.MODE_LABEL),
+      emptyMatcher: (index) => queryByLabelText(UIStrings.ROUTING_RULES.FORM.MATCHER_LABEL(index)),
+      matcherButton: (index) => within(screen.getByText('Matchers').closest('.nx-form-group')).getAllByRole('button')[index],
+      createButton: () => queryByText(UIStrings.ROUTING_RULES.FORM.CREATE_BUTTON, {selector: '.nx-btn'}),
+      saveButton: () => queryByText(UIStrings.SETTINGS.SAVE_BUTTON_LABEL),
+      cancelButton: () => queryByText(UIStrings.SETTINGS.CANCEL_BUTTON_LABEL),
+      deleteButton: () => queryByText(UIStrings.SETTINGS.DELETE_BUTTON_LABEL)
+    }));
+  }
+
+  it('renders the resolved data', async function() {
+    const itemId = 'allow-all';
+
+    axios.get.mockResolvedValue({
+      data: {
+        name: 'allow-all',
+        description: 'Allow all requests',
+        mode: 'ALLOW',
+        matchers: ['.*']
+      }
+    });
+
+    const {loadingMask, name, description, mode} = renderEditView(itemId);
+
+    await waitForElementToBeRemoved(loadingMask);
+
+    expect(name()).toHaveValue('allow-all');
+    expect(description()).toHaveValue('Allow all requests');
+    expect(mode()).toHaveValue('ALLOW');
+    expect(selectors.matcher(0)).toHaveValue('.*');
+  });
+
+  it('renders an error message', async function() {
+    axios.get.mockRejectedValue({message: 'Error'});
+
+    const {container, loadingMask} = renderEditView('itemId');
+
+    await waitForElementToBeRemoved(loadingMask);
+
+    expect(container.querySelector('.nx-alert--error')).toHaveTextContent('Error');
+  });
+
+  it('renders an error message when saving an invalid field', async function() {
+    const {name, createButton, getByText} = renderEditView();
+
+    await waitForElementToBeRemoved(selectors.queryLoadingMask());
+
+    await TestUtils.changeField(name, 'newValue');
+    await TestUtils.changeField(() => selectors.matcher(0), '.*');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    when(axios.post).calledWith('/service/rest/internal/ui/routing-rules/', expect.any(Object)).mockRejectedValue({
+      response: {
+        data: [
+          {
+            "id": "name",
+            "message": "A rule with the same name already exists. Name must be unique."
+          }
+        ]
+      }
+    });
+
+    userEvent.click(createButton());
+    await waitForElementToBeRemoved(selectors.querySavingMask());
+    expect(getByText('A rule with the same name already exists. Name must be unique.')).toBeInTheDocument();
+  });
+
+  it('requires the name, description, and at least one matcher', async function() {
+    axios.get.mockResolvedValue({data: []});
+
+    const {name, description} = renderEditView();
+
+    await waitForElementToBeRemoved(selectors.queryLoadingMask());
+
+    await TestUtils.changeField(name, '');
+    await TestUtils.changeField(description, '');
+    await TestUtils.changeField(() => selectors.matcher(0), '.*');
+    userEvent.click(selectors.querySubmitButton());
+    expect(selectors.queryFormError(TestUtils.VALIDATION_ERRORS_MESSAGE)).toBeInTheDocument();
+
+    await TestUtils.changeField(name, 'name');
+    await TestUtils.changeField(description, '')
+    await TestUtils.changeField(() => selectors.matcher(0), '');
+    userEvent.click(selectors.querySubmitButton());
+    expect(selectors.queryFormError(TestUtils.VALIDATION_ERRORS_MESSAGE)).toBeInTheDocument();
+
+    await TestUtils.changeField(name, '');
+    await TestUtils.changeField(description, 'description');
+    await TestUtils.changeField(() => selectors.matcher(0), '');
+    userEvent.click(selectors.querySubmitButton());
+    expect(selectors.queryFormError(TestUtils.VALIDATION_ERRORS_MESSAGE)).toBeInTheDocument();
+
+    await TestUtils.changeField(name, 'name');
+    await TestUtils.changeField(description, 'description');
+    await TestUtils.changeField(() => selectors.matcher(0), '.*');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('requests confirmation when delete is requested', async function() {
+    const itemId = 'allow-all';
+    axios.get.mockResolvedValue({
+      data: {
+        name: 'allow-all',
+        description: 'Allow all requests',
+        mode: 'ALLOW',
+        matchers: ['.*']
+      }
+    });
+
+    axios.delete.mockResolvedValue(null);
+
+    const {loadingMask, deleteButton} = renderEditView(itemId);
+
+    await waitForElementToBeRemoved(loadingMask);
+
+    axios.put.mockResolvedValue(null);
+
+    userEvent.click(deleteButton());
+
+    // Modal should appear
+    await waitFor(() => {
+      expect(screen.getByText('Delete routing rule?')).toBeInTheDocument();
+    });
+
+    // Acknowledgement word changed to sentence-case "Delete" — ASTRUM-53356.
+    const input = screen.getByPlaceholderText('Type "Delete" to confirm');
+    fireEvent.change(input, { target: { value: 'Delete' } });
+
+    // Click modal's delete button
+    await waitFor(() => {
+      const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
+      const modalDeleteButton = deleteButtons.find(btn => btn.textContent === 'Delete' && !btn.disabled);
+      expect(modalDeleteButton).toBeDefined();
+    });
+
+    const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
+    const modalDeleteButton = deleteButtons.find(btn => btn.textContent === 'Delete' && !btn.disabled);
+    fireEvent.click(modalDeleteButton);
+
+    await waitFor(() => expect(axios.delete).toBeCalledWith(ROUTING_RULES_URL(itemId)));
+  });
+
+  it('creates a new routing rule', async function() {
+    axios.get.mockResolvedValue({data: []});
+    axios.post.mockResolvedValue(null);
+
+    const {loadingMask, name, description, mode, createButton} = renderEditView();
+
+    await waitForElementToBeRemoved(loadingMask);
+
+    await waitFor(() => expect(window.dirty).toEqual([]));
+
+    await TestUtils.changeField(name, 'block-all');
+    await TestUtils.changeField(description, 'Block all requests');
+    await TestUtils.changeField(mode, 'BLOCK');
+    await TestUtils.changeField(() => selectors.matcher(0), '.*');
+
+    await waitFor(() => expect(window.dirty).toEqual(['RoutingRulesFormMachine']));
+
+    expect(createButton()).not.toBeDisabled();
+    userEvent.click(createButton());
+
+    await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
+        ROUTING_RULES_URL(''),
+        {name: 'block-all', description: 'Block all requests', mode: 'BLOCK', matchers: ['.*']}
+    ));
+    expect(window.dirty).toEqual([]);
+  });
+
+  it('removes existing matchers', async function() {
+    const itemId = 'allow-all';
+
+    axios.get.mockResolvedValue({
+      data: {
+        name: itemId,
+        description: 'Allow all requests',
+        mode: 'ALLOW',
+        matchers: ['a', 'b', 'c']
+      }
+    });
+
+    const {loadingMask, saveButton, matcherButton, emptyMatcher} = renderEditView(itemId);
+
+    await waitForElementToBeRemoved(loadingMask);
+
+    expect(selectors.matcher(0)).toHaveValue('a');
+    expect(selectors.matcher(1)).toHaveValue('b');
+    expect(selectors.matcher(2)).toHaveValue('c');
+
+    expect(matcherButton(0)).toBeInTheDocument();
+    expect(matcherButton(1)).toBeInTheDocument();
+    expect(matcherButton(2)).toBeInTheDocument();
+
+    userEvent.click(matcherButton(2));
+    expect(emptyMatcher(2)).not.toBeInTheDocument();
+
+    userEvent.click(matcherButton(1));
+    expect(emptyMatcher(1)).not.toBeInTheDocument();
+
+    expect(saveButton()).not.toHaveClass('disabled');
+
+    await act(async () => userEvent.click(saveButton()));
+
+    expect(axios.put).toHaveBeenLastCalledWith(ROUTING_RULES_URL(itemId), {
+      description: 'Allow all requests',
+      matchers: ['a'],
+      mode: 'ALLOW',
+      name: 'allow-all',
+    });
+  });
+});
