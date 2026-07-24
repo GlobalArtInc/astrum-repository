@@ -1,0 +1,15 @@
+
+.as-repository-editor {
+  label[name='httpClient.authentication.preemptive'] {
+    white-space: normal;
+    align-items: normal;
+
+    .nx-radio-checkbox__content {
+      white-space: normal;
+    }
+
+    .nx-radio-checkbox__control {
+      margin-top: var(--nx-spacing-base);
+    }
+  }
+}
