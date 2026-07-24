@@ -1,0 +1,31 @@
+
+
+.as-blob-stores {
+  .available {
+    color: var(--nx-color-validation-valid);
+  }
+
+  .unavailable {
+    color: var(--nx-color-validation-invalid);
+  }
+
+  .information {
+    display: flex;
+
+    .nx-icon {
+      color: var(--nx-swatch-blue-40);
+    }
+  }
+
+  .blob-store-name, .blob-store-new-name {
+    .nx-field-validation-message {
+      white-space: nowrap;
+      min-width: 400px;
+      max-width: 600px;
+    }
+  }
+
+  .blob-store-path {
+    word-break: break-word;
+  }
+}
