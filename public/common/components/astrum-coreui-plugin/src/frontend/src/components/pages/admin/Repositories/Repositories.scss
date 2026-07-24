@@ -1,0 +1,97 @@
+
+@use '~@globalart/react-shared-components/scss-shared/nx-container-helpers';
+@use '~@globalart/react-shared-components/scss-shared/nx-text-helpers';
+
+.as-repository-editor {
+  .nx-form {
+    @include nx-container-helpers.container-vertical;
+  }
+
+  .as-section {
+    min-width: min-content;
+  }
+
+  .as-docker-connectors-caption {
+    margin-bottom: var(--nx-spacing-2x);
+  }
+
+  .as-form-group-docker-connector-subdomain {
+    .nx-text-input__invalid-message {
+      white-space: nowrap;
+    }
+  }
+
+  .as-docker-connectors-help {
+    color: #333;
+    margin-bottom: var(--nx-spacing-8x);
+  }
+
+  // ASTRUM-53064 B1: ensure the OCI caption help text aligns to the section
+  // heading's left edge instead of inheriting the form-grid left indent.
+  .as-oci-connectors-caption,
+  .as-oci-cosign-caption {
+    margin-bottom: var(--nx-spacing-2x);
+  }
+
+  .as-oci-connectors-help,
+  .as-oci-cosign-help {
+    color: #333;
+    margin-left: 0;
+    padding-left: 0;
+    margin-bottom: var(--nx-spacing-8x);
+  }
+
+  .as-form-group-asset-matcher {
+    margin-left: var(--nx-spacing-12x);
+  }
+
+  .as-form-group-remove-quarantined {
+    .nx-alert--warning {
+      width: fit-content;
+      margin-left: var(--nx-spacing-6x);
+    }
+  }
+
+  .nx-foreign-layer {
+    margin-left: var(--nx-spacing-8x);
+  }
+
+  .as-form-group-query-params {
+    .as-query-params-description {
+      margin-left: var(--nx-spacing-6x);
+      margin-top: var(--nx-spacing-1x);
+    }
+
+    .as-query-params-exclusion-list {
+      max-height: 270px;
+      width: 400px;
+
+      .nx-list {
+        width: 100%;
+      }
+    }
+
+    .nx-text-input {
+      width: 400px;
+    }
+
+    .nx-btn--icon-only {
+      min-width: 36px;
+      min-height: 36px;
+    }
+  }
+}
+
+.as-repositories {
+  .as-repositories-list {
+    .as-table-cell-centered {
+      text-align: center;
+      padding-left: var(--nx-spacing-3x);
+      padding-right: var(--nx-spacing-3x);
+
+      .nx-btn-bar {
+        justify-content: center;
+      }
+    }
+  }
+}
