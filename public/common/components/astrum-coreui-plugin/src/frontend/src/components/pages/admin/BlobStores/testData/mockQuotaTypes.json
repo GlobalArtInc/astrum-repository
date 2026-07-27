@@ -1,0 +1,11 @@
+{
+  "data": [
+    {
+      "id": "spaceRemainingQuota",
+      "name": "Space Remaining"
+    }, {
+      "id": "spaceUsedQuota",
+      "name": "Space Used"
+    }
+  ]
+}

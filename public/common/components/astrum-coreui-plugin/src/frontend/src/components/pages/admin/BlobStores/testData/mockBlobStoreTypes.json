@@ -1,0 +1,95 @@
+{
+  "data": [
+    {
+      "id": "file",
+      "name": "File",
+      "fields": [
+        {
+          "helpText": "An absolute path or a path relative to <data-directory>/blobs",
+          "id": "path",
+          "regexValidation": null,
+          "required": true,
+          "disabled": false,
+          "readOnly": false,
+          "label": "Path",
+          "attributes": {
+            "tokenReplacement": "/<data-directory>/blobs/${name}",
+            "long": true
+          },
+          "type": "string",
+          "allowAutocomplete": false
+        }
+      ]
+    },
+    {
+      "id": "group",
+      "name": "Group",
+      "fields": [
+        {
+          "id": "members",
+          "required": true,
+          "label": "Members",
+          "initialValue": null,
+          "attributes": {
+            "toTitle": "Selected Blob Stores",
+            "fromTitle": "Available Blob Stores",
+            "buttons": [
+              "up",
+              "add",
+              "remove",
+              "down"
+            ],
+            "options": [
+              "default",
+              "test",
+              "test-converted"
+            ]
+          },
+          "type": "itemselect",
+          "allowAutocomplete": false
+        },
+        {
+          "id": "fillPolicy",
+          "required": true,
+          "label": "Fill Policy",
+          "initialValue": null,
+          "attributes": {
+            "options": [
+              "Round Robin",
+              "Write to First"
+            ]
+          },
+          "type": "combobox"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "name": "S3",
+      "dropDownValues": {
+        "regions": [
+          {
+            "id": "DEFAULT",
+            "name": "Default"
+          },
+          {
+            "id": "us-west-2",
+            "name": "us-west-2"
+          },
+          {
+            "id": "eu-north-1",
+            "name": "eu-north-1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "azure",
+      "name": "Azure Cloud Storage"
+    },
+    {
+      "id": "google",
+      "name": "Google Cloud Platform"
+    }
+  ]
+}
