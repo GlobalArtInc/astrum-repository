@@ -1,0 +1,7 @@
+
+
+// Stable public entry for the shared sidebar styles (.search-sidebar and
+// .search-sidebar--drawer). Consumers import '@globalart/astrum-ui-plugin/sidebar.scss'
+// instead of reaching into the internal source tree. The underlying location
+// may change without breaking consumers.
+@import './src/frontend/src/components/preview/pages/search/unified/SearchSidebar.scss';
