@@ -1,0 +1,13 @@
+
+/**
+ * @since 3.29
+ */
+.as-capabilities-form {
+  .nx-field-validation-message {
+    white-space: nowrap;
+  }
+  .nx-read-only-submit-button {
+    visibility: hidden;
+    display: none;
+  }
+}
