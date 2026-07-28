@@ -1,0 +1,11 @@
+
+
+.as-directory-list {
+  .nx-list__item:first-child {
+    border-top: 0;
+
+    a.nx-list__link {
+      border-top: 0;
+    }
+  }
+}
