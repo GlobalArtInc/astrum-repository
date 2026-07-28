@@ -1,0 +1,29 @@
+
+
+.historical-usage-table {
+  .fa-minus {
+    width: 24px;
+    font-size: 10px;
+  }
+
+  .fa-caret-down {
+    width: 24px;
+    font-size: 24px;
+    position: relative;
+    top: 3px;
+  }
+
+  .fa-caret-up {
+    color: var(--nx-swatch-green-35);
+    width: 24px;
+    font-size: 24px;
+    position: relative;
+    top: 3px;
+  }
+
+  .fa-info-circle {
+    margin-left: 8px;
+    position: relative;
+    left: 0;
+  }
+}
