@@ -1,0 +1,137 @@
+
+
+import ListMachineUtils from '../../../interface/ListMachineUtils';
+import ValidationUtils from '../../../interface/ValidationUtils';
+import APIConstants from '../../../constants/APIConstants';
+import {actions, assign, send} from 'xstate';
+import {mergeDeepRight} from 'ramda';
+import Axios from 'axios';
+
+export default ListMachineUtils.buildListMachine({
+  id: 'CleanupPoliciesPreviewListMachine',
+  initial: 'loaded',
+  sortableFields: ['group', 'name', 'version'],
+
+  config: config => mergeDeepRight(config, {
+    context: {
+      repository: '',
+      policyData: {},
+      isAlertShown: false
+    },
+    states: {
+      loaded: {
+        on: {
+          FILTER: {
+            actions: [...config.states.loaded.on.FILTER.actions, 'debouncePreview', 'sendPreview']
+          },
+          RETRY_PREVIEW: {
+            actions: ['debouncePreview', 'sendPreview']
+          },
+          PREVIEW: {
+            target: 'loading',
+            cond: 'canPreview',
+            actions: ['saveRequest']
+          }
+        }
+      },
+      loading: {
+        states: {
+          fetch: {
+            invoke: {
+              onDone: {
+                actions: [...config.states.loading.states.fetch.invoke.onDone.actions, 'maybeShowAlert']
+              }
+            }
+          }
+        }
+      },
+      error: {
+        on: {
+          FILTER: {
+            actions: [...config.states.error.on.FILTER.actions, 'debouncePreview', 'sendPreview']
+          },
+        }
+      }
+    },
+    on: {
+      CLEAR_PREVIEW: {
+        target: 'loaded',
+        actions: ['clear']
+      },
+      HIDE_ALERT: {
+        actions: ['hideAlert']
+      },
+      RETRY_PREVIEW: {
+        target: 'loading'
+      },
+    }
+  })
+}).withConfig({
+  actions: {
+    hideAlert: assign({
+      isAlertShown: () => false
+    }),
+
+    setData: assign({
+      data: (_, {data}) => data.data.results,
+      pristineData: (_, {data}) => data.data.results,
+      total: (_, {data}) => data.data.total
+    }),
+    setError: assign({
+      error: (_, event) => {
+        if (event.data?.response?.data && event.data?.response?.status) {
+            return `${event.data.response.data} (${event.data.response.status})`;
+        }
+        return event.data?.message;
+      },
+    }),
+
+    clear: assign({
+      repository: '',
+      filter: '',
+      data: () => [],
+      pristineData: () => [],
+      total: () => 0,
+      isAlertShown: () => false,
+      error: '',
+    }),
+
+    debouncePreview: actions.cancel('cleanup-preview'),
+    sendPreview: send(({repository, policyData}) => ({
+      type: 'PREVIEW',
+      repository,
+      policyData
+    }), {
+      id: 'cleanup-preview',
+      delay: APIConstants.DEBOUNCE_DELAY,
+    }),
+
+    maybeShowAlert: assign({
+      isAlertShown: (_, {data}) => Boolean(data.data.total)
+    }),
+
+    saveRequest: assign({
+      repository: (_, {repository}) => repository,
+      policyData: (_, {policyData}) => policyData
+    })
+  },
+  guards: {
+    canPreview: (_, {repository, policyData}) => ValidationUtils.notBlank(repository) && (
+        ValidationUtils.notBlank(policyData.criteriaLastBlobUpdated) ||
+        ValidationUtils.notBlank(policyData.criteriaLastDownloaded) ||
+        ValidationUtils.notBlank(policyData.criteriaReleaseType) ||
+        ValidationUtils.notBlank(policyData.criteriaAssetRegex)
+    )
+  },
+  services: {
+    fetchData: ({filter, policyData, repository}) => Axios.post(
+        'service/rest/internal/cleanup-policies/preview/components', {
+          criteriaLastBlobUpdated: policyData.criteriaLastBlobUpdated,
+          criteriaLastDownloaded: policyData.criteriaLastDownloaded,
+          criteriaReleaseType: policyData.criteriaReleaseType,
+          criteriaAssetRegex: policyData.criteriaAssetRegex,
+          filter: filter || '',
+          repository
+        })
+  }
+});

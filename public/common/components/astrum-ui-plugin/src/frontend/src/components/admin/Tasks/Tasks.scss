@@ -1,0 +1,15 @@
+
+
+.as-tasks-list {
+  .capitalize-schedule {
+    text-transform: capitalize;
+  }
+}
+
+.as-task-form {
+  .task-details-right-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--nx-spacing-8x) var(--nx-spacing-20x);
+  }
+}

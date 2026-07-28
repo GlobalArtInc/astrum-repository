@@ -1,0 +1,55 @@
+
+/**
+ * @since 3.29
+ */
+
+@import '~@globalart/react-shared-components/scss-shared/nx-container-helpers';
+
+.as-cleanup-policies {
+  .nx-alert__content {
+    @include container-vertical;
+  }
+
+  fieldset.criteria-fieldset.invalid > :nth-last-child(2).retain-n__group {
+    margin-bottom: var(--nx-spacing-8x);
+  }
+
+  fieldset.criteria-fieldset > :last-child.retain-n__group {
+    margin-bottom: var(--nx-spacing-8x);
+  }
+
+  .retain-n {
+    &-criteria__alert {
+      margin: 24px;
+    }
+
+    &__alert {
+      margin-top: 0;
+    }
+
+    &__checkbox {
+      .nx-checkbox__content {
+        overflow: initial;
+      }
+    }
+
+    &__group {
+      margin-left: var(--nx-spacing-6x);
+    }
+  }
+}
+
+.as-cleanup-policies-dry-run {
+  .nx-h2 {
+    margin-bottom: var(--nx-spacing-6x);
+  }
+
+  .nx-form-row {
+    margin-bottom: 0;
+  }
+
+  .nx-form-select {
+    margin-bottom: 0;
+    margin-right: var(--nx-spacing-6x);
+  }
+}
