@@ -1,0 +1,8 @@
+
+/**
+ * @since 3.21
+ */
+.as-content-body {
+  // NxSubmitMask needs a parent with position: relative to mask, fall back to content body if no lower parent was found
+  position: relative;
+}
