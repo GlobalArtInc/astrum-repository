@@ -1,0 +1,24 @@
+
+/**
+ * @since 3.29
+ */
+
+.checkbox-controlled-wrapper {
+  display: flex;
+
+  .checkbox-children {
+    display: inline-block;
+  }
+
+  .checkbox-control {
+    display: inline-block;
+    padding-right: var(--nx-spacing-2x);
+    padding-top: 3px;
+    vertical-align: top;
+
+    .nx-radio-checkbox {
+      /* fix display for IE11 */
+      width: 100%;
+    }
+  }
+}

@@ -1,0 +1,219 @@
+
+
+import { Flex, Text, TextField, Button, Callout } from '@radix-ui/themes';
+import { AlertCircle, Info } from 'lucide-react';
+import { useMachine } from '@xstate/react';
+import { useRouter } from '@uirouter/react';
+import PropTypes from 'prop-types';
+import React, { useEffect } from 'react';
+import { ExtJS } from '../../../interface/ExtJS';
+import LoginPageStrings from '../../../constants/LoginPageStrings';
+import { RouteNames } from '../../../constants/RouteNames';
+import FormUtils from '../../../interface/FormUtils';
+import LoginFormMachine from './LocalLoginMachine';
+import { resolveDefaultLandingRoute, isClassicLandingHash, PREVIEW_WELCOME_ROUTE, USER_REQUESTED_LEGACY_KEY } from '../../../utils/loginUtils';
+
+const { LOGIN_BUTTON_LOADING, USERNAME_LABEL, PASSWORD_LABEL, LOGIN_BUTTON } = LoginPageStrings;
+
+/**
+ * Local authentication form component that handles username/password login.
+ *
+ * @param {Object} props - Component props
+ * @param {boolean} props.primaryButton - REQUIRED: If true, login button uses primary variant and username field will be focused on mount
+ * @param {Function} props.onError - Optional callback to report server errors to parent component
+ */
+export default function LocalLogin({ primaryButton, onError }) {
+  const router = useRouter();
+
+  const handleLoginSuccess = async () => {
+    onError?.(null);
+    try {
+      await ExtJS.waitForNextPermissionChange();
+      // A fresh login starts a new session: reset any in-session "use Classic UI"
+      // preference so the defaultToPreviewUi setting is honored again (ASTRUM-53957).
+      sessionStorage.removeItem(USER_REQUESTED_LEGACY_KEY);
+      const state = ExtJS.state();
+      const landingRoute = resolveDefaultLandingRoute({
+        defaultToPreviewUi: state?.getValue('defaultToPreviewUi', false) ?? false,
+        canAccessPreviewUi: state?.getValue('loggedInEnabled', false) ?? false,
+        userRequestedLegacy: false
+      });
+      const wantsPreview = landingRoute === PREVIEW_WELCOME_ROUTE;
+      const returnTo = router.globals.params.returnTo;
+      if (returnTo) {
+        const decodedReturnTo = atob(returnTo);
+        // Validate decoded URL is a safe relative path (prevents open redirect)
+        if (decodedReturnTo.startsWith('/') || decodedReturnTo.startsWith('#')) {
+          if (wantsPreview && isClassicLandingHash(decodedReturnTo)) {
+            // "Default to Astrum One UI" overrides a Classic landing returnTo with the Preview
+            // dashboard, but preserves Classic deep links (matches the GlobalHeaderRadix soft default).
+            router.stateService.go(PREVIEW_WELCOME_ROUTE);
+          } else {
+            router.urlService.url(decodedReturnTo);
+          }
+        } else {
+          router.stateService.go(RouteNames.MISSING_ROUTE);
+        }
+      } else {
+        router.stateService.go(landingRoute);
+      }
+    } catch (ex) {
+      console.warn('redirection unsuccessful: ', ex);
+      router.stateService.go(RouteNames.MISSING_ROUTE);
+    }
+  };
+
+  const [current, send] = useMachine(LoginFormMachine, {
+    actions: {
+      onSaveSuccess: async (context, event) => {
+        const loginData = {
+          username: event.data?.username ?? context.data.username,
+          response: event.data?.response ?? event.data
+        };
+        await handleLoginSuccess(loginData);
+      },
+      logSaveError: (context, event) => {
+        const error = event.data || event.value;
+        const status = error?.response?.status;
+
+        if (onError && status !== 403 && status !== 429) {
+          const errorMessage = status === 0
+            ? LoginPageStrings.ERRORS.CONNECTION_FAILED
+            : error?.response?.data?.message || LoginPageStrings.ERRORS.AUTHENTICATION_FAILED;
+          onError(errorMessage);
+        }
+      }
+    }
+  });
+
+  const formProps = FormUtils.formProps(current, send);
+
+  const { saveError: serverError, saveErrorData, saveErrors = {}, validationErrors = {}, rateLimitWarning, retryAfterSeconds } = current.context;
+  const isLoading = current.matches('saving');
+  const hasAuthError = Boolean(saveErrors.username && saveErrors.password);
+
+  // Check for validation errors (empty fields) or server errors (wrong credentials)
+  const usernameHasError = Boolean(validationErrors.username || saveErrors.username);
+  const passwordHasError = Boolean(validationErrors.password || saveErrors.password);
+
+  const shouldShowInlineError = serverError && hasAuthError;
+
+  const handleFieldChange = (fieldName) => (value) => {
+    if (serverError || rateLimitWarning) {
+      send({ type: 'CLEAR_SAVE_ERROR' });
+    }
+    FormUtils.handleUpdate(fieldName, send)(value);
+  };
+
+  const handleSubmit = () => {
+    formProps.onSubmit();
+  };
+
+  useEffect(() => {
+    if (!serverError) {
+      onError?.(null);
+    }
+    if (serverError && saveErrorData?.username) {
+      const inputElement = document.getElementById('username');
+      if (inputElement) {
+        inputElement.focus();
+      }
+    }
+  }, [serverError, saveErrorData?.username, onError]);
+
+  const { data } = current.context;
+  const isFormValid = data.username?.trim() && data.password;
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (isFormValid && !isLoading) {
+      handleSubmit();
+    }
+  };
+
+  return (
+    <form onSubmit={handleFormSubmit}>
+      <Flex direction="column" gap="4" width="100%">
+        {/* Username */}
+      <Flex direction="column" gap="2">
+        <Text as="label" size="2" weight="bold" htmlFor="username" className="login-form-label">
+          {USERNAME_LABEL}
+        </Text>
+        <TextField.Root
+          id="username"
+          placeholder={USERNAME_LABEL}
+          value={data.username || ''}
+          onChange={(e) => handleFieldChange('username')(e.target.value)}
+          size="3"
+          required
+          autoFocus={primaryButton}
+          autoComplete="username"
+          disabled={isLoading}
+          data-analytics-id="login-username-input"
+          aria-required="true"
+          aria-invalid={usernameHasError || undefined}
+        />
+      </Flex>
+
+      {/* Password */}
+      <Flex direction="column" gap="2">
+        <Text as="label" size="2" weight="bold" htmlFor="password" className="login-form-label">
+          {PASSWORD_LABEL}
+        </Text>
+        <TextField.Root
+          id="password"
+          type="password"
+          placeholder={PASSWORD_LABEL}
+          value={data.password || ''}
+          onChange={(e) => handleFieldChange('password')(e.target.value)}
+          size="3"
+          required
+          autoComplete="current-password"
+          disabled={isLoading}
+          data-analytics-id="login-password-input"
+          aria-required="true"
+          aria-invalid={passwordHasError || undefined}
+        />
+      </Flex>
+
+      {/* Rate Limit Warning */}
+      {rateLimitWarning && (
+        <Callout.Root role="alert" color="amber" size="2">
+          <Callout.Icon>
+            <Info size={16} />
+          </Callout.Icon>
+          <Callout.Text>
+            {LoginPageStrings.ERRORS.RATE_LIMITED(retryAfterSeconds)}
+          </Callout.Text>
+        </Callout.Root>
+      )}
+
+      {/* Server Error */}
+      {shouldShowInlineError && (
+        <Flex align="center" gap="2" className="server-error-message">
+          <AlertCircle size={16} />
+          <Text size="2" color="red">{serverError}</Text>
+        </Flex>
+      )}
+
+      {/* Sign In Button */}
+      <Button
+        type="submit"
+        size="3"
+        variant={primaryButton ? 'solid' : 'outline'}
+        className="login-submit"
+        disabled={isLoading || !isFormValid || rateLimitWarning}
+        data-analytics-id="as-login-local"
+        data-testid="login-primary-button"
+      >
+        {isLoading ? LOGIN_BUTTON_LOADING : LOGIN_BUTTON}
+      </Button>
+      </Flex>
+    </form>
+  );
+}
+
+LocalLogin.propTypes = {
+  primaryButton: PropTypes.bool.isRequired,
+  onError: PropTypes.func
+};
