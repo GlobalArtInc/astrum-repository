@@ -1,0 +1,29 @@
+
+import React from 'react';
+import {NxReadOnly} from '@globalart/react-shared-components';
+import {isNil, isEmpty} from 'ramda';
+
+/**
+ * @param {string} label
+ * @param value [required]
+ * @param item [optional]
+ * @return {ReactNode}
+ */
+export default function ReadOnlyField({label, value, item}) {
+  const valid = !isNil(value) && !isEmpty(value);
+
+  if (!valid) {
+    return null;
+  }
+
+  const labelAndData = (
+      <>
+        <NxReadOnly.Label>{label}</NxReadOnly.Label>
+        <NxReadOnly.Data>{value}</NxReadOnly.Data>
+      </>
+  );
+
+  return (
+      item ? (<NxReadOnly.Item>{labelAndData}</NxReadOnly.Item>) : labelAndData
+  );
+}
