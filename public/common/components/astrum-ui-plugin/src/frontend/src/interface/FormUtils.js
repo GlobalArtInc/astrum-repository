@@ -1,0 +1,641 @@
+
+import {assign, createMachine} from 'xstate';
+import ExtJS from './ExtJS';
+import UIStrings from '../constants/UIStrings';
+import {any, dissocPath, equals, hasPath, join, lensPath, path, pathOr, set, whereEq} from 'ramda';
+
+const FIELD_ID = 'FIELD ';
+const PARAMETER_ID = 'PARAMETER ';
+const HELPER_BEAN = 'HelperBean.';
+// Backend ConstraintViolation paths are rooted at "attributes." for repository
+// configuration (e.g. "attributes.docker.httpPort"), but forms bind to the
+// un-prefixed field name ("docker.httpPort"). Strip the leading segment so
+// inline save errors land on the right input. (ASTRUM-51599)
+const ATTRIBUTES_PREFIX = 'attributes.';
+
+const SUBMITTING = false;
+const SUBMITTED = true;
+const IDLE = null;
+
+/**
+ * @since 3.31
+ */
+export default class FormUtils {
+  /**
+   * Builds a new xstate machine used to handle forms.
+   * Typically the validation action, fetchData service, and saveData service should be implemented in withConfig.
+   *
+   * FormUtils.buildFormMachine({id: 'MyMachine'}).withConfig({
+   *   actions: {
+   *     validate: assign({
+   *       validationErrors: ({data}) => ({
+   *         field: FormUtils.isBlank(data.field) ? UIStrings.ERROR.FIELD_REQUIRED : null
+   *       })
+   *     })
+   *   },
+   *   services: {
+   *     fetchData: () => axios.get(url),
+   *     saveData: ({data}) => axios.put(url, data)
+   *   }
+   * });
+   *
+   * @param id [required] a unique identifier for this machine
+   * @param initial [optional] the initial state to start in, defaults to 'loading'
+   * @param stateAfterSave [optional] the state to put the machine in after successful save, default of 'loaded'
+   * @param config [optional] a function used to change the config of the machine
+   * @return {StateMachine<any, any, AnyEventObject>}
+   */
+  static buildFormMachine({
+    id,
+    initial = 'loading',
+    stateAfterSave = 'loaded',
+    config = (config) => config,
+    options = (options) => options
+  }) {
+    const DEFAULT_CONFIG = {
+      id,
+      initial,
+
+      context: {
+        isPristine: true,
+        isTouched: {},
+        loadError: null,
+        saveError: null,
+        deleteError: null,
+        saveErrorData: {},
+        validationErrors: {},
+        data: {},
+        pristineData: {}
+      },
+
+      states: {
+        loading: {
+          invoke: {
+            id: 'fetchData',
+            src: 'fetchData',
+            onDone: {
+              target: 'loaded',
+              actions: ['clearLoadError', 'setData', 'postProcessData', 'validate']
+            },
+            onError: {
+              target: 'loadError',
+              actions: ['setLoadError', 'logLoadError']
+            }
+          }
+        },
+
+        loaded: {
+          entry: ['validate', 'setDirtyFlag', 'setIsPristine', 'onLoadedEntry'],
+
+          on: {
+            UPDATE: {
+              target: 'loaded',
+              actions: ['update'],
+              internal: false
+            },
+            SAVE: {
+              target: 'saving',
+              cond: 'canSave'
+            },
+            RESET: {
+              target: 'loaded',
+              actions: ['reset', 'clearSaveError']
+            },
+            CONFIRM_DELETE: {
+              target: 'confirmDelete',
+              cond: 'canDelete'
+            },
+            DELETE_DATA_PROPERTY: {
+              target: 'loaded',
+              actions: 'deleteDataProperty'
+            },
+            ADD_DATA_PROPERTY: {
+              target: 'loaded',
+              actions: 'addDataProperty'
+            }
+          }
+        },
+
+        saving: {
+          entry: 'clearSaveError',
+
+          invoke: {
+            src: 'saveData',
+            onDone: {
+              target: stateAfterSave,
+              actions: [
+                'clearDirtyFlag',
+                'clearSaveError',
+                'setSavedData',
+                'logSaveSuccess',
+                'onSaveSuccess'
+              ]
+            },
+
+            onError: {
+              target: 'loaded',
+              actions: ['setSaveError', 'logSaveError']
+            }
+          }
+        },
+
+        loadError: {
+          on: {
+            RETRY: {
+              target: 'loading'
+            }
+          }
+        },
+
+        confirmDelete: {
+          entry: 'clearDeleteError',
+          invoke: {
+            src: 'confirmDelete',
+            onDone: 'delete',
+            onError: 'loaded'
+          }
+        },
+        delete: {
+          invoke: {
+            src: 'delete',
+            onDone: {
+              target: 'ended',
+              actions: ['clearDirtyFlag', 'logDeleteSuccess']
+            },
+            onError: {
+              target: 'loaded',
+              actions: ['logDeleteError', 'onDeleteError']
+            }
+          }
+        },
+        ended: {
+          type: 'final',
+          entry: 'onDeleteSuccess'
+        }
+      },
+      on: {
+        RETRY: {
+          target: initial
+        }
+      }
+    };
+
+    const DEFAULT_OPTIONS = {
+      actions: {
+        setData: assign({
+          data: (_, event) => event.data?.data,
+          pristineData: (_, event) => event.data?.data
+        }),
+        postProcessData: () => {
+          // Intentionally left blank for users to override
+        },
+        setDirtyFlag: ({isPristine}) => ExtJS.setDirtyStatus(id, !isPristine),
+        clearDirtyFlag: () => ExtJS.setDirtyStatus(id, false),
+
+        setSaveError: assign({
+          saveErrorData: ({data}) => data,
+          saveError: (_, event) => FormUtils.extractSaveErrorMessage(event),
+          saveErrors: (_, event) => {
+            const data = event.data?.response?.data;
+            if (Array.isArray(data)) {
+              const saveErrors = {};
+              data.forEach(({id, message}) => {
+                id = id.replace(FIELD_ID, '');
+                id = id.replace(PARAMETER_ID, '');
+                // Anchor the HelperBean. and attributes. strips to the start
+                // of the string so an `id` that legitimately contains those
+                // tokens deeper in the property path isn't mangled mid-key.
+                if (id.startsWith(HELPER_BEAN)) {
+                  id = id.slice(HELPER_BEAN.length);
+                }
+                if (id.startsWith(ATTRIBUTES_PREFIX)) {
+                  id = id.slice(ATTRIBUTES_PREFIX.length);
+                }
+                saveErrors[id] = message;
+              });
+              return saveErrors;
+            }
+          }
+        }),
+        clearSaveError: assign({
+          saveErrorData: () => ({}),
+          saveError: () => undefined,
+          saveErrors: () => ({})
+        }),
+        clearDeleteError: assign({
+          deleteError: null,
+        }),
+        logSaveError: () => {},
+        logSaveSuccess: () => ExtJS.showSuccessMessage(UIStrings.SAVE_SUCCESS),
+        logDeleteSuccess: () => {
+          // Intentionally left blank for users to override
+        },
+        logDeleteError: () => {},
+        onDeleteError: assign({
+          deleteError: (_, event) => {
+            const message = event.data?.message || event.data?.response?.data?.message;
+            return message ? `${message}` : 'Delete failed';
+          }
+        }),
+
+        setLoadError: assign({
+          loadError: (_, event) => {
+            const message = event.data?.message;
+            return message ? `${message}` : null;
+          }
+        }),
+        logLoadError: () => {
+          ExtJS.showErrorMessage(UIStrings.ERROR.LOAD_ERROR);
+        },
+        clearLoadError: assign({
+          loadError: null,
+        }),
+
+        onSaveSuccess: () => {
+          // Intentionally left blank for users to override
+        },
+
+        reset: assign({
+          data: ({pristineData}) => pristineData,
+          isTouched: () => ({})
+        }),
+
+        deleteDataProperty: assign({
+          data: ({data}, {path}) => dissocPath(path.split('.'), data)
+        }),
+
+        addDataProperty: assign({
+          data: ({data}, {path, value}) => {
+            const pth = path.split('.');
+            return hasPath(pth, data) ? data : set(lensPath(pth), value, data);
+          }
+        }),
+
+        update: assign({
+          data: FormUtils.updateFormDataDefaultAction,
+          isTouched: ({isTouched}, event) => {
+            if (event.name) {
+              const pthArray = Array.isArray(event.name) ? event.name : event.name.split('.');
+              return set(lensPath(pthArray), true, isTouched);
+            }
+
+            const result = {...isTouched};
+            for (const key of Object.keys(event.data)) {
+              result[key] = true;
+            }
+            return result;
+          }
+        }),
+
+        setIsPristine: assign({
+          isPristine: ({data, pristineData}) => {
+            return equals(data, pristineData);
+          }
+        }),
+
+        setSavedData: assign({
+          pristineData: ({data}) => data,
+          isTouched: () => ({})
+        }),
+
+        onLoadedEntry: () => {
+          /* hook for users to override on entry to the loaded state */
+        },
+
+        setDeleteError: assign({
+          deleteError: (_, event) => {
+            const message = event.data?.message;
+            return message ? `${message}` : null;
+          }
+        }),
+      },
+
+      guards: {
+        canSave: ({isPristine, validationErrors}) => {
+          const isValid = !FormUtils.isInvalid(validationErrors);
+          return !isPristine && isValid;
+        },
+        canDelete: () => false
+      },
+
+      services: {
+        confirmDelete: () => Promise.reject('unimplemented'),
+        delete: () => Promise.reject('unimplemented'),
+        fetchData: () => Promise.resolve({data: {}})
+      }
+    };
+
+    return createMachine(config(DEFAULT_CONFIG), options(DEFAULT_OPTIONS));
+  }
+
+  /**
+   * Handles form data updates according to the received event
+   * @param data to update
+   * @param event that triggered the update
+   * @returns {data: object} updated data
+   */
+  static updateFormDataDefaultAction({data}, event) {
+    if (event.name) {
+      const pthArray = Array.isArray(event.name) ? event.name : event.name.split('.');
+      return set(lensPath(pthArray), event.value, data);
+    }
+    else if (event.data) {
+      return {
+        ...data,
+        ...event.data
+      };
+    }
+    else {
+      console.error('update event must have a name and value or a data object', event);
+    }
+  }
+
+  /**
+   * Extract api error message if possible
+   * @param event
+   * @return {string|null}
+   */
+  static extractSaveErrorMessage(event) {
+    const data = event.data?.response?.data || event.data?.message || event.data;
+    let error = null;
+    if (typeof data === 'string') {
+      error = data;
+    } else if (typeof data === 'object' && data.id === '*') {
+      error = data.message
+    }
+    return error;
+  }
+
+  /**
+   * Check if the errors object returned contains any error messages
+   * @param errors {Object | null | undefined}
+   * @return {boolean} true if there are any error messages
+   */
+  static isInvalid(errors) {
+    if (errors === null || errors === undefined) {
+      return false;
+    }
+
+    return Boolean(
+      Object.values(errors).find((error) => {
+        if (error === null || error === undefined) {
+          return false;
+        }
+        else if (Array.isArray(error)) {
+          return error.some(e => FormUtils.isInvalid(e));
+        }
+        else if (error.length > 0) {
+          return true;
+        }
+        else {
+          return FormUtils.isInvalid(error);
+        }
+      })
+    );
+  }
+
+  /**
+   * Generate the standard props for NxForms.
+   *
+   * @param state {{context: {isPristine: boolean, loadError: string, saveError: string, validationErrors: any}, matches: function}}
+   * @param send {function}
+   * @returns {{submitError, submitMaskMessage: string, doLoad: doLoad, loadError, onSubmit: onSubmit, validationErrors: (string|null), submitBtnText: string, loading, submitMaskState: boolean}}
+   */
+  static formProps(state, send) {
+    const {data = {}, saveErrorData = {}, isPristine, loadError, saveError, saveErrors, validationErrors} = state.context;
+    const isInvalid = FormUtils.isInvalid(validationErrors);
+    const loading = state.matches('loading');
+    const saveTooltip = FormUtils.saveTooltip({isPristine, isInvalid});
+    const isConfirmDelete = state.matches('confirmDelete');
+    const submitBtnText = UIStrings.SETTINGS.SAVE_BUTTON_LABEL;
+    const submitMaskMessage = UIStrings.SAVING;
+    const submitMaskState = FormUtils.submitMaskState(state);
+
+    const doLoad = () => send({type: 'RETRY'});
+    const onSubmit = () => send({type: 'SAVE'});
+
+    let submitError = saveError;
+    if (!submitError && FormUtils.isInvalid(saveErrors)) {
+      submitError = UIStrings.ERROR.SAVE_ERROR;
+    }
+    if (!whereEq(data, saveErrorData)) {
+      submitError = null;
+    }
+
+    return {
+      doLoad,
+      loading,
+      loadError,
+      onSubmit,
+      submitBtnText,
+      submitError,
+      submitMaskMessage,
+      submitMaskState,
+      validationErrors: !isConfirmDelete ? saveTooltip : null,
+    };
+  }
+
+  /**
+   * Generate common props for form fields
+   * @param name
+   * @param current a form machine generated by buildFormMachine
+   * @param defaultValue if the machine did not provide any data
+   * @return {{name: *, validationErrors: (*|[]), isPristine: boolean, value: (*|string)}}
+   */
+  static fieldProps(name, current, defaultValue = '') {
+    const fieldName = Array.isArray(name) ? name : name.split('.');
+    const {
+      data = {},
+      isTouched = {},
+      validationErrors = {},
+      saveErrors = {},
+      saveErrorData = {}
+    } = current.context;
+
+    // saveErrors is a flat-keyed object whose keys are the dotted form-field names
+    // produced by setSaveError (e.g. {'docker.httpPort': 'Port must be unique...'}).
+    // Look up by flat key first, then fall back to nested-path lookup for any
+    // legacy callers that still nest saveErrors into objects. (ASTRUM-51599)
+    const flatKey = join('.', fieldName);
+    const saveError = saveErrors[flatKey] ?? path(fieldName, saveErrors);
+    const savedValue = path(fieldName, saveErrorData);
+    const currentValue = path(fieldName, data);
+    const validationError = path(fieldName, validationErrors);
+
+    let errors = null;
+    if (Boolean(savedValue) && saveError && currentValue === savedValue) {
+      errors = saveError;
+    }
+    else if (Boolean(validationError)) {
+      errors = validationError;
+    }
+
+    return {
+      id: join('.', fieldName),
+      name: join('.', fieldName),
+      value: String(pathOr(defaultValue, fieldName, data)),
+      isPristine: hasPath(fieldName, isTouched) ? !path(fieldName, isTouched) : true,
+      validatable: true,
+      validationErrors: errors || null
+    };
+  }
+
+  /**
+   * Generate common props for form fields
+   * @param name
+   * @param current a form machine generated by buildFormMachine
+   * @param defaultValue if the machine did not provide any data
+   * @return {{name: *, isPristine: boolean, value: (*|string)}}
+   */
+  static selectProps(name, current, defaultValue = '') {
+    const fieldName = Array.isArray(name) ? name : name.split('.');
+    const {
+      data = {},
+      isTouched = {}
+    } = current.context;
+
+    return {
+      id: join('.', fieldName),
+      name: join('.', fieldName),
+      value: String(pathOr(defaultValue, fieldName, data)),
+      isPristine: hasPath(fieldName, isTouched) ? !path(fieldName, isTouched) : true
+    };
+  }
+
+  /**
+   * Generate common props for checkbox fields
+   * @param name
+   * @param current a form machine generated by buildFormMachine
+   * @param defaultValue if the machine did not provide a value for the checkbox (defaults to false)
+   * @return {{name: string, isChecked: boolean}}
+   */
+  static checkboxProps(name, current, defaultValue = false) {
+    const fieldName = Array.isArray(name) ? name : name.split('.');
+    const {data = {}} = current.context;
+
+    return {
+      checkboxId: String(join('.', fieldName)),
+      name: String(join('.', fieldName)),
+      isChecked: (() => {
+        const value = pathOr(defaultValue, fieldName, data);
+        return value === 'true' ? true : (value === 'false' ? false : value);
+      })()
+    };
+  }
+
+  /**
+   * Generate common props for file uploads
+   * @param name
+   * @param current a form machine generated by buildFormMachine
+   * @return {{name: *, isPristine: boolean, files: FileList|null}}
+   */
+  static fileUploadProps(name, current) {
+    const fieldName = Array.isArray(name) ? name : name.split('.');
+    const {
+      data = {},
+      isTouched = {}
+    } = current.context;
+
+    return {
+      id: join('.', fieldName),
+      name: join('.', fieldName),
+      files: pathOr(null, fieldName, data),
+      isPristine: hasPath(fieldName, isTouched) ? !path(fieldName, isTouched) : true,
+    };
+  }
+
+  /**
+   * Generate a function that will send a standard form UPDATE message to a machine
+   * @param name of the field to update
+   * @param send - a function that sends events to the machine
+   * @returns {(function(*): void)|*}
+   */
+  static handleUpdate(name, send, type = 'UPDATE') {
+    return (value) => {
+      send({type, name, value: (value instanceof Set) ? Array.from(value) : value});
+    };
+  }
+
+  /**
+   * Removes trailing spaces for a given input value on blur event.
+   * @param name of the field to update
+   * @param send - a function that sends events to the machine.
+   * @returns {(function(event): void)|*}
+   */
+  static trimOnBlur(name, send) {
+    return (event) => {
+      const value = event.target.value.trim();
+      FormUtils.handleUpdate(name, send)(value);
+    }
+  }
+
+  /**
+   * @param isPristine
+   * @param isInvalid
+   * @return {string|null} the tooltip explaining why the save button is disabled
+   */
+  static saveTooltip({isPristine, isInvalid}) {
+    if (isPristine) {
+      return UIStrings.PRISTINE_TOOLTIP;
+    } else if (isInvalid) {
+      return UIStrings.INVALID_TOOLTIP;
+    }
+    return null;
+  }
+
+  static getValidationErrorsMessage(state) {
+    const {isPristine, validationErrors} = state.context;
+    const isInvalid = FormUtils.isInvalid(validationErrors);
+    return FormUtils.saveTooltip({isPristine, isInvalid});
+  }
+
+  static discardTooltip({isPristine}) {
+    if (isPristine) {
+      return UIStrings.PRISTINE_TOOLTIP;
+    }
+  }
+
+  /**
+   * @param enabled [required]
+   * @return {string} read only checkbox status label
+   */
+  static readOnlyCheckboxValueLabel(enabled) {
+    return enabled
+      ? UIStrings.SETTINGS.READ_ONLY.CHECKBOX.ENABLED
+      : UIStrings.SETTINGS.READ_ONLY.CHECKBOX.DISABLED;
+  }
+
+  /**
+   * Determine the submit mask state. False when submitting, true when submitted, and null otherwise.
+   *
+   * @param state [required] a machine state
+   * @param submittingStates [optional] {string[]} an array of submitting states
+   * @returns {null|boolean}
+   */
+  static submitMaskState(state, submittingStates = ['saving']) {
+    if (FormUtils.isInState(state, submittingStates)) {
+      return SUBMITTING;
+    }
+    else if (state.matches('saved')) {
+      return SUBMITTED;
+    }
+    else {
+      return IDLE;
+    }
+  }
+
+  /**
+   * Returns true if the machine is in one of the given states, and false otherwise.
+   *
+   * @param state [required] a machine state
+   * @param states [required] {string[]} a states to check
+   * @returns {boolean}
+   */
+  static isInState(state, states) {
+    return any(it => state.matches(it), states);
+  }
+}
+
+// Named re-export so consumers using `import { FormUtils } from '...'` get the
+// same class as the default export under Babel CJS interop.
+export { FormUtils };
