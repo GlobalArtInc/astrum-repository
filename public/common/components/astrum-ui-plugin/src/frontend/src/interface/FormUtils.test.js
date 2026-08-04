@@ -1,0 +1,644 @@
+
+import FormUtils from './FormUtils';
+import {interpret} from 'xstate';
+
+describe('FormUtils', () => {
+  describe('fieldProps', () => {
+    it('converts the value to a string', () => {
+      const {value} = FormUtils.fieldProps('test', makeContext({data: {test: 1}}));
+      expect(value).toBe('1');
+    });
+
+    it('converts the default value to a string', () => {
+      const defaultValue = 1;
+      const {value} = FormUtils.fieldProps('test', makeContext({data: {}}), defaultValue);
+      expect(value).toBe('1');
+    });
+
+    it('sets validation errors from save errors', () => {
+      const context = makeContext({
+        data: {test: 'saved-value'},
+        saveErrorData: {test: 'saved-value'},
+        saveErrors: {test: 'error'}
+      });
+
+      expect(FormUtils.fieldProps('test', context).validationErrors).toBe('error');
+      expect(FormUtils.fieldProps(['test'], context).validationErrors).toBe('error');
+    });
+
+    it('ignores validation errors if not touched', () => {
+      const context = makeContext({isTouched: {test: false}});
+
+      expect(FormUtils.fieldProps('test', context).validationErrors).toBeNull();
+      expect(FormUtils.fieldProps(['test'], context).validationErrors).toBeNull();
+    });
+
+    it('sets validation errors when touched', () => {
+      const context = makeContext({
+        isTouched: {
+          test: true
+        },
+        validationErrors: {
+          test: 'error'
+        }
+      });
+
+      expect(FormUtils.fieldProps('test', context).validationErrors).toBe('error');
+    });
+
+    it('prefers validation errors to saveErrors', () => {
+      const context = makeContext({
+        isTouched: {
+          test: true
+        },
+        validationErrors: {
+          test: 'error'
+        },
+        saveErrors: {
+          test: 'saveError'
+        }
+      });
+
+      expect(FormUtils.fieldProps('test', context).validationErrors).toBe('error');
+      expect(FormUtils.fieldProps(['test'], context).validationErrors).toBe('error');
+    });
+
+    it('uses saveErrors when saveErrorData matches data', () => {
+      const context = makeContext({
+        isTouched: {
+          test: true
+        },
+        data: {
+          test: 'test'
+        },
+        saveErrorData: {
+          test: 'test'
+        },
+        saveErrors: {
+          test: 'error'
+        }
+      });
+
+      expect(FormUtils.fieldProps('test', context).validationErrors).toBe('error');
+      expect(FormUtils.fieldProps(['test'], context).validationErrors).toBe('error');
+    });
+
+    it('does not use saveErrors when saveErrorData does not match data', () => {
+      const context = makeContext({
+        isTouched: {
+          test: true
+        },
+        data: {
+          test: 'test'
+        },
+        saveErrorData: {},
+        saveErrors: {
+          test: 'error'
+        }
+      });
+
+      expect(FormUtils.fieldProps('test', context).validationErrors).toBeNull();
+      expect(FormUtils.fieldProps(['test'], context).validationErrors).toBeNull();
+    });
+
+    it('is pristine for a field not included in isTouched', () => {
+      expect(FormUtils.fieldProps('test', makeContext({})).isPristine).toBe(true);
+    });
+
+    it('is pristine for an untouched field', () => {
+      expect(FormUtils.fieldProps('test', makeContext({
+        isTouched: {
+          test: false
+        }
+      })).isPristine).toBe(true);
+    });
+
+    it('is not pristine for a touched field', () => {
+      expect(FormUtils.fieldProps('test', makeContext({
+        isTouched: {
+          test: true
+        }
+      })).isPristine).toBe(false);
+    });
+
+    it('is pristine for a nested field that is not touched', () => {
+      expect(FormUtils.fieldProps(['test', 'nested'], makeContext({
+        isTouched: {
+          test: {
+            nested: false
+          }
+        }
+      })).isPristine).toBe(true);
+    });
+
+    it('is not pristine for a nested field that has been touched', () => {
+      expect(FormUtils.fieldProps(['test', 'nested'], makeContext({
+        isTouched: {
+          test: {
+            nested: true
+          }
+        }
+      })).isPristine).toBe(false);
+    });
+  });
+
+  describe('fileUploadProps', () => {
+    it('returns the file list data as the files prop', () => {
+      // FileList itself does not have a public constructor, so the most convenient way to make a FileList is
+      // via an <input>
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      const fileList = fileInput.files;
+
+      const {files} = FormUtils.fileUploadProps('test', makeContext({data: {test: fileList}}));
+      expect(files).toBe(fileList);
+    });
+
+    it('is pristine for a field not included in isTouched', () => {
+      expect(FormUtils.fileUploadProps('test', makeContext({})).isPristine).toBe(true);
+    });
+
+    it('is pristine for an untouched field', () => {
+      expect(FormUtils.fileUploadProps('test', makeContext({
+        isTouched: {
+          test: false
+        }
+      })).isPristine).toBe(true);
+    });
+
+    it('is not pristine for a touched field', () => {
+      expect(FormUtils.fileUploadProps('test', makeContext({
+        isTouched: {
+          test: true
+        }
+      })).isPristine).toBe(false);
+    });
+
+    it('is pristine for a nested field that is not touched', () => {
+      expect(FormUtils.fileUploadProps(['test', 'nested'], makeContext({
+        isTouched: {
+          test: {
+            nested: false
+          }
+        }
+      })).isPristine).toBe(true);
+    });
+
+    it('is not pristine for a nested field that has been touched', () => {
+      expect(FormUtils.fileUploadProps(['test', 'nested'], makeContext({
+        isTouched: {
+          test: {
+            nested: true
+          }
+        }
+      })).isPristine).toBe(false);
+    });
+  });
+
+  describe('isInvalid', () => {
+    it('returns false for a null or undefined errors object', () => {
+      expect(FormUtils.isInvalid(null)).toBe(false);
+      expect(FormUtils.isInvalid(undefined)).toBe(false);
+    });
+
+    it('returns false for a key with a null or undefined value', () => {
+      expect(FormUtils.isInvalid({test: null})).toBe(false);
+      expect(FormUtils.isInvalid({test: null})).toBe(false);
+    });
+
+    it('returns true for a key with a string value', () => {
+      expect(FormUtils.isInvalid({test: 'error message'})).toBe(true);
+    });
+
+    it('returns false for nested objects with no errors', () => {
+      expect(FormUtils.isInvalid({test: {nested: null}})).toBe(false);
+      expect(FormUtils.isInvalid({test: {nested: undefined}})).toBe(false);
+    });
+
+    it('returns true for nested objects with errors', () => {
+      expect(FormUtils.isInvalid({test: {nested: 'error'}})).toBe(true);
+    });
+
+    it('returns false for empty arrays', () => {
+      expect(FormUtils.isInvalid({test: []})).toBe(false);
+    });
+
+    it('returns true for arrays of error messages', () => {
+      expect(FormUtils.isInvalid({test: ['error']})).toBe(true);
+    });
+  });
+
+  describe('extractSaveErrorMessage', () => {
+    it('returns an error message when possible', () => {
+      const error = 'Error';
+
+      let event = {};
+      expect(FormUtils.extractSaveErrorMessage(event)).toBe(null);
+
+      event = {data: error};
+      expect(FormUtils.extractSaveErrorMessage(event)).toBe(error);
+
+      event = {data: {message: error}};
+      expect(FormUtils.extractSaveErrorMessage(event)).toBe(error);
+
+      event = {data: {response: {data: error}}};
+      expect(FormUtils.extractSaveErrorMessage(event)).toBe(error);
+
+      event = {data: {response: {data: {id: '*', message: error}}}};
+      expect(FormUtils.extractSaveErrorMessage(event)).toBe(error);
+
+      event = {data: {response: {data: {id: 'name', message: error}}}};
+      expect(FormUtils.extractSaveErrorMessage(event)).toBe(null);
+
+      event = {data: {response: {data: []}}};
+      expect(FormUtils.extractSaveErrorMessage(event)).toBe(null);
+    });
+  });
+
+  // The Astrum REST validation layer prefixes each error's `id` with the leaf
+  // bean's simple name (`HelperBean.`) followed by the bean's property path
+  // (often `attributes.<field>` for repository config). Neither segment belongs
+  // in the user-visible field key, and forms bind to the un-prefixed name.
+  // (ASTRUM-51599)
+  describe('setSaveError prefix stripping', () => {
+    function runSaveFailure(responseData) {
+      const machineMock = FormUtils.buildFormMachine({id: 'mock', initial: 'loaded'})
+          .withConfig({
+            actions: {validate: () => ({})},
+            services: {
+              saveData: () => Promise.reject({response: {data: responseData}})
+            },
+            guards: {
+              // buildFormMachine's default canSave guard requires !isPristine, so
+              // a freshly-loaded form without any UPDATE events stays in `loaded`
+              // when SAVE is sent. Override to true so the test can drive the
+              // SAVE → saving → onError transition directly without simulating
+              // a field edit first.
+              canSave: () => true
+            }
+          });
+
+      return new Promise((resolve) => {
+        const service = interpret(machineMock).onTransition((state) => {
+          if (state.matches('loaded') && (state.context.saveErrors || state.context.saveError)) {
+            service.stop();
+            resolve(state.context);
+          }
+        });
+        service.start();
+        service.send({type: 'SAVE'});
+      });
+    }
+
+    it('strips HelperBean. and a leading attributes. segment from the id', async () => {
+      const ctx = await runSaveFailure([
+        {id: 'HelperBean.attributes.docker.httpPort', message: "Port must be unique (conflicts with repository 'docker-hosted-1')"}
+      ]);
+      expect(ctx.saveErrors).toEqual({
+        'docker.httpPort': "Port must be unique (conflicts with repository 'docker-hosted-1')"
+      });
+    });
+
+    it('strips HelperBean. when no attributes. segment is present', async () => {
+      // Guards against regressing the ContentSelectors HelperBean.expression case.
+      const ctx = await runSaveFailure([
+        {id: 'HelperBean.expression', message: 'Invalid expression'}
+      ]);
+      expect(ctx.saveErrors).toEqual({expression: 'Invalid expression'});
+    });
+
+    it('only strips prefixes that are anchored to the start of the id', async () => {
+      // Pins the anchored-strip contract: the previous unanchored String.replace
+      // would have mangled these mid-path occurrences. With startsWith+slice,
+      // a property literally named `attributes.foo` nested under HelperBean is
+      // left intact, and a doubled `HelperBean.` prefix only loses the outer one.
+      const ctx = await runSaveFailure([
+        {id: 'HelperBean.foo.attributes.bar', message: 'mid-path attributes'},
+        {id: 'HelperBean.HelperBean.expression', message: 'doubled helperbean'}
+      ]);
+      expect(ctx.saveErrors).toEqual({
+        'foo.attributes.bar': 'mid-path attributes',
+        'HelperBean.expression': 'doubled helperbean'
+      });
+    });
+  });
+
+  describe('fieldProps with flat-keyed saveErrors', () => {
+    // setSaveError stores save errors keyed by the dotted form-field name
+    // ('docker.httpPort'). fieldProps must therefore tolerate flat keys, not
+    // just nested objects. (ASTRUM-51599)
+    it('returns the inline message for a flat-dotted save-error key', () => {
+      const context = makeContext({
+        data: {docker: {httpPort: 8082}},
+        saveErrorData: {docker: {httpPort: 8082}},
+        saveErrors: {'docker.httpPort': "Port must be unique (conflicts with repository 'docker-hosted-1')"}
+      });
+
+      expect(FormUtils.fieldProps('docker.httpPort', context).validationErrors)
+          .toBe("Port must be unique (conflicts with repository 'docker-hosted-1')");
+      expect(FormUtils.fieldProps(['docker', 'httpPort'], context).validationErrors)
+          .toBe("Port must be unique (conflicts with repository 'docker-hosted-1')");
+    });
+
+    it('still supports nested saveErrors objects for legacy callers', () => {
+      const context = makeContext({
+        data: {docker: {httpPort: 8082}},
+        saveErrorData: {docker: {httpPort: 8082}},
+        saveErrors: {docker: {httpPort: 'Nested error'}}
+      });
+
+      expect(FormUtils.fieldProps('docker.httpPort', context).validationErrors).toBe('Nested error');
+    });
+  });
+
+  describe('updateFormDataDefaultAction', () => {
+    it('updates form data text field', () => {
+      const form = {
+        data: {
+          prop: 'initialValue'
+        }
+      };
+      const event = {
+        name: 'prop',
+        value: 'newValue'
+      };
+
+      const updated = FormUtils.updateFormDataDefaultAction(form, event);
+      expect(updated.prop).toBe('newValue');
+    });
+
+    it('updates form data nested field', () => {
+      const form = {
+        data: {
+          prop: {
+            nested: 'initialValue'
+          }
+        }
+      };
+      const event = {
+        name: 'prop.nested',
+        value: 'newValue'
+      };
+
+      const updated = FormUtils.updateFormDataDefaultAction(form, event);
+      expect(updated.prop.nested).toBe('newValue');
+    });
+
+    it('updates form data nested field array', () => {
+      const form = {
+        data: {
+          prop: {
+            nested: [{name: 'initialValue', priority: 1}]
+          }
+        }
+      };
+      const event1 = {
+        name: ['prop', 'nested', 0, 'name'],
+        value: 'newValue'
+      };
+
+      const updated = FormUtils.updateFormDataDefaultAction(form, event1);
+      expect(updated.prop.nested[0].name).toBe('newValue');
+      expect(updated.prop.nested[0].priority).toBe(1);
+
+      const form2 = {
+        data: updated
+      };
+      const event2 = {
+        name: ['prop', 'nested', 0, 'priority'],
+        value: 5
+      };
+
+      const updated2 = FormUtils.updateFormDataDefaultAction(form2, event2);
+      expect(updated2.prop.nested[0].name).toBe('newValue');
+      expect(updated2.prop.nested[0].priority).toBe(5);
+    });
+
+    it('updates form data nested object', () => {
+      const form = {
+        data: {
+          prop: {
+            nested: {
+              name: 'initialValue',
+              other: 'notTouched'
+            }
+          }
+        }
+      };
+      const event = {
+        name: 'prop.nested.name',
+        value: 'newValue'
+      };
+
+      const updated = FormUtils.updateFormDataDefaultAction(form, event);
+      expect(updated.prop.nested.name).toBe('newValue');
+      expect(updated.prop.nested.other).toBe('notTouched');
+    });
+
+    it('updates form data event data', () => {
+      const form = {
+        data: {
+          prop: {
+            nested: {
+              name: 'initialValue',
+              other: 'notTouched'
+            }
+          }
+        }
+      };
+      const event = {
+        data: {
+          newProp: 'addedProp',
+          otherProp: 10
+        }
+      };
+
+      const updated = FormUtils.updateFormDataDefaultAction(form, event);
+      expect(updated.prop.nested.name).toBe('initialValue');
+      expect(updated.prop.nested.other).toBe('notTouched');
+      expect(updated.newProp).toBe('addedProp');
+      expect(updated.otherProp).toBe(10);
+    });
+
+    it('should log error if event data is empty', () => {
+      const form = {
+        data: {
+          prop: 'initialValue'
+        }
+      };
+      const event = {
+        invalid: 'noNameNoData'
+      };
+
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {
+        // Intentionally left blank to do nothing
+      });
+      FormUtils.updateFormDataDefaultAction(form, event);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('update event must have a name and value or a data object', event);
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('checkboxProps', () => {
+    it('returns isChecked as boolean true for true string value', () => {
+      const props = FormUtils.checkboxProps('test', makeContext({data: {test: 'true'}}));
+      expect(props.isChecked).toBe(true);
+    });
+
+    it('returns isChecked as boolean false for false string value', () => {
+      const props = FormUtils.checkboxProps('test', makeContext({data: {test: 'false'}}));
+      expect(props.isChecked).toBe(false);
+    });
+
+    it('returns isChecked as boolean true for boolean true value', () => {
+      const props = FormUtils.checkboxProps('test', makeContext({data: {test: true}}));
+      expect(props.isChecked).toBe(true);
+    });
+
+    it('returns isChecked as boolean false for boolean false value', () => {
+      const props = FormUtils.checkboxProps('test', makeContext({data: {test: false}}));
+      expect(props.isChecked).toBe(false);
+    });
+
+    it('returns isChecked as defaultValue when value is undefined', () => {
+      const props = FormUtils.checkboxProps('test', makeContext({data: {}}), true);
+      expect(props.isChecked).toBe(true);
+    });
+
+    it('returns isChecked as false when value is undefined and no defaultValue', () => {
+      const props = FormUtils.checkboxProps('test', makeContext({data: {}}));
+      expect(props.isChecked).toBe(false);
+    });
+  });
+
+  describe('machine', () => {
+    it('When delete service is finish successfully, the dirty flag should be removed', (done) => {
+      const machineId = 'mock';
+
+      // Sets dirty flag
+      global.dirty = [machineId]
+
+      const machineMock = FormUtils.buildFormMachine({id: machineId, initial: 'loaded'})
+        .withConfig({
+          actions: {
+            onDeleteSuccess: () => ({}),
+            validate: () => ({}),
+          },
+          services: {
+            confirmDelete:  () => Promise.resolve('success'),
+            delete: () => Promise.resolve('success')
+          },
+          guards: {
+            canDelete: () => true
+          }
+        });
+
+
+      expect(global.dirty).toEqual([machineId])
+
+      const fetchService = interpret(machineMock).onTransition((state) => {
+        if (state.matches('ended')) {
+          expect(global.dirty).toEqual([]);
+          done();
+        }
+      });
+
+      fetchService.start();
+      fetchService.send({ type: 'CONFIRM_DELETE' });
+    });
+
+    it('When delete service fails, deleteError should be set in context', (done) => {
+      const machineId = 'mock';
+      const deleteErrorMessage = 'Failed to delete resource';
+
+      const machineMock = FormUtils.buildFormMachine({id: machineId, initial: 'loaded'})
+        .withConfig({
+          actions: {
+            validate: () => ({}),
+          },
+          services: {
+            confirmDelete:  () => Promise.resolve('success'),
+            delete: () => Promise.reject(new Error(deleteErrorMessage))
+          },
+          guards: {
+            canDelete: () => true
+          }
+        });
+
+      const fetchService = interpret(machineMock).onTransition((state) => {
+        if (state.matches('loaded') && state.context.deleteError) {
+          // After delete fails, we should be back in loaded state with error
+          expect(state.context.deleteError).toBeDefined();
+          expect(state.context.deleteError).toContain(deleteErrorMessage);
+          fetchService.stop();
+          done();
+        }
+      });
+
+      fetchService.start();
+      fetchService.send({ type: 'CONFIRM_DELETE' });
+    });
+
+    it('When delete is retried after a failure, deleteError should be cleared', (done) => {
+      const machineId = 'mock';
+      const deleteErrorMessage = 'Failed to delete resource';
+      let deleteAttemptCount = 0;
+      let hasSeenError = false;
+
+      const machineMock = FormUtils.buildFormMachine({id: machineId, initial: 'loaded'})
+        .withConfig({
+          actions: {
+            onDeleteSuccess: () => ({}),
+            validate: () => ({}),
+          },
+          services: {
+            confirmDelete:  () => Promise.resolve('success'),
+            delete: () => {
+              deleteAttemptCount++;
+              if (deleteAttemptCount === 1) {
+                // First attempt fails
+                return Promise.reject(new Error(deleteErrorMessage));
+              }
+              // Second attempt succeeds
+              return Promise.resolve('success');
+            }
+          },
+          guards: {
+            canDelete: () => true
+          }
+        });
+
+      const fetchService = interpret(machineMock).onTransition((state) => {
+        if (state.matches('loaded') && state.context.deleteError && !hasSeenError) {
+          // After first delete fails, we should be back in loaded state with error
+          hasSeenError = true;
+          expect(state.context.deleteError).toBeDefined();
+          expect(state.context.deleteError).toContain(deleteErrorMessage);
+          // Retry the delete
+          fetchService.send({ type: 'CONFIRM_DELETE' });
+        } else if (state.matches('delete') && hasSeenError) {
+          // When entering delete state for retry, deleteError should be cleared
+          expect(state.context.deleteError).toBeNull();
+        } else if (state.matches('ended')) {
+          // After successful delete, deleteError should still be null
+          expect(state.context.deleteError).toBeNull();
+          fetchService.stop();
+          done();
+        }
+      });
+
+      fetchService.start();
+      fetchService.send({ type: 'CONFIRM_DELETE' });
+    });
+  });
+});
+
+function makeContext({...ctx}) {
+  return {
+    context: {
+      data: {},
+      isTouched: {},
+      ...ctx
+    }
+  }
+}
