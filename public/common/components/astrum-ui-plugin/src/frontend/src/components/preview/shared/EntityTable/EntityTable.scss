@@ -1,0 +1,121 @@
+
+
+/**
+ * EntityTable Styles
+ *
+ * Generic sortable table component with sticky headers.
+ *
+ * Sticky header pattern:
+ * - border-collapse: separate prevents sticky-header painting artifacts
+ * - position: sticky on thead keeps the entire header section pinned during scroll
+ * - position: sticky on thead th ensures each header cell remains fully opaque
+ * - background-color on both thead and th prevents content from bleeding through
+ * - Parent must NOT have overflow: hidden (breaks sticky positioning)
+ * - Scroll container is provided by parent page (e.g., .capabilities-page__content)
+ * - z-index: 1 ensures header stacks above tbody cells
+ * - Dark theme uses var(--gray-2) for header background (see dark mode section below)
+ */
+
+.entity-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--color-panel-solid);
+  }
+
+  thead th {
+    background-color: var(--color-panel-solid);
+    box-shadow: 0 1px 0 0 var(--gray-6);
+  }
+
+  &__header {
+    user-select: none;
+
+    &--sortable {
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+
+      &:hover {
+        background-color: var(--color-surface-hover);
+      }
+    }
+  }
+
+  &__row {
+    transition: background-color var(--transition-fast);
+
+    &--clickable {
+      cursor: pointer;
+
+      &:hover {
+        background-color: var(--color-surface-hover);
+      }
+
+      &:focus {
+        outline: 2px solid var(--color-primary);
+        outline-offset: -2px;
+      }
+
+      &:focus:not(:focus-visible) {
+        outline: none;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: -2px;
+      }
+    }
+  }
+
+  &__cell {
+    vertical-align: middle;
+    padding: var(--space-3);
+
+    &--arrow {
+      text-align: right;
+      width: 48px;
+    }
+  }
+
+  &__arrow {
+    color: var(--color-text-tertiary);
+    transition: color var(--transition-fast), transform var(--transition-fast);
+
+    .entity-table__row--clickable:hover & {
+      color: var(--color-text-secondary);
+      transform: translateX(2px);
+    }
+  }
+
+  // States
+  &--loading,
+  &--error,
+  &--empty {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Dark mode adjustments
+[data-theme="dark"] {
+  .entity-table {
+    thead {
+      background-color: var(--gray-2);
+    }
+
+    thead th {
+      background-color: var(--gray-2);
+    }
+
+    &__row--clickable:hover {
+      background-color: var(--color-surface-hover);
+    }
+  }
+}
