@@ -1,0 +1,23 @@
+
+
+// GLOBALART INTERNAL
+
+.search-hc-test-page {
+  max-width: 1300px;
+
+  &__live-section {
+    border: 2px dashed var(--amber-7);
+  }
+
+  &__group-heading {
+    color: var(--gray-11);
+    border-bottom: 1px solid var(--gray-4);
+    padding-bottom: var(--space-2);
+  }
+
+  &__cell-wrapper {
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+  }
+}
