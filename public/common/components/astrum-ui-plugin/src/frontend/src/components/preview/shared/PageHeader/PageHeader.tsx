@@ -1,0 +1,178 @@
+
+
+import React from 'react';
+import { Box, Button, Flex, Heading, Text } from '@radix-ui/themes';
+import { ChevronRight } from 'lucide-react';
+
+export interface BreadcrumbItem {
+  /** Display label */
+  label: string;
+  /** Optional link URL or click handler */
+  href?: string;
+  onClick?: () => void;
+}
+
+export interface PageHeaderProps {
+  /** Page title (omit for breadcrumbs-only mode) */
+  title?: string;
+  /** Heading level for the title — defaults to 'h1'. Use 'h2'/'h3' when this header is rendered inside a parent that already provides an h1 (e.g. embedded modal). */
+  headingAs?: 'h1' | 'h2' | 'h3';
+  /**
+   * Optional count/total rendered inline and baseline-aligned to the right of
+   * the title (e.g. the number of items on a list page), visually secondary to
+   * the title. Matches the Repositories list header pattern.
+   */
+  count?: string | number;
+  /** Optional description text */
+  description?: string;
+  /** Optional node rendered inline immediately after the description text (e.g. a URL chip) */
+  descriptionSuffix?: React.ReactNode;
+  /** Optional action buttons (rendered on the right) */
+  actions?: React.ReactNode;
+  /** Optional breadcrumb navigation */
+  breadcrumbs?: BreadcrumbItem[];
+  /** Custom class name */
+  className?: string;
+  /** Children rendered below the header (e.g., filters, search) */
+  children?: React.ReactNode;
+}
+
+/**
+ * PageHeader provides a consistent header for all pages using Radix Themes patterns.
+ *
+ * Features:
+ * - Title and optional description
+ * - Action buttons area
+ * - Breadcrumb navigation
+ * - No padding (parent adds spacing)
+ * - Radix-only layout (no custom CSS)
+ *
+ * Standards:
+ * - No icons in page headers (per radix-component-standards.md)
+ * - Breadcrumbs use Button variant="ghost" size="2" color="blue"
+ * - ChevronRight separator at 14px
+ * - Header has no padding; parent adds mb="4"
+ *
+ * @example
+ * ```tsx
+ * <PageHeader
+ *   title="Repositories"
+ *   description="Manage your Maven, npm, Docker, and other repositories"
+ *   actions={
+ *     <Button variant="solid" size="2">
+ *       Create Repository
+ *     </Button>
+ *   }
+ *   breadcrumbs={[
+ *     { label: 'Settings', onClick: () => navigateTo('/settings') },
+ *     { label: 'Repository' },
+ *   ]}
+ * />
+ * ```
+ */
+export function PageHeader({
+  title,
+  headingAs = 'h1',
+  count,
+  description,
+  descriptionSuffix,
+  actions,
+  breadcrumbs,
+  className = '',
+  children,
+}: PageHeaderProps): JSX.Element {
+  return (
+    <Box className={className} data-testid="page-header">
+      {/* Breadcrumbs */}
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <Box mb="3">
+          <Flex as="nav" gap="1" align="center" aria-label="Breadcrumb">
+            {breadcrumbs.map((item, index) => {
+              const isLast = index === breadcrumbs.length - 1;
+              const isClickable = item.href || item.onClick;
+
+              return (
+                <React.Fragment key={index}>
+                  {isClickable && !isLast ? (
+                    <Button
+                      variant="ghost"
+                      size="2"
+                      color="blue"
+                      onClick={item.onClick}
+                    >
+                      {item.label}
+                    </Button>
+                  ) : (
+                    <Text
+                      size="2"
+                      color={isLast ? 'gray' : undefined}
+                      weight={isLast ? 'medium' : undefined}
+                      aria-current={isLast ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </Text>
+                  )}
+                  {!isLast && (
+                    <ChevronRight
+                      size={14}
+                      color="var(--gray-a9)"
+                      aria-hidden="true"
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </Flex>
+        </Box>
+      )}
+
+      {/* Main Header — omitted when title is absent (breadcrumbs-only mode) */}
+      {(title || actions) && (
+        <Flex align="center" justify="between" gap="4">
+          <Flex direction="column" gap="1">
+            {title && (
+              // Title + optional inline count, baseline-aligned (see Repositories header).
+              <Flex align="baseline" gap="2">
+                <Heading as={headingAs} size="6" weight="bold">
+                  {title}
+                </Heading>
+                {count !== undefined && (
+                  <Text size="2" color="gray">
+                    {count}
+                  </Text>
+                )}
+              </Flex>
+            )}
+            {description && (
+              descriptionSuffix ? (
+                <Flex align="center" gap="2">
+                  <Text as="p" size="2" color="gray" style={{ margin: 0 }}>
+                    {description}
+                  </Text>
+                  <Box style={{ flexShrink: 0 }}>{descriptionSuffix}</Box>
+                </Flex>
+              ) : (
+                <Text as="p" size="2" color="gray">
+                  {description}
+                </Text>
+              )
+            )}
+          </Flex>
+
+          {/* Actions */}
+          {actions && (
+            <Flex gap="2" style={{ flexShrink: 0 }}>
+              {actions}
+            </Flex>
+          )}
+        </Flex>
+      )}
+
+      {/* Children (e.g., filters, search inputs) */}
+      {children && <Box mt="3">{children}</Box>}
+    </Box>
+  );
+}
+
+export default PageHeader;
+
