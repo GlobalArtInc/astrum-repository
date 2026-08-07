@@ -1,0 +1,51 @@
+
+
+/**
+ * StatusBadge Styles
+ * 
+ * Generic status indicator component with multiple states.
+ */
+
+.status-badge {
+  &__indicator {
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  &__reason {
+    font-style: italic;
+    margin-left: var(--space-4);
+  }
+
+  // Status colors
+  &--online &__indicator,
+  &--success &__indicator {
+    color: var(--color-success);
+  }
+
+  &--offline &__indicator,
+  &--error &__indicator {
+    color: var(--color-error);
+  }
+
+  &--warning &__indicator {
+    color: var(--color-warning);
+  }
+
+  &--unknown &__indicator {
+    color: var(--color-text-tertiary);
+  }
+
+  &--info &__indicator {
+    color: var(--color-info);
+  }
+
+  // Size variants
+  &--small {
+    .status-badge__reason {
+      margin-left: var(--space-3);
+    }
+  }
+}
+
+
