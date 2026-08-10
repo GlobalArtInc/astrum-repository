@@ -1,0 +1,135 @@
+
+
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Box, Text } from '@radix-ui/themes';
+import { AlertCircle } from 'lucide-react';
+
+import './SettingsTextArea.scss';
+
+/**
+ * SettingsTextArea - Multi-line text input
+ * 
+ * @example
+ * <SettingsTextArea
+ *   name="nonProxyHosts"
+ *   label="Non-Proxy Hosts"
+ *   value={nonProxyHosts}
+ *   onChange={setNonProxyHosts}
+ *   rows={5}
+ *   helpText="One host pattern per line. Use * as wildcard."
+ * />
+ */
+export function SettingsTextArea({
+  name,
+  label,
+  value,
+  onChange,
+  placeholder = '',
+  helpText = '',
+  error = '',
+  required = false,
+  disabled = false,
+  readOnly = false,
+  rows = 4,
+  maxLength,
+  className = '',
+  inputRef,
+  onBlur,
+  onFocus,
+  monospace = false,
+}) {
+  const textareaId = `settings-textarea-${name}`;
+  const helpId = `settings-help-${name}`;
+  const errorId = `settings-error-${name}`;
+
+  const handleChange = (e) => {
+    if (onChange) {
+      onChange(e.target.value, e);
+    }
+  };
+
+  return (
+    <Box className={`settings-textarea ${error ? 'settings-textarea--error' : ''} ${className}`.trim()}>
+      {label && (
+        <label htmlFor={textareaId} className="settings-textarea__label">
+          {label}
+          {required && <span className="settings-textarea__required">*</span>}
+        </label>
+      )}
+      {helpText && !error && (
+        <Text as="p" size="1" id={helpId} className="settings-textarea__help">
+          {helpText}
+        </Text>
+      )}
+      <textarea
+        ref={inputRef}
+        id={textareaId}
+        name={name}
+        value={value}
+        onChange={handleChange}
+        onBlur={onBlur}
+        onFocus={onFocus}
+        placeholder={placeholder}
+        disabled={disabled}
+        readOnly={readOnly}
+        required={required}
+        rows={rows}
+        maxLength={maxLength}
+        aria-describedby={`${helpText ? helpId : ''} ${error ? errorId : ''}`.trim() || undefined}
+        aria-invalid={!!error}
+        data-testid={`textarea-${name}`}
+        className={`settings-textarea__input ${monospace ? 'settings-textarea__input--mono' : ''}`}
+      />
+      {error && (
+        <Text as="p" size="1" id={errorId} className="settings-textarea__error">
+          <AlertCircle size={14} />
+          {error}
+        </Text>
+      )}
+    </Box>
+  );
+}
+
+SettingsTextArea.propTypes = {
+  /** Field name for form submission */
+  name: PropTypes.string.isRequired,
+  /** Label text displayed above textarea */
+  label: PropTypes.string,
+  /** Current input value */
+  value: PropTypes.string,
+  /** Change handler (receives value and event) */
+  onChange: PropTypes.func,
+  /** Placeholder text */
+  placeholder: PropTypes.string,
+  /** Help text displayed below textarea */
+  helpText: PropTypes.string,
+  /** Error message */
+  error: PropTypes.string,
+  /** Mark field as required */
+  required: PropTypes.bool,
+  /** Disable textarea */
+  disabled: PropTypes.bool,
+  /** Make textarea read-only */
+  readOnly: PropTypes.bool,
+  /** Number of visible text lines */
+  rows: PropTypes.number,
+  /** Maximum character length */
+  maxLength: PropTypes.number,
+  /** Additional CSS class */
+  className: PropTypes.string,
+  /** Ref for textarea element */
+  inputRef: PropTypes.oneOfType([
+    PropTypes.func,
+    PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+  ]),
+  /** Blur handler */
+  onBlur: PropTypes.func,
+  /** Focus handler */
+  onFocus: PropTypes.func,
+  /** Use monospace font */
+  monospace: PropTypes.bool,
+};
+
+export default SettingsTextArea;
+

@@ -1,0 +1,166 @@
+
+
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Text, TextField } from '@radix-ui/themes';
+import { AlertCircle } from 'lucide-react';
+
+import './SettingsTextInput.scss';
+
+/**
+ * SettingsTextInput - Single-line text input with label, help text, and validation
+ *
+ * @example
+ * <SettingsTextInput
+ *   name="hostname"
+ *   label="SMTP Hostname"
+ *   value={hostname}
+ *   onChange={setHostname}
+ *   placeholder="smtp.example.com"
+ *   helpText="The hostname of your SMTP server"
+ *   required
+ * />
+ */
+export function SettingsTextInput({
+  name,
+  label,
+  value,
+  onChange,
+  placeholder = '',
+  helpText = '',
+  error = '',
+  errorAction = null,
+  alwaysShowHelpText = false,
+  required = false,
+  disabled = false,
+  readOnly = false,
+  type = 'text',
+  maxLength,
+  min,
+  max,
+  step,
+  autoComplete = 'off',
+  className = '',
+  monospace = false,
+  inputRef,
+  onBlur,
+  onFocus,
+  onKeyDown,
+}) {
+  const inputId = `settings-input-${name}`;
+  const helpId = `settings-help-${name}`;
+  const errorId = `settings-error-${name}`;
+
+  const handleChange = (e) => {
+    if (onChange) {
+      onChange(e.target.value, e);
+    }
+  };
+
+  return (
+    <div className={`settings-text-input ${error ? 'settings-text-input--error' : ''} ${className}`.trim()}>
+      {label && (
+        <label htmlFor={inputId} className="settings-text-input__label">
+          {label}
+          {required && <span className="settings-text-input__required" aria-hidden="true">*</span>}
+        </label>
+      )}
+      {helpText && (!error || alwaysShowHelpText) && (
+        <Text as="p" size="1" id={helpId} className="settings-text-input__help">
+          {helpText}
+        </Text>
+      )}
+      <TextField.Root
+        ref={inputRef}
+        id={inputId}
+        name={name}
+        type={type}
+        value={value}
+        onChange={handleChange}
+        onBlur={onBlur}
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
+        onWheel={(e) => { if (type === 'number') e.currentTarget.blur(); }}
+        placeholder={placeholder}
+        disabled={disabled}
+        readOnly={readOnly}
+        required={required}
+        maxLength={maxLength}
+        min={min}
+        max={max}
+        step={step}
+        autoComplete={autoComplete}
+        aria-describedby={`${helpText ? helpId : ''} ${error ? errorId : ''}`.trim() || undefined}
+        aria-invalid={!!error}
+        aria-required={required}
+        data-testid={`input-${name}`}
+        color={error ? 'red' : undefined}
+        size="2"
+        className={monospace ? 'settings-text-input__input--mono' : undefined}
+      />
+      {error && (
+        <Text as="p" size="1" id={errorId} className="settings-text-input__error">
+          <AlertCircle size={14} aria-hidden="true" />
+          {error}
+          {errorAction}
+        </Text>
+      )}
+    </div>
+  );
+}
+
+SettingsTextInput.propTypes = {
+  /** Field name for form submission */
+  name: PropTypes.string.isRequired,
+  /** Label text displayed above input */
+  label: PropTypes.string,
+  /** Current input value */
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  /** Change handler (receives value and event) */
+  onChange: PropTypes.func,
+  /** Placeholder text */
+  placeholder: PropTypes.string,
+  /** Help text displayed between label and input */
+  helpText: PropTypes.string,
+  /** Error message displayed below input (replaces help text when present) */
+  error: PropTypes.string,
+  /** Optional action node rendered inline after the error message (e.g. a "Suggest" link) */
+  errorAction: PropTypes.node,
+  /** Keep helpText visible even when an error is shown */
+  alwaysShowHelpText: PropTypes.bool,
+  /** Mark field as required */
+  required: PropTypes.bool,
+  /** Disable input */
+  disabled: PropTypes.bool,
+  /** Make input read-only */
+  readOnly: PropTypes.bool,
+  /** Input type (text, email, number, url, tel) */
+  type: PropTypes.oneOf(['text', 'email', 'number', 'url', 'tel', 'password']),
+  /** Maximum character length */
+  maxLength: PropTypes.number,
+  /** Minimum value (for number type) */
+  min: PropTypes.number,
+  /** Maximum value (for number type) */
+  max: PropTypes.number,
+  /** Step value (for number type) */
+  step: PropTypes.number,
+  /** Autocomplete attribute */
+  autoComplete: PropTypes.string,
+  /** Additional CSS class */
+  className: PropTypes.string,
+  /** Use monospace font, for code-like values such as cron expressions */
+  monospace: PropTypes.bool,
+  /** Ref for input element */
+  inputRef: PropTypes.oneOfType([
+    PropTypes.func,
+    PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+  ]),
+  /** Blur handler */
+  onBlur: PropTypes.func,
+  /** Focus handler */
+  onFocus: PropTypes.func,
+  /** Key down handler */
+  onKeyDown: PropTypes.func,
+};
+
+export default SettingsTextInput;
