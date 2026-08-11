@@ -1,0 +1,163 @@
+
+
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { Theme } from '@radix-ui/themes';
+import { FeatureGate, withFeatureGate, withCloudExcluded } from '../FeatureGate';
+
+jest.mock('../../../../interface/ExtJS', () => ({
+  ExtJS: {
+    state: jest.fn(),
+    useState: jest.fn((init) => (typeof init === 'function' ? init() : init)),
+    checkPermission: jest.fn().mockReturnValue(true),
+  },
+}));
+
+// Control window.location to simulate production vs development
+const originalLocation = window.location;
+
+beforeEach(() => {
+  delete window.location;
+  window.location = {
+    hostname: 'production.example.com',
+    search: '',
+    href: 'https://production.example.com/path',
+  };
+});
+
+afterEach(() => {
+  window.location = originalLocation;
+});
+
+describe('FeatureGate', () => {
+  describe('with an enabled feature key', () => {
+    it('renders children', () => {
+      render(
+        <FeatureGate featureKey="support.logs" featureName="Logs">
+          <div data-testid="child-content">Child content</div>
+        </FeatureGate>
+      );
+
+      expect(screen.getByTestId('child-content')).toBeInTheDocument();
+    });
+
+    it('does not render the not-available page', () => {
+      render(
+        <FeatureGate featureKey="support.logs" featureName="Logs">
+          <div>Child content</div>
+        </FeatureGate>
+      );
+
+      expect(screen.queryByText('Not available in preview')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('with a disabled feature key', () => {
+    // Needs a flag that is genuinely still disabled. This fixture has already been moved
+    // twice — security.anonymous (ASTRUM-51085), security.oauth2 (ASTRUM-54266) — and
+    // security.sslcertificates is now enabled too (ASTRUM-54265). system.upgrade is the last
+    // Coming Soon flag; whoever enables it will need a test-only flag instead.
+    it('renders SettingsNotAvailablePage instead of children', () => {
+      render(
+        <FeatureGate featureKey="system.upgrade" featureName="Upgrade">
+          <div data-testid="child-content">Child content</div>
+        </FeatureGate>
+      );
+
+      expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
+      expect(screen.getByText('Not available in preview')).toBeInTheDocument();
+    });
+
+    it('passes featureName to SettingsNotAvailablePage', () => {
+      render(
+        <FeatureGate featureKey="system.upgrade" featureName="Upgrade">
+          <div>Child content</div>
+        </FeatureGate>
+      );
+
+      expect(
+        screen.getByText(/Upgrade is still being prepared for the Astrum One UI/i)
+      ).toBeInTheDocument();
+    });
+  });
+});
+
+describe('withFeatureGate', () => {
+  function SamplePage() {
+    return <div data-testid="sample-page">Sample page content</div>;
+  }
+  SamplePage.displayName = 'SamplePage';
+
+  describe('with an enabled feature key', () => {
+    it('renders the wrapped component', () => {
+      const GatedPage = withFeatureGate(SamplePage, 'support.logs', 'Logs');
+      render(<GatedPage />);
+
+      expect(screen.getByTestId('sample-page')).toBeInTheDocument();
+    });
+  });
+
+  describe('with a disabled feature key', () => {
+    it('renders SettingsNotAvailablePage with the correct featureName', () => {
+      const GatedPage = withFeatureGate(SamplePage, 'system.upgrade', 'Upgrade');
+      render(<GatedPage />);
+
+      expect(screen.queryByTestId('sample-page')).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/Upgrade is still being prepared for the Astrum One UI/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('displayName', () => {
+    it('sets displayName using the wrapped component displayName', () => {
+      const GatedPage = withFeatureGate(SamplePage, 'support.logs', 'Logs');
+      expect(GatedPage.displayName).toBe('FeatureGate(SamplePage)');
+    });
+
+    it('falls back to component name when displayName is not set', () => {
+      function UnnamedComponent() {
+        return <div />;
+      }
+      const GatedPage = withFeatureGate(UnnamedComponent, 'support.logs', 'Logs');
+      expect(GatedPage.displayName).toBe('FeatureGate(UnnamedComponent)');
+    });
+  });
+});
+
+describe('withCloudExcluded', () => {
+  const { ExtJS } = require('../../../../interface/ExtJS');
+
+  function TestWrapper({ children }: { children: React.ReactNode }) {
+    return <Theme>{children}</Theme>;
+  }
+
+  function Hello() {
+    return <div>hello</div>;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('renders the wrapped component when not on cloud', () => {
+    ExtJS.state.mockReturnValue({ getValue: jest.fn().mockReturnValue(false) });
+    const Gated = withCloudExcluded(Hello, 'HTTP');
+    render(<Gated />, { wrapper: TestWrapper });
+    expect(screen.getByText('hello')).toBeInTheDocument();
+  });
+
+  it('renders SettingsNotAvailablePage when on cloud', () => {
+    ExtJS.state.mockReturnValue({ getValue: jest.fn().mockReturnValue(true) });
+    const Gated = withCloudExcluded(Hello, 'HTTP');
+    render(<Gated />, { wrapper: TestWrapper });
+    expect(screen.queryByText('hello')).not.toBeInTheDocument();
+    expect(screen.getByText(/HTTP/)).toBeInTheDocument();
+  });
+
+  it('sets displayName on the returned component', () => {
+    const Gated = withCloudExcluded(Hello, 'HTTP');
+    expect(Gated.displayName).toBe('CloudExcluded(Hello)');
+  });
+});
