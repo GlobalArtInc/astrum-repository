@@ -1,0 +1,26 @@
+
+
+.wizard-form {
+  // Remove divider above progress bar (keep divider below progress bar)
+  .settings-form__action-bar {
+    border-bottom: none;
+  }
+
+  &__progress-indicator {
+    width: 100%;
+    min-width: 400px;
+  }
+
+  &__dividers {
+    pointer-events: none;
+  }
+
+  &__divider {
+    width: 1px;
+    background-color: var(--color-border);
+  }
+
+  &__content {
+    min-height: 300px;
+  }
+}
