@@ -1,0 +1,143 @@
+
+
+.as-quick-action-stats {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.as-quick-action-stat-card--zero-cleanup,
+.as-quick-action-stat-card--unhealthy {
+  border-left: 4px solid var(--tomato-9);
+}
+
+.as-quick-action-stat-card--healthy {
+  border-left: 4px solid var(--green-9);
+}
+
+.as-quick-action-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  column-gap: var(--space-4, 1rem);
+  row-gap: var(--space-4, 1rem);
+  width: 100%;
+  align-items: stretch;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.as-quick-action-stat-card {
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+
+  &:hover {
+    background-color: var(--color-surface-hover);
+  }
+
+  &__link {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  &__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  &__title {
+    margin: 0;
+  }
+
+  &__value {
+    font-variant-numeric: tabular-nums;
+
+    .rt-Heading {
+      margin: 0;
+    }
+  }
+
+  &__number {
+    margin: 0;
+  }
+
+  &__spinner {
+    animation: as-spin 1s linear infinite;
+    color: var(--color-text-tertiary, #737373);
+  }
+
+  &__icon--healthy {
+    color: var(--green-9);
+    flex-shrink: 0;
+  }
+
+  &__icon--unhealthy {
+    color: var(--red-9);
+    flex-shrink: 0;
+  }
+
+  &__icon--warning {
+    color: var(--orange-9);
+    flex-shrink: 0;
+  }
+
+  &__error {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+/* System Health progress bar */
+.as-system-health__progress {
+  width: 100%;
+}
+
+.as-system-health__number--unhealthy {
+  color: var(--tomato-9);
+}
+
+.as-system-health__progress-bar {
+  height: 8px;
+  border-radius: var(--radius-1);
+  overflow: hidden;
+  display: flex;
+  width: 100%;
+}
+
+.as-system-health__progress-segment {
+  min-width: 0;
+  transition: flex 0.2s ease;
+
+  &--unhealthy {
+    background-color: var(--tomato-9);
+  }
+
+  &--healthy {
+    background-color: var(--blue-9);
+  }
+}
+
+/* When total is 0, both segments show gray */
+.as-system-health__progress-bar--empty {
+  .as-system-health__progress-segment--unhealthy,
+  .as-system-health__progress-segment--healthy {
+    background-color: var(--gray-6);
+  }
+}

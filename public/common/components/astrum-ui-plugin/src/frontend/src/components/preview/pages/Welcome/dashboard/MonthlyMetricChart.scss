@@ -1,0 +1,34 @@
+
+
+.as-monthly-chart {
+  width: 100%;
+
+  .recharts-wrapper {
+    overflow: visible;
+    height: 100%; /* Fill the 100px parent so Recharts can use percentage height */
+  }
+}
+
+.as-monthly-chart--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-9);
+  font-size: 0.875rem;
+}
+
+.as-monthly-chart__tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--gray-2);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-2);
+
+  strong {
+    font-weight: 600;
+  }
+}
