@@ -1,0 +1,21 @@
+
+
+.as-status-badge {
+  &__indicator {
+    fill: currentColor;
+
+    &.as-status-badge--online {
+      color: var(--green-9, #30a46c);
+    }
+
+    &.as-status-badge--offline {
+      color: var(--red-9, #e5484d);
+    }
+  }
+
+  &__reason {
+    font-style: italic;
+    margin-left: 1rem;
+  }
+}
+

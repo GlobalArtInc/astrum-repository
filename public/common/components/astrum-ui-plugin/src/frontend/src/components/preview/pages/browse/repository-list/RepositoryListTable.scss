@@ -1,0 +1,53 @@
+
+
+/**
+ * Repository List Table Styles
+ *
+ * Clickable row pattern matches EntityTable / table skill:
+ * - cursor: pointer, hover background, focus-visible outline
+ * - First data column is link-cell; actions column is last
+ */
+
+.repository-list-table {
+  width: 100%;
+
+  &__row {
+    transition: background-color var(--transition-fast);
+
+    &--clickable {
+      cursor: pointer;
+
+      &:hover {
+        background-color: var(--color-surface-hover);
+      }
+
+      &:focus {
+        outline: 2px solid var(--color-primary);
+        outline-offset: -2px;
+      }
+
+      &:focus:not(:focus-visible) {
+        outline: none;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: -2px;
+      }
+    }
+  }
+
+  .table-cell-centered {
+    text-align: center;
+  }
+}
+
+// Dark mode
+:root[data-theme="dark"] {
+  .repository-list-table {
+    &__row--clickable:hover {
+      background-color: var(--color-surface-hover);
+    }
+  }
+}
+
