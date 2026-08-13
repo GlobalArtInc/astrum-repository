@@ -1,0 +1,52 @@
+
+
+// Success icon animation
+@keyframes copy-url-success-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// Copy URL Button
+.as-copy-url-button {
+  // Base icon styling
+  .as-copy-url-button__icon {
+    transition: opacity 150ms ease, transform 150ms ease;
+  }
+
+  // Hover effect
+  &:hover:not(:disabled) {
+    .as-copy-url-button__icon {
+      transform: scale(1.1);
+    }
+  }
+
+  // Focus visible styling
+  &:focus-visible {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 2px;
+  }
+
+  // Disabled state
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Copied state
+.as-copy-url-button--copied {
+  .as-copy-url-button__icon--success {
+    animation: copy-url-success-pop 200ms ease-out;
+    color: var(--color-success, #16a34a);
+  }
+}
+
