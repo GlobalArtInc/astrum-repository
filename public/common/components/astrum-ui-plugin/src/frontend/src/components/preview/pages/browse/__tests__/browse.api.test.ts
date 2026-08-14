@@ -1,0 +1,730 @@
+
+
+// Mock the REST API from the relative path that the source imports from
+// Note: jest.mock is hoisted, so we use jest.fn() inside the factory
+jest.mock('../../../../../interface/api', () => ({
+  restClient: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  parseApiError: jest.fn((err) => ({
+    message: err?.response?.data?.message || err?.message || 'An error occurred',
+  })),
+  ENDPOINTS: {
+    REPOSITORIES: '/service/rest/v1/repositories',
+    COMPONENTS: '/service/rest/v1/components',
+    ASSETS: '/service/rest/v1/assets',
+    SEARCH: '/service/rest/v1/search',
+    REPOSITORY_BROWSE: (repositoryName: string) => `/service/rest/v1/repositories/${repositoryName}/browse`,
+  },
+  urlBuilder: {
+    components: {
+      get: (id: string) => `/service/rest/v1/components/${id}`,
+      delete: (id: string) => `/service/rest/v1/components/${id}`,
+    },
+    assets: {
+      get: (id: string) => `/service/rest/v1/assets/${id}`,
+      delete: (id: string) => `/service/rest/v1/assets/${id}`,
+    },
+    query: (baseUrl: string, params: Record<string, string | number | boolean | undefined>) => {
+      const searchParams = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined) {
+          searchParams.append(key, String(value));
+        }
+      }
+      const queryString = searchParams.toString();
+      return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+    },
+  },
+  encodeRepositoryItemId: jest.fn((repositoryName: string, rawId: string) => rawId),
+}));
+
+// fetchAsset uses ExtDirect (coreui_Component.readAsset) — mock the helper here.
+jest.mock('../../../../../interface/ExtAPIUtils', () => ({
+  __esModule: true,
+  default: {
+    extAPIRequest: jest.fn(),
+    checkForErrorAndExtract: jest.fn(),
+  },
+}));
+
+import {
+  fetchRepositories,
+  fetchBrowseNodes,
+  fetchComponent,
+  fetchAsset,
+  canDeleteAsset,
+  canDeleteComponent,
+  canDeleteFolder,
+  deleteComponent,
+  deleteAsset,
+  deleteFolder,
+  searchInRepository,
+  showSuccessMessage,
+  showErrorMessage,
+} from '../browse.api';
+import { restClient, encodeRepositoryItemId } from '../../../../../interface/api';
+import ExtAPIUtils from '../../../../../interface/ExtAPIUtils';
+import type { ComponentXO } from '../browse.types';
+
+// Get mock references
+const mockRestClient = restClient as jest.Mocked<typeof restClient>;
+const mockEncode = encodeRepositoryItemId as jest.Mock;
+const mockExtAPI = ExtAPIUtils as unknown as {
+  extAPIRequest: jest.Mock;
+  checkForErrorAndExtract: jest.Mock;
+};
+
+describe('browse.api', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('fetchRepositories', () => {
+    it('returns repository list on success', async () => {
+      const mockRestRepositories = [
+        { name: 'maven-central', type: 'proxy', format: 'maven2' },
+        { name: 'npm-hosted', type: 'hosted', format: 'npm' },
+      ];
+
+      mockRestClient.get.mockResolvedValue(mockRestRepositories);
+
+      const result = await fetchRepositories();
+
+      expect(mockRestClient.get).toHaveBeenCalledWith('/service/rest/v1/repositories');
+      expect(result).toEqual([
+        { id: 'maven-central', name: 'maven-central', format: 'maven2', type: 'proxy' },
+        { id: 'npm-hosted', name: 'npm-hosted', format: 'npm', type: 'hosted' },
+      ]);
+    });
+
+    it('returns empty array when no data', async () => {
+      mockRestClient.get.mockResolvedValue([]);
+
+      const result = await fetchRepositories();
+
+      expect(result).toEqual([]);
+    });
+
+    it('throws error on failure', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRestClient.get.mockRejectedValue(new Error('Network error'));
+
+      await expect(fetchRepositories()).rejects.toThrow('Network error');
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('fetchBrowseNodes', () => {
+    it('returns nodes for path on success', async () => {
+      const mockRestNodes = [
+        { id: 'org', text: 'org', type: 'folder', leaf: false },
+        { id: 'com', text: 'com', type: 'folder', leaf: false },
+      ];
+
+      mockRestClient.get.mockResolvedValue(mockRestNodes);
+
+      const result = await fetchBrowseNodes({ repositoryName: 'maven-central', node: '/' });
+
+      expect(mockRestClient.get).toHaveBeenCalledWith(
+        '/service/rest/v1/repositories/maven-central/browse?path=%2F'
+      );
+      expect(result).toEqual([
+        { id: 'org', text: 'org', type: 'folder', leaf: false },
+        { id: 'com', text: 'com', type: 'folder', leaf: false },
+      ]);
+    });
+
+    it('handles nested path', async () => {
+      const mockRestNodes = [
+        { id: 'org/apache/maven', text: 'maven', type: 'component', leaf: false, componentId: '123' },
+      ];
+
+      mockRestClient.get.mockResolvedValue(mockRestNodes);
+
+      const result = await fetchBrowseNodes({
+        repositoryName: 'maven-central',
+        node: '/org/apache',
+      });
+
+      expect(mockRestClient.get).toHaveBeenCalledWith(
+        '/service/rest/v1/repositories/maven-central/browse?path=%2Forg%2Fapache'
+      );
+      expect(result).toEqual([
+        { id: 'org/apache/maven', text: 'maven', type: 'component', leaf: false, componentId: '123' },
+      ]);
+    });
+
+    it('returns empty array on error', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRestClient.get.mockRejectedValue(new Error('Network error'));
+
+      await expect(
+        fetchBrowseNodes({ repositoryName: 'maven-central', node: '/' })
+      ).rejects.toThrow('Network error');
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('fetchComponent', () => {
+    it('returns component data on success', async () => {
+      const mockRestComponent = {
+        id: 'comp-123',
+        repository: 'maven-central',
+        format: 'maven2',
+        group: 'org.apache',
+        name: 'commons-lang3',
+        version: '3.12.0',
+        assets: [],
+      };
+
+      mockRestClient.get.mockResolvedValue(mockRestComponent);
+
+      const result = await fetchComponent('comp-123', 'maven-central');
+
+      expect(mockRestClient.get).toHaveBeenCalledWith('/service/rest/v1/components/comp-123');
+      expect(result).toEqual({
+        id: 'comp-123',
+        repositoryName: 'maven-central',
+        format: 'maven2',
+        group: 'org.apache',
+        name: 'commons-lang3',
+        version: '3.12.0',
+      });
+    });
+
+    it('throws error on failure', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRestClient.get.mockRejectedValue({ message: 'Component not found' });
+
+      await expect(fetchComponent('invalid-id', 'maven-central')).rejects.toThrow(
+        'Component not found'
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('fetchAsset', () => {
+    it('calls ExtDirect coreui_Component.readAsset with raw assetId and repository', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue({
+        id: 'asset-456',
+        name: '/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar',
+        format: 'maven2',
+        repositoryName: 'maven-central',
+        contentType: 'application/java-archive',
+        size: 587402,
+        attributes: {
+          maven2: { groupId: 'org.apache.commons', artifactId: 'commons-lang3', version: '3.12.0' },
+          checksum: { sha1: 'aaa', sha256: 'bbb' },
+        },
+      });
+
+      const result = await fetchAsset('asset-456', 'maven-central');
+
+      expect(mockExtAPI.extAPIRequest).toHaveBeenCalledWith('coreui_Component', 'readAsset', {
+        data: ['asset-456', 'maven-central'],
+      });
+      expect(result).toMatchObject({
+        id: 'asset-456',
+        repositoryName: 'maven-central',
+        format: 'maven2',
+        name: '/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar',
+        path: '/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar',
+        downloadUrl: '/repository/maven-central/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar',
+        contentType: 'application/java-archive',
+        size: 587402,
+        // checksum lifted from attributes.checksum to top level for the Checksums section
+        checksum: { sha1: 'aaa', sha256: 'bbb' },
+      });
+    });
+
+    it('encodes special characters in download URL path segments', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue({
+        id: 'asset-special',
+        name: '/path with spaces/file+name.tgz',
+        format: 'npm',
+        repositoryName: 'my repo',
+        attributes: {},
+      });
+
+      const result = await fetchAsset('asset-special', 'my repo');
+
+      // Repository name and path segments should be URL-encoded
+      expect(result.downloadUrl).toBe('/repository/my%20repo/path%20with%20spaces/file%2Bname.tgz');
+    });
+
+    it('preserves the full attributes bag including firewall facet (ASTRUM-52920)', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue({
+        id: 'asset-fw',
+        name: '/debug/-/debug-4.3.7.tgz',
+        format: 'npm',
+        repositoryName: 'example2',
+        attributes: {
+          npm: { name: 'debug', version: '4.3.7' },
+          firewall: {
+            firewall_audited: 'true',
+            quarantine_status: 'released',
+            policy_violations_count: '0',
+          },
+          content: { last_modified: 1234567890 },
+        },
+      });
+
+      const result = await fetchAsset('asset-fw', 'example2');
+
+      expect(result.attributes).toEqual({
+        npm: { name: 'debug', version: '4.3.7' },
+        firewall: {
+          firewall_audited: 'true',
+          quarantine_status: 'released',
+          policy_violations_count: '0',
+        },
+        content: { last_modified: 1234567890 },
+      });
+    });
+
+    it('maps date fields and exposes blobUpdated/createdBy/registryUrl', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue({
+        id: 'asset-789',
+        name: '/com/example/lib/1.0/lib-1.0.jar',
+        format: 'maven2',
+        repositoryName: 'maven-hosted',
+        size: 12345,
+        contentType: 'application/java-archive',
+        blobCreated: '2024-01-01T00:00:00Z',
+        blobUpdated: '2024-01-02T00:00:00Z',
+        lastDownloaded: '2024-01-03T00:00:00Z',
+        blobRef: 'default@abc123',
+        componentId: 'comp-1',
+        createdBy: 'admin',
+        createdByIp: '127.0.0.1',
+        registryUrl: 'docker.example.com:443',
+        attributes: { maven2: {} },
+      });
+
+      const result = await fetchAsset('asset-789', 'maven-hosted');
+
+      expect(result).toMatchObject({
+        blobCreated: '2024-01-01T00:00:00Z',
+        blobUpdated: '2024-01-02T00:00:00Z',
+        lastDownloaded: '2024-01-03T00:00:00Z',
+        blobRef: 'default@abc123',
+        componentId: 'comp-1',
+        createdBy: 'admin',
+        createdByIp: '127.0.0.1',
+        registryUrl: 'docker.example.com:443',
+      });
+    });
+
+    it('converts numeric timestamps (milliseconds) to ISO strings', async () => {
+      // Unix timestamp in milliseconds (June 11, 2026)
+      const timestampMs = 1749649800000;
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue({
+        id: 'asset-ts',
+        name: '/test/file.jar',
+        format: 'maven2',
+        repositoryName: 'maven-central',
+        blobCreated: timestampMs,
+        blobUpdated: timestampMs,
+        lastDownloaded: timestampMs,
+        attributes: {},
+      });
+
+      const result = await fetchAsset('asset-ts', 'maven-central');
+
+      // Verify numeric timestamps are converted to ISO strings
+      expect(result.blobCreated).toBe(new Date(timestampMs).toISOString());
+      expect(result.blobUpdated).toBe(new Date(timestampMs).toISOString());
+      expect(result.lastDownloaded).toBe(new Date(timestampMs).toISOString());
+    });
+
+    it('throws when ExtDirect returns no data', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue(undefined);
+
+      await expect(fetchAsset('missing', 'maven-central')).rejects.toThrow('Asset not found');
+      consoleSpy.mockRestore();
+    });
+
+    it('throws when ExtDirect helper throws (e.g. exception or success=false)', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockExtAPI.checkForErrorAndExtract.mockImplementation(() => {
+        throw new Error('Asset not found');
+      });
+
+      await expect(fetchAsset('invalid-id', 'maven-central')).rejects.toThrow('Asset not found');
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('canDeleteAsset (ASTRUM-53861)', () => {
+    const ASSET_ID = 'asset-42';
+    const REPO_NAME = 'maven-hosted';
+
+    it('returns true when the server responds with true', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue(true);
+
+      const result = await canDeleteAsset(ASSET_ID, REPO_NAME);
+
+      expect(mockExtAPI.extAPIRequest).toHaveBeenCalledWith('coreui_Component', 'canDeleteAsset', {
+        data: [ASSET_ID, REPO_NAME],
+      });
+      expect(result).toBe(true);
+    });
+
+    it('returns false when the server responds with false', async () => {
+      // extractResult() with no default coerces false → undefined; canDeleteAsset
+      // must not read that as a truthy result.
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue(undefined);
+
+      expect(await canDeleteAsset(ASSET_ID, REPO_NAME)).toBe(false);
+    });
+
+    it('returns false and logs when the server throws', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockExtAPI.checkForErrorAndExtract.mockImplementation(() => {
+        throw new Error('repo not found');
+      });
+
+      expect(await canDeleteAsset(ASSET_ID, REPO_NAME)).toBe(false);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('canDeleteComponent (ASTRUM-53861)', () => {
+    const COMPONENT: ComponentXO = {
+      id: 'comp-9',
+      repositoryName: 'maven-hosted',
+      format: 'maven2',
+      group: 'com.example',
+      name: 'demo',
+      version: '1.0.0',
+    };
+
+    it('sends JSON-stringified ComponentXO to the server', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue(true);
+
+      const result = await canDeleteComponent(COMPONENT);
+
+      expect(mockExtAPI.extAPIRequest).toHaveBeenCalledWith(
+        'coreui_Component',
+        'canDeleteComponent',
+        { data: [JSON.stringify(COMPONENT)] }
+      );
+      expect(result).toBe(true);
+    });
+
+    it('returns false when the server denies', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue(undefined);
+
+      expect(await canDeleteComponent(COMPONENT)).toBe(false);
+    });
+
+    it('returns false and logs when the server throws', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockExtAPI.checkForErrorAndExtract.mockImplementation(() => {
+        throw new Error('component gone');
+      });
+
+      expect(await canDeleteComponent(COMPONENT)).toBe(false);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('canDeleteFolder (ASTRUM-53861)', () => {
+    const FOLDER_PATH = '/org/apache';
+    const REPO_NAME = 'maven-hosted';
+
+    it('passes path and repository to the server', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue(true);
+
+      const result = await canDeleteFolder(FOLDER_PATH, REPO_NAME);
+
+      expect(mockExtAPI.extAPIRequest).toHaveBeenCalledWith('coreui_Component', 'canDeleteFolder', {
+        data: [FOLDER_PATH, REPO_NAME],
+      });
+      expect(result).toBe(true);
+    });
+
+    it('returns false when the server denies', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue(undefined);
+
+      expect(await canDeleteFolder(FOLDER_PATH, REPO_NAME)).toBe(false);
+    });
+
+    it('returns false and logs when the server throws', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockExtAPI.checkForErrorAndExtract.mockImplementation(() => {
+        throw new Error('boom');
+      });
+
+      expect(await canDeleteFolder(FOLDER_PATH, REPO_NAME)).toBe(false);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('deleteComponent', () => {
+    it('handles success and returns deleted IDs', async () => {
+      const mockComponent: ComponentXO = {
+        id: 'comp-123',
+        repositoryName: 'maven-hosted',
+        format: 'maven2',
+        group: 'com.example',
+        name: 'my-lib',
+        version: '1.0.0',
+      };
+
+      mockRestClient.delete.mockResolvedValue(undefined);
+
+      const result = await deleteComponent(mockComponent);
+
+      expect(mockRestClient.delete).toHaveBeenCalledWith('/service/rest/v1/components/comp-123');
+      expect(result).toEqual(['comp-123']);
+    });
+
+    it('uses componentData.id as-is and does NOT re-encode it (avoids double-encode 404)', async () => {
+      // componentData.id is already the base64 RepositoryItemIDXO from REST fetchComponent.
+      // Re-encoding would double-encode → REST DELETE 404. Assert we never call the encoder
+      // for the component id and hit the endpoint with the id verbatim.
+      mockRestClient.delete.mockResolvedValue(undefined);
+      const alreadyEncodedId = 'c2QtbWF2ZW4taG9zdGVkOjRmMWJiY2Rk';
+      const mockComponent: ComponentXO = {
+        id: alreadyEncodedId,
+        repositoryName: 'maven-hosted',
+        format: 'maven2',
+        group: 'com.example',
+        name: 'my-lib',
+        version: '1.0.0',
+      };
+
+      await deleteComponent(mockComponent);
+
+      expect(mockEncode).not.toHaveBeenCalledWith('maven-hosted', alreadyEncodedId);
+      expect(mockRestClient.delete).toHaveBeenCalledWith(
+        `/service/rest/v1/components/${alreadyEncodedId}`
+      );
+    });
+
+    it('throws error on failure', async () => {
+      const mockComponent: ComponentXO = {
+        id: 'comp-123',
+        repositoryName: 'maven-hosted',
+        format: 'maven2',
+        group: 'com.example',
+        name: 'my-lib',
+        version: '1.0.0',
+      };
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRestClient.delete.mockRejectedValue({ message: 'Permission denied' });
+
+      await expect(deleteComponent(mockComponent)).rejects.toThrow('Permission denied');
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('deleteAsset', () => {
+    it('handles success', async () => {
+      mockRestClient.delete.mockResolvedValue(undefined);
+
+      await expect(deleteAsset('asset-123', 'maven-hosted')).resolves.toBeUndefined();
+
+      expect(mockRestClient.delete).toHaveBeenCalledWith('/service/rest/v1/assets/asset-123');
+    });
+
+    it('throws error on failure', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRestClient.delete.mockRejectedValue({ message: 'Asset locked' });
+
+      await expect(deleteAsset('asset-123', 'maven-hosted')).rejects.toThrow('Asset locked');
+      consoleSpy.mockRestore();
+    });
+
+    it('encodes the raw asset ID before calling the REST delete endpoint', async () => {
+      // deleteAsset receives a RAW id (as fetchAsset returns it from ExtDirect
+      // readAsset) and must encode it via encodeRepositoryItemId before hitting
+      // the REST endpoint. Assert the encoder is actually invoked with the raw
+      // id and repo (the earlier bug shipped the raw id straight through, 404).
+      mockEncode.mockReturnValueOnce('go-proxy:v2.2.1+incompatible-encoded');
+      mockRestClient.delete.mockResolvedValue(undefined);
+      const rawId = 'v2.2.1+incompatible';
+
+      await deleteAsset(rawId, 'go-proxy');
+
+      expect(mockEncode).toHaveBeenCalledWith('go-proxy', rawId);
+      expect(mockRestClient.delete).toHaveBeenCalledWith(
+        '/service/rest/v1/assets/go-proxy:v2.2.1+incompatible-encoded'
+      );
+    });
+  });
+
+  describe('deleteFolder', () => {
+    it('calls REST API with correct URL', async () => {
+      mockRestClient.delete.mockResolvedValue(undefined);
+
+      await deleteFolder('/org/apache/maven', 'maven-hosted');
+
+      expect(mockRestClient.delete).toHaveBeenCalledWith(
+        '/service/rest/v1/repositories/maven-hosted/browse?path=%2Forg%2Fapache%2Fmaven'
+      );
+    });
+
+    it('handles success', async () => {
+      mockRestClient.delete.mockResolvedValue(undefined);
+
+      await expect(deleteFolder('/org/apache', 'maven-hosted')).resolves.toBeUndefined();
+    });
+
+    it('handles error', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRestClient.delete.mockRejectedValue({ message: 'Permission denied' });
+
+      await expect(deleteFolder('/org/apache', 'maven-hosted')).rejects.toThrow(
+        'Permission denied'
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it('handles 404 error', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRestClient.delete.mockRejectedValue({
+        response: { status: 404, data: { message: 'Folder not found' } },
+      });
+
+      await expect(deleteFolder('/nonexistent', 'maven-hosted')).rejects.toThrow(
+        'Folder not found'
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('searchInRepository', () => {
+    it('returns search results on success', async () => {
+      const mockSearchResponse = {
+        items: [
+          {
+            id: 'comp-1',
+            repository: 'maven-central',
+            format: 'maven2',
+            group: 'org.apache.commons',
+            name: 'commons-lang3',
+            version: '3.12.0',
+          },
+          {
+            id: 'comp-2',
+            repository: 'maven-central',
+            format: 'maven2',
+            group: 'org.apache.commons',
+            name: 'commons-io',
+            version: '2.11.0',
+          },
+        ],
+        continuationToken: null,
+      };
+
+      mockRestClient.get.mockResolvedValue(mockSearchResponse);
+
+      const result = await searchInRepository('maven-central', 'commons', 20);
+
+      expect(mockRestClient.get).toHaveBeenCalledWith(
+        '/service/rest/v1/search?repository=maven-central&q=commons&limit=20'
+      );
+      expect(result).toEqual(mockSearchResponse.items);
+    });
+
+    it('returns empty array when no results', async () => {
+      mockRestClient.get.mockResolvedValue({ items: [] });
+
+      const result = await searchInRepository('maven-central', 'nonexistent', 20);
+
+      expect(result).toEqual([]);
+    });
+
+    it('uses default limit of 20', async () => {
+      mockRestClient.get.mockResolvedValue({ items: [] });
+
+      await searchInRepository('maven-central', 'test');
+
+      expect(mockRestClient.get).toHaveBeenCalledWith(
+        '/service/rest/v1/search?repository=maven-central&q=test&limit=20'
+      );
+    });
+
+    it('throws error on failure', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockRestClient.get.mockRejectedValue(new Error('Search failed'));
+
+      await expect(searchInRepository('maven-central', 'test')).rejects.toThrow('Search failed');
+      consoleSpy.mockRestore();
+    });
+
+    it('handles missing items in response', async () => {
+      mockRestClient.get.mockResolvedValue({});
+
+      const result = await searchInRepository('maven-central', 'test');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('utility functions', () => {
+    const originalNX = (window as any).NX;
+    const mockToast = {
+      success: jest.fn(),
+      error: jest.fn(),
+    };
+
+    beforeEach(() => {
+      (window as any).NX = {
+        Messages: {
+          success: jest.fn(),
+          error: jest.fn(),
+        },
+        Permissions: {
+          check: jest.fn().mockReturnValue(true),
+        },
+      };
+      (window as any).__astrumToast = mockToast;
+      window.location.hash = '';
+    });
+
+    afterEach(() => {
+      (window as any).NX = originalNX;
+      delete (window as any).__astrumToast;
+    });
+
+    it('showSuccessMessage routes to Radix toast in Preview UI mode', () => {
+      window.location.hash = '#preview/browse/welcome';
+      showSuccessMessage('test message');
+      expect(mockToast.success).toHaveBeenCalledWith('test message');
+      expect((window as any).NX.Messages.success).not.toHaveBeenCalled();
+    });
+
+    it('showSuccessMessage routes to ExtJS in Default UI mode', () => {
+      window.location.hash = '#browse/welcome';
+      showSuccessMessage('test message');
+      expect((window as any).NX.Messages.success).toHaveBeenCalledWith('test message');
+      expect(mockToast.success).not.toHaveBeenCalled();
+    });
+
+    it('showErrorMessage routes to Radix toast in Preview UI mode', () => {
+      window.location.hash = '#preview/browse/welcome';
+      showErrorMessage('error message');
+      expect(mockToast.error).toHaveBeenCalledWith('error message');
+      expect((window as any).NX.Messages.error).not.toHaveBeenCalled();
+    });
+
+    it('showErrorMessage routes to ExtJS in Default UI mode', () => {
+      window.location.hash = '#browse/welcome';
+      showErrorMessage('error message');
+      expect((window as any).NX.Messages.error).toHaveBeenCalledWith('error message');
+      expect(mockToast.error).not.toHaveBeenCalled();
+    });
+  });
+});
