@@ -1,0 +1,810 @@
+
+
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { Theme } from '@radix-ui/themes';
+import { TagsPageRadix } from '../TagsPageRadix';
+import { useFilteredTags } from '../hooks/useFilteredTags';
+import * as tagsApi from '../tags.api';
+import { ExtJS } from '../../../../../interface/ExtJS';
+
+jest.mock('../hooks/useFilteredTags');
+jest.mock('../tags.api');
+// TagsPageRadix uses ExtJS.usePermission (provider-independent) rather than the
+// context-based usePermission — the latter returns false without a <PermissionsProvider>,
+// which coreui never mounts, disabling the button for admins too (ASTRUM-54212).
+// Spy on the real ExtJS statics rather than mocking the whole module: the real shared
+// components rendered here rely on other ExtJS methods (e.g. waitForPermissions).
+const mockUsePermission = jest.spyOn(ExtJS, 'usePermission');
+const mockCheckPermission = jest.spyOn(ExtJS, 'checkPermission');
+const mockToastSuccess = jest.fn();
+const mockToastError = jest.fn();
+jest.mock('../../../shared/Toast', () => ({
+  useToast: () => ({ success: mockToastSuccess, error: mockToastError }),
+}));
+
+const mockUseFilteredTags = useFilteredTags as jest.MockedFunction<typeof useFilteredTags>;
+const mockCreateTag = tagsApi.createTag as jest.MockedFunction<typeof tagsApi.createTag>;
+
+const mockTags = [
+  {
+    name: 'release-1.0',
+    attributes: null,
+    firstCreated: '2026-01-15T00:00:00Z',
+    lastUpdated: '2026-02-01T00:00:00Z',
+    componentCount: 12,
+  },
+  {
+    name: 'staging',
+    attributes: null,
+    firstCreated: '2026-01-20T00:00:00Z',
+    lastUpdated: '2026-02-10T00:00:00Z',
+    componentCount: 7,
+  },
+];
+
+const defaultHookReturn = {
+  tags: mockTags,
+  loading: false,
+  error: null,
+  filters: { nameFilter: '', componentCountRanges: [], activityDays: [] },
+  sortField: 'name' as const,
+  sortDirection: 'asc' as const,
+  currentPage: 0,
+  pageSize: 20,
+  totalItems: 2,
+  totalUnfilteredItems: 2,
+  setFilters: jest.fn(),
+  toggleSort: jest.fn(),
+  setPage: jest.fn(),
+  setPageSize: jest.fn(),
+  retry: jest.fn(),
+  refresh: jest.fn(),
+};
+
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return <Theme>{children}</Theme>;
+}
+
+describe('TagsPageRadix', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseFilteredTags.mockReturnValue({ ...defaultHookReturn });
+    // ExtJS.usePermission just evaluates its getter synchronously in the test.
+    mockUsePermission.mockImplementation((getValue: () => unknown) => getValue());
+    // Default: user has all permissions so existing rendering tests are unaffected.
+    mockCheckPermission.mockReturnValue(true);
+  });
+
+  describe('create-tag permission gating (ASTRUM-54212)', () => {
+    it('shows Create Tag when user has tags:create', () => {
+      mockCheckPermission.mockReturnValue(true);
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByTestId('create-tag-button')).toBeInTheDocument();
+      expect(screen.getByTestId('create-tag-button')).toBeEnabled();
+    });
+
+    it('disables Create Tag when user lacks tags:create', () => {
+      mockCheckPermission.mockReturnValue(false);
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('Tags')).toBeInTheDocument(); // page still renders
+      // Large create button is shown but disabled (ASTRUM-54212), not hidden.
+      expect(screen.getByTestId('create-tag-button')).toBeDisabled();
+    });
+  });
+
+  describe('rendering', () => {
+    it('renders the page title', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+    });
+
+    it('renders the about tags description', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText(/Tags let you label and organize/i)).toBeInTheDocument();
+    });
+
+    it('renders the filter sidebar', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('Component Count')).toBeInTheDocument();
+      expect(screen.getByText('Activity')).toBeInTheDocument();
+    });
+
+    it('renders the tag table with data', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('release-1.0')).toBeInTheDocument();
+      expect(screen.getByText('staging')).toBeInTheDocument();
+    });
+
+    it('renders table columns', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getAllByText('Name').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('Components')).toBeInTheDocument();
+      expect(screen.getByText('Created')).toBeInTheDocument();
+      expect(screen.getByText('Last Updated')).toBeInTheDocument();
+    });
+
+    it('shouldRenderActionsColumnHeaderWithRowActionsLabel', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(
+        screen.getByRole('columnheader', { name: /row actions/i })
+      ).toBeInTheDocument();
+    });
+
+    it('shouldRenderPerRowActionsTriggerForEveryTag', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      mockTags.forEach((tag) => {
+        expect(
+          screen.getByRole('button', { name: `Actions for tag ${tag.name}` })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('renders Create Tag button', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByTestId('create-tag-button')).toBeInTheDocument();
+    });
+
+    it('renders About Tags help section', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('About Tags')).toBeInTheDocument();
+    });
+
+    it('renders pagination info', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('Showing')).toBeInTheDocument();
+      expect(screen.getByText(/of 2/)).toBeInTheDocument();
+    });
+
+    it('renders total unfiltered count inline in the page header', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        totalUnfilteredItems: 150,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByTestId('page-header')).toHaveTextContent('150');
+    });
+
+    it('shows filtered count in header when name filter is active', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        filters: { ...defaultHookReturn.filters, nameFilter: 'release' },
+        tags: [mockTags[0]],
+        totalItems: 1,
+        totalUnfilteredItems: 150,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByTestId('page-header')).toHaveTextContent('1');
+    });
+
+    it('shows 0 in header when name filter matches nothing', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        filters: { ...defaultHookReturn.filters, nameFilter: 'nonexistent' },
+        tags: [],
+        totalItems: 0,
+        totalUnfilteredItems: 150,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByTestId('page-header')).toHaveTextContent('0');
+    });
+
+    it('shows "-" in header when loading, even if filter is active', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        loading: true,
+        filters: { ...defaultHookReturn.filters, nameFilter: 'release' },
+        tags: [],
+        totalItems: 0,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByTestId('page-header')).toHaveTextContent('-');
+    });
+
+    it('renders component count for each tag', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('12')).toBeInTheDocument();
+      expect(screen.getByText('7')).toBeInTheDocument();
+    });
+  });
+
+  describe('loading state', () => {
+    it('shows loading state', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        loading: true,
+        tags: [],
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('Loading tags...')).toBeInTheDocument();
+    });
+  });
+
+  describe('error state', () => {
+    it('shows error state', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        error: 'Failed to load tags.',
+        tags: [],
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('Failed to load tags.')).toBeInTheDocument();
+    });
+
+    it('shows retry button on error', () => {
+      const mockRetry = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        error: 'Failed to load tags.',
+        tags: [],
+        retry: mockRetry,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      const retryButton = screen.getByRole('button', { name: /retry/i });
+      fireEvent.click(retryButton);
+      expect(mockRetry).toHaveBeenCalled();
+    });
+  });
+
+  describe('empty state', () => {
+    it('shows empty state when no tags', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        tags: [],
+        totalItems: 0,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('No tags found')).toBeInTheDocument();
+    });
+  });
+
+  describe('name filter', () => {
+    it('calls setFilters when name filter changes (debounced)', async () => {
+      const mockSetFilters = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        setFilters: mockSetFilters,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      const filterInput = screen.getByPlaceholderText(/filter tags by name/i);
+      fireEvent.change(filterInput, { target: { value: 'release' } });
+
+      // The commit to setFilters is debounced, so it fires after the delay.
+      await waitFor(() =>
+        expect(mockSetFilters).toHaveBeenCalledWith(
+          expect.objectContaining({ nameFilter: 'release' })
+        )
+      );
+    });
+
+    it('shows clear filter button when filter has value', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        filters: { ...defaultHookReturn.filters, nameFilter: 'release' },
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByRole('button', { name: /clear filter/i })).toBeInTheDocument();
+    });
+
+    it('calls setFilters with empty nameFilter when clear is clicked (debounced)', async () => {
+      const mockSetFilters = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        filters: { ...defaultHookReturn.filters, nameFilter: 'release' },
+        setFilters: mockSetFilters,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByRole('button', { name: /clear filter/i }));
+      await waitFor(() =>
+        expect(mockSetFilters).toHaveBeenCalledWith(
+          expect.objectContaining({ nameFilter: '' })
+        )
+      );
+    });
+  });
+
+  describe('sorting', () => {
+    it('calls toggleSort when Name column header is clicked', () => {
+      const mockToggleSort = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        toggleSort: mockToggleSort,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      const sortButtons = screen.getAllByRole('button');
+      const nameSort = sortButtons.find(btn => btn.textContent?.includes('Name'));
+      expect(nameSort).toBeTruthy();
+      fireEvent.click(nameSort!);
+      expect(mockToggleSort).toHaveBeenCalledWith('name');
+    });
+
+    it('calls toggleSort when Components column header is clicked', () => {
+      const mockToggleSort = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        toggleSort: mockToggleSort,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      fireEvent.click(screen.getByText('Components'));
+      expect(mockToggleSort).toHaveBeenCalledWith('componentCount');
+    });
+
+    it('calls toggleSort when Created column header is clicked', () => {
+      const mockToggleSort = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        toggleSort: mockToggleSort,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      fireEvent.click(screen.getByText('Created'));
+      expect(mockToggleSort).toHaveBeenCalledWith('firstCreated');
+    });
+
+    it('calls toggleSort when Last Updated column header is clicked', () => {
+      const mockToggleSort = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        toggleSort: mockToggleSort,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      fireEvent.click(screen.getByText('Last Updated'));
+      expect(mockToggleSort).toHaveBeenCalledWith('lastUpdated');
+    });
+  });
+
+  describe('component count filter', () => {
+    it('renders component count options', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('Empty (0)')).toBeInTheDocument();
+      expect(screen.getByText('1-10')).toBeInTheDocument();
+      expect(screen.getByText('11-100')).toBeInTheDocument();
+    });
+
+    it('calls setFilters when component count option is checked', () => {
+      const mockSetFilters = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        setFilters: mockSetFilters,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      const _checkboxes = screen.getAllByRole('checkbox');
+      const textEl = screen.getByText('1-10');
+      const parentRow = textEl.parentElement;
+      const checkbox = parentRow?.querySelector('button[role="checkbox"]');
+      expect(checkbox).toBeTruthy();
+      fireEvent.click(checkbox!);
+
+      expect(mockSetFilters).toHaveBeenCalledWith(
+        expect.objectContaining({ componentCountRanges: expect.arrayContaining(['1-10']) })
+      );
+    });
+
+    it('shows Reset filters button when filters are active', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        filters: { ...defaultHookReturn.filters, componentCountRanges: ['1-10'] },
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByText('Reset filters')).toBeInTheDocument();
+    });
+
+    it('calls setFilters with empty arrays when Reset filters is clicked', () => {
+      const mockSetFilters = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        filters: { ...defaultHookReturn.filters, componentCountRanges: ['1-10'] },
+        setFilters: mockSetFilters,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByText('Reset filters'));
+      expect(mockSetFilters).toHaveBeenCalledWith({
+        nameFilter: '',
+        componentCountRanges: [],
+        activityDays: [],
+      });
+    });
+  });
+
+  describe('tag row navigation', () => {
+    it('renders tag rows as clickable buttons', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      const row = screen.getByRole('button', { name: /view tag release-1\.0/i });
+      expect(row).toBeInTheDocument();
+    });
+
+    it('renders all tag rows', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      expect(screen.getByText('release-1.0')).toBeInTheDocument();
+      expect(screen.getByText('staging')).toBeInTheDocument();
+    });
+  });
+
+  describe('create tag dialog', () => {
+    it('opens create tag dialog when Create Tag button is clicked', async () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+    });
+
+    it('calls createTag API and refreshes on successful create', async () => {
+      const mockRefresh = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        refresh: mockRefresh,
+      });
+      mockCreateTag.mockResolvedValue({ name: 'new-tag', attributes: null } as any);
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'new-tag' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+
+      await waitFor(() => {
+        expect(mockCreateTag).toHaveBeenCalledWith('new-tag');
+        expect(mockRefresh).toHaveBeenCalled();
+      });
+    });
+
+    it('disables Create button when tag name is empty', async () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        const createButton = screen.getByRole('button', { name: /^create$/i });
+        expect(createButton).toBeDisabled();
+      });
+    });
+
+    it('shows validation error for tag name with spaces', async () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'invalid name' } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Tag name is invalid\. Only letters, digits, hyphens/i)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('disables Create button when tag name is invalid', async () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'invalid name' } });
+
+      await waitFor(() => {
+        const createButton = screen.getByRole('button', { name: /^create$/i });
+        expect(createButton).toBeDisabled();
+      });
+    });
+
+    it('clears validation error when name becomes valid', async () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'invalid name' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Tag name is invalid\. Only letters, digits, hyphens/i)).toBeInTheDocument();
+      });
+
+      fireEvent.change(tagNameInput, { target: { value: 'valid-name' } });
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Tag name is invalid\. Only letters, digits, hyphens/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it('does not call createTag API for invalid tag name', async () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'invalid name' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+
+      expect(mockCreateTag).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('pagination', () => {
+    it('disables previous button on first page', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByRole('button', { name: /previous page/i })).toBeDisabled();
+    });
+
+    it('disables next button on last page', () => {
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        currentPage: 0,
+        totalItems: 2,
+        pageSize: 20,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByRole('button', { name: /next page/i })).toBeDisabled();
+    });
+
+    it('calls setPage when next page button is clicked', () => {
+      const mockSetPage = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        currentPage: 0,
+        totalItems: 50,
+        pageSize: 20,
+        setPage: mockSetPage,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      fireEvent.click(screen.getByRole('button', { name: /next page/i }));
+      expect(mockSetPage).toHaveBeenCalledWith(1);
+    });
+
+    it('calls setPage when previous page button is clicked', () => {
+      const mockSetPage = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        currentPage: 1,
+        totalItems: 50,
+        pageSize: 20,
+        setPage: mockSetPage,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      fireEvent.click(screen.getByRole('button', { name: /previous page/i }));
+      expect(mockSetPage).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe('accessibility', () => {
+    it('renders with a data-testid for the page root', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByTestId('tags-page')).toBeInTheDocument();
+    });
+
+    it('renders search input with placeholder', () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      expect(screen.getByPlaceholderText(/filter tags by name/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('create tag error handling', () => {
+    it('shows error toast when createTag API fails', async () => {
+      mockToastError.mockClear();
+      mockCreateTag.mockRejectedValue(new Error('Already exists'));
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'new-tag' } });
+      fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+
+      await waitFor(() => {
+        expect(mockCreateTag).toHaveBeenCalledWith('new-tag');
+        expect(mockToastError).toHaveBeenCalled();
+      });
+    });
+
+    it('creates tag on Enter keydown when name is valid', async () => {
+      mockCreateTag.mockResolvedValue({ name: 'new-tag', attributes: null } as any);
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'new-tag' } });
+      fireEvent.keyDown(tagNameInput, { key: 'Enter' });
+
+      await waitFor(() => {
+        expect(mockCreateTag).toHaveBeenCalledWith('new-tag');
+      });
+    });
+  });
+
+  describe('tag list refresh after create', () => {
+    it('calls refresh (not retry) after successful tag creation', async () => {
+      const mockRefresh = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        refresh: mockRefresh,
+      });
+      mockCreateTag.mockResolvedValue({ name: 'new-tag', attributes: null } as any);
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'new-tag' } });
+      fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+
+      await waitFor(() => {
+        expect(mockCreateTag).toHaveBeenCalledWith('new-tag');
+        expect(mockRefresh).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('does NOT call refresh when tag creation fails', async () => {
+      const mockRefresh = jest.fn();
+      mockToastError.mockClear();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        refresh: mockRefresh,
+      });
+      mockCreateTag.mockRejectedValue(new Error('Already exists'));
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      fireEvent.click(screen.getByTestId('create-tag-button'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/e\.g\., release-1\.0/i)).toBeInTheDocument();
+      });
+
+      const tagNameInput = screen.getByPlaceholderText(/e\.g\., release-1\.0/i);
+      fireEvent.change(tagNameInput, { target: { value: 'new-tag' } });
+      fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+
+      await waitFor(() => {
+        expect(mockCreateTag).toHaveBeenCalledWith('new-tag');
+        expect(mockToastError).toHaveBeenCalled();
+      });
+
+      // Refresh should NOT be called on failure
+      expect(mockRefresh).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('activity days filter', () => {
+    it('calls setFilters when activity days option is checked', () => {
+      const mockSetFilters = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        setFilters: mockSetFilters,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      const activityLabel = screen.getByText('Active (< 30 days)');
+      const parentRow = activityLabel.parentElement;
+      const checkbox = parentRow?.querySelector('button[role="checkbox"]');
+      if (checkbox) {
+        fireEvent.click(checkbox);
+        expect(mockSetFilters).toHaveBeenCalledWith(
+          expect.objectContaining({ activityDays: expect.arrayContaining([30]) })
+        );
+      }
+    });
+
+    it('removes activity days filter when already checked', () => {
+      const mockSetFilters = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        filters: { ...defaultHookReturn.filters, activityDays: [30] },
+        setFilters: mockSetFilters,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      const activityLabel = screen.getByText('Active (< 30 days)');
+      const parentRow = activityLabel.parentElement;
+      const checkbox = parentRow?.querySelector('button[role="checkbox"]');
+      if (checkbox) {
+        fireEvent.click(checkbox);
+        expect(mockSetFilters).toHaveBeenCalledWith(
+          expect.objectContaining({ activityDays: [] })
+        );
+      }
+    });
+
+    it('removes component count range when already checked', () => {
+      const mockSetFilters = jest.fn();
+      mockUseFilteredTags.mockReturnValue({
+        ...defaultHookReturn,
+        filters: { ...defaultHookReturn.filters, componentCountRanges: ['1-10'] },
+        setFilters: mockSetFilters,
+      });
+
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+
+      const textEl = screen.getByText('1-10');
+      const parentRow = textEl.parentElement;
+      const checkbox = parentRow?.querySelector('button[role="checkbox"]');
+      if (checkbox) {
+        fireEvent.click(checkbox);
+        expect(mockSetFilters).toHaveBeenCalledWith(
+          expect.objectContaining({ componentCountRanges: [] })
+        );
+      }
+    });
+  });
+
+  describe('mobile filter drawer', () => {
+    it('renders mobile filter button and clicking it does not crash', async () => {
+      render(<TagsPageRadix />, { wrapper: TestWrapper });
+      const filterButton = screen.getByRole('button', { name: /open filters/i });
+      expect(filterButton).toBeInTheDocument();
+      fireEvent.click(filterButton);
+      // Tag list remains rendered after click (drawer open doesn't unmount the page)
+      await waitFor(() => {
+        expect(screen.getByText('Tags')).toBeInTheDocument();
+      });
+    });
+  });
+});
