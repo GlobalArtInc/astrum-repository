@@ -1,0 +1,40 @@
+[package]
+name = "astrum-format-alpine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+aes.workspace = true
+astrum-blob.workspace = true
+astrum-content.workspace = true
+astrum-db.workspace = true
+astrum-repo.workspace = true
+astrum-security.workspace = true
+astrum-tasks.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+base64.workspace = true
+chrono.workspace = true
+des.workspace = true
+flate2.workspace = true
+futures-util.workspace = true
+hex.workspace = true
+hmac.workspace = true
+md-5.workspace = true
+rand_core06.workspace = true
+rsa.workspace = true
+sea-orm.workspace = true
+serde_json.workspace = true
+sha1 = { workspace = true, features = ["oid"] }
+sha2.workspace = true
+tar.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
