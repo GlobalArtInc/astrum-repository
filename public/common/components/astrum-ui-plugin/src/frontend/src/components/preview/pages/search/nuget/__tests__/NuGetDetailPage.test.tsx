@@ -1,0 +1,88 @@
+
+
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import { Theme } from '@radix-ui/themes';
+import { NuGetDetailPage } from '../NuGetDetailPage';
+import { mockNuGetDetail } from '../mockData';
+
+jest.mock('../mockData', () => {
+  const original = jest.requireActual('../mockData');
+  return {
+    ...original,
+    mockNuGetDetailApi: jest.fn().mockResolvedValue(original.mockNuGetDetail),
+  };
+});
+
+import { mockNuGetDetailApi } from '../mockData';
+const mockApi = mockNuGetDetailApi as jest.Mock;
+
+const wrap = (ui: React.ReactElement) => render(<Theme>{ui}</Theme>);
+
+describe('NuGetDetailPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockApi.mockResolvedValue(mockNuGetDetail);
+  });
+
+  it('renders loading state initially', () => {
+    mockApi.mockReturnValue(new Promise(() => {}));
+    wrap(<NuGetDetailPage packageId="Newtonsoft.Json" />);
+
+    expect(screen.getByText(/loading package details/i)).toBeInTheDocument();
+  });
+
+  it('renders package details after loading', async () => {
+    wrap(<NuGetDetailPage packageId="Newtonsoft.Json" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /newtonsoft\.json/i })).toBeInTheDocument();
+    });
+  });
+
+  it('renders description when present', async () => {
+    wrap(<NuGetDetailPage packageId="Newtonsoft.Json" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Json\.NET is a popular/)).toBeInTheDocument();
+    });
+  });
+
+  it('renders error state when API throws', async () => {
+    mockApi.mockRejectedValueOnce(new Error('Package not found'));
+    wrap(<NuGetDetailPage packageId="Unknown.Package" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Package not found/)).toBeInTheDocument();
+    });
+  });
+
+  it('calls onBack when back button clicked', async () => {
+    const onBack = jest.fn();
+    wrap(<NuGetDetailPage packageId="Newtonsoft.Json" onBack={onBack} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /newtonsoft\.json/i })).toBeInTheDocument();
+    });
+
+    const backButton = screen.getByRole('button', { name: /back to search/i });
+    await userEvent.click(backButton);
+
+    expect(onBack).toHaveBeenCalled();
+  });
+
+  it('calls onBack when back button clicked in error state', async () => {
+    const onBack = jest.fn();
+    mockApi.mockRejectedValueOnce(new Error('Not found'));
+    wrap(<NuGetDetailPage packageId="Unknown" onBack={onBack} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /back to search/i })).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /back to search/i }));
+    expect(onBack).toHaveBeenCalled();
+  });
+});
