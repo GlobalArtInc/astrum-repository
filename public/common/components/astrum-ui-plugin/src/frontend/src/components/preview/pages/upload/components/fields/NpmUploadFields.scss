@@ -1,0 +1,80 @@
+
+
+.as-npm-upload-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__section {
+    padding: var(--space-4);
+    background: var(--gray-2);
+    border-radius: var(--radius-3);
+    border: 1px solid var(--gray-4);
+
+    :root[class~="dark"] & {
+      background: var(--gray-3);
+      border-color: var(--gray-5);
+    }
+  }
+
+  &__header {
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--gray-4);
+
+    :root[class~="dark"] & {
+      border-color: var(--gray-5);
+    }
+  }
+
+  &__icon {
+    color: var(--red-9);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-3);
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__required {
+    color: var(--red-9);
+    margin-left: var(--space-1);
+  }
+
+  &__help {
+    margin: 0;
+  }
+
+  &__error {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  &__input--error {
+    border-color: var(--red-9) !important;
+
+    &:focus {
+      box-shadow: 0 0 0 2px var(--red-4);
+    }
+  }
+
+  &__other-fields {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--gray-4);
+
+    :root[class~="dark"] & {
+      border-color: var(--gray-5);
+    }
+  }
+}
+
