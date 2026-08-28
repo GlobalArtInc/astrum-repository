@@ -1,0 +1,64 @@
+
+
+.blob-stores-list {
+  padding: var(--space-4);
+  max-width: 1400px;
+
+  // Filter input in page header
+  &__filter {
+    max-width: 300px;
+  }
+
+  // Content layout with sidebar
+  &__content {
+    display: flex;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__sidebar {
+    flex-shrink: 0;
+    width: 280px;
+  }
+
+  // Type icons (used in table accessor function)
+  &__type-icon {
+    flex-shrink: 0;
+
+    &--file {
+      color: var(--gray-9);
+    }
+
+    &--s3 {
+      color: #ff9900; // AWS Orange
+    }
+
+    &--azure {
+      color: #0078d4; // Azure Blue
+    }
+
+    &--google {
+      color: #4285f4; // Google Blue
+    }
+
+    &--group {
+      color: var(--accent-9);
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 1024px) {
+    &__content {
+      flex-direction: column;
+    }
+
+    &__sidebar {
+      width: 100%;
+    }
+  }
+}
