@@ -1,0 +1,49 @@
+
+
+.health-check-tab-container {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-3);
+  background-color: var(--color-background);
+  overflow: hidden;
+
+  &__toolbar {
+    padding: var(--space-2);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--gray-5);
+  }
+
+  &__content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    max-height: 600px;
+
+    .security-report-page {
+      border: none;
+      max-height: none;
+    }
+
+    .security-report-page__header {
+      border-bottom: 1px solid var(--gray-5);
+    }
+  }
+
+  &--fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+    border-radius: 0;
+    max-height: none;
+
+    .health-check-tab-container__content {
+      flex: 1;
+      max-height: none;
+      min-height: 0;
+    }
+  }
+}
