@@ -1,0 +1,30 @@
+
+
+.cleanup-policy-dry-run {
+  &__description {
+    color: var(--gray-11);
+    margin-bottom: var(--space-4);
+    line-height: 1.5;
+  }
+
+  &__error {
+    margin-bottom: var(--space-4);
+  }
+
+  &__controls {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
+  }
+
+  &__select {
+    flex: 1;
+    max-width: 300px;
+  }
+
+  &__download-link {
+    text-decoration: none;
+  }
+}
+
+

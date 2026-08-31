@@ -1,0 +1,19 @@
+
+
+.cleanup-policies-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--color-background);
+
+  &__alerts {
+    margin-bottom: var(--space-4);
+  }
+
+  &__content {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+
