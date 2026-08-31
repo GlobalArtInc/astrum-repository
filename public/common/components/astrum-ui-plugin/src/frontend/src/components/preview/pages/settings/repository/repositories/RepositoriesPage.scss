@@ -1,0 +1,60 @@
+
+
+.repositories-page {
+  padding: 24px;
+  background: var(--color-background);
+  min-width: 0; // Prevent overflow in nested flex containers
+  width: 100%;
+
+  // ==========================================================================
+  // Header
+  // ==========================================================================
+  &__header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--gray-a5);
+  }
+
+  &__icon {
+    color: var(--accent-9);
+    flex-shrink: 0;
+  }
+
+  &__description {
+    color: var(--gray-10);
+    margin-top: 4px;
+  }
+
+  &__back {
+    flex-shrink: 0;
+
+    &:hover {
+      background: var(--gray-a4);
+    }
+  }
+
+  // ==========================================================================
+  // Alerts
+  // ==========================================================================
+  &__alerts {
+    margin-bottom: 16px;
+  }
+
+  // ==========================================================================
+  // Content - No special height/overflow to avoid double scrollbars
+  // ==========================================================================
+  &__content {
+    // Content flows naturally, parent container handles scrolling
+  }
+
+  // ==========================================================================
+  // Wizard View - Increase max-width for format/type selector grids
+  // ==========================================================================
+  &[data-view="select-type"],
+  &[data-view="create"] {
+    .settings-form__inner {
+      max-width: 1400px;
+    }
+  }
+}
+

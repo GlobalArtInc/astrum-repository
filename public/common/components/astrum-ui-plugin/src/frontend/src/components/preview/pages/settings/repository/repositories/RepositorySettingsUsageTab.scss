@@ -1,0 +1,13 @@
+
+
+.repository-settings-usage-tab {
+  &__membership-item {
+    background: var(--gray-2);
+    border-radius: var(--radius-2);
+  }
+
+  &__membership-placeholder {
+    background: var(--gray-2);
+    border-radius: var(--radius-3);
+  }
+}

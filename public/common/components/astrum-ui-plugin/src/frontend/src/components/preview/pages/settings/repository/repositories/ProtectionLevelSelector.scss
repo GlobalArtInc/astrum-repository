@@ -1,0 +1,11 @@
+
+
+.protection-level-selector {
+  &__btn {
+    transition: box-shadow 0.15s ease;
+
+    &--selected {
+      box-shadow: 0 0 0 2px var(--gray-12);
+    }
+  }
+}
