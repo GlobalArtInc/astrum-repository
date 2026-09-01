@@ -1,0 +1,33 @@
+
+
+.routing-rules-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  background: var(--color-background, #fff);
+
+  [data-theme='dark'] & {
+    background: var(--gray-1, #111113);
+  }
+
+  &__alerts {
+    margin-bottom: var(--space-4);
+    flex-shrink: 0;
+
+    // Fix: Ensure SettingsAlert displays horizontally in routing rules page
+    // Radix Box has display: block by default, we need flex for proper layout
+    .settings-alert {
+      display: flex;
+      align-items: flex-start;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    // Parent layout (settings-layout-radix__content) handles scrolling
+  }
+}
