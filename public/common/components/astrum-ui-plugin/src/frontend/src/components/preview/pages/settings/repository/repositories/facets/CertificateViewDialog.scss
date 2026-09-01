@@ -1,0 +1,29 @@
+
+
+.cert-view-dialog {
+  &__details {
+    border: 1px solid var(--gray-a5);
+    border-radius: var(--radius-3);
+    padding: var(--space-4);
+  }
+
+  &__row {
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--gray-a3);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__label {
+    color: var(--gray-11);
+    flex-shrink: 0;
+    min-width: 180px;
+  }
+
+  &__value {
+    text-align: right;
+    word-break: break-all;
+  }
+}

@@ -1,0 +1,244 @@
+
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Dialog, Box, Flex, Text, Button } from '@radix-ui/themes';
+import { X, Loader2 } from 'lucide-react';
+import Axios from 'axios';
+import { ExtJS } from '@globalart/astrum-ui-plugin';
+
+
+import { SettingsButton, SettingsAlert } from '../../../../../shared/form';
+import UIStrings from '../../../../../../../constants/pages/admin/repository/RepositoriesStrings';
+
+import './CertificateViewDialog.scss';
+
+interface CertificateDetails {
+  id?: string;
+  subjectCommonName?: string;
+  subjectOrganization?: string;
+  subjectOrganizationalUnit?: string;
+  issuerCommonName?: string;
+  issuerOrganization?: string;
+  issuerOrganizationalUnit?: string;
+  fingerprint?: string;
+  issuedOn?: number;
+  expiresOn?: number;
+  pem?: string;
+}
+
+interface CertificateViewDialogProps {
+  remoteUrl: string;
+  onClose: () => void;
+}
+
+const SSL_RETRIEVE_URL = '/service/rest/v1/security/ssl';
+const SSL_TRUSTSTORE_URL = '/service/rest/v1/security/ssl/truststore';
+
+function formatDate(timestamp?: number): string {
+  if (!timestamp) return '';
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+}
+
+function CertRow({ label, value }: { label: string; value?: string }) {
+  return (
+    <Flex className="cert-view-dialog__row" justify="between" gap="3">
+      <Text size="2" weight="medium" className="cert-view-dialog__label">{label}</Text>
+      <Text size="2" className="cert-view-dialog__value">{value || '—'}</Text>
+    </Flex>
+  );
+}
+
+export function CertificateViewDialog({ remoteUrl, onClose }: CertificateViewDialogProps) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cert, setCert] = useState<CertificateDetails | null>(null);
+  const [isInTrustStore, setIsInTrustStore] = useState<boolean | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const canCreate = ExtJS.checkPermission('astrum:ssl-truststore:create');
+  const canDelete = ExtJS.checkPermission('astrum:ssl-truststore:delete');
+
+  const loadCertificate = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    // ASTRUM-54266: parse before gating on the scheme. A case-sensitive
+    // `startsWith('https://')` rejected "HTTPS://host" even though callers gate the
+    // trigger on ValidationUtils.isSecureUrl, whose regex is case-insensitive — so
+    // the button was enabled but the dialog bailed out here. `new URL` lower-cases
+    // the scheme, making the comparison below case-insensitive for free.
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(remoteUrl);
+    } catch {
+      setError(UIStrings.CERTIFICATE.DIALOG.httpsOnlyError);
+      setLoading(false);
+      return;
+    }
+
+    if (parsedUrl.protocol !== 'https:') {
+      setError(UIStrings.CERTIFICATE.DIALOG.httpsOnlyError);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { hostname, port } = parsedUrl;
+      const params = new URLSearchParams({ host: hostname });
+      if (port) params.append('port', port);
+      // Send the bare scheme ("https"), not URL.protocol ("https:").
+      // CertificateRetriever compares with `"https".equalsIgnoreCase(hint)`, so a
+      // trailing colon never matched: it fell through to a raw-socket attempt and,
+      // because the hint was non-null, returned null instead of retrying over the
+      // proxy-aware HTTPS client. That broke retrieval wherever an outbound proxy
+      // is required. The guard above means this is always "https".
+      const scheme = parsedUrl.protocol.replace(/:$/, '');
+      if (scheme) params.append('protocolHint', scheme);
+
+      const [certResponse, truststoreResponse] = await Promise.all([
+        Axios.get<CertificateDetails>(`${SSL_RETRIEVE_URL}?${params.toString()}`),
+        Axios.get<CertificateDetails[]>(SSL_TRUSTSTORE_URL),
+      ]);
+
+      const fetchedCert = certResponse.data;
+      setCert(fetchedCert);
+
+      const trustedCerts = Array.isArray(truststoreResponse.data) ? truststoreResponse.data : [];
+      const alreadyTrusted = trustedCerts.some((c) => c.fingerprint === fetchedCert.fingerprint);
+      setIsInTrustStore(alreadyTrusted);
+      if (alreadyTrusted && fetchedCert.id == null) {
+        const match = trustedCerts.find((c) => c.fingerprint === fetchedCert.fingerprint);
+        if (match) setCert({ ...fetchedCert, id: match.id });
+      }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(e?.response?.data?.message || e?.message || UIStrings.CERTIFICATE.ERRORS.fetchFailed);
+    } finally {
+      setLoading(false);
+    }
+  }, [remoteUrl]);
+
+  useEffect(() => {
+    loadCertificate();
+  }, [loadCertificate]);
+
+  const handleAddToTrustStore = async () => {
+    if (!(cert?.pem && canCreate)) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await Axios.post(SSL_TRUSTSTORE_URL, cert.pem, { headers: { 'Content-Type': 'text/plain' } });
+      setIsInTrustStore(true);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      setActionError(e?.response?.data?.message || e?.message || UIStrings.CERTIFICATE.ERRORS.addFailed);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRemoveFromTrustStore = async () => {
+    if (!(cert?.id && canDelete)) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await Axios.delete(`${SSL_TRUSTSTORE_URL}/${encodeURIComponent(cert.id)}`);
+      setIsInTrustStore(false);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      setActionError(e?.response?.data?.message || e?.message || UIStrings.CERTIFICATE.ERRORS.removeFailed);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  return (
+    <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Content aria-describedby={undefined} style={{ maxWidth: 520 }}>
+        <Flex justify="between" align="center" mb="4">
+          <Dialog.Title size="4" mb="0">{UIStrings.CERTIFICATE.DIALOG.title}</Dialog.Title>
+          <Dialog.Close>
+            <Button variant="ghost" color="gray" size="1" aria-label={UIStrings.CERTIFICATE.ACTIONS.close}>
+              <X size={16} />
+            </Button>
+          </Dialog.Close>
+        </Flex>
+
+        {loading && (
+          <Flex justify="center" align="center" py="6" gap="2">
+            <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+            <Text size="2" color="gray">{UIStrings.CERTIFICATE.DIALOG.retrieving}</Text>
+          </Flex>
+        )}
+
+        {!loading && error && (
+          <Box>
+            <SettingsAlert type="error">{error}</SettingsAlert>
+            <Flex justify="end" mt="4">
+              <Dialog.Close>
+                <Button variant="soft" color="gray">{UIStrings.CERTIFICATE.ACTIONS.close}</Button>
+              </Dialog.Close>
+            </Flex>
+          </Box>
+        )}
+
+        {!(loading || error ) && cert && (
+          <>
+            <SettingsAlert type="warning">
+              {UIStrings.CERTIFICATE.DIALOG.untrustedWarning}
+            </SettingsAlert>
+
+            <Box className="cert-view-dialog__details" mt="4">
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.commonName} value={cert.subjectCommonName} />
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.organization} value={cert.subjectOrganization} />
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.unit} value={cert.subjectOrganizationalUnit} />
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.issuerCommonName} value={cert.issuerCommonName} />
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.issuerOrganization} value={cert.issuerOrganization} />
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.issuerUnit} value={cert.issuerOrganizationalUnit} />
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.issuedOn} value={formatDate(cert.issuedOn)} />
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.validUntil} value={formatDate(cert.expiresOn)} />
+              <CertRow label={UIStrings.CERTIFICATE.FIELDS.fingerprint} value={cert.fingerprint} />
+            </Box>
+
+            {actionError && (
+              <Box mt="3">
+                <SettingsAlert type="error">{actionError}</SettingsAlert>
+              </Box>
+            )}
+
+            <Flex justify="end" align="center" mt="4" gap="3">
+              {isInTrustStore === false && cert.pem && (
+                <SettingsButton
+                  variant="primary"
+                  onClick={handleAddToTrustStore}
+                  disabled={!canCreate}
+                  loading={actionLoading}
+                >
+                  {UIStrings.CERTIFICATE.ACTIONS.addToTrustStore}
+                </SettingsButton>
+              )}
+              {isInTrustStore === true && cert.id && (
+                <SettingsButton
+                  variant="primary"
+                  onClick={handleRemoveFromTrustStore}
+                  disabled={!canDelete}
+                  loading={actionLoading}
+                >
+                  {UIStrings.CERTIFICATE.ACTIONS.removeFromTrustStore}
+                </SettingsButton>
+              )}
+              <Dialog.Close>
+                <Button variant="soft" color="gray">{UIStrings.CERTIFICATE.ACTIONS.close}</Button>
+              </Dialog.Close>
+            </Flex>
+          </>
+        )}
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+}
+
+export default CertificateViewDialog;

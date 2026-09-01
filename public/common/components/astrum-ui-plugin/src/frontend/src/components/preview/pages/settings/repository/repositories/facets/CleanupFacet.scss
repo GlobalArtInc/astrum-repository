@@ -1,0 +1,29 @@
+
+
+.cleanup-facet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  &__help {
+    color: var(--gray-10);
+    margin-bottom: var(--space-2);
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent-11);
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+}
