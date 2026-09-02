@@ -1,0 +1,38 @@
+
+
+.content-selector-preview {
+  &__description {
+    color: var(--gray-11);
+    margin-bottom: var(--space-4);
+    line-height: 1.5;
+  }
+
+  &__error {
+    margin-bottom: var(--space-4);
+  }
+
+  &__controls {
+    margin-bottom: var(--space-4);
+  }
+
+  &__select {
+    flex: 1;
+    max-width: 300px;
+  }
+
+  &__toolbar {
+    margin-bottom: var(--space-4);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__search {
+    width: 250px;
+  }
+
+  &__table {
+    width: 100%;
+  }
+}
+
+

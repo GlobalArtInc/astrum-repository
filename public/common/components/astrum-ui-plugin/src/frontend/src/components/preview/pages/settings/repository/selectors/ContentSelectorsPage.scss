@@ -1,0 +1,42 @@
+
+
+.content-selectors-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-4);
+  background-color: var(--color-background);
+
+  &__header {
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--gray-a6);
+  }
+
+  &__icon {
+    color: var(--accent-9);
+  }
+
+  &__description {
+    color: var(--gray-11);
+  }
+
+  &__back {
+    padding: var(--space-2);
+    
+    &:hover {
+      background-color: var(--gray-a3);
+    }
+  }
+
+  &__alerts {
+    margin-bottom: var(--space-4);
+  }
+
+  &__content {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+

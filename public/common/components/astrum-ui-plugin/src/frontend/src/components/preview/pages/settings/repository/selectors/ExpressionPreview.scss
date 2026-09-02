@@ -1,0 +1,28 @@
+
+
+.expression-preview {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--blue-2);
+  border: 1px solid var(--blue-6);
+  border-radius: var(--radius-2);
+  border-left: 3px solid var(--blue-8);
+
+  &__header {
+    margin-bottom: var(--space-2);
+    color: var(--blue-11);
+
+    svg {
+      color: var(--blue-9);
+    }
+  }
+
+  &__text {
+    color: var(--gray-12);
+    font-style: italic;
+    line-height: 1.6;
+    margin: 0;
+  }
+}
+
+
