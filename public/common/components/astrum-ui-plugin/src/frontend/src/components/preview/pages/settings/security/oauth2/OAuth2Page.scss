@@ -1,0 +1,29 @@
+
+
+// Horizontal/vertical page padding comes from the responsive px/py props on the
+// page's Box container (matching the Crowd/SAML pattern), not from this file.
+.oauth2-page {
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-6);
+    color: var(--gray-11);
+  }
+
+  &__spinner {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
