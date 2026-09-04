@@ -1,0 +1,21 @@
+
+
+.role-profile-page {
+  &__tabs-list {
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid var(--gray-5);
+  }
+
+  &__pane {
+    background-color: var(--color-background);
+    border-radius: var(--radius-3);
+    border: 1px solid var(--gray-4);
+    min-height: 400px;
+    padding: var(--space-4);
+
+    &--tree {
+      padding: 0; // RoleExplorerTree has its own padding/scroll
+      height: 600px;
+    }
+  }
+}
