@@ -1,0 +1,31 @@
+[package]
+name = "astrum-format-r"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+astrum-blob.workspace = true
+astrum-content.workspace = true
+astrum-db.workspace = true
+astrum-repo.workspace = true
+astrum-security.workspace = true
+astrum-tasks.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+bytes.workspace = true
+bzip2.workspace = true
+flate2.workspace = true
+futures-util.workspace = true
+hex.workspace = true
+lzma-rs.workspace = true
+sea-orm.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tar.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
