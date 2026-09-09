@@ -1,0 +1,10 @@
+
+
+.edit-user-view {
+  // Only keep the action-bar's border-bottom (buttons -> details). The
+  // header's own border-bottom stacks visually with the action-bar's on this
+  // page because header actions collapse into the toolbar row.
+  .settings-form__header {
+    border-bottom: none;
+  }
+}

@@ -1,0 +1,78 @@
+
+
+@use '../../../../shared/animations';
+
+.user-detail {
+  &__loading {
+    padding: var(--space-6, 24px);
+    gap: var(--space-3, 12px);
+  }
+
+  &__spinner {
+    animation: spin 1s linear infinite;
+    color: var(--accent-9, #0091ff);
+  }
+
+  &__not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6, 24px);
+    gap: var(--space-3, 12px);
+    color: var(--gray-11, #6f6f78);
+
+    [data-theme='dark'] & {
+      color: var(--gray-11, #9898a1);
+    }
+  }
+
+  &__roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2, 8px);
+  }
+
+  &__role {
+    padding: var(--space-1, 4px) var(--space-2, 8px);
+    background: var(--gray-3, #f1f1f3);
+    border-radius: var(--radius-1, 4px);
+    font-size: var(--font-size-1, 12px);
+
+    [data-theme='dark'] & {
+      background: var(--gray-4, #27272b);
+    }
+  }
+
+  &__no-roles {
+    color: var(--gray-9, #8d8d95);
+    font-style: italic;
+  }
+
+  &__actions {
+    margin-top: var(--space-4, 16px);
+    padding-top: var(--space-4, 16px);
+    border-top: 1px solid var(--gray-6, #e4e4e7);
+
+    [data-theme='dark'] & {
+      border-top-color: var(--gray-6, #3d3d43);
+    }
+  }
+
+  &__action-row {
+    padding: var(--space-3, 12px) 0;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__password-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3, 12px);
+    max-width: 400px;
+    padding-left: var(--space-1, 4px);
+  }
+}
+
