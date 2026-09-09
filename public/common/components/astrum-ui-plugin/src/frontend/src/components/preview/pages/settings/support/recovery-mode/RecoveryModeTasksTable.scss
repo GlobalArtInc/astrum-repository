@@ -1,0 +1,14 @@
+
+
+.recovery-mode-tasks {
+  &__row--clickable {
+    cursor: pointer;
+
+    // Hover + keyboard-focus highlight, mirroring the classic clickable rows.
+    &:hover,
+    &:focus-visible {
+      background-color: var(--gray-3);
+      outline: none;
+    }
+  }
+}
