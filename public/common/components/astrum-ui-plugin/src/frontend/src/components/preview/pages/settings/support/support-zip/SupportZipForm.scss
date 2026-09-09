@@ -1,0 +1,20 @@
+
+
+.support-zip-form {
+  max-width: 600px;
+
+  &__description {
+    padding: var(--space-3);
+    background-color: var(--gray-a2);
+    border-radius: var(--radius-2);
+    border-left: 3px solid var(--accent-9);
+  }
+
+  &__checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+
