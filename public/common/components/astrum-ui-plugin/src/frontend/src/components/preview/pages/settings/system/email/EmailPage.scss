@@ -1,0 +1,102 @@
+
+
+.email-page {
+  padding: var(--space-4);
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  // Matches settings-form__inner left/right padding and max-width so sections
+  // outside <SettingsForm> align with form content. Vertical spacing comes from
+  // the parent flex gap — no top/bottom padding here to avoid double-stacking.
+  &__form-aligned {
+    padding: 0 var(--space-6);
+    max-width: 800px;
+  }
+
+  &__alerts {
+    margin-bottom: var(--space-4);
+  }
+
+  &__loading {
+    flex: 1;
+    gap: var(--space-3);
+    color: var(--gray-11);
+  }
+
+  &__spinner {
+    animation: spin 1s linear infinite;
+  }
+
+  &__readonly {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--gray-2);
+    border-radius: var(--radius-2);
+  }
+
+  &__row {
+    display: flex;
+    gap: var(--space-4);
+  }
+
+  &__label {
+    min-width: 150px;
+    color: var(--gray-11);
+  }
+
+  &__help {
+    padding: var(--space-4);
+    background: var(--gray-2);
+    border: 1px solid var(--gray-5);
+    border-radius: var(--radius-2);
+  }
+
+  &__help-header {
+    margin-bottom: var(--space-2);
+    color: var(--gray-12);
+
+    svg {
+      color: var(--accent-9);
+    }
+  }
+
+  &__help-text {
+    color: var(--gray-11);
+    line-height: 1.5;
+
+    & + & {
+      margin-top: var(--space-2);
+    }
+  }
+
+  &__help-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--accent-11);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

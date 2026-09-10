@@ -1,0 +1,133 @@
+
+
+import { assign } from 'xstate';
+import { ENDPOINTS, restClient } from '../../../../../../interface/api';
+import { createFormMachine, type FormContext, type ValidationErrors } from '../../../../../../interface/form';
+
+import { EmailConfiguration, DEFAULT_EMAIL_CONFIGURATION } from './types';
+
+/**
+ * Email address regex (simple but sufficient for UI validation)
+ */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Validate email configuration form data.
+ * Host, port, and fromAddress are only required when email is enabled.
+ */
+function validateEmailConfig(data: EmailConfiguration): ValidationErrors {
+  const errors: ValidationErrors = {};
+
+  if (data.enabled) {
+    if (!data.host?.trim()) {
+      errors.host = 'SMTP host is required';
+    }
+
+    if (data.port == null || data.port === 0) {
+      errors.port = 'Port is required';
+    } else if (!Number.isInteger(Number(data.port)) || data.port < 1 || data.port > 65535) {
+      errors.port = 'Port must be between 1 and 65535';
+    }
+
+    if (!data.fromAddress?.trim()) {
+      errors.fromAddress = 'From address is required';
+    } else if (!EMAIL_REGEX.test(data.fromAddress)) {
+      errors.fromAddress = 'Invalid email address format';
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * REST API email configuration shape (matches ApiEmailConfiguration.java)
+ */
+interface RestEmailConfiguration {
+  enabled: boolean;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  fromAddress?: string;
+  subjectPrefix?: string;
+  startTlsEnabled?: boolean;
+  startTlsRequired?: boolean;
+  sslOnConnectEnabled?: boolean;
+  sslServerIdentityCheckEnabled?: boolean;
+  astrumTrustStoreEnabled?: boolean;
+}
+
+/**
+ * Transform REST response to UI model
+ */
+function restToEmailConfig(rest: RestEmailConfiguration): EmailConfiguration {
+  return {
+    enabled: rest.enabled ?? false,
+    host: rest.host ?? '',
+    port: rest.port ?? 25,
+    useAuthentication: (rest.username ?? '') !== '',
+    username: rest.username ?? '',
+    password: rest.password ?? '',
+    fromAddress: rest.fromAddress ?? '',
+    subjectPrefix: rest.subjectPrefix ?? '',
+    startTlsEnabled: rest.startTlsEnabled ?? false,
+    startTlsRequired: rest.startTlsRequired ?? false,
+    sslOnConnectEnabled: rest.sslOnConnectEnabled ?? false,
+    sslCheckServerIdentityEnabled: rest.sslServerIdentityCheckEnabled ?? false,
+    astrumTrustStoreEnabled: rest.astrumTrustStoreEnabled ?? false,
+  };
+}
+
+/**
+ * Transform UI model to REST format for saving
+ */
+function emailConfigToRest(config: EmailConfiguration): RestEmailConfiguration {
+  return {
+    enabled: config.enabled,
+    host: config.host,
+    port: config.port,
+    username: config.useAuthentication ? config.username : '',
+    password: config.useAuthentication ? config.password : '',
+    fromAddress: config.fromAddress,
+    subjectPrefix: config.subjectPrefix,
+    startTlsEnabled: config.startTlsEnabled,
+    startTlsRequired: config.startTlsRequired,
+    sslOnConnectEnabled: config.sslOnConnectEnabled,
+    sslServerIdentityCheckEnabled: config.sslCheckServerIdentityEnabled,
+    astrumTrustStoreEnabled: config.astrumTrustStoreEnabled,
+  };
+}
+
+/**
+ * Create the email settings form machine.
+ *
+ * Simple settings form - loads current config, allows editing, saves via PUT.
+ * No type variants or editingConfig needed.
+ */
+export function createEmailFormMachine() {
+  return createFormMachine<EmailConfiguration>({
+    id: 'email-form',
+    resetAfterSave: true,
+    context: {
+      data: { ...DEFAULT_EMAIL_CONFIGURATION },
+    },
+    actions: {
+      validate: assign((ctx: FormContext<EmailConfiguration>) => ({
+        validationErrors: validateEmailConfig(ctx.data),
+      })),
+    },
+    services: {
+      load: async () => {
+        const rest = await restClient.get<RestEmailConfiguration>(ENDPOINTS.EMAIL);
+        const data = restToEmailConfig(rest);
+        return { data };
+      },
+      save: async (ctx: FormContext<EmailConfiguration>) => {
+        const payload = emailConfigToRest(ctx.data);
+        await restClient.put(ENDPOINTS.EMAIL, payload);
+      },
+    },
+  });
+}
+
+export { validateEmailConfig, restToEmailConfig, emailConfigToRest };

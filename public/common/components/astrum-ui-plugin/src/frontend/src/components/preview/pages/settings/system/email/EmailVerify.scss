@@ -1,0 +1,32 @@
+
+
+.email-verify {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__description {
+    color: var(--gray-11);
+    line-height: 1.5;
+  }
+
+  &__form {
+    flex-wrap: wrap;
+  }
+
+  &__input-wrapper {
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
+  }
+
+  &__button {
+    white-space: nowrap;
+  }
+
+  &__result {
+    margin-top: var(--space-2);
+  }
+}
+
+
