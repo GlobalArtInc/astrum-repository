@@ -1,0 +1,48 @@
+
+
+.tasks-page {
+  padding: 24px;
+  background: var(--color-background);
+  min-width: 0;
+  width: 100%;
+
+  &__header {
+    margin-bottom: 20px;
+  }
+
+  &__icon {
+    color: var(--accent-9);
+  }
+
+  &__description {
+    color: var(--gray-11);
+    margin-top: var(--space-1);
+  }
+
+  &__back {
+    padding: var(--space-2);
+    
+    &:hover {
+      background: var(--gray-4);
+    }
+  }
+
+  &__alerts {
+    margin-bottom: 16px;
+  }
+
+  &__content {
+    // Content flows naturally, parent container handles scrolling
+  }
+}
+
+// Dark mode adjustments
+:root[data-theme="dark"] {
+  .tasks-page {
+    &__back:hover {
+      background: var(--gray-5);
+    }
+  }
+}
+
+
