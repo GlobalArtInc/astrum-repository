@@ -1,0 +1,218 @@
+
+
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { Theme } from '@radix-ui/themes';
+
+import { CleanupPolicyDryRun } from '../CleanupPolicyDryRun';
+import { CleanupPolicyFormData } from '../types';
+import * as useCleanupPoliciesApiModule from '../useCleanupPoliciesApi';
+
+// Mock the API hook
+jest.mock('../useCleanupPoliciesApi');
+
+const mockedUseCleanupPoliciesApi = useCleanupPoliciesApiModule.useCleanupPoliciesApi as jest.MockedFunction<
+  typeof useCleanupPoliciesApiModule.useCleanupPoliciesApi
+>;
+
+// Wrapper component for Radix Theme
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return <Theme>{children}</Theme>;
+}
+
+describe('CleanupPolicyDryRun', () => {
+  const mockFetchRepositories = jest.fn();
+  const mockGetDryRunCsvUrl = jest.fn();
+
+  const mockPolicyDataWithCriteria: CleanupPolicyFormData = {
+    name: 'test-policy',
+    format: 'maven2',
+    notes: '',
+    criteriaLastBlobUpdated: 30,
+    criteriaLastDownloaded: null,
+    criteriaReleaseType: null,
+    criteriaAssetRegex: null,
+    retain: null,
+    sortBy: null,
+  };
+
+  const mockPolicyDataWithoutCriteria: CleanupPolicyFormData = {
+    name: 'test-policy',
+    format: 'maven2',
+    notes: '',
+    criteriaLastBlobUpdated: null,
+    criteriaLastDownloaded: null,
+    criteriaReleaseType: null,
+    criteriaAssetRegex: null,
+    retain: null,
+    sortBy: null,
+  };
+
+  const mockRepositories = [
+    { id: 'maven-central', name: 'Maven Central' },
+    { id: 'maven-releases', name: 'Maven Releases' },
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFetchRepositories.mockResolvedValue(mockRepositories);
+    mockGetDryRunCsvUrl.mockReturnValue('/api/cleanup/dryrun?repo=maven-central');
+
+    mockedUseCleanupPoliciesApi.mockReturnValue({
+      loading: false,
+      error: null,
+      setError: jest.fn(),
+      fetchCleanupPolicies: jest.fn().mockResolvedValue([]),
+      fetchCleanupPolicy: jest.fn().mockResolvedValue(null),
+      fetchFormatCriteria: jest.fn().mockResolvedValue([]),
+      fetchRepositories: mockFetchRepositories,
+      createCleanupPolicy: jest.fn().mockResolvedValue({}),
+      updateCleanupPolicy: jest.fn().mockResolvedValue({}),
+      deleteCleanupPolicy: jest.fn().mockResolvedValue({}),
+      previewCleanupPolicy: jest.fn().mockResolvedValue({ components: [], total: 0 }),
+      getDryRunCsvUrl: mockGetDryRunCsvUrl,
+      isPreviewEnabled: jest.fn().mockReturnValue(false),
+      isRetainEnabled: jest.fn().mockReturnValue(false),
+    });
+  });
+
+  describe('initial render', () => {
+    it('renders description text', () => {
+      render(<CleanupPolicyDryRun policyData={mockPolicyDataWithCriteria} />, {
+        wrapper: TestWrapper,
+      });
+
+      expect(
+        screen.getByText(/Export a spreadsheet listing which components would be deleted/)
+      ).toBeInTheDocument();
+    });
+
+    it('renders repository select', async () => {
+      render(<CleanupPolicyDryRun policyData={mockPolicyDataWithCriteria} />, {
+        wrapper: TestWrapper,
+      });
+
+      await waitFor(() => {
+        expect(mockFetchRepositories).toHaveBeenCalledWith('maven2');
+      });
+    });
+
+    it('renders Generate CSV Report button', () => {
+      render(<CleanupPolicyDryRun policyData={mockPolicyDataWithCriteria} />, {
+        wrapper: TestWrapper,
+      });
+
+      expect(
+        screen.getByRole('button', { name: /Generate CSV Report/i })
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('repository loading', () => {
+    it('loads repositories when format is provided', async () => {
+      render(<CleanupPolicyDryRun policyData={mockPolicyDataWithCriteria} />, {
+        wrapper: TestWrapper,
+      });
+
+      await waitFor(() => {
+        expect(mockFetchRepositories).toHaveBeenCalledWith('maven2');
+      });
+    });
+
+    it('displays error when repository fetch fails', async () => {
+      mockFetchRepositories.mockRejectedValue(new Error('Failed to load repositories'));
+
+      render(<CleanupPolicyDryRun policyData={mockPolicyDataWithCriteria} />, {
+        wrapper: TestWrapper,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load repositories')).toBeInTheDocument();
+      });
+    });
+
+    it('restricts dropdown to selectedRepositories when provided and does not fetch all repos', async () => {
+      render(
+        <CleanupPolicyDryRun
+          policyData={mockPolicyDataWithCriteria}
+          selectedRepositories={['repo-a', 'repo-b']}
+        />,
+        { wrapper: TestWrapper }
+      );
+
+      // fetchRepositories must not be called when Applied Repositories are provided
+      await Promise.resolve();
+      expect(mockFetchRepositories).not.toHaveBeenCalled();
+    });
+
+    it('shows empty dropdown when no Applied Repositories and format supports per-repo application', async () => {
+      const goFormatPolicy: CleanupPolicyFormData = {
+        ...mockPolicyDataWithCriteria,
+        format: 'go',
+      };
+
+      render(
+        <CleanupPolicyDryRun policyData={goFormatPolicy} selectedRepositories={[]} />,
+        { wrapper: TestWrapper }
+      );
+
+      // For formats using the Applied Repositories dual-list, we must NOT fall back
+      // to fetching every repository — the dropdown stays empty.
+      await Promise.resolve();
+      expect(mockFetchRepositories).not.toHaveBeenCalled();
+    });
+
+    it('falls back to fetching all repos when format does not support per-repo application', async () => {
+      render(
+        <CleanupPolicyDryRun policyData={mockPolicyDataWithCriteria} selectedRepositories={[]} />,
+        { wrapper: TestWrapper }
+      );
+
+      // maven2 is NOT in REPOSITORIES_FIELD_SUPPORTED_FORMATS, so behavior is preserved.
+      await waitFor(() => {
+        expect(mockFetchRepositories).toHaveBeenCalledWith('maven2');
+      });
+    });
+  });
+
+  describe('button state', () => {
+    it('disables button when no repository is selected', async () => {
+      render(<CleanupPolicyDryRun policyData={mockPolicyDataWithCriteria} />, {
+        wrapper: TestWrapper,
+      });
+
+      await waitFor(() => {
+        expect(mockFetchRepositories).toHaveBeenCalled();
+      });
+
+      const button = screen.getByRole('button', { name: /Generate CSV Report/i });
+      expect(button).toBeDisabled();
+    });
+
+    it('disables button when no criteria is selected', async () => {
+      render(<CleanupPolicyDryRun policyData={mockPolicyDataWithoutCriteria} />, {
+        wrapper: TestWrapper,
+      });
+
+      await waitFor(() => {
+        expect(mockFetchRepositories).toHaveBeenCalled();
+      });
+
+      const button = screen.getByRole('button', { name: /Generate CSV Report/i });
+      expect(button).toBeDisabled();
+    });
+
+    // Note: Tests requiring Radix Select repository selection removed
+    // (doesn't work in jsdom due to pointer capture limitations)
+    // Covered by E2E tests in e2e/tests/
+  });
+
+  // Note: Download URL generation tests removed - require Radix Select interaction
+  // Covered by E2E tests
+
+  // Note: Criteria validation tests with repository selection removed
+  // The component correctly validates criteria (tested above), but repository
+  // selection via Radix Select doesn't work in jsdom. Covered by E2E tests.
+});
+
+
