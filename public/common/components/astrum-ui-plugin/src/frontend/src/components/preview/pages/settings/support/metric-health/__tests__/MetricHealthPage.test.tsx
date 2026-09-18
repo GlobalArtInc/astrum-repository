@@ -1,0 +1,430 @@
+
+
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { Theme } from '@radix-ui/themes';
+
+import { MetricHealthPage } from '../MetricHealthPage';
+import * as useMetricHealthApiModule from '../useMetricHealthApi';
+import { ExtJS } from '@globalart/astrum-ui-plugin';
+
+// Mock the API hook
+jest.mock('../useMetricHealthApi');
+
+// Mock useToast with trackable mock functions
+const mockToastSuccess = jest.fn();
+const mockToastError = jest.fn();
+
+jest.mock('../../../../../shared', () => ({
+  ...jest.requireActual('../../../../../shared'),
+  useToast: () => ({
+    success: mockToastSuccess,
+    error: mockToastError,
+    warning: jest.fn(),
+    info: jest.fn(),
+  }),
+}));
+
+const mockedUseMetricHealthApi = useMetricHealthApiModule.useMetricHealthApi as jest.MockedFunction<
+  typeof useMetricHealthApiModule.useMetricHealthApi
+>;
+
+// Wrapper component for Radix Theme
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return <Theme>{children}</Theme>;
+}
+
+describe('MetricHealthPage', () => {
+  const mockHealthChecks = [
+    { name: 'threadDeadlockHealthCheck', result: { healthy: true, message: 'No deadlocks detected' } },
+    { name: 'databaseHealthCheck', result: { healthy: true, message: 'Database is running' } },
+    { name: 'memoryHealthCheck', result: { healthy: false, message: 'Memory usage high' } },
+  ];
+
+  const mockNodes = [
+    { nodeId: 'node-1', hostname: 'astrum-node-1', healthy: true },
+    { nodeId: 'node-2', hostname: 'astrum-node-2', healthy: false, message: 'High memory usage' },
+  ];
+
+  const mockFetchMetricHealth = jest.fn();
+  const mockFetchClusterNodes = jest.fn();
+  const mockFetchNodeMetricHealth = jest.fn();
+  const mockDownloadMetricHealth = jest.fn();
+  const mockSetError = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Mock checkPermission to return true by default
+    jest.spyOn(ExtJS, 'checkPermission').mockReturnValue(true);
+    // Mock state().getValue to return false (non-clustered) by default
+    jest.spyOn(ExtJS, 'state').mockReturnValue({
+      getValue: jest.fn().mockReturnValue(false),
+    } as any);
+
+    mockedUseMetricHealthApi.mockReturnValue({
+      loading: false,
+      error: null,
+      setError: mockSetError,
+      fetchMetricHealth: mockFetchMetricHealth.mockResolvedValue(mockHealthChecks),
+      fetchClusterNodes: mockFetchClusterNodes.mockResolvedValue([]),
+      fetchNodeMetricHealth: mockFetchNodeMetricHealth.mockResolvedValue(mockHealthChecks),
+      downloadMetricHealth: mockDownloadMetricHealth,
+    });
+  });
+
+  it('renders loading state initially', () => {
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    expect(screen.getByText('Loading health checks...')).toBeInTheDocument();
+  });
+
+  it('renders the page title', async () => {
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+    });
+
+    // Breadcrumb should show the selected check (first unhealthy check is auto-selected)
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+    // The breadcrumb trail includes the auto-selected check name
+    expect(screen.getAllByText('memoryHealthCheck').length).toBeGreaterThan(0);
+  });
+
+  it('displays health checks in single-node mode', async () => {
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('Thread Deadlock')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Database')).toBeInTheDocument();
+    // Use getAllByText because Memory appears in both list and detail views
+    expect(screen.getAllByText('Memory').length).toBeGreaterThan(0);
+  });
+
+  it('selects first unhealthy check by default', async () => {
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      // Use getAllByText because Memory appears in both list and detail views
+      expect(screen.getAllByText('Memory').length).toBeGreaterThan(0);
+    });
+
+    // The Memory check should be selected (it's unhealthy)
+    const memoryButton = screen.getByRole('button', { name: /memory/i });
+    expect(memoryButton).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('handles refresh button click', async () => {
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+    });
+
+    const refreshButton = screen.getByTestId('refresh-button');
+    fireEvent.click(refreshButton);
+
+    await waitFor(() => {
+      expect(mockFetchMetricHealth).toHaveBeenCalledTimes(2);
+    });
+
+    expect(mockToastSuccess).toHaveBeenCalledWith('Health checks refreshed');
+  });
+
+  it('handles download button click', async () => {
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+    });
+
+    const downloadButton = screen.getByTestId('download-button');
+    fireEvent.click(downloadButton);
+
+    expect(mockDownloadMetricHealth).toHaveBeenCalledWith(mockHealthChecks, 'metric-health.json');
+  });
+
+  it('displays error state', async () => {
+    mockedUseMetricHealthApi.mockReturnValue({
+      loading: false,
+      error: 'Failed to load health checks',
+      setError: mockSetError,
+      fetchMetricHealth: mockFetchMetricHealth.mockResolvedValue([]),
+      fetchClusterNodes: mockFetchClusterNodes.mockResolvedValue([]),
+      fetchNodeMetricHealth: mockFetchNodeMetricHealth,
+      downloadMetricHealth: mockDownloadMetricHealth,
+    });
+
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load health checks')).toBeInTheDocument();
+    });
+  });
+
+  it('shows no permission message when user lacks permission', async () => {
+    jest.spyOn(ExtJS, 'checkPermission').mockReturnValue(false);
+
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('You do not have permission to view metric health.')).toBeInTheDocument();
+    });
+  });
+
+  it('displays help section with documentation link', async () => {
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('About Status')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('documentation')).toHaveAttribute(
+      'href',
+      'http://links.globalart.dev/products/astrum/docs/metrics'
+    );
+  });
+
+  describe('Breadcrumb navigation for list view', () => {
+    it('renders breadcrumbs with Settings link', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+      });
+    });
+
+    it('navigates to Settings when Settings breadcrumb is clicked', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+      });
+
+      const originalHash = window.location.hash;
+      screen.getByRole('button', { name: 'Settings' }).click();
+      expect(window.location.hash).toBe('#preview/admin/settings');
+      window.location.hash = originalHash;
+    });
+  });
+
+  describe('Breadcrumb navigation for detail view', () => {
+    it('renders breadcrumb with check name as current page in detail view', async () => {
+      const { container } = render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+      });
+
+      // First unhealthy check (memoryHealthCheck) is auto-selected, so check name appears in breadcrumb
+      const currentBreadcrumb = container.querySelector('[aria-current="page"]');
+      expect(currentBreadcrumb).toBeInTheDocument();
+      expect(currentBreadcrumb?.textContent).toBe('memoryHealthCheck');
+    });
+
+    it('renders Metric Health as non-clickable breadcrumb when a check is selected in single-node mode', async () => {
+      const { container } = render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+      });
+
+      // In single-node mode, Metric Health does NOT have an onClick handler when a check is selected
+      // It should appear as text, not a button
+      expect(screen.queryByRole('button', { name: 'Metric Health' })).not.toBeInTheDocument();
+      // But it should still appear in the breadcrumb trail
+      expect(container.textContent).toContain('Metric Health');
+    });
+  });
+
+  it('shows empty state when no health checks', async () => {
+    mockFetchMetricHealth.mockResolvedValue([]);
+
+    render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('No health checks available')).toBeInTheDocument();
+    });
+  });
+
+  describe('Clustered Mode', () => {
+    beforeEach(() => {
+      // Mock state().getValue to return true (clustered mode)
+      jest.spyOn(ExtJS, 'state').mockReturnValue({
+        getValue: jest.fn().mockReturnValue(true),
+      } as any);
+
+      mockedUseMetricHealthApi.mockReturnValue({
+        loading: false,
+        error: null,
+        setError: mockSetError,
+        fetchMetricHealth: mockFetchMetricHealth.mockResolvedValue(mockHealthChecks),
+        fetchClusterNodes: mockFetchClusterNodes.mockResolvedValue(mockNodes),
+        fetchNodeMetricHealth: mockFetchNodeMetricHealth.mockResolvedValue(mockHealthChecks),
+        downloadMetricHealth: mockDownloadMetricHealth,
+      });
+    });
+
+    it('shows node list in clustered mode', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('Select a node to view health checks')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('astrum-node-1')).toBeInTheDocument();
+      expect(screen.getByText('astrum-node-2')).toBeInTheDocument();
+    });
+
+    it('displays node health status indicators', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('astrum-node-1')).toBeInTheDocument();
+      });
+
+      // Node 2 should show its message
+      expect(screen.getByText('High memory usage')).toBeInTheDocument();
+    });
+
+    it('navigates to node health details on click', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('astrum-node-1')).toBeInTheDocument();
+      });
+
+      const nodeButton = screen.getByTestId('node-item-node-1');
+      fireEvent.click(nodeButton);
+
+      await waitFor(() => {
+        expect(mockFetchNodeMetricHealth).toHaveBeenCalledWith('node-1');
+      });
+
+      // Should now show health checks for the node
+      expect(screen.getByText('Thread Deadlock')).toBeInTheDocument();
+    });
+
+    it('shows breadcrumb navigation when viewing node details', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('astrum-node-1')).toBeInTheDocument();
+      });
+
+      const nodeButton = screen.getByTestId('node-item-node-1');
+      fireEvent.click(nodeButton);
+
+      // After selecting a node, the breadcrumb shows "Metric Health" as a clickable button
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Metric Health' })).toBeInTheDocument();
+      });
+    });
+
+    it('navigates back to node list when clicking Metric Health breadcrumb', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('astrum-node-1')).toBeInTheDocument();
+      });
+
+      // Click a node
+      const nodeButton = screen.getByTestId('node-item-node-1');
+      fireEvent.click(nodeButton);
+
+      // Wait for breadcrumb to appear
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Metric Health' })).toBeInTheDocument();
+      });
+
+      // Click the Metric Health breadcrumb button to go back to node list
+      const metricHealthBreadcrumb = screen.getByRole('button', { name: 'Metric Health' });
+      fireEvent.click(metricHealthBreadcrumb);
+
+      await waitFor(() => {
+        expect(screen.getByText('Select a node to view health checks')).toBeInTheDocument();
+      });
+    });
+
+    it('refreshes node list when on nodes view', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('astrum-node-1')).toBeInTheDocument();
+      });
+
+      const refreshButton = screen.getByTestId('refresh-button');
+      fireEvent.click(refreshButton);
+
+      await waitFor(() => {
+        expect(mockFetchClusterNodes).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('shows empty state when no cluster nodes', async () => {
+      mockFetchClusterNodes.mockResolvedValue([]);
+
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('No cluster nodes available')).toBeInTheDocument();
+      });
+    });
+
+    it('hides download button when viewing nodes list', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('astrum-node-1')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('download-button')).not.toBeInTheDocument();
+    });
+
+    it('shows download button when viewing node health details', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('astrum-node-1')).toBeInTheDocument();
+      });
+
+      const nodeButton = screen.getByTestId('node-item-node-1');
+      fireEvent.click(nodeButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('download-button')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Form State Attributes', () => {
+    it('has data-testid on page container', async () => {
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-health-page')).toBeInTheDocument();
+      });
+    });
+
+    it('has data-loading attribute during loading', async () => {
+      mockedUseMetricHealthApi.mockReturnValue({
+        loading: true,
+        error: null,
+        setError: mockSetError,
+        fetchMetricHealth: mockFetchMetricHealth.mockResolvedValue(mockHealthChecks),
+        fetchClusterNodes: mockFetchClusterNodes.mockResolvedValue([]),
+        fetchNodeMetricHealth: mockFetchNodeMetricHealth,
+        downloadMetricHealth: mockDownloadMetricHealth,
+      });
+
+      render(<MetricHealthPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        const page = screen.getByTestId('metric-health-page');
+        expect(page).toHaveAttribute('data-loading', 'true');
+      });
+    });
+  });
+});
