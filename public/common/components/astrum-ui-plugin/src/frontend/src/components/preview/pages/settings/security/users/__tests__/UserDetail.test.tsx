@@ -1,0 +1,639 @@
+
+
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { Theme } from '@radix-ui/themes';
+
+import { UserDetail } from '../UserDetail';
+import { User } from '../types';
+import * as useUsersApiModule from '../useUsersApi';
+import { ToastProvider } from '../../../../../shared/Toast';
+
+// Mock the API hook
+jest.mock('../useUsersApi', () => ({
+  useUsersApi: jest.fn(),
+}));
+
+const mockedUseUsersApi = useUsersApiModule.useUsersApi as jest.MockedFunction<typeof useUsersApiModule.useUsersApi>;
+
+// Mock ExtJS
+jest.mock('@globalart/astrum-ui-plugin', () => ({
+  ExtJS: {
+    checkPermission: jest.fn().mockReturnValue(true),
+    isProEdition: jest.fn().mockReturnValue(true),
+    state: jest.fn().mockReturnValue({
+      getValue: jest.fn((key: string) => {
+        if (key === 'capabilityActiveTypes') {
+          return ['usertoken'];
+        }
+        return 'anonymous';
+      }),
+      getUser: jest.fn().mockReturnValue({ id: 'currentuser' }),
+    }),
+  },
+  APIConstants: {
+    EXT: {
+      USER: {
+        ACTION: 'coreui_User',
+        METHODS: {
+          READ: 'read',
+          CREATE: 'create',
+          UPDATE: 'update',
+          REMOVE: 'remove',
+          CHANGE_PASSWORD: 'changePassword',
+          READ_SOURCES: 'readSources',
+          READ_ROLES: 'readRoles',
+        },
+      },
+    },
+    REST: {
+      PUBLIC: {
+        USERS: '/service/rest/v1/security/users',
+      },
+    },
+  },
+}));
+
+// Wrapper component for Radix Theme and Toast context
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <Theme>
+      <ToastProvider>{children}</ToastProvider>
+    </Theme>
+  );
+}
+
+const mockUser: User = {
+  userId: 'testuser',
+  firstName: 'Test',
+  lastName: 'User',
+  emailAddress: 'test@example.com',
+  source: 'default',
+  realm: 'default',
+  status: 'active',
+  roles: ['as-admin'],
+};
+
+const _mockExternalUser: User = {
+  userId: 'ldapuser',
+  firstName: 'LDAP',
+  lastName: 'User',
+  emailAddress: 'ldap@example.com',
+  source: 'LDAP',
+  realm: 'LDAP',
+  status: 'active',
+  roles: ['as-anonymous'],
+  externalRoles: ['LDAP-Admin', 'LDAP-Users'],
+};
+
+describe('UserDetail', () => {
+  const mockOnCancel = jest.fn();
+  const mockChangePassword = jest.fn();
+  const mockResetUserToken = jest.fn();
+  const mockSetError = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockChangePassword.mockResolvedValue({});
+    mockResetUserToken.mockResolvedValue({});
+    mockedUseUsersApi.mockReturnValue({
+      loading: false,
+      error: null,
+      setError: mockSetError,
+      fetchUser: jest.fn(),
+      fetchUsers: jest.fn(),
+      fetchSources: jest.fn(),
+      fetchRoles: jest.fn().mockResolvedValue([]),
+      createUser: jest.fn(),
+      updateUser: jest.fn(),
+      deleteUser: jest.fn(),
+      changePassword: mockChangePassword,
+      resetUserToken: mockResetUserToken,
+    });
+  });
+
+  it('shows loading state when user is null and loading is true', () => {
+    render(
+      <UserDetail
+        user={null}
+        loading={true}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    const loadingText = screen.getByText(/Loading user details/i);
+    expect(loadingText).toBeInTheDocument();
+    const loadingContainer = loadingText.closest('[role="status"]');
+    expect(loadingContainer).toHaveAttribute('aria-live', 'polite');
+    expect(loadingContainer).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('shows not found state when user is null and not loading', () => {
+    render(
+      <UserDetail
+        user={null}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    const notFoundText = screen.getByText(/User not found/i);
+    expect(notFoundText).toBeInTheDocument();
+    const notFoundContainer = notFoundText.closest('[role="alert"]');
+    expect(notFoundContainer).toHaveAttribute('aria-live', 'assertive');
+  });
+
+  it('renders read-only view when canEdit is false', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={false}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('User Information')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('testuser')).toBeInTheDocument();
+    expect(screen.getByText('Test')).toBeInTheDocument();
+    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Back to List')).toBeInTheDocument();
+  });
+
+  it('shows assigned roles in read-only view', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={false}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Assigned Roles')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('as-admin')).toBeInTheDocument();
+  });
+
+  it('renders the edit branch (Account Actions section) when canEdit is true', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Account Actions')).toBeInTheDocument();
+    });
+  });
+
+  it('shows change password section for local users with admin permission', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Account Actions')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: /Change Password/i })).toBeInTheDocument();
+  });
+
+  it('shows user token reset section in Pro edition', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Account Actions')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Reset Token')).toBeInTheDocument();
+  });
+
+  it('handles change password flow', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    // Click to show password form
+    fireEvent.click(screen.getByRole('button', { name: /Change Password/i }));
+
+    const newPasswordInput = await screen.findByLabelText(/^New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/^Confirm New Password/i);
+
+    fireEvent.change(newPasswordInput, { target: { value: 'newpassword123' } });
+    fireEvent.change(confirmPasswordInput, { target: { value: 'newpassword123' } });
+
+    // Submit the password change
+    fireEvent.click(screen.getByRole('button', { name: 'Change Password' }));
+
+    await waitFor(() => {
+      expect(mockChangePassword).toHaveBeenCalledWith('testuser', 'newpassword123');
+    });
+  });
+
+  it('shows password mismatch error', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    // Click to show password form
+    fireEvent.click(screen.getByRole('button', { name: /Change Password/i }));
+
+    const newPasswordInput = await screen.findByLabelText(/^New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/^Confirm New Password/i);
+
+    fireEvent.change(newPasswordInput, { target: { value: 'password1' } });
+    fireEvent.change(confirmPasswordInput, { target: { value: 'password2' } });
+
+    // Submit
+    fireEvent.click(screen.getByRole('button', { name: 'Change Password' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Passwords do not match/i)).toBeInTheDocument();
+    });
+  });
+
+  it('calls onCancel when back button is clicked in read-only mode', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={false}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Back to List')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Back to List'));
+
+    expect(mockOnCancel).toHaveBeenCalled();
+  });
+
+  it('displays user status via StatusBadge', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={false}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Status: Active')).toBeInTheDocument();
+    });
+  });
+
+  it('shows Local for local user source', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={false}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Local')).toBeInTheDocument();
+    });
+  });
+
+  it('handles API errors gracefully', async () => {
+    mockedUseUsersApi.mockReturnValue({
+      loading: false,
+      error: 'Something went wrong',
+      setError: mockSetError,
+      fetchUser: jest.fn(),
+      fetchUsers: jest.fn(),
+      fetchSources: jest.fn(),
+      fetchRoles: jest.fn().mockResolvedValue([]),
+      createUser: jest.fn(),
+      updateUser: jest.fn(),
+      deleteUser: jest.fn(),
+      changePassword: mockChangePassword,
+      resetUserToken: mockResetUserToken,
+    });
+
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+    });
+  });
+
+  it('shows no roles message when user has no roles assigned', async () => {
+    const userWithNoRoles = { ...mockUser, roles: [] };
+    
+    render(
+      <UserDetail
+        user={userWithNoRoles}
+        loading={false}
+        canEdit={false}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('No roles assigned')).toBeInTheDocument();
+    });
+  });
+
+  it('can cancel password change form', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    // Click to show password form
+    fireEvent.click(screen.getByRole('button', { name: /Change Password/i }));
+
+    await screen.findByLabelText(/^New Password/i);
+
+    // Click cancel
+    fireEvent.click(screen.getByText('Cancel'));
+
+    await waitFor(() => {
+      // Password form should be hidden and button visible again
+      expect(screen.getByRole('button', { name: /Change Password/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows confirmation dialog when reset token is clicked', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    // Click reset token button
+    fireEvent.click(screen.getByText('Reset Token'));
+
+    // Verify confirmation dialog appears
+    await waitFor(() => {
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      expect(screen.getByText(/Are you sure you want to reset the token/i)).toBeInTheDocument();
+    });
+  });
+
+  it('calls resetUserToken when confirmation dialog is confirmed', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    // Click reset token button
+    fireEvent.click(screen.getByText('Reset Token'));
+
+    // Wait for dialog and click confirm
+    await waitFor(() => {
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+
+    await waitFor(() => {
+      expect(mockResetUserToken).toHaveBeenCalledWith('testuser', 'default');
+    });
+  });
+
+  it('closes confirmation dialog when cancel is clicked', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    // Click reset token button
+    fireEvent.click(screen.getByText('Reset Token'));
+
+    // Wait for dialog
+    await waitFor(() => {
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    });
+
+    // Click cancel in the dialog
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    // Dialog should close
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+
+    // resetUserToken should not have been called
+    expect(mockResetUserToken).not.toHaveBeenCalled();
+  });
+
+  it('hides reset token button when usertoken capability is not active', async () => {
+    // Override the mock to return no usertoken capability
+    const { ExtJS } = jest.requireMock('@globalart/astrum-ui-plugin');
+    ExtJS.state.mockReturnValue({
+      getValue: jest.fn((key: string) => {
+        if (key === 'capabilityActiveTypes') {
+          return []; // No usertoken capability
+        }
+        return 'anonymous';
+      }),
+      getUser: jest.fn().mockReturnValue({ id: 'currentuser' }),
+    });
+
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Account Actions')).toBeInTheDocument();
+    });
+
+    // Reset Token button should NOT be visible
+    expect(screen.queryByText('Reset Token')).not.toBeInTheDocument();
+  });
+
+  // AC-3: UserDetail uses MetadataGrid for key-value display layout
+  it('renders MetadataGrid component for user info layout in read-only view', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={false}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('metadata-grid')).toBeInTheDocument();
+    });
+
+    expect(document.querySelector('.user-detail__info')).not.toBeInTheDocument();
+  });
+
+  // AC-4: UserDetail uses StatusBadge for user status display
+  it('renders StatusBadge for user status in read-only view', async () => {
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={false}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Status: Active')).toBeInTheDocument();
+    });
+
+    expect(document.querySelector('.user-detail__status--active')).not.toBeInTheDocument();
+  });
+
+  // ASTRUM-54437: Delete moved off the read-only View page; UserDetail no
+  // longer accepts onDelete or canDelete, and never renders a Delete button.
+  describe('no delete affordance (ASTRUM-54437)', () => {
+    it('renders without onDelete/canDelete props in read-only mode', async () => {
+      render(
+        <UserDetail
+          user={mockUser}
+          loading={false}
+          canEdit={false}
+            onCancel={mockOnCancel}
+        />,
+        { wrapper: TestWrapper }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('User Information')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole('button', { name: /^delete form$/i })).not.toBeInTheDocument();
+    });
+
+    it('renders without onDelete/canDelete props in edit mode', async () => {
+      render(
+        <UserDetail
+          user={mockUser}
+          loading={false}
+          canEdit={true}
+            onCancel={mockOnCancel}
+        />,
+        { wrapper: TestWrapper }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Account Actions')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole('button', { name: /^delete form$/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('hides reset token button when user lacks usertoken-user:delete permission', async () => {
+    // Override the mock to return false for usertoken permission
+    const { ExtJS } = jest.requireMock('@globalart/astrum-ui-plugin');
+    ExtJS.checkPermission.mockImplementation((permission: string) => {
+      if (permission === 'astrum:usertoken-user:delete') {
+        return false;
+      }
+      return true;
+    });
+
+    render(
+      <UserDetail
+        user={mockUser}
+        loading={false}
+        canEdit={true}
+        onCancel={mockOnCancel}
+      />,
+      { wrapper: TestWrapper }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Account Actions')).toBeInTheDocument();
+    });
+
+    // Reset Token button should NOT be visible
+    expect(screen.queryByText('Reset Token')).not.toBeInTheDocument();
+  });
+});
+
