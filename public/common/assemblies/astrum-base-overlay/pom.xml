@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum.common.assemblies</groupId>
+    <artifactId>astrum-common-assemblies-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-base-overlay</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>overlay-assembly</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+
+                <!-- overlay customizations -->
+                <copy todir="${project.build.directory}/assembly" overwrite="true">
+                  <fileset dir="${project.basedir}/src/main/resources/overlay"/>
+                </copy>
+
+                <!-- globalart-work placeholders/templates -->
+                <copy todir="${project.build.directory}/globalart-work" overwrite="true">
+                  <fileset dir="${project.basedir}/src/main/resources/globalart-work"/>
+                </copy>
+
+                <!-- workaround maven-assembly-plugin bug where lineEnding configuration for fileSets is ineffective -->
+                <fixcrlf srcdir="${project.build.directory}/assembly/bin" includes="*" excludes="*.bat" eol="unix"/>
+                <fixcrlf srcdir="${project.build.directory}/assembly/bin" includes="*.bat" eol="dos"/>
+
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>archive-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <appendAssemblyId>false</appendAssemblyId>
+              <descriptors>
+                <descriptor>${project.basedir}/src/main/assembly/bundle.xml</descriptor>
+              </descriptors>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
