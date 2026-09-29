@@ -1,0 +1,204 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "https://jetty.org/configure_10_0.dtd">
+<Configure id="Server" class="org.eclipse.jetty.server.Server">
+
+  <Arg name="threadPool">
+    <New id="threadpool" class="org.globalart.astrum.bootstrap.jetty.InstrumentedQueuedThreadPool">
+      <Set name="maxThreads">400</Set>
+    </New>
+  </Arg>
+
+  <Arg>
+    <New class="org.eclipse.jetty.util.thread.ScheduledExecutorScheduler">
+      <Arg name="name"><Property name="jetty.scheduler.name"/></Arg>
+      <Arg name="daemon" type="boolean"><Property name="jetty.scheduler.daemon" default="false" /></Arg>
+      <Arg name="threads" type="int"><Property name="jetty.scheduler.threads" default="-1" /></Arg>
+    </New>
+  </Arg>
+  <Arg><Ref refid="byteBufferPool"/></Arg>
+
+  <New id="baseHttpConfig" class="org.eclipse.jetty.server.HttpConfiguration">
+    <Set name="secureScheme" property="jetty.httpConfig.secureScheme"/>
+    <Set name="securePort" property="jetty.httpConfig.securePort"/>
+    <Set name="outputBufferSize" property="jetty.httpConfig.outputBufferSize"/>
+    <Set name="outputAggregationSize" property="jetty.httpConfig.outputAggregationSize"/>
+    <Set name="requestHeaderSize" property="jetty.httpConfig.requestHeaderSize"/>
+    <Set name="responseHeaderSize" property="jetty.httpConfig.responseHeaderSize"/>
+    <Set name="sendServerVersion" property="jetty.httpConfig.sendServerVersion"/>
+    <Set name="sendDateHeader"><Property name="jetty.httpConfig.sendDateHeader" default="false"/></Set>
+    <Set name="headerCacheSize" property="jetty.httpConfig.headerCacheSize"/>
+    <Set name="delayDispatchUntilContent" property="jetty.httpConfig.delayDispatchUntilContent"/>
+    <Set name="maxErrorDispatches" property="jetty.httpConfig.maxErrorDispatches"/>
+    <Set name="persistentConnectionsEnabled" property="jetty.httpConfig.persistentConnectionsEnabled"/>
+    <Set name="httpCompliance"><Call class="org.eclipse.jetty.http.HttpCompliance" name="from"><Arg><Property name="jetty.httpConfig.compliance" deprecated="jetty.http.compliance" default="RFC7230"/></Arg></Call></Set>
+    <!-- uriCompliance is configured below with default="LEGACY"; see the cargo/npm scoped-
+         package comment for context. -->
+    <Set name="requestCookieCompliance"><Call class="org.eclipse.jetty.http.CookieCompliance" name="from"><Arg><Property name="jetty.httpConfig.requestCookieCompliance" default="RFC6265"/></Arg></Call></Set>
+    <Set name="responseCookieCompliance"><Call class="org.eclipse.jetty.http.CookieCompliance" name="from"><Arg><Property name="jetty.httpConfig.responseCookieCompliance" default="RFC6265"/></Arg></Call></Set>
+    <Set name="relativeRedirectAllowed"><Property name="jetty.httpConfig.relativeRedirectAllowed" default="false"/></Set>
+    <Set name="useInputDirectByteBuffers" property="jetty.httpConfig.useInputDirectByteBuffers"/>
+    <Set name="useOutputDirectByteBuffers" property="jetty.httpConfig.useOutputDirectByteBuffers"/>
+
+    <!--
+     Jetty 12's has a https://javadoc.jetty.org/jetty-12/org/eclipse/jetty/http/UriCompliance.html#DEFAULT as the default for
+     Uri compliance and this strictly adheres to rfc3986.
+     During testing of the upgrade to Jetty 12, we found that this was causing issues with cargo and npm scoped requests. Specifically, whenever
+     a request was made to a scoped package the request would fail with a 400 error because of the forward slash '/' in the uri. for cargo, it is the same issue but cargo
+     does not encode the forward slash '/' in the uri.
+     Overriding this to what [LEGACY](https://javadoc.jetty.org/jetty-12/org/eclipse/jetty/http/UriCompliance.html#LEGACY) allowed seems reasonable
+     and solved the problem with cargo and npm scoped requests that were failing.
+     See https://jetty.org/docs/jetty/12/programming-guide/server/compliance.html#uri for uri compliance info
+     See [UriCompliance](https://javadoc.jetty.org/jetty-12/org/eclipse/jetty/http/UriCompliance.html) class
+     -->
+    <Set name="uriCompliance">
+      <Call class="org.eclipse.jetty.http.UriCompliance" name="from">
+        <Arg>
+          <Property name="jetty.httpConfig.uriCompliance" default="LEGACY"/>
+        </Arg>
+      </Call>
+    </Set>
+    <!-- ForwardedRequestCustomizer must always be the first customizer -->
+    <Call name="addCustomizer">
+      <Arg>
+        <New id="forwardedRequestCustomizer" class="org.globalart.astrum.bootstrap.jetty.CustomForwardedRequestCustomizer">
+          <Set name="forwardedOnly" property="jetty.httpConfig.forwardedOnly"/>
+          <Set name="proxyAsAuthority" property="jetty.httpConfig.forwardedProxyAsAuthority"/>
+          <Set name="forwardedPortAsAuthority" property="jetty.httpConfig.forwardedPortAsAuthority"/>
+          <Set name="forwardedHeader" property="jetty.httpConfig.forwardedHeader"/>
+          <Set name="forwardedHostHeader" property="jetty.httpConfig.forwardedHostHeader"/>
+          <Set name="forwardedServerHeader" property="jetty.httpConfig.forwardedServerHeader"/>
+          <Set name="forwardedProtoHeader" property="jetty.httpConfig.forwardedProtoHeader"/>
+          <Set name="forwardedForHeader" property="jetty.httpConfig.forwardedForHeader"/>
+          <Set name="forwardedPortHeader" property="jetty.httpConfig.forwardedPortHeader"/>
+          <Set name="forwardedHttpsHeader" property="jetty.httpConfig.forwardedHttpsHeader"/>
+          <Set name="forwardedSslSessionIdHeader" property="jetty.httpConfig.forwardedSslSessionIdHeader"/>
+          <Set name="forwardedCipherSuiteHeader" property="jetty.httpConfig.forwardedCipherSuiteHeader"/>
+        </New>
+      </Arg>
+    </Call>
+
+    <!-- STL-476: restore custom HTTP/1.1 reason phrases (e.g. Firewall quarantine status text)
+         via public Jetty API, replacing the jetty-modifications fork. Producers set the
+         AstrumReasonPhraseCustomizer.REASON_PHRASE_HEADER sentinel response header. -->
+    <Call name="addCustomizer">
+      <Arg>
+        <New class="org.globalart.astrum.bootstrap.jetty.AstrumReasonPhraseCustomizer"/>
+      </Arg>
+    </Call>
+  </New>
+
+  <Set name="defaultHandler">
+    <New id="AstrumHandler" class="org.globalart.astrum.bootstrap.jetty.InstrumentedHandler">
+      <Arg>
+        <New id="AstrumWebAppContext" class="org.eclipse.jetty.ee10.webapp.WebAppContext">
+          <Set name="descriptor"><Property name="jetty.etc"/>/astrum-web.xml</Set>
+          <Set name="parentLoaderPriority">true</Set>
+          <Set name="defaultsDescriptor"><Property name="jetty.etc"/>/override-default-web.xml</Set>
+          <Set name="contextPath"><Property name="astrum-context-path"/></Set>
+          <Set name="throwUnavailableOnStartupException">true</Set>
+          <Set name="configurationClasses">
+            <Array type="java.lang.String">
+              <Item>org.eclipse.jetty.ee10.webapp.WebXmlConfiguration</Item>
+            </Array>
+          </Set>
+          <!--
+           Allow the EE10 servlet layer to forward requests whose URI contains violations
+           that are already permitted by the configured UriCompliance mode (LEGACY by default).
+           Without this, ServletContextRequest.newServletApiRequest() returns an AmbiguousURI
+           error (e.g. "Ambiguous URI encoding: AMBIGUOUS_PATH_SEPARATOR") for npm scoped
+           package publishes such as PUT /repository/npm-internal/@scope%2fname, even though
+           UriCompliance permits AMBIGUOUS_PATH_SEPARATOR. See ASTRUM-53113.
+           -->
+          <Get name="servletHandler">
+            <Set name="decodeAmbiguousURIs">true</Set>
+          </Get>
+        </New>
+      </Arg>
+    </New>
+  </Set>
+
+  <!-- AstrumResponseCompressionHandler wraps all application contexts for response compression -->
+  <New id="AstrumResponseCompressionHandler" class="org.eclipse.jetty.server.handler.gzip.GzipHandler">
+    <!-- Increase threshold to 512 bytes to avoid small response penalties (ASTRUM-49328) -->
+    <Set name="minGzipSize"><Property name="jetty.gzip.minGzipSize" default="512"/></Set>
+
+    <!-- Include these HTTP methods for compression -->
+    <Set name="includedMethods">
+      <Array type="String">
+        <Item>GET</Item>
+        <Item>POST</Item>
+      </Array>
+    </Set>
+
+    <!-- Include specific paths for compression (UI assets + API paths) -->
+    <Set name="includedPaths">
+      <Array type="String">
+        <!-- Static UI bundles -->
+        <Item>/static/*</Item>
+
+        <!-- Font assets -->
+        <Item>/assets/*</Item>
+
+        <!-- Root HTML page -->
+        <Item>/</Item>
+
+        <!-- Outreach service (mixed assets) -->
+        <Item>/service/outreach/*</Item>
+      </Array>
+    </Set>
+
+    <!-- Include these MIME types for compression -->
+    <Set name="includedMimeTypes">
+      <Array type="String">
+        <!-- HTML & CSS -->
+        <Item>text/html</Item>
+        <Item>text/css</Item>
+
+        <!-- JavaScript (all variants) -->
+        <Item>text/javascript</Item>
+        <Item>application/javascript</Item>
+        <Item>application/x-javascript</Item>
+
+        <!-- Images -->
+        <Item>image/svg+xml</Item>
+      </Array>
+    </Set>
+
+    <!-- Wrap the application contexts collection -->
+    <Set name="handler">
+      <New id="Contexts" class="org.eclipse.jetty.server.handler.ContextHandlerCollection">
+        <Set name="dynamic" property="jetty.server.contexts.dynamic"/>
+      </New>
+    </Set>
+  </New>
+
+  <Set name="handler">
+    <Ref refid="AstrumResponseCompressionHandler"/>
+  </Set>
+
+  <Set name="stopAtShutdown"><Property name="jetty.server.stopAtShutdown" default="true"/></Set>
+  <Set name="stopTimeout"><Property name="jetty.server.stopTimeout" default="5000"/></Set>
+  <Set name="dumpAfterStart" property="jetty.server.dumpAfterStart"/>
+  <Set name="dumpBeforeStop" property="jetty.server.dumpBeforeStop"/>
+  <Set name="tempDirectory" property="jetty.server.tempDirectory"/>
+
+  <Call id="MBeanServer" class="java.lang.management.ManagementFactory"
+        name="getPlatformMBeanServer" />
+
+  <Call name="addBean">
+    <Arg>
+      <New id="MBeanContainer" class="org.eclipse.jetty.jmx.MBeanContainer">
+        <Arg>
+          <Ref refid="MBeanServer" />
+        </Arg>
+        <Call name="beanAdded">
+          <Arg/>
+          <Arg>
+            <Get name="ILoggerFactory" class="org.slf4j.LoggerFactory"/>
+          </Arg>
+        </Call>
+      </New>
+    </Arg>
+  </Call>
+
+</Configure>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "https://jetty.org/configure_10_0.dtd">
+<Configure id="Server" class="org.eclipse.jetty.server.Server">
+
+  <Set name="RequestLog">
+    <New id="RequestLog" class="org.globalart.astrum.jetty.log.AstrumRepositoryRequestLog">
+      <Arg>
+        <New class="org.eclipse.jetty.server.Slf4jRequestLogWriter"/>
+      </Arg>
+      <Arg>%{client}a - %{astrum.user.id}attr [%{responseTimestamp}attr] "%r" %s %{Content-Length}i %O %{ms}T "%{User-Agent}i" [%{threadName}attr]</Arg>
+    </New>
+  </Set>
+
+</Configure>

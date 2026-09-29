@@ -1,0 +1,32 @@
+<?xml version="1.0"?><!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "https://jetty.org/configure_10_0.dtd">
+
+<Configure id="Server" class="org.eclipse.jetty.server.Server">
+
+  <Ref refid="sslContextFactory">
+    <!-- FIPS Provider -->
+    <Set name="Provider">BCFIPS</Set> <!-- (BouncyCastle FIPS) -->
+    <Set name="KeyStoreType">BCFKS</Set> <!-- KeyStore type compatible with FIPS -->
+    <Set name="TrustStoreType">BCFKS</Set>
+    <Set name="IncludeProtocols">
+      <Array type="java.lang.String">
+        <Item>TLSv1.2</Item>
+      </Array>
+    </Set>
+    <Set name="IncludeCipherSuites">
+      <Array type="java.lang.String">
+        <Item>TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</Item>
+        <Item>TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</Item>
+      </Array>
+    </Set>
+    <Set name="ExcludeCipherSuites">
+      <Array type="java.lang.String">
+        <Item>TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384</Item>
+        <Item>TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256</Item>
+        <Item>SSL_RSA_WITH_RC4_128_SHA</Item>
+        <Item>SSL_RSA_WITH_3DES_EDE_CBC_SHA</Item>
+        <Item>SSL_RSA_WITH_DES_CBC_SHA</Item>
+      </Array>
+    </Set>
+  </Ref>
+
+</Configure>
