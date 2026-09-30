@@ -1,0 +1,47 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum</groupId>
+    <artifactId>astrum-common-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <groupId>org.globalart.astrum.common.assemblies</groupId>
+  <artifactId>astrum-common-assemblies-parent</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>astrum-base-overlay</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- BUILDSUPPORT -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-all</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- ASSEMBLIES -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.assemblies</groupId>
+        <artifactId>astrum-base-overlay</artifactId>
+        <version>3.96.4-01</version>
+        <type>zip</type>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+</project>
