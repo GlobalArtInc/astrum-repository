@@ -1,0 +1,92 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.globalart.astrum</groupId>
+    <artifactId>astrum-selfhosted-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <groupId>org.globalart.astrum.selfhosted.components</groupId>
+  <artifactId>astrum-selfhosted-components-parent</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>api</module>
+    <module>astrum-repository-core-edition</module>
+    <module>astrum-self-hosted</module>
+  </modules>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- BUILDSUPPORT -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.buildsupport</groupId>
+        <artifactId>astrum-common-buildsupport-all</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-common-components-parent</artifactId>
+        <type>pom</type>
+        <version>3.96.4-01</version>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- COMPONENTS -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.selfhosted.components</groupId>
+        <artifactId>astrum-repository-core-edition</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.selfhosted.components</groupId>
+        <artifactId>astrum-self-hosted</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <!-- API -->
+
+      <dependency>
+        <groupId>org.globalart.astrum.selfhosted.components</groupId>
+        <artifactId>astrum-api-extdirect-selfhosted</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.selfhosted.components</groupId>
+        <artifactId>astrum-api-rest-selfhosted</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjrt</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>dev.aspectj</groupId>
+        <artifactId>aspectj-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
