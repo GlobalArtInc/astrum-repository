@@ -1,0 +1,155 @@
+
+package org.globalart.astrum.api.rest.selfhosted.blobstore;
+
+import java.util.List;
+import java.util.Map;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+
+import org.globalart.astrum.common.i18n.I18N;
+import org.globalart.astrum.common.i18n.MessageBundle;
+import org.globalart.astrum.api.rest.common.blobstore.BlobStoreResourceUtil;
+import org.globalart.astrum.api.rest.common.blobstore.model.BlobStoreConnectionXO;
+import org.globalart.astrum.api.rest.common.blobstore.model.BlobStoreQuotaResultXO;
+import org.globalart.astrum.api.rest.common.blobstore.model.GenericBlobStoreApiResponse;
+import org.globalart.astrum.blobstore.ConnectionChecker;
+import org.globalart.astrum.blobstore.api.BlobStore;
+import org.globalart.astrum.blobstore.api.BlobStoreConnectionException;
+import org.globalart.astrum.blobstore.api.BlobStoreException;
+import org.globalart.astrum.blobstore.api.BlobStoreManager;
+import org.globalart.astrum.blobstore.quota.BlobStoreQuotaResult;
+import org.globalart.astrum.blobstore.quota.BlobStoreQuotaService;
+import org.globalart.astrum.common.QualifierUtil;
+import org.globalart.astrum.repository.blobstore.BlobStoreConfigurationStore;
+import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.validation.Validate;
+
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+
+/**
+ * @since 3.14
+ */
+@Produces(APPLICATION_JSON)
+@Consumes(APPLICATION_JSON)
+public class BlobStoreResource
+    implements Resource, BlobStoreResourceDoc
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  private final BlobStoreManager blobStoreManager;
+
+  private final BlobStoreConfigurationStore store;
+
+  private final BlobStoreQuotaService quotaService;
+
+  private final Map<String, ConnectionChecker> connectionCheckers;
+
+  private interface Messages
+      extends MessageBundle
+  {
+    @DefaultMessage("Connection failed, check the logs for more information.")
+    String connectionError();
+  }
+
+  private static final Messages messages = I18N.create(Messages.class);
+
+  public BlobStoreResource(
+      final BlobStoreManager blobStoreManager,
+      final BlobStoreConfigurationStore store,
+      final BlobStoreQuotaService quotaService,
+      final List<ConnectionChecker> connectionCheckersList)
+  {
+    this.blobStoreManager = checkNotNull(blobStoreManager);
+    this.store = checkNotNull(store);
+    this.quotaService = checkNotNull(quotaService);
+    this.connectionCheckers = QualifierUtil.buildQualifierBeanMap(connectionCheckersList);
+  }
+
+  @Override
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:blobstores:read")
+  @GET
+  public List<GenericBlobStoreApiResponse> listBlobStores() {
+    Map<String, BlobStore> blobstoresByName = blobStoreManager.getByName();
+    return store.list()
+        .stream()
+        .map(
+            configuration -> new GenericBlobStoreApiResponse(configuration,
+                blobstoresByName.get(configuration.getName())))
+        .collect(toList());
+  }
+
+  @Override
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:blobstores:delete")
+  @DELETE
+  @Path("/{name}")
+  public void deleteBlobStore(@PathParam("name") final String name) throws Exception {
+    if (!blobStoreManager.exists(name)) {
+      BlobStoreResourceUtil.throwCreateBlobStoreNotFoundException("", name);
+    }
+    try {
+      blobStoreManager.delete(name);
+    }
+    catch (BlobStoreException e) {
+      BlobStoreResourceUtil.throwBlobStoreBadRequestException(e.getMessage());
+    }
+  }
+
+  @Override
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:blobstores:read")
+  @GET
+  @Path("/{name}/quota-status")
+  public BlobStoreQuotaResultXO quotaStatus(@PathParam("name") final String name) {
+    BlobStore blobStore = blobStoreManager.get(name);
+
+    if (blobStore == null) {
+      throw new WebApplicationException(format("No blob store found for id '%s' ", name), NOT_FOUND);
+    }
+
+    BlobStoreQuotaResult result = quotaService.checkQuota(blobStore);
+
+    return result != null ? BlobStoreQuotaResultXO.asQuotaXO(result) : BlobStoreQuotaResultXO.asNoQuotaXO(name);
+  }
+
+  @Override
+  @POST
+  @Path("test-connection")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:blobstores:read")
+  @Validate
+  public void verifyConnection(final @NotNull @Valid BlobStoreConnectionXO blobStoreConnectionXO) {
+    try {
+      ConnectionChecker conChecker = checkNotNull(connectionCheckers.get(blobStoreConnectionXO.getType()));
+      conChecker.verifyConnection(blobStoreConnectionXO.getName(), blobStoreConnectionXO.getAttributes());
+    }
+    catch (BlobStoreConnectionException ce) { // NOSONAR
+      log.error("Can't connect to {} blob store", blobStoreConnectionXO.getType(), ce);
+      throw new WebApplicationException(Response.status(BAD_REQUEST).entity(ce.getMessage()).build());
+    }
+    catch (Exception e) {
+      log.warn("Can't connect to {} blob store", blobStoreConnectionXO.getType(), e);
+      throw new WebApplicationException(Response.status(BAD_REQUEST).entity(messages.connectionError()).build());
+    }
+  }
+}
