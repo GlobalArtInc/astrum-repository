@@ -1,0 +1,32 @@
+
+package org.globalart.astrum.api.rest.selfhosted.security.anonymous;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.ws.rs.Path;
+
+import org.globalart.astrum.security.anonymous.AnonymousManager;
+import org.globalart.astrum.security.internal.rest.SecurityApiConstants;
+
+import org.apache.shiro.mgt.RealmSecurityManager;
+
+import static org.globalart.astrum.api.rest.selfhosted.security.anonymous.AnonymousAccessApiResourceV1.RESOURCE_URI;
+import org.springframework.stereotype.Component;
+
+/**
+ * @since 3.26
+ */
+@Component
+@Path(RESOURCE_URI)
+public class AnonymousAccessApiResourceV1
+    extends AnonymousAccessApiResource
+{
+  static final String RESOURCE_URI = SecurityApiConstants.V1_RESOURCE_URI + "anonymous";
+
+  @Autowired
+  public AnonymousAccessApiResourceV1(
+      final AnonymousManager anonymousManager,
+      final RealmSecurityManager realmSecurityManager)
+  {
+    super(anonymousManager, realmSecurityManager);
+  }
+}
