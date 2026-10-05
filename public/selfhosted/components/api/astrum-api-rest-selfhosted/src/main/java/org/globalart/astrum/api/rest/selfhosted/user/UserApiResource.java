@@ -1,0 +1,224 @@
+
+
+package org.globalart.astrum.api.rest.selfhosted.user;
+
+import java.util.Collections;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response.Status;
+
+import org.globalart.astrum.common.text.Strings2;
+import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.rest.ValidationErrorsException;
+import org.globalart.astrum.rest.WebApplicationMessageException;
+import org.globalart.astrum.security.SecuritySystem;
+import org.globalart.astrum.security.authz.NoSuchAuthorizationManagerException;
+import org.globalart.astrum.security.config.AdminPasswordFileManager;
+import org.globalart.astrum.api.rest.selfhosted.user.model.ApiCreateUser;
+import org.globalart.astrum.security.internal.rest.ApiUser;
+import org.globalart.astrum.security.internal.rest.ApiUserStatus;
+import org.globalart.astrum.security.role.Role;
+import org.globalart.astrum.security.role.RoleIdentifier;
+import org.globalart.astrum.security.user.NoSuchUserManagerException;
+import org.globalart.astrum.security.user.User;
+import org.globalart.astrum.security.user.UserManager;
+import org.globalart.astrum.security.user.UserNotFoundException;
+import org.globalart.astrum.validation.Validate;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * Resource for REST API to perform operations on the user.
+ *
+ * @since 3.17
+ */
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+public class UserApiResource
+    implements Resource, UserApiResourceDoc
+{
+  protected final Logger log = LoggerFactory.getLogger(getClass());
+
+  public static final String ADMIN_USER_ID = "admin";
+
+  private final SecuritySystem securitySystem;
+
+  private final AdminPasswordFileManager adminPasswordFileManager;
+
+  @Autowired
+  public UserApiResource(
+      final SecuritySystem securitySystem,
+      final AdminPasswordFileManager adminPasswordFileManager)
+  {
+    this.securitySystem = checkNotNull(securitySystem);
+    this.adminPasswordFileManager = checkNotNull(adminPasswordFileManager);
+  }
+
+  @Override
+  @POST
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:users:create")
+  @Validate
+  public ApiUser createUser(final ApiCreateUser createUser) {
+    if (Strings2.isBlank(createUser.getPassword())) {
+      throw createWebException(Status.BAD_REQUEST, "A non-empty password is required.");
+    }
+    validateRoles(createUser.getRoles());
+    try {
+      User user = securitySystem.addUser(createUser.toUser(), createUser.getPassword());
+      return fromUser(user);
+    }
+    catch (NoSuchUserManagerException e) {
+      log.error("Unable to locate default usermanager.", e);
+      throw createNoSuchUserManagerException(UserManager.DEFAULT_SOURCE);
+    }
+  }
+
+  @Override
+  @PUT
+  @Path("{userId}")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:users:update")
+  @Validate
+  public void updateUser(@PathParam("userId") final String userId, final ApiUser apiUser) {
+    if (!userId.equals(apiUser.getUserId())) {
+      log.debug("The path userId '{}' does not match the userId supplied in the body '{}'.", userId,
+          apiUser.getUserId());
+      throw createWebException(Status.BAD_REQUEST, "The path's userId does not match the body");
+    }
+
+    try {
+      validateRoles(apiUser.getRoles());
+
+      if (UserManager.DEFAULT_SOURCE.equals(apiUser.getSource())) {
+        securitySystem.updateUser(apiUser.toUser());
+      }
+      else {
+        // Ensure user exists
+        securitySystem.getUser(userId, apiUser.getSource());
+
+        Set<String> roleIds = apiUser.getRoles();
+        Set<RoleIdentifier> roleIdentifiers = (roleIds == null ? Collections.<String>emptySet() : roleIds)
+            .stream()
+            .map(roleId -> new RoleIdentifier(UserManager.DEFAULT_SOURCE, roleId))
+            .collect(Collectors.toSet());
+        securitySystem.setUsersRoles(userId, apiUser.getSource(), roleIdentifiers);
+      }
+    }
+    catch (UserNotFoundException e) {
+      log.debug("Unable to locate userId: {}", userId, e);
+      throw createUnknownUserException(userId);
+    }
+    catch (NoSuchUserManagerException e) {
+      log.debug("Unable to locate source: {}", userId, apiUser.getSource(), e);
+      throw createNoSuchUserManagerException(apiUser.getSource());
+    }
+  }
+
+  @Override
+  @PUT
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:*")
+  @Path("{userId}/change-password")
+  @Consumes(MediaType.TEXT_PLAIN)
+  @Validate
+  public void changePassword(@PathParam("userId") final String userId, final String password) {
+    if (StringUtils.isBlank(password)) {
+      throw createWebException(Status.BAD_REQUEST, "Password must be supplied.");
+    }
+    try {
+      securitySystem.changePassword(userId, password);
+
+      if (ADMIN_USER_ID.equals(userId)) {
+        adminPasswordFileManager.removeFile();
+      }
+    }
+    catch (UserNotFoundException e) { // NOSONAR
+      log.debug("Request to change password for invalid user '{}'.", userId);
+      throw createUnknownUserException(userId);
+    }
+  }
+
+  private boolean isReadOnly(final User user) {
+    try {
+      return !securitySystem.getUserManager(user.getSource()).supportsWrite();
+    }
+    catch (NoSuchUserManagerException e) {
+      log.debug("Unable to locate user manager: {}", user.getSource(), e);
+      return true;
+    }
+  }
+
+  @VisibleForTesting
+  ApiUser fromUser(final User user) {
+    Predicate<RoleIdentifier> isLocal = r -> UserManager.DEFAULT_SOURCE.equals(r.getSource());
+
+    Set<String> internalRoles =
+        user.getRoles().stream().filter(isLocal).map(RoleIdentifier::getRoleId).collect(Collectors.toSet());
+    Set<String> externalRoles =
+        user.getRoles().stream().filter(isLocal.negate()).map(RoleIdentifier::getRoleId).collect(Collectors.toSet());
+
+    return new ApiUser(user.getUserId(), user.getFirstName(), user.getLastName(), user.getEmailAddress(),
+        user.getSource(), ApiUserStatus.convert(user.getStatus()), isReadOnly(user), internalRoles, externalRoles);
+  }
+
+  private void validateRoles(final Set<String> roleIds) {
+    ValidationErrorsException errors = new ValidationErrorsException();
+
+    if (roleIds == null || roleIds.isEmpty()) {
+      return;
+    }
+
+    Set<String> localRoles;
+    try {
+      localRoles = securitySystem.listRoles(UserManager.DEFAULT_SOURCE)
+          .stream()
+          .map(Role::getRoleId)
+          .collect(Collectors.toSet());
+      for (String roleId : roleIds) {
+        if (roleId == null || roleId.isBlank()) {
+          errors.withError("roles", "Role ID must not be null or blank");
+          continue;
+        }
+        if (!localRoles.contains(roleId)) {
+          errors.withError("roles", "Unable to locate roleId: " + roleId);
+        }
+      }
+      if (errors.hasValidationErrors()) {
+        throw errors;
+      }
+    }
+    catch (NoSuchAuthorizationManagerException e) {
+      log.error("Unable to locate default user manager", e);
+      throw createWebException(Status.INTERNAL_SERVER_ERROR, "Unable to locate default user manager");
+    }
+  }
+
+  private WebApplicationMessageException createNoSuchUserManagerException(final String source) {
+    return createWebException(Status.NOT_FOUND, "Unable to locate source: " + source);
+  }
+
+  private WebApplicationMessageException createUnknownUserException(final String userId) {
+    return createWebException(Status.NOT_FOUND, "User '" + userId + "' not found.");
+  }
+
+  private WebApplicationMessageException createWebException(final Status status, final String message) {
+    return new WebApplicationMessageException(status, "\"" + message + "\"", MediaType.APPLICATION_JSON);
+  }
+}
