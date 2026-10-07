@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.globalart.astrum.selfhosted.assemblies</groupId>
+    <artifactId>astrum-selfhosted-assemblies-parent</artifactId>
+    <version>3.96.4-01</version>
+  </parent>
+
+  <artifactId>astrum-repository-core</artifactId>
+  <name>${project.groupId}:${project.artifactId}</name>
+  <packaging>jar</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.globalart.astrum.common.assemblies</groupId>
+      <artifactId>astrum-base-overlay</artifactId>
+      <type>zip</type>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-configuration</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-spring</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-bootstrap-spring</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-extender-spring</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.selfhosted.components</groupId>
+      <artifactId>astrum-repository-core-edition</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-logging</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-httpclient</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-servlet</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient_dropwizard</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient_servlet</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.velocity</groupId>
+      <artifactId>velocity-engine-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-jmx</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>net.java.dev.jna</groupId>
+      <artifactId>jna-platform</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <!-- overridden dependencies -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>log4j-over-slf4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+    </dependency>
+    <!-- components -->
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-audit</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-base</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-blobstore</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-blobstore-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-blobstore-file</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-cache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-capability</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-cleanup</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-cleanup-config</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-crypto</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-datastore</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-datastore-h2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-datastore-mybatis</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-distributed-event-service-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-search-sql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-email</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-extdirect</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-formfields</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-httpclient</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-jetty-log</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-jmx</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-mime</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-plugin-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-quartz</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-rapture</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-config</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-content</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-services</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-view</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-rest</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-rest-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-rest-jackson2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-scheduling</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-script</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-selector</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.selfhosted.components</groupId>
+      <artifactId>astrum-self-hosted</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-servlet</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-siesta</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-ssl</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-supportzip-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-swagger</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-thread</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-transaction</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-ui-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-upgrade</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-webhooks</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-webresources-api</artifactId>
+    </dependency>
+
+    <!-- plugins -->
+
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-audit-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-blobstore-s3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-blobstore-tasks</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-coreui-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-default-role-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-oidc-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-onboarding-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-apt</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-httpbridge</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-maven</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-raw</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-p2</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-cargo</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-cocoapods</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-conan</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-r</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-conda</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-docker</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-alpine</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-golang</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-nuget</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-pypi</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-composer</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-npm</artifactId>
+      <version>3.96.4-01</version>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-helm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-script-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-ssl-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-task-log-cleanup</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-api-extdirect-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.selfhosted.components</groupId>
+      <artifactId>astrum-api-extdirect-selfhosted</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-api-rest-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.selfhosted.components</groupId>
+      <artifactId>astrum-api-rest-selfhosted</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-test-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.reflections</groupId>
+      <artifactId>reflections</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-dependencies</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <fail>true</fail>
+              <rules>
+                <bannedDependencies>
+                  <searchTransitive>true</searchTransitive>
+                  <excludes combine.children="append">
+                    <!-- Ban private -->
+                    <exclude>com.globalart.astrum*</exclude>
+                    <!--
+                      ASTRUM-46395: ban Java EE 8 (javax.*) coordinates that have Jakarta EE 10
+                      replacements. The runtime is fully Jakarta-native; these guard against any
+                      future dependency change accidentally re-introducing javax-* artifacts.
+                      Replacements (mechanical groupId/package rename per Jakarta EE 9+ spec):
+                        javax.servlet:*     -> jakarta.servlet:*
+                        javax.inject:*      -> jakarta.inject:*
+                        javax.ws.rs:*       -> jakarta.ws.rs:*
+                        javax.validation:*  -> jakarta.validation:*
+                        javax.enterprise:*  -> jakarta.enterprise:*       (CDI)
+                        javax.el:*          -> jakarta.el:*               (Expression Language)
+                        javax.interceptor:* -> jakarta.interceptor:*
+                        javax.transaction:* -> jakarta.transaction:*      (JTA)
+                        javax.xml.bind:*    -> jakarta.xml.bind:*         (JAXB)
+                        javax.activation:*  -> jakarta.activation:*       (Jakarta Activation)
+                        javax.mail:*        -> jakarta.mail:*             (Jakarta Mail; note our
+                                                                          Mail impl ships at
+                                                                          com.sun.mail:jakarta.mail,
+                                                                          a different groupId)
+                      Intentionally NOT banned:
+                        javax.annotation:*  Google Cloud gRPC stubs emit @javax.annotation.Generated
+                                            on generated classes; this is a third-party transitive
+                                            (via astrum-blobstore-google-cloud, only present in Pro)
+                                            we can't cleanly displace. Our own code is on
+                                            jakarta.annotation.{PostConstruct,PreDestroy,Resource,...}
+                                            for the JSR-250 lifecycle annotations; the JSR-305 nullness
+                                            annotations (javax.annotation.{Nullable,Nonnull,...}, ~960
+                                            uses across the codebase) come from
+                                            com.google.code.findbugs:jsr305 - a different groupId,
+                                            so this ban does not affect them.
+                        javax.cache:*       JSR-107 / JCache; group name unrelated to EE namespace,
+                                            no Jakarta replacement exists.
+                        com.google.code.findbugs:jsr305 provides javax.annotation.Nullable etc -
+                                            different group, JSR-305 stays javax.* by spec.
+                    -->
+                    <exclude>javax.servlet:*</exclude>
+                    <exclude>javax.inject:*</exclude>
+                    <exclude>javax.ws.rs:*</exclude>
+                    <exclude>javax.validation:*</exclude>
+                    <exclude>javax.enterprise:*</exclude>
+                    <exclude>javax.el:*</exclude>
+                    <exclude>javax.interceptor:*</exclude>
+                    <exclude>javax.transaction:*</exclude>
+                    <exclude>javax.xml.bind:*</exclude>
+                    <exclude>javax.activation:*</exclude>
+                    <exclude>javax.mail:*</exclude>
+                  </excludes>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <excludePackageNames>org.globalart.astrum.bootstrap.*</excludePackageNames>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>uberjar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <executable>java</executable>
+          <workingDirectory>${project.build.directory}/assembly</workingDirectory>
+          <arguments>
+            <argument>-jar</argument>
+            <argument>${project.build.directory}/${project.build.finalName}.jar</argument>
+          </arguments>
+          <environmentVariables>
+            <!-- Used by the `?debug` mode to allow javascript resources to be loaded from the filesystem -->
+            <ASTRUM_RESOURCE_DIRS>
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-base/src/main/resources,
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-coreui-plugin/src/main/resources,
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-coreui-plugin/target/classes,
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-example-content/src/main/resources,
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-onboarding-plugin/src/main/resources,
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-rapture/src/main/resources,
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-rapture/target/classes,
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-ui-plugin/target/classes,
+              ${project.parent.parent.parent.parent.basedir}/public/common/components/formats/astrum-repository-maven/src/main/resources
+            </ASTRUM_RESOURCE_DIRS>
+            <!-- Used to disable the random password generation, and default to admin/admin123 for easy development -->
+            <ASTRUM_SECURITY_RANDOMPASSWORD>false</ASTRUM_SECURITY_RANDOMPASSWORD>
+          </environmentVariables>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <!-- parent pom sets this execution up in pluginManagement, so it will autorun by including the plugin-->
+          <!-- which we don't want for this assembly as we have our own antrun execution doing the work -->
+          <execution>
+            <id>overlay-assembly</id>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </execution>
+          <execution>
+            <id>customize-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <unzip src="${org.globalart.astrum.common.assemblies:astrum-base-overlay:zip}"
+                       dest="${project.build.directory}/assembly"
+                       overwrite="true">
+                  <patternset>
+                    <exclude name="*/lib/**"/>
+                    <exclude name="globalart-work/**"/>
+                  </patternset>
+                  <cutdirsmapper dirs="1"/>
+                </unzip>
+
+                <unzip src="${org.globalart.astrum.common.assemblies:astrum-base-overlay:zip}"
+                       dest="${project.build.directory}/globalart-work"
+                       overwrite="true">
+                  <patternset>
+                    <include name="globalart-work/**"/>
+                  </patternset>
+                  <cutdirsmapper dirs="1"/>
+                </unzip>
+
+                <!-- overlay customizations; failonerror is set because any copy fails on an empty folder -->
+                <!-- preserving the command to stay consistent with other distributions and in case we re-add files -->
+                <copy todir="${project.build.directory}/assembly" overwrite="true" failonerror="false">
+                  <fileset dir="${project.basedir}/src/main/assembly/overlay"/>
+                </copy>
+
+                <!-- workaround maven-assembly-plugin bug where lineEnding configuration for fileSets is ineffective -->
+                <fixcrlf srcdir="${project.build.directory}/assembly/bin" includes="*" excludes="*.bat" eol="unix"/>
+                <fixcrlf srcdir="${project.build.directory}/assembly/bin" includes="*.bat" eol="dos"/>
+
+                <!-- and don't forget the uberjar -->
+                <copy file="${project.build.directory}/${project.artifactId}-${project.version}.jar"
+                      todir="${project.build.directory}/assembly/bin" overwrite="true"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>run</id>
+      <build>
+        <defaultGoal>exec:exec</defaultGoal>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>run-after-package</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
