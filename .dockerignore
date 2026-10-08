@@ -1,0 +1,9 @@
+.github
+.claude
+.data
+.idea
+.vscode
+**/target
+**/node_modules
+.yarn/cache
+.yarn/install-state.gz
