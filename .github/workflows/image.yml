@@ -1,0 +1,83 @@
+name: Image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - id: tag
+        run: |
+          set -eu
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF#refs/tags/v}"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "tags=$version latest" >> "$GITHUB_OUTPUT"
+          else
+            version="$(date -u +%Y%m%d%H%M%S)-$(git rev-parse --short=7 HEAD)"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "tags=$version edge" >> "$GITHUB_OUTPUT"
+          fi
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: printf '%s' "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - env:
+          DOCKER_BUILDKIT: "1"
+        run: |
+          set -eu
+          image=globalartltd/astrum-repository
+          tag_args=()
+          for t in ${{ steps.tag.outputs.tags }}; do
+            tag_args+=(-t "$image:$t")
+          done
+          docker build \
+            --build-arg VERSION=${{ steps.tag.outputs.version }} \
+            --build-arg GIT_REVISION=${{ steps.tag.outputs.revision }} \
+            "${tag_args[@]}" .
+
+          smoke="astrum-smoke-${GITHUB_RUN_ID}"
+          trap 'docker rm -f "$smoke" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "$smoke" -p 127.0.0.1::8081 \
+            -e ASTRUM_JAVA_OPTS="-Xms1g -Xmx1g -XX:MaxDirectMemorySize=1g" \
+            "$image:${{ steps.tag.outputs.version }}"
+          port="$(docker port "$smoke" 8081/tcp | head -n1 | sed 's/.*://')"
+          for i in $(seq 1 60); do
+            if curl -fs "http://127.0.0.1:$port/service/rest/v1/status/writable" >/dev/null; then
+              break
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' "$smoke")" != "true" ]; then
+              docker logs "$smoke" | tail -n 100
+              exit 1
+            fi
+            sleep 5
+          done
+          curl -fs "http://127.0.0.1:$port/service/rest/v1/status/writable" >/dev/null || {
+            docker logs "$smoke" | tail -n 100
+            exit 1
+          }
+          docker exec "$smoke" test -s /astrum-data/admin.password
+          echo "the image starts and serves requests"
+          docker rm -f "$smoke" >/dev/null
+
+          for t in ${{ steps.tag.outputs.tags }}; do
+            docker push "$image:$t"
+          done
+          echo "published $image:${{ steps.tag.outputs.version }}"
+
+      - if: always()
+        run: docker logout
