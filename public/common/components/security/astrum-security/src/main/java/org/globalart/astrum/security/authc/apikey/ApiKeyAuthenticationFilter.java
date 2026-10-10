@@ -33,11 +33,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class ApiKeyAuthenticationFilter
     extends AstrumBasicHttpAuthenticationFilter
 {
-  private static final String NX_APIKEY_PRINCIPAL = ApiKeyAuthenticationFilter.class.getName() + ".principal";
+  private static final String AS_APIKEY_PRINCIPAL = ApiKeyAuthenticationFilter.class.getName() + ".principal";
 
-  private static final String NX_APIKEY_TOKEN = ApiKeyAuthenticationFilter.class.getName() + ".apiKey";
+  private static final String AS_APIKEY_TOKEN = ApiKeyAuthenticationFilter.class.getName() + ".apiKey";
 
-  public static final String NAME = "nx-apikey-authc";
+  public static final String NAME = "as-apikey-authc";
 
   private final Map<String, ApiKeyExtractor> apiKeys;
 
@@ -53,8 +53,8 @@ public class ApiKeyAuthenticationFilter
       final String apiKey = apiKeyEntry.getValue().extract(http);
       if (null != apiKey) {
         log.trace("ApiKeyExtractor {} detected presence of API Key", apiKeyEntry.getKey());
-        request.setAttribute(NX_APIKEY_PRINCIPAL, apiKeyEntry.getKey());
-        request.setAttribute(NX_APIKEY_TOKEN, apiKey);
+        request.setAttribute(AS_APIKEY_PRINCIPAL, apiKeyEntry.getKey());
+        request.setAttribute(AS_APIKEY_TOKEN, apiKey);
         return true;
       }
     }
@@ -63,8 +63,8 @@ public class ApiKeyAuthenticationFilter
 
   @Override
   protected AuthenticationToken createToken(final ServletRequest request, final ServletResponse response) {
-    final String principal = (String) request.getAttribute(NX_APIKEY_PRINCIPAL);
-    final String token = (String) request.getAttribute(NX_APIKEY_TOKEN);
+    final String principal = (String) request.getAttribute(AS_APIKEY_PRINCIPAL);
+    final String token = (String) request.getAttribute(AS_APIKEY_TOKEN);
     if (!Strings2.isBlank(principal) && !Strings2.isBlank(token)) {
       return new AstrumApiKeyAuthenticationToken(principal, token.toCharArray(), request.getRemoteHost());
     }

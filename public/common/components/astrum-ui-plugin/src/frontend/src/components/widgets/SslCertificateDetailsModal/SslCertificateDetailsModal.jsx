@@ -4,12 +4,12 @@ import {useMachine} from '@xstate/react';
 import classNames from 'classnames';
 import ExtJS from '../../../interface/ExtJS';
 import {
-  NxButton,
-  NxLoadWrapper,
-  NxModal,
-  NxWarningAlert,
-  NxLoadError,
-  NxTooltip
+  AsButton,
+  AsLoadWrapper,
+  AsModal,
+  AsWarningAlert,
+  AsLoadError,
+  AsTooltip
 } from '@globalart/react-shared-components';
 
 import ReadOnlyField from '../ReadOnlyField/ReadOnlyField';
@@ -72,28 +72,28 @@ export default function SslCertificateDetailsModal({remoteUrl, onCancel}) {
   }
 
   return (
-      <NxModal onCancel={onCancel}>
-        <header className="nx-modal-header">
-          <h2 className="nx-h2" id="modal-header-text">
+      <AsModal onCancel={onCancel}>
+        <header className="as-modal-header">
+          <h2 className="as-h2" id="modal-header-text">
             {SSL_CERTIFICATE_DETAILS.TITLE}
           </h2>
         </header>
-        <div className="nx-modal-content">
-          <NxLoadWrapper retryHandler={retryHandler} loading={isLoading} error={hasLoadError && error}>
+        <div className="as-modal-content">
+          <AsLoadWrapper retryHandler={retryHandler} loading={isLoading} error={hasLoadError && error}>
             {() => <>
               {hasAddCertificateError &&
-              <NxLoadError titleMessage={SSL_CERTIFICATE_DETAILS.ADD_ERROR}
+              <AsLoadError titleMessage={SSL_CERTIFICATE_DETAILS.ADD_ERROR}
                            error={error}
                            retryHandler={retryHandler}/>}
 
               {hasRemoveCertificateError &&
-              <NxLoadError titleMessage={SSL_CERTIFICATE_DETAILS.REMOVE_ERROR}
+              <AsLoadError titleMessage={SSL_CERTIFICATE_DETAILS.REMOVE_ERROR}
                            error={error}
                            retryHandler={retryHandler}/>}
 
               {isViewing && <>
-                <NxWarningAlert>{SSL_CERTIFICATE_DETAILS.WARNING}</NxWarningAlert>
-                <dl className="nx-read-only">
+                <AsWarningAlert>{SSL_CERTIFICATE_DETAILS.WARNING}</AsWarningAlert>
+                <dl className="as-read-only">
                   <ReadOnlyField label={SSL_CERTIFICATE_DETAILS.NAME}
                                         value={certificateDetails.subjectCommonName}/>
                   <ReadOnlyField label={SSL_CERTIFICATE_DETAILS.ORG}
@@ -115,35 +115,35 @@ export default function SslCertificateDetailsModal({remoteUrl, onCancel}) {
                 </dl>
               </>}
             </>}
-          </NxLoadWrapper>
+          </AsLoadWrapper>
         </div>
-        <footer className="nx-footer">
-          <div className="nx-btn-bar">
+        <footer className="as-footer">
+          <div className="as-btn-bar">
             {isInTruststore &&
-            <NxTooltip title={!canDelete && UIStrings.PERMISSION_ERROR}>
-              <NxButton variant="primary"
+            <AsTooltip title={!canDelete && UIStrings.PERMISSION_ERROR}>
+              <AsButton variant="primary"
                         type="button"
                         disabled={isLoading}
                         className={removeCertificateClasses}
                         onClick={removeFromTruststore}>
                 {SSL_CERTIFICATE_DETAILS.REMOVE_CERTIFICATE}
-              </NxButton>
-            </NxTooltip>}
+              </AsButton>
+            </AsTooltip>}
 
             {isInTruststore === false && // isInTruststore will be null during loading, don't show this button then
-            <NxTooltip title={!canCreate && UIStrings.PERMISSION_ERROR}>
-              <NxButton variant="primary"
+            <AsTooltip title={!canCreate && UIStrings.PERMISSION_ERROR}>
+              <AsButton variant="primary"
                         type="button"
                         disabled={isLoading}
                         className={addCertificateClasses}
                         onClick={addToTruststore}>
                 {SSL_CERTIFICATE_DETAILS.ADD_CERTIFICATE}
-              </NxButton>
-            </NxTooltip>}
+              </AsButton>
+            </AsTooltip>}
 
-            <NxButton type="button" onClick={onCancel}>{UIStrings.CLOSE}</NxButton>
+            <AsButton type="button" onClick={onCancel}>{UIStrings.CLOSE}</AsButton>
           </div>
         </footer>
-      </NxModal>
+      </AsModal>
   );
 }

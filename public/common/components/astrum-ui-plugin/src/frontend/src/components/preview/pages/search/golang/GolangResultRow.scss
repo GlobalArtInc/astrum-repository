@@ -5,54 +5,54 @@
   transition: background-color 0.15s ease;
 
   &:hover {
-    background-color: var(--nx-color-hover-background, #f5f5f5);
+    background-color: var(--as-color-hover-background, #f5f5f5);
   }
 
   &:focus {
     outline: none;
-    background-color: var(--nx-color-focus-background, #e8f4f8);
+    background-color: var(--as-color-focus-background, #e8f4f8);
   }
 
   td {
-    padding: var(--nx-spacing-3x, 12px) var(--nx-spacing-4x, 16px);
-    border-bottom: 1px solid var(--nx-color-border, #e0e0e0);
+    padding: var(--as-spacing-3x, 12px) var(--as-spacing-4x, 16px);
+    border-bottom: 1px solid var(--as-color-border, #e0e0e0);
     vertical-align: middle;
   }
 
   &__module {
     &-primary {
       font-weight: 500;
-      color: var(--nx-color-text-dark, #333);
+      color: var(--as-color-text-dark, #333);
       font-family: var(--font-family-mono);
       font-size: 0.875rem;
     }
   }
 
   &__description {
-    margin-top: var(--nx-spacing-1x, 4px);
+    margin-top: var(--as-spacing-1x, 4px);
     font-size: 0.75rem;
-    color: var(--nx-color-text-dark, #666);
+    color: var(--as-color-text-dark, #666);
     line-height: 1.4;
   }
 
   &__version {
     font-family: var(--font-family-mono);
     font-size: 0.8125rem;
-    color: var(--nx-color-primary-button-background, #00add8);
+    color: var(--as-color-primary-button-background, #00add8);
   }
 
   &__versions-count {
-    color: var(--nx-color-text-dark, #666);
+    color: var(--as-color-text-dark, #666);
     font-size: 0.875rem;
   }
 
   &__license {
-    color: var(--nx-color-text-dark, #666);
+    color: var(--as-color-text-dark, #666);
     font-size: 0.8125rem;
   }
 
   &__updated {
-    color: var(--nx-color-text-dark, #666);
+    color: var(--as-color-text-dark, #666);
     font-size: 0.8125rem;
     white-space: nowrap;
   }
@@ -63,7 +63,7 @@
 
   &__chevron-icon {
     font-size: 1.25rem;
-    color: var(--nx-color-text-dark, #999);
+    color: var(--as-color-text-dark, #999);
     font-weight: bold;
   }
 }

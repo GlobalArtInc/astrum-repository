@@ -1,5 +1,5 @@
 
-import {NxTextLink} from "@globalart/react-shared-components";
+import {AsTextLink} from "@globalart/react-shared-components";
 import React from "react";
 import {faServer} from "@fortawesome/free-solid-svg-icons";
 
@@ -12,9 +12,9 @@ export default {
     USAGE_DATA_STORAGE_EXPLANATION: <>
       <strong>Note:</strong> This value may differ from the sum of individual repository storage totals. The storage usage includes: version history retained for 45 days after deletion, overwritten file versions retained for 30 days, and tenant access logs from the past 90 days.
     </>,
-    DESCRIPTION: <>Monitor your storage usage trends over time. <NxTextLink external
+    DESCRIPTION: <>Monitor your storage usage trends over time. <AsTextLink external
                                                                                href="http://links.globalart.dev/products/astrum/license/historical-usage">Learn
-      how usage is calculated</NxTextLink></>,
+      how usage is calculated</AsTextLink></>,
     PERMISSION_ERROR: 'Insufficient Permissions: You need administrator privileges to view usage data.',
     LOAD_ERROR: 'Unable to load historical usage data. Please try again later.',
     MONTH: 'Month',

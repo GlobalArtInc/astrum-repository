@@ -3,13 +3,13 @@ import React, {useEffect} from 'react';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxButtonBar,
-  NxFormRow,
-  NxFormSelect,
-  NxH2,
-  NxLoadWrapper,
-  NxP,
-  NxTooltip
+  AsButtonBar,
+  AsFormRow,
+  AsFormSelect,
+  AsH2,
+  AsLoadWrapper,
+  AsP,
+  AsTooltip
 } from '@globalart/react-shared-components';
 import ExtJS from '../../../interface/ExtJS';
 import FormUtils from '../../../interface/FormUtils';
@@ -47,13 +47,13 @@ export default function CleanupPoliciesDryRun({policyData}) {
   }
 
   return <div className="as-cleanup-policies-dry-run">
-    <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+    <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
       {() =>
         <>
-          <NxH2>{TITLE}</NxH2>
-          <NxP id="dryRunDesc">{REPOSITORY_DESCRIPTION}</NxP>
-          <NxFormRow>
-            <NxFormSelect aria-describedby="dryRunDesc"
+          <AsH2>{TITLE}</AsH2>
+          <AsP id="dryRunDesc">{REPOSITORY_DESCRIPTION}</AsP>
+          <AsFormRow>
+            <AsFormSelect aria-describedby="dryRunDesc"
                           disabled={!policyData.format}
                           {...FormUtils.fieldProps('repository', state)}
                           onChange={repositoryChangeHandler}
@@ -62,21 +62,21 @@ export default function CleanupPoliciesDryRun({policyData}) {
               {repositories?.map(({id, name}) =>
                 <option key={id} value={id}>{name}</option>
               )}
-            </NxFormSelect>
-            <NxButtonBar>
-              <NxTooltip title={!repository || !criteriaSelected ? UIStrings.CLEANUP_POLICIES.DRY_RUN.BUTTON_TOOLTIP : undefined}>
+            </AsFormSelect>
+            <AsButtonBar>
+              <AsTooltip title={!repository || !criteriaSelected ? UIStrings.CLEANUP_POLICIES.DRY_RUN.BUTTON_TOOLTIP : undefined}>
                 <a aria-disabled={!repository || !criteriaSelected}
-                  className={`nx-btn ${(!repository || !criteriaSelected) ? 'disabled' : ''}`}
+                  className={`as-btn ${(!repository || !criteriaSelected) ? 'disabled' : ''}`}
                   download
                   href={!repository || !criteriaSelected ? undefined : generateCSVUrl}
                   role={!repository || !criteriaSelected ? 'link' : undefined}>
                   {BUTTON}
                 </a>
-              </NxTooltip>
-            </NxButtonBar>
-          </NxFormRow>
+              </AsTooltip>
+            </AsButtonBar>
+          </AsFormRow>
         </>
       }
-    </NxLoadWrapper>
+    </AsLoadWrapper>
   </div>
 }

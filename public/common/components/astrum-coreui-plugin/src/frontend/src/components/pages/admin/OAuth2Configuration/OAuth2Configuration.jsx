@@ -4,11 +4,11 @@ import {useMachine} from '@xstate/react';
 
 import {FormUtils, UseAstrumTruststore} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFieldset,
-  NxFormGroup,
-  NxStatefulForm,
-  NxTooltip
+  AsButton,
+  AsFieldset,
+  AsFormGroup,
+  AsStatefulForm,
+  AsTooltip
 } from '@globalart/react-shared-components';
 
 import {
@@ -23,7 +23,7 @@ import OAuth2ConfigurationMachine from './OAuth2ConfigurationMachine';
 import UIStrings from '../../../../constants/UIStrings';
 import './OAuth2Configuration.scss';
 
-import {NxTextInput} from "@globalart/react-shared-components";
+import {AsTextInput} from "@globalart/react-shared-components";
 
 const {FIELDS, LABELS} = UIStrings.OAUTH2_CONFIGURATION;
 
@@ -46,179 +46,179 @@ export default function OAuth2Configuration() {
     </PageHeader>
     <ContentBody className='as-oauth2-configuration'>
       <Section>
-        <NxStatefulForm
+        <AsStatefulForm
             {...FormUtils.formProps(current, send)}
             additionalFooterBtns={
-              <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-                <NxButton type="button" className={isPristine && 'disabled'} onClick={discard}>
+              <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+                <AsButton type="button" className={isPristine && 'disabled'} onClick={discard}>
                   {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-                </NxButton>
-              </NxTooltip>
+                </AsButton>
+              </AsTooltip>
             }>
-          <NxFieldset label={LABELS.OAUTH_2_0_CONFIGURATION}>
-            <div className="nx-sub-label nx-oauth2-required-advice-left">
+          <AsFieldset label={LABELS.OAUTH_2_0_CONFIGURATION}>
+            <div className="as-sub-label as-oauth2-required-advice-left">
               {LABELS.SUBLABELS.REQUIRED_FIELDS}
             </div>
-          </NxFieldset>
-          <NxFieldset label={LABELS.OIDC_SETTINGS}>
+          </AsFieldset>
+          <AsFieldset label={LABELS.OIDC_SETTINGS}>
             {current.context.data?.redirectUri &&
-              <NxFormGroup label={FIELDS.REDIRECT_URI} sublabel={LABELS.SUBLABELS.REDIRECT_URI}>
-                <NxTextInput
-                    className="nx-text-input--long"
+              <AsFormGroup label={FIELDS.REDIRECT_URI} sublabel={LABELS.SUBLABELS.REDIRECT_URI}>
+                <AsTextInput
+                    className="as-text-input--long"
                     value={current.context.data.redirectUri}
                     isPristine
                     readOnly
                     onChange={() => {}}
                 />
-              </NxFormGroup>
+              </AsFormGroup>
             }
-            <NxFormGroup label={FIELDS.ISSUER_URL} sublabel={LABELS.SUBLABELS.ISSUER_URL}>
-              <NxTextInput
-                  className="nx-text-input--long"
+            <AsFormGroup label={FIELDS.ISSUER_URL} sublabel={LABELS.SUBLABELS.ISSUER_URL}>
+              <AsTextInput
+                  className="as-text-input--long"
                   {...FormUtils.fieldProps('issuerUrl', current)}
                   onChange={FormUtils.handleUpdate('issuerUrl', send)}
                   onBlur={FormUtils.trimOnBlur('issuerUrl', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.CLIENT_ID} sublabel={LABELS.SUBLABELS.CLIENT_ID} isRequired>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.CLIENT_ID} sublabel={LABELS.SUBLABELS.CLIENT_ID} isRequired>
+              <AsTextInput
                   type="password"
                   {...FormUtils.fieldProps('clientId', current)}
                   onChange={FormUtils.handleUpdate('clientId', send)}
                   onBlur={FormUtils.trimOnBlur('clientId', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.CLIENT_SECRET} sublabel={LABELS.SUBLABELS.CLIENT_SECRET}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.CLIENT_SECRET} sublabel={LABELS.SUBLABELS.CLIENT_SECRET}>
+              <AsTextInput
                   type="password"
                   autoComplete="new-password"
                   {...FormUtils.fieldProps('clientSecret', current)}
                   onChange={FormUtils.handleUpdate('clientSecret', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.IDP_AUTHORIZATION_URL} sublabel={LABELS.SUBLABELS.IDP_AUTHORIZATION_URL}>
-              <NxTextInput
-                  className="nx-text-input--long"
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.IDP_AUTHORIZATION_URL} sublabel={LABELS.SUBLABELS.IDP_AUTHORIZATION_URL}>
+              <AsTextInput
+                  className="as-text-input--long"
                   {...FormUtils.fieldProps('idpAuthorizationUrl', current)}
                   onChange={FormUtils.handleUpdate('idpAuthorizationUrl', send)}
                   onBlur={FormUtils.trimOnBlur('idpAuthorizationUrl', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.IDP_LOGOUT_URL} sublabel={LABELS.SUBLABELS.IDP_LOGOUT_URL}>
-              <NxTextInput
-                  className="nx-text-input--long"
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.IDP_LOGOUT_URL} sublabel={LABELS.SUBLABELS.IDP_LOGOUT_URL}>
+              <AsTextInput
+                  className="as-text-input--long"
                   {...FormUtils.fieldProps('idpLogoutUrl', current)}
                   onChange={FormUtils.handleUpdate('idpLogoutUrl', send)}
                   onBlur={FormUtils.trimOnBlur('idpLogoutUrl', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.IDP_TOKEN_URL} sublabel={LABELS.SUBLABELS.IDP_TOKEN_URL}>
-              <NxTextInput
-                  className="nx-text-input--long"
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.IDP_TOKEN_URL} sublabel={LABELS.SUBLABELS.IDP_TOKEN_URL}>
+              <AsTextInput
+                  className="as-text-input--long"
                   {...FormUtils.fieldProps('idpTokenUrl', current)}
                   onChange={FormUtils.handleUpdate('idpTokenUrl', send)}
                   onBlur={FormUtils.trimOnBlur('idpTokenUrl', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.IDP_JWKS_URL} sublabel={LABELS.SUBLABELS.IDP_JWKS_URL}>
-              <NxTextInput
-                  className="nx-text-input--long"
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.IDP_JWKS_URL} sublabel={LABELS.SUBLABELS.IDP_JWKS_URL}>
+              <AsTextInput
+                  className="as-text-input--long"
                   {...FormUtils.fieldProps('idpJwksUrl', current)}
                   onChange={FormUtils.handleUpdate('idpJwksUrl', send)}
                   onBlur={FormUtils.trimOnBlur('idpJwksUrl', send)}
               />
-            </NxFormGroup>
+            </AsFormGroup>
             <UseAstrumTruststore
                 remoteUrl={current.context.data?.idpTokenUrl}
                 {...FormUtils.checkboxProps('useTrustStore', current)}
                 onChange={FormUtils.handleUpdate('useTrustStore', send)}
             />
-          </NxFieldset>
+          </AsFieldset>
 
-          <NxFieldset label={LABELS.CLAIM_MAPPINGS}>
-            <NxFormGroup label={FIELDS.USERNAME_CLAIM} sublabel={LABELS.SUBLABELS.USERNAME_CLAIM}>
-              <NxTextInput
+          <AsFieldset label={LABELS.CLAIM_MAPPINGS}>
+            <AsFormGroup label={FIELDS.USERNAME_CLAIM} sublabel={LABELS.SUBLABELS.USERNAME_CLAIM}>
+              <AsTextInput
                   {...FormUtils.fieldProps('usernameClaim', current)}
                   onChange={FormUtils.handleUpdate('usernameClaim', send)}
                   onBlur={FormUtils.trimOnBlur('usernameClaim', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.FIRST_NAME_CLAIM} sublabel={LABELS.SUBLABELS.FIRST_NAME_CLAIM}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.FIRST_NAME_CLAIM} sublabel={LABELS.SUBLABELS.FIRST_NAME_CLAIM}>
+              <AsTextInput
                   {...FormUtils.fieldProps('firstNameClaim', current)}
                   onChange={FormUtils.handleUpdate('firstNameClaim', send)}
                   onBlur={FormUtils.trimOnBlur('firstNameClaim', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.LAST_NAME_CLAIM} sublabel={LABELS.SUBLABELS.LAST_NAME_CLAIM}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.LAST_NAME_CLAIM} sublabel={LABELS.SUBLABELS.LAST_NAME_CLAIM}>
+              <AsTextInput
                   {...FormUtils.fieldProps('lastNameClaim', current)}
                   onChange={FormUtils.handleUpdate('lastNameClaim', send)}
                   onBlur={FormUtils.trimOnBlur('lastNameClaim', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.EMAIL_CLAIM} sublabel={LABELS.SUBLABELS.EMAIL_CLAIM}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.EMAIL_CLAIM} sublabel={LABELS.SUBLABELS.EMAIL_CLAIM}>
+              <AsTextInput
                   {...FormUtils.fieldProps('emailClaim', current)}
                   onChange={FormUtils.handleUpdate('emailClaim', send)}
                   onBlur={FormUtils.trimOnBlur('emailClaim', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.GROUPS_CLAIM} sublabel={LABELS.SUBLABELS.GROUPS_CLAIM}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.GROUPS_CLAIM} sublabel={LABELS.SUBLABELS.GROUPS_CLAIM}>
+              <AsTextInput
                   {...FormUtils.fieldProps('groupsClaim', current)}
                   onChange={FormUtils.handleUpdate('groupsClaim', send)}
                   onBlur={FormUtils.trimOnBlur('groupsClaim', send)}
               />
-            </NxFormGroup>
-          </NxFieldset>
+            </AsFormGroup>
+          </AsFieldset>
 
-          <NxFieldset label={LABELS.JWT_SETTINGS}>
-            <NxFormGroup label={FIELDS.IDP_JWS_ALGORITHM} sublabel={LABELS.SUBLABELS.IDP_JWS_ALGORITHM}>
-              <NxTextInput
+          <AsFieldset label={LABELS.JWT_SETTINGS}>
+            <AsFormGroup label={FIELDS.IDP_JWS_ALGORITHM} sublabel={LABELS.SUBLABELS.IDP_JWS_ALGORITHM}>
+              <AsTextInput
                 {...FormUtils.fieldProps('idpJwsAlgorithm', current)}
                 onChange={FormUtils.handleUpdate('idpJwsAlgorithm', send)}
                 onBlur={FormUtils.trimOnBlur('idpJwsAlgorithm', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.IDP_JWKS} sublabel={LABELS.SUBLABELS.IDP_JWKS}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.IDP_JWKS} sublabel={LABELS.SUBLABELS.IDP_JWKS}>
+              <AsTextInput
                 type="textarea"
-                className="nx-text-input--long nx-oauth2-text-input-medium"
+                className="as-text-input--long as-oauth2-text-input-medium"
                 {...FormUtils.fieldProps('idpJwks', current)}
                 onChange={FormUtils.handleUpdate('idpJwks', send)}
                 placeholder={LABELS.OPTIONAL_JWKS}
               />
-            </NxFormGroup>
-          </NxFieldset>
+            </AsFormGroup>
+          </AsFieldset>
 
-          <NxFieldset label={LABELS.ADVANCED_SETTINGS}>
-            <NxFormGroup label={FIELDS.AUTHORIZATION_CUSTOM_PARAMS} sublabel={LABELS.SUBLABELS.AUTHORIZATION_CUSTOM_PARAMS}>
-              <NxTextInput
+          <AsFieldset label={LABELS.ADVANCED_SETTINGS}>
+            <AsFormGroup label={FIELDS.AUTHORIZATION_CUSTOM_PARAMS} sublabel={LABELS.SUBLABELS.AUTHORIZATION_CUSTOM_PARAMS}>
+              <AsTextInput
                 type="textarea"
-                className="nx-text-input--long nx-oauth2-text-input-medium"
+                className="as-text-input--long as-oauth2-text-input-medium"
                 {...FormUtils.fieldProps('authorizationCustomParams', current)}
                 onChange={FormUtils.handleUpdate('authorizationCustomParams', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.TOKEN_REQUEST_CUSTOM_PARAMS} sublabel={LABELS.SUBLABELS.TOKEN_REQUEST_CUSTOM_PARAMS}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.TOKEN_REQUEST_CUSTOM_PARAMS} sublabel={LABELS.SUBLABELS.TOKEN_REQUEST_CUSTOM_PARAMS}>
+              <AsTextInput
                 type="textarea"
-                className="nx-text-input--long nx-oauth2-text-input-medium"
+                className="as-text-input--long as-oauth2-text-input-medium"
                 {...FormUtils.fieldProps('tokenRequestCustomParams', current)}
                 onChange={FormUtils.handleUpdate('tokenRequestCustomParams', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.EXACT_MATCH_CLAIMS} sublabel={LABELS.SUBLABELS.EXACT_MATCH_CLAIMS}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.EXACT_MATCH_CLAIMS} sublabel={LABELS.SUBLABELS.EXACT_MATCH_CLAIMS}>
+              <AsTextInput
                   type="textarea"
-                  className="nx-text-input--long nx-oauth2-text-input-medium"
+                  className="as-text-input--long as-oauth2-text-input-medium"
                   {...FormUtils.fieldProps('exactMatchClaims', current)}
                   onChange={FormUtils.handleUpdate('exactMatchClaims', send)}
               />
-            </NxFormGroup>
-          </NxFieldset>
-        </NxStatefulForm>
+            </AsFormGroup>
+          </AsFieldset>
+        </AsStatefulForm>
       </Section>
     </ContentBody>
   </Page>;

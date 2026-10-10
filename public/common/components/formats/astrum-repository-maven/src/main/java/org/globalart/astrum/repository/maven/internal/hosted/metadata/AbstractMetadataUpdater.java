@@ -232,7 +232,7 @@ public abstract class AbstractMetadataUpdater
   }
 
   /**
-   * Converts NX VO into Apache Maven {@link Metadata}.
+   * Converts Astrum VO into Apache Maven {@link Metadata}.
    */
   private Metadata toMetadata(final Maven2Metadata maven2Metadata) {
     final Metadata result = new Metadata();

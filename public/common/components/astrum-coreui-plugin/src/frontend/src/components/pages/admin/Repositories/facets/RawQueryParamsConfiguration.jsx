@@ -4,16 +4,16 @@ import React, {useState} from 'react';
 import {ExtJS, FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxButton,
-  NxCheckbox,
-  NxFieldset,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormRow,
-  NxInfoAlert,
-  NxList,
-  NxTextInput,
-  NxWarningAlert
+  AsButton,
+  AsCheckbox,
+  AsFieldset,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormRow,
+  AsInfoAlert,
+  AsList,
+  AsTextInput,
+  AsWarningAlert
 } from '@globalart/react-shared-components';
 
 import {faPlusCircle, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
@@ -83,30 +83,30 @@ export default function RawQueryParamsConfiguration({parentMachine}) {
   };
 
   return (
-    <NxFieldset
+    <AsFieldset
       label={QUERY_PARAMS.CAPTION}
       sublabel={QUERY_PARAMS.SUBLABEL}
       className="as-form-group-query-params"
     >
-      <NxCheckbox
+      <AsCheckbox
         {...FormUtils.checkboxProps('raw.forwardQueryParameters', parentState)}
         onChange={handleToggle}
         isChecked={forwardQueryParameters}
       >
         {QUERY_PARAMS.CHECKBOX}
-      </NxCheckbox>
-      <div className="nx-sub-label as-query-params-description">
+      </AsCheckbox>
+      <div className="as-sub-label as-query-params-description">
         {forwardQueryParameters ? QUERY_PARAMS.DESCRIPTION_ENABLED : QUERY_PARAMS.DESCRIPTION}
       </div>
 
       {forwardQueryParameters && (
         <>
-          <NxWarningAlert>
+          <AsWarningAlert>
             <p><strong>{QUERY_PARAMS.CACHING_WARNING_TITLE}</strong></p>
             <p>{QUERY_PARAMS.CACHING_WARNING_CONTENT}</p>
-          </NxWarningAlert>
+          </AsWarningAlert>
 
-          <NxInfoAlert>
+          <AsInfoAlert>
             <p><strong>{QUERY_PARAMS.EXAMPLES_TITLE}</strong></p>
             <ul>
               {QUERY_PARAMS.EXAMPLES.map((example, index) => (
@@ -120,60 +120,60 @@ export default function RawQueryParamsConfiguration({parentMachine}) {
                 <li key={index}>{useCase}</li>
               ))}
             </ul>
-          </NxInfoAlert>
+          </AsInfoAlert>
 
-          <NxFieldset
+          <AsFieldset
             label={QUERY_PARAMS.EXCLUSION_LABEL}
             sublabel={QUERY_PARAMS.EXCLUSION_SUBLABEL}
             className="as-query-params-exclusions"
           >
-            <NxFormRow>
+            <AsFormRow>
               <>
-                <NxFormGroup label="">
-                  <NxTextInput
-                    className="nx-text-input--long"
+                <AsFormGroup label="">
+                  <AsTextInput
+                    className="as-text-input--long"
                     value={newExcludedParameter}
                     onChange={setNewExcludedParameter}
                     onKeyDown={handleKeyDown}
                     placeholder={QUERY_PARAMS.EXCLUSION_PLACEHOLDER}
                   />
-                </NxFormGroup>
-                <NxButton
+                </AsFormGroup>
+                <AsButton
                   variant="icon-only"
                   title={newExcludedParameter.trim() ? QUERY_PARAMS.ADD_EXCLUSION : undefined}
                   onClick={handleAddExcludedParameter}
                   disabled={!newExcludedParameter.trim()}
                   type="button"
                 >
-                  <NxFontAwesomeIcon icon={faPlusCircle} />
-                </NxButton>
+                  <AsFontAwesomeIcon icon={faPlusCircle} />
+                </AsButton>
               </>
-            </NxFormRow>
+            </AsFormRow>
 
             {excludedQueryParameters.length > 0 && (
-              <div className="nx-scrollable as-query-params-exclusion-list">
-                <NxList>
+              <div className="as-scrollable as-query-params-exclusion-list">
+                <AsList>
                   {excludedQueryParameters.map((param, index) => (
-                    <NxList.Item key={index}>
-                      <NxList.Text>{param}</NxList.Text>
-                      <NxList.Actions>
-                        <NxButton
+                    <AsList.Item key={index}>
+                      <AsList.Text>{param}</AsList.Text>
+                      <AsList.Actions>
+                        <AsButton
                           variant="icon-only"
                           title={QUERY_PARAMS.REMOVE_EXCLUSION}
                           onClick={() => handleRemoveExcludedParameter(index)}
                           type="button"
                         >
-                          <NxFontAwesomeIcon icon={faTrashAlt} />
-                        </NxButton>
-                      </NxList.Actions>
-                    </NxList.Item>
+                          <AsFontAwesomeIcon icon={faTrashAlt} />
+                        </AsButton>
+                      </AsList.Actions>
+                    </AsList.Item>
                   ))}
-                </NxList>
+                </AsList>
               </div>
             )}
-          </NxFieldset>
+          </AsFieldset>
         </>
       )}
-    </NxFieldset>
+    </AsFieldset>
   );
 }

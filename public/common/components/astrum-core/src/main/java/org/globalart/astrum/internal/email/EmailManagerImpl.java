@@ -53,7 +53,7 @@ public class EmailManagerImpl
 {
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
-  private static final String PASSWORD_PLACEHOLDER = "#~NXRM~PLACEHOLDER~PASSWORD~#";
+  private static final String PASSWORD_PLACEHOLDER = "#~ASTRUM~PLACEHOLDER~PASSWORD~#";
 
   public static final String EMAIL_CONFIGURATION_SOURCE = "email-configuration";
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faIdCardAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -27,9 +27,9 @@ export default {
           communication may include integration with: proxy repository, email servers, LDAPS servers. Inbound client
           communication includes: web browser HTTPS access, tool access to repository content, usage of REST APIs.
           For more information check{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/ssl-certificate">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/ssl-certificate">
             the documentation
-          </NxTextLink>.
+          </AsTextLink>.
         </>,
       },
     },

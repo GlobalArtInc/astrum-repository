@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {NxH2, NxCheckbox, NxFieldset} from '@globalart/react-shared-components';
+import {AsH2, AsCheckbox, AsFieldset} from '@globalart/react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -13,18 +13,18 @@ export default function RegistryApiSupportConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxH2>{EDITOR.REGISTRY_API_SUPPORT_CAPTION}</NxH2>
-      <NxFieldset
+      <AsH2>{EDITOR.REGISTRY_API_SUPPORT_CAPTION}</AsH2>
+      <AsFieldset
         label={EDITOR.REGISTRY_API_SUPPORT_LABEL}
         className="as-form-group-registry-api-support"
       >
-        <NxCheckbox
+        <AsCheckbox
           {...FormUtils.checkboxProps('docker.v1Enabled', currentParent)}
           onChange={FormUtils.handleUpdate('docker.v1Enabled', sendParent)}
         >
           {EDITOR.REGISTRY_API_SUPPORT_DESCR}
-        </NxCheckbox>
-      </NxFieldset>
+        </AsCheckbox>
+      </AsFieldset>
     </>
   );
 }

@@ -15,7 +15,7 @@ public final class PrivilegeUtils
   }
 
   /**
-   * Decode, then replace any spaces with underscore, then clean any invalid (NX3) characters,
+   * Decode, then replace any spaces with underscore, then clean any invalid characters,
    * and finally clean any trailing underscores.
    */
   public static String cleanName(final String name) {

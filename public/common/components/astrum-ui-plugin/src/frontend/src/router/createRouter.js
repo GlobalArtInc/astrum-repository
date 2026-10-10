@@ -201,7 +201,7 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
    * nondeterministic point in bootstrap, and a permission-gated route can lose it for
    * reasons that have nothing to do with the user's actual rights:
    *
-   *  - `NX.Permissions.permissions` is still `undefined`, so every check() is false; or
+   *  - `AS.Permissions.permissions` is still `undefined`, so every check() is false; or
    *  - an empty map has been installed, which makes arePermissionsReady() read true
    *    while every check() is still false.
    *
@@ -294,7 +294,7 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
 
       // isAuthStateResolved() answers "is a user signed in", not "have their permissions
       // loaded" — ASTRUM-52583's fast-render bootstrap deliberately lets the router run
-      // before NX.Permissions is populated, so a permission-gated route (e.g. unified
+      // before AS.Permissions is populated, so a permission-gated route (e.g. unified
       // search's astrum:search:read) can fail this check purely because the answer to
       // that permission has not arrived yet (ASTRUM-54422).
       //
@@ -416,15 +416,15 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
 
     // Unrecognized URL in a protected area: if user is NOT authenticated,
     // redirect to login so they can sign in and be routed back.
-    // We prefer NX.Security.hasUser() because it reflects runtime auth state
+    // We prefer AS.Security.hasUser() because it reflects runtime auth state
     // (updated after SPA login). We only fall back to bootstrap data when
-    // NX.Security is not yet available (very early page load).
+    // AS.Security is not yet available (very early page load).
     const rawPath = (typeof matchValue === 'object' && matchValue?.path) || hash;
     const path = (rawPath || '').replace(/^\//, '');
     const isProtectedPath = path && (path.startsWith('admin') || path.startsWith('preview/') || path.startsWith('user/'));
-    const isAuthenticated = (typeof window.NX?.Security?.hasUser === 'function')
-        ? window.NX.Security.hasUser()
-        : (window.__nxRestBootstrap?.user?.authenticated === true);
+    const isAuthenticated = (typeof window.AS?.Security?.hasUser === 'function')
+        ? window.AS.Security.hasUser()
+        : (window.__asRestBootstrap?.user?.authenticated === true);
 
     if (isProtectedPath && !isAuthenticated) {
       console.debug('Unrecognized protected URL, redirecting to login:', path);

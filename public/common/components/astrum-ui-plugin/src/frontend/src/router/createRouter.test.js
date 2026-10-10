@@ -11,8 +11,8 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Default: user has no permissions (NavigationUtils calls NX.Permissions.check directly)
-    global.NX.Permissions.check.mockReturnValue(false);
+    // Default: user has no permissions (NavigationUtils calls AS.Permissions.check directly)
+    global.AS.Permissions.check.mockReturnValue(false);
 
     ExtJS.hasUser = jest.fn().mockReturnValue(false);
     // Default to anonymous access disabled
@@ -366,9 +366,9 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.NX.Permissions.check.mockReturnValue(false);
-    if (!global.NX.Security) {
-      global.NX.Security = { hasUser: jest.fn() };
+    global.AS.Permissions.check.mockReturnValue(false);
+    if (!global.AS.Security) {
+      global.AS.Security = { hasUser: jest.fn() };
     }
     ExtJS.hasUser = jest.fn().mockReturnValue(false);
     ExtJS.state = jest.fn().mockReturnValue({
@@ -381,7 +381,7 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
   });
 
   it('unauthenticated user navigating to unrecognized admin URL should redirect to login with returnTo', async () => {
-    global.NX.Security.hasUser.mockReturnValue(false);
+    global.AS.Security.hasUser.mockReturnValue(false);
     window.location.hash = '#admin/security/roles/asd/profile';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
@@ -395,7 +395,7 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
   });
 
   it('unauthenticated user navigating to unrecognized preview URL should redirect to login with returnTo', async () => {
-    global.NX.Security.hasUser.mockReturnValue(false);
+    global.AS.Security.hasUser.mockReturnValue(false);
     window.location.hash = '#preview/admin/security/roles/asd/profile';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
@@ -409,7 +409,7 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
   });
 
   it('authenticated user navigating to unrecognized admin URL should go to 404', async () => {
-    global.NX.Security.hasUser.mockReturnValue(true);
+    global.AS.Security.hasUser.mockReturnValue(true);
     window.location.hash = '#admin/nonexistent/page';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
@@ -421,7 +421,7 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
   });
 
   it('unauthenticated user navigating to unrecognized non-protected URL should go to 404', async () => {
-    global.NX.Security.hasUser.mockReturnValue(false);
+    global.AS.Security.hasUser.mockReturnValue(false);
     window.location.hash = '#browse/nonexistent/page';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
@@ -432,9 +432,9 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
     expect(goSpy).toHaveBeenCalledWith('missing.route', {}, { location: false });
   });
 
-  it('falls back to bootstrap data when NX.Security is not available', async () => {
-    delete global.NX.Security;
-    window.__nxRestBootstrap = { user: { authenticated: false } };
+  it('falls back to bootstrap data when AS.Security is not available', async () => {
+    delete global.AS.Security;
+    window.__asRestBootstrap = { user: { authenticated: false } };
     window.location.hash = '#admin/some/path';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
@@ -448,7 +448,7 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
   });
 
   it('redirects to login without returnTo when url is empty for protected path', async () => {
-    global.NX.Security.hasUser.mockReturnValue(false);
+    global.AS.Security.hasUser.mockReturnValue(false);
     window.location.hash = '#admin/some/path';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
@@ -461,7 +461,7 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
   });
 
   it('defers to ExtJS for bookmark URLs containing = in hash outside preview routes', async () => {
-    global.NX.Security.hasUser.mockReturnValue(false);
+    global.AS.Security.hasUser.mockReturnValue(false);
     window.location.hash = '#browse/search=format%3Dnpm:repository-id:path';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
@@ -479,9 +479,9 @@ describe('createRouter - preserve URL hash on browser refresh', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.NX.Permissions.check.mockReturnValue(false);
-    if (!global.NX.Security) {
-      global.NX.Security = { hasUser: jest.fn() };
+    global.AS.Permissions.check.mockReturnValue(false);
+    if (!global.AS.Security) {
+      global.AS.Security = { hasUser: jest.fn() };
     }
     ExtJS.hasUser = jest.fn().mockReturnValue(true);
     ExtJS.state = jest.fn().mockReturnValue({ getValue: jest.fn().mockReturnValue(false) });
@@ -512,7 +512,7 @@ describe('createRouter - preserve URL hash on browser refresh', () => {
     // registered in the React router. Without the fix the initial rule fires for
     // unrecognized URLs and redirects to browse.welcome. With the fix the otherwise
     // handler runs instead, routing authenticated users to missing.route (404).
-    global.NX.Security.hasUser.mockReturnValue(true);
+    global.AS.Security.hasUser.mockReturnValue(true);
     window.location.hash = '#admin/system/capabilities';
     router = getTestRouter();
 
@@ -528,7 +528,7 @@ describe('createRouter - preserve URL hash on browser refresh', () => {
   it('applies initial route rule when URL has only #/', async () => {
     // #/ is treated as empty — initial rule should fire, so the otherwise handler (missing.route)
     // is NOT used; the router falls through to the initial route instead.
-    global.NX.Security.hasUser.mockReturnValue(true);
+    global.AS.Security.hasUser.mockReturnValue(true);
     window.location.hash = '#/';
     router = getTestRouter();
 
@@ -546,7 +546,7 @@ describe('createRouter - onBefore - state with no visibilityRequirements', () =>
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.NX.Permissions.check.mockReturnValue(true);
+    global.AS.Permissions.check.mockReturnValue(true);
     ExtJS.hasUser = jest.fn().mockReturnValue(true);
     ExtJS.state = jest.fn().mockReturnValue({ getValue: jest.fn().mockReturnValue(false) });
     ExtJS.isAuthStateResolved = jest.fn().mockReturnValue(true);
@@ -571,7 +571,7 @@ describe('createRouter - onBefore - state with no visibilityRequirements', () =>
 
 /*
  * ASTRUM-54290: under header/token authentication (rutauth-realm) the server-inlined
- * NX.app.state carries no user and there is no session cookie, so during bootstrap the client
+ * AS.app.state carries no user and there is no session cookie, so during bootstrap the client
  * cannot tell "no user" from "user not known yet". These tests cover both halves of the fix:
  * waiting for an authoritative answer before redirecting to login, and leaving login again if
  * the user turns up after the redirect already happened.
@@ -592,14 +592,14 @@ describe('createRouter - onBefore - unresolved auth state (ASTRUM-54290)', () =>
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.NX.Permissions.check.mockReturnValue(true);
-    // An earlier suite deletes NX.Security; NavigationUtils needs it for the visibility check.
-    global.NX.Security = { hasUser: jest.fn().mockReturnValue(false) };
-    originalGetValue = global.NX.State.getValue;
+    global.AS.Permissions.check.mockReturnValue(true);
+    // An earlier suite deletes AS.Security; NavigationUtils needs it for the visibility check.
+    global.AS.Security = { hasUser: jest.fn().mockReturnValue(false) };
+    originalGetValue = global.AS.State.getValue;
     // No anonymous access, so visibility hinges entirely on there being a user
-    global.NX.State.getValue = jest.fn().mockReturnValue(undefined);
+    global.AS.State.getValue = jest.fn().mockReturnValue(undefined);
 
-    ExtJS.hasUser = jest.fn(() => global.NX.Security.hasUser());
+    ExtJS.hasUser = jest.fn(() => global.AS.Security.hasUser());
     ExtJS.state = jest.fn().mockReturnValue({ getValue: jest.fn().mockReturnValue(false) });
     ExtJS.isAuthStateResolved = jest.fn().mockReturnValue(false);
     ExtJS.whenAuthStateResolved = jest.fn().mockResolvedValue(undefined);
@@ -610,7 +610,7 @@ describe('createRouter - onBefore - unresolved auth state (ASTRUM-54290)', () =>
   });
 
   afterEach(() => {
-    global.NX.State.getValue = originalGetValue;
+    global.AS.State.getValue = originalGetValue;
   });
 
   /** Returns the listener createRouter subscribed to 'userchanged', or undefined. */
@@ -621,7 +621,7 @@ describe('createRouter - onBefore - unresolved auth state (ASTRUM-54290)', () =>
 
   it('waits for the auth state, then allows the route when a user turns up', async () => {
     ExtJS.whenAuthStateResolved.mockImplementation(() => {
-      global.NX.Security.hasUser.mockReturnValue(true);
+      global.AS.Security.hasUser.mockReturnValue(true);
       return Promise.resolve();
     });
 
@@ -648,7 +648,7 @@ describe('createRouter - onBefore - unresolved auth state (ASTRUM-54290)', () =>
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(goSpy).not.toHaveBeenCalledWith('login', expect.anything());
 
-    global.NX.Security.hasUser.mockReturnValue(true);
+    global.AS.Security.hasUser.mockReturnValue(true);
     resolveAuthState();
     await transition;
 
@@ -686,7 +686,7 @@ describe('createRouter - onBefore - unresolved auth state (ASTRUM-54290)', () =>
     expect(onUserChanged).toBeDefined();
 
     const urlSpy = jest.spyOn(router.urlService, 'url');
-    global.NX.Security.hasUser.mockReturnValue(true);
+    global.AS.Security.hasUser.mockReturnValue(true);
     onUserChanged();
 
     expect(urlSpy).toHaveBeenCalledWith('#/gated');
@@ -701,7 +701,7 @@ describe('createRouter - onBefore - unresolved auth state (ASTRUM-54290)', () =>
     const onUserChanged = recoveryListener();
     expect(onUserChanged).toBeDefined();
 
-    global.NX.Security.hasUser.mockReturnValue(true);
+    global.AS.Security.hasUser.mockReturnValue(true);
     onUserChanged();
 
     expect(goSpy).toHaveBeenCalledWith('browse.welcome');
@@ -737,7 +737,7 @@ describe('createRouter - onBefore - unresolved permissions state (ASTRUM-54422)'
   /**
    * Models a permission-gated preview route (e.g. the unified search page, gated
    * on astrum:search:read). On a hard reload, ASTRUM-52583's fast-render bootstrap
-   * lets the router evaluate this before NX.Permissions has loaded, so the
+   * lets the router evaluate this before AS.Permissions has loaded, so the
    * visibility check below fails not because the user lacks the permission, but
    * because the answer has not arrived yet.
    */
@@ -759,10 +759,10 @@ describe('createRouter - onBefore - unresolved permissions state (ASTRUM-54422)'
     ExtJS.onStateChange = jest.fn(() => () => {});
     ExtJS.state = jest.fn().mockReturnValue({ getValue: jest.fn().mockReturnValue(false) });
 
-    // Permissions have not loaded yet: NX.Permissions.permissions is undefined
+    // Permissions have not loaded yet: AS.Permissions.permissions is undefined
     // (see ExtJS.arePermissionsReady), so every check reads as denied.
     ExtJS.arePermissionsReady = jest.fn().mockReturnValue(false);
-    global.NX.Permissions.check.mockReturnValue(false);
+    global.AS.Permissions.check.mockReturnValue(false);
 
     router = getTestRouter();
     // 'preview.browse.welcome' must exist so the isPreviewUIRouteName redirect target
@@ -782,7 +782,7 @@ describe('createRouter - onBefore - unresolved permissions state (ASTRUM-54422)'
   it('waits for permissions, then allows the route once they grant it', async () => {
     ExtJS.waitForPermissions = jest.fn().mockImplementation(() => {
       ExtJS.arePermissionsReady.mockReturnValue(true);
-      global.NX.Permissions.check.mockReturnValue(true);
+      global.AS.Permissions.check.mockReturnValue(true);
       return Promise.resolve();
     });
 
@@ -874,7 +874,7 @@ describe('createRouter - onBefore - permissions arriving after the redirect (AST
     // The empty-install state: "ready", but granting nothing.
     ExtJS.arePermissionsReady = jest.fn().mockReturnValue(true);
     ExtJS.waitForPermissions = jest.fn().mockResolvedValue(undefined);
-    global.NX.Permissions.check.mockReturnValue(false);
+    global.AS.Permissions.check.mockReturnValue(false);
 
     ExtJS.onPermissionsChange = jest.fn(() => () => {});
 
@@ -915,7 +915,7 @@ describe('createRouter - onBefore - permissions arriving after the redirect (AST
     expect(router.stateService.current.name).toBe('preview.browse.welcome');
 
     // The real permission set lands.
-    global.NX.Permissions.check.mockReturnValue(true);
+    global.AS.Permissions.check.mockReturnValue(true);
     permissionsListener()();
 
     // Restored by hash assignment, not stateService.go, so undeclared params survive.
@@ -931,7 +931,7 @@ describe('createRouter - onBefore - permissions arriving after the redirect (AST
     permissionsListener()();
     expect(router.stateService.current.name).toBe('preview.browse.welcome');
 
-    global.NX.Permissions.check.mockReturnValue(true);
+    global.AS.Permissions.check.mockReturnValue(true);
     permissionsListener()();
     expect(window.location.hash).toContain('nameOrVersion=commons');
   });
@@ -944,7 +944,7 @@ describe('createRouter - onBefore - permissions arriving after the redirect (AST
     await router.stateService.go('browse.welcome').catch(() => {});
     const hashAfterUserNavigation = window.location.hash;
 
-    global.NX.Permissions.check.mockReturnValue(true);
+    global.AS.Permissions.check.mockReturnValue(true);
     permissionsListener()();
 
     expect(window.location.hash).toBe(hashAfterUserNavigation);

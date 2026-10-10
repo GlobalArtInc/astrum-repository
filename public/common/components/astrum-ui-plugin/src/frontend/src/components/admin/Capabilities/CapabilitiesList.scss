@@ -3,25 +3,25 @@
   text-transform: capitalize;
   white-space: nowrap;
 
-  .nx-icon {
-    margin-right: var(--nx-spacing-2x);
+  .as-icon {
+    margin-right: var(--as-spacing-2x);
   }
 
   &__active {
-    .nx-icon {
-      color: var(--nx-color-success);
+    .as-icon {
+      color: var(--as-color-success);
     }
   }
 
   &__error, &__passive {
-    .nx-icon {
-      color: var(--nx-color-error);
+    .as-icon {
+      color: var(--as-color-error);
     }
   }
 
   &__disabled {
-    .nx-icon {
-      color: var(--nx-swatch-grey-60);
+    .as-icon {
+      color: var(--as-swatch-grey-60);
     }
   }
 }

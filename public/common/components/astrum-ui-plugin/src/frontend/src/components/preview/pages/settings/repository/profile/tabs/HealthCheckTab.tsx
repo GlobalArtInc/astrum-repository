@@ -24,9 +24,9 @@ export function HealthCheckTab({ repositoryName }: HealthCheckTabProps): JSX.Ele
 
   useEffect(() => {
     if (isFullscreen) {
-      window.dispatchEvent(new CustomEvent('nx-sidebar-toggle', { detail: { open: true } }));
+      window.dispatchEvent(new CustomEvent('as-sidebar-toggle', { detail: { open: true } }));
     } else {
-      window.dispatchEvent(new CustomEvent('nx-sidebar-toggle', { detail: { open: false } }));
+      window.dispatchEvent(new CustomEvent('as-sidebar-toggle', { detail: { open: false } }));
     }
   }, [isFullscreen]);
 

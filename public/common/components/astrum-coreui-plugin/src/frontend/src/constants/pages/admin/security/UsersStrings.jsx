@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faUsers } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -41,9 +41,9 @@ export default {
         TEXT: <>
           A user is an individual account attached to a single ID and email address.
           See our{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/users">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/users">
             documentation
-          </NxTextLink>
+          </AsTextLink>
           {' '}for more information.
         </>,
       },
@@ -109,8 +109,8 @@ export default {
       USER_TOKEN: 'User Token',
       ACTIVE_FEATURE: 'Resetting a user’s token will invalidate their current token and force a new token to be created the next time it is accessed by the user',
       REQUIRE_ENABLE_FEATURE: <>
-        User tokens allow users to authenticate securely without typical user credentials such as those used by LDAP or Crowd. To use this feature, visit the <NxTextLink href="#admin/system/capabilities">
-        capabilities page </NxTextLink> and create a “User Token” capability.
+        User tokens allow users to authenticate securely without typical user credentials such as those used by LDAP or Crowd. To use this feature, visit the <AsTextLink href="#admin/system/capabilities">
+        capabilities page </AsTextLink> and create a “User Token” capability.
       </>,
       RESET_USER_TOKEN: 'Reset user token',
       TEXT: 'Resetting user tokens requires validation of your credentials.',

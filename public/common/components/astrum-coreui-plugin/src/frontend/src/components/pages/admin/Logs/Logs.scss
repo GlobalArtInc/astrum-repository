@@ -3,7 +3,7 @@
  * @since 3.24
  */
 
-.as-logs, .as-logs > .nx-page-main {
+.as-logs, .as-logs > .as-page-main {
   height: calc(100% + 36px);
 
   .as-logs-list {
@@ -18,11 +18,11 @@
     text-decoration: none;
   }
 
-  .nx-form-row, .nx-form-group {
+  .as-form-row, .as-form-group {
     margin-bottom: 0;
   }
 
-  .nx-form-row:last-of-type {
+  .as-form-row:last-of-type {
     margin-left: auto;
   }
 
@@ -30,7 +30,7 @@
     min-width: 216px;
     margin-bottom: 0 !important;
 
-    .nx-text-input__invalid-message {
+    .as-text-input__invalid-message {
       display: none;
     }
   }
@@ -41,7 +41,7 @@
     .as-log-viewer {
       height: 100%;
 
-      .nx-tile-content {
+      .as-tile-content {
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -53,13 +53,13 @@
     }
 
     .log-viewer-textarea {
-      border: var(--nx-border-default);
-      border-radius: var(--nx-border-radius);
-      padding: var(--nx-spacing-4x);
+      border: var(--as-border-default);
+      border-radius: var(--as-border-radius);
+      padding: var(--as-spacing-4x);
       flex: 1;
-      color: var(--nx-color-text);
+      color: var(--as-color-text);
       font-family: var(--font-family-mono);
-      font-size: var(--nx-font-size-xs);
+      font-size: var(--as-font-size-xs);
     }
   }
 }

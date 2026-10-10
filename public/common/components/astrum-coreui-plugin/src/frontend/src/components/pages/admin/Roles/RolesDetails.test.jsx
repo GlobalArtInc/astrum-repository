@@ -334,7 +334,7 @@ describe('RolesDetails', function() {
     userEvent.click(saveButton());
 
     await waitFor(() => expect(Axios.post).toHaveBeenCalledWith(rolesUrl, ROLE));
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('creates a ldap external role', async function() {
@@ -342,7 +342,7 @@ describe('RolesDetails', function() {
       privilegeModalButton, selectionModal: {modal, confirmButton}} = selectors;
     const ldapType = SOURCE_TYPES.LDAP.id;
     const externalRole = {...ROLE, id: 'testLDAPRoleId'};
-    const combobox = () => container.querySelector('.nx-combobox__alert');
+    const combobox = () => container.querySelector('.as-combobox__alert');
 
     when(Axios.post).calledWith(rolesUrl, externalRole).mockResolvedValue({data: {}});
     when(ExtJS.state().getValue).calledWith('astrum.ldap.mapped.role.query.character.limit').mockReturnValue(3);
@@ -376,7 +376,7 @@ describe('RolesDetails', function() {
     userEvent.click(saveButton());
 
     await waitFor(() => expect(Axios.post).toHaveBeenCalledWith(rolesUrl, externalRole));
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('creates a crowd external role', async function() {
@@ -410,7 +410,7 @@ describe('RolesDetails', function() {
     userEvent.click(saveButton());
 
     await waitFor(() => expect(Axios.post).toHaveBeenCalledWith(rolesUrl, externalRole));
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('updates', async function() {
@@ -450,7 +450,7 @@ describe('RolesDetails', function() {
       readOnly: false,
       ...data,
     }));
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('shows save API errors', async function() {

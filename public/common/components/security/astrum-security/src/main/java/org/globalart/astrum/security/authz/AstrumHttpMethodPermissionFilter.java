@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class AstrumHttpMethodPermissionFilter
     extends HttpMethodPermissionFilter
 {
-  public static final String NAME = "nx-http-permissions";
+  public static final String NAME = "as-http-permissions";
 
   protected final Logger log = LoggerFactory.getLogger(getClass());
 }

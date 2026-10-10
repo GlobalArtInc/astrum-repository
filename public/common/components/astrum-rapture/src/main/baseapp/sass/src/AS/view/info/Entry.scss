@@ -1,0 +1,37 @@
+/**
+ * @class AS.view.info.Entry
+ */
+
+.as-info {
+  table {
+    border-spacing: 5px;
+  }
+}
+
+// FIXME: refine scss syntax
+
+.as-info {
+  overflow: auto;
+}
+
+.as-info-entry td {
+  padding-bottom: 4px;
+  vertical-align: top;
+}
+
+.as-info-entry-name {
+  padding-left: 0;
+  padding-right: 6px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.as-info-entry-value {
+  padding-left: 0;
+  padding-right: 25px;
+  word-break: break-all;
+}
+
+.as-info-entry-value pre {
+  margin: 0;
+}

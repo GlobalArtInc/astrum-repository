@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import {NxModal, NxH2, NxButton, NxButtonBar, NxFooter, NxFieldset, NxCheckbox, useToggle} from '@globalart/react-shared-components';
+import {AsModal, AsH2, AsButton, AsButtonBar, AsFooter, AsFieldset, AsCheckbox, useToggle} from '@globalart/react-shared-components';
 import {useMachine} from '@xstate/react';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -21,28 +21,28 @@ export default function UpgradeTriggerModal({showModal, setShowModal}) {
 
   return <>
     {showModal && 
-    <NxModal variant="narrow" className="upgrade-trigger-modal"
+    <AsModal variant="narrow" className="upgrade-trigger-modal"
         onCancel={() => setShowModal(false)} aria-labelledby="zero-downtime-trigger-upgrade-modal">
-      <header className="nx-modal-header">
-        <NxH2 id="zero-downtime-trigger-upgrade-modal">{TITLE}</NxH2>
+      <header className="as-modal-header">
+        <AsH2 id="zero-downtime-trigger-upgrade-modal">{TITLE}</AsH2>
       </header>
       <section className="zdt-trigger-description">
         {DESCRIPTION}
       </section>
       <section className="trigger-upgrade-fieldset">
-        <NxFieldset label="Acknowledge">
-          <NxCheckbox onChange={onCheck} isChecked={isChecked} className="upgrade-trigger-checkbox">
+        <AsFieldset label="Acknowledge">
+          <AsCheckbox onChange={onCheck} isChecked={isChecked} className="upgrade-trigger-checkbox">
             {CHECKBOX_LABEL}
-          </NxCheckbox>
-        </NxFieldset>
+          </AsCheckbox>
+        </AsFieldset>
       </section>
-      <NxFooter>
-        <NxButtonBar>
-          <NxButton onClick={() => setShowModal(false)}>{CANCEL}</NxButton>
-          <NxButton variant="primary" disabled={!isChecked} onClick={() => saveModal()}>{CONTINUE}</NxButton>
-        </NxButtonBar>
-      </NxFooter>
-    </NxModal>
+      <AsFooter>
+        <AsButtonBar>
+          <AsButton onClick={() => setShowModal(false)}>{CANCEL}</AsButton>
+          <AsButton variant="primary" disabled={!isChecked} onClick={() => saveModal()}>{CONTINUE}</AsButton>
+        </AsButtonBar>
+      </AsFooter>
+    </AsModal>
     }
   </>
 }

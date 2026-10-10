@@ -2,14 +2,14 @@
 
 import React from 'react';
 import {
-  NxButton,
-  NxFontAwesomeIcon,
-  NxStatefulNavigationDropdown,
-  NxNavigationDropdown,
-  NxTextLink,
-  NxH4,
+  AsButton,
+  AsFontAwesomeIcon,
+  AsStatefulNavigationDropdown,
+  AsNavigationDropdown,
+  AsTextLink,
+  AsH4,
   useToggle,
-  NxDropdown
+  AsDropdown
 } from '@globalart/react-shared-components';
 import { ExtJS, useIsVisible } from '@globalart/astrum-ui-plugin';
 import { faUser } from '@fortawesome/free-solid-svg-icons';
@@ -26,14 +26,14 @@ export default function LoginAndUserButton() {
   if (hasUser) {
     return <ProfileMenu />
   } else {
-    return <NxButton
+    return <AsButton
         title={signInTitle}
         aria-label={signInTitle}
         variant="icon-only" onClick={onSignInClick}
         data-analytics-id="as-global-header-login"
     >
-      <NxFontAwesomeIcon icon={faUser} />
-    </NxButton>
+      <AsFontAwesomeIcon icon={faUser} />
+    </AsButton>
   }
 
   function onSignInClick() {
@@ -71,55 +71,55 @@ function ProfileMenu() {
   const { href: userTokenHref } = useSref(userTokenRouteName);
 
   return (
-      <NxStatefulNavigationDropdown
+      <AsStatefulNavigationDropdown
           isOpen={isOpen}
           onToggleCollapse={onToggleCollapse}
           icon={faUser}
           title="Account settings, tokens and keys"
           data-analytics-id="as-global-header-profile-menu"
       >
-        <NxNavigationDropdown.MenuHeader>
-          <NxH4>
-            <NxFontAwesomeIcon className="as-global-header-profile-menu-user-icon" icon={faUser}/>
+        <AsNavigationDropdown.MenuHeader>
+          <AsH4>
+            <AsFontAwesomeIcon className="as-global-header-profile-menu-user-icon" icon={faUser}/>
             {userId}
-          </NxH4>
-        </NxNavigationDropdown.MenuHeader>
+          </AsH4>
+        </AsNavigationDropdown.MenuHeader>
 
-        <NxTextLink
+        <AsTextLink
             href={userAccountHref}
-            className="nx-dropdown-link"
+            className="as-dropdown-link"
             data-analytics-id="as-global-header-profile-menu-my-profile"
         >
           {UIStrings.USER_ACCOUNT.MENU.text}
-        </NxTextLink>
+        </AsTextLink>
 
         {isUserNugetApiTokenEnabled && (
-        <NxTextLink
+        <AsTextLink
           href={userNugetApiTokenHref}
-          className='nx-dropdown-link'
+          className='as-dropdown-link'
           data-analytics-id='as-global-header-profile-menu-nuget-api-key'
         >
           NuGet API Key
-        </NxTextLink>
+        </AsTextLink>
       )}
 
         { isUserTokenEnabled
-            ? (<NxTextLink
+            ? (<AsTextLink
                 href={userTokenHref}
-                className="nx-dropdown-link"
+                className="as-dropdown-link"
                 data-analytics-id="as-global-header-profile-menu-user-token"
             >
               User Token
-            </NxTextLink>)
+            </AsTextLink>)
             : null
         }
 
-        <NxDropdown.Divider />
+        <AsDropdown.Divider />
 
-        <button onClick={onSingOutClick} className="nx-dropdown-button">
+        <button onClick={onSingOutClick} className="as-dropdown-button">
           Log Out
         </button>
-      </NxStatefulNavigationDropdown>);
+      </AsStatefulNavigationDropdown>);
 
   function onSingOutClick() {
     // Reset to light mode on logout since Default UI doesn't support dark mode

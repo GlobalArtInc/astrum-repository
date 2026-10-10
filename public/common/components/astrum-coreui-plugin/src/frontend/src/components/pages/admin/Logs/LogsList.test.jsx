@@ -34,7 +34,7 @@ describe('LogsList', () => {
   it('has the filter input with analytics id on the underlying input element', async () => {
     const { container } = await renderView([]);
 
-    // inputAttributes threads the attribute through NxFilterInput → NxTextInput → <input>
+    // inputAttributes threads the attribute through AsFilterInput → AsTextInput → <input>
     const input = container.querySelector('input[data-analytics-id="as-logs-filter"]');
     expect(input).toBeInTheDocument();
   });

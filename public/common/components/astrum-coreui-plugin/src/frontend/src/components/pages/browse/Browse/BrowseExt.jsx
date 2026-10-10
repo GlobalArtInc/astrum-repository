@@ -17,7 +17,7 @@ export default function BrowseExt() {
              title={UIStrings.BROWSE.MENU.text}
              icon={UIStrings.BROWSE.MENU.icon}
              className="as-browse-tree"
-             extView="NX.coreui.view.browse.ComponentAssetTreeFeature"
+             extView="AS.coreui.view.browse.ComponentAssetTreeFeature"
           />);
    }
 }

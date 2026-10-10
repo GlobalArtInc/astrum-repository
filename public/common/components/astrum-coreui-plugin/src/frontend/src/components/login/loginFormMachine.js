@@ -59,7 +59,7 @@ export function createLoginFormMachine() {
           body,
         });
         if (response.ok) {
-          window.NX?.State?.setUser?.({id: ctx.data.username});
+          window.AS?.State?.setUser?.({id: ctx.data.username});
           window.location.hash = '#browse/welcome';
           return {username: ctx.data.username};
         }

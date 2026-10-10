@@ -157,7 +157,7 @@ export default {
               *Calculations are based on UTC time.
             </>,
           // Radix Themes' Tooltip always wraps its content in <Text as="p">, so a nested
-          // <ul> (as in TOOLTIP above, used by Classic UI's NxTooltip) is invalid HTML and
+          // <ul> (as in TOOLTIP above, used by Classic UI's AsTooltip) is invalid HTML and
           // triggers a hydration warning. This variant uses <br/> instead of a list for the
           // Preview UI Tooltip; the copy matches TOOLTIP.
           TOOLTIP_PREVIEW: <>

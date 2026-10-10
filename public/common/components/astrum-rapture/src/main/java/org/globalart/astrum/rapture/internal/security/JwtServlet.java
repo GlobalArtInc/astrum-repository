@@ -37,7 +37,7 @@ import static com.google.common.net.HttpHeaders.X_FRAME_OPTIONS;
 import static java.util.Arrays.stream;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 import static org.globalart.astrum.common.app.FeatureFlags.JWT_ENABLED;
-import static org.globalart.astrum.common.app.FeatureFlags.NXSESSIONID_SECURE_COOKIE_NAMED_VALUE;
+import static org.globalart.astrum.common.app.FeatureFlags.ASTRUMSESSIONID_SECURE_COOKIE_NAMED_VALUE;
 import static org.globalart.astrum.rapture.internal.security.SessionServlet.SESSION_MP;
 import static org.globalart.astrum.security.JwtHelper.JWT_COOKIE_NAME;
 import static org.globalart.astrum.security.JwtHelper.REALM;
@@ -75,7 +75,7 @@ public class JwtServlet
   public JwtServlet(
       @Value("${astrum-context-path:#{null}}") final String contextPath,
       final EventManager eventManager,
-      @Value(NXSESSIONID_SECURE_COOKIE_NAMED_VALUE) final boolean cookieSecure,
+      @Value(ASTRUMSESSIONID_SECURE_COOKIE_NAMED_VALUE) final boolean cookieSecure,
       final JwtHelper jwtHelper,
       final JwtSessionRevocationService jwtSessionRevocationService)
   {

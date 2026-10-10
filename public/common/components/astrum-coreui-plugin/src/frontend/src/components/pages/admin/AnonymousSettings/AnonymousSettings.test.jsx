@@ -173,8 +173,8 @@ describe('AnonymousSettings', () => {
 
   it('Shows page in Read Only mode', async () => {
     ExtJS.checkPermission.mockReturnValueOnce(false);
-    const dataClass = 'nx-read-only__data';
-    const labelClass = 'nx-read-only__label';
+    const dataClass = 'as-read-only__data';
+    const labelClass = 'as-read-only__label';
 
     await renderView();
 

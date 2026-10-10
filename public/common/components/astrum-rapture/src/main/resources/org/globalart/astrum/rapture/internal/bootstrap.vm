@@ -4,7 +4,7 @@ Ext.Loader.setConfig({
   #if($debug)
     enabled: true,
     paths: {
-      NX: 'static/rapture/NX'
+      AS: 'static/rapture/AS'
     }
   #else
     enabled: false
@@ -17,8 +17,8 @@ Ext.Loader.setConfig({
 #end
 
 ## provide tool-agnostic reference to the global/window object
-Ext.ns('NX');
-NX.global = (function() {
+Ext.ns('AS');
+AS.global = (function() {
   if (window !== undefined) {
     return window;
   }
@@ -28,8 +28,8 @@ NX.global = (function() {
   Ext.Error.raise('Unable to determine global object');
 }());
 
-## HACK: Needed by NX.util.Url in class-def, should update that to reference dynamically and move this to loader state config
-Ext.ns('NX.app');
-NX.app.baseUrl = '$baseUrl';
-NX.app.relativePath = '.';
-NX.app.urlSuffix = '$urlSuffix';
+## HACK: Needed by AS.util.Url in class-def, should update that to reference dynamically and move this to loader state config
+Ext.ns('AS.app');
+AS.app.baseUrl = '$baseUrl';
+AS.app.relativePath = '.';
+AS.app.urlSuffix = '$urlSuffix';

@@ -7,9 +7,9 @@ import axios from 'axios';
  * that subsequent axios calls in the plugin bundle pick up the configuration.
  */
 export default function configureAxios() {
-  axios.defaults.xsrfCookieName = 'NX-ANTI-CSRF-TOKEN';
-  axios.defaults.xsrfHeaderName = 'NX-ANTI-CSRF-TOKEN';
-  axios.defaults.baseURL = NX.app.relativePath;
+  axios.defaults.xsrfCookieName = 'AS-ANTI-CSRF-TOKEN';
+  axios.defaults.xsrfHeaderName = 'AS-ANTI-CSRF-TOKEN';
+  axios.defaults.baseURL = AS.app.relativePath;
   axios.defaults.headers.common['X-Astrum-UI'] = true;
   axios.interceptors.request.use(config => {
     return {

@@ -149,7 +149,7 @@ describe('PrivilegesPage', () => {
 
   it('should hide Create Privilege button when user lacks permission', () => {
     mockCheckPermission.mockImplementation((perm: string) => perm !== 'astrum:privileges:create');
-    (global as any).NX.Permissions.check.mockImplementation((perm: string) => perm !== 'astrum:privileges:create');
+    (global as any).AS.Permissions.check.mockImplementation((perm: string) => perm !== 'astrum:privileges:create');
     renderWithTheme(<PrivilegesPage />);
     
     expect(screen.queryByRole('button', { name: /Create Privilege/ })).not.toBeInTheDocument();

@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxTextInput, NxH2} from '@globalart/react-shared-components';
+import {AsFormGroup, AsTextInput, AsH2} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -17,14 +17,14 @@ export default function AptDistributionConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxH2>{CAPTION}</NxH2>
-      <NxFormGroup label={LABEL} sublabel={SUBLABEL} isRequired>
-        <NxTextInput
+      <AsH2>{CAPTION}</AsH2>
+      <AsFormGroup label={LABEL} sublabel={SUBLABEL} isRequired>
+        <AsTextInput
           {...FormUtils.fieldProps('apt.distribution', parentState)}
           onChange={FormUtils.handleUpdate('apt.distribution', sendParent)}
-          className="nx-text-input--long"
+          className="as-text-input--long"
         />
-      </NxFormGroup>
+      </AsFormGroup>
     </>
   );
 }

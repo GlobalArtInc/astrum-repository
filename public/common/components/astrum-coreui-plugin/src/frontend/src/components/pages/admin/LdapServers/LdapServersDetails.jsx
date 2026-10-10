@@ -3,12 +3,12 @@
 import React, {useRef} from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxTile,
-  NxTabs,
-  NxTabList,
-  NxTab,
-  NxTabPanel,
-  NxLoadWrapper,
+  AsTile,
+  AsTabs,
+  AsTabList,
+  AsTab,
+  AsTabPanel,
+  AsLoadWrapper,
 } from '@globalart/react-shared-components';
 import {faBook} from '@fortawesome/free-solid-svg-icons';
 
@@ -57,7 +57,7 @@ export default function LdapServersDetails({itemId, onDone}) {
 
     if (TABS_INDEX.USER_AND_GROUP === value && !isNil(ref.current)) {
       // We use the submit event instead of xstate events to be able use the same validation defined for the form.
-      const submitButton = ref.current.querySelector('.nx-form__submit-btn');
+      const submitButton = ref.current.querySelector('.as-form__submit-btn');
       submitButton.click();
     }
   };
@@ -108,35 +108,35 @@ export default function LdapServersDetails({itemId, onDone}) {
       <PageHeader>
         <PageTitle icon={faBook} {...MENU} />
       </PageHeader>
-      <NxTile>
-        <NxLoadWrapper
+      <AsTile>
+        <AsLoadWrapper
           retryHandler={retryHandler}
           loading={isLoading}
           error={hasLoadError && error}
         >
           {(isEdit || readOnly) && (
-            <NxTabs activeTab={activeTab} onTabSelect={onTabSelected}>
-              <NxTabList>
-                <NxTab>{FORM.TABS.CONNECTION}</NxTab>
-                <NxTab>{FORM.TABS.USER_AND_GROUP}</NxTab>
-              </NxTabList>
-              <NxTabPanel>
+            <AsTabs activeTab={activeTab} onTabSelect={onTabSelected}>
+              <AsTabList>
+                <AsTab>{FORM.TABS.CONNECTION}</AsTab>
+                <AsTab>{FORM.TABS.USER_AND_GROUP}</AsTab>
+              </AsTabList>
+              <AsTabPanel>
                 {isEdit && configurationForm()}
                 {readOnly && (
                   <LdapServersConfigurationFormReadOnly
                     actor={state.context.createConnection}
                   />
                 )}
-              </NxTabPanel>
-              <NxTabPanel>
+              </AsTabPanel>
+              <AsTabPanel>
                 {isEdit && userAndGroupForm()}
                 {readOnly && (
                   <LdapServersUserAndGroupFormReadOnly
                     actor={state.context.userAndGroup}
                   />
                 )}
-              </NxTabPanel>
-            </NxTabs>
+              </AsTabPanel>
+            </AsTabs>
           )}
           {isCreate && (
             <>
@@ -144,8 +144,8 @@ export default function LdapServersDetails({itemId, onDone}) {
               {userAndGroupForm()}
             </>
           )}
-        </NxLoadWrapper>
-      </NxTile>
+        </AsLoadWrapper>
+      </AsTile>
     </div>
   );
 }

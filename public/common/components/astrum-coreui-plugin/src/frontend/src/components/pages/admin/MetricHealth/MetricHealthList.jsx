@@ -10,9 +10,9 @@ import {
   faCheckCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import {
-  NxTile,
-  NxTable,
-  NxFontAwesomeIcon,
+  AsTile,
+  AsTable,
+  AsFontAwesomeIcon,
 } from '@globalart/react-shared-components';
 
 import {
@@ -55,70 +55,70 @@ export default function MetricHealthList({onEdit}) {
         />
       </PageHeader>
       <ContentBody className="as-metric-health-list">
-        <NxTile>
+        <AsTile>
           <UpgradeAlert/>
-          <NxTable>
-            <NxTable.Head>
-              <NxTable.Row>
-                <NxTable.Cell hasIcon />
-                <NxTable.Cell
+          <AsTable>
+            <AsTable.Head>
+              <AsTable.Row>
+                <AsTable.Cell hasIcon />
+                <AsTable.Cell
                   onClick={() => send({type: 'SORT_BY_NAME'})}
                   isSortable
                   sortDir={nameSortDir}
                 >
                   {METRIC_HEALTH.NAME_HEADER}
-                </NxTable.Cell>
-                <NxTable.Cell
+                </AsTable.Cell>
+                <AsTable.Cell
                   onClick={() => send({type: 'SORT_BY_ERROR'})}
                   isSortable
                   sortDir={errorSortDir}
                 >
                   {METRIC_HEALTH.ERROR_HEADER}
-                </NxTable.Cell>
-                <NxTable.Cell
+                </AsTable.Cell>
+                <AsTable.Cell
                   onClick={() => send({type: 'SORT_BY_MESSAGE'})}
                   isSortable
                   sortDir={messageSortDir}
                 >
                   {METRIC_HEALTH.MESSAGE_HEADER}
-                </NxTable.Cell>
-                <NxTable.Cell chevron />
-              </NxTable.Row>
-            </NxTable.Head>
-            <NxTable.Body
+                </AsTable.Cell>
+                <AsTable.Cell chevron />
+              </AsTable.Row>
+            </AsTable.Head>
+            <AsTable.Body
               isLoading={isLoading}
               error={error}
               emptyMessage={METRIC_HEALTH.EMPTY_NODE_LIST}
             >
               {data.map(({name, error, message, nodeId}) => (
-                <NxTable.Row
+                <AsTable.Row
                   key={nodeId}
                   onClick={() => onEdit(encodeURIComponent(nodeId))}
                   isClickable
                 >
-                  <NxTable.Cell hasIcon>
-                    <NxFontAwesomeIcon
+                  <AsTable.Cell hasIcon>
+                    <AsFontAwesomeIcon
                       color={isEmpty(error) ? 'green' : 'red'}
                       icon={
                         isEmpty(error) ? faCheckCircle : faExclamationCircle
                       }
                     />
-                  </NxTable.Cell>
-                  <NxTable.Cell>{name}</NxTable.Cell>
-                  <NxTable.Cell>{error}</NxTable.Cell>
-                  <NxTable.Cell>
+                  </AsTable.Cell>
+                  <AsTable.Cell>{name}</AsTable.Cell>
+                  <AsTable.Cell>{error}</AsTable.Cell>
+                  <AsTable.Cell>
                     <p
                       dangerouslySetInnerHTML={{
                         __html: DOMPurify.sanitize(message),
                       }}
                     />
-                  </NxTable.Cell>
-                  <NxTable.Cell chevron />
-                </NxTable.Row>
+                  </AsTable.Cell>
+                  <AsTable.Cell chevron />
+                </AsTable.Row>
               ))}
-            </NxTable.Body>
-          </NxTable>
-        </NxTile>
+            </AsTable.Body>
+          </AsTable>
+        </AsTile>
         <HelpTile
           header={METRIC_HEALTH.HELP.LABEL}
           body={METRIC_HEALTH.HELP.SUB_LABEL}

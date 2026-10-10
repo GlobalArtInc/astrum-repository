@@ -31,7 +31,7 @@ const ssoAuthenticationRealms = ["samlEnabled", "oauth2Enabled"];
 export default function LoginPage({ logoConfig }) {
   const [generalError, setGeneralError] = useState(null);
 
-  const extStateReady = !!(window.NX?.State?.getValue);
+  const extStateReady = !!(window.AS?.State?.getValue);
   const getState = (key, fallback = null) => {
     try {
       return ExtJS.state().getValue?.(key, fallback) ?? fallback;

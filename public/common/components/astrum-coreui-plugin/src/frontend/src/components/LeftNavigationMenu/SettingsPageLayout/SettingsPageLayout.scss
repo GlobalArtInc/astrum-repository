@@ -11,9 +11,9 @@
   height: 100%;
 }
 
-.as-settings.nx-page-sidebar{
+.as-settings.as-page-sidebar{
   background-color: var(--color-surface);
-  border-right: var(--nx-border-width) solid var(--color-border);
+  border-right: var(--as-border-width) solid var(--color-border);
   .as-navigation-expandable-link:has(.as-navigation-expandable-link__expandable-list:empty) {
     display: none;
   }
@@ -22,13 +22,13 @@
   // The RSC library may set white text for selected state, but our light green 
   // selection background requires dark text for proper contrast
   .as-navigation-expandable-link__navigation-link {
-    &.nx-text-link.selected,
+    &.as-text-link.selected,
     &.selected {
       color: var(--color-text, #171717) !important;
       background-color: var(--color-selection, #dcfce7) !important;
       
       // Ensure icons and chevrons are also readable
-      .nx-icon {
+      .as-icon {
         color: var(--color-text, #171717) !important;
       }
     }
@@ -36,10 +36,10 @@
 
   // Override library CSS to handle UIView's hidden div during Suspense loading.
   // The library uses adjacent sibling selector (+) which breaks when UIView
-  // renders a hidden div between .nx-page-sidebar and .nx-page-main.
+  // renders a hidden div between .as-page-sidebar and .as-page-main.
   // Using general sibling selector (~) makes it more resilient.
-  ~ .nx-page-main,
-  ~ .nx-global-footer-2-container {
+  ~ .as-page-main,
+  ~ .as-global-footer-2-container {
     // When inner sidebar is present, main should only be in the content area
     grid-area: content;
   }

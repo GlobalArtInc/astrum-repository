@@ -6,19 +6,19 @@ import { ContentBody, Page, PageHeader, PageTitle, Section } from '../../layout'
 import { useMachine } from '@xstate/react';
 import CapabilitiesEditMachine from './CapabilitiesEditMachine';
 import {
-  NxInfoAlert,
-  NxCheckbox,
-  NxErrorAlert,
-  NxFormGroup,
-  NxH2,
-  NxLoadWrapper,
-  NxStatefulForm,
-  NxTile,
-  NxButton,
-  NxFontAwesomeIcon,
-  NxWarningAlert,
-  NxGrid,
-  NxReadOnly,
+  AsInfoAlert,
+  AsCheckbox,
+  AsErrorAlert,
+  AsFormGroup,
+  AsH2,
+  AsLoadWrapper,
+  AsStatefulForm,
+  AsTile,
+  AsButton,
+  AsFontAwesomeIcon,
+  AsWarningAlert,
+  AsGrid,
+  AsReadOnly,
 } from '@globalart/react-shared-components';
 import { faSpinner, faTrash } from '@fortawesome/free-solid-svg-icons';
 import FormUtils from '../../../interface/FormUtils';
@@ -123,7 +123,7 @@ export default function CapabilitiesEdit() {
       </PageHeader>
 
       <ContentBody>
-        <NxLoadWrapper loading={isLoading} error={errorMessage} retryHandler={handleRetry}>
+        <AsLoadWrapper loading={isLoading} error={errorMessage} retryHandler={handleRetry}>
           <CapabilitiesEditDeleteModal
             showModal={showDeleteConfirmationModal}
             deleteWarningMessage={capability?.deleteWarningMessage}
@@ -131,45 +131,45 @@ export default function CapabilitiesEdit() {
             onDeleteCanceled={onDeleteCanceled}
           />
 
-          {isDeleteError && <NxErrorAlert>{deleteError || 'An error occurred deleting the capability.'}</NxErrorAlert>}
+          {isDeleteError && <AsErrorAlert>{deleteError || 'An error occurred deleting the capability.'}</AsErrorAlert>}
           <SummaryTile canEdit={canEdit} capability={capability} capabilityType={capabilityType} />
           <Section data-testid='capabilities-form-section'>
-            <NxStatefulForm
+            <AsStatefulForm
               {...formProps}
               onCancel={handleCancel}
               data-analytics-id='as-edit-capabilities-form'
               className='as-capabilities-form'
-              submitBtnClasses={!canEdit && 'nx-read-only-submit-button'}
+              submitBtnClasses={!canEdit && 'as-read-only-submit-button'}
               additionalFooterBtns={canEdit && canDelete && DeleteButton({ capability, isDeleting, onDeleteClicked })}
             >
-              <NxTile.Subsection>
-                <NxTile.SubsectionHeader>
-                  <NxH2>{CAPABILITIES.EDIT.FORM.TITLE}</NxH2>
-                </NxTile.SubsectionHeader>
-              </NxTile.Subsection>
+              <AsTile.Subsection>
+                <AsTile.SubsectionHeader>
+                  <AsH2>{CAPABILITIES.EDIT.FORM.TITLE}</AsH2>
+                </AsTile.SubsectionHeader>
+              </AsTile.Subsection>
 
-              <NxTile.Subsection>
+              <AsTile.Subsection>
                 {canEdit ? (
-                  <NxFormGroup label={CAPABILITIES.EDIT.FORM.CAPABILITY_STATE}>
-                    <NxCheckbox
+                  <AsFormGroup label={CAPABILITIES.EDIT.FORM.CAPABILITY_STATE}>
+                    <AsCheckbox
                       {...FormUtils.checkboxProps('enabled', current, false)}
                       onChange={handleEnabledChange}
                     >
                       {CAPABILITIES.EDIT.FORM.ENABLED_LABEL}
-                    </NxCheckbox>
-                  </NxFormGroup>
+                    </AsCheckbox>
+                  </AsFormGroup>
                 ) : (
-                  <NxReadOnly>
-                    <NxReadOnly.Label>{CAPABILITIES.EDIT.FORM.CAPABILITY_STATE}</NxReadOnly.Label>
-                    <NxReadOnly.Data>
+                  <AsReadOnly>
+                    <AsReadOnly.Label>{CAPABILITIES.EDIT.FORM.CAPABILITY_STATE}</AsReadOnly.Label>
+                    <AsReadOnly.Data>
                       {capability?.enabled ? 'Enabled' : 'Disabled'}
-                    </NxReadOnly.Data>
-                  </NxReadOnly>
+                    </AsReadOnly.Data>
+                  </AsReadOnly>
                 )}
-              </NxTile.Subsection>
+              </AsTile.Subsection>
 
               {capabilityType && capabilityType.formFields && capabilityType.formFields.length > 0 && (
-                <NxTile.Subsection data-testid='form-fields'>
+                <AsTile.Subsection data-testid='form-fields'>
                   {capabilityType.formFields.map(field => (
                     <DynamicFormField
                       key={`${capabilityType.id}-${field.id}`}
@@ -181,9 +181,9 @@ export default function CapabilitiesEdit() {
                       readOnly={!canEdit}
                     />
                   ))}
-                </NxTile.Subsection>
+                </AsTile.Subsection>
               )}
-              <NxTile.Subsection>
+              <AsTile.Subsection>
                 <DynamicFormField
                   id='notes'
                   current={current}
@@ -201,10 +201,10 @@ export default function CapabilitiesEdit() {
                   }}
                   readOnly={!canEdit}
                 />
-              </NxTile.Subsection>
-            </NxStatefulForm>
+              </AsTile.Subsection>
+            </AsStatefulForm>
           </Section>
-        </NxLoadWrapper>
+        </AsLoadWrapper>
       </ContentBody>
     </Page>
   );
@@ -217,17 +217,17 @@ function SummaryTile({ canEdit, capability, capabilityType }) {
 
   return (
     <Section>
-      {!canEdit && <NxInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</NxInfoAlert>}
-      <NxTile.Header>
-        <div className='nx-tile-header__title'>
-          <NxH2>Capability Summary</NxH2>
+      {!canEdit && <AsInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</AsInfoAlert>}
+      <AsTile.Header>
+        <div className='as-tile-header__title'>
+          <AsH2>Capability Summary</AsH2>
         </div>
-      </NxTile.Header>
+      </AsTile.Header>
 
-      {inactiveWarning && <NxWarningAlert role='alert'>{inactiveWarning}</NxWarningAlert>}
+      {inactiveWarning && <AsWarningAlert role='alert'>{inactiveWarning}</AsWarningAlert>}
 
-      <NxTile.Content>
-        <NxGrid.Row>
+      <AsTile.Content>
+        <AsGrid.Row>
           <ReadOnlyColumn label={CAPABILITIES.EDIT.LABELS.TYPE} value={capability.typeName} />
 
           <ReadOnlyColumn label={CAPABILITIES.EDIT.LABELS.DESCRIPTION} value={capability.description} />
@@ -239,26 +239,26 @@ function SummaryTile({ canEdit, capability, capabilityType }) {
           />
 
           <ReadOnlyColumn label={CAPABILITIES.EDIT.LABELS.CATEGORY} value={category} />
-        </NxGrid.Row>
+        </AsGrid.Row>
 
-        <NxGrid.Row>
+        <AsGrid.Row>
           <ReadOnlyColumn
             gridColNum={100}
             label={CAPABILITIES.EDIT.LABELS.STATUS}
             value={capability.status}
             renderAsHtml={true}
           />
-        </NxGrid.Row>
+        </AsGrid.Row>
 
-        <NxGrid.Row>
+        <AsGrid.Row>
           <ReadOnlyColumn
             gridColNum={100}
             label={CAPABILITIES.EDIT.LABELS.ABOUT}
             value={capabilityType?.about}
             renderAsHtml={true}
           />
-        </NxGrid.Row>
-      </NxTile.Content>
+        </AsGrid.Row>
+      </AsTile.Content>
     </Section>
   );
 }
@@ -267,21 +267,21 @@ function ReadOnlyColumn({ label, value, gridColNum = 25, renderAsHtml = false, c
   value = value || 'N/A';
 
   return (
-    <NxGrid.Column className={classNames(`nx-grid-col--${gridColNum}`, className)}>
-      <NxReadOnly>
-        <NxReadOnly.Item>
-          <NxReadOnly.Label data-testid={label} id={label}>
+    <AsGrid.Column className={classNames(`as-grid-col--${gridColNum}`, className)}>
+      <AsReadOnly>
+        <AsReadOnly.Item>
+          <AsReadOnly.Label data-testid={label} id={label}>
             {label}
-          </NxReadOnly.Label>
+          </AsReadOnly.Label>
 
           {renderAsHtml ? (
-            <NxReadOnly.Data aria-labelledby={label} dangerouslySetInnerHTML={{ __html: value }} />
+            <AsReadOnly.Data aria-labelledby={label} dangerouslySetInnerHTML={{ __html: value }} />
           ) : (
-            <NxReadOnly.Data aria-labelledby={label}>{value}</NxReadOnly.Data>
+            <AsReadOnly.Data aria-labelledby={label}>{value}</AsReadOnly.Data>
           )}
-        </NxReadOnly.Item>
-      </NxReadOnly>
-    </NxGrid.Column>
+        </AsReadOnly.Item>
+      </AsReadOnly>
+    </AsGrid.Column>
   );
 }
 
@@ -298,14 +298,14 @@ function DeleteButton({ capability, isDeleting, onDeleteClicked }) {
   }
 
   return (
-    <NxButton
+    <AsButton
       variant='tertiary'
       disabled={disabled}
       data-analytics-id='as-capabilities-edit-page-delete-button'
       onClick={onDeleteClicked}
     >
-      {isDeleting ? <NxFontAwesomeIcon icon={faSpinner} spin /> : <NxFontAwesomeIcon icon={faTrash} />}
+      {isDeleting ? <AsFontAwesomeIcon icon={faSpinner} spin /> : <AsFontAwesomeIcon icon={faTrash} />}
       <span>Delete</span>
-    </NxButton>
+    </AsButton>
   );
 }

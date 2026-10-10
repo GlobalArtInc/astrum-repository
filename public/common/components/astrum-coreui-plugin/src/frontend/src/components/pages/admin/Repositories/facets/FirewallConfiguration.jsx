@@ -6,10 +6,10 @@ import Axios from 'axios';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxFieldset,
-  NxFormGroup,
-  NxFormSelect,
-  NxInfoAlert
+  AsFieldset,
+  AsFormGroup,
+  AsFormSelect,
+  AsInfoAlert
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -38,14 +38,14 @@ export default function FirewallConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{FIREWALL.CAPTION}</h2>
+      <h2 className="as-h2">{FIREWALL.CAPTION}</h2>
 
-      <NxFieldset label={FIREWALL.LABEL} sublabel={FIREWALL.SUBLABEL}>
-        <NxFormGroup
+      <AsFieldset label={FIREWALL.LABEL} sublabel={FIREWALL.SUBLABEL}>
+        <AsFormGroup
           label={FIREWALL.MODE_LABEL}
           className="as-form-group-firewall-mode"
         >
-          <NxFormSelect
+          <AsFormSelect
             {...FormUtils.selectProps('firewall.mode', currentParent)}
             onChange={FormUtils.handleUpdate('firewall.mode', sendParent)}
           >
@@ -55,11 +55,11 @@ export default function FirewallConfiguration({parentMachine}) {
             {isPccsValidFormat && (
               <option value="PCCS">{FIREWALL.MODE_PCCS}</option>
             )}
-          </NxFormSelect>
-        </NxFormGroup>
+          </AsFormSelect>
+        </AsFormGroup>
 
-        <NxInfoAlert>{FIREWALL.WARNING}</NxInfoAlert>
-      </NxFieldset>
+        <AsInfoAlert>{FIREWALL.WARNING}</AsInfoAlert>
+      </AsFieldset>
     </>
   );
 }

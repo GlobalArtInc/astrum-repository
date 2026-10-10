@@ -23,7 +23,7 @@ export default function SearchFeatureExt({
       title={title}
       icon={icon}
       className="as-search"
-      extView="NX.coreui.view.search.SearchFeature"
+      extView="AS.coreui.view.search.SearchFeature"
       extParams={extParams}
     />
   );

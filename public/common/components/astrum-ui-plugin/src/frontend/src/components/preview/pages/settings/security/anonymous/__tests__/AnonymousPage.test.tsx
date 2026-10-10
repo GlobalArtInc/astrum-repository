@@ -288,7 +288,7 @@ describe('AnonymousPage', () => {
 
   it('shows read-only view when user lacks update permission', async () => {
     getMockCheckPermission().mockReturnValue(false);
-    (global as any).NX.Permissions.check.mockReturnValue(false);
+    (global as any).AS.Permissions.check.mockReturnValue(false);
 
     render(<AnonymousPage />, { wrapper: TestWrapper });
 

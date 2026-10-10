@@ -493,7 +493,7 @@ public class MavenContentGroupFacetImpl
 
   /**
    * Adds {@link Content#CONTENT_ETAG} content attribute if not present. In case of hosted repositories, this is safe
-   * and even good thing to do, as the content is hosted here only and NX is content authority.
+   * and even good thing to do, as the content is hosted here only and Astrum is content authority.
    */
   private void mayAddETag(
       final AttributesMap attributesMap,

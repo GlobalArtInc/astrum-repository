@@ -15,7 +15,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class CapabilityDTO
 {
-  public static final String PASSWORD_PLACEHOLDER = "#~NXRM~PLACEHOLDER~PASSWORD~#";
+  public static final String PASSWORD_PLACEHOLDER = "#~ASTRUM~PLACEHOLDER~PASSWORD~#";
 
   private String id;
 

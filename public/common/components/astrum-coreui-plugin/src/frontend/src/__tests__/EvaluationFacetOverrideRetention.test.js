@@ -3,7 +3,7 @@
  * ASTRUM-54168 regression test for EvaluationFacet.js.
  *
  * The ExtJS view at public/common/components/astrum-coreui-plugin/src/main/resources/static/
- * rapture/NX/coreui/view/repository/facet/EvaluationFacet.js is loaded by an Ext runtime that
+ * rapture/AS/coreui/view/repository/facet/EvaluationFacet.js is loaded by an Ext runtime that
  * Jest does not host, so we lift the two relevant methods (_setFieldValues and
  * _applyGlobalSettingsIfInherit) out of the source text and evaluate them against a minimal
  * form/radiogroup stub. The behavioural guarantee we lock in: when _fetchAndApplyGlobalSettings
@@ -15,7 +15,7 @@ const path = require('path');
 
 const EVALUATION_FACET_PATH = path.resolve(
   __dirname,
-  '../../../main/resources/static/rapture/NX/coreui/view/repository/facet/EvaluationFacet.js'
+  '../../../main/resources/static/rapture/AS/coreui/view/repository/facet/EvaluationFacet.js'
 );
 
 // Assumptions this helper relies on (kept explicit so a future maintainer reformatting

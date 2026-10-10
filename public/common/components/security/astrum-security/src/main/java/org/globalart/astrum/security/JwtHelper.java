@@ -30,7 +30,7 @@ import org.springframework.stereotype.Component;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.globalart.astrum.common.app.FeatureFlags.JWT_ENABLED;
-import static org.globalart.astrum.common.app.FeatureFlags.NXSESSIONID_SECURE_COOKIE_NAMED_VALUE;
+import static org.globalart.astrum.common.app.FeatureFlags.ASTRUMSESSIONID_SECURE_COOKIE_NAMED_VALUE;
 import static org.globalart.astrum.common.app.ManagedLifecycle.Phase.SECURITY;
 
 /**
@@ -45,7 +45,7 @@ public class JwtHelper
     extends StateGuardLifecycleSupport
     implements EventAware
 {
-  public static final String JWT_COOKIE_NAME = "NXSESSIONID";
+  public static final String JWT_COOKIE_NAME = "ASTRUMSESSIONID";
 
   public static final String ISSUER = "globalart";
 
@@ -76,7 +76,7 @@ public class JwtHelper
       @Value("${astrum.jwt.expiry:1800}") final int expirySeconds,
       @Value("${astrum-context-path:#{null}}") final String contextPath,
       final Provider<SecretStore> secretStoreProvider,
-      @Value(NXSESSIONID_SECURE_COOKIE_NAMED_VALUE) final boolean cookieSecure)
+      @Value(ASTRUMSESSIONID_SECURE_COOKIE_NAMED_VALUE) final boolean cookieSecure)
   {
     checkState(expirySeconds >= 0, "JWT expiration period should be positive");
     this.expirySeconds = new AtomicInteger(expirySeconds);

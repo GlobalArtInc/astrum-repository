@@ -26,7 +26,7 @@ describe('PermissionsContext', () => {
     jest.clearAllMocks();
     mockedExtJsLoader.isExtJSLoaded.mockReturnValue(false);
     mockedExtJsLoader.onExtJSLoad.mockImplementation(() => {});
-    delete window.NX;
+    delete window.AS;
     delete window.Ext;
   });
 
@@ -54,7 +54,7 @@ describe('PermissionsContext', () => {
 
     it('checks permissions via ExtJS when loaded', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         Permissions: {
           check: jest.fn().mockReturnValue(true),
         },
@@ -67,12 +67,12 @@ describe('PermissionsContext', () => {
       );
 
       expect(screen.getByTestId('check')).toHaveTextContent('true');
-      expect(window.NX.Permissions.check).toHaveBeenCalledWith('astrum:repository-admin:*:*:read');
+      expect(window.AS.Permissions.check).toHaveBeenCalledWith('astrum:repository-admin:*:*:read');
     });
 
     it('returns false for denied permissions via ExtJS', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         Permissions: {
           check: jest.fn().mockReturnValue(false),
         },
@@ -99,9 +99,9 @@ describe('PermissionsContext', () => {
   });
 
   describe('checkPermission', () => {
-    it('delegates to NX.Permissions.check when ExtJS is loaded', () => {
+    it('delegates to AS.Permissions.check when ExtJS is loaded', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         Permissions: {
           check: jest.fn().mockImplementation((perm) => perm === 'astrum:admin'),
         },
@@ -116,9 +116,9 @@ describe('PermissionsContext', () => {
       expect(screen.getByTestId('check')).toHaveTextContent('true');
     });
 
-    it('returns false when NX.Permissions is not available', () => {
+    it('returns false when AS.Permissions is not available', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {}; // No Permissions object
+      window.AS = {}; // No Permissions object
 
       render(
         <PermissionsProvider>
@@ -129,9 +129,9 @@ describe('PermissionsContext', () => {
       expect(screen.getByTestId('check')).toHaveTextContent('false');
     });
 
-    it('returns false when NX is undefined', () => {
+    it('returns false when AS is undefined', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      // window.NX is undefined
+      // window.AS is undefined
 
       render(
         <PermissionsProvider>
@@ -146,7 +146,7 @@ describe('PermissionsContext', () => {
   describe('hasPermission', () => {
     it('is an alias for checkPermission', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         Permissions: {
           check: jest.fn().mockReturnValue(true),
         },
@@ -188,9 +188,9 @@ describe('PermissionsContext', () => {
       expect(screen.getByTestId('value')).toHaveTextContent('false');
     });
 
-    it('returns the permission value from NX.Permissions.check when ExtJS is loaded', () => {
+    it('returns the permission value from AS.Permissions.check when ExtJS is loaded', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = { Permissions: { check: jest.fn().mockReturnValue(true) } };
+      window.AS = { Permissions: { check: jest.fn().mockReturnValue(true) } };
 
       render(<PermissionConsumer permission="astrum:admin" />, { wrapper: Wrapper });
 
@@ -200,7 +200,7 @@ describe('PermissionsContext', () => {
     it('re-evaluates when the ExtJS changed event fires', async () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
       const checkMock = jest.fn().mockReturnValue(false);
-      window.NX = { Permissions: { check: checkMock } };
+      window.AS = { Permissions: { check: checkMock } };
 
       const changedListeners = [];
       window.Ext = {
@@ -224,7 +224,7 @@ describe('PermissionsContext', () => {
 
     it('cleans up ExtJS listeners on unmount', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = { Permissions: { check: jest.fn().mockReturnValue(false) } };
+      window.AS = { Permissions: { check: jest.fn().mockReturnValue(false) } };
 
       const unMock = jest.fn();
       window.Ext = {
@@ -246,7 +246,7 @@ describe('PermissionsContext', () => {
       const extJsLoadCallbacks = [];
       mockedExtJsLoader.onExtJSLoad.mockImplementation((cb) => { extJsLoadCallbacks.push(cb); });
 
-      window.NX = { Permissions: { check: jest.fn().mockReturnValue(false) } };
+      window.AS = { Permissions: { check: jest.fn().mockReturnValue(false) } };
 
       const changedListeners = [];
       window.Ext = {
@@ -266,7 +266,7 @@ describe('PermissionsContext', () => {
       act(() => { extJsLoadCallbacks.forEach(cb => cb()); });
 
       // Listeners are now registered; simulate a subsequent login event
-      window.NX.Permissions.check.mockReturnValue(true);
+      window.AS.Permissions.check.mockReturnValue(true);
       act(() => { changedListeners.forEach(fn => fn()); });
 
       expect(screen.getByTestId('value')).toHaveTextContent('true');
@@ -276,7 +276,7 @@ describe('PermissionsContext', () => {
   describe('permission patterns', () => {
     it('handles wildcard permissions', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         Permissions: {
           check: jest.fn().mockImplementation((perm) => {
             return perm === 'astrum:*' || perm.startsWith('astrum:read');
@@ -295,7 +295,7 @@ describe('PermissionsContext', () => {
 
     it('handles repository-specific permissions', () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         Permissions: {
           check: jest.fn().mockImplementation((perm) => {
             return perm === 'astrum:repository-admin:maven2:maven-central:read';
@@ -317,7 +317,7 @@ describe('PermissionsContext', () => {
       const checkMock = jest.fn().mockImplementation((perm) => {
         return perm === 'astrum:admin' || perm === 'astrum:browse:read';
       });
-      window.NX = {
+      window.AS = {
         Permissions: {
           check: checkMock,
         },

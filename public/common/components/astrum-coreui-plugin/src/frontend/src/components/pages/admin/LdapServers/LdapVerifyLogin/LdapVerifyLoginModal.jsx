@@ -2,13 +2,13 @@
 import React from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxModal,
-  NxTextInput,
-  NxStatefulForm,
-  NxFormGroup,
-  NxH2,
-  NxP,
-  NxSuccessAlert
+  AsModal,
+  AsTextInput,
+  AsStatefulForm,
+  AsFormGroup,
+  AsH2,
+  AsP,
+  AsSuccessAlert
 } from '@globalart/react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 import UIStrings from '../../../../../constants/UIStrings';
@@ -46,8 +46,8 @@ export default function LdapVerifyUserMappingModal({ldapConfig, onCancel}) {
   const verifyLogin = () => send({type: 'VERIFY'});
 
   return (
-    <NxModal aria-labelledby="modal-form-header">
-      <NxStatefulForm
+    <AsModal aria-labelledby="modal-form-header">
+      <AsStatefulForm
         onSubmit={verifyLogin}
         onCancel={onCancel}
         submitBtnText={TEST_CONNECTION_BUTTON}
@@ -56,29 +56,29 @@ export default function LdapVerifyUserMappingModal({ldapConfig, onCancel}) {
         submitErrorTitleMessage={ERROR_MESSAGE}
         validationErrors={FormUtils.getValidationErrorsMessage(state)}
       >
-        <NxModal.Header>
-          <NxH2 id="modal-form-header">{TITLE}</NxH2>
-        </NxModal.Header>
-        <NxModal.Content>
-          <NxP>{DESCRIPTION}</NxP>
-          <NxFormGroup label={USERNAME.LABEL} isRequired>
-            <NxTextInput
+        <AsModal.Header>
+          <AsH2 id="modal-form-header">{TITLE}</AsH2>
+        </AsModal.Header>
+        <AsModal.Content>
+          <AsP>{DESCRIPTION}</AsP>
+          <AsFormGroup label={USERNAME.LABEL} isRequired>
+            <AsTextInput
               {...FormUtils.fieldProps('username', state)}
               onChange={FormUtils.handleUpdate('username', send)}
               placeholder={USERNAME.PLACEHOLDER}
             />
-          </NxFormGroup>
-          <NxFormGroup label={PASSWORD.LABEL} isRequired>
-            <NxTextInput
+          </AsFormGroup>
+          <AsFormGroup label={PASSWORD.LABEL} isRequired>
+            <AsTextInput
               {...FormUtils.fieldProps('password', state)}
               onChange={FormUtils.handleUpdate('password', send)}
               type="password"
               placeholder={PASSWORD.PLACEHOLDER}
             />
-          </NxFormGroup>
-          {success && <NxSuccessAlert>{SUCCESS_MESSAGE + serverUrl}</NxSuccessAlert>}
-        </NxModal.Content>
-      </NxStatefulForm>
-    </NxModal>
+          </AsFormGroup>
+          {success && <AsSuccessAlert>{SUCCESS_MESSAGE + serverUrl}</AsSuccessAlert>}
+        </AsModal.Content>
+      </AsStatefulForm>
+    </AsModal>
   );
 }

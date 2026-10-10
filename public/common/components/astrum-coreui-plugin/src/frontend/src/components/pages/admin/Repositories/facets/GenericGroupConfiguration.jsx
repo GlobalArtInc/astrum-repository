@@ -5,7 +5,7 @@ import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {useRepositoriesService} from '../RepositoriesContextProvider';
 
-import {NxFormGroup, NxStatefulTransferList} from '@globalart/react-shared-components';
+import {AsFormGroup, AsStatefulTransferList} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -37,15 +37,15 @@ export default function GenericGroupConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{EDITOR.GROUP_CAPTION}</h2>
-      <NxFormGroup label={EDITOR.MEMBERS_LABEL} isRequired>
-        <NxStatefulTransferList
+      <h2 className="as-h2">{EDITOR.GROUP_CAPTION}</h2>
+      <AsFormGroup label={EDITOR.MEMBERS_LABEL} isRequired>
+        <AsStatefulTransferList
           allItems={availableRepositories}
           selectedItems={availableRepositories.length ? memberNames : []}
           onChange={FormUtils.handleUpdate('group.memberNames', sendParent)}
           allowReordering
         />
-      </NxFormGroup>
+      </AsFormGroup>
     </>
   );
 }

@@ -37,7 +37,7 @@ public class PreviewUiFallbackFilter
 {
   private static final Logger log = LoggerFactory.getLogger(PreviewUiFallbackFilter.class);
 
-  public static final String NAME = "nx-preview-ui-fallback";
+  public static final String NAME = "as-preview-ui-fallback";
 
   private static final String ROOT_PATH = "/";
 

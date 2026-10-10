@@ -82,11 +82,11 @@ const selectors = {
     ntlmDomain: (container) =>
       within(container).getByLabelText(LABELS.PROXY.DOMAIN),
     httpAccordion: () =>
-      selectors.proxy.httpAccordionButton().closest('.nx-accordion'),
+      selectors.proxy.httpAccordionButton().closest('.as-accordion'),
     queryHttpAccordionTitle: () =>
       screen.queryByText(LABELS.PROXY.HTTP_AUTHENTICATION),
     httpsAccordion: () =>
-      selectors.proxy.httpsAccordionButton().closest('.nx-accordion'),
+      selectors.proxy.httpsAccordionButton().closest('.as-accordion'),
     queryHttpsAccordionTitle: () =>
       screen.queryByText(LABELS.PROXY.HTTPS_AUTHENTICATION),
     httpAccordionButton: () =>
@@ -416,7 +416,7 @@ describe('Http', () => {
           URL,
           ExtAPIUtils.createRequestBody(ACTION, METHODS.UPDATE, {data})
       );
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     }
 
     it('Base form only', async () => {
@@ -755,7 +755,7 @@ describe('Http', () => {
         URL,
         ExtAPIUtils.createRequestBody(ACTION, METHODS.UPDATE, expected)
       );
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
 
       userEvent.click(httpAuthCheckbox());
 
@@ -775,7 +775,7 @@ describe('Http', () => {
           data: [newResponse],
         })
       );
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
 
     it('Https Proxy removes authentication if the authentication section closes but does not remove the values until the form is saved', async () => {
@@ -866,7 +866,7 @@ describe('Http', () => {
         URL,
         ExtAPIUtils.createRequestBody(ACTION, METHODS.UPDATE, expected)
       );
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
 
       userEvent.click(httpsAuthCheckbox());
 
@@ -887,7 +887,7 @@ describe('Http', () => {
           data: [newResponse],
         })
       );
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
   });
 

@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxFormSelect, NxTextInput} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect, AsTextInput} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -36,42 +36,42 @@ export default function GenericHttpAuthConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{EDITOR.HTTP_AUTH_CAPTION}</h2>
-      <NxFormGroup label={EDITOR.AUTH_TYPE_LABEL} className="as-form-group-http-auth-type">
-        <NxFormSelect
+      <h2 className="as-h2">{EDITOR.HTTP_AUTH_CAPTION}</h2>
+      <AsFormGroup label={EDITOR.AUTH_TYPE_LABEL} className="as-form-group-http-auth-type">
+        <AsFormSelect
           {...FormUtils.selectProps('httpClient.authentication.type', currentParent)}
           onChange={updateType}
         >
           <option value="">{EDITOR.NONE_OPTION}</option>
           <option value="username">{EDITOR.USERNAME_OPTION}</option>
           <option value="ntlm">{EDITOR.NTLM_OPTION}</option>
-        </NxFormSelect>
-      </NxFormGroup>
+        </AsFormSelect>
+      </AsFormGroup>
 
       {type && type !== '' && (
-        <div className="nx-form-row">
-          <NxFormGroup
+        <div className="as-form-row">
+          <AsFormGroup
             label={EDITOR.USERNAME_LABEL}
             isRequired
             className="as-form-group-http-username"
           >
-            <NxTextInput
+            <AsTextInput
               {...FormUtils.fieldProps('httpClient.authentication.username', currentParent)}
               onChange={FormUtils.handleUpdate('httpClient.authentication.username', sendParent)}
             />
-          </NxFormGroup>
+          </AsFormGroup>
 
-          <NxFormGroup
+          <AsFormGroup
             label={EDITOR.PASSWORD_LABEL}
             isRequired
             className="as-form-group-http-password"
           >
-            <NxTextInput
+            <AsTextInput
               {...FormUtils.fieldProps('httpClient.authentication.password', currentParent)}
               onChange={FormUtils.handleUpdate('httpClient.authentication.password', sendParent)}
               type="password"
             />
-          </NxFormGroup>
+          </AsFormGroup>
         </div>
       )}
 
@@ -79,28 +79,28 @@ export default function GenericHttpAuthConfiguration({parentMachine}) {
       <DockerEcrAuthConfiguration parentMachine={parentMachine} />
 
       {type === 'ntlm' && (
-        <div className="nx-form-row">
-          <NxFormGroup
+        <div className="as-form-row">
+          <AsFormGroup
             label={EDITOR.NTLM_HOST_LABEL}
             isRequired
             className="as-form-group-ntlm-host"
           >
-            <NxTextInput
+            <AsTextInput
               {...FormUtils.fieldProps('httpClient.authentication.ntlmHost', currentParent)}
               onChange={FormUtils.handleUpdate('httpClient.authentication.ntlmHost', sendParent)}
             />
-          </NxFormGroup>
+          </AsFormGroup>
 
-          <NxFormGroup
+          <AsFormGroup
             label={EDITOR.NTLM_DOMAIN_LABEL}
             isRequired
             className="as-form-group-ntlm-domain"
           >
-            <NxTextInput
+            <AsTextInput
               {...FormUtils.fieldProps('httpClient.authentication.ntlmDomain', currentParent)}
               onChange={FormUtils.handleUpdate('httpClient.authentication.ntlmDomain', sendParent)}
             />
-          </NxFormGroup>
+          </AsFormGroup>
         </div>
       )}
     </>

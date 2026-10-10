@@ -10,7 +10,7 @@ export const isIqServerEnabled = () => {
  * When Firewall is enabled, Health Check column should not be shown
  * because Firewall provides vulnerability data instead.
  *
- * This mirrors the ExtJS condition in NX.util.condition.HasNoFirewall
+ * This mirrors the ExtJS condition in AS.util.condition.HasNoFirewall
  */
 export const hasFirewall = () => {
   const clmState = ExtJS.state().getValue('clm', {hasFirewall: false});

@@ -31,12 +31,12 @@ jest.mock('@uirouter/react', () => ({
   useRouter: () => mockRouter,
 }));
 
-// Mock NxModal to avoid portal/focus-trap/animation scheduling issues in tests
+// Mock AsModal to avoid portal/focus-trap/animation scheduling issues in tests
 jest.mock('@globalart/react-shared-components', () => {
   const actual = jest.requireActual('@globalart/react-shared-components');
 
   const TestModal = ({ onCancel, 'aria-labelledby': ariaLabelledby, children }) => (
-    <div role='dialog' aria-labelledby={ariaLabelledby} data-testid='nx-modal'>
+    <div role='dialog' aria-labelledby={ariaLabelledby} data-testid='as-modal'>
       {children}
       {/* Optional close control to mimic ESC/backdrop if you need it */}
       <button type='button' onClick={onCancel} aria-label='__modal-close__' style={{ display: 'none' }} />
@@ -50,7 +50,7 @@ jest.mock('@globalart/react-shared-components', () => {
 
   return {
     ...actual,
-    NxModal: TestModal,
+    AsModal: TestModal,
   };
 });
 
@@ -376,7 +376,7 @@ describe('CapabilitiesEdit', () => {
     HTMLElement.prototype.getBoundingClientRect = jest.fn(() => RECT);
     Element.prototype.getClientRects = jest.fn(() => RECT_LIST);
 
-    // NxOverflowTooltip sometimes measures text via Range APIs
+    // AsOverflowTooltip sometimes measures text via Range APIs
     if (global.Range) {
       Range.prototype.getBoundingClientRect = jest.fn(() => RECT);
       Range.prototype.getClientRects = jest.fn(() => RECT_LIST);
@@ -1233,7 +1233,7 @@ describe('CapabilitiesEdit', () => {
     // The stateDescription appears in the summary tile, so we need to check for the alert element specifically
     const alerts = screen.queryAllByRole('alert');
     const warningAlerts = alerts.filter(
-      alert => alert.classList.contains('nx-alert--warning') || alert.className.includes('warning')
+      alert => alert.classList.contains('as-alert--warning') || alert.className.includes('warning')
     );
     expect(warningAlerts.length).toBe(0);
   });
@@ -1262,7 +1262,7 @@ describe('CapabilitiesEdit', () => {
     // The stateDescription appears in the summary tile, so we need to check for the alert element specifically
     const alerts = screen.queryAllByRole('alert');
     const warningAlerts = alerts.filter(
-      alert => alert.classList.contains('nx-alert--warning') || alert.className.includes('warning')
+      alert => alert.classList.contains('as-alert--warning') || alert.className.includes('warning')
     );
     expect(warningAlerts.length).toBe(0);
   });

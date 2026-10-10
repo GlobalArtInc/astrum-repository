@@ -3,7 +3,7 @@
 import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
 import classnames from 'classnames';
-import { NxFontAwesomeIcon, NxGlobalSidebar2NavigationLink } from '@globalart/react-shared-components';
+import { AsFontAwesomeIcon, AsGlobalSidebar2NavigationLink } from '@globalart/react-shared-components';
 import { faChevronDown, faChevronUp, faLink } from '@fortawesome/free-solid-svg-icons';
 
 import './NavigationLinkWithCollapsibleList.scss';
@@ -35,7 +35,7 @@ export function NavigationLinkWithCollapsibleList({ children, text, isSelected, 
         className="as-navigation-expandable-link__chevron"
         onClick={onChevronClick}
       >
-        <NxFontAwesomeIcon icon={chevronIcon} />
+        <AsFontAwesomeIcon icon={chevronIcon} />
       </button>
     </div>
   );
@@ -57,7 +57,7 @@ export function NavigationLinkWithCollapsibleList({ children, text, isSelected, 
 
   return (
     <div className={wrapperClasses}>
-      <NxGlobalSidebar2NavigationLink
+      <AsGlobalSidebar2NavigationLink
         className={linkClassnames}
         text={itemText}
         isSelected={isSelected}

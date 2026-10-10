@@ -8,6 +8,6 @@ export default function LdapServersExt() {
     return <ExtJsContainer
         title={UIStrings.LDAP_SERVERS.MENU.text}
         icon={UIStrings.LDAP_SERVERS.MENU.icon}
-        extView="NX.coreui.view.ldap.LdapServerFeature"
+        extView="AS.coreui.view.ldap.LdapServerFeature"
     />;
 }

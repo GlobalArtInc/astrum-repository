@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { NxPageMain, NxLoadingSpinner } from '@globalart/react-shared-components';
+import { AsPageMain, AsLoadingSpinner } from '@globalart/react-shared-components';
 
 import './RouteLoadingFallback.scss';
 
@@ -36,10 +36,10 @@ export default function RouteLoadingFallback() {
 
   // After 300ms, show the centered loading spinner
   return (
-    <NxPageMain>
+    <AsPageMain>
       <div className="as-route-loading">
-        <NxLoadingSpinner />
+        <AsLoadingSpinner />
       </div>
-    </NxPageMain>
+    </AsPageMain>
   );
 }

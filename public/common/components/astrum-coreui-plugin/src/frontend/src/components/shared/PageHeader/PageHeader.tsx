@@ -130,7 +130,7 @@ export function PageHeader({
 
         {/* Actions */}
         {actions && (
-          <Flex gap="2" className="as-page-header__actions">
+          <Flex gap="2" className="astrum-page-header__actions">
             {actions}
           </Flex>
         )}

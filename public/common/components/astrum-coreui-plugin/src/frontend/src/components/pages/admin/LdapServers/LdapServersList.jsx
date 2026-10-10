@@ -3,22 +3,22 @@ import React from 'react';
 import {useMachine} from '@xstate/react';
 import {ListMachineUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTooltip,
-  NxTile,
-  NxTransferListHalf,
-  NxModal,
-  NxH2,
-  NxFooter,
-  NxButtonBar,
-  NxFontAwesomeIcon,
-  NxPageTitle,
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTooltip,
+  AsTile,
+  AsTransferListHalf,
+  AsModal,
+  AsH2,
+  AsFooter,
+  AsButtonBar,
+  AsFontAwesomeIcon,
+  AsPageTitle,
 } from '@globalart/react-shared-components';
 import {faSortNumericUp, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 
@@ -107,106 +107,106 @@ export default function LdapServersList({onCreate, onEdit}) {
           description={MENU.description}
         />
         <PageActions>
-          <NxTooltip
+          <AsTooltip
             title={!hasCreatePermission && UIStrings.PERMISSION_ERROR}
             placement="bottom"
           >
-            <NxButton
+            <AsButton
               type="button"
               variant="primary"
               className={!hasCreatePermission && 'disabled'}
               onClick={create}
             >
               {LABELS.BUTTONS.CREATE}
-            </NxButton>
-          </NxTooltip>
+            </AsButton>
+          </AsTooltip>
         </PageActions>
       </PageHeader>
       <ContentBody className="as-ldap-servers-list">
-        <NxTile>
-          <NxPageTitle>
-            <NxH2>{LABELS.LABEL}</NxH2>
-            <NxButtonBar>
+        <AsTile>
+          <AsPageTitle>
+            <AsH2>{LABELS.LABEL}</AsH2>
+            <AsButtonBar>
               {canUpdate() && (
-                <NxButton type="button" onClick={change} variant="tertiary">
-                  <NxFontAwesomeIcon icon={faSortNumericUp} />
+                <AsButton type="button" onClick={change} variant="tertiary">
+                  <AsFontAwesomeIcon icon={faSortNumericUp} />
                   <span>{LABELS.BUTTONS.CHANGE_ORDER}</span>
-                </NxButton>
+                </AsButton>
               )}
               {canDelete() && (
-                <NxButton type="button" onClick={clear} variant="tertiary">
-                  <NxFontAwesomeIcon icon={faTrashAlt} />
+                <AsButton type="button" onClick={clear} variant="tertiary">
+                  <AsFontAwesomeIcon icon={faTrashAlt} />
                   <span>{LABELS.BUTTONS.CLEAR_CACHE}</span>
-                </NxButton>
+                </AsButton>
               )}
-            </NxButtonBar>
-          </NxPageTitle>
+            </AsButtonBar>
+          </AsPageTitle>
           <SectionToolbar>
             <div className="as-spacer" />
-            <NxFilterInput
+            <AsFilterInput
               id="filter"
               onChange={filter}
               value={filterText}
               placeholder={UIStrings.FILTER}
             />
           </SectionToolbar>
-          <NxTable>
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell
+          <AsTable>
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell
                   onClick={sortByOrder}
                   isSortable
                   sortDir={orderSortDir}
                 >
                   {COLUMNS.ORDER}
-                </NxTableCell>
-                <NxTableCell
+                </AsTableCell>
+                <AsTableCell
                   onClick={sortByName}
                   isSortable
                   sortDir={nameSortDir}
                 >
                   {COLUMNS.NAME}
-                </NxTableCell>
-                <NxTableCell
+                </AsTableCell>
+                <AsTableCell
                   onClick={sortByUrl}
                   isSortable
                   sortDir={urlSortDir}
                 >
                   {COLUMNS.URL}
-                </NxTableCell>
-                <NxTableCell chevron />
-              </NxTableRow>
-            </NxTableHead>
-            <NxTableBody
+                </AsTableCell>
+                <AsTableCell chevron />
+              </AsTableRow>
+            </AsTableHead>
+            <AsTableBody
               isLoading={isLoading}
               error={error}
               emptyMessage={LABELS.EMPTY_LIST}
             >
               {data.map(({id, order, name, url}) => (
-                <NxTableRow
+                <AsTableRow
                   key={id}
                   onClick={() => onEdit(encodeURIComponent(name))}
                   isClickable
                 >
-                  <NxTableCell>{order}</NxTableCell>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{url}</NxTableCell>
-                  <NxTableCell chevron />
-                </NxTableRow>
+                  <AsTableCell>{order}</AsTableCell>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{url}</AsTableCell>
+                  <AsTableCell chevron />
+                </AsTableRow>
               ))}
-            </NxTableBody>
-          </NxTable>
+            </AsTableBody>
+          </AsTable>
           {modal && (
-            <NxModal
+            <AsModal
               onCancel={() => {}}
               aria-labelledby="modal-header-text"
               variant="narrow"
             >
-              <NxModal.Header>
-                <NxH2 id="modal-header-text">{LABELS.MODAL.LABEL}</NxH2>
-              </NxModal.Header>
-              <NxModal.Content>
-                <NxTransferListHalf
+              <AsModal.Header>
+                <AsH2 id="modal-header-text">{LABELS.MODAL.LABEL}</AsH2>
+              </AsModal.Header>
+              <AsModal.Content>
+                <AsTransferListHalf
                   onReorderItem={onReorder}
                   label={LABELS.MODAL.SUB_LABEL}
                   filterValue={filterTransferList}
@@ -218,20 +218,20 @@ export default function LdapServersList({onCreate, onEdit}) {
                   onItemChange={() => {}}
                   footerContent={LABELS.MODAL.FOOTER(transferListItems.length)}
                 />
-              </NxModal.Content>
-              <NxFooter>
-                <NxButtonBar>
-                  <NxButton onClick={onCancelOrder}>
+              </AsModal.Content>
+              <AsFooter>
+                <AsButtonBar>
+                  <AsButton onClick={onCancelOrder}>
                     {SETTINGS.CANCEL_BUTTON_LABEL}
-                  </NxButton>
-                  <NxButton onClick={onSaveOrder} variant="primary">
+                  </AsButton>
+                  <AsButton onClick={onSaveOrder} variant="primary">
                     {SETTINGS.SAVE_BUTTON_LABEL}
-                  </NxButton>
-                </NxButtonBar>
-              </NxFooter>
-            </NxModal>
+                  </AsButton>
+                </AsButtonBar>
+              </AsFooter>
+            </AsModal>
           )}
-        </NxTile>
+        </AsTile>
         <HelpTile header={LABELS.HELP.TITLE} body={LABELS.HELP.TEXT} />
       </ContentBody>
     </div>

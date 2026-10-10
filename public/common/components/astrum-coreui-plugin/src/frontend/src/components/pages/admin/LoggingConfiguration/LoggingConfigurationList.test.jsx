@@ -55,7 +55,7 @@ describe('LoggingConfigurationList', function() {
 
     await waitForElementToBeRemoved(loadingMask);
 
-    expect(container.querySelector('.nx-cell--meta-info')).toHaveTextContent('Error');
+    expect(container.querySelector('.as-cell--meta-info')).toHaveTextContent('Error');
   });
 
   it('searches for lower-cased strings in the logger names', async function() {

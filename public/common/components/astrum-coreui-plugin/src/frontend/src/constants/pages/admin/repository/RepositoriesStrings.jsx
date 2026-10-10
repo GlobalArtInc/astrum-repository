@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faDatabase } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -34,9 +34,9 @@ export default {
           are retrieved so they can be installed or used. Creating and managing repositories is an essential part of
           your Astrum Repository Manager configuration since it allows you to expose content to your end users as well
           as provide a location for them to store more content. For more information, check{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/repository">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/repository">
             the documentation
-          </NxTextLink>.
+          </AsTextLink>.
         </>,
       },
       HEALTH_CHECK: {
@@ -116,9 +116,9 @@ export default {
       ASSET_NAME_DESCRIPTION: <>
         This field allows you to use a RegEx to match search for specific components to help define scope.
         For more information check out our{' '}
-        <NxTextLink external href="https://links.globalart.dev/products/astrum/docs/pull-replication/asset-name-matcher">
+        <AsTextLink external href="https://links.globalart.dev/products/astrum/docs/pull-replication/asset-name-matcher">
           documentation for format specific options
-        </NxTextLink>.
+        </AsTextLink>.
       </>,
       URL_PLACEHOLDER: 'Enter a URL',
       BLOCKING_LABEL: 'Blocking',
@@ -318,9 +318,9 @@ export default {
             DESCR: 'Allow anonymous Docker pulls for this repository (Global Anonymous Access and Docker Bearer Token Realm required)',
             HELP: <>
               Anonymous access to Docker repositories requires configuration in two places: globally on the Security → Anonymous Access page and within each Docker repository's configuration form.{' '}
-              <NxTextLink external href="https://links.globalart.dev/products/astrum/docs/docker-authentication">
+              <AsTextLink external href="https://links.globalart.dev/products/astrum/docs/docker-authentication">
                 Learn more in our Docker help documentation
-              </NxTextLink>.
+              </AsTextLink>.
             </>
           },
           SAME_PORTS_ERROR: 'HTTP and HTTPS ports must be different',
@@ -329,21 +329,21 @@ export default {
             required.
             <br />
             Consult our{' '}
-            <NxTextLink
+            <AsTextLink
                 href="https://links.globalart.dev/products/astrum/docker-ssl-connector/docs"
                 external
             >
               documentation
-            </NxTextLink>
+            </AsTextLink>
             {' '}for which connector is appropriate for your use case.
             <br />
             For information on scaling see our{' '}
-            <NxTextLink
+            <AsTextLink
                 href="https://links.globalart.dev/products/astrum/docker-scaling-repositories/docs"
                 external
             >
               scaling documentation
-            </NxTextLink>
+            </AsTextLink>
             .
           </>,
         }
@@ -457,12 +457,12 @@ export default {
       WRITABLE: {
         LABEL: 'Writable Repository',
         SUBLABEL: <>The member repository to which POST and PUT requests will be routed. When pushing to a group repository, Astrum Repository checks existing layers of all members to avoid pushing those layers. See our {' '}
-          <NxTextLink
+          <AsTextLink
               href="https://help.globalart.dev/repomanager3/astrum-repository-administration/formats/docker-registry/pushing-images-to-a-group-repository"
               external
           >
             documentation
-          </NxTextLink>
+          </AsTextLink>
           {' '} for details.'</>,
         PLACEHOLDER: 'Select repository...',
         VALIDATION_ERROR: (name) => `Writable repository ${name} is not a group member`

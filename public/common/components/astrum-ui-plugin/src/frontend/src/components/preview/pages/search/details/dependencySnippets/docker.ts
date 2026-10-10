@@ -5,7 +5,7 @@ import type { SnippetGenerator } from './types';
 /**
  * Docker dependency snippet generator.
  *
- * Ported from Classic NX.docker.controller.DockerDependencySnippetController. When the asset
+ * Ported from Classic AS.docker.controller.DockerDependencySnippetController. When the asset
  * carries a top-level registry URL (ASTRUM-51972) the pull target is prefixed with it.
  */
 export const generate: SnippetGenerator = (component, asset) => {

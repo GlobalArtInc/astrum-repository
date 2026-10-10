@@ -58,7 +58,7 @@ Group "maven2-group":
 ```
 Note: Maven group repositories do not use `versionPolicy`, `layoutPolicy`, or `contentDisposition` fields as they aggregate content from member repositories which have their own Maven-specific settings.
 
-## Building Maven master branch and deploying it to NX3 itself
+## Building Maven master branch and deploying it to Astrum itself
 
 * create "maven2-hosted" repository with snippet above (to host mavan snapshot deploy)
 * create "maven2-proxy" repository with snippet above to proxy Central

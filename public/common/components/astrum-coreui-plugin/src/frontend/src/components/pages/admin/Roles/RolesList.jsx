@@ -15,15 +15,15 @@ import {
   Page,
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTooltip,
-  NxInfoAlert,
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTooltip,
+  AsInfoAlert,
 } from '@globalart/react-shared-components';
 
 import {HelpTile} from '@globalart/astrum-ui-plugin';
@@ -73,58 +73,58 @@ export default function RolesList() {
           description={UIStrings.ROLES.MENU.description}
       />
       <PageActions>
-        <NxTooltip
+        <AsTooltip
             title={!canCreate && UIStrings.PERMISSION_ERROR}
             placement="bottom"
         >
-          <NxButton
+          <AsButton
               type="button"
               variant="primary"
               className={!canCreate && 'disabled'}
               onClick={create}
           >
             {LABELS.CREATE_BUTTON}
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       </PageActions>
     </PageHeader>
     <ContentBody className="as-roles-list">
       {roleId && roleName &&
-          <NxInfoAlert>
+          <AsInfoAlert>
             {LABELS.ALERT.DEFAULT_ROLE(roleId, roleName)}
             <br/>
             {capabilityId && LABELS.ALERT.CAPABILITY(capabilityId)}
-          </NxInfoAlert>
+          </AsInfoAlert>
       }
       <Section>
         <SectionToolbar>
           <div className="as-spacer"/>
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               onChange={filter}
               value={filterText}
               placeholder={UIStrings.FILTER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={sortById} isSortable sortDir={idSortDir}>{COLUMNS.ID}</NxTableCell>
-              <NxTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</NxTableCell>
-              <NxTableCell onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>{COLUMNS.DESCRIPTION}</NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={sortById} isSortable sortDir={idSortDir}>{COLUMNS.ID}</AsTableCell>
+              <AsTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</AsTableCell>
+              <AsTableCell onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>{COLUMNS.DESCRIPTION}</AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
             {data.map(({id, name, description}) => (
-                <NxTableRow key={id} onClick={() => onEdit(encodeURIComponent(id))} isClickable>
-                  <NxTableCell>{id}</NxTableCell>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{description}</NxTableCell>
-                  <NxTableCell chevron/>
-                </NxTableRow>
+                <AsTableRow key={id} onClick={() => onEdit(encodeURIComponent(id))} isClickable>
+                  <AsTableCell>{id}</AsTableCell>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{description}</AsTableCell>
+                  <AsTableCell chevron/>
+                </AsTableRow>
             ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
       <HelpTile header={LABELS.HELP.TITLE} body={LABELS.HELP.TEXT}/>
     </ContentBody>

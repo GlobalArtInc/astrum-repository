@@ -2,10 +2,10 @@
 import React from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxH2,
-  NxLoadWrapper,
-  NxTile,
-  NxTree
+  AsH2,
+  AsLoadWrapper,
+  AsTile,
+  AsTree
 } from '@globalart/react-shared-components';
 import {faDatabase} from '@fortawesome/free-solid-svg-icons';
 import {isEmpty} from 'ramda';
@@ -41,24 +41,24 @@ export default function BrowseTree({itemId}) {
         <PageTitle icon={faDatabase} {...BROWSE.MENU}/>
       </PageHeader>
       <ContentBody className="as-browse-tree">
-        <NxTile>
-          <NxTile.Header>
-            <NxTile.HeaderTitle>
-              <NxH2>{BROWSE.TREE_TITLE} {repoId}</NxH2>
-            </NxTile.HeaderTitle>
-          </NxTile.Header>
-          <NxTile.Content>
-            <NxLoadWrapper retryHandler={() => send({type: 'RETRY'})} loading={isLoading} error={loadError}>
+        <AsTile>
+          <AsTile.Header>
+            <AsTile.HeaderTitle>
+              <AsH2>{BROWSE.TREE_TITLE} {repoId}</AsH2>
+            </AsTile.HeaderTitle>
+          </AsTile.Header>
+          <AsTile.Content>
+            <AsLoadWrapper retryHandler={() => send({type: 'RETRY'})} loading={isLoading} error={loadError}>
               {() => (
                 isEmpty(children) ?
                 <span>{BROWSE.TREE_EMPTY_MESSAGE}</span> :
-                <NxTree>
+                <AsTree>
                   <BrowseTreeChildren children={children}/>
-                </NxTree>
+                </AsTree>
               )}
-            </NxLoadWrapper>
-          </NxTile.Content>
-        </NxTile>
+            </AsLoadWrapper>
+          </AsTile.Content>
+        </AsTile>
       </ContentBody>
     </div>
   )

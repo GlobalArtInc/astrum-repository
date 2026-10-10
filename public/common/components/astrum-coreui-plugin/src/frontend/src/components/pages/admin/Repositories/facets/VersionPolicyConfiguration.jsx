@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxFormSelect} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -27,13 +27,13 @@ export default function VersionPolicyConfiguration({parentMachine}) {
   ];
 
   return (
-    <NxFormGroup
+    <AsFormGroup
       label={EDITOR.VERSION_POLICY_LABEL}
       className="as-form-group-version-policy"
       sublabel={EDITOR.VERSION_POLICY_SUBLABEL}
       isRequired
     >
-      <NxFormSelect
+      <AsFormSelect
         {...FormUtils.selectProps(`${format}.versionPolicy`, currentParent)}
         onChange={FormUtils.handleUpdate(`${format}.versionPolicy`, sendParent)}
         disabled={isEdit}
@@ -43,7 +43,7 @@ export default function VersionPolicyConfiguration({parentMachine}) {
             {key}
           </option>
         ))}
-      </NxFormSelect>
-    </NxFormGroup>
+      </AsFormSelect>
+    </AsFormGroup>
   );
 }

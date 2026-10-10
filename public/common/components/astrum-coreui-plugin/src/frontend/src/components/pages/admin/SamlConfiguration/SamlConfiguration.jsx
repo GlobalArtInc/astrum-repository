@@ -5,12 +5,12 @@ import {faIdCard} from '@fortawesome/free-solid-svg-icons';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFieldset,
-  NxFormGroup,
-  NxFormSelect,
-  NxStatefulForm,
-  NxTooltip
+  AsButton,
+  AsFieldset,
+  AsFormGroup,
+  AsFormSelect,
+  AsStatefulForm,
+  AsTooltip
 } from '@globalart/react-shared-components';
 
 import {
@@ -25,7 +25,7 @@ import SamlConfigurationMachine from './SamlConfigurationMachine';
 import UIStrings from '../../../../constants/UIStrings';
 
 import './SamlConfiguration.scss';
-import {NxTextInput} from "@globalart/react-shared-components";
+import {AsTextInput} from "@globalart/react-shared-components";
 
 const {FIELDS, LABELS} = UIStrings.SAML_CONFIGURATION;
 
@@ -48,90 +48,90 @@ export default function SamlConfiguration() {
     </PageHeader>
     <ContentBody className='as-saml-configuration'>
       <Section>
-        <NxStatefulForm
+        <AsStatefulForm
             {...FormUtils.formProps(current, send)}
             additionalFooterBtns={
-              <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-                <NxButton type="button" className={isPristine && 'disabled'} onClick={discard}>
+              <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+                <AsButton type="button" className={isPristine && 'disabled'} onClick={discard}>
                   {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-                </NxButton>
-              </NxTooltip>
+                </AsButton>
+              </AsTooltip>
             }>
-          <NxFormGroup label={FIELDS.idpMetadataLabel} isRequired>
-            <NxTextInput
+          <AsFormGroup label={FIELDS.idpMetadataLabel} isRequired>
+            <AsTextInput
                 type="textarea"
-                className="nx-text-input--long"
+                className="as-text-input--long"
                 {...FormUtils.fieldProps('idpMetadata', current)}
                 onChange={FormUtils.handleUpdate('idpMetadata', send)}/>
-          </NxFormGroup>
-          <NxFormGroup label={FIELDS.entityIdUriLabel} sublabel={FIELDS.entityIdUriDescription} isRequired>
-            <NxTextInput
-                className="nx-text-input--long"
+          </AsFormGroup>
+          <AsFormGroup label={FIELDS.entityIdUriLabel} sublabel={FIELDS.entityIdUriDescription} isRequired>
+            <AsTextInput
+                className="as-text-input--long"
                 {...FormUtils.fieldProps('entityIdUri', current)}
                 onChange={FormUtils.handleUpdate('entityIdUri', send)}/>
-          </NxFormGroup>
-          <NxFormGroup
+          </AsFormGroup>
+          <AsFormGroup
               label={FIELDS.validateResponseSignatureLabel}
               sublabel={FIELDS.validateResponseSignatureDescription}>
-            <NxFormSelect
+            <AsFormSelect
                 name="validateResponseSignature"
                 value={settings.validateResponseSignature}
                 onChange={FormUtils.handleUpdate('validateResponseSignature', send)}>
               <option value="default">Default</option>
               <option value="true">True</option>
               <option value="false">False</option>
-            </NxFormSelect>
-          </NxFormGroup>
-          <NxFormGroup
+            </AsFormSelect>
+          </AsFormGroup>
+          <AsFormGroup
               label={FIELDS.validateAssertionSignatureLabel}
               sublabel={FIELDS.validateAssertionSignatureDescription}>
-            <NxFormSelect
+            <AsFormSelect
                 name="validateAssertionSignature"
                 value={settings.validateAssertionSignature}
                 onChange={FormUtils.handleUpdate('validateAssertionSignature', send)}>
               <option value="default">Default</option>
               <option value="true">True</option>
               <option value="false">False</option>
-            </NxFormSelect>
-          </NxFormGroup>
-          <NxFieldset label={LABELS.FIELDS} isRequired>
-            <NxFormGroup label={FIELDS.usernameAttrLabel} isRequired>
-              <NxTextInput
+            </AsFormSelect>
+          </AsFormGroup>
+          <AsFieldset label={LABELS.FIELDS} isRequired>
+            <AsFormGroup label={FIELDS.usernameAttrLabel} isRequired>
+              <AsTextInput
                 {...FormUtils.fieldProps('usernameAttr', current)}
                 onChange={FormUtils.handleUpdate('usernameAttr', send)}
                 onBlur={FormUtils.trimOnBlur('usernameAttr', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.firstNameAttrLabel}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.firstNameAttrLabel}>
+              <AsTextInput
                 {...FormUtils.fieldProps('firstNameAttr', current)}
                 onChange={FormUtils.handleUpdate('firstNameAttr', send)}
                 onBlur={FormUtils.trimOnBlur('firstNameAttr', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.lastNameAttrLabel}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.lastNameAttrLabel}>
+              <AsTextInput
                 {...FormUtils.fieldProps('lastNameAttr', current)}
                 onChange={FormUtils.handleUpdate('lastNameAttr', send)}
                 onBlur={FormUtils.trimOnBlur('lastNameAttr', send)} 
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.emailAttrLabel}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.emailAttrLabel}>
+              <AsTextInput
                 {...FormUtils.fieldProps('emailAttr', current)}
                 onChange={FormUtils.handleUpdate('emailAttr', send)}
                 onBlur={FormUtils.trimOnBlur('emailAttr', send)} 
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.roleAttrLabel}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.roleAttrLabel}>
+              <AsTextInput
                 {...FormUtils.fieldProps('roleAttr', current)}
                 onChange={FormUtils.handleUpdate('roleAttr', send)}
                 onBlur={FormUtils.trimOnBlur('roleAttr', send)} 
               />
-            </NxFormGroup>
-          </NxFieldset>
-        </NxStatefulForm>
+            </AsFormGroup>
+          </AsFieldset>
+        </AsStatefulForm>
       </Section>
     </ContentBody>
   </Page>;

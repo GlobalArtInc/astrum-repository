@@ -5,16 +5,16 @@
   align-items: flex-start;
   gap: 16px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--nx-color-border);
+  border-bottom: 1px solid var(--as-color-border);
   cursor: pointer;
   transition: background-color 0.15s ease;
 
   &:hover {
-    background: var(--nx-color-interactive-background-hover);
+    background: var(--as-color-interactive-background-hover);
   }
 
   &:focus {
-    outline: 2px solid var(--nx-color-primary);
+    outline: 2px solid var(--as-color-primary);
     outline-offset: -2px;
   }
 
@@ -48,12 +48,12 @@
   &__name-text {
     font-size: 16px;
     font-weight: 600;
-    color: var(--nx-color-text);
+    color: var(--as-color-text);
   }
 
   &__name-secondary {
     font-size: 14px;
-    color: var(--nx-color-text-subtle);
+    color: var(--as-color-text-subtle);
     margin-bottom: 8px;
   }
 
@@ -69,10 +69,10 @@
     align-items: center;
     gap: 4px;
     padding: 4px 10px;
-    background: var(--nx-color-subsection-background);
+    background: var(--as-color-subsection-background);
     border-radius: 4px;
     font-size: 12px;
-    color: var(--nx-color-text-subtle);
+    color: var(--as-color-text-subtle);
 
     &--format {
       background: rgba(36, 150, 237, 0.15);
@@ -83,15 +83,15 @@
   &__tag-code {
     font-family: var(--font-family-mono);
     font-size: 12px;
-    background: var(--nx-color-subsection-background);
+    background: var(--as-color-subsection-background);
     padding: 4px 8px;
     border-radius: 4px;
-    color: var(--nx-color-text);
+    color: var(--as-color-text);
   }
 
   &__info {
     font-size: 13px;
-    color: var(--nx-color-text-subtle);
+    color: var(--as-color-text-subtle);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -99,13 +99,13 @@
 
   &__date {
     font-size: 13px;
-    color: var(--nx-color-text-subtle);
+    color: var(--as-color-text-subtle);
     white-space: nowrap;
     flex-shrink: 0;
   }
 
   &__chevron {
-    color: var(--nx-color-text-subtle);
+    color: var(--as-color-text-subtle);
     flex-shrink: 0;
     margin-top: 14px;
   }

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useMachine} from '@xstate/react';
-import {NxCard, NxH2, NxH3, NxLoadWrapper} from '@globalart/react-shared-components';
+import {AsCard, AsH2, AsH3, AsLoadWrapper} from '@globalart/react-shared-components';
 import {faArchive} from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -39,18 +39,18 @@ export default function NodeList() {
       </PageHeader>
 
       <ContentBody>
-        <NxH2>{MENU.text}</NxH2>
-        <NxLoadWrapper loading={isLoading} error={error} retryHandler={retryHandler}>
-          <NxCard.Container>
+        <AsH2>{MENU.text}</AsH2>
+        <AsLoadWrapper loading={isLoading} error={error} retryHandler={retryHandler}>
+          <AsCard.Container>
             {data.map((node) => (
-              <NxCard key={node.nodeId}>
-                <NxCard.Header>
-                  <NxH3>{node.hostname}</NxH3>
-                </NxCard.Header>
-              </NxCard>
+              <AsCard key={node.nodeId}>
+                <AsCard.Header>
+                  <AsH3>{node.hostname}</AsH3>
+                </AsCard.Header>
+              </AsCard>
             ))}
-          </NxCard.Container>
-        </NxLoadWrapper>
+          </AsCard.Container>
+        </AsLoadWrapper>
 
         <HelpTile header={HELP.TITLE} body={HELP.TEXT} />
       </ContentBody>

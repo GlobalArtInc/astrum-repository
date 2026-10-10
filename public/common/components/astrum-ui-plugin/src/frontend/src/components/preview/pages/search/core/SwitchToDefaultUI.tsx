@@ -28,13 +28,13 @@ export function SwitchToDefaultUI({
   return (
     <a 
       href={defaultUrl}
-      className={`nx-switch-to-default-ui ${className}`.trim()}
+      className={`as-switch-to-default-ui ${className}`.trim()}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.5rem',
         fontSize: '0.875rem',
-        color: 'var(--nx-text-color-secondary, #6b7280)',
+        color: 'var(--as-text-color-secondary, #6b7280)',
         textDecoration: 'none',
       }}
     >

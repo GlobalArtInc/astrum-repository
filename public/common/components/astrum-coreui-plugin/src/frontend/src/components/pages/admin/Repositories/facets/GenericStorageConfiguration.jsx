@@ -4,11 +4,11 @@ import React, {useEffect} from 'react';
 import {ExtAPIUtils, FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxFormGroup,
-  NxCheckbox,
-  NxLoadWrapper,
-  NxFieldset,
-  NxFormSelect
+  AsFormGroup,
+  AsCheckbox,
+  AsLoadWrapper,
+  AsFieldset,
+  AsFormSelect
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -41,10 +41,10 @@ export default function GenericStorageConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{EDITOR.STORAGE_CAPTION}</h2>
-      <NxLoadWrapper loading={isLoading} error={error} retryHandler={loadBlobStores}>
-        <NxFormGroup label={EDITOR.BLOB_STORE_LABEL} isRequired className="as-form-group-store">
-          <NxFormSelect
+      <h2 className="as-h2">{EDITOR.STORAGE_CAPTION}</h2>
+      <AsLoadWrapper loading={isLoading} error={error} retryHandler={loadBlobStores}>
+        <AsFormGroup label={EDITOR.BLOB_STORE_LABEL} isRequired className="as-form-group-store">
+          <AsFormSelect
             {...FormUtils.selectProps('storage.blobStoreName', currentParent)}
             onChange={FormUtils.handleUpdate('storage.blobStoreName', sendParent)}
             disabled={isEdit}
@@ -55,23 +55,23 @@ export default function GenericStorageConfiguration({parentMachine}) {
                 {name}
               </option>
             ))}
-          </NxFormSelect>
-        </NxFormGroup>
+          </AsFormSelect>
+        </AsFormGroup>
 
         {type !== 'group' && (
-          <NxFieldset
+          <AsFieldset
             label={EDITOR.CONTENT_VALIDATION_LABEL}
             className="as-form-group-content-validation"
           >
-            <NxCheckbox
+            <AsCheckbox
               {...FormUtils.checkboxProps('storage.strictContentTypeValidation', currentParent)}
               onChange={FormUtils.handleUpdate('storage.strictContentTypeValidation', sendParent)}
             >
               {EDITOR.ENABLED_CHECKBOX_DESCR}
-            </NxCheckbox>
-          </NxFieldset>
+            </AsCheckbox>
+          </AsFieldset>
         )}
-      </NxLoadWrapper>
+      </AsLoadWrapper>
     </>
   );
 }

@@ -29,12 +29,6 @@ they are tried in the listed order.
 A typical setup is one role per team and repository group, for example `deployer-team-a` with
 `as-repository-view-maven2-team-a-releases-*`, and a separate local service user per CI system.
 
-Built-in roles and privileges start with `as-`. Nexus Repository and earlier Astrum versions called
-them `nx-...` (`nx-admin`, `nx-anonymous`, `nx-repository-view-...`). When an existing database is
-upgraded, the built-in IDs are renamed together with every reference to them in custom roles, user
-role assignments and the Default Role capability; custom roles and privileges keep their names.
-Scripts and provider groups that name a built-in role or privilege need the new ID.
-
 ## Anonymous access
 
 **Settings → Security → Anonymous Access** decides whether requests without credentials are allowed

@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxTextInput} from '@globalart/react-shared-components';
+import {AsFormGroup, AsTextInput} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -14,23 +14,23 @@ export default function AlpineSigningConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxFormGroup label={KEY.LABEL} sublabel={KEY.SUBLABEL} isRequired>
-        <NxTextInput
+      <AsFormGroup label={KEY.LABEL} sublabel={KEY.SUBLABEL} isRequired>
+        <AsTextInput
           type="textarea"
           {...FormUtils.fieldProps('alpineSigning.keypair', parentState)}
           onChange={FormUtils.handleUpdate('alpineSigning.keypair', sendParent)}
-          className="nx-text-input--long"
+          className="as-text-input--long"
           placeholder={KEY.PLACEHOLDER}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
-      <NxFormGroup label={PASSPHRASE.LABEL} sublabel={PASSPHRASE.SUBLABEL}>
-        <NxTextInput
+      <AsFormGroup label={PASSPHRASE.LABEL} sublabel={PASSPHRASE.SUBLABEL}>
+        <AsTextInput
           type="password"
           {...FormUtils.fieldProps('alpineSigning.passphrase', parentState)}
           onChange={FormUtils.handleUpdate('alpineSigning.passphrase', sendParent)}
         />
-      </NxFormGroup>
+      </AsFormGroup>
     </>
   );
 }

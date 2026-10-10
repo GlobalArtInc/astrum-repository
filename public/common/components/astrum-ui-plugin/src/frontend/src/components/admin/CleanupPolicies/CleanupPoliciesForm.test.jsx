@@ -253,7 +253,7 @@ describe('CleanupPoliciesForm', function () {
 
     const {container} = await renderEditView('itemId');
 
-    expect(container.querySelector('.nx-alert--error')).toHaveTextContent(
+    expect(container.querySelector('.as-alert--error')).toHaveTextContent(
       'Error'
     );
   });
@@ -327,7 +327,7 @@ describe('CleanupPoliciesForm', function () {
     await TestUtils.changeField(name, EDITABLE_ITEM.name);
     await TestUtils.changeField(format, EDITABLE_ITEM.format);
     const lastBlobCheckbox = container.querySelector(
-      '#criteria-last-blob-updated-group .nx-radio-checkbox'
+      '#criteria-last-blob-updated-group .as-radio-checkbox'
     );
 
     await act(async () => userEvent.click(lastBlobCheckbox));
@@ -356,7 +356,7 @@ describe('CleanupPoliciesForm', function () {
     await TestUtils.changeField(name, EDITABLE_ITEM.name);
     await TestUtils.changeField(format, EDITABLE_ITEM.format);
     const lastDownloadedCheckbox = container.querySelector(
-      '#criteria-last-downloaded-group .nx-radio-checkbox'
+      '#criteria-last-downloaded-group .as-radio-checkbox'
     );
 
     await act(async () => userEvent.click(lastDownloadedCheckbox));
@@ -453,13 +453,13 @@ describe('CleanupPoliciesForm', function () {
     await act(async () => userEvent.selectOptions(releaseType(), ''));
     expect(releaseType()).toHaveValue('');
     const lastBlobCheckbox = container.querySelector(
-      '#criteria-last-blob-updated-group .nx-radio-checkbox'
+      '#criteria-last-blob-updated-group .as-radio-checkbox'
     );
     const lastDownloadedCheckbox = container.querySelector(
-      '#criteria-last-downloaded-group .nx-radio-checkbox'
+      '#criteria-last-downloaded-group .as-radio-checkbox'
     );
     const assetNameCheckbox = container.querySelector(
-      '#criteria-asset-name-group .nx-radio-checkbox'
+      '#criteria-asset-name-group .as-radio-checkbox'
     );
 
     await act(async () => userEvent.click(lastBlobCheckbox));

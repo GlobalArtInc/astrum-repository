@@ -1,0 +1,74 @@
+/**
+ * @class AS.view.feature.Content
+ */
+
+@include extjs-panel-ui(
+    $ui: 'as-feature-content',
+    $ui-body-background-color: $color-light-smoke,
+    $ui-tool-background-image: $panel-light-tool-background-image,
+    $ui-wrap-border-width: 0
+);
+
+@include extjs-panel-ui(
+    $ui: 'as-feature-header',
+    $ui-body-background-color: $color-white,
+    $ui-wrap-border-width: 0
+);
+
+.as-feature-content {
+  .as-feature-group {
+    border-top: 1px $color-gainsboro solid !important;
+    margin: 0 !important;
+  }
+}
+
+.as-feature-content .x-panel-body .x-toolbar {
+  padding: 6px 0 8px 8px;
+  &.x-toolbar-footer {
+    background-color: $color-white;
+  }
+}
+
+.as-feature-content .x-panel-body .x-panel-as-subsection-framed > div + .x-toolbar,
+.as-feature-content .x-panel-body .as-actions.x-toolbar {
+  padding: 0 8px 0 0;
+  .x-toolbar-item {
+    margin: 6px 0 6px 8px;
+  }
+}
+
+// Global routing preview test result grid toolbar
+.x-panel-as-subsection-framed .x-toolbar-default-docked-top {
+  padding: 0;
+  .x-toolbar-item {
+    margin: 0;
+  }
+}
+
+.as-feature-header {
+  border-width: 10px 8px 10px 10px !important;
+  border-color: $color-white !important;
+  border-style: solid;
+
+  .as-icon {
+    font-size: $font-size-h2;
+    line-height: 32px;
+    text-align: center;
+  }
+}
+
+.as-feature-name {
+  font-size: $font-size-h2;
+  font-weight: $font-weight-h2;
+  top: -1px !important;
+  padding-left: 6px;
+}
+
+.as-feature-description {
+  font-size: $font-size-body;
+  font-weight: $font-weight-body;
+  top: 5px !important;
+  white-space: nowrap;
+  padding-left: 6px;
+}
+

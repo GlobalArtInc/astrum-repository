@@ -4,14 +4,14 @@ import {useMachine} from '@xstate/react';
 
 import {ListMachineUtils, Page} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTooltip
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTooltip
 } from '@globalart/react-shared-components';
 
 import {
@@ -80,73 +80,73 @@ export default function SslCertificatesList() {
           description={UIStrings.SSL_CERTIFICATES.MENU.description}
         />
         <PageActions>
-          <NxTooltip title={!canCreate && UIStrings.PERMISSION_ERROR} placement="bottom">
-            <NxButton
+          <AsTooltip title={!canCreate && UIStrings.PERMISSION_ERROR} placement="bottom">
+            <AsButton
               type="button"
               variant="primary"
               className={!canCreate && 'disabled'}
               onClick={() => canCreate && onCreate()}
             >
               {LABELS.CREATE_BUTTON}
-            </NxButton>
-          </NxTooltip>
+            </AsButton>
+          </AsTooltip>
         </PageActions>
       </PageHeader>
       <ContentBody className="as-ssl-certificates-list">
         <Section>
           <SectionToolbar>
             <div className="as-spacer" />
-            <NxFilterInput
+            <AsFilterInput
               id="filter"
               onChange={filter}
               value={filterText}
               placeholder={UIStrings.FILTER}
             />
           </SectionToolbar>
-          <NxTable>
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell
+          <AsTable>
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell
                   onClick={sortBySubjectCommonName}
                   isSortable
                   sortDir={subjectCommonNameSortDir}
                 >
                   {COLUMNS.NAME}
-                </NxTableCell>
-                <NxTableCell
+                </AsTableCell>
+                <AsTableCell
                   onClick={sortBySubjectOrganization}
                   isSortable
                   sortDir={subjectOrganizationSortDir}
                 >
                   {COLUMNS.ISSUED_TO}
-                </NxTableCell>
-                <NxTableCell
+                </AsTableCell>
+                <AsTableCell
                   onClick={sortByIssuerOrganization}
                   isSortable
                   sortDir={issuerOrganizationSortDir}
                 >
                   {COLUMNS.ISSUED_BY}
-                </NxTableCell>
-                <NxTableCell onClick={sortByFingerprint} isSortable sortDir={fingerprintSortDir}>
+                </AsTableCell>
+                <AsTableCell onClick={sortByFingerprint} isSortable sortDir={fingerprintSortDir}>
                   {COLUMNS.FINGERPRINT}
-                </NxTableCell>
-                <NxTableCell chevron />
-              </NxTableRow>
-            </NxTableHead>
-            <NxTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
+                </AsTableCell>
+                <AsTableCell chevron />
+              </AsTableRow>
+            </AsTableHead>
+            <AsTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
               {data.map(
                 ({id, subjectCommonName, subjectOrganization, issuerOrganization, fingerprint}) => (
-                  <NxTableRow key={id} onClick={() => onEdit(encodeURIComponent(id))} isClickable>
-                    <NxTableCell>{subjectCommonName}</NxTableCell>
-                    <NxTableCell>{subjectOrganization}</NxTableCell>
-                    <NxTableCell>{issuerOrganization}</NxTableCell>
-                    <NxTableCell>{fingerprint}</NxTableCell>
-                    <NxTableCell chevron />
-                  </NxTableRow>
+                  <AsTableRow key={id} onClick={() => onEdit(encodeURIComponent(id))} isClickable>
+                    <AsTableCell>{subjectCommonName}</AsTableCell>
+                    <AsTableCell>{subjectOrganization}</AsTableCell>
+                    <AsTableCell>{issuerOrganization}</AsTableCell>
+                    <AsTableCell>{fingerprint}</AsTableCell>
+                    <AsTableCell chevron />
+                  </AsTableRow>
                 )
               )}
-            </NxTableBody>
-          </NxTable>
+            </AsTableBody>
+          </AsTable>
         </Section>
         <HelpTile header={LABELS.HELP.TITLE} body={LABELS.HELP.TEXT} />
       </ContentBody>

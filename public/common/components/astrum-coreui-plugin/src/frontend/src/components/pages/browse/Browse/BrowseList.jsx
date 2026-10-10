@@ -3,12 +3,12 @@ import React, {useEffect, useState} from 'react';
 
 import {ExtJS, ListMachineUtils, copyToClipboard} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxButtonBar,
-  NxFilterInput,
-  NxFontAwesomeIcon,
-  NxTable,
-  NxTile
+  AsButton,
+  AsButtonBar,
+  AsFilterInput,
+  AsFontAwesomeIcon,
+  AsTable,
+  AsTile
 } from '@globalart/react-shared-components';
 
 import {
@@ -96,76 +96,76 @@ export default function BrowseList({onEdit, copyUrl = doCopyUrl}) {
       <PageTitle icon={faDatabase} {...BROWSE.MENU}/>
     </PageHeader>
     <ContentBody className="as-browse-list">
-      <NxTile>
-        <NxTile.Header>
-          <NxTile.HeaderActions>
-            <NxFilterInput
+      <AsTile>
+        <AsTile.Header>
+          <AsTile.HeaderActions>
+            <AsFilterInput
                     id="filter"
                     onChange={filter}
                     value={filterText}
                     placeholder={FILTER_PLACEHOLDER}/>
-          </NxTile.HeaderActions>
-        </NxTile.Header>
-        <NxTile.Content>
-          <NxTable>
-            <NxTable.Head>
-              <NxTable.Row>
-                <NxTable.Cell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</NxTable.Cell>
-                <NxTable.Cell onClick={sortByType} isSortable sortDir={typeSortDir}>{COLUMNS.TYPE}</NxTable.Cell>
-                <NxTable.Cell onClick={sortByFormat} isSortable sortDir={formatSortDir}>{COLUMNS.FORMAT}</NxTable.Cell>
-                <NxTable.Cell onClick={sortByStatus} isSortable sortDir={statusSortDir}>{COLUMNS.STATUS}</NxTable.Cell>
-                <NxTable.Cell>{COLUMNS.URL}</NxTable.Cell>
+          </AsTile.HeaderActions>
+        </AsTile.Header>
+        <AsTile.Content>
+          <AsTable>
+            <AsTable.Head>
+              <AsTable.Row>
+                <AsTable.Cell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</AsTable.Cell>
+                <AsTable.Cell onClick={sortByType} isSortable sortDir={typeSortDir}>{COLUMNS.TYPE}</AsTable.Cell>
+                <AsTable.Cell onClick={sortByFormat} isSortable sortDir={formatSortDir}>{COLUMNS.FORMAT}</AsTable.Cell>
+                <AsTable.Cell onClick={sortByStatus} isSortable sortDir={statusSortDir}>{COLUMNS.STATUS}</AsTable.Cell>
+                <AsTable.Cell>{COLUMNS.URL}</AsTable.Cell>
                 {showHealthCheckColumn && (
-                  <NxTable.Cell className="as-table-cell-centered">
+                  <AsTable.Cell className="as-table-cell-centered">
                     {COLUMNS.HEALTH_CHECK}
-                  </NxTable.Cell>
+                  </AsTable.Cell>
                 )}
                 {showIqPolicyViolationsColumn && (
-                  <NxTable.Cell className="as-table-cell-centered">
+                  <AsTable.Cell className="as-table-cell-centered">
                     {COLUMNS.IQ_POLICY_VIOLATIONS}
-                  </NxTable.Cell>
+                  </AsTable.Cell>
                 )}
-                <NxTable.Cell chevron />
-              </NxTable.Row>
-            </NxTable.Head>
-            <NxTable.Body isLoading={isLoading} error={error} emptyMessage={EMPTY_MESSAGE}>
+                <AsTable.Cell chevron />
+              </AsTable.Row>
+            </AsTable.Head>
+            <AsTable.Body isLoading={isLoading} error={error} emptyMessage={EMPTY_MESSAGE}>
               {data.map(({name, type, format, status, url}) => (
-                <NxTable.Row key={name} onClick={() => onEdit(name)} isClickable>
-                  <NxTable.Cell>{name}</NxTable.Cell>
-                  <NxTable.Cell>{type}</NxTable.Cell>
-                  <NxTable.Cell>{format}</NxTable.Cell>
-                  <NxTable.Cell>
+                <AsTable.Row key={name} onClick={() => onEdit(name)} isClickable>
+                  <AsTable.Cell>{name}</AsTable.Cell>
+                  <AsTable.Cell>{type}</AsTable.Cell>
+                  <AsTable.Cell>{format}</AsTable.Cell>
+                  <AsTable.Cell>
                     <RepositoryStatus status={status} />
-                  </NxTable.Cell>
-                  <NxTable.Cell>
-                    <NxButtonBar>
-                      <NxButton
+                  </AsTable.Cell>
+                  <AsTable.Cell>
+                    <AsButtonBar>
+                      <AsButton
                         variant="icon-only"
                         onClick={(e) => copyUrl(e, url)}
                         title={COPY_URL_TITLE}
                         aria-label={COPY_URL_TITLE}
                       >
-                        <NxFontAwesomeIcon icon={faCopy} />
-                      </NxButton>
-                    </NxButtonBar>
-                  </NxTable.Cell>
+                        <AsFontAwesomeIcon icon={faCopy} />
+                      </AsButton>
+                    </AsButtonBar>
+                  </AsTable.Cell>
                   {showHealthCheckColumn && (
-                    <NxTable.Cell className="as-table-cell-centered">
+                    <AsTable.Cell className="as-table-cell-centered">
                       <HealthCheckCell name={name} openModal={() => {}}/>
-                    </NxTable.Cell>
+                    </AsTable.Cell>
                   )}
                   {showIqPolicyViolationsColumn && (
-                    <NxTable.Cell className="as-table-cell-centered">
+                    <AsTable.Cell className="as-table-cell-centered">
                       <IqPolicyViolationsCell name={name}/>
-                    </NxTable.Cell>
+                    </AsTable.Cell>
                   )}
-                  <NxTable.Cell chevron />
-                </NxTable.Row>
+                  <AsTable.Cell chevron />
+                </AsTable.Row>
               ))}
-            </NxTable.Body>
-          </NxTable>
-        </NxTile.Content>
-      </NxTile>
+            </AsTable.Body>
+          </AsTable>
+        </AsTile.Content>
+      </AsTile>
     </ContentBody>
   </div>
 }

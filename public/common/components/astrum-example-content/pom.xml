@@ -42,7 +42,7 @@
         <groupId>org.globalart.astrum.common.maven.plugins</groupId>
         <artifactId>extjs-maven-plugin</artifactId>
         <configuration>
-          <namespace>NX.example</namespace>
+          <namespace>AS.example</namespace>
         </configuration>
       </plugin>
 

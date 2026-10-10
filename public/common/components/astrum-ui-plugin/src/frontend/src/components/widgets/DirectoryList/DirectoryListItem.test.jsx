@@ -13,7 +13,7 @@ jest.mock('@uirouter/react', () => ({
 }));
 
 jest.mock('@globalart/react-shared-components', () => ({
-  NxList: {
+  AsList: {
     LinkItem: ({children, href, className, ...props}) => (
       <a href={href} className={className} data-testid="link-item" {...props}>{children}</a>
     ),

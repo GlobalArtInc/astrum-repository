@@ -309,7 +309,7 @@ export function RoleForm({
           <SettingsTextInput
             {...form.field('id')}
             label="ID"
-            placeholder="nx-custom-role"
+            placeholder="as-custom-role"
             helpText="Unique identifier for this role"
             required
             disabled={!isCreate || isExternal}

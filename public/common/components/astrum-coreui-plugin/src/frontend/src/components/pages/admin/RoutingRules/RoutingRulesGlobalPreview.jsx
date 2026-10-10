@@ -8,17 +8,17 @@ import {
 } from '@globalart/astrum-ui-plugin';
 
 import {
-  NxButton,
-  NxFilterInput,
-  NxFontAwesomeIcon,
-  NxFormSelect,
-  NxLoadWrapper,
-  NxModal,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
+  AsButton,
+  AsFilterInput,
+  AsFontAwesomeIcon,
+  AsFormSelect,
+  AsLoadWrapper,
+  AsModal,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
 } from '@globalart/react-shared-components';
 
 import {
@@ -87,38 +87,38 @@ export default function RoutingRulesList() {
       <Section>
         <FieldWrapper labelText={ROUTING_RULES.PREVIEW.REPOSITORIES_LABEL}
                       descriptionText={ROUTING_RULES.PREVIEW.REPOSITORIES_DESCRIPTION}>
-          <NxFormSelect name="repositories" value={repositories} onChange={updateRepositories}>
+          <AsFormSelect name="repositories" value={repositories} onChange={updateRepositories}>
             <option value="all">{ROUTING_RULES.PREVIEW.REPOSITORIES.ALL}</option>
             <option value="groups">{ROUTING_RULES.PREVIEW.REPOSITORIES.GROUPS}</option>
             <option value="proxies">{ROUTING_RULES.PREVIEW.REPOSITORIES.PROXIES}</option>
-          </NxFormSelect>
+          </AsFormSelect>
         </FieldWrapper>
         <RoutingRulesPreview value={path} onChange={updatePath} onTest={previewHandler} />
 
         <SectionToolbar>
           <div className="as-spacer"/>
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               onChange={updateFilter}
               value={filter}
               placeholder={ROUTING_RULES.PREVIEW.FILTER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.REPOSITORY}</NxTableCell>
-              <NxTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.TYPE}</NxTableCell>
-              <NxTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.FORMAT}</NxTableCell>
-              <NxTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.RULE}</NxTableCell>
-              <NxTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.STATUS}</NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error} emptyMessage={ROUTING_RULES.PREVIEW.EMPTY_PREVIEW}
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.REPOSITORY}</AsTableCell>
+              <AsTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.TYPE}</AsTableCell>
+              <AsTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.FORMAT}</AsTableCell>
+              <AsTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.RULE}</AsTableCell>
+              <AsTableCell>{ROUTING_RULES.PREVIEW.COLUMNS.STATUS}</AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error} emptyMessage={ROUTING_RULES.PREVIEW.EMPTY_PREVIEW}
                        retryHandler={retryPreview}>
             {preview?.map(({repository, type, format, rule, allowed, expanded, expandable, children}, index) =>
                 <Fragment key={`${index}`}>
-                  <NxTableRow isClickable={expandable || !!rule}
+                  <AsTableRow isClickable={expandable || !!rule}
                               onClick={() => {
                                 if (expandable) {
                                   toggle(index);
@@ -127,55 +127,55 @@ export default function RoutingRulesList() {
                                   selectRow(index);
                                 }
                               }}>
-                    <NxTableCell>
-                      {expandable && expanded && <NxFontAwesomeIcon icon={faMinusSquare}/>}
-                      {expandable && !expanded && <NxFontAwesomeIcon icon={faPlusSquare}/>}
+                    <AsTableCell>
+                      {expandable && expanded && <AsFontAwesomeIcon icon={faMinusSquare}/>}
+                      {expandable && !expanded && <AsFontAwesomeIcon icon={faPlusSquare}/>}
                       <span>{repository}</span>
-                    </NxTableCell>
-                    <NxTableCell>{type}</NxTableCell>
-                    <NxTableCell>{format}</NxTableCell>
-                    <NxTableCell>{rule || ROUTING_RULES.PREVIEW.NO_RULE}</NxTableCell>
-                    <NxTableCell><RoutingRulesStatus allowed={allowed}/></NxTableCell>
-                    <NxTableCell chevron={!!rule}/>
-                  </NxTableRow>
+                    </AsTableCell>
+                    <AsTableCell>{type}</AsTableCell>
+                    <AsTableCell>{format}</AsTableCell>
+                    <AsTableCell>{rule || ROUTING_RULES.PREVIEW.NO_RULE}</AsTableCell>
+                    <AsTableCell><RoutingRulesStatus allowed={allowed}/></AsTableCell>
+                    <AsTableCell chevron={!!rule}/>
+                  </AsTableRow>
                   {expanded ? children?.map(({repository, type, format, rule, allowed}, childIndex) =>
-                      <NxTableRow key={`${index}-${childIndex}`}
+                      <AsTableRow key={`${index}-${childIndex}`}
                                   isClickable={!!rule}
                                   onClick={() => !!rule && selectRow(index, childIndex)}>
-                        <NxTableCell className="repository-child">{repository}</NxTableCell>
-                        <NxTableCell>{type}</NxTableCell>
-                        <NxTableCell>{format}</NxTableCell>
-                        <NxTableCell>{rule || ROUTING_RULES.PREVIEW.NO_RULE}</NxTableCell>
-                        <NxTableCell><RoutingRulesStatus allowed={allowed}/></NxTableCell>
-                        <NxTableCell chevron={!!rule}/>
-                      </NxTableRow>
+                        <AsTableCell className="repository-child">{repository}</AsTableCell>
+                        <AsTableCell>{type}</AsTableCell>
+                        <AsTableCell>{format}</AsTableCell>
+                        <AsTableCell>{rule || ROUTING_RULES.PREVIEW.NO_RULE}</AsTableCell>
+                        <AsTableCell><RoutingRulesStatus allowed={allowed}/></AsTableCell>
+                        <AsTableCell chevron={!!rule}/>
+                      </AsTableRow>
                   ) : null}
                 </Fragment>)}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
 
-      {viewSelectedRow && <NxModal id="view-selected-routing-rule" onClose={closeModal}>
-        <header className="nx-modal-header"><h2 className="nx-h2">{ROUTING_RULES.PREVIEW.DETAILS_TITLE(selectedRule)}</h2></header>
-        <div className="nx-modal-content">
-          <NxLoadWrapper isLoading={isLoadingSelectedRow} retryHandler={retryDetails}>
-            <div className="nx-form-group">
-              <h3 id="mode-label" className="nx-label">{ROUTING_RULES.FORM.MODE_LABEL}</h3>
-              <p className="nx-p" aria-labelledby="mode-label">{selectedRowDetails?.mode}</p>
+      {viewSelectedRow && <AsModal id="view-selected-routing-rule" onClose={closeModal}>
+        <header className="as-modal-header"><h2 className="as-h2">{ROUTING_RULES.PREVIEW.DETAILS_TITLE(selectedRule)}</h2></header>
+        <div className="as-modal-content">
+          <AsLoadWrapper isLoading={isLoadingSelectedRow} retryHandler={retryDetails}>
+            <div className="as-form-group">
+              <h3 id="mode-label" className="as-label">{ROUTING_RULES.FORM.MODE_LABEL}</h3>
+              <p className="as-p" aria-labelledby="mode-label">{selectedRowDetails?.mode}</p>
             </div>
-            <div className="nx-form-group">
-              <h3 id="matchers-label" className="nx-label">{ROUTING_RULES.FORM.MATCHERS_LABEL}</h3>
-              <ul className="nx-list">
+            <div className="as-form-group">
+              <h3 id="matchers-label" className="as-label">{ROUTING_RULES.FORM.MATCHERS_LABEL}</h3>
+              <ul className="as-list">
               {selectedRowDetails?.matchers?.map(matcher =>
-                  <li className="nx-list__item"><span className="nx-list__text"><code className="nx-code" aria-labelledby="matchers-label">{matcher}</code></span></li>
+                  <li className="as-list__item"><span className="as-list__text"><code className="as-code" aria-labelledby="matchers-label">{matcher}</code></span></li>
               )}
               </ul>
             </div>
 
-          </NxLoadWrapper>
+          </AsLoadWrapper>
         </div>
-        <footer className="nx-footer"><NxButton onClick={closeModal}>{UIStrings.CLOSE}</NxButton></footer>
-      </NxModal>}
+        <footer className="as-footer"><AsButton onClick={closeModal}>{UIStrings.CLOSE}</AsButton></footer>
+      </AsModal>}
     </ContentBody>
   </Page>;
 }

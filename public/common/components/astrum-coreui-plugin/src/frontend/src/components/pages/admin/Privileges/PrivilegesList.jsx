@@ -4,15 +4,15 @@ import {useMachine} from '@xstate/react';
 
 import {ExtJS, ListMachineUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTooltip,
-  NxPagination,
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTooltip,
+  AsPagination,
 } from '@globalart/react-shared-components';
 
 import {
@@ -74,19 +74,19 @@ export default function PrivilegesList() {
           description={UIStrings.PRIVILEGES.MENU.description}
       />
       <PageActions>
-        <NxTooltip
+        <AsTooltip
             title={!canCreate && UIStrings.PERMISSION_ERROR}
             placement="bottom"
         >
-          <NxButton
+          <AsButton
               type="button"
               variant="primary"
               className={!canCreate && 'disabled'}
               onClick={create}
           >
             {LABELS.CREATE_BUTTON}
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       </PageActions>
     </PageHeader>
     <ContentBody className="as-privileges-list">
@@ -94,38 +94,38 @@ export default function PrivilegesList() {
       <Section>
         <SectionToolbar>
           <div className="as-spacer"/>
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               onChange={filter}
               value={filterText}
               placeholder={UIStrings.FILTER}
           />
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</NxTableCell>
-              <NxTableCell onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>{COLUMNS.DESCRIPTION}</NxTableCell>
-              <NxTableCell onClick={sortByType} isSortable sortDir={typeSortDir}>{COLUMNS.TYPE}</NxTableCell>
-              <NxTableCell onClick={sortByPermission} isSortable sortDir={permissionSortDir}>{COLUMNS.PERMISSION}</NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</AsTableCell>
+              <AsTableCell onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>{COLUMNS.DESCRIPTION}</AsTableCell>
+              <AsTableCell onClick={sortByType} isSortable sortDir={typeSortDir}>{COLUMNS.TYPE}</AsTableCell>
+              <AsTableCell onClick={sortByPermission} isSortable sortDir={permissionSortDir}>{COLUMNS.PERMISSION}</AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
             {data.map(({id, name, description, type, permission}) => (
-                <NxTableRow key={id} onClick={() => onEdit(id)} isClickable>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{description}</NxTableCell>
-                  <NxTableCell>{type}</NxTableCell>
-                  <NxTableCell>{permission}</NxTableCell>
-                  <NxTableCell chevron/>
-                </NxTableRow>
+                <AsTableRow key={id} onClick={() => onEdit(id)} isClickable>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{description}</AsTableCell>
+                  <AsTableCell>{type}</AsTableCell>
+                  <AsTableCell>{permission}</AsTableCell>
+                  <AsTableCell chevron/>
+                </AsTableRow>
             ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
         {pageCount > 1 && !isLoading && (
-          <div className='as-pagination'>
-            <NxPagination onChange={changePage} pageCount={pageCount} currentPage={currentPage} />
+          <div className='astrum-pagination'>
+            <AsPagination onChange={changePage} pageCount={pageCount} currentPage={currentPage} />
           </div>
         )}
       </Section>

@@ -95,7 +95,7 @@ describe('UnsavedChangesModal', () => {
   });
 
   // App.test.jsx now exercises the "hide after click" path against a portal-free
-  // mock (ASTRUM-53515), so these two cases keep the real NxModal-backed removal
+  // mock (ASTRUM-53515), so these two cases keep the real AsModal-backed removal
   // path covered here. Without them, dropping setVisible(false) from either
   // handler in unsavedChangesDialog.js would silently pass every test.
   it('should hide the modal after the cancel button is clicked', async () => {

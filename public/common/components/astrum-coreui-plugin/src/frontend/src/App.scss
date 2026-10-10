@@ -38,7 +38,7 @@ a.as-internal-link:hover {
   text-decoration: none;
 }
 
-.as-page {
+.astrum-page {
   background-color: var(--color-background);
   color: var(--color-text);
   height: 100vh;
@@ -82,7 +82,7 @@ a.as-internal-link:hover {
     min-width: 0;
     background-color: var(--color-background);
 
-    // Flex layout needed for Default UI pages (NxPageSidebar + NxPageMain)
+    // Flex layout needed for Default UI pages (AsPageSidebar + AsPageMain)
     display: flex;
     flex-direction: column;
 
@@ -121,7 +121,7 @@ a.as-internal-link:hover {
       display: flex;
       flex-direction: column;
       height: 100%;
-      padding: 0 !important; // Override .nx-page-main's padding — ExtJS manages its own internal spacing
+      padding: 0 !important; // Override .as-page-main's padding — ExtJS manages its own internal spacing
 
       > div {
         flex: 1;
@@ -129,15 +129,15 @@ a.as-internal-link:hover {
       }
     }
 
-    // Default UI pages using RSC's NxPageSidebar + NxPageMain pattern
+    // Default UI pages using RSC's AsPageSidebar + AsPageMain pattern
     // These classes only exist in Default UI ExtJS wrapper pages
-    .nx-page-sidebar {
+    .as-page-sidebar {
       flex-shrink: 0;
       width: 270px;
       overflow-y: auto;
     }
 
-    .nx-page-main {
+    .as-page-main {
       grid-area: unset !important;
       position: relative !important;
       top: unset !important;
@@ -148,7 +148,7 @@ a.as-internal-link:hover {
       height: 100%;
       width: 100%;
       min-height: 0;
-      padding: var(--nx-spacing-6x, 24px);
+      padding: var(--as-spacing-6x, 24px);
       overflow: auto;
       box-sizing: border-box;
     }
@@ -157,15 +157,15 @@ a.as-internal-link:hover {
   // Dark mode: Radix Theme handles accent automatically; no override needed
 
   // ==========================================================================
-  // Scope RSC nx-text-link and rapture theme link styles to Classic UI only.
+  // Scope RSC as-text-link and rapture theme link styles to Classic UI only.
   // In Astrum One (no ExtJS wrapper), reset link styles so Radix/design system
   // controls link appearance. Rapture's a:not([class*="x-"]) would otherwise
   // apply the wrong blue to Dashboard stat cards and other Astrum One links.
   // ==========================================================================
   .as-main-content > .radix-themes:not(:has(.as-ext-js-wrapper)) {
-    .nx-text-link,
-    a.nx-text-link,
-    button.nx-text-link,
+    .as-text-link,
+    a.as-text-link,
+    button.as-text-link,
     a:not([class*="x-"]) {
       color: inherit;
       text-decoration: none;
@@ -178,13 +178,13 @@ a.as-internal-link:hover {
         text-decoration: none;
       }
 
-      .nx-code {
+      .as-code {
         color: inherit;
       }
     }
   }
 
-  .nx-global-sidebar-2__navigation-link.nx-text-link {
+  .as-global-sidebar-2__navigation-link.as-text-link {
     color: var(--color-text, #1a1a1a);
 
     &.selected {
@@ -231,8 +231,8 @@ a.as-internal-link:hover {
     }
   }
 
-  .nx-html--dark-mode & {
-    .nx-text-link.selected {
+  .as-html--dark-mode & {
+    .as-text-link.selected {
       font-weight: 700;
     }
   }
@@ -244,18 +244,18 @@ a.as-internal-link:hover {
 
 /*
  * Suppress legacy ExtJS toast notifications when the Preview UI shell is active.
- * The .as-page container only exists when React has rendered the Preview UI shell.
- * ExtJS toasts use .x-toast and render as direct children of <body>, outside .as-page.
+ * The .astrum-page container only exists when React has rendered the Preview UI shell.
+ * ExtJS toasts use .x-toast and render as direct children of <body>, outside .astrum-page.
  */
-body:has(.as-page) > .x-toast {
+body:has(.astrum-page) > .x-toast {
   display: none !important;
 }
 
 /* ==========================================================================
  * Shell overflow strategy (ASTRUM-54306)
  *
- * The shell root carries RSC's `.nx-page`, which pins `min-width` to
- * `--nx-width-page-min` (1366px, the design system's minimum supported
+ * The shell root carries RSC's `.as-page`, which pins `min-width` to
+ * `--as-width-page-min` (1366px, the design system's minimum supported
  * resolution). That floor is intentional and is NOT changed here: below 1366px
  * the shell overflows rather than reflowing, and the shell's job is to make that
  * overflow reachable. One scrollport, split by axis:
@@ -264,11 +264,11 @@ body:has(.as-page) > .x-toast {
  *           overflow-y: hidden — vertical containment (ASTRUM-51231)
  *   <body>  overflow: visible  — must not clip or scroll; it only passes the
  *                                shell's overflow up to the viewport
- *   .as-page                 — 1366px-wide grid, height: 100vh
+ *   .astrum-page                 — 1366px-wide grid, height: 100vh
  *   .as-main-content         — overflow: auto, the vertical scrollport for pages
  *
  * This change is deliberately confined to the overflow axes. The shell's vertical
- * sizing contract — `.as-page { height: 100vh }` here and `min-height: 100vh` in
+ * sizing contract — `.astrum-page { height: 100vh }` here and `min-height: 100vh` in
  * the Cloud shell — is left exactly as it was, so short-content pages keep their
  * viewport-height floor. Horizontal reachability does not depend on it.
  *
@@ -293,9 +293,9 @@ body:has(.as-page) > .x-toast {
  * Only the X axis is `auto`, so there is exactly one horizontal scrollbar and it
  * moves the shell as a unit (header, left nav and content stay aligned) while
  * vertical scrolling stays delegated to .as-main-content. The Y axis must stay
- * locked: `.as-page { overflow: hidden }` alone does not propagate to the root,
+ * locked: `.astrum-page { overflow: hidden }` alone does not propagate to the root,
  * and without the lock, scrolling past the end of .as-main-content reveals
- * blank space below .as-page on tall forms (ASTRUM-51231). Preview UI and legacy
+ * blank space below .astrum-page on tall forms (ASTRUM-51231). Preview UI and legacy
  * ExtJS pages both render inside .as-main-content, so both are covered.
  *
  * `!important` is required because ExtJS/Rapture sets `body.style.overflow` at
@@ -317,14 +317,14 @@ body:has(.as-page) > .x-toast {
  * `overflow-x: auto` produces a second, nested scrollbar. Horizontal
  * reachability is handled here, once, for every page.
  * ========================================================================== */
-html:has(.as-page) {
+html:has(.astrum-page) {
   overflow-x: auto;
   overflow-y: hidden;
 }
 
-body:has(.as-page) {
+body:has(.astrum-page) {
   height: 100vh;
-  min-width: var(--nx-width-page-min);
+  min-width: var(--as-width-page-min);
   overflow: visible !important;
 }
 
@@ -333,11 +333,11 @@ body:has(.as-page) {
  *
  * The login shell is a `position: fixed`, 100vw/100vh overlay that already fits
  * any viewport, so it has nothing to scroll horizontally. It still renders inside
- * .as-page, whose 1366px min-width would otherwise hand the viewport a scrollbar
+ * .astrum-page, whose 1366px min-width would otherwise hand the viewport a scrollbar
  * that scrolls nothing but empty shell. Keep the login page's pre-ASTRUM-54306
  * behaviour and clip that axis instead.
  *
- * This must override `html:has(.as-page)` above, so it targets the same element
+ * This must override `html:has(.astrum-page)` above, so it targets the same element
  * (the root) and relies on source order — the two selectors have equal
  * specificity, so the later one wins.
  *

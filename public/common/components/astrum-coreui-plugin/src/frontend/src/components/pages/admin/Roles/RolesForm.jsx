@@ -7,16 +7,16 @@ import {
   ExtJS,
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxFormGroup,
-  NxButton,
-  NxFontAwesomeIcon,
-  NxH2,
-  NxTextInput,
-  NxStatefulForm,
-  NxStatefulTransferList,
-  NxFormSelect,
-  NxTile,
-  NxTransferListHalf
+  AsFormGroup,
+  AsButton,
+  AsFontAwesomeIcon,
+  AsH2,
+  AsTextInput,
+  AsStatefulForm,
+  AsStatefulTransferList,
+  AsFormSelect,
+  AsTile,
+  AsTransferListHalf
 } from '@globalart/react-shared-components';
 
 import ExternalRolesCombobox from './ExternalRolesCombobox'
@@ -93,21 +93,21 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
     send({ type: 'UPDATE_ROLES', newRoles: newRoles });
   }
 
-  return <NxStatefulForm
+  return <AsStatefulForm
       {...FormUtils.formProps(state, send)}
       onCancel={cancel}
       additionalFooterBtns={isEdit && canDelete &&
-          <NxButton variant="tertiary" onClick={confirmDelete}>
-            <NxFontAwesomeIcon icon={faTrash}/>
+          <AsButton variant="tertiary" onClick={confirmDelete}>
+            <AsFontAwesomeIcon icon={faTrash}/>
             <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
-          </NxButton>
+          </AsButton>
       }
   >
-    <NxTile.Content>
+    <AsTile.Content>
       {isCreate && <>
-        <NxH2>{LABELS.SECTIONS.TYPE}</NxH2>
-        <NxFormGroup label={LABELS.TYPE.LABEL} isRequired>
-          <NxFormSelect
+        <AsH2>{LABELS.SECTIONS.TYPE}</AsH2>
+        <AsFormGroup label={LABELS.TYPE.LABEL} isRequired>
+          <AsFormSelect
               {...FormUtils.selectProps('roleType', state)}
               value={roleType}
               onChange={setRoleType}
@@ -117,11 +117,11 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
             {hasExternalSources &&
                 <option value={TYPES.EXTERNAL}>{LABELS.TYPE.OPTIONS.EXTERNAL}</option>
             }
-          </NxFormSelect>
-        </NxFormGroup>
+          </AsFormSelect>
+        </AsFormGroup>
         {externalRole &&
-            <NxFormGroup label={LABELS.EXTERNAL_TYPE.LABEL} isRequired>
-              <NxFormSelect
+            <AsFormGroup label={LABELS.EXTERNAL_TYPE.LABEL} isRequired>
+              <AsFormSelect
                   {...FormUtils.selectProps('externalRoleType', state)}
                   value={externalRoleType}
                   onChange={setExternalRoleType}
@@ -130,12 +130,12 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
                 {sources?.map(({id, name}) =>
                     <option key={id} value={id}>{name}</option>
                 )}
-              </NxFormSelect>
-            </NxFormGroup>
+              </AsFormSelect>
+            </AsFormGroup>
         }
       </>}
       {(isTypeSelected || isEdit) && <>
-        <NxH2>{LABELS.SECTIONS.SETUP}</NxH2>
+        <AsH2>{LABELS.SECTIONS.SETUP}</AsH2>
         {externalRole &&
             <ExternalRolesCombobox
                 actor={state.context.externalRolesRef}
@@ -143,33 +143,33 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
             />
         }
         {(isEdit || internalRole) &&
-            <NxFormGroup label={LABELS.ID.LABEL} isRequired>
-              <NxTextInput
+            <AsFormGroup label={LABELS.ID.LABEL} isRequired>
+              <AsTextInput
                   {...FormUtils.fieldProps('id', state)}
                   disabled={isEdit}
                   onChange={FormUtils.handleUpdate('id', send)}
               />
-            </NxFormGroup>
+            </AsFormGroup>
         }
 
-        <NxFormGroup label={LABELS.NAME.LABEL} isRequired>
-          <NxTextInput
+        <AsFormGroup label={LABELS.NAME.LABEL} isRequired>
+          <AsTextInput
               {...FormUtils.fieldProps('name', state)}
               onChange={FormUtils.handleUpdate('name', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.DESCRIPTION.LABEL}>
-          <NxTextInput
-              className="nx-text-input--long"
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.DESCRIPTION.LABEL}>
+          <AsTextInput
+              className="as-text-input--long"
               {...FormUtils.fieldProps('description', state)}
               onChange={FormUtils.handleUpdate('description', send)}
           />
-        </NxFormGroup>
+        </AsFormGroup>
 
         {!isPrivilegesModalEnabled &&
           <>
-            <NxH2>{LABELS.SECTIONS.PRIVILEGES}</NxH2>
-            <NxStatefulTransferList
+            <AsH2>{LABELS.SECTIONS.PRIVILEGES}</AsH2>
+            <AsStatefulTransferList
               id="privileges-select"
               availableItemsLabel={LABELS.PRIVILEGES.AVAILABLE}
               selectedItemsLabel={LABELS.PRIVILEGES.SELECTED}
@@ -183,10 +183,10 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
 
         {isPrivilegesModalEnabled &&
           <div className="modal-selection-section">
-            <NxH2 className="modal-section-title">Applied Privileges</NxH2>
-            <NxButton onClick={() => setShowModalPrivileges(true)} className="modal-button privileges-modal" variant="tertiary" type="button">
+            <AsH2 className="modal-section-title">Applied Privileges</AsH2>
+            <AsButton onClick={() => setShowModalPrivileges(true)} className="modal-button privileges-modal" variant="tertiary" type="button">
               Modify Applied Privileges
-            </NxButton>
+            </AsButton>
             {showModalPrivileges &&
               <PrivilegesSelectionModal
                 title={LABELS.SECTIONS.PRIVILEGES}
@@ -196,7 +196,7 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
                 saveModal={saveModalPrivileges}
               />
             }
-            <NxTransferListHalf
+            <AsTransferListHalf
               label="Applied Privileges"
               filterValue={privilegesListFilter}
               onFilterChange={setPrivilegesListFilter}
@@ -207,10 +207,10 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
 
         {isRolesModalEnabled &&
           <div className="modal-selection-section">
-            <NxH2 className="modal-section-title">Applied Roles</NxH2>
-            <NxButton onClick={() => setShowModalRoles(true)} className="modal-button roles-modal" variant="tertiary" type="button">
+            <AsH2 className="modal-section-title">Applied Roles</AsH2>
+            <AsButton onClick={() => setShowModalRoles(true)} className="modal-button roles-modal" variant="tertiary" type="button">
               Modify Applied Roles
-            </NxButton>
+            </AsButton>
             {showModalRoles &&
               <RolesSelectionModal
                 title={LABELS.SECTIONS.ROLES}
@@ -220,7 +220,7 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
                 saveModal={saveModalRoles}
               />
             }
-            <NxTransferListHalf
+            <AsTransferListHalf
               label="Applied Roles"
               filterValue={rolesListFilter}
               onFilterChange={setRolesListFilter}
@@ -231,8 +231,8 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
 
         {!isRolesModalEnabled &&
           <>
-            <NxH2>{LABELS.SECTIONS.ROLES}</NxH2>
-            <NxStatefulTransferList
+            <AsH2>{LABELS.SECTIONS.ROLES}</AsH2>
+            <AsStatefulTransferList
               id="roles-select"
               availableItemsLabel={LABELS.ROLES.AVAILABLE}
               selectedItemsLabel={LABELS.ROLES.SELECTED}
@@ -244,6 +244,6 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
           </>
         }
       </>}
-    </NxTile.Content>
-  </NxStatefulForm>;
+    </AsTile.Content>
+  </AsStatefulForm>;
 }

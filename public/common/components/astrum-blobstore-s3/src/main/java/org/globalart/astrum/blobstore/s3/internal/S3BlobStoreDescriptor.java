@@ -124,7 +124,7 @@ public class S3BlobStoreDescriptor
 
   @Override
   public String customFormName() {
-    return "nx-blobstore-settings-s3";
+    return "as-blobstore-settings-s3";
   }
 
   @Override

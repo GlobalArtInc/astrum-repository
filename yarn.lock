@@ -2448,7 +2448,7 @@ __metadata:
 
 "@globalart/react-shared-components@file:./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz::locator=root-workspace-0b6124%40workspace%3A.":
   version: 14.0.3
-  resolution: "@globalart/react-shared-components@file:./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz#./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz::hash=82fe50&locator=root-workspace-0b6124%40workspace%3A."
+  resolution: "@globalart/react-shared-components@file:./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz#./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz::hash=dcb293&locator=root-workspace-0b6124%40workspace%3A."
   dependencies:
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.0"
@@ -2474,7 +2474,7 @@ __metadata:
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
-  checksum: 10c0/aa16902b52d790570c447d9d309351ac6cd72e54a6b7b271b06d7a5f9f161adf9a384675976be3ac683376c33e5b4b1b373bade00972fbf970b34c552e505e3c
+  checksum: 10c0/bb3b5de4397e69a5dfbcd546d819954950da9df44bbf41d2d06a2d48bf7a2c447dae1b90c2d8807b00bd693ec328277015483779aa83c686bc5199f2ba56a49a
   languageName: node
   linkType: hard
 

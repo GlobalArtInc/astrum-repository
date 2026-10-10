@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faBroom } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -26,11 +26,11 @@ export default {
     HELP_TEXT: <>
       Cleanup policies can be used to remove content from your repositories. These policies will execute
       at the configured frequency. Once created, a cleanup policy must be assigned to a repository from{' '}
-      <NxTextLink href="#admin/repository/repositories">the repository configuration screen</NxTextLink>.
+      <AsTextLink href="#admin/repository/repositories">the repository configuration screen</AsTextLink>.
       For more information, check{' '}
-      <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/cleanup-policy">
+      <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/cleanup-policy">
         the documentation
-      </NxTextLink>.
+      </AsTextLink>.
     </>,
     EMPTY_MESSAGE: 'No cleanup policies were found',
     CREATE_BUTTON: 'Create Cleanup Policy',

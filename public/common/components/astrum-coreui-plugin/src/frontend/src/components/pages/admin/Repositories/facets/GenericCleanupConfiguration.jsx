@@ -4,7 +4,7 @@ import {assign} from 'xstate';
 
 import {ExtAPIUtils, FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxLoadWrapper, NxStatefulTransferList} from '@globalart/react-shared-components';
+import {AsFormGroup, AsLoadWrapper, AsStatefulTransferList} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -39,19 +39,19 @@ export default function GenericCleanupConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{EDITOR.CLEANUP_CAPTION}</h2>
-      <NxLoadWrapper loading={isLoading} error={error} retryHandler={loadCleanupPolicies}>
-        <NxFormGroup
+      <h2 className="as-h2">{EDITOR.CLEANUP_CAPTION}</h2>
+      <AsLoadWrapper loading={isLoading} error={error} retryHandler={loadCleanupPolicies}>
+        <AsFormGroup
           label={EDITOR.CLEANUP_POLICIES_LABEL}
           sublabel={EDITOR.CLEANUP_POLICIES_SUBLABEL}
         >
-          <NxStatefulTransferList
+          <AsStatefulTransferList
             allItems={availablePolicies}
             selectedItems={new Set(cleanup?.policyNames)}
             onChange={FormUtils.handleUpdate('cleanup.policyNames', sendParent)}
           />
-        </NxFormGroup>
-      </NxLoadWrapper>
+        </AsFormGroup>
+      </AsLoadWrapper>
     </>
   );
 }

@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxFormSelect} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -21,13 +21,13 @@ export default function LayoutPolicyConfiguration({parentMachine}) {
   ];
 
   return (
-    <NxFormGroup
+    <AsFormGroup
       label={EDITOR.LAYOUT_POLICY_LABEL}
       className="as-form-group-layout-policy"
       sublabel={EDITOR.LAYOUT_POLICY_SUBLABEL}
       isRequired
     >
-      <NxFormSelect
+      <AsFormSelect
         {...FormUtils.selectProps(`${format}.layoutPolicy`, currentParent)}
         onChange={FormUtils.handleUpdate(`${format}.layoutPolicy`, sendParent)}
       >
@@ -36,7 +36,7 @@ export default function LayoutPolicyConfiguration({parentMachine}) {
             {key}
           </option>
         ))}
-      </NxFormSelect>
-    </NxFormGroup>
+      </AsFormSelect>
+    </AsFormGroup>
   );
 }

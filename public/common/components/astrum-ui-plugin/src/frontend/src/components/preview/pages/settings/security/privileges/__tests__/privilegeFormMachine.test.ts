@@ -359,9 +359,9 @@ describe('privilegeFormMachine', () => {
   describe('edit mode', () => {
     it('loads privilege data and enters correct type sub-state', async () => {
       const preloadedPrivilege = {
-        id: 'nx-repo-view-all',
+        id: 'as-repo-view-all',
         version: '1',
-        name: 'nx-repo-view-all',
+        name: 'as-repo-view-all',
         description: 'All repository view',
         type: 'repository-view',
         readOnly: false,
@@ -369,12 +369,12 @@ describe('privilegeFormMachine', () => {
         permission: 'astrum:repository-view:*:*:browse,read',
       };
 
-      const machine = createPrivilegeFormMachine('nx-repo-view-all', preloadedPrivilege);
+      const machine = createPrivilegeFormMachine('as-repo-view-all', preloadedPrivilege);
       const service = await startAndLoad(machine);
 
       const state = service.getSnapshot();
       expect(state.matches({ editing: 'repository-view' })).toBe(true);
-      expect(state.context.data.name).toBe('nx-repo-view-all');
+      expect(state.context.data.name).toBe('as-repo-view-all');
       expect(state.context.data.type).toBe('repository-view');
       expect(state.context.data.properties.format).toBe('*');
 

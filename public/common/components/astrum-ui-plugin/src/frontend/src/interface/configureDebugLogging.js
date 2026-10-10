@@ -1,8 +1,8 @@
 
 
 const SUPPRESS_PATTERNS = [
-  'NX.app.Loader',
-  'NX.app.Application',
+  'AS.app.Loader',
+  'AS.app.Application',
   'evaluating transition',
   'Redirecting to login',
   'managed controllers',
@@ -18,10 +18,10 @@ const SUPPRESS_PATTERNS = [
  * Safe to call multiple times — guarded by a window flag.
  */
 export default function configureDebugLogging() {
-  if (typeof window === 'undefined' || window.__nxExtJsDebugPatchedGlobal) {
+  if (typeof window === 'undefined' || window.__asExtJsDebugPatchedGlobal) {
     return;
   }
-  window.__nxExtJsDebugPatchedGlobal = true;
+  window.__asExtJsDebugPatchedGlobal = true;
 
   const shouldSuppress = (args) =>
     args.some((arg) => typeof arg === 'string' &&

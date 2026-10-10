@@ -400,7 +400,7 @@ describe('SettingsTransferList', () => {
     });
 
     it('sanitizes special characters in item ids for testid', () => {
-      const specialItems = [{ id: 'nx:all/*', name: 'All Privileges' }];
+      const specialItems = [{ id: 'as:all/*', name: 'All Privileges' }];
       render(
         <SettingsTransferList
           {...defaultProps}
@@ -409,7 +409,7 @@ describe('SettingsTransferList', () => {
           getItemId={(item) => item.id}
         />
       );
-      expect(screen.getByTestId('privs-available-item-nx-all--')).toBeInTheDocument();
+      expect(screen.getByTestId('privs-available-item-as-all--')).toBeInTheDocument();
     });
 
     it('does not set testId attributes when testId not provided', () => {

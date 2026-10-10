@@ -4,11 +4,11 @@ import {useMachine} from '@xstate/react';
 
 import {ExtJS, FormUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFormGroup,
-  NxStatefulForm,
-  NxTooltip,
-  NxTextInput
+  AsButton,
+  AsFormGroup,
+  AsStatefulForm,
+  AsTooltip,
+  AsTextInput
 } from '@globalart/react-shared-components';
 
 import {Section} from '@globalart/astrum-ui-plugin';
@@ -35,40 +35,40 @@ export default function PasswordChangeForm({userId}) {
 
   return (
     <Section className='user-account-settings'>
-      <NxStatefulForm
+      <AsStatefulForm
         {...FormUtils.formProps(current, send)}
         onSubmit={save}
         submitBtnText={UIStrings.USER_ACCOUNT.ACTIONS.changePassword}
         additionalFooterBtns={
-          <NxTooltip title={FormUtils.discardTooltip({ isPristine })}>
-            <NxButton type='button' className={isPristine && 'disabled'} onClick={discard}>
+          <AsTooltip title={FormUtils.discardTooltip({ isPristine })}>
+            <AsButton type='button' className={isPristine && 'disabled'} onClick={discard}>
               {UIStrings.USER_ACCOUNT.ACTIONS.discardChangePassword}
-            </NxButton>
-          </NxTooltip>
+            </AsButton>
+          </AsTooltip>
         }
       >
-        <NxFormGroup label={UIStrings.USER_ACCOUNT.PASSWORD_CURRENT_FIELD_LABEL} isRequired>
-          <NxTextInput
+        <AsFormGroup label={UIStrings.USER_ACCOUNT.PASSWORD_CURRENT_FIELD_LABEL} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('passwordCurrent', current)}
             onChange={FormUtils.handleUpdate('passwordCurrent', send)}
             type='password'
           />
-        </NxFormGroup>
-        <NxFormGroup label={UIStrings.USER_ACCOUNT.PASSWORD_NEW_FIELD_LABEL} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={UIStrings.USER_ACCOUNT.PASSWORD_NEW_FIELD_LABEL} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('passwordNew', current)}
             onChange={FormUtils.handleUpdate('passwordNew', send)}
             type='password'
           />
-        </NxFormGroup>
-        <NxFormGroup label={UIStrings.USER_ACCOUNT.PASSWORD_NEW_CONFIRM_FIELD_LABEL} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={UIStrings.USER_ACCOUNT.PASSWORD_NEW_CONFIRM_FIELD_LABEL} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('passwordNewConfirm', current)}
             onChange={FormUtils.handleUpdate('passwordNewConfirm', send)}
             type='password'
           />
-        </NxFormGroup>
-      </NxStatefulForm>
+        </AsFormGroup>
+      </AsStatefulForm>
     </Section>
   );
 }

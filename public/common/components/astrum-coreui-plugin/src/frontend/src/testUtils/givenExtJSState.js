@@ -23,7 +23,7 @@ export default   function givenExtJSState(
   // these resolve to the same thing the real world, but have to be mocked individually
   // because of the way they are accessed
   jest.spyOn(ExtJS, 'state').mockReturnValue(stateMock);
-  global.NX.State = stateMock;
+  global.AS.State = stateMock;
   
   // Also mock useStatus for components that use that hook
   jest.spyOn(ExtJS, 'useStatus').mockReturnValue({

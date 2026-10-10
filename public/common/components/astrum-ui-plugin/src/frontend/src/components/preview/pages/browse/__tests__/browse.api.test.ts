@@ -674,14 +674,14 @@ describe('browse.api', () => {
   });
 
   describe('utility functions', () => {
-    const originalNX = (window as any).NX;
+    const originalAS = (window as any).AS;
     const mockToast = {
       success: jest.fn(),
       error: jest.fn(),
     };
 
     beforeEach(() => {
-      (window as any).NX = {
+      (window as any).AS = {
         Messages: {
           success: jest.fn(),
           error: jest.fn(),
@@ -695,7 +695,7 @@ describe('browse.api', () => {
     });
 
     afterEach(() => {
-      (window as any).NX = originalNX;
+      (window as any).AS = originalAS;
       delete (window as any).__astrumToast;
     });
 
@@ -703,13 +703,13 @@ describe('browse.api', () => {
       window.location.hash = '#preview/browse/welcome';
       showSuccessMessage('test message');
       expect(mockToast.success).toHaveBeenCalledWith('test message');
-      expect((window as any).NX.Messages.success).not.toHaveBeenCalled();
+      expect((window as any).AS.Messages.success).not.toHaveBeenCalled();
     });
 
     it('showSuccessMessage routes to ExtJS in Default UI mode', () => {
       window.location.hash = '#browse/welcome';
       showSuccessMessage('test message');
-      expect((window as any).NX.Messages.success).toHaveBeenCalledWith('test message');
+      expect((window as any).AS.Messages.success).toHaveBeenCalledWith('test message');
       expect(mockToast.success).not.toHaveBeenCalled();
     });
 
@@ -717,13 +717,13 @@ describe('browse.api', () => {
       window.location.hash = '#preview/browse/welcome';
       showErrorMessage('error message');
       expect(mockToast.error).toHaveBeenCalledWith('error message');
-      expect((window as any).NX.Messages.error).not.toHaveBeenCalled();
+      expect((window as any).AS.Messages.error).not.toHaveBeenCalled();
     });
 
     it('showErrorMessage routes to ExtJS in Default UI mode', () => {
       window.location.hash = '#browse/welcome';
       showErrorMessage('error message');
-      expect((window as any).NX.Messages.error).toHaveBeenCalledWith('error message');
+      expect((window as any).AS.Messages.error).toHaveBeenCalledWith('error message');
       expect(mockToast.error).not.toHaveBeenCalled();
     });
   });

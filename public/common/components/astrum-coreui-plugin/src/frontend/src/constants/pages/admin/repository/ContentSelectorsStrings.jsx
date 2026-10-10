@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -20,9 +20,9 @@ export default {
       Content selectors provide a means for you to select specific content from your repositories.
       Repository content is evaluated against expressions written in CSEL (Content Selector Expression Language).
       For more information,{' '}
-      <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/content-selector">
+      <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/content-selector">
         check the documentation
-      </NxTextLink>.
+      </AsTextLink>.
     </>,
     CREATE_BUTTON: 'Create Selector',
     FILTER_PLACEHOLDER: 'Filter',

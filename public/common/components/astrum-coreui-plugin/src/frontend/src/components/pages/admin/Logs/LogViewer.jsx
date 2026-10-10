@@ -12,13 +12,13 @@ import {
   SectionToolbar
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxButtonBar,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormSelect,
-  NxLoadWrapper,
-  NxTextInput,
+  AsButton,
+  AsButtonBar,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormSelect,
+  AsLoadWrapper,
+  AsTextInput,
 } from '@globalart/react-shared-components';
 
 import {faStamp} from '@fortawesome/free-solid-svg-icons';
@@ -100,7 +100,7 @@ export default function LogViewer({itemId}) {
       <PageActions>
         <a
             download
-            className="nx-btn nx-btn--primary"
+            className="as-btn as-btn--primary"
             href={ExtJS.urlOf(`service/rest/internal/logging/logs/${itemId}`)}
             data-analytics-id="as-logs-download"
         >
@@ -111,9 +111,9 @@ export default function LogViewer({itemId}) {
     <ContentBody>
       <Section className="as-log-viewer">
         <SectionToolbar>
-          {itemId === "astrum.log" && <div className="nx-form-row">
-            <NxFormGroup label={VIEW.MARK.LABEL}>
-              <NxTextInput
+          {itemId === "astrum.log" && <div className="as-form-row">
+            <AsFormGroup label={VIEW.MARK.LABEL}>
+              <AsTextInput
                   className="as-log-viewer-mark-text"
                   id="mark"
                   name="mark"
@@ -122,36 +122,36 @@ export default function LogViewer({itemId}) {
                   onChange={updateMark}
                   onKeyPress={onMarkKeyPress}
               />
-            </NxFormGroup>
-            <NxButtonBar>
-              <NxButton onClick={insertMark} id="insertMark" data-analytics-id="as-logs-mark">
-                <NxFontAwesomeIcon icon={faStamp}/>
+            </AsFormGroup>
+            <AsButtonBar>
+              <AsButton onClick={insertMark} id="insertMark" data-analytics-id="as-logs-mark">
+                <AsFontAwesomeIcon icon={faStamp}/>
                 <span>{VIEW.MARK.INSERT}</span>
-              </NxButton>
-            </NxButtonBar>
+              </AsButton>
+            </AsButtonBar>
           </div>}
 
           <div className="as-spacer" />
 
-          <div className="nx-form-row">
-            <NxFormGroup label={VIEW.REFRESH.RATE_LABEL}>
-              <NxFormSelect name="period" id="period" value={selectedPeriod} onChange={onChangePeriod}>
+          <div className="as-form-row">
+            <AsFormGroup label={VIEW.REFRESH.RATE_LABEL}>
+              <AsFormSelect name="period" id="period" value={selectedPeriod} onChange={onChangePeriod}>
                 {refreshPeriods.map(([period, label]) =>
                     <option key={period} value={period}>{label}</option>
                 )}
-              </NxFormSelect>
-            </NxFormGroup>
-            <NxFormGroup className="log-viewer-size" label={VIEW.REFRESH.SIZE_LABEL}>
-              <NxFormSelect name="size" value={selectedSize} onChange={onChangeSize}>
+              </AsFormSelect>
+            </AsFormGroup>
+            <AsFormGroup className="log-viewer-size" label={VIEW.REFRESH.SIZE_LABEL}>
+              <AsFormSelect name="size" value={selectedSize} onChange={onChangeSize}>
                 {refreshSizes.map(([size, label]) =>
                     <option key={size} value={size}>{label}</option>
                 )}
-              </NxFormSelect>
-            </NxFormGroup>
+              </AsFormSelect>
+            </AsFormGroup>
           </div>
         </SectionToolbar>
         {/* loading={false} intentionally: existing content stays visible during background auto-refresh */}
-        <NxLoadWrapper loading={false} error={loadError} retryHandler={retry}>
+        <AsLoadWrapper loading={false} error={loadError} retryHandler={retry}>
           <textarea
               name="logs"
               value={logText}
@@ -159,7 +159,7 @@ export default function LogViewer({itemId}) {
               ref={textarea}
               readOnly
           />
-        </NxLoadWrapper>
+        </AsLoadWrapper>
       </Section>
     </ContentBody>
   </div>;

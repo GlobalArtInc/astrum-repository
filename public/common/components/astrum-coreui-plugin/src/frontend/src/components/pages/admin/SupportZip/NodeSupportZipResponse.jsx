@@ -2,7 +2,7 @@
 import React from 'react';
 import UIStrings from '../../../../constants/UIStrings';
 import {FieldWrapper, Textfield} from '@globalart/astrum-ui-plugin';
-import {NxButton, NxFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsButton, AsFontAwesomeIcon} from '@globalart/react-shared-components';
 import {faDownload} from '@fortawesome/free-solid-svg-icons';
 
 import {SectionFooter} from '@globalart/astrum-ui-plugin';
@@ -40,10 +40,10 @@ export default function NodeSupportZipResponse({response, download}) {
       />
     </FieldWrapper>
     <SectionFooter>
-      <NxButton variant="primary" onClick={(event) => download(event, response.name)} type="submit">
-        <NxFontAwesomeIcon icon={faDownload}/>
+      <AsButton variant="primary" onClick={(event) => download(event, response.name)} type="submit">
+        <AsFontAwesomeIcon icon={faDownload}/>
         <span>{UIStrings.SUPPORT_ZIP.CREATED_DOWNLOAD_BUTTON}</span>
-      </NxButton>
+      </AsButton>
     </SectionFooter>
   </div>;
 }

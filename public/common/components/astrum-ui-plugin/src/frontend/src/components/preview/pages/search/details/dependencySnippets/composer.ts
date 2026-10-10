@@ -5,7 +5,7 @@ import type { SnippetGenerator } from './types';
 /**
  * Composer (PHP) dependency snippet generator.
  *
- * Ported from Classic NX.composer.controller.ComposerDependencySnippetController. Returns no
+ * Ported from Classic AS.composer.controller.ComposerDependencySnippetController. Returns no
  * snippets for a versionless component, matching Classic.
  */
 export const generate: SnippetGenerator = (component) => {

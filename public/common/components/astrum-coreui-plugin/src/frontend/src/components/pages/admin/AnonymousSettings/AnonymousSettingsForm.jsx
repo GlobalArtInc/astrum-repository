@@ -6,13 +6,13 @@ import {
   FormUtils
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxCheckbox,
-  NxFormGroup,
-  NxFormSelect,
-  NxStatefulForm,
-  NxTextInput,
-  NxTooltip,
+  AsButton,
+  AsCheckbox,
+  AsFormGroup,
+  AsFormSelect,
+  AsStatefulForm,
+  AsTextInput,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -27,37 +27,37 @@ export default function AnonymousSettingsForm() {
     send({type: 'RESET'});
   }
 
-  return <NxStatefulForm
+  return <AsStatefulForm
       {...FormUtils.formProps(current, send)}
       additionalFooterBtns={
-        <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-          <NxButton type="button" className={isPristine && 'disabled'} onClick={discard}>
+        <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+          <AsButton type="button" className={isPristine && 'disabled'} onClick={discard}>
             {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       }>
     {() => <>
-      <NxFormGroup label={UIStrings.ANONYMOUS_SETTINGS.ENABLED_CHECKBOX_LABEL} isRequired>
-        <NxCheckbox
+      <AsFormGroup label={UIStrings.ANONYMOUS_SETTINGS.ENABLED_CHECKBOX_LABEL} isRequired>
+        <AsCheckbox
             {...FormUtils.checkboxProps('enabled', current)}
             onChange={FormUtils.handleUpdate('enabled', send)}>
           {UIStrings.ANONYMOUS_SETTINGS.ENABLED_CHECKBOX_DESCRIPTION}
-        </NxCheckbox>
-      </NxFormGroup>
-      <NxFormGroup label={UIStrings.ANONYMOUS_SETTINGS.USERNAME_TEXTFIELD_LABEL} isRequired>
-        <NxTextInput
+        </AsCheckbox>
+      </AsFormGroup>
+      <AsFormGroup label={UIStrings.ANONYMOUS_SETTINGS.USERNAME_TEXTFIELD_LABEL} isRequired>
+        <AsTextInput
           {...FormUtils.fieldProps('userId', current)}
           onChange={FormUtils.handleUpdate('userId', send)}
           onBlur={FormUtils.trimOnBlur('userId', send)}
         />
-      </NxFormGroup>
-      <NxFormGroup label={UIStrings.ANONYMOUS_SETTINGS.REALM_SELECT_LABEL} isRequired>
-        <NxFormSelect name='realmName' value={data.realmName} onChange={FormUtils.handleUpdate('realmName', send)} validatable>
+      </AsFormGroup>
+      <AsFormGroup label={UIStrings.ANONYMOUS_SETTINGS.REALM_SELECT_LABEL} isRequired>
+        <AsFormSelect name='realmName' value={data.realmName} onChange={FormUtils.handleUpdate('realmName', send)} validatable>
           {realms?.map((realm) =>
               <option key={realm.id} value={realm.id}>{realm.name}</option>
           )}
-        </NxFormSelect>
-      </NxFormGroup>
+        </AsFormSelect>
+      </AsFormGroup>
     </>}
-  </NxStatefulForm>;
+  </AsStatefulForm>;
 }

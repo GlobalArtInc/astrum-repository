@@ -1,10 +1,10 @@
 
 
 .usage-insights-chart {
-  border: 1.5px solid var(--nx-color-border);
-  border-radius: var(--nx-spacing-2x);
-  background: var(--nx-color-component-background);
-  padding: var(--nx-spacing-4x);
+  border: 1.5px solid var(--as-color-border);
+  border-radius: var(--as-spacing-2x);
+  background: var(--as-color-component-background);
+  padding: var(--as-spacing-4x);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -14,31 +14,31 @@
     grid-template-columns: auto 30px;
 
     .usage-insights-chart-title {
-      margin-bottom: var(--nx-spacing-2x);
-      color: var(--nx-color-chart-text);
+      margin-bottom: var(--as-spacing-2x);
+      color: var(--as-color-chart-text);
 
       div:first-child {
-        font-size: var(--nx-font-size);
+        font-size: var(--as-font-size);
         font-weight: 600;
       }
 
       div:nth-child(2) {
-        font-size: var(--nx-font-size);
+        font-size: var(--as-font-size);
         opacity: 80%;
       }
     }
 
-    .usage-insights-chart-filter.nx-dropdown {
+    .usage-insights-chart-filter.as-dropdown {
       margin-left: 0;
 
-      .nx-btn {
+      .as-btn {
         width: 30px;
         height: 30px;
       }
 
-      .nx-icon-dropdown__toggle.open.nx-btn.nx-btn--icon-only {
+      .as-icon-dropdown__toggle.open.as-btn.as-btn--icon-only {
         background-image: none;
-        background-color: var(--nx-swatch-green-30);
+        background-color: var(--as-swatch-green-30);
       }
     }
   }
@@ -48,16 +48,16 @@
   }
 
   .usage-insights-chart-tooltip {
-    background: var(--nx-color-component-background);
-    box-shadow: var(--nx-box-shadow-dropdown);
-    border-radius: var(--nx-spacing-2x);
-    padding: var(--nx-spacing-2x) var(--nx-spacing-2x);
-    font-size: var(--nx-font-size-xs);
-    color: var(--nx-color-chart-text);
+    background: var(--as-color-component-background);
+    box-shadow: var(--as-box-shadow-dropdown);
+    border-radius: var(--as-spacing-2x);
+    padding: var(--as-spacing-2x) var(--as-spacing-2x);
+    font-size: var(--as-font-size-xs);
+    color: var(--as-color-chart-text);
 
     .tooltip-title {
       font-weight: 600;
-      margin-bottom: var(--nx-spacing-2x);
+      margin-bottom: var(--as-spacing-2x);
     }
 
     .tooltip-content {
@@ -67,22 +67,22 @@
 
       .tooltip-content-item {
         display: grid;
-        gap: var(--nx-spacing-2x);
-        grid-template-columns: var(--nx-font-size) auto auto;
+        gap: var(--as-spacing-2x);
+        grid-template-columns: var(--as-font-size) auto auto;
         align-items: center;
 
         .tooltip-item-symbol {
-          width: var(--nx-font-size);
+          width: var(--as-font-size);
           height: 3px;
           border-radius: 2px
         }
 
         .tooltip-item-symbol.tooltip-peak-storage {
-          background: var(--nx-color-chart-data-4);
+          background: var(--as-color-chart-data-4);
         }
 
         .tooltip-item-symbol.tooltip-total-egress {
-          background: var(--nx-color-chart-data-1);
+          background: var(--as-color-chart-data-1);
         }
 
         span:nth-child(3) {
@@ -97,8 +97,8 @@
     width: 100%;
   }
 
-  .nx-dropdown {
-    .nx-dropdown-menu {
+  .as-dropdown {
+    .as-dropdown-menu {
       display: flex;
       flex-direction: column;
       overflow-y: hidden !important;
@@ -108,8 +108,8 @@
 
 .usage-insights-month-dropdown {
   .usage-insights-filter-month-options {
-    .nx-dropdown-link {
-      font-size: var(--nx-font-size-s);
+    .as-dropdown-link {
+      font-size: var(--as-font-size-s);
     }
   }
 }

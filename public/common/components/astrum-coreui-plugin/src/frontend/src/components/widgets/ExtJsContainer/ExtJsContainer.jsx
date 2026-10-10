@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { NxPageMain, NxLoadingSpinner, NxErrorAlert, NxButton } from '@globalart/react-shared-components';
+import { AsPageMain, AsLoadingSpinner, AsErrorAlert, AsButton } from '@globalart/react-shared-components';
 
 import { useSize } from '../../../hooks/useSize';
 import { useExtComponent } from './useExtComponent';
@@ -77,37 +77,37 @@ export function ExtJsContainer({ className, extView, extParams, title, icon }) {
   // Show error state if ExtJS failed to load
   if (extJsError) {
     return (
-      <NxPageMain ref={wrapperRef}>
-        <NxErrorAlert>
+      <AsPageMain ref={wrapperRef}>
+        <AsErrorAlert>
           <h3>Failed to Load Classic UI Component</h3>
           <p>
             The legacy ExtJS framework failed to initialize. This component requires ExtJS to function.
           </p>
           <p>Error: {extJsError.message}</p>
-          <NxButton onClick={() => window.location.reload()}>
+          <AsButton onClick={() => window.location.reload()}>
             Reload Page
-          </NxButton>
-        </NxErrorAlert>
-      </NxPageMain>
+          </AsButton>
+        </AsErrorAlert>
+      </AsPageMain>
     );
   }
 
   // Show loading state while ExtJS loads
   if (!extJsLoaded) {
     return (
-      <NxPageMain ref={wrapperRef}>
+      <AsPageMain ref={wrapperRef}>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <NxLoadingSpinner>Loading Classic UI component...</NxLoadingSpinner>
+          <AsLoadingSpinner>Loading Classic UI component...</AsLoadingSpinner>
         </div>
-      </NxPageMain>
+      </AsPageMain>
     );
   }
 
   // Render ExtJS component once loaded
   return (
-    <NxPageMain ref={wrapperRef} className='as-ext-js-wrapper'>
+    <AsPageMain ref={wrapperRef} className='as-ext-js-wrapper'>
       <div className={className} ref={extContainerRef}></div>
-    </NxPageMain>
+    </AsPageMain>
   );
 }
 

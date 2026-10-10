@@ -6,16 +6,16 @@ import CheckboxControlledWrapper from '../../widgets/CheckboxControlledWrapper/C
 import ExtJS from '../../../interface/ExtJS';
 import FormUtils from '../../../interface/FormUtils';
 import {
-  NxButton,
-  NxFontAwesomeIcon,
-  NxFormSelect,
-  NxStatefulForm,
-  NxH2,
-  NxP,
-  NxFormGroup,
-  NxTile,
-  NxTextInput,
-  NxFieldset
+  AsButton,
+  AsFontAwesomeIcon,
+  AsFormSelect,
+  AsStatefulForm,
+  AsH2,
+  AsP,
+  AsFormGroup,
+  AsTile,
+  AsTextInput,
+  AsFieldset
 } from '@globalart/react-shared-components';
 
 import { Page } from '../../layout';
@@ -147,45 +147,45 @@ export default function CleanupPoliciesForm() {
         <PageTitle text={isEdit ? LABELS.EDIT_TITLE : LABELS.CREATE_TITLE} />
       </PageHeader>
       <ContentBody>
-        <NxTile className="as-cleanup-policies-form">
-          <NxH2>{LABELS.SUB_TITLE}</NxH2>
-          <NxP>{LABELS.DESCRIPTION}</NxP>
-          <NxStatefulForm
+        <AsTile className="as-cleanup-policies-form">
+          <AsH2>{LABELS.SUB_TITLE}</AsH2>
+          <AsP>{LABELS.DESCRIPTION}</AsP>
+          <AsStatefulForm
             {...FormUtils.formProps(state, send)}
             onCancel={onDone}
             additionalFooterBtns={
               itemId && (
-                <NxButton
+                <AsButton
                   type="button"
                   variant="tertiary"
                   onClick={confirmDelete}
                 >
-                  <NxFontAwesomeIcon icon={faTrash} />
+                  <AsFontAwesomeIcon icon={faTrash} />
                   <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
-                </NxButton>
+                </AsButton>
               )
             }
           >
             {hasData && (
               <>
-                <NxFormGroup
+                <AsFormGroup
                   label={LABELS.NAME_LABEL}
                   sublabel={LABELS.NAME_DESCRIPTION}
                   isRequired
                 >
-                  <NxTextInput
+                  <AsTextInput
                     {...FormUtils.fieldProps('name', state)}
                     disabled={pristineData.name}
                     onChange={FormUtils.handleUpdate('name', send)}
-                    className="nx-text-input--long"
+                    className="as-text-input--long"
                   />
-                </NxFormGroup>
-                <NxFormGroup
+                </AsFormGroup>
+                <AsFormGroup
                   label={LABELS.FORMAT_LABEL}
                   sublabel={LABELS.FORMAT_DESCRIPTION}
                   isRequired
                 >
-                  <NxFormSelect
+                  <AsFormSelect
                     {...FormUtils.fieldProps('format', state)}
                     onChange={FormUtils.handleUpdate('format', send)}
                   >
@@ -195,29 +195,29 @@ export default function CleanupPoliciesForm() {
                         {formatCriteria.name}
                       </option>
                     ))}
-                  </NxFormSelect>
-                </NxFormGroup>
-                <NxFormGroup label={LABELS.DESCRIPTION_LABEL}>
-                  <NxTextInput
+                  </AsFormSelect>
+                </AsFormGroup>
+                <AsFormGroup label={LABELS.DESCRIPTION_LABEL}>
+                  <AsTextInput
                     {...FormUtils.fieldProps('notes', state)}
                     onChange={FormUtils.handleUpdate('notes', send)}
-                    className="nx-text-input--long"
+                    className="as-text-input--long"
                     type="textarea"
                   />
-                </NxFormGroup>
+                </AsFormGroup>
                 {isFieldApplicable('isPrerelease') && (
-                    <NxFormGroup
+                    <AsFormGroup
                         label={LABELS.RELEASE_TYPE_LABEL}
                         sublabel={LABELS.RELEASE_TYPE_SELECT}
                     >
-                      <NxFormSelect
+                      <AsFormSelect
                           {...FormUtils.fieldProps(
                               'criteriaReleaseType',
                               state
                           )}
                           onChange={setReleaseType}
                           validatable
-                          className="nx-form-select--long"
+                          className="as-form-select--long"
                       >
                         {Object.keys(LABELS.RELEASE_TYPE).map((type) => {
                           const item = LABELS.RELEASE_TYPE[type];
@@ -227,12 +227,12 @@ export default function CleanupPoliciesForm() {
                               </option>
                           );
                         })}
-                      </NxFormSelect>
-                    </NxFormGroup>
+                      </AsFormSelect>
+                    </AsFormGroup>
                 )}
                 {isAnyFieldApplicable() && (
                   <>
-                    <NxFieldset
+                    <AsFieldset
                         className="criteria-fieldset"
                         label={LABELS.CRITERIA_LABEL}
                         sublabel={`${LABELS.CRITERIA_DESCRIPTION}. ${LABELS.MESSAGES.NO_CRITERIA_ERROR}`}
@@ -249,12 +249,12 @@ export default function CleanupPoliciesForm() {
                                   criteriaLastBlobUpdatedEnabled
                               )}
                           >
-                            <NxFormGroup
+                            <AsFormGroup
                                 label={LABELS.LAST_UPDATED_LABEL}
                                 sublabel={LABELS.LAST_UPDATED_SUB_LABEL}
                                 isRequired={criteriaLastBlobUpdatedEnabled}
                             >
-                              <NxTextInput
+                              <AsTextInput
                                   {...FormUtils.fieldProps(
                                       'criteriaLastBlobUpdated',
                                       state
@@ -265,9 +265,9 @@ export default function CleanupPoliciesForm() {
                                   )}
                                   placeholder={LABELS.PLACEHOLDER}
                                   disabled={!criteriaLastBlobUpdatedEnabled}
-                                  className="nx-text-input--short"
+                                  className="as-text-input--short"
                               />
-                            </NxFormGroup>
+                            </AsFormGroup>
                           </CheckboxControlledWrapper>
                       )}
                       {isFieldApplicable('lastDownloaded') && (
@@ -279,12 +279,12 @@ export default function CleanupPoliciesForm() {
                                   criteriaLastDownloadedEnabled
                               )}
                           >
-                            <NxFormGroup
+                            <AsFormGroup
                                 label={LABELS.LAST_DOWNLOADED_LABEL}
                                 isRequired={criteriaLastDownloadedEnabled}
                                 sublabel={LABELS.LAST_DOWNLOADED_SUB_LABEL}
                             >
-                              <NxTextInput
+                              <AsTextInput
                                   {...FormUtils.fieldProps(
                                       'criteriaLastDownloaded',
                                       state
@@ -295,9 +295,9 @@ export default function CleanupPoliciesForm() {
                                   )}
                                   placeholder={LABELS.PLACEHOLDER}
                                   disabled={!criteriaLastDownloadedEnabled}
-                                  className="nx-text-input--short"
+                                  className="as-text-input--short"
                               />
-                            </NxFormGroup>
+                            </AsFormGroup>
                           </CheckboxControlledWrapper>
                       )}
                       {isFieldApplicable('regex') && (
@@ -309,12 +309,12 @@ export default function CleanupPoliciesForm() {
                                   criteriaAssetRegexEnabled
                               )}
                           >
-                            <NxFormGroup
+                            <AsFormGroup
                                 label={LABELS.ASSET_NAME_LABEL}
                                 sublabel={LABELS.ASSET_NAME_DESCRIPTION}
                                 isRequired={criteriaAssetRegexEnabled}
                             >
-                              <NxTextInput
+                              <AsTextInput
                                   {...FormUtils.fieldProps(
                                       'criteriaAssetRegex',
                                       state
@@ -324,15 +324,15 @@ export default function CleanupPoliciesForm() {
                                       send
                                   )}
                                   disabled={!criteriaAssetRegexEnabled}
-                                  className="nx-text-input--long"
+                                  className="as-text-input--long"
                               />
-                            </NxFormGroup>
+                            </AsFormGroup>
                           </CheckboxControlledWrapper>
                       )}
                       {showRetainN && (
                           <CleanupExclusionCriteria actor={actor}/>
                       )}
-                    </NxFieldset>
+                    </AsFieldset>
                     {isPreviewEnabled && (
                       <CleanupPoliciesDryRun policyData={data} />
                     )}
@@ -340,8 +340,8 @@ export default function CleanupPoliciesForm() {
                 )}
               </>
             )}
-          </NxStatefulForm>
-        </NxTile>
+          </AsStatefulForm>
+        </AsTile>
 
         {!isLoading && !loadError && hasData && !isPreviewEnabled && (
           <CleanupPoliciesPreview policyData={data} />

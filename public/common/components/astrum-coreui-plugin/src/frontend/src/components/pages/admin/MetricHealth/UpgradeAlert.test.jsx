@@ -48,7 +48,7 @@ describe('Upgrade Alert', () => {
 
   it('renders the status upgrade alert for pending upgrade', async () => {
     const {container} = await renderView('needsUpgrade');
-    const alert = container.querySelector('.nx-alert');
+    const alert = container.querySelector('.as-alert');
     const alertMessage = PENDING.STATUS_LABEL + ' ' + PENDING.TEXT;
 
     expect(alert).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('Upgrade Alert', () => {
     const onClose = jest.fn();
 
     const {container} = await renderView('versionMismatch', onClose);
-    const alert = container.querySelector('.nx-alert');
+    const alert = container.querySelector('.as-alert');
     const alertMessage = WARN.LABEL + ' ' + WARN.TEXT;
 
     expect(alert).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe('Upgrade Alert', () => {
   it('renders the status upgrade alert for older than 1 year', async () => {
     const {container} = await renderView('astrumNeedsUpgrade1Year');
 
-    const alert = container.querySelector('.nx-alert');
+    const alert = container.querySelector('.as-alert');
     const alertMessage = PENDING.OLDER_LABEL + ' You are currently running a GlobalArt Astrum Repository version that is ' +
       'in extended maintenance. See our Sunsetting information for details about our product development lifecycle. ' +
       'Also see our release notes to learn more about the newest Astrum Repository version available for your instance.';
@@ -84,7 +84,7 @@ describe('Upgrade Alert', () => {
   it('renders the status upgrade alert for older than 18 months', async () => {
     const {container} = await renderView('astrumNeeds18MonthsUpgrade');
 
-    const alert = container.querySelector('.nx-alert');
+    const alert = container.querySelector('.as-alert');
     const alertMessage = PENDING.OLDER_LABEL + ' You are currently running a sunsetted GlobalArt Astrum Repository version. ' +
       'See our Sunsetting information for details about our product development lifecycle. Also see our release notes to ' +
       'learn more about the newest Astrum Repository version available for your instance.';

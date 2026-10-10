@@ -4,7 +4,7 @@ import React from 'react';
 import { compose, propOr, sortBy, toLower } from 'ramda';
 import { useMachine } from '@xstate/react';
 import { useRouter } from '@uirouter/react';
-import { NxForm, NxFormGroup, NxFormSelect, NxH2, NxLoadWrapper, NxP, NxTile } from '@globalart/react-shared-components';
+import { AsForm, AsFormGroup, AsFormSelect, AsH2, AsLoadWrapper, AsP, AsTile } from '@globalart/react-shared-components';
 import { ContentBody, Page, PageHeader, PageTitle, Section } from '../../layout';
 import UIStrings from '../../../constants/UIStrings';
 import { AdminRouteNames } from '../../../constants/admin/AdminRouteNames';
@@ -94,9 +94,9 @@ export default function CapabilitiesCreate() {
         <PageTitle text={CAPABILITIES.CREATE.TITLE} description={CAPABILITIES.CREATE.DESCRIPTION} />
       </PageHeader>
       <ContentBody>
-        <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={handleRetry}>
+        <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={handleRetry}>
           <Section>
-            <NxForm
+            <AsForm
               {...formProps}
               showValidationErrors={shouldShowErrors}
               onSubmit={handleSubmit}
@@ -104,14 +104,14 @@ export default function CapabilitiesCreate() {
               data-analytics-id='as-create-capabilities-form'
               className='as-capabilities-form'
             >
-              <NxTile.Subsection>
-                <NxTile.SubsectionHeader>
-                  <NxH2>{CAPABILITIES.CREATE.FORM.TITLE}</NxH2>
-                </NxTile.SubsectionHeader>
-              </NxTile.Subsection>
-              <NxTile.Subsection>
-                <NxFormGroup label={CAPABILITIES.CREATE.FORM.SELECT_TYPE} isRequired>
-                  <NxFormSelect value={selectedType?.id || ''} onChange={handleTypeChange}>
+              <AsTile.Subsection>
+                <AsTile.SubsectionHeader>
+                  <AsH2>{CAPABILITIES.CREATE.FORM.TITLE}</AsH2>
+                </AsTile.SubsectionHeader>
+              </AsTile.Subsection>
+              <AsTile.Subsection>
+                <AsFormGroup label={CAPABILITIES.CREATE.FORM.SELECT_TYPE} isRequired>
+                  <AsFormSelect value={selectedType?.id || ''} onChange={handleTypeChange}>
                     <option value='' disabled={!!selectedType}>
                       {CAPABILITIES.CREATE.FORM.SELECT_TYPE}
                     </option>
@@ -120,19 +120,19 @@ export default function CapabilitiesCreate() {
                         {type.name}
                       </option>
                     ))}
-                  </NxFormSelect>
-                </NxFormGroup>
-              </NxTile.Subsection>
+                  </AsFormSelect>
+                </AsFormGroup>
+              </AsTile.Subsection>
               {selectedType && (
                 <>
-                  <NxTile.Subsection>
-                    <NxTile.SubsectionHeader>
-                      <NxH2>{selectedType.name}</NxH2>
-                    </NxTile.SubsectionHeader>
-                    <NxP dangerouslySetInnerHTML={{ __html: selectedType.about }} />
-                  </NxTile.Subsection>
+                  <AsTile.Subsection>
+                    <AsTile.SubsectionHeader>
+                      <AsH2>{selectedType.name}</AsH2>
+                    </AsTile.SubsectionHeader>
+                    <AsP dangerouslySetInnerHTML={{ __html: selectedType.about }} />
+                  </AsTile.Subsection>
                   {selectedType.formFields && selectedType.formFields.length > 0 && (
-                    <NxTile.Subsection data-testid='form-fields'>
+                    <AsTile.Subsection data-testid='form-fields'>
                       {selectedType.formFields.map(field => (
                         <DynamicFormField
                           key={`${selectedType.id}-${field.id}`}
@@ -143,13 +143,13 @@ export default function CapabilitiesCreate() {
                           dynamicProps={field}
                         />
                       ))}
-                    </NxTile.Subsection>
+                    </AsTile.Subsection>
                   )}
                 </>
               )}
-            </NxForm>
+            </AsForm>
           </Section>
-        </NxLoadWrapper>
+        </AsLoadWrapper>
       </ContentBody>
     </Page>
   );

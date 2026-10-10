@@ -61,9 +61,9 @@ describe('ToggleableTextInput', () => {
     // The toggle checkbox must be a descendant of the sublabel row.
     const checkboxInSublabel = sublabelRow.querySelector('input[type="checkbox"]');
     expect(checkboxInSublabel).not.toBeNull();
-    // NxCheckbox places the aria-label on the wrapper .nx-checkbox node,
+    // AsCheckbox places the aria-label on the wrapper .as-checkbox node,
     // so look for it on the closest ancestor with that class.
-    const checkboxWrapper = checkboxInSublabel.closest('.nx-checkbox');
+    const checkboxWrapper = checkboxInSublabel.closest('.as-checkbox');
     expect(checkboxWrapper).not.toBeNull();
     expect(checkboxWrapper.getAttribute('aria-label')).toBe('Toggle Text Input');
 

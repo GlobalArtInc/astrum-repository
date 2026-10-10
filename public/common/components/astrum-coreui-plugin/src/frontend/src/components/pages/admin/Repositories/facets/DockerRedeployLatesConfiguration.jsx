@@ -3,7 +3,7 @@ import React, {useEffect} from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxCheckbox, NxFieldset, NxTooltip} from '@globalart/react-shared-components';
+import {AsCheckbox, AsFieldset, AsTooltip} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -29,17 +29,17 @@ export default function DockerRedeployLatesConfiguration({parentMachine}) {
   const isDisabled = writePolicy !== ALLOW_ONCE;
 
   return (
-    <NxFieldset label={LABEL}>
-      <NxTooltip title={isDisabled ? TOOLTIP : null}>
-        <NxCheckbox
+    <AsFieldset label={LABEL}>
+      <AsTooltip title={isDisabled ? TOOLTIP : null}>
+        <AsCheckbox
           {...FormUtils.checkboxProps(PROP_PATH, parentState)}
           onChange={FormUtils.handleUpdate(PROP_PATH, sendParent)}
           disabled={isDisabled}
           overflowTooltip={!isDisabled}
         >
           {DESCRIPTION}
-        </NxCheckbox>
-      </NxTooltip>
-    </NxFieldset>
+        </AsCheckbox>
+      </AsTooltip>
+    </AsFieldset>
   );
 }

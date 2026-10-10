@@ -5,8 +5,8 @@ import {assign, actions, send, createMachine} from 'xstate';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxFormSelect,
-  NxCombobox,
+  AsFormSelect,
+  AsCombobox,
 } from '@globalart/react-shared-components';
 
 import FormUtils from '../../../../interface/FormUtils';
@@ -137,7 +137,7 @@ const Field = ({id, dynamicProps, current:parentState, onChange}) => {
 
   return <>
     {allowAutocomplete
-        ? <NxCombobox
+        ? <AsCombobox
             {...FormUtils.fieldProps(id, parentState)}
             value={selectedItem?.displayName || value}
             onChange={onChangeCombobox}
@@ -148,14 +148,14 @@ const Field = ({id, dynamicProps, current:parentState, onChange}) => {
             loadError={error}
             aria-label="combobox"
           />
-        : <NxFormSelect
+        : <AsFormSelect
             {...FormUtils.fieldProps(id, parentState, initialValue || '')}
             value={value}
             onChange={value => onChange(id, value)}
         >
           <option value=""/>
           {data?.map(({id, displayName}) => <option key={id} value={id}>{displayName}</option>)}
-        </NxFormSelect>
+        </AsFormSelect>
     }
   </>;
 }

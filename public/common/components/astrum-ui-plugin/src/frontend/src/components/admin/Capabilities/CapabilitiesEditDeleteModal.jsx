@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { NxButton, NxButtonBar, NxFooter, NxH2, NxModal, NxWarningAlert } from '@globalart/react-shared-components';
+import { AsButton, AsButtonBar, AsFooter, AsH2, AsModal, AsWarningAlert } from '@globalart/react-shared-components';
 
 export default function CapabilitiesEditDeleteModal(
     { showModal, deleteWarningMessage, onConfirmDelete, onDeleteCanceled }
@@ -10,24 +10,24 @@ export default function CapabilitiesEditDeleteModal(
     return false;
   }
 
-  return <NxModal onCancel={onDeleteCanceled} aria-labelledby="modal-header-text">
-    <NxModal.Header>
-      <NxH2>Delete Capability?</NxH2>
-    </NxModal.Header>
+  return <AsModal onCancel={onDeleteCanceled} aria-labelledby="modal-header-text">
+    <AsModal.Header>
+      <AsH2>Delete Capability?</AsH2>
+    </AsModal.Header>
 
-    <NxModal.Content>
-      <NxWarningAlert>
+    <AsModal.Content>
+      <AsWarningAlert>
         {buildMessage()}
-      </NxWarningAlert>
-    </NxModal.Content>
+      </AsWarningAlert>
+    </AsModal.Content>
 
-    <NxFooter>
-      <NxButtonBar>
-        <NxButton onClick={onDeleteCanceled}>Cancel</NxButton>
-        <NxButton variant="primary" onClick={onConfirmDelete}>Delete</NxButton>
-      </NxButtonBar>
-    </NxFooter>
-  </NxModal>
+    <AsFooter>
+      <AsButtonBar>
+        <AsButton onClick={onDeleteCanceled}>Cancel</AsButton>
+        <AsButton variant="primary" onClick={onConfirmDelete}>Delete</AsButton>
+      </AsButtonBar>
+    </AsFooter>
+  </AsModal>
 
   function buildMessage() {
     return !deleteWarningMessage

@@ -110,7 +110,7 @@ public class BlockingHttpClient
     else {
       updateStatus(OFFLINE);
     }
-    // TODO shall we use config.getConnectionConfig().getTimeout() * 2 as in NX2?
+    // TODO shall we use config.getConnectionConfig().getTimeout() * 2?
     autoBlockSequence = new FibonacciNumberSequence(Time.seconds(40).toMillis());
   }
 

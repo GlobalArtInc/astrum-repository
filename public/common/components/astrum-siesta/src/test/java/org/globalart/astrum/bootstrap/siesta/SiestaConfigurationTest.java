@@ -25,10 +25,10 @@ class SiestaConfigurationTest
   }
 
   @Test
-  void testStatusWritableFilterChain_excludesNxAuthc() {
+  void testStatusWritableFilterChain_excludesAsAuthc() {
     FilterChain chain = underTest.statusWritableFilterChain();
 
-    // nx-authc triggers bcrypt + DB lookup on every probe — must not be in this chain
+    // as-authc triggers bcrypt + DB lookup on every probe — must not be in this chain
     assertThat(chain.getFilterExpression(), not(containsString(AstrumAuthenticationFilter.NAME)));
   }
 

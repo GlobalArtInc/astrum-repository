@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faIdBadge } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -24,9 +24,9 @@ export default {
         TEXT: <>
           Privileges are assigned to roles and control the actions that each role can perform.
           See our{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/privileges">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/privileges">
             documentation
-          </NxTextLink>
+          </AsTextLink>
           {' '}for more information.
         </>,
       },
@@ -56,9 +56,9 @@ export default {
         LABEL: 'Privilege String',
         SUB_LABEL: <>
           The internal segment matching algorithm uses Apache Shiro wildcard <br />permissions; see{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/privileges">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/privileges">
             our documentation
-          </NxTextLink>
+          </AsTextLink>
           {' '}for more details
         </>,
       },

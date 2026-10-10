@@ -12,7 +12,7 @@ describe('PageTitle', () => {
     const {container} = render(
         <PageTitle icon={faInfo} text="text"/>
     );
-    expect(container.querySelector('.nx-icon')).toBeInTheDocument();
+    expect(container.querySelector('.as-icon')).toBeInTheDocument();
   });
 
   it('renders the text without an icon', () => {

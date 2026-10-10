@@ -3,11 +3,11 @@ import React from 'react';
 import {useActor} from '@xstate/react';
 
 import {
-  NxFormGroup,
-  NxH2,
-  NxModal,
-  NxStatefulForm,
-  NxTextInput
+  AsFormGroup,
+  AsH2,
+  AsModal,
+  AsStatefulForm,
+  AsTextInput
 } from '@globalart/react-shared-components';
 import {FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
 
@@ -28,33 +28,33 @@ export default function ConfirmNewPasswordForm({ actor }) {
     });
 
   return (
-    <NxStatefulForm
+    <AsStatefulForm
       {...FormUtils.formProps(state, send)}
       submitMaskMessage={MODAL.CONFIRMING_ADMIN_PASSWORD}
       onCancel={cancel}
       validationErrors={FormUtils.saveTooltip({ isPristine, isInvalid })}
     >
-      <NxModal.Header>
-        <NxH2 id="modal-form-header">{MODAL.CHANGE_PASSWORD}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxFormGroup label={MODAL.NEW_PASSWORD} isRequired>
-          <NxTextInput
+      <AsModal.Header>
+        <AsH2 id="modal-form-header">{MODAL.CHANGE_PASSWORD}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsFormGroup label={MODAL.NEW_PASSWORD} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('passwordNew', state)}
             onChange={FormUtils.handleUpdate('passwordNew', send)}
             type="password"
             data-testid="newPassword"
           />
-        </NxFormGroup>
-        <NxFormGroup label={MODAL.CONFIRM_PASSWORD} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={MODAL.CONFIRM_PASSWORD} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('passwordNewConfirm', state)}
             onChange={FormUtils.handleUpdate('passwordNewConfirm', send)}
             type="password"
             data-testid="confirmPassword"
           />
-        </NxFormGroup>
-      </NxModal.Content>
-    </NxStatefulForm>
+        </AsFormGroup>
+      </AsModal.Content>
+    </AsStatefulForm>
   );
 }

@@ -69,7 +69,7 @@ describe('ComboboxFieldFactory', () => {
       expect(() => render(<Field {...props} />)).toThrow('storeApi must be a string');
     });
 
-    it('renders NxFormSelect when allowAutocomplete is false', async () => {
+    it('renders AsFormSelect when allowAutocomplete is false', async () => {
       render(<Field {...defaultProps} />);
 
       await waitFor(() => {
@@ -77,7 +77,7 @@ describe('ComboboxFieldFactory', () => {
       });
     });
 
-    it('renders NxCombobox when allowAutocomplete is true', async () => {
+    it('renders AsCombobox when allowAutocomplete is true', async () => {
       const props = {
         ...defaultProps,
         dynamicProps: {

@@ -1,7 +1,7 @@
 
 import React, {useEffect, useState} from 'react';
 
-import {NxButton, NxFontAwesomeIcon} from "@globalart/react-shared-components";
+import {AsButton, AsFontAwesomeIcon} from "@globalart/react-shared-components";
 import {faMoon, faSun} from "@fortawesome/free-solid-svg-icons";
 
 export function ThemeSelector() {
@@ -10,13 +10,13 @@ export function ThemeSelector() {
   const themeTitle = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
 
   useEffect(() => {
-    document.documentElement.classList.add('nx-html--enable-color-schemes');
+    document.documentElement.classList.add('as-html--enable-color-schemes');
     if (theme === 'dark') {
-      document.documentElement.classList.add('nx-html--dark-mode');
-      document.documentElement.classList.remove('nx-html--light-mode');
+      document.documentElement.classList.add('as-html--dark-mode');
+      document.documentElement.classList.remove('as-html--light-mode');
     } else {
-      document.documentElement.classList.add('nx-html--light-mode');
-      document.documentElement.classList.remove('nx-html--dark-mode');
+      document.documentElement.classList.add('as-html--light-mode');
+      document.documentElement.classList.remove('as-html--dark-mode');
     }
   }, [theme]);
 
@@ -27,8 +27,8 @@ export function ThemeSelector() {
   }
 
   return (
-      <NxButton variant="icon-only" title={themeTitle} onClick={toggleTheme}>
-        <NxFontAwesomeIcon icon={themeIcon}/>
-      </NxButton>
+      <AsButton variant="icon-only" title={themeTitle} onClick={toggleTheme}>
+        <AsFontAwesomeIcon icon={themeIcon}/>
+      </AsButton>
   );
 }

@@ -2,22 +2,22 @@
 import React, { useCallback } from 'react';
 import { useMachine } from '@xstate/react';
 import {
-  NxButton,
-  NxButtonBar,
-  NxCheckbox,
-  NxFileUpload,
-  NxFontAwesomeIcon,
-  NxForm,
-  NxFormGroup,
-  NxFormRow,
-  NxFormSelect,
-  NxH1,
-  NxH2,
-  NxInfoAlert,
-  NxPageTitle,
-  NxStatefulForm,
-  NxTextInput,
-  NxTile
+  AsButton,
+  AsButtonBar,
+  AsCheckbox,
+  AsFileUpload,
+  AsFontAwesomeIcon,
+  AsForm,
+  AsFormGroup,
+  AsFormRow,
+  AsFormSelect,
+  AsH1,
+  AsH2,
+  AsInfoAlert,
+  AsPageTitle,
+  AsStatefulForm,
+  AsTextInput,
+  AsTile
 } from '@globalart/react-shared-components';
 import { faPlus, faUpload, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { filter, isEmpty, keys, map, match, mapObjIndexed, path, split, test, values } from 'ramda';
@@ -44,19 +44,19 @@ function Field({ displayName, helpText, name, type, optional, options, machineSt
   // Handle BOOLEAN type
   if (type === 'BOOLEAN') {
     return (
-      <NxCheckbox { ...FormUtils.checkboxProps(name, machineState) }
+      <AsCheckbox { ...FormUtils.checkboxProps(name, machineState) }
                   disabled={disabled}
                   onChange={FormUtils.handleUpdate(name, send)}>
         {displayName}
-      </NxCheckbox>
+      </AsCheckbox>
     );
   }
 
   // Handle SELECT type
   if (type === 'SELECT') {
     return (
-      <NxFormGroup label={displayName} sublabel={helpText} isRequired={!optional}>
-        <NxFormSelect { ...FormUtils.fieldProps(name, machineState) }
+      <AsFormGroup label={displayName} sublabel={helpText} isRequired={!optional}>
+        <AsFormSelect { ...FormUtils.fieldProps(name, machineState) }
                       disabled={disabled}
                       onChange={FormUtils.handleUpdate(name, send)}
                       validatable={!optional || validatable}>
@@ -66,19 +66,19 @@ function Field({ displayName, helpText, name, type, optional, options, machineSt
               {value}
             </option>
           ))}
-        </NxFormSelect>
-      </NxFormGroup>
+        </AsFormSelect>
+      </AsFormGroup>
     );
   }
 
   // Default STRING type
   return (
-    <NxFormGroup label={displayName} sublabel={helpText} isRequired={!optional}>
-      <NxTextInput { ...FormUtils.fieldProps(name, machineState) }
+    <AsFormGroup label={displayName} sublabel={helpText} isRequired={!optional}>
+      <AsTextInput { ...FormUtils.fieldProps(name, machineState) }
                     disabled={disabled}
                    onChange={FormUtils.handleUpdate(name, send)}
                    validatable={!optional || validatable} />
-    </NxFormGroup>
+    </AsFormGroup>
   );
 }
 
@@ -118,20 +118,20 @@ export default function UploadDetails() {
 
   return (
     <Page id="as-upload-details" data-testid="as-upload-details">
-      <NxPageTitle>
-        <NxH1 id="upload-details-title">
-          <NxFontAwesomeIcon icon={faUpload} />
+      <AsPageTitle>
+        <AsH1 id="upload-details-title">
+          <AsFontAwesomeIcon icon={faUpload} />
           <span>{UploadStrings.UPLOAD.DETAILS.TITLE}</span>
-        </NxH1>
-        <NxPageTitle.Description id="upload-details-description">
+        </AsH1>
+        <AsPageTitle.Description id="upload-details-description">
           {UploadStrings.UPLOAD.DETAILS.DESCRIPTION}
-        </NxPageTitle.Description>
-      </NxPageTitle>
-      {/* Not using NxTile because it renders a <section> which we don't want in this case since this tile
+        </AsPageTitle.Description>
+      </AsPageTitle>
+      {/* Not using AsTile because it renders a <section> which we don't want in this case since this tile
         * contains multiple top-level sections
         */}
-      <div className="nx-tile">
-        <NxStatefulForm { ...FormUtils.formProps(state, send) }
+      <div className="as-tile">
+        <AsStatefulForm { ...FormUtils.formProps(state, send) }
                         onCancel={() => {
                           send({type: 'CANCEL'});
                           onCancel();
@@ -140,14 +140,14 @@ export default function UploadDetails() {
                         aria-labelledby="upload-details-title"
                         aria-describedby="upload-details-description">
           {() =>
-            <NxTile.Content>
-              <NxForm.RequiredFieldNotice />
-              <NxTile.Subsection aria-labelledby="upload-details-tile-title">
-                <NxTile.SubsectionHeader>
-                  <NxH2 id="upload-details-tile-title">
+            <AsTile.Content>
+              <AsForm.RequiredFieldNotice />
+              <AsTile.Subsection aria-labelledby="upload-details-tile-title">
+                <AsTile.SubsectionHeader>
+                  <AsH2 id="upload-details-tile-title">
                     {UploadStrings.UPLOAD.DETAILS.TILE_TITLE(repoSettings?.name)}
-                  </NxH2>
-                </NxTile.SubsectionHeader>
+                  </AsH2>
+                </AsTile.SubsectionHeader>
                 { map(assetKey => {
                     const fileUploadName = `${assetKey}.${COMPOUND_FIELD_PARENT_NAME}`,
                         assetNum = parseInt(match(ASSET_NUM_MATCHER, assetKey)[1]),
@@ -155,39 +155,39 @@ export default function UploadDetails() {
 
                     return (
                       <fieldset aria-label={groupName} className="as-upload-details__asset-group" key={assetKey}>
-                        <NxFormGroup label={UploadStrings.UPLOAD.DETAILS.FILE_UPLOAD_LABEL} isRequired>
-                          <NxFileUpload isRequired
+                        <AsFormGroup label={UploadStrings.UPLOAD.DETAILS.FILE_UPLOAD_LABEL} isRequired>
+                          <AsFileUpload isRequired
                                         { ...FormUtils.fileUploadProps(fileUploadName, state) }
                                         onChange={FormUtils.handleUpdate(fileUploadName, send)} />
-                        </NxFormGroup>
+                        </AsFormGroup>
                         { !(!assetFields || isEmpty(assetFields)) &&
-                          <NxFormRow>
+                          <AsFormRow>
                             { map(mkAssetField(assetKey), assetFields) }
                             { assetStateKeys.length > 1 &&
-                              <NxButtonBar>
-                                <NxButton type="button" variant="tertiary" onClick={() => deleteAssetGroup(assetKey)}>
-                                  <NxFontAwesomeIcon icon={faTrashAlt} />
+                              <AsButtonBar>
+                                <AsButton type="button" variant="tertiary" onClick={() => deleteAssetGroup(assetKey)}>
+                                  <AsFontAwesomeIcon icon={faTrashAlt} />
                                   <span>Delete</span>
-                                </NxButton>
-                              </NxButtonBar>
+                                </AsButton>
+                              </AsButtonBar>
                             }
-                          </NxFormRow>
+                          </AsFormRow>
                         }
                       </fieldset>
                     );
                   }, assetStateKeys)
                 }
                 { multipleUpload &&
-                  <NxFormRow className="as-upload-details__add-asset-row">
-                    <NxButtonBar>
-                      <NxButton type="button" variant="tertiary" onClick={() => send({type: 'ADD_ASSET'})}>
-                        <NxFontAwesomeIcon icon={faPlus} />
+                  <AsFormRow className="as-upload-details__add-asset-row">
+                    <AsButtonBar>
+                      <AsButton type="button" variant="tertiary" onClick={() => send({type: 'ADD_ASSET'})}>
+                        <AsFontAwesomeIcon icon={faPlus} />
                         <span>{UploadStrings.UPLOAD.DETAILS.ADD_ANOTHER_ASSET_BTN_LABEL}</span>
-                      </NxButton>
-                    </NxButtonBar>
-                  </NxFormRow>
+                      </AsButton>
+                    </AsButtonBar>
+                  </AsFormRow>
                 }
-              </NxTile.Subsection>
+              </AsTile.Subsection>
               { values(mapObjIndexed((fields, group) => {
                   const sectionId = `upload-details-group-${group.toLowerCase().replace(' ', '-')}`,
                       isMavenComponentCoords =
@@ -196,22 +196,22 @@ export default function UploadDetails() {
                       groupHelp = groupHelpText && groupHelpText[group];
 
                   return (
-                    <NxTile.Subsection aria-labelledby={sectionId} key={group}>
-                      <NxTile.SubsectionHeader>
-                        <NxH2 id={sectionId}>{group}</NxH2>
-                        {groupHelp && <p className="nx-sub-label">{groupHelp}</p>}
-                      </NxTile.SubsectionHeader>
+                    <AsTile.Subsection aria-labelledby={sectionId} key={group}>
+                      <AsTile.SubsectionHeader>
+                        <AsH2 id={sectionId}>{group}</AsH2>
+                        {groupHelp && <p className="as-sub-label">{groupHelp}</p>}
+                      </AsTile.SubsectionHeader>
                       { disabled &&
-                        <NxInfoAlert>{UploadStrings.UPLOAD.DETAILS.COORDINATES_EXTRACTED_FROM_POM_MESSAGE}</NxInfoAlert>
+                        <AsInfoAlert>{UploadStrings.UPLOAD.DETAILS.COORDINATES_EXTRACTED_FROM_POM_MESSAGE}</AsInfoAlert>
                       }
                       { map(mkField, fields) }
-                    </NxTile.Subsection>
+                    </AsTile.Subsection>
                   );
                 }, componentFieldsByGroup))
               }
-            </NxTile.Content>
+            </AsTile.Content>
           }
-        </NxStatefulForm>
+        </AsStatefulForm>
       </div>
     </Page>
   );

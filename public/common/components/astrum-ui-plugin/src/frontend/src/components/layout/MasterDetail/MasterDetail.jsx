@@ -8,7 +8,7 @@ import ExtJS from '../../../interface/ExtJS';
 
 import Master from './Master';
 import Detail from './Detail';
-import { NxPageMain } from '@globalart/react-shared-components';
+import { AsPageMain } from '@globalart/react-shared-components';
 
 /**
  * @since 3.24
@@ -64,10 +64,10 @@ export default function MasterDetail({className, children, path, ...attrs}) {
   });
 
   return (
-    <NxPageMain className={classes} {...attrs}>
+    <AsPageMain className={classes} {...attrs}>
       {isMasterRoute && !isCreate ? master : null}
       {!isMasterRoute || isCreate ? detail : null}
-    </NxPageMain>
+    </AsPageMain>
   );
 }
 

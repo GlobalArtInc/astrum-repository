@@ -218,7 +218,7 @@ public class Maven2MavenPathParser
 
       int nExtPos = getExceptionPos(tail);
       if (nExtPos == -1) {
-        // NX-563: not allowing extensionless paths to be interpreted as artifact
+        // Not allowing extensionless paths to be interpreted as artifact
         return null;
       }
 

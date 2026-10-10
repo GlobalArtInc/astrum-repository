@@ -4,12 +4,12 @@ import React from 'react';
 import {FormUtils, useSimpleMachine} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxFormGroup,
-  NxLoadWrapper,
-  NxTextInput,
-  NxCheckbox,
-  NxFieldset,
-  NxFormSelect
+  AsFormGroup,
+  AsLoadWrapper,
+  AsTextInput,
+  AsCheckbox,
+  AsFieldset,
+  AsFormSelect
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -32,10 +32,10 @@ export default function GenericOptionsConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{EDITOR.OPTIONS_CAPTION}</h2>
-      <NxLoadWrapper loading={isLoading} error={error} retryHandler={retry}>
-        <NxFormGroup label={EDITOR.ROUTING_RULE_LABEL} className="as-form-group-routing-rule">
-          <NxFormSelect
+      <h2 className="as-h2">{EDITOR.OPTIONS_CAPTION}</h2>
+      <AsLoadWrapper loading={isLoading} error={error} retryHandler={retry}>
+        <AsFormGroup label={EDITOR.ROUTING_RULE_LABEL} className="as-form-group-routing-rule">
+          <AsFormSelect
             {...FormUtils.selectProps('routingRule', currentParent)}
             onChange={FormUtils.handleUpdate('routingRule', sendParent)}
           >
@@ -45,32 +45,32 @@ export default function GenericOptionsConfiguration({parentMachine}) {
                 {name}
               </option>
             ))}
-          </NxFormSelect>
-        </NxFormGroup>
+          </AsFormSelect>
+        </AsFormGroup>
 
-        <NxFieldset label={EDITOR.NEGATIVE_CACHE_LABEL} className="as-form-group-proxy-cache">
-          <NxCheckbox
+        <AsFieldset label={EDITOR.NEGATIVE_CACHE_LABEL} className="as-form-group-proxy-cache">
+          <AsCheckbox
             {...FormUtils.checkboxProps('negativeCache.enabled', currentParent)}
             onChange={FormUtils.handleUpdate('negativeCache.enabled', sendParent)}
           >
             {EDITOR.ENABLED_CHECKBOX_DESCR}
-          </NxCheckbox>
-        </NxFieldset>
+          </AsCheckbox>
+        </AsFieldset>
 
-        <NxFormGroup
+        <AsFormGroup
           label={EDITOR.NEGATIVE_CACHE_TTL_LABEL}
           sublabel={EDITOR.NEGATIVE_CACHE_TTL_SUBLABEL}
           isRequired
           className="as-form-group-negative-cache-ttl"
         >
-          <NxTextInput
+          <AsTextInput
             {...FormUtils.fieldProps('negativeCache.timeToLive', currentParent)}
             onChange={FormUtils.handleUpdate('negativeCache.timeToLive', sendParent)}
             disabled={!isNegativeCacheEnabled}
-            className="nx-text-input--short"
+            className="as-text-input--short"
           />
-        </NxFormGroup>
-      </NxLoadWrapper>
+        </AsFormGroup>
+      </AsLoadWrapper>
     </>
   );
 }

@@ -5,17 +5,17 @@ import {useActor} from '@xstate/react';
 import {ExtJS, FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxAccordion,
-  NxButton,
-  NxCheckbox,
-  NxFieldset,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormSelect,
-  NxReadOnly,
-  NxStatefulAccordion,
-  NxTextInput,
-  NxWarningAlert
+  AsAccordion,
+  AsButton,
+  AsCheckbox,
+  AsFieldset,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormSelect,
+  AsReadOnly,
+  AsStatefulAccordion,
+  AsTextInput,
+  AsWarningAlert
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings'
@@ -97,149 +97,149 @@ export default function S3BlobStoreSettings({service}) {
 
   return <div className="as-s3-blobstore">
     { (isFailoverAvailable && hasActiveRegion) &&
-        <NxReadOnly>
-          <NxReadOnly.Label>{FIELDS.S3BlobStore_RegionStatus_FieldLabel}</NxReadOnly.Label>
+        <AsReadOnly>
+          <AsReadOnly.Label>{FIELDS.S3BlobStore_RegionStatus_FieldLabel}</AsReadOnly.Label>
           <div className="as-active-region-section">
-            <NxReadOnly.Data>{FIELDS.S3BlobStore_RegionStatus_InUseText}</NxReadOnly.Data>
-            <NxReadOnly.Data className="s3-in-use-region">{activeRegion}</NxReadOnly.Data>
-            <NxReadOnly.Data>
+            <AsReadOnly.Data>{FIELDS.S3BlobStore_RegionStatus_InUseText}</AsReadOnly.Data>
+            <AsReadOnly.Data className="s3-in-use-region">{activeRegion}</AsReadOnly.Data>
+            <AsReadOnly.Data>
               {isPrimaryRegionActive ? FIELDS.S3BlobStore_RegionStatus_PrimaryRegionText : FIELDS.S3BlobStore_RegionStatus_FailoverRegionText}
-            </NxReadOnly.Data>
+            </AsReadOnly.Data>
           </div>
-        </NxReadOnly>
+        </AsReadOnly>
     }
-    <NxFormGroup
+    <AsFormGroup
         label={FIELDS.S3BlobStore_Region_FieldLabel}
         sublabel={FIELDS.S3BlobStore_Region_HelpText}
         className={showPrimaryRegionInactiveMessage ? "as-s3-region-select-message": ""}
         data-testid="s3-primary-region"
     >
-      <NxFormSelect {...FormUtils.fieldProps(bucketField('region'), current)}
+      <AsFormSelect {...FormUtils.fieldProps(bucketField('region'), current)}
                     onChange={FormUtils.handleUpdate(bucketField('region'), send)}>
         {dropDownValues?.regions?.map(region =>
             <option key={region.id} value={region.id}>{region.name}</option>
         )}
-      </NxFormSelect>
-    </NxFormGroup>
+      </AsFormSelect>
+    </AsFormGroup>
     {showPrimaryRegionInactiveMessage &&
-        <NxReadOnly id="as-inactive-region" className="as-inactive-region-message">
-          <NxFontAwesomeIcon icon={faExclamationCircle}/>
-          <NxReadOnly.Data>{FIELDS.S3BlobStore_Region_PrimaryRegionInactiveText}</NxReadOnly.Data>
-        </NxReadOnly>
+        <AsReadOnly id="as-inactive-region" className="as-inactive-region-message">
+          <AsFontAwesomeIcon icon={faExclamationCircle}/>
+          <AsReadOnly.Data>{FIELDS.S3BlobStore_Region_PrimaryRegionInactiveText}</AsReadOnly.Data>
+        </AsReadOnly>
     }
-    <NxFormGroup
+    <AsFormGroup
         label={FIELDS.S3BlobStore_Bucket_FieldLabel}
         sublabel={FIELDS.S3BlobStore_Bucket_HelpText}
         isRequired
     >
-      <NxTextInput className="nx-text-input--long"
+      <AsTextInput className="as-text-input--long"
                  {...FormUtils.fieldProps(bucketField('name'), current)}
                  onChange={FormUtils.handleUpdate(bucketField('name'), send)}/>
-    </NxFormGroup>
-    <NxFormGroup
+    </AsFormGroup>
+    <AsFormGroup
         label={FIELDS.S3BlobStore_Prefix_FieldLabel}
         sublabel={FIELDS.S3BlobStore_Prefix_HelpText}
     >
-      <NxTextInput className="nx-text-input--long"
+      <AsTextInput className="as-text-input--long"
                  {...FormUtils.fieldProps(bucketField('prefix'), current)}
                  onChange={FormUtils.handleUpdate(bucketField('prefix'), send)}/>
-    </NxFormGroup>
+    </AsFormGroup>
     {isProEdition &&
         <div className="as-s3-presigned">
-          <NxFieldset label={FIELDS.S3BlobStore_Presigned_FieldLabel}>
-            <NxCheckbox {...FormUtils.checkboxProps(bucketConfigurationField('preSignedUrlEnabled'), current)}
+          <AsFieldset label={FIELDS.S3BlobStore_Presigned_FieldLabel}>
+            <AsCheckbox {...FormUtils.checkboxProps(bucketConfigurationField('preSignedUrlEnabled'), current)}
                         onChange={FormUtils.handleUpdate(bucketConfigurationField('preSignedUrlEnabled'), send)}
-                        className="nx-text-input--long">
+                        className="as-text-input--long">
               {FIELDS.S3BlobStore_Presigned_HelpText}
-            </NxCheckbox>
-          </NxFieldset>
+            </AsCheckbox>
+          </AsFieldset>
         </div>
     }
 
-      <NxFieldset>
+      <AsFieldset>
           <h3>{FIELDS.S3BlobStore_Authentication_Title}</h3>
-          <NxFormGroup label={FIELDS.S3BlobStore_Authentication_AccessKeyId}>
-              <NxTextInput className="nx-text-input--long"
+          <AsFormGroup label={FIELDS.S3BlobStore_Authentication_AccessKeyId}>
+              <AsTextInput className="as-text-input--long"
                            {...FormUtils.fieldProps(securityField('accessKeyId'), current)}
                            onChange={FormUtils.handleUpdate(securityField('accessKeyId'), send)}/>
-          </NxFormGroup>
-          <NxFormGroup label={FIELDS.S3BlobStore_Authentication_SecretAccessKey}>
-              <NxTextInput className="nx-text-input--long"
+          </AsFormGroup>
+          <AsFormGroup label={FIELDS.S3BlobStore_Authentication_SecretAccessKey}>
+              <AsTextInput className="as-text-input--long"
                            type="password"
                            autoComplete="new-password"
                            {...FormUtils.fieldProps(securityField('secretAccessKey'), current)}
                            onChange={FormUtils.handleUpdate(securityField('secretAccessKey'), send)}/>
-          </NxFormGroup>
-          <NxFormGroup
+          </AsFormGroup>
+          <AsFormGroup
               label={FIELDS.S3BlobStore_Authentication_AssumeRoleArn}
           >
-              <NxTextInput className="nx-text-input--long"
+              <AsTextInput className="as-text-input--long"
                            {...FormUtils.fieldProps(securityField('role'), current)}
                            onChange={FormUtils.handleUpdate(securityField('role'), send)}/>
-          </NxFormGroup>
-          <NxFormGroup label={FIELDS.S3BlobStore_Authentication_SessionToken}>
-              <NxTextInput className="nx-text-input--long"
+          </AsFormGroup>
+          <AsFormGroup label={FIELDS.S3BlobStore_Authentication_SessionToken}>
+              <AsTextInput className="as-text-input--long"
                            type="password"
                            {...FormUtils.fieldProps(securityField('sessionToken'), current)}
                            onChange={FormUtils.handleUpdate(securityField('sessionToken'), send)}/>
-          </NxFormGroup>
-      </NxFieldset>
-    <NxStatefulAccordion defaultOpen={hasEncryptionSettings}>
-      <NxAccordion.Header>
-        <h2 className="nx-accordion__header-title">{FIELDS.S3BlobStore_EncryptionSettings_Title}</h2>
-      </NxAccordion.Header>
-      <NxFormGroup
+          </AsFormGroup>
+      </AsFieldset>
+    <AsStatefulAccordion defaultOpen={hasEncryptionSettings}>
+      <AsAccordion.Header>
+        <h2 className="as-accordion__header-title">{FIELDS.S3BlobStore_EncryptionSettings_Title}</h2>
+      </AsAccordion.Header>
+      <AsFormGroup
           label={FIELDS.S3BlobStore_EncryptionSettings_Type_FieldLabel}
           sublabel={FIELDS.S3BlobStore_EncryptionSettings_Type_HelpText}
       >
-        <NxFormSelect {...FormUtils.fieldProps(encryptionField('encryptionType'), current)}
+        <AsFormSelect {...FormUtils.fieldProps(encryptionField('encryptionType'), current)}
                 onChange={FormUtils.handleUpdate(encryptionField('encryptionType'), send)}>
           <option value={null}></option>
           {dropDownValues?.encryptionTypes?.map(encryptionType =>
               <option key={encryptionType.id} value={encryptionType.id}>{encryptionType.name}</option>
           )}
-        </NxFormSelect>
-      </NxFormGroup>
-      <NxFormGroup
+        </AsFormSelect>
+      </AsFormGroup>
+      <AsFormGroup
           label={FIELDS.S3BlobStore_EncryptionSettings_KeyID_FieldLabel}
           sublabel={FIELDS.S3BlobStore_EncryptionSettings_KeyID_HelpText}
       >
-        <NxTextInput className="nx-text-input--long"
+        <AsTextInput className="as-text-input--long"
                    {...FormUtils.fieldProps(encryptionField('encryptionKey'), current)}
                    onChange={FormUtils.handleUpdate(encryptionField('encryptionKey'), send)}/>
-      </NxFormGroup>
-    </NxStatefulAccordion>
-    <NxStatefulAccordion defaultOpen={hasAdvancedConnectionSettings}>
-      <NxAccordion.Header>
-        <h2 className="nx-accordion__header-title">{FIELDS.S3BlobStore_AdvancedConnectionSettings_Title}</h2>
-      </NxAccordion.Header>
-      <NxFormGroup
+      </AsFormGroup>
+    </AsStatefulAccordion>
+    <AsStatefulAccordion defaultOpen={hasAdvancedConnectionSettings}>
+      <AsAccordion.Header>
+        <h2 className="as-accordion__header-title">{FIELDS.S3BlobStore_AdvancedConnectionSettings_Title}</h2>
+      </AsAccordion.Header>
+      <AsFormGroup
           label={FIELDS.S3BlobStore_AdvancedConnectionSettings_EndPointUrl_FieldLabel}
           sublabel={FIELDS.S3BlobStore_AdvancedConnectionSettings_EndPointUrl_HelpText}
       >
-        <NxTextInput className="nx-text-input--long"
+        <AsTextInput className="as-text-input--long"
                    {...FormUtils.fieldProps(advancedField('endpoint'), current)}
                    onChange={FormUtils.handleUpdate(advancedField('endpoint'), send)}/>
-      </NxFormGroup>
-      <NxFormGroup
+      </AsFormGroup>
+      <AsFormGroup
         label={FIELDS.S3Blobstore_AdvancedConnectionSettings_MaxConnectionPoolSize_FieldLabel}
         sublabel={FIELDS.S3Blobstore_AdvancedConnectionSettings_MaxConnectionPoolSize_HelpText}
       >
-        <NxTextInput {...FormUtils.fieldProps(advancedField('maxConnectionPoolSize'), current)}
+        <AsTextInput {...FormUtils.fieldProps(advancedField('maxConnectionPoolSize'), current)}
           onChange={FormUtils.handleUpdate(advancedField('maxConnectionPoolSize'), send)} />
-      </NxFormGroup>
-      <NxFieldset label={FIELDS.S3BlobStore_AdvancedConnectionSettings_PathStyleAccess_FieldLabel}>
-        <NxCheckbox {...FormUtils.checkboxProps(advancedField('forcePathStyle'), current)}
+      </AsFormGroup>
+      <AsFieldset label={FIELDS.S3BlobStore_AdvancedConnectionSettings_PathStyleAccess_FieldLabel}>
+        <AsCheckbox {...FormUtils.checkboxProps(advancedField('forcePathStyle'), current)}
                     onChange={FormUtils.handleUpdate(advancedField('forcePathStyle'), send)}>
           {FIELDS.S3BlobStore_AdvancedConnectionSettings_PathStyleAccess_HelpText}
-        </NxCheckbox>
-      </NxFieldset>
-    </NxStatefulAccordion>
+        </AsCheckbox>
+      </AsFieldset>
+    </AsStatefulAccordion>
     {isFailoverAvailable &&
-        <NxStatefulAccordion defaultOpen={hasFailoverBucketSettings}>
-          <NxAccordion.Header>
-            <h2 className="nx-accordion__header-title">{FIELDS.S3BlobStore_ReplicationBucketsSettings_Title}</h2>
-          </NxAccordion.Header>
+        <AsStatefulAccordion defaultOpen={hasFailoverBucketSettings}>
+          <AsAccordion.Header>
+            <h2 className="as-accordion__header-title">{FIELDS.S3BlobStore_ReplicationBucketsSettings_Title}</h2>
+          </AsAccordion.Header>
           {bucketConfiguration.failoverBuckets?.map((bucket, index) =>
               <S3FailoverBucket
                   key={`failover-bucket-${index}`}
@@ -256,16 +256,16 @@ export default function S3BlobStoreSettings({service}) {
           }
           {bucketConfiguration.failoverBuckets.length < MAX_REPLICATION_BUCKETS ? (
                   <div id="add-failover-bucket">
-                    <NxButton
+                    <AsButton
                         type="button"
                         className="as-replication-bucket-button"
                         onClick={handleAddFailoverBucket}>
-                      <NxFontAwesomeIcon icon={faPlus}/>
+                      <AsFontAwesomeIcon icon={faPlus}/>
                       <span>{FIELDS.S3BlobStore_ReplicationBucketsSettings_AddFailoverBucket}</span>
-                    </NxButton>
+                    </AsButton>
                   </div>) :
-              <NxWarningAlert>{FIELDS.S3BlobStore_ReplicationBucketsSettings_MaxFailoverBucketsWarning}</NxWarningAlert>
+              <AsWarningAlert>{FIELDS.S3BlobStore_ReplicationBucketsSettings_MaxFailoverBucketsWarning}</AsWarningAlert>
           }
-        </NxStatefulAccordion>}
+        </AsStatefulAccordion>}
   </div>;
 }

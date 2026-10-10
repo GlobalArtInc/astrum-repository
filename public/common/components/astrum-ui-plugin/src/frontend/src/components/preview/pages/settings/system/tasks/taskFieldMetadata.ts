@@ -546,7 +546,7 @@ const PLAN_RECONCILE_BOTTOM_BANNER =
 
 // Execute Data Repair Plan copy — hard-coded verbatim from com.globalart.astrum.reconcile.task.Messages
 // (the REST /v1/tasks/templates contract drops AlertBanner/StaticInfo copy). Help text is stored
-// pre-stripped of the descriptor's <span class='nx-boxlabel'> wrapper.
+// pre-stripped of the descriptor's <span class='as-boxlabel'> wrapper.
 const EXECUTE_RECONCILE_TOP_BANNER =
   'This task executes recovery plans created using the "Repair - Data Repair Plan" task. ' +
   'Execution is limited to the blob stores that were selected when creating the plan. ' +

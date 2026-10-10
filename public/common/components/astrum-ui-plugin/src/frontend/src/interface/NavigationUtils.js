@@ -57,14 +57,14 @@ export function isVisible(visibilityRequirements) {
     }
     // CRITICAL FIX for debug mode refresh: If user has session cookie, assume they're authorized
     // until ExtJS loads and can properly check permissions. This prevents logout on refresh.
-    if (document.cookie.includes('NXSESSIONID')) {
+    if (document.cookie.includes('ASTRUMSESSIONID')) {
       return true;
     }
     return false;
   }
 
-  const Application = NX?.app?.Application;
-  const Security = NX?.Security;
+  const Application = AS?.app?.Application;
+  const Security = AS?.Security;
 
   // hide this route on HA
   if (notClustered && isClustered()) {
@@ -92,7 +92,7 @@ export function isVisible(visibilityRequirements) {
   }
 
   // check a single required permission (convenience shorthand for a single permission string)
-  if (requiresPermission && !NX.Permissions.check(requiresPermission)) {
+  if (requiresPermission && !AS.Permissions.check(requiresPermission)) {
     return false;
   }
 
@@ -129,7 +129,7 @@ export function isVisible(visibilityRequirements) {
   }
 
   if (anonymousAccessOrHasUser &&
-      !(!!NX.State.getValue('anonymousUsername') || Security.hasUser())) {
+      !(!!AS.State.getValue('anonymousUsername') || Security.hasUser())) {
     return false;
   }
 
@@ -137,12 +137,12 @@ export function isVisible(visibilityRequirements) {
 }
 
 function isFormatBrowseable(browseableFormat) {
-  return Ext.getApplication().getController('NX.coreui.controller.BrowseableFormats').getFormats().includes(browseableFormat);
+  return Ext.getApplication().getController('AS.coreui.controller.BrowseableFormats').getFormats().includes(browseableFormat);
 }
 
 function areAllRequiredStatesEnabled(statesEnabled) {
   return statesEnabled.every(state => {
-    const stateValue = NX.State.getValue(state.key, state.defaultValue);
+    const stateValue = AS.State.getValue(state.key, state.defaultValue);
 
     if (typeof stateValue === "boolean") {
       return stateValue;
@@ -158,7 +158,7 @@ function areAllRequiredStatesEnabled(statesEnabled) {
 
 function areAllRequiredPermissionsPresent(permissions) {
   return permissions.every((permission) => {
-    const hasPermission = NX.Permissions.check(permission);
+    const hasPermission = AS.Permissions.check(permission);
     return hasPermission;
   });
 }
@@ -171,12 +171,12 @@ function areAllRequiredPermissionsPresent(permissions) {
  * @returns {boolean} True if user has any of the permissions
  */
 function hasAnyOfTheRequiredPermissions(permissions) {
-  if (!NX.Permissions) {
+  if (!AS.Permissions) {
     return false;
   }
 
   for (const permission of permissions) {
-    if (NX.Permissions.check(permission)) {
+    if (AS.Permissions.check(permission)) {
       return true;
     }
   }
@@ -186,17 +186,17 @@ function hasAnyOfTheRequiredPermissions(permissions) {
 
 /**
  * Check if user has ANY permission starting with the given prefix.
- * This replicates the behavior of NX.Permissions.checkExistsWithPrefix from the older version.
+ * This replicates the behavior of AS.Permissions.checkExistsWithPrefix from the older version.
  *
  * @param {string} prefix - The permission prefix to check
  * @returns {boolean} True if user has any permission starting with the prefix
  */
 function hasAnyPermissionWithPrefix(prefix) {
-  if (!NX.Permissions || !NX.Permissions.permissions) {
+  if (!AS.Permissions || !AS.Permissions.permissions) {
     return false;
   }
 
-  const permissions = NX.Permissions.permissions;
+  const permissions = AS.Permissions.permissions;
 
   // Check if any permission starts with the prefix and is permitted
   for (const permission in permissions) {
@@ -221,7 +221,7 @@ function hasAnyPermissionWithAnyPrefix(prefixes) {
     return false;
   }
 
-  if (!NX.Permissions || !NX.Permissions.permissions) {
+  if (!AS.Permissions || !AS.Permissions.permissions) {
     return false;
   }
 
@@ -238,7 +238,7 @@ function hasAnyPermissionWithAnyPrefix(prefixes) {
 function areAllRequiredLicensesPresent(licenseValid) {
   return licenseValid.every(
       licenseValid => {
-        const value = NX.State.getValue(licenseValid.key, licenseValid.defaultValue)
+        const value = AS.State.getValue(licenseValid.key, licenseValid.defaultValue)
         if (typeof value !== 'object') {
           return false;
         }
@@ -248,36 +248,36 @@ function areAllRequiredLicensesPresent(licenseValid) {
 }
 
 function isTheRequiredCapabilityPresentAndActive(capability) {
-  const activeTypes = NX.State.getValue('capabilityActiveTypes') || [];
-  const createdTypes = NX.State.getValue('capabilityCreatedTypes') || [];
+  const activeTypes = AS.State.getValue('capabilityActiveTypes') || [];
+  const createdTypes = AS.State.getValue('capabilityCreatedTypes') || [];
 
   return activeTypes.includes(capability) && createdTypes.includes(capability);
 }
 
 function meetsEditionRequirement(editions) {
   return editions.some((edition) => {
-    return NX.State.getEdition() === edition;
+    return AS.State.getEdition() === edition;
   });
 }
 
 function isClustered() {
-  return !!NX.State.getValue('astrum.datastore.clustered.enabled');
+  return !!AS.State.getValue('astrum.datastore.clustered.enabled');
 }
 
 function hasValidDependencies() {
-  const Application = NX.app?.Application;
-  const State = NX.State;
-  const Permissions = NX.Permissions;
-  const Security = NX.Security;
+  const Application = AS.app?.Application;
+  const State = AS.State;
+  const Permissions = AS.Permissions;
+  const Security = AS.Security;
 
-  // NX.getApplication is attached by ExtJS only after Ext.app.Application
-  // is instantiated (initNamespace). Without it, NX.State.getValue() will
-  // throw "NX.getApplication is not a function" because internally it calls
-  // NX.getApplication().getStateController(). Guard here so React routes that
+  // AS.getApplication is attached by ExtJS only after Ext.app.Application
+  // is instantiated (initNamespace). Without it, AS.State.getValue() will
+  // throw "AS.getApplication is not a function" because internally it calls
+  // AS.getApplication().getStateController(). Guard here so React routes that
   // run before ExtJS finishes booting fall through to the cookie/no-deps path.
   const appReady =
-      typeof window.NX?.getApplication === 'function' &&
-      !!window.NX.getApplication();
+      typeof window.AS?.getApplication === 'function' &&
+      !!window.AS.getApplication();
 
   return !!(Application && State && Permissions && Security && appReady);
 }
@@ -288,16 +288,16 @@ function hasValidDependencies() {
 // cannot access, so this only re-opens routes the anonymous user genuinely has
 // rights to.
 //
-// Permissions live at NX.Permissions.permissions (a flat map of id → permitted),
-// populated by NX.controller.Permissions from rapture_Security.getPermissions.
-// They are NOT contributed to NX.State — SecurityComponent.getState() only
+// Permissions live at AS.Permissions.permissions (a flat map of id → permitted),
+// populated by AS.controller.Permissions from rapture_Security.getPermissions.
+// They are NOT contributed to AS.State — SecurityComponent.getState() only
 // contributes `user` and `anonymousUsername`.
 function hasAnonymousPermissions() {
-  const Security = NX?.Security;
+  const Security = AS?.Security;
   if (!Security || Security.hasUser()) {
     return false;
   }
-  const perms = NX?.Permissions?.permissions;
+  const perms = AS?.Permissions?.permissions;
   return !!perms && Object.keys(perms).length > 0;
 }
 

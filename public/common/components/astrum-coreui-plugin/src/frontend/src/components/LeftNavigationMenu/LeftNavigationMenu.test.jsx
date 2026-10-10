@@ -31,10 +31,10 @@ jest.mock('../pages/browse/Browse/BrowseExt', () => {
 });
 
 describe('LeftNavigationMenu', () => {
-  const Application = global.NX.app.Application;
-  const State = global.NX.State;
-  const Permissions = global.NX.Permissions;
-  const Security = global.NX.Security;
+  const Application = global.AS.app.Application;
+  const State = global.AS.State;
+  const Permissions = global.AS.Permissions;
+  const Security = global.AS.Security;
 
   beforeEach(() => {
     // default behavior is that of an unauthenticated user on a server with some repos
@@ -97,7 +97,7 @@ describe('LeftNavigationMenu', () => {
         expect(expandableList).toBeNull();
       });
 
-      const sidebarToggle = container.querySelector('.nx-global-sidebar-2__toggle');
+      const sidebarToggle = container.querySelector('.as-global-sidebar-2__toggle');
       await userEvent.click(sidebarToggle);
       await userEvent.click(sidebarToggle);
 
@@ -115,7 +115,7 @@ describe('LeftNavigationMenu', () => {
       const chevron = container.querySelector('.as-navigation-expandable-link__chevron');
       await userEvent.click(chevron);
 
-      const sidebarToggle = container.querySelector('.nx-global-sidebar-2__toggle');
+      const sidebarToggle = container.querySelector('.as-global-sidebar-2__toggle');
       await userEvent.click(sidebarToggle);
       await userEvent.click(sidebarToggle);
 

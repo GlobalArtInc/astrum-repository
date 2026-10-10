@@ -4,7 +4,7 @@ import {useMachine} from '@xstate/react';
 import {faGlobe} from '@fortawesome/free-solid-svg-icons';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 
-import {NxButton, NxLoadWrapper} from '@globalart/react-shared-components';
+import {AsButton, AsLoadWrapper} from '@globalart/react-shared-components';
 
 import {
   ContentBody,
@@ -50,22 +50,22 @@ export default function SystemInformation() {
       <PageHeader>
         <PageTitle icon={faGlobe} {...MENU} />
         <PageActions>
-          <NxButton
+          <AsButton
             variant="primary"
             onClick={downloadSystemInformation}
             disabled={isLoading || loadError}
           >
             <span>{ACTIONS.download}</span>
-          </NxButton>
+          </AsButton>
         </PageActions>
       </PageHeader>
 
       {isCluster && <NodeSelector service={service} />}
 
       <ContentBody className="as-system-information">
-        <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+        <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
           <SystemInformationBody systemInformation={systemInformation} />
-        </NxLoadWrapper>
+        </AsLoadWrapper>
       </ContentBody>
     </Page>
   );

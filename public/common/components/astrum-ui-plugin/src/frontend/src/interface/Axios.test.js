@@ -2,7 +2,7 @@
 import Axios from 'axios';
 import configureAxios from './configureAxios';
 
-global.NX = {
+global.AS = {
   app: {
     relativePath: '.',
   },

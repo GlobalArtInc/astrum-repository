@@ -86,7 +86,7 @@ export function useSearchCollapsibleNav(isCollapsed: boolean): UseSearchCollapsi
     const app = (window as { Ext?: { getApplication?: () => unknown } }).Ext?.getApplication?.();
     const controller = (
       app as { getController?: (name: string) => { setFormats: (formats: { id: string }[]) => void } } | undefined
-    )?.getController?.('NX.coreui.controller.BrowseableFormats');
+    )?.getController?.('AS.coreui.controller.BrowseableFormats');
 
     if (controller) {
       const formatData = Array.from(availableFormats).map((format) => ({ id: format }));

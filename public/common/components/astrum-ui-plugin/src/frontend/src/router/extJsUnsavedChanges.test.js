@@ -14,11 +14,11 @@ const getFeatureContentMock = jest.fn(() => ({
   resetUnsavedChangesFlag: resetUnsavedChangesFlagMock,
 }));
 
-// Mock NX.Bookmarks
+// Mock AS.Bookmarks
 const navigateToMock = jest.fn();
 const fromTokenMock = jest.fn();
 
-global.NX = {
+global.AS = {
   Bookmarks: {
     fromToken: fromTokenMock,
     navigateTo: navigateToMock,
@@ -131,7 +131,7 @@ describe('useExtJsUnsavedChangesGuard', () => {
   });
 
   describe('goToHash function', () => {
-    it('should use NX.Bookmarks.navigateTo when bookmark is successfully created', () => {
+    it('should use AS.Bookmarks.navigateTo when bookmark is successfully created', () => {
       const mockBookmark = { token: 'browse/welcome' };
       fromTokenMock.mockReturnValue(mockBookmark);
 

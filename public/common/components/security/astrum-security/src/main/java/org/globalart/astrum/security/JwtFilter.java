@@ -42,7 +42,7 @@ import static org.globalart.astrum.security.JwtHelper.USER_SESSION_ID;
 public class JwtFilter
     extends AdviceFilter
 {
-  public static final String NAME = "nx-jwt";
+  public static final String NAME = "as-jwt";
 
   private final JwtHelper jwtHelper;
 

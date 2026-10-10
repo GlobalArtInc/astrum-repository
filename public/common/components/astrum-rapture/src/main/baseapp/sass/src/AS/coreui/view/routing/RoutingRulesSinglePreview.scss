@@ -1,0 +1,35 @@
+/**
+ * @class AS.coreui.view.routing.RoutingRulesSinglePreview
+ */
+.as-routing-rules-single-preview-field-wrapper {
+  .as-routing-rules-test-result {
+    align-items: center;
+    color: $color-salem;
+    display: inline-flex;
+    line-height: 2em;
+    justify-content: flex-start;
+
+    span.x-fa {
+      align-items: center;
+      display: inline-flex;
+      font-size: 1.5em;
+      padding-right: 5px;
+    }
+  }
+
+  &.blocked {
+    .as-routing-rules-test-result {
+      color: $color-free-speech-red;
+    }
+
+    .as-routing-rules-test-path-container > .x-form-item-body {
+      border-color: $color-free-speech-red;
+    }
+  }
+
+  &.allowed {
+    .as-routing-rules-test-path-container > .x-form-item-body {
+      border-color: $color-salem;
+    }
+  }
+}

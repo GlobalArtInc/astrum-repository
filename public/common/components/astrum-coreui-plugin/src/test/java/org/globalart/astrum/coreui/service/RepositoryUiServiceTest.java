@@ -240,7 +240,7 @@ class RepositoryUiServiceTest
     Map<String, Object> authentication = new HashMap<>();
     authentication.put("type", "username");
     authentication.put("username", "testuser");
-    authentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    authentication.put("password", "#~ASTRUM~PLACEHOLDER~PASSWORD~#");
     httpclient.put("authentication", authentication);
     testAttributes.put("httpclient", httpclient);
 
@@ -269,7 +269,7 @@ class RepositoryUiServiceTest
     Map<String, Object> httpclient = new HashMap<>();
     Map<String, Object> authentication = new HashMap<>();
     authentication.put("type", "bearerToken");
-    authentication.put("bearerTokenId", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    authentication.put("bearerTokenId", "#~ASTRUM~PLACEHOLDER~PASSWORD~#");
     httpclient.put("authentication", authentication);
     testAttributes.put("httpclient", httpclient);
 
@@ -342,7 +342,7 @@ class RepositoryUiServiceTest
     Map<String, Object> httpclient = new HashMap<>();
     Map<String, Object> authentication = new HashMap<>();
     authentication.put("type", "bearerToken");
-    authentication.put("bearerTokenId", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    authentication.put("bearerTokenId", "#~ASTRUM~PLACEHOLDER~PASSWORD~#");
     httpclient.put("authentication", authentication);
     testAttributes.put("httpclient", httpclient);
 
@@ -1021,7 +1021,7 @@ class RepositoryUiServiceTest
     Map<String, Object> newHttpclient = new HashMap<>();
     Map<String, Object> newAuthentication = new HashMap<>();
     newAuthentication.put("type", "username");
-    newAuthentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#"); // Placeholder = credential exfiltration
+    newAuthentication.put("password", "#~ASTRUM~PLACEHOLDER~PASSWORD~#"); // Placeholder = credential exfiltration
     newHttpclient.put("authentication", newAuthentication);
     newAttributes.put("httpclient", newHttpclient);
 
@@ -1101,7 +1101,7 @@ class RepositoryUiServiceTest
     Map<String, Object> newHttpclient = new HashMap<>();
     Map<String, Object> newAuthentication = new HashMap<>();
     newAuthentication.put("type", "username");
-    newAuthentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#"); // Placeholder = credential exfiltration
+    newAuthentication.put("password", "#~ASTRUM~PLACEHOLDER~PASSWORD~#"); // Placeholder = credential exfiltration
     newHttpclient.put("authentication", newAuthentication);
     newAttributes.put("httpclient", newHttpclient);
 
@@ -1216,7 +1216,7 @@ class RepositoryUiServiceTest
     Map<String, Object> newHttpclient = new HashMap<>();
     Map<String, Object> newAuthentication = new HashMap<>();
     newAuthentication.put("type", "username");
-    newAuthentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    newAuthentication.put("password", "#~ASTRUM~PLACEHOLDER~PASSWORD~#");
     newHttpclient.put("authentication", newAuthentication);
     newAttributes.put("httpclient", newHttpclient);
 
@@ -1256,7 +1256,7 @@ class RepositoryUiServiceTest
     Map<String, Object> newHttpclient = new HashMap<>();
     Map<String, Object> newAuthentication = new HashMap<>();
     newAuthentication.put("type", "username");
-    newAuthentication.put("password", "#~NXRM~PLACEHOLDER~PASSWORD~#");
+    newAuthentication.put("password", "#~ASTRUM~PLACEHOLDER~PASSWORD~#");
     newHttpclient.put("authentication", newAuthentication);
     newAttributes.put("httpclient", newHttpclient);
 
@@ -1296,7 +1296,7 @@ class RepositoryUiServiceTest
     Map<String, Object> newHttpclient = new HashMap<>();
     Map<String, Object> newAuthentication = new HashMap<>();
     newAuthentication.put("type", "bearerToken");
-    newAuthentication.put("bearerTokenId", "#~NXRM~PLACEHOLDER~PASSWORD~#"); // Placeholder
+    newAuthentication.put("bearerTokenId", "#~ASTRUM~PLACEHOLDER~PASSWORD~#"); // Placeholder
     newHttpclient.put("authentication", newAuthentication);
     newAttributes.put("httpclient", newHttpclient);
 

@@ -5,13 +5,13 @@ import {faServer} from '@fortawesome/free-solid-svg-icons';
 
 import {FormUtils, ReadOnlyField} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxTooltip,
-  NxTextInput,
-  NxFormGroup,
-  NxStatefulForm,
-  NxReadOnly,
-  NxTile,
+  AsButton,
+  AsTooltip,
+  AsTextInput,
+  AsFormGroup,
+  AsStatefulForm,
+  AsReadOnly,
+  AsTile,
 } from '@globalart/react-shared-components';
 
 import {
@@ -45,45 +45,45 @@ export default function DataStoreConfiguration() {
         />
       </PageHeader>
       <ContentBody className="as-datastore-configuration">
-        <NxTile className="user-account-settings">
-          <NxStatefulForm
+        <AsTile className="user-account-settings">
+          <AsStatefulForm
             {...FormUtils.formProps(state, send)}
             additionalFooterBtns={
-              <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-                <NxButton
+              <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+                <AsButton
                   type="button"
                   className={isPristine && 'disabled'}
                   onClick={discard}
                 >
                   {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-                </NxButton>
-              </NxTooltip>
+                </AsButton>
+              </AsTooltip>
             }
           >
-            <NxReadOnly>
+            <AsReadOnly>
               <ReadOnlyField label={FIELDS.jdbcUrlLabel} value={data.jdbcUrl} />
               <ReadOnlyField
                 label={FIELDS.usernameLabel}
                 value={data.username}
               />
               <ReadOnlyField label={FIELDS.schemaLabel} value={data.schema} />
-            </NxReadOnly>
-            <NxFormGroup label={FIELDS.maxConnectionPoolLabel}>
-              <NxTextInput
+            </AsReadOnly>
+            <AsFormGroup label={FIELDS.maxConnectionPoolLabel}>
+              <AsTextInput
                 {...FormUtils.fieldProps('maximumConnectionPool', state)}
                 onChange={FormUtils.handleUpdate('maximumConnectionPool', send)}
               />
-            </NxFormGroup>
-            <NxFormGroup label={FIELDS.advancedLabel}>
-              <NxTextInput
+            </AsFormGroup>
+            <AsFormGroup label={FIELDS.advancedLabel}>
+              <AsTextInput
                 {...FormUtils.fieldProps('advanced', state)}
                 onChange={FormUtils.handleUpdate('advanced', send)}
-                className="nx-text-input--long"
+                className="as-text-input--long"
                 type="textarea"
               />
-            </NxFormGroup>
-          </NxStatefulForm>
-        </NxTile>
+            </AsFormGroup>
+          </AsStatefulForm>
+        </AsTile>
       </ContentBody>
     </Page>
   );

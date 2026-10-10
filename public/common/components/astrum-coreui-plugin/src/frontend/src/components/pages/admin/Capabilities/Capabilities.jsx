@@ -8,6 +8,6 @@ export default function Capabilities() {
  return <ExtJsContainer
      title={UIStrings.CAPABILITIES.MENU.text}
      icon={UIStrings.CAPABILITIES.MENU.icon}
-     extView="NX.coreui.view.capability.CapabilityFeature"
+     extView="AS.coreui.view.capability.CapabilityFeature"
  />;
 }

@@ -4,10 +4,10 @@ import React from 'react';
 import {ExtJS, FormUtils, Textfield, UseAstrumTruststore} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxCheckbox,
-  NxFieldset,
-  NxFormGroup,
-  NxTextInput,
+  AsCheckbox,
+  AsFieldset,
+  AsFormGroup,
+  AsTextInput,
 } from '@globalart/react-shared-components';
 
 
@@ -47,9 +47,9 @@ export default function GenericProxyConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{EDITOR.PROXY_CAPTION}</h2>
+      <h2 className="as-h2">{EDITOR.PROXY_CAPTION}</h2>
 
-      <NxFormGroup
+      <AsFormGroup
         label={EDITOR.REMOTE_STORAGE_LABEL}
         sublabel={
           EDITOR.REMOTE_STORAGE_SUBLABEL +
@@ -58,12 +58,12 @@ export default function GenericProxyConfiguration({parentMachine}) {
         isRequired
         className="as-form-group-remote-storage"
       >
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps('proxy.remoteUrl', parentState)}
           onChange={FormUtils.handleUpdate('proxy.remoteUrl', sendParent)}
           placeholder={EDITOR.URL_PLACEHOLDER}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
       <UseAstrumTruststore
         remoteUrl={remoteUrl}
@@ -77,19 +77,19 @@ export default function GenericProxyConfiguration({parentMachine}) {
 
       {isReplicationEnabled && formatReplicationSupported && (
         <>
-          <NxFormGroup
+          <AsFormGroup
             label={EDITOR.PREEMPTIVE_PULL_LABEL}
             sublabel={EDITOR.PREEMPTIVE_PULL_SUBLABEL}
           >
-            <NxCheckbox
+            <AsCheckbox
               isChecked={Boolean(preemptivePullEnabled)}
               onChange={setPreemptivePullEnabled}
             >
               {EDITOR.ENABLED_CHECKBOX_DESCR}
-            </NxCheckbox>
-          </NxFormGroup>
+            </AsCheckbox>
+          </AsFormGroup>
 
-          <NxFormGroup
+          <AsFormGroup
             label={EDITOR.ASSET_NAME_LABEL}
             sublabel={EDITOR.ASSET_NAME_DESCRIPTION}
             className="as-form-group-asset-matcher"
@@ -99,62 +99,62 @@ export default function GenericProxyConfiguration({parentMachine}) {
               onChange={FormUtils.handleUpdate('replication.assetPathRegex', sendParent)}
               disabled={!Boolean(preemptivePullEnabled)}
             />
-          </NxFormGroup>
+          </AsFormGroup>
         </>
       )}
 
-      <NxFormGroup
+      <AsFormGroup
         label={EDITOR.PRESERVE_ENCODED_CHARS_LABEL}
         sublabel={EDITOR.PRESERVE_ENCODED_CHARS_SUBLABEL}
       >
-        <NxCheckbox
+        <AsCheckbox
           {...FormUtils.checkboxProps('proxy.preserveEncodedCharacters', parentState)}
           onChange={FormUtils.handleUpdate('proxy.preserveEncodedCharacters', sendParent)}
         >
           {EDITOR.ENABLED_CHECKBOX_DESCR}
-        </NxCheckbox>
-      </NxFormGroup>
+        </AsCheckbox>
+      </AsFormGroup>
 
-      <NxFieldset label={EDITOR.BLOCKING_LABEL} className="as-form-group-proxy-blocking">
-        <NxCheckbox
+      <AsFieldset label={EDITOR.BLOCKING_LABEL} className="as-form-group-proxy-blocking">
+        <AsCheckbox
           {...FormUtils.checkboxProps('httpClient.blocked', parentState)}
           onChange={FormUtils.handleUpdate('httpClient.blocked', sendParent)}
         >
           {EDITOR.BLOCK_DESCR}
-        </NxCheckbox>
-        <NxCheckbox
+        </AsCheckbox>
+        <AsCheckbox
           {...FormUtils.checkboxProps('httpClient.autoBlock', parentState)}
           onChange={FormUtils.handleUpdate('httpClient.autoBlock', sendParent)}
         >
           {EDITOR.AUTO_BLOCK_DESCR}
-        </NxCheckbox>
-      </NxFieldset>
+        </AsCheckbox>
+      </AsFieldset>
 
-      <NxFormGroup
+      <AsFormGroup
         label={EDITOR.MAX_COMP_AGE_LABEL}
         sublabel={EDITOR.MAX_COMP_AGE_SUBLABEL}
         isRequired
         className="as-form-group-max-component-age"
       >
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps('proxy.contentMaxAge', parentState)}
           onChange={FormUtils.handleUpdate('proxy.contentMaxAge', sendParent)}
-          className="nx-text-input--short"
+          className="as-text-input--short"
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
-      <NxFormGroup
+      <AsFormGroup
         label={EDITOR.MAX_META_AGE_LABEL}
         sublabel={EDITOR.MAX_META_AGE_SUBLABEL}
         isRequired
         className="as-form-group-max-metadata-age"
       >
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps('proxy.metadataMaxAge', parentState)}
           onChange={FormUtils.handleUpdate('proxy.metadataMaxAge', sendParent)}
-          className="nx-text-input--short"
+          className="as-text-input--short"
         />
-      </NxFormGroup>
+      </AsFormGroup>
     </>
   );
 }

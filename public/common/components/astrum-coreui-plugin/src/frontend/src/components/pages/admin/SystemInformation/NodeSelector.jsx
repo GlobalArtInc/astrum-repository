@@ -2,7 +2,7 @@
 import React from 'react';
 import {useActor} from '@xstate/react';
 
-import {NxFormGroup, NxFormSelect} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 
@@ -22,8 +22,8 @@ export default function NodeSelector({service}) {
 
   return (
     <div className="as-sys-info-node-selector">
-      <NxFormGroup label={ACTIONS.nodeSelector}>
-        <NxFormSelect
+      <AsFormGroup label={ACTIONS.nodeSelector}>
+        <AsFormSelect
           onChange={handleSelectNode}
           value={selectedNodeId}
           disabled={isLoading || loadError}
@@ -33,8 +33,8 @@ export default function NodeSelector({service}) {
               {nodeId}
             </option>
           ))}
-        </NxFormSelect>
-      </NxFormGroup>
+        </AsFormSelect>
+      </AsFormGroup>
     </div>
   );
 }

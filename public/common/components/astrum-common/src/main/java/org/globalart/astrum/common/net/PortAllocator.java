@@ -21,7 +21,7 @@ import java.nio.channels.FileLock;
  */
 public class PortAllocator
 {
-  private static final File NEXT_PORT_FILE = new File(System.getProperty("java.io.tmpdir"), "nx-test-port-allocator");
+  private static final File NEXT_PORT_FILE = new File(System.getProperty("java.io.tmpdir"), "as-test-port-allocator");
 
   private static final int MIN_PORT = 10000;
 

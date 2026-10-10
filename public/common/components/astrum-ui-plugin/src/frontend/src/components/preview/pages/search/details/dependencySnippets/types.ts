@@ -4,7 +4,7 @@
  * Dependency snippet types for the Preview UI Overview tab.
  *
  * These types mirror the Classic UI's dependency-snippet contract
- * (NX/model/DependencySnippet.js and the per-format snippet generators) so the two
+ * (AS/model/DependencySnippet.js and the per-format snippet generators) so the two
  * UIs can produce identical snippet text. See details/dependencySnippets/registry.ts.
  */
 

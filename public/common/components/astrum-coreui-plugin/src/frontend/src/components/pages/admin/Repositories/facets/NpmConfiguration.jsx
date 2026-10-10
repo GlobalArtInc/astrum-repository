@@ -4,10 +4,10 @@ import React from 'react';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxCheckbox,
-  NxFieldset,
-  NxTextLink,
-  NxWarningAlert
+  AsCheckbox,
+  AsFieldset,
+  AsTextLink,
+  AsWarningAlert
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -20,9 +20,9 @@ const {
 const getSubLabel = (txt) => (
   <>
     {txt}{' '}
-    <NxTextLink href="http://links.globalart.dev/products/astrum/docs/npm-with-firewall" external>
+    <AsTextLink href="http://links.globalart.dev/products/astrum/docs/npm-with-firewall" external>
       {LEARN_MORE}
-    </NxTextLink>
+    </AsTextLink>
   </>
 );
 
@@ -31,19 +31,19 @@ export default function NpmConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxFieldset
+      <AsFieldset
         label={REMOVE_QUARANTINED.LABEL}
         sublabel={getSubLabel(REMOVE_QUARANTINED.SUBLABEL)}
         className="as-form-group-remove-quarantined"
       >
-        <NxCheckbox
+        <AsCheckbox
           {...FormUtils.checkboxProps('npm.removeQuarantined', currentParent)}
           onChange={FormUtils.handleUpdate('npm.removeQuarantined', sendParent)}
         >
           {REMOVE_QUARANTINED.DESCR}
-        </NxCheckbox>
-        <NxWarningAlert>{REMOVE_QUARANTINED.WARNING}</NxWarningAlert>
-      </NxFieldset>
+        </AsCheckbox>
+        <AsWarningAlert>{REMOVE_QUARANTINED.WARNING}</AsWarningAlert>
+      </AsFieldset>
     </>
   );
 }

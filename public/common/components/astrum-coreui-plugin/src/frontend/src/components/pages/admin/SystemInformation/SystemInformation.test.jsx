@@ -20,8 +20,8 @@ const {SYSTEM_INFORMATION_HA, SYSTEM_INFORMATION} = APIConstants.REST;
 const {ACTIONS} = UIStrings.SYSTEM_INFORMATION;
 
 const NESTED_SECTION = 'h3';
-const NAME = '.nx-list__term';
-const VALUE = '.nx-list__description';
+const NAME = '.as-list__term';
+const VALUE = '.as-list__description';
 
 jest.mock('axios', () => ({
   ...jest.requireActual('axios'),
@@ -86,7 +86,7 @@ describe('SystemInformation HA', () => {
 
 function expectSectionToMatch(data, text) {
   const sectionTitle = screen.getByText(text);
-  const section = within(sectionTitle.closest('.nx-tile-content'));
+  const section = within(sectionTitle.closest('.as-tile-content'));
   expect(sectionTitle).toBeInTheDocument();
 
   for (let key in data[text]) {

@@ -196,9 +196,9 @@ class ExtAPIUtils {
     if (!ExtAPIUtils.interceptorSet && process.env.NODE_ENV !== 'test') {
       Axios.interceptors.request.use(
           function(config) {
-            const csrfToken = (document.cookie.match('(^|; )NX-ANTI-CSRF-TOKEN=([^;]*)') || 0)[2];
+            const csrfToken = (document.cookie.match('(^|; )AS-ANTI-CSRF-TOKEN=([^;]*)') || 0)[2];
             if (csrfToken) {
-              config.headers['NX-ANTI-CSRF-TOKEN'] = csrfToken;
+              config.headers['AS-ANTI-CSRF-TOKEN'] = csrfToken;
             }
             return config;
           }

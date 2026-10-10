@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import {
-  NxButton,
-  NxFontAwesomeIcon,
-  NxGlobalHeader2,
+  AsButton,
+  AsFontAwesomeIcon,
+  AsGlobalHeader2,
 } from "@globalart/react-shared-components";
 import { faSync } from "@fortawesome/free-solid-svg-icons";
 import { ExtJS, handleExtJsUnsavedChanges } from '@globalart/astrum-ui-plugin';
@@ -102,30 +102,30 @@ export default function GlobalHeader() {
   }, [currentPath, isPreviewUI]);
 
   return (
-      <NxGlobalHeader2
+      <AsGlobalHeader2
           homeHref={ contextPath || "/"}
           logoProps={getLogoProps()}
-          className="as-global-header"
+          className="astrum-global-header"
       >
         <Search />
 
         <SystemStatus />
 
-        <NxButton
+        <AsButton
             title={refreshTitle}
             aria-label={refreshTitle}
             variant="icon-only"
             onClick={onRefreshClick}
             data-analytics-id="as-global-header-refresh-button"
         >
-          <NxFontAwesomeIcon icon={faSync} />
-        </NxButton>
+          <AsFontAwesomeIcon icon={faSync} />
+        </AsButton>
 
         {/* ThemeSwitcher - only shown when IN Preview UI (dark mode not supported in Default UI) */}
         {isPreviewUI && canAccessPreviewUi && <ThemeSwitcher />}
 
         {canAccessPreviewUi && (
-          <NxButton
+          <AsButton
             variant="tertiary"
             onClick={toggleUI}
             className="ui-toggle-button"
@@ -143,7 +143,7 @@ export default function GlobalHeader() {
                 <span>Astrum One UI</span>
               </>
             )}
-          </NxButton>
+          </AsButton>
         )}
 
         <HelpMenu />
@@ -151,7 +151,7 @@ export default function GlobalHeader() {
         <LoginAndUserButton />
 
         {showThemeSelector && <ThemeSelector />}
-      </NxGlobalHeader2>);
+      </AsGlobalHeader2>);
 
   function onRefreshClick() {
     // Try to get the ExtJS Menu controller

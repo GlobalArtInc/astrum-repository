@@ -4,10 +4,10 @@ import {faKey} from "@fortawesome/free-solid-svg-icons";
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxButton,
-  NxFontAwesomeIcon,
-  NxModal,
-  NxCopyToClipboard,
+  AsButton,
+  AsFontAwesomeIcon,
+  AsModal,
+  AsCopyToClipboard,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -18,25 +18,25 @@ export default function NuGetApiTokenModal({apiKey, onCloseClick}) {
       .replace('{0}', apiKey)
       .replace('{1}', ExtJS.absolutePath('repository/{repository name}/'));
 
-  return <NxModal id="nuget-api-key-modal" className="nx-modal--wide" onClose={onCloseClick}>
-    <header className="nx-modal-header">
-      <h2 className="nx-h2">
-        <NxFontAwesomeIcon icon={faKey} fixedWidth/>
+  return <AsModal id="nuget-api-key-modal" className="as-modal--wide" onClose={onCloseClick}>
+    <header className="as-modal-header">
+      <h2 className="as-h2">
+        <AsFontAwesomeIcon icon={faKey} fixedWidth/>
         <span> {UIStrings.NUGET_API_KEY.MENU.text} </span>
       </h2>
     </header>
 
-    <div className="nx-modal-content">
+    <div className="as-modal-content">
       <p>
         <span> {UIStrings.NUGET_API_KEY.DETAILS.MAIN} <strong> {UIStrings.NUGET_API_KEY.DETAILS.WARNING} </strong> </span> <br/>
       </p>
-      <NxCopyToClipboard
+      <AsCopyToClipboard
           label={UIStrings.NUGET_API_KEY.DETAILS.API_KEY_TEXT}
           content={apiKey}
           inputProps={{inputAttributes: {rows: 1}}}
           id="nuget-api-key"
       />
-      <NxCopyToClipboard
+      <AsCopyToClipboard
           label={UIStrings.NUGET_API_KEY.DETAILS.REGISTER_TEXT}
           content={exampleCode}
           inputProps={{inputAttributes: {rows: 2}}}
@@ -46,10 +46,10 @@ export default function NuGetApiTokenModal({apiKey, onCloseClick}) {
         <span> {UIStrings.NUGET_API_KEY.DETAILS.AUTO_CLOSE}</span> <br/>
       </p>
     </div>
-    <footer className="nx-footer">
-      <div className="nx-btn-bar">
-        <NxButton onClick={onCloseClick}>{UIStrings.NUGET_API_KEY.CLOSE}</NxButton>
+    <footer className="as-footer">
+      <div className="as-btn-bar">
+        <AsButton onClick={onCloseClick}>{UIStrings.NUGET_API_KEY.CLOSE}</AsButton>
       </div>
     </footer>
-  </NxModal>
+  </AsModal>
 }

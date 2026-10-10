@@ -1,21 +1,21 @@
 
-@import "~@globalart/react-shared-components/scss-shared/nx-container-helpers";
-@import "~@globalart/react-shared-components/scss-shared/nx-text-helpers";
+@import "~@globalart/react-shared-components/scss-shared/as-container-helpers";
+@import "~@globalart/react-shared-components/scss-shared/as-text-helpers";
 
 /**
  * @since 3.29
  */
 .as-routing-rules {
-  .nx-table > tbody > .nx-table-row > .nx-cell.repository-child {
-    padding-left: var(--nx-spacing-12x);
+  .as-table > tbody > .as-table-row > .as-cell.repository-child {
+    padding-left: var(--as-spacing-12x);
   }
 
   .allowed {
-    color: var(--nx-color-validation-valid);
+    color: var(--as-color-validation-valid);
   }
 
   .blocked {
-    color: var(--nx-color-validation-invalid);
+    color: var(--as-color-validation-invalid);
   }
 
   .routing-rule-matcher label {
@@ -26,15 +26,15 @@
     &::before {
       content: "/";
       position: absolute;
-      padding-left: var(--nx-spacing-4x);
+      padding-left: var(--as-spacing-4x);
       padding-top: 10px;
 
       @include semi-bold();
-      font-size: var(--nx-font-size);
+      font-size: var(--as-font-size);
       z-index: 1;
     }
 
-    .nx-text-input__input {
+    .as-text-input__input {
       padding-left: 8px;
     }
   }

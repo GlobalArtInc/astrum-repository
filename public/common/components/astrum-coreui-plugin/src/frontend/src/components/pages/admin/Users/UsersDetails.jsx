@@ -3,7 +3,7 @@ import React from 'react';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxTile,
+  AsTile,
 } from '@globalart/react-shared-components';
 import {ExtJS, ValidationUtils} from '@globalart/astrum-ui-plugin';
 
@@ -58,16 +58,16 @@ export default function UsersDetails({itemId, onDone}) {
       />
     </PageHeader>
     <ContentBody className="as-user-form">
-      <NxTile>
+      <AsTile>
         {showReadOnly
             ? <UsersReadOnly service={service} onDone={onDone}/>
             : <UsersForm service={service} onDone={onDone}/>
         }
-      </NxTile>
+      </AsTile>
       {isPro && isEdit &&
-        <NxTile>
+        <AsTile>
           <UsersToken service={service} />
-        </NxTile>
+        </AsTile>
       }
     </ContentBody>
   </div>;

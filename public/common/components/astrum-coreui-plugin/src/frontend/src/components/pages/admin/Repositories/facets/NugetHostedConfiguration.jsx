@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {NxReadOnly} from '@globalart/react-shared-components';
+import {AsReadOnly} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -19,10 +19,10 @@ export default function NugetHostedConfiguration({parentMachine}) {
   return (
     <>
       {isEdit && url && (
-        <NxReadOnly>
-          <NxReadOnly.Label>{NUGET.SYMSRV_ENDPOINT.LABEL}</NxReadOnly.Label>
-          <NxReadOnly.Data>{`${url}/symbols`}</NxReadOnly.Data>
-        </NxReadOnly>
+        <AsReadOnly>
+          <AsReadOnly.Label>{NUGET.SYMSRV_ENDPOINT.LABEL}</AsReadOnly.Label>
+          <AsReadOnly.Data>{`${url}/symbols`}</AsReadOnly.Data>
+        </AsReadOnly>
       )}
     </>
   );

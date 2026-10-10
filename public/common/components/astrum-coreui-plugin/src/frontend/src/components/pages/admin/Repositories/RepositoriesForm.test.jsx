@@ -209,7 +209,7 @@ describe('RepositoriesForm', () => {
     getForeignLayerInput: () => screen.getByLabelText(EDITOR.FOREIGN_LAYER.URL),
     getForeignLayerAddButton: (container) => container.querySelector('[data-icon="plus-circle"]'),
     getForeignLayerRemoveButton: (item) => {
-      const listItem = screen.getByText(item).closest('.nx-list__item');
+      const listItem = screen.getByText(item).closest('.as-list__item');
       return item && within(listItem).getByRole('img', {hidden: true}).closest('button');
     },
     getAptDistributionInput: () => screen.getByLabelText(APT.DISTRIBUTION.LABEL),
@@ -998,13 +998,13 @@ describe('RepositoriesForm', () => {
     });
 
     it('creates docker proxy repository', async () => {
-      when(global.NX.Permissions.check)
+      when(global.AS.Permissions.check)
         .calledWith('astrum:ssl-truststore:read')
         .mockReturnValue(true);
-      when(global.NX.Permissions.check)
+      when(global.AS.Permissions.check)
         .calledWith('astrum:ssl-truststore:create')
         .mockReturnValue(true);
-      when(global.NX.Permissions.check)
+      when(global.AS.Permissions.check)
         .calledWith('astrum:ssl-truststore:update')
         .mockReturnValue(true);
       const repo = {

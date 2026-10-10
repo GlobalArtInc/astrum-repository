@@ -3,7 +3,7 @@ import React, {useMemo} from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxFormSelect} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect} from '@globalart/react-shared-components';
 
 import {useRepositoriesService} from '../RepositoriesContextProvider';
 
@@ -31,11 +31,11 @@ export default function WritableRepositoryConfiguration({parentMachine}) {
   }
 
   return (
-    <NxFormGroup
+    <AsFormGroup
       label={WRITABLE.LABEL}
       sublabel={WRITABLE.SUBLABEL}
     >
-      <NxFormSelect
+      <AsFormSelect
         {...FormUtils.selectProps('group.writableMember', parentState)}
         onChange={FormUtils.handleUpdate('group.writableMember', sendParent)}
         disabled={!availableWritableRepos.length}
@@ -46,8 +46,8 @@ export default function WritableRepositoryConfiguration({parentMachine}) {
             {repo}
           </option>
         ))}
-      </NxFormSelect>
-    </NxFormGroup>
+      </AsFormSelect>
+    </AsFormGroup>
   );
 }
 

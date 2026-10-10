@@ -10,7 +10,7 @@ describe('ExtJS', () => {
     let stateChangedHandler;
     let userChangedHandler;
     let originalExt;
-    let originalNX;
+    let originalAS;
 
     beforeEach(() => {
       permissionChangedHandler = null;
@@ -38,7 +38,7 @@ describe('ExtJS', () => {
       };
 
       originalExt = global.Ext;
-      originalNX = global.NX;
+      originalAS = global.AS;
 
       global.Ext = {
         getApplication: jest.fn(() => ({
@@ -50,7 +50,7 @@ describe('ExtJS', () => {
         }))
       };
 
-      global.NX = {
+      global.AS = {
         State: {},
         Permissions: {},
         Security: {}
@@ -59,7 +59,7 @@ describe('ExtJS', () => {
 
     afterEach(() => {
       global.Ext = originalExt;
-      global.NX = originalNX;
+      global.AS = originalAS;
     });
 
     it('returns initial visibility value', () => {
@@ -72,7 +72,7 @@ describe('ExtJS', () => {
 
     it('returns false initially when ExtJS is not ready', () => {
       global.Ext = undefined;
-      global.NX = undefined;
+      global.AS = undefined;
 
       const isVisibleMethod = jest.fn(() => {
         throw new Error('ExtJS not ready');
@@ -380,48 +380,48 @@ describe('ExtJS', () => {
   });
 
   describe('arePermissionsReady', () => {
-    let originalNX;
+    let originalAS;
 
     beforeEach(() => {
-      originalNX = global.NX;
-      delete global.NX;
+      originalAS = global.AS;
+      delete global.AS;
     });
 
     afterEach(() => {
-      global.NX = originalNX;
+      global.AS = originalAS;
     });
 
-    it('returns false when NX.Permissions is not available', () => {
+    it('returns false when AS.Permissions is not available', () => {
       expect(ExtJS.arePermissionsReady()).toBe(false);
     });
 
-    it('returns true when NX.Permissions.permissions is defined', () => {
-      global.NX = { Permissions: { permissions: {} } };
+    it('returns true when AS.Permissions.permissions is defined', () => {
+      global.AS = { Permissions: { permissions: {} } };
       expect(ExtJS.arePermissionsReady()).toBe(true);
     });
 
-    it('returns false when NX.Permissions.permissions is undefined', () => {
-      global.NX = { Permissions: {} };
+    it('returns false when AS.Permissions.permissions is undefined', () => {
+      global.AS = { Permissions: {} };
       expect(ExtJS.arePermissionsReady()).toBe(false);
     });
   });
 
   describe('waitForPermissions', () => {
-    let originalNX;
+    let originalAS;
 
     beforeEach(() => {
       jest.useFakeTimers();
-      originalNX = global.NX;
-      delete global.NX;
+      originalAS = global.AS;
+      delete global.AS;
     });
 
     afterEach(() => {
       jest.useRealTimers();
-      global.NX = originalNX;
+      global.AS = originalAS;
     });
 
-    it('resolves immediately when NX.Permissions is already ready', async () => {
-      global.NX = { Permissions: { permissions: {} } };
+    it('resolves immediately when AS.Permissions is already ready', async () => {
+      global.AS = { Permissions: { permissions: {} } };
       await expect(ExtJS.waitForPermissions()).resolves.toBeUndefined();
     });
 
@@ -429,7 +429,7 @@ describe('ExtJS', () => {
       const promise = ExtJS.waitForPermissions();
 
       jest.advanceTimersByTime(150);
-      global.NX = { Permissions: { permissions: {} } };
+      global.AS = { Permissions: { permissions: {} } };
       jest.advanceTimersByTime(150);
 
       await expect(promise).resolves.toBeUndefined();
@@ -444,7 +444,7 @@ describe('ExtJS', () => {
     it('uses 30000ms default timeout', async () => {
       const promise = ExtJS.waitForPermissions();
       jest.advanceTimersByTime(29999);
-      global.NX = { Permissions: { permissions: {} } };
+      global.AS = { Permissions: { permissions: {} } };
       jest.advanceTimersByTime(200);
       await expect(promise).resolves.toBeUndefined();
     });
@@ -457,7 +457,7 @@ describe('ExtJS', () => {
     let stateController;
     let handlers;
     let originalExt;
-    let originalNX;
+    let originalAS;
     let originalBootstrap;
 
     beforeEach(() => {
@@ -468,13 +468,13 @@ describe('ExtJS', () => {
       };
 
       originalExt = global.Ext;
-      originalNX = global.NX;
-      originalBootstrap = window.__nxRestBootstrap;
+      originalAS = global.AS;
+      originalBootstrap = window.__asRestBootstrap;
 
       global.Ext = {
         getApplication: jest.fn(() => ({ getController: jest.fn(() => stateController) }))
       };
-      global.NX = {
+      global.AS = {
         getApplication: jest.fn(() => ({})),
         Security: { hasUser: jest.fn(() => false) },
         // `receiving` is false from State controller launch until the first poll succeeds
@@ -483,27 +483,27 @@ describe('ExtJS', () => {
           refreshNow: jest.fn()
         }
       };
-      delete window.__nxRestBootstrap;
+      delete window.__asRestBootstrap;
     });
 
     afterEach(() => {
       global.Ext = originalExt;
-      global.NX = originalNX;
+      global.AS = originalAS;
       if (originalBootstrap === undefined) {
-        delete window.__nxRestBootstrap;
+        delete window.__asRestBootstrap;
       } else {
-        window.__nxRestBootstrap = originalBootstrap;
+        window.__asRestBootstrap = originalBootstrap;
       }
     });
 
     describe('isAuthStateResolved', () => {
       it('is resolved when a user is known', () => {
-        global.NX.Security.hasUser.mockReturnValue(true);
+        global.AS.Security.hasUser.mockReturnValue(true);
         expect(ExtJS.isAuthStateResolved()).toBe(true);
       });
 
       it('is resolved when the REST bootstrap has answered, even with no user', () => {
-        window.__nxRestBootstrap = { user: null };
+        window.__asRestBootstrap = { user: null };
         expect(ExtJS.isAuthStateResolved()).toBe(true);
       });
 
@@ -512,13 +512,13 @@ describe('ExtJS', () => {
       });
 
       it('is resolved when no state poll is expected', () => {
-        global.NX.State.getValue.mockReturnValue(undefined);
+        global.AS.State.getValue.mockReturnValue(undefined);
         expect(ExtJS.isAuthStateResolved()).toBe(true);
       });
 
       it('is resolved when reading the state throws', () => {
-        global.NX.State.getValue.mockImplementation(() => {
-          throw new Error('NX.getApplication is not a function');
+        global.AS.State.getValue.mockImplementation(() => {
+          throw new Error('AS.getApplication is not a function');
         });
         expect(ExtJS.isAuthStateResolved()).toBe(true);
       });
@@ -526,21 +526,21 @@ describe('ExtJS', () => {
 
     describe('whenAuthStateResolved', () => {
       it('resolves without subscribing when the auth state is already known', async () => {
-        global.NX.State.getValue.mockReturnValue(undefined);
+        global.AS.State.getValue.mockReturnValue(undefined);
 
         await expect(ExtJS.whenAuthStateResolved()).resolves.toBeUndefined();
         expect(stateController.on).not.toHaveBeenCalled();
-        expect(global.NX.State.refreshNow).not.toHaveBeenCalled();
+        expect(global.AS.State.refreshNow).not.toHaveBeenCalled();
       });
 
       it('requests an immediate poll and resolves when the user arrives', async () => {
         const promise = ExtJS.whenAuthStateResolved(5000);
 
-        expect(global.NX.State.refreshNow).toHaveBeenCalled();
+        expect(global.AS.State.refreshNow).toHaveBeenCalled();
         expect(handlers.userchanged).toBeDefined();
         expect(handlers.receivingchanged).toBeDefined();
 
-        global.NX.Security.hasUser.mockReturnValue(true);
+        global.AS.Security.hasUser.mockReturnValue(true);
         handlers.userchanged();
 
         await expect(promise).resolves.toBeUndefined();
@@ -560,7 +560,7 @@ describe('ExtJS', () => {
       });
 
       it('resolves even when requesting a poll throws', async () => {
-        global.NX.State.refreshNow.mockImplementation(() => {
+        global.AS.State.refreshNow.mockImplementation(() => {
           throw new Error('polling urls not registered');
         });
 

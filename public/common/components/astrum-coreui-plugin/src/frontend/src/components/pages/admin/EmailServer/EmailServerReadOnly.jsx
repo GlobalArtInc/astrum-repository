@@ -2,10 +2,10 @@
 import React from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxReadOnly,
-  NxLoadWrapper,
-  NxInfoAlert,
-  NxH2,
+  AsReadOnly,
+  AsLoadWrapper,
+  AsInfoAlert,
+  AsH2,
 } from '@globalart/react-shared-components';
 
 import {FormUtils, ReadOnlyField} from '@globalart/astrum-ui-plugin';
@@ -29,14 +29,14 @@ export default function EmailServerReadOnly() {
 
   const renderData = (label, value) => {
     const enable = value ? 'ENABLE' : 'NOT_ENABLE';
-    return <NxReadOnly.Data>{READ_ONLY[enable][label]}</NxReadOnly.Data>;
+    return <AsReadOnly.Data>{READ_ONLY[enable][label]}</AsReadOnly.Data>;
   };
 
   return (
-    <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
-      <NxH2>{LABELS.SECTIONS.SETUP}</NxH2>
-      <NxInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</NxInfoAlert>
-      <NxReadOnly>
+    <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+      <AsH2>{LABELS.SECTIONS.SETUP}</AsH2>
+      <AsInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</AsInfoAlert>
+      <AsReadOnly>
         <ReadOnlyField label={LABELS.ENABLED.LABEL} value={enabled} />
         {data.enabled && (
           <>
@@ -58,14 +58,14 @@ export default function EmailServerReadOnly() {
               label={LABELS.SUBJECT_PREFIX.LABEL}
               value={data.subjectPrefix}
             />
-            <NxReadOnly.Label>{LABELS.SSL_TLS_OPTIONS.LABEL}</NxReadOnly.Label>
+            <AsReadOnly.Label>{LABELS.SSL_TLS_OPTIONS.LABEL}</AsReadOnly.Label>
             {renderData('ENABLE_STARTTLS', data.startTlsEnabled)}
             {renderData('REQUIRE_STARTTLS', data.startTlsRequired)}
             {renderData('ENABLE_SSL_TLS', data.sslOnConnectEnabled)}
             {renderData('IDENTITY_CHECK', data.sslServerIdentityCheckEnabled)}
           </>
         )}
-      </NxReadOnly>
-    </NxLoadWrapper>
+      </AsReadOnly>
+    </AsLoadWrapper>
   );
 }

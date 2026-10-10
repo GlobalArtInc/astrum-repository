@@ -6,18 +6,18 @@ import {faTrash} from "@fortawesome/free-solid-svg-icons";
 
 import {DynamicFormField, ExtJS, FormUtils, Permissions} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxCheckbox,
-  NxFieldset,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormSelect,
-  NxInfoAlert,
-  NxP,
-  NxStatefulForm,
-  NxTextInput,
-  NxTooltip,
-  NxWarningAlert
+  AsButton,
+  AsCheckbox,
+  AsFieldset,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormSelect,
+  AsInfoAlert,
+  AsP,
+  AsStatefulForm,
+  AsTextInput,
+  AsTooltip,
+  AsWarningAlert
 } from '@globalart/react-shared-components';
 
 import {
@@ -137,49 +137,49 @@ export default function BlobStoresForm() {
                  description={isEdit ? FORM.EDIT_DESCRIPTION(type?.name || pristineData.type) : null}/>
       {isEdit && type?.id !== 'group' && types?.some(type => type.id === 'group') &&
       <PageActions>
-        <NxButton variant="primary" onClick={modalConvertToGroupOpen} disabled={!hasUpdatePermissions} data-analytics-id="as-blobstore-convert-to-group">{FORM.CONVERT_TO_GROUP_BUTTON}</NxButton>
+        <AsButton variant="primary" onClick={modalConvertToGroupOpen} disabled={!hasUpdatePermissions} data-analytics-id="as-blobstore-convert-to-group">{FORM.CONVERT_TO_GROUP_BUTTON}</AsButton>
       </PageActions>
       }
     </PageHeader>
     <Section>
-      <NxStatefulForm className="as-blob-stores-form"
+      <AsStatefulForm className="as-blob-stores-form"
         {...formProps}
         submitErrorTitleMessage={getErrorTitleMessage()}
         onCancel={onDone}
         submitBtnClasses={!hasUpdatePermissions && 'disabled'}
         additionalFooterBtns={isEdit &&
-          <NxTooltip title={deleteTooltip}>
-            <NxButton variant="tertiary" className={cannotDelete && 'disabled'} onClick={confirmDelete} type="button" data-analytics-id="as-blobstore-delete">
-              <NxFontAwesomeIcon icon={faTrash}/>
+          <AsTooltip title={deleteTooltip}>
+            <AsButton variant="tertiary" className={cannotDelete && 'disabled'} onClick={confirmDelete} type="button" data-analytics-id="as-blobstore-delete">
+              <AsFontAwesomeIcon icon={faTrash}/>
               <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
-            </NxButton>
-          </NxTooltip>
+            </AsButton>
+          </AsTooltip>
         }
       >
-        {isEdit && hasUpdatePermissions && <NxInfoAlert>{FORM.EDIT_WARNING}</NxInfoAlert>}
-        {isEdit && !hasUpdatePermissions && <NxWarningAlert>{FORM.NO_PERMISSION_WARNING}</NxWarningAlert>}
+        {isEdit && hasUpdatePermissions && <AsInfoAlert>{FORM.EDIT_WARNING}</AsInfoAlert>}
+        {isEdit && !hasUpdatePermissions && <AsWarningAlert>{FORM.NO_PERMISSION_WARNING}</AsWarningAlert>}
         {isCreate &&
-        <NxFormGroup label={FORM.TYPE.label} sublabel={FORM.TYPE.sublabel} isRequired>
-          <NxFormSelect {...FormUtils.selectProps('type', current)} value={type?.id} onChange={setType}>
+        <AsFormGroup label={FORM.TYPE.label} sublabel={FORM.TYPE.sublabel} isRequired>
+          <AsFormSelect {...FormUtils.selectProps('type', current)} value={type?.id} onChange={setType}>
             <option disabled={isTypeSelected} value=""></option>
             {types?.map(({id, name}) => <option key={id} value={id}>{name}</option>)}
-          </NxFormSelect>
-        </NxFormGroup>
+          </AsFormSelect>
+        </AsFormGroup>
         }
         {isTypeSelected &&
         <>
           {(isCreate || (isEdit && hasUpdatePermissions)) && <BlobStoreWarning type={type} service={service} />}
           {isCreate &&
-              <NxFormGroup
+              <AsFormGroup
                   className="blob-store-name"
                   label={FORM.NAME.label}
                   isRequired
               >
-                <NxTextInput
+                <AsTextInput
                     {...FormUtils.fieldProps('name', current)}
                     onChange={FormUtils.handleUpdate('name', send)}
                 />
-              </NxFormGroup>
+              </AsFormGroup>
           }
           <CustomBlobStoreSettings type={type} service={service}/>
           {type?.fields?.map(field =>
@@ -192,32 +192,32 @@ export default function BlobStoresForm() {
                   dynamicProps={field} />
           )}
           <div className="as-soft-quota">
-            <NxFieldset label={FORM.SOFT_QUOTA.ENABLED.label} sublabel={FORM.SOFT_QUOTA.ENABLED.sublabel}>
-              <NxCheckbox {...FormUtils.checkboxProps(['softQuota', 'enabled'], current)} onChange={toggleSoftQuota}>
+            <AsFieldset label={FORM.SOFT_QUOTA.ENABLED.label} sublabel={FORM.SOFT_QUOTA.ENABLED.sublabel}>
+              <AsCheckbox {...FormUtils.checkboxProps(['softQuota', 'enabled'], current)} onChange={toggleSoftQuota}>
                 {FORM.SOFT_QUOTA.ENABLED.text}
-              </NxCheckbox>
-            </NxFieldset>
+              </AsCheckbox>
+            </AsFieldset>
 
             {hasSoftQuota &&
             <>
-              <NxFormGroup label={FORM.SOFT_QUOTA.TYPE.label} isRequired>
+              <AsFormGroup label={FORM.SOFT_QUOTA.TYPE.label} isRequired>
                 {canUseSpaceUsedQuotaOnly(type)
-                  ? <NxP>{spaceUsedQuotaName}</NxP>
-                  : <NxFormSelect {...FormUtils.fieldProps(['softQuota', 'type'], current)} validatable onChange={updateSoftQuotaType}>
+                  ? <AsP>{spaceUsedQuotaName}</AsP>
+                  : <AsFormSelect {...FormUtils.fieldProps(['softQuota', 'type'], current)} validatable onChange={updateSoftQuotaType}>
                       <option value="" disabled></option>
                       {quotaTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-                    </NxFormSelect>
+                    </AsFormSelect>
                 }
-              </NxFormGroup>
-              <NxFormGroup label={FORM.SOFT_QUOTA.LIMIT.label} isRequired>
-                <NxTextInput {...FormUtils.fieldProps(['softQuota', 'limit'], current)} onChange={updateSoftQuotaLimit}/>
-              </NxFormGroup>
+              </AsFormGroup>
+              <AsFormGroup label={FORM.SOFT_QUOTA.LIMIT.label} isRequired>
+                <AsTextInput {...FormUtils.fieldProps(['softQuota', 'limit'], current)} onChange={updateSoftQuotaLimit}/>
+              </AsFormGroup>
             </>
             }
           </div>
         </>
         }
-      </NxStatefulForm>
+      </AsStatefulForm>
     </Section>
     {showConvertToGroupModal &&
         <BlobStoresConvertModal

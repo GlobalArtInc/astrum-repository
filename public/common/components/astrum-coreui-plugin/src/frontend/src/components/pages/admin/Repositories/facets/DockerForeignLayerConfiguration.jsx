@@ -8,14 +8,14 @@ import {isEmpty} from 'ramda';
 import {faTrashAlt, faPlusCircle} from '@fortawesome/free-solid-svg-icons';
 
 import {
-  NxCheckbox,
-  NxFieldset,
-  NxFormGroup,
-  NxTextInput,
-  NxList,
-  NxFontAwesomeIcon,
-  NxButton,
-  NxFormRow,
+  AsCheckbox,
+  AsFieldset,
+  AsFormGroup,
+  AsTextInput,
+  AsList,
+  AsFontAwesomeIcon,
+  AsButton,
+  AsFormRow,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -96,8 +96,8 @@ export default function DockerForeignLayerConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxFieldset label={EDITOR.FOREIGN_LAYER.CACHING} isRequired>
-        <NxCheckbox
+      <AsFieldset label={EDITOR.FOREIGN_LAYER.CACHING} isRequired>
+        <AsCheckbox
           {...FormUtils.checkboxProps(
             'dockerProxy.cacheForeignLayers',
             currentParent
@@ -105,18 +105,18 @@ export default function DockerForeignLayerConfiguration({parentMachine}) {
           onChange={toggleForeignLayer}
         >
           {EDITOR.FOREIGN_LAYER.CHECKBOX}
-        </NxCheckbox>
-      </NxFieldset>
+        </AsCheckbox>
+      </AsFieldset>
       {cacheForeignLayers && (
-        <NxFormRow className="nx-foreign-layer">
+        <AsFormRow className="as-foreign-layer">
           <>
-            <NxFormGroup
+            <AsFormGroup
               label={EDITOR.FOREIGN_LAYER.URL}
               sublabel={EDITOR.FOREIGN_LAYER.URL_SUBLABEL}
               isRequired
             >
-              <NxTextInput
-                className="nx-text-input--long"
+              <AsTextInput
+                className="as-text-input--long"
                 {...FormUtils.fieldProps(
                   'dockerProxy.foreignLayer',
                   currentParent
@@ -127,37 +127,37 @@ export default function DockerForeignLayerConfiguration({parentMachine}) {
                 )}
                 onKeyDown={handleEnter}
               />
-            </NxFormGroup>
-            <NxButton
+            </AsFormGroup>
+            <AsButton
               variant="icon-only"
               title={EDITOR.FOREIGN_LAYER.ADD}
               onClick={addUrlPattern}
               type="button"
             >
-              <NxFontAwesomeIcon icon={faPlusCircle} />
-            </NxButton>
+              <AsFontAwesomeIcon icon={faPlusCircle} />
+            </AsButton>
           </>
-        </NxFormRow>
+        </AsFormRow>
       )}
       {cacheForeignLayers && foreignLayerUrlWhitelist.length > 0 && (
-        <NxList className="nx-foreign-layer">
+        <AsList className="as-foreign-layer">
           {foreignLayerUrlWhitelist.map((layer, index) => (
-            <NxList.Item key={layer}>
-              <NxList.Text>{layer}</NxList.Text>
-              <NxList.Actions>
-                <NxButton
+            <AsList.Item key={layer}>
+              <AsList.Text>{layer}</AsList.Text>
+              <AsList.Actions>
+                <AsButton
                   title={EDITOR.FOREIGN_LAYER.REMOVE}
                   variant="icon-only"
                   onClick={() => removeUrlPattern(index)}
                   className={foreignLayerUrlWhitelist.length <= 1 ? 'disabled' : null}
                   type="button"
                 >
-                  <NxFontAwesomeIcon icon={faTrashAlt} />
-                </NxButton>
-              </NxList.Actions>
-            </NxList.Item>
+                  <AsFontAwesomeIcon icon={faTrashAlt} />
+                </AsButton>
+              </AsList.Actions>
+            </AsList.Item>
           ))}
-        </NxList>
+        </AsList>
       )}
     </>
   );

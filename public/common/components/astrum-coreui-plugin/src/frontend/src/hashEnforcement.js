@@ -31,10 +31,10 @@ export function getContextPath() {
  * Astrum bundle script URL and preserving it in the redirected URL.
  */
 export function enforceHashRouting() {
-  if (typeof window === 'undefined' || window.__nxHashEnforced) {
+  if (typeof window === 'undefined' || window.__asHashEnforced) {
     return;
   }
-  window.__nxHashEnforced = true;
+  window.__asHashEnforced = true;
 
   const { hash, pathname, search, origin } = window.location;
   if (!hash && pathname && pathname !== '/') {

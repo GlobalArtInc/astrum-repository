@@ -661,7 +661,7 @@ function buildRepositoryConfig(data: RepositoryFormData): Record<string, unknown
   if (data.format === 'nuget' && data.type === 'proxy') {
     // Symbol-server attributes are only emitted when the feature flag is enabled, matching
     // the Classic UI behavior (see NugetProxy.js which gates `container.insert` for the two
-    // symbol fields on the same NX.State check). Without this gate the Preview UI would
+    // symbol fields on the same AS.State check). Without this gate the Preview UI would
     // silently persist `allowAnonymousSymbolAccess: true` on every nuget-proxy create,
     // even when the backend routes wired by the flag aren't registered — diverging from
     // Classic UI and producing inert config that survives across flag toggles.

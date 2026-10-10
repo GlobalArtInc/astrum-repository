@@ -5,17 +5,17 @@ import {useMachine} from '@xstate/react';
 import ListMachineUtils from '../../../interface/ListMachineUtils';
 import ValidationUtils from '../../../interface/ValidationUtils';
 import {
-  NxButton,
-  NxFilterInput,
-  NxFormSelect,
-  NxLoadWrapper,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTooltip,
-  NxWarningAlert
+  AsButton,
+  AsFilterInput,
+  AsFormSelect,
+  AsLoadWrapper,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTooltip,
+  AsWarningAlert
 } from '@globalart/react-shared-components';
 
 import {Section, SectionToolbar} from '../../layout';
@@ -74,17 +74,17 @@ export default function CleanupPoliciesPreview({policyData}) {
   }
 
   return <Section className="as-cleanup-policies-preview">
-    <NxLoadWrapper loading={isLoadingRepositories} error={repositoryLoadError} retryHandler={retryForm}>
+    <AsLoadWrapper loading={isLoadingRepositories} error={repositoryLoadError} retryHandler={retryForm}>
       {() => <>
-        <div className="nx-form-group cleanup-preview-repository-group">
-          <label id="preview-repository-label" className="nx-label nx-label--optional" htmlFor="repository">
-            <span className="nx-label__text">{UIStrings.CLEANUP_POLICIES.PREVIEW.REPOSITORY_LABEL}</span>
+        <div className="as-form-group cleanup-preview-repository-group">
+          <label id="preview-repository-label" className="as-label as-label--optional" htmlFor="repository">
+            <span className="as-label__text">{UIStrings.CLEANUP_POLICIES.PREVIEW.REPOSITORY_LABEL}</span>
           </label>
-          <div id="preview-repository-sub-label" className="nx-sub-label">
+          <div id="preview-repository-sub-label" className="as-sub-label">
             {UIStrings.CLEANUP_POLICIES.PREVIEW.REPOSITORY_DESCRIPTION}
           </div>
-          <div className="nx-form-row">
-            <NxFormSelect
+          <div className="as-form-row">
+            <AsFormSelect
                 id="repository"
                 name="repository"
                 onChange={repositoryChangeHandler}
@@ -96,55 +96,55 @@ export default function CleanupPoliciesPreview({policyData}) {
               {repositories.map(({id, name}) =>
                   <option key={id} value={id}>{name}</option>
               )}
-            </NxFormSelect>
-            <NxTooltip title={previewUnavailable ? UIStrings.CLEANUP_POLICIES.PREVIEW.BUTTON_TOOLTIP : undefined}>
-              <NxButton className={previewUnavailable ? 'disabled' : ''} onClick={previewHandler}>
+            </AsFormSelect>
+            <AsTooltip title={previewUnavailable ? UIStrings.CLEANUP_POLICIES.PREVIEW.BUTTON_TOOLTIP : undefined}>
+              <AsButton className={previewUnavailable ? 'disabled' : ''} onClick={previewHandler}>
                 {UIStrings.CLEANUP_POLICIES.PREVIEW.BUTTON}
-              </NxButton>
-            </NxTooltip>
+              </AsButton>
+            </AsTooltip>
           </div>
         </div>
         {isAlertShown &&
-            <NxWarningAlert onClose={() => sendToList({type: 'HIDE_ALERT'})}>
-              <p className="nx-p">{UIStrings.CLEANUP_POLICIES.PREVIEW.SAMPLE_WARNING}</p>
-              <p className="nx-p">{UIStrings.CLEANUP_POLICIES.PREVIEW.COMPONENT_COUNT(data.length, total)}</p>
-            </NxWarningAlert>}
+            <AsWarningAlert onClose={() => sendToList({type: 'HIDE_ALERT'})}>
+              <p className="as-p">{UIStrings.CLEANUP_POLICIES.PREVIEW.SAMPLE_WARNING}</p>
+              <p className="as-p">{UIStrings.CLEANUP_POLICIES.PREVIEW.COMPONENT_COUNT(data.length, total)}</p>
+            </AsWarningAlert>}
         <SectionToolbar>
           <div className="as-spacer"/>
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               onChange={filterPreview}
               value={filter}
               placeholder={UIStrings.CLEANUP_POLICIES.FILTER_PLACEHOLDER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>
                 {UIStrings.CLEANUP_POLICIES.PREVIEW.NAME_COLUMN}
-              </NxTableCell>
-              <NxTableCell onClick={sortByGroup} isSortable sortDir={groupSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={sortByGroup} isSortable sortDir={groupSortDir}>
                 {UIStrings.CLEANUP_POLICIES.PREVIEW.GROUP_COLUMN}
-              </NxTableCell>
-              <NxTableCell onClick={sortByVersion} isSortable sortDir={versionSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={sortByVersion} isSortable sortDir={versionSortDir}>
                 {UIStrings.CLEANUP_POLICIES.PREVIEW.VERSION_COLUMN}
-              </NxTableCell>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoadingPreview}
+              </AsTableCell>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoadingPreview}
                        error={previewError}
                        retryHandler={retryPreview}
                        emptyMessage={UIStrings.CLEANUP_POLICIES.PREVIEW.EMPTY}>
             {hasData && data?.map(({name, group, version, repository}) =>
-                <NxTableRow key={`${name}${group}${version}${repository}`}>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{group}</NxTableCell>
-                  <NxTableCell>{version}</NxTableCell>
-                </NxTableRow>
+                <AsTableRow key={`${name}${group}${version}${repository}`}>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{group}</AsTableCell>
+                  <AsTableCell>{version}</AsTableCell>
+                </AsTableRow>
             )}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </>}
-    </NxLoadWrapper>
+    </AsLoadWrapper>
   </Section>;
 }

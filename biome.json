@@ -60,7 +60,7 @@
   },
   "javascript": {
     "formatter": { "trailingCommas": "none", "quoteStyle": "single" },
-    "globals": ["Ext", "NX", "module", "process", "jest", "describe", "it", "expect", "beforeEach", "afterEach", "test", "vi"],
+    "globals": ["Ext", "AS", "module", "process", "jest", "describe", "it", "expect", "beforeEach", "afterEach", "test", "vi"],
     "jsxRuntime": "reactClassic"
   },
   "json": { "formatter": { "enabled": false } },

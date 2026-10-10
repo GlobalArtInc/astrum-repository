@@ -2,7 +2,7 @@
 
 .raw-search-results {
   background: white;
-  border: 1px solid var(--nx-color-border, #ddd);
+  border: 1px solid var(--as-color-border, #ddd);
   border-radius: 8px;
 
   &--loading,
@@ -14,18 +14,18 @@
     justify-content: center;
     padding: 48px;
     gap: 12px;
-    color: var(--nx-color-text-secondary, #666);
+    color: var(--as-color-text-secondary, #666);
   }
 
   &--error {
-    color: var(--nx-color-error, #c00);
+    color: var(--as-color-error, #c00);
   }
 
   &__spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid var(--nx-color-border, #ddd);
-    border-top-color: var(--nx-color-primary, #0066cc);
+    border: 3px solid var(--as-color-border, #ddd);
+    border-top-color: var(--as-color-primary, #0066cc);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -41,13 +41,13 @@
 
   &__header {
     padding: 12px 16px;
-    border-bottom: 1px solid var(--nx-color-border, #eee);
-    background: var(--nx-color-background-secondary, #fafafa);
+    border-bottom: 1px solid var(--as-color-border, #eee);
+    background: var(--as-color-background-secondary, #fafafa);
   }
 
   &__count {
     font-size: 13px;
-    color: var(--nx-color-text-secondary, #666);
+    color: var(--as-color-text-secondary, #666);
   }
 
   &__list {
@@ -58,19 +58,19 @@
   &__load-more {
     padding: 16px;
     text-align: center;
-    border-top: 1px solid var(--nx-color-border, #eee);
+    border-top: 1px solid var(--as-color-border, #eee);
   }
 
   &__load-more-button {
     padding: 8px 24px;
-    background: var(--nx-color-background-secondary, #f5f5f5);
-    border: 1px solid var(--nx-color-border, #ddd);
+    background: var(--as-color-background-secondary, #f5f5f5);
+    border: 1px solid var(--as-color-border, #ddd);
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
 
     &:hover:not(:disabled) {
-      background: var(--nx-color-background-hover, #eee);
+      background: var(--as-color-background-hover, #eee);
     }
 
     &:disabled {

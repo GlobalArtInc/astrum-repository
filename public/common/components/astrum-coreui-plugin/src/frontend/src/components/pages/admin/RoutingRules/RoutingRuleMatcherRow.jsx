@@ -4,12 +4,12 @@ import React from 'react';
 import {faTrash} from '@fortawesome/free-solid-svg-icons';
 
 import {
-  NxButton,
-  NxButtonBar,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormRow,
-  NxTextInput
+  AsButton,
+  AsButtonBar,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormRow,
+  AsTextInput
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -17,22 +17,22 @@ import UIStrings from '../../../../constants/UIStrings';
 const {ROUTING_RULES} = UIStrings;
 
 export default function RoutingRuleMatcherRow({label, showRemoveButton, onRemove, ...props}) {
-  return <NxFormRow className="routing-rule-matcher">
+  return <AsFormRow className="routing-rule-matcher">
     {/*Use an empty label to avoid error with no label being provided*/}
-    <NxFormGroup label={label}>
-      <NxTextInput
-          className="nx-text-input--long"
+    <AsFormGroup label={label}>
+      <AsTextInput
+          className="as-text-input--long"
           label={label}
           {...props} />
-    </NxFormGroup>
+    </AsFormGroup>
     {showRemoveButton &&
-        <NxButtonBar>
-          <NxButton
+        <AsButtonBar>
+          <AsButton
               type="button"
               title={ROUTING_RULES.FORM.DELETE_MATCHER_BUTTON}
               onClick={onRemove}>
-            <NxFontAwesomeIcon icon={faTrash}/>
-          </NxButton>
-        </NxButtonBar>}
-  </NxFormRow>;
+            <AsFontAwesomeIcon icon={faTrash}/>
+          </AsButton>
+        </AsButtonBar>}
+  </AsFormRow>;
 }

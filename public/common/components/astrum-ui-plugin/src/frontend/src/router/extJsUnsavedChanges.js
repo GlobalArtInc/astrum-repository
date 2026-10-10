@@ -50,9 +50,9 @@ export function useExtJsUnsavedChangesGuard(extContainerRef) {
       if (hash && hash !== '#') {
 
         try {
-          const bookmark = NX.Bookmarks.fromToken(hash);
+          const bookmark = AS.Bookmarks.fromToken(hash);
           if (bookmark) {
-            NX.Bookmarks.navigateTo(bookmark);
+            AS.Bookmarks.navigateTo(bookmark);
           } else {
             console.warn('[goToHash] Could not create bookmark from hash:', hash);
             window.location.hash = hash;

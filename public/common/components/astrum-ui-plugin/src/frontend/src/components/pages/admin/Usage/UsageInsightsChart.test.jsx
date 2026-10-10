@@ -10,15 +10,15 @@ import * as UsageInsightsUtils from './UsageInsightsUtils';
 // Mock dependencies
 jest.mock('@xstate/react');
 jest.mock('@globalart/react-shared-components', () => ({
-  NxH4: ({children}) => <h4>{children}</h4>,
-  NxNavigationDropdown: {
+  AsH4: ({children}) => <h4>{children}</h4>,
+  AsNavigationDropdown: {
     MenuHeader: ({children}) => <div>{children}</div>
   },
-  NxStatefulNavigationDropdown: ({title, children, className, onToggleCollapse}) => (
+  AsStatefulNavigationDropdown: ({title, children, className, onToggleCollapse}) => (
     <div className={className}>
       <button
         aria-label={title}
-        className="nx-icon-dropdown__toggle"
+        className="as-icon-dropdown__toggle"
         onClick={onToggleCollapse}
       >
         {title}
@@ -26,8 +26,8 @@ jest.mock('@globalart/react-shared-components', () => ({
       {children}
     </div>
   ),
-  NxWarningAlert: ({children}) => <div role="alert">{children}</div>,
-  NxErrorAlert: ({children}) => <div role="alert">{children}</div>
+  AsWarningAlert: ({children}) => <div role="alert">{children}</div>,
+  AsErrorAlert: ({children}) => <div role="alert">{children}</div>
 }));
 jest.mock('@fortawesome/free-solid-svg-icons', () => ({
   faFilter: {}
@@ -402,7 +402,7 @@ describe('UsageInsightsChart', () => {
     expect(within(tooltip).getByText('Peak Storage')).toBeInTheDocument();
   });
 
-  it('renders NxStatefulNavigationDropdown with correct initial state', () => {
+  it('renders AsStatefulNavigationDropdown with correct initial state', () => {
     render(<UsageInsightsChart/>);
 
     // Check that the dropdown exists with the correct class
@@ -410,7 +410,7 @@ describe('UsageInsightsChart', () => {
     expect(dropdown).toBeInTheDocument();
 
     // Check for filter icon button
-    const filterButton = document.querySelector('.nx-icon-dropdown__toggle');
+    const filterButton = document.querySelector('.as-icon-dropdown__toggle');
     expect(filterButton).toBeInTheDocument();
   });
 
@@ -465,11 +465,11 @@ describe('UsageInsightsChart', () => {
     const storageColor = screen.getByTestId('storage-color');
     const egressColor = screen.getByTestId('egress-color');
 
-    // Storage should get chartStorageColor (--nx-color-chart-data-4)
-    expect(storageColor.textContent).toBe('var(--nx-color-chart-data-4)');
+    // Storage should get chartStorageColor (--as-color-chart-data-4)
+    expect(storageColor.textContent).toBe('var(--as-color-chart-data-4)');
 
-    // Egress should get chartEgressColor (--nx-color-chart-data-1)
-    expect(egressColor.textContent).toBe('var(--nx-color-chart-data-1)');
+    // Egress should get chartEgressColor (--as-color-chart-data-1)
+    expect(egressColor.textContent).toBe('var(--as-color-chart-data-1)');
   });
 
   it('formats axis left values with HumanReadableUtils.bytesToString', () => {
@@ -494,7 +494,7 @@ describe('UsageInsightsChart', () => {
     const {container} = render(<UsageInsightsChart/>);
 
     // Find and click a month option button directly
-    const monthOptionButtons = container.querySelectorAll('.nx-dropdown-link');
+    const monthOptionButtons = container.querySelectorAll('.as-dropdown-link');
     expect(monthOptionButtons.length).toBeGreaterThan(0);
 
     // Click the first month option

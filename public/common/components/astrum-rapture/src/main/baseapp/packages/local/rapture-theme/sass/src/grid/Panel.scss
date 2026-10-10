@@ -13,9 +13,9 @@
 );
 
 /**
- * cls: 'nx-rowexpander'
+ * cls: 'as-rowexpander'
  */
-.nx-rowexpander {
+.as-rowexpander {
   padding: 5px;
 
   tbody {
@@ -27,9 +27,9 @@
 }
 
 /**
- * cls: 'nx-disabled-row'
+ * cls: 'as-disabled-row'
  */
-.nx-disabled-row {
+.as-disabled-row {
   td {
     color: $color-dark-gray;
 
@@ -49,7 +49,7 @@
   }
 }
 
-.x-panel-nx-subsection-framed .grid-with-border {
+.x-panel-as-subsection-framed .grid-with-border {
   .x-grid-header-ct {
     border-left: 1px solid $color-gainsboro !important;
     border-right: 1px solid $color-gainsboro !important;
@@ -64,7 +64,7 @@
   }
 }
 
-.nx-drilldown-master {
+.as-drilldown-master {
   .x-grid-item {
     padding: 2px 0;
   }

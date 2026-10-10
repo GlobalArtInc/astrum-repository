@@ -100,7 +100,7 @@ module.exports = {
       ignoreOrder: true
     }),
     new rspack.DefinePlugin({
-      __NX_BUILD_COMMIT__: JSON.stringify(gitCommit),
+      __AS_BUILD_COMMIT__: JSON.stringify(gitCommit),
       // Set GLOBALART_INTERNAL=true in your environment to include internal test pages.
       // These are excluded from production customer builds when this is not set.
       // Usage: GLOBALART_INTERNAL=true yarn build-all

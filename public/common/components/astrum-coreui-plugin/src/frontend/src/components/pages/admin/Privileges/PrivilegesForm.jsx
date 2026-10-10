@@ -9,15 +9,15 @@ import {
   FormFieldsFactory,
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxH2,
-  NxFieldset,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormSelect,
-  NxStatefulForm,
-  NxTextInput,
-  NxTile
+  AsButton,
+  AsH2,
+  AsFieldset,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormSelect,
+  AsStatefulForm,
+  AsTextInput,
+  AsTile
 } from '@globalart/react-shared-components';
 
 import {faTrash} from '@fortawesome/free-solid-svg-icons';
@@ -69,20 +69,20 @@ export default function PrivilegesForm({itemId, service, onDone}) {
     }
   }, [type, current.context.data.format, send]);
 
-  return <NxStatefulForm
+  return <AsStatefulForm
       {...FormUtils.formProps(current, send)}
       onCancel={cancel}
       additionalFooterBtns={isEdit && canDelete &&
-          <NxButton variant="tertiary" onClick={confirmDelete} type="button">
-            <NxFontAwesomeIcon icon={faTrash}/>
+          <AsButton variant="tertiary" onClick={confirmDelete} type="button">
+            <AsFontAwesomeIcon icon={faTrash}/>
             <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
-          </NxButton>
+          </AsButton>
       }
   >
-    <NxTile.Content>
-      <NxH2>{LABELS.SECTIONS.SETUP}</NxH2>
-      <NxFormGroup label={LABELS.TYPE.LABEL} isRequired>
-        <NxFormSelect
+    <AsTile.Content>
+      <AsH2>{LABELS.SECTIONS.SETUP}</AsH2>
+      <AsFormGroup label={LABELS.TYPE.LABEL} isRequired>
+        <AsFormSelect
             {...FormUtils.selectProps('type', current)}
             value={type}
             disabled={isEdit}
@@ -90,28 +90,28 @@ export default function PrivilegesForm({itemId, service, onDone}) {
             validatable>
           <option disabled={isTypeSelected} value=""/>
           {Object.values(types)?.map(({id, name}) => <option key={id} value={id}>{name}</option>)}
-        </NxFormSelect>
-      </NxFormGroup>
-      <NxFormGroup label={LABELS.NAME.LABEL} isRequired>
-        <NxTextInput
-            className="nx-text-input--long"
+        </AsFormSelect>
+      </AsFormGroup>
+      <AsFormGroup label={LABELS.NAME.LABEL} isRequired>
+        <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('name', current)}
             onChange={FormUtils.handleUpdate('name', send)}
             disabled={isEdit}
         />
-      </NxFormGroup>
-      <NxFormGroup label={LABELS.DESCRIPTION.LABEL}>
-        <NxTextInput
-            className="nx-text-input--long"
+      </AsFormGroup>
+      <AsFormGroup label={LABELS.DESCRIPTION.LABEL}>
+        <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('description', current)}
             onChange={FormUtils.handleUpdate('description', send)}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
       {type && <>
         {FormFieldsFactory.getFields(filteredFields)?.map(({Field, props}) => (
           props.id === 'actions' ?
-            <NxFieldset
+            <AsFieldset
                 key={props.id}
                 label={props.label}
                 sublabel={props.helpText}
@@ -125,8 +125,8 @@ export default function PrivilegesForm({itemId, service, onDone}) {
                   current={current}
                   onChange={onChangeField}
               />
-            </NxFieldset> :
-            <NxFormGroup
+            </AsFieldset> :
+            <AsFormGroup
                 key={props.id}
                 label={props.label}
                 sublabel={props.helpText}
@@ -138,9 +138,9 @@ export default function PrivilegesForm({itemId, service, onDone}) {
                   current={current}
                   onChange={onChangeField}
               />
-            </NxFormGroup>
+            </AsFormGroup>
         ))}
       </>}
-    </NxTile.Content>
-  </NxStatefulForm>;
+    </AsTile.Content>
+  </AsStatefulForm>;
 }

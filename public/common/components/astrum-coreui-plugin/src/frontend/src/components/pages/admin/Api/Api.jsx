@@ -9,9 +9,9 @@ import {
   PageTitle
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxTextInput,
-  NxFormGroup,
-  NxButton
+  AsTextInput,
+  AsFormGroup,
+  AsButton
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -19,7 +19,7 @@ import 'swagger-ui-react/swagger-ui.css';
 import './Api.scss';
 
 function requestInterceptor(request) {
-  request.headers['NX-ANTI-CSRF-TOKEN'] = (document.cookie.match('(^|; )NX-ANTI-CSRF-TOKEN=([^;]*)')||0)[2];
+  request.headers['AS-ANTI-CSRF-TOKEN'] = (document.cookie.match('(^|; )AS-ANTI-CSRF-TOKEN=([^;]*)')||0)[2];
   request.headers['X-Astrum-UI'] = true;
   return request;
 }
@@ -94,28 +94,28 @@ export default function Api() {
       </PageHeader>
       <ContentBody className="as-api">
         <div className="api-search-container">
-          <NxFormGroup 
+          <AsFormGroup 
             label="Search Operations" 
             sublabel="Search by operation name, path, or description"
           >
-            <NxTextInput
+            <AsTextInput
               placeholder="Enter search term..."
               value={searchTerm}
               onChange={setSearchTerm}
               data-analytics-id="swagger-ui-search-input"
             />
-          </NxFormGroup>
+          </AsFormGroup>
           {searchTerm && (
             <div className="api-search-feedback">
               <strong>Filtering:</strong> Operations containing "{searchTerm}"
-              <NxButton
+              <AsButton
                 variant="tertiary"
                 className="api-search-clear-btn"
                 onClick={() => setSearchTerm('')}
                 data-analytics-id="swagger-ui-search-clear-btn"
               >
                 Clear
-              </NxButton>
+              </AsButton>
             </div>
           )}
         </div>

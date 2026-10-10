@@ -2,12 +2,12 @@
 import React from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxReadOnly,
-  NxLoadWrapper,
-  NxAccordion,
-  NxTile,
-  NxInfoAlert,
-  NxH2,
+  AsReadOnly,
+  AsLoadWrapper,
+  AsAccordion,
+  AsTile,
+  AsInfoAlert,
+  AsH2,
 } from '@globalart/react-shared-components';
 
 import {ReadOnlyField} from '@globalart/astrum-ui-plugin';
@@ -28,10 +28,10 @@ export default function HttpReadOnly() {
   const retry = () => send({type: 'RETRY'});
 
   return (
-    <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
-      <NxH2>{LABELS.READ_ONLY.LABEL}</NxH2>
-      <NxInfoAlert>{LABELS.READ_ONLY.WARNING}</NxInfoAlert>
-      <NxReadOnly>
+    <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+      <AsH2>{LABELS.READ_ONLY.LABEL}</AsH2>
+      <AsInfoAlert>{LABELS.READ_ONLY.WARNING}</AsInfoAlert>
+      <AsReadOnly>
         <ReadOnlyField
           label={LABELS.USER_AGENT.LABEL}
           value={data.userAgentSuffix}
@@ -51,13 +51,13 @@ export default function HttpReadOnly() {
           </>
         )}
         {httpEnabled && httpAuthEnabled && (
-          <NxTile.Content className="nx-tile-content--accordion-container">
-            <NxAccordion open={data.httpAuthEnabled}>
-              <NxAccordion.Header>
-                <NxAccordion.Title>
+          <AsTile.Content className="as-tile-content--accordion-container">
+            <AsAccordion open={data.httpAuthEnabled}>
+              <AsAccordion.Header>
+                <AsAccordion.Title>
                   {LABELS.PROXY.HTTP_AUTHENTICATION}
-                </NxAccordion.Title>
-              </NxAccordion.Header>
+                </AsAccordion.Title>
+              </AsAccordion.Header>
               <ReadOnlyField
                 label={LABELS.PROXY.USERNAME}
                 value={data.httpAuthUsername}
@@ -70,8 +70,8 @@ export default function HttpReadOnly() {
                 label={LABELS.PROXY.DOMAIN}
                 value={data.httpAuthNtlmDomain}
               />
-            </NxAccordion>
-          </NxTile.Content>
+            </AsAccordion>
+          </AsTile.Content>
         )}
         {httpsEnabled && (
           <>
@@ -86,13 +86,13 @@ export default function HttpReadOnly() {
           </>
         )}
         {httpsEnabled && httpsAuthEnabled && (
-          <NxTile.Content className="nx-tile-content--accordion-container">
-            <NxAccordion open={data.httpsAuthEnabled}>
-              <NxAccordion.Header>
-                <NxAccordion.Title>
+          <AsTile.Content className="as-tile-content--accordion-container">
+            <AsAccordion open={data.httpsAuthEnabled}>
+              <AsAccordion.Header>
+                <AsAccordion.Title>
                   {LABELS.PROXY.HTTPS_AUTHENTICATION}
-                </NxAccordion.Title>
-              </NxAccordion.Header>
+                </AsAccordion.Title>
+              </AsAccordion.Header>
               <ReadOnlyField
                 label={LABELS.PROXY.USERNAME}
                 value={data.httpsAuthUsername}
@@ -105,18 +105,18 @@ export default function HttpReadOnly() {
                 label={LABELS.PROXY.DOMAIN}
                 value={data.httpsAuthNtlmDomain}
               />
-            </NxAccordion>
-          </NxTile.Content>
+            </AsAccordion>
+          </AsTile.Content>
         )}
         {nonProxyHosts.length > 0 && (
           <>
-            <NxReadOnly.Label>{LABELS.EXCLUDE.LABEL}</NxReadOnly.Label>
+            <AsReadOnly.Label>{LABELS.EXCLUDE.LABEL}</AsReadOnly.Label>
             {nonProxyHosts.map((item) => (
-              <NxReadOnly.Data key={item}>{item}</NxReadOnly.Data>
+              <AsReadOnly.Data key={item}>{item}</AsReadOnly.Data>
             ))}
           </>
         )}
-      </NxReadOnly>
-    </NxLoadWrapper>
+      </AsReadOnly>
+    </AsLoadWrapper>
   );
 }

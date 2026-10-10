@@ -6,16 +6,16 @@ import { faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import { UsageInsightsChart } from './UsageInsightsChart'
 
 import {
-  NxTable,
-  NxTableHead,
-  NxTableRow,
-  NxTableCell,
-  NxTableBody,
-  NxTooltip,
-  NxH2, NxP,
-  NxInfoAlert,
-  NxWarningAlert,
-  NxErrorAlert,
+  AsTable,
+  AsTableHead,
+  AsTableRow,
+  AsTableCell,
+  AsTableBody,
+  AsTooltip,
+  AsH2, AsP,
+  AsInfoAlert,
+  AsWarningAlert,
+  AsErrorAlert,
   useToggle
 } from '@globalart/react-shared-components';
 
@@ -33,52 +33,52 @@ export default function HistoricalUsage({columns}) {
   const isCloud = ExtJS.useState(() => ExtJS.state().getValue('isCloud', false));
 
   return (<>
-        <NxH2>{UIStrings.HISTORICAL_USAGE.TITLE}</NxH2>
-        {isCloud && <NxInfoAlert>{UIStrings.HISTORICAL_USAGE.USAGE_DATA_UPDATE_FREQUENCY}</NxInfoAlert>}
+        <AsH2>{UIStrings.HISTORICAL_USAGE.TITLE}</AsH2>
+        {isCloud && <AsInfoAlert>{UIStrings.HISTORICAL_USAGE.USAGE_DATA_UPDATE_FREQUENCY}</AsInfoAlert>}
         {/*
           IMPORTANT: Order matters here!
           isPermissionError must be checked before loadError to ensure 403 errors
           display the permission message, not the generic error message.
         */}
         {isPermissionError ? (
-          <NxWarningAlert>{UIStrings.HISTORICAL_USAGE.PERMISSION_ERROR}</NxWarningAlert>
+          <AsWarningAlert>{UIStrings.HISTORICAL_USAGE.PERMISSION_ERROR}</AsWarningAlert>
         ) : loadError ? (
-          <NxErrorAlert>
+          <AsErrorAlert>
             {loadError.response?.data?.message || loadError.message || UIStrings.HISTORICAL_USAGE.LOAD_ERROR}
-          </NxErrorAlert>
+          </AsErrorAlert>
         ) : (
           <>
-            <NxP>{UIStrings.HISTORICAL_USAGE.DESCRIPTION}</NxP>
-            {isCloud && isOpen && <NxInfoAlert onClose={dismiss}>{UIStrings.HISTORICAL_USAGE.USAGE_DATA_STORAGE_EXPLANATION}</NxInfoAlert>}
+            <AsP>{UIStrings.HISTORICAL_USAGE.DESCRIPTION}</AsP>
+            {isCloud && isOpen && <AsInfoAlert onClose={dismiss}>{UIStrings.HISTORICAL_USAGE.USAGE_DATA_STORAGE_EXPLANATION}</AsInfoAlert>}
             {isCloud && <UsageInsightsChart />}
 
-            <NxTable className="historical-usage-table">
-              <NxTableHead>
-                <NxTableRow>
+            <AsTable className="historical-usage-table">
+              <AsTableHead>
+                <AsTableRow>
                   {columns.map(column => (
-                      <NxTableCell key={column.key}>
+                      <AsTableCell key={column.key}>
                         {column.Header()}
                         {column.tooltip && column.showTooltip !== false && (
-                            <NxTooltip title={column.tooltip}>
+                            <AsTooltip title={column.tooltip}>
                               <span><FontAwesomeIcon icon={faInfoCircle} /></span>
-                            </NxTooltip>
+                            </AsTooltip>
                         )}
-                      </NxTableCell>
+                      </AsTableCell>
                   ))}
-                </NxTableRow>
-              </NxTableHead>
-              <NxTableBody>
+                </AsTableRow>
+              </AsTableHead>
+              <AsTableBody>
                 {data && data.map((item, index) => (
-                    <NxTableRow key={index}>
+                    <AsTableRow key={index}>
                       {columns.map(column => (
-                          <NxTableCell key={column.key}>
+                          <AsTableCell key={column.key}>
                             {column.Cell(item)}
-                          </NxTableCell>
+                          </AsTableCell>
                       ))}
-                    </NxTableRow>
+                    </AsTableRow>
                 ))}
-              </NxTableBody>
-            </NxTable>
+              </AsTableBody>
+            </AsTable>
           </>
         )}
       </>

@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxFormSelect} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -21,13 +21,13 @@ export default function ContentDespositionConfiguration({parentMachine}) {
   format = format === 'maven2' ? 'maven' : format;
 
   return (
-    <NxFormGroup
+    <AsFormGroup
       label={EDITOR.CONTENT_DISPOSITION_LABEL}
       className="as-form-group-content-disposition"
       sublabel={EDITOR.CONTENT_DISPOSITION_SUBLABEL}
       isRequired
     >
-      <NxFormSelect
+      <AsFormSelect
         {...FormUtils.selectProps(`${format}.contentDisposition`, currentParent)}
         onChange={FormUtils.handleUpdate(`${format}.contentDisposition`, sendParent)}
       >
@@ -36,7 +36,7 @@ export default function ContentDespositionConfiguration({parentMachine}) {
             {key}
           </option>
         ))}
-      </NxFormSelect>
-    </NxFormGroup>
+      </AsFormSelect>
+    </AsFormGroup>
   );
 }

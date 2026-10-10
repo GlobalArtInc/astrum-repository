@@ -2,10 +2,10 @@
 import React from 'react';
 import {useActor} from '@xstate/react';
 import {
-  NxInfoAlert,
-  NxTile,
-  NxH2,
-  NxReadOnly,
+  AsInfoAlert,
+  AsTile,
+  AsH2,
+  AsReadOnly,
 } from '@globalart/react-shared-components';
 import {ReadOnlyField, FormUtils} from '@globalart/astrum-ui-plugin';
 import {findAuthMethod} from './LdapServersHelper';
@@ -28,17 +28,17 @@ export default function LdapServersConfigurationFormReadOnly({actor}) {
 
   return (
     <>
-      <NxInfoAlert>{SETTINGS.READ_ONLY.WARNING}</NxInfoAlert>
-      <NxTile>
-        <NxTile.Header>
-          <NxTile.HeaderTitle>
-            <NxH2>{LABELS.CONFIGURATION}</NxH2>
-          </NxTile.HeaderTitle>
-        </NxTile.Header>
-        <NxTile.Content>
-          <NxReadOnly>
+      <AsInfoAlert>{SETTINGS.READ_ONLY.WARNING}</AsInfoAlert>
+      <AsTile>
+        <AsTile.Header>
+          <AsTile.HeaderTitle>
+            <AsH2>{LABELS.CONFIGURATION}</AsH2>
+          </AsTile.HeaderTitle>
+        </AsTile.Header>
+        <AsTile.Content>
+          <AsReadOnly>
             <ReadOnlyField label={LABELS.NAME} value={data.name} />
-            <NxH2>{LABELS.SETTINGS.LABEL}</NxH2>
+            <AsH2>{LABELS.SETTINGS.LABEL}</AsH2>
             <ReadOnlyField
               label={LABELS.PROTOCOL.LABEL}
               value={data.protocol}
@@ -65,7 +65,7 @@ export default function LdapServersConfigurationFormReadOnly({actor}) {
               label={LABELS.USERNAME.LABEL}
               value={data.authUsername}
             />
-            <NxH2>{LABELS.CONNECTION_RULES.LABEL}</NxH2>
+            <AsH2>{LABELS.CONNECTION_RULES.LABEL}</AsH2>
             <ReadOnlyField
               label={LABELS.WAIT_TIMEOUT.LABEL}
               value={data.connectionTimeoutSeconds}
@@ -78,9 +78,9 @@ export default function LdapServersConfigurationFormReadOnly({actor}) {
               label={LABELS.MAX_RETRIES.LABEL}
               value={data.maxIncidentsCount}
             />
-          </NxReadOnly>
-        </NxTile.Content>
-      </NxTile>
+          </AsReadOnly>
+        </AsTile.Content>
+      </AsTile>
     </>
   );
 }

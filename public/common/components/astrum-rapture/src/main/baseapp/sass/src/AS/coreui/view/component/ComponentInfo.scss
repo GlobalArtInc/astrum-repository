@@ -1,0 +1,97 @@
+/**
+ * @class AS.coreui.view.component.ComponentInfo
+ */
+
+.as-coreui-component-componentinfo {
+  background-color: $color-none;
+  border-top: 1px solid silver;
+  border-left: 1px solid silver;
+  > .x-panel-header {
+    background-color: $color-white;
+
+    * {
+      font-weight: normal;
+      font-family: $font-regular;
+      font-size: 18px;
+      line-height: 20px;
+      color: $color-night-rider;
+    }
+
+    .x-title-text {
+      display: inline-block;
+      width: 100%;
+    }
+  }
+
+  .as-actions {
+    background-color: $color-white;
+    border-bottom: solid 1px silver !important;
+  }
+
+  .x-panel-body-default {
+    padding: 0;
+  }
+
+  .x-panel-as-inset {
+    border: none;
+    margin: 12px;
+    padding: 0;
+
+    .x-panel-header-as-inset {
+      background-color: $color-gainsboro;
+
+      .x-panel-header-title-as-inset {
+        color: $color-night-rider;
+      }
+
+      .x-tool-tool-el {
+        background-color: $color-none;
+      }
+
+      .x-tool-img {
+        opacity: 1;
+      }
+
+      .x-tool-img:hover {
+        opacity: 0.7;
+      }
+    }
+
+    .x-panel-header-as-inset.vulnerabilities {
+      background-color: $nx-red-500;
+      .x-title-text-as-inset {
+        color: $color-white;
+      }
+    }
+  }
+
+  .x-autocontainer-innerCt > .x-panel-as-inset.x-panel-collapsed.x-panel-as-inset-collapsed {
+    margin: 12px 12px 0 12px;
+  }
+
+  .x-panel-as-inset.x-panel-collapsed.x-panel-as-inset-collapsed {
+    margin: 12px;
+  }
+
+  .x-panel-as-subsection-framed {
+    border: none;
+    margin: 0;
+  }
+
+  .x-grid-body {
+    background-color: $color-white;
+
+    .x-grid-group-hd {
+      background-color: $color-white;
+      border: none;
+
+      .x-grid-group-title {
+        color: $color-night-rider;
+      }
+    }
+
+    .x-grid-item {
+      background-color: $color-white;
+    }
+  }
+}

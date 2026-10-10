@@ -3,7 +3,7 @@ import React, {useCallback, useEffect} from 'react';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxTile,
+  AsTile,
 } from '@globalart/react-shared-components';
 import {
   ContentBody,
@@ -76,8 +76,8 @@ export default function RolesDetails() {
       />
     </PageHeader>
     <ContentBody className="as-roles-form">
-      <NxTile>
-        <NxTile.Content>
+      <AsTile>
+        <AsTile.Content>
           {showReadOnly
               ? <RolesReadOnly service={service} onDone={onDone}/>
               : <RolesForm
@@ -87,8 +87,8 @@ export default function RolesDetails() {
                   isCreate={isCreate}
               />
           }
-        </NxTile.Content>
-      </NxTile>
+        </AsTile.Content>
+      </AsTile>
     </ContentBody>
   </Page>;
 }

@@ -592,7 +592,7 @@ describe('RepositoriesList', () => {
 
     // ASTRUM-53278: when IQ Server is configured AND Firewall is licensed, the Health Check
     // column is superseded by Firewall Report — the classic UI has always hidden it in this state
-    // (see NX.Conditions.hasNoFirewall in ExtJS), and the preview UI must match.
+    // (see AS.Conditions.hasNoFirewall in ExtJS), and the preview UI must match.
     it('hides Health Check column when IQ Server is enabled and Firewall is licensed', async () => {
       const { ExtJS } = jest.requireMock('../../../../../../../interface/ExtJS');
       ExtJS.state.mockReturnValue({

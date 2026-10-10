@@ -4,7 +4,7 @@
   padding-bottom: 0;
 
   &__outreach {
-    $main-padding: var(--nx-spacing-6x);
+    $main-padding: var(--as-spacing-6x);
     margin: 0 calc(-1 * #{$main-padding});
     width: calc(100% + 2 * #{$main-padding});
     height: 100%;
@@ -15,7 +15,7 @@
     border-style: none;
     width: 100%;
     min-height: 400px;
-    background-color: var(--nx-background-default, #fff);
+    background-color: var(--as-background-default, #fff);
     pointer-events: auto !important;
     position: relative;
     z-index: 1;

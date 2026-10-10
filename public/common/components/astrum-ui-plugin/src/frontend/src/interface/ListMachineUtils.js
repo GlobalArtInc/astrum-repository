@@ -259,7 +259,7 @@ export default class ListMachineUtils {
   }
 
   /**
-   * Determine the sort direction for use with the NxTable columns
+   * Determine the sort direction for use with the AsTable columns
    * @param fieldName
    * @param context {sortField, sortDirection}
    * @return {null | 'asc' | 'desc'}

@@ -2,15 +2,15 @@
 import React from 'react';
 
 import {
-  NxTile,
-  NxPageTitle,
-  NxFontAwesomeIcon,
-  NxButton,
-  NxButtonBar,
-  NxH2,
-  NxTooltip,
-  NxGrid,
-  NxReadOnly,
+  AsTile,
+  AsPageTitle,
+  AsFontAwesomeIcon,
+  AsButton,
+  AsButtonBar,
+  AsH2,
+  AsTooltip,
+  AsGrid,
+  AsReadOnly,
 } from '@globalart/react-shared-components';
 import {
   ReadOnlyField,
@@ -46,68 +46,68 @@ export default function TasksSummary({task, runnable, stoppable, onDelete, onRun
   };
 
   return (
-      <NxTile>
-        <NxPageTitle>
-          <NxH2>{FORM.SECTIONS.SUMMARY}</NxH2>
-          <NxButtonBar>
-            <NxTooltip title={!canDelete && UIStrings.PERMISSION_ERROR}>
-              <NxButton
+      <AsTile>
+        <AsPageTitle>
+          <AsH2>{FORM.SECTIONS.SUMMARY}</AsH2>
+          <AsButtonBar>
+            <AsTooltip title={!canDelete && UIStrings.PERMISSION_ERROR}>
+              <AsButton
                   type="button"
                   className={!canDelete && 'disabled'}
                   onClick={deleteTask}
                   variant="tertiary"
               >
-                <NxFontAwesomeIcon icon={faTrash}/>
+                <AsFontAwesomeIcon icon={faTrash}/>
                 <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
-              </NxButton>
-            </NxTooltip>
+              </AsButton>
+            </AsTooltip>
             {runnable && task.enabled &&
-                <NxTooltip title={!canRun && UIStrings.PERMISSION_ERROR}>
-                  <NxButton
+                <AsTooltip title={!canRun && UIStrings.PERMISSION_ERROR}>
+                  <AsButton
                       type="button"
                       className={!canRun && 'disabled'}
                       onClick={runTask}
                       variant="tertiary"
                   >
-                    <NxFontAwesomeIcon icon={faPlay}/>
+                    <AsFontAwesomeIcon icon={faPlay}/>
                     <span>{LABELS.BUTTONS.RUN}</span>
-                  </NxButton>
-                </NxTooltip>
+                  </AsButton>
+                </AsTooltip>
             }
             {stoppable &&
-                <NxTooltip title={!canStop && UIStrings.PERMISSION_ERROR}>
-                  <NxButton
+                <AsTooltip title={!canStop && UIStrings.PERMISSION_ERROR}>
+                  <AsButton
                       type="button"
                       className={!canStop && 'disabled'}
                       onClick={stopTask}
                       variant="tertiary"
                   >
-                    <NxFontAwesomeIcon icon={faStop}/>
+                    <AsFontAwesomeIcon icon={faStop}/>
                     <span>{LABELS.BUTTONS.STOP}</span>
-                  </NxButton>
-                </NxTooltip>
+                  </AsButton>
+                </AsTooltip>
             }
-          </NxButtonBar>
-        </NxPageTitle>
-        <NxTile.Content>
-          <NxGrid.Row>
-            <NxGrid.Column className="nx-grid-col--33">
-              <NxReadOnly>
+          </AsButtonBar>
+        </AsPageTitle>
+        <AsTile.Content>
+          <AsGrid.Row>
+            <AsGrid.Column className="as-grid-col--33">
+              <AsReadOnly>
                 <ReadOnlyField label={LABELS.ID} value={task.id}/>
                 <ReadOnlyField label={LABELS.NAME} value={task.name}/>
                 <ReadOnlyField label={LABELS.TYPE} value={task.typeName}/>
-              </NxReadOnly>
-            </NxGrid.Column>
-            <NxGrid.Column className="nx-grid-col--67">
-              <NxReadOnly className="task-details-right-column">
+              </AsReadOnly>
+            </AsGrid.Column>
+            <AsGrid.Column className="as-grid-col--67">
+              <AsReadOnly className="task-details-right-column">
                 <ReadOnlyField label={LABELS.STATUS} value={task.statusDescription} item/>
                 <ReadOnlyField label={LABELS.NEXT_RUN} value={task.nextRun} item/>
                 <ReadOnlyField label={LABELS.LAST_RUN} value={task.lastRun} item/>
                 <ReadOnlyField label={LABELS.LAST_RESULT} value={task.lastRunResult} item/>
-              </NxReadOnly>
-            </NxGrid.Column>
-          </NxGrid.Row>
-        </NxTile.Content>
-      </NxTile>
+              </AsReadOnly>
+            </AsGrid.Column>
+          </AsGrid.Row>
+        </AsTile.Content>
+      </AsTile>
   );
 };

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faMapSigns } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -26,9 +26,9 @@ export default {
         Routes are like filters you can apply to groups in terms of security access and general component retrieval.
         They can be used to reduce the number of repositories within a group accessed in order to retrieve a component.
         For more information,{' '}
-        <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/routing-rule">
+        <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/routing-rule">
           check the documentation
-        </NxTextLink>.
+        </AsTextLink>.
       </>,
     },
 

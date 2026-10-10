@@ -161,11 +161,11 @@ public class ItemselectFormField
 
   /**
    * Configure a listener that will be bound to an event during component initialization.
-   * The listener function must be declared in NX.coreui.view.formfield.SettingsFieldSet
+   * The listener function must be declared in AS.coreui.view.formfield.SettingsFieldSet
    * 
    * @param eventName Any event name from Ext.ux.form.ItemSelector
    * @param listenerName Name of the property that contains the handler method. Must be defined in
-   *          NX.coreui.view.formfield.SettingsFieldSet
+   *          AS.coreui.view.formfield.SettingsFieldSet
    * @return This instance
    */
   public ItemselectFormField withListener(final String eventName, final String listenerName) {

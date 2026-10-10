@@ -434,13 +434,13 @@ class RoleApiResourceTest
 
   @Test
   void getAssignableRoles_doesNotReturnAdminRoleForSAAdmin() throws Exception {
-    Role nxAdminRole = createRole("default", "as-admin", "Admin", "Admin Role",
+    Role asAdminRole = createRole("default", "as-admin", "Admin", "Admin Role",
         Collections.emptySet(), Collections.singleton("as-admin-priv"));
-    Role nxSaAdminRole = createRole("default", "as-sa-admin", "SA Admin", "SA Admin Role",
+    Role asSaAdminRole = createRole("default", "as-sa-admin", "SA Admin", "SA Admin Role",
         Collections.emptySet(), Collections.singleton("as-sa-admin-priv"));
 
     when(securitySystem.listRoles(DEFAULT_SOURCE))
-        .thenReturn(new LinkedHashSet<>(Arrays.asList(nxAdminRole, nxSaAdminRole)));
+        .thenReturn(new LinkedHashSet<>(Arrays.asList(asAdminRole, asSaAdminRole)));
     when(roleAssignabilityChecker.isRoleAssignable("as-admin")).thenReturn(false);
     when(roleAssignabilityChecker.isRoleAssignable("as-sa-admin")).thenReturn(true);
 

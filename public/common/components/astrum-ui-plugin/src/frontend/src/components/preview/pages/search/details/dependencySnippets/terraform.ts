@@ -5,7 +5,7 @@ import type { SnippetGenerator } from './types';
 /**
  * Terraform dependency snippet generator.
  *
- * Ported from Classic NX.terraform.controller.TerraformDependencySnippetController. Returns no
+ * Ported from Classic AS.terraform.controller.TerraformDependencySnippetController. Returns no
  * snippets for a versionless component, matching Classic.
  */
 export const generate: SnippetGenerator = (component) => {

@@ -4,16 +4,16 @@ import {useMachine, useActor} from '@xstate/react';
 
 import {ExtJS, FormUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxCheckbox,
-  NxErrorAlert,
-  NxFieldset,
-  NxFormGroup,
-  NxInfoAlert,
-  NxLoadingSpinner,
-  NxSuccessAlert,
-  NxTextInput,
-  NxRadio
+  AsButton,
+  AsCheckbox,
+  AsErrorAlert,
+  AsFieldset,
+  AsFormGroup,
+  AsInfoAlert,
+  AsLoadingSpinner,
+  AsSuccessAlert,
+  AsTextInput,
+  AsRadio
 } from '@globalart/react-shared-components';
 
 import AzureBlobStoreSettingsMachine from './AzureBlobStoreSettingsMachine';
@@ -100,78 +100,78 @@ export default function AzureBlobStoreSettings({service}) {
 
   return (
       <div className="as-azure-blobstore">
-        <NxFormGroup {...AZURE.ACCOUNT_NAME} isRequired>
-          <NxTextInput
+        <AsFormGroup {...AZURE.ACCOUNT_NAME} isRequired>
+          <AsTextInput
               {...FormUtils.fieldProps(['bucketConfiguration', 'accountName'], current)}
               onChange={handleAccountNameChange}/>
-        </NxFormGroup>
-        <NxFormGroup {...AZURE.CONTAINER_NAME} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup {...AZURE.CONTAINER_NAME} isRequired>
+          <AsTextInput
               {...FormUtils.fieldProps(['bucketConfiguration', 'containerName'], current)}
               onChange={handleContainerNameChange}/>
-        </NxFormGroup>
-        <NxFieldset label={AZURE.AUTHENTICATION.label}>
-          <NxRadio
+        </AsFormGroup>
+        <AsFieldset label={AZURE.AUTHENTICATION.label}>
+          <AsRadio
               radioId="useEnvironmentVariables"
               name="bucketConfiguration.authentication.authenticationMethod"
               value="ENVIRONMENTVARIABLE"
               isChecked={bucketConfiguration.authentication?.authenticationMethod === 'ENVIRONMENTVARIABLE'}
               onChange={handleAuthenticationMethodChange}>
             {AZURE.AUTHENTICATION.ENVIRONMENTVARIABLE}
-          </NxRadio>
-          <NxRadio
+          </AsRadio>
+          <AsRadio
               radioId="useManagedIdentity"
               name="bucketConfiguration.authentication.authenticationMethod"
               value="MANAGEDIDENTITY"
               isChecked={bucketConfiguration.authentication?.authenticationMethod === 'MANAGEDIDENTITY'}
               onChange={handleAuthenticationMethodChange}>
             {AZURE.AUTHENTICATION.MANAGED}
-          </NxRadio>
-          <NxRadio
+          </AsRadio>
+          <AsRadio
               radioId="useAccountKey"
               name="bucketConfiguration.authentication.authenticationMethod"
               value="ACCOUNTKEY"
               isChecked={bucketConfiguration.authentication?.authenticationMethod === 'ACCOUNTKEY'}
               onChange={handleAuthenticationMethodChange}>
             {AZURE.AUTHENTICATION.ACCOUNT_KEY.label}
-          </NxRadio>
-        </NxFieldset>
+          </AsRadio>
+        </AsFieldset>
 
         {bucketConfiguration.authentication?.authenticationMethod === 'ACCOUNTKEY' &&
-        <NxFormGroup {...AZURE.AUTHENTICATION.ACCOUNT_KEY} isRequired>
-          <NxTextInput type="password"
+        <AsFormGroup {...AZURE.AUTHENTICATION.ACCOUNT_KEY} isRequired>
+          <AsTextInput type="password"
                        autoComplete="new-password"
                        {...FormUtils.fieldProps(['bucketConfiguration', 'authentication', 'accountKey'], current)}
                        onChange={handleAccountKeyChange}/>
-        </NxFormGroup>
+        </AsFormGroup>
         }
 
         {isProEdition && (
           <div className="as-azure-presigned">
-            <NxFieldset label={AZURE.PRE_SIGNED_URL.LABEL}
+            <AsFieldset label={AZURE.PRE_SIGNED_URL.LABEL}
                         sublabel={AZURE.PRE_SIGNED_URL.SUBLABEL}>
-              <NxCheckbox
+              <AsCheckbox
                   {...FormUtils.checkboxProps('bucketConfiguration.preSignedUrlEnabled', current)}
                   onChange={FormUtils.handleUpdate('bucketConfiguration.preSignedUrlEnabled', send)}>
                 {AZURE.PRE_SIGNED_URL.CHECKBOX_LABEL}
-              </NxCheckbox>
+              </AsCheckbox>
               {bucketConfiguration.preSignedUrlEnabled && isTokenCredentialAuth && (
-                <NxInfoAlert>{AZURE.PRE_SIGNED_URL.RBAC_NOTE}</NxInfoAlert>
+                <AsInfoAlert>{AZURE.PRE_SIGNED_URL.RBAC_NOTE}</AsInfoAlert>
               )}
-            </NxFieldset>
+            </AsFieldset>
           </div>
         )}
 
-        <div className="nx-form-row">
-          <NxButton type="button" variant="tertiary" disabled={azureState.matches('testing')} onClick={testConnection}>
+        <div className="as-form-row">
+          <AsButton type="button" variant="tertiary" disabled={azureState.matches('testing')} onClick={testConnection}>
             {AZURE.TEST_CONNECTION}
-          </NxButton>
+          </AsButton>
         </div>
 
-        <div className="nx-form-row">
-          {azureState.matches('editing.error') && <NxErrorAlert>{AZURE.TEST_CONNECTION_ERROR}</NxErrorAlert>}
-          {azureState.matches('editing.success') && <NxSuccessAlert>{AZURE.TEST_CONNECTION_SUCCESS}</NxSuccessAlert>}
-          {azureState.matches('testing') && <NxLoadingSpinner>{AZURE.TESTING}</NxLoadingSpinner>}
+        <div className="as-form-row">
+          {azureState.matches('editing.error') && <AsErrorAlert>{AZURE.TEST_CONNECTION_ERROR}</AsErrorAlert>}
+          {azureState.matches('editing.success') && <AsSuccessAlert>{AZURE.TEST_CONNECTION_SUCCESS}</AsSuccessAlert>}
+          {azureState.matches('testing') && <AsLoadingSpinner>{AZURE.TESTING}</AsLoadingSpinner>}
         </div>
       </div>
   );

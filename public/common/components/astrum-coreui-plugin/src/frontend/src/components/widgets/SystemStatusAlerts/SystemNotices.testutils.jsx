@@ -23,8 +23,8 @@ export function givenInitialState(gracePeriodEnd, throttlingStatus, currentState
     .calledWith(UpgradeAlertFunctions.checkPermissions)
     .mockReturnValue(true);
 
-  // Mock NX.State.getUser to return a user so hasUser() returns true
-  global.NX.State.getUser.mockReturnValue({ username: 'test-user' });
+  // Mock AS.State.getUser to return a user so hasUser() returns true
+  global.AS.State.getUser.mockReturnValue({ username: 'test-user' });
 }
 
 function givenUseState(throttlingStatus, gracePeriodEnd, currentState, message) {

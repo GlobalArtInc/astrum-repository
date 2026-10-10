@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxTextInput, NxFormSelect, NxReadOnly} from '@globalart/react-shared-components';
+import {AsFormGroup, AsTextInput, AsFormSelect, AsReadOnly} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -26,18 +26,18 @@ export default function NugetProxyConfiguration({parentMachine}) {
   return (
     <>
       {isEdit && url && (
-        <NxReadOnly>
-          <NxReadOnly.Label>{NUGET.SYMSRV_ENDPOINT.LABEL}</NxReadOnly.Label>
-          <NxReadOnly.Data>{`${url}/symbols`}</NxReadOnly.Data>
-        </NxReadOnly>
+        <AsReadOnly>
+          <AsReadOnly.Label>{NUGET.SYMSRV_ENDPOINT.LABEL}</AsReadOnly.Label>
+          <AsReadOnly.Data>{`${url}/symbols`}</AsReadOnly.Data>
+        </AsReadOnly>
       )}
 
-      <NxFormGroup
+      <AsFormGroup
         label={NUGET.PROTOCOL_VERSION.LABEL}
         className="as-form-group-nuget-protocol-version"
         isRequired
       >
-        <NxFormSelect
+        <AsFormSelect
           {...FormUtils.selectProps('nugetProxy.nugetVersion', currentParent)}
           onChange={FormUtils.handleUpdate('nugetProxy.nugetVersion', sendParent)}
         >
@@ -46,20 +46,20 @@ export default function NugetProxyConfiguration({parentMachine}) {
               {v}
             </option>
           ))}
-        </NxFormSelect>
-      </NxFormGroup>
+        </AsFormSelect>
+      </AsFormGroup>
 
-      <NxFormGroup
+      <AsFormGroup
         label={NUGET.METADATA_QUERY_CACHE_AGE.LABEL}
         sublabel={NUGET.METADATA_QUERY_CACHE_AGE.SUBLABEL}
         isRequired
         className="as-form-group-nuget-cache"
       >
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps('nugetProxy.queryCacheItemMaxAge', currentParent)}
           onChange={FormUtils.handleUpdate('nugetProxy.queryCacheItemMaxAge', sendParent)}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
     </>
   );

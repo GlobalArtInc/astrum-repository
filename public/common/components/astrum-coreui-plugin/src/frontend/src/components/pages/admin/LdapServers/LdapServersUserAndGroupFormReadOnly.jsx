@@ -2,10 +2,10 @@
 import React from 'react';
 import {useActor} from '@xstate/react';
 import {
-  NxInfoAlert,
-  NxTile,
-  NxH2,
-  NxReadOnly,
+  AsInfoAlert,
+  AsTile,
+  AsH2,
+  AsReadOnly,
 } from '@globalart/react-shared-components';
 import {ReadOnlyField, FormUtils} from '@globalart/astrum-ui-plugin';
 import {isDynamicGroup, isStaticGroup} from './LdapServersHelper';
@@ -28,15 +28,15 @@ export default function LdapServersReadOnly({actor}) {
 
   return (
     <>
-      <NxInfoAlert>{SETTINGS.READ_ONLY.WARNING}</NxInfoAlert>
-      <NxTile>
-        <NxTile.Header>
-          <NxTile.HeaderTitle>
-            <NxH2>{LABELS.CONFIGURATION}</NxH2>
-          </NxTile.HeaderTitle>
-        </NxTile.Header>
-        <NxTile.Content>
-          <NxReadOnly>
+      <AsInfoAlert>{SETTINGS.READ_ONLY.WARNING}</AsInfoAlert>
+      <AsTile>
+        <AsTile.Header>
+          <AsTile.HeaderTitle>
+            <AsH2>{LABELS.CONFIGURATION}</AsH2>
+          </AsTile.HeaderTitle>
+        </AsTile.Header>
+        <AsTile.Content>
+          <AsReadOnly>
             <ReadOnlyField
               label={LABELS.USER_RELATIVE_DN.LABEL}
               value={data.userBaseDn}
@@ -108,9 +108,9 @@ export default function LdapServersReadOnly({actor}) {
                 />
               </>
             )}
-          </NxReadOnly>
-        </NxTile.Content>
-      </NxTile>
+          </AsReadOnly>
+        </AsTile.Content>
+      </AsTile>
     </>
   );
 }

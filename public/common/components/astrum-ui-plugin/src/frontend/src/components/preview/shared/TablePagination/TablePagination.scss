@@ -3,22 +3,22 @@
 .tablepagination-jump-combobox {
   // RSC anchors the menu and the loading/empty alert with top: 100% and offers
   // no placement API. Both are flipped above the input here.
-  .nx-combobox__menu,
-  .nx-combobox__alert {
+  .as-combobox__menu,
+  .as-combobox__alert {
     top: auto;
     bottom: 100%;
-    margin: 0 0 var(--nx-spacing-base) 0;
+    margin: 0 0 var(--as-spacing-base) 0;
   }
 
-  .nx-combobox__menu {
+  .as-combobox__menu {
     width: max-content;
     min-width: 100%;
     max-width: 160px;
   }
 
   // Distinct from .selected, which RSC uses for the arrow-key cursor.
-  .nx-dropdown-button[aria-current='page'] {
+  .as-dropdown-button[aria-current='page'] {
     font-weight: 600;
-    box-shadow: inset 3px 0 0 0 var(--nx-color-text-stark);
+    box-shadow: inset 3px 0 0 0 var(--as-color-text-stark);
   }
 }

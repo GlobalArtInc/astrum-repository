@@ -112,7 +112,7 @@ describe('GlobalHeader', () => {
     jest.spyOn(ExtJS, 'useStatus').mockReturnValue({ edition: 'COMMUNITY' });
     jest.spyOn(ExtJS, 'checkPermission').mockReturnValue(false);
 
-    global.NX.Security.signOut = jest.fn();
+    global.AS.Security.signOut = jest.fn();
 
     // make sure this gets reset between tests, it was not happening automatically which can result
     // in an unexpected initial state for some tests
@@ -442,11 +442,11 @@ describe('GlobalHeader', () => {
 
       const logOutButton = screen.getByRole('button', { name: 'Log Out' });
 
-      expect(global.NX.Security.signOut).not.toHaveBeenCalled();
+      expect(global.AS.Security.signOut).not.toHaveBeenCalled();
 
       await userEvent.click(logOutButton);
 
-      expect(global.NX.Security.signOut).toHaveBeenCalled();
+      expect(global.AS.Security.signOut).toHaveBeenCalled();
     });
   });
 
@@ -504,7 +504,7 @@ describe('GlobalHeader', () => {
 
       await userEvent.click(aboutButton);
 
-      expect(global.Ext.widget).toHaveBeenCalledWith('nx-aboutwindow');
+      expect(global.Ext.widget).toHaveBeenCalledWith('as-aboutwindow');
     });
 
     async function assertBannerAndOpenHelpMenu() {
@@ -835,7 +835,7 @@ describe('GlobalHeader', () => {
   }
 
   function givenPermissions(permissionLookup) {
-    global.NX.Permissions.check.mockImplementation((key) => {
+    global.AS.Permissions.check.mockImplementation((key) => {
       return permissionLookup[key] ?? false;
     });
   }
@@ -873,7 +873,7 @@ describe('GlobalHeader', () => {
 
     jest.spyOn(ExtJS, 'useUser').mockReturnValue(true);
 
-    global.NX.Security.hasUser.mockReturnValue(true);
+    global.AS.Security.hasUser.mockReturnValue(true);
   }
 
   async function assertBannerAndOpenUserProfileMenu() {

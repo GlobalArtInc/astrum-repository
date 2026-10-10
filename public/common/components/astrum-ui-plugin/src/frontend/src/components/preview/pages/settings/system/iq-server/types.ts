@@ -73,7 +73,7 @@ export interface IqValidationErrors {
 }
 
 // Backend accepts this on PUT to reuse the stored password without transmitting it in clear text.
-export const PASSWORD_PLACEHOLDER = '#~NXRM~PLACEHOLDER~PASSWORD~#';
+export const PASSWORD_PLACEHOLDER = '#~ASTRUM~PLACEHOLDER~PASSWORD~#';
 
 /**
  * A single IQ Server "properties" name/value row.

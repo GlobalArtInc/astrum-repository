@@ -3,20 +3,20 @@
 import React from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxStatefulAccordion,
-  NxAccordion,
-  NxButton,
-  NxCheckbox,
-  NxFieldset,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormRow,
-  NxH2,
-  NxList,
-  NxStatefulForm,
-  NxTextInput,
-  NxTile,
-  NxTooltip
+  AsStatefulAccordion,
+  AsAccordion,
+  AsButton,
+  AsCheckbox,
+  AsFieldset,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormRow,
+  AsH2,
+  AsList,
+  AsStatefulForm,
+  AsTextInput,
+  AsTile,
+  AsTooltip
 } from '@globalart/react-shared-components';
 import {ExtJS, FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
 import {faTrashAlt, faPlusCircle} from '@fortawesome/free-solid-svg-icons';
@@ -79,246 +79,246 @@ export default function HttpForm() {
   const retryCountPlaceholder = ExtJS.state().getValue('retryCount');
 
   return (
-    <NxStatefulForm
+    <AsStatefulForm
       {...FormUtils.formProps(current, send)}
       additionalFooterBtns={
-        <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-          <NxButton
+        <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+          <AsButton
             type="button"
             className={isPristine && 'disabled'}
             onClick={discard}
           >
             {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       }
     >
-      <NxFormGroup
+      <AsFormGroup
         label={LABELS.USER_AGENT.LABEL}
         sublabel={LABELS.USER_AGENT.SUB_LABEL}
       >
-        <NxTextInput
-          className="nx-text-input--long"
+        <AsTextInput
+          className="as-text-input--long"
           {...FormUtils.fieldProps('userAgentSuffix', current)}
           onChange={FormUtils.handleUpdate('userAgentSuffix', send)}
         />
-      </NxFormGroup>
-      <NxFormGroup
+      </AsFormGroup>
+      <AsFormGroup
         label={LABELS.TIMEOUT.LABEL}
         sublabel={LABELS.TIMEOUT.SUB_LABEL}
       >
-        <NxTextInput
-          className="nx-text-input--short"
+        <AsTextInput
+          className="as-text-input--short"
           {...FormUtils.fieldProps('timeout', current)}
           onChange={FormUtils.handleUpdate('timeout', send)}
           placeholder={timeoutPlaceholder.value}
         />
-      </NxFormGroup>
-      <NxFormGroup
+      </AsFormGroup>
+      <AsFormGroup
         label={LABELS.ATTEMPTS.LABEL}
         sublabel={LABELS.ATTEMPTS.SUB_LABEL}
       >
-        <NxTextInput
-          className="nx-text-input--short"
+        <AsTextInput
+          className="as-text-input--short"
           {...FormUtils.fieldProps('retries', current)}
           onChange={FormUtils.handleUpdate('retries', send)}
           placeholder={retryCountPlaceholder}
         />
-      </NxFormGroup>
-      <NxH2>{LABELS.PROXY.LABEL}</NxH2>
-      <NxFieldset label="">
-        <NxCheckbox
+      </AsFormGroup>
+      <AsH2>{LABELS.PROXY.LABEL}</AsH2>
+      <AsFieldset label="">
+        <AsCheckbox
           {...FormUtils.checkboxProps('httpEnabled', current)}
           onChange={handleHttpCheckbox}
         >
           {LABELS.PROXY.HTTP_CHECKBOX}
-        </NxCheckbox>
-      </NxFieldset>
-      <NxFormGroup
+        </AsCheckbox>
+      </AsFieldset>
+      <AsFormGroup
         label={LABELS.PROXY.HTTP_HOST}
         sublabel={LABELS.PROXY.SUB_LABEL}
         isRequired={httpEnabled}
       >
-        <NxTextInput
-          className="nx-text-input--long"
+        <AsTextInput
+          className="as-text-input--long"
           {...FormUtils.fieldProps('httpHost', current)}
           onChange={FormUtils.handleUpdate('httpHost', send)}
           disabled={!httpEnabled}
         />
-      </NxFormGroup>
-      <NxFormGroup 
+      </AsFormGroup>
+      <AsFormGroup 
         label={LABELS.PROXY.HTTP_PORT} 
         isRequired={!!httpHost}
       >
-        <NxTextInput
-          className="nx-text-input--short"
+        <AsTextInput
+          className="as-text-input--short"
           {...FormUtils.fieldProps('httpPort', current)}
           onChange={FormUtils.handleUpdate('httpPort', send)}
           disabled={!httpEnabled || !httpHost}
         />
-      </NxFormGroup>
-      <NxTile.Content className="nx-tile-content--accordion-container">
-        <NxStatefulAccordion 
+      </AsFormGroup>
+      <AsTile.Content className="as-tile-content--accordion-container">
+        <AsStatefulAccordion 
           title="http-authentication"
           defaultOpen={httpAuthEnabled}
         >
-          <NxAccordion.Header>
-            <NxAccordion.Title>
+          <AsAccordion.Header>
+            <AsAccordion.Title>
               {LABELS.PROXY.HTTP_AUTHENTICATION}
-            </NxAccordion.Title>
-          </NxAccordion.Header>
-          <NxFieldset label="">
-            <NxCheckbox
+            </AsAccordion.Title>
+          </AsAccordion.Header>
+          <AsFieldset label="">
+            <AsCheckbox
               {...FormUtils.checkboxProps('httpAuthEnabled', current)}
               onChange={() => toggleAuthentication('httpAuthEnabled')}
               disabled={!httpEnabled}
             >
               {LABELS.PROXY.HTTP_AUTH_CHECKBOX}
-            </NxCheckbox>
-          </NxFieldset>
-          <NxFormRow>
+            </AsCheckbox>
+          </AsFieldset>
+          <AsFormRow>
             <>
-              <NxFormGroup 
+              <AsFormGroup 
                 label={LABELS.PROXY.USERNAME} 
                 isRequired={httpAuthEnabled}
               >
-                <NxTextInput
-                  className="nx-text-input"
+                <AsTextInput
+                  className="as-text-input"
                   {...FormUtils.fieldProps('httpAuthUsername', current)}
                   onChange={FormUtils.handleUpdate('httpAuthUsername', send)}
                   disabled={!isHttpAuthEnabled}
                 />
-              </NxFormGroup>
-              <NxFormGroup label={LABELS.PROXY.PASSWORD}>
-                <NxTextInput
-                  className="nx-text-input"
+              </AsFormGroup>
+              <AsFormGroup label={LABELS.PROXY.PASSWORD}>
+                <AsTextInput
+                  className="as-text-input"
                   {...FormUtils.fieldProps('httpAuthPassword', current)}
                   onChange={FormUtils.handleUpdate('httpAuthPassword', send)}
                   type="password"
                   disabled={!isHttpAuthEnabled}
                 />
-              </NxFormGroup>
+              </AsFormGroup>
             </>
-          </NxFormRow>
-          <NxFormGroup label={LABELS.PROXY.HOST_NAME}>
-            <NxTextInput
-              className="nx-text-input--long"
+          </AsFormRow>
+          <AsFormGroup label={LABELS.PROXY.HOST_NAME}>
+            <AsTextInput
+              className="as-text-input--long"
               {...FormUtils.fieldProps('httpAuthNtlmHost', current)}
               onChange={FormUtils.handleUpdate('httpAuthNtlmHost', send)}
               disabled={!isHttpAuthEnabled}
             />
-          </NxFormGroup>
-          <NxFormGroup label={LABELS.PROXY.DOMAIN}>
-            <NxTextInput
-              className="nx-text-input--long"
+          </AsFormGroup>
+          <AsFormGroup label={LABELS.PROXY.DOMAIN}>
+            <AsTextInput
+              className="as-text-input--long"
               {...FormUtils.fieldProps('httpAuthNtlmDomain', current)}
               onChange={FormUtils.handleUpdate('httpAuthNtlmDomain', send)}
               disabled={!isHttpAuthEnabled}
             />
-          </NxFormGroup>
-        </NxStatefulAccordion>
-      </NxTile.Content>
-      <NxFieldset label="">
-        <NxCheckbox
+          </AsFormGroup>
+        </AsStatefulAccordion>
+      </AsTile.Content>
+      <AsFieldset label="">
+        <AsCheckbox
           {...FormUtils.checkboxProps('httpsEnabled', current)}
           onChange={handleHttpsCheckbox}
         >
           {LABELS.PROXY.HTTPS_CHECKBOX}
-        </NxCheckbox>
-      </NxFieldset>
-      <NxFormGroup
+        </AsCheckbox>
+      </AsFieldset>
+      <AsFormGroup
         label={LABELS.PROXY.HTTPS_HOST}
         sublabel={LABELS.PROXY.SUB_LABEL}
         isRequired={httpsEnabled}
       >
-        <NxTextInput
-          className="nx-text-input--long"
+        <AsTextInput
+          className="as-text-input--long"
           {...FormUtils.fieldProps('httpsHost', current)}
           onChange={FormUtils.handleUpdate('httpsHost', send)}
           disabled={!httpsEnabled}
         />
-      </NxFormGroup>
-      <NxFormGroup 
+      </AsFormGroup>
+      <AsFormGroup 
         label={LABELS.PROXY.HTTPS_PORT} 
         isRequired={!!httpsHost}
       >
-        <NxTextInput
-          className="nx-text-input--short"
+        <AsTextInput
+          className="as-text-input--short"
           {...FormUtils.fieldProps('httpsPort', current)}
           onChange={FormUtils.handleUpdate('httpsPort', send)}
           disabled={!httpsEnabled || !httpsHost}
         />
-      </NxFormGroup>
-      <NxTile.Content className="nx-tile-content--accordion-container">
-        <NxStatefulAccordion
+      </AsFormGroup>
+      <AsTile.Content className="as-tile-content--accordion-container">
+        <AsStatefulAccordion
           title="https-authentication"
           defaultOpen={httpsAuthEnabled}
         >
-          <NxAccordion.Header>
-            <NxAccordion.Title>
+          <AsAccordion.Header>
+            <AsAccordion.Title>
               {LABELS.PROXY.HTTPS_AUTHENTICATION}
-            </NxAccordion.Title>
-          </NxAccordion.Header>
-          <NxFieldset label="">
-            <NxCheckbox
+            </AsAccordion.Title>
+          </AsAccordion.Header>
+          <AsFieldset label="">
+            <AsCheckbox
               {...FormUtils.checkboxProps('httpsAuthEnabled', current)}
               onChange={() => toggleAuthentication('httpsAuthEnabled')}
               disabled={!httpsEnabled}
             >
               {LABELS.PROXY.HTTPS_AUTH_CHECKBOX}
-            </NxCheckbox>
-          </NxFieldset>
-          <NxFormRow>
+            </AsCheckbox>
+          </AsFieldset>
+          <AsFormRow>
             <>
-              <NxFormGroup 
+              <AsFormGroup 
                 label={LABELS.PROXY.USERNAME} 
                 isRequired={httpsAuthEnabled}
               >
-                <NxTextInput
-                  className="nx-text-input"
+                <AsTextInput
+                  className="as-text-input"
                   {...FormUtils.fieldProps('httpsAuthUsername', current)}
                   onChange={FormUtils.handleUpdate('httpsAuthUsername', send)}
                   disabled={!isHttpsAuthEnabled}
                 />
-              </NxFormGroup>
-              <NxFormGroup label={LABELS.PROXY.PASSWORD}>
-                <NxTextInput
-                  className="nx-text-input"
+              </AsFormGroup>
+              <AsFormGroup label={LABELS.PROXY.PASSWORD}>
+                <AsTextInput
+                  className="as-text-input"
                   {...FormUtils.fieldProps('httpsAuthPassword', current)}
                   onChange={FormUtils.handleUpdate('httpsAuthPassword', send)}
                   type="password"
                   disabled={!isHttpsAuthEnabled}
                 />
-              </NxFormGroup>
+              </AsFormGroup>
             </>
-          </NxFormRow>
-          <NxFormGroup label={LABELS.PROXY.HOST_NAME}>
-            <NxTextInput
-              className="nx-text-input--long"
+          </AsFormRow>
+          <AsFormGroup label={LABELS.PROXY.HOST_NAME}>
+            <AsTextInput
+              className="as-text-input--long"
               {...FormUtils.fieldProps('httpsAuthNtlmHost', current)}
               onChange={FormUtils.handleUpdate('httpsAuthNtlmHost', send)}
               disabled={!isHttpsAuthEnabled}
             />
-          </NxFormGroup>
-          <NxFormGroup label={LABELS.PROXY.DOMAIN}>
-            <NxTextInput
-              className="nx-text-input--long"
+          </AsFormGroup>
+          <AsFormGroup label={LABELS.PROXY.DOMAIN}>
+            <AsTextInput
+              className="as-text-input--long"
               {...FormUtils.fieldProps('httpsAuthNtlmDomain', current)}
               onChange={FormUtils.handleUpdate('httpsAuthNtlmDomain', send)}
               disabled={!isHttpsAuthEnabled}
             />
-          </NxFormGroup>
-        </NxStatefulAccordion>
-      </NxTile.Content>
+          </AsFormGroup>
+        </AsStatefulAccordion>
+      </AsTile.Content>
       {isProxyEnabled && (
-        <NxFormRow>
+        <AsFormRow>
           <>
-            <NxFormGroup
+            <AsFormGroup
               label={LABELS.EXCLUDE.LABEL}
               sublabel={LABELS.EXCLUDE.SUB_LABEL}
             >
-              <NxTextInput
-                className="nx-text-input--long"
+              <AsTextInput
+                className="as-text-input--long"
                 id="nonProxyHost"
                 name="nonProxyHost"
                 value={nonProxyHost}
@@ -328,36 +328,36 @@ export default function HttpForm() {
                 validatable
                 validationErrors={validateNonProxyHost()}
               />
-            </NxFormGroup>
-            <NxButton
+            </AsFormGroup>
+            <AsButton
               variant="icon-only"
               title={LABELS.EXCLUDE.ADD}
               onClick={addNonProxyHost}
               type="button"
             >
-              <NxFontAwesomeIcon icon={faPlusCircle} />
-            </NxButton>
+              <AsFontAwesomeIcon icon={faPlusCircle} />
+            </AsButton>
           </>
-        </NxFormRow>
+        </AsFormRow>
       )}
       {isProxyEnabled && list.length > 0 && (
-        <NxList>
+        <AsList>
           {list.map((item, index) => (
-            <NxList.Item key={item}>
-              <NxList.Text>{item}</NxList.Text>
-              <NxList.Actions>
-                <NxButton
+            <AsList.Item key={item}>
+              <AsList.Text>{item}</AsList.Text>
+              <AsList.Actions>
+                <AsButton
                   title={LABELS.EXCLUDE.REMOVE}
                   variant="icon-only"
                   onClick={() => removeNonProxyHost(index)}
                 >
-                  <NxFontAwesomeIcon icon={faTrashAlt} />
-                </NxButton>
-              </NxList.Actions>
-            </NxList.Item>
+                  <AsFontAwesomeIcon icon={faTrashAlt} />
+                </AsButton>
+              </AsList.Actions>
+            </AsList.Item>
           ))}
-        </NxList>
+        </AsList>
       )}
-    </NxStatefulForm>
+    </AsStatefulForm>
   );
 }

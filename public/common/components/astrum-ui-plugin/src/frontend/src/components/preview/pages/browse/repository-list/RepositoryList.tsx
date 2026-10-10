@@ -235,7 +235,7 @@ function RepositoryRow({
         </Table.Cell>
       )}
       <Table.Cell>
-        <ChevronRight size={16} className="as-chevron" aria-hidden="true" />
+        <ChevronRight size={16} className="astrum-chevron" aria-hidden="true" />
       </Table.Cell>
     </Table.Row>
   );

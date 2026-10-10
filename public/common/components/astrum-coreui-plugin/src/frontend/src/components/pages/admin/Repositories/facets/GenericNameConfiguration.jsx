@@ -4,11 +4,11 @@ import React from 'react';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxFormGroup,
-  NxCheckbox,
-  NxTextInput,
-  NxFieldset,
-  NxReadOnly
+  AsFormGroup,
+  AsCheckbox,
+  AsTextInput,
+  AsFieldset,
+  AsReadOnly
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -26,30 +26,30 @@ export default function GenericNameConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{EDITOR.CONFIGURATION_CAPTION}</h2>
-      <NxFormGroup label={EDITOR.NAME_LABEL} isRequired className="as-form-group-name">
-        <NxTextInput
+      <h2 className="as-h2">{EDITOR.CONFIGURATION_CAPTION}</h2>
+      <AsFormGroup label={EDITOR.NAME_LABEL} isRequired className="as-form-group-name">
+        <AsTextInput
           {...FormUtils.fieldProps('name', currentParent)}
           onChange={FormUtils.handleUpdate('name', sendParent)}
           disabled={isEdit}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
       {isEdit && (
-        <NxReadOnly>
-          <NxReadOnly.Label>{EDITOR.URL_LABEL}</NxReadOnly.Label>
-          <NxReadOnly.Data>{url}</NxReadOnly.Data>
-        </NxReadOnly>
+        <AsReadOnly>
+          <AsReadOnly.Label>{EDITOR.URL_LABEL}</AsReadOnly.Label>
+          <AsReadOnly.Data>{url}</AsReadOnly.Data>
+        </AsReadOnly>
       )}
 
-      <NxFieldset label={EDITOR.STATUS_LABEL} className="as-form-group-status">
-        <NxCheckbox
+      <AsFieldset label={EDITOR.STATUS_LABEL} className="as-form-group-status">
+        <AsCheckbox
           {...FormUtils.checkboxProps('online', currentParent)}
           onChange={FormUtils.handleUpdate('online', sendParent)}
         >
           {EDITOR.STATUS_DESCR}
-        </NxCheckbox>
-      </NxFieldset>
+        </AsCheckbox>
+      </AsFieldset>
     </>
   );
 }

@@ -41,12 +41,12 @@ describe('loginFormMachine', () => {
       originalLocation = window.location;
       delete window.location;
       window.location = {hash: '', assign: jest.fn()};
-      window.NX = {State: {setUser: jest.fn()}};
+      window.AS = {State: {setUser: jest.fn()}};
     });
 
     afterEach(() => {
       window.location = originalLocation;
-      delete window.NX;
+      delete window.AS;
       delete global.fetch;
     });
 

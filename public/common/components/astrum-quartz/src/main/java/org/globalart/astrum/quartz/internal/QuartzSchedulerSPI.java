@@ -671,7 +671,7 @@ public abstract class QuartzSchedulerSPI
     JobKey jobKey = JobKey.jobKey(config.getId(), GROUP_NAME);
 
     // get trigger, but use identity of jobKey
-    // This is only for simplicity, as is not a requirement: NX job:triggers are 1:1 so tying them as this is ok
+    // This is only for simplicity, as is not a requirement: Astrum job:triggers are 1:1 so tying them as this is ok
     // ! create the trigger before eventual TaskInfo remove bellow to avoid task removal in case of an invalid trigger
     JobDetail jobDetail = buildJob(config, jobKey);
     Trigger trigger = buildTrigger(schedule, jobDetail);

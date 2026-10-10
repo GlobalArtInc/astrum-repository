@@ -15,12 +15,12 @@ import {
 } from '@globalart/astrum-ui-plugin';
 
 import {
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxFilterInput
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsFilterInput
 } from '@globalart/react-shared-components';
 
 import LogsListMachine from './LogsListMachine';
@@ -50,7 +50,7 @@ export default function LogsList({onEdit}) {
     <ContentBody>
       <Section className="as-logs-list">
         <SectionToolbar>
-          <NxFilterInput
+          <AsFilterInput
               className="as-logs-filter"
               id="filter"
               inputAttributes={{'data-analytics-id': 'as-logs-filter'}}
@@ -58,35 +58,35 @@ export default function LogsList({onEdit}) {
               value={filter}
               placeholder={UIStrings.LOGS.LIST.FILTER_PLACEHOLDER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_FILE_NAME'})} isSortable sortDir={fileNameSortDir}>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_FILE_NAME'})} isSortable sortDir={fileNameSortDir}>
                 {UIStrings.LOGS.LIST.FILE_NAME_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_SIZE'})} isSortable sortDir={sizeSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_SIZE'})} isSortable sortDir={sizeSortDir}>
                 {UIStrings.LOGS.LIST.SIZE_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_LAST_MODIFIED'})} isSortable sortDir={lastModifiedSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_LAST_MODIFIED'})} isSortable sortDir={lastModifiedSortDir}>
                 {UIStrings.LOGS.LIST.LAST_MODIFIED_LABEL}
-              </NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error}>
+              </AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error}>
             {/* Encoding mirrors encodeLogFilename in astrum-ui-plugin/types.ts — keep both in sync */}
             {data.map(({fileName, size, lastModified}) => (
-                <NxTableRow key={fileName} onClick={() => onEdit(fileName.split('/').map(encodeURIComponent).join('/'))} isClickable>
-                  <NxTableCell>{fileName}</NxTableCell>
-                  <NxTableCell>{HumanReadableUtils.bytesToString(size)}</NxTableCell>
-                  <NxTableCell>
+                <AsTableRow key={fileName} onClick={() => onEdit(fileName.split('/').map(encodeURIComponent).join('/'))} isClickable>
+                  <AsTableCell>{fileName}</AsTableCell>
+                  <AsTableCell>{HumanReadableUtils.bytesToString(size)}</AsTableCell>
+                  <AsTableCell>
                     {DateTime.fromMillis(lastModified).toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS)}
-                  </NxTableCell>
-                  <NxTableCell chevron/>
-                </NxTableRow>
+                  </AsTableCell>
+                  <AsTableCell chevron/>
+                </AsTableRow>
             ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
     </ContentBody>
   </div>;

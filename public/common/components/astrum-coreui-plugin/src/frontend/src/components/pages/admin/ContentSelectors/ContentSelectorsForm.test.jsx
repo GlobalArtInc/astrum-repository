@@ -173,7 +173,7 @@ describe('ContentSelectorsForm', function() {
 
     await waitForElementToBeRemoved(selectors.queryLoadingMask());
 
-    expect(container.querySelector('.nx-alert--error')).toHaveTextContent('Error');
+    expect(container.querySelector('.as-alert--error')).toHaveTextContent('Error');
   });
 
   it('requires the name and expression fields when creating a new content selector', async function() {

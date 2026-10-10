@@ -1,8 +1,8 @@
 
 import React from 'react';
 import {useMachine} from '@xstate/react';
-import {NxButton, NxLoadWrapper} from '@globalart/react-shared-components';
-import {NxFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsButton, AsLoadWrapper} from '@globalart/react-shared-components';
+import {AsFontAwesomeIcon} from '@globalart/react-shared-components';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -50,20 +50,20 @@ export default function NuGetApiToken() {
     </PageHeader>
     <ContentBody>
       <Section>
-        <NxLoadWrapper isLoading={isLoading} retryHandler={retry}>
+        <AsLoadWrapper isLoading={isLoading} retryHandler={retry}>
           <p> {UIStrings.NUGET_API_KEY.INSTRUCTIONS} </p>
           <SectionFooter>
-            <NxButton variant='primary' onClick={handleAccessKey}>
+            <AsButton variant='primary' onClick={handleAccessKey}>
               <span>{UIStrings.NUGET_API_KEY.ACCESS.BUTTON}</span>
-            </NxButton>
-            <NxButton onClick={handleResetKey}>
-              <NxFontAwesomeIcon icon={faLock}/>
+            </AsButton>
+            <AsButton onClick={handleResetKey}>
+              <AsFontAwesomeIcon icon={faLock}/>
               <span>{UIStrings.NUGET_API_KEY.RESET.BUTTON}</span>
-            </NxButton>
+            </AsButton>
           </SectionFooter>
 
           {showNugetModal && <NuGetApiTokenModal apiKey={state.context.token.apiKey} onCloseClick={handleCloseKey}/>}
-        </NxLoadWrapper>
+        </AsLoadWrapper>
       </Section>
     </ContentBody>
   </Page>;

@@ -6,13 +6,13 @@ import {faAtlassian} from '@fortawesome/free-brands-svg-icons';
 import CrowdSettingsMachine from './CrowdSettingsMachine';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxCheckbox,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxStatefulForm,
-  NxTextInput,
-  NxTooltip,
+  AsButton,
+  AsCheckbox,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsStatefulForm,
+  AsTextInput,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 
  import {
@@ -56,78 +56,78 @@ export function CrowdSettingsForm({service}) {
     /></PageHeader>
     <ContentBody className='as-crowd-settings'>
       <Section>
-        <NxStatefulForm
+        <AsStatefulForm
             {...FormUtils.formProps(current, send)}
             additionalFooterBtns={<>
-              <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-                <NxButton type="button" className={(isPristine) && 'disabled'} onClick={discard}>
+              <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+                <AsButton type="button" className={(isPristine) && 'disabled'} onClick={discard}>
                   {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-                </NxButton>
-              </NxTooltip>
-              <NxButton type="button" disabled={isInvalid} onClick={verifyConnection}>
+                </AsButton>
+              </AsTooltip>
+              <AsButton type="button" disabled={isInvalid} onClick={verifyConnection}>
                 {UIStrings.CROWD_SETTINGS.BUTTONS.VERIFY_BUTTON_LABEL}
-              </NxButton>
-              <NxButton type="button" onClick={clearCache}>
-                <NxFontAwesomeIcon icon={faTrash}/>
+              </AsButton>
+              <AsButton type="button" onClick={clearCache}>
+                <AsFontAwesomeIcon icon={faTrash}/>
                 <span>{UIStrings.CROWD_SETTINGS.BUTTONS.CLEAR_BUTTON_LABEL}</span>
-              </NxButton>
+              </AsButton>
             </>}>
-          <NxFormGroup label={UIStrings.CROWD_SETTINGS.FIELDS.enabledLabel}>
-            <NxCheckbox
+          <AsFormGroup label={UIStrings.CROWD_SETTINGS.FIELDS.enabledLabel}>
+            <AsCheckbox
                 {...FormUtils.checkboxProps('enabled', current)}
                 onChange={FormUtils.handleUpdate('enabled', send)}>
               {UIStrings.CROWD_SETTINGS.FIELDS.enabledDescription}
-            </NxCheckbox>
-          </NxFormGroup>
-          <NxFormGroup label={UIStrings.CROWD_SETTINGS.FIELDS.realmActiveLabel}>
-            <NxCheckbox
+            </AsCheckbox>
+          </AsFormGroup>
+          <AsFormGroup label={UIStrings.CROWD_SETTINGS.FIELDS.realmActiveLabel}>
+            <AsCheckbox
                 {...FormUtils.checkboxProps('realmActive', current)}
                 onChange={FormUtils.handleUpdate('realmActive', send)}>
               <span dangerouslySetInnerHTML={UIStrings.CROWD_SETTINGS.FIELDS.realmActiveDescription}/>
-            </NxCheckbox>
-          </NxFormGroup>
-          <NxFormGroup
+            </AsCheckbox>
+          </AsFormGroup>
+          <AsFormGroup
               label={UIStrings.CROWD_SETTINGS.FIELDS.urlLabel}
               sublabel={UIStrings.CROWD_SETTINGS.FIELDS.urlDescription}
               isRequired>
-            <NxTextInput
-                className="nx-text-input--long"
+            <AsTextInput
+                className="as-text-input--long"
                 {...FormUtils.fieldProps('url', current)}
                 onChange={FormUtils.handleUpdate('url', send)}/>
-          </NxFormGroup>
+          </AsFormGroup>
           {data.url?.startsWith('https') && <>
-            <NxFormGroup
+            <AsFormGroup
                 label={UIStrings.CROWD_SETTINGS.FIELDS.useTrustStoreLabel}
                 sublabel={<span dangerouslySetInnerHTML={UIStrings.CROWD_SETTINGS.FIELDS.useTrustStoreDescription}/>}
                 isRequired>
-              <NxCheckbox
+              <AsCheckbox
                   {...FormUtils.checkboxProps('useTrustStoreForUrl', current)}
                   onChange={FormUtils.handleUpdate('useTrustStoreForUrl', send)}>
                 {UIStrings.CROWD_SETTINGS.FIELDS.useTrustStoreText}
-              </NxCheckbox>
-            </NxFormGroup>
+              </AsCheckbox>
+            </AsFormGroup>
           </>}
-          <NxFormGroup label={UIStrings.CROWD_SETTINGS.FIELDS.applicationNameLabel} isRequired>
-            <NxTextInput
+          <AsFormGroup label={UIStrings.CROWD_SETTINGS.FIELDS.applicationNameLabel} isRequired>
+            <AsTextInput
                 autoComplete="off"
                 {...FormUtils.fieldProps('applicationName', current)}
                 onChange={FormUtils.handleUpdate('applicationName', send)}/>
-          </NxFormGroup>
-          <NxFormGroup label={UIStrings.CROWD_SETTINGS.FIELDS.applicationPasswordLabel} isRequired>
-            <NxTextInput
+          </AsFormGroup>
+          <AsFormGroup label={UIStrings.CROWD_SETTINGS.FIELDS.applicationPasswordLabel} isRequired>
+            <AsTextInput
                 type="password"
                 autoComplete="new-password"
                 {...FormUtils.fieldProps('applicationPassword', current)}
                 onChange={FormUtils.handleUpdate('applicationPassword', send)}/>
-          </NxFormGroup>
-          <NxFormGroup
+          </AsFormGroup>
+          <AsFormGroup
               label={UIStrings.CROWD_SETTINGS.FIELDS.timeoutLabel}
               sublabel={UIStrings.CROWD_SETTINGS.FIELDS.timeoutDescription}>
-            <NxTextInput
+            <AsTextInput
                 {...FormUtils.fieldProps('timeout', current)}
                 onChange={FormUtils.handleUpdate('timeout', send)}/>
-          </NxFormGroup>
-        </NxStatefulForm>
+          </AsFormGroup>
+        </AsStatefulForm>
       </Section>
     </ContentBody>
   </Page>;

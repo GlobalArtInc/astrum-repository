@@ -368,8 +368,8 @@ describe('UsersPage', () => {
 
     it('does not render the page-level Delete User button when the delete permission is denied', async () => {
       // UsersPage imports ExtJS from the interface/ExtJS module (not the top-level
-      // package), so overrides go through NX.Permissions.check per setup.js.
-      (global as any).NX.Permissions.check.mockImplementation(
+      // package), so overrides go through AS.Permissions.check per setup.js.
+      (global as any).AS.Permissions.check.mockImplementation(
         (p: string) => p !== 'astrum:users:delete'
       );
 
@@ -401,7 +401,7 @@ describe('UsersPage', () => {
     it('renders the page-level Delete User button disabled with the self tooltip when editing the current user', async () => {
       // Default mock: fetchUser returns user id "testuser" and current user id "admin".
       // Switch current user to "testuser" so self-precedence fires.
-      (global as any).NX.State.getUser.mockReturnValue({ id: 'testuser' });
+      (global as any).AS.State.getUser.mockReturnValue({ id: 'testuser' });
 
       window.location.hash = '#preview/admin/security/users/testuser/default';
       render(<UsersPage />, { wrapper: TestWrapper });
@@ -428,7 +428,7 @@ describe('UsersPage', () => {
         source: 'default',
         realm: 'default',
       });
-      (global as any).NX.State.getUser.mockReturnValue({ id: 'somebody-else' });
+      (global as any).AS.State.getUser.mockReturnValue({ id: 'somebody-else' });
 
       window.location.hash = '#preview/admin/security/users/admin/default';
       render(<UsersPage />, { wrapper: TestWrapper });
@@ -451,8 +451,8 @@ describe('UsersPage', () => {
         source: 'default',
         realm: 'default',
       });
-      (global as any).NX.State.getUser.mockReturnValue({ id: 'somebody-else' });
-      (global as any).NX.State.getValue.mockImplementation((k: string) =>
+      (global as any).AS.State.getUser.mockReturnValue({ id: 'somebody-else' });
+      (global as any).AS.State.getValue.mockImplementation((k: string) =>
         k === 'anonymousUsername' ? 'anonymous' : undefined
       );
 
@@ -480,7 +480,7 @@ describe('UsersPage', () => {
         source: 'LDAP',
         realm: 'LDAP',
       });
-      (global as any).NX.State.getUser.mockReturnValue({ id: 'somebody-else' });
+      (global as any).AS.State.getUser.mockReturnValue({ id: 'somebody-else' });
 
       window.location.hash = '#preview/admin/security/users/ldapuser/LDAP';
       render(<UsersPage />, { wrapper: TestWrapper });
@@ -531,7 +531,7 @@ describe('UsersPage', () => {
 
     it('routes to the read-only UserDetail when canUpdate is false, without wiring onDelete or canDelete (ASTRUM-54437)', async () => {
       // canUpdate=false forces the !canUpdate branch that renders <UserDetail>.
-      (global as any).NX.Permissions.check.mockImplementation(
+      (global as any).AS.Permissions.check.mockImplementation(
         (p: string) => p !== 'astrum:users:update'
       );
 
@@ -562,7 +562,7 @@ describe('UsersPage', () => {
     });
 
     it('routes the row click to the Edit URL when canUpdate is true', async () => {
-      // Default NX.Permissions.check returns true, so canUpdate = true.
+      // Default AS.Permissions.check returns true, so canUpdate = true.
       render(<UsersPage />, { wrapper: TestWrapper });
 
       fireEvent.click(screen.getByText('Select User'));
@@ -573,7 +573,7 @@ describe('UsersPage', () => {
     });
 
     it('routes the row click to the /profile URL when canUpdate is false', async () => {
-      (global as any).NX.Permissions.check.mockImplementation(
+      (global as any).AS.Permissions.check.mockImplementation(
         (p: string) => p !== 'astrum:users:update'
       );
 
@@ -597,7 +597,7 @@ describe('UsersPage', () => {
     });
 
     it('passes a getRowAriaLabel that reads "View {fullName}" when canUpdate is false', () => {
-      (global as any).NX.Permissions.check.mockImplementation(
+      (global as any).AS.Permissions.check.mockImplementation(
         (p: string) => p !== 'astrum:users:update'
       );
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { NxH3, NxPageSidebar } from '@globalart/react-shared-components';
+import { AsH3, AsPageSidebar } from '@globalart/react-shared-components';
 import {
   ExtJS,
   LeftNavigationMenuItem,
@@ -18,8 +18,8 @@ export default function SettingsSidebar() {
   const ADMIN = ROUTE_NAMES.ADMIN;
 
   return (
-    <NxPageSidebar className="as-settings">
-      <NxH3>Settings</NxH3>
+    <AsPageSidebar className="as-settings">
+      <AsH3>Settings</AsH3>
       {/* === Repository -- Collapsible Menu === */}
       <LeftNavigationMenuCollapsibleItem
         name={ADMIN.REPOSITORY.DIRECTORY}
@@ -253,6 +253,6 @@ export default function SettingsSidebar() {
           data-analytics-id="as-global-secondary-navbar-system-tasks"
         />
       </LeftNavigationMenuCollapsibleItem>
-    </NxPageSidebar>
+    </AsPageSidebar>
   );
 }

@@ -48,7 +48,7 @@
         <groupId>org.globalart.astrum.common.maven.plugins</groupId>
         <artifactId>extjs-maven-plugin</artifactId>
         <configuration>
-          <namespace>NX.onboarding</namespace>
+          <namespace>AS.onboarding</namespace>
         </configuration>
       </plugin>
       <plugin>

@@ -3,16 +3,16 @@ import React, {useState, useEffect} from 'react';
 
 import {ExtJS, ListMachineUtils, copyToClipboard} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxButtonBar,
-  NxFilterInput,
-  NxFontAwesomeIcon,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTooltip
+  AsButton,
+  AsButtonBar,
+  AsFilterInput,
+  AsFontAwesomeIcon,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTooltip
 } from '@globalart/react-shared-components';
 import {faCopy, faDatabase} from '@fortawesome/free-solid-svg-icons';
 
@@ -121,95 +121,95 @@ export default function RepositoriesList({onCreate, onEdit, copyUrl = doCopyUrl}
       <PageHeader>
         <PageTitle icon={faDatabase} {...REPOSITORIES.MENU} />
         <PageActions>
-          <NxTooltip title={!canCreate && UIStrings.PERMISSION_ERROR} placement="bottom">
-            <NxButton
+          <AsTooltip title={!canCreate && UIStrings.PERMISSION_ERROR} placement="bottom">
+            <AsButton
               type="button"
               variant="primary"
               className={!canCreate && 'disabled'}
               onClick={create}
             >
               {REPOSITORIES.LIST.CREATE_BUTTON}
-            </NxButton>
-          </NxTooltip>
+            </AsButton>
+          </AsTooltip>
         </PageActions>
       </PageHeader>
       <ContentBody className="as-repositories-list">
         <Section>
           <SectionToolbar>
             <div className="as-spacer" />
-            <NxFilterInput
+            <AsFilterInput
               id="filter"
               onChange={filter}
               value={filterText}
               placeholder={REPOSITORIES.LIST.FILTER_PLACEHOLDER}
             />
           </SectionToolbar>
-          <NxTable>
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>
+          <AsTable>
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>
                   {COLUMNS.NAME}
-                </NxTableCell>
-                <NxTableCell onClick={sortByType} isSortable sortDir={typeSortDir}>
+                </AsTableCell>
+                <AsTableCell onClick={sortByType} isSortable sortDir={typeSortDir}>
                   {COLUMNS.TYPE}
-                </NxTableCell>
-                <NxTableCell onClick={sortByFormat} isSortable sortDir={formatSortDir}>
+                </AsTableCell>
+                <AsTableCell onClick={sortByFormat} isSortable sortDir={formatSortDir}>
                   {COLUMNS.FORMAT}
-                </NxTableCell>
-                <NxTableCell onClick={sortByStatus} isSortable sortDir={statusSortDir}>
+                </AsTableCell>
+                <AsTableCell onClick={sortByStatus} isSortable sortDir={statusSortDir}>
                   {COLUMNS.STATUS}
-                </NxTableCell>
-                <NxTableCell className="as-table-cell-centered">{COLUMNS.URL}</NxTableCell>
+                </AsTableCell>
+                <AsTableCell className="as-table-cell-centered">{COLUMNS.URL}</AsTableCell>
                 {showHealthCheckColumn && (
-                  <NxTableCell className="as-table-cell-centered">
+                  <AsTableCell className="as-table-cell-centered">
                     {COLUMNS.HEALTH_CHECK}
-                  </NxTableCell>
+                  </AsTableCell>
                 )}
                 {showIqPolicyViolationsColumn && (
-                  <NxTableCell className="as-table-cell-centered">{COLUMNS.IQ}</NxTableCell>
+                  <AsTableCell className="as-table-cell-centered">{COLUMNS.IQ}</AsTableCell>
                 )}
-                <NxTableCell chevron />
-              </NxTableRow>
-            </NxTableHead>
-            <NxTableBody
+                <AsTableCell chevron />
+              </AsTableRow>
+            </AsTableHead>
+            <AsTableBody
               isLoading={isLoading}
               error={error}
               emptyMessage={REPOSITORIES.LIST.EMPTY_LIST}
             >
               {data.map(({name, type, format, url, status}) => (
-                <NxTableRow key={name} onClick={() => onEdit(name)} isClickable>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{type}</NxTableCell>
-                  <NxTableCell>{format}</NxTableCell>
-                  <NxTableCell>
+                <AsTableRow key={name} onClick={() => onEdit(name)} isClickable>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{type}</AsTableCell>
+                  <AsTableCell>{format}</AsTableCell>
+                  <AsTableCell>
                     <RepositoryStatus status={status} />
-                  </NxTableCell>
-                  <NxTableCell className="as-table-cell-centered">
-                    <NxButtonBar>
-                      <NxButton
+                  </AsTableCell>
+                  <AsTableCell className="as-table-cell-centered">
+                    <AsButtonBar>
+                      <AsButton
                         variant="icon-only"
                         onClick={(e) => copyUrl(e, url)}
                         title={REPOSITORIES.LIST.COPY_URL_TITLE}
                       >
-                        <NxFontAwesomeIcon icon={faCopy} />
-                      </NxButton>
-                    </NxButtonBar>
-                  </NxTableCell>
+                        <AsFontAwesomeIcon icon={faCopy} />
+                      </AsButton>
+                    </AsButtonBar>
+                  </AsTableCell>
                   {showHealthCheckColumn && (
-                    <NxTableCell className="as-table-cell-centered">
+                    <AsTableCell className="as-table-cell-centered">
                       <HealthCheckCell name={name} openModal={() => openHealthCheckModal(name)} />
-                    </NxTableCell>
+                    </AsTableCell>
                   )}
                   {showIqPolicyViolationsColumn && (
-                    <NxTableCell className="as-table-cell-centered">
+                    <AsTableCell className="as-table-cell-centered">
                       <IqPolicyViolationsCell name={name} />
-                    </NxTableCell>
+                    </AsTableCell>
                   )}
-                  <NxTableCell chevron />
-                </NxTableRow>
+                  <AsTableCell chevron />
+                </AsTableRow>
               ))}
-            </NxTableBody>
-          </NxTable>
+            </AsTableBody>
+          </AsTable>
         </Section>
 
         <HelpTile header={REPOSITORIES.LIST.HELP.TITLE} body={REPOSITORIES.LIST.HELP.TEXT} />

@@ -1,5 +1,5 @@
 
-import './styles/_nx-overrides.scss';
+import './styles/_as-overrides.scss';
 import './styles/_global.scss';
 
 export { default as UIStrings } from './constants/UIStrings';

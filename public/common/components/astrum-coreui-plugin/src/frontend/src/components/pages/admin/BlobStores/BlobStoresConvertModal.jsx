@@ -5,12 +5,12 @@ import {useMachine} from '@xstate/react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxWarningAlert,
-  NxFormGroup,
-  NxH2,
-  NxModal,
-  NxStatefulForm,
-  NxTextInput,
+  AsWarningAlert,
+  AsFormGroup,
+  AsH2,
+  AsModal,
+  AsStatefulForm,
+  AsTextInput,
 } from '@globalart/react-shared-components';
 
 import Machine from './BlobStoresConvertModalMachine';
@@ -33,30 +33,30 @@ export default function BlobStoresConvertModal({name, onDone, onCancel}) {
   });
 
   return (
-      <NxModal onCancel={onCancel}>
-        <NxStatefulForm
+      <AsModal onCancel={onCancel}>
+        <AsStatefulForm
             {...FormUtils.formProps(state, send)}
             onCancel={onCancel}
             submitBtnText={CONVERT_TO_GROUP_MODAL.CONVERT_BUTTON}
         >
-          <NxModal.Header>
-            <NxH2>{CONVERT_TO_GROUP_MODAL.HEADER}</NxH2>
-          </NxModal.Header>
-          <NxModal.Content>
-            <NxWarningAlert>{CONVERT_TO_GROUP_MODAL.ALERT}</NxWarningAlert>
-            <NxFormGroup
+          <AsModal.Header>
+            <AsH2>{CONVERT_TO_GROUP_MODAL.HEADER}</AsH2>
+          </AsModal.Header>
+          <AsModal.Content>
+            <AsWarningAlert>{CONVERT_TO_GROUP_MODAL.ALERT}</AsWarningAlert>
+            <AsFormGroup
                 className="blob-store-new-name"
                 label={CONVERT_TO_GROUP_MODAL.LABEL}
                 sublabel={CONVERT_TO_GROUP_MODAL.SUBLABEL}
                 isRequired
             >
-              <NxTextInput
+              <AsTextInput
                   {...FormUtils.fieldProps('newName', state)}
                   onChange={FormUtils.handleUpdate('newName', send)}
               />
-            </NxFormGroup>
-          </NxModal.Content>
-        </NxStatefulForm>
-      </NxModal>
+            </AsFormGroup>
+          </AsModal.Content>
+        </AsStatefulForm>
+      </AsModal>
   );
 };

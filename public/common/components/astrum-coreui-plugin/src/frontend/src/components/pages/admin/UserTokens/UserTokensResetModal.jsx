@@ -3,12 +3,12 @@ import React from 'react';
 import {useActor} from '@xstate/react';
 
 import {
-  NxH2,
-  NxFormGroup,
-  NxModal,
-  NxStatefulForm,
-  NxStatefulWarningAlert,
-  NxTextInput
+  AsH2,
+  AsFormGroup,
+  AsModal,
+  AsStatefulForm,
+  AsStatefulWarningAlert,
+  AsTextInput
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -27,24 +27,24 @@ export default function UserTokensResetModal({service}) {
   const setConfirmationString = (value) => send({type: 'SET_CONFIRMATION_STRING', value});
 
   return (
-    <NxModal onCancel={cancelResetConfirmation} variant="narrow">
-      <NxModal.Header>
-        <NxH2>{RESET_CONFIRMATION.CAPTION}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxStatefulWarningAlert>{RESET_CONFIRMATION.WARNING}</NxStatefulWarningAlert>
-        <NxStatefulForm
+    <AsModal onCancel={cancelResetConfirmation} variant="narrow">
+      <AsModal.Header>
+        <AsH2>{RESET_CONFIRMATION.CAPTION}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsStatefulWarningAlert>{RESET_CONFIRMATION.WARNING}</AsStatefulWarningAlert>
+        <AsStatefulForm
           onSubmit={resetUserTokens}
           submitBtnText={RESET_CONFIRMATION.BUTTON}
           onCancel={cancelResetConfirmation}
           validationErrors={confirmationStringValidationError}
         >
-          <NxFormGroup
+          <AsFormGroup
             label={RESET_CONFIRMATION.LABEL}
             sublabel={RESET_CONFIRMATION.SUBLABEL}
             isRequired
           >
-            <NxTextInput
+            <AsTextInput
               id="confirmationString"
               name="confirmationString"
               value={confirmationString}
@@ -53,9 +53,9 @@ export default function UserTokensResetModal({service}) {
               validatable
               isPristine={confirmationString === ''}
             />
-          </NxFormGroup>
-        </NxStatefulForm>
-      </NxModal.Content>
-    </NxModal>
+          </AsFormGroup>
+        </AsStatefulForm>
+      </AsModal.Content>
+    </AsModal>
   );
 }

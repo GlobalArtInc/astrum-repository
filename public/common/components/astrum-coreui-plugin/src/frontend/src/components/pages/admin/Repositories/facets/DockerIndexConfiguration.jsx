@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {NxFieldset, NxRadio, NxFormGroup, NxTextInput} from '@globalart/react-shared-components';
+import {AsFieldset, AsRadio, AsFormGroup, AsTextInput} from '@globalart/react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -25,46 +25,46 @@ export default function DockerIndexConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxFieldset label={INDEX.LABEL} isRequired>
-        <NxRadio
+      <AsFieldset label={INDEX.LABEL} isRequired>
+        <AsRadio
           name="indexType"
           value={DOCKER_INDEX_TYPES.registry}
           onChange={updateIndexType}
           isChecked={indexType === DOCKER_INDEX_TYPES.registry}
         >
           {INDEX.OPTIONS.REGISTRY}
-        </NxRadio>
-        <NxRadio
+        </AsRadio>
+        <AsRadio
           name="indexType"
           value={DOCKER_INDEX_TYPES.hub}
           onChange={updateIndexType}
           isChecked={indexType === DOCKER_INDEX_TYPES.hub}
         >
           {INDEX.OPTIONS.HUB}
-        </NxRadio>
-        <NxRadio
+        </AsRadio>
+        <AsRadio
           name="indexType"
           value={DOCKER_INDEX_TYPES.custom}
           onChange={updateIndexType}
           isChecked={indexType === DOCKER_INDEX_TYPES.custom}
         >
           {INDEX.OPTIONS.CUSTOM}
-        </NxRadio>
-      </NxFieldset>
+        </AsRadio>
+      </AsFieldset>
 
       {indexType !== DOCKER_INDEX_TYPES.registry && (
-        <NxFormGroup
+        <AsFormGroup
           label={INDEX.URL.LABEL}
           className="as-form-group-docker-index-url"
           isRequired
         >
-          <NxTextInput
+          <AsTextInput
             {...FormUtils.fieldProps('dockerProxy.indexUrl', currentParent)}
             onChange={FormUtils.handleUpdate('dockerProxy.indexUrl', sendParent)}
             disabled={indexType === DOCKER_INDEX_TYPES.hub}
             placeholder={INDEX.URL.PLACEHOLDER}
           />
-        </NxFormGroup>
+        </AsFormGroup>
       )}
     </>
   );

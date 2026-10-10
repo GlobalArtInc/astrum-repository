@@ -43,7 +43,7 @@
   }
 }
 
-.as-global-header-radix.nx-global-header-2 {
+.as-global-header-radix.as-global-header-2 {
   grid-area: header !important;  // Force into grid
   z-index: 100;
   width: 100%;
@@ -58,15 +58,15 @@
   padding-left: 0;
   padding-right: 0;
   
-  // Force ALL RSC buttons (NxButton) to use theme colors
-  .nx-btn {
+  // Force ALL RSC buttons (AsButton) to use theme colors
+  .as-btn {
     color: var(--color-text) !important;
     
-    &.nx-btn--icon-only {
+    &.as-btn--icon-only {
       color: var(--color-text) !important;
     }
     
-    .nx-icon {
+    .as-icon {
       color: var(--color-text) !important;
     }
     
@@ -75,25 +75,25 @@
     }
   }
   
-  // Force NxFontAwesomeIcon to use theme colors
-  .nx-icon {
+  // Force AsFontAwesomeIcon to use theme colors
+  .as-icon {
     color: var(--color-text) !important;
   }
   
   // Force dropdown toggles
-  .nx-icon-dropdown__toggle {
+  .as-icon-dropdown__toggle {
     color: var(--color-text) !important;
     
-    .nx-icon {
+    .as-icon {
       color: var(--color-text) !important;
     }
   }
   
   // Force navigation dropdown (Help menu, Profile menu)
-  .nx-navigation-dropdown__toggle {
+  .as-navigation-dropdown__toggle {
     color: var(--color-text) !important;
     
-    .nx-icon {
+    .as-icon {
       color: var(--color-text) !important;
     }
   }
@@ -102,7 +102,7 @@
   .fa-layers {
     color: var(--color-text) !important;
     
-    .nx-icon {
+    .as-icon {
       color: var(--color-text) !important;
     }
   }

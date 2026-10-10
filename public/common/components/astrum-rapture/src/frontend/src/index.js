@@ -1,9 +1,9 @@
 
-// Suppress noisy NX.app.Loader console chatter early so debug logs stay readable.
-if (typeof window !== 'undefined' && !window.__nxExtJsDebugPatchedRapture) {
-  window.__nxExtJsDebugPatchedRapture = true;
+// Suppress noisy AS.app.Loader console chatter early so debug logs stay readable.
+if (typeof window !== 'undefined' && !window.__asExtJsDebugPatchedRapture) {
+  window.__asExtJsDebugPatchedRapture = true;
   const shouldSuppressLoader = (args) =>
-    args.some((arg) => typeof arg === 'string' && arg.includes('NX.app.Loader'));
+    args.some((arg) => typeof arg === 'string' && arg.includes('AS.app.Loader'));
 
   const wrap = (originalFn) => (...args) => {
     if (shouldSuppressLoader(args)) {
@@ -18,29 +18,29 @@ if (typeof window !== 'undefined' && !window.__nxExtJsDebugPatchedRapture) {
   console.warn = wrap(console.warn?.bind(console));
   console.error = wrap(console.error?.bind(console));
 
-  // Also silence NX.Log (used by NX.app.Loader) once it appears.
-  const trySilenceNxLog = () => {
-    const nxLog = window.NX && window.NX.Log;
-    if (!nxLog || nxLog.__silencedForLoader) {
+  // Also silence AS.Log (used by AS.app.Loader) once it appears.
+  const trySilenceAsLog = () => {
+    const asLog = window.AS && window.AS.Log;
+    if (!asLog || asLog.__silencedForLoader) {
       return false;
     }
     ['logInfo', 'info', 'logDebug', 'debug', 'logWarn', 'warn', 'logError', 'error'].forEach((fn) => {
-      if (typeof nxLog[fn] === 'function') {
-        nxLog[fn] = () => {};
+      if (typeof asLog[fn] === 'function') {
+        asLog[fn] = () => {};
       }
     });
-    nxLog.__silencedForLoader = true;
+    asLog.__silencedForLoader = true;
     return true;
   };
 
-  const nxLogPoll = setInterval(() => {
-    if (trySilenceNxLog()) {
-      clearInterval(nxLogPoll);
+  const asLogPoll = setInterval(() => {
+    if (trySilenceAsLog()) {
+      clearInterval(asLogPoll);
     }
   }, 50);
 
   // Stop polling after 10s to avoid runaway timers.
-  setTimeout(() => clearInterval(nxLogPoll), 10000);
+  setTimeout(() => clearInterval(asLogPoll), 10000);
 }
 
 console.info('[verify] rapture bundle from ASTRUM_RESOURCE_DIRS loaded');

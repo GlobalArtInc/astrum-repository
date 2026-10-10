@@ -23,6 +23,6 @@ public class UiPluginDescriptorImpl
   @Autowired
   public UiPluginDescriptorImpl() {
     super("astrum-rapture");
-    setConfigClassName("NX.app.PluginConfig");
+    setConfigClassName("AS.app.PluginConfig");
   }
 }

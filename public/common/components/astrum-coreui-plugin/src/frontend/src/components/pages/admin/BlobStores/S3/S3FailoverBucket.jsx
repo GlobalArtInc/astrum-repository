@@ -1,13 +1,13 @@
 
 import {
-  NxButton,
-  NxDivider,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormSelect,
-  NxInfoAlert,
-  NxReadOnly,
-  NxTextInput
+  AsButton,
+  AsDivider,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormSelect,
+  AsInfoAlert,
+  AsReadOnly,
+  AsTextInput
 } from '@globalart/react-shared-components';
 import React from 'react';
 import {faCheckCircle, faTrash} from '@fortawesome/free-solid-svg-icons';
@@ -34,46 +34,46 @@ export default function S3FailoverBucket({
   regionProps = {...regionProps, isPristine: !notPristine}
 
   return <div id={`replication-bucket-${index}`}>
-    <NxFormGroup
+    <AsFormGroup
         label={FIELDS.S3BlobStore_ReplicationBucketsSettings_Region_FieldLabel}
         sublabel={FIELDS.S3BlobStore_ReplicationBucketsSettings_Region_HelpText}
         className={showRegionFailoverActiveMessage ? "as-s3-region-select-message" : ""}
         isRequired>
-      <NxFormSelect {...regionProps}
+      <AsFormSelect {...regionProps}
                     onChange={onRegionChange}>
         <option value={null}></option>
         {dropDownValues?.regions?.filter(region => region.id !== 'DEFAULT' &&
             (!selectedRegions.includes(region.id) || region.id === regionProps.value))
             .map(region => <option key={region.id} value={region.id}>{region.name}</option>)}
-      </NxFormSelect>
-    </NxFormGroup>
+      </AsFormSelect>
+    </AsFormGroup>
     {showRegionFailoverActiveMessage &&
-        <NxReadOnly id="active-failover-region"
+        <AsReadOnly id="active-failover-region"
                     className={`as-active-failover-region-message ${showInvalidRegion ? "invalid" : ""}`}>
-          <NxFontAwesomeIcon icon={faCheckCircle}/>
-          <NxReadOnly.Data>{FIELDS.S3BlobStore_Region_FailoverRegionActiveText}</NxReadOnly.Data>
-        </NxReadOnly>
+          <AsFontAwesomeIcon icon={faCheckCircle}/>
+          <AsReadOnly.Data>{FIELDS.S3BlobStore_Region_FailoverRegionActiveText}</AsReadOnly.Data>
+        </AsReadOnly>
     }
-    <NxFormGroup
+    <AsFormGroup
         label={FIELDS.S3BlobStore_ReplicationBucketsSettings_BucketName_FieldLabel}
         sublabel={FIELDS.S3BlobStore_ReplicationBucketsSettings_BucketName_HelpText}
         isRequired>
-      <NxTextInput className="nx-text-input--long"
+      <AsTextInput className="as-text-input--long"
                    {...bucketNameProps}
                    onChange={onBucketNameChange}/>
-    </NxFormGroup>
-    <NxInfoAlert><span>{FIELDS.S3BlobStore_ReplicationBucketsSettings_ConfigureBucketReplicationMessage}</span>
-    </NxInfoAlert>
+    </AsFormGroup>
+    <AsInfoAlert><span>{FIELDS.S3BlobStore_ReplicationBucketsSettings_ConfigureBucketReplicationMessage}</span>
+    </AsInfoAlert>
     <div id="delete-failover-bucket">
-      <NxButton
+      <AsButton
           type="button"
           variant="tertiary"
           className="as-replication-bucket-button"
           onClick={() => onDelete(index)}>
-        <NxFontAwesomeIcon icon={faTrash}/>
+        <AsFontAwesomeIcon icon={faTrash}/>
         <span>{FIELDS.S3BlobStore_ReplicationBucketsSettings_DeleteFailoverBucket}</span>
-      </NxButton>
+      </AsButton>
     </div>
-    <NxDivider/>
+    <AsDivider/>
   </div>;
 }

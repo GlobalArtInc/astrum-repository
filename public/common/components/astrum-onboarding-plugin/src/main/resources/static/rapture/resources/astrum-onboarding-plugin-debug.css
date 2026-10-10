@@ -1,15 +1,15 @@
 
 
-[id^=nx-onboarding-wizard].nx-wizard-panel {
+[id^=as-onboarding-wizard].as-wizard-panel {
   border-top: none !important;
 }
 
-[id^=nx-onboarding-wizard].nx-wizard-panel .screenheader {
+[id^=as-onboarding-wizard].as-wizard-panel .screenheader {
     border: 0 !important;
     padding: 0 !important;
 }
 
-[id^=nx-onboarding-wizard].nx-wizard-panel .screencontainer {
+[id^=as-onboarding-wizard].as-wizard-panel .screencontainer {
     border: 0 !important;
     padding: 12px 0 0 0 !important;
 }

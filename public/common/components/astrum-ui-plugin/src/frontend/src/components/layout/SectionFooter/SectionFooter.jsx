@@ -8,5 +8,5 @@ import classNames from 'classnames';
  * This component must be used within a Section component.
  */
 export default function SectionFooter({className, children, ...rest}) {
-  return <div className={classNames("nx-footer", className)} {...rest}>{children}</div>;
+  return <div className={classNames("as-footer", className)} {...rest}>{children}</div>;
 }

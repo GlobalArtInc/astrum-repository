@@ -18,8 +18,8 @@
   &__spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid var(--nx-color-border, #ddd);
-    border-top-color: var(--nx-color-primary, #0066cc);
+    border: 3px solid var(--as-color-border, #ddd);
+    border-top-color: var(--as-color-primary, #0066cc);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -36,13 +36,13 @@
     padding: 8px 16px;
     margin-bottom: 16px;
     background: transparent;
-    border: 1px solid var(--nx-color-border, #ddd);
+    border: 1px solid var(--as-color-border, #ddd);
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
 
     &:hover {
-      background: var(--nx-color-background-hover, #f5f5f5);
+      background: var(--as-color-background-hover, #f5f5f5);
     }
   }
 
@@ -54,7 +54,7 @@
 
   &__path {
     font-size: 14px;
-    color: var(--nx-color-text-secondary, #666);
+    color: var(--as-color-text-secondary, #666);
     margin: 0;
     font-family: var(--font-family-mono);
   }
@@ -67,7 +67,7 @@
 
   &__section {
     background: white;
-    border: 1px solid var(--nx-color-border, #ddd);
+    border: 1px solid var(--as-color-border, #ddd);
     border-radius: 8px;
     padding: 20px;
   }
@@ -77,7 +77,7 @@
     font-weight: 600;
     margin: 0 0 16px 0;
     padding-bottom: 8px;
-    border-bottom: 1px solid var(--nx-color-border, #eee);
+    border-bottom: 1px solid var(--as-color-border, #eee);
   }
 
   &__info-grid {
@@ -88,7 +88,7 @@
 
     dt {
       font-weight: 500;
-      color: var(--nx-color-text-secondary, #666);
+      color: var(--as-color-text-secondary, #666);
     }
 
     dd {
@@ -105,14 +105,14 @@
   &__download-button {
     display: inline-block;
     padding: 10px 24px;
-    background: var(--nx-color-primary, #0066cc);
+    background: var(--as-color-primary, #0066cc);
     color: white;
     text-decoration: none;
     border-radius: 4px;
     font-weight: 500;
 
     &:hover {
-      background: var(--nx-color-primary-dark, #0052a3);
+      background: var(--as-color-primary-dark, #0052a3);
     }
   }
 }

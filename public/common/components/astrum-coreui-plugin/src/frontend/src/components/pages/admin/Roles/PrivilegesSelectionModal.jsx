@@ -2,19 +2,19 @@
 import React from 'react';
 
 import {
-  NxModal,
-  NxH2,
-  NxButton,
-  NxCheckbox,
-  NxPagination,
-  NxTable,
-  NxTableHead,
-  NxTableRow,
-  NxTableCell,
-  NxTableBody,
-  NxFilterInput,
-  NxCounter,
-  NxFooter
+  AsModal,
+  AsH2,
+  AsButton,
+  AsCheckbox,
+  AsPagination,
+  AsTable,
+  AsTableHead,
+  AsTableRow,
+  AsTableCell,
+  AsTableBody,
+  AsFilterInput,
+  AsCounter,
+  AsFooter
 } from '@globalart/react-shared-components';
 
 import PrivilegeSelectionMachine from './PrivilegeSelectionMachine';
@@ -80,58 +80,58 @@ export default function PrivilegesSelectionModal({
   const sortByName = () => send({type: 'SORT_BY_NAME'});
   const sortByDescription = () => send({type: 'SORT_BY_DESCRIPTION'});
 
-  const counterClasses = classNames('nx-pull-right', {
-    'nx-counter--active': tempSelectedPrivileges.length > 0
+  const counterClasses = classNames('as-pull-right', {
+    'as-counter--active': tempSelectedPrivileges.length > 0
   });
 
   return (<>
     {createPortal(
-      <NxModal variant="wide" onCancel={onModalClose}>
-        <header className="nx-modal-header">
-          <NxH2 className="nx-h2" id="modal-header-text">{title} Selection</NxH2>
+      <AsModal variant="wide" onCancel={onModalClose}>
+        <header className="as-modal-header">
+          <AsH2 className="as-h2" id="modal-header-text">{title} Selection</AsH2>
         </header>
-        <div className="nx-modal__filter-box">
-          <NxFilterInput className="nx-modal__filter"
+        <div className="as-modal__filter-box">
+          <AsFilterInput className="as-modal__filter"
             placeholder="Filter"
             value={filterText}
             onChange={filter} 
             id= "modalFilter"/>
           {SELECTION_MODAL.WILDCARD_TEXT}
         </div>
-        <div className="nx-modal-content">
-          <NxTable className="modal-table">
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell className="select-column" onClick={sortBySelect} isSortable sortDir={selectSortDir}>Select</NxTableCell>
-                <NxTableCell className="name-column" onClick={sortByName} isSortable sortDir={nameSortDir}>Name</NxTableCell>
-                <NxTableCell className="desc-column" onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>Description</NxTableCell>
-              </NxTableRow>
-              <NxTableRow className="counter-row">
-                <NxTableCell></NxTableCell>
-                <NxTableCell></NxTableCell>
-                <NxTableCell className="counter-cell">
-                  <NxCounter className={counterClasses}>{tempSelectedPrivileges.length} Selected</NxCounter>
-                </NxTableCell>
-              </NxTableRow>
-            </NxTableHead>
+        <div className="as-modal-content">
+          <AsTable className="modal-table">
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell className="select-column" onClick={sortBySelect} isSortable sortDir={selectSortDir}>Select</AsTableCell>
+                <AsTableCell className="name-column" onClick={sortByName} isSortable sortDir={nameSortDir}>Name</AsTableCell>
+                <AsTableCell className="desc-column" onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>Description</AsTableCell>
+              </AsTableRow>
+              <AsTableRow className="counter-row">
+                <AsTableCell></AsTableCell>
+                <AsTableCell></AsTableCell>
+                <AsTableCell className="counter-cell">
+                  <AsCounter className={counterClasses}>{tempSelectedPrivileges.length} Selected</AsCounter>
+                </AsTableCell>
+              </AsTableRow>
+            </AsTableHead>
 
-            <NxTableBody emptyMessage="No privileges available">
+            <AsTableBody emptyMessage="No privileges available">
               {filteredData.slice(lowerBound, upperBound).map((privilege) => (
-                <NxTableRow key={privilege.name} id={privilege.name}>
-                  <NxTableCell className="select-column">
-                    <NxCheckbox
+                <AsTableRow key={privilege.name} id={privilege.name}>
+                  <AsTableCell className="select-column">
+                    <AsCheckbox
                       onChange={() => onPrivilegeSelected(privilege)}
                       isChecked={isPrivilegeSelected(privilege.name)}>
-                    </NxCheckbox>
-                  </NxTableCell>
-                  <NxTableCell>{privilege.name}</NxTableCell>
-                  <NxTableCell>{privilege.description}</NxTableCell>
-                </NxTableRow>))}
-            </NxTableBody>
-          </NxTable>
+                    </AsCheckbox>
+                  </AsTableCell>
+                  <AsTableCell>{privilege.name}</AsTableCell>
+                  <AsTableCell>{privilege.description}</AsTableCell>
+                </AsTableRow>))}
+            </AsTableBody>
+          </AsTable>
 
           <div className="modal-pagination">
-            <NxPagination
+            <AsPagination
               onChange={changePage}
               pageCount={pages > 0 ? pages : 1}
               currentPage={offsetPage}
@@ -139,13 +139,13 @@ export default function PrivilegesSelectionModal({
           </div>
         </div>
 
-        <NxFooter className="nx-footer-modal">
-          <div className="nx-btn-bar">
-            <NxButton onClick={onModalClose}>Cancel</NxButton>
-            <NxButton variant="primary" onClick={confirmModal}>Confirm</NxButton>
+        <AsFooter className="as-footer-modal">
+          <div className="as-btn-bar">
+            <AsButton onClick={onModalClose}>Cancel</AsButton>
+            <AsButton variant="primary" onClick={confirmModal}>Confirm</AsButton>
           </div>
-        </NxFooter>
-      </NxModal>,
+        </AsFooter>
+      </AsModal>,
       document.body
     )}</>);
 }

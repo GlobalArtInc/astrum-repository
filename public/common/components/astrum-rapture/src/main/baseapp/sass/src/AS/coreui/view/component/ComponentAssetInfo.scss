@@ -1,0 +1,17 @@
+/**
+ * @class AS.coreui.view.component.ComponentAssetInfo
+ */
+
+.as-coreui-component-componentassetinfo {
+  @extend .as-coreui-component-componentinfo;
+
+  .x-panel-as-inset {
+    .x-panel-header-as-inset.vulnerabilities {
+      background-color: $nx-red-500;
+
+      .x-title-text-as-inset {
+        color: $color-white;
+      }
+    }
+  }
+}

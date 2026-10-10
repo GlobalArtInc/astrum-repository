@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
  * Shared open/collapsed state for the left navigation sidebar.
  *
  * Returns `[isOpen, onToggleClick]`. The state is also synced to the
- * `nx-sidebar-toggle` window event so any component can open/collapse the
- * sidebar without prop drilling: dispatch `new CustomEvent('nx-sidebar-toggle')`
+ * `as-sidebar-toggle` window event so any component can open/collapse the
+ * sidebar without prop drilling: dispatch `new CustomEvent('as-sidebar-toggle')`
  * to toggle, or pass `{ detail: { open: boolean } }` to force a state.
  *
  * @param initialOpen - Initial open state (`true` = expanded, `false` = collapsed).
@@ -28,8 +28,8 @@ export function useSideNavbarOpenState(initialOpen: boolean): [boolean, () => vo
       }
     };
 
-    window.addEventListener('nx-sidebar-toggle', handleGlobalToggle);
-    return () => window.removeEventListener('nx-sidebar-toggle', handleGlobalToggle);
+    window.addEventListener('as-sidebar-toggle', handleGlobalToggle);
+    return () => window.removeEventListener('as-sidebar-toggle', handleGlobalToggle);
   }, []);
 
   return [isOpen, onToggleClick];

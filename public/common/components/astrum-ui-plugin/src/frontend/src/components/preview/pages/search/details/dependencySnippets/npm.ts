@@ -5,7 +5,7 @@ import type { SnippetGenerator } from './types';
 /**
  * npm dependency snippet generator.
  *
- * Ported from Classic NX.npm.controller.NpmDependencySnippetController. A non-empty group is
+ * Ported from Classic AS.npm.controller.NpmDependencySnippetController. A non-empty group is
  * treated as the package scope and rendered as `@scope/name`.
  */
 export const generate: SnippetGenerator = (component) => {

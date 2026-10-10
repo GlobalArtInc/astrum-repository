@@ -26,7 +26,7 @@ import static java.util.Objects.isNull;
 import static org.globalart.astrum.repository.http.HttpResponses.notFound;
 
 /**
- * Repository view servlet for NX2 urls.
+ * Repository view servlet for legacy urls.
  *
  * @since 3.7
  */

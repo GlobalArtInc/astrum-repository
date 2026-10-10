@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faKey } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -16,7 +16,7 @@ export default {
       user credentials such as those used by LDAP or Crowd. User tokens generated for
       this server are only valid for use on this server. Once enabled, users can access
       their user token from  {' '}
-      <NxTextLink href="#user/usertoken">user mode</NxTextLink>.
+      <AsTextLink href="#user/usertoken">user mode</AsTextLink>.
     </>,
     USER_TOKENS_CHECKBOX: {
       LABEL: 'User Tokens',

@@ -3,11 +3,11 @@ import React from 'react';
 import {useMachine} from '@xstate/react';
 import {ResponsiveBar} from "@nivo/bar";
 import {
-  NxH4,
-  NxNavigationDropdown,
-  NxStatefulNavigationDropdown,
-  NxWarningAlert,
-  NxErrorAlert
+  AsH4,
+  AsNavigationDropdown,
+  AsStatefulNavigationDropdown,
+  AsWarningAlert,
+  AsErrorAlert
 } from '@globalart/react-shared-components';
 import {faFilter} from '@fortawesome/free-solid-svg-icons';
 
@@ -25,8 +25,8 @@ import {
 
 import HumanReadableUtils from "../../../../interface/HumanReadableUtils";
 import {UsageInsightsChartTooltip} from './UsageInsightsChartTooltip';
-const chartEgressColor = "var(--nx-color-chart-data-1)";
-const chartStorageColor = "var(--nx-color-chart-data-4)";
+const chartEgressColor = "var(--as-color-chart-data-1)";
+const chartStorageColor = "var(--as-color-chart-data-4)";
 
 const MAX_VALUE_TICKS = 10;
 
@@ -69,7 +69,7 @@ export function UsageInsightsChart() {
   if (isPermissionError) {
     return (
       <div className="usage-insights-chart">
-        <NxWarningAlert>{UIStrings.HISTORICAL_USAGE.CHART.PERMISSION_ERROR}</NxWarningAlert>
+        <AsWarningAlert>{UIStrings.HISTORICAL_USAGE.CHART.PERMISSION_ERROR}</AsWarningAlert>
       </div>
     );
   }
@@ -77,7 +77,7 @@ export function UsageInsightsChart() {
   if (loadError) {
     return (
       <div className="usage-insights-chart">
-        <NxErrorAlert>{loadError}</NxErrorAlert>
+        <AsErrorAlert>{loadError}</AsErrorAlert>
       </div>
     );
   }
@@ -89,25 +89,25 @@ export function UsageInsightsChart() {
             <div>{UIStrings.HISTORICAL_USAGE.CHART.TITLE}</div>
             <div>{UIStrings.HISTORICAL_USAGE.CHART.SUB_TITLE}</div>
           </div>
-          <NxStatefulNavigationDropdown
+          <AsStatefulNavigationDropdown
               isOpen={isOpen}
               onToggleCollapse={handleToggleDropdown}
               icon={faFilter}
               title={selectedMonth ? selectedMonth.label : 'Select Month'}
               className="usage-insights-chart-filter usage-insights-month-dropdown">
-            <NxNavigationDropdown.MenuHeader>
-              <NxH4>
+            <AsNavigationDropdown.MenuHeader>
+              <AsH4>
                 {UIStrings.HISTORICAL_USAGE.CHART.FILTER_OPTION_HEADER}
-              </NxH4>
-            </NxNavigationDropdown.MenuHeader>
+              </AsH4>
+            </AsNavigationDropdown.MenuHeader>
             <div className={"usage-insights-filter-month-options"}>
               {monthOptions.map(option => (
-                  <button key={option.key} className="nx-dropdown-link" onClick={() => handleMonthSelect(option)}>
+                  <button key={option.key} className="as-dropdown-link" onClick={() => handleMonthSelect(option)}>
                     {option.label}
                   </button>
               ))}
             </div>
-          </NxStatefulNavigationDropdown>
+          </AsStatefulNavigationDropdown>
         </div>
         <div className="usage-insights-bar-chart">
           <ResponsiveBar
@@ -149,12 +149,12 @@ export function UsageInsightsChart() {
             theme={{
               text: {
                 fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, sans-serif",
-                fontSize: "var(--nx-font-size-s)",
-                fill: "var(--nx-color-chart-text)"
+                fontSize: "var(--as-font-size-s)",
+                fill: "var(--as-color-chart-text)"
               },
               grid: {
                 line: {
-                  stroke: "var(--nx-color-chart-line)",
+                  stroke: "var(--as-color-chart-line)",
                   strokeWidth: 1,
                   opacity: 0.1
                 }
@@ -162,23 +162,23 @@ export function UsageInsightsChart() {
               axis: {
                 domain: {
                   line: {
-                    stroke: "var(--nx-color-chart-line)",
+                    stroke: "var(--as-color-chart-line)",
                     strokeWidth: 1
                   }
                 },
                 ticks: {
                   line: {
-                    stroke: "var(--nx-color-chart-line)"
+                    stroke: "var(--as-color-chart-line)"
                   },
                   text: {
-                    fill: "var(--nx-color-chart-text)",
-                    fontSize: "var(--nx-font-size-xs)"
+                    fill: "var(--as-color-chart-text)",
+                    fontSize: "var(--as-font-size-xs)"
                   }
                 },
                 legend: {
                   text: {
-                    fill: "var(--nx-color-chart-text)",
-                    fontSize: "var(--nx-font-size-s)"
+                    fill: "var(--as-color-chart-text)",
+                    fontSize: "var(--as-font-size-s)"
                   }
                 }
               }
@@ -196,7 +196,7 @@ export function UsageInsightsChart() {
                 itemsSpacing: 12,
                 symbolSize: 14,
                 symbolShape: "square",
-                itemTextColor: "var(--nx-color-chart-text)"
+                itemTextColor: "var(--as-color-chart-text)"
               },
             ]}
           />

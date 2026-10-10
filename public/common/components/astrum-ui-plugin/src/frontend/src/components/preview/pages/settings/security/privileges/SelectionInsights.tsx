@@ -222,12 +222,12 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
   // Collapse sidebar when Full Match List opens (like Repository Tree fullscreen)
   useEffect(() => {
     if (showFlyout) {
-      window.dispatchEvent(new CustomEvent('nx-sidebar-toggle', { detail: { open: false } }));
+      window.dispatchEvent(new CustomEvent('as-sidebar-toggle', { detail: { open: false } }));
     } else {
-      window.dispatchEvent(new CustomEvent('nx-sidebar-toggle', { detail: { open: true } }));
+      window.dispatchEvent(new CustomEvent('as-sidebar-toggle', { detail: { open: true } }));
     }
     return () => {
-      window.dispatchEvent(new CustomEvent('nx-sidebar-toggle', { detail: { open: true } }));
+      window.dispatchEvent(new CustomEvent('as-sidebar-toggle', { detail: { open: true } }));
     };
   }, [showFlyout]);
 

@@ -10,12 +10,12 @@ import {
 import { ExtJS } from '../../../../../interface/ExtJS';
 import { FormUtils } from '../../../../../interface/FormUtils';
 import {
-  NxLoadWrapper,
-  NxCheckbox,
-  NxButton,
-  NxFieldset,
-  NxStatefulForm,
-  NxTooltip,
+  AsLoadWrapper,
+  AsCheckbox,
+  AsButton,
+  AsFieldset,
+  AsStatefulForm,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../constants/UIStrings';
@@ -41,74 +41,74 @@ export default function PreviewUiSettings() {
       </PageHeader>
       <ContentBody className="as-preview-ui-settings">
         <Section>
-          <NxLoadWrapper
+          <AsLoadWrapper
             loading={form.isLoading}
             error={form.loadError}
             retryHandler={() => form.send({ type: 'RETRY' })}
           >
-            <NxStatefulForm
+            <AsStatefulForm
               onSubmit={() => form.submit()}
               loading={form.isSaving}
               submitError={form.saveError ? String(form.saveError) : null}
               validationErrors={form.hasValidationErrors ? Object.values(form.validationErrors).find(Boolean) : null}
               additionalFooterBtns={
-                <NxTooltip title={FormUtils.discardTooltip({ isPristine: form.isPristine })}>
-                  <NxButton
+                <AsTooltip title={FormUtils.discardTooltip({ isPristine: form.isPristine })}>
+                  <AsButton
                     type="button"
                     className={form.isPristine ? 'disabled' : undefined}
                     onClick={() => form.reset()}
                   >
                     {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-                  </NxButton>
-                </NxTooltip>
+                  </AsButton>
+                </AsTooltip>
               }
             >
               {() => <>
                 {/* ASTRUM-52024: Disable Classic UI checkbox hidden until Astrum One UI reaches feature parity */}
 
-                <NxFieldset label={UIStrings.PREVIEW_UI_SETTINGS.ANONYMOUS.label}>
-                  <NxCheckbox
+                <AsFieldset label={UIStrings.PREVIEW_UI_SETTINGS.ANONYMOUS.label}>
+                  <AsCheckbox
                     checkboxId="anonymousEnabled"
                     isChecked={anonymousCb.checked}
                     onChange={() => anonymousCb.onChange(!anonymousCb.checked)}
                     disabled={!canEdit}
                   >
                     {UIStrings.PREVIEW_UI_SETTINGS.ANONYMOUS.description}
-                  </NxCheckbox>
-                </NxFieldset>
+                  </AsCheckbox>
+                </AsFieldset>
 
-                <NxFieldset label={UIStrings.PREVIEW_UI_SETTINGS.LOGGEDIN.label}>
-                  <NxCheckbox
+                <AsFieldset label={UIStrings.PREVIEW_UI_SETTINGS.LOGGEDIN.label}>
+                  <AsCheckbox
                     checkboxId="loggedInEnabled"
                     isChecked={loggedInCb.checked}
                     onChange={() => loggedInCb.onChange(!loggedInCb.checked)}
                     disabled={!canEdit}
                   >
                     {UIStrings.PREVIEW_UI_SETTINGS.LOGGEDIN.description}
-                  </NxCheckbox>
-                </NxFieldset>
+                  </AsCheckbox>
+                </AsFieldset>
 
-                <NxFieldset label={UIStrings.PREVIEW_UI_SETTINGS.ROLLOUT.title}>
-                  <NxCheckbox
+                <AsFieldset label={UIStrings.PREVIEW_UI_SETTINGS.ROLLOUT.title}>
+                  <AsCheckbox
                     checkboxId="defaultToPreviewUi"
                     isChecked={defaultToPreviewCb.checked}
                     onChange={() => defaultToPreviewCb.onChange(!defaultToPreviewCb.checked)}
                     disabled={!canEdit}
                   >
                     {UIStrings.PREVIEW_UI_SETTINGS.ROLLOUT.DEFAULT_TO_PREVIEW.helpText}
-                  </NxCheckbox>
-                  <NxCheckbox
+                  </AsCheckbox>
+                  <AsCheckbox
                     checkboxId="disableSwitchFeedback"
                     isChecked={disableSwitchFeedbackCb.checked}
                     onChange={() => disableSwitchFeedbackCb.onChange(!disableSwitchFeedbackCb.checked)}
                     disabled={!canEdit}
                   >
                     {UIStrings.PREVIEW_UI_SETTINGS.ROLLOUT.DISABLE_SWITCH_FEEDBACK.helpText}
-                  </NxCheckbox>
-                </NxFieldset>
+                  </AsCheckbox>
+                </AsFieldset>
               </>}
-            </NxStatefulForm>
-          </NxLoadWrapper>
+            </AsStatefulForm>
+          </AsLoadWrapper>
         </Section>
       </ContentBody>
     </Page>

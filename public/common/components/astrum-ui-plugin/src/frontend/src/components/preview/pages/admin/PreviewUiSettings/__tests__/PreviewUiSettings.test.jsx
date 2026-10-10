@@ -63,12 +63,12 @@ jest.mock('@globalart/astrum-ui-plugin', () => ({
 }));
 
 jest.mock('@globalart/react-shared-components', () => ({
-  NxLoadWrapper: ({ loading, error, children }) => {
+  AsLoadWrapper: ({ loading, error, children }) => {
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error: {error}</div>;
     return <div>{children}</div>;
   },
-  NxStatefulForm: ({ onSubmit, loading, submitError, additionalFooterBtns, children }) => (
+  AsStatefulForm: ({ onSubmit, loading, submitError, additionalFooterBtns, children }) => (
     <form data-loading={loading}>
       {submitError && <div role="alert">{submitError}</div>}
       {typeof children === 'function' ? children() : children}
@@ -76,7 +76,7 @@ jest.mock('@globalart/react-shared-components', () => ({
       <button type="button" disabled={!!loading} onClick={() => onSubmit()}>Save</button>
     </form>
   ),
-  NxCheckbox: ({ checkboxId, isChecked, onChange, disabled, children }) => (
+  AsCheckbox: ({ checkboxId, isChecked, onChange, disabled, children }) => (
     <label>
       <input
         type="checkbox"
@@ -89,16 +89,16 @@ jest.mock('@globalart/react-shared-components', () => ({
       {children}
     </label>
   ),
-  NxButton: ({ children, onClick, className, type }) => (
+  AsButton: ({ children, onClick, className, type }) => (
     <button type={type} onClick={onClick} className={className}>{children}</button>
   ),
-  NxFieldset: ({ label, children }) => (
+  AsFieldset: ({ label, children }) => (
     <fieldset>
       <legend>{label}</legend>
       {children}
     </fieldset>
   ),
-  NxTooltip: ({ children }) => <>{children}</>,
+  AsTooltip: ({ children }) => <>{children}</>,
 }));
 
 const DEFAULT_SETTINGS = {

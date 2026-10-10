@@ -78,7 +78,7 @@ describe('GenericProxyConfiguration', () => {
     render(<GenericProxyConfiguration parentMachine={createParentMachine(false)} />);
 
     const label = screen.getByText(EDITOR.PRESERVE_ENCODED_CHARS_LABEL);
-    const checkbox = label.closest('.nx-form-group').querySelector('input[type="checkbox"]');
+    const checkbox = label.closest('.as-form-group').querySelector('input[type="checkbox"]');
     expect(checkbox).not.toBeChecked();
   });
 
@@ -86,7 +86,7 @@ describe('GenericProxyConfiguration', () => {
     render(<GenericProxyConfiguration parentMachine={createParentMachine(false)} />);
 
     const label = screen.getByText(EDITOR.PRESERVE_ENCODED_CHARS_LABEL);
-    const formGroup = label.closest('.nx-form-group');
+    const formGroup = label.closest('.as-form-group');
     const checkbox = formGroup.querySelector('input[type="checkbox"]');
 
     userEvent.click(checkbox);

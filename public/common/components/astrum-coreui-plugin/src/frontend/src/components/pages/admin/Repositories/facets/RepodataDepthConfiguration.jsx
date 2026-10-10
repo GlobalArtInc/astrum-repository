@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxFormSelect} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -17,13 +17,13 @@ export default function RepodataDepthConfiguration({parentMachine}) {
   const repodataDepthOptions = [0, 1, 2, 3, 4, 5];
 
   return (
-    <NxFormGroup
+    <AsFormGroup
       label={EDITOR.REPODATA_DEPTH_LABEL}
       className="as-form-group-repodata-depth"
       sublabel={EDITOR.REPODATA_DEPTH_SUBLABEL}
       isRequired
     >
-      <NxFormSelect
+      <AsFormSelect
         {...FormUtils.selectProps(`${format}.repodataDepth`, currentParent)}
         onChange={FormUtils.handleUpdate(`${format}.repodataDepth`, sendParent)}
       >
@@ -32,7 +32,7 @@ export default function RepodataDepthConfiguration({parentMachine}) {
             {val}
           </option>
         ))}
-      </NxFormSelect>
-    </NxFormGroup>
+      </AsFormSelect>
+    </AsFormGroup>
   );
 }

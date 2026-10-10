@@ -4,15 +4,15 @@ import {useMachine} from '@xstate/react';
 
 import {FieldWrapper, Utils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxFormSelect,
-  NxLoadWrapper,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
+  AsButton,
+  AsFilterInput,
+  AsFormSelect,
+  AsLoadWrapper,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
 } from '@globalart/react-shared-components';
 
 import {Section, SectionToolbar} from '@globalart/astrum-ui-plugin';
@@ -38,42 +38,42 @@ export default function ContentSelectorsPreview({type, expression}) {
 
   return <Section className="as-content-selectors-preview">
     <h2>{UIStrings.CONTENT_SELECTORS.TITLE}</h2>
-    <NxLoadWrapper isLoading={isLoading} retryHandler={retry}>
+    <AsLoadWrapper isLoading={isLoading} retryHandler={retry}>
       <FieldWrapper labelText={UIStrings.CONTENT_SELECTORS.PREVIEW.REPOSITORY_LABEL}
                     descriptionText={UIStrings.CONTENT_SELECTORS.PREVIEW.REPOSITORY_DESCRIPTION}
                     isOptional={true}
       >
-        <div className="nx-form-row">
-          <NxFormSelect name="repository" onChange={repositoryChangeHandler} value={repositories}>
+        <div className="as-form-row">
+          <AsFormSelect name="repository" onChange={repositoryChangeHandler} value={repositories}>
             {allRepositories.map(({id, name}) =>
                 <option key={id} value={id}>{name}</option>
             )}
-          </NxFormSelect>
-          <NxButton disabled={previewUnavailable} onClick={previewHandler} data-analytics-id="as-content-selector-preview">{UIStrings.CONTENT_SELECTORS.PREVIEW.BUTTON}</NxButton>
+          </AsFormSelect>
+          <AsButton disabled={previewUnavailable} onClick={previewHandler} data-analytics-id="as-content-selector-preview">{UIStrings.CONTENT_SELECTORS.PREVIEW.BUTTON}</AsButton>
         </div>
       </FieldWrapper>
       <SectionToolbar>
         <div className="as-spacer" />
-        <NxFilterInput
+        <AsFilterInput
             id="filter"
             onChange={filter}
             value={filterText}
             placeholder={UIStrings.CONTENT_SELECTORS.FILTER_PLACEHOLDER}/>
       </SectionToolbar>
-      <NxTable>
-        <NxTableHead>
-          <NxTableRow>
-            <NxTableCell>{UIStrings.CONTENT_SELECTORS.PREVIEW.NAME_COLUMN}</NxTableCell>
-          </NxTableRow>
-        </NxTableHead>
-        <NxTableBody isLoading={isLoadingPreview} error={previewError} emptyMessage={UIStrings.CONTENT_SELECTORS.PREVIEW.EMPTY}>
+      <AsTable>
+        <AsTableHead>
+          <AsTableRow>
+            <AsTableCell>{UIStrings.CONTENT_SELECTORS.PREVIEW.NAME_COLUMN}</AsTableCell>
+          </AsTableRow>
+        </AsTableHead>
+        <AsTableBody isLoading={isLoadingPreview} error={previewError} emptyMessage={UIStrings.CONTENT_SELECTORS.PREVIEW.EMPTY}>
           {preview?.map(name =>
-              <NxTableRow key={name}>
-                <NxTableCell>{name}</NxTableCell>
-              </NxTableRow>
+              <AsTableRow key={name}>
+                <AsTableCell>{name}</AsTableCell>
+              </AsTableRow>
           )}
-        </NxTableBody>
-      </NxTable>
-    </NxLoadWrapper>
+        </AsTableBody>
+      </AsTable>
+    </AsLoadWrapper>
   </Section>;
 }

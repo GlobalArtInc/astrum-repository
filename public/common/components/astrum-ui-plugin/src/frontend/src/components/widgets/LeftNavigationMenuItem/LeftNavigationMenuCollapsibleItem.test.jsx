@@ -15,8 +15,8 @@ jest.mock('swagger-ui-react', () => {
 });
 
 describe('LeftNavigationMenuCollapsibleItem', () => {
-  const Application = global.NX.app.Application;
-  const Permissions = global.NX.Permissions;
+  const Application = global.AS.app.Application;
+  const Permissions = global.AS.Permissions;
   let router;
 
   beforeEach(() => {

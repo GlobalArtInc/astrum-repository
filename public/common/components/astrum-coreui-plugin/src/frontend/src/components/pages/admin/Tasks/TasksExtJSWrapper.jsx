@@ -8,6 +8,6 @@ export default function TasksExtJSWrapper() {
   return <ExtJsContainer
       title={UIStrings.TASKS.MENU.text}
       icon={UIStrings.TASKS.MENU.icon}
-      extView="NX.coreui.view.task.TaskFeature"
+      extView="AS.coreui.view.task.TaskFeature"
   />;
 }

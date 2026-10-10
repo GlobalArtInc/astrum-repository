@@ -298,7 +298,7 @@ describe('browseMachine', () => {
       jest.restoreAllMocks();
     });
 
-    it('includes context path in repositoryUrl when NX.util.Url.urlOf is available (initial repo)', () => {
+    it('includes context path in repositoryUrl when AS.util.Url.urlOf is available (initial repo)', () => {
       jest.spyOn(ExtJS, 'urlOf').mockImplementation((path: string) =>
         'http://localhost:8081/astrum' + path
       );
@@ -309,7 +309,7 @@ describe('browseMachine', () => {
       service.stop();
     });
 
-    it('includes context path in repositoryUrl when NX.util.Url.urlOf is available (SELECT_REPO)', () => {
+    it('includes context path in repositoryUrl when AS.util.Url.urlOf is available (SELECT_REPO)', () => {
       jest.spyOn(ExtJS, 'urlOf').mockImplementation((path: string) =>
         'http://localhost:8081/astrum' + path
       );

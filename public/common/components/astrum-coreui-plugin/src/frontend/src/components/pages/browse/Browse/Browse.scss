@@ -3,14 +3,14 @@
   .as-table-cell-centered {
     text-align: center;
   }
-  .nx-btn-bar {
+  .as-btn-bar {
     justify-content: flex-start;
   }
 }
 
 .as-browse-tree {
-  .nx-loading-spinner {
-    padding-top: var(--nx-spacing-base);
-    padding-left: var(--nx-spacing-base);
+  .as-loading-spinner {
+    padding-top: var(--as-spacing-base);
+    padding-left: var(--as-spacing-base);
   }
 }

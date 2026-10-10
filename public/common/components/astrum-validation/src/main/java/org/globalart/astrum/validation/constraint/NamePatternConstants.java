@@ -9,7 +9,7 @@ package org.globalart.astrum.validation.constraint;
 public final class NamePatternConstants
 {
   // Changes to this constant should be sync'd in:
-  // components/astrum-rapture/src/main/resources/static/rapture/NX/util/Validator.js
+  // components/astrum-rapture/src/main/resources/static/rapture/AS/util/Validator.js
   public static final String REGEX = "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$";
 
   public static final String REGEX_WITH_WILDCARDS = "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\*\\.]*$";

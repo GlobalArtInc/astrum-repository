@@ -47,8 +47,8 @@ describe('FieldWrapper', () => {
     );
 
     const label = container.querySelector('label');
-    expect(label).toHaveClass('nx-label');
-    expect(label).toHaveClass('nx-label--optional');
+    expect(label).toHaveClass('as-label');
+    expect(label).toHaveClass('as-label--optional');
   });
 
   it('does not apply optional class when isOptional is false', () => {
@@ -59,8 +59,8 @@ describe('FieldWrapper', () => {
     );
 
     const label = container.querySelector('label');
-    expect(label).toHaveClass('nx-label');
-    expect(label).not.toHaveClass('nx-label--optional');
+    expect(label).toHaveClass('as-label');
+    expect(label).not.toHaveClass('as-label--optional');
   });
 
   it('associates label with field using htmlFor and field id', () => {
@@ -92,7 +92,7 @@ describe('FieldWrapper', () => {
       </FieldWrapper>
     );
 
-    const formGroup = container.querySelector('.nx-form-group');
+    const formGroup = container.querySelector('.as-form-group');
     expect(formGroup).toHaveAttribute('id', 'custom-group-id');
   });
 
@@ -104,7 +104,7 @@ describe('FieldWrapper', () => {
     );
 
     const description = container.querySelector('p');
-    expect(description).toHaveClass('nx-p');
+    expect(description).toHaveClass('as-p');
     expect(description).toHaveTextContent('Test description');
   });
 
@@ -137,25 +137,25 @@ describe('FieldWrapper', () => {
     expect(inputs).toHaveLength(2);
   });
 
-  it('applies nx-form-group class to wrapper', () => {
+  it('applies as-form-group class to wrapper', () => {
     const {container} = render(
       <FieldWrapper labelText="Field Label">
         <input id="test-field" type="text" />
       </FieldWrapper>
     );
 
-    const formGroup = container.querySelector('.nx-form-group');
+    const formGroup = container.querySelector('.as-form-group');
     expect(formGroup).toBeInTheDocument();
   });
 
-  it('wraps label text in nx-label__text span', () => {
+  it('wraps label text in as-label__text span', () => {
     const {container} = render(
       <FieldWrapper labelText="Field Label">
         <input id="test-field" type="text" />
       </FieldWrapper>
     );
 
-    const labelTextSpan = container.querySelector('.nx-label__text');
+    const labelTextSpan = container.querySelector('.as-label__text');
     expect(labelTextSpan).toBeInTheDocument();
     expect(labelTextSpan).toHaveTextContent('Field Label');
   });

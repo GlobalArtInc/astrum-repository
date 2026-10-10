@@ -32,9 +32,9 @@ jest.mock('@globalart/react-shared-components', () => {
   Tile.Content = TileContent;
 
   return {
-    NxH1: ({children}) => <h1>{children}</h1>,
-    NxP: ({children}) => <p>{children}</p>,
-    NxTile: Tile
+    AsH1: ({children}) => <h1>{children}</h1>,
+    AsP: ({children}) => <p>{children}</p>,
+    AsTile: Tile
   };
 });
 

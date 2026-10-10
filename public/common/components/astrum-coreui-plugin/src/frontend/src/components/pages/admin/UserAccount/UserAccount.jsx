@@ -9,12 +9,12 @@ import './UserAccount.scss';
 import UserAccountMachine from './UserAccountMachine';
 import UIStrings from '../../../../constants/UIStrings';
 import {
-  NxButton,
-  NxFormGroup,
-  NxStatefulForm,
-  NxTextInput,
-  NxTile,
-  NxTooltip
+  AsButton,
+  AsFormGroup,
+  AsStatefulForm,
+  AsTextInput,
+  AsTile,
+  AsTooltip
 } from '@globalart/react-shared-components';
 
 import {ContentBody, Page, PageHeader, PageTitle} from '@globalart/astrum-ui-plugin';
@@ -41,45 +41,45 @@ export default function UserAccount() {
           />
         </PageHeader>
         <ContentBody className="as-user-account">
-          <NxTile className="user-account-settings">
-            <NxStatefulForm
+          <AsTile className="user-account-settings">
+            <AsStatefulForm
                 {...FormUtils.formProps(state, send)}
                 additionalFooterBtns={
-                  <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-                    <NxButton type="button" className={(isExternal || isPristine) && 'disabled'} onClick={discard}>
+                  <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+                    <AsButton type="button" className={(isExternal || isPristine) && 'disabled'} onClick={discard}>
                       {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-                    </NxButton>
-                  </NxTooltip>
+                    </AsButton>
+                  </AsTooltip>
                 }>
-              <NxFormGroup label={UIStrings.USER_ACCOUNT.ID_FIELD_LABEL} isRequired>
-                <NxTextInput
+              <AsFormGroup label={UIStrings.USER_ACCOUNT.ID_FIELD_LABEL} isRequired>
+                <AsTextInput
                     {...FormUtils.fieldProps('userId', state)}
                     disabled
                 />
-              </NxFormGroup>
-              <NxFormGroup label={UIStrings.USER_ACCOUNT.FIRST_FIELD_LABEL} isRequired>
-                <NxTextInput
+              </AsFormGroup>
+              <AsFormGroup label={UIStrings.USER_ACCOUNT.FIRST_FIELD_LABEL} isRequired>
+                <AsTextInput
                     {...FormUtils.fieldProps('firstName', state)}
                     onChange={FormUtils.handleUpdate('firstName', send)}
                     disabled={isExternal}
                 />
-              </NxFormGroup>
-              <NxFormGroup label={UIStrings.USER_ACCOUNT.LAST_FIELD_LABEL} isRequired>
-                <NxTextInput
+              </AsFormGroup>
+              <AsFormGroup label={UIStrings.USER_ACCOUNT.LAST_FIELD_LABEL} isRequired>
+                <AsTextInput
                     {...FormUtils.fieldProps('lastName', state)}
                     onChange={FormUtils.handleUpdate('lastName', send)}
                     disabled={isExternal}
                 />
-              </NxFormGroup>
-              <NxFormGroup label={UIStrings.USER_ACCOUNT.EMAIL_FIELD_LABEL} isRequired>
-                <NxTextInput
+              </AsFormGroup>
+              <AsFormGroup label={UIStrings.USER_ACCOUNT.EMAIL_FIELD_LABEL} isRequired>
+                <AsTextInput
                     {...FormUtils.fieldProps('email', state)}
                     onChange={FormUtils.handleUpdate('email', send)}
                     disabled={isExternal}
                 />
-              </NxFormGroup>
-            </NxStatefulForm>
-          </NxTile>
+              </AsFormGroup>
+            </AsStatefulForm>
+          </AsTile>
 
           {isInternal && <PasswordChangeForm userId={userId}/>}
         </ContentBody>

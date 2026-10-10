@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxButton, NxFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsButton, AsFontAwesomeIcon} from '@globalart/react-shared-components';
 import {faExternalLinkAlt, faUserCircle} from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -31,10 +31,10 @@ export default function SupportRequest() {
       <Section>
         <p>{UIStrings.SUPPORT_REQUEST.DESCRIPTION}</p>
         <p><a href="#admin/support/supportzip">{UIStrings.SUPPORT_REQUEST.ATTACH_SUPPORT_ZIP}</a></p>
-        <NxButton variant="primary" onClick={() => openSupportRequestPage()}>
-          <NxFontAwesomeIcon icon={faExternalLinkAlt}/>
+        <AsButton variant="primary" onClick={() => openSupportRequestPage()}>
+          <AsFontAwesomeIcon icon={faExternalLinkAlt}/>
           <span>{UIStrings.SUPPORT_REQUEST.ACTIONS.submitRequest}</span>
-        </NxButton>
+        </AsButton>
       </Section>
     </ContentBody>
   </Page>;

@@ -2,45 +2,45 @@
 // Ordered application SCSS files to include.
 //
 
-@import 'NX/ext/form/FieldContainer';
-@import 'NX/ext/form/OptionalFieldSet';
-@import 'NX/ext/Mask';
-@import 'NX/ext/SearchBox';
-@import 'NX/ext/grid/RowEditor';
-@import 'NX/ext/grid/plugin/FilterBox';
-@import 'NX/ext/plugin/SearchBoxTip';
+@import 'AS/ext/form/FieldContainer';
+@import 'AS/ext/form/OptionalFieldSet';
+@import 'AS/ext/Mask';
+@import 'AS/ext/SearchBox';
+@import 'AS/ext/grid/RowEditor';
+@import 'AS/ext/grid/plugin/FilterBox';
+@import 'AS/ext/plugin/SearchBoxTip';
 
-@import 'NX/view/AboutWindow';
-@import 'NX/view/Authenticate';
-@import 'NX/view/ExpireSession';
-@import 'NX/view/UnsupportedBrowser';
-@import 'NX/view/header/Mode';
-@import 'NX/view/header/QuickSearch';
-@import 'NX/view/header/Panel';
-@import 'NX/view/footer/Panel';
-@import 'NX/view/feature/Menu';
-@import 'NX/view/feature/Content';
-@import 'NX/view/feature/Group';
-@import 'NX/view/feature/NotFound';
-@import 'NX/view/feature/NotVisible';
-@import 'NX/view/dev/Panel';
-@import 'NX/view/info/Entry';
-@import 'NX/view/info/DependencySnippetPanel';
-@import 'NX/view/drilldown/Actions';
-@import 'NX/view/drilldown/Details';
-@import 'NX/view/drilldown/Drilldown';
-@import 'NX/wizard/Panel';
+@import 'AS/view/AboutWindow';
+@import 'AS/view/Authenticate';
+@import 'AS/view/ExpireSession';
+@import 'AS/view/UnsupportedBrowser';
+@import 'AS/view/header/Mode';
+@import 'AS/view/header/QuickSearch';
+@import 'AS/view/header/Panel';
+@import 'AS/view/footer/Panel';
+@import 'AS/view/feature/Menu';
+@import 'AS/view/feature/Content';
+@import 'AS/view/feature/Group';
+@import 'AS/view/feature/NotFound';
+@import 'AS/view/feature/NotVisible';
+@import 'AS/view/dev/Panel';
+@import 'AS/view/info/Entry';
+@import 'AS/view/info/DependencySnippetPanel';
+@import 'AS/view/drilldown/Actions';
+@import 'AS/view/drilldown/Details';
+@import 'AS/view/drilldown/Drilldown';
+@import 'AS/wizard/Panel';
 
-@import 'NX/coreui/view/capability/CapabilityList';
-@import 'NX/coreui/view/component/ComponentDetails';
-@import 'NX/coreui/view/component/ComponentAssetInfo';
-@import 'NX/coreui/view/component/ComponentInfo';
-@import 'NX/coreui/view/component/AssetAttributes';
-@import 'NX/coreui/view/logging/LogViewer';
-@import 'NX/coreui/view/routing/RoutingRules';
-@import 'NX/coreui/view/routing/RoutingRulesSettingsForm';
-@import 'NX/coreui/view/routing/RoutingRulesSinglePreview';
-@import 'NX/coreui/view/search/SearchFeature';
+@import 'AS/coreui/view/capability/CapabilityList';
+@import 'AS/coreui/view/component/ComponentDetails';
+@import 'AS/coreui/view/component/ComponentAssetInfo';
+@import 'AS/coreui/view/component/ComponentInfo';
+@import 'AS/coreui/view/component/AssetAttributes';
+@import 'AS/coreui/view/logging/LogViewer';
+@import 'AS/coreui/view/routing/RoutingRules';
+@import 'AS/coreui/view/routing/RoutingRulesSettingsForm';
+@import 'AS/coreui/view/routing/RoutingRulesSinglePreview';
+@import 'AS/coreui/view/search/SearchFeature';
 
-@import 'NX/proui/view/usertoken/UserTokenDetails';
+@import 'AS/proui/view/usertoken/UserTokenDetails';
 

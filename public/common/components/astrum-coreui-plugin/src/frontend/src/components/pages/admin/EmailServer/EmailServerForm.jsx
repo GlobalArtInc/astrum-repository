@@ -2,16 +2,16 @@
 import React from 'react';
 import {FormUtils, UseAstrumTruststore} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxCheckbox,
-  NxFieldset,
-  NxFormGroup,
-  NxFormRow,
-  NxH2,
-  NxStatefulForm,
-  NxTextInput,
-  NxTile,
-  NxTooltip,
+  AsButton,
+  AsCheckbox,
+  AsFieldset,
+  AsFormGroup,
+  AsFormRow,
+  AsH2,
+  AsStatefulForm,
+  AsTextInput,
+  AsTile,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 import {isEmpty} from 'ramda';
 
@@ -33,101 +33,101 @@ export default function EmailServerForm({ parentMachine }) {
   const updateHost = (value) => FormUtils.handleUpdate('host', send, 'UPDATE_AND_CLEAR_PASSWORD')(value);
   const updatePort = (value) => FormUtils.handleUpdate('port', send, 'UPDATE_AND_CLEAR_PASSWORD')(value);
 
-  return <NxStatefulForm
+  return <AsStatefulForm
       {...FormUtils.formProps(state, send)}
       additionalFooterBtns={<>
-        <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-          <NxButton type="button" className={isPristine && 'disabled'} onClick={discard}>
+        <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+          <AsButton type="button" className={isPristine && 'disabled'} onClick={discard}>
             {UIStrings.SETTINGS.DISCARD_BUTTON_LABEL}
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       </>}
   >
-    <NxTile.Content>
-      <NxH2>{LABELS.SECTIONS.SETUP}</NxH2>
-      <NxFormGroup label={LABELS.ENABLED.LABEL}>
-        <NxCheckbox
+    <AsTile.Content>
+      <AsH2>{LABELS.SECTIONS.SETUP}</AsH2>
+      <AsFormGroup label={LABELS.ENABLED.LABEL}>
+        <AsCheckbox
             {...FormUtils.checkboxProps('enabled', state)}
             onChange={FormUtils.handleUpdate('enabled', send)}
         >
           {LABELS.ENABLED.SUB_LABEL}
-        </NxCheckbox>
-      </NxFormGroup>
-      <NxFormGroup label={LABELS.HOST.LABEL} isRequired>
-        <NxTextInput
-            className="nx-text-input--long"
+        </AsCheckbox>
+      </AsFormGroup>
+      <AsFormGroup label={LABELS.HOST.LABEL} isRequired>
+        <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('host', state)}
             onChange={updateHost}
         />
-      </NxFormGroup>
-      <NxFormGroup label={LABELS.PORT.LABEL} isRequired>
-        <NxTextInput
-            className="nx-text-input--short"
+      </AsFormGroup>
+      <AsFormGroup label={LABELS.PORT.LABEL} isRequired>
+        <AsTextInput
+            className="as-text-input--short"
             {...FormUtils.fieldProps('port', state)}
             onChange={updatePort}
         />
-      </NxFormGroup>
+      </AsFormGroup>
       <UseAstrumTruststore
         remoteUrl={remoteUrl}
         {...FormUtils.checkboxProps('astrumTrustStoreEnabled', state)}
         onChange={FormUtils.handleUpdate('astrumTrustStoreEnabled', send)}
       />
-      <NxFormRow>
-        <NxFormGroup label={LABELS.USERNAME.LABEL}>
-          <NxTextInput
+      <AsFormRow>
+        <AsFormGroup label={LABELS.USERNAME.LABEL}>
+          <AsTextInput
               {...FormUtils.fieldProps('username', state)}
               onChange={FormUtils.handleUpdate('username', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.PASSWORD.LABEL}>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.PASSWORD.LABEL}>
+          <AsTextInput
               type="password"
               autoComplete="new-password"
               {...FormUtils.fieldProps('password', state)}
               onChange={FormUtils.handleUpdate('password', send)}
           />
-        </NxFormGroup>
-      </NxFormRow>
-      <NxFormGroup label={LABELS.FROM_ADDRESS.LABEL} isRequired>
-        <NxTextInput
-            className="nx-text-input--long"
+        </AsFormGroup>
+      </AsFormRow>
+      <AsFormGroup label={LABELS.FROM_ADDRESS.LABEL} isRequired>
+        <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('fromAddress', state)}
             onChange={FormUtils.handleUpdate('fromAddress', send)}
         />
-      </NxFormGroup>
-      <NxFormGroup label={LABELS.SUBJECT_PREFIX.LABEL}>
-        <NxTextInput
-            className="nx-text-input--long"
+      </AsFormGroup>
+      <AsFormGroup label={LABELS.SUBJECT_PREFIX.LABEL}>
+        <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('subjectPrefix', state)}
             onChange={FormUtils.handleUpdate('subjectPrefix', send)}
         />
-      </NxFormGroup>
-      <NxFieldset label={LABELS.SSL_TLS_OPTIONS.LABEL}>
-        <NxCheckbox
+      </AsFormGroup>
+      <AsFieldset label={LABELS.SSL_TLS_OPTIONS.LABEL}>
+        <AsCheckbox
             {...FormUtils.checkboxProps('startTlsEnabled', state)}
             onChange={FormUtils.handleUpdate('startTlsEnabled', send)}
         >
           {LABELS.SSL_TLS_OPTIONS.OPTIONS.ENABLE_STARTTLS}
-        </NxCheckbox>
-        <NxCheckbox
+        </AsCheckbox>
+        <AsCheckbox
             {...FormUtils.checkboxProps('startTlsRequired', state)}
             onChange={FormUtils.handleUpdate('startTlsRequired', send)}
         >
           {LABELS.SSL_TLS_OPTIONS.OPTIONS.REQUIRE_STARTTLS}
-        </NxCheckbox>
-        <NxCheckbox
+        </AsCheckbox>
+        <AsCheckbox
             {...FormUtils.checkboxProps('sslOnConnectEnabled', state)}
             onChange={FormUtils.handleUpdate('sslOnConnectEnabled', send)}
         >
           {LABELS.SSL_TLS_OPTIONS.OPTIONS.ENABLE_SSL_TLS}
-        </NxCheckbox>
-        <NxCheckbox
+        </AsCheckbox>
+        <AsCheckbox
             {...FormUtils.checkboxProps('sslCheckServerIdentityEnabled', state)}
             onChange={FormUtils.handleUpdate('sslCheckServerIdentityEnabled', send)}
         >
           {LABELS.SSL_TLS_OPTIONS.OPTIONS.IDENTITY_CHECK}
-        </NxCheckbox>
-      </NxFieldset>
-    </NxTile.Content>
-  </NxStatefulForm>;
+        </AsCheckbox>
+      </AsFieldset>
+    </AsTile.Content>
+  </AsStatefulForm>;
 }

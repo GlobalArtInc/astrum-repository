@@ -32,11 +32,11 @@ import static org.globalart.astrum.scheduling.TaskState.RUNNING;
 import static org.globalart.astrum.scheduling.TaskState.WAITING;
 
 /**
- * A {#link JobListenerSupport} that provides NX Task integration by creating future when task starts, recording
+ * A {#link JobListenerSupport} that provides Astrum Task integration by creating future when task starts, recording
  * execution results.
  *
- * Each NX Task wrapping job has one listener. Since NX Job wrapping tasks cannot concurrently execute
- * ("unique per jobKey", basically per NX Task "instance"), this listener may be stateful, and maintain
+ * Each Astrum Task wrapping job has one listener. Since Astrum Job wrapping tasks cannot concurrently execute
+ * ("unique per jobKey", basically per Astrum Task "instance"), this listener may be stateful, and maintain
  * the task info in simple way.
  *
  * @since 3.0
@@ -102,7 +102,7 @@ public class QuartzTaskJobListener
   private void initializeContext(final JobExecutionContext context, final JobKey jobKey) {
     // get current trigger, which in this method SHOULD be job's trigger.
     // Still, in some circumstances (that I cannot imagine right now, except to have concurrency bug)
-    // the NX Task's Trigger might be missing. Still, we don't want to throw in this listener
+    // the Astrum Task's Trigger might be missing. Still, we don't want to throw in this listener
     // as that would make whole Quartz instance inconsistent. Also, even if job removed (coz bug exists)
     // we do want to "follow" it's lifecycle here.
     final Trigger currentTrigger = getCurrentTrigger(context);

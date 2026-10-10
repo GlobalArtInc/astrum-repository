@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { faLink } from '@fortawesome/free-solid-svg-icons';
-import { NxGlobalSidebar2NavigationLink } from '@globalart/react-shared-components';
+import { AsGlobalSidebar2NavigationLink } from '@globalart/react-shared-components';
 import PropTypes from 'prop-types';
 import { useNavigationLinkState } from '../../../router/useNavigationLinkState';
 import classnames from 'classnames';
@@ -52,7 +52,7 @@ export function LeftNavigationMenuItem({ name, text, icon, selectedState, params
     'as-left-nav__link--no-icon': !icon
   });
   return (
-    <NxGlobalSidebar2NavigationLink
+    <AsGlobalSidebar2NavigationLink
       className={classNames}
       text={text}
       isSelected={isSelected}

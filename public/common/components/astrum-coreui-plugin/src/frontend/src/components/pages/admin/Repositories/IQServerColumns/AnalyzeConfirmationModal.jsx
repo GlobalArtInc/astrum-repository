@@ -2,12 +2,12 @@
 import React from 'react';
 
 import {
-  NxModal,
-  NxButton,
-  NxH2,
-  NxFooter,
-  NxP,
-  NxButtonBar
+  AsModal,
+  AsButton,
+  AsH2,
+  AsFooter,
+  AsP,
+  AsButtonBar
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -30,24 +30,24 @@ export default function AnalyzeConfirmationModal({close, name}) {
   };
 
   return (
-    <NxModal
+    <AsModal
       className="as-enable-health-check-modal"
       onCancel={close}
       aria-labelledby="modal-header-text"
-      onClick={(e) => e.stopPropagation()} // allows NxSegmentedButton dropdown to work properly, otherwise it closes immediately
+      onClick={(e) => e.stopPropagation()} // allows AsSegmentedButton dropdown to work properly, otherwise it closes immediately
     >
-      <NxModal.Header>
-        <NxH2 id="modal-header-text">{HEALTH_CHECK.MODAL_HEADER}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxP>{HEALTH_CHECK.MODAL_CONTENT(name)}</NxP>
-      </NxModal.Content>
-      <NxFooter>
-        <NxButtonBar>
-          <NxButton onClick={close}>{CANCEL_BUTTON_LABEL}</NxButton>
+      <AsModal.Header>
+        <AsH2 id="modal-header-text">{HEALTH_CHECK.MODAL_HEADER}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsP>{HEALTH_CHECK.MODAL_CONTENT(name)}</AsP>
+      </AsModal.Content>
+      <AsFooter>
+        <AsButtonBar>
+          <AsButton onClick={close}>{CANCEL_BUTTON_LABEL}</AsButton>
           <AnalyzeButton enableHealthCheck={enableHealthCheck} name={name} />
-        </NxButtonBar>
-      </NxFooter>
-    </NxModal>
+        </AsButtonBar>
+      </AsFooter>
+    </AsModal>
   );
 }

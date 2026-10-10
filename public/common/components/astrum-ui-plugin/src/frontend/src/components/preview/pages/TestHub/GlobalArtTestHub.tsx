@@ -273,7 +273,7 @@ function applyCEScenario(scenario: CEScenario) {
   if (stateController?.setValue) {
     // Disconnect state polling so server doesn't overwrite our mock data
     try {
-      const state = (window as any).NX?.State?.controller?.();
+      const state = (window as any).AS?.State?.controller?.();
       if (state?.statusProvider?.isConnected?.()) {
         state.statusProvider.disconnect();
       }
@@ -333,7 +333,7 @@ function clearCEScenario() {
 
   // Reconnect state polling
   try {
-    const state = (window as any).NX?.State?.controller?.();
+    const state = (window as any).AS?.State?.controller?.();
     if (state?.statusProvider && !state.statusProvider.isConnected?.()) {
       state.statusProvider.connect();
     }

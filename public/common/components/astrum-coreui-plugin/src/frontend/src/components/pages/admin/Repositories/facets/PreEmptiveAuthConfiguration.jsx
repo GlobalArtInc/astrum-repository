@@ -3,7 +3,7 @@ import React, {useEffect} from 'react';
 
 import {FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxCheckbox, NxFieldset, NxTooltip} from '@globalart/react-shared-components';
+import {AsCheckbox, AsFieldset, AsTooltip} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -36,18 +36,18 @@ export default function PreEmptiveAuthConfiguration({parentMachine}) {
   return (
     <>
       {isVisible && (
-        <NxFieldset label={LABEL}>
-          <NxTooltip title={isDisabled ? TOOLTIP : null}>
-            <NxCheckbox
+        <AsFieldset label={LABEL}>
+          <AsTooltip title={isDisabled ? TOOLTIP : null}>
+            <AsCheckbox
               {...FormUtils.checkboxProps(PROP_PATH, parentState)}
               onChange={FormUtils.handleUpdate(PROP_PATH, sendParent)}
               disabled={isDisabled}
               overflowTooltip={!isDisabled}
             >
               {DESCR}
-            </NxCheckbox>
-          </NxTooltip>
-        </NxFieldset>
+            </AsCheckbox>
+          </AsTooltip>
+        </AsFieldset>
       )}
     </>
   );

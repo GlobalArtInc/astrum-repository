@@ -38,7 +38,7 @@ import static java.util.Collections.newSetFromMap;
 public class AnonymousFilter
     extends AdviceFilter
 {
-  public static final String NAME = "nx-anonymous";
+  public static final String NAME = "as-anonymous";
 
   private static final int CACHE_SIZE = 100;
 

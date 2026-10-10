@@ -2,22 +2,22 @@
 import React, {useEffect, useRef, useState} from 'react';
 
 import {
-  NxModal,
-  NxButton,
-  NxH2,
-  NxFooter,
-  NxButtonBar,
-  NxWarningAlert,
-  NxFormGroup,
-  NxTextInput,
-  nxTextInputStateHelpers,
+  AsModal,
+  AsButton,
+  AsH2,
+  AsFooter,
+  AsButtonBar,
+  AsWarningAlert,
+  AsFormGroup,
+  AsTextInput,
+  asTextInputStateHelpers,
   hasValidationErrors,
-  NxForm
+  AsForm
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 
-const {initialState, userInput} = nxTextInputStateHelpers;
+const {initialState, userInput} = asTextInputStateHelpers;
 
 const {
   REALMS: {
@@ -55,20 +55,20 @@ export default function RealmsRemovalModal({onClose, onConfirm}) {
   const handleEnter = (e) => isSaveAllowed && e.key === 'Enter' && onConfirm();
 
   return (
-    <NxModal
+    <AsModal
       className="as-local-realm-removal-modal"
       onCancel={onClose}
       aria-labelledby="modal-header"
       variant="narrow"
     >
-      <NxModal.Header>
-        <NxH2 id="modal-header">{HEADER}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxWarningAlert>{WARNING}</NxWarningAlert>
-        <NxForm.RequiredFieldNotice />
-        <NxFormGroup label={LABEL} sublabel={SUBLABEL} isRequired={true}>
-          <NxTextInput
+      <AsModal.Header>
+        <AsH2 id="modal-header">{HEADER}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsWarningAlert>{WARNING}</AsWarningAlert>
+        <AsForm.RequiredFieldNotice />
+        <AsFormGroup label={LABEL} sublabel={SUBLABEL} isRequired={true}>
+          <AsTextInput
             {...state}
             onChange={handleChange}
             onKeyDown={handleEnter}
@@ -76,16 +76,16 @@ export default function RealmsRemovalModal({onClose, onConfirm}) {
             placeholder={PLACEHOLDER}
             ref={ref}
           />
-        </NxFormGroup>
-      </NxModal.Content>
-      <NxFooter>
-        <NxButtonBar>
-          <NxButton onClick={onClose}>{CANCEL_BUTTON_LABEL}</NxButton>
-          <NxButton onClick={onConfirm} variant="primary" disabled={!isSaveAllowed}>
+        </AsFormGroup>
+      </AsModal.Content>
+      <AsFooter>
+        <AsButtonBar>
+          <AsButton onClick={onClose}>{CANCEL_BUTTON_LABEL}</AsButton>
+          <AsButton onClick={onConfirm} variant="primary" disabled={!isSaveAllowed}>
             {CONFIRM_BUTTON}
-          </NxButton>
-        </NxButtonBar>
-      </NxFooter>
-    </NxModal>
+          </AsButton>
+        </AsButtonBar>
+      </AsFooter>
+    </AsModal>
   );
 }

@@ -5,15 +5,15 @@ import { useMachine } from '@xstate/react';
 import { ListMachineUtils, APIConstants } from '@globalart/astrum-ui-plugin';
 
 import {
-  NxH2,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTile,
-  NxPagination,
+  AsH2,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTile,
+  AsPagination,
 } from '@globalart/react-shared-components';
 
 import {
@@ -60,54 +60,54 @@ export default function TagsList({onEdit}) {
         <PageTitle icon={faTags} {...TAGS.MENU} />
       </PageHeader>
       <ContentBody className='as-tags-list'>
-        <NxTile>
-          <NxTile.Header>
-            <NxTile.HeaderTitle>
-              <NxH2>{TAGS.LIST.CAPTION}</NxH2>
-            </NxTile.HeaderTitle>
-            <NxTile.HeaderActions>
-              <NxFilterInput
+        <AsTile>
+          <AsTile.Header>
+            <AsTile.HeaderTitle>
+              <AsH2>{TAGS.LIST.CAPTION}</AsH2>
+            </AsTile.HeaderTitle>
+            <AsTile.HeaderActions>
+              <AsFilterInput
                 id='filter'
                 onChange={filter}
                 value={filterText}
                 placeholder={TAGS.LIST.FILTER_PLACEHOLDER}
               />
-            </NxTile.HeaderActions>
-          </NxTile.Header>
-          <NxTile.Content>
-            <NxTable>
-              <NxTableHead>
-                <NxTableRow>
-                  <NxTableCell onClick={sortById} isSortable sortDir={idSortDir}>
+            </AsTile.HeaderActions>
+          </AsTile.Header>
+          <AsTile.Content>
+            <AsTable>
+              <AsTableHead>
+                <AsTableRow>
+                  <AsTableCell onClick={sortById} isSortable sortDir={idSortDir}>
                     {COLUMNS.NAME}
-                  </NxTableCell>
-                  <NxTableCell onClick={sortByFirstCreated} isSortable sortDir={firstCreatedSortDir}>
+                  </AsTableCell>
+                  <AsTableCell onClick={sortByFirstCreated} isSortable sortDir={firstCreatedSortDir}>
                     {COLUMNS.FIRST_CREATED}
-                  </NxTableCell>
-                  <NxTableCell onClick={sortByLastUpdated} isSortable sortDir={lastUpdatedSortDir}>
+                  </AsTableCell>
+                  <AsTableCell onClick={sortByLastUpdated} isSortable sortDir={lastUpdatedSortDir}>
                     {COLUMNS.LAST_UPDATED}
-                  </NxTableCell>
-                  <NxTableCell chevron />
-                </NxTableRow>
-              </NxTableHead>
-              <NxTableBody isLoading={isLoading} error={error} emptyMessage={TAGS.EMPTY_MESSAGE}>
+                  </AsTableCell>
+                  <AsTableCell chevron />
+                </AsTableRow>
+              </AsTableHead>
+              <AsTableBody isLoading={isLoading} error={error} emptyMessage={TAGS.EMPTY_MESSAGE}>
                 {paginatedData.map(({ id, firstCreatedTime, lastUpdatedTime }) => (
-                  <NxTableRow key={id} isClickable onClick={() => onEdit(id)}>
-                    <NxTableCell>{id}</NxTableCell>
-                    <NxTableCell>{new Date(firstCreatedTime).toLocaleString()}</NxTableCell>
-                    <NxTableCell>{new Date(lastUpdatedTime).toLocaleString()}</NxTableCell>
-                    <NxTableCell chevron />
-                  </NxTableRow>
+                  <AsTableRow key={id} isClickable onClick={() => onEdit(id)}>
+                    <AsTableCell>{id}</AsTableCell>
+                    <AsTableCell>{new Date(firstCreatedTime).toLocaleString()}</AsTableCell>
+                    <AsTableCell>{new Date(lastUpdatedTime).toLocaleString()}</AsTableCell>
+                    <AsTableCell chevron />
+                  </AsTableRow>
                 ))}
-              </NxTableBody>
-            </NxTable>
+              </AsTableBody>
+            </AsTable>
             {pageCount > 1 && !isLoading && (
-              <div className='as-pagination'>
-                <NxPagination onChange={changePage} pageCount={pageCount} currentPage={currentPage} />
+              <div className='astrum-pagination'>
+                <AsPagination onChange={changePage} pageCount={pageCount} currentPage={currentPage} />
               </div>
             )}
-          </NxTile.Content>
-        </NxTile>
+          </AsTile.Content>
+        </AsTile>
         <HelpTile header={TAGS.HELP_MESSAGE.TITLE} body={TAGS.HELP_MESSAGE.TEXT} />
       </ContentBody>
     </div>

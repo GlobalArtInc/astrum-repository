@@ -3,9 +3,9 @@ import React from 'react';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxLoadWrapper,
-  NxInfoAlert,
-  NxReadOnly,
+  AsLoadWrapper,
+  AsInfoAlert,
+  AsReadOnly,
 } from '@globalart/react-shared-components';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
@@ -25,15 +25,15 @@ export default function AnonymousSettingsReadOnly() {
     send({type: 'RETRY'});
   }
 
-  return <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
-    <NxInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</NxInfoAlert>
-    <NxReadOnly>
-      <NxReadOnly.Label>{UIStrings.ANONYMOUS_SETTINGS.ENABLED_CHECKBOX_LABEL}</NxReadOnly.Label>
-      <NxReadOnly.Data>{accessStatus}</NxReadOnly.Data>
-      <NxReadOnly.Label>{UIStrings.ANONYMOUS_SETTINGS.USERNAME_TEXTFIELD_LABEL}</NxReadOnly.Label>
-      <NxReadOnly.Data>{data.userId}</NxReadOnly.Data>
-      <NxReadOnly.Label>{UIStrings.ANONYMOUS_SETTINGS.REALM_SELECT_LABEL}</NxReadOnly.Label>
-      <NxReadOnly.Data>{realmName}</NxReadOnly.Data>
-    </NxReadOnly>
-  </NxLoadWrapper>;
+  return <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+    <AsInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</AsInfoAlert>
+    <AsReadOnly>
+      <AsReadOnly.Label>{UIStrings.ANONYMOUS_SETTINGS.ENABLED_CHECKBOX_LABEL}</AsReadOnly.Label>
+      <AsReadOnly.Data>{accessStatus}</AsReadOnly.Data>
+      <AsReadOnly.Label>{UIStrings.ANONYMOUS_SETTINGS.USERNAME_TEXTFIELD_LABEL}</AsReadOnly.Label>
+      <AsReadOnly.Data>{data.userId}</AsReadOnly.Data>
+      <AsReadOnly.Label>{UIStrings.ANONYMOUS_SETTINGS.REALM_SELECT_LABEL}</AsReadOnly.Label>
+      <AsReadOnly.Data>{realmName}</AsReadOnly.Data>
+    </AsReadOnly>
+  </AsLoadWrapper>;
 }

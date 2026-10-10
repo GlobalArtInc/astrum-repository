@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils, useSimpleMachine} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxFormSelect, NxLoadWrapper} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect, AsLoadWrapper} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -44,11 +44,11 @@ export default function GenericFormatConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{EDITOR.FORMAT_AND_TYPE_CAPTION}</h2>
-      <NxLoadWrapper loading={isLoading} error={error} retryHandler={retry}>
-        <div className="nx-form-row">
-          <NxFormGroup label={EDITOR.FORMAT_LABEL} isRequired className="as-form-group-format">
-            <NxFormSelect
+      <h2 className="as-h2">{EDITOR.FORMAT_AND_TYPE_CAPTION}</h2>
+      <AsLoadWrapper loading={isLoading} error={error} retryHandler={retry}>
+        <div className="as-form-row">
+          <AsFormGroup label={EDITOR.FORMAT_LABEL} isRequired className="as-form-group-format">
+            <AsFormSelect
               {...FormUtils.selectProps('format', currentParent)}
               onChange={handleFormatUpdate}
               disabled={isEdit}
@@ -59,11 +59,11 @@ export default function GenericFormatConfiguration({parentMachine}) {
                   {format}
                 </option>
               ))}
-            </NxFormSelect>
-          </NxFormGroup>
+            </AsFormSelect>
+          </AsFormGroup>
 
-          <NxFormGroup label={EDITOR.TYPE_LABEL} isRequired className="as-form-group-type">
-            <NxFormSelect
+          <AsFormGroup label={EDITOR.TYPE_LABEL} isRequired className="as-form-group-type">
+            <AsFormSelect
               {...FormUtils.selectProps('type', currentParent)}
               onChange={handleTypeUpdate}
               disabled={!format || isEdit}
@@ -74,10 +74,10 @@ export default function GenericFormatConfiguration({parentMachine}) {
                   {type}
                 </option>
               ))}
-            </NxFormSelect>
-          </NxFormGroup>
+            </AsFormSelect>
+          </AsFormGroup>
         </div>
-      </NxLoadWrapper>
+      </AsLoadWrapper>
     </>
   );
 }

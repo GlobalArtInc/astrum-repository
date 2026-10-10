@@ -1,5 +1,5 @@
 
-@use '~@globalart/react-shared-components/scss-shared/nx-text-helpers';
+@use '~@globalart/react-shared-components/scss-shared/as-text-helpers';
 
 .as-repository-editor {
   // ASTRUM-53064 B3: the toggle checkbox now lives in the sublabel row (next to
@@ -9,18 +9,18 @@
     display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
-    column-gap: var(--nx-spacing-3x);
-    row-gap: var(--nx-spacing-1x);
+    column-gap: var(--as-spacing-3x);
+    row-gap: var(--as-spacing-1x);
 
-    .nx-checkbox {
-      // NxCheckbox sets its own block-level margins; reset them so the
+    .as-checkbox {
+      // AsCheckbox sets its own block-level margins; reset them so the
       // checkbox sits flush with the sublabel text.
       margin: 0;
     }
   }
 
   .as-toggleable-sublabel-text {
-    // Inherit the NxFieldset sublabel typography.
+    // Inherit the AsFieldset sublabel typography.
     display: inline;
   }
 
@@ -31,7 +31,7 @@
     display: flex;
     align-items: center;
 
-    .nx-text-input {
+    .as-text-input {
       flex: 1 1 auto;
       min-width: 0;
       margin: 0;

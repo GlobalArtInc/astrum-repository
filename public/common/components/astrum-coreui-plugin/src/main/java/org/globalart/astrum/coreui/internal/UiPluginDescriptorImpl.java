@@ -20,7 +20,7 @@ public class UiPluginDescriptorImpl
 {
   public UiPluginDescriptorImpl() {
     super("astrum-coreui-plugin");
-    setNamespace("NX.coreui");
-    setConfigClassName("NX.coreui.app.PluginConfig");
+    setNamespace("AS.coreui");
+    setConfigClassName("AS.coreui.app.PluginConfig");
   }
 }

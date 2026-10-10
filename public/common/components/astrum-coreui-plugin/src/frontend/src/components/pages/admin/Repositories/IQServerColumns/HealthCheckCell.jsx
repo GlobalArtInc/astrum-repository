@@ -1,6 +1,6 @@
 
 import React, {useState, useRef} from 'react';
-import {NxFontAwesomeIcon, NxTooltip, NxP} from '@globalart/react-shared-components';
+import {AsFontAwesomeIcon, AsTooltip, AsP} from '@globalart/react-shared-components';
 import {faBan, faShieldAlt, faAward, faExclamationCircle} from '@fortawesome/free-solid-svg-icons';
 import UIStrings from '../../../../../constants/UIStrings';
 import './IQServerColumns.scss';
@@ -57,57 +57,57 @@ export default function HealthCheckCell({name, openModal}) {
   const closeSummary = () => setOpenSummary(false); 
 
   if (isLoading) {
-    return <NxP className="as-rhc-loading-lbl">{LOADING}</NxP>;
+    return <AsP className="as-rhc-loading-lbl">{LOADING}</AsP>;
   }
 
   if (isLoadingError) {
     return (
-      <NxP className="as-rhc-loading-error">
-        <NxFontAwesomeIcon icon={faExclamationCircle} />
+      <AsP className="as-rhc-loading-error">
+        <AsFontAwesomeIcon icon={faExclamationCircle} />
         {LOADING_ERROR}
-      </NxP>
+      </AsP>
     );
   }
 
   if (!health || (!health.enabled && !canUpdateHealthCheck())) {
     return (
-      <NxTooltip title={NOT_AVAILABLE_TOOLTIP_HC}>
-        <NxFontAwesomeIcon icon={faBan} className="as-unavailable-icon" />
-      </NxTooltip>
+      <AsTooltip title={NOT_AVAILABLE_TOOLTIP_HC}>
+        <AsFontAwesomeIcon icon={faBan} className="as-unavailable-icon" />
+      </AsTooltip>
     );
   }
 
   if (!health.enabled) {
     return (
-      <NxP
+      <AsP
         className={isDisabled ? 'as-rhc-analyze-btn-disabled' : 'as-rhc-analyze-btn-enabled'}
         onClick={showModal}
       >
         {ANALYZE_BUTTON}
-      </NxP>
+      </AsP>
     );
   }
 
   if (health.analyzing) {
-    return <NxP className="as-rhc-analyzing-lbl">{ANALYZING}</NxP>;
+    return <AsP className="as-rhc-analyzing-lbl">{ANALYZING}</AsP>;
   }
 
   if (health.enabled) {
     return (
       <>
-        <NxTooltip title={!canReadSummary && NO_PERMISSION}>
-          <NxP
+        <AsTooltip title={!canReadSummary && NO_PERMISSION}>
+          <AsP
             className="as-health-check-indicators"
             onMouseEnter={showSummary}
             onMouseLeave={cancelShowSummary}
             ref={indicatorsRef}
           >
-            <NxFontAwesomeIcon icon={faShieldAlt} />
+            <AsFontAwesomeIcon icon={faShieldAlt} />
             {health.securityIssueCount}
-            <NxFontAwesomeIcon icon={faAward} />
+            <AsFontAwesomeIcon icon={faAward} />
             {health.licenseIssueCount}
-          </NxP>
-        </NxTooltip>
+          </AsP>
+        </AsTooltip>
         {openSummary && canReadSummary && (
           <HealthCheckSummary
             healthCheckData={health}

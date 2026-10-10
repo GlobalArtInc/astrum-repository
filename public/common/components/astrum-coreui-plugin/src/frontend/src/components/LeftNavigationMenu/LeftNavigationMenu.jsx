@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import { NxDivider, NxGlobalSidebar2 } from '@globalart/react-shared-components';
+import { AsDivider, AsGlobalSidebar2 } from '@globalart/react-shared-components';
 import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import UIStrings from '../../constants/UIStrings';
 import { ROUTE_NAMES } from '../../routerConfig/routeNames/routeNames';
@@ -22,7 +22,7 @@ export default function LeftNavigationMenu() {
   const isSettingsVisible = !!adminInitialRouteName;
 
   return (
-    <NxGlobalSidebar2
+    <AsGlobalSidebar2
       className="as-left-nav"
       isOpen={isOpen}
       onToggleClick={onToggleClick}
@@ -241,7 +241,7 @@ export default function LeftNavigationMenu() {
 
       {isSettingsVisible && (
         <>
-          <NxDivider />
+          <AsDivider />
           <LeftNavigationMenuItem
             name={adminInitialRouteName}
             selectedState={ADMIN.DIRECTORY}
@@ -252,6 +252,6 @@ export default function LeftNavigationMenu() {
         </>
       )}
 
-    </NxGlobalSidebar2>
+    </AsGlobalSidebar2>
   );
 }

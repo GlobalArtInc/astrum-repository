@@ -59,7 +59,7 @@ const selectors = {
     save: () => screen.getByText(SETTINGS.SAVE_BUTTON_LABEL),
     cancel: () => screen.getByText(SETTINGS.CANCEL_BUTTON_LABEL),
     list: () => screen.getByRole('group', { name: LABELS.MODAL.SUB_LABEL }),
-    listItem: (text) => within(selectors.modal.container()).getByText(text).closest('.nx-transfer-list__item'),
+    listItem: (text) => within(selectors.modal.container()).getByText(text).closest('.as-transfer-list__item'),
     listItemDownButton: (text) => within(selectors.modal.listItem(text)).queryAllByRole('button')[1],
     input: () => within(selectors.modal.container()).queryByPlaceholderText(UIStrings.FILTER),
     container: () => screen.getByRole('dialog'),
@@ -293,11 +293,11 @@ describe('LdapServersList', function() {
 
       userEvent.click(changeOrderButton());
 
-      expect(list().querySelectorAll('.nx-transfer-list__item')).toHaveLength(LDAP_SERVERS.length)
+      expect(list().querySelectorAll('.as-transfer-list__item')).toHaveLength(LDAP_SERVERS.length)
 
       await TestUtils.changeField(input, LDAP_SERVERS[0].name);
 
-      expect(list().querySelectorAll('.nx-transfer-list__item')).toHaveLength(1)
+      expect(list().querySelectorAll('.as-transfer-list__item')).toHaveLength(1)
     });
 
     it('do not show the button if the user has not update permission', async () => {

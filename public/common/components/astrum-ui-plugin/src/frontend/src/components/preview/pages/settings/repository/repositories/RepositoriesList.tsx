@@ -90,7 +90,7 @@ function canReadFirewallStatus(): boolean {
  * Health Check (RHC) is a lower-tier feature that is superseded by the IQ Server's Firewall product. When the
  * customer already has Firewall configured (IQ Server is enabled AND the persisted {@code clm.hasFirewall} flag
  * is {@code true}), the RHC column is redundant — the Firewall Report column shows richer data — so we hide it,
- * matching the classic UI behaviour (NX.Conditions.hasNoFirewall in ExtJS). Requires the healthcheck:update
+ * matching the classic UI behaviour (AS.Conditions.hasNoFirewall in ExtJS). Requires the healthcheck:update
  * permission on top of the tier gate (ASTRUM-53278).
  */
 function shouldShowHealthCheckColumn(): boolean {

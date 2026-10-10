@@ -2,7 +2,7 @@
 import React from 'react';
 import {keys, mergeDeepRight} from 'ramda';
 
-import {NxCheckbox} from '@globalart/react-shared-components';
+import {AsCheckbox} from '@globalart/react-shared-components';
 import FormUtils from '../../../../interface/FormUtils';
 
 import {SUPPORTED_FIELD_TYPES} from '../FormFieldsFactoryConstants';
@@ -16,11 +16,11 @@ const Field = ({id, dynamicProps, current, onChange}) => {
   }
 
   return options.map(option =>
-      <NxCheckbox key={option}
+      <AsCheckbox key={option}
                   {...FormUtils.checkboxProps([id, option], current)}
                   onChange={ e => onChange(id, mergeDeepRight(data[id], {[option]: e}))}>
         {option.charAt(0).toUpperCase() + option.slice(1)}
-      </NxCheckbox>
+      </AsCheckbox>
   );
 };
 

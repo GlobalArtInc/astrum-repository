@@ -7,7 +7,7 @@
  */
 
 @include extjs-panel-ui(
-  $ui: 'nx-light',
+  $ui: 'as-light',
 
   $ui-header-color: $color-night-rider,
   $ui-header-background-color: $color-light-smoke,
@@ -26,7 +26,7 @@
 );
 
 @include extjs-tab-ui(
-  $ui: 'nx-light',
+  $ui: 'as-light',
 
   $ui-background-color: $color-light-smoke,
   $ui-background-color-over: $color-smoke,
@@ -56,7 +56,7 @@
 );
 
 @include extjs-tab-bar-ui(
-  $ui: 'nx-light',
+  $ui: 'as-light',
 
   $ui-strip-height: 0px,
   $ui-strip-border-width: 0px,

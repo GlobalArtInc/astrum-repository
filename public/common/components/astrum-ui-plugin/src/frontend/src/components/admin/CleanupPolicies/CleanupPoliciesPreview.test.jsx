@@ -7,31 +7,31 @@ import CleanupPoliciesPreview from './CleanupPoliciesPreview';
 // Mock the useMachine hook
 jest.mock('@xstate/react');
 
-// Mock NxWarningAlert component
+// Mock AsWarningAlert component
 jest.mock('@globalart/react-shared-components', () => ({
   ...jest.requireActual('@globalart/react-shared-components'),
-  NxWarningAlert: ({onClose, children}) => (
-    <div data-testid="nx-warning-alert">
+  AsWarningAlert: ({onClose, children}) => (
+    <div data-testid="as-warning-alert">
       <button data-testid="close-button" onClick={onClose}>X</button>
       {children}
     </div>
   ),
-  NxButton: ({onClick, children, className}) => (
+  AsButton: ({onClick, children, className}) => (
     <button onClick={onClick} className={className}>{children}</button>
   ),
-  NxFilterInput: () => <input />,
-  NxFormSelect: ({onChange, value, children}) => (
+  AsFilterInput: () => <input />,
+  AsFormSelect: ({onChange, value, children}) => (
     <select onChange={(e) => onChange(e.target.value)} value={value}>
       {children}
     </select>
   ),
-  NxLoadWrapper: ({children}) => <>{children()}</>,
-  NxTable: ({children}) => <table>{children}</table>,
-  NxTableBody: ({children}) => <tbody>{children}</tbody>,
-  NxTableCell: ({children}) => <td>{children}</td>,
-  NxTableHead: ({children}) => <thead>{children}</thead>,
-  NxTableRow: ({children}) => <tr>{children}</tr>,
-  NxTooltip: ({children}) => <>{children}</>
+  AsLoadWrapper: ({children}) => <>{children()}</>,
+  AsTable: ({children}) => <table>{children}</table>,
+  AsTableBody: ({children}) => <tbody>{children}</tbody>,
+  AsTableCell: ({children}) => <td>{children}</td>,
+  AsTableHead: ({children}) => <thead>{children}</thead>,
+  AsTableRow: ({children}) => <tr>{children}</tr>,
+  AsTooltip: ({children}) => <>{children}</>
 }));
 
 describe('CleanupPoliciesPreview', () => {
@@ -74,7 +74,7 @@ describe('CleanupPoliciesPreview', () => {
     render(<CleanupPoliciesPreview policyData={mockPolicyData} />);
 
     // Verify the alert is shown
-    expect(screen.getByTestId('nx-warning-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('as-warning-alert')).toBeInTheDocument();
 
     // Click the close button
     fireEvent.click(screen.getByTestId('close-button'));
@@ -101,6 +101,6 @@ describe('CleanupPoliciesPreview', () => {
 
     render(<CleanupPoliciesPreview policyData={mockPolicyData} />);
 
-    expect(screen.queryByTestId('nx-warning-alert')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('as-warning-alert')).not.toBeInTheDocument();
   });
 });

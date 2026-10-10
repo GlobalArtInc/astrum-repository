@@ -6,13 +6,13 @@ import {faMapSigns} from '@fortawesome/free-solid-svg-icons';
 
 import {Utils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
 } from '@globalart/react-shared-components';
 
 import {
@@ -72,55 +72,55 @@ export default function RoutingRulesList() {
     <PageHeader>
       <PageTitle icon={faMapSigns} {...MENU}/>
       <PageActions>
-        <NxButton variant="tertiary" onClick={preview}>
+        <AsButton variant="tertiary" onClick={preview}>
           <span>{LABELS.PREVIEW_BUTTON}</span>
-        </NxButton>
-        <NxButton variant="primary" onClick={onCreate}>
+        </AsButton>
+        <AsButton variant="primary" onClick={onCreate}>
           <span>{LABELS.CREATE_BUTTON}</span>
-        </NxButton>
+        </AsButton>
       </PageActions>
     </PageHeader>
     <ContentBody>
       <Section className="as-routing-rules-list">
         <SectionToolbar>
           <div className="as-spacer" />
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               onChange={filter}
               value={filterText}
               placeholder={UIStrings.FILTER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_NAME'})} isSortable sortDir={nameSortDir}>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_NAME'})} isSortable sortDir={nameSortDir}>
                 {LABELS.NAME_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_DESCRIPTION'})} isSortable sortDir={descriptionSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_DESCRIPTION'})} isSortable sortDir={descriptionSortDir}>
                 {LABELS.DESCRIPTION_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_ASSIGNED_REPOSITORY_COUNT'})} isSortable sortDir={usedBySortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_ASSIGNED_REPOSITORY_COUNT'})} isSortable sortDir={usedBySortDir}>
                 {LABELS.USED_BY_LABEL}
-              </NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
+              </AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
             {data.map(({name, description, assignedRepositoryCount}) => (
-                <NxTableRow key={name} onClick={() => onEdit(name)} isClickable>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{description}</NxTableCell>
-                  <NxTableCell>
+                <AsTableRow key={name} onClick={() => onEdit(name)} isClickable>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{description}</AsTableCell>
+                  <AsTableCell>
                     {assignedRepositoryCount === 0 ?
                         <a href="#admin/repository/repositories">{LABELS.NEEDS_ASSIGNMENT}</a> :
                         <span>{LABELS.USED_BY(assignedRepositoryCount)}</span>
                     }
-                  </NxTableCell>
-                  <NxTableCell chevron/>
-                </NxTableRow>
+                  </AsTableCell>
+                  <AsTableCell chevron/>
+                </AsTableRow>
             ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
       <HelpTile header={LABELS.HELP_TITLE} body={LABELS.HELP_TEXT}/>
     </ContentBody>

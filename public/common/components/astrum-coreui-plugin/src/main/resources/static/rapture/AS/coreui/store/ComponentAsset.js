@@ -1,0 +1,30 @@
+
+/*global Ext, AS*/
+
+/**
+ * Asset store.
+ *
+ * @since 3.0
+ */
+Ext.define('AS.coreui.store.ComponentAsset', {
+  extend: 'Ext.data.Store',
+  model: 'AS.coreui.model.Asset',
+
+  proxy: {
+    type: 'direct',
+
+    api: {
+      read: 'AS.direct.coreui_Component.readComponentAssets'
+    },
+
+    reader: {
+      type: 'json',
+      rootProperty: 'data',
+      successProperty: 'success'
+    }
+  },
+
+  remoteFilter: true,
+  sorters: { property: 'name', direction: 'ASC' }
+
+});

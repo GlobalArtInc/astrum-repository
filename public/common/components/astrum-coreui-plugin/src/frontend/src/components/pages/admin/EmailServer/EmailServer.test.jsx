@@ -119,7 +119,7 @@ const DATA = {
   enabled: true,
   fromAddress: 'test@test.com',
   host: 'example.com',
-  password: '#~NXRM~PLACEHOLDER~PASSWORD~#',
+  password: '#~ASTRUM~PLACEHOLDER~PASSWORD~#',
   port: 1234,
   sslOnConnectEnabled: true,
   sslCheckServerIdentityEnabled: true,
@@ -368,13 +368,13 @@ describe('EmailServer', () => {
   });
 
   it('creates email server configuration', async () => {
-    when(global.NX.Permissions.check)
+    when(global.AS.Permissions.check)
       .calledWith('astrum:ssl-truststore:read')
       .mockReturnValue(true);
-    when(global.NX.Permissions.check)
+    when(global.AS.Permissions.check)
       .calledWith('astrum:ssl-truststore:create')
       .mockReturnValue(true);
-    when(global.NX.Permissions.check)
+    when(global.AS.Permissions.check)
       .calledWith('astrum:ssl-truststore:update')
       .mockReturnValue(true);
 
@@ -410,7 +410,7 @@ describe('EmailServer', () => {
 
     expect(Axios.post).toHaveBeenCalledWith(URL, NEW_UPDATE);
 
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   }, 20000);
 
   it('discards changes', async () => {

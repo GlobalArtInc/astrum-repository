@@ -1,7 +1,7 @@
 
 import React, {useState} from 'react';
 
-import {NxSegmentedButton, useToggle} from '@globalart/react-shared-components';
+import {AsSegmentedButton, useToggle} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -32,19 +32,19 @@ export default function AnalyzeButton({enableHealthCheck, name}) {
   };
 
   return (
-    <NxSegmentedButton
+    <AsSegmentedButton
       variant="primary"
       isOpen={isOpen}
       onToggleOpen={onToggleOpen}
       onClick={analyze}
       buttonContent={HEALTH_CHECK.ANALYZE_BUTTON}
     >
-      <button className="nx-dropdown-button" onClick={selectAnalyzeThisRepo}>
+      <button className="as-dropdown-button" onClick={selectAnalyzeThisRepo}>
         {HEALTH_CHECK.ANALYZE_THIS(name)}
       </button>
-      <button className="nx-dropdown-button" onClick={selectAnalyzeAllRepos}>
+      <button className="as-dropdown-button" onClick={selectAnalyzeAllRepos}>
         {HEALTH_CHECK.ANALYZE_ALL}
       </button>
-    </NxSegmentedButton>
+    </AsSegmentedButton>
   );
 }

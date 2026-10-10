@@ -11,11 +11,11 @@ import {
 
 import {ListMachineUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxFontAwesomeIcon,
-  NxTable,
-  NxTile,
-  NxH2,
-  NxBackButton,
+  AsFontAwesomeIcon,
+  AsTable,
+  AsTile,
+  AsH2,
+  AsBackButton,
 } from '@globalart/react-shared-components';
 
 import {
@@ -57,70 +57,70 @@ export default function MetricHealthDetails({itemId, onDone}) {
           description={METRIC_HEALTH.MENU.detailsDescription}
         />
         {isClustered() && (
-          <NxBackButton
+          <AsBackButton
             text={METRIC_HEALTH.BACK_BUTTON}
             href="#admin/support/status"
           />
         )}
       </div>
       <ContentBody className="as-metric-health">
-        <NxTile>
-          {isClustered() && <NxH2>{name}</NxH2>}
-          <NxTable>
-            <NxTable.Head>
-              <NxTable.Row>
-                <NxTable.Cell hasIcon />
-                <NxTable.Cell
+        <AsTile>
+          {isClustered() && <AsH2>{name}</AsH2>}
+          <AsTable>
+            <AsTable.Head>
+              <AsTable.Row>
+                <AsTable.Cell hasIcon />
+                <AsTable.Cell
                   onClick={() => send({type: 'SORT_BY_NAME'})}
                   isSortable
                   sortDir={nameSortDir}
                 >
                   {METRIC_HEALTH.NAME_HEADER}
-                </NxTable.Cell>
-                <NxTable.Cell
+                </AsTable.Cell>
+                <AsTable.Cell
                   onClick={() => send({type: 'SORT_BY_MESSAGE'})}
                   isSortable
                   sortDir={messageSortDir}
                 >
                   {METRIC_HEALTH.MESSAGE_HEADER}
-                </NxTable.Cell>
-                <NxTable.Cell
+                </AsTable.Cell>
+                <AsTable.Cell
                   onClick={() => send({type: 'SORT_BY_ERROR'})}
                   isSortable
                   sortDir={errorSortDir}
                 >
                   {METRIC_HEALTH.ERROR_HEADER}
-                </NxTable.Cell>
-              </NxTable.Row>
-            </NxTable.Head>
-            <NxTable.Body
+                </AsTable.Cell>
+              </AsTable.Row>
+            </AsTable.Head>
+            <AsTable.Body
               isLoading={isLoading}
               error={error}
               emptyMessage={METRIC_HEALTH.EMPTY_NODE}
             >
               {data.map((metric) => (
-                <NxTable.Row key={metric.name}>
-                  <NxTable.Cell hasIcon>
-                    <NxFontAwesomeIcon
+                <AsTable.Row key={metric.name}>
+                  <AsTable.Cell hasIcon>
+                    <AsFontAwesomeIcon
                       color={metric.healthy ? 'green' : 'red'}
                       icon={
                         metric.healthy ? faCheckCircle : faExclamationCircle
                       }
                     />
-                  </NxTable.Cell>
-                  <NxTable.Cell>{metric.name}</NxTable.Cell>
-                  <NxTable.Cell>
+                  </AsTable.Cell>
+                  <AsTable.Cell>{metric.name}</AsTable.Cell>
+                  <AsTable.Cell>
                     {/* SECURITY FIX: Sanitize HTML to prevent XSS attacks */}
                     <span dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(metric.message)}} />
-                  </NxTable.Cell>
-                  <NxTable.Cell>
+                  </AsTable.Cell>
+                  <AsTable.Cell>
                     {metric.error ? metric.error.message : ''}
-                  </NxTable.Cell>
-                </NxTable.Row>
+                  </AsTable.Cell>
+                </AsTable.Row>
               ))}
-            </NxTable.Body>
-          </NxTable>
-        </NxTile>
+            </AsTable.Body>
+          </AsTable>
+        </AsTile>
       </ContentBody>
     </div>
   );

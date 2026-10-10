@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {NxH2, NxFormGroup, NxTextInput, NxWarningAlert} from '@globalart/react-shared-components';
+import {AsH2, AsFormGroup, AsTextInput, AsWarningAlert} from '@globalart/react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -46,21 +46,21 @@ export default function DockerEcrAuthConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxH2>{ECR.CAPTION}</NxH2>
-      <NxFormGroup
+      <AsH2>{ECR.CAPTION}</AsH2>
+      <AsFormGroup
         label={ECR.SESSION_TOKEN.LABEL}
         sublabel={ECR.SESSION_TOKEN.SUBLABEL}
         className="as-form-group-ecr-session-token"
       >
-        <NxTextInput
+        <AsTextInput
           type="password"
           autoComplete="new-password"
           {...FormUtils.fieldProps('dockerProxy.ecrAuth.sessionToken', currentParent)}
           onChange={FormUtils.handleUpdate('dockerProxy.ecrAuth.sessionToken', sendParent)}
           placeholder={ECR.SESSION_TOKEN.PLACEHOLDER}
         />
-      </NxFormGroup>
-      {Boolean(sessionToken) && <NxWarningAlert>{ECR.EXPIRY_WARNING}</NxWarningAlert>}
+      </AsFormGroup>
+      {Boolean(sessionToken) && <AsWarningAlert>{ECR.EXPIRY_WARNING}</AsWarningAlert>}
     </>
   );
 }

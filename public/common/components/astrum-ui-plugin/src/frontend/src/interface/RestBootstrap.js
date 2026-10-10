@@ -3,12 +3,12 @@
  * REST Bootstrap - Phase 2: React-First Shell
  *
  * Fetches auth, permissions, and application state via REST endpoints
- * and seeds window.NX globals BEFORE React renders. This allows
+ * and seeds window.AS globals BEFORE React renders. This allows
  * ExtJS.useUser(), ExtJS.checkPermission(), ExtJS.state().getValue()
  * to return real data immediately without waiting for ExtJS to boot.
  *
  * When ExtJS eventually loads (~3-5 seconds later), it overwrites
- * window.NX.State and window.NX.Permissions with its own implementations.
+ * window.AS.State and window.AS.Permissions with its own implementations.
  * The React hooks auto-update via ExtJS store event subscriptions.
  *
  * Endpoints used:
@@ -22,7 +22,7 @@
 
 const STATE_POLL_URL = '/service/extdirect/poll/rapture_State_get';
 const EXTDIRECT_URL = '/service/extdirect';
-const CSRF_COOKIE_NAME = 'NX-ANTI-CSRF-TOKEN';
+const CSRF_COOKIE_NAME = 'AS-ANTI-CSRF-TOKEN';
 
 // ---------------------------------------------------------------------------
 // CSRF Token (same logic as ExtJS Application.js)
@@ -53,7 +53,7 @@ function ensureCSRFToken() {
 
 // ---------------------------------------------------------------------------
 // Shiro WildcardPermission Matching
-// Ported from NX.Permissions.implies() in astrum-rapture
+// Ported from AS.Permissions.implies() in astrum-rapture
 // ---------------------------------------------------------------------------
 
 function implies(granted, expected) {
@@ -232,18 +232,18 @@ async function fetchPermissions() {
 }
 
 // ---------------------------------------------------------------------------
-// Seed window.NX Globals
+// Seed window.AS Globals
 // ---------------------------------------------------------------------------
 
 /**
- * Store REST-fetched data in a SEPARATE namespace (window.__nxRestBootstrap).
+ * Store REST-fetched data in a SEPARATE namespace (window.__asRestBootstrap).
  *
- * IMPORTANT: We do NOT touch window.NX.State or window.NX.Permissions.
+ * IMPORTANT: We do NOT touch window.AS.State or window.AS.Permissions.
  * Those are owned by ExtJS. Overwriting them breaks ExtJS initialization
- * (e.g., NX.State.setBrowserSupported is not a function).
+ * (e.g., AS.State.setBrowserSupported is not a function).
  *
- * Instead, ExtJS.js fallbacks are enhanced to read from __nxRestBootstrap
- * when the real NX.State/NX.Permissions aren't available yet.
+ * Instead, ExtJS.js fallbacks are enhanced to read from __asRestBootstrap
+ * when the real AS.State/AS.Permissions aren't available yet.
  */
 function seedRestData(authState, permissions) {
   if (typeof window === 'undefined') return;
@@ -256,7 +256,7 @@ function seedRestData(authState, permissions) {
   }
 
   // Store in separate namespace - ExtJS.js reads from here as fallback
-  window.__nxRestBootstrap = {
+  window.__asRestBootstrap = {
     user,
     edition,
     version,
@@ -279,7 +279,7 @@ function seedRestData(authState, permissions) {
  *
  * Awaits only auth/state so React can render immediately. Permissions are
  * fetched in parallel but resolved asynchronously — the app seeds with an
- * empty permission set first, then updates window.__nxRestBootstrap.permissions
+ * empty permission set first, then updates window.__asRestBootstrap.permissions
  * once the fetch completes (ASTRUM-52583: getPermissions can take 20s on cold
  * cache; blocking render on it produces a blank screen for that entire period).
  *
@@ -306,9 +306,9 @@ export async function bootstrapFromREST() {
     // Update permissions asynchronously once the slow fetch completes
     permissionsPromise
       .then((permissions) => {
-        if (window.__nxRestBootstrap) {
-          window.__nxRestBootstrap.permissions = permissions;
-          window.__nxRestBootstrap.checkPermission = (permission) =>
+        if (window.__asRestBootstrap) {
+          window.__asRestBootstrap.permissions = permissions;
+          window.__asRestBootstrap.checkPermission = (permission) =>
             checkPermission(permissions, permission);
           console.info(
             `[RestBootstrap] Permissions updated asynchronously: ${permissions.size} entries`
@@ -316,7 +316,7 @@ export async function bootstrapFromREST() {
           // Notify any React components that rendered with the empty initial set so they
           // can re-check permissions now that the real set is available.
           window.dispatchEvent(
-            new CustomEvent('nx-rest-permissions-loaded', {detail: {count: permissions.size}})
+            new CustomEvent('as-rest-permissions-loaded', {detail: {count: permissions.size}})
           );
         }
       })

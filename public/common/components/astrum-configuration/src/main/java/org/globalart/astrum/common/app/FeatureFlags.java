@@ -203,13 +203,13 @@ public class FeatureFlags
   public static final String ORIENT_WARNING_NAMED_VALUE = "${astrum.orient.warning:true}";
 
   /**
-   * When true (default), the Secure attribute will be set on the NXSESSIONID Cookie when delivered over https.
+   * When true (default), the Secure attribute will be set on the ASTRUMSESSIONID Cookie when delivered over https.
    * In deployments with HTTP-only listeners, this setting will typically have no effect.
    * Setting false for this property in HTTPS only environments is not recommended.
    *
    * See https://owasp.org/www-community/controls/SecureCookieAttribute
    */
-  public static final String NXSESSIONID_SECURE_COOKIE_NAMED_VALUE = "${astrum.session.secureCookie:true}";
+  public static final String ASTRUMSESSIONID_SECURE_COOKIE_NAMED_VALUE = "${astrum.session.secureCookie:true}";
 
   public static final String ASSET_AUDITOR_ATTRIBUTE_CHANGES_ENABLED_VALUE =
       "${astrum.audit.attribute.changes.enabled:true}";

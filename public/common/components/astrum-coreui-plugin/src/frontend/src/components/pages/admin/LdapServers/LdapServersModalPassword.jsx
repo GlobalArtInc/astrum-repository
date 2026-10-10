@@ -2,12 +2,12 @@
 import React, {useState} from 'react';
 import {isNil, isEmpty} from 'ramda';
 import {
-  NxModal,
-  NxTextInput,
-  NxStatefulForm,
-  NxFormGroup,
-  NxH2,
-  nxTextInputStateHelpers,
+  AsModal,
+  AsTextInput,
+  AsStatefulForm,
+  AsFormGroup,
+  AsH2,
+  asTextInputStateHelpers,
 } from '@globalart/react-shared-components';
 import UIStrings from '../../../../constants/UIStrings';
 
@@ -15,7 +15,7 @@ const {
   LDAP_SERVERS: {FORM},
 } = UIStrings;
 
-const {initialState, userInput} = nxTextInputStateHelpers;
+const {initialState, userInput} = asTextInputStateHelpers;
 
 function validator(value) {
   return !isEmpty(value) ? null : UIStrings.ERROR.FIELD_REQUIRED;
@@ -32,8 +32,8 @@ export default function LdapServersModalPassword({onSubmit, onCancel}) {
   }
 
   return (
-    <NxModal variant="narrow" aria-labelledby="modal-form-header">
-      <NxStatefulForm
+    <AsModal variant="narrow" aria-labelledby="modal-form-header">
+      <AsStatefulForm
         onSubmit={() => {
           setShowValidationErrors(true);
 
@@ -51,24 +51,24 @@ export default function LdapServersModalPassword({onSubmit, onCancel}) {
         submitError={submitError}
         showValidationErrors={showValidationErrors}
       >
-        <NxModal.Header>
-          <NxH2 id="modal-form-header">{FORM.MODAL_PASSWORD.TITLE}</NxH2>
-        </NxModal.Header>
-        <NxModal.Content>
-          <NxFormGroup
+        <AsModal.Header>
+          <AsH2 id="modal-form-header">{FORM.MODAL_PASSWORD.TITLE}</AsH2>
+        </AsModal.Header>
+        <AsModal.Content>
+          <AsFormGroup
             label={FORM.MODAL_PASSWORD.LABEL}
             sublabel={FORM.MODAL_PASSWORD.SUB_LABEL}
             isRequired
           >
-            <NxTextInput
+            <AsTextInput
               type="password"
               onChange={onChange}
               validatable
               {...password}
             />
-          </NxFormGroup>
-        </NxModal.Content>
-      </NxStatefulForm>
-    </NxModal>
+          </AsFormGroup>
+        </AsModal.Content>
+      </AsStatefulForm>
+    </AsModal>
   );
 }

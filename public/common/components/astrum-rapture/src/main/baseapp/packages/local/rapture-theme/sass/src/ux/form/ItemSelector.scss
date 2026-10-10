@@ -2,14 +2,14 @@
 * @class Ext.ux.form.ItemSelector
 */
 
-.nx-itemselector-disabled {
+.as-itemselector-disabled {
   .x-form-item-label {
     opacity: 1;
   }
   .x-toolbar.x-item-disabled {
     visibility: hidden;
   }
-  .nx-filterbox {
+  .as-filterbox {
     display: none;
   }
 }

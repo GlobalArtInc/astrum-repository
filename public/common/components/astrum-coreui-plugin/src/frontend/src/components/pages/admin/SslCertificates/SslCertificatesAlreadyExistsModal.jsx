@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {NxH2, NxModal, NxButton, NxFooter, NxButtonBar} from '@globalart/react-shared-components';
+import {AsH2, AsModal, AsButton, AsFooter, AsButtonBar} from '@globalart/react-shared-components';
 import {useRouter} from '@uirouter/react';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 
@@ -31,19 +31,19 @@ export default function SslCertificatesAlreadyExistsModal({certificateId, cancel
   };
 
   return (
-    <NxModal onCancel={cancel} variant="narrow">
-      <NxModal.Header>
-        <NxH2>{HEADER}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>{CONTENT}</NxModal.Content>
-      <NxFooter>
-        <NxButtonBar>
-          <NxButton onClick={handleCancel}>{CANCEL_BUTTON_LABEL}</NxButton>
-          <NxButton onClick={goToCertificate} variant="primary">
+    <AsModal onCancel={cancel} variant="narrow">
+      <AsModal.Header>
+        <AsH2>{HEADER}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>{CONTENT}</AsModal.Content>
+      <AsFooter>
+        <AsButtonBar>
+          <AsButton onClick={handleCancel}>{CANCEL_BUTTON_LABEL}</AsButton>
+          <AsButton onClick={goToCertificate} variant="primary">
             {VIEW_BUTTON}
-          </NxButton>
-        </NxButtonBar>
-      </NxFooter>
-    </NxModal>
+          </AsButton>
+        </AsButtonBar>
+      </AsFooter>
+    </AsModal>
   );
 }

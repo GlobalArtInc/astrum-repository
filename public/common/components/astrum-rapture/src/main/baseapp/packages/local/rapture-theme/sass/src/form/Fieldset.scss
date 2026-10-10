@@ -2,7 +2,7 @@
  * @class Ext.form.Fieldset
  */
 
-fieldset.nx-form-section {
+fieldset.as-form-section {
   margin-bottom: 0;
   padding-bottom: 20px;
 
@@ -16,12 +16,12 @@ fieldset.nx-form-section {
     padding-right: 10px;
   }
 
-  &.nx-no-title {
+  &.as-no-title {
     padding-top: 0;
   }
 }
 
-.x-panel-nx-subsection-with-background-framed fieldset.nx-form-section {
+.x-panel-as-subsection-with-background-framed fieldset.as-form-section {
   padding-bottom: 0;
 }
 

@@ -5,7 +5,7 @@
 #end
 
 ## load the application
-Ext.require('NX.app.Loader', function(Loader) {
+Ext.require('AS.app.Loader', function(Loader) {
   new Loader().load({
     pluginConfigs: [
       #foreach($pluginConfig in $pluginConfigs)

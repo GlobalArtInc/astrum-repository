@@ -32,10 +32,10 @@ jest.mock('./components/login/LoginPageRadix', () => {
 jest.mock('./contexts/AuthContext', () => ({
   AuthProvider: ({ children }) => children,
   useAuth: () => ({
-    user: window.NX?.State?.getUser?.() || null,
+    user: window.AS?.State?.getUser?.() || null,
     isLoading: false,
-    isAuthenticated: Boolean(window.NX?.Security?.hasUser?.()),
-    hasUser: () => Boolean(window.NX?.Security?.hasUser?.()),
+    isAuthenticated: Boolean(window.AS?.Security?.hasUser?.()),
+    hasUser: () => Boolean(window.AS?.Security?.hasUser?.()),
     refreshUser: () => Promise.resolve()
   })
 }));
@@ -43,21 +43,21 @@ jest.mock('./contexts/AuthContext', () => ({
 jest.mock('./contexts/PermissionsContext', () => ({
   PermissionsProvider: ({ children }) => children,
   usePermissions: () => ({
-    checkPermission: (permission) => window.NX?.Permissions?.check?.(permission) || false,
-    hasPermission: (permission) => window.NX?.Permissions?.check?.(permission) || false,
-    usePermission: (permission) => window.NX?.Permissions?.check?.(permission) || false
+    checkPermission: (permission) => window.AS?.Permissions?.check?.(permission) || false,
+    hasPermission: (permission) => window.AS?.Permissions?.check?.(permission) || false,
+    usePermission: (permission) => window.AS?.Permissions?.check?.(permission) || false
   })
 }));
 
 jest.mock('./contexts/StateContext', () => ({
   StateProvider: ({ children }) => children,
   useAppState: () => ({
-    getValue: (key) => window.NX?.State?.getValue?.(key),
-    setValue: (key, value) => window.NX?.State?.setValue?.(key, value),
-    useState: (key) => window.NX?.State?.getValue?.(key),
-    getEdition: () => window.NX?.State?.getEdition?.() || 'OSS',
-    getVersion: () => window.NX?.State?.getVersion?.(),
-    getLicense: () => window.NX?.State?.getValue?.('license')
+    getValue: (key) => window.AS?.State?.getValue?.(key),
+    setValue: (key, value) => window.AS?.State?.setValue?.(key, value),
+    useState: (key) => window.AS?.State?.getValue?.(key),
+    getEdition: () => window.AS?.State?.getEdition?.() || 'OSS',
+    getVersion: () => window.AS?.State?.getVersion?.(),
+    getLicense: () => window.AS?.State?.getValue?.('license')
   })
 }));
 
@@ -75,7 +75,7 @@ jest.mock('./hooks/useRedirectOnLogout', () => ({
 
 // Mock UnsavedChangesModal with a portal-free, plain-DOM double.
 //
-// The real component renders an NxModal into a document.body portal whose
+// The real component renders an AsModal into a document.body portal whose
 // asynchronous teardown raced the App test's removal assertions on slow CI
 // (the modal heading lingered past the waitFor window -- ASTRUM-53445 /
 // ASTRUM-53515). The modal's own show/hide rendering is covered deterministically
@@ -444,7 +444,7 @@ describe('App', () => {
           dbUpgrade: { currentState: null }
           // Note: NO anonymousUsername
         });
-        global.NX.Security.hasUser = jest.fn().mockReturnValue(false);
+        global.AS.Security.hasUser = jest.fn().mockReturnValue(false);
 
         const result = await renderComponent();
         routerInstance = result.router;
@@ -465,7 +465,7 @@ describe('App', () => {
       });
 
       it('does not show for login given user does not have permissions but is already authenticated', async () => {
-        global.NX.Security.hasUser.mockReturnValue(true);
+        global.AS.Security.hasUser.mockReturnValue(true);
 
         const result = await renderComponent();
         routerInstance = result.router;
@@ -511,7 +511,7 @@ describe('App', () => {
     describe.skip('Unsaved Changes Dialog', () => {
       // UnsavedChangesModal is mocked at the top of this file with a portal-free
       // double, so these assertions exercise the App <-> router <-> dialog
-      // wiring deterministically -- there is no NxModal portal teardown to race.
+      // wiring deterministically -- there is no AsModal portal teardown to race.
       const selectors = {
         cancelButton: () => screen.queryByRole('button', { name: 'Cancel' }),
         continueButton: () => screen.queryByRole('button', { name: 'Continue' }),
@@ -653,7 +653,7 @@ describe('App', () => {
 
   function assertCommunityEditionLimitMessageShowing(title, message) {
     // CE usage banner is now the Radix SystemAlert (ASTRUM-53215) — no longer an
-    // RSC NxSystemNotice, so look it up by its testid/title-text rather than
+    // RSC AsSystemNotice, so look it up by its testid/title-text rather than
     // the old `role="complementary"` accessible name.
     const alerts = screen.getAllByTestId('as-system-alert');
     const alert = alerts.find(el => within(el).queryByText(title));
@@ -680,7 +680,7 @@ describe('App', () => {
       version: '1.2.3-some-full-version',
     });
 
-    global.NX.State.getValue = getValueMock;
+    global.AS.State.getValue = getValueMock;
   }
 
   function getDefaultState() {
@@ -693,7 +693,7 @@ describe('App', () => {
 
   function givenUser(user = { name: 'admin', administrator: true, authenticated: true }) {
     jest.spyOn(ExtJS, 'useUser').mockReturnValue(user);
-    global.NX.Security.hasUser = jest.fn().mockReturnValue(true);
+    global.AS.Security.hasUser = jest.fn().mockReturnValue(true);
   }
 
   function givenDateNDaysInTheFuture(days) {

@@ -7,7 +7,7 @@ import {
   PageHeader,
   PageTitle
 } from '@globalart/astrum-ui-plugin';
-import {NxTile} from '@globalart/react-shared-components';
+import {AsTile} from '@globalart/react-shared-components';
 
 import HttpForm from './HttpForm';
 import HttpReadOnly from './HttpReadOnly';
@@ -33,7 +33,7 @@ export default function Http() {
         />
       </PageHeader>
       <ContentBody className="as-http">
-        <NxTile>{canEdit ? <HttpForm /> : <HttpReadOnly />}</NxTile>
+        <AsTile>{canEdit ? <HttpForm /> : <HttpReadOnly />}</AsTile>
       </ContentBody>
     </Page>
   );

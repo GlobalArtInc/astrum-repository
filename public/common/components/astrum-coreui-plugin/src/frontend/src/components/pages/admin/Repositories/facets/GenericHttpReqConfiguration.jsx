@@ -4,12 +4,12 @@ import React from 'react';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxFormGroup,
-  NxCheckbox,
-  NxTextInput,
-  NxAccordion,
-  NxStatefulAccordion,
-  NxFieldset
+  AsFormGroup,
+  AsCheckbox,
+  AsTextInput,
+  AsAccordion,
+  AsStatefulAccordion,
+  AsFieldset
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -25,49 +25,49 @@ export default function GenericHttpReqConfiguration({parentMachine}) {
   const isOpen = Boolean(userAgentSuffix || retries || timeout || enableCircularRedirects || enableCookies);
   
   return (
-    <NxStatefulAccordion
+    <AsStatefulAccordion
       className="as-form-accordion-http-request"
       defaultOpen={isOpen}
     >
-      <NxAccordion.Header>
-        <NxAccordion.Title>{EDITOR.REQUEST_SETTINGS_CAPTION}</NxAccordion.Title>
-      </NxAccordion.Header>
+      <AsAccordion.Header>
+        <AsAccordion.Title>{EDITOR.REQUEST_SETTINGS_CAPTION}</AsAccordion.Title>
+      </AsAccordion.Header>
 
-      <NxFormGroup
+      <AsFormGroup
         label={EDITOR.USER_AGENT_LABEL}
         sublabel={EDITOR.USER_AGEN_SUBLABEL}
         className="as-form-group-user-agent"
       >
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps('httpClient.connection.userAgentSuffix', currentParent)}
           onChange={FormUtils.handleUpdate('httpClient.connection.userAgentSuffix', sendParent)}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
-      <NxFormGroup
+      <AsFormGroup
         label={EDITOR.RETRIES_LABEL}
         sublabel={EDITOR.RETRIES_SUBLABEL}
         className="as-form-group-retries"
       >
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps('httpClient.connection.retries', currentParent)}
           onChange={FormUtils.handleUpdate('httpClient.connection.retries', sendParent)}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
-      <NxFormGroup
+      <AsFormGroup
         label={EDITOR.TIMEOUT_LABEL}
         sublabel={EDITOR.TIMEOUT_SUBLABEL}
         className="as-form-group-timeout"
       >
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps('httpClient.connection.timeout', currentParent)}
           onChange={FormUtils.handleUpdate('httpClient.connection.timeout', sendParent)}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
-      <NxFieldset label={EDITOR.REDIRECTS_LABEL} className="as-form-group-redirects">
-        <NxCheckbox
+      <AsFieldset label={EDITOR.REDIRECTS_LABEL} className="as-form-group-redirects">
+        <AsCheckbox
           {...FormUtils.checkboxProps(
             'httpClient.connection.enableCircularRedirects',
             currentParent
@@ -78,17 +78,17 @@ export default function GenericHttpReqConfiguration({parentMachine}) {
           )}
         >
           {EDITOR.ENABLED_CHECKBOX_DESCR}
-        </NxCheckbox>
-      </NxFieldset>
+        </AsCheckbox>
+      </AsFieldset>
 
-      <NxFieldset label={EDITOR.COOKIES_LABEL} className="as-form-group-cookies">
-        <NxCheckbox
+      <AsFieldset label={EDITOR.COOKIES_LABEL} className="as-form-group-cookies">
+        <AsCheckbox
           {...FormUtils.checkboxProps('httpClient.connection.enableCookies', currentParent)}
           onChange={FormUtils.handleUpdate('httpClient.connection.enableCookies', sendParent)}
         >
           {EDITOR.ENABLED_CHECKBOX_DESCR}
-        </NxCheckbox>
-      </NxFieldset>
-    </NxStatefulAccordion>
+        </AsCheckbox>
+      </AsFieldset>
+    </AsStatefulAccordion>
   );
 }

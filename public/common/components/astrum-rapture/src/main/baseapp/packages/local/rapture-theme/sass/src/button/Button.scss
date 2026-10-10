@@ -26,11 +26,11 @@
 );
 
 /**
- * ui: 'nx-plain'
+ * ui: 'as-plain'
  */
 
 @include extjs-button-small-ui(
-  $ui: 'nx-plain',
+  $ui: 'as-plain',
 
   $background-color: $iq-grey-100,
   $background-color-over: $iq-grey-100,
@@ -46,11 +46,11 @@
 );
 
 /**
- * ui: 'nx-primary'
+ * ui: 'as-primary'
  */
 
 @include extjs-button-small-ui(
-  $ui: 'nx-primary',
+  $ui: 'as-primary',
 
   $background-color: $iq-blue-500,
   $background-color-over: $iq-blue-500,
@@ -73,11 +73,11 @@
 );
 
 /**
- * ui: 'nx-danger'
+ * ui: 'as-danger'
  */
 
 @include extjs-button-small-ui(
-  $ui: 'nx-danger',
+  $ui: 'as-danger',
 
   $background-color: $iq-red-700,
   $background-color-over: $iq-red-700,
@@ -100,11 +100,11 @@
 );
 
 /**
- * ui: 'nx-warning'
+ * ui: 'as-warning'
  */
 
 @include extjs-button-small-ui(
-  $ui: 'nx-warning',
+  $ui: 'as-warning',
 
   $background-color: $color-sea-buckthorn,
   $background-color-over: $color-zest,
@@ -120,11 +120,11 @@
 );
 
 /**
- * ui: 'nx-success'
+ * ui: 'as-success'
  */
 
 @include extjs-button-small-ui(
-  $ui: 'nx-success',
+  $ui: 'as-success',
 
   $background-color: $color-elf-green,
   $background-color-over: $color-salem,
@@ -151,8 +151,8 @@
   }
 }
 
-.x-btn-nx-primary-small,
-.x-btn-nx-primary-medium {
+.x-btn-as-primary-small,
+.x-btn-as-primary-medium {
   .x-btn-glyph,
   .x-fa {
     color: rgb(254, 254, 254);

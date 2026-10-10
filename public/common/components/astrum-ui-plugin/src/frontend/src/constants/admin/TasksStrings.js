@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faClock } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -28,9 +28,9 @@ export default {
           The repository manager allows you to schedule the execution of maintenance tasks. The tasks can
           carry out regular maintenance steps that will be applied to all repositories or to specific repositories
           on a configurable schedule or simply perform other system maintenance. See our{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/tasks">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/tasks">
             help documentation
-          </NxTextLink>
+          </AsTextLink>
           {' '}for more information.
         </>,
       },

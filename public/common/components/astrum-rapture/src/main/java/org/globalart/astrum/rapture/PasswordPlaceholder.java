@@ -22,7 +22,7 @@ public class PasswordPlaceholder
    * Token used for passwords that are defined, but which are not transmitted.
    */
   @VisibleForTesting
-  static final String VALUE = "#~NXRM~PLACEHOLDER~PASSWORD~#";
+  static final String VALUE = "#~ASTRUM~PLACEHOLDER~PASSWORD~#";
 
   /**
    * Returns password placeholder.

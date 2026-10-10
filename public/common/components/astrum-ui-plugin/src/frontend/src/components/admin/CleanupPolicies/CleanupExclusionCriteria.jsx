@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import {NxCheckbox, NxFormGroup, NxInfoAlert, NxTextInput} from '@globalart/react-shared-components';
+import {AsCheckbox, AsFormGroup, AsInfoAlert, AsTextInput} from '@globalart/react-shared-components';
 import {isReleaseType} from './CleanupPoliciesHelper';
 import ExtJS from '../../../interface/ExtJS';
 import FormUtils from '../../../interface/FormUtils';
@@ -49,17 +49,17 @@ export default function CleanupExclusionCriteria({actor}) {
   return (
       <>
         {!isNormalizedVersionTaskDone && (
-            <NxInfoAlert className="retain-n__alert">
+            <AsInfoAlert className="retain-n__alert">
               {LABELS.EXCLUSION_CRITERIA.NORMALIZED_VERSION_ALERT}
-            </NxInfoAlert>
+            </AsInfoAlert>
         )}
         {((isPreRelease() && !isReleaseType(criteriaReleaseType)) &&
             isNormalizedVersionTaskDone) && (
-            <NxInfoAlert className="retain-n__alert">
+            <AsInfoAlert className="retain-n__alert">
               {LABELS.EXCLUSION_CRITERIA.ALERT}
-            </NxInfoAlert>
+            </AsInfoAlert>
         )}
-        <NxCheckbox
+        <AsCheckbox
             isChecked={Boolean(exclusionCriteriaEnabled)}
             onChange={setExclusionCriteriaEnabled}
             disabled={
@@ -70,25 +70,25 @@ export default function CleanupExclusionCriteria({actor}) {
             className="retain-n__checkbox"
         >
           <b>{LABELS.EXCLUSION_CRITERIA.LABEL}</b>
-        </NxCheckbox>
+        </AsCheckbox>
         {(isReleaseType(criteriaReleaseType) || format=='docker') && !criteriaSelected && (
-            <NxInfoAlert className="retain-n-criteria__alert">
+            <AsInfoAlert className="retain-n-criteria__alert">
               {LABELS.EXCLUSION_CRITERIA.ADDITIONAL_CRITERIA_ALERT}
-            </NxInfoAlert>
+            </AsInfoAlert>
         )}
-        <NxFormGroup
+        <AsFormGroup
             label={LABELS.EXCLUSION_CRITERIA.VERSION_LABEL}
             isRequired={exclusionCriteriaEnabled}
             sublabel={LABELS.EXCLUSION_CRITERIA.SUB_LABEL(exclusionSortBy, LABELS.EXCLUSION_CRITERIA.SORT_BY)}
             className="retain-n__group"
         >
-          <NxTextInput
-              className="nx-text-input--short"
+          <AsTextInput
+              className="as-text-input--short"
               disabled={!exclusionCriteriaEnabled}
               {...FormUtils.fieldProps('retain', state)}
               onChange={setRetainValue}
           />
-        </NxFormGroup>
+        </AsFormGroup>
       </>
   );
 }

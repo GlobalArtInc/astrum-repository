@@ -4,12 +4,12 @@ import {useMachine} from '@xstate/react';
 
 import {ListMachineUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxButtonBar,
-  NxFilterInput,
-  NxFontAwesomeIcon,
-  NxTable,
-  NxTile
+  AsButton,
+  AsButtonBar,
+  AsFilterInput,
+  AsFontAwesomeIcon,
+  AsTable,
+  AsTile
 } from '@globalart/react-shared-components';
 
 import {faCopy, faUpload} from '@fortawesome/free-solid-svg-icons';
@@ -51,49 +51,49 @@ export default function UploadList({copyUrl = defaultCopyUrl} = {}) {
       <PageTitle icon={faUpload} {...UPLOAD.MENU}/>
     </PageHeader>
     <ContentBody className="as-upload-list">
-      <NxTile>
-        <NxTile.Header>
-            <NxTile.HeaderActions>
-              <NxFilterInput
+      <AsTile>
+        <AsTile.Header>
+            <AsTile.HeaderActions>
+              <AsFilterInput
                   id="filter"
                   onChange={filter}
                   value={filterText}
                   placeholder={FILTER}/>
-            </NxTile.HeaderActions>
-        </NxTile.Header>
-        <NxTile.Content>
-          <NxTable id="as-upload-list-repo-table">
-            <NxTable.Head>
-              <NxTable.Row>
-                <NxTable.Cell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</NxTable.Cell>
-                <NxTable.Cell onClick={sortByFormat} isSortable sortDir={formatSortDir}>{COLUMNS.FORMAT}</NxTable.Cell>
-                <NxTable.Cell>{COLUMNS.URL}</NxTable.Cell>
-                <NxTable.Cell chevron />
-              </NxTable.Row>
-            </NxTable.Head>
-            <NxTable.Body isLoading={isLoading} error={error} emptyMessage={UPLOAD.EMPTY_MESSAGE}>
+            </AsTile.HeaderActions>
+        </AsTile.Header>
+        <AsTile.Content>
+          <AsTable id="as-upload-list-repo-table">
+            <AsTable.Head>
+              <AsTable.Row>
+                <AsTable.Cell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</AsTable.Cell>
+                <AsTable.Cell onClick={sortByFormat} isSortable sortDir={formatSortDir}>{COLUMNS.FORMAT}</AsTable.Cell>
+                <AsTable.Cell>{COLUMNS.URL}</AsTable.Cell>
+                <AsTable.Cell chevron />
+              </AsTable.Row>
+            </AsTable.Head>
+            <AsTable.Body isLoading={isLoading} error={error} emptyMessage={UPLOAD.EMPTY_MESSAGE}>
               {data.map(
                 ({name, format, url}) => (
-                  <NxTable.Row key={name} isClickable onClick={() => onEdit(name)}>
-                    <NxTable.Cell>{name}</NxTable.Cell>
-                    <NxTable.Cell>{format}</NxTable.Cell>
-                    <NxTable.Cell>
-                      <NxButtonBar>
-                        <NxButton
+                  <AsTable.Row key={name} isClickable onClick={() => onEdit(name)}>
+                    <AsTable.Cell>{name}</AsTable.Cell>
+                    <AsTable.Cell>{format}</AsTable.Cell>
+                    <AsTable.Cell>
+                      <AsButtonBar>
+                        <AsButton
                           variant="icon-only"
                           title={COPY_URL_TITLE}
                           onClick={(e) => copyUrl(e, url)}>
-                          <NxFontAwesomeIcon icon={faCopy} />
-                        </NxButton>
-                      </NxButtonBar>
-                    </NxTable.Cell>
-                    <NxTable.Cell chevron />
-                  </NxTable.Row>
+                          <AsFontAwesomeIcon icon={faCopy} />
+                        </AsButton>
+                      </AsButtonBar>
+                    </AsTable.Cell>
+                    <AsTable.Cell chevron />
+                  </AsTable.Row>
               ))}
-            </NxTable.Body>
-          </NxTable>
-        </NxTile.Content>
-      </NxTile>
+            </AsTable.Body>
+          </AsTable>
+        </AsTile.Content>
+      </AsTile>
     </ContentBody>
   </Page>
 }

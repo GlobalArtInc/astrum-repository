@@ -50,8 +50,8 @@ function buildRouterWithApiRoute() {
 /** Grants exactly the supplied permissions (Shiro-agnostic: exact-match for the test). */
 function grantPermissions(granted: string[]) {
   const set = new Set(granted);
-  (global as any).NX.Permissions.check.mockImplementation((perm: string) => set.has(perm));
-  (global as any).NX.Permissions.permissions = Object.fromEntries(granted.map((p) => [p, true]));
+  (global as any).AS.Permissions.check.mockImplementation((perm: string) => set.has(perm));
+  (global as any).AS.Permissions.permissions = Object.fromEntries(granted.map((p) => [p, true]));
 }
 
 const renderApiNavItem = (router: UIRouterReact) =>
@@ -71,7 +71,7 @@ describe('NavItemBox — preview.browse.api visibility (integration)', () => {
   beforeEach(() => {
     router = buildRouterWithApiRoute();
     // Logged-in user (Security.hasUser() -> true satisfies requiresUser).
-    (global as any).NX.Security.hasUser.mockReturnValue(true);
+    (global as any).AS.Security.hasUser.mockReturnValue(true);
   });
 
   it('renders the API item for a logged-in user with only astrum:settings:read', () => {

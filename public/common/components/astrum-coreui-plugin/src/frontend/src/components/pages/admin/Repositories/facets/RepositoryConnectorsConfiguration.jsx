@@ -3,7 +3,7 @@ import React, {useCallback} from 'react';
 
 import Axios from 'axios';
 
-import {NxH2, NxCheckbox, NxFieldset, NxInfoAlert} from '@globalart/react-shared-components';
+import {AsH2, AsCheckbox, AsFieldset, AsInfoAlert} from '@globalart/react-shared-components';
 import {FormUtils, ExtJS} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -42,7 +42,7 @@ export default function RepositoryConnectorsConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxH2 className="as-docker-connectors-caption">{CONNECTORS.CAPTION}</NxH2>
+      <AsH2 className="as-docker-connectors-caption">{CONNECTORS.CAPTION}</AsH2>
 
       <p className="as-docker-connectors-help">{CONNECTORS.HELP}</p>
 
@@ -80,19 +80,19 @@ export default function RepositoryConnectorsConfiguration({parentMachine}) {
         onToggle={(checked) => checked && fetchSuggestedPort('docker.httpsPort')}
       />
 
-      <NxFieldset
+      <AsFieldset
         label={CONNECTORS.ALLOW_ANON_DOCKER_PULL.LABEL}
         className="as-form-group-force-basic-auth"
       >
-        <NxCheckbox
+        <AsCheckbox
           {...FormUtils.checkboxProps('docker.forceBasicAuth', parentState)}
           isChecked={!FormUtils.checkboxProps('docker.forceBasicAuth', parentState).isChecked}
           onChange={(checked) => FormUtils.handleUpdate('docker.forceBasicAuth', sendParent)(!checked)}
         >
           {CONNECTORS.ALLOW_ANON_DOCKER_PULL.DESCR}
-        </NxCheckbox>
-        <NxInfoAlert>{CONNECTORS.ALLOW_ANON_DOCKER_PULL.HELP}</NxInfoAlert>
-      </NxFieldset>
+        </AsCheckbox>
+        <AsInfoAlert>{CONNECTORS.ALLOW_ANON_DOCKER_PULL.HELP}</AsInfoAlert>
+      </AsFieldset>
     </>
   );
 }

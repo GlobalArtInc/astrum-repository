@@ -27,12 +27,12 @@ public class UiPluginDescriptorImplTest
 
   @Test
   public void testGetNamespace() {
-    assertThat(underTest.getNamespace(), is("NX.coreui"));
+    assertThat(underTest.getNamespace(), is("AS.coreui"));
   }
 
   @Test
   public void testGetConfigClassName() {
-    assertThat(underTest.getConfigClassName(), is("NX.coreui.app.PluginConfig"));
+    assertThat(underTest.getConfigClassName(), is("AS.coreui.app.PluginConfig"));
   }
 
   @Test

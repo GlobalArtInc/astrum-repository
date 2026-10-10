@@ -3,7 +3,7 @@ import React from 'react';
 
 import {ExtJS, FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFormGroup, NxTextInput, NxCheckbox} from '@globalart/react-shared-components';
+import {AsFormGroup, AsTextInput, AsCheckbox} from '@globalart/react-shared-components';
 
 import FeatureFlags from '../../../../../constants/FeatureFlags';
 import UIStrings from '../../../../../constants/UIStrings';
@@ -21,28 +21,28 @@ export default function NugetSymbolServerConfiguration({parentMachine}) {
 
   return (
     <>
-      <NxFormGroup
+      <AsFormGroup
         label={NUGET.SYMBOL_SERVER_URL.LABEL}
         sublabel={NUGET.SYMBOL_SERVER_URL.SUBLABEL}
         className="as-form-group-nuget-symbol-server-url"
       >
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps('nugetProxy.symbolServerUrl', currentParent)}
           onChange={FormUtils.handleUpdate('nugetProxy.symbolServerUrl', sendParent)}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
-      <NxFormGroup
+      <AsFormGroup
         label={NUGET.ALLOW_ANONYMOUS_SYMBOL_ACCESS.LABEL}
         sublabel={NUGET.ALLOW_ANONYMOUS_SYMBOL_ACCESS.SUBLABEL}
       >
-        <NxCheckbox
+        <AsCheckbox
           {...FormUtils.checkboxProps('nugetProxy.allowAnonymousSymbolAccess', currentParent)}
           onChange={FormUtils.handleUpdate('nugetProxy.allowAnonymousSymbolAccess', sendParent)}
         >
           {NUGET.ALLOW_ANONYMOUS_SYMBOL_ACCESS.LABEL}
-        </NxCheckbox>
-      </NxFormGroup>
+        </AsCheckbox>
+      </AsFormGroup>
     </>
   );
 }

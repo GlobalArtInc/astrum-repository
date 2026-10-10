@@ -4,15 +4,15 @@ import {useMachine} from '@xstate/react';
 
 import {ListMachineUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTooltip,
-  NxTile,
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTooltip,
+  AsTile,
 } from '@globalart/react-shared-components';
 
 import {faClock} from '@fortawesome/free-solid-svg-icons';
@@ -71,64 +71,64 @@ export default function TasksList({onCreate, onEdit}) {
           description={UIStrings.TASKS.MENU.description}
       />
       <PageActions>
-        <NxTooltip
+        <AsTooltip
             title={!canCreate && UIStrings.PERMISSION_ERROR}
             placement="bottom"
         >
-          <NxButton
+          <AsButton
               type="button"
               variant="primary"
               className={!canCreate && 'disabled'}
               onClick={create}
           >
             {LABELS.CREATE_BUTTON}
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       </PageActions>
     </PageHeader>
     <ContentBody className="as-tasks-list">
-      <NxTile>
-        <NxTile.Header>
-          <NxTile.HeaderActions>
-            <NxFilterInput
+      <AsTile>
+        <AsTile.Header>
+          <AsTile.HeaderActions>
+            <AsFilterInput
                 id="filter"
                 onChange={filter}
                 value={filterText}
                 placeholder={UIStrings.FILTER}
             />
-          </NxTile.HeaderActions>
-        </NxTile.Header>
-        <NxTile.Content>
-          <NxTable>
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</NxTableCell>
-                <NxTableCell onClick={sortByTypeName} isSortable sortDir={typeNameSortDir}>{COLUMNS.TYPE}</NxTableCell>
-                <NxTableCell onClick={sortByStatusDescription} isSortable sortDir={statusDescriptionSortDir}>{COLUMNS.STATUS}</NxTableCell>
-                <NxTableCell onClick={sortBySchedule} isSortable sortDir={scheduleSortDir}>{COLUMNS.SCHEDULE}</NxTableCell>
-                <NxTableCell onClick={sortByNextRun} isSortable sortDir={nextRunSortDir}>{COLUMNS.NEXT_RUN}</NxTableCell>
-                <NxTableCell onClick={sortByLastRun} isSortable sortDir={lastRunSortDir}>{COLUMNS.LAST_RUN}</NxTableCell>
-                <NxTableCell onClick={sortByLastRunResult} isSortable sortDir={lastRunResultSortDir}>{COLUMNS.LAST_RESULT}</NxTableCell>
-                <NxTableCell chevron/>
-              </NxTableRow>
-            </NxTableHead>
-            <NxTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
+          </AsTile.HeaderActions>
+        </AsTile.Header>
+        <AsTile.Content>
+          <AsTable>
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</AsTableCell>
+                <AsTableCell onClick={sortByTypeName} isSortable sortDir={typeNameSortDir}>{COLUMNS.TYPE}</AsTableCell>
+                <AsTableCell onClick={sortByStatusDescription} isSortable sortDir={statusDescriptionSortDir}>{COLUMNS.STATUS}</AsTableCell>
+                <AsTableCell onClick={sortBySchedule} isSortable sortDir={scheduleSortDir}>{COLUMNS.SCHEDULE}</AsTableCell>
+                <AsTableCell onClick={sortByNextRun} isSortable sortDir={nextRunSortDir}>{COLUMNS.NEXT_RUN}</AsTableCell>
+                <AsTableCell onClick={sortByLastRun} isSortable sortDir={lastRunSortDir}>{COLUMNS.LAST_RUN}</AsTableCell>
+                <AsTableCell onClick={sortByLastRunResult} isSortable sortDir={lastRunResultSortDir}>{COLUMNS.LAST_RESULT}</AsTableCell>
+                <AsTableCell chevron/>
+              </AsTableRow>
+            </AsTableHead>
+            <AsTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
               {data.map((task) => (
-                  <NxTableRow key={task.id} onClick={() => onEdit(encodeURIComponent(task.id))} isClickable>
-                    <NxTableCell>{task.name}</NxTableCell>
-                    <NxTableCell>{task.typeName}</NxTableCell>
-                    <NxTableCell>{task.statusDescription}</NxTableCell>
-                    <NxTableCell className="capitalize-schedule">{task.schedule}</NxTableCell>
-                    <NxTableCell>{task.nextRun}</NxTableCell>
-                    <NxTableCell>{task.lastRun}</NxTableCell>
-                    <NxTableCell>{task.lastRunResult}</NxTableCell>
-                    <NxTableCell chevron/>
-                  </NxTableRow>
+                  <AsTableRow key={task.id} onClick={() => onEdit(encodeURIComponent(task.id))} isClickable>
+                    <AsTableCell>{task.name}</AsTableCell>
+                    <AsTableCell>{task.typeName}</AsTableCell>
+                    <AsTableCell>{task.statusDescription}</AsTableCell>
+                    <AsTableCell className="capitalize-schedule">{task.schedule}</AsTableCell>
+                    <AsTableCell>{task.nextRun}</AsTableCell>
+                    <AsTableCell>{task.lastRun}</AsTableCell>
+                    <AsTableCell>{task.lastRunResult}</AsTableCell>
+                    <AsTableCell chevron/>
+                  </AsTableRow>
               ))}
-            </NxTableBody>
-          </NxTable>
-        </NxTile.Content>
-      </NxTile>
+            </AsTableBody>
+          </AsTable>
+        </AsTile.Content>
+      </AsTile>
       <HelpTile header={LABELS.HELP.TITLE} body={LABELS.HELP.TEXT}/>
     </ContentBody>
   </div>;

@@ -6,16 +6,16 @@ import {faKey} from '@fortawesome/free-solid-svg-icons';
 import {ExtJS, Permissions, FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxButton,
-  NxCheckbox,
-  NxFieldset,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxH2,
-  NxP,
-  NxStatefulForm,
-  NxTextInput,
-  NxTooltip
+  AsButton,
+  AsCheckbox,
+  AsFieldset,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsH2,
+  AsP,
+  AsStatefulForm,
+  AsTextInput,
+  AsTooltip
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -57,71 +57,71 @@ export default function UserTokensForm({service}) {
 
   return (
     <>
-      <NxStatefulForm
+      <AsStatefulForm
         {...FormUtils.formProps(state, send)}
         additionalFooterBtns={
           <>
             {canDelete && enabledSaved && (
-              <NxButton type="button" variant="tertiary" onClick={showResetConfirmation}>
-                <NxFontAwesomeIcon icon={faKey} />
+              <AsButton type="button" variant="tertiary" onClick={showResetConfirmation}>
+                <AsFontAwesomeIcon icon={faKey} />
                 <span>{RESET_ALL_TOKENS_BUTTON}</span>
-              </NxButton>
+              </AsButton>
             )}
-            <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-              <NxButton
+            <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+              <AsButton
                 type="button"
                 variant="secondary"
                 className={isPristine ? 'disabled' : ''}
                 onClick={discard}
               >
                 {DISCARD_BUTTON_LABEL}
-              </NxButton>
-            </NxTooltip>
+              </AsButton>
+            </AsTooltip>
           </>
         }
       >
-        <NxH2>{CAPTION}</NxH2>
-        <NxP>{HELP_TEXT}</NxP>
+        <AsH2>{CAPTION}</AsH2>
+        <AsP>{HELP_TEXT}</AsP>
 
-        <NxFieldset label={USER_TOKENS_CHECKBOX.LABEL}>
-          <NxCheckbox {...FormUtils.checkboxProps('enabled', state)} onChange={setEnabled}>
+        <AsFieldset label={USER_TOKENS_CHECKBOX.LABEL}>
+          <AsCheckbox {...FormUtils.checkboxProps('enabled', state)} onChange={setEnabled}>
             {USER_TOKENS_CHECKBOX.DESCRIPTION}
-          </NxCheckbox>
-        </NxFieldset>
+          </AsCheckbox>
+        </AsFieldset>
 
-        <NxFieldset label={REPOSITORY_AUTHENTICATION_CHECKBOX.LABEL}>
-          <NxCheckbox
+        <AsFieldset label={REPOSITORY_AUTHENTICATION_CHECKBOX.LABEL}>
+          <AsCheckbox
             {...FormUtils.checkboxProps('protectContent', state)}
             onChange={FormUtils.handleUpdate('protectContent', send)}
             disabled={!enabled}
           >
             {REPOSITORY_AUTHENTICATION_CHECKBOX.DESCRIPTION}
-          </NxCheckbox>
-        </NxFieldset>
+          </AsCheckbox>
+        </AsFieldset>
 
-        <NxFieldset label={EXPIRATION_CHECKBOX.LABEL}>
-          <NxCheckbox
+        <AsFieldset label={EXPIRATION_CHECKBOX.LABEL}>
+          <AsCheckbox
               {...FormUtils.checkboxProps('expirationEnabled', state)}
               onChange={FormUtils.handleUpdate('expirationEnabled', send)}
               disabled={!enabled}
           >
             {EXPIRATION_CHECKBOX.DESCRIPTION}
-          </NxCheckbox>
-        </NxFieldset>
+          </AsCheckbox>
+        </AsFieldset>
 
-        <NxFormGroup
+        <AsFormGroup
           label={USER_TOKEN_EXPIRY.LABEL}
           sublabel={USER_TOKEN_EXPIRY.SUBLABEL}
           isRequired={expirationEnabled}
         >
-          <NxTextInput
+          <AsTextInput
             {...FormUtils.fieldProps('expirationDays', state)}
-            className="nx-text-input--short as-user-tokens-expiry-field"
+            className="as-text-input--short as-user-tokens-expiry-field"
             onChange={FormUtils.handleUpdate('expirationDays', send)}
             disabled={!enabled || !expirationEnabled}
           />
-        </NxFormGroup>
-      </NxStatefulForm>
+        </AsFormGroup>
+      </AsStatefulForm>
 
       {resetConfirmation && <UserTokensResetModal service={service} />}
       {showUserTokenExpiryChangesModal && <UserTokenExpiryChangesModal onClose={closeModal}

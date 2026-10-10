@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useMachine} from '@xstate/react';
-import {NxModal, NxFooter, NxButton, NxButtonBar} from '@globalart/react-shared-components';
+import {AsModal, AsFooter, AsButton, AsButtonBar} from '@globalart/react-shared-components';
 import UIStrings from '../../../../../constants/UIStrings';
 import LdapVerifyUserMappingMachine from './LdapVerifyUserMappingMachine';
 import LdapVerifyUserMappingItem from './LdapVerifyUserMappingItem';
@@ -20,7 +20,7 @@ export default function LdapVerifyUserMappingModal({ldapConfig, onCancel}) {
   const showingItem = state.matches('showingItem');
 
   return (
-    <NxModal
+    <AsModal
       variant="wide"
       aria-labelledby="modal-form-header"
       className="as-ldap-user-mapping-modal"
@@ -30,11 +30,11 @@ export default function LdapVerifyUserMappingModal({ldapConfig, onCancel}) {
       ) : (
         <LdapVerifyUserMappingList service={service} />
       )}
-      <NxFooter>
-        <NxButtonBar>
-          <NxButton onClick={onCancel}>{CLOSE}</NxButton>
-        </NxButtonBar>
-      </NxFooter>
-    </NxModal>
+      <AsFooter>
+        <AsButtonBar>
+          <AsButton onClick={onCancel}>{CLOSE}</AsButton>
+        </AsButtonBar>
+      </AsFooter>
+    </AsModal>
   );
 }

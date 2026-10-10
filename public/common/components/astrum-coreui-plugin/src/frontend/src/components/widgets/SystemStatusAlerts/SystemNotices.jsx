@@ -3,7 +3,7 @@
 import React from 'react';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 import {
-  NxSystemNotice,
+  AsSystemNotice,
 } from '@globalart/react-shared-components';
 
 import './SystemNotices.scss';
@@ -18,7 +18,7 @@ export default function SystemNotices ({isPreviewUI = false} = {}) {
   // duplicate. All other banners render as before.
   const showClassicRecoveryAlert = recoveryModeEnabled && !isPreviewUI;
 
-  return <NxSystemNotice.Container className="as-system-notices">
+  return <AsSystemNotice.Container className="as-system-notices">
     {showClassicRecoveryAlert ? <RecoveryModeAlert /> : <UpgradeAlert />}
-  </NxSystemNotice.Container>;
+  </AsSystemNotice.Container>;
 }

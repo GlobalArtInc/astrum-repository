@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 
 export default {
   REPLICATION: {
@@ -28,9 +28,9 @@ export default {
       HELP_TEXT: <>
         Repository Replication allows for you to copy full or partial content from one hosted source repository
         to a target repository across a succesful connection. For more information,{' '}
-        <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/replication">
+        <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/replication">
           check the documentation
-        </NxTextLink>.
+        </AsTextLink>.
       </>,
     },
     FORM: {

@@ -9,14 +9,14 @@ import {
   Permissions
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxFontAwesomeIcon,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
+  AsButton,
+  AsFilterInput,
+  AsFontAwesomeIcon,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
 } from '@globalart/react-shared-components';
 import {
   faCheckCircle,
@@ -77,14 +77,14 @@ export default function BlobStoresList() {
     <PageHeader>
       <PageTitle icon={faServer} {...BLOB_STORES.MENU} />
       <PageActions>
-        <NxButton variant="primary" onClick={onCreate} disabled={!canCreate} data-analytics-id="as-blobstore-create">{BLOB_STORES.LIST.CREATE_BUTTON}</NxButton>
+        <AsButton variant="primary" onClick={onCreate} disabled={!canCreate} data-analytics-id="as-blobstore-create">{BLOB_STORES.LIST.CREATE_BUTTON}</AsButton>
       </PageActions>
     </PageHeader>
     <ContentBody className="as-blob-stores-list">
       <Section>
         <SectionToolbar>
           <div className="as-spacer"/>
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               inputAttributes={{
                 'aria-label': 'Filter blob stores by name',
@@ -94,63 +94,63 @@ export default function BlobStoresList() {
               value={filterText}
               placeholder={BLOB_STORES.LIST.FILTER_PLACEHOLDER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</NxTableCell>
-              <NxTableCell onClick={sortByPath} isSortable sortDir={pathSortDir}>{COLUMNS.PATH}</NxTableCell>
-              <NxTableCell onClick={sortByType} isSortable sortDir={typeSortDir}>{COLUMNS.TYPE}</NxTableCell>
-              <NxTableCell onClick={sortByState} isSortable sortDir={stateSortDir}>{COLUMNS.STATE}</NxTableCell>
-              <NxTableCell onClick={sortByCount} isSortable sortDir={countSortDir} isNumeric>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={sortByName} isSortable sortDir={nameSortDir}>{COLUMNS.NAME}</AsTableCell>
+              <AsTableCell onClick={sortByPath} isSortable sortDir={pathSortDir}>{COLUMNS.PATH}</AsTableCell>
+              <AsTableCell onClick={sortByType} isSortable sortDir={typeSortDir}>{COLUMNS.TYPE}</AsTableCell>
+              <AsTableCell onClick={sortByState} isSortable sortDir={stateSortDir}>{COLUMNS.STATE}</AsTableCell>
+              <AsTableCell onClick={sortByCount} isSortable sortDir={countSortDir} isNumeric>
                 {COLUMNS.COUNT}
-              </NxTableCell>
-              <NxTableCell onClick={sortBySize} isSortable sortDir={sizeSortDir} isNumeric>{COLUMNS.SIZE}</NxTableCell>
-              <NxTableCell onClick={sortBySpace} isSortable sortDir={spaceSortDir} isNumeric>
+              </AsTableCell>
+              <AsTableCell onClick={sortBySize} isSortable sortDir={sizeSortDir} isNumeric>{COLUMNS.SIZE}</AsTableCell>
+              <AsTableCell onClick={sortBySpace} isSortable sortDir={spaceSortDir} isNumeric>
                 {COLUMNS.SPACE}
-              </NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error} emptyMessage={BLOB_STORES.LIST.EMPTY_LIST}>
+              </AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error} emptyMessage={BLOB_STORES.LIST.EMPTY_LIST}>
             {data.map(
                 ({name, path, typeId, typeName, available, unavailable, blobCount, totalSizeInBytes, availableSpaceInBytes, unlimited}) => (
-                    <NxTableRow isClickable key={name} onClick={() => onEdit(`${encodeURIComponent(typeId)}`, `${encodeURIComponent(name)}`)}>
-                      <NxTableCell>{name}</NxTableCell>
-                      <NxTableCell className="blob-store-path">{path}</NxTableCell>
-                      <NxTableCell>{typeName}</NxTableCell>
-                      <NxTableCell>
-                        <NxFontAwesomeIcon className={available ? 'available' : 'unavailable'}
+                    <AsTableRow isClickable key={name} onClick={() => onEdit(`${encodeURIComponent(typeId)}`, `${encodeURIComponent(name)}`)}>
+                      <AsTableCell>{name}</AsTableCell>
+                      <AsTableCell className="blob-store-path">{path}</AsTableCell>
+                      <AsTableCell>{typeName}</AsTableCell>
+                      <AsTableCell>
+                        <AsFontAwesomeIcon className={available ? 'available' : 'unavailable'}
                                            icon={available ? faCheckCircle : faExclamationCircle}/>
                         <span>{available ? BLOB_STORES.LIST.AVAILABLE : BLOB_STORES.LIST.UNAVAILABLE}</span>
-                      </NxTableCell>
-                      <NxTableCell isNumeric>
+                      </AsTableCell>
+                      <AsTableCell isNumeric>
                         {unavailable
                           ? BLOB_STORES.LIST.UNKNOWN
                           : isCalculating
                             ? BLOB_STORES.LIST.CALCULATING
                             : blobCount
                         }
-                      </NxTableCell>
-                      <NxTableCell isNumeric>
+                      </AsTableCell>
+                      <AsTableCell isNumeric>
                         {unavailable
                           ? BLOB_STORES.LIST.UNKNOWN
                           : isCalculating
                             ? BLOB_STORES.LIST.CALCULATING
                             : `${HumanReadableUtils.bytesToString(totalSizeInBytes)} (${totalSizeInBytes})`
                         }
-                      </NxTableCell>
-                      <NxTableCell isNumeric>
+                      </AsTableCell>
+                      <AsTableCell isNumeric>
                         {
                           (unavailable && BLOB_STORES.LIST.UNKNOWN) ||
                           (unlimited && BLOB_STORES.LIST.UNLIMITED) ||
                           HumanReadableUtils.bytesToString(availableSpaceInBytes)
                         }
-                      </NxTableCell>
-                        <NxTableCell chevron/>
-                    </NxTableRow>
+                      </AsTableCell>
+                        <AsTableCell chevron/>
+                    </AsTableRow>
                 ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
 
       <HelpTile header={BLOB_STORES.LIST.HELP.TITLE} body={BLOB_STORES.LIST.HELP.TEXT}/>

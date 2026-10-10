@@ -91,7 +91,7 @@ describe('LogViewer', () => {
   it('updates the marker after inserting', async () => {
     const { container } = await renderView('astrum.log', 'This is a test log');
     const marker = () => screen.getByRole('textbox', { name: 'Marker to insert into log' });
-    const insertButton = container.querySelector('.nx-btn#insertMark');
+    const insertButton = container.querySelector('.as-btn#insertMark');
 
     await TestUtils.changeField(marker, 'testing the mark');
     userEvent.click(insertButton);
@@ -105,7 +105,7 @@ describe('LogViewer', () => {
     const { container } = await renderErrorView('test.log', 'Network Error');
 
     await waitFor(() => {
-      expect(container.querySelector('.nx-alert--error')).toHaveTextContent('Network Error');
+      expect(container.querySelector('.as-alert--error')).toHaveTextContent('Network Error');
     });
   });
 

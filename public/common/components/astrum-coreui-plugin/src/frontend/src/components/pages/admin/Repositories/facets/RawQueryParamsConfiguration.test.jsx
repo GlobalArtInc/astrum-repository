@@ -144,7 +144,7 @@ describe('RawQueryParamsConfiguration', () => {
 
       const addButton = screen.getAllByRole('button').find(btn =>
         btn.querySelector('.fa-plus-circle, [data-icon="plus-circle"]') ||
-        btn.classList.contains('nx-btn--icon-only')
+        btn.classList.contains('as-btn--icon-only')
       );
       userEvent.click(addButton);
 
@@ -214,7 +214,7 @@ describe('RawQueryParamsConfiguration', () => {
       render(<RawQueryParamsConfiguration parentMachine={createParentMachine(true, ['api_key', 'token'])} />);
 
       const exclusionList = document.querySelector('.as-query-params-exclusion-list');
-      const removeButtons = exclusionList.querySelectorAll('.nx-btn--icon-only');
+      const removeButtons = exclusionList.querySelectorAll('.as-btn--icon-only');
       userEvent.click(removeButtons[0]);
 
       expect(mockSend).toHaveBeenCalledWith({
@@ -228,7 +228,7 @@ describe('RawQueryParamsConfiguration', () => {
       render(<RawQueryParamsConfiguration parentMachine={createParentMachine(true, ['a', 'b', 'c'])} />);
 
       const exclusionList = document.querySelector('.as-query-params-exclusion-list');
-      const removeButtons = exclusionList.querySelectorAll('.nx-btn--icon-only');
+      const removeButtons = exclusionList.querySelectorAll('.as-btn--icon-only');
       userEvent.click(removeButtons[1]);
 
       expect(mockSend).toHaveBeenCalledWith({

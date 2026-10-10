@@ -622,7 +622,7 @@ describe('CapabilitiesList', () => {
   }
 
   function getFilterInput() {
-    const filterInput = document.querySelector('.nx-filter-input input');
+    const filterInput = document.querySelector('.as-filter-input input');
     expect(filterInput).toBeVisible();
 
     return filterInput;

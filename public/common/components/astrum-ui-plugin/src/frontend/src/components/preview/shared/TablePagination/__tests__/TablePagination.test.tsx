@@ -413,7 +413,7 @@ describe('TablePagination — combobox jump-to control', () => {
   let originalScrollIntoView: typeof Element.prototype.scrollIntoView;
   beforeEach(() => {
     scrollToSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
-    // JSDOM does not implement Element.scrollIntoView; NxCombobox calls it during arrow-nav.
+    // JSDOM does not implement Element.scrollIntoView; AsCombobox calls it during arrow-nav.
     originalScrollIntoView = Element.prototype.scrollIntoView;
     Element.prototype.scrollIntoView = jest.fn();
   });

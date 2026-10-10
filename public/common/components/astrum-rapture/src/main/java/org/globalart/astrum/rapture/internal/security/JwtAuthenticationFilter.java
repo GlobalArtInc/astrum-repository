@@ -36,7 +36,7 @@ public class JwtAuthenticationFilter
 {
   private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-  public static final String NAME = "nx-jwt-authc";
+  public static final String NAME = "as-jwt-authc";
 
   private final JwtHelper jwtHelper;
 

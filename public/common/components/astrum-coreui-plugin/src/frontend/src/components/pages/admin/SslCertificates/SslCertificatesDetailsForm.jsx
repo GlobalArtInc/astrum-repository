@@ -3,13 +3,13 @@ import React, { useCallback, useEffect } from 'react';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxTile,
-  NxLoadWrapper,
-  NxFooter,
-  NxButtonBar,
-  NxButton,
-  NxH2,
-  NxTooltip,
+  AsTile,
+  AsLoadWrapper,
+  AsFooter,
+  AsButtonBar,
+  AsButton,
+  AsH2,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 
 import {faIdCardAlt} from '@fortawesome/free-solid-svg-icons';
@@ -83,35 +83,35 @@ export default function SslCertificatesDetailsForm() {
         />
       </PageHeader>
       <ContentBody className="as-ssl-certificate-form">
-        <NxTile>
-          <NxTile.Content>
-            <NxLoadWrapper
+        <AsTile>
+          <AsTile.Content>
+            <AsLoadWrapper
               loading={isLoading}
               error={loadError}
               retryHandler={retry}
             >
-              <NxH2>{LABELS.SECTIONS.CERTIFICATE}</NxH2>
+              <AsH2>{LABELS.SECTIONS.CERTIFICATE}</AsH2>
               <SslCertificatesDetails data={data} />
-              <NxFooter>
-                <NxButtonBar>
-                  <NxButton type="button" onClick={onDone}>
+              <AsFooter>
+                <AsButtonBar>
+                  <AsButton type="button" onClick={onDone}>
                     {UIStrings.SETTINGS.CANCEL_BUTTON_LABEL}
-                  </NxButton>
-                  <NxTooltip title={!canDelete && UIStrings.PERMISSION_ERROR}>
-                    <NxButton
+                  </AsButton>
+                  <AsTooltip title={!canDelete && UIStrings.PERMISSION_ERROR}>
+                    <AsButton
                         type="button"
                         variant="primary"
                         onClick={confirmDelete}
                         className={!canDelete ? 'disabled' : ''}
                     >
                       {LABELS.BUTTONS.DELETE}
-                    </NxButton>
-                  </NxTooltip>
-                </NxButtonBar>
-              </NxFooter>
-            </NxLoadWrapper>
-          </NxTile.Content>
-        </NxTile>
+                    </AsButton>
+                  </AsTooltip>
+                </AsButtonBar>
+              </AsFooter>
+            </AsLoadWrapper>
+          </AsTile.Content>
+        </AsTile>
       </ContentBody>
     </Page>
   );

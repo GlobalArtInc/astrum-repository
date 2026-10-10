@@ -318,7 +318,7 @@ describe('RealmsPage', () => {
   it('shows read-only view when user lacks update permission', async () => {
     const { ExtJS } = require('@globalart/astrum-ui-plugin');
     ExtJS.checkPermission.mockReturnValue(false);
-    (global as any).NX.Permissions.check.mockReturnValue(false);
+    (global as any).AS.Permissions.check.mockReturnValue(false);
 
     render(<RealmsPage />, { wrapper: TestWrapper });
 

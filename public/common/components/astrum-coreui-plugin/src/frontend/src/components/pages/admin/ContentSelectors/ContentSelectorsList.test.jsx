@@ -75,7 +75,7 @@ describe('ContentSelectorsList', function() {
 
     await waitForElementToBeRemoved(loadingMask);
 
-    expect(container.querySelector('.nx-cell--meta-info')).toHaveTextContent('Error');
+    expect(container.querySelector('.as-cell--meta-info')).toHaveTextContent('Error');
   });
 
   it('disables create button without the permissions', async function() {

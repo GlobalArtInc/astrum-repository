@@ -5,7 +5,7 @@ import {ROUTE_NAMES} from './routeNames/routeNames';
 /**
  * Determines the initial route based on anonymous access and Preview UI settings.
  *
- * bootstrapFromREST() seeds window.NX.State before this runs, so
+ * bootstrapFromREST() seeds window.AS.State before this runs, so
  * ExtJS.state().getValue() returns real data. The try/catch is a safety net in
  * case REST bootstrap failed.
  *

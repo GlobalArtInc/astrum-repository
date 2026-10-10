@@ -7,7 +7,7 @@ import { normalizeFormatKey } from './registry';
 /**
  * Fire the dependency-snippet copy analytics event.
  *
- * Mirrors Classic NX.analytics.controller.Analytics#copySnippetClicked: a fire-and-forget
+ * Mirrors Classic AS.analytics.controller.Analytics#copySnippetClicked: a fire-and-forget
  * POST to `/service/rest/dependency_snippets` with the normalized format key and the copied
  * snippet's display name. Failures are swallowed so analytics never disrupts the copy action.
  */

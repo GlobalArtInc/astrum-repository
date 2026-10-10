@@ -23,11 +23,11 @@ export function isExtJSLoaded() {
     return extJSLoaded || (
       window.Ext &&
       window.Ext.isReady &&
-      window.NX &&
-      typeof window.NX.getApplication === 'function' &&
-      window.NX.getApplication() !== null &&
-      window.NX.getApplication() !== undefined &&
-      typeof window.NX.getApplication().getController === 'function'
+      window.AS &&
+      typeof window.AS.getApplication === 'function' &&
+      window.AS.getApplication() !== null &&
+      window.AS.getApplication() !== undefined &&
+      typeof window.AS.getApplication().getController === 'function'
     );
   } catch (e) {
     // If any check throws, ExtJS is not fully ready
@@ -95,13 +95,13 @@ export function loadExtJS() {
 // Skip initialization in test environment
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
   // Suppress noisy ExtJS debug chatter while keeping other console output.
-  if (!window.__nxExtJsDebugPatched) {
-    window.__nxExtJsDebugPatched = true;
+  if (!window.__asExtJsDebugPatched) {
+    window.__asExtJsDebugPatched = true;
     
     // Patterns to suppress - ExtJS internal chatter that clutters the console
     const suppressPatterns = [
-      'NX.app.Loader',
-      'NX.app.Application',
+      'AS.app.Loader',
+      'AS.app.Application',
       'evaluating transition',
       'Redirecting to login',
       'managed controllers',
@@ -150,15 +150,15 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
 
   // Poll for ExtJS application to be fully initialized
   // Note: We use polling instead of Ext.onReady because onReady only means
-  // the ExtJS DOM is ready, not that NX.getApplication() is functional
+  // the ExtJS DOM is ready, not that AS.getApplication() is functional
   const checkInterval = setInterval(() => {
     try {
       if (window.Ext &&
           window.Ext.isReady &&
-          window.NX &&
-          typeof window.NX.getApplication === 'function' &&
-          window.NX.getApplication() &&
-          typeof window.NX.getApplication().getController === 'function') {
+          window.AS &&
+          typeof window.AS.getApplication === 'function' &&
+          window.AS.getApplication() &&
+          typeof window.AS.getApplication().getController === 'function') {
         clearInterval(checkInterval);
         notifyExtJSLoaded();
       }

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {ArrowLeft} from 'lucide-react';
-import {NxPageMain} from '@globalart/react-shared-components';
+import {AsPageMain} from '@globalart/react-shared-components';
 import './PlaceholderPage.scss';
 
 /**
@@ -16,7 +16,7 @@ export default function PlaceholderPage({featureName, defaultUrl}) {
   };
 
   return (
-    <NxPageMain className="placeholder-page">
+    <AsPageMain className="placeholder-page">
       <div className="placeholder-page__content">
         <h1 className="placeholder-page__feature-name">{featureName}</h1>
         <div className="placeholder-page__status">
@@ -32,7 +32,7 @@ export default function PlaceholderPage({featureName, defaultUrl}) {
           Use Current Version
         </button>
       </div>
-    </NxPageMain>
+    </AsPageMain>
   );
 }
 

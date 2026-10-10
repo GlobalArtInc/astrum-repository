@@ -3,20 +3,20 @@
  */
 
 /**
- * Styles a scrollable container which contains multiple nx-subsection containers
+ * Styles a scrollable container which contains multiple as-subsection containers
  *
- * cls: 'nx-inset'
+ * cls: 'as-inset'
  */
-.nx-inset {
+.as-inset {
   padding: 12px 12px 12px 12px;
 }
 
 /**
- * Styles a subsection inside an nx-inset
+ * Styles a subsection inside an as-inset
  *
- * cls: 'nx-subsection'
+ * cls: 'as-subsection'
  */
-.nx-subsection {
+.as-subsection {
   padding: 12px 12px 12px 12px;
   background-color: $color-white;
   border-top: 1px solid $color-gainsboro !important;
@@ -27,9 +27,9 @@
 
 /**
  * Styles a section as an important message
- * cls: 'nx-form-important-msg'
+ * cls: 'as-form-important-msg'
  */
-.nx-form-important-msg {
+.as-form-important-msg {
   font-size: 10px;
   font-weight: bold;
 }

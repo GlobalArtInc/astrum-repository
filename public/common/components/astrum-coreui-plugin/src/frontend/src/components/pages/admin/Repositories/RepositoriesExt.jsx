@@ -15,8 +15,8 @@ export default function RepositoriesExt() {
        return <ExtJsContainer
            title={UIStrings.REPOSITORIES.MENU.text}
            icon={UIStrings.REPOSITORIES.MENU.icon}
-           className="nx-feature-content"
-           extView="NX.coreui.view.repository.RepositoryFeature"
+           className="as-feature-content"
+           extView="AS.coreui.view.repository.RepositoryFeature"
        />;
    }
 }

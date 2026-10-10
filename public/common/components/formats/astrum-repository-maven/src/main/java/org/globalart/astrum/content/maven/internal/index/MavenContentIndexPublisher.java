@@ -219,7 +219,7 @@ public class MavenContentIndexPublisher
   }
 
   /**
-   * NX3 {@link MavenContentFacet} backed {@link WritableResourceHandler} to be used by {@link IndexWriter}.
+   * {@link MavenContentFacet} backed {@link WritableResourceHandler} to be used by {@link IndexWriter}.
    */
   static class Maven2WritableResourceHandler
       implements WritableResourceHandler
@@ -243,7 +243,7 @@ public class MavenContentIndexPublisher
   }
 
   /**
-   * NX3 {@link MavenContentFacet} and {@link MavenPath} backed {@link WritableResource}.
+   * {@link MavenContentFacet} and {@link MavenPath} backed {@link WritableResource}.
    */
   private static class Maven2WritableResource
       implements WritableResource

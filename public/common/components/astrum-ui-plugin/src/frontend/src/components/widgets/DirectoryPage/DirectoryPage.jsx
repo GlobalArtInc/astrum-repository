@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { UIView, useCurrentStateAndParams, useRouter } from '@uirouter/react';
 import { Page } from '../../layout';
-import { NxH1, NxP, NxTile } from '@globalart/react-shared-components';
+import { AsH1, AsP, AsTile } from '@globalart/react-shared-components';
 import { RouteNames } from '../../../constants/RouteNames';
 import { isVisible } from '../../../interface/NavigationUtils';
 
@@ -33,13 +33,13 @@ export function DirectoryPage({ routeName, text, description, children, ...attr 
 
   return (
     <Page {...attr}>
-      <NxH1>{text}</NxH1>
+      <AsH1>{text}</AsH1>
 
-      <NxP>{description}</NxP>
+      <AsP>{description}</AsP>
 
-      <NxTile>
-        <NxTile.Content>{children}</NxTile.Content>
-      </NxTile>
+      <AsTile>
+        <AsTile.Content>{children}</AsTile.Content>
+      </AsTile>
     </Page>
   );
 }

@@ -42,7 +42,7 @@ const selectors = {
   selectedList: () => screen.getByRole('group', {name: LABELS.CONFIGURATION.SELECTED_TITLE}),
   title: () => screen.getByText(LABELS.CONFIGURATION.SELECTED_TITLE),
   emptyList: () => screen.getByText(LABELS.CONFIGURATION.EMPTY_LIST),
-  allActiveItems: () => selectors.selectedList().querySelectorAll('.nx-transfer-list__item'),
+  allActiveItems: () => selectors.selectedList().querySelectorAll('.as-transfer-list__item'),
 
   localRealmRemovalModal: {
     modal: () => screen.getByRole('dialog', {name: LABELS.LOCAL_REALM_REMOVAL_MODAL.HEADER}),
@@ -175,7 +175,7 @@ describe('Realms', () => {
 
   it('allows reordering the active column', async () => {
     const {allActiveItems} = selectors;
-    const expected = 'nx-transfer-list__item--with-reordering';
+    const expected = 'as-transfer-list__item--with-reordering';
 
     await renderAndWaitForLoad();
 
@@ -186,7 +186,7 @@ describe('Realms', () => {
     activesRealms.forEach((item) => {
       expect(item).toHaveClass(expected);
 
-      const actionButtons = item.querySelectorAll('.nx-btn');
+      const actionButtons = item.querySelectorAll('.as-btn');
       expect(actionButtons).toHaveLength(2);
     });
   });
@@ -336,7 +336,7 @@ describe('Realms', () => {
   });
 
   describe('Read Only Mode', () => {
-    const listItemClass = 'nx-list__text';
+    const listItemClass = 'as-list__text';
 
     it('shows Realms configuration in Read Only mode', async () => {
       const {title} = selectors;

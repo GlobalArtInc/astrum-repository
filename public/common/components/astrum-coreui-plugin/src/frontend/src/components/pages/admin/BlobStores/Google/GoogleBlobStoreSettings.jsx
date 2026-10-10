@@ -3,13 +3,13 @@ import React, {useState, useEffect} from 'react';
 import {useActor} from '@xstate/react';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxFieldset,
-  NxFileUpload,
-  NxFormGroup,
-  NxRadio,
-  NxTextInput,
-  NxCheckbox,
-  NxP
+  AsFieldset,
+  AsFileUpload,
+  AsFormGroup,
+  AsRadio,
+  AsTextInput,
+  AsCheckbox,
+  AsP
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -56,74 +56,74 @@ export default function GoogleBlobStoreSettings({ service }) {
 
   return (
       <div className="as-google-blobstore">
-        <NxFormGroup {...GOOGLE.REGION}>
-          <NxP className="nx-sub-label" aria-label={GOOGLE.REGION.label}>
+        <AsFormGroup {...GOOGLE.REGION}>
+          <AsP className="as-sub-label" aria-label={GOOGLE.REGION.label}>
             The region is automatically set based on where Astrum Repository is running in GCP. Ensure the bucket is in the same region.
-          </NxP>
-        </NxFormGroup>
-        <NxFormGroup {...GOOGLE.PROJECT_ID}>
-          <NxTextInput
+          </AsP>
+        </AsFormGroup>
+        <AsFormGroup {...GOOGLE.PROJECT_ID}>
+          <AsTextInput
               {...FormUtils.fieldProps(bucketField('projectId'), current)}
               onChange={FormUtils.handleUpdate(bucketField('projectId'), send)}
           />
-        </NxFormGroup>
-        <NxFormGroup {...GOOGLE.BUCKET} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup {...GOOGLE.BUCKET} isRequired>
+          <AsTextInput
               {...FormUtils.fieldProps(bucketField('name'), current)}
           onChange={FormUtils.handleUpdate(bucketField('name'), send)}/>
-        </NxFormGroup>
-        <NxFormGroup {...GOOGLE.PREFIX}>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup {...GOOGLE.PREFIX}>
+          <AsTextInput
               {...FormUtils.fieldProps(bucketField('prefix'), current)}
                  onChange={FormUtils.handleUpdate(bucketField('prefix'), send)}/>
-        </NxFormGroup>
-        <NxFieldset label={GOOGLE.AUTHENTICATION.LABEL}>
-          <NxRadio
+        </AsFormGroup>
+        <AsFieldset label={GOOGLE.AUTHENTICATION.LABEL}>
+          <AsRadio
               radioId="applicationDefaultCredentials"
               name="bucketConfiguration.bucketSecurity.authenticationMethod"
               value="applicationDefault"
               isChecked={bucketConfiguration.bucketSecurity?.authenticationMethod === 'applicationDefault'}
           onChange={FormUtils.handleUpdate(authenticationField('authenticationMethod'), send)}>
             {GOOGLE.AUTHENTICATION.APPLICATION_DEFAULT_CREDENTIALS}
-          </NxRadio>
-          <NxRadio
+          </AsRadio>
+          <AsRadio
               radioId="credentialJSONFile"
               name="bucketConfiguration.bucketSecurity.authenticationMethod"
               value="accountKey"
               isChecked={bucketConfiguration.bucketSecurity?.authenticationMethod === 'accountKey'}
           onChange={FormUtils.handleUpdate(authenticationField('authenticationMethod'), send)}>
             {GOOGLE.AUTHENTICATION.CREDENTIAL_JSON_FILE}
-          </NxRadio>
-        </NxFieldset>
+          </AsRadio>
+        </AsFieldset>
         {bucketConfiguration.bucketSecurity?.authenticationMethod === 'accountKey' && (
-            <NxFormGroup {...GOOGLE.AUTHENTICATION.JSON_PATH} isRequired={!isEdit}>
-              <NxFileUpload
+            <AsFormGroup {...GOOGLE.AUTHENTICATION.JSON_PATH} isRequired={!isEdit}>
+              <AsFileUpload
                   onChange={setFiles}
                   isRequired={!isEdit}
                   aria-label="gcp credential json file upload"
                   {...FormUtils.fileUploadProps(authenticationField('file'), current)}
               />
-            </NxFormGroup>
+            </AsFormGroup>
         )}
-        <NxFieldset label={GOOGLE.ENCRYPTION.LABEL}>
+        <AsFieldset label={GOOGLE.ENCRYPTION.LABEL}>
           <p>Data is encrypted by default. Enable KMS to use a custom encryption key.<br />Note: Encryption settings cannot be changed once the bucket is created</p>
-          <NxCheckbox
+          <AsCheckbox
               checkboxId="encryptionKey"
               name="bucketConfiguration.encryption.encryptionType"
               isChecked={isChecked}
               onChange={handleCheckboxChange}
           >
             {GOOGLE.ENCRYPTION.KMS_MANAGED}
-          </NxCheckbox>
-        </NxFieldset>
+          </AsCheckbox>
+        </AsFieldset>
         {isChecked && (
-            <NxFormGroup {...GOOGLE.ENCRYPTION.KEY_NAME} isRequired={!isEdit}>
-              <NxTextInput
+            <AsFormGroup {...GOOGLE.ENCRYPTION.KEY_NAME} isRequired={!isEdit}>
+              <AsTextInput
                   {...FormUtils.fieldProps(encryptionField('encryptionKey'), current)}
                   onChange={FormUtils.handleUpdate(encryptionField('encryptionKey'), send)}
                   placeholder="e.g. projects/PROJECT_ID/locations/LOCATION/keyRings/KEY_RING_NAME/cryptoKeys/KEY_NAME"
               />
-            </NxFormGroup>
+            </AsFormGroup>
         )}
       </div>
   );

@@ -115,7 +115,7 @@ describe('LoggingConfigurationForm', function() {
 
     await waitForElementToBeRemoved(loadingMask);
 
-    expect(container.querySelector('.nx-alert--error')).toHaveTextContent('Error');
+    expect(container.querySelector('.as-alert--error')).toHaveTextContent('Error');
   });
 
   it('fires onDone when cancelled', async function() {

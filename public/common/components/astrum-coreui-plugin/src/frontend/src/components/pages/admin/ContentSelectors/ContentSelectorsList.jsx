@@ -6,13 +6,13 @@ import {faScroll} from '@fortawesome/free-solid-svg-icons';
 
 import {ExtJS, ListMachineUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
 } from '@globalart/react-shared-components';
 
 import {
@@ -60,16 +60,16 @@ export default function ContentSelectorsList() {
     <PageHeader>
       <PageTitle icon={faScroll} {...LABELS.MENU}/>
       <PageActions>
-        <NxButton variant="primary" disabled={!canCreate} onClick={onCreate} data-analytics-id="as-content-selector-create">
+        <AsButton variant="primary" disabled={!canCreate} onClick={onCreate} data-analytics-id="as-content-selector-create">
           <span>{LABELS.CREATE_BUTTON}</span>
-        </NxButton>
+        </AsButton>
       </PageActions>
     </PageHeader>
     <ContentBody>
       <Section className="as-content-selectors-list">
         <SectionToolbar>
           <div className="as-spacer" />
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               inputAttributes={{
                 'aria-label': 'Filter content selectors by name',
@@ -79,32 +79,32 @@ export default function ContentSelectorsList() {
               value={filterText}
               placeholder={LABELS.FILTER_PLACEHOLDER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_NAME'})} isSortable sortDir={nameSortDir}>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_NAME'})} isSortable sortDir={nameSortDir}>
                 {LABELS.NAME_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_TYPE'})} isSortable sortDir={typeSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_TYPE'})} isSortable sortDir={typeSortDir}>
                 {LABELS.TYPE_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_DESCRIPTION'})} isSortable sortDir={descriptionSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_DESCRIPTION'})} isSortable sortDir={descriptionSortDir}>
                 {LABELS.DESCRIPTION_LABEL}
-              </NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_MESSAGE}>
+              </AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_MESSAGE}>
             {data.map(({name, type, description}) => (
-                <NxTableRow key={name} onClick={() => onEdit(name)} isClickable>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{type?.toUpperCase()}</NxTableCell>
-                  <NxTableCell>{description}</NxTableCell>
-                  <NxTableCell chevron/>
-                </NxTableRow>
+                <AsTableRow key={name} onClick={() => onEdit(name)} isClickable>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{type?.toUpperCase()}</AsTableCell>
+                  <AsTableCell>{description}</AsTableCell>
+                  <AsTableCell chevron/>
+                </AsTableRow>
             ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
 
       <HelpTile header={LABELS.HELP_TITLE} body={LABELS.HELP_TEXT}/>

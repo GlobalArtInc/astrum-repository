@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faIdCardAlt } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -30,9 +30,9 @@ export default {
           manager can cache authentication information and supports multiple LDAP servers and user/group mappings
           to take advantage of the central authentication set up across your organization in all your repository managers.
           For more information check{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/ldap">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/ldap">
             the documentation
-          </NxTextLink>.
+          </AsTextLink>.
         </>,
       },
       MODAL: {

@@ -3,13 +3,13 @@ import React, { useCallback } from 'react';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxTile,
-  NxH2,
-  NxFormGroup,
-  NxTextInput,
-  NxFieldset,
-  NxRadio,
-  NxStatefulForm,
+  AsTile,
+  AsH2,
+  AsFormGroup,
+  AsTextInput,
+  AsFieldset,
+  AsRadio,
+  AsStatefulForm,
 } from '@globalart/react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
@@ -62,9 +62,9 @@ export default function SslCertificatesAddForm() {
         <PageTitle icon={faIdCardAlt} {...MENU} />
       </PageHeader>
       <ContentBody className="as-ssl-certificate-add-form">
-        <NxTile>
-          <NxTile.Content>
-            <NxStatefulForm
+        <AsTile>
+          <AsTile.Content>
+            <AsStatefulForm
                 {...FormUtils.formProps(state, send)}
                 onSubmit={onSubmit}
                 submitBtnText={showAddForm ? LOAD_BUTTON : FORM.BUTTONS.ADD}
@@ -72,54 +72,54 @@ export default function SslCertificatesAddForm() {
                 submitMaskMessage={submitMaskMessage}
                 submitMaskState={submitMaskState}
             >
-              <NxH2>{CAPTION}</NxH2>
+              <AsH2>{CAPTION}</AsH2>
               {showAddForm && (
                 <>
-                  <NxFieldset label="">
-                    <NxRadio
+                  <AsFieldset label="">
+                    <AsRadio
                         name="source"
                         value={SOURCES.REMOTE_HOST}
                         onChange={updateSource}
                         isChecked={source === SOURCES.REMOTE_HOST}
                     >
                       {SERVER.RADIO_DESCRIPTION}
-                    </NxRadio>
-                  </NxFieldset>
-                  <NxFormGroup label={SERVER.LABEL} isRequired={source === SOURCES.REMOTE_HOST}>
-                    <NxTextInput
+                    </AsRadio>
+                  </AsFieldset>
+                  <AsFormGroup label={SERVER.LABEL} isRequired={source === SOURCES.REMOTE_HOST}>
+                    <AsTextInput
                         {...FormUtils.fieldProps('remoteHostUrl', state)}
                         onChange={FormUtils.handleUpdate('remoteHostUrl', send)}
-                        className="nx-text-input--long"
+                        className="as-text-input--long"
                         disabled={source === SOURCES.PEM}
                     />
-                  </NxFormGroup>
-                  <NxFieldset label="">
-                    <NxRadio
+                  </AsFormGroup>
+                  <AsFieldset label="">
+                    <AsRadio
                         name="source"
                         value={SOURCES.PEM}
                         onChange={updateSource}
                         isChecked={source === SOURCES.PEM}
                     >
                       {PEM.RADIO_DESCRIPTION}
-                    </NxRadio>
-                  </NxFieldset>
-                  <NxFormGroup label={PEM.LABEL} isRequired ={source === SOURCES.PEM}>
-                    <NxTextInput
+                    </AsRadio>
+                  </AsFieldset>
+                  <AsFormGroup label={PEM.LABEL} isRequired ={source === SOURCES.PEM}>
+                    <AsTextInput
                         type="textarea"
                         {...FormUtils.fieldProps('pemContent', state)}
                         onChange={FormUtils.handleUpdate('pemContent', send)}
-                        className="nx-text-input--long"
+                        className="as-text-input--long"
                         placeholder={PEM.PLACEHOLDER}
                         disabled={source === SOURCES.REMOTE_HOST}
                     />
-                  </NxFormGroup>
+                  </AsFormGroup>
                 </>
               )}
               {showDetails && <SslCertificatesDetails data={data} />}
-            </NxStatefulForm>
+            </AsStatefulForm>
 
-          </NxTile.Content>
-        </NxTile>
+          </AsTile.Content>
+        </AsTile>
       </ContentBody>
 
       {inTrustStore && <SslCertificatesAlreadyExistsModal certificateId={id} cancel={onDone} />}

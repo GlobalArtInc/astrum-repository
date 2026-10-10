@@ -2,19 +2,19 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxButton,
-  NxFilterInput,
-  NxFontAwesomeIcon,
-  NxIconDropdown,
-  NxInfoAlert,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTag,
-  NxTextLink,
-  NxTooltip,
+  AsButton,
+  AsFilterInput,
+  AsFontAwesomeIcon,
+  AsIconDropdown,
+  AsInfoAlert,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTag,
+  AsTextLink,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 import {faExclamationTriangle} from '@fortawesome/free-solid-svg-icons';
 import {
@@ -42,7 +42,7 @@ const LABELS = UIStrings.SERVICE_ACCOUNT_TOKENS;
 // Selector for a row's actions trigger by token id. Used to restore focus to
 // the row that opened the revoke modal when the user cancels.
 const getRevokeTrigger = (id) =>
-  document.querySelector(`[data-sat-row-id="${id}"] .nx-icon-dropdown__toggle`);
+  document.querySelector(`[data-sat-row-id="${id}"] .as-icon-dropdown__toggle`);
 
 function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString(undefined, {
@@ -54,17 +54,17 @@ function formatDate(dateString) {
 
 function ExpiresCell({expiresAt, labels}) {
   if (!expiresAt) {
-    return <span className="nx-text-color--subtle">{labels.NEVER_EXPIRES}</span>;
+    return <span className="as-text-color--subtle">{labels.NEVER_EXPIRES}</span>;
   }
   const isExpired = new Date(expiresAt) <= new Date();
   if (isExpired) {
     return (
-      <NxTooltip title={`Expired on ${formatDate(expiresAt)}`}>
-        <NxTag className="as-sa-expired-badge">
-          <NxFontAwesomeIcon icon={faExclamationTriangle} aria-hidden="true" />
+      <AsTooltip title={`Expired on ${formatDate(expiresAt)}`}>
+        <AsTag className="as-sa-expired-badge">
+          <AsFontAwesomeIcon icon={faExclamationTriangle} aria-hidden="true" />
           {labels.EXPIRED_BADGE}
-        </NxTag>
-      </NxTooltip>
+        </AsTag>
+      </AsTooltip>
     );
   }
   return formatDate(expiresAt);
@@ -72,7 +72,7 @@ function ExpiresCell({expiresAt, labels}) {
 
 function LastUsedCell({lastUsedAt, neverUsedLabel}) {
   if (!lastUsedAt) {
-    return <span className="nx-text-color--subtle">{neverUsedLabel}</span>;
+    return <span className="as-text-color--subtle">{neverUsedLabel}</span>;
   }
   return formatDate(lastUsedAt);
 }
@@ -174,29 +174,29 @@ export default function ServiceAccountTokens() {
         />
         {canCreate && (
           <PageActions>
-            <NxButton
+            <AsButton
               type="button"
               variant="primary"
               onClick={() => setShowCreateModal(true)}
             >
               {LABELS.LIST.CREATE_BUTTON}
-            </NxButton>
+            </AsButton>
           </PageActions>
         )}
       </PageHeader>
       <ContentBody className="as-service-account-tokens-list">
-        <NxInfoAlert className="as-sa-about-alert">
+        <AsInfoAlert className="as-sa-about-alert">
           <p>{canCreate ? LABELS.LIST.ABOUT.TEXT_ADMIN : LABELS.LIST.ABOUT.TEXT_VIEWER}</p>
           <p>
-            <NxTextLink href="https://links.globalart.dev/products/astrum/docs/service-account-tokens" external truncate>
+            <AsTextLink href="https://links.globalart.dev/products/astrum/docs/service-account-tokens" external truncate>
               {LABELS.LIST.ABOUT.LINK}
-            </NxTextLink>
+            </AsTextLink>
           </p>
-        </NxInfoAlert>
+        </AsInfoAlert>
         <Section>
           <SectionToolbar>
             <div className="as-spacer" />
-            <NxFilterInput
+            <AsFilterInput
               id="filter"
               className="as-sa-filter-input"
               onChange={filter}
@@ -204,18 +204,18 @@ export default function ServiceAccountTokens() {
               placeholder={LABELS.LIST.FILTER_PLACEHOLDER}
             />
           </SectionToolbar>
-          <NxTable>
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell isSortable sortDir={nameSortDir} onClick={sortByName}>{COLUMNS.NAME}</NxTableCell>
-                <NxTableCell isSortable sortDir={roleIdSortDir} onClick={sortByRoleId}>{COLUMNS.ROLE}</NxTableCell>
-                <NxTableCell isSortable sortDir={createdBySortDir} onClick={sortByCreatedBy}>{COLUMNS.CREATED_BY}</NxTableCell>
-                <NxTableCell isSortable sortDir={expiresAtSortDir} onClick={sortByExpiresAt}>{COLUMNS.EXPIRES}</NxTableCell>
-                <NxTableCell isSortable sortDir={lastUsedAtSortDir} onClick={sortByLastUsedAt}>{COLUMNS.LAST_USED}</NxTableCell>
-                <NxTableCell>{COLUMNS.ACTIONS}</NxTableCell>
-              </NxTableRow>
-            </NxTableHead>
-            <NxTableBody
+          <AsTable>
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell isSortable sortDir={nameSortDir} onClick={sortByName}>{COLUMNS.NAME}</AsTableCell>
+                <AsTableCell isSortable sortDir={roleIdSortDir} onClick={sortByRoleId}>{COLUMNS.ROLE}</AsTableCell>
+                <AsTableCell isSortable sortDir={createdBySortDir} onClick={sortByCreatedBy}>{COLUMNS.CREATED_BY}</AsTableCell>
+                <AsTableCell isSortable sortDir={expiresAtSortDir} onClick={sortByExpiresAt}>{COLUMNS.EXPIRES}</AsTableCell>
+                <AsTableCell isSortable sortDir={lastUsedAtSortDir} onClick={sortByLastUsedAt}>{COLUMNS.LAST_USED}</AsTableCell>
+                <AsTableCell>{COLUMNS.ACTIONS}</AsTableCell>
+              </AsTableRow>
+            </AsTableHead>
+            <AsTableBody
               isLoading={isLoading}
               error={error}
               emptyMessage={emptyMessage}
@@ -223,30 +223,30 @@ export default function ServiceAccountTokens() {
             >
               {data.map((token) => {
                 return (
-                  <NxTableRow key={token.id} isClickable tabIndex={0}>
-                    <NxTableCell>
+                  <AsTableRow key={token.id} isClickable tabIndex={0}>
+                    <AsTableCell>
                       <span className="as-sa-token-name">{token.name}</span>
                       {token.description && (
                         token.description.length > 50 ? (
-                          <NxTooltip title={token.description} className="as-sa-token-description-tooltip">
+                          <AsTooltip title={token.description} className="as-sa-token-description-tooltip">
                             <span className="as-sa-token-description as-sa-token-description--truncated">
                               {token.description}
                             </span>
-                          </NxTooltip>
+                          </AsTooltip>
                         ) : (
                           <span className="as-sa-token-description">{token.description}</span>
                         )
                       )}
-                    </NxTableCell>
-                    <NxTableCell>
+                    </AsTableCell>
+                    <AsTableCell>
                       <code className="as-sa-role-badge">{token.roleId}</code>
-                    </NxTableCell>
-                    <NxTableCell>{token.createdBy}</NxTableCell>
-                    <NxTableCell><ExpiresCell expiresAt={token.expiresAt} labels={COLUMNS} /></NxTableCell>
-                    <NxTableCell><LastUsedCell lastUsedAt={token.lastUsedAt} neverUsedLabel={COLUMNS.LAST_USED_NEVER} /></NxTableCell>
-                    <NxTableCell data-sat-row-id={token.id}>
+                    </AsTableCell>
+                    <AsTableCell>{token.createdBy}</AsTableCell>
+                    <AsTableCell><ExpiresCell expiresAt={token.expiresAt} labels={COLUMNS} /></AsTableCell>
+                    <AsTableCell><LastUsedCell lastUsedAt={token.lastUsedAt} neverUsedLabel={COLUMNS.LAST_USED_NEVER} /></AsTableCell>
+                    <AsTableCell data-sat-row-id={token.id}>
                       {canDelete && (
-                        <NxIconDropdown
+                        <AsIconDropdown
                           title={openDropdown === token.id ? undefined : 'Actions'}
                           isOpen={openDropdown === token.id}
                           onToggleCollapse={() =>
@@ -256,7 +256,7 @@ export default function ServiceAccountTokens() {
                           onCloseKeyDown={() => setOpenDropdown(null)}
                         >
                           <button
-                            className="nx-dropdown-button"
+                            className="as-dropdown-button"
                             onClick={() => {
                               setOpenDropdown(null);
                               setRevokeTarget(token);
@@ -264,14 +264,14 @@ export default function ServiceAccountTokens() {
                           >
                             {LABELS.LIST.ACTIONS.REVOKE}
                           </button>
-                        </NxIconDropdown>
+                        </AsIconDropdown>
                       )}
-                    </NxTableCell>
-                  </NxTableRow>
+                    </AsTableCell>
+                  </AsTableRow>
                 );
               })}
-            </NxTableBody>
-          </NxTable>
+            </AsTableBody>
+          </AsTable>
         </Section>
       </ContentBody>
 

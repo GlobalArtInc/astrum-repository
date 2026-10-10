@@ -4,10 +4,10 @@ import {useMachine} from '@xstate/react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxTooltip,
-  NxStatefulForm,
-  NxStatefulTransferList,
+  AsButton,
+  AsTooltip,
+  AsStatefulForm,
+  AsStatefulTransferList,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -26,18 +26,18 @@ export default function ProprietaryRepositories() {
 
   const repositories = possibleRepos?.map((it) => ({id: it.id, displayName: it.name})) || [];
 
-  return <NxStatefulForm
+  return <AsStatefulForm
       {...FormUtils.formProps(current, send)}
       additionalFooterBtns={<>
-        <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-          <NxButton type="button" className={isPristine && 'disabled'} onClick={discard}>
+        <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+          <AsButton type="button" className={isPristine && 'disabled'} onClick={discard}>
             {SETTINGS.DISCARD_BUTTON_LABEL}
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       </>}>
     {() => <>
       <p>{HELP_TEXT}</p>
-      <NxStatefulTransferList
+      <AsStatefulTransferList
           id="proprietary_repositories_select"
           availableItemsLabel={LABELS.AVAILABLE_TITLE}
           selectedItemsLabel={LABELS.SELECTED_TITLE}
@@ -47,5 +47,5 @@ export default function ProprietaryRepositories() {
           showMoveAll
       />
     </>}
-  </NxStatefulForm>;
+  </AsStatefulForm>;
 }

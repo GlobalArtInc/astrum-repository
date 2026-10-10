@@ -1,11 +1,11 @@
 
 import PropTypes from 'prop-types';
 import React from 'react';
-import {NxTextInput} from '@globalart/react-shared-components';
+import {AsTextInput} from '@globalart/react-shared-components';
 
 /**
  * @since 3.21
- * @deprecated prefer NxTextInput instead
+ * @deprecated prefer AsTextInput instead
  */
 export default function Textfield({id, name, type = "text", onChange, isPristine = false, validatable = true, ...attrs}) {
   function handleChange(value) {
@@ -33,7 +33,7 @@ export default function Textfield({id, name, type = "text", onChange, isPristine
     onChange: handleChange
   };
 
-  return <NxTextInput {...inputAttrs} />;
+  return <AsTextInput {...inputAttrs} />;
 }
 
 Textfield.propTypes = {

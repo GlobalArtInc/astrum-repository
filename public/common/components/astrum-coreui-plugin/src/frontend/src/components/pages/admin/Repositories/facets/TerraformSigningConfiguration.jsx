@@ -4,8 +4,8 @@ import React from 'react';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxFormGroup,
-  NxTextInput
+  AsFormGroup,
+  AsTextInput
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
@@ -17,24 +17,24 @@ export default function TerraformSigningConfiguration({parentMachine}) {
 
   return (
     <>
-      <h2 className="nx-h2">{CAPTION}</h2>
-      <NxFormGroup label={KEY.LABEL} sublabel={KEY.SUBLABEL} isRequired>
-        <NxTextInput
+      <h2 className="as-h2">{CAPTION}</h2>
+      <AsFormGroup label={KEY.LABEL} sublabel={KEY.SUBLABEL} isRequired>
+        <AsTextInput
           type="textarea"
           {...FormUtils.fieldProps('terraformSigning.keypair', parentState)}
           onChange={FormUtils.handleUpdate('terraformSigning.keypair', sendParent)}
-          className="nx-text-input--long"
+          className="as-text-input--long"
           placeholder={KEY.PLACEHOLDER}
         />
-      </NxFormGroup>
+      </AsFormGroup>
 
-      <NxFormGroup label={PASSPHRASE.LABEL} sublabel={PASSPHRASE.SUBLABEL}>
-        <NxTextInput
+      <AsFormGroup label={PASSPHRASE.LABEL} sublabel={PASSPHRASE.SUBLABEL}>
+        <AsTextInput
           type="password"
           {...FormUtils.fieldProps('terraformSigning.passphrase', parentState)}
           onChange={FormUtils.handleUpdate('terraformSigning.passphrase', sendParent)}
         />
-      </NxFormGroup>
+      </AsFormGroup>
     </>
   );
 }

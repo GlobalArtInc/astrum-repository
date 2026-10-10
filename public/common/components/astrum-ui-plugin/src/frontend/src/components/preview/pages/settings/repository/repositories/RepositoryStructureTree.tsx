@@ -357,9 +357,9 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
   // Automatically collapse/expand left nav when entering/leaving full screen
   useEffect(() => {
     if (isFullscreen) {
-      window.dispatchEvent(new CustomEvent('nx-sidebar-toggle', { detail: { open: true } }));
+      window.dispatchEvent(new CustomEvent('as-sidebar-toggle', { detail: { open: true } }));
     } else {
-      window.dispatchEvent(new CustomEvent('nx-sidebar-toggle', { detail: { open: false } }));
+      window.dispatchEvent(new CustomEvent('as-sidebar-toggle', { detail: { open: false } }));
     }
   }, [isFullscreen]);
 

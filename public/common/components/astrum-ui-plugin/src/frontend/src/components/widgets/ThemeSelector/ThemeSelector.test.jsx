@@ -35,9 +35,9 @@ describe('ThemeSelector', () => {
       expect(button).toBeInTheDocument();
 
       // Should add color scheme class and light mode class
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--enable-color-schemes');
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--light-mode');
-      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('nx-html--dark-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--enable-color-schemes');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--light-mode');
+      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('as-html--dark-mode');
     });
 
     it('renders with dark theme when localStorage has dark theme', () => {
@@ -49,9 +49,9 @@ describe('ThemeSelector', () => {
       expect(button).toBeInTheDocument();
 
       // Should add color scheme class and dark mode class
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--enable-color-schemes');
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--dark-mode');
-      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('nx-html--light-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--enable-color-schemes');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--dark-mode');
+      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('as-html--light-mode');
     });
 
     it('renders with light theme when localStorage has light theme', () => {
@@ -63,9 +63,9 @@ describe('ThemeSelector', () => {
       expect(button).toBeInTheDocument();
 
       // Should add color scheme class and light mode class
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--enable-color-schemes');
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--light-mode');
-      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('nx-html--dark-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--enable-color-schemes');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--light-mode');
+      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('as-html--dark-mode');
     });
   });
 
@@ -89,8 +89,8 @@ describe('ThemeSelector', () => {
       });
 
       // Should update CSS classes for dark mode
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--dark-mode');
-      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('nx-html--light-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--dark-mode');
+      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('as-html--light-mode');
     });
 
     it('toggles from dark to light theme', async () => {
@@ -112,8 +112,8 @@ describe('ThemeSelector', () => {
       });
 
       // Should update CSS classes for light mode
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--light-mode');
-      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('nx-html--dark-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--light-mode');
+      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('as-html--dark-mode');
     });
 
     it('toggles multiple times correctly', async () => {
@@ -199,7 +199,7 @@ describe('ThemeSelector', () => {
 
       render(<ThemeSelector />);
 
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--enable-color-schemes');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--enable-color-schemes');
     });
 
     it('applies correct classes for light theme', () => {
@@ -207,8 +207,8 @@ describe('ThemeSelector', () => {
 
       render(<ThemeSelector />);
 
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--light-mode');
-      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('nx-html--dark-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--light-mode');
+      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('as-html--dark-mode');
     });
 
     it('applies correct classes for dark theme', () => {
@@ -216,8 +216,8 @@ describe('ThemeSelector', () => {
 
       render(<ThemeSelector />);
 
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--dark-mode');
-      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('nx-html--light-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--dark-mode');
+      expect(document.documentElement.classList.remove).toHaveBeenCalledWith('as-html--light-mode');
     });
 
     it('updates classes when theme is toggled', async () => {
@@ -233,8 +233,8 @@ describe('ThemeSelector', () => {
 
       // Should add dark mode and remove light mode
       await waitFor(() => {
-        expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--dark-mode');
-        expect(document.documentElement.classList.remove).toHaveBeenCalledWith('nx-html--light-mode');
+        expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--dark-mode');
+        expect(document.documentElement.classList.remove).toHaveBeenCalledWith('as-html--light-mode');
       });
     });
   });
@@ -249,7 +249,7 @@ describe('ThemeSelector', () => {
       expect(button).toBeInTheDocument();
 
       // Should treat invalid value as a truthy string and not equal to 'dark', so it will be light
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--light-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--light-mode');
     });
 
     it('handles empty string in localStorage', () => {
@@ -261,7 +261,7 @@ describe('ThemeSelector', () => {
       expect(button).toBeInTheDocument();
 
       // Empty string is falsy, should default to light
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('nx-html--light-mode');
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('as-html--light-mode');
     });
 
     it('handles localStorage errors gracefully', () => {

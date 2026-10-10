@@ -1,6 +1,6 @@
 
 import React, {useRef, useEffect, useState} from 'react';
-import {NxH2, NxButtonBar, NxButton} from '@globalart/react-shared-components';
+import {AsH2, AsButtonBar, AsButton} from '@globalart/react-shared-components';
 import UIStrings from '../../../../../constants/UIStrings';
 import {canReadHealthCheckDetail} from './IQServerHelpers';
 
@@ -44,7 +44,7 @@ export default function HealthCheckSummary({healthCheckData, baseTopPosition, cl
       ref={summaryRef}
       data-testid="as-health-check-summary"
     >
-      <NxH2>{CAPTION}</NxH2>
+      <AsH2>{CAPTION}</AsH2>
       <iframe
         title={CAPTION}
         src={summaryUrl}
@@ -53,14 +53,14 @@ export default function HealthCheckSummary({healthCheckData, baseTopPosition, cl
           width: iframeWidth
         }}
       />
-      <NxButtonBar>
-        <NxButton variant="tertiary" onClick={(e) => openInNewTab(e, HELP_URL)}>
+      <AsButtonBar>
+        <AsButton variant="tertiary" onClick={(e) => openInNewTab(e, HELP_URL)}>
           {HELP_BUTTON}
-        </NxButton>
-        <NxButton onClick={(e) => openInNewTab(e, detailUrl)} disabled={!canReadDetails}>
+        </AsButton>
+        <AsButton onClick={(e) => openInNewTab(e, detailUrl)} disabled={!canReadDetails}>
           {DETAILS_BUTTON}
-        </NxButton>
-      </NxButtonBar>
+        </AsButton>
+      </AsButtonBar>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import type { SnippetGenerator } from './types';
 /**
  * NuGet dependency snippet generator.
  *
- * Ported from Classic NX.nuget.controller.NuGetDependencySnippetController. The Chocolatey
+ * Ported from Classic AS.nuget.controller.NuGetDependencySnippetController. The Chocolatey
  * snippet points at this Astrum instance's NuGet repository, built from the current origin.
  */
 export const generate: SnippetGenerator = (component) => {

@@ -7,7 +7,7 @@ import { isExtJSLoaded, onExtJSLoad } from '../utils/extJsLoader';
 
 /**
  * Checks if a state or any of its ancestors requires authentication/permissions.
- * Unlike isVisible() from NavigationUtils, this does NOT use the NXSESSIONID cookie
+ * Unlike isVisible() from NavigationUtils, this does NOT use the ASTRUMSESSIONID cookie
  * fallback — it simply detects whether the route has permission-type requirements.
  * This is appropriate for the logout hook because we already know from ExtJS.useUser()
  * that the user is no longer authenticated.

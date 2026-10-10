@@ -7,15 +7,15 @@
   &__search-bar {
     display: flex;
     align-items: stretch;
-    background: var(--nx-color-component-background);
-    border: 1px solid var(--nx-color-border);
+    background: var(--as-color-component-background);
+    border: 1px solid var(--as-color-border);
     border-radius: 8px;
     overflow: hidden;
     transition: border-color 0.2s;
     margin-bottom: 16px;
 
     &:focus-within {
-      border-color: var(--nx-color-primary);
+      border-color: var(--as-color-primary);
     }
   }
 
@@ -28,7 +28,7 @@
     font-size: 14px;
     font-weight: 600;
     text-transform: lowercase;
-    border-right: 1px solid var(--nx-color-border);
+    border-right: 1px solid var(--as-color-border);
   }
 
   &__input-wrapper {
@@ -41,7 +41,7 @@
   &__search-icon {
     position: absolute;
     left: 14px;
-    color: var(--nx-color-text-subtle);
+    color: var(--as-color-text-subtle);
     pointer-events: none;
   }
 
@@ -50,11 +50,11 @@
     padding: 12px 16px 12px 44px;
     background: transparent;
     border: none;
-    color: var(--nx-color-text);
+    color: var(--as-color-text);
     font-size: 14px;
 
     &::placeholder {
-      color: var(--nx-color-text-subtle);
+      color: var(--as-color-text-subtle);
     }
 
     &:focus {
@@ -69,9 +69,9 @@
 
   &__search-btn {
     padding: 12px 24px;
-    background: var(--nx-color-primary);
+    background: var(--as-color-primary);
     border: none;
-    color: var(--nx-color-primary-button-text, #fff);
+    color: var(--as-color-primary-button-text, #fff);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -79,7 +79,7 @@
     white-space: nowrap;
 
     &:hover:not(:disabled) {
-      background: var(--nx-color-primary-button-background-hover);
+      background: var(--as-color-primary-button-background-hover);
     }
 
     &:disabled {
@@ -94,8 +94,8 @@
     flex-wrap: wrap;
     gap: 12px;
     padding: 16px;
-    background: var(--nx-color-subsection-background);
-    border: 1px solid var(--nx-color-border);
+    background: var(--as-color-subsection-background);
+    border: 1px solid var(--as-color-border);
     border-radius: 8px;
     align-items: flex-end;
   }
@@ -118,7 +118,7 @@
     display: block;
     font-size: 12px;
     font-weight: 500;
-    color: var(--nx-color-text-subtle);
+    color: var(--as-color-text-subtle);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -126,16 +126,16 @@
   &__input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid var(--nx-color-border);
+    border: 1px solid var(--as-color-border);
     border-radius: 6px;
     font-size: 14px;
-    background: var(--nx-color-component-background);
-    color: var(--nx-color-text);
+    background: var(--as-color-component-background);
+    color: var(--as-color-text);
     transition: border-color 0.15s ease;
 
     &:focus {
       outline: none;
-      border-color: var(--nx-color-primary);
+      border-color: var(--as-color-primary);
     }
 
     &:disabled {
@@ -144,7 +144,7 @@
     }
 
     &::placeholder {
-      color: var(--nx-color-text-subtle);
+      color: var(--as-color-text-subtle);
     }
   }
 
@@ -159,16 +159,16 @@
     gap: 4px;
     padding: 10px 16px;
     background: transparent;
-    border: 1px solid var(--nx-color-border);
+    border: 1px solid var(--as-color-border);
     border-radius: 6px;
-    color: var(--nx-color-text-subtle);
+    color: var(--as-color-text-subtle);
     font-size: 14px;
     cursor: pointer;
     transition: all 0.15s;
 
     &:hover:not(:disabled) {
-      border-color: var(--nx-color-text-subtle);
-      color: var(--nx-color-text);
+      border-color: var(--as-color-text-subtle);
+      color: var(--as-color-text);
     }
 
     &:disabled {

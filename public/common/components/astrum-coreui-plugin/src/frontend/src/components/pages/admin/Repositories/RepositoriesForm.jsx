@@ -4,9 +4,9 @@ import {useMachine} from '@xstate/react';
 
 import {FormUtils, ExtJS, UIStrings as UIStringsGlobal} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFontAwesomeIcon,
-  NxStatefulForm
+  AsButton,
+  AsFontAwesomeIcon,
+  AsStatefulForm
 } from '@globalart/react-shared-components';
 
 import {faDatabase, faTrash} from '@fortawesome/free-solid-svg-icons';
@@ -67,22 +67,22 @@ export default function RepositoriesForm({itemId, onDone = () => {}}) {
       </PageHeader>
       <ContentBody>
         <Section className="as-repository-editor-form">
-          <NxStatefulForm
+          <AsStatefulForm
             {...FormUtils.formProps(current, send)}
             onCancel={onDone}
             submitBtnText={isEdit ? EDITOR.SAVE_BUTTON : EDITOR.CREATE_BUTTON}
             additionalFooterBtns={
               isEdit && (
-                <NxButton
+                <AsButton
                   type="button"
                   variant="tertiary"
                   onClick={confirmDelete}
                   className={!canDelete ? 'disabled' : ''}
                   title={!canDelete ? UIStringsGlobal.PERMISSION_ERROR : ''}
                 >
-                  <NxFontAwesomeIcon icon={faTrash} />
+                  <AsFontAwesomeIcon icon={faTrash} />
                   <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
-                </NxButton>
+                </AsButton>
               )
             }
           >
@@ -95,7 +95,7 @@ export default function RepositoriesForm({itemId, onDone = () => {}}) {
                 ))}
               </>
             )}
-          </NxStatefulForm>
+          </AsStatefulForm>
         </Section>
       </ContentBody>
 

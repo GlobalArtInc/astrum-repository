@@ -41,7 +41,7 @@ describe('AuthContext', () => {
     jest.clearAllMocks();
     mockedExtJsLoader.isExtJSLoaded.mockReturnValue(false);
     mockedExtJsLoader.onExtJSLoad.mockImplementation(() => {});
-    delete window.NX;
+    delete window.AS;
     delete window.Ext;
   });
 
@@ -144,7 +144,7 @@ describe('AuthContext', () => {
 
     it('uses ExtJS user state when ExtJS is loaded', async () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         State: {
           getUser: jest.fn().mockReturnValue(mockUser),
         },
@@ -160,7 +160,7 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('loading')).toHaveTextContent('false');
       });
 
-      expect(window.NX.State.getUser).toHaveBeenCalled();
+      expect(window.AS.State.getUser).toHaveBeenCalled();
       expect(screen.getByTestId('user')).toHaveTextContent('admin');
       // Should not call API when ExtJS is loaded
       expect(mockedAxios.get).not.toHaveBeenCalled();
@@ -168,7 +168,7 @@ describe('AuthContext', () => {
 
     it('subscribes to ExtJS user changes', async () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         State: {
           getUser: jest.fn().mockReturnValue(mockUser),
         },
@@ -221,7 +221,7 @@ describe('AuthContext', () => {
       });
 
       // Simulate ExtJS loading later
-      window.NX = {
+      window.AS = {
         State: {
           getUser: jest.fn().mockReturnValue(mockUser),
         },
@@ -329,7 +329,7 @@ describe('AuthContext', () => {
 
     it('checks ExtJS state when ExtJS is loaded', async () => {
       mockedExtJsLoader.isExtJSLoaded.mockReturnValue(true);
-      window.NX = {
+      window.AS = {
         State: {
           getUser: jest.fn().mockReturnValue(mockUser),
         },

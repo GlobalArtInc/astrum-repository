@@ -5,7 +5,7 @@ import org.globalart.astrum.scheduling.Cancelable;
 import org.globalart.astrum.scheduling.TaskInfo;
 
 /**
- * Event fired when {@link Cancelable} NX Task is running and has been canceled.
+ * Event fired when {@link Cancelable} Astrum Task is running and has been canceled.
  *
  * Fired in the moment cancellation was applied, the task is probably still running and will stop when it detects
  * request for cancellation.

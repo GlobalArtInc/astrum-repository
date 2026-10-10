@@ -33,7 +33,7 @@ const PermissionsLoadingContext = createContext({
  * @returns {boolean}
  */
 function arePermissionsReady() {
-  return window.NX?.Permissions?.permissions !== undefined;
+  return window.AS?.Permissions?.permissions !== undefined;
 }
 
 export function PermissionsProvider({ children }) {
@@ -91,8 +91,8 @@ export function PermissionsProvider({ children }) {
 
   // Reads window globals at call time — no state deps needed, identity is stable.
   const checkPermission = useCallback((permission) => {
-    if (isExtJSLoaded() && window.NX?.Permissions?.check) {
-      return window.NX.Permissions.check(permission);
+    if (isExtJSLoaded() && window.AS?.Permissions?.check) {
+      return window.AS.Permissions.check(permission);
     }
     return false;
   }, []);

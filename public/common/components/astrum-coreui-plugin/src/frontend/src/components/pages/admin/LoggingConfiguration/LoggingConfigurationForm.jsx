@@ -5,11 +5,11 @@ import {useMachine} from '@xstate/react';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {
-  NxButton,
-  NxFormGroup,
-  NxFormSelect,
-  NxStatefulForm,
-  NxTextInput
+  AsButton,
+  AsFormGroup,
+  AsFormSelect,
+  AsStatefulForm,
+  AsTextInput
 } from '@globalart/react-shared-components';
 
 import {
@@ -97,32 +97,32 @@ export default function LoggingConfigurationForm() {
     </PageHeader>
     <ContentBody>
       <Section className="as-logging-configuration-form" onKeyPress={handleEnter}>
-        <NxStatefulForm
+        <AsStatefulForm
             {...FormUtils.formProps(current, send)}
             onCancel={cancel}
             submitMaskState={(isSaving || isResetting) ? false : null}
             submitMaskMessage={isSaving ? UIStrings.SAVING : UIStrings.LOGGING.MESSAGES.RESETTING}
             additionalFooterBtns={
-              itemId && <NxButton type="button" variant="error" onClick={reset}>{UIStrings.LOGGING.RESET_BUTTON}</NxButton>
+              itemId && <AsButton type="button" variant="error" onClick={reset}>{UIStrings.LOGGING.RESET_BUTTON}</AsButton>
             }
         >
           {() => <>
-            <NxFormGroup label={UIStrings.LOGGING.NAME_LABEL} isRequired>
-              <NxTextInput
-                  className="nx-text-input--long"
+            <AsFormGroup label={UIStrings.LOGGING.NAME_LABEL} isRequired>
+              <AsTextInput
+                  className="as-text-input--long"
                   {...FormUtils.fieldProps('name', current)}
                   disabled={pristineData.name}
                   onChange={updateName}/>
-            </NxFormGroup>
-            <NxFormGroup label={UIStrings.LOGGING.LEVEL_LABEL}>
-              <NxFormSelect name="level" value={data.level} onChange={updateLevel}>
+            </AsFormGroup>
+            <AsFormGroup label={UIStrings.LOGGING.LEVEL_LABEL}>
+              <AsFormSelect name="level" value={data.level} onChange={updateLevel}>
                 {['OFF', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'].map(logLevel =>
                     <option key={logLevel} value={logLevel}>{logLevel}</option>
                 )}
-              </NxFormSelect>
-            </NxFormGroup>
+              </AsFormSelect>
+            </AsFormGroup>
           </>}
-        </NxStatefulForm>
+        </AsStatefulForm>
       </Section>
     </ContentBody>
   </Page>;

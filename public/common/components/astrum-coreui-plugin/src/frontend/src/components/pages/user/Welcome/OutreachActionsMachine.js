@@ -1,7 +1,7 @@
 
 import {assign, Machine} from 'xstate';
 
-const SHOW_CONNECT_ACTION_KEY = 'nx-welcome-show-connect-action';
+const SHOW_CONNECT_ACTION_KEY = 'as-welcome-show-connect-action';
 const SHOW_CONNECT_ACTION_DEFAULT = true;
 
 export default Machine({

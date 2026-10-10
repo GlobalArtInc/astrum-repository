@@ -4,15 +4,15 @@ import {useMachine} from '@xstate/react';
 
 import {ExtJS, ListMachineUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxTooltip,
-  NxFormSelect,
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsTooltip,
+  AsFormSelect,
 } from '@globalart/react-shared-components';
 
 import {faUsers} from '@fortawesome/free-solid-svg-icons';
@@ -79,45 +79,45 @@ export default function UsersList({onCreate, onEdit, initialSourceFilter = 'defa
           description={UIStrings.USERS.MENU.description}
       />
       <PageActions>
-        <NxTooltip
+        <AsTooltip
             title={!canCreate && UIStrings.PERMISSION_ERROR}
             placement="bottom"
         >
-          <NxButton
+          <AsButton
               type="button"
               variant="primary"
               className={!canCreate && 'disabled'}
               onClick={create}
           >
             {LABELS.CREATE_BUTTON}
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       </PageActions>
     </PageHeader>
     <ContentBody className="as-users-list">
       <Section>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={sortById} isSortable sortDir={userIdSortDir}>{COLUMNS.USER_ID}</NxTableCell>
-              <NxTableCell onClick={sortByRealms} isSortable sortDir={realmSortDir}>{COLUMNS.REALM}</NxTableCell>
-              <NxTableCell onClick={sortByFirstName} isSortable sortDir={firstNameSortDir}>{COLUMNS.FIRST_NAME}</NxTableCell>
-              <NxTableCell onClick={sortByLastName} isSortable sortDir={lastNameSortDir}>{COLUMNS.LAST_NAME}</NxTableCell>
-              <NxTableCell onClick={sortByEmail} isSortable sortDir={emailSortDir}>{COLUMNS.EMAIL}</NxTableCell>
-              <NxTableCell onClick={sortByStatus} isSortable sortDir={statusSortDir}>{COLUMNS.STATUS}</NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-            <NxTableRow isFilterHeader>
-              <NxTableCell>
-                <NxFilterInput
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={sortById} isSortable sortDir={userIdSortDir}>{COLUMNS.USER_ID}</AsTableCell>
+              <AsTableCell onClick={sortByRealms} isSortable sortDir={realmSortDir}>{COLUMNS.REALM}</AsTableCell>
+              <AsTableCell onClick={sortByFirstName} isSortable sortDir={firstNameSortDir}>{COLUMNS.FIRST_NAME}</AsTableCell>
+              <AsTableCell onClick={sortByLastName} isSortable sortDir={lastNameSortDir}>{COLUMNS.LAST_NAME}</AsTableCell>
+              <AsTableCell onClick={sortByEmail} isSortable sortDir={emailSortDir}>{COLUMNS.EMAIL}</AsTableCell>
+              <AsTableCell onClick={sortByStatus} isSortable sortDir={statusSortDir}>{COLUMNS.STATUS}</AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+            <AsTableRow isFilterHeader>
+              <AsTableCell>
+                <AsFilterInput
                     id="userIdFilter"
                     onChange={onUserIdFilterChange}
                     value={filter}
                     placeholder={LABELS.FILTER_PLACEHOLDER}
                 />
-              </NxTableCell>
-              <NxTableCell>
-                <NxFormSelect
+              </AsTableCell>
+              <AsTableCell>
+                <AsFormSelect
                     id="userSourceFilter"
                     name="userSourceFilter"
                     value={sourceFilter}
@@ -126,29 +126,29 @@ export default function UsersList({onCreate, onEdit, initialSourceFilter = 'defa
                   {Object.values(sources).map(({id, name}) => (
                       <option key={id} value={id}>{name}</option>
                   ))}
-                </NxFormSelect>
-              </NxTableCell>
-              <NxTableCell />
-              <NxTableCell />
-              <NxTableCell />
-              <NxTableCell />
-              <NxTableCell />
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
+                </AsFormSelect>
+              </AsTableCell>
+              <AsTableCell />
+              <AsTableCell />
+              <AsTableCell />
+              <AsTableCell />
+              <AsTableCell />
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_LIST}>
             {data.map(({userId, realm, firstName, lastName, email, status}) => (
-                <NxTableRow key={userId} onClick={() => onClickRow(realm, userId)} isClickable>
-                  <NxTableCell>{userId}</NxTableCell>
-                  <NxTableCell>{sources[realm].name}</NxTableCell>
-                  <NxTableCell>{firstName}</NxTableCell>
-                  <NxTableCell>{lastName}</NxTableCell>
-                  <NxTableCell>{email}</NxTableCell>
-                  <NxTableCell className="capitalize-status">{status}</NxTableCell>
-                  <NxTableCell chevron/>
-                </NxTableRow>
+                <AsTableRow key={userId} onClick={() => onClickRow(realm, userId)} isClickable>
+                  <AsTableCell>{userId}</AsTableCell>
+                  <AsTableCell>{sources[realm].name}</AsTableCell>
+                  <AsTableCell>{firstName}</AsTableCell>
+                  <AsTableCell>{lastName}</AsTableCell>
+                  <AsTableCell>{email}</AsTableCell>
+                  <AsTableCell className="capitalize-status">{status}</AsTableCell>
+                  <AsTableCell chevron/>
+                </AsTableRow>
             ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
       <HelpTile header={LABELS.HELP.TITLE} body={LABELS.HELP.TEXT}/>
     </ContentBody>

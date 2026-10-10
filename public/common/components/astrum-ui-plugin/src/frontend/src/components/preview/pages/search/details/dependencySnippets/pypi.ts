@@ -5,7 +5,7 @@ import type { SnippetGenerator } from './types';
 /**
  * PyPI dependency snippet generator.
  *
- * Ported from Classic NX.pypi.controller.PyPiDependencySnippetController.
+ * Ported from Classic AS.pypi.controller.PyPiDependencySnippetController.
  */
 export const generate: SnippetGenerator = (component) => {
   const { name, version } = component;

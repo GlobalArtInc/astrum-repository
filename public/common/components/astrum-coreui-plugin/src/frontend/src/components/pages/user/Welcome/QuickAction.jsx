@@ -3,7 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import {faChevronRight} from '@fortawesome/free-solid-svg-icons';
-import {NxFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsFontAwesomeIcon} from '@globalart/react-shared-components';
 
 export default function QuickAction({title, subTitle, icon, action, className}) {
   const handleEnter = (event) => {
@@ -26,7 +26,7 @@ export default function QuickAction({title, subTitle, icon, action, className}) 
           <div className="as-quick-action-body">
             <div className="as-quick-action-logo">
               <div className="as-quick-action-icon-container">
-                <NxFontAwesomeIcon icon={icon} />
+                <AsFontAwesomeIcon icon={icon} />
               </div>
             </div>
             <div className="as-quick-action-name">
@@ -34,7 +34,7 @@ export default function QuickAction({title, subTitle, icon, action, className}) 
               <div className="as-quick-action-subtitle">{subTitle}</div>
             </div>
             <div className="as-quick-action-chevron">
-              <NxFontAwesomeIcon
+              <AsFontAwesomeIcon
                   icon={faChevronRight}
                   transform="down-1"
                   className="as-quick-action-chevron-icon"

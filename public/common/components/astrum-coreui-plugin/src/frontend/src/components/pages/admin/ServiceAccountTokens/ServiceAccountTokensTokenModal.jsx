@@ -1,11 +1,11 @@
 
 import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {
-  NxButton,
-  NxFontAwesomeIcon,
-  NxH2,
-  NxInfoAlert,
-  NxModal,
+  AsButton,
+  AsFontAwesomeIcon,
+  AsH2,
+  AsInfoAlert,
+  AsModal,
 } from '@globalart/react-shared-components';
 import {faCopy} from '@fortawesome/free-solid-svg-icons';
 
@@ -59,37 +59,37 @@ export default function ServiceAccountTokensTokenModal({token, onClose}) {
   }, [token]);
 
   return (
-    <NxModal onCancel={onClose} aria-labelledby="token-reveal-modal">
-      <NxModal.Header>
-        <NxH2 id="token-reveal-modal">{LABELS.TITLE}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxInfoAlert role="alert">
+    <AsModal onCancel={onClose} aria-labelledby="token-reveal-modal">
+      <AsModal.Header>
+        <AsH2 id="token-reveal-modal">{LABELS.TITLE}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsInfoAlert role="alert">
           <strong>{LABELS.WARNING}</strong>
-        </NxInfoAlert>
+        </AsInfoAlert>
         <span className="as-sa-sr-only" role="status" aria-live="polite">
           {copied ? LABELS.COPY_ANNOUNCEMENT : ''}
         </span>
         <div className="as-sa-token-reveal">
           <code className="as-sa-token-value">{token}</code>
-          <NxButton type="button" variant="icon-only" className="as-sa-copy-btn" onClick={handleCopy} title={copied ? LABELS.COPIED_BUTTON : LABELS.COPY_BUTTON}>
-            <NxFontAwesomeIcon icon={faCopy} />
-          </NxButton>
+          <AsButton type="button" variant="icon-only" className="as-sa-copy-btn" onClick={handleCopy} title={copied ? LABELS.COPIED_BUTTON : LABELS.COPY_BUTTON}>
+            <AsFontAwesomeIcon icon={faCopy} />
+          </AsButton>
         </div>
         {copyFailed && (
           <p className="as-sa-copy-error" role="alert" data-testid="sa-token-copy-error">
             {LABELS.COPY_FAILED}
           </p>
         )}
-      </NxModal.Content>
-      <footer className="nx-footer as-sa-token-footer">
+      </AsModal.Content>
+      <footer className="as-footer as-sa-token-footer">
         <span className="as-sa-auto-close-notice">{LABELS.AUTO_CLOSE_NOTICE(secondsLeft)}</span>
-        <div className="nx-btn-bar">
-          <NxButton type="button" onClick={onClose}>
+        <div className="as-btn-bar">
+          <AsButton type="button" onClick={onClose}>
             {LABELS.DONE_BUTTON}
-          </NxButton>
+          </AsButton>
         </div>
       </footer>
-    </NxModal>
+    </AsModal>
   );
 }

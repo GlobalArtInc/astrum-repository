@@ -89,8 +89,8 @@ describe('RoutingRulesForm', function() {
       description: () => queryByLabelText(UIStrings.ROUTING_RULES.FORM.DESCRIPTION_LABEL),
       mode: () => queryByLabelText(UIStrings.ROUTING_RULES.FORM.MODE_LABEL),
       emptyMatcher: (index) => queryByLabelText(UIStrings.ROUTING_RULES.FORM.MATCHER_LABEL(index)),
-      matcherButton: (index) => within(screen.getByText('Matchers').closest('.nx-form-group')).getAllByRole('button')[index],
-      createButton: () => queryByText(UIStrings.ROUTING_RULES.FORM.CREATE_BUTTON, {selector: '.nx-btn'}),
+      matcherButton: (index) => within(screen.getByText('Matchers').closest('.as-form-group')).getAllByRole('button')[index],
+      createButton: () => queryByText(UIStrings.ROUTING_RULES.FORM.CREATE_BUTTON, {selector: '.as-btn'}),
       saveButton: () => queryByText(UIStrings.SETTINGS.SAVE_BUTTON_LABEL),
       cancelButton: () => queryByText(UIStrings.SETTINGS.CANCEL_BUTTON_LABEL),
       deleteButton: () => queryByText(UIStrings.SETTINGS.DELETE_BUTTON_LABEL)
@@ -126,7 +126,7 @@ describe('RoutingRulesForm', function() {
 
     await waitForElementToBeRemoved(loadingMask);
 
-    expect(container.querySelector('.nx-alert--error')).toHaveTextContent('Error');
+    expect(container.querySelector('.as-alert--error')).toHaveTextContent('Error');
   });
 
   it('renders an error message when saving an invalid field', async function() {

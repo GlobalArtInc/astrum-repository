@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faUserTag } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -24,25 +24,25 @@ export default {
           Roles bring together multiple privileges so that, when you assign a user to the role,
           that user will automatically have all of those privileges. Roles can comprise both
           other roles and individual privileges. See our{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/roles">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/roles">
             help documentation
-          </NxTextLink>
+          </AsTextLink>
           {' '}for more information.
         </>,
       },
       ALERT: {
         DEFAULT_ROLE: (roleId, roleName) => <>
           This instance is using{' '}
-          <NxTextLink href={`#admin/security/roles:${roleId}`}>
+          <AsTextLink href={`#admin/security/roles:${roleId}`}>
             {roleName}
-          </NxTextLink>
+          </AsTextLink>
           {' '}as the default role granted to all authenticated users.
         </>,
         CAPABILITY: (capabilityId) => <>
           To manage this configuration, see the{' '}
-          <NxTextLink href={`#admin/system/capabilities:${capabilityId}`}>
+          <AsTextLink href={`#admin/system/capabilities:${capabilityId}`}>
             Default Role capability
-          </NxTextLink>
+          </AsTextLink>
           {' '}page.
         </>
       },

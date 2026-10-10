@@ -5,7 +5,7 @@ import type { SnippetGenerator } from './types';
 /**
  * Cargo (Rust) dependency snippet generator.
  *
- * Ported from Classic NX.cargo.controller.CargoDependencySnippetController. Returns no snippets
+ * Ported from Classic AS.cargo.controller.CargoDependencySnippetController. Returns no snippets
  * for a versionless component, matching Classic.
  */
 export const generate: SnippetGenerator = (component) => {

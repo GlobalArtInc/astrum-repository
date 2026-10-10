@@ -4,15 +4,15 @@ import {useActor} from '@xstate/react';
 import {indexBy, prop} from 'ramda';
 
 import {
-  NxButton,
-  NxH2,
-  NxReadOnly,
-  NxLoadWrapper,
-  NxInfoAlert,
-  NxFooter,
-  NxButtonBar,
-  NxTile,
-  NxList,
+  AsButton,
+  AsH2,
+  AsReadOnly,
+  AsLoadWrapper,
+  AsInfoAlert,
+  AsFooter,
+  AsButtonBar,
+  AsTile,
+  AsList,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -39,48 +39,48 @@ export default function UsersReadOnly({service, onDone}) {
 
   const retry = () => send({type: 'RETRY'});
 
-  return <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
-    <NxTile.Content>
-      <NxInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</NxInfoAlert>
-      <NxH2>{LABELS.SECTIONS.SETUP}</NxH2>
-      <NxReadOnly>
-        <NxReadOnly.Label>{LABELS.ID.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{userId}</NxReadOnly.Data>
-        <NxReadOnly.Label>{LABELS.FIRST_NAME.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{firstName}</NxReadOnly.Data>
-        <NxReadOnly.Label>{LABELS.LAST_NAME.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{lastName}</NxReadOnly.Data>
-        <NxReadOnly.Label>{LABELS.EMAIL.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{emailAddress}</NxReadOnly.Data>
-        <NxReadOnly.Label>{LABELS.STATUS.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{status ? STATUSES.active.label : STATUSES.disabled.label}</NxReadOnly.Data>
-      </NxReadOnly>
-      <NxH2>{LABELS.SECTIONS.ROLES}</NxH2>
-      <NxList emptyMessage={LABELS.ROLES.EMPTY_LIST}>
+  return <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+    <AsTile.Content>
+      <AsInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</AsInfoAlert>
+      <AsH2>{LABELS.SECTIONS.SETUP}</AsH2>
+      <AsReadOnly>
+        <AsReadOnly.Label>{LABELS.ID.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{userId}</AsReadOnly.Data>
+        <AsReadOnly.Label>{LABELS.FIRST_NAME.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{firstName}</AsReadOnly.Data>
+        <AsReadOnly.Label>{LABELS.LAST_NAME.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{lastName}</AsReadOnly.Data>
+        <AsReadOnly.Label>{LABELS.EMAIL.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{emailAddress}</AsReadOnly.Data>
+        <AsReadOnly.Label>{LABELS.STATUS.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{status ? STATUSES.active.label : STATUSES.disabled.label}</AsReadOnly.Data>
+      </AsReadOnly>
+      <AsH2>{LABELS.SECTIONS.ROLES}</AsH2>
+      <AsList emptyMessage={LABELS.ROLES.EMPTY_LIST}>
         {(roles || [])?.map(roleId => (
-            <NxList.Item key={roleId}>
-              <NxList.Text>{rolesMap[roleId].name}</NxList.Text>
-            </NxList.Item>
+            <AsList.Item key={roleId}>
+              <AsList.Text>{rolesMap[roleId].name}</AsList.Text>
+            </AsList.Item>
         ))}
-      </NxList>
+      </AsList>
       {isExternal &&
-          <NxReadOnly>
-            <NxReadOnly.Label>{LABELS.EXTERNAL_ROLES.LABEL}</NxReadOnly.Label>
+          <AsReadOnly>
+            <AsReadOnly.Label>{LABELS.EXTERNAL_ROLES.LABEL}</AsReadOnly.Label>
             <div className="read-only-external-roles">
               {hasExternalRoles && externalRoles.map(name => (
-                  <NxReadOnly.Data key={name}>{name}</NxReadOnly.Data>
+                  <AsReadOnly.Data key={name}>{name}</AsReadOnly.Data>
               ))}
             </div>
             {!hasExternalRoles &&
-                <NxReadOnly.Data>{LABELS.EXTERNAL_ROLES.EMPTY_LIST}</NxReadOnly.Data>
+                <AsReadOnly.Data>{LABELS.EXTERNAL_ROLES.EMPTY_LIST}</AsReadOnly.Data>
             }
-          </NxReadOnly>
+          </AsReadOnly>
       }
-    </NxTile.Content>
-    <NxFooter>
-      <NxButtonBar>
-        <NxButton type="button" onClick={cancel}>{UIStrings.SETTINGS.CANCEL_BUTTON_LABEL}</NxButton>
-      </NxButtonBar>
-    </NxFooter>
-  </NxLoadWrapper>;
+    </AsTile.Content>
+    <AsFooter>
+      <AsButtonBar>
+        <AsButton type="button" onClick={cancel}>{UIStrings.SETTINGS.CANCEL_BUTTON_LABEL}</AsButton>
+      </AsButtonBar>
+    </AsFooter>
+  </AsLoadWrapper>;
 }

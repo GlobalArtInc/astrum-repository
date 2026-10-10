@@ -49,7 +49,7 @@ interface DynamicCapabilityFormProps {
   /**
    * When false, hides the Save button so a user without astrum:capabilities:update
    * cannot submit edits (ASTRUM-54212). Matches Classic CapabilitySettingsForm, whose
-   * editableCondition is NX.Conditions.isPermitted('astrum:capabilities:update').
+   * editableCondition is AS.Conditions.isPermitted('astrum:capabilities:update').
    * Defaults to true; create mode is gated on astrum:capabilities:create at navigation.
    */
   canEdit?: boolean;

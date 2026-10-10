@@ -3,14 +3,14 @@ import React from 'react';
 import { equals, mapObjIndexed, values } from 'ramda';
 import { assign, createMachine } from 'xstate';
 import { useMachine } from '@xstate/react';
-import { NxFormSelect, NxTextInput, NxCheckbox, NxReadOnly, NxFormGroup } from '@globalart/react-shared-components';
-import { NxStatefulTransferList } from '@globalart/react-shared-components';
+import { AsFormSelect, AsTextInput, AsCheckbox, AsReadOnly, AsFormGroup } from '@globalart/react-shared-components';
+import { AsStatefulTransferList } from '@globalart/react-shared-components';
 
 import FormUtils from '../../../interface/FormUtils';
 import ValidationUtils from '../../../interface/ValidationUtils';
 import UIStrings from '../../../constants/UIStrings';
 import ExtAPIUtils from '../../../interface/ExtAPIUtils';
-import { NxLoadWrapper } from '@globalart/react-shared-components';
+import { AsLoadWrapper } from '@globalart/react-shared-components';
 
 export default function DynamicFormField({ current, dynamicProps, id, initialValue, readOnly, onChange }) {
   // Note: storeApi, storeFilters, idMapping, nameMapping are legacy ExtJS fields
@@ -24,13 +24,13 @@ export default function DynamicFormField({ current, dynamicProps, id, initialVal
       return editComponent(current, dynamicProps, id, initialValue, onChange)
     } else {
       return (
-        <NxFormGroup
+        <AsFormGroup
           label={dynamicProps.label}
           isRequired={dynamicProps.required}
           sublabel={dynamicProps.helpText}
         >
           {editComponent(current, dynamicProps, id, initialValue, onChange)}
-        </NxFormGroup>
+        </AsFormGroup>
       );
     }
   }
@@ -88,7 +88,7 @@ function editComponent(current, dynamicProps, id, initialValue, onChange) {
       const { fieldProps, className } = getFieldPropsAndClassName(id, current, initialValue, dynamicProps);
       const textInputProps = getTextInputProps(fieldProps, className, dynamicProps, 'text', onChange);
 
-      return <NxTextInput {...textInputProps} />;
+      return <AsTextInput {...textInputProps} />;
     }
     case 'itemselect': {
       return (
@@ -129,19 +129,19 @@ function editComponent(current, dynamicProps, id, initialValue, onChange) {
         onChange,
         handleNumberChange
       );
-      return <NxTextInput {...textInputProps} />;
+      return <AsTextInput {...textInputProps} />;
     }
     case 'checkbox': {
       const checkboxProps = FormUtils.checkboxProps(id, current, initialValue || false);
       return (
-        <NxCheckbox
+        <AsCheckbox
           {...checkboxProps}
           disabled={dynamicProps.disabled}
           readOnly={dynamicProps.readOnly}
           onChange={value => onChange(checkboxProps.name, value)}
         >
           {dynamicProps.label}
-        </NxCheckbox>
+        </AsCheckbox>
       );
     }
     case 'url': {
@@ -155,7 +155,7 @@ function editComponent(current, dynamicProps, id, initialValue, onChange) {
 
       const textInputProps = getTextInputProps(fieldProps, className, dynamicProps, 'text', onChange);
       return (
-        <NxTextInput
+        <AsTextInput
           {...textInputProps}
           validatable={true}
           validationErrors={validateUrl(fieldProps.value) || fieldProps.validationErrors}
@@ -166,13 +166,13 @@ function editComponent(current, dynamicProps, id, initialValue, onChange) {
       const { fieldProps, className } = getFieldPropsAndClassName(id, current, initialValue, dynamicProps);
       const textInputProps = getTextInputProps(fieldProps, className, dynamicProps, 'password', onChange);
 
-      return <NxTextInput {...textInputProps} />;
+      return <AsTextInput {...textInputProps} />;
     }
     case 'text-area': {
       const { fieldProps, className } = getFieldPropsAndClassName(id, current, initialValue, dynamicProps);
       const textInputProps = getTextInputProps(fieldProps, className, dynamicProps, 'textarea', onChange);
 
-      return <NxTextInput {...textInputProps} />;
+      return <AsTextInput {...textInputProps} />;
     }
     default: {
       console.warn(`form field type=${dynamicProps.type} is unknown`);
@@ -187,10 +187,10 @@ function simpleReadOnlyComponent(id, label, value, dynamicProps = {}) {
   value = (value === 'true' && 'Enabled' || value === 'false' && 'Disabled') || value;
 
   return (
-    <NxReadOnly>
-      <NxReadOnly.Label id={id}>{label}</NxReadOnly.Label>
-      <NxReadOnly.Data aria-labeledby={id}>{value}</NxReadOnly.Data>
-    </NxReadOnly>
+    <AsReadOnly>
+      <AsReadOnly.Label id={id}>{label}</AsReadOnly.Label>
+      <AsReadOnly.Data aria-labeledby={id}>{value}</AsReadOnly.Data>
+    </AsReadOnly>
   );
 }
 
@@ -198,23 +198,23 @@ function listReadOnlyComponent(id, label, values, dynamicProps = {}) {
   label = dynamicProps?.label || label;
 
   return (
-    <NxReadOnly>
-      <NxReadOnly.Label id={id}>{label}</NxReadOnly.Label>
+    <AsReadOnly>
+      <AsReadOnly.Label id={id}>{label}</AsReadOnly.Label>
       {Array.isArray(values) && values.length > 0 && values.map((val, index) => (
-        <NxReadOnly.Data key={index} aria-labeledby={id}>{val}</NxReadOnly.Data>
-      )) || <NxReadOnly.Data>NA</NxReadOnly.Data>}
-    </NxReadOnly>
+        <AsReadOnly.Data key={index} aria-labeledby={id}>{val}</AsReadOnly.Data>
+      )) || <AsReadOnly.Data>NA</AsReadOnly.Data>}
+    </AsReadOnly>
   );
 }
 
 // Helper function to get common field props and className
 function getFieldPropsAndClassName(id, current, initialValue, dynamicProps) {
   const fieldProps = FormUtils.fieldProps(id, current, initialValue || '');
-  const className = dynamicProps.attributes.long ? 'nx-text-input--long' : '';
+  const className = dynamicProps.attributes.long ? 'as-text-input--long' : '';
   return { fieldProps, className };
 }
 
-// Helper function to get common NxTextInput props
+// Helper function to get common AsTextInput props
 function getTextInputProps(fieldProps, className, dynamicProps, type, onChange, customOnChange) {
   return {
     ...fieldProps,
@@ -284,7 +284,7 @@ function ComboboxField({ id, current, initialValue, dynamicProps, onChange }) {
   if (attributes?.options) {
     return (
       <>
-        <NxFormSelect
+        <AsFormSelect
           {...fieldProps}
           validatable={true}
           validationErrors={displayError}
@@ -301,9 +301,9 @@ function ComboboxField({ id, current, initialValue, dynamicProps, onChange }) {
               attributes.options
             )
           )}
-        </NxFormSelect>
+        </AsFormSelect>
         {displayError && (
-          <div className='nx-field-validation-message' role='alert'>
+          <div className='as-field-validation-message' role='alert'>
             {displayError}
           </div>
         )}
@@ -393,8 +393,8 @@ function ComboboxField({ id, current, initialValue, dynamicProps, onChange }) {
 
     return (
       <>
-        <NxLoadWrapper loading={isLoading} error={error}>
-          <NxFormSelect
+        <AsLoadWrapper loading={isLoading} error={error}>
+          <AsFormSelect
             {...fieldProps}
             validatable={true}
             validationErrors={displayError}
@@ -411,10 +411,10 @@ function ComboboxField({ id, current, initialValue, dynamicProps, onChange }) {
                 options || {}
               )
             )}
-          </NxFormSelect>
-        </NxLoadWrapper>
+          </AsFormSelect>
+        </AsLoadWrapper>
         {displayError && (
-          <div className='nx-field-validation-message' role='alert'>
+          <div className='as-field-validation-message' role='alert'>
             {displayError}
           </div>
         )}
@@ -426,16 +426,16 @@ function ComboboxField({ id, current, initialValue, dynamicProps, onChange }) {
   console.warn('combobox field missing both attributes.options and storeApi');
   return (
     <>
-      <NxFormSelect
+      <AsFormSelect
         {...fieldProps}
         validatable={true}
         validationErrors={displayError}
         onChange={value => onChange(id, value)}
       >
         <option />
-      </NxFormSelect>
+      </AsFormSelect>
       {displayError && (
-        <div className='nx-field-validation-message' role='alert'>
+        <div className='as-field-validation-message' role='alert'>
           {displayError}
         </div>
       )}
@@ -460,7 +460,7 @@ function ItemSelectField({ id, current, initialValue, dynamicProps, onChange }) 
 
     return (
       <>
-        <NxStatefulTransferList
+        <AsStatefulTransferList
           allItems={allItems}
           selectedItems={selectedItems}
           availableItemsLabel={attributes.fromTitle}
@@ -469,7 +469,7 @@ function ItemSelectField({ id, current, initialValue, dynamicProps, onChange }) 
           allowReordering
         />
         {displayError && (
-          <div className='nx-field-validation-message' role='alert'>
+          <div className='as-field-validation-message' role='alert'>
             {displayError}
           </div>
         )}
@@ -555,7 +555,7 @@ function ItemSelectField({ id, current, initialValue, dynamicProps, onChange }) 
     if (isLoading) {
       return (
         <>
-          <NxStatefulTransferList
+          <AsStatefulTransferList
             allItems={[]}
             selectedItems={selectedItems}
             availableItemsLabel={attributes?.fromTitle || 'Available'}
@@ -564,7 +564,7 @@ function ItemSelectField({ id, current, initialValue, dynamicProps, onChange }) 
             allowReordering
           />
           {displayError && (
-            <div className='nx-field-validation-message' role='alert'>
+            <div className='as-field-validation-message' role='alert'>
               {displayError}
             </div>
           )}
@@ -574,7 +574,7 @@ function ItemSelectField({ id, current, initialValue, dynamicProps, onChange }) 
 
     return (
       <>
-        <NxStatefulTransferList
+        <AsStatefulTransferList
           allItems={data || []}
           selectedItems={selectedItems}
           availableItemsLabel={attributes?.fromTitle || 'Available'}
@@ -583,7 +583,7 @@ function ItemSelectField({ id, current, initialValue, dynamicProps, onChange }) 
           allowReordering
         />
         {displayError && (
-          <div className='nx-field-validation-message' role='alert'>
+          <div className='as-field-validation-message' role='alert'>
             {displayError}
           </div>
         )}
@@ -595,7 +595,7 @@ function ItemSelectField({ id, current, initialValue, dynamicProps, onChange }) 
   console.warn('itemselect field missing both attributes.options and storeApi');
   return (
     <>
-      <NxStatefulTransferList
+      <AsStatefulTransferList
         allItems={[]}
         selectedItems={selectedItems}
         availableItemsLabel={attributes?.fromTitle || 'Available'}
@@ -604,7 +604,7 @@ function ItemSelectField({ id, current, initialValue, dynamicProps, onChange }) 
         allowReordering
       />
       {displayError && (
-        <div className='nx-field-validation-message' role='alert'>
+        <div className='as-field-validation-message' role='alert'>
           {displayError}
         </div>
       )}

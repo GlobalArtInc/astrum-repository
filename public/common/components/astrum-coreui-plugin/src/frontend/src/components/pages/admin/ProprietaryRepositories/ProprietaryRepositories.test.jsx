@@ -135,7 +135,7 @@ describe('ProprietaryRepositories', () => {
   });
 
   describe('Read Only Mode', () => {
-    const listItemClass = 'nx-list__text';
+    const listItemClass = 'as-list__text';
 
     it('shows Proprietary Repositories configuration in Read Only mode', async () => {
       ExtJS.checkPermission.mockReturnValueOnce(false);

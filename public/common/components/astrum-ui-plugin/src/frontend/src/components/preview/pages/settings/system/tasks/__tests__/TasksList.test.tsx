@@ -9,8 +9,8 @@ import { useTasksApi } from '../useTasksApi';
 import { Task } from '../types';
 
 // TasksList imports ExtJS from the relative interface, which delegates to
-// window.NX.Permissions.check (reset to return true before each test by __jest__/setup.js).
-const mockCheckPermission = (global as any).NX.Permissions.check as jest.Mock;
+// window.AS.Permissions.check (reset to return true before each test by __jest__/setup.js).
+const mockCheckPermission = (global as any).AS.Permissions.check as jest.Mock;
 
 jest.mock('../useTasksApi');
 const mockedUseTasksApi = useTasksApi as jest.MockedFunction<typeof useTasksApi>;

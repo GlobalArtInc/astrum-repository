@@ -5,16 +5,16 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--nx-color-border, #eee);
+  border-bottom: 1px solid var(--as-color-border, #eee);
   cursor: pointer;
   transition: background-color 0.15s;
 
   &:hover {
-    background: var(--nx-color-background-hover, #f8f8f8);
+    background: var(--as-color-background-hover, #f8f8f8);
   }
 
   &:focus {
-    outline: 2px solid var(--nx-color-primary, #0066cc);
+    outline: 2px solid var(--as-color-primary, #0066cc);
     outline-offset: -2px;
   }
 
@@ -31,12 +31,12 @@
   &__name {
     font-size: 15px;
     font-weight: 600;
-    color: var(--nx-color-text-primary, #333);
+    color: var(--as-color-text-primary, #333);
   }
 
   &__path {
     font-size: 13px;
-    color: var(--nx-color-text-secondary, #666);
+    color: var(--as-color-text-secondary, #666);
   }
 
   &__meta {
@@ -48,18 +48,18 @@
   &__repository {
     font-size: 12px;
     padding: 2px 8px;
-    background: var(--nx-color-background-secondary, #e8e8e8);
+    background: var(--as-color-background-secondary, #e8e8e8);
     border-radius: 4px;
   }
 
   &__size {
     font-size: 12px;
-    color: var(--nx-color-text-secondary, #666);
+    color: var(--as-color-text-secondary, #666);
   }
 
   &__type {
     font-size: 11px;
-    color: var(--nx-color-text-tertiary, #999);
+    color: var(--as-color-text-tertiary, #999);
   }
 }
 

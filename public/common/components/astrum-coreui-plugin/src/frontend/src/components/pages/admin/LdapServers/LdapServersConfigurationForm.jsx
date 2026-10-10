@@ -8,22 +8,22 @@ import {
 } from '@globalart/astrum-ui-plugin';
 import {useActor} from '@xstate/react';
 import {
-  NxButton,
-  NxButtonBar,
-  NxFormGroup,
-  NxFormSelect,
-  NxH2,
-  NxP,
-  NxStatefulForm,
-  NxStatefulSubmitMask,
-  NxTextInput,
-  NxTile,
-  NxInfoAlert,
-  NxPageTitle,
-  NxFontAwesomeIcon,
-  NxTooltip,
-  NxModal,
-  NxFooter,
+  AsButton,
+  AsButtonBar,
+  AsFormGroup,
+  AsFormSelect,
+  AsH2,
+  AsP,
+  AsStatefulForm,
+  AsStatefulSubmitMask,
+  AsTextInput,
+  AsTile,
+  AsInfoAlert,
+  AsPageTitle,
+  AsFontAwesomeIcon,
+  AsTooltip,
+  AsModal,
+  AsFooter,
 } from '@globalart/react-shared-components';
 import {faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 
@@ -104,57 +104,57 @@ export default forwardRef(({actor, onDone}, ref) => {
   };
 
   return (
-    <NxTile.Content>
-      <NxStatefulForm
+    <AsTile.Content>
+      <AsStatefulForm
         {...FormUtils.formProps(state, send)}
         validationErrors={validations()}
         onSubmit={next}
         submitBtnText={LABELS.NEXT}
         onCancel={onDone}
         additionalFooterBtns={
-          <NxButtonBar>
-            <NxButton
+          <AsButtonBar>
+            <AsButton
               type="button"
               onClick={verify}
               className={classNames({disabled: !canVerify})}
             >
               {LABELS.VERIFY_CONNECTION}
-            </NxButton>
-          </NxButtonBar>
+            </AsButton>
+          </AsButtonBar>
         }
         ref={ref}
       >
-        <NxPageTitle>
-          <NxH2>{LABELS.CONFIGURATION}</NxH2>
+        <AsPageTitle>
+          <AsH2>{LABELS.CONFIGURATION}</AsH2>
           {isEdit && (
-            <NxButtonBar>
-              <NxTooltip title={!canDelete() && PERMISSION_ERROR}>
-                <NxButton
+            <AsButtonBar>
+              <AsTooltip title={!canDelete() && PERMISSION_ERROR}>
+                <AsButton
                   onClick={onDelete}
                   className={classNames({disabled: !canDelete()})}
                   variant="tertiary"
                   type="button"
                 >
-                  <NxFontAwesomeIcon icon={faTrashAlt} />
+                  <AsFontAwesomeIcon icon={faTrashAlt} />
                   <span>{LABELS.DELETE_BUTTON}</span>
-                </NxButton>
-              </NxTooltip>
-            </NxButtonBar>
+                </AsButton>
+              </AsTooltip>
+            </AsButtonBar>
           )}
-        </NxPageTitle>
-        <NxFormGroup label={LABELS.NAME} isRequired>
-          <NxTextInput
+        </AsPageTitle>
+        <AsFormGroup label={LABELS.NAME} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('name', state)}
             onChange={FormUtils.handleUpdate('name', send)}
           />
-        </NxFormGroup>
-        <NxH2>{LABELS.SETTINGS.LABEL}</NxH2>
-        <NxP>{LABELS.SETTINGS.SUB_LABEL}</NxP>
-        <NxFormGroup label={LABELS.PROTOCOL.LABEL} isRequired>
-          <NxFormSelect
+        </AsFormGroup>
+        <AsH2>{LABELS.SETTINGS.LABEL}</AsH2>
+        <AsP>{LABELS.SETTINGS.SUB_LABEL}</AsP>
+        <AsFormGroup label={LABELS.PROTOCOL.LABEL} isRequired>
+          <AsFormSelect
             {...FormUtils.fieldProps('protocol', state)}
             onChange={updateProtocol}
-            className="nx-form-select--short"
+            className="as-form-select--short"
             validatable
           >
             <option value="" disabled={isProtocolSelected} />
@@ -163,22 +163,22 @@ export default forwardRef(({actor, onDone}, ref) => {
                 {label}
               </option>
             ))}
-          </NxFormSelect>
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.HOSTNAME} isRequired>
-          <NxTextInput
-            className="nx-text-input--long"
+          </AsFormSelect>
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.HOSTNAME} isRequired>
+          <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('host', state)}
             onChange={FormUtils.handleUpdate('host', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.PORT} isRequired>
-          <NxTextInput
-            className="nx-text-input--short"
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.PORT} isRequired>
+          <AsTextInput
+            className="as-text-input--short"
             {...FormUtils.fieldProps('port', state)}
             onChange={FormUtils.handleUpdate('port', send)}
           />
-        </NxFormGroup>
+        </AsFormGroup>
         {showUseTrustStore && (
           <UseAstrumTruststore
             remoteUrl={url}
@@ -186,19 +186,19 @@ export default forwardRef(({actor, onDone}, ref) => {
             onChange={FormUtils.handleUpdate('useTrustStore', send)}
           />
         )}
-        <NxFormGroup
+        <AsFormGroup
           label={LABELS.SEARCH.LABEL}
           sublabel={LABELS.SEARCH.SUB_LABEL}
           isRequired
         >
-          <NxTextInput
-            className="nx-text-input--long"
+          <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('searchBase', state)}
             onChange={FormUtils.handleUpdate('searchBase', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.AUTHENTICATION.LABEL} isRequired>
-          <NxFormSelect
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.AUTHENTICATION.LABEL} isRequired>
+          <AsFormSelect
             {...FormUtils.fieldProps('authScheme', state)}
             onChange={FormUtils.handleUpdate('authScheme', send)}
           >
@@ -208,108 +208,108 @@ export default forwardRef(({actor, onDone}, ref) => {
                 {option.label}
               </option>
             ))}
-          </NxFormSelect>
-        </NxFormGroup>
+          </AsFormSelect>
+        </AsFormGroup>
 
         {showAuth && (
           <>
             {showRealmAuth && (
-              <NxFormGroup
+              <AsFormGroup
                 label={LABELS.SASL_REALM.LABEL}
                 sublabel={LABELS.SASL_REALM.SUB_LABEL}
               >
-                <NxTextInput
+                <AsTextInput
                   {...FormUtils.fieldProps('authRealm', state)}
                   onChange={FormUtils.handleUpdate('authRealm', send)}
                 />
-              </NxFormGroup>
+              </AsFormGroup>
             )}
-            <NxFormGroup
+            <AsFormGroup
               label={LABELS.USERNAME.LABEL}
               sublabel={LABELS.USERNAME.SUB_LABEL}
               isRequired
             >
-              <NxTextInput
-                className="nx-text-input--long"
+              <AsTextInput
+                className="as-text-input--long"
                 {...FormUtils.fieldProps('authUsername', state)}
                 onChange={FormUtils.handleUpdate('authUsername', send)}
               />
-            </NxFormGroup>
+            </AsFormGroup>
             {!isEdit && (
-              <NxFormGroup
+              <AsFormGroup
                 label={LABELS.PASSWORD.LABEL}
                 sublabel={LABELS.PASSWORD.SUB_LABEL}
                 isRequired
               >
-                <NxTextInput
+                <AsTextInput
                   {...FormUtils.fieldProps('authPassword', state)}
                   onChange={FormUtils.handleUpdate('authPassword', send)}
                   type="password"
                 />
-              </NxFormGroup>
+              </AsFormGroup>
             )}
             {isEdit && !isAnonymousAuth(authScheme) && (
-              <NxFormGroup label="">
-                <NxButton
+              <AsFormGroup label="">
+                <AsButton
                   variant="tertiary"
                   className="change-password"
                   type="button"
                   onClick={onChangePassword}
                 >
                   {LABELS.CHANGE_PASSWORD}
-                </NxButton>
-              </NxFormGroup>
+                </AsButton>
+              </AsFormGroup>
             )}
           </>
         )}
 
-        <NxH2>{LABELS.CONNECTION_RULES.LABEL}</NxH2>
-        <NxP>{LABELS.CONNECTION_RULES.SUB_LABEL}</NxP>
-        <NxFormGroup
+        <AsH2>{LABELS.CONNECTION_RULES.LABEL}</AsH2>
+        <AsP>{LABELS.CONNECTION_RULES.SUB_LABEL}</AsP>
+        <AsFormGroup
           label={LABELS.WAIT_TIMEOUT.LABEL}
           sublabel={LABELS.WAIT_TIMEOUT.SUB_LABEL}
           isRequired
         >
-          <NxTextInput
-            className="nx-text-input--short"
+          <AsTextInput
+            className="as-text-input--short"
             {...FormUtils.fieldProps('connectionTimeout', state)}
             onChange={FormUtils.handleUpdate('connectionTimeout', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup
+        </AsFormGroup>
+        <AsFormGroup
           label={LABELS.RETRY_TIMEOUT.LABEL}
           sublabel={LABELS.RETRY_TIMEOUT.SUB_LABEL}
           isRequired
         >
-          <NxTextInput
-            className="nx-text-input--short"
+          <AsTextInput
+            className="as-text-input--short"
             {...FormUtils.fieldProps('connectionRetryDelay', state)}
             onChange={FormUtils.handleUpdate('connectionRetryDelay', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup
+        </AsFormGroup>
+        <AsFormGroup
           label={LABELS.MAX_RETRIES.LABEL}
           sublabel={LABELS.MAX_RETRIES.SUB_LABEL}
           isRequired
         >
-          <NxTextInput
-            className="nx-text-input--short"
+          <AsTextInput
+            className="as-text-input--short"
             {...FormUtils.fieldProps('maxIncidentsCount', state)}
             onChange={FormUtils.handleUpdate('maxIncidentsCount', send)}
           />
-        </NxFormGroup>
-        {isEdit && <NxInfoAlert>{LABELS.ALERT}</NxInfoAlert>}
+        </AsFormGroup>
+        {isEdit && <AsInfoAlert>{LABELS.ALERT}</AsInfoAlert>}
         {verifyingConnection && (
-          <NxStatefulSubmitMask
+          <AsStatefulSubmitMask
             message={LABELS.VERIFYING_MESSAGE(urlMessage)}
           />
         )}
         {changingPasswordMessage && (
-          <NxStatefulSubmitMask
+          <AsStatefulSubmitMask
             message={LABELS.CHANGING_PASSWORD_MESSAGE(urlMessage)}
           />
         )}
-      </NxStatefulForm>
+      </AsStatefulForm>
       {askingPassword && (
         <LdapServersModalPassword
           onCancel={() => send({type: 'CANCEL'})}
@@ -319,27 +319,27 @@ export default forwardRef(({actor, onDone}, ref) => {
         />
       )}
       {confirmingDelete && (
-        <NxModal aria-labelledby="modal-header-confirm-delete" variant="narrow">
-          <NxModal.Header>
-            <NxH2 id="modal-header-confirm-delete">
+        <AsModal aria-labelledby="modal-header-confirm-delete" variant="narrow">
+          <AsModal.Header>
+            <AsH2 id="modal-header-confirm-delete">
               {LABELS.MODAL_DELETE.LABEL}
-            </NxH2>
-          </NxModal.Header>
-          <NxModal.Content>
-            <NxP>{LABELS.VERIFY_DELETE_MESSAGE(name)}</NxP>
-          </NxModal.Content>
-          <NxFooter>
-            <NxButtonBar>
-              <NxButton onClick={() => send({type: 'CANCEL'})}>
+            </AsH2>
+          </AsModal.Header>
+          <AsModal.Content>
+            <AsP>{LABELS.VERIFY_DELETE_MESSAGE(name)}</AsP>
+          </AsModal.Content>
+          <AsFooter>
+            <AsButtonBar>
+              <AsButton onClick={() => send({type: 'CANCEL'})}>
                 {SETTINGS.CANCEL_BUTTON_LABEL}
-              </NxButton>
-              <NxButton onClick={() => send({type: 'ACCEPT'})} variant="primary">
+              </AsButton>
+              <AsButton onClick={() => send({type: 'ACCEPT'})} variant="primary">
                 {LABELS.MODAL_DELETE.CONFIRM}
-              </NxButton>
-            </NxButtonBar>
-          </NxFooter>
-        </NxModal>
+              </AsButton>
+            </AsButtonBar>
+          </AsFooter>
+        </AsModal>
       )}
-    </NxTile.Content>
+    </AsTile.Content>
   );
 });

@@ -2,7 +2,7 @@
 import React from 'react';
 import {useActor} from '@xstate/react';
 
-import {NxCombobox, NxFormGroup, NxTextInput} from '@globalart/react-shared-components';
+import {AsCombobox, AsFormGroup, AsTextInput} from '@globalart/react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -51,17 +51,17 @@ export default function ExternalRolesCombobox({actor, parentMachine}) {
 
   return <>
     {externalRoleType.toLowerCase() !== 'ldap' &&
-      <NxFormGroup label={LABELS.MAPPED_ROLE.LABEL} isRequired>
-        <NxTextInput
+      <AsFormGroup label={LABELS.MAPPED_ROLE.LABEL} isRequired>
+        <AsTextInput
           {...FormUtils.fieldProps('id', parentState)}
           onChange={(value) => onSearchMappedRole(value)}
           value={query}
           />
-      </NxFormGroup>
+      </AsFormGroup>
     }
     {externalRoleType.toLowerCase() === 'ldap' &&
-      <NxFormGroup label={LABELS.MAPPED_ROLE.LABEL} isRequired>
-        <NxCombobox
+      <AsFormGroup label={LABELS.MAPPED_ROLE.LABEL} isRequired>
+        <AsCombobox
             {...FormUtils.fieldProps('id', parentState)}
             onChange={onChangeMappedRole}
             onSearch={onSearchMappedRole}
@@ -72,7 +72,7 @@ export default function ExternalRolesCombobox({actor, parentMachine}) {
             aria-label="combobox"
             emptyMessage={emptyMessage()}
         />
-      </NxFormGroup>
+      </AsFormGroup>
     }
   </>
 }

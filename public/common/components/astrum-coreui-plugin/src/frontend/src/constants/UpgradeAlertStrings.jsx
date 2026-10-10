@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 
 export default {
   UPGRADE_ALERT: {
@@ -11,15 +11,15 @@ export default {
       TEXT: 'New features and functionality will not be available until the upgrade process is complete.',
       OLDER_LABEL: 'Astrum Repository versioning is out of date.',
       YEAR_OLD_TEXT: <>You are currently running a GlobalArt Astrum Repository version that is in extended maintenance.
-        See our <NxTextLink external href="https://links.globalart.dev/products/sunsetting/docs/information">
-        Sunsetting information</NxTextLink> for details about our product
-        development lifecycle. Also see our <NxTextLink external href="https://links.globalart.dev/products/astrum/releasenotes">
-        release notes</NxTextLink> to learn more about the newest Astrum Repository version available for your instance.</>,
+        See our <AsTextLink external href="https://links.globalart.dev/products/sunsetting/docs/information">
+        Sunsetting information</AsTextLink> for details about our product
+        development lifecycle. Also see our <AsTextLink external href="https://links.globalart.dev/products/astrum/releasenotes">
+        release notes</AsTextLink> to learn more about the newest Astrum Repository version available for your instance.</>,
       TEXT_18_MONTHS: <>You are currently running a sunsetted GlobalArt Astrum Repository version.
-        See our <NxTextLink external href="https://links.globalart.dev/products/sunsetting/docs/information">
-        Sunsetting information</NxTextLink> for details about our product development
-        lifecycle. Also see our <NxTextLink external href="https://links.globalart.dev/products/astrum/releasenotes">
-        release notes</NxTextLink> to learn more about the newest Astrum Repository version available for your instance.</>
+        See our <AsTextLink external href="https://links.globalart.dev/products/sunsetting/docs/information">
+        Sunsetting information</AsTextLink> for details about our product development
+        lifecycle. Also see our <AsTextLink external href="https://links.globalart.dev/products/astrum/releasenotes">
+        release notes</AsTextLink> to learn more about the newest Astrum Repository version available for your instance.</>
     },
 
     PROGRESS: {

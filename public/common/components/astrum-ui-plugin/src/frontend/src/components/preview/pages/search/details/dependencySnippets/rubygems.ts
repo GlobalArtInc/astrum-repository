@@ -5,7 +5,7 @@ import type { SnippetGenerator } from './types';
 /**
  * RubyGems dependency snippet generator.
  *
- * Ported from Classic NX.rubygems.controller.RubyGemsDependencySnippetController.
+ * Ported from Classic AS.rubygems.controller.RubyGemsDependencySnippetController.
  */
 export const generate: SnippetGenerator = (component) => {
   const { name, version } = component;

@@ -1,5 +1,5 @@
 
-import {NxTextLink} from "@globalart/react-shared-components";
+import {AsTextLink} from "@globalart/react-shared-components";
 import React from "react";
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
@@ -42,9 +42,9 @@ export default {
       UNPROTECTED_MALWARE: {
         TEXT: 'Malware Components in Public Component Repositories',
         DESCRIPTION: <>
-          identified by GlobalArt in npmjs.org, PyPI.org and <NxTextLink
+          identified by GlobalArt in npmjs.org, PyPI.org and <AsTextLink
             href="https://links.globalart.dev/astrum-repository-firewall/malicious-risk/language-and-package-support"
-            external>more</NxTextLink>
+            external>more</AsTextLink>
         </>,
       },
       PROXY_PROTECTION: {
@@ -76,25 +76,25 @@ export default {
     },
     LOAD_ERROR: 'An error occurred while fetching the malicious risk data',
     HDS_CONNECTION_WARNING: <>
-      Malicious Packages data relies on backend services that are currently unreachable. To view malware risk, <NxTextLink
+      Malicious Packages data relies on backend services that are currently unreachable. To view malware risk, <AsTextLink
         href="https://links.globalart.dev/astrum-repository-firewall/malicious-risk/repository-health-check-overview"
-        external>ensure the required URLs are accessible</NxTextLink>
+        external>ensure the required URLs are accessible</AsTextLink>
     </>,
     MALWARE_REMEDIATION: {
       DESCRIPTION: 'GlobalArt has identified malware components in your repository. Use the CSV below to identify which components are malicious and remediate.',
       REMEDIATION_STEPS: {
         TITLE: 'Steps to Identify and Address Malware',
-        FIRST: <>Create and run Automatic Malware Management tasks on your proxy repositories. <NxTextLink
+        FIRST: <>Create and run Automatic Malware Management tasks on your proxy repositories. <AsTextLink
           href="https://links.globalart.dev/products/astrum/docs/scheduled-task" className="scheduled-task-link" external>
-          Learn about maintenance tasks</NxTextLink></>,
+          Learn about maintenance tasks</AsTextLink></>,
         SECOND: 'Download the CSV file using the link below to review the components flagged by GlobalArt as containing malware.',
-        THIRD: <>Search your proxy repository to remove the components. <NxTextLink
+        THIRD: <>Search your proxy repository to remove the components. <AsTextLink
           href="https://links.globalart.dev/astrum-repository-firewall/malware-risk/guide-to-removing-malware"
           className="guide-to-removing-malware-link" external>
-          Guide to removing malware</NxTextLink></>,
-        FOURTH: <>Learn how to protect your repository to keep developers from downloading Malware again. <NxTextLink
+          Guide to removing malware</AsTextLink></>,
+        FOURTH: <>Learn how to protect your repository to keep developers from downloading Malware again. <AsTextLink
           href="https://links.globalart.dev/astrum-repository-firewall/malware-risk/malware-risk" className="malware-risk-link" external>
-          How to protect your repository from malware</NxTextLink></>
+          How to protect your repository from malware</AsTextLink></>
       },
       DOWNLOAD_CSV: 'Download CSV',
       CURRENT_TASKS_CONFIGURED: (count) => <>Current tasks configured: <strong>{count}</strong></>,
@@ -107,9 +107,9 @@ export default {
         compromised applications, data breaches, and regulatory non-compliance.</p>
         <p>Remediation requires immediate removal of infected components, identifying impacted dependencies, and
         Developers must be informed of the threat and prevented from accessing to compromised artifacts.</p>
-        <NxTextLink href="https://links.globalart.dev/astrum-repository-firewall/malware-risk/vulnerabilities-and-malware"
+        <AsTextLink href="https://links.globalart.dev/astrum-repository-firewall/malware-risk/vulnerabilities-and-malware"
                     className="vulnerabilities-and-malware-link" external>
-        Differentiating Software Vulnerabilities and Malware</NxTextLink>
+        Differentiating Software Vulnerabilities and Malware</AsTextLink>
       </>,
     },
     POWERED_BY: {

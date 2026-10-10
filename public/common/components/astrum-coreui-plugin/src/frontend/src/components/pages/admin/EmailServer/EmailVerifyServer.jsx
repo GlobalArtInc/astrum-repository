@@ -3,13 +3,13 @@ import React from 'react';
 import {useActor} from '@xstate/react';
 import {isEmpty} from 'ramda';
 import {
-  NxFormGroup,
-  NxTextInput,
-  NxFormRow,
-  NxButton,
-  NxSuccessAlert,
-  NxErrorAlert,
-  NxLoadWrapper,
+  AsFormGroup,
+  AsTextInput,
+  AsFormRow,
+  AsButton,
+  AsSuccessAlert,
+  AsErrorAlert,
+  AsLoadWrapper,
 } from '@globalart/react-shared-components';
 import {FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
 
@@ -38,36 +38,36 @@ export default function EmailVerifyServer({actor}) {
 
   return (
     <>
-      <NxFormRow>
+      <AsFormRow>
         <>
-          <NxFormGroup
+          <AsFormGroup
             label={LABELS.VERIFY.LABEL}
             sublabel={LABELS.VERIFY.SUB_LABEL}
           >
-            <NxTextInput
+            <AsTextInput
               {...FormUtils.fieldProps('email', state)}
               onChange={FormUtils.handleUpdate('email', send)}
               onKeyDown={handleEnter}
             />
-          </NxFormGroup>
-          <NxButton
+          </AsFormGroup>
+          <AsButton
             variant="primary"
             type="button"
             onClick={onTest}
             disabled={disabled}
           >
             {LABELS.VERIFY.TEST}
-          </NxButton>
+          </AsButton>
         </>
-      </NxFormRow>
-      <NxLoadWrapper
+      </AsFormRow>
+      <AsLoadWrapper
         loading={isSaving}
         loadError={saveError}
         retryHandler={onTest}
       >
-        {success && <NxSuccessAlert>{LABELS.VERIFY.SUCCESS}</NxSuccessAlert>}
-        {error && <NxErrorAlert>{LABELS.VERIFY.ERROR}</NxErrorAlert>}
-      </NxLoadWrapper>
+        {success && <AsSuccessAlert>{LABELS.VERIFY.SUCCESS}</AsSuccessAlert>}
+        {error && <AsErrorAlert>{LABELS.VERIFY.ERROR}</AsErrorAlert>}
+      </AsLoadWrapper>
     </>
   );
 }

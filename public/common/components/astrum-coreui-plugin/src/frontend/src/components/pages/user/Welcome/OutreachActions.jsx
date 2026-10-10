@@ -2,9 +2,9 @@
 import React from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxModal,
-  NxH2,
-  NxFooter, NxButton, NxButtonBar,
+  AsModal,
+  AsH2,
+  AsFooter, AsButton, AsButtonBar,
 } from '@globalart/react-shared-components';
 import {
   faDatabase,
@@ -99,15 +99,15 @@ export default function OutreachActions() {
           ))}
         </div>
         {showConnectModal &&
-            <NxModal
+            <AsModal
                 onCancel={closeConnectModal}
                 aria-labelledby="modal-header-text"
                 className="as-connect-modal"
             >
-              <NxModal.Header>
-                <NxH2 id="modal-header-text">{CONNECT_MODAL.TITLE}</NxH2>
-              </NxModal.Header>
-              <NxModal.Content>
+              <AsModal.Header>
+                <AsH2 id="modal-header-text">{CONNECT_MODAL.TITLE}</AsH2>
+              </AsModal.Header>
+              <AsModal.Content>
                 <dl className="as-connect-modal__steps">
                   <dt>{CONNECT_MODAL.FIRST_STEP_TEXT}</dt>
                   <dd>
@@ -125,19 +125,19 @@ export default function OutreachActions() {
                     />
                   </dd>
                 </dl>
-              </NxModal.Content>
-              <NxFooter>
-                <NxButtonBar>
-                  <NxButton
+              </AsModal.Content>
+              <AsFooter>
+                <AsButtonBar>
+                  <AsButton
                       type="button"
                       variant="primary"
                       onClick={closeConnectModal}
                   >
                     {UIStrings.CLOSE}
-                  </NxButton>
-                </NxButtonBar>
-              </NxFooter>
-            </NxModal>
+                  </AsButton>
+                </AsButtonBar>
+              </AsFooter>
+            </AsModal>
         }
       </>
   );

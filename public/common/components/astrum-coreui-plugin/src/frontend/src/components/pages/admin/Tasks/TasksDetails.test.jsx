@@ -228,7 +228,7 @@ describe('TasksDetails', function() {
         typeId: TASK.typeId,
       }],
     });
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('updates task', async function() {
@@ -267,7 +267,7 @@ describe('TasksDetails', function() {
       }],
     });
 
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('shows save API errors', async function() {

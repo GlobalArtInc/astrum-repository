@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {NxTextInput} from '@globalart/react-shared-components';
+import {AsTextInput} from '@globalart/react-shared-components';
 import FormUtils from '../../../../interface/FormUtils';
 
 import {SUPPORTED_FIELD_TYPES} from '../FormFieldsFactoryConstants';
@@ -23,7 +23,7 @@ const Field = ({id, dynamicProps, current, onChange}) => {
     return data[id];
   }
 
-  return <NxTextInput
+  return <AsTextInput
       {...props}
       {...FormUtils.fieldProps(id, current, initialValue || '')}
       onChange={value => onChange(id, value)}

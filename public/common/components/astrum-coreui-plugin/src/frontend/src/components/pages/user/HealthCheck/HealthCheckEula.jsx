@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {faHandsHelping} from "@fortawesome/free-solid-svg-icons";
 import {ExtJS} from '@globalart/astrum-ui-plugin';
-import {NxButton, NxFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsButton, AsFontAwesomeIcon} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 import {useMachine} from "@xstate/react";
@@ -29,24 +29,24 @@ export default function HealthCheckEula(props) {
   }
 
   return <div>
-    <header className="nx-modal-header">
-      <h2 className="nx-h2">
-        <NxFontAwesomeIcon icon={faHandsHelping} fixedWidth/>
+    <header className="as-modal-header">
+      <h2 className="as-h2">
+        <AsFontAwesomeIcon icon={faHandsHelping} fixedWidth/>
         <span>{UIStrings.HEALTHCHECK_EULA.HEADER}</span>
       </h2>
     </header>
 
-    <div className="nx-modal-content">
+    <div className="as-modal-content">
       <p dangerouslySetInnerHTML={{__html: iframe}} />
     </div>
 
-    <footer className="nx-footer">
-      <NxButton variant="primary" onClick={handleEulaAccept}>
+    <footer className="as-footer">
+      <AsButton variant="primary" onClick={handleEulaAccept}>
         {UIStrings.HEALTHCHECK_EULA.BUTTONS.ACCEPT}
-      </NxButton>
-      <NxButton onClick={handleEulaDecline}>
+      </AsButton>
+      <AsButton onClick={handleEulaDecline}>
         {UIStrings.HEALTHCHECK_EULA.BUTTONS.DECLINE}
-      </NxButton>
+      </AsButton>
     </footer>
   </div>
 }

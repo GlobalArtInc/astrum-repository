@@ -52,7 +52,7 @@ const validSettings = {
 describe('CrowdPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (global as any).NX.Permissions.check.mockReturnValue(true);
+    (global as any).AS.Permissions.check.mockReturnValue(true);
     mockedFetch.mockResolvedValue({ ...mockSettings });
     mockedSave.mockResolvedValue(undefined);
     mockedVerify.mockResolvedValue(undefined);
@@ -812,7 +812,7 @@ describe('CrowdPage', () => {
   });
 
   it('shows read-only view when user lacks all permissions', async () => {
-    (global as any).NX.Permissions.check.mockReturnValue(false);
+    (global as any).AS.Permissions.check.mockReturnValue(false);
 
     render(<CrowdPage />, { wrapper: TestWrapper });
 
@@ -828,7 +828,7 @@ describe('CrowdPage', () => {
   });
 
   it('shows verify connection but not clear cache when user has read but not update permission', async () => {
-    (global as any).NX.Permissions.check.mockImplementation((permission: string) => {
+    (global as any).AS.Permissions.check.mockImplementation((permission: string) => {
       return permission === 'astrum:crowd:read';
     });
     mockedFetch.mockResolvedValue({ ...validSettings });
@@ -848,7 +848,7 @@ describe('CrowdPage', () => {
   // ASTRUM-54212: the read-only warning banner was removed — read-only users simply see
   // the form without write actions instead of a warning message.
   it('does not show a permission warning banner when user lacks update permission', async () => {
-    (global as any).NX.Permissions.check.mockReturnValue(false);
+    (global as any).AS.Permissions.check.mockReturnValue(false);
 
     render(<CrowdPage />, { wrapper: TestWrapper });
 

@@ -4,15 +4,15 @@ import {useActor} from '@xstate/react';
 import {indexBy, prop} from 'ramda';
 
 import {
-  NxButton,
-  NxH2,
-  NxReadOnly,
-  NxLoadWrapper,
-  NxInfoAlert,
-  NxList,
-  NxFooter,
-  NxButtonBar,
-  NxTile,
+  AsButton,
+  AsH2,
+  AsReadOnly,
+  AsLoadWrapper,
+  AsInfoAlert,
+  AsList,
+  AsFooter,
+  AsButtonBar,
+  AsTile,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -36,43 +36,43 @@ export default function RolesReadOnly({service, onDone}) {
 
   const retry = () => send({type: 'RETRY'});
 
-  return <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
-    <NxTile.Content>
-      <NxInfoAlert>
+  return <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+    <AsTile.Content>
+      <AsInfoAlert>
         {isDefaultRole ? LABELS.DEFAULT_ROLE_WARNING : UIStrings.SETTINGS.READ_ONLY.WARNING}
-      </NxInfoAlert>
-      <NxH2>{LABELS.SECTIONS.SETUP}</NxH2>
-      <NxReadOnly>
-        <NxReadOnly.Label>{LABELS.ID.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{id}</NxReadOnly.Data>
-        <NxReadOnly.Label>{LABELS.NAME.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{name}</NxReadOnly.Data>
+      </AsInfoAlert>
+      <AsH2>{LABELS.SECTIONS.SETUP}</AsH2>
+      <AsReadOnly>
+        <AsReadOnly.Label>{LABELS.ID.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{id}</AsReadOnly.Data>
+        <AsReadOnly.Label>{LABELS.NAME.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{name}</AsReadOnly.Data>
         {description && <>
-          <NxReadOnly.Label>{LABELS.DESCRIPTION.LABEL}</NxReadOnly.Label>
-          <NxReadOnly.Data>{description}</NxReadOnly.Data>
+          <AsReadOnly.Label>{LABELS.DESCRIPTION.LABEL}</AsReadOnly.Label>
+          <AsReadOnly.Data>{description}</AsReadOnly.Data>
         </>}
-      </NxReadOnly>
-      <NxH2>{LABELS.SECTIONS.PRIVILEGES}</NxH2>
-      <NxList emptyMessage={LABELS.PRIVILEGES.EMPTY_LIST}>
+      </AsReadOnly>
+      <AsH2>{LABELS.SECTIONS.PRIVILEGES}</AsH2>
+      <AsList emptyMessage={LABELS.PRIVILEGES.EMPTY_LIST}>
         {(privileges || [])?.map(name => (
-            <NxList.Item key={name}>
-              <NxList.Text>{name}</NxList.Text>
-            </NxList.Item>
+            <AsList.Item key={name}>
+              <AsList.Text>{name}</AsList.Text>
+            </AsList.Item>
         ))}
-      </NxList>
-      <NxH2>{LABELS.SECTIONS.ROLES}</NxH2>
-      <NxList emptyMessage={LABELS.ROLES.EMPTY_LIST}>
+      </AsList>
+      <AsH2>{LABELS.SECTIONS.ROLES}</AsH2>
+      <AsList emptyMessage={LABELS.ROLES.EMPTY_LIST}>
         {(selectedRoles || [])?.map(roleId => (
-            <NxList.Item key={roleId}>
-              <NxList.Text>{rolesMap[roleId].name}</NxList.Text>
-            </NxList.Item>
+            <AsList.Item key={roleId}>
+              <AsList.Text>{rolesMap[roleId].name}</AsList.Text>
+            </AsList.Item>
         ))}
-      </NxList>
-    </NxTile.Content>
-    <NxFooter>
-      <NxButtonBar>
-        <NxButton type="button" onClick={cancel}>{UIStrings.SETTINGS.CANCEL_BUTTON_LABEL}</NxButton>
-      </NxButtonBar>
-    </NxFooter>
-  </NxLoadWrapper>;
+      </AsList>
+    </AsTile.Content>
+    <AsFooter>
+      <AsButtonBar>
+        <AsButton type="button" onClick={cancel}>{UIStrings.SETTINGS.CANCEL_BUTTON_LABEL}</AsButton>
+      </AsButtonBar>
+    </AsFooter>
+  </AsLoadWrapper>;
 }

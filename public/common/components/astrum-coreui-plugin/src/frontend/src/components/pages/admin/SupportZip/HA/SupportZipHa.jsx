@@ -6,10 +6,10 @@ import UIStrings from '../../../../../constants/UIStrings';
 const {SUPPORT_ZIP: LABELS} = UIStrings;
 
 import {
-  NxCard,
-  NxPageTitle,
-  NxH2,
-  NxButton,
+  AsCard,
+  AsPageTitle,
+  AsH2,
+  AsButton,
 } from '@globalart/react-shared-components';
 
 import {faArchive} from '@fortawesome/free-solid-svg-icons';
@@ -85,7 +85,7 @@ export default function SupportZipHa() {
       <PageHeader>
         <PageTitle icon={faArchive} {...LABELS.MENU_HA} />
         <PageActions>
-          <NxButton
+          <AsButton
             type="button"
             variant="primary"
             className={classNames({
@@ -94,16 +94,16 @@ export default function SupportZipHa() {
             onClick={generateSupportZipForAllNodes}
           >
             {LABELS.GENERATE_ALL_ZIP_FILES}
-          </NxButton>
+          </AsButton>
         </PageActions>
       </PageHeader>
 
       <ContentBody>
-        <NxPageTitle>
-          <NxH2>{LABELS.AVAILABLE_NODES}</NxH2>
-        </NxPageTitle>
+        <AsPageTitle>
+          <AsH2>{LABELS.AVAILABLE_NODES}</AsH2>
+        </AsPageTitle>
 
-        <NxCard.Container className="as-nodes-container">
+        <AsCard.Container className="as-nodes-container">
           {astrumNodes.map(({...node}) => (
             <NodeCard
               key={node.nodeId}
@@ -112,7 +112,7 @@ export default function SupportZipHa() {
               isBlobStoreConfigured={isBlobStoreConfigured}
             />
           ))}
-        </NxCard.Container>
+        </AsCard.Container>
       </ContentBody>
 
       {showCreateZipModal && (

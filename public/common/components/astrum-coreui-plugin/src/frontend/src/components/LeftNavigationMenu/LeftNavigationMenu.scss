@@ -2,13 +2,13 @@
 
  .as-left-nav{
   // Force sidebar background to use design tokens
-  &.nx-global-sidebar-2 {
+  &.as-global-sidebar-2 {
     background-color: var(--color-surface) !important;
     border-right: 1px solid var(--color-border) !important;
   }
   
-  &__link.nx-text-link {
-    &.as-left-nav__link--no-icon .nx-icon {
+  &__link.as-text-link {
+    &.as-left-nav__link--no-icon .as-icon {
       display: none;
     }
     &:hover {
@@ -21,7 +21,7 @@
   }
   
   // Override all nav link colors (main items)
-  .nx-global-sidebar-2__navigation-link.nx-text-link {
+  .as-global-sidebar-2__navigation-link.as-text-link {
     color: var(--color-text) !important;
     
     &:hover {
@@ -36,14 +36,14 @@
   
   // Override collapsible/expandable item colors (sub-nav)
   .as-navigation-expandable-link__navigation-link {
-    &.nx-global-sidebar-2__navigation-link.nx-text-link {
+    &.as-global-sidebar-2__navigation-link.as-text-link {
       color: var(--color-text) !important;
       
       &:not(.selected):hover {
         background-color: var(--color-surface-hover) !important;
       }
     }
-    &> .nx-icon {
+    &> .as-icon {
       padding: 0 2px;
       color: var(--color-text) !important;
     }
@@ -63,13 +63,13 @@
   }
   
   &.closed {
-    .as-navigation-expandable-link__navigation-link > .nx-icon {
+    .as-navigation-expandable-link__navigation-link > .as-icon {
       padding: 0;
     }
   }
   
   // Toggle button (collapse/expand)
-  .nx-global-sidebar-2__toggle.nx-btn {
+  .as-global-sidebar-2__toggle.as-btn {
     color: var(--color-text) !important;
     background-color: var(--color-surface) !important;
     
@@ -77,7 +77,7 @@
       background-color: var(--color-surface-hover) !important;
     }
     
-    .nx-icon {
+    .as-icon {
       color: var(--color-text) !important;
     }
   }

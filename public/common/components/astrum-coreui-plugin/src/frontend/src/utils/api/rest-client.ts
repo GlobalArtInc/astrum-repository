@@ -148,7 +148,7 @@ function createClient(): AxiosInstance {
       if (config.method !== 'get') {
         const csrfToken = getCsrfToken();
         if (csrfToken) {
-          config.headers['NX-ANTI-CSRF-TOKEN'] = csrfToken;
+          config.headers['AS-ANTI-CSRF-TOKEN'] = csrfToken;
         }
       }
 
@@ -189,7 +189,7 @@ function createClient(): AxiosInstance {
  */
 function getCsrfToken(): string | null {
   // Try meta tag first
-  const metaTag = document.querySelector('meta[name="NX-ANTI-CSRF-TOKEN"]');
+  const metaTag = document.querySelector('meta[name="AS-ANTI-CSRF-TOKEN"]');
   if (metaTag) {
     return metaTag.getAttribute('content');
   }
@@ -198,7 +198,7 @@ function getCsrfToken(): string | null {
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=');
-    if (name === 'NX-ANTI-CSRF-TOKEN') {
+    if (name === 'AS-ANTI-CSRF-TOKEN') {
       return decodeURIComponent(value);
     }
   }

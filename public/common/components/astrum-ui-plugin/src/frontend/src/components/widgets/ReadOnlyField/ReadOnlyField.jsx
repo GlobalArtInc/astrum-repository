@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxReadOnly} from '@globalart/react-shared-components';
+import {AsReadOnly} from '@globalart/react-shared-components';
 import {isNil, isEmpty} from 'ramda';
 
 /**
@@ -18,12 +18,12 @@ export default function ReadOnlyField({label, value, item}) {
 
   const labelAndData = (
       <>
-        <NxReadOnly.Label>{label}</NxReadOnly.Label>
-        <NxReadOnly.Data>{value}</NxReadOnly.Data>
+        <AsReadOnly.Label>{label}</AsReadOnly.Label>
+        <AsReadOnly.Data>{value}</AsReadOnly.Data>
       </>
   );
 
   return (
-      item ? (<NxReadOnly.Item>{labelAndData}</NxReadOnly.Item>) : labelAndData
+      item ? (<AsReadOnly.Item>{labelAndData}</AsReadOnly.Item>) : labelAndData
   );
 }

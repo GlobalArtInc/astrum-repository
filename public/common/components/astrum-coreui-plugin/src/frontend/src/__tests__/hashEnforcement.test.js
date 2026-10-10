@@ -59,7 +59,7 @@ describe('enforceHashRouting', () => {
   }
 
   beforeEach(() => {
-    delete window.__nxHashEnforced;
+    delete window.__asHashEnforced;
     document.querySelectorAll('script[data-test-rapture]').forEach(el => el.remove());
   });
 
@@ -75,9 +75,9 @@ describe('enforceHashRouting', () => {
     expect(replaceSpy).not.toHaveBeenCalled();
   });
 
-  it('does not run twice (guards with __nxHashEnforced)', () => {
+  it('does not run twice (guards with __asHashEnforced)', () => {
     setLocation({ pathname: '/admin/system/tasks' });
-    window.__nxHashEnforced = true;
+    window.__asHashEnforced = true;
     enforceHashRouting();
     expect(replaceSpy).not.toHaveBeenCalled();
   });

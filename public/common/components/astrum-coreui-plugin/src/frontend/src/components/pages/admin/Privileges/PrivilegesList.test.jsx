@@ -282,7 +282,7 @@ describe('PrivilegesList', function() {
       });
 
       // Should calculate 4 pages: Math.ceil(100 / 25) = 4
-      // The exact number of buttons depends on NxPagination implementation
+      // The exact number of buttons depends on AsPagination implementation
       // but pagination should be present
       const pagination = screen.getByRole('navigation');
       expect(pagination).toBeInTheDocument();

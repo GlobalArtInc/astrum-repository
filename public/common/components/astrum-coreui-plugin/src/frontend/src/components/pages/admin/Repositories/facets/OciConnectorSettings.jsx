@@ -2,12 +2,12 @@
 import React from 'react';
 
 import {
-  NxH2,
-  NxCheckbox,
-  NxFieldset,
-  NxFormGroup,
-  NxFormSelect,
-  NxWarningAlert
+  AsH2,
+  AsCheckbox,
+  AsFieldset,
+  AsFormGroup,
+  AsFormSelect,
+  AsWarningAlert
 } from '@globalart/react-shared-components';
 import {FormUtils, ExtJS} from '@globalart/astrum-ui-plugin';
 
@@ -37,21 +37,21 @@ export default function OciConnectorSettings({parentMachine}) {
 
   return (
     <>
-      <NxH2 className="as-oci-connectors-caption">{CONNECTORS.CAPTION}</NxH2>
+      <AsH2 className="as-oci-connectors-caption">{CONNECTORS.CAPTION}</AsH2>
 
       <p className="as-oci-connectors-help">{CONNECTORS.HELP}</p>
 
-      <NxFieldset
+      <AsFieldset
         label={CONNECTORS.PATH_ENABLED.LABEL}
         className="as-form-group-oci-connector-path-enabled"
       >
-        <NxCheckbox
+        <AsCheckbox
           {...FormUtils.checkboxProps('oci.pathEnabled', parentState)}
           onChange={FormUtils.handleUpdate('oci.pathEnabled', sendParent)}
         >
           {CONNECTORS.PATH_ENABLED.DESCR}
-        </NxCheckbox>
-      </NxFieldset>
+        </AsCheckbox>
+      </AsFieldset>
 
       {isProEdition && (
         <ToggleableTextInput
@@ -85,33 +85,33 @@ export default function OciConnectorSettings({parentMachine}) {
         className="as-form-group-oci-connector-https-port"
       />
 
-      <NxFieldset
+      <AsFieldset
         label={CONNECTORS.FORCE_BASIC_AUTH.LABEL}
         className="as-form-group-oci-force-basic-auth"
       >
-        <NxCheckbox
+        <AsCheckbox
           {...FormUtils.checkboxProps('oci.forceBasicAuth', parentState)}
           onChange={FormUtils.handleUpdate('oci.forceBasicAuth', sendParent)}
         >
           {CONNECTORS.FORCE_BASIC_AUTH.DESCR}
-        </NxCheckbox>
+        </AsCheckbox>
         {/* ASTRUM-53064 B2: surface the security implication of disabling
             Force Basic Authentication as a warning banner so the admin cannot
             silently leave the registry open to anonymous pulls. */}
-        <NxWarningAlert className="as-oci-force-basic-auth-warning">
+        <AsWarningAlert className="as-oci-force-basic-auth-warning">
           {CONNECTORS.FORCE_BASIC_AUTH.WARNING}
-        </NxWarningAlert>
-      </NxFieldset>
+        </AsWarningAlert>
+      </AsFieldset>
 
-      <NxH2 className="as-oci-cosign-caption">{COSIGN.CAPTION}</NxH2>
+      <AsH2 className="as-oci-cosign-caption">{COSIGN.CAPTION}</AsH2>
       <p className="as-oci-cosign-help">{COSIGN.HELP}</p>
 
-      <NxFormGroup
+      <AsFormGroup
         label={COSIGN.ENFORCEMENT.LABEL}
         sublabel={COSIGN.ENFORCEMENT.SUBLABEL}
         className="as-form-group-oci-cosign-enforcement"
       >
-        <NxFormSelect
+        <AsFormSelect
           {...FormUtils.selectProps('oci.cosign.enforcement', parentState)}
           onChange={FormUtils.handleUpdate('oci.cosign.enforcement', sendParent)}
         >
@@ -124,8 +124,8 @@ export default function OciConnectorSettings({parentMachine}) {
             is accepted. Re-enable when a non-stub verifier is wired in.
           */}
           <option value="NONE">{COSIGN.ENFORCEMENT.OPTIONS.NONE}</option>
-        </NxFormSelect>
-      </NxFormGroup>
+        </AsFormSelect>
+      </AsFormGroup>
     </>
   );
 }

@@ -56,7 +56,7 @@ const NAME_FILTER_DEBOUNCE_MS = 300;
  * Tags list page aligned with Browse layout: same structure, spacing, and components.
  */
 export function TagsPageRadix(): JSX.Element {
-  // Use the provider-independent ExtJS.usePermission (reads window.NX.Permissions.check
+  // Use the provider-independent ExtJS.usePermission (reads window.AS.Permissions.check
   // directly and stays reactive to login/permission changes). The context-based
   // usePermission returns false without a <PermissionsProvider> ancestor, which coreui
   // (self-hosted) never mounts — that disabled this button for everyone, admins included

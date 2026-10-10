@@ -1,11 +1,11 @@
 
 /*
-  TODO: Remove this custom css once the NxTransferListHalf unlock the ability to turn this icon off officially.
+  TODO: Remove this custom css once the AsTransferListHalf unlock the ability to turn this icon off officially.
   https://issues.globalart.dev/browse/RSC-1254
 */
 .as-ldap-servers {
-  .nx-transfer-list__select {
-    .nx-icon {
+  .as-transfer-list__select {
+    .as-icon {
       display: none;
     }
   }
@@ -15,13 +15,13 @@
   }
 
   .as-ldap-user-mapping-modal {
-    .nx-cell {
+    .as-cell {
       text-overflow: ellipsis;
       max-width: 238px;
       white-space: nowrap;
       overflow: hidden;
 
-      .nx-alert {
+      .as-alert {
         white-space: normal;
       }
     }

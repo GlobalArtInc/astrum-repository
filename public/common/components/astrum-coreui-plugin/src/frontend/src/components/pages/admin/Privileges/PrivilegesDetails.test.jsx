@@ -247,7 +247,7 @@ describe('PrivilegesDetails', function() {
     await waitForElementToBeRemoved(selectors.querySavingMask());
 
     expect(Axios.post).toHaveBeenCalledWith(createPrivilegeUrl(TYPE_IDS.SCRIPT), SCRIPT_PRIVILEGE);
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('renders validation messages for the Repository Content Selector privilege', async function () {
@@ -323,7 +323,7 @@ describe('PrivilegesDetails', function() {
         createPrivilegeUrl(TYPE_IDS.REPOSITORY_CONTENT_SELECTOR),
         REPO_SELECTOR_PRIVILEGE
     );
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('updates Script privilege', async function() {
@@ -357,7 +357,7 @@ describe('PrivilegesDetails', function() {
     await waitForElementToBeRemoved(querySavingMask());
 
     expect(Axios.put).toHaveBeenCalledWith(updatePrivilegeUrl(TYPE_IDS.SCRIPT, testName), data);
-    expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+    expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
   });
 
   it('shows save API errors', async function() {
@@ -657,7 +657,7 @@ describe('PrivilegesDetails', function() {
           createPrivilegeUrl(TYPE_IDS.REPOSITORY_CONTENT_SELECTOR),
           PRIVILEGE_WITH_ALL_ACTIONS
       );
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
 
     it('updates privilege with ALL when all checkboxes are selected', async function() {
@@ -706,7 +706,7 @@ describe('PrivilegesDetails', function() {
           updatePrivilegeUrl(TYPE_IDS.REPOSITORY_CONTENT_SELECTOR, testName),
           UPDATED_PRIVILEGE
       );
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
 
     it('renders ALL action correctly in Read Only Mode', async () => {
@@ -794,7 +794,7 @@ describe('PrivilegesDetails', function() {
       await waitForElementToBeRemoved(querySavingMask());
 
       expect(Axios.post).toHaveBeenCalledWith(createPrivilegeUrl(TYPE_IDS.SCRIPT), SCRIPT_WITH_ALL);
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
 
     it('does not send ALL if only some actions are selected', async function() {
@@ -842,7 +842,7 @@ describe('PrivilegesDetails', function() {
           createPrivilegeUrl(TYPE_IDS.REPOSITORY_CONTENT_SELECTOR),
           PRIVILEGE_WITH_SOME_ACTIONS
       );
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
   });
 });

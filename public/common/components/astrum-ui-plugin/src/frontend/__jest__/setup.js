@@ -59,8 +59,8 @@ global.Ext = {
   widget: jest.fn()
 };
 
-// ExtJS NX Mocks
-global.NX = {
+// ExtJS AS Mocks
+global.AS = {
   Messages: {
     success: jest.fn(),
     error: jest.fn()
@@ -88,16 +88,16 @@ global.NX = {
 };
 
 // Default REST bootstrap state — components import ExtJS from relative path and call
-// window.__nxRestBootstrap for edition/state fallback when ExtJS isn't initialized.
-// Individual tests that need OSS can override window.__nxRestBootstrap.edition.
-window.__nxRestBootstrap = { edition: 'PRO' };
+// window.__asRestBootstrap for edition/state fallback when ExtJS isn't initialized.
+// Individual tests that need OSS can override window.__asRestBootstrap.edition.
+window.__asRestBootstrap = { edition: 'PRO' };
 
-// Reset NX.Permissions.check to return true before every test.
-// Components import ExtJS from relative path and call NX.Permissions.check directly.
+// Reset AS.Permissions.check to return true before every test.
+// Components import ExtJS from relative path and call AS.Permissions.check directly.
 // Individual tests that need canUpdate=false should call:
-//   global.NX.Permissions.check.mockReturnValue(false)
+//   global.AS.Permissions.check.mockReturnValue(false)
 beforeEach(() => {
-  global.NX?.Permissions?.check?.mockReturnValue(true);
+  global.AS?.Permissions?.check?.mockReturnValue(true);
 });
 
 // Default axios mock: prevents JSDOM AggregateError from unmocked XHR.

@@ -2,7 +2,7 @@
 #set($raptureUrl="$relativePath/static/rapture")
 
 <!DOCTYPE html>
-<html lang="en" class="nx-html">
+<html lang="en" class="as-html">
 <head>
   <title>GlobalArt Astrum Repository</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
@@ -114,7 +114,7 @@
     <script type="text/javascript">progressMessage('$text');</script>
   #end
 </head>
-<body class="nx-body">
+<body class="as-body">
 
 <div id="loading-mask"></div>
 <div id="loading">

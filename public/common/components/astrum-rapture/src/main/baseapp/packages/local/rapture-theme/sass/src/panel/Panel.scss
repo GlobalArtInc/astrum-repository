@@ -3,22 +3,22 @@
  */
 
 /**
- * ui: 'nx-inset'
+ * ui: 'as-inset'
  */
 @include extjs-panel-ui(
-  $ui: 'nx-inset',
+  $ui: 'as-inset',
 
   $ui-padding: 12px 12px 0 12px
 );
 
-.x-panel-nx-inset {
+.x-panel-as-inset {
   .x-panel-body {
     .x-toolbar {
       padding: 6px 0 6px 0;
     }
   }
 
-  .x-panel-nx-subsection-framed {
+  .x-panel-as-subsection-framed {
     margin: 0 0 10px 0;
   }
 }
@@ -27,37 +27,37 @@
  * Style for the global warning header
  */
 @include extjs-panel-ui(
-        $ui: 'nx-warning',
+        $ui: 'as-warning',
         $ui-header-background-color: $color-charcoal,
         $ui-header-padding: 5px 16px,
         $ui-body-color: $color-white
 );
 
-.x-panel-nx-warning .x-panel-header {
+.x-panel-as-warning .x-panel-header {
   padding: 5px 16px;
 }
 
-.x-panel-nx-warning {
+.x-panel-as-warning {
   color: $color-white;
 }
 
-.x-panel-nx-warning a,
-.x-panel-nx-warning a:visited,
-.x-panel-nx-warning a:active {
+.x-panel-as-warning a,
+.x-panel-as-warning a:visited,
+.x-panel-as-warning a:active {
   color: $color-gainsboro;
 }
 
-.x-panel-nx-warning a:hover {
+.x-panel-as-warning a:hover {
   color: $color-white;
   text-decoration: underline;
 }
 
-#nx-database-freeze-warning.x-panel-header-text-container-nx-warning {
+#as-database-freeze-warning.x-panel-header-text-container-as-warning {
   margin-left: 6px;
   font-weight: bold;
 }
 
-#nx-file-descriptor-warning.x-panel-header-text-container-nx-warning {
+#as-file-descriptor-warning.x-panel-header-text-container-as-warning {
   margin-left: 6px;
   font-weight: bold;
 }
@@ -69,7 +69,7 @@
 */
 
 @include extjs-panel-ui(
-  $ui: 'nx-subsection',
+  $ui: 'as-subsection',
 
   $ui-header-color: $color-night-rider,
   $ui-header-font-size: $font-size-h4,
@@ -78,7 +78,7 @@
 );
 
 @include extjs-panel-ui(
-  $ui: 'nx-subsection-framed',
+  $ui: 'as-subsection-framed',
 
   $ui-header-border-width: null,
   $ui-header-color: $color-night-rider,
@@ -90,24 +90,24 @@
   $ui-body-border-width: null
 );
 
-.x-panel-nx-subsection > .x-panel-header {
+.x-panel-as-subsection > .x-panel-header {
   padding: 10px 0 5px 0 !important;
 }
 
-.x-panel-nx-subsection-framed {
+.x-panel-as-subsection-framed {
   border: $color-gainsboro 1px solid;
 }
 
-.x-panel-nx-subsection-framed > .x-panel-header {
+.x-panel-as-subsection-framed > .x-panel-header {
   padding: 10px 9px 5px 9px;
 }
 
-.x-panel-nx-subsection-framed > .x-panel-bodyWrap > .x-panel-body {
+.x-panel-as-subsection-framed > .x-panel-bodyWrap > .x-panel-body {
   padding: 9px 9px 10px 9px;
 }
 
 @include extjs-panel-ui(
-  $ui: 'nx-subsection-with-background-framed',
+  $ui: 'as-subsection-with-background-framed',
 
   $ui-header-border-width: null,
   $ui-header-color: $color-night-rider,
@@ -120,9 +120,9 @@
 );
 
 /**
- * cls: 'nx-hr'
+ * cls: 'as-hr'
  */
-.nx-hr {
+.as-hr {
   border-top: 1px solid $color-gainsboro !important;
 }
 
@@ -130,19 +130,19 @@
  * Style for the 'too many results' panel on the search page
  */
 @include extjs-panel-ui(
-  $ui: 'nx-info-message',
+  $ui: 'as-info-message',
 
   $ui-header-background-color: $color-white,
   $ui-header-color: $color-night-rider
 );
-.x-panel-nx-info-message .x-header {
+.x-panel-as-info-message .x-header {
   padding: 0 10px 10px 10px;
 }
-.nx-search-result-list {
+.as-search-result-list {
   border-top: 1px solid $color-gainsboro;
 }
 
 // for rows that are repeated and identical
-.nx-repeated-row {
+.as-repeated-row {
   margin-bottom: 5px;
 }

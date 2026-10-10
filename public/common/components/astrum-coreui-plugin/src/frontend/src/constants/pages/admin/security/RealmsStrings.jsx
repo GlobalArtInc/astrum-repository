@@ -1,6 +1,6 @@
 
 import React from "react";
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faDungeon } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -27,12 +27,12 @@ export default {
           Warning! Removing local realms will prevent local admin access.
           This can make system recovery more difficult should there be issues with
           other authentication realms. For more information, see the{' '}
-          <NxTextLink 
+          <AsTextLink 
             external 
             href="http://links.globalart.dev/products/astrum/docs/realms"
           >
             Realms help documentation
-          </NxTextLink>
+          </AsTextLink>
         </>,
       CONFIRM_BUTTON: 'Confirm',
       ACKNOWLEDGEMENT: {

@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
 public class AntiCsrfFilter
     extends AuthenticationFilter
 {
-  public static final String NAME = "nx-anticsrf-authc";
+  public static final String NAME = "as-anticsrf-authc";
 
   private static final Logger log = LoggerFactory.getLogger(AntiCsrfFilter.class);
 

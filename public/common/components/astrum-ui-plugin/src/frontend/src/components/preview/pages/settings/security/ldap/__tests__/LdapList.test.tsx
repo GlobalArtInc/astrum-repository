@@ -127,7 +127,7 @@ describe('LdapList', () => {
   });
 
   it('hides Clear Cache when the user has astrum:ldap:update but lacks astrum:ldap:delete (ASTRUM-53627)', () => {
-    global.NX.Permissions.check.mockImplementation(
+    global.AS.Permissions.check.mockImplementation(
       (permission: string) => permission !== 'astrum:ldap:delete'
     );
 
@@ -137,7 +137,7 @@ describe('LdapList', () => {
   });
 
   it('shows Clear Cache when the user has astrum:ldap:delete even without astrum:ldap:update (ASTRUM-53627)', () => {
-    global.NX.Permissions.check.mockImplementation(
+    global.AS.Permissions.check.mockImplementation(
       (permission: string) => permission !== 'astrum:ldap:update'
     );
 
@@ -174,7 +174,7 @@ describe('LdapList', () => {
   });
 
   it('hides the row-level Delete button when the user lacks astrum:ldap:delete (ASTRUM-53627)', () => {
-    global.NX.Permissions.check.mockImplementation(
+    global.AS.Permissions.check.mockImplementation(
       (permission: string) => permission !== 'astrum:ldap:delete'
     );
 

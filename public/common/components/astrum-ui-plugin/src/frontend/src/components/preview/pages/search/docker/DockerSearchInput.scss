@@ -7,25 +7,25 @@
   &__wrapper {
     display: flex;
     align-items: center;
-    background-color: var(--nx-color-component-background, #fff);
-    border: 1px solid var(--nx-color-border, #ccc);
-    border-radius: var(--nx-border-radius, 4px);
+    background-color: var(--as-color-component-background, #fff);
+    border: 1px solid var(--as-color-border, #ccc);
+    border-radius: var(--as-border-radius, 4px);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
     &:focus-within {
-      border-color: var(--nx-color-primary-button-background, #0066cc);
+      border-color: var(--as-color-primary-button-background, #0066cc);
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
     }
   }
 
   &__icon {
-    padding-left: var(--nx-spacing-3x, 12px);
+    padding-left: var(--as-spacing-3x, 12px);
     font-size: 1.25rem;
   }
 
   &__field {
     flex: 1;
-    padding: var(--nx-spacing-3x, 12px);
+    padding: var(--as-spacing-3x, 12px);
     border: none;
     background: transparent;
     font-size: 1rem;
@@ -35,18 +35,18 @@
     }
 
     &:disabled {
-      background-color: var(--nx-color-component-background-disabled, #f5f5f5);
+      background-color: var(--as-color-component-background-disabled, #f5f5f5);
       cursor: not-allowed;
     }
 
     &::placeholder {
-      color: var(--nx-color-text-dark, #999);
+      color: var(--as-color-text-dark, #999);
     }
   }
 
   &__loading {
-    padding-right: var(--nx-spacing-3x, 12px);
-    color: var(--nx-color-text-dark, #999);
+    padding-right: var(--as-spacing-3x, 12px);
+    color: var(--as-color-text-dark, #999);
   }
 
   &__suggestions {
@@ -57,10 +57,10 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    background-color: var(--nx-color-component-background, #fff);
-    border: 1px solid var(--nx-color-border, #ccc);
+    background-color: var(--as-color-component-background, #fff);
+    border: 1px solid var(--as-color-border, #ccc);
     border-top: none;
-    border-radius: 0 0 var(--nx-border-radius, 4px) var(--nx-border-radius, 4px);
+    border-radius: 0 0 var(--as-border-radius, 4px) var(--as-border-radius, 4px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     z-index: 100;
     max-height: 300px;
@@ -68,13 +68,13 @@
   }
 
   &__suggestion {
-    padding: var(--nx-spacing-2x, 8px) var(--nx-spacing-3x, 12px);
+    padding: var(--as-spacing-2x, 8px) var(--as-spacing-3x, 12px);
     cursor: pointer;
     transition: background-color 0.15s ease;
 
     &:hover,
     &--selected {
-      background-color: var(--nx-color-interactive-background-hover, #f5f5f5);
+      background-color: var(--as-color-interactive-background-hover, #f5f5f5);
     }
   }
 }

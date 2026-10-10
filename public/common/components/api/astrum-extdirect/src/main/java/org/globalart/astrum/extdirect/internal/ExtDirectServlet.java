@@ -198,8 +198,8 @@ public class ExtDirectServlet
             "astrum",
             apiFile.getName(),
             apiFile.getAbsolutePath(),
-            "NX.direct.api",
-            "NX.direct",
+            "AS.direct.api",
+            "AS.direct",
             apiClasses));
   }
 

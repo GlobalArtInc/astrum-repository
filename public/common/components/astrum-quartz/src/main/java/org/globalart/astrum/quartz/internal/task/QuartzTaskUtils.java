@@ -35,7 +35,7 @@ public class QuartzTaskUtils
   }
 
   /**
-   * Returns the trigger associated with NX Task wrapping job.
+   * Returns the trigger associated with Astrum Task wrapping job.
    *
    * The trigger executing this Job does NOT have to be THAT trigger, think about "runNow"!
    * So, this method returns the associated trigger, while the trigger in context might be something
@@ -56,7 +56,7 @@ public class QuartzTaskUtils
   }
 
   /**
-   * Returns the current trigger for currently executing NX Task.
+   * Returns the current trigger for currently executing Astrum Task.
    *
    * That is either its associated trigger loaded up by key using {@link #getJobTrigger(JobExecutionContext)},
    * or if not found (can happen when invoked from

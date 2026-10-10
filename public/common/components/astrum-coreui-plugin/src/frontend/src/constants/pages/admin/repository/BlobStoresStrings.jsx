@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faHdd } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -55,9 +55,9 @@ export default {
           the blob store attached to those repositories. In traditional, single node Astrum deployments, blob stores
           are typically associated with a local filesystem directory, usually within the globalart-work directory.
           For more information, check{' '}
-          <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/blob-store">
+          <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/blob-store">
             the documentation
-          </NxTextLink>.
+          </AsTextLink>.
         </>,
       },
       AVAILABLE: 'Started',

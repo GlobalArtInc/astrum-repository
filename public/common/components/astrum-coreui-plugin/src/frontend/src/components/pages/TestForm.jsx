@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { DynamicFormField, ValidationUtils } from '@globalart/astrum-ui-plugin';
-import { NxFormGroup, NxH2, NxTile, NxForm } from '@globalart/react-shared-components';
+import { AsFormGroup, AsH2, AsTile, AsForm } from '@globalart/react-shared-components';
 import { ContentBody, Page, PageHeader, PageTitle } from '@globalart/astrum-ui-plugin';
 import { isEmpty } from 'ramda';
 // Real server data examples for each DynamicFormField type
@@ -380,7 +380,7 @@ export default function TestForm() {
     setShowValidationErrors(true);
 
     if (hasErrors) {
-      // Set validation errors for NxForm to display
+      // Set validation errors for AsForm to display
       setValidationErrors('Please correct the validation errors below');
       return;
     }
@@ -447,14 +447,14 @@ export default function TestForm() {
         <PageTitle text="DynamicFormField Test Form" />
       </PageHeader>
       <ContentBody>
-        <NxTile>
-          <NxTile.Header>
-            <NxTile.HeaderTitle>
-              <NxH2>DynamicFormField Test Form</NxH2>
-            </NxTile.HeaderTitle>
-          </NxTile.Header>
-          <NxTile.Content>
-            <NxForm
+        <AsTile>
+          <AsTile.Header>
+            <AsTile.HeaderTitle>
+              <AsH2>DynamicFormField Test Form</AsH2>
+            </AsTile.HeaderTitle>
+          </AsTile.Header>
+          <AsTile.Content>
+            <AsForm
               onSubmit={handleSubmit}
               onCancel={handleCancel}
               showValidationErrors={showValidationErrors}
@@ -627,7 +627,7 @@ export default function TestForm() {
               />
 
               {/* Display current form data */}
-              <NxFormGroup
+              <AsFormGroup
                 label="Current Form Data"
                 sublabel="Real-time form state"
               >
@@ -643,10 +643,10 @@ export default function TestForm() {
                 >
                   {JSON.stringify(formData, null, 2)}
                 </pre>
-              </NxFormGroup>
-            </NxForm>
-          </NxTile.Content>
-        </NxTile>
+              </AsFormGroup>
+            </AsForm>
+          </AsTile.Content>
+        </AsTile>
       </ContentBody>
     </Page>
   );

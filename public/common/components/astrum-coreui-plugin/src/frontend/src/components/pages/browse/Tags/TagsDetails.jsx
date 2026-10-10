@@ -4,13 +4,13 @@ import {useMachine} from '@xstate/react';
 
 import {ReadOnlyField} from '@globalart/astrum-ui-plugin';
 import {
-  NxLoadWrapper,
-  NxTile,
-  NxH2,
-  NxTextLink,
-  NxBackButton,
-  NxReadOnly,
-  NxCopyToClipboard
+  AsLoadWrapper,
+  AsTile,
+  AsH2,
+  AsTextLink,
+  AsBackButton,
+  AsReadOnly,
+  AsCopyToClipboard
 } from '@globalart/react-shared-components';
 
 import {
@@ -44,35 +44,35 @@ export default function TagsDetails({itemId}) {
   return <div className="as-tags">
     <div>
       <PageTitle icon={faTags} {...TAGS.DETAILS.HEADER}/>
-      <NxBackButton href="#browse/tags" text={TAGS.DETAILS.BACK_TO_TAGS_TABLE}/>
+      <AsBackButton href="#browse/tags" text={TAGS.DETAILS.BACK_TO_TAGS_TABLE}/>
     </div>
     <ContentBody>
-      <NxTile>
-        <NxLoadWrapper retryHandler={retry} loading={isLoading} error={hasLoadError}>
+      <AsTile>
+        <AsLoadWrapper retryHandler={retry} loading={isLoading} error={hasLoadError}>
           {() => (
             <>
-              <NxTile.Header>
-                <NxTile.HeaderTitle>
-                  <NxH2>{tagData.name} {TAGS.DETAILS.TILE_HEADER}</NxH2>
-                </NxTile.HeaderTitle>
-                <NxTile.HeaderActions>
-                  <NxTextLink href={'#browse/search/custom/=' + encodeURIComponent(`tags="${tagData.name}"`)}>{TAGS.DETAILS.FIND_TAGGED}</NxTextLink>
-                </NxTile.HeaderActions>
-              </NxTile.Header>
-              <NxTile.Content>
-                <NxReadOnly>
+              <AsTile.Header>
+                <AsTile.HeaderTitle>
+                  <AsH2>{tagData.name} {TAGS.DETAILS.TILE_HEADER}</AsH2>
+                </AsTile.HeaderTitle>
+                <AsTile.HeaderActions>
+                  <AsTextLink href={'#browse/search/custom/=' + encodeURIComponent(`tags="${tagData.name}"`)}>{TAGS.DETAILS.FIND_TAGGED}</AsTextLink>
+                </AsTile.HeaderActions>
+              </AsTile.Header>
+              <AsTile.Content>
+                <AsReadOnly>
                   <ReadOnlyField label={TAGS.DETAILS.FIRST_CREATED} value={new Date(tagData.firstCreated).toLocaleString()}/>
                   <ReadOnlyField label={TAGS.DETAILS.LAST_UPDATED} value={new Date(tagData.lastUpdated).toLocaleString()}/>
-                </NxReadOnly>
-                <NxCopyToClipboard 
+                </AsReadOnly>
+                <AsCopyToClipboard 
                   label={TAGS.DETAILS.ATTRIBUTES}
                   content={JSON.stringify(tagData.attributes, null, 2)} 
                 />
-              </NxTile.Content>
+              </AsTile.Content>
             </>
           )}
-        </NxLoadWrapper>
-      </NxTile>
+        </AsLoadWrapper>
+      </AsTile>
     </ContentBody>
   </div>
 }

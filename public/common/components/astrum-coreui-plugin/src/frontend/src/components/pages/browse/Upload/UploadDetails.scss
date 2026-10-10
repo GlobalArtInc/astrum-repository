@@ -1,23 +1,23 @@
 
-@use '~@globalart/react-shared-components/scss-shared/nx-container-helpers';
+@use '~@globalart/react-shared-components/scss-shared/as-container-helpers';
 
 .as-upload-details {
   &__asset-group {
-    @include nx-container-helpers.container-vertical;
+    @include as-container-helpers.container-vertical;
 
     border: none;
-    margin: var(--nx-spacing-8x) 0;
+    margin: var(--as-spacing-8x) 0;
     padding: 0;
 
-    > .nx-form-group > .nx-file-upload {
+    > .as-form-group > .as-file-upload {
       // RSC ought to handle this. RSC-1510 is the bug for the fact that they do not
       margin-bottom: 0;
     }
 
     + .as-upload-details {
       &__asset-group, &__add-asset-row {
-        border-top: var(--nx-border-default);
-        padding-top: var(--nx-spacing-8x);
+        border-top: var(--as-border-default);
+        padding-top: var(--as-spacing-8x);
       }
     }
   }

@@ -23,7 +23,7 @@ public class UiPluginDescriptorImpl
   public UiPluginDescriptorImpl() {
     super("astrum-repository-maven");
     setHasStyle(false);
-    setNamespace("NX.maven");
-    setConfigClassName("NX.maven.app.PluginConfig");
+    setNamespace("AS.maven");
+    setConfigClassName("AS.maven.app.PluginConfig");
   }
 }

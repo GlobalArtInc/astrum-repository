@@ -229,7 +229,7 @@ function OciAttestationsContent({ componentData }: OciAttestationsCardProps): JS
  * {@code OciAttestationsContent} directly inside a {@code Tabs.Content} box so no extra card
  * nesting occurs.
  *
- * Mirrors the classic ExtJS AttestationsTab (NX.oci.view.component.AttestationsTab): resolves
+ * Mirrors the classic ExtJS AttestationsTab (AS.oci.view.component.AttestationsTab): resolves
  * the manifest digest from the component's assets, then GETs
  * {@code /service/rest/internal/oci/attestations?repo=&digest=} and renders a row per referrer
  * (SBOM, cosign signature, in-toto attestation). Closes the cloud-side gap reported in

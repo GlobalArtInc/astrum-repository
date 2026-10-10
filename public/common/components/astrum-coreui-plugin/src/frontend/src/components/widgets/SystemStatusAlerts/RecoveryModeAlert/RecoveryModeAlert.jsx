@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxButton} from '@globalart/react-shared-components';
+import {AsButton} from '@globalart/react-shared-components';
 import {ExtJS, handleExtJsUnsavedChanges, showUnsavedChangesModal} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -48,13 +48,13 @@ export default function RecoveryModeAlert() {
         <div className="as-recovery-mode-alert">
           <div>{TEXT}</div>
 
-          <NxButton
+          <AsButton
               onClick={onClick}
               data-analytics-id="as-recovery-mode-alert-btn"
               variant="primary"
           >
               {BUTTON}
-          </NxButton>
+          </AsButton>
         </div>
       </SystemNotice>
     );

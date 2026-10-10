@@ -76,7 +76,7 @@ export default function HelpMenuRadix() {
     <DropdownMenu.Root>
       <Tooltip content="Help & Documentation">
         <DropdownMenu.Trigger>
-          <IconButton variant="outline" size="2" color="gray" aria-label="Help & Documentation" data-analytics-id="as-header-help">
+          <IconButton variant="outline" size="2" color="gray" aria-label="Help & Documentation" data-analytics-id="astrum-header-help">
             <HelpCircle size={16} />
           </IconButton>
         </DropdownMenu.Trigger>

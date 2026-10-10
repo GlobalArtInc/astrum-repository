@@ -3,14 +3,14 @@ import React from 'react';
 import {useActor} from '@xstate/react';
 import classNames from 'classnames';
 import {
-  NxCard,
-  NxFontAwesomeIcon,
-  NxH3,
-  NxP,
-  NxTextLink,
-  NxTooltip,
-  NxLoadingSpinner,
-  NxButton,
+  AsCard,
+  AsFontAwesomeIcon,
+  AsH3,
+  AsP,
+  AsTextLink,
+  AsTooltip,
+  AsLoadingSpinner,
+  AsButton,
 } from '@globalart/react-shared-components';
 
 import {ExtJS, DateUtils} from '@globalart/astrum-ui-plugin';
@@ -38,36 +38,36 @@ export default function NodeCard({actor, createZip, isBlobStoreConfigured}) {
   const zipLastUpdatedHtml = () => {
     if (!isNodeActive) {
       return (
-        <NxP className="as-p-zip-updated">
+        <AsP className="as-p-zip-updated">
           {LABELS.NODE_UNAVAILABLE_CANNOT_CREATE}
-        </NxP>
+        </AsP>
       );
     }
 
     if (!isBlobStoreConfigured) {
       return (
-        <NxP className="as-p-zip-updated">
+        <AsP className="as-p-zip-updated">
           {LABELS.NO_BLOB_STORE_CONFIGURED}
-        </NxP>
+        </AsP>
       );
     }
 
     if (zipCreating) {
-      return <NxLoadingSpinner>{LABELS.CREATING_ZIP}</NxLoadingSpinner>;
+      return <AsLoadingSpinner>{LABELS.CREATING_ZIP}</AsLoadingSpinner>;
     }
 
     if (zipNotCreated) {
-      return <NxP className="as-p-zip-updated">{LABELS.NO_ZIP_CREATED}</NxP>;
+      return <AsP className="as-p-zip-updated">{LABELS.NO_ZIP_CREATED}</AsP>;
     }
 
     return (
-      <NxP className="as-p-zip-updated">
-        <NxTextLink href={ExtJS.urlOf(`service/rest/wonderland/download/${data.blobRef}`)} download>
+      <AsP className="as-p-zip-updated">
+        <AsTextLink href={ExtJS.urlOf(`service/rest/wonderland/download/${data.blobRef}`)} download>
           {LABELS.DOWNLOAD_ZIP}
           <br />
           {DateUtils.prettyDateTime(new Date(data.lastUpdated))}
-        </NxTextLink>
-      </NxP>
+        </AsTextLink>
+      </AsP>
     );
   };
 
@@ -81,33 +81,33 @@ export default function NodeCard({actor, createZip, isBlobStoreConfigured}) {
   };
 
   return (
-    <NxCard>
-      <NxTooltip
+    <AsCard>
+      <AsTooltip
         title={isNodeActive ? LABELS.NODE_IS_ACTIVE : LABELS.NODE_IS_INACTIVE}
         placement="top-middle"
       >
-        <NxCard.Header>
-          <NxH3>
+        <AsCard.Header>
+          <AsH3>
             {isNodeActive ? (
-              <NxFontAwesomeIcon
+              <AsFontAwesomeIcon
                 icon={faCheckCircle}
                 className="as-node-green-checkmark"
               />
             ) : (
-              <NxFontAwesomeIcon icon={faTimesCircle} />
+              <AsFontAwesomeIcon icon={faTimesCircle} />
             )}{' '}
             {data.hostname}
-          </NxH3>
-        </NxCard.Header>
-      </NxTooltip>
-      <NxCard.Content>
-        <NxCard.Text>{zipLastUpdatedHtml()}</NxCard.Text>
-      </NxCard.Content>
-      <NxCard.Footer>
+          </AsH3>
+        </AsCard.Header>
+      </AsTooltip>
+      <AsCard.Content>
+        <AsCard.Text>{zipLastUpdatedHtml()}</AsCard.Text>
+      </AsCard.Content>
+      <AsCard.Footer>
         {nodeError && (
-          <NxP className="error-message">{LABELS.GENERATE_ERROR}</NxP>
+          <AsP className="error-message">{LABELS.GENERATE_ERROR}</AsP>
         )}
-        <NxButton
+        <AsButton
           variant={nodeError ? 'error' : 'secondary'}
           onClick={handleGenerate}
           className={classNames({
@@ -116,14 +116,14 @@ export default function NodeCard({actor, createZip, isBlobStoreConfigured}) {
         >
           {nodeError ? (
             <>
-              <NxFontAwesomeIcon icon={faSync} />
+              <AsFontAwesomeIcon icon={faSync} />
               <span>{LABELS.RETRY}</span>
             </>
           ) : (
             LABELS.GENERATE_NEW_ZIP_FILE
           )}
-        </NxButton>
-      </NxCard.Footer>
-    </NxCard>
+        </AsButton>
+      </AsCard.Footer>
+    </AsCard>
   );
 }

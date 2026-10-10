@@ -2,7 +2,7 @@
 import React from 'react';
 
 import {
-  NxTextLink
+  AsTextLink
 } from '@globalart/react-shared-components';
 import { faClock } from '@fortawesome/free-solid-svg-icons';
 
@@ -12,9 +12,9 @@ export default {
       text: 'Recovery Mode',
       description: <>
           This mode is a system state designed to safely investigate and repair data consistency issues.
-          {' '}<NxTextLink external href="https://links.globalart.dev/products/astrum/docs/recovery-mode">
+          {' '}<AsTextLink external href="https://links.globalart.dev/products/astrum/docs/recovery-mode">
                   Learn more
-               </NxTextLink>.
+               </AsTextLink>.
         </>,
       icon: faClock
     },

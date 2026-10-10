@@ -24,7 +24,7 @@ public class LegacyUrlCapability
   private interface Messages
       extends MessageBundle
   {
-    @DefaultMessage("NXRM2 style urls enabled")
+    @DefaultMessage("Legacy style urls enabled")
     String description();
   }
 

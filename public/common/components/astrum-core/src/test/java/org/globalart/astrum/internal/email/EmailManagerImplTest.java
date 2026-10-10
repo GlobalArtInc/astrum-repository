@@ -34,7 +34,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class EmailManagerImplTest
 {
-  private static final String PASSWORD_PLACEHOLDER = "#~NXRM~PLACEHOLDER~PASSWORD~#";
+  private static final String PASSWORD_PLACEHOLDER = "#~ASTRUM~PLACEHOLDER~PASSWORD~#";
 
   @Mock
   private EventManager eventManager;

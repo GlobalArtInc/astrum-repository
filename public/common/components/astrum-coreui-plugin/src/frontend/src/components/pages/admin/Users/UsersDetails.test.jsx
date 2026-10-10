@@ -299,7 +299,7 @@ describe('UsersDetails', function() {
       await waitForElementToBeRemoved(querySavingMask());
 
       expect(Axios.post).toHaveBeenCalledWith(createUserUrl, REQUEST);
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
 
     it('updates local user', async function() {
@@ -344,7 +344,7 @@ describe('UsersDetails', function() {
       await waitForElementToBeRemoved(querySavingMask());
 
       expect(Axios.put).toHaveBeenCalledWith(singleUserUrl(testId), data);
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
 
     it('does not show delete button for the anonymous user', async function() {
@@ -478,7 +478,7 @@ describe('UsersDetails', function() {
           })
       ));
 
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
 
     it('removes all roles', async function() {
@@ -500,7 +500,7 @@ describe('UsersDetails', function() {
           })
       ));
 
-      expect(NX.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
+      expect(AS.Messages.success).toHaveBeenCalledWith(UIStrings.SAVE_SUCCESS);
     });
 
     describe('Read-Only Mode', function() {

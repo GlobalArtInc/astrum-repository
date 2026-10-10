@@ -342,7 +342,7 @@ describe('useRepositoriesApi', () => {
     // would silently persist inert config values that survive across flag toggles and
     // diverge from Classic UI's payload.
     const setFeatureFlag = (enabled: boolean): (() => void) => {
-      const state = (window as unknown as { NX: { State: { getValue: jest.Mock } } }).NX.State;
+      const state = (window as unknown as { AS: { State: { getValue: jest.Mock } } }).AS.State;
       const original = state.getValue;
       state.getValue = jest.fn((key: string) => {
         if (key === 'astrum.nuget.symbol.server.enabled') return enabled;

@@ -5,14 +5,14 @@ import { useRouter } from '@uirouter/react';
 import classNames from 'classnames';
 
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
-  NxFontAwesomeIcon
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
+  AsFontAwesomeIcon
 } from '@globalart/react-shared-components';
 
 import {
@@ -70,84 +70,84 @@ export default function CapabilitiesList() {
       <PageHeader>
         <PageTitle icon={faServer} {...CAPABILITIES.MENU} />
         <PageActions>
-          <NxButton data-analytics-id="as-create-capability" variant="primary" onClick={onCreate} disabled={!canCreate}>{CAPABILITIES.LIST.CREATE_BUTTON}</NxButton>
+          <AsButton data-analytics-id="as-create-capability" variant="primary" onClick={onCreate} disabled={!canCreate}>{CAPABILITIES.LIST.CREATE_BUTTON}</AsButton>
         </PageActions>
       </PageHeader>
       <ContentBody className='as-capabilities-list'>
         <Section>
           <SectionToolbar>
             <div className="as-spacer"/>
-            <NxFilterInput placeholder={UIStrings.FILTER} value={filter} onChange={filterHandler} />
+            <AsFilterInput placeholder={UIStrings.FILTER} value={filter} onChange={filterHandler} />
           </SectionToolbar>
-          <NxTable>
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell
+          <AsTable>
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell
                   isSortable
                   sortDir={ListMachineUtils.getSortDirection('typeName', { sortField, sortDirection })}
                   onClick={sortByTypeName}
                 >
                   {COLUMNS.TYPE}
-                </NxTableCell>
-                <NxTableCell
+                </AsTableCell>
+                <AsTableCell
                   isSortable
                   sortDir={ListMachineUtils.getSortDirection('state', { sortField, sortDirection })}
                   onClick={sortByState}
                 >
                   {COLUMNS.STATE}
-                </NxTableCell>
-                <NxTableCell
+                </AsTableCell>
+                <AsTableCell
                   isSortable
                   sortDir={ListMachineUtils.getSortDirection('category', { sortField, sortDirection })}
                   onClick={sortByCategory}
                 >
                   {COLUMNS.CATEGORY}
-                </NxTableCell>
+                </AsTableCell>
                 { showsRepositoryHeader &&
-                  <NxTableCell
+                  <AsTableCell
                     isSortable
                     sortDir={ListMachineUtils.getSortDirection('repository', { sortField, sortDirection })}
                     onClick={sortByRepository}
                   >
                     {COLUMNS.REPOSITORY}
-                  </NxTableCell>
+                  </AsTableCell>
                 }
-                <NxTableCell
+                <AsTableCell
                   isSortable
                   sortDir={ListMachineUtils.getSortDirection('description', { sortField, sortDirection })}
                   onClick={sortByDescription}
                 >
                   {COLUMNS.DESCRIPTION}
-                </NxTableCell>
-                <NxTableCell
+                </AsTableCell>
+                <AsTableCell
                   isSortable
                   sortDir={ListMachineUtils.getSortDirection('notes', { sortField, sortDirection })}
                   onClick={sortByNotes}
                 >
                   {COLUMNS.NOTES}
-                </NxTableCell>
-                <NxTableCell chevron />
-              </NxTableRow>
-            </NxTableHead>
-            <NxTableBody
+                </AsTableCell>
+                <AsTableCell chevron />
+              </AsTableRow>
+            </AsTableHead>
+            <AsTableBody
               isLoading={isLoading}
               error={error}
               emptyMessage={CAPABILITIES.LIST.EMPTY_LIST}
               retryHandler={retryHandler}
             >
               {data.map(({ id, state, typeName, description, notes, tags }) => (
-                <NxTableRow isClickable key={id} onClick={() => onEdit(id)}>
-                  <NxTableCell>{typeName}</NxTableCell>
+                <AsTableRow isClickable key={id} onClick={() => onEdit(id)}>
+                  <AsTableCell>{typeName}</AsTableCell>
                   <StateCell state={state} />
-                  <NxTableCell>{tagsToCategoryDisplayText(tags)}</NxTableCell>
-                  { showsRepositoryHeader && <NxTableCell>{propertiesToRepositoryDisplayText(tags)}</NxTableCell>}
-                  <NxTableCell>{toDisplayText(description)}</NxTableCell>
-                  <NxTableCell>{toDisplayText(notes)}</NxTableCell>
-                  <NxTableCell chevron />
-                </NxTableRow>
+                  <AsTableCell>{tagsToCategoryDisplayText(tags)}</AsTableCell>
+                  { showsRepositoryHeader && <AsTableCell>{propertiesToRepositoryDisplayText(tags)}</AsTableCell>}
+                  <AsTableCell>{toDisplayText(description)}</AsTableCell>
+                  <AsTableCell>{toDisplayText(notes)}</AsTableCell>
+                  <AsTableCell chevron />
+                </AsTableRow>
               ))}
-            </NxTableBody>
-          </NxTable>
+            </AsTableBody>
+          </AsTable>
         </Section>
       </ContentBody>
     </Page>
@@ -186,9 +186,9 @@ function StateCell({state}) {
   }
 
   return (
-      <NxTableCell className={classNames("capabilities-state", "capabilities-state__" + state)}>
-        {icon && <NxFontAwesomeIcon icon={icon} />}
+      <AsTableCell className={classNames("capabilities-state", "capabilities-state__" + state)}>
+        {icon && <AsFontAwesomeIcon icon={icon} />}
         {state}
-      </NxTableCell>
+      </AsTableCell>
   );
 }

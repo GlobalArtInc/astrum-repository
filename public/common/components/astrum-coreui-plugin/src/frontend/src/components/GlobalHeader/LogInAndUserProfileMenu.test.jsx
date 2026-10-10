@@ -102,7 +102,7 @@ describe('LogInAndUserProfileMenu', () => {
       render(<LogInAndUserProfileMenu />);
 
       const loginButton = screen.getByRole('button', { name: /log in/i });
-      // NxButton renders aria-label but not title attribute
+      // AsButton renders aria-label but not title attribute
       expect(loginButton).toHaveAttribute('aria-label', 'Log In');
       expect(loginButton).toHaveAttribute('data-analytics-id', 'as-global-header-login');
     });
@@ -337,7 +337,7 @@ describe('LogInAndUserProfileMenu', () => {
 
         const logoutButton = screen.getByRole('button', { name: /log out/i });
         expect(logoutButton).toBeInTheDocument();
-        expect(logoutButton).toHaveClass('nx-dropdown-button');
+        expect(logoutButton).toHaveClass('as-dropdown-button');
       });
     });
 

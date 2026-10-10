@@ -3,10 +3,10 @@ import React from 'react';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxInfoAlert,
-  NxList,
-  NxTile,
-  NxH2,
+  AsInfoAlert,
+  AsList,
+  AsTile,
+  AsH2,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -24,27 +24,27 @@ export default function ProprietaryRepositoriesReadOnly() {
   }
 
   return <>
-    <NxInfoAlert>{SETTINGS.READ_ONLY.WARNING}</NxInfoAlert>
-    <NxTile>
-      <NxTile.Header>
-        <NxTile.HeaderTitle>
-          <NxH2>{LABELS.SELECTED_TITLE}</NxH2>
-        </NxTile.HeaderTitle>
-      </NxTile.Header>
-      <NxTile.Content>
-        <NxList
+    <AsInfoAlert>{SETTINGS.READ_ONLY.WARNING}</AsInfoAlert>
+    <AsTile>
+      <AsTile.Header>
+        <AsTile.HeaderTitle>
+          <AsH2>{LABELS.SELECTED_TITLE}</AsH2>
+        </AsTile.HeaderTitle>
+      </AsTile.Header>
+      <AsTile.Content>
+        <AsList
             emptyMessage={LABELS.EMPTY_LIST}
             isLoading={isLoading}
             error={loadError}
             retryHandler={retry}
         >
           {enabledRepositories?.map(name => (
-              <NxList.Item key={name}>
-                <NxList.Text>{name}</NxList.Text>
-              </NxList.Item>
+              <AsList.Item key={name}>
+                <AsList.Text>{name}</AsList.Text>
+              </AsList.Item>
           ))}
-        </NxList>
-      </NxTile.Content>
-    </NxTile>
+        </AsList>
+      </AsTile.Content>
+    </AsTile>
   </>;
 }

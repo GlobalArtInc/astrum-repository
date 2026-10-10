@@ -54,7 +54,7 @@ describe('NugetSymbolServerConfiguration', () => {
     render(<NugetSymbolServerConfiguration parentMachine={parentMachine} />);
 
     expect(screen.getByText(NUGET.SYMBOL_SERVER_URL.LABEL)).toBeInTheDocument();
-    // The checkbox label text appears twice: once as the NxFormGroup label, once as the checkbox
+    // The checkbox label text appears twice: once as the AsFormGroup label, once as the checkbox
     // child text. Use getAllByText to accept both occurrences.
     expect(screen.getAllByText(NUGET.ALLOW_ANONYMOUS_SYMBOL_ACCESS.LABEL).length).toBeGreaterThan(0);
   });

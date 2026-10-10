@@ -1,17 +1,17 @@
 
 import React, {useState, useEffect} from 'react';
 import {
-  NxButton,
-  NxButtonBar,
-  NxErrorAlert,
-  NxFooter,
-  NxFormGroup,
-  NxFormSelect,
-  NxH2,
-  NxModal,
-  NxSubmitMask,
-  NxTextInput,
-  NxWarningAlert,
+  AsButton,
+  AsButtonBar,
+  AsErrorAlert,
+  AsFooter,
+  AsFormGroup,
+  AsFormSelect,
+  AsH2,
+  AsModal,
+  AsSubmitMask,
+  AsTextInput,
+  AsWarningAlert,
 } from '@globalart/react-shared-components';
 import UIStrings from '../../../../constants/UIStrings';
 import {EXPIRATION_OPTIONS} from './ServiceAccountTokensHelper';
@@ -68,13 +68,13 @@ export default function ServiceAccountTokensCreateModal({onClose, onCreate, role
   const submitDisabled = !isValid || isCreating;
 
   return (
-    <NxModal onCancel={isCreating ? undefined : onClose} aria-labelledby="create-sa-token-modal">
-      <NxModal.Header>
-        <NxH2 id="create-sa-token-modal">{LABELS.TITLE}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxFormGroup label={LABELS.NAME_LABEL} sublabel={LABELS.NAME_DESCRIPTION} isRequired>
-          <NxTextInput
+    <AsModal onCancel={isCreating ? undefined : onClose} aria-labelledby="create-sa-token-modal">
+      <AsModal.Header>
+        <AsH2 id="create-sa-token-modal">{LABELS.TITLE}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsFormGroup label={LABELS.NAME_LABEL} sublabel={LABELS.NAME_DESCRIPTION} isRequired>
+          <AsTextInput
             value={name}
             onChange={(v) => setName(v.slice(0, 128))}
             validatable={true}
@@ -82,62 +82,62 @@ export default function ServiceAccountTokensCreateModal({onClose, onCreate, role
             validationErrors={nameError ? [nameError] : null}
             inputAttributes={{maxLength: 128}}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.ROLE_LABEL} sublabel={LABELS.ROLE_DESCRIPTION} isRequired>
-          <NxFormSelect value={roleId} onChange={setRoleId} disabled={!!rolesError}>
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.ROLE_LABEL} sublabel={LABELS.ROLE_DESCRIPTION} isRequired>
+          <AsFormSelect value={roleId} onChange={setRoleId} disabled={!!rolesError}>
             <option value="">{LABELS.ROLE_PLACEHOLDER}</option>
             {roles.map((role) => (
               <option key={role.id} value={role.id}>{role.name}</option>
             ))}
-          </NxFormSelect>
-        </NxFormGroup>
+          </AsFormSelect>
+        </AsFormGroup>
         {rolesError && (
-          <NxErrorAlert>{rolesError}</NxErrorAlert>
+          <AsErrorAlert>{rolesError}</AsErrorAlert>
         )}
-        <NxFormGroup label={LABELS.EXPIRATION_LABEL} sublabel={LABELS.EXPIRATION_DESCRIPTION} isRequired>
-          <NxFormSelect value={expirationDays} onChange={setExpirationDays}>
+        <AsFormGroup label={LABELS.EXPIRATION_LABEL} sublabel={LABELS.EXPIRATION_DESCRIPTION} isRequired>
+          <AsFormSelect value={expirationDays} onChange={setExpirationDays}>
             {EXPIRATION_OPTIONS.map((opt) => (
               <option key={opt.value} value={String(opt.value)}>{opt.label}</option>
             ))}
-          </NxFormSelect>
-        </NxFormGroup>
+          </AsFormSelect>
+        </AsFormGroup>
         <div className="as-sa-description-wrapper">
-          <NxFormGroup label={LABELS.DESCRIPTION_LABEL} sublabel={LABELS.DESCRIPTION_DESCRIPTION}>
-            <NxTextInput
+          <AsFormGroup label={LABELS.DESCRIPTION_LABEL} sublabel={LABELS.DESCRIPTION_DESCRIPTION}>
+            <AsTextInput
               value={description}
               onChange={(v) => setDescription(v.slice(0, 256))}
               type="textarea"
               inputAttributes={{maxLength: 256}}
             />
-          </NxFormGroup>
+          </AsFormGroup>
           <span className="as-sa-char-counter">{description.length} / 256</span>
         </div>
         {isNeverExpires && (
-          <NxWarningAlert
+          <AsWarningAlert
             id="as-sa-never-expires-warning"
             tabIndex={-1}
             className="as-sa-sr-focus-target"
           >
             {LABELS.NEVER_EXPIRES_WARNING}
-          </NxWarningAlert>
+          </AsWarningAlert>
         )}
-      </NxModal.Content>
-      <NxFooter>
-        <NxButtonBar>
-          <NxButton type="button" onClick={onClose} disabled={isCreating}>
+      </AsModal.Content>
+      <AsFooter>
+        <AsButtonBar>
+          <AsButton type="button" onClick={onClose} disabled={isCreating}>
             {LABELS.CANCEL_BUTTON}
-          </NxButton>
-          <NxButton
+          </AsButton>
+          <AsButton
             type="button"
             variant="primary"
             disabled={submitDisabled}
             onClick={handleSubmit}
           >
             {LABELS.CREATE_BUTTON}
-          </NxButton>
-        </NxButtonBar>
-      </NxFooter>
-      {isCreating && <NxSubmitMask message={LABELS.CREATING_MASK} />}
-    </NxModal>
+          </AsButton>
+        </AsButtonBar>
+      </AsFooter>
+      {isCreating && <AsSubmitMask message={LABELS.CREATING_MASK} />}
+    </AsModal>
   );
 }

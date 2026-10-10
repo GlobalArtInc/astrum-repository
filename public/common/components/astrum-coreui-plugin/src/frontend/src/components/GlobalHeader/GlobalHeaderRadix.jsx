@@ -278,11 +278,11 @@ export default function GlobalHeaderRadix() {
 
   const [isSidebarOpen] = useSideNavbarOpenState(false);
   const onSidebarToggle = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('nx-sidebar-toggle'));
+    window.dispatchEvent(new CustomEvent('as-sidebar-toggle'));
   }, []);
 
   return (
-    <div className="as-global-header-radix nx-global-header-2" data-testid="global-header">
+    <div className="as-global-header-radix as-global-header-2" data-testid="global-header">
       <Box asChild className="as-global-header-radix__sticky-bar">
         <Flex align="center" justify="between" gap="4" px="4" className="as-global-header-radix__row">
           {/* Left: Sidebar toggle + Logo */}
@@ -438,7 +438,7 @@ export default function GlobalHeaderRadix() {
                 size="2"
                 color="gray"
                 aria-label="Refresh"
-                data-analytics-id="as-header-refresh"
+                data-analytics-id="astrum-header-refresh"
                 onClick={onRefreshClick}
               >
                 <RefreshCw size={16} />

@@ -289,7 +289,7 @@ describe('CrowdSettings', () => {
 
     const fetchedConfiguration = {
       ...updatedConfiguration,
-      applicationPassword: '#~NXRM~PLACEHOLDER~PASSWORD~#'
+      applicationPassword: '#~ASTRUM~PLACEHOLDER~PASSWORD~#'
     };
 
     fetchMock.mockReturnValueOnce(Promise.resolve({data: fetchedConfiguration}));
@@ -304,7 +304,7 @@ describe('CrowdSettings', () => {
     expect(urlField()).toHaveValue('https://example.net');
     expect(useTrustStoreField()).toBeChecked();
     expect(applicationNameField()).toHaveValue('astrum');
-    expect(applicationPasswordField()).toHaveValue('#~NXRM~PLACEHOLDER~PASSWORD~#');
+    expect(applicationPasswordField()).toHaveValue('#~ASTRUM~PLACEHOLDER~PASSWORD~#');
     expect(timeoutField()).toHaveValue('4');
   });
 

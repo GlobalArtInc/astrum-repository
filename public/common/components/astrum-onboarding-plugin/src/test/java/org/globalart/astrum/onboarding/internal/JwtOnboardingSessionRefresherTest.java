@@ -63,7 +63,7 @@ class JwtOnboardingSessionRefresherTest
 
   @Test
   void shouldMintFreshJwtCookieWhenCallerIsTargetUser() {
-    Cookie fresh = new Cookie("NXSESSIONID", "fresh-token");
+    Cookie fresh = new Cookie("ASTRUMSESSIONID", "fresh-token");
     when(subject.getPrincipal()).thenReturn("admin");
     when(request.isSecure()).thenReturn(false);
     when(jwtHelper.createJwtCookie(subject, false)).thenReturn(fresh);
@@ -76,7 +76,7 @@ class JwtOnboardingSessionRefresherTest
 
   @Test
   void shouldPassSecureFlagThroughOnHttpsRequest() {
-    Cookie fresh = new Cookie("NXSESSIONID", "fresh-token");
+    Cookie fresh = new Cookie("ASTRUMSESSIONID", "fresh-token");
     when(subject.getPrincipal()).thenReturn("admin");
     when(request.isSecure()).thenReturn(true);
     when(jwtHelper.createJwtCookie(subject, true)).thenReturn(fresh);

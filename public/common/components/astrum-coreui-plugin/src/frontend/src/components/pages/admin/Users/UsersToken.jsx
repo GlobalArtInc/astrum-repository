@@ -2,14 +2,14 @@
 import React from 'react';
 import {useActor} from '@xstate/react';
 import {
-  NxH2,
-  NxTile,
-  NxButton,
-  NxButtonBar,
-  NxFieldset,
-  NxFormRow,
-  NxModal,
-  NxTooltip,
+  AsH2,
+  AsTile,
+  AsButton,
+  AsButtonBar,
+  AsFieldset,
+  AsFormRow,
+  AsModal,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -39,13 +39,13 @@ export default function UsersToken({service}) {
 
   return (
     <>
-      <NxTile.Header>
-        <NxTile.HeaderTitle>
-          <NxH2>{LABELS.LABEL}</NxH2>
-        </NxTile.HeaderTitle>
-      </NxTile.Header>
-      <NxTile.Content>
-        <NxFieldset
+      <AsTile.Header>
+        <AsTile.HeaderTitle>
+          <AsH2>{LABELS.LABEL}</AsH2>
+        </AsTile.HeaderTitle>
+      </AsTile.Header>
+      <AsTile.Content>
+        <AsFieldset
           label={
             isCapabilityActive ? LABELS.RESET_USER_TOKEN : LABELS.USER_TOKEN
           }
@@ -56,36 +56,36 @@ export default function UsersToken({service}) {
           }
           isRequired
         >
-          <NxFormRow>
+          <AsFormRow>
             {isCapabilityActive && (
-              <NxTooltip
+              <AsTooltip
                 title={!canReset && UIStrings.PERMISSION_ERROR}
                 placement="bottom"
               >
-                <NxButtonBar>
-                  <NxButton
+                <AsButtonBar>
+                  <AsButton
                     type="button"
                     variant="tertiary"
                     onClick={reset}
                     className={!canReset ? 'disabled' : ''}
                   >
                     {LABELS.RESET_USER_TOKEN}
-                  </NxButton>
-                </NxButtonBar>
-              </NxTooltip>
+                  </AsButton>
+                </AsButtonBar>
+              </AsTooltip>
             )}
-          </NxFormRow>
-        </NxFieldset>
-      </NxTile.Content>
+          </AsFormRow>
+        </AsFieldset>
+      </AsTile.Content>
       {confirmingAdminPassword && (
-        <NxModal aria-labelledby="modal-form-header" variant="narrow">
+        <AsModal aria-labelledby="modal-form-header" variant="narrow">
           <ConfirmAdminPasswordForm
             actor={current.children.confirmAdminPasswordMachine}
             title={LABELS.RESET_USER_TOKEN}
             text={LABELS.TEXT}
             confirmLabel={LABELS.AUTHENTICATE}
           />
-        </NxModal>
+        </AsModal>
       )}
     </>
   );

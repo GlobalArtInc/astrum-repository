@@ -13,14 +13,14 @@ import {
   SectionFooter
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxButtonBar,
-  NxFontAwesomeIcon,
-  NxH2,
-  NxErrorAlert,
-  NxInfoAlert,
-  NxLoadWrapper,
-  NxReadOnly,
+  AsButton,
+  AsButtonBar,
+  AsFontAwesomeIcon,
+  AsH2,
+  AsErrorAlert,
+  AsInfoAlert,
+  AsLoadWrapper,
+  AsReadOnly,
   useToggle
 } from '@globalart/react-shared-components';
 
@@ -79,35 +79,35 @@ export function UserTokenForm({service}) {
     <ContentBody className='as-usertoken-current'>
       {state.matches('showToken') && <UserTokenDetails userToken={token} onCloseClick={onCloseClick}/>}
       <Section>
-        <NxLoadWrapper loading={isLoading} retryHandler={retry}>
-          <NxH2>{CAPTION}</NxH2>
-          <NxInfoAlert>{LABELS.NOTE}</NxInfoAlert>
+        <AsLoadWrapper loading={isLoading} retryHandler={retry}>
+          <AsH2>{CAPTION}</AsH2>
+          <AsInfoAlert>{LABELS.NOTE}</AsInfoAlert>
           {showUserTokenStatus &&
-            <NxReadOnly>
-              <NxReadOnly.Label>{USER_TOKEN_STATUS.TEXT}</NxReadOnly.Label>
-              <NxReadOnly.Data className="nx-sub-label">{USER_TOKEN_STATUS.DESCRIPTION}</NxReadOnly.Data>
-              <NxReadOnly.Data>
+            <AsReadOnly>
+              <AsReadOnly.Label>{USER_TOKEN_STATUS.TEXT}</AsReadOnly.Label>
+              <AsReadOnly.Data className="as-sub-label">{USER_TOKEN_STATUS.DESCRIPTION}</AsReadOnly.Data>
+              <AsReadOnly.Data>
                 {USER_TOKEN_STATUS.TIMESTAMP_TEXT(isExpired)}
-                {isExpired && isOpen && <NxErrorAlert onClose={dismiss}>{error}</NxErrorAlert>}
+                {isExpired && isOpen && <AsErrorAlert onClose={dismiss}>{error}</AsErrorAlert>}
                 {!isExpired && DateUtils.prettyDateTimeLong(new Date(parseInt(expirationTimestamp)))}
-              </NxReadOnly.Data>
-            </NxReadOnly>
+              </AsReadOnly.Data>
+            </AsReadOnly>
           }
           <SectionFooter>
-            <NxButtonBar>
-              <NxButton onClick={onResetTokenClick}>
-                <NxFontAwesomeIcon icon={faLock}/>
+            <AsButtonBar>
+              <AsButton onClick={onResetTokenClick}>
+                <AsFontAwesomeIcon icon={faLock}/>
                 <span>{BUTTONS.RESET}</span>
-              </NxButton>
-              {isExpired && <NxButton variant='primary' onClick={onGenerateTokenClick}>
+              </AsButton>
+              {isExpired && <AsButton variant='primary' onClick={onGenerateTokenClick}>
                 <span>{BUTTONS.GENERATE}</span>
-              </NxButton>}
-              {!isExpired && <NxButton variant='primary' onClick={onAccessTokenClick}>
+              </AsButton>}
+              {!isExpired && <AsButton variant='primary' onClick={onAccessTokenClick}>
                 <span>{BUTTONS.ACCESS}</span>
-              </NxButton>}
-            </NxButtonBar>
+              </AsButton>}
+            </AsButtonBar>
           </SectionFooter>
-        </NxLoadWrapper>
+        </AsLoadWrapper>
       </Section>
     </ContentBody>
   </Page>;

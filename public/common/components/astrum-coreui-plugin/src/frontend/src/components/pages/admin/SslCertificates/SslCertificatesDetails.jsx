@@ -2,11 +2,11 @@
 import React from 'react';
 
 import {
-  NxReadOnly,
-  NxH2,
-  NxGrid,
-  NxDivider,
-  NxWarningAlert,
+  AsReadOnly,
+  AsH2,
+  AsGrid,
+  AsDivider,
+  AsWarningAlert,
 } from '@globalart/react-shared-components';
 import {
   DateUtils,
@@ -36,30 +36,30 @@ export default function SslCertificatesDetails({data}) {
   const expiredDate = expiresOn ? DateUtils.timestampToString(expiresOn) : '';
 
   return <>
-    <NxReadOnly>
+    <AsReadOnly>
       <ReadOnlyField label={LABELS.FINGERPRINT.LABEL} value={fingerprint}/>
       <ReadOnlyField label={LABELS.VALID_UNTIL.LABEL} value={expiredDate}/>
       <ReadOnlyField label={LABELS.ISSUED_ON.LABEL} value={issuedDate}/>
-    </NxReadOnly>
-    <NxDivider />
-    <NxGrid.Row>
-      <NxGrid.Column>
-        <NxH2>{LABELS.SECTIONS.SUBJECT}</NxH2>
-        <NxReadOnly>
+    </AsReadOnly>
+    <AsDivider />
+    <AsGrid.Row>
+      <AsGrid.Column>
+        <AsH2>{LABELS.SECTIONS.SUBJECT}</AsH2>
+        <AsReadOnly>
           <ReadOnlyField label={LABELS.COMMON_NAME.LABEL} value={subjectCommonName}/>
           <ReadOnlyField label={LABELS.ORGANIZATION.LABEL} value={subjectOrganization}/>
           <ReadOnlyField label={LABELS.UNIT.LABEL} value={subjectOrganizationalUnit}/>
-        </NxReadOnly>
-      </NxGrid.Column>
-      <NxGrid.Column>
-        <NxH2>{LABELS.SECTIONS.ISSUER}</NxH2>
-        <NxReadOnly>
+        </AsReadOnly>
+      </AsGrid.Column>
+      <AsGrid.Column>
+        <AsH2>{LABELS.SECTIONS.ISSUER}</AsH2>
+        <AsReadOnly>
           <ReadOnlyField label={LABELS.COMMON_NAME.LABEL} value={issuerCommonName}/>
           <ReadOnlyField label={LABELS.ORGANIZATION.LABEL} value={issuerOrganization}/>
           <ReadOnlyField label={LABELS.UNIT.LABEL} value={issuerOrganizationalUnit}/>
-        </NxReadOnly>
-      </NxGrid.Column>
-    </NxGrid.Row>
-    <NxWarningAlert className="ssl-certificate-alert">{LABELS.WARNING}</NxWarningAlert>
+        </AsReadOnly>
+      </AsGrid.Column>
+    </AsGrid.Row>
+    <AsWarningAlert className="ssl-certificate-alert">{LABELS.WARNING}</AsWarningAlert>
   </>;
 }

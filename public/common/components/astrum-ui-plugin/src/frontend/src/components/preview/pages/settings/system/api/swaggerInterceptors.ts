@@ -3,14 +3,14 @@
 import type { SwaggerRequest, SwaggerResponse } from './types';
 
 export function getCsrfToken(): string {
-  const match = document.cookie.match('(^|; )NX-ANTI-CSRF-TOKEN=([^;]*)');
+  const match = document.cookie.match('(^|; )AS-ANTI-CSRF-TOKEN=([^;]*)');
   return match ? match[2] : '';
 }
 
 export function swaggerRequestInterceptor(request: SwaggerRequest): SwaggerRequest {
   const csrfToken = getCsrfToken();
   if (csrfToken) {
-    request.headers['NX-ANTI-CSRF-TOKEN'] = csrfToken;
+    request.headers['AS-ANTI-CSRF-TOKEN'] = csrfToken;
   }
   request.headers['X-Astrum-UI'] = 'true';
   return request;

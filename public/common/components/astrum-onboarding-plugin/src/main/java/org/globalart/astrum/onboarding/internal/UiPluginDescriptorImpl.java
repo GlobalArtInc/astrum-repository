@@ -23,7 +23,7 @@ public class UiPluginDescriptorImpl
   @Autowired
   public UiPluginDescriptorImpl() {
     super("astrum-onboarding-plugin");
-    setNamespace("NX.onboarding");
-    setConfigClassName("NX.onboarding.app.PluginConfig");
+    setNamespace("AS.onboarding");
+    setConfigClassName("AS.onboarding.app.PluginConfig");
   }
 }

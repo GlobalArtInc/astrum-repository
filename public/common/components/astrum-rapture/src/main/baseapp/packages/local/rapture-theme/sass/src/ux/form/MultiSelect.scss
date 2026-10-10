@@ -2,7 +2,7 @@
 * @class Ext.ux.form.MultiSelect
 */
 
-.nx-multiselect {
+.as-multiselect {
   .x-panel-header {
     background-color: transparent;
     border: none;
@@ -31,8 +31,8 @@
 }
 
 
-.x-form-fieldcontainer.nx-invalid {
-  .nx-multiselect:nth-child(3) {
+.x-form-fieldcontainer.as-invalid {
+  .as-multiselect:nth-child(3) {
     .x-panel-body {
       border: 1px $color-cerise solid !important;
     }

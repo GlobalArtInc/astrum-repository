@@ -3,7 +3,7 @@ import React from 'react';
 
 import {ReadOnlyField, FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxInfoAlert} from '@globalart/react-shared-components';
+import {AsInfoAlert} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 
@@ -19,7 +19,7 @@ export default function UserTokensReadOnly({data}) {
 
   return (
     <>
-      <NxInfoAlert>{WARNING}</NxInfoAlert>
+      <AsInfoAlert>{WARNING}</AsInfoAlert>
       <ReadOnlyField
         label={USER_TOKENS_CHECKBOX.LABEL}
         value={FormUtils.readOnlyCheckboxValueLabel(enabled)}

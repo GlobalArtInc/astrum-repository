@@ -4,17 +4,17 @@ import {useMachine} from '@xstate/react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxErrorAlert,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxFormSelect,
-  NxInfoAlert,
-  NxLoadWrapper,
-  NxStatefulForm,
-  NxSuccessAlert,
-  NxTextInput,
-  NxTooltip,
+  AsButton,
+  AsErrorAlert,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsFormSelect,
+  AsInfoAlert,
+  AsLoadWrapper,
+  AsStatefulForm,
+  AsSuccessAlert,
+  AsTextInput,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 
 import {
@@ -106,54 +106,54 @@ export default function RoutingRulesForm() {
 
   return <Page className="as-routing-rules">
     {isEdit &&
-    <NxInfoAlert>
+    <AsInfoAlert>
       {!hasAssignedRepositories && <span dangerouslySetInnerHTML={{__html: ROUTING_RULES.FORM.UNUSED}}/>}
       {hasAssignedRepositories && <span dangerouslySetInnerHTML={{__html: ROUTING_RULES.FORM.USED_BY(assignedRepositoryNames)}}/>}
-    </NxInfoAlert>}
+    </AsInfoAlert>}
     <PageHeader>
       <PageTitle text={itemId ? ROUTING_RULES.FORM.EDIT_TITLE : ROUTING_RULES.FORM.CREATE_TITLE}/>
     </PageHeader>
     <ContentBody>
       <Section className="as-routing-rules-form">
-        <NxStatefulForm
+        <AsStatefulForm
             {...FormUtils.formProps(current, send)}
             onCancel={cancel}
             submitBtnText={itemId ? SETTINGS.SAVE_BUTTON_LABEL : ROUTING_RULES.FORM.CREATE_BUTTON}
             additionalFooterBtns={itemId &&
-              <NxTooltip title={assignedRepositoryCount > 0 ? ROUTING_RULES.FORM.CANNOT_DELETE(assignedRepositoryNames) : undefined}>
-                <NxButton type="button" variant="tertiary" onClick={remove} className={hasAssignedRepositories && 'disabled'}>
-                  <NxFontAwesomeIcon icon={faTrash}/>
+              <AsTooltip title={assignedRepositoryCount > 0 ? ROUTING_RULES.FORM.CANNOT_DELETE(assignedRepositoryNames) : undefined}>
+                <AsButton type="button" variant="tertiary" onClick={remove} className={hasAssignedRepositories && 'disabled'}>
+                  <AsFontAwesomeIcon icon={faTrash}/>
                   <span>{SETTINGS.DELETE_BUTTON_LABEL}</span>
-                </NxButton>
-              </NxTooltip>
+                </AsButton>
+              </AsTooltip>
             }
         >
           {hasData && <>
-            <NxFormGroup label={ROUTING_RULES.FORM.NAME_LABEL} isRequired>
-              <NxTextInput
+            <AsFormGroup label={ROUTING_RULES.FORM.NAME_LABEL} isRequired>
+              <AsTextInput
                   {...FormUtils.fieldProps('name', current)}
                   onChange={FormUtils.handleUpdate('name', send)}/>
-            </NxFormGroup>
-            <NxFormGroup label={ROUTING_RULES.FORM.DESCRIPTION_LABEL}>
-              <NxTextInput
-                  className="nx-text-input--long"
+            </AsFormGroup>
+            <AsFormGroup label={ROUTING_RULES.FORM.DESCRIPTION_LABEL}>
+              <AsTextInput
+                  className="as-text-input--long"
                   {...FormUtils.fieldProps('description', current)}
                   onChange={FormUtils.handleUpdate('description', send)}/>
-            </NxFormGroup>
-            <NxFormGroup
+            </AsFormGroup>
+            <AsFormGroup
                 id="as-routing-rules-mode"
                 label={ROUTING_RULES.FORM.MODE_LABEL}
                 sublabel={ROUTING_RULES.FORM.MODE_DESCRIPTION}>
-              <NxFormSelect {...FormUtils.fieldProps('mode', current)} onChange={update}>
+              <AsFormSelect {...FormUtils.fieldProps('mode', current)} onChange={update}>
                 <option value="ALLOW">{ROUTING_RULES.FORM.MODE.ALLOW}</option>
                 <option value="BLOCK">{ROUTING_RULES.FORM.MODE.BLOCK}</option>
-              </NxFormSelect>
-            </NxFormGroup>
-            <div className="nx-form-group">
-              <div id="matchers-label" className="nx-label">
-                <span className="nx-label__text">{ROUTING_RULES.FORM.MATCHERS_LABEL}</span>
+              </AsFormSelect>
+            </AsFormGroup>
+            <div className="as-form-group">
+              <div id="matchers-label" className="as-label">
+                <span className="as-label__text">{ROUTING_RULES.FORM.MATCHERS_LABEL}</span>
               </div>
-              <div className="nx-sub-label">{ROUTING_RULES.FORM.MATCHERS_DESCRIPTION}</div>
+              <div className="as-sub-label">{ROUTING_RULES.FORM.MATCHERS_DESCRIPTION}</div>
 
               {data.matchers?.map((value, index) =>
                   <RoutingRuleMatcherRow
@@ -166,22 +166,22 @@ export default function RoutingRulesForm() {
                       onRemove={() => removeMatcher(index)}/>)
               }
               <div className="add-matcher">
-                <NxButton type="button" variant="tertiary" onClick={addMatcher}>
-                  <NxFontAwesomeIcon icon={faPlus}/>
+                <AsButton type="button" variant="tertiary" onClick={addMatcher}>
+                  <AsFontAwesomeIcon icon={faPlus}/>
                   <span>{ROUTING_RULES.FORM.ADD_MATCHER_BUTTON}</span>
-                </NxButton>
+                </AsButton>
               </div>
             </div>
           </>}
-        </NxStatefulForm>
+        </AsStatefulForm>
       </Section>
 
       <Section className="as-routing-rules-preview">
         <RoutingRulesPreview value={path} onChange={updatePath} onTest={test}/>
-        <NxLoadWrapper className="preview-result" loading={isTesting} loadError={testError} retryHandler={test}>
-          {testResult === true && <NxSuccessAlert>{ROUTING_RULES.FORM.PREVIEW.ALLOWED}</NxSuccessAlert>}
-          {testResult === false && <NxErrorAlert>{ROUTING_RULES.FORM.PREVIEW.BLOCKED}</NxErrorAlert>}
-        </NxLoadWrapper>
+        <AsLoadWrapper className="preview-result" loading={isTesting} loadError={testError} retryHandler={test}>
+          {testResult === true && <AsSuccessAlert>{ROUTING_RULES.FORM.PREVIEW.ALLOWED}</AsSuccessAlert>}
+          {testResult === false && <AsErrorAlert>{ROUTING_RULES.FORM.PREVIEW.BLOCKED}</AsErrorAlert>}
+        </AsLoadWrapper>
       </Section>
     </ContentBody>
 

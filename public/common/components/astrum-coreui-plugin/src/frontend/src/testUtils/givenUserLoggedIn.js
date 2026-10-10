@@ -1,5 +1,5 @@
 
 
 export default function givenUserLoggedIn() {
-  global.NX.Security.hasUser.mockReturnValue(true);
+  global.AS.Security.hasUser.mockReturnValue(true);
 }

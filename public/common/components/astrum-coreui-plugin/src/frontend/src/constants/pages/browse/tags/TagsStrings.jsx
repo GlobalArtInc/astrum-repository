@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faTags } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -18,9 +18,9 @@ export default {
         Tagging is a Astrum Repository Pro feature that allows you to mark a set of components with a tag so that they can be logically associated with one another.
         You can use tags however you like, but the most common use cases are for CI build IDs for a project (e.g., project-abc-build-142) or for higher-level
         release train when coordinating multiple projects as a single unit (e.g., release-train-13). It is also extensively used by our 
-        {" "}<NxTextLink href="http://links.globalart.dev/products/astrum/docs/staging" external>staging</NxTextLink> feature.
+        {" "}<AsTextLink href="http://links.globalart.dev/products/astrum/docs/staging" external>staging</AsTextLink> feature.
         Check out our
-        {" "}<NxTextLink href="http://links.globalart.dev/products/astrum/docs/component-tag" external>help documentation</NxTextLink> for
+        {" "}<AsTextLink href="http://links.globalart.dev/products/astrum/docs/component-tag" external>help documentation</AsTextLink> for
         more information.
       </>,
     },

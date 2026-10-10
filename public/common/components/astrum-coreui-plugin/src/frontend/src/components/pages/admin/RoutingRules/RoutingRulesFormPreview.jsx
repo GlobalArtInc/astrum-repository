@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxButton, NxTextInput} from '@globalart/react-shared-components';
+import {AsButton, AsTextInput} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 
@@ -13,15 +13,15 @@ export default function RoutingRulesPreview({value, onChange, onTest}) {
     }
   }
 
-  return <div className="nx-form-group">
-    <label htmlFor="path" className="nx-label"><span className="nx-label__text">{ROUTING_RULES.PATH_LABEL}</span></label>
-    <div className="nx-sub-label">{ROUTING_RULES.PATH_DESCRIPTION}</div>
-    <div className="nx-form-row">
-      <div className="nx-form-group">
+  return <div className="as-form-group">
+    <label htmlFor="path" className="as-label"><span className="as-label__text">{ROUTING_RULES.PATH_LABEL}</span></label>
+    <div className="as-sub-label">{ROUTING_RULES.PATH_DESCRIPTION}</div>
+    <div className="as-form-row">
+      <div className="as-form-group">
         {/* Ensure the button is at the correct height and prepend with a / */}
-        <label className="nx-label as-path">
-          <NxTextInput
-            className="nx-text-input--long as-path-input"
+        <label className="as-label as-path">
+          <AsTextInput
+            className="as-text-input--long as-path-input"
             name="path"
             value={value}
             onChange={onChange}
@@ -31,8 +31,8 @@ export default function RoutingRulesPreview({value, onChange, onTest}) {
           />
         </label>
       </div>
-      <div className="nx-btn-bar">
-        <NxButton variant="primary" onClick={onTest}>{ROUTING_RULES.TEST_BUTTON}</NxButton>
+      <div className="as-btn-bar">
+        <AsButton variant="primary" onClick={onTest}>{ROUTING_RULES.TEST_BUTTON}</AsButton>
       </div>
     </div>
   </div>;

@@ -1,15 +1,15 @@
 
 import React, {useEffect, useState} from 'react';
 import {
-  NxButton,
-  NxButtonBar,
-  NxFooter,
-  NxFormGroup,
-  NxH2,
-  NxModal,
-  NxSubmitMask,
-  NxTextInput,
-  NxWarningAlert,
+  AsButton,
+  AsButtonBar,
+  AsFooter,
+  AsFormGroup,
+  AsH2,
+  AsModal,
+  AsSubmitMask,
+  AsTextInput,
+  AsWarningAlert,
 } from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
@@ -37,24 +37,24 @@ export default function ServiceAccountTokensRevokeModal({tokenName, onConfirm, o
   }
 
   return (
-    <NxModal
+    <AsModal
       onCancel={isRevoking ? undefined : onClose}
       variant="narrow"
       aria-labelledby="revoke-sa-token-modal"
     >
-      <NxModal.Header>
-        <NxH2 id="revoke-sa-token-modal">{LABELS.TITLE}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxWarningAlert
+      <AsModal.Header>
+        <AsH2 id="revoke-sa-token-modal">{LABELS.TITLE}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsWarningAlert
           id="as-sa-revoke-warning"
           tabIndex={-1}
           className="as-sa-sr-focus-target"
         >
           {LABELS.WARNING(tokenName)}
-        </NxWarningAlert>
-        <NxFormGroup label={LABELS.LABEL} sublabel={LABELS.SUBLABEL(tokenName)} isRequired>
-          <NxTextInput
+        </AsWarningAlert>
+        <AsFormGroup label={LABELS.LABEL} sublabel={LABELS.SUBLABEL(tokenName)} isRequired>
+          <AsTextInput
             id="revokeConfirmationString"
             name="revokeConfirmationString"
             value={confirmation}
@@ -63,24 +63,24 @@ export default function ServiceAccountTokensRevokeModal({tokenName, onConfirm, o
             isPristine={isPristine}
             validationErrors={validationErrors}
           />
-        </NxFormGroup>
-      </NxModal.Content>
-      <NxFooter>
-        <NxButtonBar>
-          <NxButton type="button" onClick={onClose} disabled={isRevoking}>
+        </AsFormGroup>
+      </AsModal.Content>
+      <AsFooter>
+        <AsButtonBar>
+          <AsButton type="button" onClick={onClose} disabled={isRevoking}>
             {LABELS.CANCEL_BUTTON}
-          </NxButton>
-          <NxButton
+          </AsButton>
+          <AsButton
             type="button"
             variant="error"
             disabled={submitDisabled}
             onClick={handleSubmit}
           >
             {LABELS.REVOKE_BUTTON}
-          </NxButton>
-        </NxButtonBar>
-      </NxFooter>
-      {isRevoking && <NxSubmitMask message={LABELS.REVOKING_MASK} />}
-    </NxModal>
+          </AsButton>
+        </AsButtonBar>
+      </AsFooter>
+      {isRevoking && <AsSubmitMask message={LABELS.REVOKING_MASK} />}
+    </AsModal>
   );
 }

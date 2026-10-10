@@ -141,8 +141,8 @@ class AntiCsrfHelperTest
   void testIsAccessAllowed_ValidCsrfToken() {
     when(httpServletRequest.getMethod()).thenReturn(HttpMethod.POST);
     setupBrowserSubject();
-    when(httpServletRequest.getHeader("NX-ANTI-CSRF-TOKEN")).thenReturn("avalue");
-    when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("NX-ANTI-CSRF-TOKEN", "avalue")});
+    when(httpServletRequest.getHeader("AS-ANTI-CSRF-TOKEN")).thenReturn("avalue");
+    when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("AS-ANTI-CSRF-TOKEN", "avalue")});
 
     assertThat(underTest.isAccessAllowed(httpServletRequest), is(true));
 
@@ -157,7 +157,7 @@ class AntiCsrfHelperTest
   void testIsAccessAllowed_MissingCsrfCookie() {
     when(httpServletRequest.getMethod()).thenReturn(HttpMethod.POST);
     setupBrowserSubject();
-    when(httpServletRequest.getHeader("NX-ANTI-CSRF-TOKEN")).thenReturn("avalue");
+    when(httpServletRequest.getHeader("AS-ANTI-CSRF-TOKEN")).thenReturn("avalue");
 
     assertThat(underTest.isAccessAllowed(httpServletRequest), is(false));
 
@@ -172,8 +172,8 @@ class AntiCsrfHelperTest
   void testIsAccessAllowed_MissingCsrfHeader() {
     setupBrowserSubject();
     when(httpServletRequest.getMethod()).thenReturn(HttpMethod.POST);
-    // NX-ANTI-CSRF-TOKEN header not set
-    when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("NX-ANTI-CSRF-TOKEN", "avalue")});
+    // AS-ANTI-CSRF-TOKEN header not set
+    when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("AS-ANTI-CSRF-TOKEN", "avalue")});
 
     assertThat(underTest.isAccessAllowed(httpServletRequest), is(false));
 
@@ -188,9 +188,9 @@ class AntiCsrfHelperTest
   void testIsAccessAllowed_MismatchedCsrfToken() {
     setupBrowserSubject();
     when(httpServletRequest.getMethod()).thenReturn(HttpMethod.POST);
-    when(httpServletRequest.getHeader("NX-ANTI-CSRF-TOKEN")).thenReturn("some-value");
+    when(httpServletRequest.getHeader("AS-ANTI-CSRF-TOKEN")).thenReturn("some-value");
     when(httpServletRequest.getCookies())
-        .thenReturn(new Cookie[]{new Cookie("NX-ANTI-CSRF-TOKEN", "some-other-value")});
+        .thenReturn(new Cookie[]{new Cookie("AS-ANTI-CSRF-TOKEN", "some-other-value")});
 
     assertThat(underTest.isAccessAllowed(httpServletRequest), is(false));
 

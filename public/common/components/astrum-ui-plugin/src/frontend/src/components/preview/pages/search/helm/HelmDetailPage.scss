@@ -3,7 +3,7 @@
 .helm-detail-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--nx-spacing-4x, 16px);
+  padding: var(--as-spacing-4x, 16px);
 
   &--loading,
   &--error {
@@ -11,37 +11,37 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: var(--nx-spacing-8x, 32px);
+    padding: var(--as-spacing-8x, 32px);
     text-align: center;
   }
 
   &__spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid var(--nx-color-border, #e0e0e0);
-    border-top-color: var(--nx-color-primary-button-background, #0066cc);
+    border: 3px solid var(--as-color-border, #e0e0e0);
+    border-top-color: var(--as-color-primary-button-background, #0066cc);
     border-radius: 50%;
     animation: helm-detail-spin 1s linear infinite;
-    margin-bottom: var(--nx-spacing-2x, 8px);
+    margin-bottom: var(--as-spacing-2x, 8px);
   }
 
   &__error {
-    color: var(--nx-color-error-text, #c00);
-    margin-bottom: var(--nx-spacing-4x, 16px);
+    color: var(--as-color-error-text, #c00);
+    margin-bottom: var(--as-spacing-4x, 16px);
   }
 
   &__header {
-    margin-bottom: var(--nx-spacing-6x, 24px);
+    margin-bottom: var(--as-spacing-6x, 24px);
   }
 
   &__back-btn {
     background: none;
     border: none;
     padding: 0;
-    color: var(--nx-color-primary-button-background, #0066cc);
+    color: var(--as-color-primary-button-background, #0066cc);
     font-size: 0.875rem;
     cursor: pointer;
-    margin-bottom: var(--nx-spacing-3x, 12px);
+    margin-bottom: var(--as-spacing-3x, 12px);
 
     &:hover {
       text-decoration: underline;
@@ -51,7 +51,7 @@
   &__title-wrapper {
     display: flex;
     align-items: flex-start;
-    gap: var(--nx-spacing-4x, 16px);
+    gap: var(--as-spacing-4x, 16px);
   }
 
   &__icon {
@@ -59,59 +59,59 @@
     height: 64px;
     object-fit: contain;
     flex-shrink: 0;
-    border-radius: var(--nx-border-radius, 4px);
+    border-radius: var(--as-border-radius, 4px);
   }
 
   &__title {
-    margin: 0 0 var(--nx-spacing-1x, 4px) 0;
+    margin: 0 0 var(--as-spacing-1x, 4px) 0;
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--nx-color-text-dark, #333);
+    color: var(--as-color-text-dark, #333);
   }
 
   &__description {
     margin: 0;
-    color: var(--nx-color-text-dark, #666);
+    color: var(--as-color-text-dark, #666);
     font-size: 0.875rem;
   }
 
   &__content {
     display: flex;
     flex-direction: column;
-    gap: var(--nx-spacing-6x, 24px);
+    gap: var(--as-spacing-6x, 24px);
   }
 
   &__section {
-    background-color: var(--nx-color-component-background, #fff);
-    border: 1px solid var(--nx-color-border, #e0e0e0);
-    border-radius: var(--nx-border-radius, 4px);
-    padding: var(--nx-spacing-4x, 16px);
+    background-color: var(--as-color-component-background, #fff);
+    border: 1px solid var(--as-color-border, #e0e0e0);
+    border-radius: var(--as-border-radius, 4px);
+    padding: var(--as-spacing-4x, 16px);
   }
 
   &__section-title {
-    margin: 0 0 var(--nx-spacing-4x, 16px) 0;
+    margin: 0 0 var(--as-spacing-4x, 16px) 0;
     font-size: 1.125rem;
     font-weight: 600;
-    color: var(--nx-color-text-dark, #333);
+    color: var(--as-color-text-dark, #333);
   }
 
   &__metadata {
     display: grid;
     grid-template-columns: 120px 1fr;
-    gap: var(--nx-spacing-2x, 8px) var(--nx-spacing-4x, 16px);
+    gap: var(--as-spacing-2x, 8px) var(--as-spacing-4x, 16px);
     margin: 0;
 
     dt {
       font-weight: 500;
-      color: var(--nx-color-text-dark, #666);
+      color: var(--as-color-text-dark, #666);
     }
 
     dd {
       margin: 0;
-      color: var(--nx-color-text-dark, #333);
+      color: var(--as-color-text-dark, #333);
 
       a {
-        color: var(--nx-color-primary-button-background, #0066cc);
+        color: var(--as-color-primary-button-background, #0066cc);
         text-decoration: none;
 
         &:hover {
@@ -124,7 +124,7 @@
   &__maintainers {
     display: flex;
     flex-direction: column;
-    gap: var(--nx-spacing-1x, 4px);
+    gap: var(--as-spacing-1x, 4px);
   }
 
   &__maintainer {
@@ -134,16 +134,16 @@
   &__keywords {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--nx-spacing-1x, 4px);
+    gap: var(--as-spacing-1x, 4px);
   }
 
   &__keyword {
     display: inline-block;
     padding: 2px 8px;
-    background-color: var(--nx-color-component-background-hover, #f0f0f0);
-    border-radius: var(--nx-border-radius, 4px);
+    background-color: var(--as-color-component-background-hover, #f0f0f0);
+    border-radius: var(--as-border-radius, 4px);
     font-size: 0.75rem;
-    color: var(--nx-color-text-dark, #666);
+    color: var(--as-color-text-dark, #666);
   }
 
   &__versions-table {
@@ -154,14 +154,14 @@
     th,
     td {
       text-align: left;
-      padding: var(--nx-spacing-2x, 8px) var(--nx-spacing-3x, 12px);
-      border-bottom: 1px solid var(--nx-color-border, #e0e0e0);
+      padding: var(--as-spacing-2x, 8px) var(--as-spacing-3x, 12px);
+      border-bottom: 1px solid var(--as-color-border, #e0e0e0);
     }
 
     th {
       font-weight: 600;
-      color: var(--nx-color-text-dark, #333);
-      background-color: var(--nx-color-component-background, #fafafa);
+      color: var(--as-color-text-dark, #333);
+      background-color: var(--as-color-component-background, #fafafa);
     }
 
     tr:last-child td {
@@ -180,9 +180,9 @@
     padding: 0;
 
     li {
-      padding: var(--nx-spacing-2x, 8px) 0;
-      border-bottom: 1px solid var(--nx-color-border, #e0e0e0);
-      color: var(--nx-color-text-dark, #333);
+      padding: var(--as-spacing-2x, 8px) 0;
+      border-bottom: 1px solid var(--as-color-border, #e0e0e0);
+      color: var(--as-color-text-dark, #333);
 
       &:last-child {
         border-bottom: none;

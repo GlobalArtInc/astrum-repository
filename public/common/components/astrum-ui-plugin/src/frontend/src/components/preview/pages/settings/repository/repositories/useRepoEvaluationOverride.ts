@@ -148,14 +148,14 @@ export function useRepoEvaluationOverride() {
  * Tab eligibility for the Evaluation tab.
  * Checks ExtJS State flag `hostedRepositoryEvaluationEnabled`.
  */
-interface NxGlobal {
+interface AsGlobal {
   State?: { getValue?: (key: string) => unknown };
 }
 
 export function isEvaluationFeatureEnabled(): boolean {
   if (typeof window === 'undefined') return false;
-  const NX = (window as unknown as { NX?: NxGlobal }).NX;
-  const value = NX?.State?.getValue?.('hostedRepositoryEvaluationEnabled');
+  const AS = (window as unknown as { AS?: AsGlobal }).AS;
+  const value = AS?.State?.getValue?.('hostedRepositoryEvaluationEnabled');
   return value === true;
 }
 

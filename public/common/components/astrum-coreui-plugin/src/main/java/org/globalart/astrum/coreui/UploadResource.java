@@ -100,7 +100,7 @@ public class UploadResource
    * {@link IllegalOperationException} (e.g. read-only deployment policy, duplicate-asset on a
    * hosted format) is mapped to HTTP 400 to match {@code ComponentsResource}. Every other failure
    * keeps the historical HTTP 200 + {@code success:false} body so the React form machine and the
-   * legacy ExtJS {@code nx-settingsform} continue to surface the error message unchanged.
+   * legacy ExtJS {@code as-settingsform} continue to surface the error message unchanged.
    */
   private Response doUpload(
       final String repositoryName,

@@ -7,7 +7,7 @@ import {isExtJSLoaded, onExtJSLoad} from '../utils/extJsLoader';
  * StateContext provides application state management.
  *
  * Phase 1: React Shell - This context bridges React and ExtJS state.
- * When ExtJS is loaded, it delegates to NX.State.
+ * When ExtJS is loaded, it delegates to AS.State.
  * When ExtJS is not loaded, returns default values.
  *
  * Future phases will manage state independently from ExtJS.
@@ -32,16 +32,16 @@ export function StateProvider({ children }) {
   }, []);
 
   const getValue = useCallback((key) => {
-    if (isExtJSLoaded() && window.NX?.State?.getValue) {
-      return window.NX.State.getValue(key);
+    if (isExtJSLoaded() && window.AS?.State?.getValue) {
+      return window.AS.State.getValue(key);
     }
     // Return null when ExtJS not loaded
     return null;
   }, [stateReady]);
 
   const setValue = useCallback((key, value) => {
-    if (isExtJSLoaded() && window.NX?.State?.setValue) {
-      window.NX.State.setValue(key, value);
+    if (isExtJSLoaded() && window.AS?.State?.setValue) {
+      window.AS.State.setValue(key, value);
     }
   }, [stateReady]);
 
@@ -74,15 +74,15 @@ export function StateProvider({ children }) {
   };
 
   const getEdition = useCallback(() => {
-    if (isExtJSLoaded() && window.NX?.State?.getEdition) {
-      return window.NX.State.getEdition();
+    if (isExtJSLoaded() && window.AS?.State?.getEdition) {
+      return window.AS.State.getEdition();
     }
     return 'OSS'; // Default to OSS edition
   }, [stateReady]);
 
   const getVersion = useCallback(() => {
-    if (isExtJSLoaded() && window.NX?.State?.getVersion) {
-      return window.NX.State.getVersion();
+    if (isExtJSLoaded() && window.AS?.State?.getVersion) {
+      return window.AS.State.getVersion();
     }
     return getValue('status')?.version || null;
   }, [stateReady]);

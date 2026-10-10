@@ -3,12 +3,12 @@ import React from 'react';
 import {useActor} from '@xstate/react';
 
 import {
-  NxFormGroup,
-  NxH2,
-  NxModal,
-  NxP,
-  NxStatefulForm,
-  NxTextInput
+  AsFormGroup,
+  AsH2,
+  AsModal,
+  AsP,
+  AsStatefulForm,
+  AsTextInput
 } from '@globalart/react-shared-components';
 import {FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
 
@@ -32,27 +32,27 @@ export default function ConfirmAdminPasswordForm({
     });
 
   return (
-    <NxStatefulForm
+    <AsStatefulForm
       {...FormUtils.formProps(state, send)}
       submitBtnText={confirmLabel}
       submitMaskMessage={confirmLabel}
       onCancel={cancel}
       validationErrors={FormUtils.saveTooltip({isPristine, isInvalid})}
     >
-      <NxModal.Header>
-        <NxH2 id="modal-form-header">{title}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxP>{text}</NxP>
-        <NxFormGroup label={MODAL.ADMIN_PASSWORD} isRequired>
-          <NxTextInput
+      <AsModal.Header>
+        <AsH2 id="modal-form-header">{title}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsP>{text}</AsP>
+        <AsFormGroup label={MODAL.ADMIN_PASSWORD} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('adminPassword', state)}
             onChange={FormUtils.handleUpdate('adminPassword', send)}
             type="password"
             data-testid="adminPassword"
           />
-        </NxFormGroup>
-      </NxModal.Content>
-    </NxStatefulForm>
+        </AsFormGroup>
+      </AsModal.Content>
+    </AsStatefulForm>
   );
 }

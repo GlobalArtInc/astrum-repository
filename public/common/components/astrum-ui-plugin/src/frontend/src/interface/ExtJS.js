@@ -17,8 +17,8 @@ export default class ExtJS {
    * @param text
    */
   static showSuccessMessage(text) {
-    if (window.NX?.Messages?.success) {
-      window.NX.Messages.success(text);
+    if (window.AS?.Messages?.success) {
+      window.AS.Messages.success(text);
     } else {
       // Fallback: Console log when ExtJS not loaded
       console.info('[Success]', text);
@@ -30,8 +30,8 @@ export default class ExtJS {
    * @param text
    */
   static showErrorMessage(text) {
-    if (window.NX?.Messages?.error) {
-      window.NX.Messages.error(text);
+    if (window.AS?.Messages?.error) {
+      window.AS.Messages.error(text);
     } else {
       // Fallback: Console error when ExtJS not loaded
       console.error('[Error]', text);
@@ -42,8 +42,8 @@ export default class ExtJS {
    *@returns a complete url for the current astrum instance
    */
   static urlOf(path) {
-    if (window.NX?.util?.Url?.urlOf) {
-      return window.NX.util.Url.urlOf(path);
+    if (window.AS?.util?.Url?.urlOf) {
+      return window.AS.util.Url.urlOf(path);
     }
     // Fallback: Basic URL construction
     return window.location.origin + (path.startsWith('/') ? path : '/' + path);
@@ -53,8 +53,8 @@ export default class ExtJS {
    * @returns an absolute path when given a relative path.
    */
   static absolutePath(path) {
-    if (window.NX?.util?.Url?.absolutePath) {
-      return window.NX.util.Url.absolutePath(path);
+    if (window.AS?.util?.Url?.absolutePath) {
+      return window.AS.util.Url.absolutePath(path);
     }
     // Fallback: Ensure path starts with /
     return path.startsWith('/') ? path : '/' + path;
@@ -131,7 +131,7 @@ export default class ExtJS {
       }
     };
 
-    return new Promise((resolve, reject) => NX.Dialogs.askConfirmation(title, message, resolve, {
+    return new Promise((resolve, reject) => AS.Dialogs.askConfirmation(title, message, resolve, {
       ...options,
       onNoFn: reject
     }));
@@ -145,10 +145,10 @@ export default class ExtJS {
    * @returns {Promise}
    */
   static fetchAuthenticationToken(username, password) {
-    const b64u = NX.util.Base64.encode(username);
-    const b64p = NX.util.Base64.encode(password);
+    const b64u = AS.util.Base64.encode(username);
+    const b64p = AS.util.Base64.encode(password);
     return new Promise((resolve) => {
-      NX.direct.rapture_Security.authenticationToken(b64u, b64p, resolve);
+      AS.direct.rapture_Security.authenticationToken(b64u, b64p, resolve);
     });
   }
 
@@ -159,11 +159,11 @@ export default class ExtJS {
    * @returns {Promise}
    */
   static requestSession(username, password) {
-    const b64u = NX.util.Base64.encode(username);
-    const b64p = NX.util.Base64.encode(password);
+    const b64u = AS.util.Base64.encode(username);
+    const b64p = AS.util.Base64.encode(password);
 
     return new Promise((resolve, reject) => {
-      NX.Security.requestSession(b64u, b64p).then(
+      AS.Security.requestSession(b64u, b64p).then(
         (response) => {
           const normalizedResponse = ExtJS.normalizeAjaxResponse(response);
           // Include headers in the response for rate limiting information.
@@ -175,7 +175,7 @@ export default class ExtJS {
 
           // Set user state on successful authentication
           if (normalizedResponse.status >= 200 && normalizedResponse.status < 300) {
-            NX.State.setUser({id: username});
+            AS.State.setUser({id: username});
           }
 
           // Reject for 4xx/5xx errors so that the Promise can be properly handled by error handlers
@@ -272,7 +272,7 @@ export default class ExtJS {
    */
   static requestAuthenticationToken(message) {
     return new Promise((resolve, reject) => {
-      NX.Security.doWithAuthenticationToken(
+      AS.Security.doWithAuthenticationToken(
           message,
           {
             success: function(authToken) {
@@ -290,23 +290,23 @@ export default class ExtJS {
    * @deprecated - Use a link with the download attribute instead
    */
   static downloadUrl(url) {
-    NX.util.DownloadHelper.downloadUrl(url);
+    AS.util.DownloadHelper.downloadUrl(url);
   }
 
   static state() {
     // Only return real state if ExtJS application is fully initialized
     try {
-      if (window.NX?.getApplication &&
-          typeof window.NX.getApplication === 'function' &&
-          window.NX.getApplication() &&
-          window.NX?.State) {
-        return window.NX.State;
+      if (window.AS?.getApplication &&
+          typeof window.AS.getApplication === 'function' &&
+          window.AS.getApplication() &&
+          window.AS?.State) {
+        return window.AS.State;
       }
     } catch {
       // ExtJS not ready yet
     }
     // Fallback: Use REST bootstrap data if available, otherwise return empty defaults
-    const rest = typeof window !== 'undefined' ? window.__nxRestBootstrap : null;
+    const rest = typeof window !== 'undefined' ? window.__asRestBootstrap : null;
     return {
       getValue: (key, defaultValue) => {
         if (rest?.stateValues) {
@@ -342,12 +342,12 @@ export default class ExtJS {
    * @returns {boolean} true if the user has the requested permission
    */
   static checkPermission(permission) {
-    if (window.NX?.Permissions?.check) {
-      return window.NX.Permissions.check(permission);
+    if (window.AS?.Permissions?.check) {
+      return window.AS.Permissions.check(permission);
     }
     // Fallback: Use REST bootstrap permissions if available
-    if (typeof window !== 'undefined' && window.__nxRestBootstrap?.checkPermission) {
-      return window.__nxRestBootstrap.checkPermission(permission);
+    if (typeof window !== 'undefined' && window.__asRestBootstrap?.checkPermission) {
+      return window.__asRestBootstrap.checkPermission(permission);
     }
     return false;
   }
@@ -358,12 +358,12 @@ export default class ExtJS {
   static useUser() {
     return ExtJS.useState(() => {
       try {
-        if (window.NX?.State?.getUser) return window.NX.State.getUser();
+        if (window.AS?.State?.getUser) return window.AS.State.getUser();
       } catch {
         // ExtJS not ready
       }
       // Fallback: REST bootstrap data
-      return window.__nxRestBootstrap?.user || undefined;
+      return window.__asRestBootstrap?.user || undefined;
     });
   }
 
@@ -371,14 +371,14 @@ export default class ExtJS {
    * @returns {{version: string, edition: string}}
    */
   static useStatus() {
-    return ExtJS.useState(() => NX.State.getValue('status'));
+    return ExtJS.useState(() => AS.State.getValue('status'));
   }
 
   /**
    * @returns {{daysToExpiry: number}}
    */
   static useLicense() {
-    return ExtJS.useState(() => NX.State.getValue('license'));
+    return ExtJS.useState(() => AS.State.getValue('license'));
   }
 
   // don't use directly, use useIsVisible, where possible
@@ -406,9 +406,9 @@ export default class ExtJS {
       if (!extJsReady) {
         const checkInterval = setInterval(() => {
           const app = window.Ext?.getApplication?.();
-          const hasState = !!window.NX?.State;
-          const hasPermissions = !!window.NX?.Permissions;
-          const hasSecurity = !!window.NX?.Security;
+          const hasState = !!window.AS?.State;
+          const hasPermissions = !!window.AS?.Permissions;
+          const hasSecurity = !!window.AS?.Security;
           if (app && hasState && hasPermissions && hasSecurity) {
             setExtJsReady(true);
             try {
@@ -571,7 +571,7 @@ export default class ExtJS {
     }
 
     try {
-      return app.getModel("NX.coreui.model.SearchFilter").create(filter);
+      return app.getModel("AS.coreui.model.SearchFilter").create(filter);
     } catch (error) {
       console.error('[ExtJS.useSearchFilterModel] Failed to create SearchFilter model:', error);
       return null;
@@ -627,25 +627,25 @@ export default class ExtJS {
   static hasUser() {
     // Wait for ExtJS application to be fully initialized
     try {
-      if (window.NX?.getApplication &&
-          typeof window.NX.getApplication === 'function' &&
-          window.NX.getApplication() &&
-          window.NX?.Security?.hasUser) {
-        return window.NX.Security.hasUser();
+      if (window.AS?.getApplication &&
+          typeof window.AS.getApplication === 'function' &&
+          window.AS.getApplication() &&
+          window.AS?.Security?.hasUser) {
+        return window.AS.Security.hasUser();
       }
     } catch {
       // ExtJS not ready yet
     }
-    // Fallback 1: Check if user exists in NX.State (after State controller initializes).
-    // NX.State.getUser() internally calls NX.getApplication().getStateController(), which
-    // throws "NX.getApplication is not a function" if the ExtJS application failed to launch
+    // Fallback 1: Check if user exists in AS.State (after State controller initializes).
+    // AS.State.getUser() internally calls AS.getApplication().getStateController(), which
+    // throws "AS.getApplication is not a function" if the ExtJS application failed to launch
     // (e.g. an aggregated class failed to load). Guard the same way the primary path does
     // and treat any throw as "fall through to the next fallback".
     try {
-      if (typeof window.NX?.getApplication === 'function' &&
-          window.NX.getApplication() &&
-          window.NX?.State?.getUser) {
-        const user = window.NX.State.getUser();
+      if (typeof window.AS?.getApplication === 'function' &&
+          window.AS.getApplication() &&
+          window.AS?.State?.getUser) {
+        const user = window.AS.State.getUser();
         if (user) {
           return true;
         }
@@ -655,13 +655,13 @@ export default class ExtJS {
     }
     // Fallback 2: Check initial app state from server (before State controller initializes)
     // This works when app.js has loaded but ExtJS app hasn't fully initialized
-    if (window.NX?.app?.state?.user?.value) {
+    if (window.AS?.app?.state?.user?.value) {
       return true;
     }
     // Fallback 3: Check session cookie exists (critical for debug mode)
-    // In debug mode, React loads before app.js, so NX.app.state isn't set yet.
-    // The NXSESSIONID cookie is the most reliable indicator of an authenticated session.
-    return document.cookie.includes('NXSESSIONID');
+    // In debug mode, React loads before app.js, so AS.app.state isn't set yet.
+    // The ASTRUMSESSIONID cookie is the most reliable indicator of an authenticated session.
+    return document.cookie.includes('ASTRUMSESSIONID');
   }
 
   /**
@@ -718,13 +718,13 @@ export default class ExtJS {
     if (ExtJS.hasUser()) {
       return true;
     }
-    if (window.__nxRestBootstrap && 'user' in window.__nxRestBootstrap) {
+    if (window.__asRestBootstrap && 'user' in window.__asRestBootstrap) {
       return true;
     }
     try {
       // The State controller sets `receiving` false on launch and true on the first successful
       // poll, so false is the only value meaning "a poll is expected but has not landed".
-      return window.NX?.State?.getValue?.('receiving') !== false;
+      return window.AS?.State?.getValue?.('receiving') !== false;
     } catch {
       return true;
     }
@@ -771,7 +771,7 @@ export default class ExtJS {
       timer = setTimeout(finish, timeoutMs);
 
       try {
-        window.NX?.State?.refreshNow?.();
+        window.AS?.State?.refreshNow?.();
       } catch {
         // Polling URLs are not registered yet; the timeout still applies
       }
@@ -779,8 +779,8 @@ export default class ExtJS {
   }
 
   static signOut() {
-    if (window.NX?.Security?.signOut) {
-      window.NX.Security.signOut();
+    if (window.AS?.Security?.signOut) {
+      window.AS.Security.signOut();
     } else {
       // Fallback: Navigate to logout endpoint
       window.location.href = '/service/rapture/session';
@@ -788,7 +788,7 @@ export default class ExtJS {
   }
 
   static showAbout() {
-    Ext.widget('nx-aboutwindow')
+    Ext.widget('as-aboutwindow')
   }
 
   static refresh() {
@@ -820,7 +820,7 @@ export default class ExtJS {
           callback();
         }
       } catch {
-        // Ext/NX not defined yet, keep polling
+        // Ext/AS not defined yet, keep polling
       }
     }, 50);
   }
@@ -872,7 +872,7 @@ export default class ExtJS {
    * @returns {boolean} true if permissions are available
    */
   static arePermissionsReady() {
-    return window.NX?.Permissions?.permissions !== undefined;
+    return window.AS?.Permissions?.permissions !== undefined;
   }
 
   /**

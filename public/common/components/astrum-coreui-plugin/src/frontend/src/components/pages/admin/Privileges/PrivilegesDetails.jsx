@@ -3,7 +3,7 @@ import React, { useCallback } from 'react';
 import {useMachine} from '@xstate/react';
 
 import {
-  NxTile,
+  AsTile,
 } from '@globalart/react-shared-components';
 import {ExtJS, ValidationUtils} from '@globalart/astrum-ui-plugin';
 
@@ -63,12 +63,12 @@ export default function PrivilegesDetails() {
       />
     </PageHeader>
     <ContentBody className="as-privileges-form">
-      <NxTile>
+      <AsTile>
         {showReadOnly
             ? <PrivilegesReadOnly service={service} onDone={onDone}/>
             : <PrivilegesForm itemId={itemId} service={service} onDone={onDone}/>
         }
-      </NxTile>
+      </AsTile>
     </ContentBody>
   </Page>;
 }

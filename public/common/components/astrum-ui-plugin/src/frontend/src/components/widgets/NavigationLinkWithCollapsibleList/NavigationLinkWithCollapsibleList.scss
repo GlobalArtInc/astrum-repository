@@ -3,8 +3,8 @@
   display: grid;
   grid-template-rows: min-content 0fr;
   transition: grid-template-rows 200ms ease-in-out;
-  margin-top: var(--nx-spacing-2x);
-  margin-bottom: var(--nx-spacing-2x);
+  margin-top: var(--as-spacing-2x);
+  margin-bottom: var(--as-spacing-2x);
 
   &.open {
     grid-template-rows: min-content 1fr;
@@ -31,38 +31,38 @@
     &__navigation-link {
       display: flex;
       height: 33px;
-      border-left: 2px solid var(--nx-swatch-grey-90);
-      border-radius: 0 var(--nx-border-radius) var(--nx-border-radius) 0;
+      border-left: 2px solid var(--as-swatch-grey-90);
+      border-radius: 0 var(--as-border-radius) var(--as-border-radius) 0;
       margin: 0 0 0 12px;
       padding: 0 0 0 12px;
       align-items: center;
-      color: var(--nx-swatch-indigo-20);
-      font-size: var(--nx-font-size-s);
+      color: var(--as-swatch-indigo-20);
+      font-size: var(--as-font-size-s);
       font-weight: 400;
       text-decoration: none;
-      outline-offset: calc(0px - var(--nx-focus-outline-width));
+      outline-offset: calc(0px - var(--as-focus-outline-width));
 
       &:focus {
-        outline: 2px solid var(--nx-swatch-blue-40);
-        color: var(--nx-swatch-indigo-20);
-        border-radius: 0 var(--nx-border-radius) var(--nx-border-radius) 0;
+        outline: 2px solid var(--as-swatch-blue-40);
+        color: var(--as-swatch-indigo-20);
+        border-radius: 0 var(--as-border-radius) var(--as-border-radius) 0;
       }
 
       &:hover {
-        background-color: var(--nx-swatch-indigo-90);
+        background-color: var(--as-swatch-indigo-90);
       }
 
       &:active,
       &:active:focus {
-        color: var(--nx-swatch-indigo-20);
-        background-color: var(--nx-swatch-indigo-97);
-        border-radius: 0 var(--nx-border-radius) var(--nx-border-radius) 0;
+        color: var(--as-swatch-indigo-20);
+        background-color: var(--as-swatch-indigo-97);
+        border-radius: 0 var(--as-border-radius) var(--as-border-radius) 0;
       }
 
       &.selected {
-        color: var(--nx-swatch-indigo-20);
-        border-left: 3px solid var(--nx-swatch-green-30);
-        background-color: var(--nx-swatch-indigo-95);
+        color: var(--as-swatch-indigo-20);
+        border-left: 3px solid var(--as-swatch-green-30);
+        background-color: var(--as-swatch-indigo-95);
         font-weight: 600;
       }
 
@@ -71,34 +71,34 @@
   }
 
   &__navigation-link {
-    &.nx-global-sidebar-2__navigation-link.nx-text-link .as-navigation-expandable-link__chevron {
+    &.as-global-sidebar-2__navigation-link.as-text-link .as-navigation-expandable-link__chevron {
       &:focus {
-        outline: var(--nx-focus-outline-width) solid var(--nx-color-interactive-border-focus);
+        outline: var(--as-focus-outline-width) solid var(--as-color-interactive-border-focus);
       }
-      .nx-icon {
+      .as-icon {
         margin: 0;
         top: 0;
         left: 0;
       }
     }
-    &.hideIcon > .nx-icon {
+    &.hideIcon > .as-icon {
       display: none;
     }
 
-    &.nx-global-sidebar-2__navigation-link.nx-text-link.selected .as-navigation-expandable-link__chevron {
+    &.as-global-sidebar-2__navigation-link.as-text-link.selected .as-navigation-expandable-link__chevron {
       &:focus {
-        outline-color: var(--nx-swatch-white);
+        outline-color: var(--as-swatch-white);
       }
-      color: var(--nx-swatch-white);
+      color: var(--as-swatch-white);
     }
 
-    & .nx-global-sidebar-2__navigation-link.nx-text-link.selected {
-      color: var(--nx-swatch-white);
+    & .as-global-sidebar-2__navigation-link.as-text-link.selected {
+      color: var(--as-swatch-white);
       .as-navigation-expandable-link__chevron {
         &:focus {
-          outline-color: var(--nx-swatch-white);
+          outline-color: var(--as-swatch-white);
         }
-        color: var(--nx-swatch-white);
+        color: var(--as-swatch-white);
       }
     }
   }
@@ -129,7 +129,7 @@
     width: 100%;
   }
 
-  & .nx-global-sidebar-2__text {
+  & .as-global-sidebar-2__text {
     width: 100%;
   }
 }

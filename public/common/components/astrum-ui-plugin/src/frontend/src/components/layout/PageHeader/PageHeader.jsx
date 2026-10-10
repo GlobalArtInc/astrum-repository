@@ -8,5 +8,5 @@ import './PageHeader.scss';
  * @since 3.26
  */
 export default function PageHeader({children}) {
-  return <div className="as-page-header">{children}</div>;
+  return <div className="astrum-page-header">{children}</div>;
 }

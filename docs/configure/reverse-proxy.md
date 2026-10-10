@@ -139,8 +139,8 @@ docker pull docker-a.astrum.example.com/team/app:1.0
 ### Dedicated port
 
 Set an HTTP connector port on the repository (for example 8082), publish that port from the container
-and give it its own proxy server block or host. This is the classic Nexus layout and is only needed for
-clients that cannot use the other two.
+and give it its own proxy server block or host. This is only needed for clients that cannot use the
+other two.
 
 ## Serving a repository under another host or path
 

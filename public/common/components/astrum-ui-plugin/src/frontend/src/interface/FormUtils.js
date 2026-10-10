@@ -395,7 +395,7 @@ export default class FormUtils {
   }
 
   /**
-   * Generate the standard props for NxForms.
+   * Generate the standard props for AsForms.
    *
    * @param state {{context: {isPristine: boolean, loadError: string, saveError: string, validationErrors: any}, matches: function}}
    * @param send {function}

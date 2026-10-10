@@ -24,10 +24,10 @@ jest.mock('../../pages/user/Welcome/Welcome', () => {
 });
 
 describe('SettingsSidebar', () => {
-  const Application = global.NX.app.Application;
-  const State = global.NX.State;
-  const Permissions = global.NX.Permissions;
-  const Security = global.NX.Security;
+  const Application = global.AS.app.Application;
+  const State = global.AS.State;
+  const Permissions = global.AS.Permissions;
+  const Security = global.AS.Security;
 
   beforeEach(() => {
     // default behavior is that of an unauthenticated user on a server with some repos

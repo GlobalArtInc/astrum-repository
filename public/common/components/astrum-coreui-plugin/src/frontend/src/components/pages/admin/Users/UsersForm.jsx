@@ -8,17 +8,17 @@ import {
   ExtJS,
 } from '@globalart/astrum-ui-plugin';
 import {
-  NxFormGroup,
-  NxButton,
-  NxCheckbox,
-  NxFontAwesomeIcon,
-  NxH2,
-  NxModal,
-  NxStatefulForm,
-  NxStatefulTransferList,
-  NxTextInput,
-  NxTile,
-  NxTooltip
+  AsFormGroup,
+  AsButton,
+  AsCheckbox,
+  AsFontAwesomeIcon,
+  AsH2,
+  AsModal,
+  AsStatefulForm,
+  AsStatefulTransferList,
+  AsTextInput,
+  AsTile,
+  AsTooltip
 } from '@globalart/react-shared-components';
 
 import {faTrash} from '@fortawesome/free-solid-svg-icons';
@@ -69,106 +69,106 @@ export default function UsersForm({service, onDone}) {
   const showChangePassword = isEdit && !isExternal && !isAnonymousUser(userId);
 
   return <>
-    <NxStatefulForm
+    <AsStatefulForm
         {...FormUtils.formProps(current, send)}
         onCancel={cancel}
         additionalFooterBtns={showDeleteButton &&
-        <NxButton variant="tertiary" onClick={confirmDelete} type="button">
-          <NxFontAwesomeIcon icon={faTrash}/>
+        <AsButton variant="tertiary" onClick={confirmDelete} type="button">
+          <AsFontAwesomeIcon icon={faTrash}/>
           <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
-        </NxButton>
+        </AsButton>
         }
     >
-      <NxTile.Header>
-        <NxTile.HeaderTitle>
-          <NxH2>{LABELS.SECTIONS.SETUP}</NxH2>
-        </NxTile.HeaderTitle>
+      <AsTile.Header>
+        <AsTile.HeaderTitle>
+          <AsH2>{LABELS.SECTIONS.SETUP}</AsH2>
+        </AsTile.HeaderTitle>
         {showChangePassword &&
-          <NxTile.HeaderActions className="as-users__actions">
-            <NxTooltip
+          <AsTile.HeaderActions className="as-users__actions">
+            <AsTooltip
                 title={!canChangePassword && UIStrings.PERMISSION_ERROR}
                 placement="bottom"
             >
-              <NxButton
+              <AsButton
                   onClick={changePassword}
                   variant="tertiary"
                   type="button"
                   className={!canChangePassword ? 'disabled' : ''}
               >
                 {MODAL.CHANGE_PASSWORD}
-              </NxButton>
-            </NxTooltip>
-          </NxTile.HeaderActions>
+              </AsButton>
+            </AsTooltip>
+          </AsTile.HeaderActions>
         }
-      </NxTile.Header>
-      <NxTile.Content>
-        <NxFormGroup
+      </AsTile.Header>
+      <AsTile.Content>
+        <AsFormGroup
             label={LABELS.ID.LABEL}
             sublabel={LABELS.ID.SUB_LABEL}
             isRequired
         >
-          <NxTextInput
+          <AsTextInput
               {...FormUtils.fieldProps('userId', current)}
               onChange={FormUtils.handleUpdate('userId', send)}
               disabled={isEdit || isExternal}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.FIRST_NAME.LABEL} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.FIRST_NAME.LABEL} isRequired>
+          <AsTextInput
               {...FormUtils.fieldProps('firstName', current)}
               onChange={FormUtils.handleUpdate('firstName', send)}
               disabled={isExternal}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.LAST_NAME.LABEL} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.LAST_NAME.LABEL} isRequired>
+          <AsTextInput
               {...FormUtils.fieldProps('lastName', current)}
               onChange={FormUtils.handleUpdate('lastName', send)}
               disabled={isExternal}
           />
-        </NxFormGroup>
-        <NxFormGroup
+        </AsFormGroup>
+        <AsFormGroup
             label={LABELS.EMAIL.LABEL}
             sublabel={LABELS.EMAIL.SUB_LABEL}
             isRequired
         >
-          <NxTextInput
+          <AsTextInput
               {...FormUtils.fieldProps('emailAddress', current)}
               onChange={FormUtils.handleUpdate('emailAddress', send)}
               disabled={isExternal}
           />
-        </NxFormGroup>
+        </AsFormGroup>
         {!isExternal && isCreate && <>
-          <NxFormGroup label={LABELS.PASSWORD.LABEL} isRequired>
-            <NxTextInput
+          <AsFormGroup label={LABELS.PASSWORD.LABEL} isRequired>
+            <AsTextInput
                 type="password"
                 autoComplete="new-password"
                 {...FormUtils.fieldProps('password', current)}
                 onChange={FormUtils.handleUpdate('password', send)}
             />
-          </NxFormGroup>
-          <NxFormGroup label={LABELS.CONFIRM_PASSWORD.LABEL} isRequired>
-            <NxTextInput
+          </AsFormGroup>
+          <AsFormGroup label={LABELS.CONFIRM_PASSWORD.LABEL} isRequired>
+            <AsTextInput
                 type="password"
                 autoComplete="new-password"
                 {...FormUtils.fieldProps('passwordConfirm', current)}
                 onChange={FormUtils.handleUpdate('passwordConfirm', send)}
             />
-          </NxFormGroup>
+          </AsFormGroup>
         </>}
-        <NxFormGroup label={LABELS.STATUS.LABEL} isRequired>
-          <NxCheckbox
+        <AsFormGroup label={LABELS.STATUS.LABEL} isRequired>
+          <AsCheckbox
               {...FormUtils.checkboxProps('status', current)}
               onChange={FormUtils.handleUpdate('status', send)}
               disabled={isExternal}
           >
             {LABELS.STATUS.OPTIONS.ACTIVE}
-          </NxCheckbox>
-        </NxFormGroup>
+          </AsCheckbox>
+        </AsFormGroup>
 
-        <div className="nx-form-group">
-          <NxH2>{LABELS.SECTIONS.ROLES}</NxH2>
-          <NxStatefulTransferList
+        <div className="as-form-group">
+          <AsH2>{LABELS.SECTIONS.ROLES}</AsH2>
+          <AsStatefulTransferList
               id="user-roles-select"
               availableItemsLabel={LABELS.ROLES.AVAILABLE}
               selectedItemsLabel={LABELS.ROLES.GRANTED}
@@ -179,12 +179,12 @@ export default function UsersForm({service, onDone}) {
           />
         </div>
         {isExternal &&
-            <NxFormGroup
+            <AsFormGroup
                 label={LABELS.EXTERNAL_ROLES.LABEL}
                 className="form-external-roles"
                 isRequired
             >
-              <NxTextInput
+              <AsTextInput
                   type="textarea"
                   id="externalRoles"
                   name="externalRoles"
@@ -193,12 +193,12 @@ export default function UsersForm({service, onDone}) {
                   readOnly
                   disabled
               />
-            </NxFormGroup>
+            </AsFormGroup>
         }
-      </NxTile.Content>
-    </NxStatefulForm>
+      </AsTile.Content>
+    </AsStatefulForm>
     {isChangingPassword &&
-      <NxModal
+      <AsModal
         onCancel={cancelChangePassword}
         aria-labelledby="modal-form-header"
         variant="narrow">
@@ -213,6 +213,6 @@ export default function UsersForm({service, onDone}) {
           {confirmingNewPassword &&
             <ConfirmNewPasswordForm actor={current.children.confirmNewPasswordMachine} />
           }
-      </NxModal>}
+      </AsModal>}
   </>;
 }

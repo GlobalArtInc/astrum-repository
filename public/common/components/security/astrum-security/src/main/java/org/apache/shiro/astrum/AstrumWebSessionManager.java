@@ -28,7 +28,7 @@ public class AstrumWebSessionManager
 {
   private static final Logger log = LoggerFactory.getLogger(AstrumWebSessionManager.class);
 
-  public static final String DEFAULT_ASTRUM_SESSION_COOKIE_NAME = "NXSESSIONID";
+  public static final String DEFAULT_ASTRUM_SESSION_COOKIE_NAME = "ASTRUMSESSIONID";
 
   private static final ThreadLocal<Boolean> requestIsHttps = ThreadLocal.withInitial(() -> Boolean.TRUE);
 
@@ -37,7 +37,7 @@ public class AstrumWebSessionManager
       @Value("${shiro.globalSessionTimeout:" + DEFAULT_GLOBAL_SESSION_TIMEOUT + "}") final long globalSessionTimeout,
       @Value("${astrum.sessionCookieName:" + DEFAULT_ASTRUM_SESSION_COOKIE_NAME + "}") final String sessionCookieName,
       @Value("${astrum.session.enabled:true}") final boolean sessionEnabled,
-      @Value(FeatureFlags.NXSESSIONID_SECURE_COOKIE_NAMED_VALUE) final boolean cookieSecure)
+      @Value(FeatureFlags.ASTRUMSESSIONID_SECURE_COOKIE_NAMED_VALUE) final boolean cookieSecure)
   {
     setGlobalSessionTimeout(globalSessionTimeout);
     log.info("Global session timeout: {} ms", getGlobalSessionTimeout());

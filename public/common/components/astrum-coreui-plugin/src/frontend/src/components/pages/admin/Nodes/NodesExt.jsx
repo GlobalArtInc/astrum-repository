@@ -22,7 +22,7 @@ export default function NodesExt() {
         title={UIStrings.NODES.MENU.text}
         icon={UIStrings.NODES.MENU.icon}
         className="as-nodes"
-        extView="NX.coreui.view.system.Nodes"
+        extView="AS.coreui.view.system.Nodes"
       />
     );
   }

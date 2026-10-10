@@ -7,7 +7,7 @@ import {FormUtils, ExtJS} from '@globalart/astrum-ui-plugin';
 
 import {useRepositoriesService} from '../RepositoriesContextProvider';
 
-import {NxFormGroup, NxStatefulTransferList, NxReadOnly, NxWarningAlert} from '@globalart/react-shared-components';
+import {AsFormGroup, AsStatefulTransferList, AsReadOnly, AsWarningAlert} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -94,29 +94,29 @@ export default function NugetGroupConfiguration({parentMachine}) {
   return (
     <>
       {isEdit && url && (
-        <NxReadOnly>
-          <NxReadOnly.Label>{NUGET.SYMSRV_ENDPOINT.LABEL}</NxReadOnly.Label>
-          <NxReadOnly.Data>{`${url}/symbols`}</NxReadOnly.Data>
-        </NxReadOnly>
+        <AsReadOnly>
+          <AsReadOnly.Label>{NUGET.SYMSRV_ENDPOINT.LABEL}</AsReadOnly.Label>
+          <AsReadOnly.Data>{`${url}/symbols`}</AsReadOnly.Data>
+        </AsReadOnly>
       )}
-      <h2 className="nx-h2">{EDITOR.GROUP_CAPTION}</h2>
-      <NxFormGroup label={EDITOR.MEMBERS_LABEL} isRequired>
-        <NxStatefulTransferList
+      <h2 className="as-h2">{EDITOR.GROUP_CAPTION}</h2>
+      <AsFormGroup label={EDITOR.MEMBERS_LABEL} isRequired>
+        <AsStatefulTransferList
           allItems={availableGroupMembers}
           selectedItems={availableGroupMembers.length ? memberNames : []}
           onChange={FormUtils.handleUpdate('group.memberNames', sendParent)}
           allowReordering
         />
-      </NxFormGroup>
+      </AsFormGroup>
       {mixedVersionConflict && !chocolateyEnabled && (
-        <NxWarningAlert>
+        <AsWarningAlert>
           {NUGET.MIXED_VERSION_WARNING(
             mixedVersionConflict.conflictingName,
             mixedVersionConflict.conflictingVersion,
             mixedVersionConflict.firstMemberName,
             mixedVersionConflict.firstMemberVersion
           )}
-        </NxWarningAlert>
+        </AsWarningAlert>
       )}
     </>
   );

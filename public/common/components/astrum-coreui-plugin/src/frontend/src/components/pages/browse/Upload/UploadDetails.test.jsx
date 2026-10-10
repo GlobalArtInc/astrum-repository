@@ -71,7 +71,7 @@ function getEmptyFileList() {
  * JSDOM has no way to construct a true FileList object programmatically. At the same time, the
  * HTMLInputElement.prototype.files property will _only_ accept a true FileList object, and not any sort
  * of mocked implementation, including the one that userEvent.upload() constructs. Because the RSC
- * NxFileUpload component expects the FileList that gets passed through its onChange callback to be passed
+ * AsFileUpload component expects the FileList that gets passed through its onChange callback to be passed
  * back into the HTMLInputElement `files` property, this causes a problem. In this function we address this
  * by hacking the file input to accept arbitrary objects on its files property
  */

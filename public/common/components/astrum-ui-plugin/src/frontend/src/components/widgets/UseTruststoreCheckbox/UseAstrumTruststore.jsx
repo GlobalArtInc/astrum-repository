@@ -1,11 +1,11 @@
 
 import React, {useState} from 'react';
 import {
-  NxFieldset,
-  NxCheckbox,
-  NxButton,
-  NxFontAwesomeIcon,
-  NxTooltip,
+  AsFieldset,
+  AsCheckbox,
+  AsButton,
+  AsFontAwesomeIcon,
+  AsTooltip,
 } from '@globalart/react-shared-components';
 import classNames from 'classnames';
 
@@ -47,28 +47,28 @@ export default function UseAstrumTruststore({remoteUrl, ...checkboxProps}) {
   const closeModal = () => setShowModal(false);
 
   return (
-    <NxFieldset label={LABEL}>
+    <AsFieldset label={LABEL}>
       <div className="as-use-astrum-trust-store">
-        <NxTooltip title={disabledCheckbox && message}>
+        <AsTooltip title={disabledCheckbox && message}>
           <span>
-            <NxCheckbox {...checkboxProps} disabled={disabledCheckbox}>
+            <AsCheckbox {...checkboxProps} disabled={disabledCheckbox}>
               {DESCRIPTION}
-            </NxCheckbox>
+            </AsCheckbox>
           </span>
-        </NxTooltip>
-        <NxTooltip
+        </AsTooltip>
+        <AsTooltip
           title={disabledViewCertificate && UIStrings.PERMISSION_ERROR}
         >
-          <NxButton
+          <AsButton
             variant="tertiary"
             onClick={openModal}
             className={viewCertificateClasses}
             type="button"
           >
-            <NxFontAwesomeIcon icon={faCertificate} />
+            <AsFontAwesomeIcon icon={faCertificate} />
             <span>{VIEW_CERTIFICATE}</span>
-          </NxButton>
-        </NxTooltip>
+          </AsButton>
+        </AsTooltip>
       </div>
       {showModal && (
         <SslCertificateDetailsModal
@@ -76,6 +76,6 @@ export default function UseAstrumTruststore({remoteUrl, ...checkboxProps}) {
           onCancel={closeModal}
         />
       )}
-    </NxFieldset>
+    </AsFieldset>
   );
 }

@@ -9,7 +9,7 @@ import React, {
   type KeyboardEvent,
 } from 'react';
 import { Flex, Text, Button, IconButton, Select } from '@radix-ui/themes';
-import { NxCombobox } from '@globalart/react-shared-components';
+import { AsCombobox } from '@globalart/react-shared-components';
 import { ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 
 import './TablePagination.scss';
@@ -82,7 +82,7 @@ function PageJumpControl({ currentPage, totalPages, onJump }: PageJumpControlPro
     [hasTyped, draft, currentPage, totalPages],
   );
 
-  // NxCombobox renders match text only and reserves aria-selected for the
+  // AsCombobox renders match text only and reserves aria-selected for the
   // arrow-key cursor, so the current page is tagged on the rendered option node.
   useEffect(() => {
     if (!isOpen) return;
@@ -168,7 +168,7 @@ function PageJumpControl({ currentPage, totalPages, onJump }: PageJumpControlPro
       onBlur={handleBlur}
       style={{ display: 'inline-block' }}
     >
-      <NxCombobox<PageMatch>
+      <AsCombobox<PageMatch>
         value={draft}
         matches={matches}
         onChange={handleChange}

@@ -3,7 +3,7 @@
 /**
  * OCI usage snippets for the React Preview UI Detail Panel.
  *
- * Mirrors the classic ExtJS NX.oci.controller.OciDependencySnippetController so the
+ * Mirrors the classic ExtJS AS.oci.controller.OciDependencySnippetController so the
  * Preview UI's Usage tab gives the same copy-paste-ready commands the classic
  * Component-Info panel provides. Covers docker / podman / oras / helm / cosign /
  * skopeo / OpenTofu — the full toolchain the cloud OCI launch must support.

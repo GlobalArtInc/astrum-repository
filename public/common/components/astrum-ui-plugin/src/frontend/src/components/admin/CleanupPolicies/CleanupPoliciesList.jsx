@@ -7,13 +7,13 @@ import {faBroom} from '@fortawesome/free-solid-svg-icons';
 import ListMachineUtils from '../../../interface/ListMachineUtils';
 
 import {
-  NxButton,
-  NxFilterInput,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
+  AsButton,
+  AsFilterInput,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
 } from '@globalart/react-shared-components';
 
 import { Page } from '../../layout';
@@ -60,47 +60,47 @@ export default function CleanupPoliciesList() {
     <PageHeader>
       <PageTitle icon={faBroom} {...LABELS.MENU}/>
       <PageActions>
-        <NxButton variant="primary" onClick={onCreate}>
+        <AsButton variant="primary" onClick={onCreate}>
           <span>{LABELS.CREATE_BUTTON}</span>
-        </NxButton>
+        </AsButton>
       </PageActions>
     </PageHeader>
     <ContentBody>
       <Section className="as-cleanup-policies-list">
         <SectionToolbar>
           <div className="as-spacer" />
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               onChange={filter}
               value={filterText}
               placeholder={LABELS.FILTER_PLACEHOLDER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_NAME'})} isSortable sortDir={nameSortDir}>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_NAME'})} isSortable sortDir={nameSortDir}>
                 {LABELS.NAME_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_FORMAT'})} isSortable sortDir={formatSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_FORMAT'})} isSortable sortDir={formatSortDir}>
                 {LABELS.FORMAT_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_NOTES'})} isSortable sortDir={notesSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_NOTES'})} isSortable sortDir={notesSortDir}>
                 {LABELS.DESCRIPTION_LABEL}
-              </NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_MESSAGE}>
+              </AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error} emptyMessage={LABELS.EMPTY_MESSAGE}>
             {data.map(({name, format, notes}) => (
-                <NxTableRow key={name} onClick={() => onEdit(name)} isClickable>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{format}</NxTableCell>
-                  <NxTableCell>{notes}</NxTableCell>
-                  <NxTableCell chevron/>
-                </NxTableRow>
+                <AsTableRow key={name} onClick={() => onEdit(name)} isClickable>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{format}</AsTableCell>
+                  <AsTableCell>{notes}</AsTableCell>
+                  <AsTableCell chevron/>
+                </AsTableRow>
             ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
 
       <HelpTile header={LABELS.HELP_TITLE} body={LABELS.HELP_TEXT}/>

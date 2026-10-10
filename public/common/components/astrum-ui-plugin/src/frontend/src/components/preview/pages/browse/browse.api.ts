@@ -319,7 +319,7 @@ export async function canDeleteAsset(assetId: string, repositoryName: string): P
  * Preflight: can the current user delete this component?
  *
  * Server signature accepts a JSON-stringified ComponentXO (matches Classic UI's
- * payload from NX.direct.coreui_Component.canDeleteComponent).
+ * payload from AS.direct.coreui_Component.canDeleteComponent).
  */
 export async function canDeleteComponent(component: ComponentXO): Promise<boolean> {
   try {
@@ -473,7 +473,7 @@ export async function searchInRepository(
  */
 export function canDelete(): boolean {
   // @ts-expect-error - ExtJS is globally available
-  return window.NX?.Permissions?.check('astrum:component:delete') ?? false;
+  return window.AS?.Permissions?.check('astrum:component:delete') ?? false;
 }
 
 /**
@@ -488,7 +488,7 @@ export function showSuccessMessage(message: string): void {
     astrumToast.success(message);
   } else {
     // @ts-expect-error - ExtJS is globally available
-    window.NX?.Messages?.success(message);
+    window.AS?.Messages?.success(message);
   }
 }
 
@@ -504,6 +504,6 @@ export function showErrorMessage(message: string): void {
     astrumToast.error(message);
   } else {
     // @ts-expect-error - ExtJS is globally available
-    window.NX?.Messages?.error(message);
+    window.AS?.Messages?.error(message);
   }
 }

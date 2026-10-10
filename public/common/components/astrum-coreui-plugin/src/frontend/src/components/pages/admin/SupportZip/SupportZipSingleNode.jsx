@@ -3,7 +3,7 @@ import React from 'react';
 import {useMachine} from '@xstate/react';
 import UIStrings from '../../../../constants/UIStrings';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
-import {NxLoadWrapper} from '@globalart/react-shared-components';
+import {AsLoadWrapper} from '@globalart/react-shared-components';
 
 import {
   ContentBody,
@@ -74,9 +74,9 @@ export default function SupportZipSingleNode() {
     <ContentBody className="as-support-zip">
       <Section>
         {!(isCreated || isHaZipsCreated) &&
-        <NxLoadWrapper loading={isLoading} error={createError ? `${createError}` : null} retryHandler={retry}>
+        <AsLoadWrapper loading={isLoading} error={createError ? `${createError}` : null} retryHandler={retry}>
           <SupportZipForm params={params} setParams={setParams} submit={submit} clustered={isHa} hazips={hazips}/>
-        </NxLoadWrapper>
+        </AsLoadWrapper>
         }
         {isCreated && <SupportZipResponse response={response} download={download}/>}
         {isHaZipsCreated && <SupportZipResponseHA response={response} download={download}/>}

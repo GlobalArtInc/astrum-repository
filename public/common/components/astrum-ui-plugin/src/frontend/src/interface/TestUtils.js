@@ -87,7 +87,7 @@ export default class TestUtils {
     querySavingMask: () => screen.queryByText(/saving/i),
     querySubmittingMask: () => screen.queryByText(/submitting/i),
     queryLoadError: (message) => {
-      const options = {selector: '.nx-load-error__message'};
+      const options = {selector: '.as-load-error__message'};
       if (message) {
         return screen.queryByText(`An error occurred loading data. ${message}`, options);
       }
@@ -106,7 +106,7 @@ export default class TestUtils {
     querySubmitButton: () => screen.queryByRole('button', {name: SAVE_BUTTON_LABEL}),
     queryDiscardButton: () => screen.queryByRole('button', {name: DISCARD_BUTTON_LABEL}),
     queryFormError: (message) => {
-      const options = {selector: '.nx-form--show-validation-errors.nx-form--has-validation-errors .nx-form__validation-errors .nx-alert__content'};
+      const options = {selector: '.as-form--show-validation-errors.as-form--has-validation-errors .as-form__validation-errors .as-alert__content'};
       if (message) {
         return screen.queryByText(`${TestUtils.THERE_WERE_ERRORS} ${message}`, options);
       }
@@ -115,7 +115,7 @@ export default class TestUtils {
       }
     },
     querySaveError: (message) => {
-      const options = {selector: '.nx-alert__content .nx-load-error__message'};
+      const options = {selector: '.as-alert__content .as-load-error__message'};
       if (message) {
         return screen.queryByText(`${TestUtils.SAVE_ERROR} ${message}`, options);
       } else {

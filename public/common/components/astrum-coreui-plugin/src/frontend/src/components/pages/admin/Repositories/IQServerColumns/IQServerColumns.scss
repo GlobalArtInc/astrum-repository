@@ -1,38 +1,38 @@
 
-@use '~@globalart/react-shared-components/scss-shared/nx-container-helpers';
-@use '~@globalart/react-shared-components/scss-shared/nx-text-helpers';
+@use '~@globalart/react-shared-components/scss-shared/as-container-helpers';
+@use '~@globalart/react-shared-components/scss-shared/as-text-helpers';
 
 .as-repositories, .as-browse {
   .as-repositories-list, .as-browse-list {
     .as-health-check-indicators {
       margin: 0;
 
-      .nx-icon {
-        margin: 0 var(--nx-spacing-base) 0 0;
+      .as-icon {
+        margin: 0 var(--as-spacing-base) 0 0;
       }
-      .nx-icon:nth-child(2) {
-        margin-left: var(--nx-spacing-2x);
+      .as-icon:nth-child(2) {
+        margin-left: var(--as-spacing-2x);
       }
     }
 
     .as-rhc-analyze-btn-enabled {
-      color: var(--nx-swatch-blue-40);
+      color: var(--as-swatch-blue-40);
     }
 
     .as-rhc-analyze-btn-disabled {
-      color: var(--nx-swatch-grey-60);
+      color: var(--as-swatch-grey-60);
     }
 
     .as-rhc-loading-lbl,
     .as-rhc-analyzing-lbl {
-      color: var(--nx-swatch-grey-30);
+      color: var(--as-swatch-grey-30);
     }
 
     .as-rhc-loading-error {
-      color: var(--nx-swatch-red-40);
-      font-size: var(---nx-font-size-s);
+      color: var(--as-swatch-red-40);
+      font-size: var(---as-font-size-s);
 
-      .nx-icon {
+      .as-icon {
         margin-left: 0;
       }
     }
@@ -41,25 +41,25 @@
         display: flex;
         white-space: nowrap;
 
-        .nx-text-link {
-            margin-left: var(--nx-spacing-base);
+        .as-text-link {
+            margin-left: var(--as-spacing-base);
         }
     }
 
     .as-unavailable-icon {
-      color: var(--nx-swatch-grey-50);
+      color: var(--as-swatch-grey-50);
     }
 
     .as-health-check-summary {
       position: absolute;
       right: 24px;
-      border: 1px solid var(--nx-swatch-grey-50);
+      border: 1px solid var(--as-swatch-grey-50);
       border-radius: 8px;
       padding: 16px;
       background-color: white;
       z-index: 100;
 
-      .nx-h2 {
+      .as-h2 {
         text-align: left;
         margin-top: 0;
       }
@@ -67,15 +67,15 @@
 
     .as-table-cell-centered {
       .as-health-check-summary {
-        .nx-btn-bar {
+        .as-btn-bar {
           justify-content: flex-end;
-          margin: var(--nx-spacing-2x) 0 0;
+          margin: var(--as-spacing-2x) 0 0;
         }
       }
     }
   }
 
-  .as-enable-health-check-modal.nx-modal {
+  .as-enable-health-check-modal.as-modal {
     overflow-y: visible;
   }
 }

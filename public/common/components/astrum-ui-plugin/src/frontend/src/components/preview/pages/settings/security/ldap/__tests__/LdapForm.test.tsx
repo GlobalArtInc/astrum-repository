@@ -758,7 +758,7 @@ describe('LdapForm', () => {
 
   describe('read-only mode when lacking astrum:ldap:update (ASTRUM-53627)', () => {
     beforeEach(() => {
-      global.NX.Permissions.check.mockImplementation(
+      global.AS.Permissions.check.mockImplementation(
         (permission: string) => permission !== 'astrum:ldap:update'
       );
     });
@@ -824,7 +824,7 @@ describe('LdapForm', () => {
 
   describe('create-mode field gating uses astrum:ldap:create, not astrum:ldap:update (ASTRUM-53627 review fix)', () => {
     it('enables fields and the Create button when the user has astrum:ldap:create but lacks astrum:ldap:update', () => {
-      global.NX.Permissions.check.mockImplementation(
+      global.AS.Permissions.check.mockImplementation(
         (permission: string) => permission !== 'astrum:ldap:update'
       );
 
@@ -838,7 +838,7 @@ describe('LdapForm', () => {
     });
 
     it('disables fields and the Create button when the user has astrum:ldap:update but lacks astrum:ldap:create', () => {
-      global.NX.Permissions.check.mockImplementation(
+      global.AS.Permissions.check.mockImplementation(
         (permission: string) => permission !== 'astrum:ldap:create'
       );
 
@@ -856,7 +856,7 @@ describe('LdapForm', () => {
     });
 
     it('still allows Verify Connection in create mode when the user lacks astrum:ldap:create but has astrum:ldap:update', () => {
-      global.NX.Permissions.check.mockImplementation(
+      global.AS.Permissions.check.mockImplementation(
         (permission: string) => permission !== 'astrum:ldap:create'
       );
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 
 export default {
   UPGRADE_MODAL: {
@@ -14,7 +14,7 @@ export default {
     },
     BENEFITS: {
       TITLE: 'Benefits:',
-      NOTES: <>See the <NxTextLink external href="https://links.globalart.dev/products/astrum/releasenotes">Astrum Repository 3.71.0 Release notes</NxTextLink> for full details.</>,
+      NOTES: <>See the <AsTextLink external href="https://links.globalart.dev/products/astrum/releasenotes">Astrum Repository 3.71.0 Release notes</AsTextLink> for full details.</>,
       LIST: {
         ITEM1: 'Fast access to bug fixes and new features when you upgrade to the newest Astrum Repository version',
         ITEM2: 'No downtime means your team can keep working while an upgrade takes place',

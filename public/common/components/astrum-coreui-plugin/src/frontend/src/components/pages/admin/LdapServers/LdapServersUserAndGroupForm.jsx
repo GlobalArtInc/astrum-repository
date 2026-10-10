@@ -2,15 +2,15 @@
 import React from 'react';
 import {useActor} from '@xstate/react';
 import {
-  NxTile,
-  NxFormGroup,
-  NxFormSelect,
-  NxH2,
-  NxTextInput,
-  NxFieldset,
-  NxCheckbox,
-  NxStatefulForm,
-  NxButton,
+  AsTile,
+  AsFormGroup,
+  AsFormSelect,
+  AsH2,
+  AsTextInput,
+  AsFieldset,
+  AsCheckbox,
+  AsStatefulForm,
+  AsButton,
 } from '@globalart/react-shared-components';
 import {FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
 import UIStrings from '../../../../constants/UIStrings';
@@ -49,118 +49,118 @@ export default function LdapServerUserAndGroupForm({actor, onDone}) {
   const cancel = () => send({type: 'CANCEL'});
 
   return (
-    <NxTile.Content>
-      <NxH2>{LABELS.CONFIGURATION}</NxH2>
-      <NxStatefulForm 
+    <AsTile.Content>
+      <AsH2>{LABELS.CONFIGURATION}</AsH2>
+      <AsStatefulForm 
         {...FormUtils.formProps(state, send)} 
         onCancel={onDone}
         additionalFooterBtns={
           <>
-            <NxButton
+            <AsButton
               className={isInvalid ? 'disabled' : ''}
               onClick={verifyUserMapping}
               type="button"
             >
               {LABELS.VERIFY_USER_MAPPING_BUTTON}
-            </NxButton>
-            <NxButton
+            </AsButton>
+            <AsButton
               className={isInvalid ? 'disabled' : ''}
               onClick={verifyLogin}
               type="button"
             >
               {LABELS.VERIFY_LOGIN_BUTTON}
-            </NxButton>
+            </AsButton>
           </>
         }
       >
-        <NxFormGroup label={LABELS.TEMPLATE.LABEL}>
-          <NxFormSelect onChange={updateTemplate} value={template}>
+        <AsFormGroup label={LABELS.TEMPLATE.LABEL}>
+          <AsFormSelect onChange={updateTemplate} value={template}>
             <option value="" disabled={isTemplateSelected} />
             {templates.map(({name}) => (
               <option value={name} key={name}>
                 {name}
               </option>
             ))}
-          </NxFormSelect>
-        </NxFormGroup>
-        <NxFormGroup
+          </AsFormSelect>
+        </AsFormGroup>
+        <AsFormGroup
           label={LABELS.USER_RELATIVE_DN.LABEL}
           sublabel={LABELS.USER_RELATIVE_DN.SUB_LABEL}
         >
-          <NxTextInput
+          <AsTextInput
             {...FormUtils.fieldProps('userBaseDn', state)}
             onChange={FormUtils.handleUpdate('userBaseDn', send)}
-            className="nx-text-input--long"
+            className="as-text-input--long"
           />
-        </NxFormGroup>
-        <NxFieldset label={LABELS.USER_SUBTREE.LABEL}>
-          <NxCheckbox
+        </AsFormGroup>
+        <AsFieldset label={LABELS.USER_SUBTREE.LABEL}>
+          <AsCheckbox
             {...FormUtils.checkboxProps('userSubtree', state)}
             onChange={FormUtils.handleUpdate('userSubtree', send)}
           >
             {LABELS.USER_SUBTREE.SUB_LABEL}
-          </NxCheckbox>
-        </NxFieldset>
-        <NxFormGroup
+          </AsCheckbox>
+        </AsFieldset>
+        <AsFormGroup
           label={LABELS.OBJECT_CLASS.LABEL}
           sublabel={LABELS.OBJECT_CLASS.SUB_LABEL}
           isRequired
         >
-          <NxTextInput
-            className="nx-text-input--long"
+          <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('userObjectClass', state)}
             onChange={FormUtils.handleUpdate('userObjectClass', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup
+        </AsFormGroup>
+        <AsFormGroup
           label={LABELS.USER_FILTER.LABEL}
           sublabel={LABELS.USER_FILTER.SUB_LABEL}
         >
-          <NxTextInput
-            className="nx-text-input--long"
+          <AsTextInput
+            className="as-text-input--long"
             {...FormUtils.fieldProps('userLdapFilter', state)}
             onChange={FormUtils.handleUpdate('userLdapFilter', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.USER_ID_ATTRIBUTE} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.USER_ID_ATTRIBUTE} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('userIdAttribute', state)}
             onChange={FormUtils.handleUpdate('userIdAttribute', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.REAL_NAME_ATTRIBUTE} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.REAL_NAME_ATTRIBUTE} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('userRealNameAttribute', state)}
             onChange={FormUtils.handleUpdate('userRealNameAttribute', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup label={LABELS.EMAIL_ATTRIBUTE} isRequired>
-          <NxTextInput
+        </AsFormGroup>
+        <AsFormGroup label={LABELS.EMAIL_ATTRIBUTE} isRequired>
+          <AsTextInput
             {...FormUtils.fieldProps('userEmailAddressAttribute', state)}
             onChange={FormUtils.handleUpdate('userEmailAddressAttribute', send)}
           />
-        </NxFormGroup>
-        <NxFormGroup
+        </AsFormGroup>
+        <AsFormGroup
           label={LABELS.PASSWORD_ATTRIBUTE.LABEL}
           sublabel={LABELS.PASSWORD_ATTRIBUTE.SUB_LABEL}
         >
-          <NxTextInput
+          <AsTextInput
             {...FormUtils.fieldProps('userPasswordAttribute', state)}
             onChange={FormUtils.handleUpdate('userPasswordAttribute', send)}
           />
-        </NxFormGroup>
-        <NxFieldset label={LABELS.MAP_LDAP.LABEL}>
-          <NxCheckbox
+        </AsFormGroup>
+        <AsFieldset label={LABELS.MAP_LDAP.LABEL}>
+          <AsCheckbox
             {...FormUtils.checkboxProps('ldapGroupsAsRoles', state)}
             onChange={FormUtils.handleUpdate('ldapGroupsAsRoles', send)}
           >
             {LABELS.MAP_LDAP.SUB_LABEL}
-          </NxCheckbox>
-        </NxFieldset>
+          </AsCheckbox>
+        </AsFieldset>
         {ldapGroupsAsRoles && (
           <>
-            <NxFormGroup label={LABELS.GROUP_TYPE.LABEL} isRequired>
-              <NxFormSelect
+            <AsFormGroup label={LABELS.GROUP_TYPE.LABEL} isRequired>
+              <AsFormSelect
                 {...FormUtils.fieldProps('groupType', state)}
                 onChange={FormUtils.handleUpdate('groupType', send)}
                 validatable
@@ -170,87 +170,87 @@ export default function LdapServerUserAndGroupForm({actor, onDone}) {
                     {label}
                   </option>
                 ))}
-              </NxFormSelect>
-            </NxFormGroup>
+              </AsFormSelect>
+            </AsFormGroup>
             {isDynamicGroup(groupType) && (
-              <NxFormGroup
+              <AsFormGroup
                 label={LABELS.GROUP_MEMBER_OF_ATTRIBUTE.LABEL}
                 sublabel={LABELS.GROUP_MEMBER_OF_ATTRIBUTE.SUB_LABEL}
                 isRequired
               >
-                <NxTextInput
+                <AsTextInput
                   {...FormUtils.fieldProps('userMemberOfAttribute', state)}
                   onChange={FormUtils.handleUpdate(
                     'userMemberOfAttribute',
                     send
                   )}
                 />
-              </NxFormGroup>
+              </AsFormGroup>
             )}
             {isStaticGroup(groupType) && (
               <>
-                <NxFormGroup
+                <AsFormGroup
                   label={LABELS.GROUP_DN.LABEL}
                   sublabel={LABELS.GROUP_DN.SUB_LABEL}
                 >
-                  <NxTextInput
+                  <AsTextInput
                     {...FormUtils.fieldProps('groupBaseDn', state)}
                     onChange={FormUtils.handleUpdate('groupBaseDn', send)}
                   />
-                </NxFormGroup>
-                <NxFieldset label={LABELS.GROUP_SUBTREE.LABEL}>
-                  <NxCheckbox
+                </AsFormGroup>
+                <AsFieldset label={LABELS.GROUP_SUBTREE.LABEL}>
+                  <AsCheckbox
                     {...FormUtils.checkboxProps('groupSubtree', state)}
                     onChange={FormUtils.handleUpdate('groupSubtree', send)}
                   >
                     {LABELS.GROUP_SUBTREE.SUB_LABEL}
-                  </NxCheckbox>
-                </NxFieldset>
-                <NxFormGroup
+                  </AsCheckbox>
+                </AsFieldset>
+                <AsFormGroup
                   label={LABELS.GROUP_OBJECT_CLASS.LABEL}
                   sublabel={LABELS.GROUP_OBJECT_CLASS.SUB_LABEL}
                   isRequired
                 >
-                  <NxTextInput
+                  <AsTextInput
                     {...FormUtils.fieldProps('groupObjectClass', state)}
                     onChange={FormUtils.handleUpdate('groupObjectClass', send)}
                   />
-                </NxFormGroup>
-                <NxFormGroup label={LABELS.GROUP_ID_ATTRIBUTE.LABEL} isRequired>
-                  <NxTextInput
+                </AsFormGroup>
+                <AsFormGroup label={LABELS.GROUP_ID_ATTRIBUTE.LABEL} isRequired>
+                  <AsTextInput
                     {...FormUtils.fieldProps('groupIdAttribute', state)}
                     onChange={FormUtils.handleUpdate('groupIdAttribute', send)}
                   />
-                </NxFormGroup>
-                <NxFormGroup
+                </AsFormGroup>
+                <AsFormGroup
                   label={LABELS.GROUP_MEMBER_ATTRIBUTE.LABEL}
                   sublabel={LABELS.GROUP_MEMBER_ATTRIBUTE.SUB_LABEL}
                   isRequired
                 >
-                  <NxTextInput
+                  <AsTextInput
                     {...FormUtils.fieldProps('groupMemberAttribute', state)}
                     onChange={FormUtils.handleUpdate(
                       'groupMemberAttribute',
                       send
                     )}
                   />
-                </NxFormGroup>
-                <NxFormGroup
+                </AsFormGroup>
+                <AsFormGroup
                   label={LABELS.GROUP_MEMBER_FORMAT.LABEL}
                   sublabel={LABELS.GROUP_MEMBER_FORMAT.SUB_LABEL}
                   isRequired
                 >
-                  <NxTextInput
+                  <AsTextInput
                     {...FormUtils.fieldProps('groupMemberFormat', state)}
                     onChange={FormUtils.handleUpdate('groupMemberFormat', send)}
-                    className="nx-text-input--long"
+                    className="as-text-input--long"
                   />
-                </NxFormGroup>
+                </AsFormGroup>
               </>
             )}
           </>
         )}
-      </NxStatefulForm>
+      </AsStatefulForm>
       {askingPassword && (
         <LdapServersModalPassword
           onCancel={cancel}
@@ -263,6 +263,6 @@ export default function LdapServerUserAndGroupForm({actor, onDone}) {
       {showingVerifyUserMappingModal && (
         <LdapVerifyUserMappingModal ldapConfig={data} onCancel={cancel} />
       )}
-    </NxTile.Content>
+    </AsTile.Content>
   );
 }

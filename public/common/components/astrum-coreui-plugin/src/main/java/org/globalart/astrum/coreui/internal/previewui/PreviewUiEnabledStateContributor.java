@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import static org.globalart.astrum.common.app.FeatureFlags.PREVIEW_UI_SETTINGS_ENABLED_NAMED_VALUE;
 
 /**
- * Exposes {@code astrum.previewui.enabled} to the frontend via {@code NX.State}.
+ * Exposes {@code astrum.previewui.enabled} to the frontend via {@code AS.State}.
  * When false, the Preview UI Settings page is hidden from the legacy admin UI. Defaults to true.
  */
 @Component

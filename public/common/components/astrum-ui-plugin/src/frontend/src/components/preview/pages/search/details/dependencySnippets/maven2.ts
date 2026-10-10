@@ -18,7 +18,7 @@ function xmlEncode(str: string): string {
 /**
  * Maven (maven2) dependency snippet generator.
  *
- * Ported verbatim from Classic NX.maven.controller.MavenDependencySnippetController.
+ * Ported verbatim from Classic AS.maven.controller.MavenDependencySnippetController.
  * Classifier and extension are read from the asset's maven2 attributes; the Overview tab
  * invokes this at component level (asset undefined), so those are absent there.
  */

@@ -57,7 +57,7 @@ public class QuartzThreadPool
         0L, // keep-alive
         TimeUnit.MILLISECONDS,
         new SynchronousQueue<>(), // no queuing
-        new AstrumThreadFactory("quartz", "nx-tasks", threadPriority),
+        new AstrumThreadFactory("quartz", "as-tasks", threadPriority),
         new AbortPolicy());
 
     // wrapper for Shiro integration

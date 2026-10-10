@@ -59,7 +59,7 @@ global.Ext = {
   widget: jest.fn()
 };
 
-global.NX = {
+global.AS = {
   Messages: {
     success: jest.fn(),
     error: jest.fn()
@@ -103,8 +103,8 @@ Range.prototype.getBoundingClientRect = jest.fn(() => {
 });
 
 const getHeight = (el) => {
-  const isContainer = el.classList.contains('nx-transfer-list__item-list'),
-    isItem = el.classList.contains('nx-transfer-list__item'),
+  const isContainer = el.classList.contains('as-transfer-list__item-list'),
+    isItem = el.classList.contains('as-transfer-list__item'),
     height = isContainer ? 520 : isItem ? 40 : 0;
   return height;
 };

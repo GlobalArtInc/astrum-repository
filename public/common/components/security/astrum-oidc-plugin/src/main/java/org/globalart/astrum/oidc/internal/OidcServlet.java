@@ -49,7 +49,7 @@ public class OidcServlet
 
   public static final String CALLBACK_PATH = "/oidc/callback";
 
-  static final String STATE_COOKIE = "NXOIDCSTATE";
+  static final String STATE_COOKIE = "ASTRUMOIDCSTATE";
 
   private static final Logger log = LoggerFactory.getLogger(OidcServlet.class);
 

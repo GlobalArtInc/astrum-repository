@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { NxErrorAlert, NxH3, NxInfoAlert, NxSuccessAlert, NxWarningAlert } from '@globalart/react-shared-components';
+import { AsErrorAlert, AsH3, AsInfoAlert, AsSuccessAlert, AsWarningAlert } from '@globalart/react-shared-components';
 
 /**
  *
@@ -32,12 +32,12 @@ export default function SystemNotice({
 
   return (
       <div
-          className="as-system-notice nx-system-notice nx-system-notice--alert as-system-notice"
+          className="astrum-system-notice as-system-notice as-system-notice--alert astrum-system-notice"
           role="complementary"
           aria-label="alert system notice"
       >
         <Alert className={additionalAlertClassNames} onClose={nonDismissable ? undefined : onInternalClose}>
-          { isTitle && <NxH3>{title}</NxH3> }
+          { isTitle && <AsH3>{title}</AsH3> }
           {children}
         </Alert>
       </div>);
@@ -56,15 +56,15 @@ export default function SystemNotice({
 
   function getWrapperComponentFromNoticeLevel(noticeLevel) {
     if (noticeLevel === 'warning') {
-      return NxWarningAlert;
+      return AsWarningAlert;
     } else if (noticeLevel === 'error') {
-      return NxErrorAlert;
+      return AsErrorAlert;
     } else if (noticeLevel === 'info') {
-      return NxInfoAlert;
+      return AsInfoAlert;
     } else if (noticeLevel === 'success') {
-      return NxSuccessAlert;
+      return AsSuccessAlert;
     } else {
-      return NxInfoAlert;
+      return AsInfoAlert;
     }
   }
 }

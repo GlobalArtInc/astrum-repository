@@ -143,15 +143,15 @@ export function App() {
  * where permission loading can take 10-15 seconds.
  */
 function renderApp() {
-  if (window.__nxAppRendered) {
+  if (window.__asAppRendered) {
     return;
   }
-  window.__nxAppRendered = true;
+  window.__asAppRendered = true;
 
   try {
     const router = getRouter();
     const el = document.createElement('div');
-    el.className = 'nx-page as-page';
+    el.className = 'as-page astrum-page';
     document.body.appendChild(el);
     const root = createRoot(el);
 
@@ -163,7 +163,7 @@ function renderApp() {
     </ThemeProvider>
   );
   } catch (err) {
-    window.__nxAppRendered = false;
+    window.__asAppRendered = false;
   }
 }
 
@@ -174,14 +174,14 @@ function renderApp() {
  * when ExtJS initializes (not waiting for permissions).
  *
  * Fallbacks in ExtJS.js handle permission checks during loading:
- *   - ExtJS.checkPermission() reads from __nxRestBootstrap when NX.Permissions isn't ready
+ *   - ExtJS.checkPermission() reads from __asRestBootstrap when AS.Permissions isn't ready
  *   - Components can use ExtJS.arePermissionsReady() to check loading state
  *
  * This enables immediate UI rendering even for users with 400+ roles
  * where permission loading can take 10-15 seconds on cold cache.
  */
-// Build identifier - check in browser console: window.__nxBuild
-window.__nxBuild = typeof __NX_BUILD_COMMIT__ !== 'undefined' ? __NX_BUILD_COMMIT__ : 'dev';
+// Build identifier - check in browser console: window.__asBuild
+window.__asBuild = typeof __AS_BUILD_COMMIT__ !== 'undefined' ? __AS_BUILD_COMMIT__ : 'dev';
 
 /** Timeout (ms) before falling back to REST bootstrap when ExtJS fails to load */
 const EXTJS_TIMEOUT_MS = 15000;

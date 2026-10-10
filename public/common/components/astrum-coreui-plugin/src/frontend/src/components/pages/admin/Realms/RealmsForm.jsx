@@ -2,11 +2,11 @@
 import React from 'react';
 import {useMachine} from '@xstate/react';
 import {
-  NxButton,
-  NxH2,
-  NxStatefulForm,
-  NxTooltip,
-  NxStatefulTransferList
+  AsButton,
+  AsH2,
+  AsStatefulForm,
+  AsTooltip,
+  AsStatefulTransferList
 } from '@globalart/react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
@@ -36,25 +36,25 @@ export default function RealmsForm() {
     })) || [];
 
   return (
-    <NxStatefulForm
+    <AsStatefulForm
         {...FormUtils.formProps(state, send)}
         validationErrors={validationErrors?.active || validationErrors?.multipleSsoEnabled || FormUtils.saveTooltip({isPristine, isInvalid})}
         additionalFooterBtns={
-          <NxTooltip title={FormUtils.discardTooltip({isPristine})}>
-            <NxButton
+          <AsTooltip title={FormUtils.discardTooltip({isPristine})}>
+            <AsButton
               type="button"
               className={isPristine && 'disabled'}
               onClick={discard}
             >
               {SETTINGS.DISCARD_BUTTON_LABEL}
-            </NxButton>
-          </NxTooltip>
+            </AsButton>
+          </AsTooltip>
         }
         onSubmit={checkLocalRealmRemoval}
     >
       <>
-        <NxH2>{LABELS.SUB_LABEL}</NxH2>
-        <NxStatefulTransferList
+        <AsH2>{LABELS.SUB_LABEL}</AsH2>
+        <AsStatefulTransferList
             id="realms_select"
             availableItemsLabel={LABELS.AVAILABLE_TITLE}
             selectedItemsLabel={LABELS.SELECTED_TITLE}
@@ -68,6 +68,6 @@ export default function RealmsForm() {
       {showLocalRealmRemovalModal &&
         <RealmsRemovalModal onClose={closeModal} onConfirm={save} />
       }
-    </NxStatefulForm>
+    </AsStatefulForm>
   );
 }

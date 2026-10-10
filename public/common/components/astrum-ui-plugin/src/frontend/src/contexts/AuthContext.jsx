@@ -8,7 +8,7 @@ import {isExtJSLoaded, onExtJSLoad} from '../utils/extJsLoader';
  * AuthContext provides authentication state and methods for the application.
  *
  * Phase 1: React Shell - This context bridges React and ExtJS authentication.
- * When ExtJS is loaded, it delegates to NX.State.getUser().
+ * When ExtJS is loaded, it delegates to AS.State.getUser().
  * When ExtJS is not loaded, it fetches user state directly from the API.
  *
  * Future phases will fully migrate away from ExtJS dependencies.
@@ -41,9 +41,9 @@ export function AuthProvider({ children }) {
   };
 
   const fetchUser = async () => {
-    if (isExtJSLoaded() && window.NX?.State?.getUser) {
+    if (isExtJSLoaded() && window.AS?.State?.getUser) {
       // ExtJS is loaded - use its user state
-      const extUser = window.NX.State.getUser();
+      const extUser = window.AS.State.getUser();
       setUser(extUser);
       return extUser;
     } else {
@@ -60,8 +60,8 @@ export function AuthProvider({ children }) {
 
     // If ExtJS loads later, sync with its user state
     onExtJSLoad(() => {
-      if (window.NX?.State?.getUser) {
-        const extUser = window.NX.State.getUser();
+      if (window.AS?.State?.getUser) {
+        const extUser = window.AS.State.getUser();
         setUser(extUser);
       }
     });
@@ -70,7 +70,7 @@ export function AuthProvider({ children }) {
     if (isExtJSLoaded() && window.Ext?.getApplication) {
       const stateController = window.Ext.getApplication().getController('State');
       const handleUserChange = () => {
-        const extUser = window.NX.State.getUser();
+        const extUser = window.AS.State.getUser();
         setUser(extUser);
       };
 
@@ -82,8 +82,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const hasUser = () => {
-    if (isExtJSLoaded() && window.NX?.State?.getUser) {
-      return Boolean(window.NX.State.getUser());
+    if (isExtJSLoaded() && window.AS?.State?.getUser) {
+      return Boolean(window.AS.State.getUser());
     }
     return Boolean(user);
   };

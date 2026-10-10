@@ -673,7 +673,7 @@ describe('DynamicFormField', () => {
         />
       );
 
-      // While loading, NxLoadWrapper shows a loading spinner, so combobox is not yet available
+      // While loading, AsLoadWrapper shows a loading spinner, so combobox is not yet available
       expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
       expect(screen.getByText('Loading…')).toBeVisible();
       expect(screen.queryByText('Repository 1')).not.toBeInTheDocument();
@@ -706,7 +706,7 @@ describe('DynamicFormField', () => {
         />
       );
 
-      // NxLoadWrapper shows an error alert when API fails
+      // AsLoadWrapper shows an error alert when API fails
       expect(await screen.findByRole('alert')).toBeVisible();
       // Combobox should not be available when error occurs
       expect(screen.queryByRole('combobox')).not.toBeInTheDocument();

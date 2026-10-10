@@ -95,7 +95,7 @@ describe('UseAstrumTruststore', () => {
     when(Axios.get).calledWith(sslCertificateUrl).mockResolvedValue({
       data: [{}],
     });
-    global.NX = {
+    global.AS = {
       Permissions: {check: mock},
     };
   });

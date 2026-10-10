@@ -3,14 +3,14 @@ import React, {Fragment} from 'react';
 import {useActor} from '@xstate/react';
 
 import {
-  NxButton,
-  NxH2,
-  NxReadOnly,
-  NxLoadWrapper,
-  NxInfoAlert,
-  NxFooter,
-  NxButtonBar,
-  NxTile,
+  AsButton,
+  AsH2,
+  AsReadOnly,
+  AsLoadWrapper,
+  AsInfoAlert,
+  AsFooter,
+  AsButtonBar,
+  AsTile,
 } from '@globalart/react-shared-components';
 import {FormFieldsFactory} from '@globalart/astrum-ui-plugin';
 
@@ -35,39 +35,39 @@ export default function PrivilegesReadOnly({service, onDone}) {
 
   const retry = () => send({type: 'RETRY'});
 
-  return <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
-    <NxTile.Content>
-      <NxInfoAlert>
+  return <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+    <AsTile.Content>
+      <AsInfoAlert>
         {isDefaultPrivilege ? LABELS.DEFAULT_PRIVILEGE_WARNING : UIStrings.SETTINGS.READ_ONLY.WARNING}
-      </NxInfoAlert>
-      <NxH2>{LABELS.SECTIONS.SETUP}</NxH2>
-      <NxReadOnly>
-        <NxReadOnly.Label>{LABELS.TYPE.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{types[type]?.name}</NxReadOnly.Data>
-        <NxReadOnly.Label>{LABELS.NAME.LABEL}</NxReadOnly.Label>
-        <NxReadOnly.Data>{name}</NxReadOnly.Data>
+      </AsInfoAlert>
+      <AsH2>{LABELS.SECTIONS.SETUP}</AsH2>
+      <AsReadOnly>
+        <AsReadOnly.Label>{LABELS.TYPE.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{types[type]?.name}</AsReadOnly.Data>
+        <AsReadOnly.Label>{LABELS.NAME.LABEL}</AsReadOnly.Label>
+        <AsReadOnly.Data>{name}</AsReadOnly.Data>
         {description && <>
-          <NxReadOnly.Label>{LABELS.DESCRIPTION.LABEL}</NxReadOnly.Label>
-          <NxReadOnly.Data>{description}</NxReadOnly.Data>
+          <AsReadOnly.Label>{LABELS.DESCRIPTION.LABEL}</AsReadOnly.Label>
+          <AsReadOnly.Data>{description}</AsReadOnly.Data>
         </>}
         {FormFieldsFactory.getFields(fields)?.map(({Field, props}) => (
             <Fragment key={props.id}>
-              <NxReadOnly.Label>{props.label}</NxReadOnly.Label>
-              <NxReadOnly.Data>
+              <AsReadOnly.Label>{props.label}</AsReadOnly.Label>
+              <AsReadOnly.Data>
                 <Field
                     id={props.id}
                     dynamicProps={{...props, readOnly: true}}
                     current={current}
                 />
-              </NxReadOnly.Data>
+              </AsReadOnly.Data>
             </Fragment>
         ))}
-      </NxReadOnly>
-    </NxTile.Content>
-    <NxFooter>
-      <NxButtonBar>
-        <NxButton type="button" onClick={cancel}>{UIStrings.SETTINGS.CANCEL_BUTTON_LABEL}</NxButton>
-      </NxButtonBar>
-    </NxFooter>
-  </NxLoadWrapper>;
+      </AsReadOnly>
+    </AsTile.Content>
+    <AsFooter>
+      <AsButtonBar>
+        <AsButton type="button" onClick={cancel}>{UIStrings.SETTINGS.CANCEL_BUTTON_LABEL}</AsButton>
+      </AsButtonBar>
+    </AsFooter>
+  </AsLoadWrapper>;
 }

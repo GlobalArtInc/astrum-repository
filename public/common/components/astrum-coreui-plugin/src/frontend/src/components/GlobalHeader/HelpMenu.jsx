@@ -2,12 +2,12 @@
 
 import React from "react";
 import {
-  NxH4,
-  NxStatefulNavigationDropdown,
-  NxNavigationDropdown,
+  AsH4,
+  AsStatefulNavigationDropdown,
+  AsNavigationDropdown,
   useToggle,
-  NxTextLink,
-  NxDropdown, NxP
+  AsTextLink,
+  AsDropdown, AsP
 } from '@globalart/react-shared-components';
 import { ExtJS } from '@globalart/astrum-ui-plugin';
 import { faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
@@ -49,7 +49,7 @@ export default function HelpMenu() {
   const version = ExtJS.useState(() => ExtJS.state().getVersion());
 
   return (
-      <NxStatefulNavigationDropdown
+      <AsStatefulNavigationDropdown
           isOpen={isOpen}
           onToggleCollapse={onToggleCollapse}
           icon={faQuestionCircle}
@@ -57,74 +57,74 @@ export default function HelpMenu() {
           className="as-global-header-help-menu"
           data-analytics-id="as-global-header-help-icon"
       >
-        <NxNavigationDropdown.MenuHeader>
-          <NxH4>
+        <AsNavigationDropdown.MenuHeader>
+          <AsH4>
             Astrum Repository Manager
-          </NxH4>
-          <NxP>{version}</NxP>
-        </NxNavigationDropdown.MenuHeader>
+          </AsH4>
+          <AsP>{version}</AsP>
+        </AsNavigationDropdown.MenuHeader>
 
         <button
             onClick={ExtJS.showAbout}
-            className="nx-dropdown-link"
+            className="as-dropdown-link"
             data-analytics-id="as-global-header-help-about">
           About
         </button>
 
-        <NxTextLink
+        <AsTextLink
             external
             href={`https://links.globalart.dev/products/astrum/docs/${version}?${new URLSearchParams(DocumentationUTMparams).toString()}`}
-            className="nx-dropdown-link"
+            className="as-dropdown-link"
             data-analytics-id="as-global-header-help-documentation"
         >
           Documentation
-        </NxTextLink>
+        </AsTextLink>
 
-        <NxTextLink
+        <AsTextLink
             external
             href={`https://links.globalart.dev/products/astrum/kb?${new URLSearchParams(KnowledgeBaseUTMparams).toString()}`}
-            className="nx-dropdown-link"
+            className="as-dropdown-link"
             data-analytics-id="as-global-header-help-knowledge-base"
         >
           Knowledge Base
-        </NxTextLink>
+        </AsTextLink>
 
-        <NxTextLink
+        <AsTextLink
             external
             href={`https://links.globalart.dev/products/astrum/guides?${new URLSearchParams(GlobalArtGuidesUTMparams).toString()}`}
-            className="nx-dropdown-link"
+            className="as-dropdown-link"
             data-analytics-id="as-global-header-help-guides"
         >
           GlobalArt Guides
-        </NxTextLink>
+        </AsTextLink>
 
-        <NxTextLink
+        <AsTextLink
             external
             href={`https://links.globalart.dev/products/astrum/community?${new URLSearchParams(CommunityUTMparams).toString()}`}
-            className="nx-dropdown-link"
+            className="as-dropdown-link"
             data-analytics-id="as-global-header-help-community"
         >
           Community
-        </NxTextLink>
+        </AsTextLink>
 
-        <NxTextLink
+        <AsTextLink
             external
             href={`https://links.globalart.dev/products/astrum/issues?${new URLSearchParams(IssueTrackerUTMparams).toString()}`}
-            className="nx-dropdown-link"
+            className="as-dropdown-link"
             data-analytics-id="as-global-header-help-issue-tracker"
         >
           Issue Tracker
-        </NxTextLink>
+        </AsTextLink>
 
-        <NxDropdown.Divider />
+        <AsDropdown.Divider />
 
-        <NxTextLink
+        <AsTextLink
             external
             href={`https://links.globalart.dev/products/astrum/support?${new URLSearchParams(SupportUTMparams).toString()}`}
-            className="nx-dropdown-link"
+            className="as-dropdown-link"
             data-analytics-id="as-global-header-help-support"
         >
           Support
-        </NxTextLink>
-      </NxStatefulNavigationDropdown>);
+        </AsTextLink>
+      </AsStatefulNavigationDropdown>);
 }

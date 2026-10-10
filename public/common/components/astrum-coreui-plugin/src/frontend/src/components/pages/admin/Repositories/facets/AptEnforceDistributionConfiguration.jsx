@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxFieldset, NxCheckbox} from '@globalart/react-shared-components';
+import {AsFieldset, AsCheckbox} from '@globalart/react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -13,13 +13,13 @@ export default function AptEnforceDistributionConfiguration({parentMachine}) {
   const [parentState, sendParent] = parentMachine;
 
   return (
-    <NxFieldset label={LABEL} isRequired>
-      <NxCheckbox
+    <AsFieldset label={LABEL} isRequired>
+      <AsCheckbox
         {...FormUtils.checkboxProps('apt.enforceDistribution', parentState)}
         onChange={FormUtils.handleUpdate('apt.enforceDistribution', sendParent)}
       >
         {DESCR}
-      </NxCheckbox>
-    </NxFieldset>
+      </AsCheckbox>
+    </AsFieldset>
   );
 }

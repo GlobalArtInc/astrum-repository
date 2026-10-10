@@ -171,7 +171,7 @@ export default FormUtils.buildFormMachine({
     }),
 
     delete: ({data}) => ExtAPIUtils.extAPIRequest(ACTION, METHODS.DELETE, {data: [data.id]}).then(ExtAPIUtils.checkForError),
-    // Use restClient for CSRF protection (includes NX-ANTI-CSRF-TOKEN header)
+    // Use restClient for CSRF protection (includes AS-ANTI-CSRF-TOKEN header)
     run: ({data}) => restClient.post(runTaskUrl(data.id)),
     stop: ({data}) => restClient.post(stopTaskUrl(data.id)),
   }

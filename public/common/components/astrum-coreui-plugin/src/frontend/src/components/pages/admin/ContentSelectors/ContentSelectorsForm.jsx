@@ -5,13 +5,13 @@ import {faTrash} from '@fortawesome/free-solid-svg-icons';
 
 import {FormUtils, ExtJS} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFontAwesomeIcon,
-  NxFormGroup,
-  NxP,
-  NxReadOnly,
-  NxStatefulForm,
-  NxTextInput
+  AsButton,
+  AsFontAwesomeIcon,
+  AsFormGroup,
+  AsP,
+  AsReadOnly,
+  AsStatefulForm,
+  AsTextInput
 } from '@globalart/react-shared-components';
 
 import {Section} from '@globalart/astrum-ui-plugin';
@@ -40,57 +40,57 @@ export default function ContentSelectorsForm({service, onDone}) {
   
   return <>
     <Section className="as-content-selectors-form">
-      <NxStatefulForm
+      <AsStatefulForm
           {...FormUtils.formProps(state, send)}
           onCancel={cancel}
           additionalFooterBtns={isEdit && canDelete &&
-              <NxButton type="button" variant="tertiary" onClick={confirmDelete} data-analytics-id="as-content-selector-delete">
-                <NxFontAwesomeIcon icon={faTrash}/>
+              <AsButton type="button" variant="tertiary" onClick={confirmDelete} data-analytics-id="as-content-selector-delete">
+                <AsFontAwesomeIcon icon={faTrash}/>
                 <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
-              </NxButton>
+              </AsButton>
           }
       >
         {hasData && !Boolean(pristineData.name) &&
-            <NxFormGroup label={UIStrings.CONTENT_SELECTORS.NAME_LABEL} isRequired={!pristineData.name}>
-              <NxTextInput
-                  className="nx-text-input--long"
+            <AsFormGroup label={UIStrings.CONTENT_SELECTORS.NAME_LABEL} isRequired={!pristineData.name}>
+              <AsTextInput
+                  className="as-text-input--long"
                   {...FormUtils.fieldProps('name', state)}
                   disabled={pristineData.name}
                   onChange={FormUtils.handleUpdate('name', send)}/>
-            </NxFormGroup>}
+            </AsFormGroup>}
         {hasData && <>
-          <NxReadOnly>
-            <NxReadOnly.Label>{UIStrings.CONTENT_SELECTORS.TYPE_LABEL}</NxReadOnly.Label>
-            <NxReadOnly.Data>{data.type?.toUpperCase()}</NxReadOnly.Data>
-          </NxReadOnly>
-          <NxFormGroup label={UIStrings.CONTENT_SELECTORS.DESCRIPTION_LABEL}>
-            <NxTextInput
-                className="nx-text-input--long"
+          <AsReadOnly>
+            <AsReadOnly.Label>{UIStrings.CONTENT_SELECTORS.TYPE_LABEL}</AsReadOnly.Label>
+            <AsReadOnly.Data>{data.type?.toUpperCase()}</AsReadOnly.Data>
+          </AsReadOnly>
+          <AsFormGroup label={UIStrings.CONTENT_SELECTORS.DESCRIPTION_LABEL}>
+            <AsTextInput
+                className="as-text-input--long"
                 {...FormUtils.fieldProps('description', state)}
                 onChange={FormUtils.handleUpdate('description', send)}/>
-          </NxFormGroup>
-          <NxFormGroup label={UIStrings.CONTENT_SELECTORS.EXPRESSION_LABEL}
+          </AsFormGroup>
+          <AsFormGroup label={UIStrings.CONTENT_SELECTORS.EXPRESSION_LABEL}
                        sublabel={UIStrings.CONTENT_SELECTORS.EXPRESSION_DESCRIPTION}
                        isRequired>
-            <NxTextInput
+            <AsTextInput
                 type="textarea"
-                className="nx-text-input--long"
+                className="as-text-input--long"
                 {...FormUtils.fieldProps('expression', state)}
                 onChange={FormUtils.handleUpdate('expression', send)}
             />
-          </NxFormGroup>
+          </AsFormGroup>
 
           <h4>{UIStrings.CONTENT_SELECTORS.EXPRESSION_EXAMPLES}</h4>
-          <NxP>
+          <AsP>
             {UIStrings.CONTENT_SELECTORS.RAW_EXPRESSION_EXAMPLE_LABEL}:
-            {' '}<code className="nx-code">format == "raw"</code>
-          </NxP>
-          <NxP>
+            {' '}<code className="as-code">format == "raw"</code>
+          </AsP>
+          <AsP>
             {UIStrings.CONTENT_SELECTORS.MULTI_EXPRESSIONS_EXAMPLE_LABEL}:
-            {' '}<code className="nx-code">format == "maven2" and path =^ "/org"</code>
-          </NxP>
+            {' '}<code className="as-code">format == "maven2" and path =^ "/org"</code>
+          </AsP>
         </>}
-      </NxStatefulForm>
+      </AsStatefulForm>
     </Section>
     {!loadError && <ContentSelectorsPreview type={data?.type} expression={data?.expression}/>}
 

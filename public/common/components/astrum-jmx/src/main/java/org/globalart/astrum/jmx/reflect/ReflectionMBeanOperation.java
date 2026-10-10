@@ -177,7 +177,7 @@ public class ReflectionMBeanOperation
      * Extract {@link MBeanParameterInfo} signature for given method.
      */
     private MBeanParameterInfo[] signature(final Method method) {
-      // NOTE: when NX is based on Java8 we can replace Paranamer usage with JDK api
+      // NOTE: when Astrum is based on Java8 we can replace Paranamer usage with JDK api
       Paranamer paranamer = new BytecodeReadingParanamer();
       String[] names = paranamer.lookupParameterNames(method);
       Class[] types = method.getParameterTypes();

@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 
 /**
  * Exposes React and createRoot on window so that ExtJS views can mount React
- * components. NX/view/SecondaryContainer.js relies on both:
+ * components. AS/view/SecondaryContainer.js relies on both:
  *   - window.react  for react.createElement()
  *   - window.createRoot  for mounting React trees into ExtJS DOM nodes
  *

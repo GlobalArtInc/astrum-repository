@@ -270,7 +270,7 @@
             <groupId>commons-httpclient</groupId>
             <artifactId>commons-httpclient</artifactId>
           </exclusion>
-          <!-- Exclude dependencies which are provided by NX core. -->
+          <!-- Exclude dependencies which are provided by Astrum core. -->
           <exclusion>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>

@@ -14,7 +14,7 @@ public class UiPluginDescriptorImpl
 {
   public UiPluginDescriptorImpl() {
     super("astrum-example-content");
-    setNamespace("NX.example");
-    setConfigClassName("NX.example.app.PluginConfig");
+    setNamespace("AS.example");
+    setConfigClassName("AS.example.app.PluginConfig");
   }
 }

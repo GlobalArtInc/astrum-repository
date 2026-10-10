@@ -13,7 +13,7 @@ import org.globalart.astrum.repository.cache.NegativeCacheFacet;
 import org.globalart.astrum.repository.cache.NegativeCacheHandler;
 import org.globalart.astrum.repository.httpclient.HttpClientFacet;
 import org.globalart.astrum.repository.maven.internal.Maven2Format;
-import org.globalart.astrum.repository.maven.internal.matcher.MavenNx2MetaFilesMatcher;
+import org.globalart.astrum.repository.maven.internal.matcher.MavenLegacyMetaFilesMatcher;
 import org.globalart.astrum.repository.maven.internal.recipes.Maven2ProxyRecipe;
 import org.globalart.astrum.repository.proxy.ProxyHandler;
 import org.globalart.astrum.repository.purge.PurgeUnusedFacet;
@@ -120,7 +120,7 @@ public class MavenProxyRecipe
         .handler(proxyHandler)
         .create());
 
-    builder.route(newNx2MetaFilesRouteBuilder()
+    builder.route(newLegacyMetaFilesRouteBuilder()
         .handler(notFound())
         .create());
 
@@ -140,7 +140,7 @@ public class MavenProxyRecipe
     return facet;
   }
 
-  private Builder newNx2MetaFilesRouteBuilder() {
-    return new Builder().matcher(new MavenNx2MetaFilesMatcher(mavenPathParser));
+  private Builder newLegacyMetaFilesRouteBuilder() {
+    return new Builder().matcher(new MavenLegacyMetaFilesMatcher(mavenPathParser));
   }
 }

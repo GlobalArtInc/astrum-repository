@@ -50,7 +50,7 @@ public class ShiroJCacheAdapter<K, V>
     return cache.getAndRemove(key);
   }
 
-  // NOTE: This appears unused in Shiro, but used by NX
+  // NOTE: This appears unused in Shiro, but used by Astrum
   @Override
   public void clear() {
     cache.clear();

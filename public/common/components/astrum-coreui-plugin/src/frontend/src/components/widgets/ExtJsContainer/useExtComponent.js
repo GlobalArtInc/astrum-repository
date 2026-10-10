@@ -11,13 +11,13 @@ function renderExtComponent(extContainerRef, extView, extParams, currentTitle, c
   const initialHeight = page ? Math.max(0, window.innerHeight - top) : 0;
   const initialWidth = page ? page.offsetWidth : 0;
 
-  return Ext.create('NX.view.feature.Content', {
+  return Ext.create('AS.view.feature.Content', {
     itemId: 'feature-content',
     renderTo: extContainerRef.current,
     height: initialHeight,
     width: initialWidth,
     autoScroll: true,
-    cls: 'nx-feature-content',
+    cls: 'as-feature-content',
     currentTitle,
     currentIcon,
     layout: 'fit',

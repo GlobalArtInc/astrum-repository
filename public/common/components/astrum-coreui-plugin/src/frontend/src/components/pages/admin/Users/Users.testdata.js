@@ -14,7 +14,7 @@ export const ROWS = {
       lastName: 'last1',
       email: 'first1last1@example.org',
       status: 'active',
-      password: '#~NXRM~PLACEHOLDER~PASSWORD~#',
+      password: '#~ASTRUM~PLACEHOLDER~PASSWORD~#',
       roles: [],
       external: true,
       externalRoles: []
@@ -27,7 +27,7 @@ export const ROWS = {
       lastName: 'last2',
       email: 'first2last2@example.org',
       status: 'active',
-      password: '#~NXRM~PLACEHOLDER~PASSWORD~#',
+      password: '#~ASTRUM~PLACEHOLDER~PASSWORD~#',
       roles: [
         'crowd-administrators'
       ],
@@ -44,7 +44,7 @@ export const ROWS = {
       lastName: 'last3',
       email: 'first3last3@example.org',
       status: 'active',
-      password: '#~NXRM~PLACEHOLDER~PASSWORD~#',
+      password: '#~ASTRUM~PLACEHOLDER~PASSWORD~#',
       roles: [
         'group__5',
         'group_3',
@@ -63,7 +63,7 @@ export const ROWS = {
       lastName: 'admin crowd',
       email: 'admin@example.org',
       status: 'active',
-      password: '#~NXRM~PLACEHOLDER~PASSWORD~#',
+      password: '#~ASTRUM~PLACEHOLDER~PASSWORD~#',
       roles: [],
       external: true,
       externalRoles: []
@@ -78,7 +78,7 @@ export const ROWS = {
       lastName: 'User',
       email: 'anonymous@example.org',
       status: 'active',
-      password: '#~NXRM~PLACEHOLDER~PASSWORD~#',
+      password: '#~ASTRUM~PLACEHOLDER~PASSWORD~#',
       roles: [
         'as-anonymous'
       ],
@@ -93,7 +93,7 @@ export const ROWS = {
       lastName: 'User',
       email: 'admin@example.org',
       status: 'active',
-      password: '#~NXRM~PLACEHOLDER~PASSWORD~#',
+      password: '#~ASTRUM~PLACEHOLDER~PASSWORD~#',
       roles: [
         'as-admin'
       ],

@@ -5,7 +5,7 @@ import {path} from 'ramda';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {NxCheckbox, NxFieldset, NxTextInput} from '@globalart/react-shared-components';
+import {AsCheckbox, AsFieldset, AsTextInput} from '@globalart/react-shared-components';
 
 import './ToggleableTextInput.scss';
 
@@ -82,7 +82,7 @@ export default function ToggleableTextInput({
       {sublabel ? (
         <span className="as-toggleable-sublabel-text">{sublabel}</span>
       ) : null}
-      <NxCheckbox
+      <AsCheckbox
         onChange={toggleCheckbox}
         isChecked={isEnabled}
         aria-label="Toggle Text Input"
@@ -91,9 +91,9 @@ export default function ToggleableTextInput({
   );
 
   return (
-    <NxFieldset label={label} sublabel={sublabelWithCheckbox} className={className}>
+    <AsFieldset label={label} sublabel={sublabelWithCheckbox} className={className}>
       <div className="as-toggleable-text-input-container">
-        <NxTextInput
+        <AsTextInput
           {...FormUtils.fieldProps(contextPropName, currentParent)}
           value={displayedValue}
           onChange={handleTextInputChange}
@@ -101,6 +101,6 @@ export default function ToggleableTextInput({
           placeholder={placeholder}
         />
       </div>
-    </NxFieldset>
+    </AsFieldset>
   );
 }

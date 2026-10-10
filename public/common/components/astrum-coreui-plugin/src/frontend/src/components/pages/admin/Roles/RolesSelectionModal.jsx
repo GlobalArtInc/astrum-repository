@@ -2,19 +2,19 @@
 import React from 'react';
 
 import {
-  NxModal,
-  NxH2,
-  NxButton,
-  NxCheckbox,
-  NxPagination,
-  NxTable,
-  NxTableHead,
-  NxTableRow,
-  NxTableCell,
-  NxTableBody,
-  NxFilterInput,
-  NxCounter,
-  NxFooter
+  AsModal,
+  AsH2,
+  AsButton,
+  AsCheckbox,
+  AsPagination,
+  AsTable,
+  AsTableHead,
+  AsTableRow,
+  AsTableCell,
+  AsTableBody,
+  AsFilterInput,
+  AsCounter,
+  AsFooter
 } from '@globalart/react-shared-components';
 
 import { ListMachineUtils } from '@globalart/astrum-ui-plugin';
@@ -75,57 +75,57 @@ export default function RolesSelectionModal({
   const sortByName = () => send({type: 'SORT_BY_NAME'});
   const sortByDescription = () => send({type: 'SORT_BY_DESCRIPTION'});
 
-  const counterClasses = classNames('nx-pull-right', {
-    'nx-counter--active': tempSelectedRoles.length > 0
+  const counterClasses = classNames('as-pull-right', {
+    'as-counter--active': tempSelectedRoles.length > 0
   });
 
   return (<>
     {createPortal(
-      <NxModal variant="wide" onCancel={onModalClose}>
-        <header className="nx-modal-header">
-          <NxH2 className="nx-h2" id="modal-header-text">{title} Selection</NxH2>
+      <AsModal variant="wide" onCancel={onModalClose}>
+        <header className="as-modal-header">
+          <AsH2 className="as-h2" id="modal-header-text">{title} Selection</AsH2>
         </header>
-        <div className="nx-modal__filter-box">
-          <NxFilterInput className="nx-modal__filter"
+        <div className="as-modal__filter-box">
+          <AsFilterInput className="as-modal__filter"
             placeholder="Filter"
             value={filterText}
             onChange={filter} />
           {SELECTION_MODAL.WILDCARD_TEXT}
         </div>
-        <div className="nx-modal-content">
-          <NxTable className="modal-table">
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell className="select-column" onClick={sortBySelect} isSortable sortDir={selectSortDir}>Select</NxTableCell>
-                <NxTableCell className="name-column" onClick={sortByName} isSortable sortDir={nameSortDir}>Name</NxTableCell>
-                <NxTableCell onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>Description</NxTableCell>
-              </NxTableRow>
-              <NxTableRow className="counter-row">
-                <NxTableCell></NxTableCell>
-                <NxTableCell></NxTableCell>
-                <NxTableCell className="counter-cell">
-                  <NxCounter className={counterClasses}>{tempSelectedRoles.length} Selected</NxCounter>
-                </NxTableCell>
-              </NxTableRow>
-            </NxTableHead>
+        <div className="as-modal-content">
+          <AsTable className="modal-table">
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell className="select-column" onClick={sortBySelect} isSortable sortDir={selectSortDir}>Select</AsTableCell>
+                <AsTableCell className="name-column" onClick={sortByName} isSortable sortDir={nameSortDir}>Name</AsTableCell>
+                <AsTableCell onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>Description</AsTableCell>
+              </AsTableRow>
+              <AsTableRow className="counter-row">
+                <AsTableCell></AsTableCell>
+                <AsTableCell></AsTableCell>
+                <AsTableCell className="counter-cell">
+                  <AsCounter className={counterClasses}>{tempSelectedRoles.length} Selected</AsCounter>
+                </AsTableCell>
+              </AsTableRow>
+            </AsTableHead>
 
-            <NxTableBody emptyMessage="No roles available">
+            <AsTableBody emptyMessage="No roles available">
               {filteredData.slice(lowerBound, upperBound).map((role) => (
-                  <NxTableRow key={role.id} id={role.id}>
-                    <NxTableCell className="select-column">
-                      <NxCheckbox
+                  <AsTableRow key={role.id} id={role.id}>
+                    <AsTableCell className="select-column">
+                      <AsCheckbox
                         onChange={() => onRoleSelected(role)}
                         isChecked={isRoleSelected(role.id)}>
-                      </NxCheckbox>
-                    </NxTableCell>
-                    <NxTableCell>{role.name}</NxTableCell>
-                    <NxTableCell>{role.description}</NxTableCell>
-                  </NxTableRow>))}
-            </NxTableBody>
-          </NxTable>
+                      </AsCheckbox>
+                    </AsTableCell>
+                    <AsTableCell>{role.name}</AsTableCell>
+                    <AsTableCell>{role.description}</AsTableCell>
+                  </AsTableRow>))}
+            </AsTableBody>
+          </AsTable>
 
           <div className="modal-pagination">
-            <NxPagination
+            <AsPagination
               onChange={changePage}
               pageCount={pages > 0 ? pages : 1}
               currentPage={offsetPage}
@@ -133,13 +133,13 @@ export default function RolesSelectionModal({
           </div>
         </div>
 
-        <NxFooter className="nx-footer-modal">
-          <div className="nx-btn-bar">
-            <NxButton onClick={onModalClose}>Cancel</NxButton>
-            <NxButton variant="primary" onClick={confirmModal}>Confirm</NxButton>
+        <AsFooter className="as-footer-modal">
+          <div className="as-btn-bar">
+            <AsButton onClick={onModalClose}>Cancel</AsButton>
+            <AsButton variant="primary" onClick={confirmModal}>Confirm</AsButton>
           </div>
-        </NxFooter>
-      </NxModal>,
+        </AsFooter>
+      </AsModal>,
       document.body
     )}</>);
 }

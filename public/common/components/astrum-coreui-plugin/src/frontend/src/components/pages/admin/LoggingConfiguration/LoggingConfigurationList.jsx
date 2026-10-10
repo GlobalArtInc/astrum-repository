@@ -6,14 +6,14 @@ import {faRedo, faScroll} from '@fortawesome/free-solid-svg-icons';
 
 import {ListMachineUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxFilterInput,
-  NxFontAwesomeIcon,
-  NxTable,
-  NxTableBody,
-  NxTableCell,
-  NxTableHead,
-  NxTableRow,
+  AsButton,
+  AsFilterInput,
+  AsFontAwesomeIcon,
+  AsTable,
+  AsTableBody,
+  AsTableCell,
+  AsTableHead,
+  AsTableRow,
 } from '@globalart/react-shared-components';
 
 import {
@@ -63,47 +63,47 @@ export default function LoggingConfigurationList() {
           description={UIStrings.LOGGING.MENU.description}
       />
       <PageActions>
-        <NxButton variant="tertiary" onClick={reset}>
-          <NxFontAwesomeIcon icon={faRedo}/>
+        <AsButton variant="tertiary" onClick={reset}>
+          <AsFontAwesomeIcon icon={faRedo}/>
           <span>{UIStrings.LOGGING.RESET_ALL_BUTTON}</span>
-        </NxButton>
-        <NxButton variant="primary" onClick={onCreate}>
+        </AsButton>
+        <AsButton variant="primary" onClick={onCreate}>
           <span>{UIStrings.LOGGING.CREATE_BUTTON}</span>
-        </NxButton>
+        </AsButton>
       </PageActions>
     </PageHeader>
     <ContentBody>
       <Section className="as-logging-configuration-list">
         <SectionToolbar>
           <div className="as-spacer" />
-          <NxFilterInput
+          <AsFilterInput
               id="filter"
               onChange={filter}
               value={filterText}
               placeholder={UIStrings.LOGGING.FILTER_PLACEHOLDER}/>
         </SectionToolbar>
-        <NxTable>
-          <NxTableHead>
-            <NxTableRow>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_NAME'})} isSortable sortDir={nameSortDir}>
+        <AsTable>
+          <AsTableHead>
+            <AsTableRow>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_NAME'})} isSortable sortDir={nameSortDir}>
                 {UIStrings.LOGGING.NAME_LABEL}
-              </NxTableCell>
-              <NxTableCell onClick={() => send({type: 'SORT_BY_LEVEL'})} isSortable sortDir={levelSortDir}>
+              </AsTableCell>
+              <AsTableCell onClick={() => send({type: 'SORT_BY_LEVEL'})} isSortable sortDir={levelSortDir}>
                 {UIStrings.LOGGING.LEVEL_LABEL}
-              </NxTableCell>
-              <NxTableCell chevron/>
-            </NxTableRow>
-          </NxTableHead>
-          <NxTableBody isLoading={isLoading} error={error}>
+              </AsTableCell>
+              <AsTableCell chevron/>
+            </AsTableRow>
+          </AsTableHead>
+          <AsTableBody isLoading={isLoading} error={error}>
             {data.map(({name, level}) => (
-                <NxTableRow key={name} onClick={() => onEdit(name)} isClickable>
-                  <NxTableCell>{name}</NxTableCell>
-                  <NxTableCell>{level}</NxTableCell>
-                  <NxTableCell chevron/>
-                </NxTableRow>
+                <AsTableRow key={name} onClick={() => onEdit(name)} isClickable>
+                  <AsTableCell>{name}</AsTableCell>
+                  <AsTableCell>{level}</AsTableCell>
+                  <AsTableCell chevron/>
+                </AsTableRow>
             ))}
-          </NxTableBody>
-        </NxTable>
+          </AsTableBody>
+        </AsTable>
       </Section>
     </ContentBody>
   </Page>;

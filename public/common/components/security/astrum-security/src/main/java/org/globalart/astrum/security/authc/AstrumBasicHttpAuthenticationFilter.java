@@ -49,7 +49,7 @@ import static org.globalart.astrum.security.SecurityFilter.ATTR_USER_PRINCIPAL;
 public class AstrumBasicHttpAuthenticationFilter
     extends BasicHttpAuthenticationFilter
 {
-  public static final String NAME = "nx-basic-authc";
+  public static final String NAME = "as-basic-authc";
 
   // This is the base64 encoded version of ":" i.e. empty credentials, required to allow anonymous v1 Docker search.
   private static final String EMPTY_CREDENTIALS = "Og==";

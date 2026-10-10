@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {NxTextLink} from '@globalart/react-shared-components';
+import {AsTextLink} from '@globalart/react-shared-components';
 import { faDoorClosed } from '@fortawesome/free-solid-svg-icons';
 
 export default {
@@ -19,9 +19,9 @@ export default {
     HELP_TEXT: <>
       To help prevent dependency confusion attacks, identify your hosted repositories that contain
       proprietary components. Refer to the{' '}
-      <NxTextLink external href="http://links.globalart.dev/products/astrum/docs/proprietary-repositories">
+      <AsTextLink external href="http://links.globalart.dev/products/astrum/docs/proprietary-repositories">
         documentation
-      </NxTextLink>
+      </AsTextLink>
       {' '}for details on setting up appropriate IQ policies to quarantine public components with the same names
       as your proprietary components.
     </>,

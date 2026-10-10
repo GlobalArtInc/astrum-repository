@@ -31,7 +31,7 @@ public class CookieFilterTest
   private static String COOKIE_2_INSECURE = "simple=cookie";
 
   private static String COOKIE_3_SECURE =
-      "NXSESSIONID=98a766bc-bc33-4b3c-9d9f-d3bb85b0cf00; Path=/astrum; HttpOnly; Secure";
+      "ASTRUMSESSIONID=98a766bc-bc33-4b3c-9d9f-d3bb85b0cf00; Path=/astrum; HttpOnly; Secure";
 
   private static String COOKIE_4_SECURE = "rememberMe=deleteMe; Path=/astrum; Secure; HttpOnly;";
 

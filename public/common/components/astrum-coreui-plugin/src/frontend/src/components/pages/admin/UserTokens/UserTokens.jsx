@@ -5,7 +5,7 @@ import {faKey} from '@fortawesome/free-solid-svg-icons';
 
 import {ExtJS, Permissions} from '@globalart/astrum-ui-plugin';
 
-import {NxTile, NxLoadWrapper} from '@globalart/react-shared-components';
+import {AsTile, AsLoadWrapper} from '@globalart/react-shared-components';
 
 import {
   ContentBody,
@@ -52,17 +52,17 @@ export default function UserTokens() {
         <PageTitle icon={faKey} {...MENU} />
       </PageHeader>
       <ContentBody className="as-user-tokens">
-        <NxTile>
-          <NxTile.Content>
-            <NxLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
+        <AsTile>
+          <AsTile.Content>
+            <AsLoadWrapper loading={isLoading} error={loadError} retryHandler={retry}>
               {canUpdate ? (
                 <UserTokensForm service={service} />
               ) : (
                 <UserTokensReadOnly data={data} />
               )}
-            </NxLoadWrapper>
-          </NxTile.Content>
-        </NxTile>
+            </AsLoadWrapper>
+          </AsTile.Content>
+        </AsTile>
       </ContentBody>
     </Page>
   );

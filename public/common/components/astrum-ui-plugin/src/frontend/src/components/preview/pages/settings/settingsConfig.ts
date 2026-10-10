@@ -22,7 +22,7 @@ export interface VisibilityRequirements {
   bundle?: string;
   /** All listed licenses must be present and valid. */
   licenseValid?: Array<{ key: string; defaultValue?: boolean }>;
-  /** All listed NX.State keys must resolve truthy. */
+  /** All listed AS.State keys must resolve truthy. */
   statesEnabled?: Array<{ key: string; defaultValue?: boolean }>;
   /** Required capability type must be created and active. */
   capability?: string;

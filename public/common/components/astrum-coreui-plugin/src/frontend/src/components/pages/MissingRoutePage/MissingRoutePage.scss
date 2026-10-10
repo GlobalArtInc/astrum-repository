@@ -12,13 +12,13 @@
     display: flex;
     align-items: center;
     flex-direction: column;
-    margin-left: var(--nx-spacing-4x);
-    margin-right: var(--nx-spacing-4x);
+    margin-left: var(--as-spacing-4x);
+    margin-right: var(--as-spacing-4x);
   }
 
   .as-404-box {
-    color: var(--nx-swatch-green-40);
-    border: 1px dashed var(--nx-swatch-green-40);
+    color: var(--as-swatch-green-40);
+    border: 1px dashed var(--as-swatch-green-40);
     border-radius: 999px;
     padding: 32px;
     font-size: 24px;
@@ -26,7 +26,7 @@
 
   .as-404-ghost {
     animation: GFG 5s infinite linear;
-    color: var(--nx-swatch-green-20);
+    color: var(--as-swatch-green-20);
     padding: 36px;
     font-size: 24px;
   }
@@ -53,9 +53,9 @@
     width: 90px;
   }
 
-  .nx-divider {
+  .as-divider {
     width: 100%;
-    background-color: var(nx-swatch-indigo-85);
+    background-color: var(as-swatch-indigo-85);
   }
 
   .as-missing-route-page-actions-message {

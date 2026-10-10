@@ -69,7 +69,7 @@ public class OnboardingStateContributorTest
 
     Map<String, Object> state = underTest.getState();
 
-    // The React onboarding flag is always published so the frontend can read it via NX.State, regardless of whether
+    // The React onboarding flag is always published so the frontend can read it via AS.State, regardless of whether
     // the ExtJS wizard has anything else to contribute.
     assertThat(state.size(), is(1));
     assertThat(state.get("onboarding.required"), nullValue());

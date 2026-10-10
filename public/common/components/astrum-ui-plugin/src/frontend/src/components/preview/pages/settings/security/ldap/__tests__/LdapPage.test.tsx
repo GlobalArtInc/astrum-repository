@@ -284,7 +284,7 @@ describe('LdapPage', () => {
     // The Create button itself is already hidden via canCreate, but a direct
     // URL visit (or browser back/forward) bypasses that and goes straight
     // through syncViewWithHash — which must apply the same guard.
-    global.NX.Permissions.check.mockImplementation(
+    global.AS.Permissions.check.mockImplementation(
       (permission: string) => permission !== 'astrum:ldap:create'
     );
     (window as any).location.hash = '#preview/admin/security/ldap/create';
@@ -354,7 +354,7 @@ describe('LdapPage', () => {
   });
 
   it('does not pass onDelete to LdapForm when the user lacks astrum:ldap:delete permission (ASTRUM-53627)', async () => {
-    global.NX.Permissions.check.mockImplementation(
+    global.AS.Permissions.check.mockImplementation(
       (permission: string) => permission !== 'astrum:ldap:delete'
     );
 

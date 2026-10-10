@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useActor} from '@xstate/react';
-import {NxModal, NxH2, NxTable} from '@globalart/react-shared-components';
+import {AsModal, AsH2, AsTable} from '@globalart/react-shared-components';
 import UIStrings from '../../../../../constants/UIStrings';
 
 const {
@@ -30,38 +30,38 @@ export default function LdapVerifyUserMappingList({service}) {
 
   return (
     <>
-      <NxModal.Header>
-        <NxH2 id="modal-form-header">{HEADER}</NxH2>
-      </NxModal.Header>
-      <NxModal.Content>
-        <NxTable>
-          <NxTable.Head>
-            <NxTable.Row>
-              <NxTable.Cell>{USER_ID}</NxTable.Cell>
-              <NxTable.Cell>{NAME}</NxTable.Cell>
-              <NxTable.Cell>{EMAIL}</NxTable.Cell>
-              <NxTable.Cell>{ROLES}</NxTable.Cell>
-              <NxTable.Cell chevron />
-            </NxTable.Row>
-          </NxTable.Head>
-          <NxTable.Body
+      <AsModal.Header>
+        <AsH2 id="modal-form-header">{HEADER}</AsH2>
+      </AsModal.Header>
+      <AsModal.Content>
+        <AsTable>
+          <AsTable.Head>
+            <AsTable.Row>
+              <AsTable.Cell>{USER_ID}</AsTable.Cell>
+              <AsTable.Cell>{NAME}</AsTable.Cell>
+              <AsTable.Cell>{EMAIL}</AsTable.Cell>
+              <AsTable.Cell>{ROLES}</AsTable.Cell>
+              <AsTable.Cell chevron />
+            </AsTable.Row>
+          </AsTable.Head>
+          <AsTable.Body
             isLoading={isLoading}
             error={error}
             retryHandler={retryHandler}
             emptyMessage={EMPTY_MESSAGE}
           >
             {data.map(({username, realName, email, membership}, index) => (
-              <NxTable.Row key={username} isClickable onClick={() => showItem(index)}>
-                <NxTable.Cell>{username}</NxTable.Cell>
-                <NxTable.Cell>{realName}</NxTable.Cell>
-                <NxTable.Cell>{email}</NxTable.Cell>
-                <NxTable.Cell>{membership}</NxTable.Cell>
-                <NxTable.Cell chevron />
-              </NxTable.Row>
+              <AsTable.Row key={username} isClickable onClick={() => showItem(index)}>
+                <AsTable.Cell>{username}</AsTable.Cell>
+                <AsTable.Cell>{realName}</AsTable.Cell>
+                <AsTable.Cell>{email}</AsTable.Cell>
+                <AsTable.Cell>{membership}</AsTable.Cell>
+                <AsTable.Cell chevron />
+              </AsTable.Row>
             ))}
-          </NxTable.Body>
-        </NxTable>
-      </NxModal.Content>
+          </AsTable.Body>
+        </AsTable>
+      </AsModal.Content>
     </>
   );
 }

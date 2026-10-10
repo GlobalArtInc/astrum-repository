@@ -476,7 +476,7 @@ describe('ServiceAccountTokens permissions gating', () => {
     fireEvent.click(await screen.findByRole('button', {name: LABELS.LIST.CREATE_BUTTON}));
 
     const codeNode = await screen.findByText('astrum:roles:read');
-    const alert = codeNode.closest('.nx-alert');
+    const alert = codeNode.closest('.as-alert');
     expect(alert).not.toBeNull();
     expect(alert).toHaveTextContent(
       'Missing privilege: astrum:roles:read. Contact your administrator.'
@@ -513,7 +513,7 @@ describe('ServiceAccountTokens permissions gating', () => {
     render(<ServiceAccountTokens />);
 
     await screen.findByText('jenkins-prod');
-    const dropdownToggle = document.querySelector('.nx-icon-dropdown__toggle');
+    const dropdownToggle = document.querySelector('.as-icon-dropdown__toggle');
     fireEvent.click(dropdownToggle);
     fireEvent.click(screen.getByRole('button', {name: LABELS.LIST.ACTIONS.REVOKE}));
 
@@ -521,7 +521,7 @@ describe('ServiceAccountTokens permissions gating', () => {
     fireEvent.click(screen.getByRole('button', {name: LABELS.REVOKE_MODAL.CANCEL_BUTTON}));
 
     await waitFor(() => {
-      expect(document.querySelector('.nx-icon-dropdown__toggle')).toHaveFocus();
+      expect(document.querySelector('.as-icon-dropdown__toggle')).toHaveFocus();
     });
   });
 

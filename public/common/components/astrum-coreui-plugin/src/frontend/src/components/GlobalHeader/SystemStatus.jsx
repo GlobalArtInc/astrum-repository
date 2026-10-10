@@ -3,7 +3,7 @@
 import React from 'react';
 import { ExtJS, useIsVisible } from '@globalart/astrum-ui-plugin';
 import { faCircle, faBell } from "@fortawesome/free-solid-svg-icons";
-import { NxButton, NxFontAwesomeIcon } from '@globalart/react-shared-components';
+import { AsButton, AsFontAwesomeIcon } from '@globalart/react-shared-components';
 import { useRouter } from '@uirouter/react';
 
 export default function SystemStatus() {
@@ -24,7 +24,7 @@ export default function SystemStatus() {
   }
 
   return (
-      <NxButton
+      <AsButton
           onClick={onClick}
           title="System Status"
           aria-label="System Status"
@@ -34,18 +34,18 @@ export default function SystemStatus() {
         {healthChecksFailed
             ? (<span
                 role="alert" aria-label="system status -- unhealthy" className="fa-layers fa-fw">
-                <NxFontAwesomeIcon icon={faBell}/>
-                <NxFontAwesomeIcon
+                <AsFontAwesomeIcon icon={faBell}/>
+                <AsFontAwesomeIcon
                     className="as-health-check-alert-circle"
                     icon={faCircle}
                     transform="shrink-8 up-5 right-5"
                 />
               </span>)
             : <span role="status" aria-label="system status -- healthy">
-                <NxFontAwesomeIcon icon={faBell}/>
+                <AsFontAwesomeIcon icon={faBell}/>
                 </span>
         }
-      </NxButton>
+      </AsButton>
   )
 
   function onClick() {

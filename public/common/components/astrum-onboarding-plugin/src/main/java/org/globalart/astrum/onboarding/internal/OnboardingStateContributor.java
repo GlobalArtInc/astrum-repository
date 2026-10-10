@@ -50,7 +50,7 @@ public class OnboardingStateContributor
 
     Map<String, Object> properties = new HashMap<>();
 
-    // Always publish the React onboarding flag so both ExtJS and React can read it via NX.State.
+    // Always publish the React onboarding flag so both ExtJS and React can read it via AS.State.
     properties.put(REACT_ONBOARDING_ENABLED, isReactOnboardingEnabled);
 
     if (needsOnboarding) {

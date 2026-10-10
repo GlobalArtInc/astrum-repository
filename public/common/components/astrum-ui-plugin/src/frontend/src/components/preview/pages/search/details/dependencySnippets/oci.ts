@@ -37,7 +37,7 @@ function parseComponent(name: string): { host: string; authority: string; repo: 
 /**
  * OCI dependency snippet generator.
  *
- * Ported from Classic NX.oci.controller.OciDependencySnippetController. Emits per-tool snippets
+ * Ported from Classic AS.oci.controller.OciDependencySnippetController. Emits per-tool snippets
  * parameterized by host, port and repository path for ORAS, Docker, Podman, buildx, Helm (OCI),
  * Skopeo, Cosign, OpenTofu and Kubernetes. Returns no snippets for a component missing name or
  * version.

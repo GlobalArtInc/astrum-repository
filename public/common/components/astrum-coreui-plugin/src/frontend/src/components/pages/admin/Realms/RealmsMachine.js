@@ -8,8 +8,8 @@ import UIStrings from '../../../../constants/UIStrings';
 
 const {REALMS: {MESSAGES}} = UIStrings;
 
-const NX_AUTHENTICATING_REALM = 'AstrumAuthenticatingRealm';
-const NX_AUTHORIZING_REALM = 'AstrumAuthorizingRealm';
+const AS_AUTHENTICATING_REALM = 'AstrumAuthenticatingRealm';
+const AS_AUTHORIZING_REALM = 'AstrumAuthorizingRealm';
 const SSO_REALMS = [UIStrings.REALMS.SSO_REALMS.SAML, UIStrings.REALMS.SSO_REALMS.OAUTH2];
 
 export default FormUtils.buildFormMachine({
@@ -73,10 +73,10 @@ export default FormUtils.buildFormMachine({
   },
   guards: {
     isLocalRealmRemoval: ({data, pristineData}) => 
-      (pristineData.active?.includes(NX_AUTHENTICATING_REALM) && 
-        !data.active?.includes(NX_AUTHENTICATING_REALM)) ||
-      (pristineData.active?.includes(NX_AUTHORIZING_REALM) && 
-        !data.active?.includes(NX_AUTHORIZING_REALM))
+      (pristineData.active?.includes(AS_AUTHENTICATING_REALM) && 
+        !data.active?.includes(AS_AUTHENTICATING_REALM)) ||
+      (pristineData.active?.includes(AS_AUTHORIZING_REALM) && 
+        !data.active?.includes(AS_AUTHORIZING_REALM))
   },
   services: {
     fetchData: async () => {

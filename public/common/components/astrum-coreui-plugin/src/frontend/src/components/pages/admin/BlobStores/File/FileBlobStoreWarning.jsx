@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useActor} from '@xstate/react';
-import {NxWarningAlert} from '@globalart/react-shared-components';
+import {AsWarningAlert} from '@globalart/react-shared-components';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 import UIStrings from '../../../../../constants/UIStrings';
 
@@ -50,10 +50,10 @@ export default function FileBlobStoreWarning({service}) {
   }
 
   return (
-    <NxWarningAlert>
+    <AsWarningAlert>
       <strong>{FILE_WARNING.TITLE}</strong>
       <br />
       {FILE_WARNING.MESSAGE}
-    </NxWarningAlert>
+    </AsWarningAlert>
   );
 }

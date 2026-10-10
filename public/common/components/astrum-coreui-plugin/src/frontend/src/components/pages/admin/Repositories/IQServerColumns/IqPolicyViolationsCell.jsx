@@ -1,11 +1,11 @@
 
 import React from 'react';
 import {
-  NxFontAwesomeIcon,
-  NxTooltip,
-  NxSmallThreatCounter,
-  NxTextLink,
-  NxP
+  AsFontAwesomeIcon,
+  AsTooltip,
+  AsSmallThreatCounter,
+  AsTextLink,
+  AsP
 } from '@globalart/react-shared-components';
 import {faBan, faExclamationCircle} from '@fortawesome/free-solid-svg-icons';
 import UIStrings from '../../../../../constants/UIStrings';
@@ -26,23 +26,23 @@ export default function IqPolicyViolationsCell({name}) {
   const isLoadingError = !!readFirewallRepositoryStatusError;
 
   if (isLoading) {
-    return <NxP className="as-rhc-loading-lbl">{HEALTH_CHECK.LOADING}</NxP>;
+    return <AsP className="as-rhc-loading-lbl">{HEALTH_CHECK.LOADING}</AsP>;
   }
 
   if (isLoadingError) {
     return (
-      <NxP className="as-rhc-loading-error">
-        <NxFontAwesomeIcon icon={faExclamationCircle} />
+      <AsP className="as-rhc-loading-error">
+        <AsFontAwesomeIcon icon={faExclamationCircle} />
         {HEALTH_CHECK.LOADING_ERROR}
-      </NxP>
+      </AsP>
     );
   }
 
   if (!status) {
     return (
-      <NxTooltip title={HEALTH_CHECK.NOT_AVAILABLE_TOOLTIP_FS}>
-        <NxFontAwesomeIcon icon={faBan} className="as-unavailable-icon"/>
-      </NxTooltip>
+      <AsTooltip title={HEALTH_CHECK.NOT_AVAILABLE_TOOLTIP_FS}>
+        <AsFontAwesomeIcon icon={faBan} className="as-unavailable-icon"/>
+      </AsTooltip>
     );
   }
 
@@ -58,10 +58,10 @@ export default function IqPolicyViolationsCell({name}) {
 
   if (errorMessage) {
     return (
-      <NxP className="as-rhc-loading-error">
-        <NxFontAwesomeIcon icon={faExclamationCircle} />
+      <AsP className="as-rhc-loading-error">
+        <AsFontAwesomeIcon icon={faExclamationCircle} />
         {errorMessage}
-      </NxP>
+      </AsP>
     );
   }
 
@@ -69,23 +69,23 @@ export default function IqPolicyViolationsCell({name}) {
   // Backend guarantees message == null on the admin path so this branch is skipped and the
   // chiclet counters below render instead. See FirewallRepositoryStatusComponent#getRepositoryStatusXO.
   if (message) {
-    return <NxP>{message}</NxP>;
+    return <AsP>{message}</AsP>;
   }
 
   return (
-    <div className="nx-p as-iq-policy-violations-counters">
-      <NxSmallThreatCounter
+    <div className="as-p as-iq-policy-violations-counters">
+      <AsSmallThreatCounter
         criticalCount={criticalComponentCount}
         severeCount={severeComponentCount}
         moderateCount={moderateComponentCount}
       />
-      <NxTooltip title={HEALTH_CHECK.QUARANTINED_TOOLTIP}>
+      <AsTooltip title={HEALTH_CHECK.QUARANTINED_TOOLTIP}>
         <div>
-          <NxFontAwesomeIcon icon={faBan} />
+          <AsFontAwesomeIcon icon={faBan} />
           {quarantinedComponentCount}
         </div>
-      </NxTooltip>
-      <NxTextLink href={reportUrl} external onClick={(e) => e.stopPropagation()} />
+      </AsTooltip>
+      <AsTextLink href={reportUrl} external onClick={(e) => e.stopPropagation()} />
     </div>
   );
 }

@@ -4,19 +4,19 @@ import {useMachine} from '@xstate/react';
 
 import {ExtJS, DateUtils} from '@globalart/astrum-ui-plugin';
 import {
-  NxButton,
-  NxButtonBar,
-  NxFooter,
-  NxH2,
-  NxH3,
-  NxModal,
-  NxP,
-  NxTable,
-  NxTableHead,
-  NxTableRow,
-  NxTableCell,
-  NxTableBody,
-  NxWarningAlert,
+  AsButton,
+  AsButtonBar,
+  AsFooter,
+  AsH2,
+  AsH3,
+  AsModal,
+  AsP,
+  AsTable,
+  AsTableHead,
+  AsTableRow,
+  AsTableCell,
+  AsTableBody,
+  AsWarningAlert,
 } from '@globalart/react-shared-components';
 
 import {
@@ -76,81 +76,81 @@ export default function RecoveryMode() {
         />
         <PageActions>
         {data?.enabled ?
-          (<NxButton variant="primary" onClick={disable} disabled={hasRunningTasks}>
+          (<AsButton variant="primary" onClick={disable} disabled={hasRunningTasks}>
             <span>{LABELS.DISABLE_BUTTON}</span>
-          </NxButton>)
+          </AsButton>)
           :
-          (<NxButton variant="primary" onClick={enable}>
+          (<AsButton variant="primary" onClick={enable}>
             <span>{LABELS.ENABLE_BUTTON}</span>
-          </NxButton>)
+          </AsButton>)
           }
         </PageActions>
       </PageHeader>
       <ContentBody className='as-recovery-mode'>
         {hasRunningTasks && (
-          <NxWarningAlert>{LABELS.TASKS_RUNNING_WARNING}</NxWarningAlert>
+          <AsWarningAlert>{LABELS.TASKS_RUNNING_WARNING}</AsWarningAlert>
         )}
         <Section>
-          <NxH2>{LABELS.HOW_IT_WORKS}</NxH2>
-          <NxP>{LABELS.HOW_IT_WORKS_DESCRIPTION}</NxP>
+          <AsH2>{LABELS.HOW_IT_WORKS}</AsH2>
+          <AsP>{LABELS.HOW_IT_WORKS_DESCRIPTION}</AsP>
           <ul>
             {data?.blockedTaskNames?.map((item, index) => (
               <li key={index}>{item}</li>
             ))}
           </ul>
-          <NxH3>{LABELS.STATUS_LABEL}</NxH3>
-          <NxP>{data?.enabled ? LABELS.STATE_ENABLED : LABELS.STATE_DISABLED}</NxP>
+          <AsH3>{LABELS.STATUS_LABEL}</AsH3>
+          <AsP>{data?.enabled ? LABELS.STATE_ENABLED : LABELS.STATE_DISABLED}</AsP>
         </Section>
 
         <Section>
-          <NxH2>{LABELS.DATA_REPAIR_TASKS}</NxH2>
-          <NxTable>
-            <NxTableHead>
-              <NxTableRow>
-                <NxTableCell>
+          <AsH2>{LABELS.DATA_REPAIR_TASKS}</AsH2>
+          <AsTable>
+            <AsTableHead>
+              <AsTableRow>
+                <AsTableCell>
                   {TABLE.NAME_LABEL}
-                </NxTableCell>
-                <NxTableCell>
+                </AsTableCell>
+                <AsTableCell>
                   {TABLE.STATUS_LABEL}
-                </NxTableCell>
-                <NxTableCell>
+                </AsTableCell>
+                <AsTableCell>
                   {TABLE.LAST_RUN_LABEL}
-                </NxTableCell>
-                <NxTableCell>
+                </AsTableCell>
+                <AsTableCell>
                   {TABLE.LAST_RESULT_LABEL}
-                </NxTableCell>
-                <NxTableCell chevron/>
-              </NxTableRow>
-            </NxTableHead>
-            <NxTableBody isLoading={isLoading} error={error} emptyMessage={TABLE.EMPTY_MESSAGE}>
+                </AsTableCell>
+                <AsTableCell chevron/>
+              </AsTableRow>
+            </AsTableHead>
+            <AsTableBody isLoading={isLoading} error={error} emptyMessage={TABLE.EMPTY_MESSAGE}>
               {data?.reconcileTasks?.map(({id, name, currentState, lastRun, lastRunResult}) => (
-                  <NxTableRow key={name}  onClick={() => onTaskClick(id)} isClickable>
-                    <NxTableCell>{name}</NxTableCell>
-                    <NxTableCell>{currentState}</NxTableCell>
-                    <NxTableCell>{lastRun ? DateUtils.prettyDateTime(new Date(lastRun)) : ''}</NxTableCell>
-                    <NxTableCell>{lastRunResult}</NxTableCell>
-                    <NxTableCell chevron />
-                  </NxTableRow>
+                  <AsTableRow key={name}  onClick={() => onTaskClick(id)} isClickable>
+                    <AsTableCell>{name}</AsTableCell>
+                    <AsTableCell>{currentState}</AsTableCell>
+                    <AsTableCell>{lastRun ? DateUtils.prettyDateTime(new Date(lastRun)) : ''}</AsTableCell>
+                    <AsTableCell>{lastRunResult}</AsTableCell>
+                    <AsTableCell chevron />
+                  </AsTableRow>
               ))}
-            </NxTableBody>
-          </NxTable>
+            </AsTableBody>
+          </AsTable>
         </Section>
       </ContentBody>
       {showConfirmModal && (
-        <NxModal aria-label="disable-recovery-mode-confirmation" variant="narrow" onCancel={cancelDisable}>
-          <NxModal.Header>
-            <NxH2>{CONFIRMATION_MODAL.TITLE}</NxH2>
-          </NxModal.Header>
-          <NxModal.Content>
+        <AsModal aria-label="disable-recovery-mode-confirmation" variant="narrow" onCancel={cancelDisable}>
+          <AsModal.Header>
+            <AsH2>{CONFIRMATION_MODAL.TITLE}</AsH2>
+          </AsModal.Header>
+          <AsModal.Content>
             {CONFIRMATION_MODAL.MESSAGE}
-          </NxModal.Content>
-          <NxFooter>
-            <NxButtonBar>
-              <NxButton onClick={cancelDisable}>{CONFIRMATION_MODAL.CANCEL_BUTTON}</NxButton>
-              <NxButton onClick={confirmDisable} variant="primary">{CONFIRMATION_MODAL.CONFIRM_BUTTON}</NxButton>
-            </NxButtonBar>
-          </NxFooter>
-        </NxModal>
+          </AsModal.Content>
+          <AsFooter>
+            <AsButtonBar>
+              <AsButton onClick={cancelDisable}>{CONFIRMATION_MODAL.CANCEL_BUTTON}</AsButton>
+              <AsButton onClick={confirmDisable} variant="primary">{CONFIRMATION_MODAL.CONFIRM_BUTTON}</AsButton>
+            </AsButtonBar>
+          </AsFooter>
+        </AsModal>
       )}
     </Page>
   );

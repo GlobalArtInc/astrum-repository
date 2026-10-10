@@ -134,7 +134,7 @@ describe('RolesPage', () => {
 
   it('should disable Create Role button when user lacks permission', () => {
     mockCheckPermission.mockImplementation((perm: string) => perm !== 'astrum:roles:create');
-    (global as any).NX.Permissions.check.mockImplementation((perm: string) => perm !== 'astrum:roles:create');
+    (global as any).AS.Permissions.check.mockImplementation((perm: string) => perm !== 'astrum:roles:create');
     renderWithTheme(<RolesPage />);
 
     // Large create button is shown but disabled (ASTRUM-54212), not hidden.

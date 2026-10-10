@@ -31,7 +31,7 @@ public class AntiCsrfHelper
 
   public static final String ERROR_MESSAGE_TOKEN_MISMATCH = "Anti cross-site request forgery token mismatch";
 
-  public static final String ANTI_CSRF_TOKEN_NAME = "NX-ANTI-CSRF-TOKEN";
+  public static final String ANTI_CSRF_TOKEN_NAME = "AS-ANTI-CSRF-TOKEN";
 
   private final boolean enabled;
 

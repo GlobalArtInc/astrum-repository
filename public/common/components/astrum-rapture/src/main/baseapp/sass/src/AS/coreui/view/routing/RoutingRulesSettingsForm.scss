@@ -1,0 +1,32 @@
+/**
+ * @class AS.coreui.view.routing.RoutingRulesSettingsForm
+ */
+
+.as-mode-common-text {
+  padding: 5px 0 0 5px;
+}
+
+fieldset.as-coreui-routing-rules-settings-form-matchers {
+  margin-bottom: 0;
+  padding-bottom: 0;
+
+  .x-fieldset-body {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .as-matchers-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .as-matchers-help-text {
+    display: block;
+    font-size: 11px;
+    padding: 5px 0;
+  }
+
+  .as-matcher-remove-button {
+    margin-left: 10px;
+  }
+}

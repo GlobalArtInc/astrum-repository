@@ -33,7 +33,7 @@ import org.springframework.lang.Nullable;
 public class AstrumAuthenticationFilter
     extends AstrumBasicHttpAuthenticationFilter
 {
-  public static final String NAME = "nx-authc";
+  public static final String NAME = "as-authc";
 
   private List<AuthenticationTokenFactory> factories = Lists.newArrayList();
 

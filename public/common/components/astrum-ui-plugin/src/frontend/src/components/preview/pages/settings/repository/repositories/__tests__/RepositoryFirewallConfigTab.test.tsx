@@ -30,7 +30,7 @@ jest.mock('../useRepositoriesApi', () => ({
 }));
 
 // RepositoryFirewallConfigTab gates the Health Check enable/disable actions via the
-// provider-independent ExtJS.usePermission (reads window.NX.Permissions.check directly),
+// provider-independent ExtJS.usePermission (reads window.AS.Permissions.check directly),
 // not the context-based usePermission — coreui never mounts a <PermissionsProvider>, so the
 // context hook returns false for everyone (ASTRUM-54212). Spy on the real ExtJS singleton and
 // drive the healthcheck:update check per test; ExtJS.usePermission evaluates its getter

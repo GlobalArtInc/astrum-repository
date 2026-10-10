@@ -1,7 +1,7 @@
 
 import React, {useState} from 'react';
 
-import {NxButton, NxButtonBar, NxInfoAlert, useToggle, NxWarningAlert} from '@globalart/react-shared-components';
+import {AsButton, AsButtonBar, AsInfoAlert, useToggle, AsWarningAlert} from '@globalart/react-shared-components';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 import {UpgradeAlertFunctions} from '../../../widgets/SystemStatusAlerts/UpgradeAlert/UpgradeAlertHelper';
 import UIStrings from '../../../../constants/UIStrings';
@@ -19,37 +19,37 @@ export default function UpgradeAlert() {
   return (
   <>
     {state === 'needsUpgrade' && hasUser && hasPermission &&
-      <NxInfoAlert>
+      <AsInfoAlert>
         <strong>{PENDING.STATUS_LABEL}&ensp;</strong>
         {PENDING.TEXT}
-        <NxButtonBar>
-          <NxButton variant="primary" onClick={() => setShowModal(true)}>
+        <AsButtonBar>
+          <AsButton variant="primary" onClick={() => setShowModal(true)}>
             {PENDING.FINALIZE_BUTTON}
-          </NxButton>
-        </NxButtonBar>
-      </NxInfoAlert>
+          </AsButton>
+        </AsButtonBar>
+      </AsInfoAlert>
     }
     {state === 'needsUpgrade' && hasUser && hasPermission &&
       <UpgradeTriggerModal showModal={showModal} setShowModal={setShowModal}/>
     }
 
     {state === 'versionMismatch' && hasUser && hasPermission && isOpen &&
-      <NxWarningAlert onClose={dismiss}>
+      <AsWarningAlert onClose={dismiss}>
         <strong>{WARN.LABEL}&ensp;</strong>
         {WARN.TEXT}
-      </NxWarningAlert>
+      </AsWarningAlert>
     }
     {state === 'astrumNeedsUpgrade1Year' && hasUser && hasPermission &&
-      <NxInfoAlert>
+      <AsInfoAlert>
         <strong>{PENDING.OLDER_LABEL}&ensp;</strong>
         {PENDING.YEAR_OLD_TEXT}
-      </NxInfoAlert>
+      </AsInfoAlert>
      }
      {state === 'astrumNeeds18MonthsUpgrade' && hasUser && hasPermission &&
-      <NxInfoAlert>
+      <AsInfoAlert>
         <strong>{PENDING.OLDER_LABEL}&ensp;</strong>
         {PENDING.TEXT_18_MONTHS}
-      </NxInfoAlert>
+      </AsInfoAlert>
      }
   </>
   )

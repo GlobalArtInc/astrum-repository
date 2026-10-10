@@ -15,8 +15,8 @@ export default function UsersExt() {
        return <ExtJsContainer
            title={UIStrings.USERS.MENU.text}
            icon={UIStrings.USERS.MENU.icon}
-           className="nx-feature-content"
-           extView="NX.coreui.view.user.UserFeature"
+           className="as-feature-content"
+           extView="AS.coreui.view.user.UserFeature"
        />;
    }
 }

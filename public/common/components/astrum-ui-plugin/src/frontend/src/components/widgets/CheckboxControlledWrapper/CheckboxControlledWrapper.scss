@@ -12,11 +12,11 @@
 
   .checkbox-control {
     display: inline-block;
-    padding-right: var(--nx-spacing-2x);
+    padding-right: var(--as-spacing-2x);
     padding-top: 3px;
     vertical-align: top;
 
-    .nx-radio-checkbox {
+    .as-radio-checkbox {
       /* fix display for IE11 */
       width: 100%;
     }
