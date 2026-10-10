@@ -63,7 +63,7 @@ export default function UpgradeAlert({onClose}) {
             {message} {ERROR.TEXT}{" "}
             <AsTextLink external href={ERROR.CONTACT_SUPPORT.HREF}>
               {ERROR.CONTACT_SUPPORT.TEXT}
-            </AsTextLink> for assistance.
+            </AsTextLink>{" "}{ERROR.ASSISTANCE}
           </SystemNotice>);
     case 'astrumUpgradeComplete':
       return (

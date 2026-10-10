@@ -304,7 +304,7 @@ export default {
           },
           HTTPS: {
             LABEL: 'HTTPS',
-            SUBLABEL: 'Create an HTTP connector at specified port. Normally used if the server is configured for https',
+            SUBLABEL: 'Create an HTTPS connector at specified port. Normally used if the server is configured for https',
             PLACEHOLDER: 'Enter a port number'
           },
           SUBDOMAIN: {

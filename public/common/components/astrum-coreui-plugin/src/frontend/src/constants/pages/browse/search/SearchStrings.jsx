@@ -158,7 +158,7 @@ export default {
     MAVEN: {
       MENU: {
         text: 'Maven',
-        description: 'Search for components in Conan repositories',
+        description: 'Search for components in Maven repositories',
         icon: faSearch
       },
       CRITERIA: {
