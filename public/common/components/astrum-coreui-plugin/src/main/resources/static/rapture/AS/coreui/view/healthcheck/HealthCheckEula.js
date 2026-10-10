@@ -13,8 +13,6 @@ Ext.define('AS.coreui.view.healthcheck.HealthCheckEula', {
     'AS.util.Url'
   ],
 
-  title: 'Astrum IQ Server Terms of Use',
-
   layout: 'fit',
   autoShow: true,
   modal: true,
@@ -28,6 +26,7 @@ Ext.define('AS.coreui.view.healthcheck.HealthCheckEula', {
    * @override
    */
   initComponent: function () {
+    this.title = AS.I18n.get('HealthCheckEula_Title');
     var me = this;
 
     me.items = {
@@ -44,7 +43,7 @@ Ext.define('AS.coreui.view.healthcheck.HealthCheckEula', {
         dock: 'bottom',
         ui: 'footer',
         items: [
-          { xtype: 'button', text: 'I Accept', action: 'agree', formBind: true, ui: 'as-primary', handler: function () {
+          { xtype: 'button', text: AS.I18n.get('HealthCheckEula_Accept_Button'), action: 'agree', formBind: true, ui: 'as-primary', handler: function () {
             var win = this.up('window');
 
             win.close();
@@ -52,12 +51,12 @@ Ext.define('AS.coreui.view.healthcheck.HealthCheckEula', {
               win.acceptFn.call();
             }
           }},
-          { xtype: 'button', text: 'I Do Not Accept', handler: function () {
+          { xtype: 'button', text: AS.I18n.get('HealthCheckEula_Decline_Button'), handler: function () {
             this.up('window').close();
           }},
           '->',
           { xtype: 'component', html: '<a href="' + AS.util.Url.urlOf('/static/healthcheck-tos.html') +
-              '" target="_new">Download a copy of the license.</a>'
+              '" target="_new">' + AS.I18n.get('HealthCheckEula_Download_Link') + '</a>'
           }
         ]
       }

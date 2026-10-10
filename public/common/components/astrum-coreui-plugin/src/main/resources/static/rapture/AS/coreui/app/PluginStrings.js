@@ -1318,7 +1318,6 @@ Ext.define('AS.coreui.app.PluginStrings', {
     Task_TaskFeature_Delete_Button: 'Delete task',
     Tasks_Delete_Success: 'Task deleted: {0}',
     Task_TaskFeature_Run_Button: 'Run',
-    Task_TaskFeature_Run_Button_Id: 'task_run_button_id',
     Tasks_RunConfirm_Title: 'Confirm?',
     Tasks_RunConfirm_HelpText: 'Run {0} task?',
     Tasks_Run_Success: 'Task started: {0}',
@@ -1486,6 +1485,72 @@ Ext.define('AS.coreui.app.PluginStrings', {
     Task_TaskSettingsForm_PlanInformation_StartDate_Empty: "N/A",
     Task_TaskSettingsForm_PlanInformation_EndDate: "End Date",
     Task_TaskSettingsForm_PlanInformation_EndDate_Empty: "N/A",
+
+    // System -> Nodes
+    Nodes_Text: 'Nodes',
+    Nodes_Description: 'View nodes',
+    NodeList_Name_Header: 'Node Name',
+    NodeList_SocketAddress_Header: 'Socket Address',
+    NodeList_Identity_Header: 'Node Identity',
+    NodeList_Filter_EmptyText: 'No nodes matched "$filter"',
+    NodeSettings_Title: 'Node Settings Feature',
+
+    // Browse -> Search, components and assets
+    Search_Keyword_Text: 'Keyword',
+    Search_Keyword_Description: 'Search for components by keyword',
+    AssetAttributes_Facet_Header: 'Facet',
+    AssetAttributes_Label_Header: 'Label',
+    AssetAttributes_Value_Header: 'Value',
+    AssetList_EmptyText: 'No assets found',
+    ComponentInfo_Attributes_Title: 'Attributes',
+    UploadComponent_Upload_Error: 'An unknown error occurred uploading components',
+
+    // Security -> Users
+    Users_Filter_NoMatch_EmptyText: 'No user matched query criteria "$filter"',
+    Users_Filter_Empty_EmptyText: 'No users defined',
+    Users_Settings_Title: 'Settings',
+    Users_ChangePassword_Authenticate_Text: 'Changing password requires validation of your credentials.',
+
+    // System -> Capabilities, IQ Server, SSL, email
+    Capabilities_Disable_Confirm_Title: 'Confirm disable?',
+    HealthCheckEula_Title: 'Astrum IQ Server Terms of Use',
+    HealthCheckEula_Accept_Button: 'I Accept',
+    HealthCheckEula_Decline_Button: 'I Do Not Accept',
+    HealthCheckEula_Download_Link: 'Download a copy of the license.',
+    SslCertificateDetails_Title: 'Summary',
+    VerifySMTPConnection_Verify_Button: 'Verify',
+
+    // Repository -> Repositories
+    RepositorySelectRecipe_Recipe_Header: 'Recipe',
+    Repositories_Evaluation_Save_Error: 'Failed to save evaluation settings',
+    EvaluationFacet_Title: 'Evaluation',
+    EvaluationFacet_Mode_FieldLabel: 'Hosted Repository Evaluation',
+    EvaluationFacet_Mode_Inherit: 'Inherit from global evaluation settings',
+    EvaluationFacet_Mode_Override: 'Override',
+    EvaluationFacet_Mode_Disable: 'Disable Evaluation',
+    EvaluationFacet_TimeFrame_FieldLabel: 'Activity Time Frame',
+    EvaluationFacet_TimeFrame_HelpText: 'Set the time frame for evaluating components based on recent repository activity.',
+    EvaluationFacet_TimeFrame_EmptyText: 'Select Activity Time Frame',
+    EvaluationFacet_TimeFrame_30: 'Last 30 Days',
+    EvaluationFacet_TimeFrame_60: 'Last 60 Days',
+    EvaluationFacet_TimeFrame_90: 'Last 90 Days',
+    EvaluationFacet_Versions_FieldLabel: 'Latest Deployed Versions',
+    EvaluationFacet_Versions_HelpText: 'Set the number of most recently deployed component versions to evaluate',
+    EvaluationFacet_Versions_EmptyText: 'Select Latest Deployed Versions',
+    EvaluationFacet_Stage_FieldLabel: 'Policy Evaluation Stage',
+    EvaluationFacet_Stage_HelpText: 'Select the policy evaluation stage used for the initial audit and ongoing monitoring.',
+    EvaluationFacet_Stage_EmptyText: 'Select Policy Evaluation Stage',
+    EvaluationFacet_Stage_Build: 'Build',
+    EvaluationFacet_Stage_StageRelease: 'Stage Release',
+    EvaluationFacet_Stage_Release: 'Release',
+    EvaluationFacet_Stage_Operate: 'Operate',
+    EvaluationFacet_Override_Required: 'This field is required when Override mode is selected',
+
+    // System -> Tasks, Support
+    Task_TaskSchedule_StartTime_Days_HelpText: 'The time this task should start on days it will run in your time zone {0}.',
+    Task_TaskSchedule_StartTime_HelpText: 'The time this task should start running in your time zone {0}.',
+    Support_FileCreated_Text: '{0} has been created.<br/>You can reference this file on the filesystem or download the file from your browser.',
+    Support_FileCreated_Size_HelpText: 'Size of {0} file in bytes'
   },
 
   /**

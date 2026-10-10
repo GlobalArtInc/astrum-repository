@@ -33,8 +33,7 @@ Ext.define('AS.coreui.view.support.FileCreatedForm', {
           items: [
             {xtype: 'component', html: me.fileIcon},
             {
-              xtype: 'component', html: me.fileType + ' has been created.' +
-                  '<br/>You can reference this file on the filesystem or download the file from your browser.',
+              xtype: 'component', html: AS.I18n.format('Support_FileCreated_Text', me.fileType),
               margin: '0 0 0 5'
             }
           ]
@@ -50,7 +49,7 @@ Ext.define('AS.coreui.view.support.FileCreatedForm', {
           xtype: 'textfield',
           name: 'size',
           fieldLabel: AS.I18n.get('Support_FileCreated_Size_FieldLabel'),
-          helpText: 'Size of ' + me.fileType + ' file in bytes',
+          helpText: AS.I18n.format('Support_FileCreated_Size_HelpText', me.fileType),
           readOnly: true
         },
         {

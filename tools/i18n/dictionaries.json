@@ -1,0 +1,23 @@
+{
+  "url": "https://api.ownlate.com",
+  "tokenEnv": "ASTRUM_OWNLATE_TOKEN",
+  "projectEnv": "ASTRUM_OWNLATE_PROJECT",
+  "source": "en",
+  "dictionaries": [
+    {
+      "dir": "public/common/components/astrum-rapture/src/main/resources/astrum-i18n/extjs-rapture",
+      "prefix": "extjs.rapture",
+      "extjs": "public/common/components/astrum-rapture/src/main/resources/static/rapture/AS/app/PluginStrings.js"
+    },
+    {
+      "dir": "public/common/components/astrum-coreui-plugin/src/main/resources/astrum-i18n/extjs-coreui",
+      "prefix": "extjs.coreui",
+      "extjs": "public/common/components/astrum-coreui-plugin/src/main/resources/static/rapture/AS/coreui/app/PluginStrings.js"
+    },
+    {
+      "dir": "public/common/components/astrum-onboarding-plugin/src/main/resources/astrum-i18n/extjs-onboarding",
+      "prefix": "extjs.onboarding",
+      "extjs": "public/common/components/astrum-onboarding-plugin/src/main/resources/static/rapture/AS/onboarding/app/PluginStrings.js"
+    }
+  ]
+}

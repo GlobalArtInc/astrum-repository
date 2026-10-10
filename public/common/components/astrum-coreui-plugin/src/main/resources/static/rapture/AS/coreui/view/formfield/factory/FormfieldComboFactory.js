@@ -47,7 +47,7 @@ Ext.define('AS.coreui.view.formfield.factory.FormfieldComboFactory', {
           forceSelection: true,
           queryMode: 'local',
           triggerAction: 'all',
-          emptyText: 'Select...',
+          emptyText: AS.I18n.get('Form_Select_EmptyText'),
           selectOnFocus: false,
           allowBlank: !formField.required
         };

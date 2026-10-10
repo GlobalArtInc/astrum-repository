@@ -40,7 +40,7 @@ Ext.define('AS.coreui.view.component.AssetList', {
       allowDeselect: true,
 
       viewConfig: {
-        emptyText: 'No assets found',
+        emptyText: AS.I18n.get('AssetList_EmptyText'),
         deferEmptyText: false
       },
 

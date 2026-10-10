@@ -62,7 +62,7 @@ Ext.define('AS.coreui.view.component.ComponentInfo', {
     {
       xtype: 'panel',
       ui: 'as-inset',
-      title: 'Attributes',
+      title: AS.I18n.get('ComponentInfo_Attributes_Title'),
       collapsible: true,
       manageHeight: false,
       items: [

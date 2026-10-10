@@ -237,7 +237,7 @@ Ext.define('AS.coreui.controller.UploadComponent', {
           var transaction;
 
           if (!action.result || !action.result.length) {
-            AS.Messages.error('An unknown error occurred uploading components');
+            AS.Messages.error(AS.I18n.get('UploadComponent_Upload_Error'));
             console.error(action);
           }
           else {

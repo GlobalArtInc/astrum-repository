@@ -19,6 +19,7 @@ import org.globalart.astrum.common.app.BaseUrlHolder;
 import org.globalart.astrum.common.template.TemplateAccessible;
 import org.globalart.astrum.common.template.TemplateHelper;
 import org.globalart.astrum.common.template.TemplateParameters;
+import org.globalart.astrum.rapture.internal.i18n.UiLanguages;
 import org.globalart.astrum.rapture.internal.state.StateComponent;
 import org.globalart.astrum.servlet.ServletHelper;
 import org.globalart.astrum.ui.UiPluginDescriptor;
@@ -71,6 +72,8 @@ public class RaptureWebResourceBundle
 
   private final List<org.globalart.astrum.rapture.UiPluginDescriptor> extJsPluginDescriptors;
 
+  private final UiLanguages languages;
+
   private final Gson gson;
 
   private final String cacheBuster;
@@ -89,6 +92,7 @@ public class RaptureWebResourceBundle
       final TemplateHelper templateHelper,
       final List<UiPluginDescriptor> pluginDescriptors,
       final List<org.globalart.astrum.rapture.UiPluginDescriptor> extJsPluginDescriptors,
+      final UiLanguages languages,
       @Nullable @Value("${" + PROPERTY_WEBRESOURCES_CACHEBUSTER + ":#{null}}") final String cacheBuster,
       @Nullable @Value("${" + PROPERTY_WEBRESOURCES_VERSION + ":#{null}}") final String webResourcesVersion)
   {
@@ -98,6 +102,7 @@ public class RaptureWebResourceBundle
     this.templateHelper = checkNotNull(templateHelper);
     this.pluginDescriptors = checkNotNull(pluginDescriptors);
     this.extJsPluginDescriptors = checkNotNull(extJsPluginDescriptors);
+    this.languages = checkNotNull(languages);
     this.webResourcesVersion = webResourcesVersion;
     if (webResourcesVersion != null) {
       log.info("Setting web resources version value to {} from property {}", webResourcesVersion,
@@ -184,6 +189,7 @@ public class RaptureWebResourceBundle
             .set("baseUrl", BaseUrlHolder.get())
             .set("relativePath", BaseUrlHolder.getRelativePath())
             .set("debug", isDebug())
+            .set("language", language())
             .set("urlSuffix", generateUrlSuffix())
             .set("styles", getStyles())
             .set("scripts", getScripts())
@@ -332,6 +338,13 @@ public class RaptureWebResourceBundle
   }
 
   /**
+   * The language the UI is shown in for the current request.
+   */
+  private String language() {
+    return languages.resolve(servletRequestProvider.get());
+  }
+
+  /**
    * Returns the initial state for the application.
    */
   private Map<String, Object> getState() {
@@ -446,6 +459,11 @@ public class RaptureWebResourceBundle
     scripts.add(uri(mode("baseapp-{mode}.js")));
     scripts.add(uri(mode("extdirect-{mode}.js")));
     scripts.add(uri("bootstrap.js"));
+
+    String language = language();
+    if (!UiLanguages.DEFAULT.equals(language)) {
+      scripts.add(uri(String.format("i18n-%s.js", language)));
+    }
 
     scripts.addAll(
         extJsPluginDescriptors.stream()

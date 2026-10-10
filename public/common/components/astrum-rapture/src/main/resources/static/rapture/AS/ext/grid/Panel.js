@@ -22,7 +22,7 @@ Ext.define('AS.ext.grid.Panel', {
           var store = grid.getStore();
           menu.insert(2, [
             {
-              text: 'Clear Sort',
+              text: AS.I18n.get('Grid_ClearSort_Text'),
               iconCls: 'x-fa fa-eraser',
 
               handler: function() {

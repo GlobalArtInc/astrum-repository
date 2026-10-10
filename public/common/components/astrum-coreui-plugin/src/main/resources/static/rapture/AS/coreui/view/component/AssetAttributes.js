@@ -36,42 +36,52 @@ Ext.define('AS.coreui.view.component.AssetAttributes', {
     fields: ['facet', 'label', 'value'],
     groupField: 'facet'
   }),
-  columns: {
-    items: [
-      {
-        text: 'Facet',
-        hidden: true,
-        dataIndex: 'facet'
-      },
-      {
-        text: 'label',
-        flex: 1,
-        dataIndex: 'label',
-        renderer: function(value, metaData) {
-          metaData.tdAttr = 'data-qtip="' + value + '"';
-          return value;
-        }
-      },
-      {
-        text: 'Value',
-        flex: 2,
-        dataIndex: 'value',
-        renderer: function (val) {
-          var attributeValue = val;
-          if (attributeValue == 0 || attributeValue == false) {
-            // for correct html rendering '0' and 'false' values must be converted to string
-            attributeValue = String(attributeValue);
-          }
+  /**
+   * @override
+   */
+  initComponent: function() {
+    var me = this;
 
-          return Ext.DomHelper.markup({
-            tag: 'div',
-            cls: 'attribute-value',
-            html: Ext.String.htmlEncode(attributeValue)
-          });
+    me.columns = {
+      items: [
+        {
+          text: AS.I18n.get('AssetAttributes_Facet_Header'),
+          hidden: true,
+          dataIndex: 'facet'
+        },
+        {
+          text: AS.I18n.get('AssetAttributes_Label_Header'),
+          flex: 1,
+          dataIndex: 'label',
+          renderer: function(value, metaData) {
+            metaData.tdAttr = 'data-qtip="' + value + '"';
+            return value;
+          }
+        },
+        {
+          text: AS.I18n.get('AssetAttributes_Value_Header'),
+          flex: 2,
+          dataIndex: 'value',
+          renderer: function (val) {
+            var attributeValue = val;
+            if (attributeValue == 0 || attributeValue == false) {
+              // for correct html rendering '0' and 'false' values must be converted to string
+              attributeValue = String(attributeValue);
+            }
+
+            return Ext.DomHelper.markup({
+              tag: 'div',
+              cls: 'attribute-value',
+              html: Ext.String.htmlEncode(attributeValue)
+            });
+          }
         }
-      }
-    ]
+      ]
+    };
+
+    me.callParent();
   },
+
   hideHeaders: true,
   features: [
     {

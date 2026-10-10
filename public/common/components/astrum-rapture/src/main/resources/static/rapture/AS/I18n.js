@@ -25,12 +25,62 @@ Ext.define('AS.I18n', {
   bundles: {},
 
   /**
+   * @private
+   * @property {Object}
+   */
+  translations: null,
+
+  /**
+   * Registers English strings, replaced by their translations when the page is shown in another language.
+   *
    * @public
    * @param {Object} strings
    */
   register: function (strings) {
-    Ext.apply(this.keys, strings.keys);
-    Ext.apply(this.bundles, strings.bundles);
+    var me = this,
+        translations = me.getTranslations();
+
+    Ext.Object.each(strings.keys || {}, function (key, text) {
+      me.keys[key] = me.translated(translations[key], text);
+    });
+    Ext.Object.each(strings.bundles || {}, function (bundle, resources) {
+      var merged = {};
+      Ext.Object.each(resources, function (key, text) {
+        merged[key] = me.translated(translations[bundle + '/' + key], text);
+      });
+      me.bundles[bundle] = merged;
+    });
+  },
+
+  /**
+   * The translations of the ExtJS dictionaries ({@code extjs-*}) handed over by the page as {@code window.AS_I18N}:
+   * plain keys, and bundle keys written as {@code <bundle>/<key>}.
+   *
+   * @private
+   * @returns {Object}
+   */
+  getTranslations: function () {
+    var me = this,
+        i18n = window.AS_I18N;
+
+    if (me.translations === null) {
+      me.translations = {};
+      if (i18n && i18n.dictionaries) {
+        Ext.Object.each(i18n.dictionaries, function (name, entries) {
+          if (name.indexOf('extjs-') === 0) {
+            Ext.apply(me.translations, entries);
+          }
+        });
+      }
+    }
+    return me.translations;
+  },
+
+  /**
+   * @private
+   */
+  translated: function (translation, text) {
+    return Ext.isString(translation) && translation !== '' ? translation : text;
   },
 
   /**

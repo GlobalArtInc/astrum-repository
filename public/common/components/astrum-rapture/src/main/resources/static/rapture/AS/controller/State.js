@@ -411,11 +411,10 @@ Ext.define('AS.controller.State', {
           // Stop polling
           me.statusProvider.disconnect();
 
-          // FIXME: i18n
           // Show the UI with a modal dialog error
           AS.Dialogs.showError(
-              'Server disconnected',
-              'There is a problem communicating with the server',
+              AS.I18n.get('State_Disconnected_Title'),
+              AS.I18n.get('State_Disconnected_Text'),
               {
                 buttonText: {
                   ok: 'Retry'
@@ -484,10 +483,9 @@ Ext.define('AS.controller.State', {
 
   reloadWhenServerIdChanged: function (serverId, oldServerId) {
     if (oldServerId && (serverId !== oldServerId) && !Ext.String.startsWith(serverId, 'ignore')) {
-      // FIXME: i18n
       AS.Dialogs.showInfo(
-          'Server restarted',
-          'Application will be reloaded as server has been restarted',
+          AS.I18n.get('State_Restarted_Title'),
+          AS.I18n.get('State_Restarted_Text'),
           {
             fn: function () {
               AS.global.location.reload();

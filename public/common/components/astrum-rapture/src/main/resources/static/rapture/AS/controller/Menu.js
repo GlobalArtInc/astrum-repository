@@ -614,7 +614,7 @@ Ext.define('AS.controller.Menu', {
    */
   createNotFoundFeature: function (bookmark) {
     return this.getFeatureModel().create({
-      text: 'Not found',
+      text: AS.I18n.get('Menu_NotFound_Text'),
       path: '/Not Found',
       description: bookmark,
       iconName: 'feature-notfound',

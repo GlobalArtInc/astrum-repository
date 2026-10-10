@@ -10,8 +10,15 @@ Ext.define('AS.coreui.view.ssl.SslCertificateDetails', {
   extend: 'AS.view.SettingsPanel',
   alias: 'widget.as-coreui-sslcertificate-details',
 
-  title: 'Summary',
   settingsForm: { xtype: 'as-coreui-sslcertificate-details-form' },
 
-  dockedItems: null
+  dockedItems: null,
+
+  /**
+   * @override
+   */
+  initComponent: function() {
+    this.title = AS.I18n.get('SslCertificateDetails_Title');
+    this.callParent();
+  }
 });

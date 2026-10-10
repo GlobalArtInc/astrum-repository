@@ -78,12 +78,12 @@ Ext.define('AS.view.AboutWindow', {
 
     // populate initial details only if not running in the cloud
     if (!AS.State.getValue('isCloud')) {
-      me.down('#aboutInfo').showInfo({
-        'Version': AS.State.getVersion(),
-        'Edition': AS.State.getEdition(),
-        'Build Revision': AS.State.getBuildRevision(),
-        'Build Timestamp': AS.State.getBuildTimestamp()
-      });
+      var info = {};
+      info[AS.I18n.get('AboutWindow_Version_Label')] = AS.State.getVersion();
+      info[AS.I18n.get('AboutWindow_Edition_Label')] = AS.State.getEdition();
+      info[AS.I18n.get('AboutWindow_BuildRevision_Label')] = AS.State.getBuildRevision();
+      info[AS.I18n.get('AboutWindow_BuildTimestamp_Label')] = AS.State.getBuildTimestamp();
+      me.down('#aboutInfo').showInfo(info);
     };
   }
 });

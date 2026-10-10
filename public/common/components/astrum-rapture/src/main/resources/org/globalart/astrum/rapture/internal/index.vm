@@ -2,7 +2,7 @@
 #set($raptureUrl="$relativePath/static/rapture")
 
 <!DOCTYPE html>
-<html lang="en" class="as-html">
+<html lang="$language" class="as-html">
 <head>
   <title>GlobalArt Astrum Repository</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>

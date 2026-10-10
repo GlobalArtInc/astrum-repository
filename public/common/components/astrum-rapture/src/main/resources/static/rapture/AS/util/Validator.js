@@ -105,7 +105,7 @@ Ext.define('AS.util.Validator', {
         'as-oci-url': function(val) {
           return AS.util.Validator.asOciUrlRegex.test(val);
         },
-        'as-oci-urlText': 'Must be a valid URL using http://, https://, oci://, or oci+http://',
+        'as-oci-urlText': AS.I18n.get('Util_Validator_OciUrl'),
         'as-subdomain': function(val) {
           return AS.util.Validator.asSubdomainRegex.test(val);
         },

@@ -16,16 +16,25 @@ Ext.define('AS.coreui.view.repository.RepositorySelectRecipe', {
   cls: 'as-hr',
 
   store: 'RepositoryRecipe',
-  columns: [
-    {
-      xtype: 'as-iconcolumn',
-      width: 36,
-      iconVariant: 'x16',
-      iconName: function() {
-        return 'repository-hosted';
-      }
-    },
-    { header: 'Recipe', dataIndex: 'name', flex: 1 }
-  ]
+  /**
+   * @override
+   */
+  initComponent: function() {
+    var me = this;
+
+    me.columns = [
+      {
+        xtype: 'as-iconcolumn',
+        width: 36,
+        iconVariant: 'x16',
+        iconName: function() {
+          return 'repository-hosted';
+        }
+      },
+      { header: AS.I18n.get('RepositorySelectRecipe_Recipe_Header'), dataIndex: 'name', flex: 1 }
+    ];
+
+    me.callParent();
+  }
 
 });
