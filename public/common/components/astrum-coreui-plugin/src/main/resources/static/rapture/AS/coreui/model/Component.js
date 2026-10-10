@@ -17,6 +17,7 @@ Ext.define('AS.coreui.model.Component', {
     {name: 'name', type: 'string'},
     {name: 'version', type: 'string'},
     {name: 'format', type: 'string', sortType: 'asUCText'},
+    {name: 'registryUrl', type: 'string'},
     {name: 'attributes', type: 'auto' /*object*/}
   ]
 });

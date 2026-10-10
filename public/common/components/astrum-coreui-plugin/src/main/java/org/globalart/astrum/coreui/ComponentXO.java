@@ -37,6 +37,8 @@ public class ComponentXO
 
   private Map<String, Object> attributes;
 
+  private String registryUrl;
+
   public String getId() {
     return id;
   }
@@ -101,6 +103,14 @@ public class ComponentXO
 
   public void setAttributes(Map<String, Object> attributes) {
     this.attributes = attributes;
+  }
+
+  public String getRegistryUrl() {
+    return registryUrl;
+  }
+
+  public void setRegistryUrl(String registryUrl) {
+    this.registryUrl = registryUrl;
   }
 
   private void setGroupingKey() {

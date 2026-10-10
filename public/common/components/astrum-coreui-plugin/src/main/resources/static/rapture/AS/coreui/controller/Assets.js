@@ -166,7 +166,7 @@ Ext.define('AS.coreui.controller.Assets', {
     attributes.setAssetModel(assetModel);
 
     if (componentModel) {
-      format = componentModel.get('format');
+      format = componentModel.get('format') || (assetModel && assetModel.get('format'));
       dependencySnippets = AS.getApplication().getDependencySnippetController()
           .getDependencySnippets(format, componentModel, assetModel);
 

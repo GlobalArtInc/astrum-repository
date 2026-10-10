@@ -182,6 +182,9 @@ Ext.define('AS.app.PluginStrings', {
     // DependencySnippet Panel
     DependencySnippetPanel_Title: 'Usage',
     DependencySnippetPanel_Copy_Button_Tooltip: 'Copy snippet to clipboard',
+    DependencySnippet_File_Description: 'Add this to {0}',
+    DependencySnippet_Setup_Description: 'Connect the client to this repository once',
+    DependencySnippet_UpdateSite_Description: 'Add this address as an update site in Eclipse',
 
     // Copy link column
     CopyLink_Button: 'copy',

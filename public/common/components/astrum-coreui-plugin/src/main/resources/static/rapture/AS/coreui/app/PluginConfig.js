@@ -43,6 +43,12 @@ Ext.define('AS.coreui.app.PluginConfig', {
       }
     },
     {
+      id: 'AS.coreui.controller.DependencySnippets',
+      active: function () {
+        return AS.app.Application.bundleActive('astrum-coreui-plugin');
+      }
+    },
+    {
       id: 'AS.coreui.controller.ComponentAssetTree',
       active: function () {
         return AS.app.Application.bundleActive('astrum-coreui-plugin') &&

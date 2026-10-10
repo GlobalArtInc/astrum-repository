@@ -370,6 +370,11 @@ public class ContentComponentHelper
 
     componentXO.setAttributes(attributes);
 
+    if (descriptor != null) {
+      Repository repository = repositoryManager.get(repositoryName);
+      componentXO.setRegistryUrl(repository == null ? null : descriptor.computeRegistryUrl(repository));
+    }
+
     return componentXO;
   }
 

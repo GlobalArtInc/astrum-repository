@@ -32,7 +32,7 @@ Ext.define('AS.maven.controller.MavenDependencySnippetController', {
     return [
       {
         displayName: 'Apache Maven',
-        description: 'Insert this snippet into your pom.xml',
+        description: AS.I18n.format('DependencySnippet_File_Description', 'pom.xml'),
         snippetText:
             '<dependency>\n' +
               '  <groupId>' + group + '</groupId>\n' +
