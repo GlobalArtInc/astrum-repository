@@ -96,8 +96,8 @@ Ext.define('AS.coreui.controller.Search', {
       {
         id: 'keyword',
         name: 'Keyword',
-        text: 'Keyword',
-        description: 'Search for components by keyword',
+        text: AS.I18n.get('Search_Keyword_Text'),
+        description: AS.I18n.get('Search_Keyword_Description'),
         readOnly: true,
         criterias: [
           { id: 'keyword' }

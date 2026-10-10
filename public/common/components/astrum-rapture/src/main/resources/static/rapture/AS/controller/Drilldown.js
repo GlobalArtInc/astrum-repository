@@ -471,7 +471,7 @@ Ext.define('AS.controller.Drilldown', {
 
     if (Ext.isDefined(selection) && selection.length > 0) {
       description = me.getDescription(selection[0]);
-      AS.Dialogs.askConfirmation('Confirm deletion?', Ext.htmlEncode(description), function () {
+      AS.Dialogs.askConfirmation(AS.I18n.get('Dialogs_ConfirmDeletion_Title'), Ext.htmlEncode(description), function () {
         me.deleteModel(selection[0]);
 
         // Reset the bookmark

@@ -36,7 +36,7 @@ Ext.define('AS.coreui.view.task.TaskScheduleHourly', {
         name: 'startTime',
         fieldLabel: AS.I18n.get('Task_TaskScheduleHourly_EndDate_FieldLabel'),
         itemId: 'startTime',
-        helpText: 'The time this task should start running in your time zone ' + AS.util.DateFormat.getTimeZone() + '.',
+        helpText: AS.I18n.format('Task_TaskSchedule_StartTime_HelpText', AS.util.DateFormat.getTimeZone()),
         allowBlank: false,
         format: 'H:i',
         submitValue: false

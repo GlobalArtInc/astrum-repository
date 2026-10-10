@@ -20,29 +20,29 @@ Ext.define('AS.coreui.view.repository.facet.EvaluationFacet', {
       {
         xtype: 'fieldset',
         cls: 'as-form-section',
-        title: 'Evaluation',
+        title: AS.I18n.get('EvaluationFacet_Title'),
 
         items: [
           {
             xtype: 'radiogroup',
-            fieldLabel: 'Hosted Repository Evaluation',
+            fieldLabel: AS.I18n.get('EvaluationFacet_Mode_FieldLabel'),
             allowBlank: false,
             columns: 1,
             vertical: true,
             itemId: 'evaluationModeRadioGroup',
             items: [
               {
-                boxLabel: 'Inherit from global evaluation settings',
+                boxLabel: AS.I18n.get('EvaluationFacet_Mode_Inherit'),
                 name: 'attributes.evaluation.mode',
                 inputValue: 'INHERIT'
               },
               {
-                boxLabel: 'Override',
+                boxLabel: AS.I18n.get('EvaluationFacet_Mode_Override'),
                 name: 'attributes.evaluation.mode',
                 inputValue: 'OVERRIDE'
               },
               {
-                boxLabel: 'Disable Evaluation',
+                boxLabel: AS.I18n.get('EvaluationFacet_Mode_Disable'),
                 name: 'attributes.evaluation.mode',
                 inputValue: 'DISABLE'
               }
@@ -153,16 +153,16 @@ Ext.define('AS.coreui.view.repository.facet.EvaluationFacet', {
             xtype: 'combo',
             name: 'attributes.evaluation.activityTimeFrame',
             itemId: 'evaluationActivityTimeFrame',
-            fieldLabel: 'Activity Time Frame',
-            helpText: 'Set the time frame for evaluating components based on recent repository activity.',
+            fieldLabel: AS.I18n.get('EvaluationFacet_TimeFrame_FieldLabel'),
+            helpText: AS.I18n.get('EvaluationFacet_TimeFrame_HelpText'),
             disabled: true,
             allowBlank: true,
             editable: false,
-            emptyText: 'Select Activity Time Frame',
+            emptyText: AS.I18n.get('EvaluationFacet_TimeFrame_EmptyText'),
             store: [
-              ['30', 'Last 30 Days'],
-              ['60', 'Last 60 Days'],
-              ['90', 'Last 90 Days']
+              ['30', AS.I18n.get('EvaluationFacet_TimeFrame_30')],
+              ['60', AS.I18n.get('EvaluationFacet_TimeFrame_60')],
+              ['90', AS.I18n.get('EvaluationFacet_TimeFrame_90')]
             ],
             queryMode: 'local',
             validator: function() {
@@ -171,7 +171,7 @@ Ext.define('AS.coreui.view.repository.facet.EvaluationFacet', {
               var mode = radioGroup ? radioGroup.getValue()['attributes.evaluation.mode'] : null;
 
               if (mode === 'OVERRIDE' && !this.getValue()) {
-                return 'This field is required when Override mode is selected';
+                return AS.I18n.get('EvaluationFacet_Override_Required');
               }
               return true;
             }
@@ -180,12 +180,12 @@ Ext.define('AS.coreui.view.repository.facet.EvaluationFacet', {
             xtype: 'combo',
             name: 'attributes.evaluation.artifactLatestVersions',
             itemId: 'evaluationArtifactLatestVersions',
-            fieldLabel: 'Latest Deployed Versions',
-            helpText: 'Set the number of most recently deployed component versions to evaluate',
+            fieldLabel: AS.I18n.get('EvaluationFacet_Versions_FieldLabel'),
+            helpText: AS.I18n.get('EvaluationFacet_Versions_HelpText'),
             disabled: true,
             allowBlank: true,
             editable: false,
-            emptyText: 'Select Latest Deployed Versions',
+            emptyText: AS.I18n.get('EvaluationFacet_Versions_EmptyText'),
             store: [
               ['1', '1'],
               ['2', '2'],
@@ -200,7 +200,7 @@ Ext.define('AS.coreui.view.repository.facet.EvaluationFacet', {
               var mode = radioGroup ? radioGroup.getValue()['attributes.evaluation.mode'] : null;
 
               if (mode === 'OVERRIDE' && !this.getValue()) {
-                return 'This field is required when Override mode is selected';
+                return AS.I18n.get('EvaluationFacet_Override_Required');
               }
               return true;
             }
@@ -209,17 +209,17 @@ Ext.define('AS.coreui.view.repository.facet.EvaluationFacet', {
             xtype: 'combo',
             name: 'attributes.evaluation.policyEvaluationStage',
             itemId: 'evaluationPolicyEvaluationStage',
-            fieldLabel: 'Policy Evaluation Stage',
-            helpText: 'Select the policy evaluation stage used for the initial audit and ongoing monitoring.',
+            fieldLabel: AS.I18n.get('EvaluationFacet_Stage_FieldLabel'),
+            helpText: AS.I18n.get('EvaluationFacet_Stage_HelpText'),
             disabled: true,
             allowBlank: true,
             editable: false,
-            emptyText: 'Select Policy Evaluation Stage',
+            emptyText: AS.I18n.get('EvaluationFacet_Stage_EmptyText'),
             store: [
-              ['build', 'Build'],
-              ['stage-release', 'Stage Release'],
-              ['release', 'Release'],
-              ['operate', 'Operate']
+              ['build', AS.I18n.get('EvaluationFacet_Stage_Build')],
+              ['stage-release', AS.I18n.get('EvaluationFacet_Stage_StageRelease')],
+              ['release', AS.I18n.get('EvaluationFacet_Stage_Release')],
+              ['operate', AS.I18n.get('EvaluationFacet_Stage_Operate')]
             ],
             queryMode: 'local',
             validator: function() {
@@ -228,7 +228,7 @@ Ext.define('AS.coreui.view.repository.facet.EvaluationFacet', {
               var mode = radioGroup ? radioGroup.getValue()['attributes.evaluation.mode'] : null;
 
               if (mode === 'OVERRIDE' && !this.getValue()) {
-                return 'This field is required when Override mode is selected';
+                return AS.I18n.get('EvaluationFacet_Override_Required');
               }
               return true;
             }

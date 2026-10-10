@@ -56,7 +56,7 @@ Ext.define('AS.coreui.view.component.ComponentAssetInfo', {
     {
       xtype: 'as-info-panel',
       reference: 'summaryPanel',
-      titled: 'Summary',
+      titled: AS.I18n.get('Component_AssetInfo_Info_Title'),
       collapsible: true
     },
     {
@@ -72,7 +72,7 @@ Ext.define('AS.coreui.view.component.ComponentAssetInfo', {
     }, {
       xtype: 'panel',
       ui: 'as-inset',
-      title: 'Attributes',
+      title: AS.I18n.get('ComponentInfo_Attributes_Title'),
       collapsible: true,
       manageHeight: false,
       items: [

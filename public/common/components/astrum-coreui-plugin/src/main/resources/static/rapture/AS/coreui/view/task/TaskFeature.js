@@ -39,7 +39,7 @@ Ext.define('AS.coreui.view.task.TaskFeature', {
           action: 'delete',disabled: true
         },
         {
-          id: AS.I18n.get('Task_TaskFeature_Run_Button_Id'),
+          id: 'task_run_button_id',
           xtype: 'button',
           text: AS.I18n.get('Task_TaskFeature_Run_Button'),
           iconCls: 'x-fa fa-play',

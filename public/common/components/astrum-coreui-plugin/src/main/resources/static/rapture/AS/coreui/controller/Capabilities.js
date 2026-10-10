@@ -186,13 +186,13 @@ Ext.define('AS.coreui.controller.Capabilities', {
       deleteWarningMessage = model.get('deleteWarningMessage');
 
       if (deleteWarningMessage) {
-        AS.Dialogs.askConfirmation('Confirm deletion?', deleteWarningMessage, function() {
+        AS.Dialogs.askConfirmation(AS.I18n.get('Dialogs_ConfirmDeletion_Title'), deleteWarningMessage, function() {
           me.doDelete(selection);
         });
       } else {
         // standard confirmation
         description = me.getDescription(selection[0]);
-        AS.Dialogs.askConfirmation('Confirm deletion?', Ext.htmlEncode(description), function () {
+        AS.Dialogs.askConfirmation(AS.I18n.get('Dialogs_ConfirmDeletion_Title'), Ext.htmlEncode(description), function () {
           me.doDelete(selection);
         });
       }
@@ -449,7 +449,7 @@ Ext.define('AS.coreui.controller.Capabilities', {
     disableWarningMessage = model.get('disableWarningMessage');
 
     if (disableWarningMessage) {
-      AS.Dialogs.askConfirmation('Confirm disable?', disableWarningMessage, function() {
+      AS.Dialogs.askConfirmation(AS.I18n.get('Capabilities_Disable_Confirm_Title'), disableWarningMessage, function() {
         me.doDisable(model);
       });
     } else {

@@ -1,0 +1,22 @@
+{
+  "AS.onboarding.view.ChangeAdminPasswordScreen/Title": "Задайте пароль для пользователя admin",
+  "AS.onboarding.view.CommunityEulaScreen/Agree_Button": "Принять",
+  "AS.onboarding.view.CommunityEulaScreen/Title": "Принятие лицензионного соглашения",
+  "AS.onboarding.view.ConfigureAnalyticsCollectionScreen/Description": "<p>Помогите нам сделать Astrum Repository удобнее и спланировать будущие улучшения: отправляйте GlobalArt анонимную статистику и данные о производительности. Собираемые данные не содержат идентифицирующих или конфиденциальных сведений (например, имён хостов, серверов, репозиториев или пользователей).</p>",
+  "AS.onboarding.view.ConfigureAnalyticsCollectionScreen/Disable_Label": "Нет, не интересно.",
+  "AS.onboarding.view.ConfigureAnalyticsCollectionScreen/Enable_Label": "Да, я согласен отправлять анонимные данные.",
+  "AS.onboarding.view.ConfigureAnalyticsCollectionScreen/Title": "Помогите улучшить Astrum Repository",
+  "AS.onboarding.view.ConfigureAnonymousAccessScreen/Description": "<p><b>Анонимный доступ включён</b> — по умолчанию пользователи могут искать, просматривать и скачивать компоненты из репозиториев без учётных данных. <b>Учтите последствия для безопасности вашей организации.</b><br><p><b>Анонимный доступ отключён</b> — выбирайте осознанно: <b>учётные данные понадобятся всем</b> пользователям и инструментам сборки.<br><br><a href=\"https://links.globalart.dev/products/astrum/anonymous-access/docs\" target=\"_blank\" rel=\"noopener\">Подробнее <span class=\"x-fa fa-external-link\"></a></p>",
+  "AS.onboarding.view.ConfigureAnonymousAccessScreen/Disable_Label": "Отключить анонимный доступ",
+  "AS.onboarding.view.ConfigureAnonymousAccessScreen/Enable_Label": "Включить анонимный доступ",
+  "AS.onboarding.view.ConfigureAnonymousAccessScreen/Title": "Настройка анонимного доступа",
+  "AS.onboarding.view.OnboardingCompleteScreen/Description": "<p>Экземпляр готов к работе. Осваивайте GlobalArt Astrum Repository и используйте его возможности полностью.</p>",
+  "AS.onboarding.view.OnboardingCompleteScreen/Finish_Button": "Готово",
+  "AS.onboarding.view.OnboardingCompleteScreen/Title": "Настройка завершена",
+  "AS.onboarding.view.OnboardingStartScreen/Description": "<p>Мастер проведёт вас через несколько быстрых шагов, после которых Astrum Repository будет готов к работе.</p>",
+  "AS.onboarding.view.OnboardingStartScreen/Title": "Давайте настроим всё",
+  "Onboarding_Authenticate": "Пароль пользователя <b>admin</b> находится на сервере в файле<br><b>{0}</b>.",
+  "Onboarding_Description": "Изменения настроек, требующие внимания",
+  "Onboarding_LoadStepsError": "Не удалось получить шаги настройки с сервера",
+  "Onboarding_Text": "Первоначальная настройка"
+}

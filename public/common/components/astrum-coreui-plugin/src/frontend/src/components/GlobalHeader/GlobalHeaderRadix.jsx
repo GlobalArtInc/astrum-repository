@@ -19,6 +19,7 @@ import SearchRadix from './SearchRadix';
 import SystemStatusRadix from './SystemStatusRadix';
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher';
 import HelpMenuRadix from './HelpMenuRadix';
+import LanguageMenuRadix from './LanguageMenuRadix';
 import LoginAndUserButtonRadix from './LoginAndUserButtonRadix';
 import {refreshReactPage} from '../../routerConfig/routerUtils';
 import {getHeritageEquivalent} from './previewHeritageNavigation';
@@ -444,6 +445,8 @@ export default function GlobalHeaderRadix() {
                 <RefreshCw size={16} />
               </IconButton>
             </Tooltip>
+
+            <LanguageMenuRadix />
 
             <HelpMenuRadix />
 

@@ -27,6 +27,7 @@ OpenID Connect sign-in.
 ## Use
 
 - [Connect build tools to repositories](use/clients.md)
+- [Interface language](use/language.md)
 
 ## Move from Nexus Repository
 

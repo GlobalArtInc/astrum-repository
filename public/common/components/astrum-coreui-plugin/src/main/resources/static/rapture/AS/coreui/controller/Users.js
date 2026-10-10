@@ -173,7 +173,7 @@ Ext.define('AS.coreui.controller.Users', {
     if (Ext.isDefined(model)) {
       if (model.get('external')) {
         if (!externalSettingsPanel) {
-          me.addTab({ xtype: 'as-coreui-user-settings-external', title: 'Settings', weight: 10 });
+          me.addTab({ xtype: 'as-coreui-user-settings-external', title: AS.I18n.get('Users_Settings_Title'), weight: 10 });
           externalSettingsPanel = me.getExternalSettings();
         }
         //we purposefully don't load the roles/externalRoles when retrieving list as we need to query crowd for each user
@@ -191,7 +191,7 @@ Ext.define('AS.coreui.controller.Users', {
       }
       else {
         if (!settingsPanel) {
-          me.addTab({ xtype: 'as-coreui-user-settings', title: 'Settings', weight: 10 });
+          me.addTab({ xtype: 'as-coreui-user-settings', title: AS.I18n.get('Users_Settings_Title'), weight: 10 });
           settingsPanel = me.getSettings();
         }
         settingsPanel.loadRecord(model);
@@ -366,10 +366,10 @@ Ext.define('AS.coreui.controller.Users', {
 
     if (userSourceButton.sourceId === 'default' || userSourceButton.sourceId === 'all') {
       if (userId) {
-        emptyText += 'No user matched query criteria "$filter"';
+        emptyText += AS.I18n.get('Users_Filter_NoMatch_EmptyText');
       }
       else {
-        emptyText += 'No users defined';
+        emptyText += AS.I18n.get('Users_Filter_Empty_EmptyText');
       }
     }
     else {
@@ -570,7 +570,7 @@ Ext.define('AS.coreui.controller.Users', {
         password = button.up('form').down('#password').getValue();
 
     AS.Security.doWithAuthenticationToken(
-        'Changing password requires validation of your credentials.',
+        AS.I18n.get('Users_ChangePassword_Authenticate_Text'),
         {
           success: function(authToken) {
             AS.direct.coreui_User.changePassword(authToken, win.userId, password, function(response) {

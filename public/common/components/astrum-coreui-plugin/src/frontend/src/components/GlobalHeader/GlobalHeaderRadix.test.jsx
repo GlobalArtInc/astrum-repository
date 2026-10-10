@@ -51,6 +51,7 @@ jest.mock('./SearchRadix', () => () => <div data-testid="search-radix" />);
 jest.mock('./SystemStatusRadix', () => () => <div data-testid="system-status" />);
 jest.mock('../ThemeSwitcher/ThemeSwitcher', () => () => null);
 jest.mock('./HelpMenuRadix', () => () => <div data-testid="help-menu" />);
+jest.mock('./LanguageMenuRadix', () => () => <div data-testid="language-menu" />);
 jest.mock('./LoginAndUserButtonRadix', () => () => <div data-testid="login-btn" />);
 jest.mock('../../routerConfig/routerUtils', () => ({refreshReactPage: jest.fn()}));
 

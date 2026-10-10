@@ -104,7 +104,7 @@ Ext.define('AS.coreui.view.repository.facet.GroupFacet', {
           allowBlank: true,
           store: me.selectableHostedRepos,
           displayField: 'name',
-          emptyText: 'Select...',
+          emptyText: AS.I18n.get('Form_Select_EmptyText'),
           queryMode: 'local',
           valueField: 'name',
           triggers: {

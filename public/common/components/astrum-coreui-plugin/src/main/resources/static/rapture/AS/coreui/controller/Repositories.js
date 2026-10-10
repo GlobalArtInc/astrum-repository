@@ -926,7 +926,7 @@ Ext.define('AS.coreui.controller.Repositories', {
           },
           failure: function(response) {
             me.logWarn('Failed to save evaluation settings: ' + response.status);
-            AS.Messages.error('Failed to save evaluation settings');
+            AS.Messages.error(AS.I18n.get('Repositories_Evaluation_Save_Error'));
             me.loadStores();
           }
         });

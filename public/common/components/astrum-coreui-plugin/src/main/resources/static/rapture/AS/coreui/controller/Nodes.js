@@ -37,22 +37,6 @@ Ext.define('AS.coreui.controller.Nodes', {
     {ref: 'content', selector: 'as-feature-content'}
   ],
 
-  features: {
-    mode: 'admin',
-    path: '/System/Nodes',
-    text: 'Nodes',
-    description: 'View nodes',
-    view: 'AS.coreui.view.system.Nodes',
-    iconConfig: {
-      file: 'servers_network.png',
-      variants: ['x16', 'x32']
-    },
-    visible: function () {
-      return AS.Permissions.check('astrum:nodes:read') &&
-        !AS.State.getValue('astrum.datastore.clustered.enabled');
-    }
-  },
-
   icons: {
     'node-default': {
       file: 'server.png',
@@ -65,6 +49,22 @@ Ext.define('AS.coreui.controller.Nodes', {
    */
   init: function() {
     var me = this;
+
+    me.features = {
+      mode: 'admin',
+      path: '/System/Nodes',
+      text: AS.I18n.get('Nodes_Text'),
+      description: AS.I18n.get('Nodes_Description'),
+      view: 'AS.coreui.view.system.Nodes',
+      iconConfig: {
+        file: 'servers_network.png',
+        variants: ['x16', 'x32']
+      },
+      visible: function () {
+        return AS.Permissions.check('astrum:nodes:read') &&
+          !AS.State.getValue('astrum.datastore.clustered.enabled');
+      }
+    };
 
     me.callParent();
 

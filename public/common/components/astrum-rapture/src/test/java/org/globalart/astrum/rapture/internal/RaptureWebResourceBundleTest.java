@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.globalart.astrum.common.app.ApplicationVersion;
 import org.globalart.astrum.common.app.BaseUrlHolder;
 import org.globalart.astrum.common.template.TemplateHelper;
+import org.globalart.astrum.rapture.internal.i18n.UiLanguages;
 import org.globalart.astrum.rapture.internal.state.StateComponent;
 import org.globalart.astrum.ui.UiPluginDescriptorSupport;
 
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -39,6 +41,9 @@ public class RaptureWebResourceBundleTest
   @Mock
   private TemplateHelper templateHelper;
 
+  @Mock
+  private UiLanguages languages;
+
   private RaptureWebResourceBundle underTest;
 
   @Before
@@ -46,12 +51,13 @@ public class RaptureWebResourceBundleTest
     BaseUrlHolder.set("http://baseurl/", ".");
 
     when(httpServletRequest.getParameter("debug")).thenReturn("false");
+    lenient().when(languages.resolve(httpServletRequest)).thenReturn(UiLanguages.DEFAULT);
 
     underTest =
         new RaptureWebResourceBundle(applicationVersion, () -> httpServletRequest, () -> stateComponent,
             templateHelper, asList(new UiPluginDescriptorImpl()),
-            asList(new ExtJsUiPluginDescriptorImpl("test-1"), new ExtJsUiPluginDescriptorImpl("test-2")), null,
-            null);
+            asList(new ExtJsUiPluginDescriptorImpl("test-1"), new ExtJsUiPluginDescriptorImpl("test-2")), languages,
+            null, null);
   }
 
   @Test
@@ -116,10 +122,24 @@ public class RaptureWebResourceBundleTest
         new URI("./static/rapture/app.js"))));
   }
 
+  @Test
+  public void testGetScripts_translatedLanguage() throws Exception {
+    when(languages.resolve(httpServletRequest)).thenReturn("ru");
+
+    List<URI> uris = underTest.getScripts();
+
+    assertThat(uris.subList(0, 5), is(asList(new URI("./static/rapture/baseapp-prod.js"),
+        new URI("./static/rapture/extdirect-prod.js"),
+        new URI("./static/rapture/bootstrap.js"),
+        new URI("./static/rapture/i18n-ru.js"),
+        new URI("./extjs-script-1-test-1.js"))));
+  }
+
   private RaptureWebResourceBundle bundleWith(final String webResourcesVersion) {
     return new RaptureWebResourceBundle(applicationVersion, () -> httpServletRequest, () -> stateComponent,
         templateHelper, asList(new UiPluginDescriptorImpl()),
-        asList(new ExtJsUiPluginDescriptorImpl("test-1")), "2025-09-04-1449-03942", webResourcesVersion);
+        asList(new ExtJsUiPluginDescriptorImpl("test-1")), languages, "2025-09-04-1449-03942",
+        webResourcesVersion);
   }
 
   @Test

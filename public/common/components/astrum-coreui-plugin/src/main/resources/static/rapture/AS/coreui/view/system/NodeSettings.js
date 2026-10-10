@@ -9,8 +9,14 @@
 Ext.define('AS.coreui.view.system.NodeSettings', {
   extend: 'AS.view.SettingsPanel',
   alias: 'widget.as-coreui-system-node-settings',
-  title: 'Node Settings Feature',
+  settingsForm: { xtype: 'as-coreui-system-node-settings-form' },
 
-  settingsForm: { xtype: 'as-coreui-system-node-settings-form' }
+  /**
+   * @override
+   */
+  initComponent: function() {
+    this.title = AS.I18n.get('NodeSettings_Title');
+    this.callParent();
+  }
 
 });

@@ -55,7 +55,7 @@ Ext.define('AS.ext.form.field.ValueSet', {
   /**
    * @cfg {String} [blankText="This field is required"] Default text displayed when the control contains no values.
    */
-  blankText: 'At least one value is required',
+  blankText: undefined,
 
   /**
    * @cfg {String} [minValuesText="Minimum {0} value(s) required"]
@@ -111,6 +111,10 @@ Ext.define('AS.ext.form.field.ValueSet', {
   initComponent: function () {
     var me = this,
         valueFieldId = AS.ext.form.field.ValueSet.generateId();
+
+    if (me.blankText === undefined) {
+      me.blankText = AS.I18n.get('ValueSet_Blank_Text');
+    }
 
     if (!Ext.isDefined(me.input)) {
       me.input = {
@@ -185,14 +189,14 @@ Ext.define('AS.ext.form.field.ValueSet', {
         hideHeaders: true,
         ui: 'as-borderless',
         columns: [
-          { text: 'Value', dataIndex: 'value', flex: 1 },
+          { text: AS.I18n.get('ValueSet_Value_Header'), dataIndex: 'value', flex: 1 },
           {
             xtype: 'actioncolumn',
             width: 25,
             items: [
               {
                 icon: AS.Icons.url('cross', 'x16'),
-                tooltip: 'Delete',
+                tooltip: AS.I18n.get('ValueSet_Delete_Tooltip'),
                 handler: function (grid, rowIndex) {
                   me.removeValue(rowIndex);
                 }

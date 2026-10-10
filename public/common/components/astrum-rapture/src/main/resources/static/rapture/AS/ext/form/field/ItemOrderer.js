@@ -28,14 +28,14 @@ Ext.define('AS.ext.form.field.ItemOrderer', {
   buttons: ['top', 'up', 'down', 'bottom'],
 
   /**
-   * @cfg {Object} buttonsText The tooltips for the {@link #buttons}.
+   * @cfg {Object} buttonsText The I18n keys of the tooltips for the {@link #buttons}.
    * Labels for buttons.
    */
   buttonsText: {
-    top: 'Move to Top',
-    up: 'Move Up',
-    down: 'Move Down',
-    bottom: 'Move to Bottom'
+    top: 'ItemOrderer_Top_Tooltip',
+    up: 'ItemOrderer_Up_Tooltip',
+    down: 'ItemOrderer_Down_Tooltip',
+    bottom: 'ItemOrderer_Bottom_Tooltip'
   },
 
   /**
@@ -120,7 +120,7 @@ Ext.define('AS.ext.form.field.ItemOrderer', {
       Ext.Array.forEach(me.buttons, function (name) {
         buttons.push({
           xtype: 'button',
-          tooltip: me.buttonsText[name],
+          tooltip: AS.I18n.get(me.buttonsText[name]),
           iconCls: me.buttonsIconCls[name],
           handler: me['on' + Ext.String.capitalize(name) + 'BtnClick'],
           navBtn: true,

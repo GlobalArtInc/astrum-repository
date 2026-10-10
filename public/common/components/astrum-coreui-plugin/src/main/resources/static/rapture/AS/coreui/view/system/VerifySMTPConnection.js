@@ -71,7 +71,7 @@ Ext.define('AS.coreui.view.system.VerifySMTPConnection', {
         buttonAlign: 'left',
         buttons: [
           {
-            text: 'Verify',
+            text: AS.I18n.get('VerifySMTPConnection_Verify_Button'),
             action: 'verify',
             formBind: true,
             bindToEnter: true,
@@ -79,7 +79,7 @@ Ext.define('AS.coreui.view.system.VerifySMTPConnection', {
             iconCls: 'x-fa fa-envelope'
           },
           {
-            text: 'Cancel',
+            text: AS.I18n.get('Button_Cancel'),
             handler: function () {
               this.up('window').close();
             }

@@ -181,8 +181,29 @@ Ext.define('AS.app.PluginStrings', {
 
     // DependencySnippet Panel
     DependencySnippetPanel_Title: 'Usage',
-    DependencySnippetPanel_Copy_Button_Tooltip: 'Copy snippet to clipboard'
+    DependencySnippetPanel_Copy_Button_Tooltip: 'Copy snippet to clipboard',
 
+    // Shared UI
+    Form_Select_EmptyText: 'Select...',
+    Dialogs_ConfirmDeletion_Title: 'Confirm deletion?',
+    Menu_NotFound_Text: 'Not found',
+    State_Disconnected_Title: 'Server disconnected',
+    State_Disconnected_Text: 'There is a problem communicating with the server',
+    State_Restarted_Title: 'Server restarted',
+    State_Restarted_Text: 'Application will be reloaded as server has been restarted',
+    ItemOrderer_Top_Tooltip: 'Move to Top',
+    ItemOrderer_Up_Tooltip: 'Move Up',
+    ItemOrderer_Down_Tooltip: 'Move Down',
+    ItemOrderer_Bottom_Tooltip: 'Move to Bottom',
+    ValueSet_Blank_Text: 'At least one value is required',
+    ValueSet_Value_Header: 'Value',
+    ValueSet_Delete_Tooltip: 'Delete',
+    Grid_ClearSort_Text: 'Clear Sort',
+    AboutWindow_Version_Label: 'Version',
+    AboutWindow_Edition_Label: 'Edition',
+    AboutWindow_BuildRevision_Label: 'Build Revision',
+    AboutWindow_BuildTimestamp_Label: 'Build Timestamp',
+    Util_Validator_OciUrl: 'Must be a valid URL using http://, https://, oci://, or oci+http://'
   }
 }, function(obj) {
   AS.I18n.register(obj);
