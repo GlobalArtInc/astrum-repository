@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { LoginPage } from '@globalart/astrum-ui-plugin';
+import LanguageMenuRadix from '../GlobalHeader/LanguageMenuRadix';
 
 import proLogo from '../../../../art/logos/logo-pro-edition-header.svg';
 import ceLogo from '../../../../art/logos/logo-community-edition-header.svg';
@@ -17,5 +18,5 @@ const logoConfig = {
  * Uses the unified LoginPage from astrum-ui-plugin with proper logo configuration.
  */
 export default function SelfHostedLoginPageWrapper() {
-  return <LoginPage logoConfig={logoConfig} />;
+  return <LoginPage logoConfig={logoConfig} headerActions={<LanguageMenuRadix />} />;
 }

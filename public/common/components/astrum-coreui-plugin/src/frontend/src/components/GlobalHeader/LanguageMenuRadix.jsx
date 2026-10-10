@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {DropdownMenu, IconButton} from '@radix-ui/themes';
 import {Tooltip, usePortalContainer, ExtJS} from '@globalart/astrum-ui-plugin';
 import {Languages} from 'lucide-react';
+import UIStrings from '../../constants/UIStrings';
 
 export const LANGUAGE_COOKIE = 'astrum-language';
 
@@ -42,9 +43,9 @@ export default function LanguageMenuRadix() {
 
   return (
     <DropdownMenu.Root>
-      <Tooltip content="Language">
+      <Tooltip content={UIStrings.SHELL.HEADER.LANGUAGE}>
         <DropdownMenu.Trigger>
-          <IconButton variant="outline" size="2" color="gray" aria-label="Language" data-analytics-id="astrum-header-language">
+          <IconButton variant="outline" size="2" color="gray" aria-label={UIStrings.SHELL.HEADER.LANGUAGE} data-analytics-id="astrum-header-language">
             <Languages size={16} />
           </IconButton>
         </DropdownMenu.Trigger>

@@ -5,6 +5,7 @@ import {DropdownMenu, Flex, IconButton, Text} from '@radix-ui/themes';
 import {Tooltip, usePortalContainer} from '@globalart/astrum-ui-plugin';
 import {HelpCircle, ExternalLink} from 'lucide-react';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
+import UIStrings from '../../constants/UIStrings';
 
 const DocumentationUTMparams = {
   utm_medium: 'product',
@@ -38,6 +39,7 @@ const IssueTrackerUTMparams = {
 };
 
 const baseUrl = 'https://links.globalart.dev/products/astrum';
+const {HELP} = UIStrings.SHELL;
 
 function buildUrl(path, utmParams) {
   const params = new URLSearchParams(utmParams);
@@ -74,9 +76,9 @@ export default function HelpMenuRadix() {
 
   return (
     <DropdownMenu.Root>
-      <Tooltip content="Help & Documentation">
+      <Tooltip content={HELP.TITLE}>
         <DropdownMenu.Trigger>
-          <IconButton variant="outline" size="2" color="gray" aria-label="Help & Documentation" data-analytics-id="astrum-header-help">
+          <IconButton variant="outline" size="2" color="gray" aria-label={HELP.TITLE} data-analytics-id="astrum-header-help">
             <HelpCircle size={16} />
           </IconButton>
         </DropdownMenu.Trigger>
@@ -86,7 +88,7 @@ export default function HelpMenuRadix() {
         <DropdownMenu.Item asChild>
           <a href={documentationUrl} target="_blank" rel="noopener noreferrer">
             <Flex align="center" justify="start" gap="3">
-              <Text size="2">Documentation</Text>
+              <Text size="2">{HELP.DOCUMENTATION}</Text>
               <ExternalLink size={16} />
             </Flex>
           </a>
@@ -95,7 +97,7 @@ export default function HelpMenuRadix() {
         <DropdownMenu.Item asChild>
           <a href={releaseNotesUrl} target="_blank" rel="noopener noreferrer">
             <Flex align="center" justify="start" gap="3">
-              <Text size="2">Release Notes</Text>
+              <Text size="2">{HELP.RELEASE_NOTES}</Text>
               <ExternalLink size={16} />
             </Flex>
           </a>
@@ -104,7 +106,7 @@ export default function HelpMenuRadix() {
         <DropdownMenu.Item asChild>
           <a href={knowledgeBaseUrl} target="_blank" rel="noopener noreferrer">
             <Flex align="center" justify="start" gap="3">
-              <Text size="2">Knowledge Base</Text>
+              <Text size="2">{HELP.KNOWLEDGE_BASE}</Text>
               <ExternalLink size={16} />
             </Flex>
           </a>
@@ -113,7 +115,7 @@ export default function HelpMenuRadix() {
         <DropdownMenu.Item asChild>
           <a href={guidesUrl} target="_blank" rel="noopener noreferrer">
             <Flex align="center" justify="start" gap="3">
-              <Text size="2">GlobalArt Guides</Text>
+              <Text size="2">{HELP.GUIDES}</Text>
               <ExternalLink size={16} />
             </Flex>
           </a>
@@ -124,7 +126,7 @@ export default function HelpMenuRadix() {
         <DropdownMenu.Item asChild>
           <a href={communityUrl} target="_blank" rel="noopener noreferrer">
             <Flex align="center" justify="start" gap="3">
-              <Text size="2">Community</Text>
+              <Text size="2">{HELP.COMMUNITY}</Text>
               <ExternalLink size={16} />
             </Flex>
           </a>
@@ -133,7 +135,7 @@ export default function HelpMenuRadix() {
         <DropdownMenu.Item asChild>
           <a href={issueTrackerUrl} target="_blank" rel="noopener noreferrer">
             <Flex align="center" justify="start" gap="3">
-              <Text size="2">Issue Tracker</Text>
+              <Text size="2">{HELP.ISSUE_TRACKER}</Text>
               <ExternalLink size={16} />
             </Flex>
           </a>
@@ -143,7 +145,7 @@ export default function HelpMenuRadix() {
 
         <DropdownMenu.Label>
           <Text size="1" color="gray">
-            Version: {version}
+            {HELP.VERSION(version)}
           </Text>
         </DropdownMenu.Label>
       </DropdownMenu.Content>

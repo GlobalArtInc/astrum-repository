@@ -3,6 +3,7 @@ import './styles/_as-overrides.scss';
 import './styles/_global.scss';
 
 export { default as UIStrings } from './constants/UIStrings';
+export { default as localize } from './interface/localize';
 export { default as APIConstants } from './constants/APIConstants';
 export { default as Permissions } from './constants/Permissions';
 export { RouteNames } from './constants/RouteNames';

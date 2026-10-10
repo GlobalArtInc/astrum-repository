@@ -1,13 +1,14 @@
 
 import React from 'react';
+import UIStrings from '../../../../constants/UIStrings';
 
 export default function RepositoryStatus({status}) {
   return <div>
     {status && status.online &&
-      <span>Online</span>
+      <span>{UIStrings.PAGES.REPOSITORY_STATUS.ONLINE}</span>
     }
     {!(status && status.online) &&
-      <span>Offline</span>
+      <span>{UIStrings.PAGES.REPOSITORY_STATUS.OFFLINE}</span>
     }
     {status && status.description &&
       <span> - {status.description}</span>

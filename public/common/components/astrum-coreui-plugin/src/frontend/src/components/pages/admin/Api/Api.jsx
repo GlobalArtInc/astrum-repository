@@ -95,11 +95,11 @@ export default function Api() {
       <ContentBody className="as-api">
         <div className="api-search-container">
           <AsFormGroup 
-            label="Search Operations" 
-            sublabel="Search by operation name, path, or description"
+            label={UIStrings.PAGES.API.SEARCH_LABEL} 
+            sublabel={UIStrings.PAGES.API.SEARCH_SUB_LABEL}
           >
             <AsTextInput
-              placeholder="Enter search term..."
+              placeholder={UIStrings.PAGES.API.SEARCH_PLACEHOLDER}
               value={searchTerm}
               onChange={setSearchTerm}
               data-analytics-id="swagger-ui-search-input"
@@ -107,14 +107,14 @@ export default function Api() {
           </AsFormGroup>
           {searchTerm && (
             <div className="api-search-feedback">
-              <strong>Filtering:</strong> Operations containing "{searchTerm}"
+              <strong>{UIStrings.PAGES.API.FILTERING}</strong> {UIStrings.PAGES.API.FILTERING_TEXT(searchTerm)}
               <AsButton
                 variant="tertiary"
                 className="api-search-clear-btn"
                 onClick={() => setSearchTerm('')}
                 data-analytics-id="swagger-ui-search-clear-btn"
               >
-                Clear
+                {UIStrings.PAGES.API.CLEAR}
               </AsButton>
             </div>
           )}

@@ -77,9 +77,9 @@ export default function SamlConfiguration() {
                 name="validateResponseSignature"
                 value={settings.validateResponseSignature}
                 onChange={FormUtils.handleUpdate('validateResponseSignature', send)}>
-              <option value="default">Default</option>
-              <option value="true">True</option>
-              <option value="false">False</option>
+              <option value="default">{UIStrings.PAGES.SAML_SIGNATURE.DEFAULT}</option>
+              <option value="true">{UIStrings.PAGES.SAML_SIGNATURE.TRUE}</option>
+              <option value="false">{UIStrings.PAGES.SAML_SIGNATURE.FALSE}</option>
             </AsFormSelect>
           </AsFormGroup>
           <AsFormGroup
@@ -89,9 +89,9 @@ export default function SamlConfiguration() {
                 name="validateAssertionSignature"
                 value={settings.validateAssertionSignature}
                 onChange={FormUtils.handleUpdate('validateAssertionSignature', send)}>
-              <option value="default">Default</option>
-              <option value="true">True</option>
-              <option value="false">False</option>
+              <option value="default">{UIStrings.PAGES.SAML_SIGNATURE.DEFAULT}</option>
+              <option value="true">{UIStrings.PAGES.SAML_SIGNATURE.TRUE}</option>
+              <option value="false">{UIStrings.PAGES.SAML_SIGNATURE.FALSE}</option>
             </AsFormSelect>
           </AsFormGroup>
           <AsFieldset label={LABELS.FIELDS} isRequired>

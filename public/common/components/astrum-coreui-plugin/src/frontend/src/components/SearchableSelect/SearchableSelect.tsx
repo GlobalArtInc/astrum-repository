@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { ChevronDown, Search, Check, X } from 'lucide-react';
 
 import './SearchableSelect.scss';
+import UIStrings from '../../constants/UIStrings';
 
 export interface SelectOption {
   value: string;
@@ -218,7 +219,7 @@ export function SearchableSelect({
               className="searchable-select__clear"
               onClick={handleClear}
               role="button"
-              aria-label="Clear selection"
+              aria-label={UIStrings.SHELL.SELECT.CLEAR}
             >
               <X size={14} />
             </span>
@@ -243,7 +244,7 @@ export function SearchableSelect({
                 setSearchQuery(e.target.value);
                 setHighlightedIndex(0);
               }}
-              aria-label="Search options"
+              aria-label={UIStrings.SHELL.SELECT.SEARCH}
             />
           </div>
 
@@ -252,10 +253,10 @@ export function SearchableSelect({
             ref={listRef}
             className="searchable-select__list"
             role="listbox"
-            aria-label="Options"
+            aria-label={UIStrings.SHELL.SELECT.OPTIONS}
           >
             {filteredOptions.length === 0 ? (
-              <li className="searchable-select__empty">No matches found</li>
+              <li className="searchable-select__empty">{UIStrings.SHELL.SELECT.NO_MATCHES}</li>
             ) : (
               filteredOptions.map((option, index) => (
                 <li

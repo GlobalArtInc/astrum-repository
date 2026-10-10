@@ -88,10 +88,10 @@ export default function SupportZipForm({params, setParams, submit, clustered, ha
           </AsCheckbox>
           <AsFormGroup label={UIStrings.SUPPORT_ZIP.ARCHIVED_LOGS_LABEL}>
                 <AsFormSelect id='archivedLog' onChange={ (value) => setParams('archivedLog', value)}>
-                  <option value="0">None</option>
-                  <option value="1">1 Day</option>
-                  <option value="2">2 Days</option>
-                  <option value="3">3 Days</option>
+                  <option value="0">{UIStrings.PAGES.SUPPORT_ZIP.LIMIT_NONE}</option>
+                  <option value="1">{UIStrings.PAGES.SUPPORT_ZIP.LIMIT_1_DAY}</option>
+                  <option value="2">{UIStrings.PAGES.SUPPORT_ZIP.LIMIT_2_DAYS}</option>
+                  <option value="3">{UIStrings.PAGES.SUPPORT_ZIP.LIMIT_3_DAYS}</option>
                 </AsFormSelect>
           </AsFormGroup>
         </AsFieldset>
@@ -124,12 +124,12 @@ export default function SupportZipForm({params, setParams, submit, clustered, ha
 
         <AsButton variant='primary' onClick={submit} type='submit'>
           <AsFontAwesomeIcon icon={faFileArchive}/>
-          <span>Create support ZIP</span>
+          <span>{UIStrings.PAGES.SUPPORT_ZIP.CREATE}</span>
         </AsButton>
         {clustered &&
         <AsButton variant='primary' onClick={hazips} type='submit'>
           <AsFontAwesomeIcon icon={faFileArchive}/>
-          <span>Create support ZIP (all nodes)</span>
+          <span>{UIStrings.PAGES.SUPPORT_ZIP.CREATE_ALL_NODES}</span>
         </AsButton>
         }
       </div>

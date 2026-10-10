@@ -2,6 +2,7 @@
 
 import React, { useLayoutEffect, useState } from 'react';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
+import UIStrings from '../../../constants/UIStrings';
 
 /**
  * Astrum One unsaved changes dialog for Preview UI router navigation.
@@ -51,16 +52,16 @@ export default function PreviewUnsavedDialog() {
   return (
     <AlertDialog.Root open={open} onOpenChange={setOpen}>
       <AlertDialog.Content maxWidth="450px">
-        <AlertDialog.Title>Unsaved Changes</AlertDialog.Title>
+        <AlertDialog.Title>{UIStrings.UNSAVED_CHANGES.TITLE}</AlertDialog.Title>
         <AlertDialog.Description size="2">
-          You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
+          {UIStrings.UNSAVED_CHANGES.LEAVE_TEXT}
         </AlertDialog.Description>
         <Flex gap="3" mt="4" justify="end">
           <AlertDialog.Cancel>
-            <Button variant="soft" color="gray" onClick={handleStay}>Stay</Button>
+            <Button variant="soft" color="gray" onClick={handleStay}>{UIStrings.UNSAVED_CHANGES.STAY}</Button>
           </AlertDialog.Cancel>
           <AlertDialog.Action>
-            <Button variant="solid" color="red" onClick={handleLeave}>Leave</Button>
+            <Button variant="solid" color="red" onClick={handleLeave}>{UIStrings.UNSAVED_CHANGES.LEAVE}</Button>
           </AlertDialog.Action>
         </Flex>
       </AlertDialog.Content>

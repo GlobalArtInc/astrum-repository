@@ -58,7 +58,7 @@ export default function GoogleBlobStoreSettings({ service }) {
       <div className="as-google-blobstore">
         <AsFormGroup {...GOOGLE.REGION}>
           <AsP className="as-sub-label" aria-label={GOOGLE.REGION.label}>
-            The region is automatically set based on where Astrum Repository is running in GCP. Ensure the bucket is in the same region.
+            {UIStrings.PAGES.GOOGLE_BLOB_STORE.REGION_HELP}
           </AsP>
         </AsFormGroup>
         <AsFormGroup {...GOOGLE.PROJECT_ID}>
@@ -106,7 +106,7 @@ export default function GoogleBlobStoreSettings({ service }) {
             </AsFormGroup>
         )}
         <AsFieldset label={GOOGLE.ENCRYPTION.LABEL}>
-          <p>Data is encrypted by default. Enable KMS to use a custom encryption key.<br />Note: Encryption settings cannot be changed once the bucket is created</p>
+          <p>{UIStrings.PAGES.GOOGLE_BLOB_STORE.ENCRYPTION_HELP}<br />{UIStrings.PAGES.GOOGLE_BLOB_STORE.ENCRYPTION_NOTE}</p>
           <AsCheckbox
               checkboxId="encryptionKey"
               name="bucketConfiguration.encryption.encryptionType"

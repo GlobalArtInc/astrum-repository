@@ -20,9 +20,29 @@ one project holds all dictionaries.
 | `extjs-rapture` | `astrum-rapture/.../AS/app/PluginStrings.js` |
 | `extjs-coreui` | `astrum-coreui-plugin/.../AS/coreui/app/PluginStrings.js` |
 | `extjs-onboarding` | `astrum-onboarding-plugin/.../AS/onboarding/app/PluginStrings.js` |
+| `react-ui` | `astrum-ui-plugin/src/frontend/src/constants/UIStrings.js` |
+| `react-coreui` | `astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx` |
 
 ExtJS keys are the keys of `PluginStrings.js`; bundle keys are written `<class>/<key>`. Values that only
 reference another key (`@Other_Key`) or contain no letters are not translated.
+
+## React texts
+
+A React strings object is passed to `localize('<dictionary>', strings)` (exported by
+`@globalart/astrum-ui-plugin`), which replaces its texts in place with the translations of the page's
+language. A key is the dotted path of the text in the object, e.g. `USERS.LIST.CREATE_BUTTON`.
+
+- A string is translated as is.
+- A function returning a text, `(name) => \`Edit ${name}\``, is translated as `Edit {0}`; the
+  translation fills `{0}`, `{1}`... with the arguments.
+- A JSX element, or a function returning one, is translated as its text with the descendant
+  elements numbered in document order: `See <0>the documentation</0>.<1/>`. The translation keeps
+  the elements (links, bold text) and may move them.
+
+`extract` loads the modules in Node to read these texts. It leaves English, and lists, the functions
+whose text depends on their arguments in other ways (plurals, lists, conditions) and values that look
+like identifiers (`snake_case`, `camelCase`, property names, values under `id`, `value`, `type`...).
+Texts written straight into components are not translated: put them into a strings file first.
 
 ## How a page gets its language
 
@@ -31,10 +51,12 @@ browser accepts that has a dictionary, else English. For a language other than E
 `static/rapture/i18n-<lang>.js` right after the framework, which sets `window.AS_I18N` to the
 language's dictionaries and, when the module ships one, applies `astrum-i18n/ext-locale-<lang>.js`
 (the framework's own texts: dates, paging, field validation, dialog buttons). `AS.I18n` then uses the
-translations instead of the English texts. The language menu in the header sets the cookie and reloads
-the page.
+translations instead of the English texts. The language menu in the header and on the sign-in page sets
+the cookie and reloads the page.
 
-A missing translation falls back to English, so a partly translated language still works.
+React texts are translated the same way: the strings objects read `window.AS_I18N` when their modules
+load (see React texts above). A missing translation falls back to English, so a partly translated language still
+works.
 
 ## Changing English texts
 
@@ -48,6 +70,9 @@ A missing translation falls back to English, so a partly translated language sti
    `en.json` is out of date.
 3. Upload the new source texts to Ownlate (the CLI or the web interface), translate them there, then
    pull the translations (below).
+
+Reading the React texts needs `typescript` and `react`: they come with `yarn install`, or install
+them anywhere and point `ASTRUM_I18N_MODULES` at that directory.
 
 `node tools/i18n/i18n.mjs catalogue en` prints every source text under its Ownlate key, the shape
 Ownlate imports.
@@ -65,8 +90,8 @@ node tools/i18n/i18n.mjs check
 has are dropped. Without network access to Ownlate, export a language from the web interface as JSON
 and run `node tools/i18n/i18n.mjs import <lang> <file>` instead.
 
-`check` also fails when a translation has a key the source lacks, or different `{0}` placeholders or
-HTML tags than the English text.
+`check` also fails when a translation has a key the source lacks, or different `{0}` placeholders,
+HTML tags or numbered `<0>` elements than the English text.
 
 `node tools/i18n/i18n.mjs status` prints how much of each dictionary is translated.
 

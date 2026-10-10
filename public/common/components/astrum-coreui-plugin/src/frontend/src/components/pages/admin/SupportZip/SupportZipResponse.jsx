@@ -10,8 +10,8 @@ import {SectionFooter} from '@globalart/astrum-ui-plugin';
 export default function SupportZipResponse({response, download}) {
   return <div className='as-support-zip-response'>
     <h2>{UIStrings.SUPPORT_ZIP.CREATED_TITLE}</h2>
-    <p>Support ZIP has been created.<br/>
-    You can reference this file on the filesystem or download the file from your browser.</p>
+    <p>{UIStrings.PAGES.SUPPORT_ZIP.CREATED}<br/>
+    {UIStrings.PAGES.SUPPORT_ZIP.CREATED_HELP}</p>
     <FieldWrapper labelText={UIStrings.SUPPORT_ZIP.CREATED_NAME_LABEL}>
       <Textfield
         name='name'

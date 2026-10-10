@@ -6,6 +6,7 @@ import { AlertCircle, LogIn, RefreshCw } from 'lucide-react';
 import { useRouter } from '@uirouter/react';
 
 import './SessionExpiryModal.scss';
+import UIStrings from '../../constants/UIStrings';
 
 export interface SessionExpiryModalProps {
   /** Whether the modal is open */
@@ -73,9 +74,9 @@ export function SessionExpiryModal({
               <AlertCircle size={28} color="var(--orange-9)" />
             </Box>
             <Box>
-              <Heading size="4">Session Expired</Heading>
+              <Heading size="4">{UIStrings.SHELL.SESSION_EXPIRY.TITLE}</Heading>
               <Text size="2" color="gray">
-                Authentication Required
+                {UIStrings.SHELL.SESSION_EXPIRY.SUBTITLE}
               </Text>
             </Box>
           </Flex>
@@ -89,11 +90,11 @@ export function SessionExpiryModal({
           <Flex gap="3" justify="end" mt="2">
             <Button variant="soft" color="gray" onClick={handleRefresh}>
               <RefreshCw size={16} />
-              Refresh Page
+              {UIStrings.SHELL.SESSION_EXPIRY.REFRESH}
             </Button>
             <Button variant="solid" color="orange" onClick={handleSignIn}>
               <LogIn size={16} />
-              Sign In
+              {UIStrings.SHELL.SESSION_EXPIRY.SIGN_IN}
             </Button>
           </Flex>
         </Flex>

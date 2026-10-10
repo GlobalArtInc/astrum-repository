@@ -9,6 +9,7 @@ import { ErrorState } from '../ErrorState';
 import { EmptyState } from '../EmptyState';
 
 import './EntityTable.scss';
+import UIStrings from '../../../constants/UIStrings';
 
 /**
  * Table column definition.
@@ -106,7 +107,7 @@ export function EntityTable<T>({
   getRowKey,
   onRowClick,
   loading = false,
-  loadingMessage = 'Loading...',
+  loadingMessage = UIStrings.SHELL.TABLE.LOADING,
   error,
   onRetry,
   emptyState,
@@ -183,7 +184,7 @@ export function EntityTable<T>({
       <div className={`entity-table entity-table--empty ${className}`}>
         {emptyState || (
           <Flex justify="center" p="6">
-            <Text color="gray">No data available</Text>
+            <Text color="gray">{UIStrings.SHELL.TABLE.EMPTY}</Text>
           </Flex>
         )}
       </div>

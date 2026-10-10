@@ -41,6 +41,13 @@
     text-decoration: none;
   }
 
+  &__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
   &__logo {
     height: 32px;
     width: auto;

@@ -8,6 +8,7 @@ import {FormUtils} from '@globalart/astrum-ui-plugin';
 import {AsCheckbox, AsFieldset, AsTextInput} from '@globalart/astrum-react-shared-components';
 
 import './ToggleableTextInput.scss';
+import UIStrings from '../../../../../../constants/UIStrings';
 
 export default function ToggleableTextInput({
   parentMachine,
@@ -85,7 +86,7 @@ export default function ToggleableTextInput({
       <AsCheckbox
         onChange={toggleCheckbox}
         isChecked={isEnabled}
-        aria-label="Toggle Text Input"
+        aria-label={UIStrings.PAGES.TOGGLEABLE_TEXT_INPUT}
       />
     </span>
   );

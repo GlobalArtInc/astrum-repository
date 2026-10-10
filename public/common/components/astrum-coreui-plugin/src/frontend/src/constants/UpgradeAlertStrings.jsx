@@ -41,7 +41,8 @@ export default {
       CONTACT_SUPPORT: {
         HREF: 'https://links.globalart.dev/products/astrum/pro/support-request',
         TEXT: 'Contact support'
-      }
+      },
+      ASSISTANCE: 'for assistance.'
     },
 
     COMPLETE: {

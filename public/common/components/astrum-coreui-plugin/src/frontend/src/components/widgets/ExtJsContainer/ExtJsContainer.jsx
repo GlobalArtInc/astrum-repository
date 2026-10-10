@@ -8,6 +8,7 @@ import { useExtComponent } from './useExtComponent';
 import { useExtJsUnsavedChangesGuard } from '@globalart/astrum-ui-plugin';
 import { loadExtJS, isExtJSLoaded } from '../../../utils/extJsLoader';
 import './ExtJsContainer.scss';
+import UIStrings from '../../../constants/UIStrings';
 
 /**
  * ExtJsContainer - Wrapper component for ExtJS views
@@ -79,13 +80,13 @@ export function ExtJsContainer({ className, extView, extParams, title, icon }) {
     return (
       <AsPageMain ref={wrapperRef}>
         <AsErrorAlert>
-          <h3>Failed to Load Classic UI Component</h3>
+          <h3>{UIStrings.SHELL.EXTJS_CONTAINER.FAILED_TITLE}</h3>
           <p>
-            The legacy ExtJS framework failed to initialize. This component requires ExtJS to function.
+            {UIStrings.SHELL.EXTJS_CONTAINER.FAILED_TEXT}
           </p>
-          <p>Error: {extJsError.message}</p>
+          <p>{UIStrings.SHELL.EXTJS_CONTAINER.ERROR(extJsError.message)}</p>
           <AsButton onClick={() => window.location.reload()}>
-            Reload Page
+            {UIStrings.SHELL.EXTJS_CONTAINER.RELOAD}
           </AsButton>
         </AsErrorAlert>
       </AsPageMain>
@@ -97,7 +98,7 @@ export function ExtJsContainer({ className, extView, extParams, title, icon }) {
     return (
       <AsPageMain ref={wrapperRef}>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <AsLoadingSpinner>Loading Classic UI component...</AsLoadingSpinner>
+          <AsLoadingSpinner>{UIStrings.SHELL.EXTJS_CONTAINER.LOADING}</AsLoadingSpinner>
         </div>
       </AsPageMain>
     );

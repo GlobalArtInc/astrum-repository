@@ -5,6 +5,7 @@ import { Box, Button, Flex, Heading, Text as RadixText } from '@radix-ui/themes'
 import { ChevronRight } from 'lucide-react';
 
 import './PageHeader.scss';
+import UIStrings from '../../../constants/UIStrings';
 
 export interface BreadcrumbItem {
   /** Display label */
@@ -75,7 +76,7 @@ export function PageHeader({
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Box mb="3">
-          <Flex as="nav" gap="1" align="center" aria-label="Breadcrumb">
+          <Flex as="nav" gap="1" align="center" aria-label={UIStrings.SHELL.BREADCRUMB}>
             {breadcrumbs.map((item, index) => {
               const isLast = index === breadcrumbs.length - 1;
               const isClickable = item.href || item.onClick;

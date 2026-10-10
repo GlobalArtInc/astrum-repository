@@ -10,6 +10,7 @@ import {ROUTE_NAMES} from '../../routerConfig/routeNames/routeNames';
 import Axios from 'axios';
 
 import './SearchRadix.scss';
+import UIStrings from '../../constants/UIStrings';
 
 const DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 2;
@@ -268,7 +269,7 @@ export default function SearchRadix({ isPreviewUI = false }) {
   return (
     <div className="search-radix-container" ref={inputRef}>
       <TextField.Root
-        placeholder="Search components or CVEs..."
+        placeholder={UIStrings.SHELL.HEADER.SEARCH_PLACEHOLDER}
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -315,7 +316,7 @@ export default function SearchRadix({ isPreviewUI = false }) {
           
           {/* Footer hint */}
           <div className="search-radix-suggestions__footer">
-            Press Enter to search all results
+            {UIStrings.SHELL.HEADER.SEARCH_HINT}
           </div>
         </div>
       )}

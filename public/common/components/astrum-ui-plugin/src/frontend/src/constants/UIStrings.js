@@ -5,11 +5,12 @@ import CapabilitiesStrings from "./admin/CapabilitiesStrings";
 import TasksStrings from "./admin/TasksStrings";
 import LoginPageStrings from "./LoginPageStrings";
 import WelcomeStrings from "./WelcomeStrings";
+import localize from "../interface/localize";
 
 /**
  * @since 3.21
  */
-export default {
+export default localize('react-ui', {
   SETTINGS: {
     BACK_BUTTON_LABEL: 'Back',
     CANCEL_BUTTON_LABEL: 'Cancel',
@@ -29,6 +30,19 @@ export default {
   },
 
   SAVING: 'Saving...',
+  UNSAVED_CHANGES: {
+    TITLE: 'Unsaved Changes',
+    TEXT: 'You have unsaved changes. Continuing will discard them.',
+    CANCEL: 'Cancel',
+    CONTINUE: 'Continue',
+    LEAVE_TEXT: 'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.',
+    STAY: 'Stay',
+    LEAVE: 'Leave'
+  },
+  LOGIN_LAYOUT: {
+    HOME: 'Home',
+    HOME_LINK: 'Astrum Repository home'
+  },
   LOADING: 'Loading...',
   FILTER: 'Filter',
   CLOSE: 'Close',
@@ -113,4 +127,4 @@ export default {
   ...TasksStrings,
   ...LoginPageStrings,
   ...WelcomeStrings
-};
+});

@@ -27,8 +27,9 @@ const ssoAuthenticationRealms = ["samlEnabled", "oauth2Enabled"];
  * Login page component that renders within LoginLayout.
  * Displays a welcome message and login form matching the design specification.
  * @param {Object} logoConfig - Logo configuration passed to LoginLayout
+ * @param {React.ReactNode} [headerActions] - Controls shown at the end of the header
  */
-export default function LoginPage({ logoConfig }) {
+export default function LoginPage({ logoConfig, headerActions }) {
   const [generalError, setGeneralError] = useState(null);
 
   const extStateReady = !!(window.AS?.State?.getValue);
@@ -63,7 +64,7 @@ export default function LoginPage({ logoConfig }) {
 
 
   return (
-    <LoginLayout logoConfig={logoConfig}>
+    <LoginLayout logoConfig={logoConfig} headerActions={headerActions}>
       <Theme appearance="light" accentColor="blue" hasBackground={false} className="login-theme-wrapper">
         <Card className="login-card" data-testid="login-tile" size="4">
         <Flex direction="column" gap="5" className="login-card__content">
@@ -91,7 +92,7 @@ export default function LoginPage({ logoConfig }) {
               <Text size="2" color="red">{generalError}</Text>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label={UIStrings.CLOSE}
                 className="login-error__close"
                 onClick={() => setGeneralError(null)}
               >

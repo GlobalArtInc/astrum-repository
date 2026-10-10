@@ -4,17 +4,18 @@ import React from "react";
 import { ExtJS } from '../../interface/ExtJS';
 
 import './LoginLayout.scss';
+import UIStrings from '../../constants/UIStrings';
 
 // Edition constants - must match backend values
 const EDITION_COMMUNITY = "COMMUNITY";
 const EDITION_PRO = "PRO";
 
 /**
- * Minimal layout for login page with only branding/logo in header.
- * No navigation menu, theme switcher, or other header components.
+ * Minimal layout for login page with only branding/logo in header, followed by the optional headerActions
+ * (e.g. the language menu). No navigation menu or theme switcher.
  * Always uses light theme for login page.
  */
-export default function LoginLayout({ children, logoConfig }) {
+export default function LoginLayout({ children, logoConfig, headerActions }) {
 
   const edition = ExtJS.useState(() => ExtJS.state().getEdition());
   const contextPath = ExtJS.useState(() => ExtJS.state().getValue('astrum-context-path', ''));
@@ -41,8 +42,8 @@ export default function LoginLayout({ children, logoConfig }) {
         <a
           href={homeHref}
           className="as-login-header__link"
-          title="Home"
-          aria-label="Astrum Repository home"
+          title={UIStrings.LOGIN_LAYOUT.HOME}
+          aria-label={UIStrings.LOGIN_LAYOUT.HOME_LINK}
           onClick={handleLogoClick}
         >
           <img
@@ -54,6 +55,7 @@ export default function LoginLayout({ children, logoConfig }) {
             decoding="async"
           />
         </a>
+        {headerActions && <div className="as-login-header__actions">{headerActions}</div>}
       </header>
       <main className="as-login-main">
         {children}
