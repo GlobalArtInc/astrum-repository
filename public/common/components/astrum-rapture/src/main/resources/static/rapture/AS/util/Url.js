@@ -9,7 +9,8 @@
 Ext.define('AS.util.Url', {
   singleton: true,
   requires: [
-    'Ext.String'
+    'Ext.String',
+    'AS.I18n'
   ],
 
   /**
@@ -103,7 +104,7 @@ Ext.define('AS.util.Url', {
   asCopyWidget: function (value, repoFormat) {
     var encodedValue = Ext.htmlEncode(value);
     var encodedRepoFormat = Ext.htmlEncode(repoFormat);
-    return '<button class="as-copy-widget" data-copy-text="' + encodedValue + '" data-repo-format="' + encodedRepoFormat + '" title="' + encodedValue + '"><i class="fa fa-clipboard"></i> copy</button>';
+    return '<button class="as-copy-widget" data-copy-text="' + encodedValue + '" data-repo-format="' + encodedRepoFormat + '" title="' + encodedValue + '"><i class="fa fa-clipboard"></i> ' + Ext.htmlEncode(AS.I18n.get('CopyLink_Button')) + '</button>';
   },
 
   /**

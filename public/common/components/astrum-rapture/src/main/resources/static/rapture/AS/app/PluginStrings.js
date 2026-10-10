@@ -183,6 +183,9 @@ Ext.define('AS.app.PluginStrings', {
     DependencySnippetPanel_Title: 'Usage',
     DependencySnippetPanel_Copy_Button_Tooltip: 'Copy snippet to clipboard',
 
+    // Copy link column
+    CopyLink_Button: 'copy',
+
     // Shared UI
     Form_Select_EmptyText: 'Select...',
     Dialogs_ConfirmDeletion_Title: 'Confirm deletion?',
