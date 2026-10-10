@@ -23,7 +23,8 @@
       "dir": "public/common/components/astrum-ui-plugin/src/main/resources/astrum-i18n/react-ui",
       "prefix": "react.ui",
       "react": [
-        "public/common/components/astrum-ui-plugin/src/frontend/src/constants/UIStrings.js"
+        "public/common/components/astrum-ui-plugin/src/frontend/src/constants/UIStrings.js",
+        "public/common/components/astrum-ui-plugin/src/frontend/src/components/onboarding-wizard/UIStrings.ts"
       ]
     },
     {

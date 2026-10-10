@@ -1,4 +1,6 @@
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
 
 const ru = require('../../../main/resources/astrum-i18n/react-coreui/ru.json');
 
@@ -15,13 +17,21 @@ function textOf(children) {
   }).join('');
 }
 
+const spreadModules = (() => {
+  const source = fs.readFileSync(path.join(__dirname, './UIStrings.jsx'), 'utf8');
+  const imports = Object.fromEntries([...source.matchAll(/import (\w+) from ['"](\.[^'"]+)['"]/g)].map(([, name, from]) => [name, from]));
+  return [...source.matchAll(/\.\.\.(\w+Strings)\b/g)].map(([, name]) => imports[name]).filter(Boolean);
+})();
+
 describe('UIStrings in Russian', () => {
   let strings;
+  let modules;
 
   beforeAll(() => {
     window.AS_I18N = {language: 'ru', dictionaries: {'react-coreui': ru}};
     jest.isolateModules(() => {
       strings = require('./UIStrings').default;
+      modules = Object.fromEntries(spreadModules.map((from) => [from, require(from).default]));
     });
   });
 
@@ -35,6 +45,16 @@ describe('UIStrings in Russian', () => {
       return typeof value === 'string' && value !== ru[key];
     });
 
+    expect(untranslated).toEqual([]);
+  });
+
+  it('translates the strings modules in place, for the components that import them directly', () => {
+    const untranslated = Object.entries(modules).flatMap(([from, module]) => Object.keys(ru).filter((key) => {
+      const value = valueAt(module, key);
+      return typeof value === 'string' && value !== ru[key];
+    }).map((key) => `${from}: ${key}`));
+
+    expect(spreadModules.length).toBeGreaterThan(0);
     expect(untranslated).toEqual([]);
   });
 

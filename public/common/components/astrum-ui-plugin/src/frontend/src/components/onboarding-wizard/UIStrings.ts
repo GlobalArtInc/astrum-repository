@@ -1,6 +1,8 @@
 
 
-export default {
+import localize from '../../interface/localize';
+
+export default localize('react-ui', {
   ONBOARDING_WIZARD: {
     ARIA: {
       TITLE: 'Onboarding Wizard',
@@ -81,4 +83,4 @@ export default {
       SUBMISSION_ERROR: 'Failed to submit your agreement. Please try again.',
     },
   },
-};
+});

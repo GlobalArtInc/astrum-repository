@@ -1,6 +1,8 @@
 
 
-export default {
+import localize from '../interface/localize';
+
+export default localize('react-ui', {
   LOGIN_TITLE: 'Welcome',
   LOGIN_SUBTITLE: 'Login to continue',
   SIGNIN_TITLE: 'Sign in to Astrum Repository',
@@ -28,4 +30,4 @@ export default {
         ? `Too many failed login attempts. Please wait ${seconds} second${seconds === 1 ? '' : 's'} before trying again.`
         : `Too many failed login attempts. Please try again later.`
   }
-};
+});
