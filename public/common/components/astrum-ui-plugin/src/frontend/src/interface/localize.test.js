@@ -137,4 +137,53 @@ describe('localize', () => {
     expect(a.TITLE).toBe('Заголовок');
     expect(frozen.TITLE).toBe('Frozen');
   });
+
+  it('replaces texts computed by getters with their translations', () => {
+    withTranslations({
+      'react-test': {
+        STRING: 'Я подтверждаю',
+        SUBLABEL: 'Введите «Я подтверждаю»',
+        CONFIRM: 'Введите <0>Сбросить</0>'
+      }
+    });
+    const strings = {
+      STRING: 'I acknowledge',
+      get SUBLABEL() {
+        return `Type "${this.STRING}"`;
+      },
+      get CONFIRM() {
+        return <>Type <strong>Reset</strong></>;
+      }
+    };
+
+    localize('react-test', strings);
+    render(<div data-testid="confirm">{strings.CONFIRM}</div>);
+
+    expect(strings.SUBLABEL).toBe('Введите «Я подтверждаю»');
+    expect(screen.getByTestId('confirm')).toHaveTextContent('Введите Сбросить');
+    expect(screen.getByTestId('confirm').querySelector('strong')).toHaveTextContent('Сбросить');
+  });
+
+  it('keeps a text it cannot replace and translates the rest', () => {
+    withTranslations({'react-test': {LOCKED: 'Заблокировано', TITLE: 'Заголовок'}});
+    const strings = {TITLE: 'Title'};
+    Object.defineProperty(strings, 'LOCKED', {value: 'Locked', enumerable: true, writable: false, configurable: false});
+
+    expect(() => localize('react-test', strings)).not.toThrow();
+    expect(strings.LOCKED).toBe('Locked');
+    expect(strings.TITLE).toBe('Заголовок');
+  });
+
+  it('keeps a getter that throws and translates the rest', () => {
+    withTranslations({'react-test': {BROKEN: 'Сломано', TITLE: 'Заголовок'}});
+    const strings = {
+      get BROKEN() {
+        throw new Error('broken');
+      },
+      TITLE: 'Title'
+    };
+
+    expect(() => localize('react-test', strings)).not.toThrow();
+    expect(strings.TITLE).toBe('Заголовок');
+  });
 });

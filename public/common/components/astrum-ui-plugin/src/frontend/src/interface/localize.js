@@ -13,8 +13,9 @@ const TOKEN = /<(\d+)\/>|<(\d+)>|<\/(\d+)>|\{(\d+)\}/g;
  * - a JSX element, or a function returning one, by the same element around the translated text, in which `<0>...</0>`
  *   and `<1/>` stand for the element's descendants in document order.
  *
- * Texts without a translation, and translations that do not fit their text, stay English. The object is changed in
- * place, so modules that import a part of it directly see the translations too, and returned.
+ * A text computed by a getter is replaced by its translation as a plain value. Texts without a translation, texts that
+ * cannot be replaced, and translations that do not fit their text stay English. The object is changed in place, so
+ * modules that import a part of it directly see the translations too, and returned.
  */
 export default function localize(dictionary, strings, scope) {
   const translations = dictionaryOf(dictionary);
@@ -35,24 +36,42 @@ function translate(node, prefix, translations, visited) {
   }
   visited.add(node);
   Object.keys(node).forEach((key) => {
-    const path = prefix ? `${prefix}.${key}` : key;
-    const value = node[key];
-    const translation = translations[path];
-    if (isContainer(value)) {
-      translate(value, path, translations, visited);
+    try {
+      translateEntry(node, key, prefix ? `${prefix}.${key}` : key, translations, visited);
     }
-    else if (typeof translation === 'string' && translation !== '') {
-      if (typeof value === 'string') {
-        node[key] = translation;
-      }
-      else if (React.isValidElement(value)) {
-        node[key] = rebuild(value, translation, []);
-      }
-      else if (typeof value === 'function') {
-        node[key] = template(value, translation);
-      }
+    catch (e) {
+      return;
     }
   });
+}
+
+function translateEntry(node, key, path, translations, visited) {
+  const value = node[key];
+  const translation = translations[path];
+  if (isContainer(value)) {
+    translate(value, path, translations, visited);
+  }
+  else if (typeof translation === 'string' && translation !== '') {
+    if (typeof value === 'string') {
+      assign(node, key, translation);
+    }
+    else if (React.isValidElement(value)) {
+      assign(node, key, rebuild(value, translation, []));
+    }
+    else if (typeof value === 'function') {
+      assign(node, key, template(value, translation));
+    }
+  }
+}
+
+function assign(node, key, value) {
+  const descriptor = Object.getOwnPropertyDescriptor(node, key);
+  if (descriptor.writable) {
+    node[key] = value;
+  }
+  else if (descriptor.configurable) {
+    Object.defineProperty(node, key, {value, writable: true, enumerable: descriptor.enumerable, configurable: true});
+  }
 }
 
 function isContainer(value) {
