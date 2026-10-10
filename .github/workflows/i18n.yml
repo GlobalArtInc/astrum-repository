@@ -21,11 +21,17 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install what reading the React texts needs
+        run: npm install --prefix "$RUNNER_TEMP/i18n" --no-save --no-package-lock typescript@5.9.3 react@19.1.0
+
       - name: Check the dictionaries
+        env:
+          ASTRUM_I18N_MODULES: ${{ runner.temp }}/i18n
         run: node tools/i18n/i18n.mjs check
 
       - name: Check the translations are pulled from Ownlate
         env:
+          ASTRUM_I18N_MODULES: ${{ runner.temp }}/i18n
           ASTRUM_OWNLATE_TOKEN: ${{ secrets.ASTRUM_OWNLATE_TOKEN }}
           ASTRUM_OWNLATE_PROJECT: ${{ vars.ASTRUM_OWNLATE_PROJECT }}
         run: |
