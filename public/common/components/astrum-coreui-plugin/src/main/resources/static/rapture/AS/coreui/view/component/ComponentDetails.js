@@ -45,7 +45,7 @@ Ext.define('AS.coreui.view.component.ComponentDetails', {
           },
           {
             xtype: 'as-button',
-            text: ''+NX.I18n.get('ComponentDetails_Delete_Button'),
+            text: AS.I18n.get('ComponentDetails_Delete_Button'),
             iconCls: 'x-fa fa-trash',
             action: 'deleteComponent',
             hidden: true
