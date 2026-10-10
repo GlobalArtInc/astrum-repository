@@ -64,8 +64,24 @@ in the list.
 | `astrum-args` | Jetty XML files | Jetty configuration to load; add `${jetty.etc}/jetty-https.xml` to serve HTTPS directly |
 | `astrum.onboarding.enabled` | `true` | Show the onboarding wizard to the first administrator |
 | `astrum.scripts.allowCreation` | `false` | Allow creating scripts through the scripting API |
+| `astrum.jwt.enabled` | `true` | Keep sign-in sessions in the database; see [Sessions](#sessions) |
+| `astrum.session.enabled` | `false` | Keep sign-in sessions in server memory instead; see [Sessions](#sessions) |
 
 Restart the server after editing the file.
+
+## Sessions
+
+A sign-in is a signed token in the `ASTRUMSESSIONID` cookie, backed by a session record in the
+database. Users stay signed in across restarts and upgrades of the server, and every node of a
+PostgreSQL-backed setup accepts the same cookie. Signing out, a password change and deactivating or
+deleting the user end the session on the server.
+
+Sessions do not expire by default. To sign idle users out, set **Session timeout** (minutes) under
+**Settings → System → Capabilities → UI: Settings**; `0` means never. The property `astrum.jwt.expiry`
+(seconds) in `astrum.properties` overrides that setting.
+
+`astrum.session.enabled=true` switches back to sessions held in server memory: every restart then
+signs all users out, and the timeout is `shiro.globalSessionTimeout` (milliseconds) or the UI setting.
 
 Prefer a [reverse proxy](reverse-proxy.md) for TLS over serving HTTPS from Jetty: certificates are then
 renewed without touching the server.

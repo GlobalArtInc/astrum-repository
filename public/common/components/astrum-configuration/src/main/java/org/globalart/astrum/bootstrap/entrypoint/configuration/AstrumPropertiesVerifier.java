@@ -85,8 +85,9 @@ public class AstrumPropertiesVerifier
     }
     else if (isNullOrEmpty(astrumProperties.getProperty(SESSION_ENABLED))
         && isNullOrEmpty(astrumProperties.getProperty(JWT_ENABLED))) {
-      astrumProperties.put(SESSION_ENABLED, TRUE);
-      astrumProperties.put(JWT_ENABLED, FALSE);
+      // JWT sessions live in the database, so users stay signed in across restarts
+      astrumProperties.put(JWT_ENABLED, TRUE);
+      astrumProperties.put(SESSION_ENABLED, FALSE);
     }
     else if (!isNullOrEmpty(astrumProperties.getProperty(SESSION_ENABLED))
         && isNullOrEmpty(astrumProperties.getProperty(JWT_ENABLED))) {

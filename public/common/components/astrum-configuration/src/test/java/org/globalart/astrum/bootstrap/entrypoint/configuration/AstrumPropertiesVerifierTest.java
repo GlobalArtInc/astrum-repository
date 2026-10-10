@@ -116,8 +116,8 @@ class AstrumPropertiesVerifierTest
     assertThat(astrumProperties.getProperty(DATASTORE_CLUSTERED_ENABLED), is(FALSE));
 
     // set because DATASTORE_CLUSTERED_ENABLED is false and both SESSION_ENABLED and JWT_ENABLED are unset
-    assertThat(astrumProperties.getProperty(SESSION_ENABLED), is(TRUE));
-    assertThat(astrumProperties.getProperty(JWT_ENABLED), is(FALSE));
+    assertThat(astrumProperties.getProperty(JWT_ENABLED), is(TRUE));
+    assertThat(astrumProperties.getProperty(SESSION_ENABLED), is(FALSE));
 
     // left unset
     assertThat(astrumProperties.getProperty(SQL_DISTRIBUTED_CACHE), nullValue());
@@ -177,9 +177,21 @@ class AstrumPropertiesVerifierTest
   }
 
   @Test
-  void testSelectAuthenticationFeature_WhenDatastoreClusteredDisabled_AndJwtDisabled_OAuth2IsDisabled() {
+  void testSelectAuthenticationFeature_WhenNothingIsSet_JwtIsTheDefault() {
     mockRequiredProperties();
     environmentVariables.set(DATASTORE_CLUSTERED_ENABLED, FALSE);
+
+    astrumPropertiesVerifier.verify(astrumProperties);
+
+    assertThat(astrumProperties.getProperty(JWT_ENABLED), is(TRUE));
+    assertThat(astrumProperties.getProperty(ASTRUM_SECURITY_OAUTH2_ENABLED), is(TRUE));
+    assertThat(astrumProperties.getProperty(SESSION_ENABLED), is(FALSE));
+  }
+
+  @Test
+  void testSelectAuthenticationFeature_WhenSessionEnabled_JwtAndOAuth2AreDisabled() {
+    mockRequiredProperties();
+    astrumProperties.put(SESSION_ENABLED, TRUE);
 
     astrumPropertiesVerifier.verify(astrumProperties);
 

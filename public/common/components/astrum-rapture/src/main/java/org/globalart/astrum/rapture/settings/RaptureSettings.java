@@ -19,7 +19,7 @@ public class RaptureSettings
 
   public static final int DEFAULT_STATUS_INTERVAL_ANONYMOUS = 60; // seconds
 
-  public static final int DEFAULT_SESSION_TIMEOUT = 30; // minutes
+  public static final int DEFAULT_SESSION_TIMEOUT = 0; // minutes; 0 means sessions never expire
 
   public static final int MIN_REQUEST_TIMEOUT = 30; // seconds
 

@@ -4,6 +4,7 @@ package org.globalart.astrum.rapture.internal.settings;
 import java.util.Optional;
 
 import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.rapture.settings.RaptureSettings;
 import org.globalart.astrum.security.JwtHelper;
 
 import org.apache.shiro.astrum.AstrumWebSessionManager;
@@ -125,14 +126,15 @@ public class SessionTimeoutManagerTest
         -1, // No property
         -1);
 
-    // Update to 0 minutes (never expire)
+    // Move off the default of 0, then back to 0 minutes (never expire)
+    manager.updateTimeout(60);
     manager.updateTimeout(0);
 
     // Verify JWT updated to 1 year (31536000 seconds)
     verify(jwtHelper).setExpirySeconds(31536000);
     // Verify event posted
     ArgumentCaptor<SessionTimeoutChangedEvent> eventCaptor = ArgumentCaptor.forClass(SessionTimeoutChangedEvent.class);
-    verify(eventManager).post(eventCaptor.capture());
+    verify(eventManager, times(2)).post(eventCaptor.capture());
     assertEquals(0, eventCaptor.getValue().getTimeoutMinutes());
   }
 
@@ -145,14 +147,15 @@ public class SessionTimeoutManagerTest
         -1, // No property
         -1);
 
-    // Update to 0 minutes (never expire)
+    // Move off the default of 0, then back to 0 minutes (never expire)
+    manager.updateTimeout(60);
     manager.updateTimeout(0);
 
     // Verify session updated to -1 (Shiro convention for never expire)
     verify(sessionManager).setGlobalSessionTimeout(-1L);
     // Verify event posted
     ArgumentCaptor<SessionTimeoutChangedEvent> eventCaptor = ArgumentCaptor.forClass(SessionTimeoutChangedEvent.class);
-    verify(eventManager).post(eventCaptor.capture());
+    verify(eventManager, times(2)).post(eventCaptor.capture());
     assertEquals(0, eventCaptor.getValue().getTimeoutMinutes());
   }
 
@@ -165,12 +168,45 @@ public class SessionTimeoutManagerTest
         -1, // No property
         -1);
 
-    // Default is 30 minutes, update to 30 again
-    manager.updateTimeout(30);
+    // Update to the default again
+    manager.updateTimeout(RaptureSettings.DEFAULT_SESSION_TIMEOUT);
 
     // Verify no changes applied, no event posted (same value)
     verify(jwtHelper, never()).setExpirySeconds(anyInt());
     verify(eventManager, never()).post(any());
+  }
+
+  @Test
+  public void testStart_appliesTheDefaultOfNeverExpire() throws Exception {
+    SessionTimeoutManager manager = new SessionTimeoutManager(
+        Optional.of(jwtHelper),
+        Optional.of(sessionManager),
+        eventManager,
+        -1, // No property
+        -1);
+
+    manager.start();
+
+    // The default of 0 means never expire: 1 year for JWT, -1 for Shiro
+    verify(jwtHelper).setExpirySeconds(31536000);
+    verify(sessionManager).setGlobalSessionTimeout(-1L);
+    // Nothing changed, so there is nothing to tell other nodes
+    verify(eventManager, never()).post(any());
+  }
+
+  @Test
+  public void testStart_leavesPropertyOverrideAlone() throws Exception {
+    SessionTimeoutManager manager = new SessionTimeoutManager(
+        Optional.of(jwtHelper),
+        Optional.of(sessionManager),
+        eventManager,
+        600, // JWT property set
+        -1);
+
+    manager.start();
+
+    verify(jwtHelper, never()).setExpirySeconds(anyInt());
+    verify(sessionManager, never()).setGlobalSessionTimeout(anyLong());
   }
 
   @Test

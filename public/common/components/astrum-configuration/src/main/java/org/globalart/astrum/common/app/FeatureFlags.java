@@ -86,7 +86,7 @@ public class FeatureFlags
   /* Feature flag to indicate if current db is postgresql */
   public static final String DATASTORE_IS_POSTGRESQL = "datastore.isPostgresql";
 
-  /* JWT externalization. Available values: true, false. Default value: false */
+  /* JWT externalization. Available values: true, false. Default value: true unless astrum.session.enabled=true */
   public static final String JWT_ENABLED = "astrum.jwt.enabled";
 
   /* Session flag for marking content that is only for session, and should be disabled when jwt is enabled */

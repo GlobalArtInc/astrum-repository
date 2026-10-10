@@ -66,6 +66,17 @@ public class SessionTimeoutManager
   }
 
   /**
+   * JwtHelper and the session manager start with their own 30 minute defaults. Bring them in line with the
+   * timeout held here, since {@link #updateTimeout(int)} skips a value equal to it.
+   */
+  @Override
+  protected void doStart() throws Exception {
+    if (!propertyOverrideActive.get()) {
+      applyToEnforcementMechanisms();
+    }
+  }
+
+  /**
    * Updates session timeout and publishes cluster event.
    * Called when admin changes settings via UI capability.
    * Property files always take precedence for security reasons.
