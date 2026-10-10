@@ -14,6 +14,7 @@ import { faBox, faGhost } from '@fortawesome/free-solid-svg-icons';
 
 import { useSref } from '@uirouter/react';
 import { ROUTE_NAMES } from '../../../routerConfig/routeNames/routeNames';
+import UIStrings from '../../../constants/UIStrings';
 
 export function MissingRoutePage()  {
   const isPreviewUI = window.location.hash.startsWith('#preview');
@@ -26,19 +27,19 @@ export function MissingRoutePage()  {
         <GhostAnimation/>
 
         <AsH1>404</AsH1>
-        <AsH2>RESOURCE NOT FOUND</AsH2>
+        <AsH2>{UIStrings.SHELL.MISSING_ROUTE.TITLE}</AsH2>
 
         <AsDivider/>
 
         <AsP>
-          This resource is not available. It may have been moved, deleted, or you don’t have access.
+          {UIStrings.SHELL.MISSING_ROUTE.TEXT}
         </AsP>
       </section>
 
         <section className="as-missing-route-page-actions">
 
           <AsP className="as-missing-route-page-actions-message">
-            You might want to:
+            {UIStrings.SHELL.MISSING_ROUTE.SUGGESTIONS}
           </AsP>
 
           <div>
@@ -47,7 +48,7 @@ export function MissingRoutePage()  {
                 className="as-btn"
                 href={dashboardHref}
             >
-              Return to Dashboard
+              {UIStrings.SHELL.MISSING_ROUTE.DASHBOARD}
             </AsTextLink>
             <AsTextLink
                 data-analytics-id="as-404-page-support-lnk"
@@ -55,7 +56,7 @@ export function MissingRoutePage()  {
                 href="https://links.globalart.dev/products/astrum/docs?utm_medium=product&utm_source=astrum_repo&utm_campaign=menu-docs"
                 external
             >
-              Visit Documentation
+              {UIStrings.SHELL.MISSING_ROUTE.DOCUMENTATION}
             </AsTextLink>
           </div>
         </section>

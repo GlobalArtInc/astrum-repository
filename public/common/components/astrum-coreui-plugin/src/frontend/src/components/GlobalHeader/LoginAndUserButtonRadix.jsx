@@ -105,12 +105,12 @@ export default function LoginAndUserButtonRadix() {
 
   if (!hasUser) {
     return (
-      <Tooltip content="Log In">
+      <Tooltip content={UIStrings.SHELL.ACCOUNT.LOG_IN}>
         <IconButton
           variant="outline"
           size="2"
           color="gray"
-          aria-label="Log In"
+          aria-label={UIStrings.SHELL.ACCOUNT.LOG_IN}
           onClick={onSignInClick}
         >
           <User size={16} />
@@ -121,9 +121,9 @@ export default function LoginAndUserButtonRadix() {
 
   return (
     <DropdownMenu.Root>
-      <Tooltip content="My Account">
+      <Tooltip content={UIStrings.SHELL.ACCOUNT.MY_ACCOUNT}>
         <DropdownMenu.Trigger>
-          <IconButton variant="outline" size="2" color="gray" aria-label="My Account" data-testid="user-menu" data-analytics-id="as-header-user-menu">
+          <IconButton variant="outline" size="2" color="gray" aria-label={UIStrings.SHELL.ACCOUNT.MY_ACCOUNT} data-testid="user-menu" data-analytics-id="as-header-user-menu">
             <User size={16} />
           </IconButton>
         </DropdownMenu.Trigger>
@@ -146,7 +146,7 @@ export default function LoginAndUserButtonRadix() {
         {isUserNugetApiTokenEnabled && (
           <DropdownMenu.Item asChild>
             <a href={userNugetApiTokenHref} className="as-internal-link">
-              <Text size="2" color="gray">NuGet API Key</Text>
+              <Text size="2" color="gray">{UIStrings.SHELL.ACCOUNT.NUGET_API_KEY}</Text>
             </a>
           </DropdownMenu.Item>
         )}
@@ -155,7 +155,7 @@ export default function LoginAndUserButtonRadix() {
           <DropdownMenu.Item asChild>
             <a href={userTokenHref} className="as-internal-link">
               <Flex align="center" justify="start" gap="3">
-                <Text size="2">User Token</Text>
+                <Text size="2">{UIStrings.SHELL.ACCOUNT.USER_TOKEN}</Text>
                 <Key size={16} />
               </Flex>
             </a>
@@ -167,7 +167,7 @@ export default function LoginAndUserButtonRadix() {
         <DropdownMenu.Item onClick={onSignOutClick} data-analytics-id="as-header-sign-out">
           <Flex align="center" justify="start" gap="3">
             <LogOut size={16} />
-            <Text size="2">Log Out</Text>
+            <Text size="2">{UIStrings.SHELL.ACCOUNT.LOG_OUT}</Text>
           </Flex>
         </DropdownMenu.Item>
       </DropdownMenu.Content>

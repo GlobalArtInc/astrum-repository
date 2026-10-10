@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -18,9 +19,22 @@ const usage = `Usage: node tools/i18n/i18n.mjs <command>
   import <lang> <file> write <dir>/<lang>.json from a JSON file exported from Ownlate
   catalogue <lang>     print every entry of <lang> under its Ownlate key, for seeding a project`;
 
+const sources = new Map();
+
 function sourceOf(dictionary) {
+  if (!sources.has(dictionary.dir)) {
+    sources.set(dictionary.dir, readSource(dictionary));
+  }
+  return sources.get(dictionary.dir).entries;
+}
+
+function readSource(dictionary) {
   if (dictionary.extjs) {
-    return extjsStrings(path.join(ROOT, dictionary.extjs));
+    return { entries: extjsStrings(path.join(ROOT, dictionary.extjs)), skipped: [] };
+  }
+  if (dictionary.react) {
+    const { reactStrings } = createRequire(import.meta.url)('./react.cjs');
+    return reactStrings(ROOT, dictionary.react, path.basename(dictionary.dir));
   }
   throw new Error(`No source for ${dictionary.dir}`);
 }
@@ -83,7 +97,9 @@ function placeholders(text) {
 }
 
 function tags(text) {
-  return (text.match(/<\/?[a-zA-Z][a-zA-Z0-9]*/g) || []).map((tag) => tag.toLowerCase()).sort().join(' ');
+  const html = (text.match(/<\/?[a-zA-Z][a-zA-Z0-9]*/g) || []).map((tag) => tag.toLowerCase());
+  const elements = text.match(/<\/?\d+\/?>/g) || [];
+  return [...html, ...elements].sort().join(' ');
 }
 
 function extract() {
@@ -92,6 +108,9 @@ function extract() {
     fs.mkdirSync(path.dirname(name), { recursive: true });
     fs.writeFileSync(name, serialize(sourceOf(dictionary)));
     console.log(`wrote ${path.relative(ROOT, name)}`);
+    for (const reason of sources.get(dictionary.dir).skipped) {
+      console.log(`  not translatable, stays English: ${reason}`);
+    }
   }
 }
 

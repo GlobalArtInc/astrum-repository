@@ -24,6 +24,9 @@ import coreDarkLogo from '../../../../art/logos/logo-core-edition-header-dark.sv
 import markOnlyLogoUrl from '../../../../art/logos/astrum-mark.svg';
 
 import './LoginPageRadix.scss';
+import CoreUIStrings from '../../constants/UIStrings';
+
+const {SHELL} = CoreUIStrings;
 
 const LOGOS = {
   COMMUNITY: {light: ceLogo, dark: ceDarkLogo},
@@ -69,8 +72,8 @@ export default function LoginPageRadix() {
         <a
           href="#browse/welcome"
           className="as-login-header__link"
-          title="Home"
-          aria-label="GlobalArt Astrum Repository home"
+          title={SHELL.HEADER.HOME}
+          aria-label={SHELL.LOGIN.HOME_LINK}
           onClick={(e) => {
             e.preventDefault();
             window.location.hash = '#browse/welcome';

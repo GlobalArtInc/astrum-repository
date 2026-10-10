@@ -30,6 +30,8 @@ export default {
       },
     },
     EDIT: {
+      SUMMARY_TITLE: 'Capability Summary',
+      DELETE_TITLE: 'Delete Capability?',
       FORM: {
         TITLE: 'Capability Settings',
         CAPABILITY_STATE: 'Capability State',

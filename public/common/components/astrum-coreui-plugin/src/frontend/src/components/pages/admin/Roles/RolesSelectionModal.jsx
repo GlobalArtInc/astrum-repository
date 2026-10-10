@@ -83,11 +83,11 @@ export default function RolesSelectionModal({
     {createPortal(
       <AsModal variant="wide" onCancel={onModalClose}>
         <header className="as-modal-header">
-          <AsH2 className="as-h2" id="modal-header-text">{title} Selection</AsH2>
+          <AsH2 className="as-h2" id="modal-header-text">{UIStrings.PAGES.SELECTION_MODAL.TITLE(title)}</AsH2>
         </header>
         <div className="as-modal__filter-box">
           <AsFilterInput className="as-modal__filter"
-            placeholder="Filter"
+            placeholder={UIStrings.PAGES.SELECTION_MODAL.FILTER}
             value={filterText}
             onChange={filter} />
           {SELECTION_MODAL.WILDCARD_TEXT}
@@ -96,20 +96,20 @@ export default function RolesSelectionModal({
           <AsTable className="modal-table">
             <AsTableHead>
               <AsTableRow>
-                <AsTableCell className="select-column" onClick={sortBySelect} isSortable sortDir={selectSortDir}>Select</AsTableCell>
-                <AsTableCell className="name-column" onClick={sortByName} isSortable sortDir={nameSortDir}>Name</AsTableCell>
-                <AsTableCell onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>Description</AsTableCell>
+                <AsTableCell className="select-column" onClick={sortBySelect} isSortable sortDir={selectSortDir}>{UIStrings.PAGES.SELECTION_MODAL.SELECT}</AsTableCell>
+                <AsTableCell className="name-column" onClick={sortByName} isSortable sortDir={nameSortDir}>{UIStrings.PAGES.SELECTION_MODAL.NAME}</AsTableCell>
+                <AsTableCell onClick={sortByDescription} isSortable sortDir={descriptionSortDir}>{UIStrings.PAGES.SELECTION_MODAL.DESCRIPTION}</AsTableCell>
               </AsTableRow>
               <AsTableRow className="counter-row">
                 <AsTableCell></AsTableCell>
                 <AsTableCell></AsTableCell>
                 <AsTableCell className="counter-cell">
-                  <AsCounter className={counterClasses}>{tempSelectedRoles.length} Selected</AsCounter>
+                  <AsCounter className={counterClasses}>{UIStrings.PAGES.SELECTION_MODAL.SELECTED(tempSelectedRoles.length)}</AsCounter>
                 </AsTableCell>
               </AsTableRow>
             </AsTableHead>
 
-            <AsTableBody emptyMessage="No roles available">
+            <AsTableBody emptyMessage={UIStrings.PAGES.SELECTION_MODAL.NO_ROLES}>
               {filteredData.slice(lowerBound, upperBound).map((role) => (
                   <AsTableRow key={role.id} id={role.id}>
                     <AsTableCell className="select-column">
@@ -135,8 +135,8 @@ export default function RolesSelectionModal({
 
         <AsFooter className="as-footer-modal">
           <div className="as-btn-bar">
-            <AsButton onClick={onModalClose}>Cancel</AsButton>
-            <AsButton variant="primary" onClick={confirmModal}>Confirm</AsButton>
+            <AsButton onClick={onModalClose}>{UIStrings.PAGES.SELECTION_MODAL.CANCEL}</AsButton>
+            <AsButton variant="primary" onClick={confirmModal}>{UIStrings.PAGES.SELECTION_MODAL.CONFIRM}</AsButton>
           </div>
         </AsFooter>
       </AsModal>,

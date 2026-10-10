@@ -25,9 +25,11 @@ import {refreshReactPage} from '../../routerConfig/routerUtils';
 import {getHeritageEquivalent} from './previewHeritageNavigation';
 
 import './GlobalHeaderRadix.scss';
+import UIStrings from '../../constants/UIStrings';
 
 const COMMUNITY = "COMMUNITY";
 const PRO = "PRO";
+const {HEADER} = UIStrings.SHELL;
 const MAX_FEEDBACK_LENGTH = 500;
 
 export default function GlobalHeaderRadix() {
@@ -288,22 +290,22 @@ export default function GlobalHeaderRadix() {
         <Flex align="center" justify="between" gap="4" px="4" className="as-global-header-radix__row">
           {/* Left: Sidebar toggle + Logo */}
           <Flex align="center" gap="4" className="as-global-header-radix__side">
-            <Tooltip content={isSidebarOpen ? 'Expand Sidebar' : 'Collapse Sidebar'}>
+            <Tooltip content={isSidebarOpen ? HEADER.EXPAND_SIDEBAR : HEADER.COLLAPSE_SIDEBAR}>
               <IconButton
                 variant="outline"
                 size="2"
                 color="gray"
-                aria-label={isSidebarOpen ? 'Expand Sidebar' : 'Collapse Sidebar'}
+                aria-label={isSidebarOpen ? HEADER.EXPAND_SIDEBAR : HEADER.COLLAPSE_SIDEBAR}
                 onClick={onSidebarToggle}
               >
                 <Menu size={16} />
               </IconButton>
             </Tooltip>
             <Box asChild>
-              <a href={`${contextPath}#${isPreviewUI ? 'preview/browse/welcome' : 'browse/welcome'}`} title="Home">
+              <a href={`${contextPath}#${isPreviewUI ? 'preview/browse/welcome' : 'browse/welcome'}`} title={HEADER.HOME}>
                 <img
                   src={getLogo()}
-                  alt="Astrum Repository"
+                  alt={HEADER.LOGO_ALT}
                   className="as-global-header-radix__logo"
                 />
               </a>
@@ -320,40 +322,40 @@ export default function GlobalHeaderRadix() {
             {canAccessPreviewUi && !isDisableLegacyUi && (
               isPreviewUI ? (
                 isDisableSwitchFeedback ? (
-                  <Tooltip content="Switch to Classic UI">
+                  <Tooltip content={HEADER.SWITCH_TO_CLASSIC}>
                     <Button
                       variant="soft"
                       color="green"
                       className="as-global-header-radix__clickable"
-                      aria-label="Switch to Classic UI"
-                      title="Switch to Classic UI"
+                      aria-label={HEADER.SWITCH_TO_CLASSIC}
+                      title={HEADER.SWITCH_TO_CLASSIC}
                       data-testid="ui-toggle-button"
                       data-analytics-id="as-global-switch-classic"
                       onClick={switchToClassicUI}
                     >
                       <Flex align="center" gap="2">
                         <Repeat size={16} aria-hidden />
-                        Switch to Classic UI
+                        {HEADER.SWITCH_TO_CLASSIC}
                       </Flex>
                     </Button>
                   </Tooltip>
                 ) : (
                   <Popover.Root open={uiSwitchPopoverOpen} onOpenChange={handleUiSwitchPopoverOpenChange}>
-                    <Tooltip content={uiSwitchPopoverOpen ? undefined : "Switch to Classic UI"}>
+                    <Tooltip content={uiSwitchPopoverOpen ? undefined : HEADER.SWITCH_TO_CLASSIC}>
                       <Popover.Trigger asChild>
                         <Button
                           variant="soft"
                           color="green"
                           className="as-global-header-radix__clickable"
-                          aria-label="Switch to Classic UI"
+                          aria-label={HEADER.SWITCH_TO_CLASSIC}
                           aria-haspopup="dialog"
-                          title="Switch to Classic UI"
+                          title={HEADER.SWITCH_TO_CLASSIC}
                           data-testid="ui-toggle-button"
                           data-analytics-id="as-global-switch-classic"
                         >
                           <Flex align="center" gap="2">
                             <Repeat size={16} aria-hidden />
-                            Switch to Classic UI
+                            {HEADER.SWITCH_TO_CLASSIC}
                           </Flex>
                         </Button>
                       </Popover.Trigger>
@@ -366,26 +368,26 @@ export default function GlobalHeaderRadix() {
                     >
                       <Flex direction="column" gap="4">
                         <Box>
-                          <Heading id="ui-switch-popover-title" size="3" mb="2">Trying the new Astrum One UI</Heading>
+                          <Heading id="ui-switch-popover-title" size="3" mb="2">{HEADER.SWITCH_FEEDBACK.TITLE}</Heading>
                           <Text id="ui-switch-popover-desc" size="2" color="gray" as="p">
-                            Prefer the classic experience? Let us know why you&apos;re switching back.
+                            {HEADER.SWITCH_FEEDBACK.DESCRIPTION}
                           </Text>
                         </Box>
                         <Flex direction="column" gap="3">
                           <Flex direction="column" gap="1">
                             <TextArea
                               id="ui-feedback-textarea"
-                              placeholder="Share your feedback..."
+                              placeholder={HEADER.SWITCH_FEEDBACK.PLACEHOLDER}
                               value={classicUiFeedback}
                               onChange={(e) => setClassicUiFeedback(e.target.value)}
                               rows={3}
-                              aria-label="Optional feedback"
+                              aria-label={HEADER.SWITCH_FEEDBACK.LABEL}
                               maxLength={MAX_FEEDBACK_LENGTH + 1}
                               color={isFeedbackTooLong ? 'red' : undefined}
                             />
                             {isFeedbackTooLong && (
                               <Text size="1" color="red">
-                                Feedback must be {MAX_FEEDBACK_LENGTH} characters or less ({classicUiFeedback.length - MAX_FEEDBACK_LENGTH} characters too many)
+                                {HEADER.SWITCH_FEEDBACK.TOO_LONG(MAX_FEEDBACK_LENGTH, classicUiFeedback.length - MAX_FEEDBACK_LENGTH)}
                               </Text>
                             )}
                           </Flex>
@@ -397,11 +399,11 @@ export default function GlobalHeaderRadix() {
                             className={isFeedbackTooLong ? 'as-global-header-radix__clickable--disabled' : 'as-global-header-radix__clickable'}
                             onClick={switchToClassicUI}
                             disabled={isFeedbackTooLong}
-                            aria-label="Use Classic UI"
-                            title="Use Classic UI"
+                            aria-label={HEADER.SWITCH_FEEDBACK.USE_CLASSIC}
+                            title={HEADER.SWITCH_FEEDBACK.USE_CLASSIC}
                             data-analytics-id="as-dialog-use-classic"
                           >
-                            Use Classic UI
+                            {HEADER.SWITCH_FEEDBACK.USE_CLASSIC}
                           </Button>
                         </Flex>
                       </Flex>
@@ -409,20 +411,20 @@ export default function GlobalHeaderRadix() {
                   </Popover.Root>
                 )
               ) : (
-                <Tooltip content="Switch to Astrum One UI">
+                <Tooltip content={HEADER.SWITCH_TO_PREVIEW}>
                   <Button
                     variant="soft"
                     color="green"
                     onClick={switchToAstrumOneUI}
                     className="as-global-header-radix__clickable"
-                    aria-label="Switch to Astrum One UI"
-                    title="Switch to Astrum One UI"
+                    aria-label={HEADER.SWITCH_TO_PREVIEW}
+                    title={HEADER.SWITCH_TO_PREVIEW}
                     data-testid="ui-toggle-button"
                     data-analytics-id="as-global-switch-preview"
                   >
                     <Flex align="center" gap="2">
                       <Repeat size={16} aria-hidden />
-                      Switch to Astrum One UI
+                      {HEADER.SWITCH_TO_PREVIEW}
                     </Flex>
                   </Button>
                 </Tooltip>
@@ -433,12 +435,12 @@ export default function GlobalHeaderRadix() {
 
             <SystemStatusRadix />
 
-            <Tooltip content="Refresh">
+            <Tooltip content={HEADER.REFRESH}>
               <IconButton
                 variant="outline"
                 size="2"
                 color="gray"
-                aria-label="Refresh"
+                aria-label={HEADER.REFRESH}
                 data-analytics-id="astrum-header-refresh"
                 onClick={onRefreshClick}
               >
@@ -458,13 +460,13 @@ export default function GlobalHeaderRadix() {
       {/* Classic UI unavailable – shown when current Preview route has no Classic equivalent */}
       <Dialog.Root open={heritageUnavailableOpen} onOpenChange={(open) => !open && setHeritageUnavailableOpen(false)}>
         <Dialog.Content maxWidth="450px" aria-describedby={undefined}>
-          <Dialog.Title>Not Available in Classic UI</Dialog.Title>
+          <Dialog.Title>{HEADER.CLASSIC_UNAVAILABLE.TITLE}</Dialog.Title>
           <Text size="2" color="gray" as="p" mt="2">
-            This view is only available in the Astrum One UI. The Classic UI doesn&apos;t have an equivalent page for this feature.
+            {HEADER.CLASSIC_UNAVAILABLE.TEXT}
           </Text>
           <Flex gap="3" mt="4" justify="end">
             <Dialog.Close>
-              <Button variant="soft" color="gray" size="2">Stay on Astrum One UI</Button>
+              <Button variant="soft" color="gray" size="2">{HEADER.CLASSIC_UNAVAILABLE.STAY}</Button>
             </Dialog.Close>
             <Button
               variant="solid"
@@ -477,7 +479,7 @@ export default function GlobalHeaderRadix() {
                 window.location.hash = 'browse/welcome';
               }}
             >
-              Go to Classic Dashboard
+              {HEADER.CLASSIC_UNAVAILABLE.GO}
             </Button>
           </Flex>
         </Dialog.Content>

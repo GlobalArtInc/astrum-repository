@@ -19,7 +19,7 @@ export default function SettingsSidebar() {
 
   return (
     <AsPageSidebar className="as-settings">
-      <AsH3>Settings</AsH3>
+      <AsH3>{UIStrings.SHELL.NAVIGATION.SETTINGS}</AsH3>
       {/* === Repository -- Collapsible Menu === */}
       <LeftNavigationMenuCollapsibleItem
         name={ADMIN.REPOSITORY.DIRECTORY}

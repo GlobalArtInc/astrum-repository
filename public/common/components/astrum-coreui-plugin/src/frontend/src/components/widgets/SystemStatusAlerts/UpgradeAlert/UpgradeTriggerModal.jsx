@@ -30,7 +30,7 @@ export default function UpgradeTriggerModal({showModal, setShowModal}) {
         {DESCRIPTION}
       </section>
       <section className="trigger-upgrade-fieldset">
-        <AsFieldset label="Acknowledge">
+        <AsFieldset label={UIStrings.PAGES.UPGRADE_TRIGGER.ACKNOWLEDGE}>
           <AsCheckbox onChange={onCheck} isChecked={isChecked} className="upgrade-trigger-checkbox">
             {CHECKBOX_LABEL}
           </AsCheckbox>

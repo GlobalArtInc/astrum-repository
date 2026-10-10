@@ -220,7 +220,7 @@ function SummaryTile({ canEdit, capability, capabilityType }) {
       {!canEdit && <AsInfoAlert>{UIStrings.SETTINGS.READ_ONLY.WARNING}</AsInfoAlert>}
       <AsTile.Header>
         <div className='as-tile-header__title'>
-          <AsH2>Capability Summary</AsH2>
+          <AsH2>{UIStrings.CAPABILITIES.EDIT.SUMMARY_TITLE}</AsH2>
         </div>
       </AsTile.Header>
 
@@ -305,7 +305,7 @@ function DeleteButton({ capability, isDeleting, onDeleteClicked }) {
       onClick={onDeleteClicked}
     >
       {isDeleting ? <AsFontAwesomeIcon icon={faSpinner} spin /> : <AsFontAwesomeIcon icon={faTrash} />}
-      <span>Delete</span>
+      <span>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</span>
     </AsButton>
   );
 }

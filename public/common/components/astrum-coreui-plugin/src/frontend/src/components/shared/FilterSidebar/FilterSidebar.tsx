@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Filter, RotateCcw } from 'lucide-react';
 import { Checkbox, Flex, Text, TextField, Select } from '@radix-ui/themes';
 
 import './FilterSidebar.scss';
+import UIStrings from '../../../constants/UIStrings';
 
 /**
  * Filter option representing a selectable item.
@@ -316,10 +317,10 @@ export function FilterSidebar({
             className="filter-sidebar__reset"
             onClick={onClear}
             disabled={disabled}
-            title="Clear all filters"
+            title={UIStrings.SHELL.FILTERS.CLEAR_ALL_TITLE}
           >
             <RotateCcw size={14} aria-hidden="true" />
-            Clear all
+            {UIStrings.SHELL.FILTERS.CLEAR_ALL}
           </button>
         )}
       </div>

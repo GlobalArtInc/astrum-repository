@@ -3,68 +3,70 @@
 import React from 'react';
 import { DirectoryList, DirectoryPage, isExtjsCapabilitiesEnabled, isReactCapabilitiesEnabled } from '@globalart/astrum-ui-plugin';
 import { ROUTE_NAMES } from '../../../../routerConfig/routeNames/routeNames';
+import UIStrings from '../../../../constants/UIStrings';
 
 const sectionHeadingStyle = { margin: '24px 0 8px', fontSize: '18px', fontWeight: 600 };
 
 export default function SettingsHubClassicPage() {
   const ADMIN = ROUTE_NAMES.ADMIN;
+  const HUB = UIStrings.SETTINGS_HUB;
 
   return (
     <DirectoryPage
       routeName={ADMIN.DIRECTORY}
-      text="Settings"
-      description="Configure security, repositories, system, and support"
+      text={HUB.TITLE}
+      description={HUB.DESCRIPTION}
     >
-      <h3 style={sectionHeadingStyle}>Security</h3>
+      <h3 style={sectionHeadingStyle}>{HUB.SECURITY.TITLE}</h3>
       <DirectoryList>
-        <DirectoryList.DirectoryListItem text="Users" description="Manage user accounts and access" routeName={ADMIN.SECURITY.USERS.ROOT} params={{ itemId: null }} />
-        <DirectoryList.DirectoryListItem text="Roles" description="Define user permissions and access control" routeName={ADMIN.SECURITY.ROLES.LIST} />
-        <DirectoryList.DirectoryListItem text="Privileges" description="Configure granular permission settings" routeName={ADMIN.SECURITY.PRIVILEGES.LIST} />
-        <DirectoryList.DirectoryListItem text="Realms" description="Configure authentication sources and order" routeName={ADMIN.SECURITY.REALMS.ROOT} />
-        <DirectoryList.DirectoryListItem text="LDAP" description="Configure LDAP integration" routeName={ADMIN.SECURITY.LDAP.ROOT} params={{ itemId: null }} />
-        <DirectoryList.DirectoryListItem text="SAML" description="Configure SAML single sign-on" routeName={ADMIN.SECURITY.SAML.ROOT} />
-        <DirectoryList.DirectoryListItem text="OAuth2" description="Configure OAuth 2.0 authentication" routeName={ADMIN.SECURITY.OAUTH2.ROOT} />
-        <DirectoryList.DirectoryListItem text="Atlassian Crowd" description="Configure Atlassian Crowd integration" routeName={ADMIN.SECURITY.ATLASSIANCROWD.ROOT} />
-        <DirectoryList.DirectoryListItem text="Anonymous Access" description="Configure anonymous access settings" routeName={ADMIN.SECURITY.ANONYMOUS.ROOT} />
-        <DirectoryList.DirectoryListItem text="SSL Certificates" description="Manage trusted SSL certificates" routeName={ADMIN.SECURITY.SSLCERTIFICATES.LIST} />
-        <DirectoryList.DirectoryListItem text="User Tokens" description="Manage API access tokens" routeName={ADMIN.SECURITY.USERTOKEN.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.USERS.TEXT} description={HUB.SECURITY.USERS.DESCRIPTION} routeName={ADMIN.SECURITY.USERS.ROOT} params={{ itemId: null }} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.ROLES.TEXT} description={HUB.SECURITY.ROLES.DESCRIPTION} routeName={ADMIN.SECURITY.ROLES.LIST} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.PRIVILEGES.TEXT} description={HUB.SECURITY.PRIVILEGES.DESCRIPTION} routeName={ADMIN.SECURITY.PRIVILEGES.LIST} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.REALMS.TEXT} description={HUB.SECURITY.REALMS.DESCRIPTION} routeName={ADMIN.SECURITY.REALMS.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.LDAP.TEXT} description={HUB.SECURITY.LDAP.DESCRIPTION} routeName={ADMIN.SECURITY.LDAP.ROOT} params={{ itemId: null }} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.SAML.TEXT} description={HUB.SECURITY.SAML.DESCRIPTION} routeName={ADMIN.SECURITY.SAML.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.OAUTH2.TEXT} description={HUB.SECURITY.OAUTH2.DESCRIPTION} routeName={ADMIN.SECURITY.OAUTH2.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.ATLASSIAN_CROWD.TEXT} description={HUB.SECURITY.ATLASSIAN_CROWD.DESCRIPTION} routeName={ADMIN.SECURITY.ATLASSIANCROWD.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.ANONYMOUS_ACCESS.TEXT} description={HUB.SECURITY.ANONYMOUS_ACCESS.DESCRIPTION} routeName={ADMIN.SECURITY.ANONYMOUS.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.SSL_CERTIFICATES.TEXT} description={HUB.SECURITY.SSL_CERTIFICATES.DESCRIPTION} routeName={ADMIN.SECURITY.SSLCERTIFICATES.LIST} />
+        <DirectoryList.DirectoryListItem text={HUB.SECURITY.USER_TOKENS.TEXT} description={HUB.SECURITY.USER_TOKENS.DESCRIPTION} routeName={ADMIN.SECURITY.USERTOKEN.ROOT} />
       </DirectoryList>
 
-      <h3 style={sectionHeadingStyle}>Repository</h3>
+      <h3 style={sectionHeadingStyle}>{HUB.REPOSITORY.TITLE}</h3>
       <DirectoryList>
-        <DirectoryList.DirectoryListItem text="Repositories" description="Manage Maven, npm, Docker, and other repositories" routeName={ADMIN.REPOSITORY.REPOSITORIES.ROOT} params={{ itemId: null }} />
-        <DirectoryList.DirectoryListItem text="Blob Stores" description="Configure local and cloud blob storage" routeName={ADMIN.REPOSITORY.BLOBSTORES.LIST} />
-        <DirectoryList.DirectoryListItem text="Cleanup Policies" description="Configure automated component cleanup" routeName={ADMIN.REPOSITORY.CLEANUPPOLICIES.LIST} />
-        <DirectoryList.DirectoryListItem text="Routing Rules" description="Control component access by path patterns" routeName={ADMIN.REPOSITORY.ROUTINGRULES.LIST} />
-        <DirectoryList.DirectoryListItem text="Content Selectors" description="Define content filtering expressions" routeName={ADMIN.REPOSITORY.SELECTORS.LIST} />
-        <DirectoryList.DirectoryListItem text="Data Store" description="Configure repository metadata database" routeName={ADMIN.REPOSITORY.DATASTORE.ROOT} />
-        <DirectoryList.DirectoryListItem text="Proprietary" description="Manage proprietary component settings" routeName={ADMIN.REPOSITORY.PROPRIETARY.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.REPOSITORY.REPOSITORIES.TEXT} description={HUB.REPOSITORY.REPOSITORIES.DESCRIPTION} routeName={ADMIN.REPOSITORY.REPOSITORIES.ROOT} params={{ itemId: null }} />
+        <DirectoryList.DirectoryListItem text={HUB.REPOSITORY.BLOB_STORES.TEXT} description={HUB.REPOSITORY.BLOB_STORES.DESCRIPTION} routeName={ADMIN.REPOSITORY.BLOBSTORES.LIST} />
+        <DirectoryList.DirectoryListItem text={HUB.REPOSITORY.CLEANUP_POLICIES.TEXT} description={HUB.REPOSITORY.CLEANUP_POLICIES.DESCRIPTION} routeName={ADMIN.REPOSITORY.CLEANUPPOLICIES.LIST} />
+        <DirectoryList.DirectoryListItem text={HUB.REPOSITORY.ROUTING_RULES.TEXT} description={HUB.REPOSITORY.ROUTING_RULES.DESCRIPTION} routeName={ADMIN.REPOSITORY.ROUTINGRULES.LIST} />
+        <DirectoryList.DirectoryListItem text={HUB.REPOSITORY.CONTENT_SELECTORS.TEXT} description={HUB.REPOSITORY.CONTENT_SELECTORS.DESCRIPTION} routeName={ADMIN.REPOSITORY.SELECTORS.LIST} />
+        <DirectoryList.DirectoryListItem text={HUB.REPOSITORY.DATA_STORE.TEXT} description={HUB.REPOSITORY.DATA_STORE.DESCRIPTION} routeName={ADMIN.REPOSITORY.DATASTORE.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.REPOSITORY.PROPRIETARY.TEXT} description={HUB.REPOSITORY.PROPRIETARY.DESCRIPTION} routeName={ADMIN.REPOSITORY.PROPRIETARY.ROOT} />
       </DirectoryList>
 
-      <h3 style={sectionHeadingStyle}>System</h3>
+      <h3 style={sectionHeadingStyle}>{HUB.SYSTEM.TITLE}</h3>
       <DirectoryList>
-        <DirectoryList.DirectoryListItem text="Tasks" description="Schedule and monitor system tasks" routeName={ADMIN.SYSTEM.TASKS.ROOT} params={{ taskId: null }} />
-        <DirectoryList.DirectoryListItem text="Email Server" description="Configure email server and notifications" routeName={ADMIN.SYSTEM.EMAILSERVER.ROOT} />
-        <DirectoryList.DirectoryListItem text="HTTP" description="Configure HTTP and HTTPS settings" routeName={ADMIN.SYSTEM.HTTP.ROOT} />
-        <DirectoryList.DirectoryListItem text="API" description="Configure REST API settings" routeName={ADMIN.SYSTEM.API.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SYSTEM.TASKS.TEXT} description={HUB.SYSTEM.TASKS.DESCRIPTION} routeName={ADMIN.SYSTEM.TASKS.ROOT} params={{ taskId: null }} />
+        <DirectoryList.DirectoryListItem text={HUB.SYSTEM.EMAIL_SERVER.TEXT} description={HUB.SYSTEM.EMAIL_SERVER.DESCRIPTION} routeName={ADMIN.SYSTEM.EMAILSERVER.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SYSTEM.HTTP.TEXT} description={HUB.SYSTEM.HTTP.DESCRIPTION} routeName={ADMIN.SYSTEM.HTTP.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SYSTEM.API.TEXT} description={HUB.SYSTEM.API.DESCRIPTION} routeName={ADMIN.SYSTEM.API.ROOT} />
         {isExtjsCapabilitiesEnabled() &&
-          <DirectoryList.DirectoryListItem text="Capabilities" description="Configure system capabilities and integrations" routeName={ADMIN.SYSTEM.CAPABILITIES_EXTJS.ROOT} params={{ id: null }} />
+          <DirectoryList.DirectoryListItem text={HUB.SYSTEM.CAPABILITIES.TEXT} description={HUB.SYSTEM.CAPABILITIES.DESCRIPTION} routeName={ADMIN.SYSTEM.CAPABILITIES_EXTJS.ROOT} params={{ id: null }} />
         }
         {isReactCapabilitiesEnabled() &&
-          <DirectoryList.DirectoryListItem text="Capabilities" description="Configure system capabilities and integrations" routeName={ADMIN.SYSTEM.CAPABILITIES.LIST} />
+          <DirectoryList.DirectoryListItem text={HUB.SYSTEM.CAPABILITIES.TEXT} description={HUB.SYSTEM.CAPABILITIES.DESCRIPTION} routeName={ADMIN.SYSTEM.CAPABILITIES.LIST} />
         }
-        <DirectoryList.DirectoryListItem text="Nodes" description="View cluster nodes and status" routeName={ADMIN.SYSTEM.NODES.ROOT} />
-        <DirectoryList.DirectoryListItem text="Astrum One UI" description="Configure Astrum One UI settings and features" routeName={ADMIN.SYSTEM.PREVIEWUI.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SYSTEM.NODES.TEXT} description={HUB.SYSTEM.NODES.DESCRIPTION} routeName={ADMIN.SYSTEM.NODES.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SYSTEM.ASTRUM_ONE_UI.TEXT} description={HUB.SYSTEM.ASTRUM_ONE_UI.DESCRIPTION} routeName={ADMIN.SYSTEM.PREVIEWUI.ROOT} />
       </DirectoryList>
 
-      <h3 style={sectionHeadingStyle}>Support</h3>
+      <h3 style={sectionHeadingStyle}>{HUB.SUPPORT.TITLE}</h3>
       <DirectoryList>
-        <DirectoryList.DirectoryListItem text="System Information" description="View system information and diagnostics" routeName={ADMIN.SUPPORT.SYSTEMINFORMATION.ROOT} />
-        <DirectoryList.DirectoryListItem text="Logs" description="View application logs" routeName={ADMIN.SUPPORT.LOGS.ROOT} params={{ itemId: null }} />
-        <DirectoryList.DirectoryListItem text="Logging Configuration" description="Configure log levels and output" routeName={ADMIN.SUPPORT.LOGGING.LIST} />
-        <DirectoryList.DirectoryListItem text="Metric Health" description="View system metrics and health checks" routeName={ADMIN.SUPPORT.STATUS.ROOT} params={{ itemId: null }} />
-        <DirectoryList.DirectoryListItem text="Support ZIP" description="Generate support diagnostics bundle" routeName={ADMIN.SUPPORT.SUPPORTZIP.ROOT} />
-        <DirectoryList.DirectoryListItem text="Support Request" description="Submit a support request" routeName={ADMIN.SUPPORT.SUPPORTREQUEST.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SUPPORT.SYSTEM_INFORMATION.TEXT} description={HUB.SUPPORT.SYSTEM_INFORMATION.DESCRIPTION} routeName={ADMIN.SUPPORT.SYSTEMINFORMATION.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SUPPORT.LOGS.TEXT} description={HUB.SUPPORT.LOGS.DESCRIPTION} routeName={ADMIN.SUPPORT.LOGS.ROOT} params={{ itemId: null }} />
+        <DirectoryList.DirectoryListItem text={HUB.SUPPORT.LOGGING_CONFIGURATION.TEXT} description={HUB.SUPPORT.LOGGING_CONFIGURATION.DESCRIPTION} routeName={ADMIN.SUPPORT.LOGGING.LIST} />
+        <DirectoryList.DirectoryListItem text={HUB.SUPPORT.METRIC_HEALTH.TEXT} description={HUB.SUPPORT.METRIC_HEALTH.DESCRIPTION} routeName={ADMIN.SUPPORT.STATUS.ROOT} params={{ itemId: null }} />
+        <DirectoryList.DirectoryListItem text={HUB.SUPPORT.SUPPORT_ZIP.TEXT} description={HUB.SUPPORT.SUPPORT_ZIP.DESCRIPTION} routeName={ADMIN.SUPPORT.SUPPORTZIP.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SUPPORT.SUPPORT_REQUEST.TEXT} description={HUB.SUPPORT.SUPPORT_REQUEST.DESCRIPTION} routeName={ADMIN.SUPPORT.SUPPORTREQUEST.ROOT} />
       </DirectoryList>
     </DirectoryPage>
   );

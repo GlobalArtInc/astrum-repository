@@ -1,5 +1,6 @@
 
 import {UIStrings} from '@globalart/astrum-ui-plugin';
+import localize from '@globalart/astrum-ui-plugin/src/frontend/src/interface/localize';
 import AnonymousAccessStrings from './pages/admin/security/AnonymousAccessStrings';
 import RealmsStrings from './pages/admin/security/RealmsStrings';
 import PrivilegesStrings from './pages/admin/security/PrivilegesStrings';
@@ -49,118 +50,126 @@ import AdminSupportDirectoryStrings from './pages/admin/system/AdminSupportDirec
 import AdminDirectoryStrings from './pages/admin/system/AdminDirectoryStrings';
 import OAuth2Strings from "./pages/admin/security/OAuth2Strings";
 import TelemetryStrings from './pages/telemetry/TelemetryStrings';
+import SettingsHubStrings from './pages/admin/SettingsHubStrings';
+import ShellStrings from './ShellStrings';
+import PageStrings from './PageStrings';
 
 export default {
   ...UIStrings,
+  ...localize('react-coreui', {
 
-  // welcome page
-  ...WelcomeStrings,
+    // welcome page
+    ...WelcomeStrings,
 
-  // browse
-  ...Log4jVisualizerStrings,
-  ...TagsStrings,
-  ...BrowseStrings,
-  ...UploadStrings,
-  ...SearchStrings,
+    // browse
+    ...Log4jVisualizerStrings,
+    ...TagsStrings,
+    ...BrowseStrings,
+    ...UploadStrings,
+    ...SearchStrings,
 
-  // admin
+    // admin
 
-  // admin/repository
-  ...BlobStoresStrings,
-  ...ContentSelectorsStrings,
-  ...DataStoreStrings,
-  ...ProprietaryRepositoriesStrings,
-  ...RepositoriesStrings,
-  ...ReplicationStrings,
-  ...RoutingRulesStrings,
+    // admin/repository
+    ...BlobStoresStrings,
+    ...ContentSelectorsStrings,
+    ...DataStoreStrings,
+    ...ProprietaryRepositoriesStrings,
+    ...RepositoriesStrings,
+    ...ReplicationStrings,
+    ...RoutingRulesStrings,
 
-  // admin/security
-  ...AnonymousAccessStrings,
-  ...AtlassianCrowdStrings,
-  ...LdapStrings,
-  ...OAuth2Strings,
-  ...PrivilegesStrings,
-  ...RealmsStrings,
-  ...RolesStrings,
-  ...SamlStrings,
-  ...ServiceAccountTokensStrings,
-  ...SslCertificatesStrings,
-  ...UsersStrings,
-  ...UserTokenConfigurationStrings,
-  ...ServiceAccountTokensStrings,
+    // admin/security
+    ...AnonymousAccessStrings,
+    ...AtlassianCrowdStrings,
+    ...LdapStrings,
+    ...OAuth2Strings,
+    ...PrivilegesStrings,
+    ...RealmsStrings,
+    ...RolesStrings,
+    ...SamlStrings,
+    ...ServiceAccountTokensStrings,
+    ...SslCertificatesStrings,
+    ...UsersStrings,
+    ...UserTokenConfigurationStrings,
+    ...ServiceAccountTokensStrings,
 
-  // admin/support
-  ...LoggingStrings,
-  ...LogsStrings,
-  ...RecoveryModeStrings,
-  ...StatusStrings,
-  ...SupportRequestStrings,
-  ...SupportZipStrings,
+    // admin/support
+    ...LoggingStrings,
+    ...LogsStrings,
+    ...RecoveryModeStrings,
+    ...StatusStrings,
+    ...SupportRequestStrings,
+    ...SupportZipStrings,
 
-  // admin/system
-  ...ApiStrings,
-  ...EmailServerStrings,
-  ...HttpStrings,
-  ...NodesStrings,
-  ...PreviewUiStrings,
-  ...SystemInformationStrings,
+    // admin/system
+    ...ApiStrings,
+    ...EmailServerStrings,
+    ...HttpStrings,
+    ...NodesStrings,
+    ...PreviewUiStrings,
+    ...SystemInformationStrings,
 
-  // admin/riskvisualizer
+    // admin/riskvisualizer
 
-  // telemetry
-  ...TelemetryStrings,
+    // telemetry
+    ...TelemetryStrings,
 
-  // user
-  ...AccountStrings,
-  ...NuGetApiKeyStrings,
-  ...UserTokenStrings,
-  ...UpgradeAlertStrings,
-  ...UpgradeTriggerModalStrings,
-  ...RecoveryModeAlertStrings,
+    // user
+    ...AccountStrings,
+    ...NuGetApiKeyStrings,
+    ...UserTokenStrings,
+    ...UpgradeAlertStrings,
+    ...UpgradeTriggerModalStrings,
+    ...RecoveryModeAlertStrings,
 
-  ...RepositoryDirectoryStrings,
-  ...AdminSecurityDirectoryStrings,
-  ...AdminSystemDirectoryStrings,
-  ...AdminSupportDirectoryStrings,
-  ...AdminDirectoryStrings,
+    ...RepositoryDirectoryStrings,
+    ...AdminSecurityDirectoryStrings,
+    ...AdminSystemDirectoryStrings,
+    ...AdminSupportDirectoryStrings,
+    ...AdminDirectoryStrings,
+    ...SettingsHubStrings,
+    ...ShellStrings,
+    ...PageStrings,
 
-  // other
-  FORMAT_PLACEHOLDER: 'Format',
+    // other
+    FORMAT_PLACEHOLDER: 'Format',
 
-  HEALTHCHECK_EULA: {
-    HEADER: 'Astrum IQ Server Terms of Use',
-    BUTTONS: {
-      ACCEPT: 'I accept',
-      DECLINE: 'I do not accept'
+    HEALTHCHECK_EULA: {
+      HEADER: 'Astrum IQ Server Terms of Use',
+      BUTTONS: {
+        ACCEPT: 'I accept',
+        DECLINE: 'I do not accept'
+      }
+    },
+
+    ANALYZE_APPLICATION: {
+      HEADER: 'Analyze Application',
+      MAIN: 'Application analysis performs a deep inspection of this application, identifying potential risks.<br/> More information is available here <a href=\"http://links.globalart.dev/products/insight/ac/home\">here</a>',
+      EMAIL: {
+        LABEL: 'Email address',
+        DESCRIPTION: 'The address where the summary report will be sent'
+      },
+      PASSWORD: {
+        LABEL: 'Report password',
+        DESCRIPTION: 'A password to gain access to the detailed report'
+      },
+      PACKAGES: {
+        LABEL: 'Proprietary packages',
+        DESCRIPTION: 'A comma separated list of proprietary packages'
+      },
+      REPORT: {
+        LABEL: 'Report label',
+        DESCRIPTION: 'The name the report will be given'
+      },
+      SELECT_ASSET: {
+        LABEL: 'Select Asset',
+        DESCRIPTION: 'Select an asset to base the analysis on'
+      },
+      BUTTONS: {
+        ANALYZE: 'Analyze',
+        CANCEL: 'Cancel'
+      }
     }
-  },
-
-  ANALYZE_APPLICATION: {
-    HEADER: 'Analyze Application',
-    MAIN: 'Application analysis performs a deep inspection of this application, identifying potential risks.<br/> More information is available here <a href=\"http://links.globalart.dev/products/insight/ac/home\">here</a>',
-    EMAIL: {
-      LABEL: 'Email address',
-      DESCRIPTION: 'The address where the summary report will be sent'
-    },
-    PASSWORD: {
-      LABEL: 'Report password',
-      DESCRIPTION: 'A password to gain access to the detailed report'
-    },
-    PACKAGES: {
-      LABEL: 'Proprietary packages',
-      DESCRIPTION: 'A comma separated list of proprietary packages'
-    },
-    REPORT: {
-      LABEL: 'Report label',
-      DESCRIPTION: 'The name the report will be given'
-    },
-    SELECT_ASSET: {
-      LABEL: 'Select Asset',
-      DESCRIPTION: 'Select an asset to base the analysis on'
-    },
-    BUTTONS: {
-      ANALYZE: 'Analyze',
-      CANCEL: 'Cancel'
-    }
-  }
+  })
 };

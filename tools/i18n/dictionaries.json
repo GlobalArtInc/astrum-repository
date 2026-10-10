@@ -18,6 +18,20 @@
       "dir": "public/common/components/astrum-onboarding-plugin/src/main/resources/astrum-i18n/extjs-onboarding",
       "prefix": "extjs.onboarding",
       "extjs": "public/common/components/astrum-onboarding-plugin/src/main/resources/static/rapture/AS/onboarding/app/PluginStrings.js"
+    },
+    {
+      "dir": "public/common/components/astrum-ui-plugin/src/main/resources/astrum-i18n/react-ui",
+      "prefix": "react.ui",
+      "react": [
+        "public/common/components/astrum-ui-plugin/src/frontend/src/constants/UIStrings.js"
+      ]
+    },
+    {
+      "dir": "public/common/components/astrum-coreui-plugin/src/main/resources/astrum-i18n/react-coreui",
+      "prefix": "react.coreui",
+      "react": [
+        "public/common/components/astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx"
+      ]
     }
   ]
 }

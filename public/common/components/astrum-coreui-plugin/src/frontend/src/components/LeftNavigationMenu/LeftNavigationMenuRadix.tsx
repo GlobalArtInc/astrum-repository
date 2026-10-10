@@ -21,6 +21,9 @@ import { ROUTE_NAMES } from '../../routerConfig/routeNames/routeNames';
 import { useLeftNavigationMenu, useSearchCollapsibleNav } from './useLeftNavigationMenu';
 
 import './LeftNavigationMenuRadix.scss';
+import UIStrings from '../../constants/UIStrings';
+
+const {NAVIGATION} = UIStrings.SHELL;
 
 /** Props for {@link SearchNavItem}. */
 interface SearchNavItemProps {
@@ -136,7 +139,7 @@ export function SearchCollapsibleNav({ isCollapsed }: SearchCollapsibleNavProps)
               <span className="guide-nav-item__icon">
                 <Search size={18} />
               </span>
-              <span className="guide-nav-item__text">Search</span>
+              <span className="guide-nav-item__text">{NAVIGATION.SEARCH}</span>
             </Flex>
             <span className="search-collapsible__chevron">
               {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -148,7 +151,7 @@ export function SearchCollapsibleNav({ isCollapsed }: SearchCollapsibleNavProps)
           <Box className="search-collapsible__submenu">
             <SearchNavItem
               name={customRouteName}
-              text="Custom"
+              text={NAVIGATION.CUSTOM_SEARCH}
               icon={null}
               params={{ keyword: null }}
               isCollapsed={false}
@@ -183,14 +186,14 @@ export default function LeftNavigationMenuRadix() {
           <Box {...(isCollapsed ? { pl: '1', pr: '2', py: '4' } : { p: '4' })} className="guide-sidebar__nav-content">
             <Flex direction="column" gap="2">
               {/* Dashboard */}
-              <NavItemBox name={BROWSE.WELCOME.ROOT} text="Dashboard" icon={LayoutDashboard} isCollapsed={isCollapsed} />
+              <NavItemBox name={BROWSE.WELCOME.ROOT} text={NAVIGATION.DASHBOARD} icon={LayoutDashboard} isCollapsed={isCollapsed} />
 
               {/* Search - Preview UI: unified single link; Classic UI: collapsible format submenu */}
               {isPreviewUI ? (
                 <NavItemBox
                   name={BROWSE.SEARCH.UNIFIED}
                   visibilityRoute={BROWSE.SEARCH.ROOT}
-                  text="Search"
+                  text={NAVIGATION.SEARCH}
                   icon={Search}
                   selectedState={BROWSE.SEARCH.ROOT}
                   isCollapsed={isCollapsed}
@@ -202,7 +205,7 @@ export default function LeftNavigationMenuRadix() {
               {/* Browse */}
               <NavItemBox
                 name={isPreviewUI ? 'preview.browse.browse' : BROWSE.BROWSE.ROOT}
-                text="Browse"
+                text={NAVIGATION.BROWSE}
                 icon={FolderOpen}
                 isCollapsed={isCollapsed}
                 params={isPreviewUI ? {} : { repo: null }}
@@ -212,7 +215,7 @@ export default function LeftNavigationMenuRadix() {
               <NavItemBox
                 name={BROWSE.UPLOAD.LIST}
                 visibilityRoute={BROWSE.UPLOAD.ROOT}
-                text="Upload"
+                text={NAVIGATION.UPLOAD}
                 icon={HardDriveUpload}
                 selectedState={BROWSE.UPLOAD.ROOT}
                 isCollapsed={isCollapsed}
@@ -222,7 +225,7 @@ export default function LeftNavigationMenuRadix() {
               {isProEdition && (
                 <NavItemBox
                   name={BROWSE.TAGS.ROOT}
-                  text="Tags"
+                  text={NAVIGATION.TAGS}
                   icon={Tags}
                   isCollapsed={isCollapsed}
                   params={{ itemId: null }}
@@ -232,7 +235,7 @@ export default function LeftNavigationMenuRadix() {
 
               {/* API */}
               {isPreviewUI && (
-                <NavItemBox name="preview.browse.api" text="API" icon={FileCode} isCollapsed={isCollapsed} />
+                <NavItemBox name="preview.browse.api" text={NAVIGATION.API} icon={FileCode} isCollapsed={isCollapsed} />
               )}
 
               {/* Admin Section */}
@@ -244,7 +247,7 @@ export default function LeftNavigationMenuRadix() {
                   <NavItemBox
                     name={isPreviewUI ? 'preview.settings' : adminInitialRouteName}
                     selectedState={ADMIN.DIRECTORY}
-                    text="Settings"
+                    text={NAVIGATION.SETTINGS}
                     icon={Settings}
                     isCollapsed={isCollapsed}
                   />

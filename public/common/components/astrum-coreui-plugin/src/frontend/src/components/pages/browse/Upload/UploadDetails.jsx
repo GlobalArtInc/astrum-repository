@@ -33,6 +33,7 @@ import { COMPOUND_FIELD_PARENT_NAME, ASSET_NUM_MATCHER, MAVEN_FORMAT, MAVEN_COMP
 import './UploadDetails.scss';
 import { useCurrentStateAndParams, useRouter } from '@uirouter/react';
 import { ROUTE_NAMES } from '../../../../routerConfig/routeNames/routeNames.js';
+import UIStrings from '../../../../constants/UIStrings';
 
 /**
  * React component that renders a form group from a componentField/assetField structure and the
@@ -60,7 +61,7 @@ function Field({ displayName, helpText, name, type, optional, options, machineSt
                       disabled={disabled}
                       onChange={FormUtils.handleUpdate(name, send)}
                       validatable={!optional || validatable}>
-          <option value="">Select...</option>
+          <option value="">{UIStrings.PAGES.UPLOAD.SELECT}</option>
           {options && Object.entries(options).map(([key, value]) => (
             <option key={key} value={key}>
               {value}
@@ -167,7 +168,7 @@ export default function UploadDetails() {
                               <AsButtonBar>
                                 <AsButton type="button" variant="tertiary" onClick={() => deleteAssetGroup(assetKey)}>
                                   <AsFontAwesomeIcon icon={faTrashAlt} />
-                                  <span>Delete</span>
+                                  <span>{UIStrings.PAGES.UPLOAD.DELETE}</span>
                                 </AsButton>
                               </AsButtonBar>
                             }

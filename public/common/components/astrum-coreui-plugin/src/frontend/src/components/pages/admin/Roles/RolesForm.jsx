@@ -183,9 +183,9 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
 
         {isPrivilegesModalEnabled &&
           <div className="modal-selection-section">
-            <AsH2 className="modal-section-title">Applied Privileges</AsH2>
+            <AsH2 className="modal-section-title">{UIStrings.PAGES.ROLES_FORM.APPLIED_PRIVILEGES}</AsH2>
             <AsButton onClick={() => setShowModalPrivileges(true)} className="modal-button privileges-modal" variant="tertiary" type="button">
-              Modify Applied Privileges
+              {UIStrings.PAGES.ROLES_FORM.MODIFY_PRIVILEGES}
             </AsButton>
             {showModalPrivileges &&
               <PrivilegesSelectionModal
@@ -197,7 +197,7 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
               />
             }
             <AsTransferListHalf
-              label="Applied Privileges"
+              label={UIStrings.PAGES.ROLES_FORM.APPLIED_PRIVILEGES}
               filterValue={privilegesListFilter}
               onFilterChange={setPrivilegesListFilter}
               items={selectedPrivileges}
@@ -207,9 +207,9 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
 
         {isRolesModalEnabled &&
           <div className="modal-selection-section">
-            <AsH2 className="modal-section-title">Applied Roles</AsH2>
+            <AsH2 className="modal-section-title">{UIStrings.PAGES.ROLES_FORM.APPLIED_ROLES}</AsH2>
             <AsButton onClick={() => setShowModalRoles(true)} className="modal-button roles-modal" variant="tertiary" type="button">
-              Modify Applied Roles
+              {UIStrings.PAGES.ROLES_FORM.MODIFY_ROLES}
             </AsButton>
             {showModalRoles &&
               <RolesSelectionModal
@@ -221,7 +221,7 @@ export default function RolesForm({roleId, service, onDone, isCreate}) {
               />
             }
             <AsTransferListHalf
-              label="Applied Roles"
+              label={UIStrings.PAGES.ROLES_FORM.APPLIED_ROLES}
               filterValue={rolesListFilter}
               onFilterChange={setRolesListFilter}
               items={selectedRoles}

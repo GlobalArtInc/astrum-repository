@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { AsButton, AsButtonBar, AsFooter, AsH2, AsModal, AsWarningAlert } from '@globalart/astrum-react-shared-components';
+import UIStrings from '../../../constants/UIStrings';
 
 export default function CapabilitiesEditDeleteModal(
     { showModal, deleteWarningMessage, onConfirmDelete, onDeleteCanceled }
@@ -12,7 +13,7 @@ export default function CapabilitiesEditDeleteModal(
 
   return <AsModal onCancel={onDeleteCanceled} aria-labelledby="modal-header-text">
     <AsModal.Header>
-      <AsH2>Delete Capability?</AsH2>
+      <AsH2>{UIStrings.CAPABILITIES.EDIT.DELETE_TITLE}</AsH2>
     </AsModal.Header>
 
     <AsModal.Content>
@@ -23,8 +24,8 @@ export default function CapabilitiesEditDeleteModal(
 
     <AsFooter>
       <AsButtonBar>
-        <AsButton onClick={onDeleteCanceled}>Cancel</AsButton>
-        <AsButton variant="primary" onClick={onConfirmDelete}>Delete</AsButton>
+        <AsButton onClick={onDeleteCanceled}>{UIStrings.SETTINGS.CANCEL_BUTTON_LABEL}</AsButton>
+        <AsButton variant="primary" onClick={onConfirmDelete}>{UIStrings.SETTINGS.DELETE_BUTTON_LABEL}</AsButton>
       </AsButtonBar>
     </AsFooter>
   </AsModal>
