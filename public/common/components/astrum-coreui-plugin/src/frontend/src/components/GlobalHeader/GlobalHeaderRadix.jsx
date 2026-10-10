@@ -290,12 +290,12 @@ export default function GlobalHeaderRadix() {
         <Flex align="center" justify="between" gap="4" px="4" className="as-global-header-radix__row">
           {/* Left: Sidebar toggle + Logo */}
           <Flex align="center" gap="4" className="as-global-header-radix__side">
-            <Tooltip content={isSidebarOpen ? HEADER.EXPAND_SIDEBAR : HEADER.COLLAPSE_SIDEBAR}>
+            <Tooltip content={isSidebarOpen ? HEADER.COLLAPSE_SIDEBAR : HEADER.EXPAND_SIDEBAR}>
               <IconButton
                 variant="outline"
                 size="2"
                 color="gray"
-                aria-label={isSidebarOpen ? HEADER.EXPAND_SIDEBAR : HEADER.COLLAPSE_SIDEBAR}
+                aria-label={isSidebarOpen ? HEADER.COLLAPSE_SIDEBAR : HEADER.EXPAND_SIDEBAR}
                 onClick={onSidebarToggle}
               >
                 <Menu size={16} />
