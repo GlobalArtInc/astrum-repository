@@ -4,7 +4,7 @@ import {useMachine} from '@xstate/react';
 import {faGlobe} from '@fortawesome/free-solid-svg-icons';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 
-import {AsButton, AsLoadWrapper} from '@globalart/react-shared-components';
+import {AsButton, AsLoadWrapper} from '@globalart/astrum-react-shared-components';
 
 import {
   ContentBody,

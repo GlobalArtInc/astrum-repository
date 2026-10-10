@@ -6,7 +6,7 @@ import {
   AsButton,
   AsFontAwesomeIcon,
   AsGlobalHeader2,
-} from "@globalart/react-shared-components";
+} from "@globalart/astrum-react-shared-components";
 import { faSync } from "@fortawesome/free-solid-svg-icons";
 import { ExtJS, handleExtJsUnsavedChanges } from '@globalart/astrum-ui-plugin';
 import proLogo from "../../../../art/logos/logo-pro-edition-header.svg";

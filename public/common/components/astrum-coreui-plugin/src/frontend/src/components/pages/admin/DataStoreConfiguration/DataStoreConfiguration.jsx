@@ -12,7 +12,7 @@ import {
   AsStatefulForm,
   AsReadOnly,
   AsTile,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {
   ContentBody,

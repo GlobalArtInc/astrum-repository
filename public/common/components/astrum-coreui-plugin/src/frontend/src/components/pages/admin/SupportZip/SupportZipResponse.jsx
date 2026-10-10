@@ -2,7 +2,7 @@
 import React from 'react';
 import UIStrings from '../../../../constants/UIStrings';
 import {FieldWrapper, Textfield} from '@globalart/astrum-ui-plugin';
-import {AsButton, AsFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsButton, AsFontAwesomeIcon} from '@globalart/astrum-react-shared-components';
 import {faDownload} from '@fortawesome/free-solid-svg-icons';
 
 import {SectionFooter} from '@globalart/astrum-ui-plugin';

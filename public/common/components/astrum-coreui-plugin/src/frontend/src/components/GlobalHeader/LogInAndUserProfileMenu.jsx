@@ -10,7 +10,7 @@ import {
   AsH4,
   useToggle,
   AsDropdown
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import { ExtJS, useIsVisible } from '@globalart/astrum-ui-plugin';
 import { faUser } from '@fortawesome/free-solid-svg-icons';
 import { useRouter, useSref } from '@uirouter/react';

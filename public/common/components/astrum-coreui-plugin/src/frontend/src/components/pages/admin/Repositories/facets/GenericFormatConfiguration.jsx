@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils, useSimpleMachine} from '@globalart/astrum-ui-plugin';
 
-import {AsFormGroup, AsFormSelect, AsLoadWrapper} from '@globalart/react-shared-components';
+import {AsFormGroup, AsFormSelect, AsLoadWrapper} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 

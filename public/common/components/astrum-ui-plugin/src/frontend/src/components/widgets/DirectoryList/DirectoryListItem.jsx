@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useSref, useRouter } from '@uirouter/react';
-import { AsList } from '@globalart/react-shared-components';
+import { AsList } from '@globalart/astrum-react-shared-components';
 import { useIsVisible } from '../../../interface/NavigationUtils';
 import classNames from 'classnames';
 

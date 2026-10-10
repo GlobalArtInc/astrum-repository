@@ -4,7 +4,7 @@ import {assign} from 'xstate';
 
 import {ExtAPIUtils, FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {AsFormGroup, AsLoadWrapper, AsStatefulTransferList} from '@globalart/react-shared-components';
+import {AsFormGroup, AsLoadWrapper, AsStatefulTransferList} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 

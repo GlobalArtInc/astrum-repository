@@ -2,7 +2,7 @@
 import React from 'react';
 import {faKey} from '@fortawesome/free-solid-svg-icons';
 
-import {AsButton, AsFontAwesomeIcon, AsModal, AsCopyToClipboard} from '@globalart/react-shared-components';
+import {AsButton, AsFontAwesomeIcon, AsModal, AsCopyToClipboard} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 import './UserToken.scss';

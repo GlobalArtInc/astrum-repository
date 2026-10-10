@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { AsPageMain, AsLoadingSpinner, AsErrorAlert, AsButton } from '@globalart/react-shared-components';
+import { AsPageMain, AsLoadingSpinner, AsErrorAlert, AsButton } from '@globalart/astrum-react-shared-components';
 
 import { useSize } from '../../../hooks/useSize';
 import { useExtComponent } from './useExtComponent';

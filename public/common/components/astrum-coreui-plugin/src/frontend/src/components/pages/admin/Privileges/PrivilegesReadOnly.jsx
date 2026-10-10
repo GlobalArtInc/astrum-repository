@@ -11,7 +11,7 @@ import {
   AsFooter,
   AsButtonBar,
   AsTile,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {FormFieldsFactory} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../constants/UIStrings';

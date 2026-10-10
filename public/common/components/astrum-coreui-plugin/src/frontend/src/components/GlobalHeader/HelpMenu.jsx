@@ -8,7 +8,7 @@ import {
   useToggle,
   AsTextLink,
   AsDropdown, AsP
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import { ExtJS } from '@globalart/astrum-ui-plugin';
 import { faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
 

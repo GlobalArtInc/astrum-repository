@@ -13,7 +13,7 @@ import {
   AsTableRow,
   AsTooltip,
   AsFormSelect,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {faUsers} from '@fortawesome/free-solid-svg-icons';
 

@@ -1,6 +1,6 @@
 
 import React, {useRef, useEffect, useState} from 'react';
-import {AsH2, AsButtonBar, AsButton} from '@globalart/react-shared-components';
+import {AsH2, AsButtonBar, AsButton} from '@globalart/astrum-react-shared-components';
 import UIStrings from '../../../../../constants/UIStrings';
 import {canReadHealthCheckDetail} from './IQServerHelpers';
 

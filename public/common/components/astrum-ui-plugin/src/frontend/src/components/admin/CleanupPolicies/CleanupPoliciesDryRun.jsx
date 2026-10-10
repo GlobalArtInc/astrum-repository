@@ -10,7 +10,7 @@ import {
   AsLoadWrapper,
   AsP,
   AsTooltip
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import ExtJS from '../../../interface/ExtJS';
 import FormUtils from '../../../interface/FormUtils';
 

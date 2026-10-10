@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useMachine} from '@xstate/react';
-import {AsCard, AsH2, AsH3, AsLoadWrapper} from '@globalart/react-shared-components';
+import {AsCard, AsH2, AsH3, AsLoadWrapper} from '@globalart/astrum-react-shared-components';
 import {faArchive} from '@fortawesome/free-solid-svg-icons';
 
 import {

@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {AsTextInput} from '@globalart/react-shared-components';
+import {AsTextInput} from '@globalart/astrum-react-shared-components';
 import FormUtils from '../../../../interface/FormUtils';
 
 import {SUPPORTED_FIELD_TYPES} from '../FormFieldsFactoryConstants';

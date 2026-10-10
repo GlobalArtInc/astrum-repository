@@ -9,7 +9,7 @@ import {
   AsTab,
   AsTabPanel,
   AsLoadWrapper,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faBook} from '@fortawesome/free-solid-svg-icons';
 
 import {PageHeader, PageTitle} from '@globalart/astrum-ui-plugin';

@@ -16,7 +16,7 @@ import {
   AsTile,
   AsH2,
   AsBackButton,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {
   ContentBody,

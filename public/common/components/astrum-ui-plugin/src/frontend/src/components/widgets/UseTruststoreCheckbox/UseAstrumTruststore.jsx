@@ -6,7 +6,7 @@ import {
   AsButton,
   AsFontAwesomeIcon,
   AsTooltip,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import classNames from 'classnames';
 
 import ExtJS from '../../../interface/ExtJS';

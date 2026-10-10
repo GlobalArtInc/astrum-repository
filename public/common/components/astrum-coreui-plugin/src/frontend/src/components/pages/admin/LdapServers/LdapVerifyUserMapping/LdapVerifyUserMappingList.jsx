@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useActor} from '@xstate/react';
-import {AsModal, AsH2, AsTable} from '@globalart/react-shared-components';
+import {AsModal, AsH2, AsTable} from '@globalart/astrum-react-shared-components';
 import UIStrings from '../../../../../constants/UIStrings';
 
 const {

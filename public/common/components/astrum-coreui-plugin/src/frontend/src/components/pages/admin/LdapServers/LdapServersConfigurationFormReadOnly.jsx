@@ -6,7 +6,7 @@ import {
   AsTile,
   AsH2,
   AsReadOnly,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {ReadOnlyField, FormUtils} from '@globalart/astrum-ui-plugin';
 import {findAuthMethod} from './LdapServersHelper';
 import UIStrings from '../../../../constants/UIStrings';

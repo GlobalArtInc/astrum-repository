@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from "classnames";
 
-import {AsFontAwesomeIcon, AsP, AsH3} from "@globalart/react-shared-components";
+import {AsFontAwesomeIcon, AsP, AsH3} from "@globalart/astrum-react-shared-components";
 import {faInfoCircle} from '@fortawesome/free-solid-svg-icons';
 
 import './HelpTile.scss';

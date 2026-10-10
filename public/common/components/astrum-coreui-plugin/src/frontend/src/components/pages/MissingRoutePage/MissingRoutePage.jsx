@@ -9,7 +9,7 @@ import {
   AsH2,
   AsP,
   AsTextLink
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import { faBox, faGhost } from '@fortawesome/free-solid-svg-icons';
 
 import { useSref } from '@uirouter/react';

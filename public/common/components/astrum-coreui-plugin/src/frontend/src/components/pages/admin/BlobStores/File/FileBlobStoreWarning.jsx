@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useActor} from '@xstate/react';
-import {AsWarningAlert} from '@globalart/react-shared-components';
+import {AsWarningAlert} from '@globalart/astrum-react-shared-components';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 import UIStrings from '../../../../../constants/UIStrings';
 

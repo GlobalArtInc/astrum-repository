@@ -9,7 +9,7 @@ import React, {
   type KeyboardEvent,
 } from 'react';
 import { Flex, Text, Button, IconButton, Select } from '@radix-ui/themes';
-import { AsCombobox } from '@globalart/react-shared-components';
+import { AsCombobox } from '@globalart/astrum-react-shared-components';
 import { ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 
 import './TablePagination.scss';

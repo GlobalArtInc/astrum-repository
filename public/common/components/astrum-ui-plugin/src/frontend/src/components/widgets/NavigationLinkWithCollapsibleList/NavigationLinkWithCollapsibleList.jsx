@@ -3,7 +3,7 @@
 import PropTypes from 'prop-types';
 import React, { useEffect, useState } from 'react';
 import classnames from 'classnames';
-import { AsFontAwesomeIcon, AsGlobalSidebar2NavigationLink } from '@globalart/react-shared-components';
+import { AsFontAwesomeIcon, AsGlobalSidebar2NavigationLink } from '@globalart/astrum-react-shared-components';
 import { faChevronDown, faChevronUp, faLink } from '@fortawesome/free-solid-svg-icons';
 
 import './NavigationLinkWithCollapsibleList.scss';

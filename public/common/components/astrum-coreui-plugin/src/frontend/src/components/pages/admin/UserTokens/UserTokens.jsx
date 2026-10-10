@@ -5,7 +5,7 @@ import {faKey} from '@fortawesome/free-solid-svg-icons';
 
 import {ExtJS, Permissions} from '@globalart/astrum-ui-plugin';
 
-import {AsTile, AsLoadWrapper} from '@globalart/react-shared-components';
+import {AsTile, AsLoadWrapper} from '@globalart/astrum-react-shared-components';
 
 import {
   ContentBody,

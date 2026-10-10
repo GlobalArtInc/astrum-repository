@@ -10,7 +10,7 @@ import {
   AsPageTitle,
   AsH2,
   AsButton,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {faArchive} from '@fortawesome/free-solid-svg-icons';
 

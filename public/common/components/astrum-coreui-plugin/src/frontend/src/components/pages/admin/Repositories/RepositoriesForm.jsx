@@ -7,7 +7,7 @@ import {
   AsButton,
   AsFontAwesomeIcon,
   AsStatefulForm
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {faDatabase, faTrash} from '@fortawesome/free-solid-svg-icons';
 

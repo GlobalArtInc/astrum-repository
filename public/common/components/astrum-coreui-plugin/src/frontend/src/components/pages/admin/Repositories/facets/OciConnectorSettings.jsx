@@ -8,7 +8,7 @@ import {
   AsFormGroup,
   AsFormSelect,
   AsWarningAlert
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {FormUtils, ExtJS} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../../constants/UIStrings';

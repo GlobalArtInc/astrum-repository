@@ -22,7 +22,7 @@ import {
   AsLoadWrapper,
   AsReadOnly,
   useToggle
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
  import UIStrings from '../../../../constants/UIStrings';
 import UserTokenMachine from './UserTokenMachine';

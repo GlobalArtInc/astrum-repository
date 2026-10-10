@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { setDialogSetter, handleContinue, handleCancel } from '../../../router/unsavedChangesDialog';
-import { AsButton, AsModal, AsWarningAlert } from '@globalart/react-shared-components';
+import { AsButton, AsModal, AsWarningAlert } from '@globalart/astrum-react-shared-components';
 
 export default function UnsavedChangesModal() {
   const [visible, setVisible] = useState(false);

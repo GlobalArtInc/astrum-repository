@@ -17,7 +17,7 @@ import {
   AsTextInput,
   AsTile,
   AsTooltip
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {ExtJS, FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
 import {faTrashAlt, faPlusCircle} from '@fortawesome/free-solid-svg-icons';
 import UIStrings from '../../../../constants/UIStrings';

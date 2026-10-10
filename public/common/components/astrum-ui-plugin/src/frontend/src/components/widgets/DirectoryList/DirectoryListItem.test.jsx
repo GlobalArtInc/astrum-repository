@@ -12,7 +12,7 @@ jest.mock('@uirouter/react', () => ({
   useRouter: jest.fn()
 }));
 
-jest.mock('@globalart/react-shared-components', () => ({
+jest.mock('@globalart/astrum-react-shared-components', () => ({
   AsList: {
     LinkItem: ({children, href, className, ...props}) => (
       <a href={href} className={className} data-testid="link-item" {...props}>{children}</a>

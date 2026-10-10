@@ -19,7 +19,7 @@ import {
   AsButtonBar,
   AsFontAwesomeIcon,
   AsPageTitle,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faSortNumericUp, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 
 import {

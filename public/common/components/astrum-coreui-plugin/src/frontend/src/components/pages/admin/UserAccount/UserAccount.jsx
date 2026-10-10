@@ -15,7 +15,7 @@ import {
   AsTextInput,
   AsTile,
   AsTooltip
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {ContentBody, Page, PageHeader, PageTitle} from '@globalart/astrum-ui-plugin';
 

@@ -2,7 +2,7 @@
 import React from 'react';
 import {useActor} from '@xstate/react';
 
-import {AsCombobox, AsFormGroup, AsTextInput} from '@globalart/react-shared-components';
+import {AsCombobox, AsFormGroup, AsTextInput} from '@globalart/astrum-react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../constants/UIStrings';

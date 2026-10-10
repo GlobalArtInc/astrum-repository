@@ -5,7 +5,7 @@ import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import {useRepositoriesService} from '../RepositoriesContextProvider';
 
-import {AsFormGroup, AsStatefulTransferList} from '@globalart/react-shared-components';
+import {AsFormGroup, AsStatefulTransferList} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 

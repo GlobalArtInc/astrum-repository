@@ -8,7 +8,7 @@ import {
   AsInfoAlert,
   AsReadOnly,
   AsTextInput
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import React from 'react';
 import {faCheckCircle, faTrash} from '@fortawesome/free-solid-svg-icons';
 import UIStrings from '../../../../../constants/UIStrings';

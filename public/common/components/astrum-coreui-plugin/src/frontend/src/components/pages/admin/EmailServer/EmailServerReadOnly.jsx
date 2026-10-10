@@ -6,7 +6,7 @@ import {
   AsLoadWrapper,
   AsInfoAlert,
   AsH2,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {FormUtils, ReadOnlyField} from '@globalart/astrum-ui-plugin';
 

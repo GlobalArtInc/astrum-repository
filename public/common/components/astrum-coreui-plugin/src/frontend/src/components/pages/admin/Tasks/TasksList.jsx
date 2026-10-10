@@ -13,7 +13,7 @@ import {
   AsTableRow,
   AsTooltip,
   AsTile,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {faClock} from '@fortawesome/free-solid-svg-icons';
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { ExtJS, useIsVisible } from '@globalart/astrum-ui-plugin';
 import { faCircle, faBell } from "@fortawesome/free-solid-svg-icons";
-import { AsButton, AsFontAwesomeIcon } from '@globalart/react-shared-components';
+import { AsButton, AsFontAwesomeIcon } from '@globalart/astrum-react-shared-components';
 import { useRouter } from '@uirouter/react';
 
 export default function SystemStatus() {

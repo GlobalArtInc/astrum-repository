@@ -32,8 +32,8 @@ jest.mock('@uirouter/react', () => ({
 }));
 
 // Mock AsModal to avoid portal/focus-trap/animation scheduling issues in tests
-jest.mock('@globalart/react-shared-components', () => {
-  const actual = jest.requireActual('@globalart/react-shared-components');
+jest.mock('@globalart/astrum-react-shared-components', () => {
+  const actual = jest.requireActual('@globalart/astrum-react-shared-components');
 
   const TestModal = ({ onCancel, 'aria-labelledby': ariaLabelledby, children }) => (
     <div role='dialog' aria-labelledby={ariaLabelledby} data-testid='as-modal'>

@@ -13,7 +13,7 @@ import {
   AsTableHead,
   AsTableRow,
   AsTooltip
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faCopy, faDatabase} from '@fortawesome/free-solid-svg-icons';
 
 import {

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {AsStatefulTabs, AsTabList, AsTab, AsTabPanel} from '@globalart/react-shared-components';
+import {AsStatefulTabs, AsTabList, AsTab, AsTabPanel} from '@globalart/astrum-react-shared-components';
 
 import NodeSupportZipResponse from "./NodeSupportZipResponse";
 

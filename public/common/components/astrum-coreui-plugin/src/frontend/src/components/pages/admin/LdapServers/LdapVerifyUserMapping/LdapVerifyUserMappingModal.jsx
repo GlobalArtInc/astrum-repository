@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useMachine} from '@xstate/react';
-import {AsModal, AsFooter, AsButton, AsButtonBar} from '@globalart/react-shared-components';
+import {AsModal, AsFooter, AsButton, AsButtonBar} from '@globalart/astrum-react-shared-components';
 import UIStrings from '../../../../../constants/UIStrings';
 import LdapVerifyUserMappingMachine from './LdapVerifyUserMappingMachine';
 import LdapVerifyUserMappingItem from './LdapVerifyUserMappingItem';

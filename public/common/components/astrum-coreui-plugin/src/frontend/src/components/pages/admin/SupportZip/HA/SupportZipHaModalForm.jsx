@@ -6,7 +6,7 @@ const {SUPPORT_ZIP: LABELS} = UIStrings;
 
 import {
     AsModal, AsH2
-} from "@globalart/react-shared-components";
+} from "@globalart/astrum-react-shared-components";
 
 import SupportZipForm from "../SupportZipForm";
 

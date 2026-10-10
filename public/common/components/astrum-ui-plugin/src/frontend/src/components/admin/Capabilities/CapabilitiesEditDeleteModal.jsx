@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { AsButton, AsButtonBar, AsFooter, AsH2, AsModal, AsWarningAlert } from '@globalart/react-shared-components';
+import { AsButton, AsButtonBar, AsFooter, AsH2, AsModal, AsWarningAlert } from '@globalart/astrum-react-shared-components';
 
 export default function CapabilitiesEditDeleteModal(
     { showModal, deleteWarningMessage, onConfirmDelete, onDeleteCanceled }

@@ -11,7 +11,7 @@ import {
   AsFormSelect,
   AsStatefulForm,
   AsTooltip
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {
   ContentBody,
@@ -25,7 +25,7 @@ import SamlConfigurationMachine from './SamlConfigurationMachine';
 import UIStrings from '../../../../constants/UIStrings';
 
 import './SamlConfiguration.scss';
-import {AsTextInput} from "@globalart/react-shared-components";
+import {AsTextInput} from "@globalart/astrum-react-shared-components";
 
 const {FIELDS, LABELS} = UIStrings.SAML_CONFIGURATION;
 

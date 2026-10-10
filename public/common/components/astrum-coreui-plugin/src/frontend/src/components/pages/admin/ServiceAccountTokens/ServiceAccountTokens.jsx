@@ -15,7 +15,7 @@ import {
   AsTag,
   AsTextLink,
   AsTooltip,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faExclamationTriangle} from '@fortawesome/free-solid-svg-icons';
 import {
   ContentBody,

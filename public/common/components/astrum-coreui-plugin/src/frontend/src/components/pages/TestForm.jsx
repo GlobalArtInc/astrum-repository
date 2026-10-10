@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { DynamicFormField, ValidationUtils } from '@globalart/astrum-ui-plugin';
-import { AsFormGroup, AsH2, AsTile, AsForm } from '@globalart/react-shared-components';
+import { AsFormGroup, AsH2, AsTile, AsForm } from '@globalart/astrum-react-shared-components';
 import { ContentBody, Page, PageHeader, PageTitle } from '@globalart/astrum-ui-plugin';
 import { isEmpty } from 'ramda';
 // Real server data examples for each DynamicFormField type

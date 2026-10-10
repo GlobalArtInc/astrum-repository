@@ -2,7 +2,7 @@
 import React from 'react';
 import {faCheckCircle, faTimesCircle} from '@fortawesome/free-solid-svg-icons';
 
-import {AsFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsFontAwesomeIcon} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 

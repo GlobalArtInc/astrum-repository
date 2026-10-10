@@ -12,7 +12,7 @@ import {
   AsReadOnly,
   AsStatefulForm,
   AsTextInput
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {Section} from '@globalart/astrum-ui-plugin';
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { ExtJS } from '@globalart/astrum-ui-plugin';
 import { faCircle, faBell } from "@fortawesome/free-solid-svg-icons";
-import { AsButton, AsFontAwesomeIcon } from '@globalart/react-shared-components';
+import { AsButton, AsFontAwesomeIcon } from '@globalart/astrum-react-shared-components';
 
 // TODO: Properly format the Bell+Circle state and write tests https://globalart.atlassian.net/browse/ASTRUM-46297
 export default function HealthCheck() {

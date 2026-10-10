@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useMachine} from '@xstate/react';
-import {AsTile} from '@globalart/react-shared-components';
+import {AsTile} from '@globalart/astrum-react-shared-components';
 import {ExtJS, Permissions} from '@globalart/astrum-ui-plugin';
 import {faEnvelope} from '@fortawesome/free-solid-svg-icons';
 

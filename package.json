@@ -8,7 +8,7 @@
   ],
   "packageManager": "yarn@4.9.1",
   "resolutions": {
-    "@globalart/react-shared-components": "file:./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz",
+    "@globalart/astrum-react-shared-components": "14.0.13",
     "@babel/runtime": "=7.26.10",
     "@hashgraphonline/standards-sdk": "=0.0.63",
     "@nivo/line": "0.95.0",

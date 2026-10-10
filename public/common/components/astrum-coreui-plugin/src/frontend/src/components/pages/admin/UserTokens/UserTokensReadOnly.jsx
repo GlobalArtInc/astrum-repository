@@ -3,7 +3,7 @@ import React from 'react';
 
 import {ReadOnlyField, FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {AsInfoAlert} from '@globalart/react-shared-components';
+import {AsInfoAlert} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 

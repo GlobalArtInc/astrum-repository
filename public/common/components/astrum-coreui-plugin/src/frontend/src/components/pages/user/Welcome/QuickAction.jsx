@@ -3,7 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import {faChevronRight} from '@fortawesome/free-solid-svg-icons';
-import {AsFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsFontAwesomeIcon} from '@globalart/astrum-react-shared-components';
 
 export default function QuickAction({title, subTitle, icon, action, className}) {
   const handleEnter = (event) => {

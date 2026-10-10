@@ -11,7 +11,7 @@ import {
   AsTooltip,
   AsLoadingSpinner,
   AsButton,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {ExtJS, DateUtils} from '@globalart/astrum-ui-plugin';
 

@@ -3,7 +3,7 @@ import React, {useCallback} from 'react';
 
 import Axios from 'axios';
 
-import {AsH2, AsCheckbox, AsFieldset, AsInfoAlert} from '@globalart/react-shared-components';
+import {AsH2, AsCheckbox, AsFieldset, AsInfoAlert} from '@globalart/astrum-react-shared-components';
 import {FormUtils, ExtJS} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../../constants/UIStrings';

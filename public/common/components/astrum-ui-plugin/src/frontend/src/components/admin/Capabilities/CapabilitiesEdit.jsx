@@ -19,7 +19,7 @@ import {
   AsWarningAlert,
   AsGrid,
   AsReadOnly,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import { faSpinner, faTrash } from '@fortawesome/free-solid-svg-icons';
 import FormUtils from '../../../interface/FormUtils';
 import UIStrings from '../../../constants/UIStrings';

@@ -16,7 +16,7 @@ import {
   AsTile,
   AsTextInput,
   AsFieldset
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import { Page } from '../../layout';
 

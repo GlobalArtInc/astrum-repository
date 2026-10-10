@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AsH3, AsPageSidebar } from '@globalart/react-shared-components';
+import { AsH3, AsPageSidebar } from '@globalart/astrum-react-shared-components';
 import {
   ExtJS,
   LeftNavigationMenuItem,

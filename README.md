@@ -45,6 +45,6 @@ password to `.data/astrum3/admin.password`.
 
 ## Third-party UI components
 
-The React component library the UI is built on is kept as an npm archive in
-`public/common/thirdparty/react-shared-components` and is resolved through the root `resolutions`
-entry for `@globalart/react-shared-components`.
+The React component library the UI is built on is `@globalart/astrum-react-shared-components` from
+npmjs, built from [GlobalArtInc/astrum-react-shared-components](https://github.com/GlobalArtInc/astrum-react-shared-components).
+The root `resolutions` entry pins its version for every workspace.

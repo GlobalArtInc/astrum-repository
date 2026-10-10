@@ -14,7 +14,7 @@ import {
   AsSuccessAlert,
   AsTextInput,
   AsRadio
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import AzureBlobStoreSettingsMachine from './AzureBlobStoreSettingsMachine';
 import UIStrings from '../../../../../constants/UIStrings';

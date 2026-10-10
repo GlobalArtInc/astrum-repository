@@ -24,7 +24,7 @@ import {
   AsTooltip,
   AsModal,
   AsFooter,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 
 import LdapServersModalPassword from './LdapServersModalPassword';

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AsPageMain, AsLoadingSpinner } from '@globalart/react-shared-components';
+import { AsPageMain, AsLoadingSpinner } from '@globalart/astrum-react-shared-components';
 
 import './RouteLoadingFallback.scss';
 

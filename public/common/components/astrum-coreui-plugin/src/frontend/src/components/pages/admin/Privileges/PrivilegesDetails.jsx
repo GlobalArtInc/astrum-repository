@@ -4,7 +4,7 @@ import {useMachine} from '@xstate/react';
 
 import {
   AsTile,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {ExtJS, ValidationUtils} from '@globalart/astrum-ui-plugin';
 
 import {

@@ -6,7 +6,7 @@ import {
   AsH2,
   AsInfoAlert,
   AsModal,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faCopy} from '@fortawesome/free-solid-svg-icons';
 
 import UIStrings from '../../../../constants/UIStrings';

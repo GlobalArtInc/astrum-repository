@@ -8,7 +8,7 @@ import {
   AsFooter,
   AsP,
   AsButtonBar
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 import {useRepositoriesService} from '../RepositoriesContextProvider';

@@ -1,7 +1,7 @@
 
 import React, {useState} from 'react';
 
-import {AsSegmentedButton, useToggle} from '@globalart/react-shared-components';
+import {AsSegmentedButton, useToggle} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 

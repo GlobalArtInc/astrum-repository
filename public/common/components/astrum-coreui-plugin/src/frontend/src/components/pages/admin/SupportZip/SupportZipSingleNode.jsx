@@ -3,7 +3,7 @@ import React from 'react';
 import {useMachine} from '@xstate/react';
 import UIStrings from '../../../../constants/UIStrings';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
-import {AsLoadWrapper} from '@globalart/react-shared-components';
+import {AsLoadWrapper} from '@globalart/astrum-react-shared-components';
 
 import {
   ContentBody,

@@ -10,7 +10,7 @@ import {
   AsSuccessAlert,
   AsErrorAlert,
   AsLoadWrapper,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {FormUtils, ValidationUtils} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../constants/UIStrings';

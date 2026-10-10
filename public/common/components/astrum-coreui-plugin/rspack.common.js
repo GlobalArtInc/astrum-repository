@@ -108,7 +108,7 @@ module.exports = {
     }),
     new rspack.CopyRspackPlugin({
       patterns: [{
-        from: path.resolve(__dirname, '../../../../node_modules/@globalart/react-shared-components/assets/'),
+        from: path.resolve(__dirname, '../../../../node_modules/@globalart/astrum-react-shared-components/assets/'),
         to: path.resolve(__dirname, 'target/classes/assets')
       }]
     })

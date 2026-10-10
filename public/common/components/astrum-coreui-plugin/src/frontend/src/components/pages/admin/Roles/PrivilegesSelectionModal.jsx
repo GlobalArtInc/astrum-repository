@@ -15,7 +15,7 @@ import {
   AsFilterInput,
   AsCounter,
   AsFooter
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import PrivilegeSelectionMachine from './PrivilegeSelectionMachine';
 import { useMachine } from '@xstate/react';

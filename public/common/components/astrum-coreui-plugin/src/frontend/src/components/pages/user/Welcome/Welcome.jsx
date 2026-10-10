@@ -1,5 +1,5 @@
 import React from 'react';
-import {AsPageMain} from '@globalart/react-shared-components';
+import {AsPageMain} from '@globalart/astrum-react-shared-components';
 
 import OutreachActions from './OutreachActions';
 

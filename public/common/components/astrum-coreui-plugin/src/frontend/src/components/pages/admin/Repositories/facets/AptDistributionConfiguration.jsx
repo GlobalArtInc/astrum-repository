@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {AsFormGroup, AsTextInput, AsH2} from '@globalart/react-shared-components';
+import {AsFormGroup, AsTextInput, AsH2} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 

@@ -1,5 +1,5 @@
 
-import {AsTextLink} from "@globalart/react-shared-components";
+import {AsTextLink} from "@globalart/astrum-react-shared-components";
 import React from "react";
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 

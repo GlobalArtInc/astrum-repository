@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {AsH2, AsModal, AsButton, AsFooter, AsButtonBar} from '@globalart/react-shared-components';
+import {AsH2, AsModal, AsButton, AsFooter, AsButtonBar} from '@globalart/astrum-react-shared-components';
 import {useRouter} from '@uirouter/react';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 

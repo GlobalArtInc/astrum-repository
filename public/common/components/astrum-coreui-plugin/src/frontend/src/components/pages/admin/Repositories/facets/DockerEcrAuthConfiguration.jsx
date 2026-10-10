@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {AsH2, AsFormGroup, AsTextInput, AsWarningAlert} from '@globalart/react-shared-components';
+import {AsH2, AsFormGroup, AsTextInput, AsWarningAlert} from '@globalart/astrum-react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../../constants/UIStrings';

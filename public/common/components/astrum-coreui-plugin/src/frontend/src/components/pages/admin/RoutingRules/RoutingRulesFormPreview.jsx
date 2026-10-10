@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {AsButton, AsTextInput} from '@globalart/react-shared-components';
+import {AsButton, AsTextInput} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 

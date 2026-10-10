@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import {AsModal, AsH2, AsButton, AsButtonBar, AsFooter, AsFieldset, AsCheckbox, useToggle} from '@globalart/react-shared-components';
+import {AsModal, AsH2, AsButton, AsButtonBar, AsFooter, AsFieldset, AsCheckbox, useToggle} from '@globalart/astrum-react-shared-components';
 import {useMachine} from '@xstate/react';
 
 import UIStrings from '../../../../constants/UIStrings';

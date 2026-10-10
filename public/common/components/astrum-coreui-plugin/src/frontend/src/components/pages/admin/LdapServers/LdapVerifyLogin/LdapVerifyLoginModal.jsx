@@ -9,7 +9,7 @@ import {
   AsH2,
   AsP,
   AsSuccessAlert
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 import UIStrings from '../../../../../constants/UIStrings';
 import LdapVerifyLoginMachine from './LdapVerifyLoginMachine.js';

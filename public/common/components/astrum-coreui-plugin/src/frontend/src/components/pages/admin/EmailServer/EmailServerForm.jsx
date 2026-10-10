@@ -12,7 +12,7 @@ import {
   AsTextInput,
   AsTile,
   AsTooltip,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {isEmpty} from 'ramda';
 
 import UIStrings from '../../../../constants/UIStrings';

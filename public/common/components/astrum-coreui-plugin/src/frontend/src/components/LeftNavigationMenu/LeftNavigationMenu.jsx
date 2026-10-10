@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import { AsDivider, AsGlobalSidebar2 } from '@globalart/react-shared-components';
+import { AsDivider, AsGlobalSidebar2 } from '@globalart/astrum-react-shared-components';
 import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import UIStrings from '../../constants/UIStrings';
 import { ROUTE_NAMES } from '../../routerConfig/routeNames/routeNames';

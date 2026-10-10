@@ -1,7 +1,7 @@
 
 import PropTypes from 'prop-types';
 import React from 'react';
-import {AsTextInput} from '@globalart/react-shared-components';
+import {AsTextInput} from '@globalart/astrum-react-shared-components';
 
 /**
  * @since 3.21

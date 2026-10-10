@@ -15,7 +15,7 @@ import {
   AsFilterInput,
   AsCounter,
   AsFooter
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import { ListMachineUtils } from '@globalart/astrum-ui-plugin';
 

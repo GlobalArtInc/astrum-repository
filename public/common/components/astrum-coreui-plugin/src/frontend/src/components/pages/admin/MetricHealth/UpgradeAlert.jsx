@@ -1,7 +1,7 @@
 
 import React, {useState} from 'react';
 
-import {AsButton, AsButtonBar, AsInfoAlert, useToggle, AsWarningAlert} from '@globalart/react-shared-components';
+import {AsButton, AsButtonBar, AsInfoAlert, useToggle, AsWarningAlert} from '@globalart/astrum-react-shared-components';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 import {UpgradeAlertFunctions} from '../../../widgets/SystemStatusAlerts/UpgradeAlert/UpgradeAlertHelper';
 import UIStrings from '../../../../constants/UIStrings';

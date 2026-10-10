@@ -8,8 +8,8 @@ import CleanupPoliciesPreview from './CleanupPoliciesPreview';
 jest.mock('@xstate/react');
 
 // Mock AsWarningAlert component
-jest.mock('@globalart/react-shared-components', () => ({
-  ...jest.requireActual('@globalart/react-shared-components'),
+jest.mock('@globalart/astrum-react-shared-components', () => ({
+  ...jest.requireActual('@globalart/astrum-react-shared-components'),
   AsWarningAlert: ({onClose, children}) => (
     <div data-testid="as-warning-alert">
       <button data-testid="close-button" onClick={onClose}>X</button>

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import classNames from 'classnames';
-import { AsList } from '@globalart/react-shared-components';
+import { AsList } from '@globalart/astrum-react-shared-components';
 import DirectoryListItem from './DirectoryListItem';
 
 import './DirectoryList.scss';

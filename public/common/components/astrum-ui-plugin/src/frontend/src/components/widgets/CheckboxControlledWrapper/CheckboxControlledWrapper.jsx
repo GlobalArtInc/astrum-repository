@@ -3,7 +3,7 @@
 import React from 'react';
 
 import './CheckboxControlledWrapper.scss';
-import {AsCheckbox} from "@globalart/react-shared-components";
+import {AsCheckbox} from "@globalart/astrum-react-shared-components";
 
 /**
  * @since 3.29

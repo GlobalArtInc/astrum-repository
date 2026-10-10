@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {AsFieldset, AsRadio, AsFormGroup, AsTextInput} from '@globalart/react-shared-components';
+import {AsFieldset, AsRadio, AsFormGroup, AsTextInput} from '@globalart/astrum-react-shared-components';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../../constants/UIStrings';

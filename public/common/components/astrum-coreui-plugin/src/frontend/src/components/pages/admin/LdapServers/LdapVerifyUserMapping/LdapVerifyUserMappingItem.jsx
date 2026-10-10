@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {useActor} from '@xstate/react';
-import {AsModal, AsH2} from '@globalart/react-shared-components';
+import {AsModal, AsH2} from '@globalart/astrum-react-shared-components';
 import {ReadOnlyField} from '@globalart/astrum-ui-plugin';
 import UIStrings from '../../../../../constants/UIStrings';
 import BackButton from './BackButton/BackButton';

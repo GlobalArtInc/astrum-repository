@@ -14,7 +14,7 @@ import {
   AsList,
   AsTextInput,
   AsWarningAlert
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {faPlusCircle, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 

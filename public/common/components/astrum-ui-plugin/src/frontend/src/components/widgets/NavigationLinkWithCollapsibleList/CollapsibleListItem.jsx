@@ -2,7 +2,7 @@
 
 import PropTypes from 'prop-types';
 import React from 'react';
-import { AsTextLink } from '@globalart/react-shared-components';
+import { AsTextLink } from '@globalart/astrum-react-shared-components';
 
 const CollapsibleListItem = ({ text, href, isSelected, ...props }) => {
   return (

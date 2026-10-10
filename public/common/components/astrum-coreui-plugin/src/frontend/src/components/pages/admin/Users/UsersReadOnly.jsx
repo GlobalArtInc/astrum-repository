@@ -13,7 +13,7 @@ import {
   AsButtonBar,
   AsTile,
   AsList,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 import {STATUSES, isExternalUser} from './UsersHelper';

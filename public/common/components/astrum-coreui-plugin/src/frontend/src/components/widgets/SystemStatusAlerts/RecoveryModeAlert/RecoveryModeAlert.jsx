@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {AsButton} from '@globalart/react-shared-components';
+import {AsButton} from '@globalart/astrum-react-shared-components';
 import {ExtJS, handleExtJsUnsavedChanges, showUnsavedChangesModal} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../constants/UIStrings';

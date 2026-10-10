@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import {AsCheckbox, AsFormGroup, AsInfoAlert, AsTextInput} from '@globalart/react-shared-components';
+import {AsCheckbox, AsFormGroup, AsInfoAlert, AsTextInput} from '@globalart/astrum-react-shared-components';
 import {isReleaseType} from './CleanupPoliciesHelper';
 import ExtJS from '../../../interface/ExtJS';
 import FormUtils from '../../../interface/FormUtils';

@@ -3,7 +3,7 @@ import React from 'react';
 
 import {ExtJS, FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {AsFormGroup, AsTextInput, AsCheckbox} from '@globalart/react-shared-components';
+import {AsFormGroup, AsTextInput, AsCheckbox} from '@globalart/astrum-react-shared-components';
 
 import FeatureFlags from '../../../../../constants/FeatureFlags';
 import UIStrings from '../../../../../constants/UIStrings';

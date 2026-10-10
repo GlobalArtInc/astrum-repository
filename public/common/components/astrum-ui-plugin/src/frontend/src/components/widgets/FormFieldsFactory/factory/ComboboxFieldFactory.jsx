@@ -7,7 +7,7 @@ import {useMachine} from '@xstate/react';
 import {
   AsFormSelect,
   AsCombobox,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import FormUtils from '../../../../interface/FormUtils';
 import ExtAPIUtils from '../../../../interface/ExtAPIUtils';

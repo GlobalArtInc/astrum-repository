@@ -2,7 +2,7 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import { AsDescriptionList } from '@globalart/react-shared-components';
+import { AsDescriptionList } from '@globalart/astrum-react-shared-components';
 
 export default function Information({ information }) {
   // Insert a zero-width space (\u200B) after each period to allow word-breaking at periods.

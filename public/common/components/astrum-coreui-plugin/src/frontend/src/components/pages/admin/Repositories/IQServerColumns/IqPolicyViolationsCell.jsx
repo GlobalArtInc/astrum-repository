@@ -6,7 +6,7 @@ import {
   AsSmallThreatCounter,
   AsTextLink,
   AsP
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faBan, faExclamationCircle} from '@fortawesome/free-solid-svg-icons';
 import UIStrings from '../../../../../constants/UIStrings';
 import './IQServerColumns.scss';

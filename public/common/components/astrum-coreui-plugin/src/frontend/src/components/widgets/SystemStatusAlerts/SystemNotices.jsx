@@ -4,7 +4,7 @@ import React from 'react';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 import {
   AsSystemNotice,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import './SystemNotices.scss';
 import UpgradeAlert from './UpgradeAlert/UpgradeAlert';

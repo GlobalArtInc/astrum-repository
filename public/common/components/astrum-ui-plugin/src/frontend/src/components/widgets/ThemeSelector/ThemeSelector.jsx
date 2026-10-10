@@ -1,7 +1,7 @@
 
 import React, {useEffect, useState} from 'react';
 
-import {AsButton, AsFontAwesomeIcon} from "@globalart/react-shared-components";
+import {AsButton, AsFontAwesomeIcon} from "@globalart/astrum-react-shared-components";
 import {faMoon, faSun} from "@fortawesome/free-solid-svg-icons";
 
 export function ThemeSelector() {

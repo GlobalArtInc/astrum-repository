@@ -1,6 +1,6 @@
 
 import React, {useState, useRef} from 'react';
-import {AsFontAwesomeIcon, AsTooltip, AsP} from '@globalart/react-shared-components';
+import {AsFontAwesomeIcon, AsTooltip, AsP} from '@globalart/astrum-react-shared-components';
 import {faBan, faShieldAlt, faAward, faExclamationCircle} from '@fortawesome/free-solid-svg-icons';
 import UIStrings from '../../../../../constants/UIStrings';
 import './IQServerColumns.scss';

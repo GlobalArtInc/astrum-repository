@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {AsWarningAlert} from '@globalart/react-shared-components';
+import {AsWarningAlert} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings'
 

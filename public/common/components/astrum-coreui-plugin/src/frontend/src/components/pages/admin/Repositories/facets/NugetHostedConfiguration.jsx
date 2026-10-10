@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {AsReadOnly} from '@globalart/react-shared-components';
+import {AsReadOnly} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 

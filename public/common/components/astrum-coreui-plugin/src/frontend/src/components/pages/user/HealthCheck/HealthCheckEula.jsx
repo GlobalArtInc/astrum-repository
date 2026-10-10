@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {faHandsHelping} from "@fortawesome/free-solid-svg-icons";
 import {ExtJS} from '@globalart/astrum-ui-plugin';
-import {AsButton, AsFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsButton, AsFontAwesomeIcon} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 import {useMachine} from "@xstate/react";

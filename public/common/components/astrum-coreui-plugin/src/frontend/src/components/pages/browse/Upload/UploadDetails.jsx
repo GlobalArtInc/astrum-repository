@@ -18,7 +18,7 @@ import {
   AsStatefulForm,
   AsTextInput,
   AsTile
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import { faPlus, faUpload, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { filter, isEmpty, keys, map, match, mapObjIndexed, path, split, test, values } from 'ramda';
 

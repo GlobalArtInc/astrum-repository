@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-import {AsInfoAlert} from '@globalart/react-shared-components';
+import {AsInfoAlert} from '@globalart/astrum-react-shared-components';
 import './CommunityOnboarding.scss';
 
 export default function CommunityEulaOnboarding() {

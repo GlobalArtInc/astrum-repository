@@ -7,7 +7,7 @@ import axios from 'axios';
 import {
   AsButton,
   AsLoadingSpinner, AsTextLink,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {ExtJS} from '@globalart/astrum-ui-plugin';
 
 import UIStrings from '../../../../constants/UIStrings';

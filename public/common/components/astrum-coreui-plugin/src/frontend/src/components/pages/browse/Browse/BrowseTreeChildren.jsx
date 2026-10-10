@@ -7,7 +7,7 @@ import {
   AsLoadWrapper,
   AsTextLink,
   AsTree
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {faFolder, faBox, faFileArchive} from '@fortawesome/free-solid-svg-icons';
 

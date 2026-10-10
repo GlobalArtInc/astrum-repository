@@ -3,7 +3,7 @@ import React from 'react';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {AsCheckbox, AsFieldset} from '@globalart/react-shared-components';
+import {AsCheckbox, AsFieldset} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 

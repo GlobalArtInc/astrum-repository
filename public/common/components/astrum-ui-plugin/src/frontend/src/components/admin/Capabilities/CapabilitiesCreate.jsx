@@ -4,7 +4,7 @@ import React from 'react';
 import { compose, propOr, sortBy, toLower } from 'ramda';
 import { useMachine } from '@xstate/react';
 import { useRouter } from '@uirouter/react';
-import { AsForm, AsFormGroup, AsFormSelect, AsH2, AsLoadWrapper, AsP, AsTile } from '@globalart/react-shared-components';
+import { AsForm, AsFormGroup, AsFormSelect, AsH2, AsLoadWrapper, AsP, AsTile } from '@globalart/astrum-react-shared-components';
 import { ContentBody, Page, PageHeader, PageTitle, Section } from '../../layout';
 import UIStrings from '../../../constants/UIStrings';
 import { AdminRouteNames } from '../../../constants/admin/AdminRouteNames';

@@ -8,7 +8,7 @@ import {
   AsStatefulNavigationDropdown,
   AsWarningAlert,
   AsErrorAlert
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faFilter} from '@fortawesome/free-solid-svg-icons';
 
 import './UsageInsightsChart.scss';

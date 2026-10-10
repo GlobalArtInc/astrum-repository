@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { UIView, useCurrentStateAndParams, useRouter } from '@uirouter/react';
 import { Page } from '../../layout';
-import { AsH1, AsP, AsTile } from '@globalart/react-shared-components';
+import { AsH1, AsP, AsTile } from '@globalart/astrum-react-shared-components';
 import { RouteNames } from '../../../constants/RouteNames';
 import { isVisible } from '../../../interface/NavigationUtils';
 

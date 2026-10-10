@@ -7,7 +7,7 @@ import {
   AsList,
   AsTile,
   AsH2,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../constants/UIStrings';
 import ProprietaryRepositoriesMachine from "./ProprietaryRepositoriesMachine";

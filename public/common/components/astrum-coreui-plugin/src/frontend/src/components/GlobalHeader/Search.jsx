@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useCurrentStateAndParams } from '@uirouter/react';
-import { AsFilterInput } from '@globalart/react-shared-components';
+import { AsFilterInput } from '@globalart/astrum-react-shared-components';
 import {ExtJS, useIsVisible, handleExtJsUnsavedChanges} from '@globalart/astrum-ui-plugin';
 import { useRouter } from '@uirouter/react';
 import {ROUTE_NAMES} from "../../routerConfig/routeNames/routeNames";

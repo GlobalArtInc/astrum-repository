@@ -24,7 +24,7 @@ import {
   AsTableRow,
   AsTooltip,
   AsInfoAlert,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {HelpTile} from '@globalart/astrum-ui-plugin';
 

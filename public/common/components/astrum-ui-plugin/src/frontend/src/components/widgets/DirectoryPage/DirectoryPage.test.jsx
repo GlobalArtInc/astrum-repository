@@ -25,7 +25,7 @@ jest.mock('../../layout', () => ({
   Page: ({children, ...props}) => <div data-testid="page" {...props}>{children}</div>
 }));
 
-jest.mock('@globalart/react-shared-components', () => {
+jest.mock('@globalart/astrum-react-shared-components', () => {
   const Tile = ({children}) => <div data-testid="tile">{children}</div>;
   const TileContent = ({children}) => <div data-testid="tile-content">{children}</div>;
   TileContent.displayName = 'TileContent';

@@ -9,7 +9,7 @@ import {
   AsFormGroup,
   AsStatefulForm,
   AsTooltip
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {
   ContentBody,
@@ -23,7 +23,7 @@ import OAuth2ConfigurationMachine from './OAuth2ConfigurationMachine';
 import UIStrings from '../../../../constants/UIStrings';
 import './OAuth2Configuration.scss';
 
-import {AsTextInput} from "@globalart/react-shared-components";
+import {AsTextInput} from "@globalart/astrum-react-shared-components";
 
 const {FIELDS, LABELS} = UIStrings.OAUTH2_CONFIGURATION;
 

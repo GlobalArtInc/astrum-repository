@@ -9,7 +9,7 @@ import * as UsageInsightsUtils from './UsageInsightsUtils';
 
 // Mock dependencies
 jest.mock('@xstate/react');
-jest.mock('@globalart/react-shared-components', () => ({
+jest.mock('@globalart/astrum-react-shared-components', () => ({
   AsH4: ({children}) => <h4>{children}</h4>,
   AsNavigationDropdown: {
     MenuHeader: ({children}) => <div>{children}</div>

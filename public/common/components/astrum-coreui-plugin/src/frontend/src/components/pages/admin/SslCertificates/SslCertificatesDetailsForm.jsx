@@ -10,7 +10,7 @@ import {
   AsButton,
   AsH2,
   AsTooltip,
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {faIdCardAlt} from '@fortawesome/free-solid-svg-icons';
 

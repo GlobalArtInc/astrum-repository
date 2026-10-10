@@ -40,7 +40,7 @@
     "@fortawesome/fontawesome-svg-core": "1.2.25",
     "@fortawesome/free-solid-svg-icons": "5.11.2",
     "@fortawesome/react-fontawesome": "0.1.4",
-    "@globalart/react-shared-components": "file:../../thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz",
+    "@globalart/astrum-react-shared-components": "14.0.13",
     "@icons-pack/react-simple-icons": "13.13.0",
     "@nivo/bar": "0.95.0",
     "@nivo/core": "0.95.0",
@@ -78,7 +78,7 @@
     "xstate": "4.38.3"
   },
   "peerDependencies": {
-    "@globalart/react-shared-components": "*",
+    "@globalart/astrum-react-shared-components": "*",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "xstate": "4.38.3"

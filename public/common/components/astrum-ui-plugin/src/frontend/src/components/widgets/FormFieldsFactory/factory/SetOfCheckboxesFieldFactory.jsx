@@ -2,7 +2,7 @@
 import React from 'react';
 import {keys, mergeDeepRight} from 'ramda';
 
-import {AsCheckbox} from '@globalart/react-shared-components';
+import {AsCheckbox} from '@globalart/astrum-react-shared-components';
 import FormUtils from '../../../../interface/FormUtils';
 
 import {SUPPORTED_FIELD_TYPES} from '../FormFieldsFactoryConstants';

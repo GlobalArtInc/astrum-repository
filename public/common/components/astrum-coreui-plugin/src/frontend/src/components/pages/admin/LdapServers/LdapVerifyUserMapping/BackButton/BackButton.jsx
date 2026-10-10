@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {AsFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsFontAwesomeIcon} from '@globalart/astrum-react-shared-components';
 import {faChevronLeft} from '@fortawesome/free-solid-svg-icons';
 import './BackButton.scss';
 

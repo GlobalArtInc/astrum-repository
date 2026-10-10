@@ -2,7 +2,7 @@
 import React, { FormEvent } from 'react';
 import UIStrings from '../../../../constants/UIStrings';
 import {FormUtils} from '@globalart/astrum-ui-plugin';
-import {AsButton, AsCheckbox, AsFieldset, AsFontAwesomeIcon, AsModal, useToggle, AsFormSelect, asFormSelectStateHelpers, AsFormGroup} from '@globalart/react-shared-components';
+import {AsButton, AsCheckbox, AsFieldset, AsFontAwesomeIcon, AsModal, useToggle, AsFormSelect, asFormSelectStateHelpers, AsFormGroup} from '@globalart/astrum-react-shared-components';
 import {faFileArchive} from '@fortawesome/free-solid-svg-icons';
 
 export default function SupportZipForm({params, setParams, submit, clustered, hazips, cancel}) {

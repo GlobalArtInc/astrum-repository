@@ -6,7 +6,7 @@ import {
   AsLoadWrapper,
   AsTile,
   AsTree
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import {faDatabase} from '@fortawesome/free-solid-svg-icons';
 import {isEmpty} from 'ramda';
 

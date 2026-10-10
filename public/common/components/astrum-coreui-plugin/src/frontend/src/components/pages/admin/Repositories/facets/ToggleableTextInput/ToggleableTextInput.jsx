@@ -5,7 +5,7 @@ import {path} from 'ramda';
 
 import {FormUtils} from '@globalart/astrum-ui-plugin';
 
-import {AsCheckbox, AsFieldset, AsTextInput} from '@globalart/react-shared-components';
+import {AsCheckbox, AsFieldset, AsTextInput} from '@globalart/astrum-react-shared-components';
 
 import './ToggleableTextInput.scss';
 

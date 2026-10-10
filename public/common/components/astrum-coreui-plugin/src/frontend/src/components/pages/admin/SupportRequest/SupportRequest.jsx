@@ -1,6 +1,6 @@
 
 import React from 'react';
-import {AsButton, AsFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsButton, AsFontAwesomeIcon} from '@globalart/astrum-react-shared-components';
 import {faExternalLinkAlt, faUserCircle} from '@fortawesome/free-solid-svg-icons';
 
 import {

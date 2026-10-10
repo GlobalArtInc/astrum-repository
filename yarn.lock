@@ -2325,8 +2325,8 @@ __metadata:
     "@fortawesome/fontawesome-svg-core": "npm:1.2.25"
     "@fortawesome/free-brands-svg-icons": "npm:5.13.1"
     "@fortawesome/free-solid-svg-icons": "npm:5.11.2"
+    "@globalart/astrum-react-shared-components": "npm:14.0.13"
     "@globalart/astrum-ui-plugin": "workspace:*"
-    "@globalart/react-shared-components": "file:../../thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz"
     "@radix-ui/react-alert-dialog": "npm:^1.1.15"
     "@radix-ui/react-separator": "npm:^1.1.8"
     "@radix-ui/react-toast": "npm:^1.2.15"
@@ -2376,7 +2376,7 @@ __metadata:
     "@fortawesome/fontawesome-svg-core": "npm:1.2.25"
     "@fortawesome/free-solid-svg-icons": "npm:5.11.2"
     "@fortawesome/react-fontawesome": "npm:0.1.4"
-    "@globalart/react-shared-components": "file:../../thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz"
+    "@globalart/astrum-react-shared-components": "npm:14.0.13"
     "@rspack/cli": "npm:^1.2.7"
     "@rspack/core": "npm:^1.2.7"
     "@swc/helpers": "npm:^0.5.15"
@@ -2393,6 +2393,38 @@ __metadata:
     xstate: "npm:4.38.3"
   languageName: unknown
   linkType: soft
+
+"@globalart/astrum-react-shared-components@npm:14.0.13":
+  version: 14.0.13
+  resolution: "@globalart/astrum-react-shared-components@npm:14.0.13"
+  dependencies:
+    "@emotion/react": "npm:^11.14.0"
+    "@emotion/styled": "npm:^11.14.0"
+    "@fortawesome/fontawesome-svg-core": "npm:6.7.2"
+    "@fortawesome/free-regular-svg-icons": "npm:^6.7.2"
+    "@fortawesome/free-solid-svg-icons": "npm:^6.7.2"
+    "@fortawesome/react-fontawesome": "npm:^0.2.2"
+    "@juggle/resize-observer": "npm:^3.4.0"
+    "@mui/material": "npm:^6.2.1"
+    "@react-hook/merged-ref": "npm:^1.3.2"
+    "@react-hook/resize-observer": "npm:^2.0.2"
+    "@react-hook/throttle": "npm:^2.2.0"
+    "@rooks/use-mutation-observer": "npm:^4.11.2"
+    "@types/prop-types": "npm:^15.7.14"
+    "@types/ramda": "npm:^0.30.2"
+    "@types/react": "npm:^19.2.7"
+    "@types/react-dom": "npm:^19.2.3"
+    classnames: "npm:^2.5.1"
+    fuse.js: "npm:^7.0.0"
+    pretty-bytes: "npm:^6.1.1"
+    prop-types: "npm:^15.8.1"
+    ramda: "npm:^0.32.0"
+  peerDependencies:
+    react: ^19.0.0
+    react-dom: ^19.0.0
+  checksum: 10c0/53d391fc77618195caefb728ae512d2ffe428154b0ece08c634b5dd7eaf3c0d7cb27fbcd187ae29ff4926e7acf5d3294423a1d1247d3cac5f00d47efc5a938a4
+  languageName: node
+  linkType: hard
 
 "@globalart/astrum-ui-plugin@workspace:*, @globalart/astrum-ui-plugin@workspace:public/common/components/astrum-ui-plugin":
   version: 0.0.0-use.local
@@ -2411,7 +2443,7 @@ __metadata:
     "@fortawesome/fontawesome-svg-core": "npm:1.2.25"
     "@fortawesome/free-solid-svg-icons": "npm:5.11.2"
     "@fortawesome/react-fontawesome": "npm:0.1.4"
-    "@globalart/react-shared-components": "file:../../thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz"
+    "@globalart/astrum-react-shared-components": "npm:14.0.13"
     "@icons-pack/react-simple-icons": "npm:13.13.0"
     "@nivo/bar": "npm:0.95.0"
     "@nivo/core": "npm:0.95.0"
@@ -2439,44 +2471,12 @@ __metadata:
     typescript: "npm:^5.0.0"
     xstate: "npm:4.38.3"
   peerDependencies:
-    "@globalart/react-shared-components": "*"
+    "@globalart/astrum-react-shared-components": "*"
     react: 19.1.0
     react-dom: 19.1.0
     xstate: 4.38.3
   languageName: unknown
   linkType: soft
-
-"@globalart/react-shared-components@file:./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz::locator=root-workspace-0b6124%40workspace%3A.":
-  version: 14.0.3
-  resolution: "@globalart/react-shared-components@file:./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz#./public/common/thirdparty/react-shared-components/globalart-react-shared-components-14.0.3.tgz::hash=dcb293&locator=root-workspace-0b6124%40workspace%3A."
-  dependencies:
-    "@emotion/react": "npm:^11.14.0"
-    "@emotion/styled": "npm:^11.14.0"
-    "@fortawesome/fontawesome-svg-core": "npm:6.7.2"
-    "@fortawesome/free-regular-svg-icons": "npm:^6.7.2"
-    "@fortawesome/free-solid-svg-icons": "npm:^6.7.2"
-    "@fortawesome/react-fontawesome": "npm:^0.2.2"
-    "@juggle/resize-observer": "npm:^3.4.0"
-    "@mui/material": "npm:^6.2.1"
-    "@react-hook/merged-ref": "npm:^1.3.2"
-    "@react-hook/resize-observer": "npm:^2.0.2"
-    "@react-hook/throttle": "npm:^2.2.0"
-    "@rooks/use-mutation-observer": "npm:^4.11.2"
-    "@types/prop-types": "npm:^15.7.14"
-    "@types/ramda": "npm:^0.30.2"
-    "@types/react": "npm:^19.1.0"
-    "@types/react-dom": "npm:^19.1.1"
-    classnames: "npm:^2.5.1"
-    fuse.js: "npm:^7.0.0"
-    pretty-bytes: "npm:^6.1.1"
-    prop-types: "npm:^15.8.1"
-    ramda: "npm:^0.30.1"
-  peerDependencies:
-    react: ^19.0.0
-    react-dom: ^19.0.0
-  checksum: 10c0/bb3b5de4397e69a5dfbcd546d819954950da9df44bbf41d2d06a2d48bf7a2c447dae1b90c2d8807b00bd693ec328277015483779aa83c686bc5199f2ba56a49a
-  languageName: node
-  linkType: hard
 
 "@icons-pack/react-simple-icons@npm:13.13.0":
   version: 13.13.0
@@ -6843,7 +6843,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:^19.1.1":
+"@types/react-dom@npm:^19.2.3":
   version: 19.3.0
   resolution: "@types/react-dom@npm:19.3.0"
   peerDependencies:
@@ -6861,7 +6861,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:^19.1.0":
+"@types/react@npm:^19.2.7":
   version: 19.3.0
   resolution: "@types/react@npm:19.3.0"
   dependencies:

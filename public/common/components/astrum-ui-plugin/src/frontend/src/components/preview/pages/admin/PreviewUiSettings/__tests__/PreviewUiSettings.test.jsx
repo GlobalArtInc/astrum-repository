@@ -62,7 +62,7 @@ jest.mock('@globalart/astrum-ui-plugin', () => ({
   },
 }));
 
-jest.mock('@globalart/react-shared-components', () => ({
+jest.mock('@globalart/astrum-react-shared-components', () => ({
   AsLoadWrapper: ({ loading, error, children }) => {
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error: {error}</div>;

@@ -18,7 +18,7 @@ import {
   AsTextInput,
   AsTooltip,
   AsWarningAlert
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {
   Page,

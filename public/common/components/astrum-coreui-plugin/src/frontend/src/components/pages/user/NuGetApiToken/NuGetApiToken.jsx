@@ -1,8 +1,8 @@
 
 import React from 'react';
 import {useMachine} from '@xstate/react';
-import {AsButton, AsLoadWrapper} from '@globalart/react-shared-components';
-import {AsFontAwesomeIcon} from '@globalart/react-shared-components';
+import {AsButton, AsLoadWrapper} from '@globalart/astrum-react-shared-components';
+import {AsFontAwesomeIcon} from '@globalart/astrum-react-shared-components';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
 
 import {

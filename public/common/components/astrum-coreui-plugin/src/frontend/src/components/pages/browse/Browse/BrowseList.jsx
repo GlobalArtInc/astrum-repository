@@ -9,7 +9,7 @@ import {
   AsFontAwesomeIcon,
   AsTable,
   AsTile
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {
   ContentBody,

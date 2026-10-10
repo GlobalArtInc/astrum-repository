@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { AsErrorAlert, AsH3, AsInfoAlert, AsSuccessAlert, AsWarningAlert } from '@globalart/react-shared-components';
+import { AsErrorAlert, AsH3, AsInfoAlert, AsSuccessAlert, AsWarningAlert } from '@globalart/astrum-react-shared-components';
 
 /**
  *

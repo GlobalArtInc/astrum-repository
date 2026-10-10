@@ -3,7 +3,7 @@ import React from 'react';
 
 import {
   AsTextLink
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 import { faClock } from '@fortawesome/free-solid-svg-icons';
 
 export default {

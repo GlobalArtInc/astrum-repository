@@ -7,7 +7,7 @@ import {
   PageHeader,
   PageTitle
 } from '@globalart/astrum-ui-plugin';
-import {AsTile} from '@globalart/react-shared-components';
+import {AsTile} from '@globalart/astrum-react-shared-components';
 
 import HttpForm from './HttpForm';
 import HttpReadOnly from './HttpReadOnly';

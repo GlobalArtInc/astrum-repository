@@ -16,7 +16,7 @@ import {
   AsTableRow,
   AsTooltip,
   AsWarningAlert
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import {Section, SectionToolbar} from '../../layout';
 

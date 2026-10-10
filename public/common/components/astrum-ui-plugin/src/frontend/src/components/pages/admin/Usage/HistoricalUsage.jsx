@@ -17,7 +17,7 @@ import {
   AsWarningAlert,
   AsErrorAlert,
   useToggle
-} from '@globalart/react-shared-components';
+} from '@globalart/astrum-react-shared-components';
 
 import HistoricalUsageMachine from './HistoricalUsageMachine';
 import './Usage.scss';

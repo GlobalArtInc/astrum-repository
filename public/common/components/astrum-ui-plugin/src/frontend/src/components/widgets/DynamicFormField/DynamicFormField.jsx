@@ -3,14 +3,14 @@ import React from 'react';
 import { equals, mapObjIndexed, values } from 'ramda';
 import { assign, createMachine } from 'xstate';
 import { useMachine } from '@xstate/react';
-import { AsFormSelect, AsTextInput, AsCheckbox, AsReadOnly, AsFormGroup } from '@globalart/react-shared-components';
-import { AsStatefulTransferList } from '@globalart/react-shared-components';
+import { AsFormSelect, AsTextInput, AsCheckbox, AsReadOnly, AsFormGroup } from '@globalart/astrum-react-shared-components';
+import { AsStatefulTransferList } from '@globalart/astrum-react-shared-components';
 
 import FormUtils from '../../../interface/FormUtils';
 import ValidationUtils from '../../../interface/ValidationUtils';
 import UIStrings from '../../../constants/UIStrings';
 import ExtAPIUtils from '../../../interface/ExtAPIUtils';
-import { AsLoadWrapper } from '@globalart/react-shared-components';
+import { AsLoadWrapper } from '@globalart/astrum-react-shared-components';
 
 export default function DynamicFormField({ current, dynamicProps, id, initialValue, readOnly, onChange }) {
   // Note: storeApi, storeFilters, idMapping, nameMapping are legacy ExtJS fields

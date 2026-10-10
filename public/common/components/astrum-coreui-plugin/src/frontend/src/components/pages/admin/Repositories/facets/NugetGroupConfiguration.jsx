@@ -7,7 +7,7 @@ import {FormUtils, ExtJS} from '@globalart/astrum-ui-plugin';
 
 import {useRepositoriesService} from '../RepositoriesContextProvider';
 
-import {AsFormGroup, AsStatefulTransferList, AsReadOnly, AsWarningAlert} from '@globalart/react-shared-components';
+import {AsFormGroup, AsStatefulTransferList, AsReadOnly, AsWarningAlert} from '@globalart/astrum-react-shared-components';
 
 import UIStrings from '../../../../../constants/UIStrings';
 

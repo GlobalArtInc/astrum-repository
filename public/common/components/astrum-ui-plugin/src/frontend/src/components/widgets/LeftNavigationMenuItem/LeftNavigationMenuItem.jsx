@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { faLink } from '@fortawesome/free-solid-svg-icons';
-import { AsGlobalSidebar2NavigationLink } from '@globalart/react-shared-components';
+import { AsGlobalSidebar2NavigationLink } from '@globalart/astrum-react-shared-components';
 import PropTypes from 'prop-types';
 import { useNavigationLinkState } from '../../../router/useNavigationLinkState';
 import classnames from 'classnames';

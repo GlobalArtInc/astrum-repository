@@ -3,7 +3,7 @@ import React from 'react';
 
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import {AsFontAwesomeIcon} from "@globalart/react-shared-components";
+import {AsFontAwesomeIcon} from "@globalart/astrum-react-shared-components";
 
 import './PageTitle.scss';
 

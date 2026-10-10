@@ -8,7 +8,7 @@ import ExtJS from '../../../interface/ExtJS';
 
 import Master from './Master';
 import Detail from './Detail';
-import { AsPageMain } from '@globalart/react-shared-components';
+import { AsPageMain } from '@globalart/astrum-react-shared-components';
 
 /**
  * @since 3.24
