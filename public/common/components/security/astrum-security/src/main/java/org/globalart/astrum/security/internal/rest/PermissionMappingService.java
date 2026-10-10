@@ -311,6 +311,18 @@ public class PermissionMappingService
         "astrum:ldap:update", "Update LDAP server"));
     mappings.add(new ApiEndpointMapping("DELETE", "/service/rest/v1/security/ldap/{name}",
         "astrum:ldap:delete", "Delete LDAP server"));
+    mappings.add(new ApiEndpointMapping("GET", "/service/rest/v1/security/ldap/templates",
+        "astrum:ldap:read", "List LDAP schema templates"));
+    mappings.add(new ApiEndpointMapping("POST", "/service/rest/v1/security/ldap/change-order",
+        "astrum:ldap:update", "Change LDAP server order"));
+    mappings.add(new ApiEndpointMapping("DELETE", "/service/rest/v1/security/ldap/cache",
+        "astrum:ldap:delete", "Clear LDAP cache"));
+    mappings.add(new ApiEndpointMapping("POST", "/service/rest/v1/security/ldap/verify-connection",
+        "astrum:ldap:update", "Verify LDAP connection"));
+    mappings.add(new ApiEndpointMapping("POST", "/service/rest/v1/security/ldap/verify-user-mapping",
+        "astrum:ldap:update", "Verify LDAP user mapping"));
+    mappings.add(new ApiEndpointMapping("POST", "/service/rest/v1/security/ldap/verify-login",
+        "astrum:ldap:update", "Verify LDAP login"));
 
     // Routing rules
     mappings.add(new ApiEndpointMapping("GET", "/service/rest/v1/routing-rules",

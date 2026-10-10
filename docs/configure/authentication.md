@@ -8,6 +8,7 @@ they are tried in the listed order.
 | Realm | Needed for |
 |---|---|
 | Local Authenticating Realm | Local users with a password. Keep it active, the `admin` account lives here |
+| LDAP Realm | Sign-in with a directory account (Active Directory, OpenLDAP and others); activated automatically when the first LDAP server is added |
 | OpenID Connect Realm | Sign-in through an OpenID Connect provider; activated automatically when OpenID Connect is configured |
 | Docker Bearer Token Realm | Anonymous `docker pull` and Docker token authentication |
 | npm Bearer Token Realm | `npm login` and `_authToken` in `.npmrc` |
@@ -23,8 +24,9 @@ they are tried in the listed order.
   and `delete`; `*` stands for all formats, repositories or actions.
 - **Roles** bundle privileges and other roles. `as-admin` has every privilege; `as-anonymous` is what
   anonymous users get.
-- **Users** come from a source: **Local** users are created in Astrum, **OpenID Connect** users appear
-  after their first sign-in. The **All** source on the Users page lists both.
+- **Users** come from a source: **Local** users are created in Astrum, **LDAP** users are read from the
+  directory, **OpenID Connect** users appear after their first sign-in. The **All** source on the Users
+  page lists them all; LDAP users show up once you search for them.
 
 A typical setup is one role per team and repository group, for example `deployer-team-a` with
 `as-repository-view-maven2-team-a-releases-*`, and a separate local service user per CI system.
@@ -35,6 +37,64 @@ A typical setup is one role per team and repository group, for example `deployer
 and as which user (`anonymous` by default, with the `as-anonymous` role). Turn it off to require
 credentials everywhere, or keep it on and narrow `as-anonymous` to the repositories that should be
 public.
+
+## LDAP
+
+Astrum can authenticate users against one or more LDAP directories. Servers are managed under
+**Settings → Security → LDAP**, which needs the `as-ldap-*` privileges (`as-admin` has them).
+
+1. Click **Create connection** and fill in the connection:
+   - **Protocol**, **Host** and **Port**: `ldap` (389) or `ldaps` (636). For `ldaps` the server
+     certificate must be trusted by Java, or added under **Settings → Security → SSL Certificates** with
+     **Use the Astrum Repository truststore** checked. The host name must match the certificate.
+   - **Search base DN**, for example `dc=example,dc=com`.
+   - **Authentication method**: **Simple Authentication** with the DN and password of a service account
+     that may search the directory (recommended), **Anonymous Authentication**, **DIGEST-MD5** or
+     **CRAM-MD5** (with an optional **SASL realm**).
+   - **Connection rules**: the timeout in seconds, how long to wait before retrying a server that was
+     put aside, and how many failures in a row put it aside.
+
+   **Verify connection** binds with these settings and checks that the search base exists.
+2. Choose the user and group settings, or start from a template (Active Directory, Posix with static
+   or dynamic groups, generic LDAP):
+   - **User relative DN** is added in front of the search base, for example `ou=people`; tick
+     **User subtree** to also search below it.
+   - **Object class**, **User filter** (an extra LDAP filter, for example
+     `(memberOf=cn=astrum-users,ou=groups,dc=example,dc=com)`), and the **User ID**, **Real name** and
+     **Email** attributes.
+   - **Password attribute**: leave empty to check passwords by binding as the user, which is what most
+     directories expect. When set, the password is compared with that attribute instead; plain text and
+     `{SHA}`, `{SSHA}`, `{SHA256}`, `{SSHA256}`, `{SHA512}`, `{SSHA512}`, `{MD5}`, `{SMD5}` values are
+     understood.
+   - **Map LDAP groups as roles**: **dynamic** groups are read from an attribute of the user such as
+     `memberOf` (the first part of each group DN becomes the group name); **static** groups are entries
+     of the group object class whose member attribute contains the user, written with the member format
+     (`${username}` or `${dn}`, for example `uid=${username},ou=people,dc=example,dc=com`).
+
+   **Verify user mapping** lists the first 20 users with their groups, **Verify login** tries a user's
+   password.
+3. Save. The LDAP realm is activated if it was not already. Several servers are tried in the listed
+   order (**Change order**); the first server that knows the user decides.
+
+### Roles for LDAP users
+
+LDAP users get roles in the same ways as OpenID Connect users:
+
+- **groups**: create a role of type **External Role Mapping** with the source **LDAP**, pick the group as
+  **Mapped Role** and add privileges; every member of the group gets the role. A local role whose ID is
+  the group name works the same way;
+- **role mapping**: on the Users page, search the **LDAP** source, select the user and assign roles.
+
+### Caching and availability
+
+Users, their groups and successful sign-ins are cached for five minutes (property
+`astrum.ldap.cache.ttl`, for example `astrum.ldap.cache.ttl=1m` in `etc/astrum.properties`), so a
+password or group change in the directory can take that long to apply. Passwords are only kept as a
+salted hash in memory. **Clear cache** on the LDAP page drops the cache at once.
+
+When a server cannot be reached, the next one is tried. A server that fails as many times in a row as
+the connection rules allow is skipped for the retry delay. While no server answers, LDAP users cannot sign
+in, but they are not treated as deleted: their tokens and role mappings stay.
 
 ## OpenID Connect
 
@@ -84,7 +144,8 @@ complete without asking for a password.
 ## Build tools and CI
 
 Command-line clients (`mvn`, `npm`, `docker`, `pip`, `helm` and the rest) send a user name and password
-or a format-specific token; they cannot follow the OpenID Connect browser flow. For CI and scripts
+or a format-specific token; they cannot follow the OpenID Connect browser flow. LDAP users can use their
+directory password with them. For CI and scripts
 create a local service user with a generated password and only the roles it needs, and store its
 credentials in the CI system's secret store. Format-specific tokens (npm, NuGet, Conan, Cargo) can be
 issued for these users as described in [connect build tools](../use/clients.md).

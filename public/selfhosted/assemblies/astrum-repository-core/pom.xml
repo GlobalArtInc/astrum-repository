@@ -333,6 +333,10 @@
     </dependency>
     <dependency>
       <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-ldap-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
       <artifactId>astrum-oidc-plugin</artifactId>
     </dependency>
     <dependency>

@@ -16,6 +16,7 @@
 
   <modules>
     <module>astrum-default-role-plugin</module>
+    <module>astrum-ldap-plugin</module>
     <module>astrum-oidc-plugin</module>
     <module>astrum-security</module>
   </modules>

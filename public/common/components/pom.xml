@@ -550,6 +550,11 @@
       </dependency>
       <dependency>
         <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-ldap-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
         <artifactId>astrum-oidc-plugin</artifactId>
         <version>3.96.4-01</version>
       </dependency>
