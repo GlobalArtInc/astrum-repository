@@ -33,7 +33,8 @@ LABEL org.opencontainers.image.title="Astrum Repository" \
       org.opencontainers.image.vendor="GlobalArt" \
       org.opencontainers.image.source="https://github.com/GlobalArtInc/astrum" \
       org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.revision="${GIT_REVISION}"
+      org.opencontainers.image.revision="${GIT_REVISION}" \
+      org.opencontainers.image.licenses="EPL-1.0"
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl \
@@ -45,6 +46,7 @@ RUN apt-get update \
 
 COPY --from=build /opt/astrum /opt/astrum
 COPY --chmod=0755 docker/entrypoint.sh /opt/astrum/bin/astrum
+COPY LICENSE.txt NOTICE.txt /opt/astrum/
 
 ENV ASTRUM_DATA=/astrum-data \
     ASTRUM_JAVA_OPTS="-Xms2703m -Xmx2703m -XX:MaxDirectMemorySize=2703m"
