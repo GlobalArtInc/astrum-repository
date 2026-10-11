@@ -156,6 +156,7 @@
   "BROWSE.LIST.COLUMNS.TYPE": "Type",
   "BROWSE.LIST.COLUMNS.URL": "URL",
   "BROWSE.LIST.COPY_URL": "Copy URL",
+  "BROWSE.LIST.COPY_URL_OF": "Copy the URL of {0}",
   "BROWSE.LIST.COUNT": "{0} in total",
   "BROWSE.LIST.EMPTY": "There are no repositories you can browse. You may need to sign in or ask for permissions.",
   "BROWSE.LIST.EMPTY_FILTERED": "No repository matches the filters",

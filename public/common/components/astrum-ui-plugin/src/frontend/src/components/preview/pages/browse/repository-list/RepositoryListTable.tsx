@@ -28,8 +28,10 @@ import UIStrings from '../../../constants/UIStrings';
 import { CopyButton, copyToClipboard } from '../../../shared/Usage';
 import { FormatBadge, StatusLabel } from '../shared';
 import { canOpenRepositorySettings } from '../RepositoryHeader';
+import { useIsPhone } from '../../../../../hooks/useMediaQuery';
 
 import './RepositoryListTable.scss';
+import './RepositoryCards.scss';
 
 /**
  * The path of a repository URL (`/repository/npm-hosted/`); the host is the same for every row.
@@ -88,6 +90,84 @@ export interface RepositoryListTableProps {
 /**
  * RepositoryListTable - the repositories with their format, type, status and URL.
  */
+interface RepositoryCardsProps {
+  repositories: readonly Repository[];
+  hasFilters: boolean;
+  onSelect?: (repositoryName: string) => void;
+  onCopied: () => void;
+  onCopyFailed: () => void;
+}
+
+/**
+ * The repository list of phones: a card per repository with its status, format and type, which opens the
+ * repository, and a button beside it that copies its URL. Sorting and filters stay in the filter sheet.
+ */
+export function RepositoryCards({
+  repositories,
+  hasFilters,
+  onSelect,
+  onCopied,
+  onCopyFailed,
+}: RepositoryCardsProps): JSX.Element {
+  const strings = UIStrings.BROWSE.LIST;
+
+  if (repositories.length === 0) {
+    return (
+      <Text as="p" color="gray" className="repository-cards__empty">
+        {hasFilters ? strings.EMPTY_FILTERED : strings.EMPTY}
+      </Text>
+    );
+  }
+
+  return (
+    <ul className="repository-cards" aria-label={strings.TITLE} data-testid="repository-cards">
+      {repositories.map((repo) => {
+        const typeKey = TYPE_KEYS[repo.type];
+        const url = ensureTrailingSlash(repo.url ?? '');
+        const online = Boolean(repo.status?.online);
+        return (
+          <li key={repo.name} className="repository-cards__item">
+            <button
+              type="button"
+              className="repository-cards__open"
+              onClick={() => onSelect?.(repo.name)}
+              data-analytics-id="as-browse-select-repository"
+            >
+              <span className="repository-cards__title">
+                <span
+                  className={`repository-cards__dot${online ? '' : ' repository-cards__dot--offline'}`}
+                  aria-hidden="true"
+                />
+                <Text size="3" weight="bold" className="repository-cards__name">{repo.name}</Text>
+              </span>
+              <Flex align="center" gap="2" wrap="wrap" className="repository-cards__meta">
+                <FormatBadge format={repo.format} size="1" radius="full" />
+                <Badge color="gray" variant="soft" size="1" radius="full" className="repository-list-table__type">
+                  {typeKey ? UIStrings.BROWSE.TYPES[typeKey] : repo.type}
+                </Badge>
+                {!online && (
+                  <Text size="1" color="red">{UIStrings.BROWSE.STATUS.OFFLINE}</Text>
+                )}
+              </Flex>
+            </button>
+            {repo.url && (
+              <CopyButton
+                text={url}
+                iconOnly
+                size="2"
+                label={strings.COPY_URL_OF(repo.name)}
+                className="repository-cards__copy"
+                onCopied={onCopied}
+                onCopyFailed={onCopyFailed}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function RepositoryListTable({
   repositories,
   loading = false,
@@ -110,6 +190,7 @@ export function RepositoryListTable({
   const toast = useToast();
   const router = useRouter();
   const strings = UIStrings.BROWSE.LIST;
+  const isPhone = useIsPhone();
 
   // Handle sort - must be declared before any early returns (Rules of Hooks)
   const handleSort = useCallback(
@@ -166,6 +247,18 @@ export function RepositoryListTable({
           <Callout.Text>{error}</Callout.Text>
         </Callout.Root>
       </Box>
+    );
+  }
+
+  if (isPhone) {
+    return (
+      <RepositoryCards
+        repositories={repositories}
+        hasFilters={hasFilters}
+        onSelect={onSelect}
+        onCopied={() => toast.success(strings.URL_COPIED)}
+        onCopyFailed={() => toast.error(strings.URL_COPY_FAILED)}
+      />
     );
   }
 

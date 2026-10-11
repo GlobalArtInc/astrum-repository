@@ -60,6 +60,7 @@ export default {
       EMPTY_FILTERED: 'No repository matches the filters',
       EMPTY: 'There are no repositories you can browse. You may need to sign in or ask for permissions.',
       COPY_URL: 'Copy URL',
+      COPY_URL_OF: (name) => `Copy the URL of ${name}`,
       URL_COPIED: 'URL copied',
       URL_COPY_FAILED: 'Could not copy the URL',
       BROWSE_ACTION: 'Browse repository',

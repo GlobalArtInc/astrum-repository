@@ -585,3 +585,55 @@ describe('RepositoryListTable (Actions column, ASTRUM-53948)', () => {
     });
   });
 });
+
+describe('RepositoryListTable on phones', () => {
+  const originalMatchMedia = window.matchMedia;
+
+  beforeEach(() => {
+    window.matchMedia = jest.fn((query: string) => ({
+      matches: query.includes('639px'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    })) as unknown as typeof window.matchMedia;
+  });
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it('lists the repositories as cards instead of a table', () => {
+    renderWithTheme(<RepositoryListTable repositories={mockRepositories} />);
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    const cards = screen.getByTestId('repository-cards');
+    expect(cards.querySelectorAll('li')).toHaveLength(mockRepositories.length);
+    mockRepositories.forEach((repo) => {
+      expect(screen.getByText(repo.name)).toBeInTheDocument();
+    });
+  });
+
+  it('opens a repository from its card', () => {
+    const onSelect = jest.fn();
+    renderWithTheme(<RepositoryListTable repositories={mockRepositories} onSelect={onSelect} />);
+
+    fireEvent.click(screen.getByText(mockRepositories[0].name));
+
+    expect(onSelect).toHaveBeenCalledWith(mockRepositories[0].name);
+  });
+
+  it('offers to copy the URL of every repository that has one', () => {
+    renderWithTheme(<RepositoryListTable repositories={mockRepositories} />);
+
+    mockRepositories.filter((repo) => repo.url).forEach((repo) => {
+      expect(screen.getByRole('button', { name: `Copy the URL of ${repo.name}` })).toBeInTheDocument();
+    });
+  });
+
+  it('says so when no repository matches the filters', () => {
+    renderWithTheme(<RepositoryListTable repositories={[]} hasFilters />);
+
+    expect(screen.getByText('No repository matches the filters')).toBeInTheDocument();
+  });
+});
+
