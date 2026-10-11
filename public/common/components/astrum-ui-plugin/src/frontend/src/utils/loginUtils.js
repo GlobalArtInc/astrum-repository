@@ -160,7 +160,7 @@ export function returnToTargetsClassicLanding(returnToParam) {
  * @return {string}
  */
 export function toPreviewReturnTo(hash) {
-  const [, prefix, path] = /^(#?\/?)(.*)$/.exec(String(hash ?? ''));
+  const [, prefix, path] = /^(#?\/?)([\s\S]*)$/.exec(String(hash ?? ''));
   return `${prefix}${heritageToPreviewPath(path)}`;
 }
 
