@@ -410,7 +410,7 @@ export function AccessTokensPage() {
   };
 
   return (
-    <Box style={{ maxWidth: 1100, width: '100%', padding: 'var(--space-6)' }} data-testid="access-tokens-page">
+    <Box p={{ initial: '4', sm: '6' }} style={{ maxWidth: 1100, width: '100%' }} data-testid="access-tokens-page">
       <Flex align="center" gap="3" mb="2">
         <KeyRound size={24} color="var(--accent-9)" />
         <Heading size="6">{strings.TITLE}</Heading>

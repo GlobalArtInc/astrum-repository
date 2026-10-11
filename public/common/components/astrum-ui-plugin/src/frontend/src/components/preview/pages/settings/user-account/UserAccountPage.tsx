@@ -170,7 +170,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               autoComplete="email"
               required
             />
-            <Flex gap="2" mt="2">
+            <Flex gap="2" mt="2" wrap="wrap">
               <Button
                 type="button"
                 variant="solid"
@@ -231,7 +231,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
             />
           </Flex>
 
-          <Flex gap="2" mt="4">
+          <Flex gap="2" mt="4" wrap="wrap">
             <Button
               type="button"
               variant="solid"

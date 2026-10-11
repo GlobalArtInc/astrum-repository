@@ -206,7 +206,7 @@ export function UserTokenPage() {
   }
 
   return (
-    <Box style={{ maxWidth: 640, width: '100%', padding: 'var(--space-6)' }} data-testid="user-token-page">
+    <Box p={{ initial: '4', sm: '6' }} style={{ maxWidth: 640, width: '100%' }} data-testid="user-token-page">
       <Flex align="center" gap="3" mb="4">
         <Key size={24} color="var(--accent-9)" />
         <Box>
