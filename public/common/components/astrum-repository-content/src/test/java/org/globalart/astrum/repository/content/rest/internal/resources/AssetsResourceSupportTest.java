@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.globalart.astrum.common.entity.Continuation;
 import org.globalart.astrum.repository.Format;
 import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounter;
 import org.globalart.astrum.repository.content.facet.ContentFacet;
 import org.globalart.astrum.repository.content.facet.ContentFacetDependencies;
 import org.globalart.astrum.repository.content.facet.ContentFacetSupport;
@@ -99,7 +100,8 @@ public class AssetsResourceSupportTest
     mockRepository();
     mockContentFacet();
     mockFluentAssets();
-    underTest = new AssetsResource(repositoryManagerRESTAdapter, maintenanceService, contentAuthHelper, null);
+    underTest = new AssetsResource(repositoryManagerRESTAdapter, maintenanceService, contentAuthHelper, null,
+        mock(AssetDownloadCounter.class));
   }
 
   @Test

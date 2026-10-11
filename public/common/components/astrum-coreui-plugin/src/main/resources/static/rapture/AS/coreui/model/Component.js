@@ -18,6 +18,7 @@ Ext.define('AS.coreui.model.Component', {
     {name: 'version', type: 'string'},
     {name: 'format', type: 'string', sortType: 'asUCText'},
     {name: 'registryUrl', type: 'string'},
+    {name: 'downloadCount', type: 'int', allowNull: true, defaultValue: null},
     {name: 'attributes', type: 'auto' /*object*/}
   ]
 });

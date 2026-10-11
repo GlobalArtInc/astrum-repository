@@ -32,13 +32,14 @@ import { DeleteDialog } from '../actions/DeleteDialog';
 import { deleteComponent, deleteAsset, deleteFolder, fetchBrowseNodes } from '../browse.api';
 import type { DeleteItemInfo } from '../actions/actions.types';
 import type { BrowseNode } from '../tree/browse-tree.types';
-import { formatFileSize, formatDate, getAssetDownloadUrl, sanitizeRegistryUrl } from './detail.utils';
+import { formatCount, formatFileSize, formatDate, getAssetDownloadUrl, sanitizeRegistryUrl } from './detail.utils';
 import { DeepResearchLink, useToast } from '../../../shared';
 import { isIqServerEnabled } from '../repository-list/useRepositoryList';
 import {
   formatAttributeValue,
   shouldDisplayAttributeFacet,
 } from '../browse.constants';
+import UIStrings from '../../../constants/UIStrings';
 
 import './DetailPanel.scss';
 
@@ -270,6 +271,8 @@ export interface ComponentData {
   group: string | null;
   name: string;
   version: string | null;
+  /** Downloads of all assets of the component; undefined when not known */
+  downloadCount?: number | null;
 }
 
 /**
@@ -285,6 +288,8 @@ export interface AssetData {
   blobCreated: string | null;
   blobUpdated: string | null;
   lastDownloaded: string | null;
+  /** Number of times the asset was downloaded; undefined when not known */
+  downloadCount?: number | null;
   path?: string;
   downloadUrl?: string;
   blobRef?: string;
@@ -639,6 +644,7 @@ function PackageRootDetails({
         <DetailRow label="Content Type" value={assetData?.contentType} />
         <DetailRow label="Size" value={formatFileSize(assetData?.size)} />
         <DetailRow label="Last Updated" value={formatDate(assetData?.blobUpdated)} />
+        <DetailRow label={UIStrings.BROWSE_DETAIL.DOWNLOADS} value={formatCount(assetData?.downloadCount)} />
         <PathRowWithCopy label="Path" value={assetData?.path || assetData?.name} />
       </Box>
 
@@ -718,6 +724,10 @@ function ComponentDetails({
         <DetailRow label={STRINGS.component.group} value={componentData?.group} />
         <DetailRow label={STRINGS.component.name} value={componentData?.name || node.text} />
         <DetailRow label={STRINGS.component.version} value={componentData?.version} />
+        <DetailRow
+          label={UIStrings.BROWSE_DETAIL.DOWNLOADS}
+          value={formatCount(componentData?.downloadCount)}
+        />
       </Box>
 
       {/* Actions */}
@@ -933,6 +943,7 @@ function AssetDetails({
             <DetailRow label={STRINGS.asset.blobCreated} value={formatDate(assetData?.blobCreated)} />
             <DetailRow label={STRINGS.asset.blobUpdated} value={formatDate(assetData?.blobUpdated)} />
             <DetailRow label={STRINGS.asset.lastDownloaded} value={formatDate(assetData?.lastDownloaded)} />
+            <DetailRow label={UIStrings.BROWSE_DETAIL.DOWNLOADS} value={formatCount(assetData?.downloadCount)} />
             {assetData?.blobRef && <DetailRow label="Blob Reference" value={assetData.blobRef} />}
             {assetData?.createdBy && <DetailRow label="Uploaded By" value={assetData.createdBy} />}
           </Box>

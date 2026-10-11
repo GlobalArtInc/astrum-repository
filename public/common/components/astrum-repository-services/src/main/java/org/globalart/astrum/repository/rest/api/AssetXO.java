@@ -60,6 +60,11 @@ public class AssetXO
   private Date lastVerified;
 
   /**
+   * Number of times the asset has been downloaded, or {@code null} where it is not known cheaply (search results).
+   */
+  private Long downloadCount;
+
+  /**
    * Top-level docker registry URL (e.g. {@code localhost:8081/my-repo}) computed at read
    * time from the repository's connector configuration. Only populated for docker assets;
    * intentionally kept off {@code attributes.docker} so it does not appear in the
@@ -210,6 +215,14 @@ public class AssetXO
     this.lastVerified = lastVerified;
   }
 
+  public Long getDownloadCount() {
+    return downloadCount;
+  }
+
+  public void setDownloadCount(final Long downloadCount) {
+    this.downloadCount = downloadCount;
+  }
+
   public String getRegistryUrl() {
     return registryUrl;
   }
@@ -350,6 +363,7 @@ public class AssetXO
         ", blobStoreName='" + blobStoreName + '\'' +
         ", blobRef='" + blobRef + '\'' +
         ", lastVerified=" + lastVerified +
+        ", downloadCount=" + downloadCount +
         ", attributes=" + attributes +
         ", registryUrl='" + registryUrl + '\'' +
         '}';
@@ -391,6 +405,8 @@ public class AssetXO
     private String blobRef;
 
     private Date lastVerified;
+
+    private Long downloadCount;
 
     private String registryUrl;
 
@@ -481,6 +497,11 @@ public class AssetXO
       return this;
     }
 
+    public AssetXOBuilder downloadCount(Long downloadCount) {
+      this.downloadCount = downloadCount;
+      return this;
+    }
+
     public AssetXOBuilder registryUrl(String registryUrl) {
       this.registryUrl = registryUrl;
       return this;
@@ -510,6 +531,7 @@ public class AssetXO
       assetXO.setBlobStoreName(this.blobStoreName);
       assetXO.setBlobRef(this.blobRef);
       assetXO.setLastVerified(this.lastVerified);
+      assetXO.setDownloadCount(this.downloadCount);
       assetXO.setRegistryUrl(this.registryUrl);
       assetXO.setAttributes(this.attributes);
       return assetXO;

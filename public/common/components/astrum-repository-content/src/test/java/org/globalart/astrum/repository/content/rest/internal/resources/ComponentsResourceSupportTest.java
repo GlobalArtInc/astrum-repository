@@ -6,6 +6,7 @@ import java.util.List;
 import org.globalart.astrum.common.entity.Continuation;
 import org.globalart.astrum.repository.Format;
 import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounter;
 import org.globalart.astrum.repository.content.facet.ContentFacet;
 import org.globalart.astrum.repository.content.facet.ContentFacetSupport;
 import org.globalart.astrum.repository.content.fluent.FluentComponent;
@@ -35,6 +36,7 @@ import static java.util.stream.IntStream.range;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -104,7 +106,8 @@ public class ComponentsResourceSupportTest
     mockFluentComponents();
 
     underTest = new ComponentsResource(repositoryManagerRESTAdapter, maintenanceService, uploadManager,
-        componentXOFactory, contentAuthHelper, ImmutableSet.of(componentsResourceExtension), null);
+        componentXOFactory, contentAuthHelper, ImmutableSet.of(componentsResourceExtension), null,
+        mock(AssetDownloadCounter.class));
   }
 
   @Test

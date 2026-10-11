@@ -42,6 +42,11 @@ public class AssetXO
 
   private Date lastVerified;
 
+  /**
+   * Number of times the asset was downloaded, {@code null} when it is not known.
+   */
+  private Long downloadCount;
+
   @NotEmpty
   private String blobRef;
 
@@ -150,6 +155,14 @@ public class AssetXO
     this.lastVerified = lastVerified;
   }
 
+  public Long getDownloadCount() {
+    return downloadCount;
+  }
+
+  public void setDownloadCount(Long downloadCount) {
+    this.downloadCount = downloadCount;
+  }
+
   public String getBlobRef() {
     return blobRef;
   }
@@ -229,6 +242,7 @@ public class AssetXO
         ", blobUpdated=" + blobUpdated +
         ", lastDownloaded=" + lastDownloaded +
         ", lastVerified=" + lastVerified +
+        ", downloadCount=" + downloadCount +
         ", blobRef='" + blobRef + '\'' +
         ", componentId='" + componentId + '\'' +
         ", createdBy='" + createdBy + '\'' +

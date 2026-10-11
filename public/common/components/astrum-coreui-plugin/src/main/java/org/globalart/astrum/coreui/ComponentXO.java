@@ -39,6 +39,11 @@ public class ComponentXO
 
   private String registryUrl;
 
+  /**
+   * Number of times the assets of the component were downloaded, {@code null} when it is not known.
+   */
+  private Long downloadCount;
+
   public String getId() {
     return id;
   }
@@ -111,6 +116,14 @@ public class ComponentXO
 
   public void setRegistryUrl(String registryUrl) {
     this.registryUrl = registryUrl;
+  }
+
+  public Long getDownloadCount() {
+    return downloadCount;
+  }
+
+  public void setDownloadCount(Long downloadCount) {
+    this.downloadCount = downloadCount;
   }
 
   private void setGroupingKey() {

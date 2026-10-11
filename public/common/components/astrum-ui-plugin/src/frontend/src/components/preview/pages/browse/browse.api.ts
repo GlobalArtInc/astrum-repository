@@ -138,6 +138,17 @@ interface RestComponent {
   group?: string;
   name: string;
   version?: string;
+  assets?: { downloadCount?: number | null }[];
+}
+
+/**
+ * Sum the download counts of the assets of a REST component; undefined when no asset carries one.
+ */
+function sumDownloadCounts(assets: RestComponent['assets']): number | undefined {
+  const counts = (assets ?? [])
+    .map((asset) => asset.downloadCount)
+    .filter((count): count is number => typeof count === 'number');
+  return counts.length > 0 ? counts.reduce((total, count) => total + count, 0) : undefined;
 }
 
 /**
@@ -151,6 +162,7 @@ function restToComponentXO(rest: RestComponent): ComponentXO {
     group: rest.group || '',
     name: rest.name,
     version: rest.version || '',
+    downloadCount: sumDownloadCounts(rest.assets),
   };
 }
 
@@ -169,6 +181,7 @@ interface ExtDirectAssetXO {
   blobCreated?: string | number | null;
   blobUpdated?: string | number | null;
   lastDownloaded?: string | number | null;
+  downloadCount?: number | null;
   blobRef?: string | null;
   componentId?: string | null;
   createdBy?: string | null;
@@ -217,6 +230,7 @@ function extDirectToAssetXO(ext: ExtDirectAssetXO, repositoryName: string): Asse
     blobCreated: toIso(ext.blobCreated),
     blobUpdated: toIso(ext.blobUpdated),
     lastDownloaded: toIso(ext.lastDownloaded),
+    downloadCount: ext.downloadCount ?? undefined,
     size: ext.size,
     blobRef: ext.blobRef ?? undefined,
     componentId: ext.componentId ?? undefined,

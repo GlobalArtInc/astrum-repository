@@ -66,11 +66,25 @@ public class AssetXOBuilder
       final Map<String, AssetXODescriptor> assetDescriptors,
       final boolean uploaderVisible)
   {
+    return fromAsset(asset, repository, assetDescriptors, uploaderVisible, null);
+  }
+
+  /**
+   * Build AssetXO with the number of times the asset was downloaded, {@code null} when it is not known.
+   */
+  public static AssetXO fromAsset(
+      final Asset asset,
+      final Repository repository,
+      final Map<String, AssetXODescriptor> assetDescriptors,
+      final boolean uploaderVisible,
+      @Nullable final Long downloadCount)
+  {
     // For backward compatibility, use asset.created() for blobCreated
     Date blobCreated = Date.from(asset.created().toInstant());
 
     return doFromAsset(asset, repository, assetDescriptors, uploaderVisible)
         .blobCreated(blobCreated)
+        .downloadCount(downloadCount)
         .build();
   }
 

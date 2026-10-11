@@ -266,6 +266,66 @@ describe('DetailPanel', () => {
     });
   });
 
+  describe('download counts', () => {
+    it('shows how often an asset was downloaded', () => {
+      renderWithTheme(
+        <DetailPanel
+          node={mockAssetNode}
+          repositoryName={repositoryName}
+          assetData={{ ...mockAssetData, downloadCount: 1234 }}
+        />
+      );
+
+      expect(screen.getByText('Downloads')).toBeInTheDocument();
+      expect(screen.getByText((1234).toLocaleString())).toBeInTheDocument();
+    });
+
+    it('shows zero for an asset that was never downloaded', () => {
+      renderWithTheme(
+        <DetailPanel
+          node={mockAssetNode}
+          repositoryName={repositoryName}
+          assetData={{ ...mockAssetData, downloadCount: 0 }}
+        />
+      );
+
+      const label = screen.getByText('Downloads');
+      expect(label.parentElement).toHaveTextContent('Downloads0');
+    });
+
+    it('shows a dash when the downloads of an asset are not known', () => {
+      renderWithTheme(
+        <DetailPanel node={mockAssetNode} repositoryName={repositoryName} assetData={mockAssetData} />
+      );
+
+      expect(screen.getByText('Downloads').parentElement).toHaveTextContent('Downloads-');
+    });
+
+    it('shows the downloads of all assets of a component', () => {
+      renderWithTheme(
+        <DetailPanel
+          node={mockComponentNode}
+          repositoryName={repositoryName}
+          componentData={{ ...mockComponentData, downloadCount: 42 }}
+        />
+      );
+
+      expect(screen.getByText('Downloads').parentElement).toHaveTextContent('Downloads42');
+    });
+
+    it('shows the downloads of a package root asset', () => {
+      renderWithTheme(
+        <DetailPanel
+          node={{ ...mockAssetNode, leaf: false }}
+          repositoryName={repositoryName}
+          assetData={{ ...mockAssetData, downloadCount: 5 }}
+        />
+      );
+
+      expect(screen.getByText('Downloads').parentElement).toHaveTextContent('Downloads5');
+    });
+  });
+
   describe('folder details', () => {
     it('renders folder details for folder node', () => {
       renderWithTheme(

@@ -153,6 +153,7 @@ export function BrowsePage(): JSX.Element {
                 blobCreated: asset.blobCreated || null,
                 blobUpdated: asset.lastModified || null,
                 lastDownloaded: asset.lastDownloaded || null,
+                downloadCount: asset.downloadCount,
                 path: asset.path || asset.name,
                 downloadUrl: asset.downloadUrl, // absolute URL from server — includes context path, preferred over client-generated URL
                 blobRef: asset.blobRef,
@@ -171,6 +172,7 @@ export function BrowsePage(): JSX.Element {
                 group: comp.group || null,
                 name: comp.name,
                 version: comp.version || null,
+                downloadCount: comp.downloadCount,
               } as ComponentData : null,
             }),
           );
@@ -188,6 +190,7 @@ export function BrowsePage(): JSX.Element {
                   group: component.group || null,
                   name: component.name,
                   version: component.version || null,
+                  downloadCount: component.downloadCount,
                 } as ComponentData,
               };
             },

@@ -19,7 +19,7 @@ Ext.define('AS.coreui.model.Asset', {
     {name: 'blobCreated', type: 'date', dateFormat: 'c' },
     {name: 'blobUpdated', type: 'date', dateFormat: 'c' },
     {name: 'lastDownloaded', type: 'date', dateFormat: 'c' },
-    {name: 'downloadCount', type: 'int'},
+    {name: 'downloadCount', type: 'int', allowNull: true, defaultValue: null},
     {name: 'blobRef', type: 'string', sortType: 'asUCText'},
     {name: 'componentId', type: 'string', sortType: 'asUCText'},
     {name: 'createdBy', type: 'string'},

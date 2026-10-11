@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.repository.content.downloads.AssetDownloadCountDAO">
+
+  <insert id="createSchema" databaseId="H2">
+    CREATE TABLE IF NOT EXISTS asset_download_count
+    (
+      format          VARCHAR(100)             NOT NULL,
+      asset_id        INT                      NOT NULL,
+      repository_id   INT                      NOT NULL,
+      component_id    INT,
+      download_count  BIGINT                   NOT NULL,
+      last_downloaded TIMESTAMP WITH TIME ZONE NOT NULL,
+
+      CONSTRAINT pk_asset_download_count PRIMARY KEY (format, asset_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_asset_download_count_repository ON asset_download_count (format, repository_id);
+    CREATE INDEX IF NOT EXISTS idx_asset_download_count_component ON asset_download_count (format, component_id);
+  </insert>
+
+  <insert id="createSchema" databaseId="PostgreSQL">
+    CREATE TABLE IF NOT EXISTS asset_download_count
+    (
+      format          VARCHAR(100)             NOT NULL,
+      asset_id        INT                      NOT NULL,
+      repository_id   INT                      NOT NULL,
+      component_id    INT,
+      download_count  BIGINT                   NOT NULL,
+      last_downloaded TIMESTAMP WITH TIME ZONE NOT NULL,
+
+      CONSTRAINT pk_asset_download_count PRIMARY KEY (format, asset_id)
+    );
+
+    <!-- PostgreSQL: the catalog check keeps restarts from locking the table, see ASTRUM-49154 -->
+    DO $$
+    BEGIN
+      IF to_regclass('idx_asset_download_count_repository') IS NULL THEN
+        CREATE INDEX idx_asset_download_count_repository ON asset_download_count (format, repository_id);
+      END IF;
+      IF to_regclass('idx_asset_download_count_component') IS NULL THEN
+        CREATE INDEX idx_asset_download_count_component ON asset_download_count (format, component_id);
+      END IF;
+    END
+    $$;
+  </insert>
+
+  <insert id="addDownloads" databaseId="H2"
+          parameterType="org.globalart.astrum.repository.content.downloads.AssetDownloadCountData">
+    MERGE INTO asset_download_count t
+    USING (VALUES (CAST(#{format} AS VARCHAR(100)),
+                   CAST(#{assetId} AS INT),
+                   CAST(#{repositoryId} AS INT),
+                   CAST(#{componentId, jdbcType=INTEGER} AS INT),
+                   CAST(#{downloadCount} AS BIGINT),
+                   CAST(#{lastDownloaded} AS TIMESTAMP WITH TIME ZONE)))
+       AS s (format, asset_id, repository_id, component_id, download_count, last_downloaded)
+    ON t.format = s.format AND t.asset_id = s.asset_id
+    WHEN MATCHED THEN UPDATE SET
+      download_count = t.download_count + s.download_count,
+      last_downloaded = GREATEST(t.last_downloaded, s.last_downloaded),
+      component_id = COALESCE(s.component_id, t.component_id)
+    WHEN NOT MATCHED THEN INSERT (format, asset_id, repository_id, component_id, download_count, last_downloaded)
+      VALUES (s.format, s.asset_id, s.repository_id, s.component_id, s.download_count, s.last_downloaded);
+  </insert>
+
+  <insert id="addDownloads" databaseId="PostgreSQL"
+          parameterType="org.globalart.astrum.repository.content.downloads.AssetDownloadCountData">
+    INSERT INTO asset_download_count (format, asset_id, repository_id, component_id, download_count, last_downloaded)
+    VALUES (#{format}, #{assetId}, #{repositoryId}, #{componentId, jdbcType=INTEGER}, #{downloadCount},
+            #{lastDownloaded})
+    ON CONFLICT (format, asset_id) DO UPDATE SET
+      download_count = asset_download_count.download_count + EXCLUDED.download_count,
+      last_downloaded = GREATEST(asset_download_count.last_downloaded, EXCLUDED.last_downloaded),
+      component_id = COALESCE(EXCLUDED.component_id, asset_download_count.component_id);
+  </insert>
+
+  <select id="browse" resultType="org.globalart.astrum.repository.content.downloads.AssetDownloadCountData">
+    SELECT format, asset_id, repository_id, component_id, download_count, last_downloaded
+      FROM asset_download_count
+     WHERE format = #{format}
+       AND asset_id IN
+    <foreach collection="assetIds" item="assetId" open="(" separator="," close=")">#{assetId}</foreach>;
+  </select>
+
+  <delete id="deleteAssets">
+    DELETE FROM asset_download_count
+     WHERE format = #{format}
+       AND asset_id IN
+    <foreach collection="assetIds" item="assetId" open="(" separator="," close=")">#{assetId}</foreach>;
+  </delete>
+
+  <delete id="deleteComponents">
+    DELETE FROM asset_download_count
+     WHERE format = #{format}
+       AND component_id IN
+    <foreach collection="componentIds" item="componentId" open="(" separator="," close=")">#{componentId}</foreach>;
+  </delete>
+
+  <delete id="deleteRepository">
+    DELETE FROM asset_download_count
+     WHERE format = #{format}
+       AND repository_id = #{repositoryId};
+  </delete>
+
+</mapper>

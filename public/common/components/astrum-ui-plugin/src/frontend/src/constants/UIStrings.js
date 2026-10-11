@@ -6,6 +6,7 @@ import TasksStrings from "./admin/TasksStrings";
 import LoginPageStrings from "./LoginPageStrings";
 import WelcomeStrings from "./WelcomeStrings";
 import AccessTokensStrings from "./pages/AccessTokensStrings";
+import BrowseDetailStrings from "./BrowseDetailStrings";
 import localize from "../interface/localize";
 
 /**
@@ -128,5 +129,6 @@ export default localize('react-ui', {
   ...TasksStrings,
   ...LoginPageStrings,
   ...WelcomeStrings,
-  ...AccessTokensStrings
+  ...AccessTokensStrings,
+  ...BrowseDetailStrings
 });

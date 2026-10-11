@@ -2,6 +2,8 @@
 package org.globalart.astrum.repository.content.rest.internal.resources;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,7 +20,10 @@ import org.globalart.astrum.repository.IllegalOperationException;
 import org.globalart.astrum.repository.MissingBlobException;
 import org.globalart.astrum.repository.RedeployDisabledException;
 import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounter;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounts;
 import org.globalart.astrum.repository.content.facet.ContentFacet;
+import org.globalart.astrum.repository.content.fluent.FluentAsset;
 import org.globalart.astrum.repository.content.fluent.FluentComponent;
 import org.globalart.astrum.repository.content.maintenance.MaintenanceService;
 import org.globalart.astrum.repository.content.rest.ComponentsResourceExtension;
@@ -91,6 +96,8 @@ public class ComponentsResource
 
   private final Set<ComponentsResourceExtension> componentsResourceExtensions;
 
+  private final AssetDownloadCounter assetDownloadCounter;
+
   @Autowired
   public ComponentsResource(
       final RepositoryManagerRESTAdapter repositoryManagerRESTAdapter,
@@ -99,7 +106,8 @@ public class ComponentsResource
       final ComponentXOFactory componentXOFactory,
       final ContentAuthHelper contentAuthHelper,
       final Set<ComponentsResourceExtension> componentsResourceExtensions,
-      @Nullable final List<AssetXODescriptor> assetDescriptorsList)
+      @Nullable final List<AssetXODescriptor> assetDescriptorsList,
+      final AssetDownloadCounter assetDownloadCounter)
   {
     super(contentAuthHelper, repositoryManagerRESTAdapter);
     this.repositoryManagerRESTAdapter = checkNotNull(repositoryManagerRESTAdapter);
@@ -108,6 +116,7 @@ public class ComponentsResource
     this.componentXOFactory = checkNotNull(componentXOFactory);
     this.componentsResourceExtensions = checkNotNull(componentsResourceExtensions);
     this.assetDescriptors = QualifierUtil.buildQualifierBeanMap(assetDescriptorsList);
+    this.assetDownloadCounter = checkNotNull(assetDownloadCounter);
   }
 
   /**
@@ -135,8 +144,7 @@ public class ComponentsResource
   public ComponentXO getComponentById(@PathParam("id") final String id) {
     RepositoryItemIDXO repositoryItemIDXO = fromString(id);
     Repository repository = repositoryManagerRESTAdapter.getRepository(repositoryItemIDXO.getRepositoryId());
-    boolean uploaderVisible = SecurityUtils.getSubject().isPermitted(UPLOADER_METADATA_READ_PERMISSION);
-    return fromComponent(getComponent(repositoryItemIDXO, repository), repository, uploaderVisible);
+    return toComponentXOs(List.of(getComponent(repositoryItemIDXO, repository)), repository).get(0);
   }
 
   private FluentComponent getComponent(final RepositoryItemIDXO repositoryItemIDXO, final Repository repository) {
@@ -220,24 +228,33 @@ public class ComponentsResource
 
   private List<ComponentXO> toComponentXOs(final List<FluentComponent> components, final Repository repository) {
     boolean uploaderVisible = SecurityUtils.getSubject().isPermitted(UPLOADER_METADATA_READ_PERMISSION);
-    return components.stream()
-        .map(component -> fromComponent(component, repository, uploaderVisible))
+    List<Collection<FluentAsset>> assets = components.stream()
+        .map(FluentComponent::assets)
         .collect(toList());
+    AssetDownloadCounts downloadCounts = assetDownloadCounter.getDownloadCounts(repository.getFormat().getValue(),
+        assets.stream().flatMap(Collection::stream).collect(toList()));
+    List<ComponentXO> componentXOs = new ArrayList<>(components.size());
+    for (int i = 0; i < components.size(); i++) {
+      componentXOs.add(fromComponent(components.get(i), assets.get(i), repository, uploaderVisible, downloadCounts));
+    }
+    return componentXOs;
   }
 
   private ComponentXO fromComponent(
       final FluentComponent component,
+      final Collection<FluentAsset> assets,
       final Repository repository,
-      final boolean uploaderVisible)
+      final boolean uploaderVisible,
+      final AssetDownloadCounts downloadCounts)
   {
     String externalId = toExternalId(internalComponentId(component)).getValue();
 
     ComponentXO componentXO = componentXOFactory.createComponentXO();
 
-    componentXO.setAssets(component.assets()
+    componentXO.setAssets(assets
         .stream()
         .filter(assetPermitted(repository))
-        .map(asset -> fromAsset(asset, repository, this.assetDescriptors, uploaderVisible))
+        .map(asset -> fromAsset(asset, repository, this.assetDescriptors, uploaderVisible, downloadCounts.of(asset)))
         .collect(Collectors.toList()));
 
     componentXO.setGroup(component.namespace());

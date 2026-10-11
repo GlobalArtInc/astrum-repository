@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -15,6 +16,8 @@ import org.globalart.astrum.repository.Format;
 import org.globalart.astrum.repository.IllegalOperationException;
 import org.globalart.astrum.repository.RedeployDisabledException;
 import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounter;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounts;
 import org.globalart.astrum.repository.content.facet.ContentFacet;
 import org.globalart.astrum.repository.content.facet.ContentFacetSupport;
 import org.globalart.astrum.repository.content.fluent.FluentAsset;
@@ -134,12 +137,16 @@ class ComponentsResourceTest
   @Mock
   private Continuation<FluentComponent> componentContinuation;
 
+  @Mock
+  private AssetDownloadCounter assetDownloadCounter;
+
   @Spy
   private ComponentsResourceExtension componentsResourceExtension = new TestComponentsResourceExtension();
 
   @BeforeEach
   void setUp() {
     configureMockedRepository();
+    when(assetDownloadCounter.getDownloadCounts(any(), any())).thenReturn(new AssetDownloadCounts(Map.of()));
 
     underTest = new ComponentsResource(
         repositoryManagerRESTAdapter,
@@ -148,7 +155,8 @@ class ComponentsResourceTest
         componentXOFactory,
         contentAuthHelper,
         Set.of(componentsResourceExtension),
-        null);
+        null,
+        assetDownloadCounter);
   }
 
   // --- getComponents tests ---
@@ -264,6 +272,26 @@ class ComponentsResourceTest
     assertThat(page.getItems(), hasSize(1));
     // Assets should be filtered out because permission denied
     assertThat(page.getItems().iterator().next().getAssets(), is(empty()));
+  }
+
+  @WithUser(isAuthenticated = false)
+  @Test
+  void getComponents_readsTheDownloadCountsOfAllAssetsOfThePageAtOnce() {
+    when(componentXOFactory.createComponentXO()).thenAnswer(inv -> new DefaultComponentXO());
+    when(contentAuthHelper.checkPathPermissions(any(), eq(FORMAT_VALUE), eq(REPOSITORY_NAME))).thenReturn(true);
+    when(repositoryManagerRESTAdapter.findContainingGroups(REPOSITORY_NAME)).thenReturn(emptySet());
+    when(assetDownloadCounter.getDownloadCounts(eq(FORMAT_VALUE), any()))
+        .thenReturn(new AssetDownloadCounts(Map.of(1, 5L)));
+
+    List<FluentComponent> componentList = List.of(aFluentComponentWithAsset(), aFluentComponent(43));
+    when(componentContinuation.isEmpty()).thenReturn(false).thenReturn(true);
+    when(componentContinuation.iterator()).thenReturn(componentList.iterator());
+
+    Page<ComponentXO> page = underTest.getComponents(null, REPOSITORY_NAME);
+
+    assertThat(page.getItems(), hasSize(2));
+    assertThat(page.getItems().iterator().next().getAssets().get(0).getDownloadCount(), is(5L));
+    verify(assetDownloadCounter).getDownloadCounts(eq(FORMAT_VALUE), any());
   }
 
   @WithUser(isAuthenticated = false)
@@ -585,7 +613,8 @@ class ComponentsResourceTest
         componentXOFactory,
         contentAuthHelper,
         ImmutableSet.of(componentsResourceExtension, secondExtension),
-        null);
+        null,
+        assetDownloadCounter);
 
     when(componentXOFactory.createComponentXO()).thenReturn(new DefaultComponentXO());
     when(contentAuthHelper.checkPathPermissions(COMPONENT_NAME, FORMAT_VALUE, REPOSITORY_NAME)).thenReturn(true);
@@ -613,7 +642,8 @@ class ComponentsResourceTest
         componentXOFactory,
         contentAuthHelper,
         emptySet(),
-        null);
+        null,
+        assetDownloadCounter);
 
     when(componentXOFactory.createComponentXO()).thenReturn(new DefaultComponentXO());
     when(contentAuthHelper.checkPathPermissions(COMPONENT_NAME, FORMAT_VALUE, REPOSITORY_NAME)).thenReturn(true);

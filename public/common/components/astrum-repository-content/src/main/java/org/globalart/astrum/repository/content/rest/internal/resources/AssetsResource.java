@@ -10,6 +10,8 @@ import org.globalart.astrum.common.QualifierUtil;
 import org.globalart.astrum.common.entity.DetachedEntityId;
 import org.globalart.astrum.repository.Repository;
 import org.globalart.astrum.repository.content.Asset;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounter;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounts;
 import org.globalart.astrum.repository.content.facet.ContentFacet;
 import org.globalart.astrum.repository.content.fluent.FluentAsset;
 import org.globalart.astrum.repository.content.maintenance.MaintenanceService;
@@ -67,17 +69,21 @@ public class AssetsResource
 
   private final Map<String, AssetXODescriptor> assetDescriptors;
 
+  private final AssetDownloadCounter assetDownloadCounter;
+
   @Autowired
   public AssetsResource(
       final RepositoryManagerRESTAdapter repositoryManagerRESTAdapter,
       final MaintenanceService maintenanceService,
       final ContentAuthHelper contentAuthHelper,
-      final List<AssetXODescriptor> assetDescriptorsList)
+      final List<AssetXODescriptor> assetDescriptorsList,
+      final AssetDownloadCounter assetDownloadCounter)
   {
     super(contentAuthHelper);
     this.repositoryManagerRESTAdapter = checkNotNull(repositoryManagerRESTAdapter);
     this.maintenanceService = checkNotNull(maintenanceService);
     this.assetDescriptors = QualifierUtil.buildQualifierBeanMap(assetDescriptorsList);
+    this.assetDownloadCounter = checkNotNull(assetDownloadCounter);
   }
 
   @RequiresUser
@@ -101,7 +107,8 @@ public class AssetsResource
     Repository repository = repositoryManagerRESTAdapter.getRepository(repositoryItemIDXO.getRepositoryId());
     Asset asset = getAsset(id, repository, new DetachedEntityId(repositoryItemIDXO.getId()));
     boolean uploaderVisible = SecurityUtils.getSubject().isPermitted(UPLOADER_METADATA_READ_PERMISSION);
-    return fromAsset(asset, repository, this.assetDescriptors, uploaderVisible);
+    long downloadCount = assetDownloadCounter.getDownloadCount(repository.getFormat().getValue(), asset);
+    return fromAsset(asset, repository, this.assetDescriptors, uploaderVisible, downloadCount);
   }
 
   @RequiresUser
@@ -137,8 +144,10 @@ public class AssetsResource
       final Map<String, AssetXODescriptor> assetDescriptors)
   {
     boolean uploaderVisible = SecurityUtils.getSubject().isPermitted(UPLOADER_METADATA_READ_PERMISSION);
+    AssetDownloadCounts downloadCounts =
+        assetDownloadCounter.getDownloadCounts(repository.getFormat().getValue(), assets);
     return assets.stream()
-        .map(asset -> fromAsset(asset, repository, assetDescriptors, uploaderVisible))
+        .map(asset -> fromAsset(asset, repository, assetDescriptors, uploaderVisible, downloadCounts.of(asset)))
         .collect(toList());
   }
 

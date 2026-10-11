@@ -8,21 +8,32 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.globalart.astrum.common.QualifierUtil;
 import org.globalart.astrum.common.collect.NestedAttributesMap;
+import org.globalart.astrum.common.entity.DetachedEntityId;
+import org.globalart.astrum.common.entity.EntityId;
 import org.globalart.astrum.coreui.AssetXO;
 import org.globalart.astrum.coreui.ComponentXO;
 import org.globalart.astrum.repository.Format;
 import org.globalart.astrum.repository.Repository;
 import org.globalart.astrum.repository.content.Asset;
 import org.globalart.astrum.repository.content.AssetBlob;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounter;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounts;
+import org.globalart.astrum.repository.content.facet.ContentFacet;
+import org.globalart.astrum.repository.content.fluent.FluentAsset;
+import org.globalart.astrum.repository.content.fluent.FluentAssets;
+import org.globalart.astrum.repository.content.fluent.FluentComponent;
+import org.globalart.astrum.repository.content.fluent.FluentComponents;
 import org.globalart.astrum.repository.content.fluent.internal.FluentAssetImpl;
 import org.globalart.astrum.repository.content.fluent.internal.FluentComponentImpl;
 import org.globalart.astrum.repository.content.maintenance.MaintenanceService;
 import org.globalart.astrum.repository.content.search.ComponentFinder;
 import org.globalart.astrum.repository.content.security.AssetPermissionChecker;
 import org.globalart.astrum.repository.content.store.AssetData;
+import org.globalart.astrum.repository.content.store.ComponentData;
 import org.globalart.astrum.repository.group.GroupFacet;
 import org.globalart.astrum.repository.manager.RepositoryManager;
 import org.globalart.astrum.repository.query.QueryOptions;
@@ -52,6 +63,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -95,6 +107,9 @@ public class ContentComponentHelperTest
   @Mock
   Subject subject;
 
+  @Mock
+  AssetDownloadCounter assetDownloadCounter;
+
   private MockedStatic<QualifierUtil> mockedStatic;
 
   private MockedStatic<SecurityUtils> mockedSecurityUtils;
@@ -107,6 +122,8 @@ public class ContentComponentHelperTest
 
     mockedSecurityUtils = Mockito.mockStatic(SecurityUtils.class);
     mockedSecurityUtils.when(SecurityUtils::getSubject).thenReturn(subject);
+
+    when(assetDownloadCounter.getDownloadCounts(anyString(), any())).thenReturn(new AssetDownloadCounts(Map.of()));
 
     // Default pass-through: every collected repository is permitted. Use doAnswer so stub overrides in
     // individual tests don't re-invoke this lambda with a null argument during Mockito's `when()` recording.
@@ -134,7 +151,8 @@ public class ContentComponentHelperTest
         selectorFactory,
         repositoryManager,
         repositoryPermissionChecker,
-        Collections.emptyList());
+        Collections.emptyList(),
+        assetDownloadCounter);
 
     AssetXO assetXO = underTest.toAssetXO(
         "maven-hosted",
@@ -159,7 +177,8 @@ public class ContentComponentHelperTest
         selectorFactory,
         repositoryManager,
         repositoryPermissionChecker,
-        Collections.emptyList());
+        Collections.emptyList(),
+        assetDownloadCounter);
 
     AssetXO assetXO = underTest.toAssetXO(
         "maven-hosted",
@@ -182,7 +201,8 @@ public class ContentComponentHelperTest
         selectorFactory,
         repositoryManager,
         repositoryPermissionChecker,
-        Collections.emptyList());
+        Collections.emptyList(),
+        assetDownloadCounter);
 
     Repository groupRepo = mock(Repository.class);
     when(groupRepo.getName()).thenReturn("maven-public");
@@ -251,7 +271,8 @@ public class ContentComponentHelperTest
         selectorFactory,
         repositoryManager,
         repositoryPermissionChecker,
-        Collections.emptyList());
+        Collections.emptyList(),
+        assetDownloadCounter);
 
     // sourceRepository is maven-hosted (HostedType), so CONTENT_LAST_MODIFIED should be stripped
     AssetXO assetXO = underTest.toAssetXO(
@@ -288,7 +309,8 @@ public class ContentComponentHelperTest
         selectorFactory,
         repositoryManager,
         repositoryPermissionChecker,
-        Collections.emptyList());
+        Collections.emptyList(),
+        assetDownloadCounter);
 
     AssetXO assetXO = underTest.toAssetXO(
         "maven-public", // repositoryName (display name)
@@ -313,7 +335,8 @@ public class ContentComponentHelperTest
         selectorFactory,
         repositoryManager,
         repositoryPermissionChecker,
-        Collections.emptyList());
+        Collections.emptyList(),
+        assetDownloadCounter);
 
     // Caller has no browse permission on the sole selected repository. No stubs on the repo
     // beyond identity — the filter drops it before expansion, so production must never touch
@@ -343,7 +366,8 @@ public class ContentComponentHelperTest
         selectorFactory,
         repositoryManager,
         repositoryPermissionChecker,
-        Collections.emptyList());
+        Collections.emptyList(),
+        assetDownloadCounter);
 
     // Caller passes a permitted hosted plus an unpermitted group. Only the hosted survives
     // the browse filter — its leaves must never be queried. The group is filtered out entirely,
@@ -421,7 +445,8 @@ public class ContentComponentHelperTest
         selectorFactory,
         repositoryManager,
         repositoryPermissionChecker,
-        Collections.emptyList());
+        Collections.emptyList(),
+        assetDownloadCounter);
 
     RepositorySelector selector = RepositorySelector.fromSelector("*");
     // The first leaf is a bare mock without a Format stack, so iterating it into the preview
@@ -445,11 +470,136 @@ public class ContentComponentHelperTest
     verify(leaf1).getFormat();
   }
 
+  @Test
+  public void readComponentAssets_readsTheDownloadCountsOfAllAssetsAtOnce() {
+    ContentComponentHelper underTest = newHelper();
+    Repository hostedRepo = hostedRepository();
+    Asset first = createAsset();
+    Asset second = createAsset(2);
+    FluentComponentImpl component = mock(FluentComponentImpl.class);
+    when(component.assets()).thenReturn((Collection) List.of(first, second));
+    when(componentFinder.findComponentsByModel(any(), any(), any(), any(), any()))
+        .thenAnswer(inv -> java.util.stream.Stream.of(component));
+    permitAllAssets("maven-hosted");
+    when(assetDownloadCounter.getDownloadCounts(eq("maven2"), any()))
+        .thenReturn(new AssetDownloadCounts(Map.of(1, 4L, 2, 6L)));
+
+    List<AssetXO> result = underTest.readComponentAssets(hostedRepo, aComponentModel());
+
+    assertThat(result.get(0).getDownloadCount(), is(4L));
+    assertThat(result.get(1).getDownloadCount(), is(6L));
+    verify(assetDownloadCounter).getDownloadCounts(eq("maven2"), any());
+    verify(assetDownloadCounter, never()).getDownloadCount(anyString(), any());
+  }
+
+  @Test
+  public void readAsset_includesTheDownloadCount() {
+    ContentComponentHelper underTest = newHelper();
+    Repository hostedRepo = hostedRepository();
+    Asset asset = createAsset();
+    FluentAssets fluentAssets = mock(FluentAssets.class);
+    ContentFacet contentFacet = mock(ContentFacet.class);
+    when(hostedRepo.optionalFacet(ContentFacet.class)).thenReturn(Optional.of(contentFacet));
+    when(hostedRepo.facet(ContentFacet.class)).thenReturn(contentFacet);
+    when(contentFacet.assets()).thenReturn(fluentAssets);
+    when(fluentAssets.find(any(EntityId.class))).thenReturn(Optional.of((FluentAsset) asset));
+    when(assetPermissionChecker.isPermitted(asset, "maven2", "browse")).thenReturn(Optional.of("maven-hosted"));
+    when(assetDownloadCounter.getDownloadCount("maven2", asset)).thenReturn(3L);
+
+    AssetXO result = underTest.readAsset(hostedRepo, new DetachedEntityId("1"));
+
+    assertThat(result.getDownloadCount(), is(3L));
+  }
+
+  @Test
+  public void readComponent_sumsTheDownloadsOfThePermittedAssets() {
+    ContentComponentHelper underTest = newHelper();
+    Repository hostedRepo = hostedRepository();
+    Asset first = createAsset();
+    Asset second = createAsset(2);
+    FluentComponentImpl component = mock(FluentComponentImpl.class);
+    when(component.assets()).thenReturn((Collection) List.of(first, second));
+    when(component.attributes()).thenReturn(new NestedAttributesMap("attributes", new HashMap<>()));
+    when(component.unwrap()).thenReturn(componentData(5));
+    FluentComponents fluentComponents = mock(FluentComponents.class);
+    ContentFacet contentFacet = mock(ContentFacet.class);
+    when(hostedRepo.optionalFacet(ContentFacet.class)).thenReturn(Optional.of(contentFacet));
+    when(hostedRepo.facet(ContentFacet.class)).thenReturn(contentFacet);
+    when(contentFacet.components()).thenReturn(fluentComponents);
+    when(fluentComponents.find(any(EntityId.class))).thenReturn(Optional.of((FluentComponent) component));
+    when(assetPermissionChecker.findPermittedAssets(any(Collection.class), anyString(), any()))
+        .thenAnswer(inv -> java.util.stream.Stream.of(new AbstractMap.SimpleEntry<Asset, String>(first, "maven-hosted")));
+    when(assetDownloadCounter.getDownloadCounts("maven2", List.of(first)))
+        .thenReturn(new AssetDownloadCounts(Map.of(1, 4L)));
+
+    ComponentXO result = underTest.readComponent(hostedRepo, new DetachedEntityId("5"));
+
+    assertThat(result.getDownloadCount(), is(4L));
+  }
+
+  private ContentComponentHelper newHelper() {
+    return new ContentComponentHelper(
+        maintenanceService,
+        List.of(componentFinder),
+        assetPermissionChecker,
+        selectorFactory,
+        repositoryManager,
+        repositoryPermissionChecker,
+        Collections.emptyList(),
+        assetDownloadCounter);
+  }
+
+  private Repository hostedRepository() {
+    Repository hostedRepo = mock(Repository.class);
+    when(hostedRepo.getName()).thenReturn("maven-hosted");
+    when(hostedRepo.getFormat()).thenReturn(new Format("maven2")
+    {
+    });
+    when(hostedRepo.getType()).thenReturn(new HostedType());
+    when(repositoryManager.get("maven-hosted")).thenReturn(hostedRepo);
+    return hostedRepo;
+  }
+
+  private void permitAllAssets(final String permittingRepository) {
+    when(assetPermissionChecker.findPermittedAssets(any(Collection.class), anyString(), any()))
+        .thenAnswer(inv -> {
+          Collection<Asset> assets = inv.getArgument(0);
+          return assets.stream()
+              .map(a -> new AbstractMap.SimpleEntry<Asset, String>(a, permittingRepository));
+        });
+  }
+
+  private static ComponentXO aComponentModel() {
+    ComponentXO model = new ComponentXO();
+    model.setId("test-id");
+    model.setGroup("test");
+    model.setName("test-artifact");
+    model.setVersion("1.0");
+    return model;
+  }
+
+  private static ComponentData componentData(final int componentId) {
+    ComponentData componentData = new ComponentData();
+    componentData.setComponentId(componentId);
+    componentData.setNamespace("test");
+    componentData.setName("test-artifact");
+    componentData.setVersion("1.0");
+    return componentData;
+  }
+
   private Asset createAsset() {
     return createAsset("maven-hosted");
   }
 
+  private Asset createAsset(final int assetId) {
+    return createAsset("maven-hosted", assetId);
+  }
+
   private Asset createAsset(final String repositoryName) {
+    return createAsset(repositoryName, 1);
+  }
+
+  private Asset createAsset(final String repositoryName, final int assetId) {
 
     FluentAssetImpl asset = mock(FluentAssetImpl.class);
     when(asset.path()).thenReturn("/org/apache/logging/log4j/log4j-core/maven-metadata.xml");
@@ -465,7 +615,7 @@ public class ContentComponentHelperTest
     OffsetDateTime assetCreated = OffsetDateTime.now();
     when(asset.created()).thenReturn(assetCreated);
     AssetData assetData = new AssetData();
-    assetData.setAssetId(1);
+    assetData.setAssetId(assetId);
     when(asset.unwrap()).thenReturn(assetData);
 
     // Mock repository() for sourceRepository lookup

@@ -42,9 +42,9 @@ Ext.define('AS.coreui.view.component.AssetInfo', {
     info[AS.I18n.get('Assets_Info_Blob_Created')] = assetModel.get('blobCreated');
     info[AS.I18n.get('Assets_Info_Blob_Updated')] = assetModel.get('blobUpdated');
 
-    if (assetModel.get('downloadCount')) {
-      info[AS.I18n.get('Assets_Info_Downloaded_Count')] = assetModel.get('downloadCount') + ' ' +
-          AS.I18n.get('Assets_Info_Downloaded_Unit');
+    if (assetModel.get('downloadCount') !== null) {
+      info[AS.I18n.get('Assets_Info_Downloaded_Count')] =
+          Ext.util.Format.number(assetModel.get('downloadCount'), '0,000');
     }
 
     info[AS.I18n.get('Assets_Info_Last_Downloaded')] =

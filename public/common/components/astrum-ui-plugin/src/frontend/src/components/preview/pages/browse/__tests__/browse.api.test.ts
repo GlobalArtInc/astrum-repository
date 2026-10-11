@@ -196,6 +196,36 @@ describe('browse.api', () => {
       });
     });
 
+    it('sums the download counts of the assets of the component', async () => {
+      mockRestClient.get.mockResolvedValue({
+        id: 'comp-123',
+        repository: 'maven-central',
+        format: 'maven2',
+        name: 'commons-lang3',
+        version: '3.12.0',
+        assets: [{ downloadCount: 3 }, { downloadCount: 4 }, { downloadCount: 0 }],
+      });
+
+      const result = await fetchComponent('comp-123', 'maven-central');
+
+      expect(result.downloadCount).toBe(7);
+    });
+
+    it('leaves the download count unknown when no asset carries one', async () => {
+      mockRestClient.get.mockResolvedValue({
+        id: 'comp-123',
+        repository: 'maven-central',
+        format: 'maven2',
+        name: 'commons-lang3',
+        version: '3.12.0',
+        assets: [{ downloadCount: null }, {}],
+      });
+
+      const result = await fetchComponent('comp-123', 'maven-central');
+
+      expect(result.downloadCount).toBeUndefined();
+    });
+
     it('throws error on failure', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       mockRestClient.get.mockRejectedValue({ message: 'Component not found' });
@@ -239,6 +269,21 @@ describe('browse.api', () => {
         // checksum lifted from attributes.checksum to top level for the Checksums section
         checksum: { sha1: 'aaa', sha256: 'bbb' },
       });
+    });
+
+    it('passes the download count through', async () => {
+      mockExtAPI.checkForErrorAndExtract.mockReturnValue({
+        id: 'asset-456',
+        name: '/file.txt',
+        format: 'raw',
+        repositoryName: 'raw-hosted',
+        downloadCount: 12,
+        attributes: {},
+      });
+
+      const result = await fetchAsset('asset-456', 'raw-hosted');
+
+      expect(result.downloadCount).toBe(12);
     });
 
     it('encodes special characters in download URL path segments', async () => {

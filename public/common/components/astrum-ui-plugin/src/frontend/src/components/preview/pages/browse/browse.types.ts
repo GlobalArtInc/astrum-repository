@@ -86,6 +86,8 @@ export interface ComponentXO {
   // Additional fields that may be present
   lastModified?: string;
   blobCreated?: string;
+  /** Downloads of all assets of the component the user may see */
+  downloadCount?: number;
 }
 
 /**
@@ -105,6 +107,7 @@ export interface AssetXO {
   blobCreated?: string;
   blobUpdated?: string;
   lastDownloaded?: string;
+  downloadCount?: number;
   checksum?: Record<string, string>; // REST v1 Map<String,String> e.g. {"sha1":"...","sha256":"..."}
   componentId?: string;
   blobRef?: string;

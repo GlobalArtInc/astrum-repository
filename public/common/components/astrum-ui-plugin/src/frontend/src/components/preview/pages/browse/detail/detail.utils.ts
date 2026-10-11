@@ -33,6 +33,19 @@ export function formatFileSize(bytes: number | null | undefined): string {
 }
 
 /**
+ * Formats a download count with the separators of the page's locale.
+ *
+ * @param count - Number of downloads, null or undefined when it is not known
+ * @returns Formatted count (e.g., "1,234"), or '-' when the count is not known
+ */
+export function formatCount(count: number | null | undefined): string {
+  if (count === null || count === undefined || count < 0) {
+    return '-';
+  }
+  return count.toLocaleString();
+}
+
+/**
  * Formats an ISO date string into a full display format with timezone.
  * Matches the classic UI format: "Wed Apr 15 2026 11:10:29 GMT-0500 (Colombia Standard Time)"
  *

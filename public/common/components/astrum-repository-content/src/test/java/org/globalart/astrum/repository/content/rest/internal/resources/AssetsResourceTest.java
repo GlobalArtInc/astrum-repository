@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
 
@@ -12,6 +13,8 @@ import org.globalart.astrum.common.entity.Continuation;
 import org.globalart.astrum.common.entity.DetachedEntityId;
 import org.globalart.astrum.repository.Format;
 import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounter;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounts;
 import org.globalart.astrum.repository.content.facet.ContentFacet;
 import org.globalart.astrum.repository.content.facet.ContentFacetDependencies;
 import org.globalart.astrum.repository.content.facet.ContentFacetSupport;
@@ -118,13 +121,18 @@ class AssetsResourceTest
   @Mock
   private ContentAuthHelper contentAuthHelper;
 
+  @Mock
+  private AssetDownloadCounter assetDownloadCounter;
+
   private AssetsResource underTest;
 
   @BeforeEach
   void setup() {
     mockRepository();
     when(contentAuthHelper.checkPathPermissions(ASSET_PATH, A_FORMAT, repository.getName())).thenReturn(true);
-    underTest = new AssetsResource(repositoryManagerRESTAdapter, maintenanceService, contentAuthHelper, emptyList());
+    when(assetDownloadCounter.getDownloadCounts(any(), any())).thenReturn(new AssetDownloadCounts(emptyMap()));
+    underTest = new AssetsResource(repositoryManagerRESTAdapter, maintenanceService, contentAuthHelper, emptyList(),
+        assetDownloadCounter);
   }
 
   // --- getAssets tests ---
@@ -356,6 +364,18 @@ class AssetsResourceTest
 
     String expectedId = new RepositoryItemIDXO(REPOSITORY_NAME, toExternalId(AN_ASSET_ID).getValue()).getValue();
     assertThat(result.getId(), is(expectedId));
+  }
+
+  @WithUser(isAuthenticated = false)
+  @Test
+  void getAssetById_includesDownloadCount() {
+    FluentAssetImpl fluentAsset = aFluentAsset();
+    when(fluentAssets.find(any(DetachedEntityId.class))).thenReturn(Optional.of(fluentAsset));
+    when(assetDownloadCounter.getDownloadCount(A_FORMAT, fluentAsset)).thenReturn(3L);
+
+    AssetXO result = underTest.getAssetById(anEncodedAssetId());
+
+    assertThat(result.getDownloadCount(), is(3L));
   }
 
   @Test
@@ -665,6 +685,21 @@ class AssetsResourceTest
     assertThat(result, hasSize(2));
     assertThat(result.get(0).getPath(), is("/path1.jar"));
     assertThat(result.get(1).getPath(), is("/path2.jar"));
+  }
+
+  @Test
+  void toAssetXOs_readsTheDownloadCountsOfAllAssetsAtOnce() {
+    FluentAssetImpl asset1 = aFluentAssetWithPath(1, "/path1.jar");
+    FluentAssetImpl asset2 = aFluentAssetWithPath(2, "/path2.jar");
+    List<FluentAsset> assets = List.of(asset1, asset2);
+    when(assetDownloadCounter.getDownloadCounts(A_FORMAT, assets)).thenReturn(new AssetDownloadCounts(Map.of(1, 7L)));
+
+    List<AssetXO> result = underTest.toAssetXOs(repository, assets, emptyMap());
+
+    assertThat(result.get(0).getDownloadCount(), is(7L));
+    assertThat(result.get(1).getDownloadCount(), is(0L));
+    verify(assetDownloadCounter).getDownloadCounts(A_FORMAT, assets);
+    verify(assetDownloadCounter, never()).getDownloadCount(any(), any());
   }
 
   // --- nextContinuationToken tests (indirectly through getAssets) ---

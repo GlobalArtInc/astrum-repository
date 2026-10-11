@@ -68,6 +68,12 @@ public class AssetXOBuilderTest
   }
 
   @Test
+  public void fromAsset_includesTheDownloadCountWhenKnown() {
+    assertThat(AssetXOBuilder.fromAsset(anAsset(), repository, null, false, 5L).getDownloadCount(), is(5L));
+    assertThat(AssetXOBuilder.fromAsset(anAsset(), repository, null, false).getDownloadCount(), nullValue());
+  }
+
+  @Test
   public void fromAsset_useAssetCreatedForBlobCreated() {
     // For backward compatibility, fromAsset should use asset.created() for blobCreated
     OffsetDateTime assetCreated = OffsetDateTime.now().minusHours(2);

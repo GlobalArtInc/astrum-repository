@@ -89,6 +89,9 @@ Ext.define('AS.coreui.view.component.ComponentInfo', {
     summary[AS.I18n.get('Search_Assets_Group')] = componentModel.get('group');
     summary[AS.I18n.get('Search_Assets_Name')] = componentModel.get('name');
     summary[AS.I18n.get('Search_Assets_Version')] = componentModel.get('version');
+    summary[AS.I18n.get('Assets_Info_Downloaded_Count')] = componentModel.get('downloadCount') !== null
+        ? Ext.util.Format.number(componentModel.get('downloadCount'), '0,000')
+        : null;
 
     me.showInfo();
 

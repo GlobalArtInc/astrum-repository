@@ -49,6 +49,7 @@
   "ACCESS_TOKENS.SCOPES.read": "Только чтение",
   "ACCESS_TOKENS.SCOPES.write": "Чтение и запись",
   "ACCESS_TOKENS.TITLE": "Токены доступа",
+  "BROWSE_DETAIL.DOWNLOADS": "Скачиваний",
   "CAPABILITIES.CREATE.DESCRIPTION": "Создание системных возможностей для интеграций и функций автоматизации.",
   "CAPABILITIES.CREATE.FORM.SELECT_TYPE": "Выберите тип",
   "CAPABILITIES.CREATE.FORM.TITLE": "Выбор возможности",

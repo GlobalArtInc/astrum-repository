@@ -1,6 +1,7 @@
 
 
 import {
+  formatCount,
   formatFileSize,
   formatDate,
   formatRelativeDate,
@@ -12,6 +13,21 @@ import {
 } from '../detail.utils';
 
 describe('detail.utils', () => {
+  describe('formatCount', () => {
+    it('returns "-" when the count is not known', () => {
+      expect(formatCount(null)).toBe('-');
+      expect(formatCount(undefined)).toBe('-');
+    });
+
+    it('shows zero downloads', () => {
+      expect(formatCount(0)).toBe('0');
+    });
+
+    it('groups the digits of large counts', () => {
+      expect(formatCount(1234567)).toBe((1234567).toLocaleString());
+    });
+  });
+
   describe('formatFileSize', () => {
     it('returns "-" for null', () => {
       expect(formatFileSize(null)).toBe('-');

@@ -49,6 +49,7 @@
   "ACCESS_TOKENS.SCOPES.read": "Read only",
   "ACCESS_TOKENS.SCOPES.write": "Read and write",
   "ACCESS_TOKENS.TITLE": "Access Tokens",
+  "BROWSE_DETAIL.DOWNLOADS": "Downloads",
   "CAPABILITIES.CREATE.DESCRIPTION": "Create system capabilities for integrations and automation features.",
   "CAPABILITIES.CREATE.FORM.SELECT_TYPE": "Select Type",
   "CAPABILITIES.CREATE.FORM.TITLE": "Select Capability",

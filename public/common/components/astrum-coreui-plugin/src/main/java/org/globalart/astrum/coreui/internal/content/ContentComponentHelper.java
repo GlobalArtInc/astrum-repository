@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,6 +29,8 @@ import org.globalart.astrum.repository.Repository;
 import org.globalart.astrum.repository.cache.CacheAttributeUtils;
 import org.globalart.astrum.repository.content.Asset;
 import org.globalart.astrum.repository.content.Component;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounter;
+import org.globalart.astrum.repository.content.downloads.AssetDownloadCounts;
 import org.globalart.astrum.repository.content.facet.ContentFacet;
 import org.globalart.astrum.repository.content.fluent.FluentAsset;
 import org.globalart.astrum.repository.content.fluent.FluentComponent;
@@ -96,6 +99,8 @@ public class ContentComponentHelper
 
   private final Map<String, AssetXODescriptor> assetDescriptors;
 
+  private final AssetDownloadCounter assetDownloadCounter;
+
   @Autowired
   public ContentComponentHelper(
       final MaintenanceService maintenanceService,
@@ -104,7 +109,8 @@ public class ContentComponentHelper
       final SelectorFactory selectorFactory,
       final RepositoryManager repositoryManager,
       final RepositoryPermissionChecker repositoryPermissionChecker,
-      final List<AssetXODescriptor> assetDescriptorsList)
+      final List<AssetXODescriptor> assetDescriptorsList,
+      final AssetDownloadCounter assetDownloadCounter)
   {
     this.maintenanceService = checkNotNull(maintenanceService);
     this.componentFinders = QualifierUtil.buildQualifierBeanMap(checkNotNull(componentFindersList));
@@ -115,6 +121,7 @@ public class ContentComponentHelper
     this.repositoryManager = checkNotNull(repositoryManager);
     this.repositoryPermissionChecker = checkNotNull(repositoryPermissionChecker);
     this.assetDescriptors = QualifierUtil.buildQualifierBeanMap(assetDescriptorsList);
+    this.assetDownloadCounter = checkNotNull(assetDownloadCounter);
   }
 
   @Override
@@ -129,7 +136,11 @@ public class ContentComponentHelper
     String format = repository.getFormat().getValue();
 
     boolean uploaderVisible = SecurityUtils.getSubject().isPermitted(UPLOADER_METADATA_READ_PERMISSION);
-    return assetPermissionChecker.findPermittedAssets(assets, format, BROWSE)
+    List<Entry<Asset, String>> permittedAssets =
+        assetPermissionChecker.findPermittedAssets(assets, format, BROWSE).collect(toList());
+    AssetDownloadCounts downloadCounts = assetDownloadCounter.getDownloadCounts(format,
+        permittedAssets.stream().map(Entry::getKey).collect(toList()));
+    return permittedAssets.stream()
         .map(entry -> {
           // Use the permitting repository as the repositoryName for the asset URL.
           // This ensures URLs use the group repo (e.g., maven-public) when user
@@ -140,8 +151,10 @@ public class ContentComponentHelper
           // Cast to FluentAsset to access repository() method.
           FluentAsset fluentAsset = (FluentAsset) entry.getKey();
           String sourceRepository = fluentAsset.repository().getName();
-          return toAssetXO(permittingRepository, permittingRepository, sourceRepository, format, entry.getKey(),
-              uploaderVisible);
+          AssetXO assetXO = toAssetXO(permittingRepository, permittingRepository, sourceRepository, format,
+              entry.getKey(), uploaderVisible);
+          assetXO.setDownloadCount(downloadCounts.of(entry.getKey()));
+          return assetXO;
         })
         .collect(toList());
   }
@@ -230,8 +243,13 @@ public class ContentComponentHelper
     String format = repository.getFormat().getValue();
 
     // display component if at least one asset is permitted
-    if (assetPermissionChecker.findPermittedAssets(assets, format, BROWSE).findFirst().isPresent()) {
-      return toComponentXO(repositoryName, format, component.get());
+    List<Asset> permittedAssets = assetPermissionChecker.findPermittedAssets(assets, format, BROWSE)
+        .map(Entry::getKey)
+        .collect(toList());
+    if (!permittedAssets.isEmpty()) {
+      ComponentXO componentXO = toComponentXO(repositoryName, format, component.get());
+      componentXO.setDownloadCount(assetDownloadCounter.getDownloadCounts(format, permittedAssets).total());
+      return componentXO;
     }
 
     throw new AuthorizationException();
@@ -267,8 +285,10 @@ public class ContentComponentHelper
           // Cast to FluentAsset to access repository() method.
           FluentAsset fluentAsset = (FluentAsset) asset.get();
           String sourceRepository = fluentAsset.repository().getName();
-          return toAssetXO(repositoryName, containingRepositoryName, sourceRepository, format, asset.get(),
-              uploaderVisible);
+          AssetXO assetXO = toAssetXO(repositoryName, containingRepositoryName, sourceRepository, format,
+              asset.get(), uploaderVisible);
+          assetXO.setDownloadCount(assetDownloadCounter.getDownloadCount(format, asset.get()));
+          return assetXO;
         })
         .orElseThrow(AuthorizationException::new);
   }
