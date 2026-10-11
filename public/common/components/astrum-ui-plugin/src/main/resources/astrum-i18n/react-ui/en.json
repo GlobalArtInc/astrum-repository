@@ -4084,6 +4084,7 @@
   "PREVIEW.ROLES.TYPES.APPLICATION": "Application",
   "PREVIEW.ROLES.TYPES.BLOB_STORE": "Blob Store",
   "PREVIEW.ROLES.TYPES.CONTENT_SELECTOR": "Content Selector",
+  "PREVIEW.ROLES.TYPES.DEFAULT_SOURCE": "Default",
   "PREVIEW.ROLES.TYPES.HEALTH_CHECK": "Health Check",
   "PREVIEW.ROLES.TYPES.IF_NO_RESULTS_FOUND_YOU": "If no results are found, you can still save this mapping and create an LDAP role with an identical name later. Mapping will not apply until an identically named LDAP role exists.",
   "PREVIEW.ROLES.TYPES.REPOSITORY_ADMIN": "Repository Admin",

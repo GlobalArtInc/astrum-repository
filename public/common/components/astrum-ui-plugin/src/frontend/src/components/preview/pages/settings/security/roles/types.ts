@@ -208,7 +208,7 @@ export const isExternalRole = (source: string): boolean => {
  */
 export function formatRoleSourceDisplay(source: string): string {
   if (!source || source === DEFAULT_SOURCE || source === 'Astrum') {
-    return 'Default';
+    return RolesStrings.TYPES.DEFAULT_SOURCE;
   }
   return source;
 }

@@ -202,6 +202,7 @@ export default localize('react-ui', {
     SCRIPT: 'Script',
     HEALTH_CHECK: 'Health Check',
     BLOB_STORE: 'Blob Store',
+    DEFAULT_SOURCE: 'Default',
     IF_NO_RESULTS_FOUND_YOU: 'If no results are found, you can still save this mapping and create an LDAP role with an identical name later. Mapping will not apply until an identically named LDAP role exists.',
   },
   MESSAGES: {
