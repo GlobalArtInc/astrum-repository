@@ -191,6 +191,7 @@ export function BrowseTreeNode({
           onClick={handleNodeClick}
           className={`browse-tree__node-link ${isMono ? 'browse-tree__node-link--mono' : ''}`}
           tabIndex={-1}
+          title={node.text}
           data-testid={`link-${node.id}`}
         >
           {node.text}

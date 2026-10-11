@@ -85,6 +85,14 @@ describe('BrowseTree', () => {
       expect(screen.getByText('asset1.jar')).toBeInTheDocument();
     });
 
+    it('shows the full name of a node on hover, as long names are cut off', async () => {
+      render(<BrowseTree repositoryName="maven-releases" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('asset1.jar')).toHaveAttribute('title', 'asset1.jar');
+      });
+    });
+
     it('renders a tree role element with aria-label', async () => {
       render(<BrowseTree repositoryName="maven-releases" />);
 
