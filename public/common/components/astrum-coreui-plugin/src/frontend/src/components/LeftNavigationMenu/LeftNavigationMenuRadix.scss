@@ -309,3 +309,108 @@
     z-index: 9999 !important;
   }
 }
+
+// Phones and tablets (Astrum One): the menu is a drawer over the page, from the left edge, above a scrim.
+// It slides in when opened; while closed it is hidden from the layout, the focus order and assistive technology.
+.guide-sidebar.guide-sidebar--drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(304px, calc(100vw - 56px));
+  height: auto;
+  z-index: 1000;
+  box-shadow: var(--shadow-6);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.2s ease-out, visibility 0s linear 0.2s;
+
+  &.guide-sidebar--drawer-open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.2s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &.guide-sidebar--drawer-open {
+      transition: none;
+    }
+  }
+
+  .guide-sidebar__nav-content {
+    padding: 12px;
+  }
+
+  // 48px rows: comfortable touch targets
+  .guide-nav-item {
+    font-size: var(--font-size-3);
+
+    > .rt-Flex {
+      min-height: 48px;
+      gap: 12px;
+      padding: 0 12px;
+    }
+  }
+
+  .guide-nav-item__icon {
+    width: 20px;
+  }
+
+  .guide-sidebar__version {
+    padding: 0;
+  }
+}
+
+.guide-sidebar__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background-color: var(--black-a8);
+}
+
+.guide-sidebar__drawer-header {
+  flex-shrink: 0;
+  height: 60px;
+  padding: 0 8px 0 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--gray-a5);
+}
+
+.guide-sidebar__drawer-logo {
+  display: block;
+  height: 24px;
+  min-width: 0;
+}
+
+.guide-sidebar__drawer-close.rt-IconButton {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: 10px;
+  color: var(--gray-12);
+}
+
+.guide-sidebar__drawer-footer {
+  flex-shrink: 0;
+  padding: 12px 16px 20px;
+  border-top: 1px solid var(--gray-a5);
+}
+
+.guide-sidebar__drawer-tools {
+  .as-global-header-radix__icon-button.rt-IconButton {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.guide-sidebar__drawer-classic.rt-Button {
+  justify-content: flex-start;
+  min-height: 44px;
+  border-radius: 10px;
+  background-color: var(--color-panel-solid);
+  box-shadow: inset 0 0 0 1px var(--gray-a5);
+  color: var(--gray-12);
+  cursor: pointer;
+}

@@ -8,9 +8,12 @@ import {
   useIsPreviewUI,
   useRepositories,
   useSideNavbarOpenState,
+  useTheme,
 } from '@globalart/astrum-ui-plugin';
 import { ROUTE_NAMES } from '../../routerConfig/routeNames/routeNames';
+import { getHeaderLogo } from '../GlobalHeader/headerLogo';
 import { useDefaultAdminRouteName } from './useDefaultAdminRouteName';
+import { type NavigationDrawer, useNavigationDrawer } from './navigationDrawer';
 import { CLASSIC_SEARCH_FORMATS, VisibleFormat } from './types';
 
 /**
@@ -134,7 +137,7 @@ export function useSearchCollapsibleNav(isCollapsed: boolean): UseSearchCollapsi
 }
 
 /** Return value of {@link useLeftNavigationMenu}. */
-export interface UseLeftNavigationMenuResult {
+export interface UseLeftNavigationMenuResult extends NavigationDrawer {
   /** Whether the sidebar is collapsed. */
   isCollapsed: boolean;
   /** Whether the Preview UI (Astrum One) is active. */
@@ -149,6 +152,18 @@ export interface UseLeftNavigationMenuResult {
   isProEdition: boolean;
   /** Version of the running Astrum Repository, or `null` while it is unknown. */
   version: string | null;
+  /** Logo shown at the top of the drawer, for the edition and theme. */
+  logo: string;
+  /** Whether the drawer offers to switch to the Classic UI (not when the administrator turned it off). */
+  canSwitchToClassic: boolean;
+}
+
+function isLegacyUiDisabled(): boolean {
+  try {
+    return Boolean(ExtJS.state?.()?.getValue('disableLegacyUi', false));
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -161,8 +176,11 @@ export interface UseLeftNavigationMenuResult {
  */
 export function useLeftNavigationMenu(): UseLeftNavigationMenuResult {
   const [isOpen] = useSideNavbarOpenState(true);
-  const version: string | null = ExtJS.useStatus?.()?.version || null;
+  const status = ExtJS.useStatus?.();
+  const version: string | null = status?.version || null;
+  const { effectiveTheme } = useTheme();
   const isPreviewUI = useIsPreviewUI();
+  const drawer = useNavigationDrawer(isPreviewUI);
   const adminInitialRouteName = useDefaultAdminRouteName();
   const isSettingsVisible = !!adminInitialRouteName;
 
@@ -178,5 +196,8 @@ export function useLeftNavigationMenu(): UseLeftNavigationMenuResult {
     showTestHub,
     isProEdition,
     version,
+    logo: getHeaderLogo(status?.edition, effectiveTheme === 'dark'),
+    canSwitchToClassic: !isLegacyUiDisabled(),
+    ...drawer,
   };
 }

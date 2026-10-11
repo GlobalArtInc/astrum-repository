@@ -352,3 +352,19 @@ html:has(.as-login-layout),
 html:has(.as-login-page-radix) {
   overflow-x: hidden;
 }
+
+/*
+ * Exception: Astrum One on phones and tablets.
+ *
+ * Below the desktop width Astrum One reflows to the viewport instead of keeping the 1366px floor: the header marks
+ * itself --compact there (see GlobalHeaderRadix), the menu leaves the grid for a drawer, and the pages lay themselves
+ * out in one or two columns, so nothing is left to scroll horizontally. The Classic UI never gets the class and keeps
+ * its floor at any width.
+ */
+body:has(.as-global-header-radix--compact) {
+  min-width: 0;
+}
+
+.astrum-page:has(.as-global-header-radix--compact) {
+  min-width: 0;
+}

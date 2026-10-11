@@ -366,4 +366,96 @@ describe('GlobalHeaderRadix', () => {
       expect(useClassicBtn).not.toHaveClass(ENABLED_CURSOR_CLASS);
     });
   });
+
+  describe('on phones and tablets', () => {
+    const originalMatchMedia = window.matchMedia;
+
+    function viewport(width) {
+      window.matchMedia = jest.fn((query) => ({
+        matches: width <= Number(/max-width:\s*(\d+)px/.exec(query)?.[1]),
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      }));
+    }
+
+    beforeEach(() => {
+      window.location.hash = 'preview/browse/welcome';
+      mockUseUser.mockReturnValue({ authenticated: true, userId: 'admin' });
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it('keeps the desktop header in the Classic UI at any width', () => {
+      viewport(390);
+      window.location.hash = 'browse/welcome';
+
+      const { container } = renderHeader();
+
+      expect(container.querySelector('.as-global-header-radix--compact')).toBeNull();
+      expect(screen.getByTestId('search-radix')).toBeInTheDocument();
+      expect(screen.getByLabelText('Refresh')).toBeInTheDocument();
+    });
+
+    it('shows the icons of the phone header and moves the rest into the drawer', () => {
+      viewport(390);
+
+      const { container } = renderHeader();
+
+      expect(container.querySelector('.as-global-header-radix--phone')).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Open menu' })).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.getByTestId('system-status')).toBeInTheDocument();
+      expect(screen.getByTestId('login-button')).toBeInTheDocument();
+      expect(screen.queryByText('Switch to Classic UI')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Refresh')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('language-menu')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('help-menu')).not.toBeInTheDocument();
+    });
+
+    it('keeps language and help on tablets', () => {
+      viewport(768);
+
+      const { container } = renderHeader();
+
+      expect(container.querySelector('.as-global-header-radix--compact')).not.toBeNull();
+      expect(container.querySelector('.as-global-header-radix--phone')).toBeNull();
+      expect(screen.getByTestId('language-menu')).toBeInTheDocument();
+      expect(screen.getByTestId('help-menu')).toBeInTheDocument();
+      expect(screen.queryByText('Switch to Classic UI')).not.toBeInTheDocument();
+    });
+
+    it('opens the menu drawer instead of collapsing the side menu', () => {
+      viewport(390);
+      const onDrawer = jest.fn();
+      const onSidebar = jest.fn();
+      window.addEventListener('as-navigation-drawer', onDrawer);
+      window.addEventListener('as-sidebar-toggle', onSidebar);
+
+      renderHeader();
+      fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+
+      expect(onDrawer).toHaveBeenCalledTimes(1);
+      expect(onDrawer.mock.calls[0][0].detail).toEqual({ open: true });
+      expect(onSidebar).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Close menu' })).toHaveAttribute('aria-expanded', 'true');
+
+      window.removeEventListener('as-navigation-drawer', onDrawer);
+      window.removeEventListener('as-sidebar-toggle', onSidebar);
+    });
+
+    it('switches to the Classic UI when the drawer asks for it', () => {
+      viewport(390);
+      mockStateValues['disableSwitchFeedback'] = true;
+
+      renderHeader();
+      act(() => {
+        window.dispatchEvent(new CustomEvent('as-switch-to-classic'));
+      });
+
+      expect(sessionStorage.getItem('user_requested_legacy')).toBe('true');
+      expect(window.location.hash).toBe('#browse/welcome');
+    });
+  });
 });

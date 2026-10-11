@@ -13,17 +13,14 @@ import {
   resolveDefaultLandingRoute,
   setLastUsedUi,
   PREVIEW_WELCOME_ROUTE,
-  USER_REQUESTED_LEGACY_KEY
+  USER_REQUESTED_LEGACY_KEY,
+  useIsCompactViewport,
+  useIsPhone
 } from '@globalart/astrum-ui-plugin';
 import {useRouter} from '@uirouter/react';
 import {useTheme} from '../../contexts/ThemeContext';
 
-import proLogo from "../../../../art/logos/logo-pro-edition-header.svg";
-import proDarkLogo from "../../../../art/logos/logo-pro-edition-header-dark.svg";
-import ceLogo from "../../../../art/logos/logo-community-edition-header.svg";
-import ceDarkLogo from "../../../../art/logos/logo-community-edition-header-dark.svg";
-import coreLogo from "../../../../art/logos/logo-core-edition-header.svg";
-import coreDarkLogo from "../../../../art/logos/logo-core-edition-header-dark.svg";
+import {getHeaderLogo, HEADER_MARK} from './headerLogo';
 
 import SearchRadix from './SearchRadix';
 import SystemStatusRadix from './SystemStatusRadix';
@@ -33,12 +30,15 @@ import LanguageMenuRadix from './LanguageMenuRadix';
 import LoginAndUserButtonRadix from './LoginAndUserButtonRadix';
 import {refreshReactPage} from '../../routerConfig/routerUtils';
 import {getHeritageEquivalent} from './previewHeritageNavigation';
+import {
+  setNavigationDrawerOpen,
+  useNavigationDrawerOpen,
+  SWITCH_TO_CLASSIC_EVENT
+} from '../LeftNavigationMenu/navigationDrawer';
 
 import './GlobalHeaderRadix.scss';
 import UIStrings from '../../constants/UIStrings';
 
-const COMMUNITY = "COMMUNITY";
-const PRO = "PRO";
 const {HEADER} = UIStrings.SHELL;
 const MAX_FEEDBACK_LENGTH = 500;
 
@@ -140,6 +140,14 @@ export default function GlobalHeaderRadix() {
   }, []);
 
   const isPreviewUI = currentPath.startsWith('preview');
+
+  // Phones and tablets get a compact header in Astrum One: the menu is a drawer, and the controls that do not fit
+  // move into the drawer. The Classic UI keeps its desktop header at any width.
+  const isCompactViewport = useIsCompactViewport();
+  const isPhoneViewport = useIsPhone();
+  const isCompact = isPreviewUI && isCompactViewport;
+  const isPhone = isCompact && isPhoneViewport;
+  const isDrawerOpen = useNavigationDrawerOpen();
   
   // Redirect logic for rollout controls (Sprint 17)
   useEffect(() => {
@@ -252,6 +260,12 @@ export default function GlobalHeaderRadix() {
     setLastUsedUi('preview');
   }, []);
 
+  // The drawer has the "Classic view" button on phones and tablets
+  useEffect(() => {
+    window.addEventListener(SWITCH_TO_CLASSIC_EVENT, switchToClassicUI);
+    return () => window.removeEventListener(SWITCH_TO_CLASSIC_EVENT, switchToClassicUI);
+  }, [switchToClassicUI]);
+
   const handleUiSwitchPopoverOpenChange = useCallback((open) => {
     setUiSwitchPopoverOpen(open);
     if (!open) {
@@ -289,15 +303,7 @@ export default function GlobalHeaderRadix() {
   };
 
   function getLogo() {
-    const isDark = effectiveTheme === 'dark';
-    
-    if (edition === COMMUNITY) {
-      return isDark ? ceDarkLogo : ceLogo;
-    } else if (edition === PRO) {
-      return isDark ? proDarkLogo : proLogo;
-    } else {
-      return isDark ? coreDarkLogo : coreLogo;
-    }
+    return isPhone ? HEADER_MARK : getHeaderLogo(edition, effectiveTheme === 'dark');
   }
 
 
@@ -305,22 +311,35 @@ export default function GlobalHeaderRadix() {
   const onSidebarToggle = useCallback(() => {
     window.dispatchEvent(new CustomEvent('as-sidebar-toggle'));
   }, []);
+  const onDrawerToggle = useCallback(() => setNavigationDrawerOpen(!isDrawerOpen), [isDrawerOpen]);
+
+  let menuLabel = isSidebarOpen ? HEADER.COLLAPSE_SIDEBAR : HEADER.EXPAND_SIDEBAR;
+  if (isCompact) {
+    menuLabel = isDrawerOpen ? HEADER.CLOSE_MENU : HEADER.OPEN_MENU;
+  }
+
+  let headerClassName = 'as-global-header-radix as-global-header-2';
+  if (isCompact) {
+    headerClassName += isPhone ? ' as-global-header-radix--compact as-global-header-radix--phone' : ' as-global-header-radix--compact';
+  }
 
   return (
-    <div className="as-global-header-radix as-global-header-2" data-testid="global-header">
+    <div className={headerClassName} data-testid="global-header">
       <Box asChild className="as-global-header-radix__sticky-bar">
         <Flex align="center" justify="between" gap="4" className="as-global-header-radix__row">
           {/* Left: Sidebar toggle + Logo */}
           <Flex align="center" gap="3" className="as-global-header-radix__side">
-            <Tooltip content={isSidebarOpen ? HEADER.COLLAPSE_SIDEBAR : HEADER.EXPAND_SIDEBAR}>
+            <Tooltip content={menuLabel}>
               <IconButton
                 variant="outline"
                 size="3"
                 color="gray"
                 className="as-global-header-radix__icon-button"
-                aria-label={isSidebarOpen ? HEADER.COLLAPSE_SIDEBAR : HEADER.EXPAND_SIDEBAR}
-                aria-expanded={isSidebarOpen}
-                onClick={onSidebarToggle}
+                aria-label={menuLabel}
+                aria-expanded={isCompact ? isDrawerOpen : isSidebarOpen}
+                aria-controls={isCompact ? 'as-main-menu' : undefined}
+                data-testid="menu-toggle"
+                onClick={isCompact ? onDrawerToggle : onSidebarToggle}
               >
                 <Menu size={18} aria-hidden />
               </IconButton>
@@ -345,7 +364,7 @@ export default function GlobalHeaderRadix() {
 
           {/* Right: Utility buttons */}
           <Flex align="center" gap="2" className="as-global-header-radix__side as-global-header-radix__actions">
-            {canAccessPreviewUi && !isDisableLegacyUi && (
+            {!isCompact && canAccessPreviewUi && !isDisableLegacyUi && (
               isPreviewUI ? (
                 isDisableSwitchFeedback ? (
                   <Tooltip content={HEADER.SWITCH_TO_CLASSIC}>
@@ -460,27 +479,29 @@ export default function GlobalHeaderRadix() {
               )
             )}
 
-            <Tooltip content={HEADER.REFRESH}>
-              <IconButton
-                variant="outline"
-                size="3"
-                color="gray"
-                className="as-global-header-radix__icon-button"
-                aria-label={HEADER.REFRESH}
-                data-analytics-id="astrum-header-refresh"
-                onClick={onRefreshClick}
-              >
-                <RefreshCw size={18} aria-hidden />
-              </IconButton>
-            </Tooltip>
+            {!isCompact && (
+              <Tooltip content={HEADER.REFRESH}>
+                <IconButton
+                  variant="outline"
+                  size="3"
+                  color="gray"
+                  className="as-global-header-radix__icon-button"
+                  aria-label={HEADER.REFRESH}
+                  data-analytics-id="astrum-header-refresh"
+                  onClick={onRefreshClick}
+                >
+                  <RefreshCw size={18} aria-hidden />
+                </IconButton>
+              </Tooltip>
+            )}
 
             {isPreviewUI && <ThemeSwitcher className="as-global-header-radix__icon-button" />}
 
-            <LanguageMenuRadix />
+            {!isPhone && <LanguageMenuRadix />}
 
             <SystemStatusRadix />
 
-            <HelpMenuRadix />
+            {!isPhone && <HelpMenuRadix />}
 
             <LoginAndUserButtonRadix />
           </Flex>

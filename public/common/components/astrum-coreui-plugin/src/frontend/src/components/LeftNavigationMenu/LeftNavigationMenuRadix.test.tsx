@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import type { UseLeftNavigationMenuResult, UseSearchCollapsibleNavResult } from './useLeftNavigationMenu';
@@ -62,9 +62,14 @@ jest.mock('@radix-ui/themes', () => ({
   Separator: (props: Record<string, unknown>) => <hr {...props} />,
 }));
 
+jest.mock('../GlobalHeader/LanguageMenuRadix', () => () => <div data-testid="language-menu" />);
+jest.mock('../GlobalHeader/HelpMenuRadix', () => () => <div data-testid="help-menu" />);
+
 jest.mock('lucide-react', () => {
   const Icon = () => <span />;
   return {
+    Repeat: Icon,
+    X: Icon,
     LayoutDashboard: Icon,
     Search: Icon,
     FolderOpen: Icon,
@@ -101,6 +106,13 @@ const menuResult = (overrides: Partial<UseLeftNavigationMenuResult> = {}): UseLe
   showTestHub: false,
   isProEdition: true,
   version: '3.96.4',
+  logo: 'logo.svg',
+  canSwitchToClassic: true,
+  isDrawer: false,
+  isDrawerOpen: false,
+  closeDrawer: jest.fn(),
+  onDrawerClick: jest.fn(),
+  drawerRef: { current: null },
   ...overrides,
 });
 
@@ -244,5 +256,76 @@ describe('LeftNavigationMenuRadix footer', () => {
     render(<LeftNavigationMenuRadix />);
 
     expect(screen.queryByTestId('left-nav-footer')).not.toBeInTheDocument();
+  });
+
+  describe('as a drawer on phones and tablets', () => {
+    it('stays closed and keeps its rows expanded even when the side menu was collapsed', () => {
+      mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isPreviewUI: true, isDrawer: true, isCollapsed: true }));
+
+      render(<LeftNavigationMenuRadix />);
+
+      const nav = screen.getByTestId('left-nav');
+      expect(nav).toHaveClass('guide-sidebar--drawer');
+      expect(nav).not.toHaveClass('guide-sidebar--drawer-open');
+      expect(nav).not.toHaveClass('guide-sidebar--collapsed');
+      expect(screen.queryByTestId('left-nav-scrim')).not.toBeInTheDocument();
+    });
+
+    it('shows the scrim, a close button and the controls the header has no room for when open', () => {
+      const closeDrawer = jest.fn();
+      mockUseLeftNavigationMenu.mockReturnValue(
+        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true, closeDrawer })
+      );
+
+      render(<LeftNavigationMenuRadix />);
+
+      expect(screen.getByTestId('left-nav')).toHaveClass('guide-sidebar--drawer-open');
+      expect(screen.getByTestId('language-menu')).toBeInTheDocument();
+      expect(screen.getByTestId('help-menu')).toBeInTheDocument();
+      expect(screen.getByText('Astrum Repository 3.96.4')).toBeInTheDocument();
+      expect(screen.queryByTestId('left-nav-footer')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('left-nav-scrim'));
+      fireEvent.click(screen.getByRole('button', { name: 'Close menu' }));
+      expect(closeDrawer).toHaveBeenCalledTimes(2);
+    });
+
+    it('closes after a pick', () => {
+      const onDrawerClick = jest.fn();
+      mockUseLeftNavigationMenu.mockReturnValue(
+        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true, onDrawerClick })
+      );
+
+      render(<LeftNavigationMenuRadix />);
+      fireEvent.click(screen.getByTestId('nav-item-browse.welcome'));
+
+      expect(onDrawerClick).toHaveBeenCalled();
+    });
+
+    it('asks the header to switch to the Classic UI and closes', () => {
+      const closeDrawer = jest.fn();
+      const onSwitch = jest.fn();
+      window.addEventListener('as-switch-to-classic', onSwitch);
+      mockUseLeftNavigationMenu.mockReturnValue(
+        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true, closeDrawer })
+      );
+
+      render(<LeftNavigationMenuRadix />);
+      fireEvent.click(screen.getByTestId('left-nav-switch-classic'));
+
+      expect(closeDrawer).toHaveBeenCalled();
+      expect(onSwitch).toHaveBeenCalledTimes(1);
+      window.removeEventListener('as-switch-to-classic', onSwitch);
+    });
+
+    it('does not offer the Classic UI when the administrator turned it off', () => {
+      mockUseLeftNavigationMenu.mockReturnValue(
+        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true, canSwitchToClassic: false })
+      );
+
+      render(<LeftNavigationMenuRadix />);
+
+      expect(screen.queryByTestId('left-nav-switch-classic')).not.toBeInTheDocument();
+    });
   });
 });

@@ -47,6 +47,7 @@ export * from './utils/loginUtils';
 export * from './utils/devModeUtils';
 
 export * from './hooks/useSideNavbarOpenState';
+export * from './hooks/useMediaQuery';
 
 export * from './interface/LocationUtils';
 export * from './interface/NavigationUtils';

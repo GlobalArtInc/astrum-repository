@@ -3,6 +3,8 @@ export default {
     HEADER: {
       EXPAND_SIDEBAR: 'Expand Sidebar',
       COLLAPSE_SIDEBAR: 'Collapse Sidebar',
+      OPEN_MENU: 'Open menu',
+      CLOSE_MENU: 'Close menu',
       HOME: 'Home',
       LOGO_ALT: 'Astrum Repository',
       SWITCH_TO_CLASSIC: 'Switch to Classic UI',

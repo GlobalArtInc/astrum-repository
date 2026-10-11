@@ -163,3 +163,69 @@
 [data-radix-popper-content-wrapper] {
   z-index: 15000 !important;
 }
+
+// Phones and tablets (Astrum One): a 60px bar of 44px touch targets without borders, 4px apart.
+// Desktop widths never get the --compact class, so their header is the one above.
+.as-global-header-radix.as-global-header-radix--compact {
+  .as-global-header-radix__sticky-bar {
+    padding: 8px;
+  }
+
+  .as-global-header-radix__row.rt-Flex,
+  .as-global-header-radix__side.rt-Flex {
+    gap: 4px;
+  }
+
+  .as-global-header-radix__side {
+    min-width: 0;
+  }
+
+  .as-global-header-radix__search {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .as-global-header-radix__icon-button.rt-IconButton {
+    width: 44px;
+    height: 44px;
+    background-color: transparent;
+    box-shadow: none;
+
+    &:hover {
+      background-color: var(--gray-a3);
+    }
+
+    &[data-state='open'] {
+      background-color: var(--gray-a4);
+    }
+  }
+
+  .as-global-header-radix__home {
+    min-height: 44px;
+    padding: 0 4px;
+  }
+
+  .as-global-header-radix__logo {
+    height: 24px;
+  }
+
+  // The avatar keeps its 34px circle inside a 44px touch target
+  .as-login-and-user-button__avatar {
+    width: 44px;
+    height: 44px;
+    background-color: transparent;
+    background-image: radial-gradient(circle closest-side, var(--accent-a3) 17px, transparent 17.5px);
+
+    &:hover,
+    &[data-state='open'] {
+      background-color: transparent;
+      background-image: radial-gradient(circle closest-side, var(--accent-a4) 17px, transparent 17.5px);
+    }
+  }
+}
+
+.as-global-header-radix.as-global-header-radix--phone {
+  .as-global-header-radix__logo {
+    height: 28px;
+  }
+}
