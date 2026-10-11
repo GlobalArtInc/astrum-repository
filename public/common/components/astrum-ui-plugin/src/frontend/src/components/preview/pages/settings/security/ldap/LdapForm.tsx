@@ -41,6 +41,7 @@ import { readableLdapError } from './ldapErrors';
 import './LdapForm.scss';
 import LdapStrings from '../../../../constants/pages/settings/security/LdapStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 interface LdapFormProps {
   server?: LdapServer | null;
@@ -353,7 +354,7 @@ export function LdapForm({
       const users = await verifyUserMapping(data, isCreate ? undefined : server?.name);
       setVerifiedUsers(users);
       setShowUserResults(true);
-      announceStatus(`Found ${users.length} user(s)`);
+      announceStatus(plural(LdapStrings.FORM.FOUND_USERS, users.length));
     } catch (err: any) {
       const message = err.message || LdapStrings.FORM.USER_MAPPING_VERIFICATION_FAILED;
       setVerificationError(message);
@@ -1057,7 +1058,7 @@ export function LdapForm({
                   size="2"
                   data-testid="ldap-user-mapping-badge"
                 >
-                  {verifiedUsers.length > 0 ? `${verifiedUsers.length} user(s)` : LdapStrings.FORM.NO_MATCHES_FOUND}
+                  {verifiedUsers.length > 0 ? plural(LdapStrings.FORM.USER_COUNT, verifiedUsers.length) : LdapStrings.FORM.NO_MATCHES_FOUND}
                 </Badge>
               )}
             </Flex>

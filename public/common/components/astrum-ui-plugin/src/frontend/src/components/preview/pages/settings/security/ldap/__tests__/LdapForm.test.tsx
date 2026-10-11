@@ -1441,7 +1441,7 @@ describe('LdapForm', () => {
 
       const badge = screen.getByTestId('ldap-user-mapping-badge');
       expect(badge).toBeInTheDocument();
-      expect(badge).toHaveTextContent('3 user(s)');
+      expect(badge).toHaveTextContent(/^3 users$/);
     });
 
     it('shows a red badge when verification returns no users (ASTRUM-54000)', async () => {
@@ -1495,7 +1495,7 @@ describe('LdapForm', () => {
       await waitFor(() => {
         expect(screen.getByText('Found 3 user(s):')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('ldap-user-mapping-badge')).toHaveTextContent('3 user(s)');
+      expect(screen.getByTestId('ldap-user-mapping-badge')).toHaveTextContent(/^3 users$/);
 
       // Second verify — modal again.
       fireEvent.click(screen.getByTestId('ldap-verify-user-mapping'));
@@ -1768,7 +1768,7 @@ describe('LdapForm', () => {
       fireEvent.click(screen.getByTestId('ldap-password-submit'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('ldap-user-mapping-status')).toHaveTextContent('Found 1 user(s)');
+        expect(screen.getByTestId('ldap-user-mapping-status')).toHaveTextContent(/^Found 1 user$/);
       });
 
       const region = screen.getByTestId('ldap-user-mapping-status');

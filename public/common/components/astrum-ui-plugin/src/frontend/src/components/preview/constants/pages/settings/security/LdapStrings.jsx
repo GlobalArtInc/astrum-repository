@@ -86,6 +86,18 @@ export default localize('react-ui', {
     VERIFY_LOGIN: 'Verify Login',
     NO_MATCHES_FOUND: 'No matches found',
     FOUND_USER_S: (verifiedUsersCount) => `Found ${verifiedUsersCount} user(s):`,
+    USER_COUNT: {
+      ONE: (count) => `${count} user`,
+      FEW: (count) => `${count} users`,
+      MANY: (count) => `${count} users`,
+      OTHER: (count) => `${count} users`,
+    },
+    FOUND_USERS: {
+      ONE: (count) => `Found ${count} user`,
+      FEW: (count) => `Found ${count} users`,
+      MANY: (count) => `Found ${count} users`,
+      OTHER: (count) => `Found ${count} users`,
+    },
     VERIFIED_LDAP_USERS_ARIA: 'Verified LDAP users',
     TEST_LDAP_LOGIN: 'Test LDAP Login',
     ENTER_CREDENTIALS_VERIFY_USER_CAN: 'Enter credentials to verify that a user can authenticate with this LDAP server.',
