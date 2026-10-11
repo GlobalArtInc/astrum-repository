@@ -365,7 +365,11 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         searchTerms: ['recovery', 'repair', 'reconcile', 'maintenance'],
         adminOnly: true,
         // 'astrum:*' === Permissions.ADMIN — array form mirrors the route's visibilityRequirements shape.
-        visibilityRequirements: { permissions: ['astrum:*'] },
+        // Recovery mode comes with an optional plugin, which the server reports in its state.
+        visibilityRequirements: {
+          permissions: ['astrum:*'],
+          statesEnabled: [{ key: 'recoveryModeAvailable', defaultValue: false }],
+        },
       },
       {
         id: 'support-zip',

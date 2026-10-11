@@ -112,6 +112,15 @@ describe('settingsConfig permission gating (ASTRUM-54048)', () => {
       });
     });
 
+    it('gates recovery mode on astrum:* and the recoveryModeAvailable state', () => {
+      const card = cardById('recovery-mode');
+      expect(card?.visibilityRequirements?.permissions).toEqual(['astrum:*']);
+      expect(card?.visibilityRequirements?.statesEnabled).toContainEqual({
+        key: 'recoveryModeAvailable',
+        defaultValue: false,
+      });
+    });
+
     it('gates crowd on the crowd bundle + a valid crowd license', () => {
       const card = cardById('crowd');
       expect(card?.visibilityRequirements?.bundle).toBe('astrum-crowd-plugin');

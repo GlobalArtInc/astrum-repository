@@ -191,6 +191,15 @@ describe('previewAdminRoutes', () => {
       });
     });
 
+    it('gates recovery mode on astrum:* and the recoveryModeAvailable state', () => {
+      const route = previewAdminRoutes.find((r) => r.name === 'preview.admin.support.recoverymode');
+      expect(route.data.visibilityRequirements.permissions).toEqual([Permissions.ADMIN]);
+      expect(route.data.visibilityRequirements.statesEnabled).toContainEqual({
+        key: 'recoveryModeAvailable',
+        defaultValue: false,
+      });
+    });
+
     it('gates crowd on the crowd bundle + a valid crowd license', () => {
       const route = previewAdminRoutes.find((r) => r.name === 'preview.admin.security.crowd');
       expect(route.data.visibilityRequirements.bundle).toBe('astrum-crowd-plugin');

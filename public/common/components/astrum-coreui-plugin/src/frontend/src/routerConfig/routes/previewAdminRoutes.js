@@ -915,6 +915,8 @@ export const previewAdminRoutes = [
       title: PreviewRouteTitles.RECOVERY_MODE,
       visibilityRequirements: {
         permissions: [Permissions.ADMIN],
+        // Recovery mode comes with an optional plugin; without it the page has no server to talk to
+        statesEnabled: [{ key: 'recoveryModeAvailable', defaultValue: false }],
       },
     },
   },
