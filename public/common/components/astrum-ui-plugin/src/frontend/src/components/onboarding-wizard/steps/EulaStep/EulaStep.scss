@@ -36,9 +36,9 @@
         min-height: 200px;
         max-height: 500px;
         overflow-y: auto;
-        border: 1px solid var(--gray-7, #d1d5db);
+        border: 1px solid var(--gray-7);
         border-radius: var(--radius-2, 4px);
-        background-color: var(--gray-2, #f9fafb);
+        background-color: var(--gray-2);
     }
 
     &__license-iframe {
@@ -69,7 +69,7 @@
         }
 
         &:focus-visible {
-            outline: 2px solid var(--accent-8);
+            outline: 2px solid var(--focus-8);
             outline-offset: 2px;
         }
     }
@@ -86,7 +86,7 @@
         cursor: pointer;
         font-size: var(--font-size-3, 14px);
         line-height: 1.5;
-        color: var(--gray-12, #111827);
+        color: var(--gray-12);
 
         span {
             flex: 1;

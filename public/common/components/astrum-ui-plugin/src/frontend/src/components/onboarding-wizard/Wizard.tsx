@@ -106,10 +106,10 @@ function SuccessIcon(): JSX.Element {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <circle cx="12" cy="12" r="12" fill="var(--green-9, #10b981)" />
+        <circle cx="12" cy="12" r="12" fill="var(--green-9)" />
         <path
           d="M7 12l3 3 7-7"
-          stroke="white"
+          stroke="var(--green-contrast)"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -135,10 +135,10 @@ function WarningIcon(): JSX.Element {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <circle cx="12" cy="12" r="12" fill="var(--yellow-9, #f59e0b)" />
+        <circle cx="12" cy="12" r="12" fill="var(--yellow-9)" />
         <path
           d="M12 8v4m0 4h.01"
-          stroke="white"
+          stroke="var(--yellow-contrast)"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"

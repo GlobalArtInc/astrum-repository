@@ -161,7 +161,7 @@ $color-error-border: var(--red-a5, #fdbdbe);
     &:-webkit-autofill:hover,
     &:-webkit-autofill:focus,
     &:-webkit-autofill:active {
-      -webkit-box-shadow: 0 0 0 30px $color-surface-raw inset !important;
+      -webkit-box-shadow: 0 0 0 30px $color-surface-light inset !important;
       -webkit-text-fill-color: $color-text-primary !important;
     }
   }

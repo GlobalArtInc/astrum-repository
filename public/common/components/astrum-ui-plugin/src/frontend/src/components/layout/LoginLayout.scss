@@ -17,7 +17,7 @@
   grid-template-rows: auto 1fr;
   isolation: isolate;
   // Use --color-background for main page background (not --color-surface which is for elevated elements)
-  background-color: var(--color-background, #ffffff);
+  background-color: var(--color-background);
 }
 
 // Simple header with the logo and the language menu (no theme switcher), sized like the shell header

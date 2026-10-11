@@ -44,7 +44,7 @@
   }
 
   &:focus {
-    outline: 2px solid #0F4F8D;
+    outline: 2px solid var(--focus-8);
     outline-offset: 2px;
   }
 }
