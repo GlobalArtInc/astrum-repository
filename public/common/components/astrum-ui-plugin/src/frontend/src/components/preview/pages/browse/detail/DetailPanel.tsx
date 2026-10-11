@@ -1,29 +1,22 @@
 
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Button,
-  Card,
   Callout,
-  Code,
+  Card,
+  DataList,
   Flex,
   Heading,
-  Separator,
   Spinner,
-  Tabs,
   Text,
-  Tooltip,
 } from '@radix-ui/themes';
 import {
   AlertCircle,
-  Check,
   ChevronDown,
-  Copy,
   Download,
   ExternalLink,
-  Shield,
-  Tag,
   Trash2,
 } from 'lucide-react';
 
@@ -32,207 +25,27 @@ import { DeleteDialog } from '../actions/DeleteDialog';
 import { deleteComponent, deleteAsset, deleteFolder, fetchBrowseNodes } from '../browse.api';
 import type { DeleteItemInfo } from '../actions/actions.types';
 import type { BrowseNode } from '../tree/browse-tree.types';
-import { formatCount, formatFileSize, formatDate, getAssetDownloadUrl, sanitizeRegistryUrl } from './detail.utils';
-import { DeepResearchLink, useToast } from '../../../shared';
+import { formatDateTime, getAssetDownloadUrl } from './detail.utils';
+import { useToast } from '../../../shared';
+import { CopyButton, UsageBlock } from '../../../shared/Usage';
+import { FORMAT_LABELS } from '../../../shared/Badges/formatConstants';
 import { isIqServerEnabled } from '../repository-list/useRepositoryList';
 import {
   formatAttributeValue,
   shouldDisplayAttributeFacet,
 } from '../browse.constants';
+import { getUsageSnippets, type UsageContext } from '../../search/details/dependencySnippets/usage';
+import { trackSnippetCopy } from '../../search/details/dependencySnippets/trackSnippetCopy';
+import { formatBytes, formatNumber } from '../../Welcome/usage/usageFormat';
+import { repositoryUrlOf, type RepositoryInfo } from '../useRepositoryInfo';
 import UIStrings from '../../../constants/UIStrings';
 
 import './DetailPanel.scss';
 
-/**
- * UI Strings for the detail panel.
- */
-const STRINGS = {
-  emptyTitle: 'No Item Selected',
-  emptyDescription: 'Select An Item In The Tree To View Its Details.',
-  loading: 'Loading details...',
-  error: 'Error loading details',
+const DELETE_TIMEOUT_MS = 30_000;
 
-  component: {
-    title: 'Component',
-    repository: 'Repository',
-    format: 'Format',
-    group: 'Group',
-    name: 'Name',
-    version: 'Version',
-    deleteButton: 'Delete Component',
-  },
-
-  asset: {
-    title: 'Asset',
-    repository: 'Repository',
-    format: 'Format',
-    path: 'Path',
-    contentType: 'Content Type',
-    size: 'Size',
-    blobCreated: 'Created',
-    blobUpdated: 'Updated',
-    lastDownloaded: 'Last Downloaded',
-    downloadButton: 'Download',
-    deleteButton: 'Delete Asset',
-    viewButton: 'View',
-  },
-
-  folder: {
-    title: 'Folder',
-    path: 'Path',
-    repository: 'Repository',
-    deleteButton: 'Delete Folder',
-    deleteWarning: 'This will delete all contents within this folder.',
-  },
-};
-
-/**
- * Simple data row for the detail panel.
- */
-interface DetailRowProps {
-  label: string;
-  value: string | null | undefined;
-  className?: string;
-  /** Whether this is a path value (gets special wrapping treatment) */
-  isPath?: boolean;
-}
-
-function DetailRow({ label, value, className = '', isPath = false }: DetailRowProps): JSX.Element {
-  const valueClass = isPath ? 'detail-panel__value detail-panel__value--path' : 'detail-panel__value';
-  return (
-    <Flex className={`detail-panel__row ${className}`} justify="between" py="2">
-      <Text size="2" color="gray" className="detail-panel__label">
-        {label}
-      </Text>
-      <Text size="2" className={valueClass}>
-        {value || '-'}
-      </Text>
-    </Flex>
-  );
-}
-
-/**
- * Path row with copy button — same affordance as GA Dependencies card.
- */
-function PathRowWithCopy({ label, value }: { label: string; value: string | null | undefined }): JSX.Element {
-  const [copied, setCopied] = useState(false);
-  const pathValue = value || '';
-
-  const handleCopy = useCallback(() => {
-    if (pathValue) {
-      navigator.clipboard.writeText(pathValue);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }, [pathValue]);
-
-  return (
-    <Box className="detail-panel__row detail-panel__row--path" py="2">
-      <Text size="2" color="gray" weight="medium" mb="2" className="detail-panel__label">
-        {label}
-      </Text>
-      <Box
-        className="detail-panel__path-box"
-        p="4"
-        style={{
-          backgroundColor: 'var(--gray-2)',
-          borderRadius: '6px',
-        }}
-      >
-        <Flex align="center" justify="between" gap="2">
-          <Code
-            size="2"
-            color="gray"
-            variant="ghost"
-            style={{
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-              flex: 1,
-              overflowX: 'auto',
-            }}
-          >
-            {pathValue || '-'}
-          </Code>
-          {pathValue && (
-            <Tooltip content={copied ? 'Copied!' : 'Copy path'}>
-              <Button variant="soft" color="blue" size="2" onClick={handleCopy}>
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? 'Copied!' : 'Path'}
-              </Button>
-            </Tooltip>
-          )}
-        </Flex>
-      </Box>
-    </Box>
-  );
-}
-
-/**
- * Collapsible facet section for attribute groups (Firewall, Npm, Docker, etc.).
- * Adds visual hierarchy with collapsible sections, dividers, and bold headers.
- * Default is closed; call sites explicitly pass defaultOpen for important facets.
- */
-function FacetSection({
-  title,
-  children,
-  defaultOpen = false,
-  testId,
-}: {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  testId?: string;
-}): JSX.Element {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  const handleToggle = () => setIsOpen(!isOpen);
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleToggle();
-    }
-  };
-
-  return (
-    <Box mt="4" data-testid={testId}>
-      {/* Section header with bold title and expand/collapse toggle */}
-      <Flex
-        align="center"
-        justify="between"
-        py="2"
-        px="2"
-        style={{
-          cursor: 'pointer',
-          backgroundColor: 'var(--gray-a2)',
-          borderRadius: 'var(--radius-2)',
-          marginBottom: isOpen ? 'var(--space-2)' : 0,
-        }}
-        onClick={handleToggle}
-        onKeyDown={handleKeyDown}
-        role="button"
-        tabIndex={0}
-        aria-expanded={isOpen}
-      >
-        <Text size="2" weight="bold" style={{ textTransform: 'capitalize' }}>
-          {title}
-        </Text>
-        <ChevronDown
-          size={16}
-          style={{
-            transition: 'transform 0.2s ease',
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-            color: 'var(--gray-9)',
-          }}
-        />
-      </Flex>
-      {/* Collapsible content */}
-      {isOpen && (
-        <Box pt="1" px="2">
-          {children}
-        </Box>
-      )}
-    </Box>
-  );
+function strings() {
+  return UIStrings.BROWSE.DETAIL;
 }
 
 /**
@@ -243,6 +56,8 @@ export interface DetailPanelProps {
   node: BrowseNode | null;
   /** Repository name for context */
   repositoryName: string;
+  /** Format, type and URL of the repository, for the usage snippets */
+  repository?: RepositoryInfo | null;
   /** Component details if available */
   componentData?: ComponentData | null;
   /** Asset details if available */
@@ -255,9 +70,9 @@ export interface DetailPanelProps {
   onDeleted?: () => void;
   /** Whether user has delete permission */
   canDelete?: boolean;
-  /** Active tab from URL (for URL-based navigation) */
+  /** Tab from the URL; the panel shows every section at once, so it is only kept for old links */
   activeTab?: string;
-  /** Callback when tab changes (for URL updates) */
+  /** Tab change callback, kept for old links */
   onTabChange?: (tab: string) => void;
 }
 
@@ -304,26 +119,380 @@ export interface AssetData {
   registryUrl?: string;
 }
 
+// =============================================================================
+// Helpers
+// =============================================================================
+
+const DOCKER_MANIFEST = /^\/?v2\/(.+)\/manifests\/([^/]+)$/;
+const AT_SEPARATED_FORMATS = new Set(['npm', 'go']);
+const CHECKSUM_LABELS: Record<string, string> = {
+  md5: 'MD5',
+  sha1: 'SHA-1',
+  sha256: 'SHA-256',
+  sha512: 'SHA-512',
+};
+
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function withLeadingSlash(path: string): string {
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+/**
+ * Title of the selected item: the component name with its version, `herald-api:0.1.0`, when there is
+ * a component, else the name of the node. A Docker manifest stored under a digest has no component,
+ * so its image and digest are read from the path.
+ */
+export function detailTitle(
+  node: BrowseNode,
+  format: string | undefined,
+  componentData: ComponentData | null | undefined,
+  path?: string | null,
+): { name: string; version?: string; separator: string } {
+  const docker = format === 'docker' && path ? DOCKER_MANIFEST.exec(path) : null;
+  if (docker) {
+    const reference = safeDecode(docker[2]);
+    if (reference.startsWith('sha256:')) {
+      return { name: docker[1], version: `sha256:${reference.substring(7, 19)}`, separator: '@' };
+    }
+    return { name: componentData?.name || docker[1], version: reference, separator: ':' };
+  }
+  if (componentData?.name && componentData.version) {
+    const scoped = format === 'npm' && componentData.group;
+    const name = scoped ? `@${componentData.group?.replace(/^@/, '')}/${componentData.name}` : componentData.name;
+    return {
+      name,
+      version: componentData.version,
+      separator: AT_SEPARATED_FORMATS.has(format ?? '') ? '@' : ':',
+    };
+  }
+  return { name: node.text, separator: ':' };
+}
+
+function formatLabel(format: string | null | undefined): string | undefined {
+  if (!format) return undefined;
+  return FORMAT_LABELS[format] ?? format;
+}
+
+function countText(count: number | null | undefined): string {
+  return typeof count === 'number' && count >= 0 ? formatNumber(count) : '—';
+}
+
+function sizeText(size: number | null | undefined): string {
+  return typeof size === 'number' && size >= 0 ? formatBytes(size) : '—';
+}
+
+/**
+ * The usage context of the selected item, or null when there is nothing to address.
+ */
+function usageContextOf(
+  format: string | undefined,
+  repositoryName: string,
+  repository: RepositoryInfo | null | undefined,
+  componentData: ComponentData | null | undefined,
+  assetData: AssetData | null | undefined,
+  path: string | null | undefined,
+  fallbackName?: string,
+): UsageContext | null {
+  if (!format) {
+    return null;
+  }
+  return {
+    format,
+    repositoryName,
+    repositoryUrl: repositoryUrlOf(repositoryName, repository?.url),
+    repositoryType: repository?.type,
+    group: componentData?.group ?? null,
+    name: componentData?.name ?? fallbackName ?? null,
+    version: componentData?.version ?? null,
+    path: path ?? null,
+    registryUrl: assetData?.registryUrl ?? null,
+    attributes: assetData?.attributes ?? null,
+    distribution: repository?.distribution ?? null,
+  };
+}
+
+// =============================================================================
+// Building blocks
+// =============================================================================
+
+interface DetailRowData {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+}
+
+/**
+ * A two-column definition list of the details of the selected item.
+ */
+function DetailsList({ rows, testId }: { rows: DetailRowData[]; testId?: string }): JSX.Element {
+  return (
+    <DataList.Root
+      size="2"
+      orientation={{ initial: 'vertical', sm: 'horizontal' }}
+      className="detail-panel__list"
+      data-testid={testId}
+    >
+      {rows.map((row) => (
+        <DataList.Item key={row.label} className="detail-panel__row">
+          <DataList.Label minWidth="160px" className="detail-panel__label">{row.label}</DataList.Label>
+          <DataList.Value className={row.mono ? 'detail-panel__value detail-panel__value--mono' : 'detail-panel__value'}>
+            {row.value === null || row.value === undefined || row.value === '' ? '—' : row.value}
+          </DataList.Value>
+        </DataList.Item>
+      ))}
+    </DataList.Root>
+  );
+}
+
+/**
+ * The card that holds the details list.
+ */
+function DetailsCard({ rows, title }: { rows: DetailRowData[]; title?: string }): JSX.Element {
+  return (
+    <Card size="3" className="detail-panel__card" data-testid="detail-details">
+      <Flex direction="column" gap="3">
+        <Text as="div" size="3" weight="bold">{title ?? strings().DETAILS}</Text>
+        <DetailsList rows={rows} />
+      </Flex>
+    </Card>
+  );
+}
+
+/**
+ * Head of the selected item: its path in mono above the title, and the actions on the right.
+ */
+function DetailHeader({
+  path,
+  title,
+  actions,
+}: {
+  path?: string | null;
+  title: { name: string; version?: string; separator: string };
+  actions?: React.ReactNode;
+}): JSX.Element {
+  return (
+    <Flex align="start" justify="between" gap="3" wrap="wrap" className="detail-panel__header">
+      <Flex direction="column" gap="1" minWidth="0" className="detail-panel__heading">
+        {path && (
+          <Flex align="center" gap="1" minWidth="0" className="detail-panel__path-line">
+            <Text size="1" color="gray" className="detail-panel__path" data-testid="detail-path">
+              {path}
+            </Text>
+            <CopyButton text={path} iconOnly size="1" label={strings().COPY_PATH} />
+          </Flex>
+        )}
+        <Heading as="h2" size="6" weight="bold" className="detail-panel__title">
+          {title.name}
+          {title.version && (
+            <span className="detail-panel__title-version">{`${title.separator}${title.version}`}</span>
+          )}
+        </Heading>
+      </Flex>
+      {actions && (
+        <Flex gap="2" wrap="wrap" className="detail-panel__actions">
+          {actions}
+        </Flex>
+      )}
+    </Flex>
+  );
+}
+
+/**
+ * The "Usage" block of an item, with the copy analytics of the Classic snippets.
+ */
+function ItemUsage({ context }: { context: UsageContext | null }): JSX.Element | null {
+  const toast = useToast();
+  const snippets = useMemo(() => (context ? getUsageSnippets(context) : []), [context]);
+  if (!context || snippets.length === 0) {
+    return null;
+  }
+  return (
+    <UsageBlock
+      snippets={snippets}
+      onCopied={(snippet) => trackSnippetCopy(context.format, snippet.label)}
+      onCopyFailed={() => toast.error(UIStrings.BROWSE.USAGE.COPY_FAILED)}
+    />
+  );
+}
+
+/**
+ * Collapsible facet section for attribute groups (Firewall, Npm, Docker, etc.).
+ * Default is closed; call sites explicitly pass defaultOpen for important facets.
+ */
+function FacetSection({
+  title,
+  children,
+  defaultOpen = false,
+  testId,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  testId?: string;
+}): JSX.Element {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <Box className="detail-panel__facet" data-testid={testId}>
+      <button
+        type="button"
+        className="detail-panel__facet-toggle"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+      >
+        <Text size="2" weight="medium" className="detail-panel__facet-title">{title}</Text>
+        <ChevronDown
+          size={16}
+          aria-hidden
+          className={isOpen ? 'detail-panel__facet-chevron detail-panel__facet-chevron--open' : 'detail-panel__facet-chevron'}
+        />
+      </button>
+      {isOpen && <Box pt="2">{children}</Box>}
+    </Box>
+  );
+}
+
+/**
+ * Format attributes of an asset (Docker, npm, firewall...), one collapsible section per facet,
+ * matching the Classic UI's AssetAttributes.
+ */
+function AttributesCard({ assetData }: { assetData: AssetData }): JSX.Element | null {
+  const facets = Object.entries(assetData.attributes ?? {})
+    .filter(([key, value]) => shouldDisplayAttributeFacet(key, value))
+    .map(([key, value]) => [
+      key,
+      Object.entries(value as Record<string, unknown>).filter(([, item]) => item !== null && item !== undefined && item !== ''),
+    ] as const)
+    .filter(([, entries]) => entries.length > 0);
+
+  if (facets.length === 0) {
+    return null;
+  }
+  const dockerLabels: Record<string, string> = strings().DOCKER_ATTRIBUTES;
+
+  return (
+    <Card size="3" className="detail-panel__card" data-testid="detail-attributes">
+      <Flex direction="column" gap="2">
+        <Text as="div" size="3" weight="bold">{strings().ATTRIBUTES}</Text>
+        {facets.map(([sectionKey, entries]) => (
+          <FacetSection
+            key={sectionKey}
+            title={sectionKey}
+            testId={`attr-section-${sectionKey}`}
+            defaultOpen={sectionKey === 'firewall' || sectionKey === 'npm' || sectionKey === 'docker'}
+          >
+            <DataList.Root size="2" orientation={{ initial: 'vertical', sm: 'horizontal' }} className="detail-panel__list">
+              {entries.map(([key, value]) => (
+                <DataList.Item key={key} className="detail-panel__row" data-testid={`attr-${sectionKey}-${key}`}>
+                  <DataList.Label minWidth="160px" className="detail-panel__label">
+                    {sectionKey === 'docker' ? (dockerLabels[key] ?? key) : key}
+                  </DataList.Label>
+                  <DataList.Value className="detail-panel__value detail-panel__value--pre">
+                    {formatAttributeValue(value, key, formatBytes)}
+                  </DataList.Value>
+                </DataList.Item>
+              ))}
+            </DataList.Root>
+          </FacetSection>
+        ))}
+      </Flex>
+    </Card>
+  );
+}
+
+function DeleteButton({ label, onClick, color = 'red' }: { label: string; onClick: () => void; color?: 'red' | 'orange' }): JSX.Element {
+  return (
+    <Button variant="outline" color={color} size="2" onClick={onClick}>
+      <Trash2 size={14} aria-hidden />
+      {label}
+    </Button>
+  );
+}
+
+function researchUrl(format: string, componentData: ComponentData, referrer: string): string | null {
+  if (!componentData.version) {
+    return null;
+  }
+  const ecosystem = format === 'maven2' ? 'maven' : format;
+  const componentPath =
+    format === 'maven2' && componentData.group
+      ? `${encodeURIComponent(componentData.group)}%3A${encodeURIComponent(componentData.name)}`
+      : encodeURIComponent(componentData.name);
+  return `https://guide.globalart.dev/component/${ecosystem}/${componentPath}/${encodeURIComponent(componentData.version)}?referrer=${referrer}`;
+}
+
+function ResearchButton({ format, componentData, referrer }: { format: string; componentData: ComponentData; referrer: string }): JSX.Element | null {
+  const url = researchUrl(format, componentData, referrer);
+  if (!url) {
+    return null;
+  }
+  return (
+    <Button variant="soft" color="gray" size="2" asChild>
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <ExternalLink size={14} aria-hidden />
+        {strings().RESEARCH}
+      </a>
+    </Button>
+  );
+}
+
+function IqServerButton({ componentData }: { componentData: ComponentData }): JSX.Element | null {
+  if (!isIqServerEnabled()) {
+    return null;
+  }
+  const iqUrl = ExtJS.state()?.getValue?.('clm')?.url;
+  return (
+    <Button
+      variant="soft"
+      color="gray"
+      size="2"
+      disabled={!iqUrl}
+      onClick={() => {
+        if (iqUrl && componentData.name) {
+          window.open(
+            `${iqUrl}/assets/index.html#/componentDetails/${encodeURIComponent(componentData.format)}/${encodeURIComponent(componentData.name)}/${encodeURIComponent(componentData.version || '')}`,
+            '_blank',
+            'noopener,noreferrer',
+          );
+        }
+      }}
+    >
+      <ExternalLink size={14} aria-hidden />
+      {strings().IQ_SERVER}
+    </Button>
+  );
+}
+
+// =============================================================================
+// DetailPanel
+// =============================================================================
+
 /**
  * DetailPanel displays the details of a selected node in the browse tree.
  *
  * Features:
- * - Shows component, asset, or folder details based on node type
- * - Download button for assets
- * - Delete button with confirmation dialog
- * - Loading and error states
+ * - Head with the path, the name and version, and the actions
+ * - "Usage" block with a snippet per client, addressed through this repository
+ * - Details list, format attributes
+ * - Delete with confirmation (permission-gated), download for files
  */
 export function DetailPanel({
   node,
   repositoryName,
+  repository,
   componentData,
   assetData,
   loading = false,
   error = null,
   onDeleted,
   canDelete = false,
-  activeTab = 'summary',
-  onTabChange,
 }: DetailPanelProps): JSX.Element {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -386,8 +555,6 @@ export function DetailPanel({
     setIsDeleting(true);
     setDeleteError(null);
 
-    const DELETE_TIMEOUT_MS = 30_000;
-
     try {
       // Determine delete target. Order matters and MUST follow the selected node's type so the
       // action matches what the panel renders:
@@ -424,24 +591,21 @@ export function DetailPanel({
       }
 
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(
-          () => reject(new Error('Delete operation timed out. The item may have been deleted.')),
-          DELETE_TIMEOUT_MS,
-        );
+        setTimeout(() => reject(new Error(strings().DELETE_TIMEOUT)), DELETE_TIMEOUT_MS);
       });
 
       await Promise.race([deletePromise, timeoutPromise]);
 
       setDeleteDialogOpen(false);
-      toast.success('Item deleted successfully');
+      toast.success(strings().DELETED);
       if (onDeleted) {
         onDeleted();
       }
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : typeof err === 'string' ? err : 'Delete failed.';
-      toast.error(errorMessage);
-      setDeleteError(`Cannot delete: ${errorMessage}`);
+        err instanceof Error ? err.message : typeof err === 'string' ? err : '';
+      toast.error(errorMessage || strings().DELETE_FAILED(''));
+      setDeleteError(strings().DELETE_FAILED(errorMessage));
       setDeleteDialogOpen(false);
 
       // Refresh tree - delete may have partially succeeded on the server
@@ -471,77 +635,45 @@ export function DetailPanel({
     }
   }, [assetData, repositoryName]);
 
-  // Empty state — Card (detail panel wrapper) + dashed Box (ui-state skill Category 1: no icons, Title Case, data-driven)
   if (!node) {
     return (
-      <Card className="detail-panel detail-panel--empty">
-        <Box
-          p="4"
-          style={{
-            border: '1px dashed var(--gray-7)',
-            borderRadius: 'var(--radius-3)',
-            minHeight: '160px',
-          }}
-        >
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
-            gap="2"
-            style={{ height: '100%', minHeight: '132px' }}
-          >
-            <Text size="3" weight="medium">
-              {STRINGS.emptyTitle}
-            </Text>
-            <Text size="1" color="gray" align="center">
-              {STRINGS.emptyDescription}
-            </Text>
-          </Flex>
-        </Box>
+      <Card size="3" className="detail-panel detail-panel--empty" data-testid="detail-empty">
+        <Flex direction="column" align="center" justify="center" gap="2" className="detail-panel__placeholder">
+          <Text size="3" weight="medium">{strings().EMPTY_TITLE}</Text>
+          <Text size="2" color="gray" align="center">{strings().EMPTY_DESCRIPTION}</Text>
+        </Flex>
       </Card>
     );
   }
 
-  // Loading state
   if (loading) {
     return (
-      <Flex
-        align="center"
-        justify="center"
-        direction="column"
-        className="detail-panel detail-panel--loading"
-        p="6"
-      >
-        <Spinner size="3" />
-        <Text color="gray" size="2" mt="3">
-          {STRINGS.loading}
-        </Text>
-      </Flex>
+      <Card size="3" className="detail-panel detail-panel--loading">
+        <Flex align="center" justify="center" direction="column" gap="3" className="detail-panel__placeholder">
+          <Spinner size="3" />
+          <Text color="gray" size="2">{strings().LOADING}</Text>
+        </Flex>
+      </Card>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <Flex
-        align="center"
-        justify="center"
-        direction="column"
-        className="detail-panel detail-panel--error"
-        p="6"
-      >
-        <Text color="red" size="2">
-          {STRINGS.error}: {error}
-        </Text>
-      </Flex>
+      <Callout.Root color="red" size="2" className="detail-panel detail-panel--error">
+        <Callout.Icon>
+          <AlertCircle size={16} />
+        </Callout.Icon>
+        <Callout.Text>{strings().ERROR(error)}</Callout.Text>
+      </Callout.Root>
     );
   }
 
-  // Render based on node type
+  const format = assetData?.format || componentData?.format || repository?.format;
+
   return (
-    <Box className="detail-panel" p="4" pt="0">
+    <Flex direction="column" gap="4" className="detail-panel">
       {deleteError && (
-        <Callout.Root color="red" mb="3" size="2">
+        <Callout.Root color="red" size="2">
           <Callout.Icon>
             <AlertCircle size={16} />
           </Callout.Icon>
@@ -552,7 +684,9 @@ export function DetailPanel({
       {node.type === 'component' && (
         <ComponentDetails
           node={node}
+          format={format}
           repositoryName={repositoryName}
+          repository={repository}
           componentData={componentData}
           canDelete={canDelete}
           onDeleteClick={handleDeleteClick}
@@ -562,21 +696,23 @@ export function DetailPanel({
       {node.type === 'asset' && node.leaf && (
         <AssetDetails
           node={node}
+          format={format}
           repositoryName={repositoryName}
+          repository={repository}
           assetData={assetData}
           componentData={componentData}
           canDelete={canDelete}
           onDeleteClick={handleDeleteClick}
           onDownloadClick={handleDownload}
-          activeTab={activeTab}
-          onTabChange={onTabChange}
         />
       )}
 
       {node.type === 'asset' && !node.leaf && (
         <PackageRootDetails
           node={node}
+          format={format}
           repositoryName={repositoryName}
+          repository={repository}
           assetData={assetData}
           canDelete={canDelete}
           onDeleteMetadataClick={() => { setDeleteAsFolder(false); handleDeleteClick(); }}
@@ -593,7 +729,6 @@ export function DetailPanel({
         />
       )}
 
-      {/* Delete Dialog */}
       <DeleteDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
@@ -601,21 +736,19 @@ export function DetailPanel({
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}
       />
-    </Box>
+    </Flex>
   );
 }
 
-/**
- * Package root details view.
- *
- * Shown for asset nodes that also act as folder containers (non-leaf assets).
- * This occurs in npm repositories where the package root (e.g. `lodash`) is both
- * a browsable folder containing version subfolders AND the aggregated metadata asset
- * (package.json). Users can delete just the metadata asset or the entire package folder.
- */
+// =============================================================================
+// Package root (npm): both a folder of versions and the package metadata
+// =============================================================================
+
 interface PackageRootDetailsProps {
   node: BrowseNode;
+  format?: string;
   repositoryName: string;
+  repository?: RepositoryInfo | null;
   assetData?: AssetData | null;
   canDelete: boolean;
   onDeleteMetadataClick: () => void;
@@ -624,79 +757,66 @@ interface PackageRootDetailsProps {
 
 function PackageRootDetails({
   node,
+  format,
   repositoryName,
+  repository,
   assetData,
   canDelete,
   onDeleteMetadataClick,
   onDeleteFolderClick,
 }: PackageRootDetailsProps): JSX.Element {
+  const path = withLeadingSlash(assetData?.path || assetData?.name || node.id);
+  const packageName = safeDecode(node.id);
+  const scope = packageName.startsWith('@') ? packageName.split('/')[0].substring(1) : null;
+  const name = scope ? packageName.split('/').slice(1).join('/') : packageName;
+  const context = useMemo(
+    () => usageContextOf(format, repositoryName, repository, { id: '', repositoryName, format: format ?? '', group: scope, name, version: null }, assetData, null),
+    [format, repositoryName, repository, scope, name, assetData],
+  );
+
   return (
-    <Card>
-      <Box p="3" className="detail-panel__header">
-        <Heading size="5">{node.text}</Heading>
-      </Box>
-
-      <Separator size="4" />
-
-      <Box p="3">
-        <DetailRow label="Repository" value={repositoryName} />
-        <DetailRow label="Format" value={assetData?.format} />
-        <DetailRow label="Content Type" value={assetData?.contentType} />
-        <DetailRow label="Size" value={formatFileSize(assetData?.size)} />
-        <DetailRow label="Last Updated" value={formatDate(assetData?.blobUpdated)} />
-        <DetailRow label={UIStrings.BROWSE_DETAIL.DOWNLOADS} value={formatCount(assetData?.downloadCount)} />
-        <PathRowWithCopy label="Path" value={assetData?.path || assetData?.name} />
-      </Box>
-
-      <Separator size="4" />
-
-      <Box p="3">
-        <Callout.Root color="blue" size="1">
-          <Callout.Icon>
-            <AlertCircle size={14} />
-          </Callout.Icon>
-          <Callout.Text>
-            This node represents both a package folder (containing version subfolders) and
-            a metadata asset. Choose which to delete below.
-          </Callout.Text>
-        </Callout.Root>
-      </Box>
-
-      {canDelete && (
-        <>
-          <Separator size="4" />
-          <Flex p="3" gap="2" justify="end">
-            <Button
-              variant="outline"
-              color="orange"
-              size="2"
-              onClick={onDeleteMetadataClick}
-            >
-              <Trash2 size={14} />
-              Delete Metadata Only
-            </Button>
-            <Button
-              variant="outline"
-              color="red"
-              size="2"
-              onClick={onDeleteFolderClick}
-            >
-              <Trash2 size={14} />
-              Delete Entire Package
-            </Button>
-          </Flex>
-        </>
-      )}
-    </Card>
+    <>
+      <Card size="3" className="detail-panel__card">
+        <Flex direction="column" gap="5">
+          <DetailHeader
+            path={path}
+            title={{ name: packageName, separator: ':' }}
+            actions={canDelete ? (
+              <>
+                <DeleteButton label={strings().DELETE_METADATA} color="orange" onClick={onDeleteMetadataClick} />
+                <DeleteButton label={strings().DELETE_PACKAGE} onClick={onDeleteFolderClick} />
+              </>
+            ) : undefined}
+          />
+          {canDelete && (
+            <Text as="p" size="2" color="gray" className="detail-panel__note">{strings().PACKAGE_ROOT_NOTE}</Text>
+          )}
+          <ItemUsage context={context} />
+        </Flex>
+      </Card>
+      <DetailsCard
+        rows={[
+          { label: strings().ROWS.REPOSITORY, value: repositoryName },
+          { label: strings().ROWS.FORMAT, value: formatLabel(assetData?.format || format) },
+          { label: strings().ROWS.CONTENT_TYPE, value: assetData?.contentType, mono: true },
+          { label: strings().ROWS.SIZE, value: sizeText(assetData?.size) },
+          { label: strings().ROWS.UPDATED, value: formatDateTime(assetData?.blobUpdated) },
+          { label: UIStrings.BROWSE_DETAIL.DOWNLOADS, value: countText(assetData?.downloadCount) },
+        ]}
+      />
+    </>
   );
 }
 
-/**
- * Component details view.
- */
+// =============================================================================
+// Component
+// =============================================================================
+
 interface ComponentDetailsProps {
   node: BrowseNode;
+  format?: string;
   repositoryName: string;
+  repository?: RepositoryInfo | null;
   componentData?: ComponentData | null;
   canDelete: boolean;
   onDeleteClick: () => void;
@@ -704,446 +824,150 @@ interface ComponentDetailsProps {
 
 function ComponentDetails({
   node,
+  format,
   repositoryName,
+  repository,
   componentData,
   canDelete,
   onDeleteClick,
 }: ComponentDetailsProps): JSX.Element {
+  const path = withLeadingSlash(safeDecode(node.id));
+  const title = detailTitle(node, format, componentData);
+  const context = useMemo(
+    () => usageContextOf(format, repositoryName, repository, componentData, null, componentData ? null : node.id, node.text),
+    [format, repositoryName, repository, componentData, node.id, node.text],
+  );
+
   return (
-    <Card>
-      {/* Header — size="5" (one level down from page size="6") */}
-      <Box p="3" className="detail-panel__header">
-        <Heading size="5">{node.text}</Heading>
-      </Box>
-
-      <Separator size="4" />
-
-      <Box p="3">
-        <DetailRow label={STRINGS.component.repository} value={repositoryName} />
-        <DetailRow label={STRINGS.component.format} value={componentData?.format} />
-        <DetailRow label={STRINGS.component.group} value={componentData?.group} />
-        <DetailRow label={STRINGS.component.name} value={componentData?.name || node.text} />
-        <DetailRow label={STRINGS.component.version} value={componentData?.version} />
-        <DetailRow
-          label={UIStrings.BROWSE_DETAIL.DOWNLOADS}
-          value={formatCount(componentData?.downloadCount)}
-        />
-      </Box>
-
-      {/* Actions */}
-      {canDelete && (
-        <>
-          <Separator size="4" />
-          <Flex p="3" gap="2" justify="end">
-            {componentData?.version && (
-              <Button
-                variant="soft"
-                size="2"
-                onClick={() => {
-                  const format = componentData.format;
-                  const name = componentData.name;
-                  const guideUrl = `https://guide.globalart.dev/component/${format}/${encodeURIComponent(name)}/${encodeURIComponent(componentData.version)}?referrer=browse-tree-component`;
-                  window.open(guideUrl, '_blank', 'noopener,noreferrer');
-                }}
-              >
-                <ExternalLink size={14} />
-                Research in Guide
-              </Button>
+    <>
+      <Card size="3" className="detail-panel__card">
+        <Flex direction="column" gap="5">
+          <DetailHeader
+            path={path}
+            title={title}
+            actions={(
+              <>
+                {componentData && format && (
+                  <ResearchButton format={format} componentData={componentData} referrer="browse-tree-component" />
+                )}
+                {canDelete && <DeleteButton label={strings().DELETE_COMPONENT} onClick={onDeleteClick} />}
+              </>
             )}
-            <Button
-              variant="outline"
-              color="red"
-              size="2"
-              onClick={onDeleteClick}
-            >
-              <Trash2 size={14} />
-              {STRINGS.component.deleteButton}
-            </Button>
-          </Flex>
-        </>
-      )}
-    </Card>
+          />
+          <ItemUsage context={context} />
+        </Flex>
+      </Card>
+      <DetailsCard
+        rows={[
+          { label: strings().ROWS.REPOSITORY, value: repositoryName },
+          { label: strings().ROWS.FORMAT, value: formatLabel(componentData?.format || format) },
+          ...(componentData?.group ? [{ label: strings().ROWS.GROUP, value: componentData.group, mono: true }] : []),
+          { label: strings().ROWS.NAME, value: componentData?.name || node.text },
+          { label: strings().ROWS.VERSION, value: componentData?.version, mono: true },
+          { label: UIStrings.BROWSE_DETAIL.DOWNLOADS, value: countText(componentData?.downloadCount) },
+        ]}
+      />
+    </>
   );
 }
 
-/**
- * Asset details view with tabbed navigation.
- */
+// =============================================================================
+// Asset
+// =============================================================================
+
 interface AssetDetailsProps {
   node: BrowseNode;
+  format?: string;
   repositoryName: string;
+  repository?: RepositoryInfo | null;
   assetData?: AssetData | null;
   componentData?: ComponentData | null;
   canDelete: boolean;
   onDeleteClick: () => void;
   onDownloadClick: () => void;
-  /** Active tab from URL (for URL-based navigation) */
-  activeTab?: string;
-  /** Callback when tab changes (for URL updates) */
-  onTabChange?: (tab: string) => void;
-}
-
-/**
- * Generate usage snippets based on format.
- */
-function getUsageSnippets(
-  format: string | undefined,
-  group: string | null | undefined,
-  name: string | undefined,
-  version: string | null | undefined,
-  registryUrl?: string | null
-): { title: string; code: string }[] {
-  if (!format || !name) return [];
-  const snippets: { title: string; code: string }[] = [];
-  const g = group || '';
-  const v = version || 'LATEST';
-  const dockerPullTarget = sanitizeRegistryUrl(registryUrl) ? `${sanitizeRegistryUrl(registryUrl)}/${name}` : name;
-
-  switch (format.toLowerCase()) {
-    case 'maven2':
-      snippets.push({
-        title: 'Maven',
-        code: `<dependency>\n  <groupId>${g}</groupId>\n  <artifactId>${name}</artifactId>\n  <version>${v}</version>\n</dependency>`,
-      });
-      snippets.push({
-        title: 'Gradle',
-        code: `implementation '${g}:${name}:${v}'`,
-      });
-      break;
-    case 'npm':
-      snippets.push({ title: 'npm', code: `npm install ${name}@${v}` });
-      snippets.push({ title: 'yarn', code: `yarn add ${name}@${v}` });
-      break;
-    case 'pypi':
-      snippets.push({ title: 'pip', code: `pip install ${name}==${v}` });
-      break;
-    case 'nuget':
-      snippets.push({ title: 'NuGet', code: `Install-Package ${name} -Version ${v}` });
-      break;
-    case 'docker':
-      snippets.push({ title: 'Docker', code: `docker pull ${dockerPullTarget}:${v}` });
-      break;
-  }
-  return snippets;
-}
-
-/**
- * Copyable code snippet — Usage tab layout with GA copy affordance (icon-only, Tooltip, soft blue).
- */
-function UsageSnippet({ title, code }: { title: string; code: string }): JSX.Element {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [code]);
-
-  return (
-    <Box className="usage-snippet" mb="4">
-      <Flex justify="between" align="center" mb="2">
-        <Text weight="medium" size="2">
-          {title}
-        </Text>
-        <Tooltip content={copied ? 'Copied!' : 'Copy'}>
-          <Button
-            variant="soft"
-            color="blue"
-            size="2"
-            onClick={handleCopy}
-            aria-label={`Copy ${title} snippet`}
-          >
-            <Copy size={14} />
-          </Button>
-        </Tooltip>
-      </Flex>
-      <Box className="usage-snippet__code">
-        <Code size="2" style={{ whiteSpace: 'pre-wrap', display: 'block', padding: 'var(--space-3)' }}>
-          {code}
-        </Code>
-      </Box>
-    </Box>
-  );
 }
 
 function AssetDetails({
   node,
+  format,
   repositoryName,
+  repository,
   assetData,
   componentData,
   canDelete,
   onDeleteClick,
   onDownloadClick,
-  activeTab = 'summary',
-  onTabChange,
 }: AssetDetailsProps): JSX.Element {
-  const iqEnabled = isIqServerEnabled();
-  const isProEdition = ExtJS.isProEdition?.() ?? false;
-  // Top-level registryUrl computed by the backend at read time so the docker pull
-  // snippet becomes `docker pull host:port/image:tag` when present (ASTRUM-51972).
-  const dockerRegistryUrl = assetData?.registryUrl;
-
-  const DOCKER_ATTR_LABELS: Record<string, string> = {
-    os: 'OS',
-    arch: 'Architecture',
-    architecture: 'Architecture',
-    created: 'Created',
-    author: 'Author',
-    workingDir: 'Working Directory',
-    totalSize: 'Total Size',
-    exposedPorts: 'Exposed Ports',
-    entrypoint: 'Entrypoint',
-    cmd: 'Cmd',
-    env: 'Environment',
-    labels: 'Labels',
-    history: 'History',
-    content_digest: 'Digest',
-    image_name: 'Image Name',
-    image_tag: 'Image Tag',
-  };
-  const usageSnippets = getUsageSnippets(
-    assetData?.format,
-    componentData?.group,
-    componentData?.name || node.text,
-    componentData?.version,
-    dockerRegistryUrl
+  const rawPath = assetData?.path || assetData?.name || node.id;
+  const path = withLeadingSlash(rawPath);
+  const title = detailTitle(node, format, componentData, path);
+  const context = useMemo(
+    () => usageContextOf(format, repositoryName, repository, componentData, assetData, rawPath),
+    [format, repositoryName, repository, componentData, assetData, rawPath],
   );
 
+  const checksums = Object.entries(assetData?.checksum ?? {});
+  const isDocker = format === 'docker';
+  const checksumRows: DetailRowData[] = checksums
+    .filter(([algorithm]) => !(isDocker && algorithm === 'sha256'))
+    .map(([algorithm, value]) => ({ label: CHECKSUM_LABELS[algorithm] ?? algorithm.toUpperCase(), value, mono: true }));
+  const digest = isDocker && assetData?.checksum?.sha256 ? `sha256:${assetData.checksum.sha256}` : null;
+
+  const rows: DetailRowData[] = [
+    { label: strings().ROWS.REPOSITORY, value: repositoryName },
+    { label: strings().ROWS.FORMAT, value: formatLabel(assetData?.format || format) },
+    ...(componentData?.group ? [{ label: strings().ROWS.GROUP, value: componentData.group, mono: true }] : []),
+    ...(componentData ? [{ label: strings().ROWS.COMPONENT, value: componentData.name }] : []),
+    ...(componentData?.version ? [{ label: strings().ROWS.VERSION, value: componentData.version, mono: true }] : []),
+    ...(assetData?.createdBy ? [{ label: strings().ROWS.UPLOADER, value: assetData.createdBy }] : []),
+    { label: strings().ROWS.CONTENT_TYPE, value: assetData?.contentType, mono: true },
+    { label: strings().ROWS.SIZE, value: sizeText(assetData?.size) },
+    { label: strings().ROWS.CREATED, value: formatDateTime(assetData?.blobCreated) },
+    ...(assetData?.blobUpdated ? [{ label: strings().ROWS.UPDATED, value: formatDateTime(assetData.blobUpdated) }] : []),
+    {
+      label: strings().ROWS.LAST_DOWNLOADED,
+      value: assetData?.lastDownloaded ? formatDateTime(assetData.lastDownloaded) : strings().ROWS.NEVER_DOWNLOADED,
+    },
+    { label: UIStrings.BROWSE_DETAIL.DOWNLOADS, value: countText(assetData?.downloadCount) },
+    ...(digest ? [{ label: strings().ROWS.DIGEST, value: digest, mono: true }] : []),
+    ...checksumRows,
+    ...(assetData?.blobRef ? [{ label: strings().ROWS.BLOB_REF, value: assetData.blobRef, mono: true }] : []),
+  ];
+
   return (
-    <Card>
-      {/* Header — size="5" (one level down from page size="6") */}
-      <Box p="3" className="detail-panel__header">
-        <Heading size="5" className="detail-panel__header-title">{node.text}</Heading>
-      </Box>
-
-      {/* Tabs - controlled by URL when onTabChange is provided */}
-      <Tabs.Root value={activeTab} onValueChange={onTabChange}>
-        <Tabs.List>
-          <Tabs.Trigger value="summary">Summary</Tabs.Trigger>
-          <Tabs.Trigger value="usage">Usage</Tabs.Trigger>
-          <Tabs.Trigger value="attributes">Attributes</Tabs.Trigger>
-          {isProEdition && <Tabs.Trigger value="tags">Component Tags</Tabs.Trigger>}
-          <Tabs.Trigger value="lifecycle">GlobalArt Lifecycle</Tabs.Trigger>
-        </Tabs.List>
-
-        {/* Summary Tab */}
-        <Tabs.Content value="summary">
-          <Box p="3">
-            <DetailRow label={STRINGS.asset.repository} value={repositoryName} />
-            <DetailRow label={STRINGS.asset.format} value={assetData?.format} />
-            {componentData && (
+    <>
+      <Card size="3" className="detail-panel__card">
+        <Flex direction="column" gap="5">
+          <DetailHeader
+            path={path}
+            title={title}
+            actions={(
               <>
-                <DetailRow label="Group" value={componentData.group} />
-                <DetailRow label="Component" value={componentData.name} />
-                <DetailRow label="Version" value={componentData.version} />
-              </>
-            )}
-            <PathRowWithCopy label={STRINGS.asset.path} value={assetData?.path || assetData?.name} />
-            <DetailRow label={STRINGS.asset.contentType} value={assetData?.contentType} />
-            <DetailRow label={STRINGS.asset.size} value={formatFileSize(assetData?.size)} />
-            <DetailRow label={STRINGS.asset.blobCreated} value={formatDate(assetData?.blobCreated)} />
-            <DetailRow label={STRINGS.asset.blobUpdated} value={formatDate(assetData?.blobUpdated)} />
-            <DetailRow label={STRINGS.asset.lastDownloaded} value={formatDate(assetData?.lastDownloaded)} />
-            <DetailRow label={UIStrings.BROWSE_DETAIL.DOWNLOADS} value={formatCount(assetData?.downloadCount)} />
-            {assetData?.blobRef && <DetailRow label="Blob Reference" value={assetData.blobRef} />}
-            {assetData?.createdBy && <DetailRow label="Uploaded By" value={assetData.createdBy} />}
-          </Box>
-        </Tabs.Content>
-
-        {/* Usage Tab */}
-        <Tabs.Content value="usage">
-          <Box p="3">
-            {usageSnippets.length > 0 ? (
-              usageSnippets.map((s) => <UsageSnippet key={s.title} title={s.title} code={s.code} />)
-            ) : (
-              <Text color="gray" size="2">No usage snippets available for this format.</Text>
-            )}
-          </Box>
-        </Tabs.Content>
-
-        {/* Attributes Tab */}
-        <Tabs.Content value="attributes">
-          <Box p="3">
-            <DetailRow label="Repository" value={repositoryName} />
-            <DetailRow label="Format" value={assetData?.format} />
-            {componentData && (
-              <>
-                <DetailRow label="Group" value={componentData.group} />
-                <Flex className="detail-panel__row" justify="between" py="2">
-                  <Text size="2" color="gray" className="detail-panel__label">
-                    Name
-                  </Text>
-                  <Flex align="center" gap="2" className="detail-panel__value">
-                    <Text size="2">{componentData.name || '-'}</Text>
-                    {componentData.version && (
-                      <Box onClick={(e) => e.stopPropagation()}>
-                        <DeepResearchLink
-                          ecosystem={assetData?.format || componentData.format}
-                          packageName={
-                            assetData?.format === 'maven2' && componentData.group
-                              ? `${componentData.group}:${componentData.name}`
-                              : componentData.name
-                          }
-                          version={componentData.version}
-                          iconOnly
-                          size="1"
-                          referrer="browse-tree"
-                        />
-                      </Box>
-                    )}
-                  </Flex>
-                </Flex>
-                <DetailRow label="Version" value={componentData.version} />
-              </>
-            )}
-
-
-            {/* Checksums — rendered dynamically from REST Map<String,String> */}
-            {assetData?.checksum && Object.keys(assetData.checksum).length > 0 && (
-              <FacetSection title="Checksums" testId="attr-section-checksum" defaultOpen={true}>
-                {Object.entries(assetData.checksum).map(([algo, value]) => (
-                  <DetailRow key={algo} label={algo.toUpperCase()} value={value} />
-                ))}
-              </FacetSection>
-            )}
-
-            {/*
-              Dynamic attribute facets surfaced from `attributes.*`.
-              Matches Classic UI's AssetAttributes.js behavior - iterates ALL facets
-              (firewall, format-specific, etc.) and renders each as a labeled section.
-              Uses shouldDisplayAttributeFacet to hide internal facets (ASTRUM-52920).
-            */}
-            {assetData?.attributes &&
-              Object.entries(assetData.attributes)
-                .filter(([key, value]) => shouldDisplayAttributeFacet(key, value))
-                .map(([sectionKey, sectionValue]) => {
-                  const entries = Object.entries(sectionValue as Record<string, unknown>)
-                    .filter(([, val]) => val !== null && val !== undefined && val !== '');
-                  if (entries.length === 0) return null;
-                  return (
-                    <FacetSection
-                      key={sectionKey}
-                      title={sectionKey}
-                      testId={`attr-section-${sectionKey}`}
-                      defaultOpen={sectionKey === 'firewall' || sectionKey === 'npm' || sectionKey === 'docker'}
-                    >
-                      {entries.map(([k, v]) => (
-                        <Flex
-                          key={k}
-                          className="detail-panel__row"
-                          justify="between"
-                          py="2"
-                          data-testid={`attr-${sectionKey}-${k}`}
-                        >
-                          <Text size="2" color="gray" className="detail-panel__label">
-                            {sectionKey === 'docker' ? (DOCKER_ATTR_LABELS[k] ?? k) : k}
-                          </Text>
-                          <Text
-                            size="2"
-                            className="detail-panel__value"
-                            style={{ whiteSpace: 'pre-wrap', textAlign: 'right' }}
-                          >
-                            {formatAttributeValue(v, k, formatFileSize)}
-                          </Text>
-                        </Flex>
-                      ))}
-                    </FacetSection>
-                  );
-                })}
-          </Box>
-        </Tabs.Content>
-
-        {/* Component Tags Tab — Pro feature: hidden in CE mode */}
-        {isProEdition && (
-          <Tabs.Content value="tags">
-            <Box p="3">
-              <Flex direction="column" align="center" justify="center" p="4" gap="2">
-                <Tag size={24} color="var(--gray-9)" />
-                <Text color="gray" size="2">No tags associated with this component.</Text>
-              </Flex>
-            </Box>
-          </Tabs.Content>
-        )}
-
-        {/* GlobalArt Lifecycle Tab */}
-        <Tabs.Content value="lifecycle">
-          <Flex direction="column" align="center" justify="center" p="6" gap="2">
-            <Shield size={32} color="var(--gray-9)" />
-            {iqEnabled ? (
-              <>
-                <Text color="gray" size="2">Component security analysis available in IQ Server.</Text>
-                {componentData && (
-                  <Button
-                    variant="soft"
-                    size="2"
-                    onClick={() => {
-                      const clm = ExtJS.state()?.getValue?.('clm');
-                      const iqUrl = clm?.url;
-                      if (iqUrl && componentData.name) {
-                        window.open(
-                          `${iqUrl}/assets/index.html#/componentDetails/${encodeURIComponent(componentData.format)}/${encodeURIComponent(componentData.name)}/${encodeURIComponent(componentData.version || '')}`,
-                          '_blank',
-                          'noopener,noreferrer'
-                        );
-                      }
-                    }}
-                    disabled={!ExtJS.state()?.getValue?.('clm')?.url}
-                  >
-                    <ExternalLink size={14} />
-                    View in IQ Server
-                  </Button>
+                {componentData && format && (
+                  <ResearchButton format={format} componentData={componentData} referrer="repo-browse-asset" />
                 )}
+                {componentData && <IqServerButton componentData={componentData} />}
+                <Button variant="soft" color="gray" size="2" onClick={onDownloadClick}>
+                  <Download size={14} aria-hidden />
+                  {strings().DOWNLOAD}
+                </Button>
+                {canDelete && <DeleteButton label={strings().DELETE_FILE} onClick={onDeleteClick} />}
               </>
-            ) : (
-              <Text color="gray" size="2">GlobalArt Lifecycle integration not configured.</Text>
             )}
-          </Flex>
-        </Tabs.Content>
-      </Tabs.Root>
-
-      {/* Actions */}
-      <Separator size="4" />
-      <Flex p="3" gap="2" justify="end">
-        {componentData?.version && (
-          <Button
-            variant="soft"
-            size="2"
-            asChild
-          >
-            <a
-              href={(() => {
-                const format = assetData?.format === 'maven2' ? 'maven' : assetData?.format || componentData.format;
-                const componentPath =
-                  assetData?.format === 'maven2' && componentData?.group
-                    ? `${encodeURIComponent(componentData.group)}%3A${encodeURIComponent(componentData.name)}`
-                    : encodeURIComponent(componentData.name);
-                return `https://guide.globalart.dev/component/${format}/${componentPath}/${encodeURIComponent(componentData.version)}?referrer=repo-browse-asset`;
-              })()}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink size={14} />
-              Research in Guide
-            </a>
-          </Button>
-        )}
-        <Button variant="soft" size="2" onClick={onDownloadClick}>
-          <Download size={14} />
-          {STRINGS.asset.downloadButton}
-        </Button>
-        {canDelete && (
-          <Button variant="outline" color="red" size="2" onClick={onDeleteClick}>
-            <Trash2 size={14} />
-            {STRINGS.asset.deleteButton}
-          </Button>
-        )}
-      </Flex>
-    </Card>
+          />
+          <ItemUsage context={context} />
+        </Flex>
+      </Card>
+      <DetailsCard rows={rows} />
+      {assetData && <AttributesCard assetData={assetData} />}
+    </>
   );
 }
 
-/**
- * Folder details view with metadata (children count, type breakdown).
- */
+// =============================================================================
+// Folder
+// =============================================================================
+
 interface FolderDetailsProps {
   node: BrowseNode;
   repositoryName: string;
@@ -1185,58 +1009,34 @@ function FolderDetails({
   }, [repositoryName, node.id]);
 
   const depthSegments = node.id.split('/').filter(Boolean);
+  const rows: DetailRowData[] = [
+    { label: strings().ROWS.REPOSITORY, value: repositoryName },
+    { label: strings().ROWS.PATH, value: withLeadingSlash(safeDecode(node.id)), mono: true },
+    { label: strings().ROWS.DEPTH, value: String(depthSegments.length) },
+  ];
+  if (childInfo) {
+    rows.push({ label: strings().ROWS.CHILDREN, value: formatNumber(childInfo.total) });
+    if (childInfo.folders > 0) rows.push({ label: strings().ROWS.FOLDERS, value: formatNumber(childInfo.folders) });
+    if (childInfo.components > 0) rows.push({ label: strings().ROWS.COMPONENTS, value: formatNumber(childInfo.components) });
+    if (childInfo.assets > 0) rows.push({ label: strings().ROWS.ASSETS, value: formatNumber(childInfo.assets) });
+  }
 
   return (
-    <Card>
-      {/* Header — size="5" (one level down from page size="6") */}
-      <Box p="3" className="detail-panel__header">
-        <Heading size="5">{node.text}</Heading>
-      </Box>
-
-      <Separator size="4" />
-
-      <Box p="3">
-        <DetailRow label={STRINGS.folder.repository} value={repositoryName} />
-        <PathRowWithCopy label={STRINGS.folder.path} value={node.id} />
-        <DetailRow label="Depth" value={String(depthSegments.length)} />
-        {childInfo && (
-          <>
-            <DetailRow label="Children" value={String(childInfo.total)} />
-            {childInfo.folders > 0 && (
-              <DetailRow label="  Folders" value={String(childInfo.folders)} />
-            )}
-            {childInfo.components > 0 && (
-              <DetailRow label="  Components" value={String(childInfo.components)} />
-            )}
-            {childInfo.assets > 0 && (
-              <DetailRow label="  Assets" value={String(childInfo.assets)} />
-            )}
-          </>
-        )}
-      </Box>
-
-      {canDelete && (
-        <>
-          <Separator size="4" />
-          <Box p="3">
-            <Text size="1" color="gray" mb="2">
-              {STRINGS.folder.deleteWarning}
-            </Text>
-            <Flex gap="2" justify="end">
-              <Button
-                variant="outline"
-                color="red"
-                size="2"
-                onClick={onDeleteClick}
-              >
-                <Trash2 size={14} />
-                {STRINGS.folder.deleteButton}
-              </Button>
-            </Flex>
-          </Box>
-        </>
-      )}
-    </Card>
+    <>
+      <Card size="3" className="detail-panel__card">
+        <Flex direction="column" gap="3">
+          <DetailHeader
+            path={withLeadingSlash(safeDecode(node.id))}
+            title={{ name: node.text, separator: ':' }}
+            actions={canDelete ? <DeleteButton label={strings().DELETE_FOLDER} onClick={onDeleteClick} /> : undefined}
+          />
+          {canDelete && (
+            <Text as="p" size="2" color="gray" className="detail-panel__note">{strings().DELETE_FOLDER_WARNING}</Text>
+          )}
+        </Flex>
+      </Card>
+      <DetailsCard rows={rows} />
+    </>
   );
 }
 

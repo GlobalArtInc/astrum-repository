@@ -9,6 +9,8 @@
  * - useActions - Delete API hook
  */
 
+import UIStrings from '../../../constants/UIStrings';
+
 /**
  * Type of item being deleted.
  */
@@ -117,6 +119,7 @@ export interface ActionStrings {
     readonly componentTitle: string;
     readonly assetTitle: string;
     readonly folderTitle: string;
+    readonly itemTitle: string;
     readonly componentMessage: (name: string) => string;
     readonly assetMessage: (name: string) => string;
     readonly folderMessage: (name: string) => string;
@@ -142,31 +145,32 @@ export interface ActionStrings {
 /**
  * Default UI strings for action components.
  */
+const DELETE_DIALOG = UIStrings.BROWSE.DELETE_DIALOG;
+const ACTION_TEXTS = UIStrings.BROWSE.ACTIONS;
+
 export const ACTION_STRINGS: ActionStrings = {
   deleteDialog: {
-    componentTitle: 'Delete Component',
-    assetTitle: 'Delete Asset',
-    folderTitle: 'Delete Folder',
-    componentMessage: (name: string) =>
-      `Are you sure you want to delete component "${name}"? This action cannot be undone.`,
-    assetMessage: (name: string) =>
-      `Are you sure you want to delete asset "${name}"? This action cannot be undone.`,
-    folderMessage: (name: string) =>
-      `Are you sure you want to delete folder "${name}" and all its contents? This action cannot be undone.`,
-    confirmButton: 'Delete',
-    cancelButton: 'Cancel',
-    deletingButton: 'Deleting...',
+    componentTitle: DELETE_DIALOG.COMPONENT_TITLE,
+    assetTitle: DELETE_DIALOG.ASSET_TITLE,
+    folderTitle: DELETE_DIALOG.FOLDER_TITLE,
+    itemTitle: DELETE_DIALOG.ITEM_TITLE,
+    componentMessage: (name: string) => DELETE_DIALOG.COMPONENT_MESSAGE(name),
+    assetMessage: (name: string) => DELETE_DIALOG.ASSET_MESSAGE(name),
+    folderMessage: (name: string) => DELETE_DIALOG.FOLDER_MESSAGE(name),
+    confirmButton: DELETE_DIALOG.CONFIRM,
+    cancelButton: DELETE_DIALOG.CANCEL,
+    deletingButton: DELETE_DIALOG.DELETING,
   },
   copyUrl: {
-    tooltipText: 'Copy URL to Clipboard',
-    successMessage: 'URL Copied to Clipboard',
-    errorMessage: 'Failed to copy URL',
+    tooltipText: ACTION_TEXTS.COPY_URL,
+    successMessage: ACTION_TEXTS.URL_COPIED,
+    errorMessage: ACTION_TEXTS.URL_COPY_FAILED,
   },
   errors: {
-    deleteComponentFailed: 'Failed to delete component',
-    deleteAssetFailed: 'Failed to delete asset',
-    deleteFolderFailed: 'Failed to delete folder',
-    networkError: 'Network error occurred',
+    deleteComponentFailed: ACTION_TEXTS.DELETE_COMPONENT_FAILED,
+    deleteAssetFailed: ACTION_TEXTS.DELETE_ASSET_FAILED,
+    deleteFolderFailed: ACTION_TEXTS.DELETE_FOLDER_FAILED,
+    networkError: ACTION_TEXTS.NETWORK_ERROR,
   },
 };
 

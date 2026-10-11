@@ -12,6 +12,8 @@ import {
 } from '@radix-ui/themes';
 import { ChevronDown, ChevronUp, ChevronLeft, RefreshCw } from 'lucide-react';
 
+import UIStrings from '../../../constants/UIStrings';
+
 interface FilterOption {
   value: string;
   label: string;
@@ -20,17 +22,27 @@ interface FilterOption {
 
 const VISIBLE_OPTIONS_COUNT = 7;
 
-const SORT_FIELD_OPTIONS = [
-  { value: 'name', label: 'Name' },
-  { value: 'format', label: 'Format' },
-  { value: 'type', label: 'Type' },
-  { value: 'status', label: 'Status' },
-];
+function filterStrings() {
+  return UIStrings.BROWSE.FILTERS;
+}
 
-const SORT_DIRECTION_OPTIONS = [
-  { value: 'asc', label: 'Ascending' },
-  { value: 'desc', label: 'Descending' },
-];
+function sortFieldOptions() {
+  const strings = filterStrings();
+  return [
+    { value: 'name', label: strings.SORT_FIELDS.NAME },
+    { value: 'format', label: strings.SORT_FIELDS.FORMAT },
+    { value: 'type', label: strings.SORT_FIELDS.TYPE },
+    { value: 'status', label: strings.SORT_FIELDS.STATUS },
+  ];
+}
+
+function sortDirectionOptions() {
+  const strings = filterStrings();
+  return [
+    { value: 'asc', label: strings.ASCENDING },
+    { value: 'desc', label: strings.DESCENDING },
+  ];
+}
 
 export interface BrowseFilterSidebarProps {
   /** Format options */
@@ -160,7 +172,7 @@ function FilterSection({
             style={{ alignSelf: 'flex-start' }}
           >
             {showAll ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            <Text size="2">{showAll ? 'See less' : 'See more'}</Text>
+            <Text size="2">{showAll ? filterStrings().SEE_LESS : filterStrings().SEE_MORE}</Text>
           </Button>
         )}
       </Flex>
@@ -220,7 +232,7 @@ export function BrowseFilterSidebar({
             data-analytics-id="as-repository-filter-reset"
           >
             <RefreshCw size={12} />
-            Reset filters
+            {filterStrings().RESET}
           </Button>
         </Flex>
       )}
@@ -230,7 +242,7 @@ export function BrowseFilterSidebar({
         <Box mt="1">
           <Flex mb="2" align="center" gap="2">
             <Box asChild style={{ fontWeight: 600, fontSize: 'var(--font-size-2)' }}>
-              <span>Sort</span>
+              <span>{filterStrings().SORT}</span>
             </Box>
           </Flex>
           <Flex direction="column" gap="2">
@@ -242,7 +254,7 @@ export function BrowseFilterSidebar({
             >
               <Select.Trigger />
               <Select.Content>
-                {SORT_FIELD_OPTIONS.map((o) => (
+                {sortFieldOptions().map((o) => (
                   <Select.Item key={o.value} value={o.value}>
                     {o.label}
                   </Select.Item>
@@ -257,7 +269,7 @@ export function BrowseFilterSidebar({
             >
               <Select.Trigger />
               <Select.Content>
-                {SORT_DIRECTION_OPTIONS.map((o) => (
+                {sortDirectionOptions().map((o) => (
                   <Select.Item key={o.value} value={o.value}>
                     {o.label}
                   </Select.Item>
@@ -269,7 +281,7 @@ export function BrowseFilterSidebar({
 
         {/* Format */}
         <FilterSection
-          label="Format"
+          label={filterStrings().FORMAT}
           options={formatOptions}
           selected={selectedFormats}
           onChange={onFormatsChange}
@@ -279,7 +291,7 @@ export function BrowseFilterSidebar({
 
         {/* Type */}
         <FilterSection
-          label="Type"
+          label={filterStrings().TYPE}
           options={typeOptions}
           selected={selectedTypes}
           onChange={onTypesChange}
@@ -289,7 +301,7 @@ export function BrowseFilterSidebar({
 
         {/* Status */}
         <FilterSection
-          label="Status"
+          label={filterStrings().STATUS}
           options={statusOptions}
           selected={selectedStatuses}
           onChange={onStatusesChange}
@@ -300,7 +312,7 @@ export function BrowseFilterSidebar({
         {/* Protection (optional) */}
         {protectionOptions.length > 0 && onProtectionChange && (
           <FilterSection
-            label="Protection"
+            label={filterStrings().PROTECTION}
             options={protectionOptions}
             selected={selectedProtection}
             onChange={onProtectionChange}
@@ -312,7 +324,7 @@ export function BrowseFilterSidebar({
         {/* Health Check (optional) */}
         {healthCheckOptions.length > 0 && onHealthCheckChange && (
           <FilterSection
-            label="Health Check"
+            label={filterStrings().HEALTH_CHECK}
             options={healthCheckOptions}
             selected={selectedHealthCheck}
             onChange={onHealthCheckChange}

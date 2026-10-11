@@ -72,7 +72,7 @@ function nodeMatchesSearch(node: TreeNodeState, searchLower: string): boolean {
  *
  * When a parent is included due to a matching descendant, it is auto-expanded.
  */
-function filterTreeNodes(
+export function filterTreeNodes(
   nodes: readonly TreeNodeState[],
   searchLower: string
 ): { filtered: readonly TreeNodeState[]; matchCount: number } {

@@ -9,9 +9,13 @@ import { Theme } from '@radix-ui/themes';
 import { DetailPanel, type AssetData, type ComponentData } from '../DetailPanel';
 import type { BrowseNode } from '../../tree/browse-tree.types';
 import { deleteAsset, deleteComponent } from '../../browse.api';
-import ExtJS from '../../../../../../interface/ExtJS';
 
 const mockFetchBrowseNodes = jest.fn();
+
+const mockTrackSnippetCopy = jest.fn();
+jest.mock('../../../search/details/dependencySnippets/trackSnippetCopy', () => ({
+  trackSnippetCopy: (...args: unknown[]) => mockTrackSnippetCopy(...args),
+}));
 
 jest.mock('../../browse.api', () => ({
   deleteComponent: jest.fn().mockResolvedValue(['mock-id']),
@@ -109,8 +113,8 @@ describe('DetailPanel', () => {
     it('shows empty state when node is null', () => {
       renderWithTheme(<DetailPanel node={null} repositoryName={repositoryName} />);
 
-      expect(screen.getByText('No Item Selected')).toBeInTheDocument();
-      expect(screen.getByText(/Select An Item In The Tree To View Its Details/)).toBeInTheDocument();
+      expect(screen.getByText('Nothing selected')).toBeInTheDocument();
+      expect(screen.getByText(/Pick an item in the tree/)).toBeInTheDocument();
     });
   });
 
@@ -120,7 +124,7 @@ describe('DetailPanel', () => {
         <DetailPanel node={mockComponentNode} repositoryName={repositoryName} loading={true} />
       );
 
-      expect(screen.getByText('Loading details...')).toBeInTheDocument();
+      expect(screen.getByText('Loading details…')).toBeInTheDocument();
     });
   });
 
@@ -134,8 +138,7 @@ describe('DetailPanel', () => {
         />
       );
 
-      expect(screen.getByText(/Error loading details/)).toBeInTheDocument();
-      expect(screen.getByText(/Failed to load/)).toBeInTheDocument();
+      expect(screen.getByText('Could not load the details: Failed to load')).toBeInTheDocument();
     });
   });
 
@@ -149,7 +152,7 @@ describe('DetailPanel', () => {
         />
       );
 
-      expect(screen.getByRole('heading', { name: mockComponentNode.text })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /^commons-lang3\s?:3\.14\.0$/ })).toBeInTheDocument();
     });
 
     it('shows component repository', () => {
@@ -173,7 +176,7 @@ describe('DetailPanel', () => {
         />
       );
 
-      expect(screen.getByText('maven2')).toBeInTheDocument();
+      expect(screen.getByText('Maven', { selector: 'dd' })).toBeInTheDocument();
     });
 
     it('shows delete button when canDelete is true', () => {
@@ -225,7 +228,7 @@ describe('DetailPanel', () => {
         />
       );
 
-      expect(screen.getByText('maven2')).toBeInTheDocument();
+      expect(screen.getByText('Maven', { selector: 'dd' })).toBeInTheDocument();
     });
 
     it('shows asset content type', () => {
@@ -262,7 +265,7 @@ describe('DetailPanel', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: /delete asset/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /delete file/i })).toBeInTheDocument();
     });
   });
 
@@ -298,7 +301,7 @@ describe('DetailPanel', () => {
         <DetailPanel node={mockAssetNode} repositoryName={repositoryName} assetData={mockAssetData} />
       );
 
-      expect(screen.getByText('Downloads').parentElement).toHaveTextContent('Downloads-');
+      expect(screen.getByText('Downloads').parentElement).toHaveTextContent('Downloads—');
     });
 
     it('shows the downloads of all assets of a component', () => {
@@ -340,7 +343,7 @@ describe('DetailPanel', () => {
         <DetailPanel node={mockFolderNode} repositoryName={repositoryName} />
       );
 
-      expect(screen.getByText(mockFolderNode.id)).toBeInTheDocument();
+      expect(screen.getAllByText(mockFolderNode.id).length).toBeGreaterThan(0);
     });
 
     it('shows repository name', () => {
@@ -364,7 +367,7 @@ describe('DetailPanel', () => {
         <DetailPanel node={mockFolderNode} repositoryName={repositoryName} canDelete={true} />
       );
 
-      expect(screen.getByText(/delete all contents/i)).toBeInTheDocument();
+      expect(screen.getByText(/deleting a folder deletes everything in it/i)).toBeInTheDocument();
     });
 
     it('fetches and displays children count (bug 7mv6)', async () => {
@@ -396,10 +399,10 @@ describe('DetailPanel', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Children')).toBeInTheDocument();
+        expect(screen.getByText('Items')).toBeInTheDocument();
         expect(screen.getByText('Folders')).toBeInTheDocument();
         expect(screen.getByText('Components')).toBeInTheDocument();
-        expect(screen.getByText('Assets')).toBeInTheDocument();
+        expect(screen.getByText('Files')).toBeInTheDocument();
       });
     });
   });
@@ -488,7 +491,7 @@ describe('DetailPanel', () => {
         />
       );
 
-      const deleteButton = screen.getByRole('button', { name: /delete asset/i });
+      const deleteButton = screen.getByRole('button', { name: /delete file/i });
       await userEvent.click(deleteButton);
       const confirmButton = screen.getByRole('button', { name: /^Delete$/i });
       await userEvent.click(confirmButton);
@@ -503,7 +506,7 @@ describe('DetailPanel', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Cannot delete: MissingFacetException/)
+          screen.getByText(/Could not delete: MissingFacetException/)
         ).toBeInTheDocument();
       });
 
@@ -524,13 +527,13 @@ describe('DetailPanel', () => {
         />
       );
 
-      const deleteButton = screen.getByRole('button', { name: /delete asset/i });
+      const deleteButton = screen.getByRole('button', { name: /delete file/i });
       await userEvent.click(deleteButton);
       const confirmButton = screen.getByRole('button', { name: /^Delete$/i });
       await userEvent.click(confirmButton);
 
       await waitFor(() => {
-        expect(mockToast.success).toHaveBeenCalledWith('Item deleted successfully');
+        expect(mockToast.success).toHaveBeenCalledWith('Deleted');
       });
 
       expect(onDeleted).toHaveBeenCalled();
@@ -555,7 +558,7 @@ describe('DetailPanel', () => {
         />
       );
 
-      const deleteButton = screen.getByRole('button', { name: /delete asset/i });
+      const deleteButton = screen.getByRole('button', { name: /delete file/i });
       await userEvent.click(deleteButton);
       const confirmButton = screen.getByRole('button', { name: /^Delete$/i });
       await userEvent.click(confirmButton);
@@ -611,7 +614,7 @@ describe('DetailPanel', () => {
         />
       );
 
-      const deleteButton = screen.getByRole('button', { name: /delete asset/i });
+      const deleteButton = screen.getByRole('button', { name: /delete file/i });
       await userEvent.click(deleteButton);
 
       expect(screen.getByRole('alertdialog')).toBeInTheDocument();
@@ -671,7 +674,7 @@ describe('DetailPanel', () => {
     });
   });
 
-  describe('docker attributes tab (ASTRUM-51972)', () => {
+  describe('docker attributes (ASTRUM-51972)', () => {
     const dockerAssetNode: BrowseNode = {
       id: '/v2/nginx/blobs/sha256:abc',
       text: 'nginx:latest',
@@ -705,13 +708,12 @@ describe('DetailPanel', () => {
       },
     };
 
-    it('renders docker metadata fields on the Attributes tab', () => {
+    it('renders docker metadata fields in the attributes', () => {
       renderWithTheme(
         <DetailPanel
           node={dockerAssetNode}
           repositoryName="docker-hosted"
           assetData={dockerAssetData}
-          activeTab="attributes"
         />,
       );
 
@@ -721,13 +723,13 @@ describe('DetailPanel', () => {
       expect(screen.getByText('amd64')).toBeInTheDocument();
       expect(screen.getByText('Author')).toBeInTheDocument();
       expect(screen.getByText('Nginx Team')).toBeInTheDocument();
-      expect(screen.getByText('Working Directory')).toBeInTheDocument();
+      expect(screen.getByText('Working directory')).toBeInTheDocument();
       expect(screen.getByText('/etc/nginx')).toBeInTheDocument();
-      expect(screen.getByText('Exposed Ports')).toBeInTheDocument();
+      expect(screen.getByText('Exposed ports')).toBeInTheDocument();
       expect(screen.getByText('80/tcp, 443/tcp')).toBeInTheDocument();
       expect(screen.getByText('Entrypoint')).toBeInTheDocument();
       expect(screen.getByText('/docker-entrypoint.sh')).toBeInTheDocument();
-      expect(screen.getByText('Cmd')).toBeInTheDocument();
+      expect(screen.getByText('Command')).toBeInTheDocument();
       expect(screen.getByText('nginx, -g, daemon off;')).toBeInTheDocument();
     });
 
@@ -742,14 +744,13 @@ describe('DetailPanel', () => {
           node={dockerAssetNode}
           repositoryName="docker-hosted"
           assetData={sparseAssetData}
-          activeTab="attributes"
         />,
       );
 
       expect(screen.getByText('OS')).toBeInTheDocument();
       expect(screen.queryByText('Architecture')).not.toBeInTheDocument();
-      expect(screen.queryByText('Exposed Ports')).not.toBeInTheDocument();
-      expect(screen.queryByText('Cmd')).not.toBeInTheDocument();
+      expect(screen.queryByText('Exposed ports')).not.toBeInTheDocument();
+      expect(screen.queryByText('Command')).not.toBeInTheDocument();
     });
 
     it('does not render docker metadata rows for non-docker assets', () => {
@@ -758,7 +759,6 @@ describe('DetailPanel', () => {
           node={mockAssetNode}
           repositoryName={repositoryName}
           assetData={mockAssetData}
-          activeTab="attributes"
         />,
       );
 
@@ -767,240 +767,165 @@ describe('DetailPanel', () => {
     });
   });
 
-  describe('Component Tags tab visibility', () => {
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('hides Component Tags tab in CE mode', () => {
-      jest.spyOn(ExtJS, 'isProEdition').mockReturnValue(false);
-
+  describe('head of the item', () => {
+    it('shows the component name with its version in the accent colour', () => {
       renderWithTheme(
         <DetailPanel
           node={mockAssetNode}
           repositoryName={repositoryName}
           assetData={mockAssetData}
-        />
+          componentData={mockComponentData}
+        />,
       );
 
-      expect(screen.queryByRole('tab', { name: /component tags/i })).not.toBeInTheDocument();
+      const heading = screen.getByRole('heading', { name: /^commons-lang3\s?:3\.14\.0$/ });
+      expect(heading.querySelector('.detail-panel__title-version')).toHaveTextContent(':3.14.0');
+      expect(screen.getByTestId('detail-path')).toHaveTextContent(mockAssetData.name);
     });
 
-    it('shows Component Tags tab in Pro Edition', () => {
-      jest.spyOn(ExtJS, 'isProEdition').mockReturnValue(true);
+    it('names a Docker tag by image and tag, and a manifest stored under a digest by image and digest', () => {
+      const tagNode: BrowseNode = { id: 'v2/herald-api/manifests/0.1.0', text: '0.1.0', type: 'asset', leaf: true, assetId: 'a1' };
+      const { unmount } = renderWithTheme(
+        <DetailPanel
+          node={tagNode}
+          repositoryName="docker-hosted"
+          assetData={{ ...mockAssetData, format: 'docker', name: '/v2/herald-api/manifests/0.1.0', path: '/v2/herald-api/manifests/0.1.0' }}
+          componentData={{ ...mockComponentData, format: 'docker', group: null, name: 'herald-api', version: '0.1.0' }}
+        />,
+      );
+      expect(screen.getByRole('heading', { name: /^herald-api\s?:0\.1\.0$/ })).toBeInTheDocument();
+      unmount();
 
+      const digest = 'sha256:2afc9a932abb547de79b8723d4a6bf1c38e87767aaa4ee08205c692d50221ba1';
       renderWithTheme(
         <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
+          node={{ ...tagNode, id: `v2/herald-api/manifests/${encodeURIComponent(digest)}`, text: digest }}
+          repositoryName="docker-hosted"
+          assetData={{ ...mockAssetData, format: 'docker', name: `/v2/herald-api/manifests/${digest}`, path: `/v2/herald-api/manifests/${digest}` }}
+        />,
+      );
+      expect(screen.getByRole('heading', { name: /^herald-api\s?@sha256:2afc9a932abb$/ })).toBeInTheDocument();
+    });
+
+    it('copies the path', async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      renderWithTheme(
+        <DetailPanel node={mockAssetNode} repositoryName={repositoryName} assetData={mockAssetData} />,
       );
 
-      expect(screen.getByRole('tab', { name: /component tags/i })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Copy path' }));
+
+      expect(writeText).toHaveBeenCalledWith(mockAssetData.name);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Copy path' })).toHaveAttribute('data-copied', 'true'));
+    });
+
+    it('shows the path of a folder with a copy button', () => {
+      renderWithTheme(<DetailPanel node={mockFolderNode} repositoryName={repositoryName} />);
+
+      expect(screen.getByTestId('detail-path')).toHaveTextContent('/org/apache/commons');
+      expect(screen.getByRole('button', { name: 'Copy path' })).toBeInTheDocument();
     });
   });
 
-  describe('Component Tags tab visibility', () => {
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('hides Component Tags tab in CE mode', () => {
-      jest.spyOn(ExtJS, 'isProEdition').mockReturnValue(false);
-
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
-      );
-
-      expect(screen.queryByRole('tab', { name: /component tags/i })).not.toBeInTheDocument();
-    });
-
-    it('shows Component Tags tab in Pro Edition', () => {
-      jest.spyOn(ExtJS, 'isProEdition').mockReturnValue(true);
-
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
-      );
-
-      expect(screen.getByRole('tab', { name: /component tags/i })).toBeInTheDocument();
-    });
-  });
-
-  describe('URL-based tab navigation', () => {
-    it('shows the active tab from props for asset details', () => {
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-          activeTab="usage"
-        />
-      );
-
-      // Usage tab should be active
-      const usageTab = screen.getByRole('tab', { name: /usage/i });
-      expect(usageTab).toHaveAttribute('data-state', 'active');
-    });
-
-    it('defaults to summary tab when activeTab is not provided', () => {
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
-      );
-
-      const summaryTab = screen.getByRole('tab', { name: /summary/i });
-      expect(summaryTab).toHaveAttribute('data-state', 'active');
-    });
-
-    it('calls onTabChange when a tab is clicked', async () => {
-      const onTabChange = jest.fn();
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-          activeTab="summary"
-          onTabChange={onTabChange}
-        />
-      );
-
-      const attributesTab = screen.getByRole('tab', { name: /attributes/i });
-      await userEvent.click(attributesTab);
-
-      expect(onTabChange).toHaveBeenCalledWith('attributes');
-    });
-
-    it('shows attributes tab content when activeTab is attributes', () => {
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-          activeTab="attributes"
-        />
-      );
-
-      const attributesTab = screen.getByRole('tab', { name: /attributes/i });
-      expect(attributesTab).toHaveAttribute('data-state', 'active');
-    });
-  });
-
-  describe('PathRowWithCopy component', () => {
-    const mockClipboard = {
-      writeText: jest.fn(),
+  describe('usage', () => {
+    const repository = {
+      name: repositoryName,
+      format: 'maven2',
+      type: 'hosted' as const,
+      url: 'https://astrum.example.com/repository/maven-releases',
+      status: { online: true },
     };
 
-    beforeEach(() => {
-      Object.assign(navigator, { clipboard: mockClipboard });
-      mockClipboard.writeText.mockClear();
-    });
-
-    it('shows "Path" button label with copy icon', () => {
+    it('offers the clients of the format with the URL of the repository', async () => {
       renderWithTheme(
         <DetailPanel
           node={mockAssetNode}
           repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
+          repository={repository}
+          assetData={{ ...mockAssetData, attributes: { maven2: { extension: 'jar' } } }}
+          componentData={mockComponentData}
+        />,
       );
 
-      // Button should have "Path" label visible
-      expect(screen.getByRole('button', { name: /path/i })).toBeInTheDocument();
+      const tabs = screen.getAllByRole('tab').map((tab) => tab.textContent);
+      expect(tabs).toEqual(['Maven', 'Gradle Kotlin', 'Gradle Groovy', 'settings.xml', 'mvn deploy']);
+      expect(screen.getByRole('tabpanel')).toHaveTextContent('<artifactId>commons-lang3</artifactId>');
+
+      await userEvent.click(screen.getByRole('tab', { name: 'Gradle Kotlin' }));
+
+      expect(screen.getByRole('tabpanel')).toHaveTextContent('url = uri("https://astrum.example.com/repository/maven-releases/")');
+      expect(screen.getByRole('tabpanel')).toHaveTextContent('implementation("org.apache.commons:commons-lang3:3.14.0@jar")');
     });
 
-    it('shows "Copy path" tooltip on hover', () => {
+    it('reports a copied snippet to the snippet analytics', async () => {
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText: jest.fn().mockResolvedValue(undefined) }, configurable: true });
+      renderWithTheme(
+        <DetailPanel
+          node={mockComponentNode}
+          repositoryName={repositoryName}
+          repository={repository}
+          componentData={mockComponentData}
+        />,
+      );
+
+      await userEvent.click(screen.getByRole('button', { name: 'Copy the Maven snippet' }));
+
+      await waitFor(() => expect(mockTrackSnippetCopy).toHaveBeenCalledWith('maven2', 'Maven'));
+    });
+
+    it('builds the Docker snippets from the registry of the repository', () => {
+      const tagNode: BrowseNode = { id: 'v2/herald-api/manifests/0.1.0', text: '0.1.0', type: 'asset', leaf: true, assetId: 'a1' };
+      renderWithTheme(
+        <DetailPanel
+          node={tagNode}
+          repositoryName="docker-hosted"
+          repository={{ ...repository, name: 'docker-hosted', format: 'docker', url: 'https://astrum.example.com/repository/docker-hosted' }}
+          assetData={{
+            ...mockAssetData,
+            format: 'docker',
+            name: '/v2/herald-api/manifests/0.1.0',
+            path: '/v2/herald-api/manifests/0.1.0',
+            registryUrl: 'astrum.example.com/docker-hosted',
+            checksum: { sha256: '2afc9a93', sha1: 'aa11' },
+          }}
+          componentData={{ ...mockComponentData, format: 'docker', group: null, name: 'herald-api', version: '0.1.0' }}
+        />,
+      );
+
+      expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+        'docker pull', 'docker login', 'Dockerfile', 'Compose', 'Kubernetes', 'docker push',
+      ]);
+      expect(screen.getByRole('tabpanel')).toHaveTextContent('docker pull astrum.example.com/docker-hosted/herald-api:0.1.0');
+      expect(screen.getByText('Digest').parentElement).toHaveTextContent('sha256:2afc9a93');
+      expect(screen.getByText('SHA-1').parentElement).toHaveTextContent('aa11');
+    });
+
+    it('shows no usage for a folder', () => {
+      renderWithTheme(<DetailPanel node={mockFolderNode} repositoryName={repositoryName} repository={repository} />);
+
+      expect(screen.queryByTestId('usage-block')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('details', () => {
+    it('lists the details of a file in a definition list', () => {
       renderWithTheme(
         <DetailPanel
           node={mockAssetNode}
           repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
+          assetData={{ ...mockAssetData, createdBy: 'admin', checksum: { sha1: 'abc123' } }}
+          componentData={mockComponentData}
+        />,
       );
 
-      // The tooltip content "Copy path" should be accessible
-      // Radix tooltips appear on hover, so we check the button exists
-      const pathButton = screen.getByRole('button', { name: /path/i });
-      expect(pathButton).toBeInTheDocument();
-    });
-
-    it('copies path to clipboard when button is clicked', async () => {
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
-      );
-
-      const pathButton = screen.getByRole('button', { name: /path/i });
-      await userEvent.click(pathButton);
-
-      expect(mockClipboard.writeText).toHaveBeenCalledWith(mockAssetData.name);
-    });
-
-    it('shows "Copied!" button label with check icon after click', async () => {
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
-      );
-
-      const pathButton = screen.getByRole('button', { name: /path/i });
-      await userEvent.click(pathButton);
-
-      // After click, button should show "Copied!"
-      expect(screen.getByRole('button', { name: /copied/i })).toBeInTheDocument();
-    });
-
-    it('reverts to "Path" label after 2 seconds', async () => {
-      jest.useFakeTimers();
-
-      renderWithTheme(
-        <DetailPanel
-          node={mockAssetNode}
-          repositoryName={repositoryName}
-          assetData={mockAssetData}
-        />
-      );
-
-      const pathButton = screen.getByRole('button', { name: /path/i });
-      await userEvent.click(pathButton);
-
-      // Immediately after click, shows "Copied!"
-      expect(screen.getByRole('button', { name: /copied/i })).toBeInTheDocument();
-
-      // Fast-forward 2 seconds
-      jest.advanceTimersByTime(2000);
-
-      // After 2 seconds, should revert to "Path"
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /path/i })).toBeInTheDocument();
-      });
-
-      jest.useRealTimers();
-    });
-
-    it('shows copy button for folder path', async () => {
-      renderWithTheme(
-        <DetailPanel node={mockFolderNode} repositoryName={repositoryName} />
-      );
-
-      // Folder details also uses PathRowWithCopy
-      expect(screen.getByRole('button', { name: /path/i })).toBeInTheDocument();
+      const details = screen.getByTestId('detail-details');
+      expect(details.querySelector('dl')).not.toBeNull();
+      for (const label of ['Repository', 'Format', 'Group', 'Component', 'Version', 'Uploaded by', 'Content type', 'Size', 'Created', 'Last downloaded', 'Downloads', 'SHA-1']) {
+        expect(screen.getByText(label)).toBeInTheDocument();
+      }
+      expect(screen.getByText('admin')).toBeInTheDocument();
+      expect(screen.getByText('abc123')).toHaveClass('detail-panel__value--mono');
     });
   });
 });

@@ -1,0 +1,56 @@
+.repository-header {
+  min-width: 0;
+
+  &__breadcrumb {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &__crumb {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--gray-11);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--gray-12);
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-8);
+      outline-offset: 2px;
+      border-radius: var(--radius-1);
+    }
+  }
+
+  &__separator {
+    margin: 0 var(--space-2);
+  }
+
+  &__title {
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+
+  &__type {
+    text-transform: lowercase;
+  }
+
+  &__actions {
+    max-width: 100%;
+  }
+
+  &__extra {
+    flex: 1 1 280px;
+    min-width: 220px;
+    max-width: 320px;
+
+    @media (min-width: 1024px) {
+      flex: 0 0 280px;
+    }
+  }
+}

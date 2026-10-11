@@ -237,6 +237,10 @@ export interface NodeIconProps {
 export interface FormatBadgeProps {
   /** Repository format (e.g., "maven2", "npm") */
   format: string;
+  /** Badge size */
+  size?: '1' | '2' | '3';
+  /** Badge corner radius; `full` draws a pill */
+  radius?: 'none' | 'small' | 'medium' | 'large' | 'full';
 }
 
 /**

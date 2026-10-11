@@ -61,7 +61,7 @@ describe('InRepositorySearch', () => {
         />
       );
 
-      expect(screen.getByPlaceholderText(`Search in ${repositoryName}...`)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(`Search in ${repositoryName}…`)).toBeInTheDocument();
     });
 
     it('renders with correct aria attributes', () => {

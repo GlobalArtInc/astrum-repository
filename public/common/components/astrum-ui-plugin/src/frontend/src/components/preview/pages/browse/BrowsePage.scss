@@ -12,6 +12,7 @@
 @import '../search/unified/SearchSidebar.scss';
 
 .browse-page {
+  --color-panel: var(--color-panel-solid);
   display: flex;
   flex-direction: column;
   background-color: var(--color-background);
@@ -79,73 +80,86 @@
   }
 
   // =========================================================================
-  // STEP 2: Tree + Detail Mode
-  // Grid 250px 1fr, match Search layout; tree uses search-sidebar (250px)
-  // Sticky detail panel keeps detail visible when scrolling tree
+  // STEP 2: Repository page — header, tree card and details side by side
   // =========================================================================
   &--tree {
-    .browse-page__tree-wrapper {
-      flex: 1;
+    .browse-page__repository {
+      box-sizing: border-box;
+    }
+
+    .browse-page__panels {
+      min-height: 360px;
+    }
+
+    .resizable-panel__left {
       display: flex;
       flex-direction: column;
-      min-height: 0;
+    }
 
-      // Tree sidebar scrolls independently
-      .browse-page__tree {
-        max-height: calc(100vh - 200px);
-        overflow-y: auto;
+    .resizable-panel__right {
+      padding: 0 2px var(--space-4);
+    }
+
+    .resizable-panel__handle {
+      position: relative;
+      flex-shrink: 0;
+      width: 20px;
+      height: 100%;
+      cursor: col-resize;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 9px;
+        width: 2px;
+        border-radius: 1px;
+        background-color: transparent;
+        transition: background-color 0.15s ease;
       }
 
-      // Detail panel stays sticky when scrolling
-      .browse-page__detail {
-        position: sticky;
-        top: 80px;
-        align-self: start;
-        max-height: calc(100vh - 100px);
-        overflow-y: auto;
+      &:hover::after,
+      &--dragging::after {
+        background-color: var(--accent-8);
       }
     }
   }
 
-  // =========================================================================
-  // Header (Tree mode only)
-  // =========================================================================
-  &__header {
-    flex-shrink: 0;
-    background-color: var(--color-background);
-
-    button[aria-label] {
-      &:hover {
-        background-color: var(--gray-4);
-      }
-    }
+  &__title {
+    font-weight: 650;
+    letter-spacing: -0.02em;
   }
 
   // =========================================================================
-  // Tree Panel — 250px via search-sidebar (SearchSidebar.scss)
+  // Tree card
   // =========================================================================
-  &__tree {
-    &.search-sidebar {
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      background-color: var(--color-background);
-    }
-  }
-
-  // =========================================================================
-  // Detail Panel - Sticky positioning so it stays visible when scrolling tree
-  // =========================================================================
-  &__detail {
-    min-width: 0;
-    overflow: hidden;
-    background-color: var(--color-background);
+  &__tree-card {
     display: flex;
     flex-direction: column;
-    position: sticky;
-    top: 0;
-    align-self: flex-start;
-    max-height: calc(100vh - 200px); // Leave room for header/breadcrumbs
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--gray-a5);
+    border-radius: var(--radius-5);
+    background-color: var(--color-panel-solid);
+  }
+
+  &__tree-head {
+    flex-shrink: 0;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--gray-a5);
+  }
+
+  &__tree-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    .browse-tree {
+      overflow: visible;
+    }
   }
 
   // =========================================================================

@@ -82,6 +82,15 @@ export interface BrowseTreeProps {
   className?: string;
   /** Show search/filter input above tree (default: true) */
   showSearch?: boolean;
+
+  /** Repository format; selects the format's view of the tree (Docker shows images and tags) */
+  format?: string;
+
+  /** Text that filters the loaded nodes by name or path */
+  filter?: string;
+
+  /** Called with the number of matching nodes while filtering, null when not filtering */
+  onFilterResult?: (matchCount: number | null) => void;
 }
 
 /**
@@ -106,6 +115,9 @@ export interface BrowseTreeNodeProps {
   onKeyDown: (event: React.KeyboardEvent, nodeId: string) => void;
   /** Base URL for node links */
   baseUrl: string;
+
+  /** Repository format, for format-specific icons */
+  format?: string;
 }
 
 /**

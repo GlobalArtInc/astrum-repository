@@ -5,6 +5,7 @@ import { Text } from '@radix-ui/themes';
 
 import { ConfirmDialog } from '../../../shared/form';
 import { ACTION_STRINGS, type DeleteDialogProps, type DeleteItemType } from './actions.types';
+import UIStrings from '../../../constants/UIStrings';
 
 function getTitle(type: DeleteItemType): string {
   switch (type) {
@@ -15,7 +16,7 @@ function getTitle(type: DeleteItemType): string {
     case 'folder':
       return ACTION_STRINGS.deleteDialog.folderTitle;
     default:
-      return 'Delete Item';
+      return ACTION_STRINGS.deleteDialog.itemTitle;
   }
 }
 
@@ -64,7 +65,7 @@ export function DeleteDialog({
     >
       {item.repositoryName && (
         <Text size="1" color="gray" mt="2">
-          Repository: {item.repositoryName}
+          {UIStrings.BROWSE.DELETE_DIALOG.REPOSITORY(item.repositoryName)}
         </Text>
       )}
     </ConfirmDialog>

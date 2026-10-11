@@ -1,53 +1,65 @@
-
-
 /**
  * Repository List Table Styles
  *
- * Clickable row pattern matches EntityTable / table skill:
- * - cursor: pointer, hover background, focus-visible outline
- * - First data column is link-cell; actions column is last
+ * Clickable rows (cursor, hover background, focus outline); the name is the link cell and the row
+ * actions come last.
  */
 
 .repository-list-table {
   width: 100%;
 
   &__row {
-    transition: background-color var(--transition-fast);
+    transition: background-color 0.15s ease;
 
     &--clickable {
       cursor: pointer;
 
       &:hover {
-        background-color: var(--color-surface-hover);
+        background-color: var(--gray-a2);
+
+        .repository-list-table__name {
+          color: var(--accent-11);
+        }
       }
 
       &:focus {
-        outline: 2px solid var(--color-primary);
-        outline-offset: -2px;
-      }
-
-      &:focus:not(:focus-visible) {
         outline: none;
       }
 
       &:focus-visible {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--focus-8);
         outline-offset: -2px;
       }
     }
+  }
+
+  &__name {
+    color: var(--gray-12);
+    overflow-wrap: anywhere;
+  }
+
+  &__type {
+    text-transform: lowercase;
+  }
+
+  &__url-cell {
+    max-width: 320px;
+  }
+
+  &__url {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--code-font-family);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .table-cell-centered {
     text-align: center;
   }
-}
 
-// Dark mode
-:root[data-theme="dark"] {
-  .repository-list-table {
-    &__row--clickable:hover {
-      background-color: var(--color-surface-hover);
-    }
+  .rt-TableCell {
+    vertical-align: middle;
   }
 }
-

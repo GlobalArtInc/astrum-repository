@@ -1,12 +1,13 @@
 
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { Theme } from '@radix-ui/themes';
 
 import { BrowsePage } from '../BrowsePage';
+import { ExtJS } from '../../../../../interface/ExtJS';
 
 // Wrapper with Radix UI providers
 const renderWithProviders = (ui) => {
@@ -37,6 +38,23 @@ jest.mock('@uirouter/react', () => ({
 // Mock axios
 jest.mock('axios', () => ({
   get: jest.fn().mockResolvedValue({ data: { data: [] } }),
+}));
+
+// Mock the repository info of the page header and the usage snippets
+const mockRepositoryInfo = {
+  name: 'maven-central',
+  format: 'maven2',
+  type: 'proxy',
+  url: 'http://localhost/repository/maven-central',
+  status: { online: true },
+};
+
+jest.mock('../useRepositoryInfo', () => ({
+  ...jest.requireActual('../useRepositoryInfo'),
+  useRepositoryInfo: (name) => ({
+    repository: name ? { ...mockRepositoryInfo, name } : null,
+    loading: false,
+  }),
 }));
 
 // Mock repository list hooks
@@ -387,26 +405,62 @@ describe('BrowsePage', () => {
       });
     });
 
-    it('copies current page URL (Preview UI href) to clipboard and shows success toast', async () => {
+    it('copies the repository URL to the clipboard and shows a success toast', async () => {
       mockParams = { repoName: 'maven-central' };
       renderWithProviders(<BrowsePage />);
 
-      const copyBtn = screen.getByRole('button', { name: /copy url to clipboard/i });
+      const copyBtn = screen.getByRole('button', { name: /copy url/i });
       await userEvent.click(copyBtn);
 
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(window.location.href);
-      expect(mockToast.success).toHaveBeenCalledWith('URL copied to clipboard');
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/repository/maven-central/');
+      await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('Repository URL copied'));
+    });
+  });
+
+  describe('Repository header', () => {
+    it('shows the format, type and status of the repository', () => {
+      mockParams = { repoName: 'maven-central' };
+      renderWithProviders(<BrowsePage />);
+
+      expect(screen.getByRole('heading', { level: 1, name: 'maven-central' })).toBeInTheDocument();
+      expect(screen.getByTestId('format-badge')).toHaveTextContent('maven');
+      expect(screen.getByText('Proxy')).toBeInTheDocument();
+      expect(screen.getByTestId('status-label')).toHaveTextContent('Online');
+    });
+
+    it('hides the repository settings without permission', () => {
+      const check = jest.spyOn(ExtJS, 'checkPermission').mockReturnValue(false);
+      mockParams = { repoName: 'maven-central' };
+      renderWithProviders(<BrowsePage />);
+
+      expect(screen.queryByRole('button', { name: /repository settings/i })).not.toBeInTheDocument();
+      check.mockRestore();
+    });
+
+    it('opens the repository settings with a grant on this repository', async () => {
+      const check = jest
+        .spyOn(ExtJS, 'checkPermission')
+        .mockImplementation((permission) => permission === 'astrum:repository-admin:maven2:maven-central:read');
+      mockParams = { repoName: 'maven-central' };
+      renderWithProviders(<BrowsePage />);
+
+      await userEvent.click(screen.getByRole('button', { name: /repository settings/i }));
+
+      expect(mockGo).toHaveBeenCalledWith('preview.admin.repository.repositories.detail', {
+        repositoryName: 'maven-central',
+      });
+      check.mockRestore();
     });
   });
 
   describe('Multiple repositories', () => {
-    it('switches between repositories via Browse breadcrumb', async () => {
+    it('switches between repositories via the Repositories breadcrumb', async () => {
       mockParams = { repoName: 'maven-central' };
       renderWithProviders(<BrowsePage />);
 
       expect(screen.getByTestId('tree-repo-name')).toHaveTextContent('maven-central');
 
-      await userEvent.click(screen.getByRole('button', { name: /^browse$/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^repositories$/i }));
 
       // Should be back on list view
       expect(screen.getByTestId('mock-repository-list')).toBeInTheDocument();

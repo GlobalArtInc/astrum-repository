@@ -7,26 +7,26 @@ import type { FormatBadgeProps } from '../browse.types';
 /**
  * Color map for repository formats.
  */
-type BadgeColor = 'blue' | 'green' | 'orange' | 'purple' | 'red' | 'gray' | 'cyan' | 'pink';
+type BadgeColor = 'blue' | 'indigo' | 'sky' | 'green' | 'orange' | 'amber' | 'purple' | 'red' | 'gray' | 'cyan' | 'pink';
 
 const formatColorMap: Record<string, BadgeColor> = {
   // Package managers
   maven2: 'orange',
   npm: 'red',
   nuget: 'purple',
-  pypi: 'blue',
+  pypi: 'amber',
   rubygems: 'red',
   go: 'cyan',
   cargo: 'orange',
   composer: 'purple',
   cocoapods: 'orange',
-  conan: 'blue',
+  conan: 'cyan',
   conda: 'green',
-  r: 'blue',
+  r: 'indigo',
 
   // Container/Cloud
-  docker: 'blue',
-  helm: 'blue',
+  docker: 'indigo',
+  helm: 'sky',
 
   // OS packages
   apt: 'green',
@@ -57,13 +57,13 @@ const formatDisplayMap: Record<string, string> = {
  * <FormatBadge format="maven2" />
  * <FormatBadge format="npm" />
  */
-export function FormatBadge({ format }: FormatBadgeProps): JSX.Element {
+export function FormatBadge({ format, size = '1', radius }: FormatBadgeProps): JSX.Element {
   const lowerFormat = format.toLowerCase();
   const color = formatColorMap[lowerFormat] || 'gray';
   const displayName = formatDisplayMap[lowerFormat] || lowerFormat;
 
   return (
-    <Badge color={color} variant="soft" size="1">
+    <Badge color={color} variant="soft" size={size} radius={radius} data-testid="format-badge">
       {displayName}
     </Badge>
   );

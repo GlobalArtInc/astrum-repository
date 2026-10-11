@@ -1,30 +1,22 @@
-
-
 /**
  * Browse Tree Styles
  *
- * Styles for the lazy-loading browse tree component.
+ * The lazy-loading tree of the repository contents, inside the tree card of the browse page.
  */
 
-/**
- * Browse Tree Container - wraps search and tree
- */
 .browse-tree-container {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-/**
- * Tree Search Input
- */
 .tree-search-input {
   padding: 0 var(--space-2);
   flex-shrink: 0;
 }
 
 .browse-tree {
-  padding: 0 var(--space-2) var(--space-2) var(--space-2);
+  padding: var(--space-2);
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -39,15 +31,14 @@
     text-align: center;
   }
 
-  &__node-container {
-    // Container for each tree node
-  }
-
   &__node {
+    min-height: 34px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-3);
+    color: var(--gray-12);
     cursor: pointer;
-    border-radius: var(--radius-2);
-    transition: background-color 0.15s ease;
     user-select: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
 
     &:hover {
       background-color: var(--gray-a3);
@@ -55,17 +46,30 @@
 
     &:focus {
       outline: none;
-      background-color: var(--accent-a3);
-      box-shadow: inset 0 0 0 1px var(--accent-a8);
     }
 
-    &--focused {
-      background-color: var(--accent-a3);
-      box-shadow: inset 0 0 0 1px var(--accent-a8);
+    &:focus-visible {
+      outline: 2px solid var(--focus-8);
+      outline-offset: -2px;
     }
 
-    &--selected {
-      background-color: var(--yellow-a3);
+    &--selected,
+    &--selected:hover {
+      background-color: var(--accent-a3);
+      color: var(--accent-11);
+
+      .browse-tree__node-link,
+      .browse-tree__node-icon {
+        color: var(--accent-11);
+      }
+
+      .browse-tree__node-link {
+        font-weight: 600;
+      }
+
+      .browse-tree__node-link--mono {
+        font-weight: 500;
+      }
     }
   }
 
@@ -74,6 +78,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    width: 16px;
     color: var(--gray-11);
 
     &:hover {
@@ -87,27 +92,38 @@
   }
 
   &__node-link {
-    color: var(--gray-12);
-    text-decoration: none;
-    cursor: pointer;
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    color: var(--gray-12);
+    text-decoration: none;
     text-overflow: ellipsis;
     white-space: nowrap;
-
-    &:hover {
-      color: var(--accent-11);
-      text-decoration: none;
-    }
+    cursor: pointer;
 
     &:focus {
       outline: none;
     }
+
+    &--mono {
+      font-family: var(--code-font-family);
+      font-size: calc(var(--font-size-2) - 1px);
+    }
   }
 
   &__children {
-    // Nested children container
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 2px 0 2px 15px;
+    padding-left: 7px;
+    border-left: 1px solid var(--gray-a5);
+  }
+
+  &__node-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   &__error {
@@ -118,23 +134,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 150px;
+    min-height: 120px;
     color: var(--gray-11);
-  }
-}
-
-// Dark mode adjustments
-:root[data-theme="dark"] {
-  .browse-tree {
-    &__node {
-      &:hover {
-        background-color: var(--gray-a4);
-      }
-
-      &:focus,
-      &--focused {
-        background-color: var(--accent-a4);
-      }
-    }
   }
 }

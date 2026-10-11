@@ -11,9 +11,8 @@ import {
   IconButton,
   Text,
   TextField,
-  Tooltip,
 } from '@radix-ui/themes';
-import { Copy, FolderTree, Search, X } from 'lucide-react';
+import { FolderTree, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useCurrentStateAndParams, useRouter } from '@uirouter/react';
 
 import { RepositoryListTable } from './repository-list/RepositoryListTable';
@@ -41,17 +40,17 @@ import {
 import MalwareBanner from '../../shared/security/MalwareBanner';
 import { BrowseFilterSidebar } from './repository-list/BrowseFilterSidebar';
 import { MobileFilterDrawer } from '../../shared/MobileFilterDrawer/MobileFilterDrawer';
-import { Breadcrumbs } from '../search/details/Breadcrumbs';
-import { useBrowseBreadcrumbs } from './useBrowseBreadcrumbs';
 import { useCanDelete } from './useCanDelete';
 import { InRepositorySearch } from './InRepositorySearch';
+import { RepositoryHeader } from './RepositoryHeader';
+import { useRepositoryInfo } from './useRepositoryInfo';
+import UIStrings from '../../constants/UIStrings';
+import { formatNumber } from '../Welcome/usage/usageFormat';
 
 import './BrowsePage.scss';
 
-// Header + breadcrumb + toolbar combined height. Used to size the browse content
-// area so it fills the remaining viewport. When the malware banner is visible it
-// adds ~40px above the header; update this value if the layout chrome changes.
-const BROWSE_CONTENT_TOP_OFFSET_PX = 280;
+// Space kept free under the tree and the details so the panels end above the bottom of the window.
+const BROWSE_PANELS_BOTTOM_GAP_PX = 24;
 
 /**
  * Filter values for Browse (multi-select).
@@ -72,19 +71,12 @@ export interface FilterOptions {
 }
 
 /**
- * UI Strings for the browse page.
+ * Title of the tree card: what the top level of the repository holds.
  */
-const STRINGS = {
-  pageTitle: 'Browse',
-  pageDescription: 'Browse assets and components',
-
-  selectItem: 'Select an item to view details',
-  copyUrlTitle: 'Copy URL to Clipboard',
-  urlCopied: 'URL copied to clipboard',
-  filterPlaceholder: 'Filter by name...',
-  treeDrawerTitle: 'Repository contents',
-  showTree: 'Show tree',
-};
+function treeTitle(format: string | undefined): string {
+  const titles: Record<string, string> = UIStrings.BROWSE.TREE.TITLES;
+  return titles[(format ?? '').toUpperCase()] ?? titles.DEFAULT;
+}
 
 /** Default page size for Browse repository list (matches Search-like behavior). */
 const BROWSE_DEFAULT_PAGE_SIZE = 40;
@@ -136,10 +128,16 @@ export function BrowsePage(): JSX.Element {
               'Unable to load asset details. The asset identifier is missing.'
             ));
           }
-          const assetPromise = fetchAsset(ctx.selectedNode.assetId, ctx.selectedRepository);
-          const componentPromise = ctx.selectedNode.componentId
-            ? fetchComponent(ctx.selectedNode.componentId, ctx.selectedRepository).catch(() => null)
-            : Promise.resolve(null);
+          const repositoryName = ctx.selectedRepository;
+          const nodeComponentId = ctx.selectedNode.componentId;
+          const assetPromise = fetchAsset(ctx.selectedNode.assetId, repositoryName);
+          // Browse nodes of some formats (Maven files) carry no component id; the asset knows it.
+          const componentPromise = nodeComponentId
+            ? fetchComponent(nodeComponentId, repositoryName).catch(() => null)
+            : assetPromise.then(
+                (asset) => (asset.componentId ? fetchComponent(asset.componentId, repositoryName).catch(() => null) : null),
+                () => null,
+              );
 
           return Promise.all([assetPromise, componentPromise]).then(
             ([asset, comp]) => ({
@@ -309,9 +307,9 @@ export function BrowsePage(): JSX.Element {
     setAnalyzingRepos((prev) => new Set(prev).add(repositoryName));
     try {
       await enableHealthCheck(repositoryName);
-      toast.success(`Health check enabled for ${repositoryName}`);
+      toast.success(UIStrings.BROWSE.LIST.HEALTH_CHECK_ENABLED(repositoryName));
     } catch (err) {
-      toast.error(`Failed to start analysis for ${repositoryName}: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(UIStrings.BROWSE.LIST.HEALTH_CHECK_FAILED(repositoryName, err instanceof Error ? err.message : String(err)));
     } finally {
       setAnalyzingRepos((prev) => {
         const next = new Set(prev);
@@ -429,7 +427,11 @@ export function BrowsePage(): JSX.Element {
         }))
         .sort((a, b) => a.label.localeCompare(b.label)),
       statuses: Array.from(statusCounts.entries())
-        .map(([value, count]) => ({ value, label: value, count }))
+        .map(([value, count]) => ({
+          value,
+          label: value === 'online' ? UIStrings.BROWSE.STATUS.ONLINE : UIStrings.BROWSE.STATUS.OFFLINE,
+          count,
+        }))
         .sort((a, b) => (a.value === 'online' ? -1 : 1)),
     };
   }, [allReposForFilters]);
@@ -458,9 +460,9 @@ export function BrowsePage(): JSX.Element {
       }
     });
     const opts: Array<{ value: string; label: string; count: number }> = [];
-    if (unprotected > 0) opts.push({ value: 'unprotected', label: 'Unprotected', count: unprotected });
-    if (audited > 0) opts.push({ value: 'audited', label: 'Audited', count: audited });
-    if (protected_ > 0) opts.push({ value: 'protected', label: 'Protected', count: protected_ });
+    if (unprotected > 0) opts.push({ value: 'unprotected', label: UIStrings.BROWSE.FILTERS.PROTECTION_OPTIONS.UNPROTECTED, count: unprotected });
+    if (audited > 0) opts.push({ value: 'audited', label: UIStrings.BROWSE.FILTERS.PROTECTION_OPTIONS.AUDITED, count: audited });
+    if (protected_ > 0) opts.push({ value: 'protected', label: UIStrings.BROWSE.FILTERS.PROTECTION_OPTIONS.PROTECTED, count: protected_ });
     return opts;
   }, [allReposForFilters, iqAuditRepos, showIqPolicyViolationsColumn]);
 
@@ -588,16 +590,14 @@ export function BrowsePage(): JSX.Element {
   }, [send, selectedRepository, selectedNode, router]);
 
   /**
-   * Copy the current Preview UI page URL to clipboard so that opening it in a
-   * new tab re-opens the same Browse view instead of navigating to Classic UI.
+   * Open the settings of the repository in the administration.
    */
-  const handleCopyUrl = useCallback(() => {
-    if (selectedRepository) {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        toast.success(STRINGS.urlCopied);
-      });
-    }
-  }, [selectedRepository, toast]);
+  const handleOpenSettings = useCallback(
+    (repositoryName: string) => {
+      router.stateService.go('preview.admin.repository.repositories.detail', { repositoryName });
+    },
+    [router],
+  );
 
   /**
    * Handle search result selection - navigate and potentially load component directly.
@@ -665,7 +665,33 @@ export function BrowsePage(): JSX.Element {
     [selectedRepository, router, send]
   );
 
-  const breadcrumbItems = useBrowseBreadcrumbs(selectedRepository, handleBackToList);
+  const { repository: repositoryInfo, loading: repositoryLoading } = useRepositoryInfo(selectedRepository);
+
+  // Size the tree and the details to the rest of the window, below the header of the page.
+  const panelsRef = useRef<HTMLDivElement>(null);
+  const [panelsHeight, setPanelsHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const element = panelsRef.current;
+    if (!element) return undefined;
+    const update = () => {
+      const top = element.getBoundingClientRect().top + window.scrollY;
+      setPanelsHeight(Math.max(360, window.innerHeight - top - BROWSE_PANELS_BOTTOM_GAP_PX));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    if (element.parentElement) observer.observe(element.parentElement);
+    window.addEventListener('resize', update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [selectedRepository]);
+
+  const [treeFilter, setTreeFilter] = useState('');
+  const [treeMatches, setTreeMatches] = useState<number | null>(null);
+  useEffect(() => {
+    setTreeFilter('');
+  }, [selectedRepository]);
 
   /**
    * Sync local filters to server-side API.
@@ -753,9 +779,9 @@ export function BrowsePage(): JSX.Element {
       if (hc?.enabled) { activeCount++; } else { analyzeCount++; }
     }
     const opts = [
-      { value: 'active', label: 'Active', count: activeCount },
-      { value: 'analyze', label: 'Analyze', count: analyzeCount },
-      { value: 'unsupported', label: 'Not Supported', count: unsupportedCount },
+      { value: 'active', label: UIStrings.BROWSE.FILTERS.HEALTH_CHECK_OPTIONS.ACTIVE, count: activeCount },
+      { value: 'analyze', label: UIStrings.BROWSE.FILTERS.HEALTH_CHECK_OPTIONS.ANALYZE, count: analyzeCount },
+      { value: 'unsupported', label: UIStrings.BROWSE.FILTERS.HEALTH_CHECK_OPTIONS.UNSUPPORTED, count: unsupportedCount },
     ].filter(o => o.count > 0);
     return opts;
   }, [showHealthCheckColumn, allReposForFilters, serverRepositories, repoState.healthCheck]);
@@ -794,7 +820,8 @@ export function BrowsePage(): JSX.Element {
     const sortField = filterParams.sortField ?? 'name';
     const sortDirection = (filterParams.sortDirection ?? 'asc') as 'asc' | 'desc';
 
-    const displayTotal = totalCount.toLocaleString();
+    const displayTotal = formatNumber(totalCount);
+    const listStrings = UIStrings.BROWSE.LIST;
 
     const filterBarContent = (
       <BrowseFilterSidebar
@@ -845,7 +872,7 @@ export function BrowsePage(): JSX.Element {
                 display={{ initial: 'none', sm: 'block' }}
                 style={{ overflow: 'visible', minWidth: 0 }}
                 role="complementary"
-                aria-label="Filter bar"
+                aria-label={UIStrings.BROWSE.LIST.FILTERS_LABEL}
               >
                 <aside className="search-sidebar">
                   {filterBarContent}
@@ -853,13 +880,15 @@ export function BrowsePage(): JSX.Element {
               </Box>
 
               {/* Main Content — shared padding for header + table alignment */}
-              <Box className="browse-page__main page-content" minWidth="0" width="100%" role="main" aria-label="Page content">
+              <Box className="browse-page__main page-content" minWidth="0" width="100%" role="main" aria-label={UIStrings.BROWSE.LIST.TITLE}>
                 <Box className="browse-page__list-content">
-                  <Flex align="baseline" gap="2" mb="4">
-                    <Heading as="h1" size="6" weight="bold">Repositories</Heading>
-                    <Text size="2" color="gray">{displayTotal}</Text>
+                  <Flex align="baseline" gap="3" mb="4" wrap="wrap">
+                    <Heading as="h1" size="7" weight="bold" className="browse-page__title">
+                      {listStrings.TITLE}
+                    </Heading>
+                    <Text size="2" color="gray">{listStrings.COUNT(displayTotal)}</Text>
                   </Flex>
-                  <Box mb="4" role="toolbar" aria-label="Actions bar">
+                  <Box mb="4" role="toolbar" aria-label={listStrings.FILTERS_LABEL}>
                     <Flex
                       className="actions-bar"
                       align="center"
@@ -869,14 +898,15 @@ export function BrowsePage(): JSX.Element {
                     >
                       <Box style={{ flex: 1, minWidth: 200 }}>
                         <TextField.Root
-                          placeholder={STRINGS.filterPlaceholder}
+                          placeholder={listStrings.FILTER_PLACEHOLDER}
+                          aria-label={listStrings.FILTER_LABEL}
                           value={nameFilter}
                           onChange={(e) => handleNameFilterChange(e.target.value)}
-                          size="2"
+                          size="3"
                           style={{ width: '100%' }}
                         >
                           <TextField.Slot>
-                            <Search size={14} />
+                            <Search size={16} aria-hidden />
                           </TextField.Slot>
                           {nameFilter && (
                             <TextField.Slot side="right">
@@ -885,13 +915,19 @@ export function BrowsePage(): JSX.Element {
                                 color="gray"
                                 size="1"
                                 onClick={() => handleNameFilterChange('')}
-                                aria-label="Clear filter"
+                                aria-label={listStrings.CLEAR_FILTER}
                               >
                                 <X size={14} />
                               </IconButton>
                             </TextField.Slot>
                           )}
                         </TextField.Root>
+                      </Box>
+                      <Box display={{ initial: 'block', sm: 'none' }}>
+                        <Button size="3" variant="surface" color="gray" onClick={() => setShowMobileFilters(true)}>
+                          <SlidersHorizontal size={16} aria-hidden />
+                          {listStrings.SHOW_FILTERS}
+                        </Button>
                       </Box>
                     </Flex>
                   </Box>
@@ -951,7 +987,7 @@ export function BrowsePage(): JSX.Element {
         <MobileFilterDrawer
           isOpen={showMobileFilters}
           onClose={() => setShowMobileFilters(false)}
-          title="Filter"
+          title={UIStrings.BROWSE.LIST.FILTERS_LABEL}
           onClearAll={handleResetFilters}
         >
           {filterBarContent}
@@ -961,127 +997,142 @@ export function BrowsePage(): JSX.Element {
   }
 
   // =========================================================================
-  // RENDER: Tree + Detail (Step 2) - GitHub Style Layout
+  // RENDER: Repository page — header, tree card and details
   // =========================================================================
+
+  const repositoryFormat = repositoryInfo?.format;
+  const treeStrings = UIStrings.BROWSE.TREE;
+
+  const treeCard = (
+    <Box className="browse-page__tree-card" data-testid="browse-tree-card">
+      <Flex direction="column" gap="3" className="browse-page__tree-head">
+        <Flex align="baseline" justify="between" gap="2">
+          <Text as="div" size="3" weight="bold">{treeTitle(repositoryFormat)}</Text>
+          {treeFilter.trim() && treeMatches !== null && (
+            <Text size="1" color="gray">{treeStrings.MATCHES(treeMatches)}</Text>
+          )}
+        </Flex>
+        <TextField.Root
+          value={treeFilter}
+          onChange={(event) => setTreeFilter(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setTreeFilter('');
+          }}
+          placeholder={treeStrings.FILTER_PLACEHOLDER}
+          aria-label={treeStrings.FILTER_LABEL}
+          size="2"
+        >
+          <TextField.Slot>
+            <Search size={14} aria-hidden />
+          </TextField.Slot>
+          {treeFilter && (
+            <TextField.Slot side="right">
+              <IconButton
+                variant="ghost"
+                color="gray"
+                size="1"
+                onClick={() => setTreeFilter('')}
+                aria-label={treeStrings.CLEAR_FILTER}
+              >
+                <X size={14} />
+              </IconButton>
+            </TextField.Slot>
+          )}
+        </TextField.Root>
+      </Flex>
+      <Box className="browse-page__tree-body">
+        {!repositoryLoading ? (
+          <BrowseTree
+            key={`${selectedRepository}:${repositoryFormat ?? ''}`}
+            ref={browseTreeRef}
+            repositoryName={selectedRepository}
+            initialPath={initialPath}
+            onSelect={handleSelectNode}
+            baseUrl="preview/browse"
+            format={repositoryFormat}
+            filter={treeFilter}
+            onFilterResult={setTreeMatches}
+          />
+        ) : null}
+      </Box>
+    </Box>
+  );
 
   return (
     <div className="browse-page browse-page--tree" data-testid="browse-page">
-      {/* Fixed header with search - always visible */}
       <Box
-        className="browse-page__header-fixed"
-        px="4"
-        pt="0"
-        pb="3"
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          backgroundColor: 'var(--color-background)',
-          borderBottom: '1px solid var(--gray-5)',
-        }}
+        className="browse-page__repository"
+        px={{ initial: '4', md: '6' }}
+        pt={{ initial: '4', md: '5' }}
+        width="100%"
       >
-        <Box maxWidth="1280px" mx="auto" width="100%">
-          <Breadcrumbs items={breadcrumbItems} />
-
-          {/* Malware Alert Banner */}
+        <Flex direction="column" gap="5" width="100%" className="browse-page__repository-inner">
           <MalwareBanner />
+          <RepositoryHeader
+            repositoryName={selectedRepository}
+            repository={repositoryInfo}
+            onBackToList={handleBackToList}
+            onOpenSettings={handleOpenSettings}
+          >
+            <InRepositorySearch
+              repositoryName={selectedRepository}
+              onSelectResult={handleSearchResultSelect}
+            />
+          </RepositoryHeader>
 
-          {/* Search bar and actions */}
-          <Box p="4">
-            <Grid columns={{ initial: '1', md: '1fr auto' }} gap="6" align="start">
-              <Flex direction="column" gap="3">
-                <Heading size="6">{selectedRepository}</Heading>
-                {/* In-Repository Search - Always visible */}
-                <InRepositorySearch
-                  repositoryName={selectedRepository}
-                  onSelectResult={handleSearchResultSelect}
-                />
-                <Flex align="end" gap="4" wrap="wrap">
-                  <Box display={{ initial: 'block', sm: 'none' }}>
-                    <Button
-                      size="2"
-                      variant="soft"
-                      color="gray"
-                      onClick={() => setShowMobileFilters(true)}
-                    >
-                      <FolderTree size={14} />
-                      {STRINGS.showTree}
-                    </Button>
-                  </Box>
-                  <Tooltip content={STRINGS.copyUrlTitle}>
-                    <Button
-                      variant="soft"
-                      size="2"
-                      color="blue"
-                      onClick={handleCopyUrl}
-                      aria-label={STRINGS.copyUrlTitle}
-                    >
-                      <Copy size={14} />
-                      Copy URL
-                    </Button>
-                  </Tooltip>
-                </Flex>
-              </Flex>
-            </Grid>
+          <Box display={{ initial: 'block', sm: 'none' }}>
+            <Button size="2" variant="soft" color="gray" onClick={() => setShowMobileFilters(true)}>
+              <FolderTree size={14} aria-hidden />
+              {UIStrings.BROWSE.REPOSITORY.SHOW_TREE}
+            </Button>
           </Box>
-        </Box>
-      </Box>
 
-      {/* Resizable panels - takes remaining viewport height */}
-      <Box
-        className="browse-page__panels"
-        px="4"
-        style={{
-          height: `calc(100vh - ${BROWSE_CONTENT_TOP_OFFSET_PX}px)`,
-          overflow: 'hidden',
-        }}
-      >
-        <Box maxWidth="1280px" mx="auto" width="100%" height="100%">
-          <ResizablePanel
-            leftPanel={
-              <BrowseTree
-                ref={browseTreeRef}
-                repositoryName={selectedRepository}
-                initialPath={initialPath}
-                onSelect={handleSelectNode}
-                baseUrl="preview/browse"
-              />
-            }
-            rightPanel={
-              <DetailPanel
-                node={selectedNode}
-                repositoryName={selectedRepository}
-                assetData={assetData}
-                componentData={componentData}
-                loading={detailLoading}
-                error={detailError}
-                onDeleted={handleDeleted}
-                canDelete={canDelete}
-                activeTab={params.tab || 'summary'}
-                onTabChange={handleTabChange}
-              />
-            }
-            defaultLeftWidth={400}
-            minLeftWidth={250}
-            maxLeftWidth={800}
-            storageKey="browse-tree-width"
-          />
-        </Box>
+          <Box
+            ref={panelsRef}
+            className="browse-page__panels"
+            style={{ height: panelsHeight ? `${panelsHeight}px` : 'calc(100vh - 260px)' }}
+          >
+            <ResizablePanel
+              leftPanel={treeCard}
+              rightPanel={
+                <DetailPanel
+                  node={selectedNode}
+                  repositoryName={selectedRepository}
+                  repository={repositoryInfo}
+                  assetData={assetData}
+                  componentData={componentData}
+                  loading={detailLoading}
+                  error={detailError}
+                  onDeleted={handleDeleted}
+                  canDelete={canDelete}
+                  activeTab={params.tab || 'summary'}
+                  onTabChange={handleTabChange}
+                />
+              }
+              defaultLeftWidth={340}
+              minLeftWidth={240}
+              maxLeftWidth={640}
+              storageKey="browse-tree-width"
+            />
+          </Box>
+        </Flex>
       </Box>
 
       {/* Mobile tree drawer */}
       <MobileFilterDrawer
         isOpen={showMobileFilters}
         onClose={() => setShowMobileFilters(false)}
-        title={STRINGS.treeDrawerTitle}
+        title={UIStrings.BROWSE.REPOSITORY.TREE_DRAWER_TITLE}
       >
-        <BrowseTree
-          ref={browseTreeRef}
-          repositoryName={selectedRepository}
-          initialPath={initialPath}
-          onSelect={handleSelectNode}
-          baseUrl="preview/browse"
-        />
+        {!repositoryLoading && (
+          <BrowseTree
+            repositoryName={selectedRepository}
+            initialPath={initialPath}
+            onSelect={handleSelectNode}
+            baseUrl="preview/browse"
+            format={repositoryFormat}
+          />
+        )}
       </MobileFilterDrawer>
     </div>
   );

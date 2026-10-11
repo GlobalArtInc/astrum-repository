@@ -2,25 +2,35 @@
 
 import React, { useCallback, useRef, useEffect } from 'react';
 import { Box, Flex, Text, Spinner } from '@radix-ui/themes';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Package, File } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Package, File, Tag } from 'lucide-react';
 
+import UIStrings from '../../../constants/UIStrings';
 import type { BrowseTreeNodeProps, BrowseNodeType } from './browse-tree.types';
 import './BrowseTree.scss';
 
 /**
  * Get the appropriate icon for a node type.
  * Folder: FolderOpen when expanded or selected, else Folder.
+ * Docker shows images without an icon and tags with a tag.
  */
 function NodeIcon({
   type,
   expanded,
   isSelected,
+  leaf,
+  format,
 }: {
   type: BrowseNodeType;
   expanded?: boolean;
   isSelected?: boolean;
-}): JSX.Element {
-  const iconProps = { size: 16, className: 'browse-tree__node-icon' };
+  leaf?: boolean;
+  format?: string;
+}): JSX.Element | null {
+  const iconProps = { size: 16, className: 'browse-tree__node-icon', 'aria-hidden': true };
+
+  if (format === 'docker') {
+    return leaf ? <Tag {...iconProps} size={14} data-testid="icon-tag" /> : null;
+  }
 
   switch (type) {
     case 'folder':
@@ -55,7 +65,9 @@ export function BrowseTreeNode({
   selectedNodeId,
   onKeyDown,
   baseUrl,
+  format,
 }: BrowseTreeNodeProps): JSX.Element {
+  const strings = UIStrings.BROWSE.TREE;
   const { node, expanded, children, loading, error } = nodeState;
   const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -92,8 +104,12 @@ export function BrowseTreeNode({
       if (onSelect) {
         onSelect(node);
       }
+      // An image of the Docker view is opened by clicking it, like a disclosure.
+      if (format === 'docker' && !node.leaf && !expanded) {
+        onToggle(node.id);
+      }
     },
-    [node, onSelect]
+    [node, onSelect, format, expanded, onToggle]
   );
 
   /**
@@ -106,8 +122,8 @@ export function BrowseTreeNode({
     [node.id, onKeyDown]
   );
 
-  // Calculate indentation based on depth
-  const indentPx = depth * 20;
+  const isSelected = selectedNodeId === node.id;
+  const isMono = format === 'docker' && node.leaf;
 
   return (
     <div
@@ -115,30 +131,29 @@ export function BrowseTreeNode({
       data-node-id={node.id}
       role="treeitem"
       aria-expanded={node.leaf ? undefined : expanded}
-      aria-selected={isFocused}
+      aria-selected={isSelected}
       aria-level={depth + 1}
     >
       <Flex
         ref={nodeRef}
-        className={`browse-tree__node ${isFocused ? 'browse-tree__node--focused' : ''} ${selectedNodeId === node.id ? 'browse-tree__node--selected' : ''}`}
+        className={`browse-tree__node ${isFocused ? 'browse-tree__node--focused' : ''} ${isSelected ? 'browse-tree__node--selected' : ''}`}
         align="center"
-        gap="1"
-        py="1"
+        gap="2"
         tabIndex={isFocused ? 0 : -1}
         onKeyDown={handleKeyDown}
-        style={{ paddingLeft: `${indentPx}px` }}
+        onClick={node.leaf ? handleNodeClick : undefined}
         data-testid={`tree-node-${node.id}`}
       >
         {/* Expand/Collapse Toggle */}
         <Box
           className="browse-tree__toggle"
           onClick={handleToggleClick}
-          style={{ 
-            width: '20px',
+          style={{
             cursor: node.leaf ? 'default' : 'pointer',
+            display: node.leaf && format === 'docker' ? 'none' : undefined,
             opacity: node.leaf ? 0 : 1,
           }}
-          aria-label={expanded ? 'Collapse' : 'Expand'}
+          aria-label={expanded ? strings.COLLAPSE : strings.EXPAND}
           aria-hidden={node.leaf}
           data-testid={`toggle-${node.id}`}
         >
@@ -161,7 +176,9 @@ export function BrowseTreeNode({
           <NodeIcon
             type={node.type}
             expanded={expanded}
-            isSelected={selectedNodeId === node.id}
+            isSelected={isSelected}
+            leaf={node.leaf}
+            format={format}
           />
         </Box>
 
@@ -172,7 +189,7 @@ export function BrowseTreeNode({
         <Text
           size="2"
           onClick={handleNodeClick}
-          className="browse-tree__node-link"
+          className={`browse-tree__node-link ${isMono ? 'browse-tree__node-link--mono' : ''}`}
           tabIndex={-1}
           data-testid={`link-${node.id}`}
         >
@@ -182,7 +199,7 @@ export function BrowseTreeNode({
 
       {/* Error message */}
       {error && (
-        <Box className="browse-tree__error" pl={`${indentPx + 20}px`}>
+        <Box className="browse-tree__error" pl="6">
           <Text size="1" color="red">
             {error}
           </Text>
@@ -204,6 +221,7 @@ export function BrowseTreeNode({
               selectedNodeId={selectedNodeId}
               onKeyDown={onKeyDown}
               baseUrl={baseUrl}
+              format={format}
             />
           ))}
         </div>

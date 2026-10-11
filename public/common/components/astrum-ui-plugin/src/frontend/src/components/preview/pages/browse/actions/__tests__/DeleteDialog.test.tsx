@@ -133,7 +133,7 @@ describe('DeleteDialog', () => {
         />
       );
       expect(screen.getByText(/my-component/)).toBeInTheDocument();
-      expect(screen.getByText(/This action cannot be undone/)).toBeInTheDocument();
+      expect(screen.getByText(/This cannot be undone/)).toBeInTheDocument();
     });
 
     it('renders repository name when provided', () => {
@@ -303,7 +303,7 @@ describe('DeleteDialog', () => {
         />
       );
       // Check title specifically
-      expect(screen.getByRole('heading', { name: /delete asset/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /delete file/i })).toBeInTheDocument();
       // Check description contains the item name
       expect(screen.getByText(/artifact\.jar/)).toBeInTheDocument();
     });
@@ -319,8 +319,8 @@ describe('DeleteDialog', () => {
       );
       // Check title specifically
       expect(screen.getByRole('heading', { name: /delete folder/i })).toBeInTheDocument();
-      // Check description mentions "all its contents"
-      expect(screen.getByText(/all its contents/i)).toBeInTheDocument();
+      // Check description mentions everything in the folder
+      expect(screen.getByText(/everything in it/i)).toBeInTheDocument();
     });
   });
 

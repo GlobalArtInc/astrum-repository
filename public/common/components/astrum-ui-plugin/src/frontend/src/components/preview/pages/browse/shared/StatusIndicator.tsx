@@ -4,6 +4,9 @@ import React from 'react';
 import { Flex, Text, Tooltip } from '@radix-ui/themes';
 import { Circle } from 'lucide-react';
 import type { StatusIndicatorProps } from '../browse.types';
+import UIStrings from '../../../constants/UIStrings';
+
+import './StatusIndicator.scss';
 
 /**
  * Renders an online/offline status indicator.
@@ -44,3 +47,24 @@ export function StatusIndicator({ status, showLabel = false }: StatusIndicatorPr
 }
 
 export default StatusIndicator;
+
+/**
+ * Online or offline as a coloured dot and a word, for page headers and tables.
+ */
+export function StatusLabel({ online, description }: { online: boolean; description?: string }): JSX.Element {
+  const strings = UIStrings.BROWSE.STATUS;
+  const label = (
+    <Flex
+      align="center"
+      gap="2"
+      className={`status-label status-label--${online ? 'online' : 'offline'}`}
+      data-testid="status-label"
+    >
+      <span className="status-label__dot" aria-hidden="true" />
+      <Text size="1" weight="medium" className="status-label__text">
+        {online ? strings.ONLINE : strings.OFFLINE}
+      </Text>
+    </Flex>
+  );
+  return description ? <Tooltip content={description}>{label}</Tooltip> : label;
+}

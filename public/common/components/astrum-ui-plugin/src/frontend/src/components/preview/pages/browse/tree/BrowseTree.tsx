@@ -1,28 +1,17 @@
 
 
-import React, { useCallback, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useCallback, useRef, useEffect, useImperativeHandle, useMemo, forwardRef } from 'react';
 import { Box, Flex, Text, Spinner, Button, Callout } from '@radix-ui/themes';
 import { FolderOpen, RefreshCw } from 'lucide-react';
 
 import { EmptyState } from '../../../shared';
+import UIStrings from '../../../constants/UIStrings';
 import { BrowseTreeNode } from './BrowseTreeNode';
 import { useBrowseTree } from './useBrowseTree';
+import { filterTreeNodes } from './useTreeSearch';
 import type { BrowseTreeProps, BrowseNode, BrowseTreeRef } from './browse-tree.types';
 
 import './BrowseTree.scss';
-
-/**
- * UI Strings for the browse tree.
- */
-const STRINGS = {
-  title: 'Repository Contents',
-  emptyTitle: 'No items in this repository',
-  emptyDescription:
-    'This repository is empty. Upload components or configure a proxy repository to populate it.',
-  loadingMessage: 'Loading...',
-  errorPrefix: 'Error: ',
-  retryButton: 'Retry',
-};
 
 /**
  * BrowseTree displays the lazy-loading tree of repository contents.
@@ -42,10 +31,24 @@ export const BrowseTree = forwardRef<BrowseTreeRef, BrowseTreeProps>(function Br
     onSelect,
     baseUrl = 'preview/browse',
     className = '',
+    format,
+    filter = '',
+    onFilterResult,
   },
   ref
 ) {
-  const { state, actions } = useBrowseTree(repositoryName, initialPath);
+  const strings = UIStrings.BROWSE.TREE;
+  const { state, actions } = useBrowseTree(repositoryName, initialPath, format);
+  const filterText = filter.trim().toLowerCase();
+  const filtered = useMemo(
+    () => (filterText ? filterTreeNodes(state.nodes, filterText) : null),
+    [state.nodes, filterText],
+  );
+  const visibleNodes = filtered ? filtered.filtered : state.nodes;
+
+  useEffect(() => {
+    onFilterResult?.(filtered ? filtered.matchCount : null);
+  }, [filtered, onFilterResult]);
   const treeRef = useRef<HTMLDivElement>(null);
   const lastExpandedPathRef = useRef<string | undefined>();
 
@@ -256,7 +259,7 @@ export const BrowseTree = forwardRef<BrowseTreeRef, BrowseTreeProps>(function Br
         p="6"
       >
         <Spinner size="3" />
-        <Text color="gray" size="2">{STRINGS.loadingMessage}</Text>
+        <Text color="gray" size="2">{strings.LOADING}</Text>
       </Flex>
     );
   }
@@ -266,14 +269,11 @@ export const BrowseTree = forwardRef<BrowseTreeRef, BrowseTreeProps>(function Br
     return (
       <Box p="4" className="browse-tree__error-container">
         <Callout.Root color="red" mb="3">
-          <Callout.Text>
-            {STRINGS.errorPrefix}
-            {state.error}
-          </Callout.Text>
+          <Callout.Text>{strings.ERROR(state.error)}</Callout.Text>
         </Callout.Root>
-        <Button variant="outline" size="2" onClick={handleRetry}>
+        <Button variant="soft" color="gray" size="2" onClick={handleRetry}>
           <RefreshCw size={14} />
-          {STRINGS.retryButton}
+          {strings.RETRY}
         </Button>
       </Box>
     );
@@ -285,10 +285,10 @@ export const BrowseTree = forwardRef<BrowseTreeRef, BrowseTreeProps>(function Br
       <Box className="browse-tree__empty" p="6">
         <EmptyState
           icon={FolderOpen}
-          title={STRINGS.emptyTitle}
-          description={STRINGS.emptyDescription}
+          title={strings.EMPTY_TITLE}
+          description={strings.EMPTY_DESCRIPTION}
           action={{
-            label: STRINGS.retryButton,
+            label: strings.RETRY,
             onClick: handleRetry,
             icon: RefreshCw,
           }}
@@ -298,15 +298,23 @@ export const BrowseTree = forwardRef<BrowseTreeRef, BrowseTreeProps>(function Br
     );
   }
 
+  if (filtered && visibleNodes.length === 0) {
+    return (
+      <Flex className="browse-tree__no-results" p="4" data-testid="browse-tree-no-matches">
+        <Text color="gray" size="2" align="center">{strings.NO_MATCHES}</Text>
+      </Flex>
+    );
+  }
+
   return (
     <Box
       ref={treeRef}
       className={`browse-tree ${className}`}
       role="tree"
-      aria-label={`${repositoryName} contents`}
+      aria-label={strings.LABEL(repositoryName)}
       data-testid="browse-tree"
     >
-      {state.nodes.map((nodeState) => (
+      {visibleNodes.map((nodeState) => (
         <BrowseTreeNode
           key={nodeState.node.id}
           nodeState={nodeState}
@@ -318,6 +326,7 @@ export const BrowseTree = forwardRef<BrowseTreeRef, BrowseTreeProps>(function Br
           selectedNodeId={state.selectedNodeId}
           onKeyDown={handleKeyDown}
           baseUrl={fullBaseUrl}
+          format={format}
         />
       ))}
     </Box>

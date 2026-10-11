@@ -4,6 +4,8 @@
  * Utility functions for the Browse detail panel components.
  */
 
+import { pageLanguage } from '../../../../../interface/plural';
+
 /**
  * Formats a byte count into a human-readable file size string.
  * Uses binary units (1 KB = 1024 bytes).
@@ -78,6 +80,34 @@ export function formatDate(isoDate: string | null | undefined): string {
     });
   } catch {
     return '-';
+  }
+}
+
+/**
+ * Formats a date and time the way the page's language writes them, e.g. `Oct 9, 2026, 10:28 PM`
+ * or `9 окт. 2026 г., 22:28`.
+ *
+ * @param isoDate - ISO date string or null
+ * @returns The formatted date, or a dash when there is none
+ */
+export function formatDateTime(isoDate: string | null | undefined): string {
+  if (!isoDate) {
+    return '—';
+  }
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+  try {
+    return new Intl.DateTimeFormat(pageLanguage(), {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  } catch {
+    return date.toISOString();
   }
 }
 

@@ -2,6 +2,7 @@
 
 import React, { useCallback } from 'react';
 import {
+  Badge,
   Box,
   Callout,
   DropdownMenu,
@@ -10,9 +11,9 @@ import {
   Spinner,
   Table,
   Text,
-  Tooltip,
 } from '@radix-ui/themes';
-import { Copy, MoreHorizontal, X } from 'lucide-react';
+import { MoreHorizontal, X } from 'lucide-react';
+import { useRouter } from '@uirouter/react';
 
 import type { Repository, HealthCheckStatus, FirewallStatus } from './repository-list.types';
 import { HealthCheckCell } from '../../../shared/security/HealthCheckCell';
@@ -22,32 +23,29 @@ import {
   useToast,
   type SortDirection,
 } from '../../../shared';
-import { FORMAT_LABELS } from '../../settings/repository/repositories/types';
 import { ensureTrailingSlash } from '../../../../../utils/url';
+import UIStrings from '../../../constants/UIStrings';
+import { CopyButton, copyToClipboard } from '../../../shared/Usage';
+import { FormatBadge, StatusLabel } from '../shared';
+import { canOpenRepositorySettings } from '../RepositoryHeader';
 
 import './RepositoryListTable.scss';
 
 /**
- * UI Strings.
+ * The path of a repository URL (`/repository/npm-hosted/`); the host is the same for every row.
  */
-const STRINGS = {
-  columns: {
-    name: 'Name',
-    type: 'Type',
-    format: 'Ecosystem',
-    status: 'Status',
-    url: 'URL',
-    healthCheck: 'Health Check',
-    iqPolicyViolations: 'Firewall Report',
-  },
-  emptyMessageFiltered: 'No repositories match the current filters',
-  emptyMessageNoRepos: 'No repositories available. You may need to sign in or check your permissions.',
-  copyUrlTitle: 'Copy URL to Clipboard',
-  urlCopiedMessage: 'URL Copied to Clipboard',
-  urlCopyFailedMessage: 'Failed to copy URL to clipboard',
-  loadingMessage: 'Loading repositories...',
-  browseRepositoryAction: 'Browse Repository',
-  copyUrlAction: 'Copy URL',
+function urlPath(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+}
+
+const TYPE_KEYS: Record<string, 'HOSTED' | 'PROXY' | 'GROUP'> = {
+  hosted: 'HOSTED',
+  proxy: 'PROXY',
+  group: 'GROUP',
 };
 
 export interface RepositoryListTableProps {
@@ -88,7 +86,7 @@ export interface RepositoryListTableProps {
 }
 
 /**
- * RepositoryListTable - Simple table display for repositories.
+ * RepositoryListTable - the repositories with their format, type, status and URL.
  */
 export function RepositoryListTable({
   repositories,
@@ -110,6 +108,8 @@ export function RepositoryListTable({
   onSort,
 }: RepositoryListTableProps): JSX.Element {
   const toast = useToast();
+  const router = useRouter();
+  const strings = UIStrings.BROWSE.LIST;
 
   // Handle sort - must be declared before any early returns (Rules of Hooks)
   const handleSort = useCallback(
@@ -126,23 +126,23 @@ export function RepositoryListTable({
 
   // Handle row keyboard navigation
   const handleRowKeyDown = (name: string) => (e: React.KeyboardEvent) => {
+    if (e.target !== e.currentTarget) {
+      return;
+    }
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onSelect?.(name);
     }
   };
 
-  // Handle copy URL
-  const handleCopyUrl = (url: string) => (e: React.MouseEvent) => {
+  // Handle copy URL from the row menu
+  const handleCopyUrl = (url: string) => async (e: React.MouseEvent | Event) => {
     e.stopPropagation();
-    const urlWithSlash = ensureTrailingSlash(url);
-    navigator.clipboard.writeText(urlWithSlash)
-      .then(() => {
-        toast.success(STRINGS.urlCopiedMessage);
-      })
-      .catch(() => {
-        toast.error(STRINGS.urlCopyFailedMessage);
-      });
+    if (await copyToClipboard(ensureTrailingSlash(url))) {
+      toast.success(strings.URL_COPIED);
+    } else {
+      toast.error(strings.URL_COPY_FAILED);
+    }
   };
 
   // Loading state
@@ -150,7 +150,7 @@ export function RepositoryListTable({
     return (
       <Flex direction="column" align="center" justify="center" gap="3" p="9">
         <Spinner size="3" />
-        <Text color="gray">{STRINGS.loadingMessage}</Text>
+        <Text color="gray">{strings.LOADING}</Text>
       </Flex>
     );
   }
@@ -169,91 +169,49 @@ export function RepositoryListTable({
     );
   }
 
-  // Column count for empty state: name, type, format, status, url, + optional (health, IQ), + actions.
+  // Column count for empty state: name, format, type, status, url, + optional (health, IQ), + actions.
   const colCount = 6 + (showHealthCheck ? 1 : 0) + (showIqPolicyViolations ? 1 : 0);
+
+  const header = (key: string, label: string) =>
+    onSort ? (
+      <SortableTableHeader
+        sortKey={key}
+        currentSortKey={sortKey}
+        currentSortDirection={sortDirection}
+        onSort={handleSort}
+        align="left"
+      >
+        {label}
+      </SortableTableHeader>
+    ) : (
+      <Table.ColumnHeaderCell>{label}</Table.ColumnHeaderCell>
+    );
 
   return (
     <Table.Root className="repository-list-table" variant="surface" size="2">
       <Table.Header>
         <Table.Row>
-          {onSort ? (
-            <SortableTableHeader
-              sortKey="name"
-              currentSortKey={sortKey}
-              currentSortDirection={sortDirection}
-              onSort={handleSort}
-              align="left"
-            >
-              {STRINGS.columns.name}
-            </SortableTableHeader>
-          ) : (
-            <Table.ColumnHeaderCell>
-              {STRINGS.columns.name}
-            </Table.ColumnHeaderCell>
-          )}
-          {onSort ? (
-            <SortableTableHeader
-              sortKey="type"
-              currentSortKey={sortKey}
-              currentSortDirection={sortDirection}
-              onSort={handleSort}
-              align="left"
-            >
-              {STRINGS.columns.type}
-            </SortableTableHeader>
-          ) : (
-            <Table.ColumnHeaderCell>
-              {STRINGS.columns.type}
-            </Table.ColumnHeaderCell>
-          )}
-          {onSort ? (
-            <SortableTableHeader
-              sortKey="format"
-              currentSortKey={sortKey}
-              currentSortDirection={sortDirection}
-              onSort={handleSort}
-              align="left"
-            >
-              {STRINGS.columns.format}
-            </SortableTableHeader>
-          ) : (
-            <Table.ColumnHeaderCell>
-              {STRINGS.columns.format}
-            </Table.ColumnHeaderCell>
-          )}
-          {onSort ? (
-            <SortableTableHeader
-              sortKey="status"
-              currentSortKey={sortKey}
-              currentSortDirection={sortDirection}
-              onSort={handleSort}
-              align="left"
-            >
-              {STRINGS.columns.status}
-            </SortableTableHeader>
-          ) : (
-            <Table.ColumnHeaderCell>
-              {STRINGS.columns.status}
-            </Table.ColumnHeaderCell>
-          )}
-          <Table.ColumnHeaderCell>
-            {STRINGS.columns.url}
+          {header('name', strings.COLUMNS.NAME)}
+          {header('format', strings.COLUMNS.FORMAT)}
+          {header('type', strings.COLUMNS.TYPE)}
+          {header('status', strings.COLUMNS.STATUS)}
+          <Table.ColumnHeaderCell className="repository-list-table__url-header">
+            {strings.COLUMNS.URL}
           </Table.ColumnHeaderCell>
           {showHealthCheck && (
             <Table.ColumnHeaderCell className="table-cell-centered">
-              {STRINGS.columns.healthCheck}
+              {strings.COLUMNS.HEALTH_CHECK}
             </Table.ColumnHeaderCell>
           )}
           {showIqPolicyViolations && (
             <Table.ColumnHeaderCell className="table-cell-centered">
-              {STRINGS.columns.iqPolicyViolations}
+              {strings.COLUMNS.FIREWALL}
             </Table.ColumnHeaderCell>
           )}
-          {/* paddingRight: 32 matches the Rapture-safe right gutter used across list tables (see EntityTable.scss). */}
           <Table.ColumnHeaderCell
-            width="80px"
+            width="56px"
             justify="end"
-            aria-label="Row actions"
+            aria-label={strings.COLUMNS.ACTIONS}
           />
         </Table.Row>
       </Table.Header>
@@ -263,107 +221,131 @@ export function RepositoryListTable({
             <Table.Cell colSpan={colCount}>
               <Flex justify="center" p="6">
                 <Text color="gray">
-                  {hasFilters ? STRINGS.emptyMessageFiltered : STRINGS.emptyMessageNoRepos}
+                  {hasFilters ? strings.EMPTY_FILTERED : strings.EMPTY}
                 </Text>
               </Flex>
             </Table.Cell>
           </Table.Row>
         ) : (
-          repositories.map((repo) => (
-            <Table.Row
-              key={repo.name}
-              className="repository-list-table__row repository-list-table__row--clickable"
-              onClick={handleRowClick(repo.name)}
-              onKeyDown={handleRowKeyDown(repo.name)}
-              tabIndex={0}
-              role="button"
-              aria-label={`Browse ${repo.name}`}
-              data-analytics-id="as-browse-select-repository"
-            >
-              <Table.Cell>
-                <Text size="2" weight="medium" color="blue">
-                  {repo.name}
-                </Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Text size="2">{repo.type}</Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Text size="2">{FORMAT_LABELS[repo.format] || repo.format}</Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Text size="2">{repo.status?.online ? 'Online' : 'Offline'}</Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Tooltip content={STRINGS.copyUrlTitle}>
-                  <IconButton
-                    variant="ghost"
-                    color="gray"
-                    size="1"
-                    onClick={handleCopyUrl(repo.url)}
-                    aria-label={STRINGS.copyUrlTitle}
-                    data-analytics-id="as-repository-copy-url"
-                  >
-                    <Copy size={16} />
-                  </IconButton>
-                </Tooltip>
-              </Table.Cell>
-              {showHealthCheck && (
-                <Table.Cell className="table-cell-centered">
-                  <HealthCheckCell
-                    repository={repo}
-                    healthStatus={healthCheck[repo.name]}
-                    onAnalyze={onAnalyze}
-                    analyzeLoading={analyzingRepos.has(repo.name)}
-                    rhcSupportedByBackend={repo.type === 'proxy' && Object.keys(healthCheck).length > 0 ? repo.name in healthCheck : undefined}
+          repositories.map((repo) => {
+            const typeKey = TYPE_KEYS[repo.type];
+            const url = ensureTrailingSlash(repo.url ?? '');
+            return (
+              <Table.Row
+                key={repo.name}
+                className="repository-list-table__row repository-list-table__row--clickable"
+                onClick={handleRowClick(repo.name)}
+                onKeyDown={handleRowKeyDown(repo.name)}
+                tabIndex={0}
+                role="button"
+                aria-label={strings.ROW_LABEL(repo.name)}
+                data-analytics-id="as-browse-select-repository"
+              >
+                <Table.Cell>
+                  <Text size="2" weight="medium" className="repository-list-table__name">
+                    {repo.name}
+                  </Text>
+                </Table.Cell>
+                <Table.Cell>
+                  <FormatBadge format={repo.format} size="1" radius="full" />
+                </Table.Cell>
+                <Table.Cell>
+                  <Badge color="gray" variant="soft" size="1" radius="full" className="repository-list-table__type">
+                    {typeKey ? UIStrings.BROWSE.TYPES[typeKey] : repo.type}
+                  </Badge>
+                </Table.Cell>
+                <Table.Cell>
+                  <StatusLabel
+                    online={Boolean(repo.status?.online)}
+                    description={repo.status?.description || repo.status?.reason}
                   />
                 </Table.Cell>
-              )}
-              {showIqPolicyViolations && (
-                <Table.Cell className="table-cell-centered">
-                  <FirewallCell
-                    repository={repo}
-                    firewallStatus={firewallStatus[repo.name]}
-                    firewallLoaded={firewallLoaded}
-                    hasFirewallLicense={hasFirewallLicense}
-                    proxyProtectionSummary={proxyProtectionSummary}
-                  />
+                <Table.Cell className="repository-list-table__url-cell">
+                  {repo.url && (
+                    <Flex align="center" gap="1" minWidth="0">
+                      <Text size="1" color="gray" className="repository-list-table__url" title={url}>
+                        {urlPath(url)}
+                      </Text>
+                      <CopyButton
+                        text={url}
+                        iconOnly
+                        size="1"
+                        label={strings.COPY_URL}
+                        onCopied={() => toast.success(strings.URL_COPIED)}
+                        onCopyFailed={() => toast.error(strings.URL_COPY_FAILED)}
+                      />
+                    </Flex>
+                  )}
                 </Table.Cell>
-              )}
-              <Table.Cell justify="end">
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger>
-                    <IconButton
-                      variant="ghost"
-                      color="gray"
-                      size="1"
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label={`Actions for ${repo.name}`}
-                    >
-                      <MoreHorizontal size={16} />
-                    </IconButton>
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Content align="end" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu.Item
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect?.(repo.name);
-                      }}
-                      data-analytics-id="as-browse-repository-menu"
-                    >
-                      {STRINGS.browseRepositoryAction}
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      onClick={handleCopyUrl(repo.url)}
-                      data-analytics-id="as-repository-copy-url-menu"
-                    >
-                      {STRINGS.copyUrlAction}
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Root>
-              </Table.Cell>
-            </Table.Row>
-          ))
+                {showHealthCheck && (
+                  <Table.Cell className="table-cell-centered">
+                    <HealthCheckCell
+                      repository={repo}
+                      healthStatus={healthCheck[repo.name]}
+                      onAnalyze={onAnalyze}
+                      analyzeLoading={analyzingRepos.has(repo.name)}
+                      rhcSupportedByBackend={repo.type === 'proxy' && Object.keys(healthCheck).length > 0 ? repo.name in healthCheck : undefined}
+                    />
+                  </Table.Cell>
+                )}
+                {showIqPolicyViolations && (
+                  <Table.Cell className="table-cell-centered">
+                    <FirewallCell
+                      repository={repo}
+                      firewallStatus={firewallStatus[repo.name]}
+                      firewallLoaded={firewallLoaded}
+                      hasFirewallLicense={hasFirewallLicense}
+                      proxyProtectionSummary={proxyProtectionSummary}
+                    />
+                  </Table.Cell>
+                )}
+                <Table.Cell justify="end">
+                  <DropdownMenu.Root>
+                    <DropdownMenu.Trigger>
+                      <IconButton
+                        variant="ghost"
+                        color="gray"
+                        size="1"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={strings.ROW_ACTIONS(repo.name)}
+                      >
+                        <MoreHorizontal size={16} />
+                      </IconButton>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu.Item
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelect?.(repo.name);
+                        }}
+                        data-analytics-id="as-browse-repository-menu"
+                      >
+                        {strings.BROWSE_ACTION}
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Item
+                        onClick={handleCopyUrl(repo.url)}
+                        data-analytics-id="as-repository-copy-url-menu"
+                      >
+                        {strings.COPY_URL}
+                      </DropdownMenu.Item>
+                      {canOpenRepositorySettings(repo) && (
+                        <DropdownMenu.Item
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.stateService.go('preview.admin.repository.repositories.detail', {
+                              repositoryName: repo.name,
+                            });
+                          }}
+                        >
+                          {strings.SETTINGS_ACTION}
+                        </DropdownMenu.Item>
+                      )}
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Root>
+                </Table.Cell>
+              </Table.Row>
+            );
+          })
         )}
       </Table.Body>
     </Table.Root>
@@ -371,4 +353,3 @@ export function RepositoryListTable({
 }
 
 export default RepositoryListTable;
-

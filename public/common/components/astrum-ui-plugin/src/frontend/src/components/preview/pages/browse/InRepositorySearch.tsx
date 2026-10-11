@@ -5,6 +5,7 @@ import { Box, Card, Spinner, Text, TextField } from '@radix-ui/themes';
 import { Search, X } from 'lucide-react';
 import { searchInRepository, type SearchResultItem as SearchResult } from './browse.api';
 import { SearchResultItem } from './SearchResultItem';
+import UIStrings from '../../constants/UIStrings';
 
 import './InRepositorySearch.scss';
 
@@ -194,14 +195,14 @@ export function InRepositorySearch({
     <Box className="in-repo-search" position="relative">
       <TextField.Root
         ref={inputRef}
-        placeholder={`Search in ${repositoryName}...`}
+        placeholder={UIStrings.BROWSE.REPOSITORY.SEARCH_PLACEHOLDER(repositoryName)}
         value={query}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         onFocus={handleFocus}
         size="2"
-        aria-label={`Search in ${repositoryName}`}
+        aria-label={UIStrings.BROWSE.REPOSITORY.SEARCH_LABEL(repositoryName)}
         aria-autocomplete="list"
         aria-expanded={isOpen}
         aria-controls="in-repo-search-results"
@@ -224,7 +225,7 @@ export function InRepositorySearch({
                 display: 'flex',
                 alignItems: 'center',
               }}
-              aria-label="Clear search"
+              aria-label={UIStrings.BROWSE.REPOSITORY.SEARCH_CLEAR}
             >
               <X size={14} />
             </Box>
@@ -238,7 +239,7 @@ export function InRepositorySearch({
           id="in-repo-search-results"
           className="in-repo-search__dropdown"
           role="listbox"
-          aria-label="Search results"
+          aria-label={UIStrings.BROWSE.REPOSITORY.SEARCH_RESULTS}
         >
           {results.map((result, index) => (
             <SearchResultItem
@@ -256,7 +257,7 @@ export function InRepositorySearch({
         <Card className="in-repo-search__dropdown in-repo-search__dropdown--empty">
           <Box p="3">
             <Text size="2" color="gray">
-              No results found for &quot;{query}&quot;
+              {UIStrings.BROWSE.REPOSITORY.SEARCH_EMPTY(query)}
             </Text>
           </Box>
         </Card>

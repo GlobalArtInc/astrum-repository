@@ -1,0 +1,30 @@
+.status-label {
+  white-space: nowrap;
+
+  &__dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+  }
+
+  &--online {
+    .status-label__dot {
+      background-color: var(--green-9);
+    }
+
+    .status-label__text {
+      color: var(--green-11);
+    }
+  }
+
+  &--offline {
+    .status-label__dot {
+      background-color: var(--gray-9);
+    }
+
+    .status-label__text {
+      color: var(--gray-11);
+    }
+  }
+}

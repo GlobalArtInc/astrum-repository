@@ -3,6 +3,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Box, Flex } from '@radix-ui/themes';
 
+import UIStrings from '../../constants/UIStrings';
+
 export interface ResizablePanelProps {
   leftPanel: React.ReactNode;
   rightPanel: React.ReactNode;
@@ -128,27 +130,10 @@ export function ResizablePanel({
 
       {/* Drag Handle */}
       <Box
-        className="resizable-panel__handle"
+        className={`resizable-panel__handle ${isDragging ? 'resizable-panel__handle--dragging' : ''}`}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
-        style={{
-          width: '5px',
-          height: '100%',
-          cursor: 'col-resize',
-          backgroundColor: 'var(--gray-5)',
-          flexShrink: 0,
-          position: 'relative',
-          transition: 'background-color 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'var(--blue-9)';
-        }}
-        onMouseLeave={(e) => {
-          if (!isDragging) {
-            e.currentTarget.style.backgroundColor = 'var(--gray-5)';
-          }
-        }}
-        title="Drag to resize, double-click to reset"
+        title={UIStrings.BROWSE.REPOSITORY.RESIZE_HANDLE}
       />
 
       {/* Right Panel */}

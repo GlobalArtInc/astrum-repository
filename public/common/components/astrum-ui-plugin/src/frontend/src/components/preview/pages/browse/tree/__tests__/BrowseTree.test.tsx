@@ -90,7 +90,7 @@ describe('BrowseTree', () => {
 
       await waitFor(() => {
         const tree = screen.getByRole('tree');
-        expect(tree).toHaveAttribute('aria-label', 'maven-releases contents');
+        expect(tree).toHaveAttribute('aria-label', 'Contents of maven-releases');
       });
     });
 
@@ -99,7 +99,7 @@ describe('BrowseTree', () => {
       render(<BrowseTree repositoryName="empty-repo" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/no items in this repository/i)).toBeInTheDocument();
+        expect(screen.getByText(/this repository is empty/i)).toBeInTheDocument();
       });
       expect(screen.getByTestId('empty-state')).toBeInTheDocument();
     });
@@ -253,7 +253,7 @@ describe('BrowseTree', () => {
 
       await waitFor(() => {
         const tree = screen.getByRole('tree');
-        expect(tree).toHaveAttribute('aria-label', 'maven-releases contents');
+        expect(tree).toHaveAttribute('aria-label', 'Contents of maven-releases');
       });
     });
   });
@@ -544,7 +544,7 @@ describe('BrowseTreeNode', () => {
     expect(link).not.toHaveAttribute('href');
   });
 
-  it('renders with correct depth indentation', () => {
+  it('reports its depth as the tree level', () => {
     render(
       <BrowseTreeNode
         {...defaultProps}
@@ -553,7 +553,121 @@ describe('BrowseTreeNode', () => {
       />
     );
 
-    const node = screen.getByTestId('tree-node-folder1');
-    expect(node).toHaveStyle({ paddingLeft: '40px' }); // 2 * 20px
+    expect(screen.getByRole('treeitem')).toHaveAttribute('aria-level', '3');
+  });
+
+  it('marks the selected node', () => {
+    render(
+      <BrowseTreeNode
+        {...defaultProps}
+        selectedNodeId="folder1"
+        nodeState={createNodeState()}
+      />
+    );
+
+    expect(screen.getByRole('treeitem')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('tree-node-folder1')).toHaveClass('browse-tree__node--selected');
+  });
+});
+
+describe('BrowseTree filter', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setupApiMock();
+  });
+
+  it('shows only the loaded nodes that match and reports how many match', async () => {
+    const onFilterResult = jest.fn();
+    const { rerender } = render(<BrowseTree repositoryName="maven-releases" onFilterResult={onFilterResult} />);
+    await waitFor(() => expect(screen.getByRole('tree')).toBeInTheDocument());
+    const [first, second] = mockRootNodes;
+
+    rerender(<BrowseTree repositoryName="maven-releases" filter={first.text} onFilterResult={onFilterResult} />);
+
+    expect(screen.getByTestId(`tree-node-${first.id}`)).toBeInTheDocument();
+    expect(screen.queryByTestId(`tree-node-${second.id}`)).not.toBeInTheDocument();
+    expect(onFilterResult).toHaveBeenLastCalledWith(expect.any(Number));
+  });
+
+  it('says so when nothing loaded matches', async () => {
+    const { rerender } = render(<BrowseTree repositoryName="maven-releases" />);
+    await waitFor(() => expect(screen.getByRole('tree')).toBeInTheDocument());
+
+    rerender(<BrowseTree repositoryName="maven-releases" filter="no-such-node" />);
+
+    expect(screen.getByTestId('browse-tree-no-matches')).toHaveTextContent('Nothing loaded matches the filter');
+  });
+});
+
+describe('BrowseTree Docker view', () => {
+  const node = (id: string, text: string, type: BrowseNode['type'], leaf: boolean): BrowseNode => ({ id, text, type, leaf });
+  const DOCKER_TREE: Record<string, BrowseNode[]> = {
+    '/': [node('v2', 'v2', 'folder', false)],
+    v2: [node('v2/-', '-', 'folder', false), node('v2/herald-api', 'herald-api', 'folder', false), node('v2/redis', 'redis', 'folder', false)],
+    'v2/herald-api': [node('v2/herald-api/manifests', 'manifests', 'folder', false)],
+    'v2/herald-api/manifests': [
+      node('v2/herald-api/manifests/0.1.0', '0.1.0', 'asset', true),
+      node('v2/herald-api/manifests/0.2.0', '0.2.0', 'asset', true),
+      node('v2/herald-api/manifests/sha256%3Aabc', 'sha256:abc', 'asset', true),
+    ],
+    'v2/redis': [node('v2/redis/manifests', 'manifests', 'folder', false)],
+    'v2/redis/manifests': [node('v2/redis/manifests/sha256%3Adef', 'sha256:def', 'asset', true)],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Element.prototype.scrollIntoView = jest.fn();
+    ExtAPIUtils.extAPIRequest.mockImplementation(
+      async (_action: string, _method: string, { data }: { data: [{ repositoryName: string; node: string }] }) =>
+        mockApiResponse(DOCKER_TREE[data[0].node] ?? []),
+    );
+  });
+
+  it('lists the images at the root, without the registry folder and the blob store', async () => {
+    render(<BrowseTree repositoryName="docker-hosted" format="docker" />);
+
+    await waitFor(() => expect(screen.getByTestId('tree-node-v2/herald-api')).toBeInTheDocument());
+    expect(screen.getByTestId('tree-node-v2/redis')).toBeInTheDocument();
+    expect(screen.queryByTestId('tree-node-v2')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('tree-node-v2/-')).not.toBeInTheDocument();
+  });
+
+  it('opens an image on click and lists its tags, not the manifests folder or digests', async () => {
+    const onSelect = jest.fn();
+    render(<BrowseTree repositoryName="docker-hosted" format="docker" onSelect={onSelect} />);
+    await waitFor(() => expect(screen.getByTestId('link-v2/herald-api')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('link-v2/herald-api'));
+
+    await waitFor(() => expect(screen.getByTestId('tree-node-v2/herald-api/manifests/0.1.0')).toBeInTheDocument());
+    expect(screen.getByTestId('tree-node-v2/herald-api/manifests/0.2.0')).toBeInTheDocument();
+    expect(screen.queryByTestId('tree-node-v2/herald-api/manifests')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('tree-node-v2/herald-api/manifests/sha256%3Aabc')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('icon-tag')).toHaveLength(2);
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'v2/herald-api' }));
+  });
+
+  it('keeps the digests of an image without tags', async () => {
+    render(<BrowseTree repositoryName="docker-hosted" format="docker" />);
+    await waitFor(() => expect(screen.getByTestId('link-v2/redis')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('link-v2/redis'));
+
+    await waitFor(() => expect(screen.getByTestId('tree-node-v2/redis/manifests/sha256%3Adef')).toBeInTheDocument());
+  });
+
+  it('opens a deep link to a tag through the segments the view leaves out', async () => {
+    const onSelect = jest.fn();
+    render(
+      <BrowseTree
+        repositoryName="docker-hosted"
+        format="docker"
+        initialPath="v2/herald-api/manifests/0.2.0"
+        onSelect={onSelect}
+      />,
+    );
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'v2/herald-api/manifests/0.2.0' })));
+    expect(screen.getByRole('treeitem', { selected: true })).toHaveTextContent('0.2.0');
   });
 });

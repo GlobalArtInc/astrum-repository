@@ -30,6 +30,60 @@ async function fetchChildren(repositoryName: string, nodeId: string): Promise<Br
 }
 
 /**
+ * Path segments a format's view of the tree leaves out. Docker keeps every image under `v2/` and its
+ * tags under `<image>/manifests/`; the tree shows images and their tags directly, so a path to a tag
+ * passes through these segments without a node of its own.
+ */
+const PASS_THROUGH_SEGMENTS: Readonly<Record<string, ReadonlySet<string>>> = {
+  docker: new Set(['v2', 'manifests', 'tags']),
+};
+
+function isPassThrough(format: string | undefined, segment: string): boolean {
+  return Boolean(format && PASS_THROUGH_SEGMENTS[format]?.has(segment));
+}
+
+const DIGEST_TEXT = /^sha256:/;
+
+/**
+ * The Docker view of a level of the tree: the registry root `v2` and the shared blob store `-` are
+ * skipped so the root lists the images, and an image lists the tags in its `manifests` folder rather
+ * than that folder. Manifests stored only under a digest stay visible when an image has no tags.
+ */
+async function presentDockerChildren(
+  nodeId: string,
+  children: BrowseNode[],
+  fetch: (id: string) => Promise<BrowseNode[]>,
+): Promise<BrowseNode[]> {
+  if (nodeId === '/' && children.length === 1 && children[0].text === 'v2' && !children[0].leaf) {
+    const images = await fetch(children[0].id);
+    return images.filter((node) => node.text !== '-');
+  }
+  const manifests = children.find((node) => node.text === 'manifests' && !node.leaf);
+  if (!manifests) {
+    return children;
+  }
+  const references = await fetch(manifests.id);
+  const tags = references.filter((node) => !DIGEST_TEXT.test(node.text));
+  const rest = children.filter((node) => node.text !== 'manifests' && node.text !== 'tags');
+  return [...(tags.length > 0 ? tags : references), ...rest];
+}
+
+/**
+ * Fetch the children of a node as the format's view of the tree shows them.
+ */
+async function fetchPresentedChildren(
+  repositoryName: string,
+  nodeId: string,
+  format?: string,
+): Promise<BrowseNode[]> {
+  const children = await fetchChildren(repositoryName, nodeId);
+  if (format === 'docker') {
+    return presentDockerChildren(nodeId, children, (id) => fetchChildren(repositoryName, id));
+  }
+  return children;
+}
+
+/**
  * Detect backend error nodes: the browse API sometimes returns
  * nodes whose text is a raw Java exception instead of a real name
  * (e.g. "Cannot invoke …getName() because repository is null").
@@ -215,6 +269,27 @@ function getParentId(nodeId: string): string | null {
 }
 
 /**
+ * The ID of the node whose children hold the given node: null for a root node, undefined for a node
+ * not in the tree.
+ */
+function findParentId(
+  nodes: readonly TreeNodeState[],
+  nodeId: string,
+  parentId: string | null = null,
+): string | null | undefined {
+  for (const node of nodes) {
+    if (node.node.id === nodeId) {
+      return parentId;
+    }
+    if (node.children) {
+      const found = findParentId(node.children, nodeId, node.node.id);
+      if (found !== undefined) return found;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Get all visible node IDs in order (for keyboard navigation).
  */
 function getVisibleNodeIds(nodes: readonly TreeNodeState[], result: string[] = []): string[] {
@@ -261,7 +336,8 @@ function updateNodeInTree(
  */
 export function useBrowseTree(
   repositoryName: string,
-  initialPath?: string
+  initialPath?: string,
+  format?: string
 ): UseBrowseTreeResult {
   const [state, setState] = useState<BrowseTreeState>({
     repositoryName,
@@ -291,7 +367,7 @@ export function useBrowseTree(
     setState((prev) => ({ ...prev, loading: true, error: undefined }));
 
     try {
-      const children = await fetchChildren(repositoryName, '/');
+      const children = await fetchPresentedChildren(repositoryName, '/', format);
       setState((prev) => ({
         ...prev,
         nodes: nodesToState(children),
@@ -307,7 +383,7 @@ export function useBrowseTree(
       }));
       return [];
     }
-  }, [repositoryName]);
+  }, [repositoryName, format]);
 
   /**
    * Auto-expand single-child folder chains from a starting node.
@@ -330,7 +406,7 @@ export function useBrowseTree(
 
     for (let depth = 0; depth < MAX_AUTO_EXPAND && nodeId; depth++) {
       try {
-        const children = await fetchChildren(repositoryName, nodeId);
+        const children = await fetchPresentedChildren(repositoryName, nodeId, format);
         const childStates = nodesToState(children);
 
         expansions.push({ expandId: nodeId, expandChildren: childStates });
@@ -359,7 +435,7 @@ export function useBrowseTree(
         return { ...prev, nodes: newNodes };
       });
     }
-  }, [repositoryName]);
+  }, [repositoryName, format]);
 
   /**
    * Toggle expansion of a node.
@@ -444,7 +520,7 @@ export function useBrowseTree(
     }));
 
     try {
-      const children = await fetchChildren(repositoryName, currentNode.node.id);
+      const children = await fetchPresentedChildren(repositoryName, currentNode.node.id, format);
       const childStates = nodesToState(children);
 
       // Build auto-expand chain: keep fetching single non-leaf children (capped at MAX_AUTO_EXPAND for depth fix)
@@ -458,7 +534,7 @@ export function useBrowseTree(
       while (depth < MAX_AUTO_EXPAND && deepChildren.length === 1 && !deepChildren[0].node.leaf) {
         depth++;
         try {
-          const nextChildren = await fetchChildren(repositoryName, deepChildren[0].node.id);
+          const nextChildren = await fetchPresentedChildren(repositoryName, deepChildren[0].node.id, format);
           const nextChildStates = nodesToState(nextChildren);
           expansions.push({ expandId: deepChildren[0].node.id, expandChildren: nextChildStates });
           deepChildren = nextChildStates;
@@ -491,7 +567,7 @@ export function useBrowseTree(
         })),
       }));
     }
-  }, [repositoryName, autoExpandSingleChildren]);
+  }, [repositoryName, format, autoExpandSingleChildren]);
 
   /**
    * Select a node.
@@ -533,6 +609,9 @@ export function useBrowseTree(
     // so we can find nodes in previously fetched children
     let workingNodes = nodesRef.current;
 
+    // The deepest node found so far; segments the format's view leaves out have no node of their own.
+    let lastFoundId: string | null = null;
+
     for (let i = 0; i < pathParts.length; i++) {
       const part = pathParts[i];
       currentPath = currentPath ? `${currentPath}/${part}` : part;
@@ -543,20 +622,26 @@ export function useBrowseTree(
       // tree uses tarball names (name-version.tgz) instead of version folders.
       if (!node && i > 0) {
         const parentPath = pathParts.slice(0, i).join('/');
-        const parentNode = findNodeByIdFlexible(workingNodes, parentPath);
+        const parentNode = findNodeByIdFlexible(workingNodes, parentPath)
+          ?? (lastFoundId ? findNodeById(workingNodes, lastFoundId) : null);
         const searchIn = parentNode?.children ?? workingNodes;
         node = findNodeByVersionFuzzy(searchIn, parentPath, part);
+      }
+
+      if (!node && isPassThrough(format, part)) {
+        continue;
       }
 
       if (!node) {
         break;
       }
       currentPath = node.node.id;
+      lastFoundId = currentPath;
 
       // If node is a folder and not yet expanded, fetch its children
       if (!node.node.leaf && !node.expanded && node.children === null) {
         try {
-          const children = await fetchChildren(repositoryName, currentPath);
+          const children = await fetchPresentedChildren(repositoryName, currentPath, format);
           const childStates = nodesToState(children);
           expansions.push({ expandId: currentPath, expandChildren: childStates });
 
@@ -593,7 +678,7 @@ export function useBrowseTree(
 
     // Select the final node (use currentPath which tracks the actual node id after encoding resolution)
     select(finalNodeId);
-  }, [repositoryName, select]);
+  }, [repositoryName, format, select]);
 
   /**
    * Move focus to the next visible node.
@@ -631,11 +716,12 @@ export function useBrowseTree(
   const focusParent = useCallback((): void => {
     if (!state.focusedNodeId) return;
 
-    const parentId = getParentId(state.focusedNodeId);
+    const shownParentId = findParentId(state.nodes, state.focusedNodeId);
+    const parentId = shownParentId === undefined ? getParentId(state.focusedNodeId) : shownParentId;
     if (parentId) {
       setState((prev) => ({ ...prev, focusedNodeId: parentId }));
     }
-  }, [state.focusedNodeId]);
+  }, [state.nodes, state.focusedNodeId]);
 
   /**
    * Move focus to the first child node.
@@ -679,8 +765,10 @@ export function useBrowseTree(
    * After removal, reloads the parent folder's children from the API to reflect server-side state.
    */
   const removeNode = useCallback(async (nodeId: string): Promise<void> => {
-    // Find the parent path so we can reload its children
-    const parentId = getParentId(nodeId);
+    // Find the parent so we can reload its children. The parent shown in the tree is not always the
+    // parent path: a format's view may leave segments out (Docker tags sit under `manifests`).
+    const shownParentId = findParentId(nodesRef.current, nodeId);
+    const parentId = shownParentId === undefined ? getParentId(nodeId) : shownParentId;
 
     // Remove the node in-place from the tree
     const removeFromNodes = (nodes: readonly TreeNodeState[]): TreeNodeState[] => {
@@ -704,7 +792,7 @@ export function useBrowseTree(
     // Reload the parent folder's children from the API to reflect server-side state
     if (parentId) {
       try {
-        const children = await fetchChildren(repositoryName, parentId);
+        const children = await fetchPresentedChildren(repositoryName, parentId, format);
         const childStates = nodesToState(children);
         setState((prev) => ({
           ...prev,
@@ -719,7 +807,7 @@ export function useBrowseTree(
     } else {
       // Deleted a root-level node — reload root
       try {
-        const children = await fetchChildren(repositoryName, '/');
+        const children = await fetchPresentedChildren(repositoryName, '/', format);
         setState((prev) => ({
           ...prev,
           nodes: nodesToState(children),
@@ -728,7 +816,7 @@ export function useBrowseTree(
         // Root reload failed — the optimistic removal is still valid
       }
     }
-  }, [repositoryName]);
+  }, [repositoryName, format]);
 
   const actions: BrowseTreeActions = useMemo(
     () => ({

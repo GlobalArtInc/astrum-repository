@@ -6,4 +6,4 @@
 
 export { NodeIcon } from './NodeIcon';
 export { FormatBadge } from './FormatBadge';
-export { StatusIndicator } from './StatusIndicator';
+export { StatusIndicator, StatusLabel } from './StatusIndicator';
