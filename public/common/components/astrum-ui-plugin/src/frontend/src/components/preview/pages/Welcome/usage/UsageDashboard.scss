@@ -1,7 +1,10 @@
 .as-usage-dashboard {
+  --color-panel: var(--color-panel-solid);
   width: 100%;
   box-sizing: border-box;
   min-width: 0;
+  container-type: inline-size;
+  container-name: usage-dashboard;
 
   &__title {
     letter-spacing: -0.01em;
@@ -22,10 +25,19 @@
     }
   }
 
+  // Six tiles never leave one alone on a row: six in a row when they fit, else three by two, else two by three.
   &__kpis {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-3);
+
+    @container usage-dashboard (min-width: 600px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @container usage-dashboard (min-width: 1180px) {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
   }
 
   &__kpi-label {
