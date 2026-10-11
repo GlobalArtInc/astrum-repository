@@ -58,7 +58,7 @@ const ACTIONS = [
     title: BROWSE.title,
     subTitle: BROWSE.subTitle,
     icon: Database,
-    isVisible: () => ExtJS.state().getValue('browseableformats').length > 0,
+    isVisible: () => (ExtJS.state().getValue('browseableformats', []) ?? []).length > 0,
     event: {type: 'REDIRECT', url: '#preview/browse'},
   },
   {
@@ -73,7 +73,7 @@ const ACTIONS = [
     subTitle: CONNECT.subTitle,
     icon: LinkIcon,
     isVisible: (context) => {
-      return ExtJS.state().getValue('browseableformats').length > 0 && context.showConnectAction;
+      return (ExtJS.state().getValue('browseableformats', []) ?? []).length > 0 && context.showConnectAction;
     },
     event: {type: 'OPEN_CONNECT_MODAL'},
   },
