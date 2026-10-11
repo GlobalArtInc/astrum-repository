@@ -19,7 +19,7 @@
     height: 18px;
     flex-shrink: 0;
     margin-top: 2px;
-    border: 2px solid var(--color-border);
+    border: 2px solid var(--gray-a8);
     border-radius: var(--radius-sm);
     background-color: var(--color-surface);
     transition: all var(--transition-fast);
@@ -44,7 +44,7 @@
 
     &:focus-visible ~ .settings-checkbox__icon,
     &:focus-visible + .settings-checkbox__box {
-      outline: 2px solid var(--color-primary);
+      outline: 2px solid var(--focus-8);
       outline-offset: 2px;
     }
   }

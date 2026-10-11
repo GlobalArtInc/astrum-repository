@@ -16,7 +16,7 @@
   }
 
   &__required {
-    color: var(--color-error);
+    color: var(--red-11);
   }
 
   &__container {
@@ -108,7 +108,7 @@
   }
 
   &__error {
-    color: var(--color-error);
+    color: var(--red-11);
     margin: 0;
   }
 }

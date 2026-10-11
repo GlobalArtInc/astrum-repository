@@ -84,8 +84,8 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-3) var(--space-6);
-    border-bottom: 1px solid var(--color-border);
-    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--gray-a5);
+    background-color: var(--color-panel-solid);
     flex-shrink: 0;
     z-index: 1;
     min-height: 52px;
@@ -93,7 +93,7 @@
   }
 
   &__unsaved {
-    color: var(--amber-9, #d97706);
+    color: var(--amber-11);
     font-style: italic;
     font-size: 13px;
 
@@ -105,7 +105,7 @@
 
   // Error message in sticky action bar - always visible regardless of scroll
   &__action-bar-error {
-    color: var(--red-11, #cd2b31);
+    color: var(--red-11);
     font-size: 13px;
     max-width: 600px;
     white-space: normal;
@@ -113,15 +113,7 @@
 
     svg {
       flex-shrink: 0;
-      color: var(--red-9, #e5484d);
-    }
-
-    [data-theme='dark'] & {
-      color: var(--red-11, #ff9592);
-
-      svg {
-        color: var(--red-9, #e5484d);
-      }
+      color: var(--red-11);
     }
   }
 }

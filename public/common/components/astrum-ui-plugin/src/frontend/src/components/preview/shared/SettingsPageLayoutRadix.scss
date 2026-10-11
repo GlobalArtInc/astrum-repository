@@ -42,12 +42,12 @@
   display: flex;
   flex-direction: column;
   background-color: var(--color-surface);
-  border-right: 1px solid var(--gray-6);
+  border-right: 1px solid var(--gray-a5);
   overflow: hidden;
 
   &__header {
     padding: 20px 16px 16px;
-    border-bottom: 1px solid var(--gray-6);
+    border-bottom: 1px solid var(--gray-a5);
     flex-shrink: 0;
     color: var(--gray-12);
   }
@@ -86,15 +86,15 @@
     }
 
     &--open {
-      background-color: var(--green-3);
-      color: var(--green-12);
+      background-color: var(--accent-a3);
+      color: var(--accent-12);
 
       .settings-sidebar__section-icon {
-        color: var(--green-11);
+        color: var(--accent-11);
       }
 
       .settings-sidebar__section-chevron {
-        color: var(--green-11);
+        color: var(--accent-11);
       }
     }
   }
@@ -152,18 +152,18 @@
     }
 
     &--active {
-      background-color: var(--green-a4);
-      color: var(--green-11) !important;
+      background-color: var(--accent-a3);
+      color: var(--accent-11) !important;
 
       &:link,
       &:visited,
       &:hover,
       &:active {
-        color: var(--green-11) !important;
+        color: var(--accent-11) !important;
       }
 
       .settings-sidebar__item-icon {
-        color: var(--green-11);
+        color: var(--accent-11);
       }
     }
   }
@@ -179,7 +179,7 @@
     }
 
     .settings-sidebar__item--active & {
-      color: var(--green-11);
+      color: var(--accent-11);
     }
   }
 
@@ -193,7 +193,7 @@
     display: flex;
     align-items: center;
     padding: 12px;
-    border-top: 1px solid var(--gray-6);
+    border-top: 1px solid var(--gray-a5);
     flex-shrink: 0;
   }
 
@@ -207,9 +207,9 @@
   &__search-input {
     width: 100%;
     padding: 8px 12px 8px 32px;
-    border: 1px solid var(--gray-6);
+    border: 1px solid var(--gray-a6);
     border-radius: 6px;
-    background: transparent;
+    background: var(--astrum-input-bg);
     color: var(--gray-12);
     font-size: 13px;
     outline: none;
@@ -220,8 +220,8 @@
     }
 
     &:focus {
-      border-color: var(--accent-8);
-      box-shadow: 0 0 0 1px var(--accent-a5);
+      border-color: var(--focus-8);
+      box-shadow: 0 0 0 1px var(--focus-a5);
     }
   }
 

@@ -20,10 +20,10 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-panel-solid);
+  border: 1px solid var(--gray-a6);
   border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-5);
   overflow: hidden;
   z-index: 9999; // Very high to ensure it's above everything
   max-height: 400px;
@@ -32,9 +32,9 @@
   &__footer {
     padding: 8px 12px;
     font-size: 11px;
-    color: #9ca3af;
-    background: #f9fafb;
-    border-top: 1px solid #e5e7eb;
+    color: var(--gray-11);
+    background: var(--gray-a2);
+    border-top: 1px solid var(--gray-a5);
     text-align: center;
   }
 }
@@ -47,7 +47,7 @@
   padding: 10px 14px;
   cursor: pointer;
   transition: background-color 0.1s ease;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--gray-a3);
 
   &:last-of-type {
     border-bottom: none;
@@ -55,12 +55,12 @@
 
   &:hover,
   &--selected {
-    background: #f3f4f6;
+    background: var(--accent-a3);
   }
 
   &__icon {
     flex-shrink: 0;
-    color: #9ca3af;
+    color: var(--gray-10);
   }
 
   &__content {
@@ -74,7 +74,7 @@
   &__name {
     font-size: 14px;
     font-weight: 500;
-    color: #111827;
+    color: var(--gray-12);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -82,7 +82,7 @@
 
   &__version {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--gray-11);
     white-space: nowrap;
   }
 
@@ -93,44 +93,5 @@
     font-weight: 500;
     border-radius: 12px;
     text-transform: lowercase;
-  }
-}
-
-// =============================================================================
-// DARK MODE
-// =============================================================================
-
-:root[data-theme="dark"] {
-  .search-radix-suggestions {
-    background: #1f2937;
-    border-color: #374151;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-
-    &__footer {
-      background: #111827;
-      border-top-color: #374151;
-      color: #6b7280;
-    }
-  }
-
-  .search-radix-suggestion {
-    border-bottom-color: #374151;
-
-    &:hover,
-    &--selected {
-      background: #374151;
-    }
-
-    &__icon {
-      color: #6b7280;
-    }
-
-    &__name {
-      color: #f9fafb;
-    }
-
-    &__version {
-      color: #9ca3af;
-    }
   }
 }

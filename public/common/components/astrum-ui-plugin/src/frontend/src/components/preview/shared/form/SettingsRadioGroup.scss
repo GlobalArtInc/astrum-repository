@@ -3,32 +3,19 @@
 .settings-radio-group {
   &__option {
     padding: var(--space-3, 12px);
-    border: 1px solid var(--gray-6, #d1d1d6);
+    border: 1px solid var(--gray-a6);
     border-radius: var(--radius-2, 6px);
     cursor: pointer;
     transition: border-color 0.15s ease, background-color 0.15s ease;
-    background: var(--color-background, #fff);
+    background: var(--color-panel-solid);
 
     &:hover {
-      border-color: var(--blue-8, #0091ff);
+      border-color: var(--blue-8);
     }
 
     &--checked {
-      border-color: var(--blue-8, #0091ff);
-      background: var(--blue-2, #f0f9ff);
-    }
-
-    [data-theme='dark'] & {
-      background: var(--gray-1, #111113);
-      border-color: var(--gray-4, #27272b);
-
-      &:hover {
-        border-color: var(--blue-8, #0091ff);
-      }
-
-      &--checked {
-        background: var(--blue-3, #002a45);
-      }
+      border-color: var(--blue-8);
+      background: var(--blue-a3);
     }
   }
 
@@ -41,8 +28,8 @@
   &__badge {
     margin-left: var(--space-1, 4px);
     padding: 0 var(--space-2, 8px);
-    background: var(--blue-9, #0090ff);
-    color: white;
+    background: var(--blue-9);
+    color: var(--blue-contrast);
     border-radius: var(--radius-1, 4px);
     font-size: 10px;
     font-weight: 600;

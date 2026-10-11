@@ -1,8 +1,5 @@
 
 
-// Repository product brand color (per ux-standards navigation.md)
-$repository-primary: #138653;
-
 // Dimensions per spec: 240px expanded, 60px collapsed, 0.2s transition
 .guide-sidebar {
   grid-area: global-sidebar !important;
@@ -11,7 +8,7 @@ $repository-primary: #138653;
   width: 240px;
   height: 100%;
   background-color: var(--color-background);
-  border-right: 1px solid var(--gray-6);
+  border-right: 1px solid var(--gray-a5);
   transition: width 0.2s ease-in-out;
   overflow: hidden;
   z-index: 100;
@@ -89,12 +86,12 @@ $repository-primary: #138653;
   }
 
   &--active {
-    background-color: $repository-primary;
-    color: white !important;
-    font-weight: 500;
+    background-color: var(--accent-a3);
+    color: var(--accent-11) !important;
+    font-weight: 600;
 
     .guide-nav-item__icon {
-      color: white;
+      color: var(--accent-11);
     }
   }
 
@@ -203,11 +200,11 @@ $repository-primary: #138653;
   }
 
   &--active {
-    background-color: $repository-primary;
-    color: white !important;
+    background-color: var(--accent-a3);
+    color: var(--accent-11) !important;
 
     .guide-nav-child__icon {
-      color: white;
+      color: var(--accent-11);
     }
   }
 }

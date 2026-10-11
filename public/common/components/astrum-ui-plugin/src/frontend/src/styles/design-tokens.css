@@ -5,7 +5,13 @@
  * Color tokens reference theme-variables.css (ux-standards). Non-color tokens defined here.
  */
 
-:root {
+/*
+ * Colour aliases are declared on .radix-themes as well as :root so that they resolve against the
+ * scales of the theme an element is rendered in. Radix keys its dark scales on the .dark class of
+ * the body, so an alias resolved only at :root would keep the light value of those scales.
+ */
+:root,
+.radix-themes {
   /* ===== Semantic Colors - from theme-variables (ux-standards) ===== */
   --color-primary: var(--blue-9);
   --color-primary-hover: var(--blue-10);
@@ -45,7 +51,9 @@
   --color-info: var(--blue-9);
   --color-info-bg: var(--blue-2);
   --color-info-background: var(--blue-2);
+}
 
+:root {
   /* ===== Spacing Scale ===== */
   --space-1: 0.25rem;  /* 4px */
   --space-2: 0.5rem;   /* 8px */
@@ -87,10 +95,10 @@
   --radius-full: 9999px;
 
   /* ===== Shadows ===== */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 var(--black-a1);
+  --shadow-md: 0 4px 6px -1px var(--black-a2), 0 2px 4px -2px var(--black-a2);
+  --shadow-lg: 0 10px 15px -3px var(--black-a2), 0 4px 6px -4px var(--black-a2);
+  --shadow-xl: 0 20px 25px -5px var(--black-a2), 0 8px 10px -6px var(--black-a2);
 
   /* ===== Transitions ===== */
   --transition-fast: 150ms ease;
@@ -108,8 +116,8 @@
 
 /* Card */
 :root {
-  --card-background: var(--color-surface);
-  --card-border: var(--color-border);
+  --card-background: var(--color-panel-solid);
+  --card-border: var(--gray-a5);
   --card-padding: var(--space-6);
   --card-radius: var(--radius-lg);
   --card-shadow: var(--shadow-sm);
@@ -128,8 +136,8 @@
 
 /* Dialog */
 :root {
-  --dialog-background: var(--color-surface);
-  --dialog-overlay-bg: rgb(0 0 0 / 0.5);
+  --dialog-background: var(--color-panel-solid);
+  --dialog-overlay-bg: var(--black-a7);
   --dialog-padding: var(--space-6);
   --dialog-radius: var(--radius-xl);
   --dialog-shadow: var(--shadow-xl);
@@ -158,10 +166,10 @@
 .dark .searchable-select__search,
 .dark .jdbc-param-editor__dropdown,
 .dark .routing-rule-matcher__dropdown {
-  background-color: var(--gray-2) !important;
-  border-color: var(--gray-6) !important;
+  background-color: var(--color-panel-solid) !important;
+  border-color: var(--gray-a6) !important;
   color: var(--gray-12) !important;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.08) !important;
+  box-shadow: var(--shadow-5) !important;
 }
 
 [data-theme="dark"] [role="option"],
@@ -185,5 +193,5 @@
 .dark .settings-combobox__option--highlighted,
 .dark .searchable-select__option:hover,
 .dark .searchable-select__option--highlighted {
-  background-color: var(--gray-3) !important;
+  background-color: var(--accent-a3) !important;
 }

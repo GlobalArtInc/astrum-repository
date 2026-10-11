@@ -11,10 +11,10 @@
   &__card {
     max-width: 500px;
     width: 100%;
-    background: var(--gray-1);
-    border: 1px solid var(--gray-5);
+    background: var(--color-panel-solid);
+    border: 1px solid var(--gray-a5);
     border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-4);
   }
 
   &__icon {
@@ -34,7 +34,7 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    color: var(--amber-9);
+    color: var(--amber-11);
     animation: sparkle 1.5s ease-in-out infinite;
   }
 
@@ -57,7 +57,7 @@
 
   &__notice {
     padding: 16px;
-    background: var(--gray-3);
+    background: var(--gray-a3);
     border-radius: 8px;
     border-left: 3px solid var(--amber-9);
     max-width: 380px;
@@ -72,10 +72,10 @@
     }
 
     &--primary {
-      background: linear-gradient(135deg, var(--green-9) 0%, var(--green-10) 100%);
-      
+      background: var(--accent-9);
+
       &:hover {
-        background: linear-gradient(135deg, var(--green-10) 0%, var(--green-11) 100%);
+        background: var(--accent-10);
       }
     }
 
@@ -97,8 +97,8 @@
     align-items: center;
     padding: 16px 24px;
     margin-top: 16px;
-    background: linear-gradient(135deg, var(--orange-2) 0%, var(--amber-2) 100%);
-    border: 1px dashed var(--orange-6);
+    background: linear-gradient(135deg, var(--orange-a2) 0%, var(--amber-a2) 100%);
+    border: 1px dashed var(--orange-a7);
     border-radius: 8px;
     text-align: center;
   }
@@ -125,23 +125,3 @@
     opacity: 0.7;
   }
 }
-
-// Dark mode adjustments
-:root[data-theme="dark"] .coming-soon-page {
-  &__card {
-    background: var(--gray-2);
-    border-color: var(--gray-6);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-  }
-
-  &__notice {
-    background: var(--gray-4);
-  }
-
-  &__dev-section {
-    background: linear-gradient(135deg, var(--orange-3) 0%, var(--amber-3) 100%);
-    border-color: var(--orange-7);
-  }
-}
-
-

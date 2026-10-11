@@ -25,11 +25,9 @@
   gap: 12px;
   padding: 16px;
   border-radius: 8px;
-  box-shadow:
-    0 10px 38px -10px rgba(22, 23, 24, 0.35),
-    0 10px 20px -15px rgba(22, 23, 24, 0.2);
+  box-shadow: var(--shadow-5);
   background-color: var(--color-panel-solid);
-  border: 1px solid var(--gray-6);
+  border: 1px solid var(--gray-a6);
 
   // Animation
   &[data-state='open'] {
@@ -58,7 +56,7 @@
     border-left: 4px solid var(--green-9);
 
     .toast__icon {
-      color: var(--green-9);
+      color: var(--green-11);
     }
   }
 
@@ -66,7 +64,7 @@
     border-left: 4px solid var(--red-9);
 
     .toast__icon {
-      color: var(--red-9);
+      color: var(--red-11);
     }
   }
 
@@ -74,7 +72,7 @@
     border-left: 4px solid var(--amber-9);
 
     .toast__icon {
-      color: var(--amber-9);
+      color: var(--amber-11);
     }
   }
 
@@ -101,14 +99,14 @@
   font-weight: 600;
   font-size: 14px;
   line-height: 1.4;
-  color: var(--gray-12, #1c2024);
+  color: var(--gray-12);
   margin: 0;
 }
 
 .toast__description {
   font-size: 13px;
   line-height: 1.4;
-  color: var(--gray-11, #60646c);
+  color: var(--gray-11);
   margin-top: 4px;
 }
 
@@ -127,12 +125,12 @@
   transition: background-color 150ms ease;
 
   &:hover {
-    background-color: var(--gray-4);
+    background-color: var(--gray-a4);
     color: var(--gray-12);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent-8);
+    outline: 2px solid var(--focus-8);
     outline-offset: 2px;
   }
 }
@@ -163,14 +161,4 @@
   to {
     transform: translateX(calc(100% + 24px));
   }
-}
-
-// Dark mode support (Radix Themes handles this automatically via CSS variables)
-:root {
-  --color-panel-solid: white;
-}
-
-.dark,
-[data-theme='dark'] {
-  --color-panel-solid: var(--gray-2);
 }

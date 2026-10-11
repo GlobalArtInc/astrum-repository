@@ -95,7 +95,7 @@ export function SessionExpiryModal({
               <RefreshCw size={16} />
               Refresh Page
             </Button>
-            <Button variant="solid" color="orange" onClick={handleSignIn}>
+            <Button variant="solid" onClick={handleSignIn}>
               <LogIn size={16} />
               Sign In
             </Button>

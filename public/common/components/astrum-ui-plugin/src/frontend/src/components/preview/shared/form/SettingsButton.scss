@@ -51,7 +51,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--color-primary);
+      outline: 2px solid var(--focus-8);
       outline-offset: 2px;
     }
   }
@@ -71,7 +71,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--color-primary);
+      outline: 2px solid var(--focus-8);
       outline-offset: 2px;
     }
   }
@@ -82,15 +82,16 @@
     border: none;
 
     &:hover:not(:disabled) {
-      background-color: #b91c1c; // darker red
+      background-color: var(--red-10);
     }
 
     &:active:not(:disabled) {
-      background-color: #991b1b; // even darker red
+      background-color: var(--red-10);
+      filter: brightness(0.92) saturate(1.1);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--color-error);
+      outline: 2px solid var(--red-8);
       outline-offset: 2px;
     }
 
@@ -116,7 +117,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--color-primary);
+      outline: 2px solid var(--focus-8);
       outline-offset: 2px;
     }
   }

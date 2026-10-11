@@ -141,37 +141,3 @@ body.as-security-summary-modal-open .rt-BaseDialogOverlay {
     transform: scale(1);
   }
 }
-
-// Match SecurityReportModal.scss: Radix soft/solid (and ghost) buttons lack contrast on dark panel.
-:root[data-theme="dark"] {
-  .security-summary-modal {
-    .rt-Button {
-      &[data-variant="soft"] {
-        background-color: var(--gray-4);
-        color: var(--gray-12);
-
-        &:hover {
-          background-color: var(--gray-5);
-        }
-
-        a {
-          color: var(--gray-12);
-        }
-      }
-
-      &[data-variant="solid"] {
-        background-color: var(--accent-9);
-        color: var(--accent-contrast);
-      }
-
-      &[data-variant="ghost"] {
-        color: var(--gray-12);
-
-        &:hover {
-          background-color: var(--gray-a3);
-          color: var(--gray-12);
-        }
-      }
-    }
-  }
-}

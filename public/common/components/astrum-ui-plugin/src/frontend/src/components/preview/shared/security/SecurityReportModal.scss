@@ -45,7 +45,7 @@
     background: var(--gray-2);
     border-radius: var(--radius-3);
     padding: var(--space-1);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-1);
   }
 
   &__empty {
@@ -72,28 +72,6 @@
       background: var(--orange-3);
       border-color: var(--orange-7);
       color: var(--gray-12);
-    }
-
-    // Fix button contrast in dark mode - ensure text is readable
-    .rt-Button {
-      &[data-variant="soft"] {
-        background-color: var(--gray-4);
-        color: var(--gray-12);
-
-        &:hover {
-          background-color: var(--gray-5);
-        }
-
-        // Ensure link inside soft button is readable
-        a {
-          color: var(--gray-12);
-        }
-      }
-
-      &[data-variant="solid"] {
-        background-color: var(--accent-9);
-        color: var(--accent-contrast);
-      }
     }
   }
 }

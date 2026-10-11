@@ -15,7 +15,7 @@
   }
 
   &__required {
-    color: var(--color-error, #dc2626);
+    color: var(--red-11);
   }
 
   &__wrapper {
@@ -70,10 +70,10 @@
   }
 
   &--error &__trigger {
-    border-color: var(--color-error, #dc2626);
+    border-color: var(--color-error);
 
     &:focus {
-      box-shadow: 0 0 0 2px var(--color-error-bg, #fee2e2);
+      box-shadow: 0 0 0 2px var(--color-error-bg);
     }
   }
 
@@ -83,7 +83,7 @@
   }
 
   &__error-text {
-    color: var(--color-error, #dc2626);
+    color: var(--red-11);
     margin: 0;
     display: flex;
     align-items: center;
