@@ -113,7 +113,7 @@ export const GA_SEARCH_URLS = {
 /**
  * Base URL for Preview UI (path-based routing).
  */
-export const PREVIEW_BASE_URL = '/preview/browse/search';
+export const PREVIEW_BASE_URL = '/browse/search';
 
 // =============================================================================
 // QUERY PARAMETERS

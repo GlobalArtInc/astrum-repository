@@ -65,7 +65,7 @@ describe('search.routes', () => {
 
     describe('PREVIEW_BASE_URL', () => {
       it('has correct value', () => {
-        expect(PREVIEW_BASE_URL).toBe('/preview/browse/search');
+        expect(PREVIEW_BASE_URL).toBe('/browse/search');
       });
     });
 
@@ -85,41 +85,41 @@ describe('search.routes', () => {
 
   describe('buildSearchRoute', () => {
     it('returns base URL when no params provided', () => {
-      expect(buildSearchRoute()).toBe('/preview/browse/search/maven');
+      expect(buildSearchRoute()).toBe('/browse/search/maven');
     });
 
     it('returns base URL for empty params', () => {
-      expect(buildSearchRoute({})).toBe('/preview/browse/search/maven');
+      expect(buildSearchRoute({})).toBe('/browse/search/maven');
     });
 
     it('includes query parameter', () => {
       const url = buildSearchRoute({ query: 'commons-lang' });
-      expect(url).toBe('/preview/browse/search/maven?q=commons-lang');
+      expect(url).toBe('/browse/search/maven?q=commons-lang');
     });
 
     it('includes groupId parameter', () => {
       const url = buildSearchRoute({ groupId: 'org.apache.commons' });
-      expect(url).toBe('/preview/browse/search/maven?groupId=org.apache.commons');
+      expect(url).toBe('/browse/search/maven?groupId=org.apache.commons');
     });
 
     it('includes artifactId parameter', () => {
       const url = buildSearchRoute({ artifactId: 'commons-lang3' });
-      expect(url).toBe('/preview/browse/search/maven?artifactId=commons-lang3');
+      expect(url).toBe('/browse/search/maven?artifactId=commons-lang3');
     });
 
     it('includes repository parameter', () => {
       const url = buildSearchRoute({ repository: 'maven-central' });
-      expect(url).toBe('/preview/browse/search/maven?repository=maven-central');
+      expect(url).toBe('/browse/search/maven?repository=maven-central');
     });
 
     it('includes sort parameter', () => {
       const url = buildSearchRoute({ sort: 'name' });
-      expect(url).toBe('/preview/browse/search/maven?sort=name');
+      expect(url).toBe('/browse/search/maven?sort=name');
     });
 
     it('includes direction parameter', () => {
       const url = buildSearchRoute({ direction: 'desc' });
-      expect(url).toBe('/preview/browse/search/maven?direction=desc');
+      expect(url).toBe('/browse/search/maven?direction=desc');
     });
 
     it('combines multiple parameters', () => {
@@ -140,7 +140,7 @@ describe('search.routes', () => {
 
     it('excludes undefined parameters', () => {
       const url = buildSearchRoute({ query: 'test', groupId: undefined });
-      expect(url).toBe('/preview/browse/search/maven?q=test');
+      expect(url).toBe('/browse/search/maven?q=test');
       expect(url).not.toContain('groupId');
     });
   });
@@ -149,7 +149,7 @@ describe('search.routes', () => {
     it('builds URL with just gaId', () => {
       const url = buildDetailRoute('maven:org.apache:commons-lang3');
       expect(url).toBe(
-        '/preview/browse/search/maven/ga/maven%3Aorg.apache%3Acommons-lang3'
+        '/browse/search/maven/ga/maven%3Aorg.apache%3Acommons-lang3'
       );
     });
 
@@ -161,14 +161,14 @@ describe('search.routes', () => {
     it('includes tab when not overview', () => {
       const url = buildDetailRoute('maven:org:artifact', 'versions');
       expect(url).toBe(
-        '/preview/browse/search/maven/ga/maven%3Aorg%3Aartifact/versions'
+        '/browse/search/maven/ga/maven%3Aorg%3Aartifact/versions'
       );
     });
 
     it('excludes tab segment for overview', () => {
       const url = buildDetailRoute('maven:org:artifact', 'overview');
       expect(url).not.toContain('/overview');
-      expect(url).toBe('/preview/browse/search/maven/ga/maven%3Aorg%3Aartifact');
+      expect(url).toBe('/browse/search/maven/ga/maven%3Aorg%3Aartifact');
     });
 
     it('includes version for files tab', () => {

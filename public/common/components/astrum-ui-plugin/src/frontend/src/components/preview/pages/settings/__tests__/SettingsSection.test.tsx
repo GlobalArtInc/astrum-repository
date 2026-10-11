@@ -56,8 +56,8 @@ describe('SettingsSection', () => {
     renderWithTheme(<SettingsSection section={mockSection} />);
 
     const links = screen.getAllByRole('link');
-    expect(links[0]).toHaveAttribute('href', '#preview/admin/security/users');
-    expect(links[1]).toHaveAttribute('href', '#preview/admin/security/roles');
+    expect(links[0]).toHaveAttribute('href', '#admin/security/users');
+    expect(links[1]).toHaveAttribute('href', '#admin/security/roles');
   });
 
   it('renders section with single card', () => {

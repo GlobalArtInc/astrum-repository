@@ -14,7 +14,7 @@ export default function SettingsPageLayoutRadix() {
     <SecurityEntityModalProvider>
       <Flex direction="column" className="settings-layout-radix">
         <Box px="5" pt="3" pb="2">
-          <a href="#preview/settings" className="settings-layout-radix__back-link">
+          <a href="#settings" className="settings-layout-radix__back-link">
             {SharedStrings.SETTINGS_LAYOUT.BACK_SETTINGS}
           </a>
         </Box>

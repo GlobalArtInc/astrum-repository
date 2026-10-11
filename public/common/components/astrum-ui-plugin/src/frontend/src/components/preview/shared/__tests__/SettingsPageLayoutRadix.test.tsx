@@ -13,7 +13,7 @@ describe('SettingsPageLayoutRadix', () => {
   it('renders back link to Settings hub', () => {
     render(<SettingsPageLayoutRadix />);
     const back = screen.getByRole('link', { name: /back to settings/i });
-    expect(back).toHaveAttribute('href', '#preview/settings');
+    expect(back).toHaveAttribute('href', '#settings');
   });
 
   it('renders router outlet for nested settings routes', () => {

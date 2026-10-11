@@ -1,7 +1,7 @@
 
 
 /** Hash target for Preview UI API hub ({@code preview.browse.api}). */
-export const PREVIEW_BROWSE_API_HUB = '#/preview/browse/api';
+export const PREVIEW_BROWSE_API_HUB = '#browse/api';
 
 export function apiHubHref(params: { user?: string; role?: string; permission?: string; endpoint?: string }): string {
   const sp = new URLSearchParams();

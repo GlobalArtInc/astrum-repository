@@ -34,10 +34,10 @@ export interface VisibilityRequirements {
 export interface SettingCard {
   /** Unique identifier */
   id: string;
-  /** URL path (appended to #preview/admin/) when fullHash is not set */
+  /** URL path (appended to #admin/) when fullHash is not set */
   path: string;
   /**
-   * Full hash URL for routes outside #preview/admin/... (e.g. API lives under #preview/browse/api).
+   * Full hash URL for routes outside #admin/... (e.g. API lives under #browse/api).
    */
   fullHash?: string;
   /** Display label */
@@ -432,7 +432,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'api',
         path: 'system/api',
-        fullHash: '#preview/browse/api',
+        fullHash: '#browse/api',
         label: 'API',
         description: SettingsStrings.CARDS.CONFIGURE_REST_API_SETTINGS,
         searchTerms: ['rest', 'endpoint'],

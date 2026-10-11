@@ -61,7 +61,7 @@ describe('SettingsCard', () => {
     renderWithTheme(<SettingsCard card={mockCard} />);
 
     const link = screen.getByRole('link');
-    expect(link).toHaveAttribute('href', '#preview/admin/security/users');
+    expect(link).toHaveAttribute('href', '#admin/security/users');
   });
 
   it('uses fullHash when provided', () => {

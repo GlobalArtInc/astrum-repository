@@ -448,8 +448,8 @@ describe('SettingsHubPage', () => {
       const usersLink = screen.getByRole('link', { name: /Users/ });
       fireEvent.click(usersLink);
 
-      // Check that hash was set (preview/admin/{path} without /settings)
-      expect(usersLink).toHaveAttribute('href', '#preview/admin/security/users');
+      // Check that hash was set (admin/{path} without /settings)
+      expect(usersLink).toHaveAttribute('href', '#admin/security/users');
     });
 
     it('renders all cards as links', () => {

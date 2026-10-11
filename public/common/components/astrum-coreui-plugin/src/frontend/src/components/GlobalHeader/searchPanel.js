@@ -91,7 +91,7 @@ function decode(text) {
 }
 
 /**
- * The repository the current page browses: Astrum One `#preview/browse/<name>/...` or Classic
+ * The repository the current page browses: Astrum One `#browse/<name>/...` or Classic
  * `#browse/browse:<name>[:<path>]`. Null anywhere else.
  */
 export function currentRepositoryOf(stateName = '', params = {}) {

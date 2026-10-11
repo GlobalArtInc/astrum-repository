@@ -24,7 +24,7 @@ export interface SettingsCardProps {
 }
 
 export default function SettingsCard({ card }: SettingsCardProps) {
-  const href = card.fullHash ?? `#preview/admin/${card.path}`;
+  const href = card.fullHash ?? `#admin/${card.path}`;
   const isComingSoon = card.featureKey ? !isFeatureEnabled(card.featureKey) : false;
   const isPhone = useIsPhone();
   const Icon = SETTINGS_ICONS[card.id] ?? Settings;
