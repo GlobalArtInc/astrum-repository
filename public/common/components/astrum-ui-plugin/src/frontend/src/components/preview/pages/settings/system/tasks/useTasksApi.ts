@@ -282,7 +282,8 @@ function toRestTaskUpdate(
   return {
     name: data.name,
     enabled: data.enabled,
-    alertEmail: data.alertEmail || null,
+    // An update keeps what it does not send, so a cleared email is sent empty rather than left out
+    alertEmail: data.alertEmail || '',
     notificationCondition: (data.notificationCondition || 'FAILURE') as RestTaskCreatePayload['notificationCondition'],
     frequency: toRestFrequency(
       data.schedule,

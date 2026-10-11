@@ -592,6 +592,21 @@ describe('useTasksApi', () => {
       expect(task?.name).toBe('Updated Task');
     });
 
+    it('sends a cleared alert email as an empty value, which the server stores as none', async () => {
+      mockRestClientPut.mockResolvedValueOnce(undefined);
+      mockRestClientGet.mockResolvedValueOnce({
+        id: 'task-1', name: 'Updated Task', type: 'repository.cleanup', currentState: 'WAITING',
+      });
+
+      const { result } = renderHook(() => useTasksApi());
+
+      await act(async () => {
+        await result.current.updateTask('task-1', { ...mockTaskFormData, alertEmail: '' } as any);
+      });
+
+      expect(mockRestClientPut.mock.calls[0][1]).toHaveProperty('alertEmail', '');
+    });
+
     it('AT-004: serializes empty-string checkbox as "false" on update', async () => {
       mockRestClientPut.mockResolvedValueOnce(undefined);
       mockRestClientGet.mockResolvedValueOnce({

@@ -20,6 +20,7 @@ import org.globalart.astrum.scheduling.TaskConfiguration;
 import org.globalart.astrum.scheduling.TaskInfo;
 import org.globalart.astrum.scheduling.TaskScheduler;
 import org.globalart.astrum.scheduling.TaskState;
+import org.globalart.astrum.scheduling.TaskUtils;
 import org.globalart.astrum.scheduling.api.TaskXO;
 import org.globalart.astrum.scheduling.schedule.Schedule;
 import org.globalart.astrum.testcommon.extensions.AuthenticationExtension;
@@ -29,7 +30,6 @@ import org.globalart.astrum.testcommon.validation.ValidationExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -72,11 +72,14 @@ class TasksApiResourceTest
   @Mock
   private TaskScheduler taskScheduler;
 
-  @InjectMocks
+  @Mock
+  private TaskUtils taskUtils;
+
   TasksApiResource tasksResource;
 
   @BeforeEach
   void setup() {
+    tasksResource = new TasksApiResource(taskScheduler, taskUtils, false);
     lenient().when(taskScheduler.getTaskById(any())).thenAnswer(this::findTask);
   }
 
