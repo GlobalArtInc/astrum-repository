@@ -631,11 +631,12 @@ describe('SettingsHubPage', () => {
     });
   });
 
-  describe('No preview callout', () => {
-    it('does not send users to the classic UI', () => {
-      renderWithTheme(<SettingsHubPage />);
+  describe('without the Classic UI', () => {
+    it('does not send anyone to the Classic UI administration panel', () => {
+      const { container } = renderWithTheme(<SettingsHubPage />);
 
-      expect(screen.queryByText(/Some settings pages are available in this preview/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/classic UI administration panel/i)).not.toBeInTheDocument();
+      expect(container.querySelector('[class*="rt-CalloutRoot"]')).not.toBeInTheDocument();
     });
   });
 
