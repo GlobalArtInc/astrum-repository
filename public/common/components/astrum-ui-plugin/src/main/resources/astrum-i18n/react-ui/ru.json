@@ -2445,7 +2445,6 @@
   "PREVIEW.OAUTH2.PAGE.LAST_NAME_CLAIM": "Claim с фамилией",
   "PREVIEW.OAUTH2.PAGE.LOADING_OAUTH2_CONFIGURATION": "Загрузка настроек OAuth2...",
   "PREVIEW.OAUTH2.PAGE.LOGOUT_ENDPOINT_IDENTITY_PROVIDER": "Конечная точка выхода поставщика удостоверений",
-  "PREVIEW.OAUTH2.PAGE.OAUTH2": "OAuth2",
   "PREVIEW.OAUTH2.PAGE.OIDC_SETTINGS": "Настройки OIDC",
   "PREVIEW.OAUTH2.PAGE.OPTIONAL_JSON_WEB_KEY_SET": "Необязательный набор ключей JSON Web Key Set для проверки без обращения к серверу",
   "PREVIEW.OAUTH2.PAGE.REDIRECT_URI": "URI перенаправления",

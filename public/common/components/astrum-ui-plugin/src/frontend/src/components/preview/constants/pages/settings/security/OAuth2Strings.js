@@ -9,7 +9,7 @@ export default localize('react-ui', {
   },
   PAGE: {
     LOADING_OAUTH2_CONFIGURATION: 'Loading OAuth2 configuration...',
-    OAUTH2: 'OAuth2',
+    OPENID_CONNECT: 'OpenID Connect',
     CONFIGURE_OPENID_CONNECT_OIDC_AUTHENTICATION: 'Configure OpenID Connect (OIDC) authentication settings',
     OIDC_SETTINGS: 'OIDC Settings',
     REDIRECT_URI: 'Redirect URI',

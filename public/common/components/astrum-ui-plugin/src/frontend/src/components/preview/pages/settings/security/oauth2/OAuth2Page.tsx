@@ -63,11 +63,11 @@ export function OAuth2Page({ className }: OAuth2PageProps) {
     >
       <Box mb="4">
         <PageHeader
-          title={OAuth2Strings.PAGE.OAUTH2}
+          title={OAuth2Strings.PAGE.OPENID_CONNECT}
           description={OAuth2Strings.PAGE.CONFIGURE_OPENID_CONNECT_OIDC_AUTHENTICATION}
           breadcrumbs={[
             { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'OAuth2' }
+            { label: OAuth2Strings.PAGE.OPENID_CONNECT }
           ]}
         />
       </Box>

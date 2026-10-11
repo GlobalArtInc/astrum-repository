@@ -91,7 +91,7 @@ describe('OAuth2Page', () => {
   it('renders the page header', async () => {
     render(<OAuth2Page />, { wrapper: TestWrapper });
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'OAuth2' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'OpenID Connect' })).toBeInTheDocument();
     });
   });
 
@@ -284,7 +284,7 @@ describe('OAuth2Page', () => {
       render(<OAuth2Page />, { wrapper: TestWrapper });
 
       await waitFor(() => {
-        const breadcrumb = screen.getByText('OAuth2', { selector: '[aria-current="page"]' });
+        const breadcrumb = screen.getByText('OpenID Connect', { selector: '[aria-current="page"]' });
         expect(breadcrumb).toBeInTheDocument();
       });
     });
