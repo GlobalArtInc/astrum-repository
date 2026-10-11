@@ -42,48 +42,89 @@
   pointer-events: none;
 }
 
-// Suggestions dropdown
-.search-radix-suggestions {
+// The clear button that takes the place of the hint once the field has text
+.search-radix-clear.rt-IconButton {
+  margin: 0;
+  color: var(--gray-11);
+  cursor: pointer;
+}
+
+// The panel under the field: same left edge, at least as wide as the field
+.search-radix-panel {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  right: 0;
-  background: var(--color-panel-solid);
-  border: 1px solid var(--gray-a5);
-  border-radius: 10px;
-  box-shadow: var(--shadow-4);
-  overflow: hidden;
-  z-index: 9999; // Very high to ensure it's above everything
-  max-height: 400px;
+  z-index: 9999; // Above the page content and the left menu
+  box-sizing: border-box;
+  width: max(100%, 480px);
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  background-color: var(--color-panel-solid);
+  border: 1px solid var(--gray-a6);
+  border-radius: 12px;
+  box-shadow: var(--shadow-5);
+  color: var(--gray-12);
+  font-size: 14px;
+  line-height: 20px;
 
-  &__footer {
-    padding: 8px 12px;
-    font-size: 12px;
+  // Narrow screens: full width right under the header
+  @media (max-width: 639px) {
+    position: fixed;
+    top: var(--search-panel-top, 60px);
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+    border-width: 0 0 1px;
+    border-radius: 0 0 12px 12px;
+  }
+
+  &__section + &__section {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--gray-a4);
+  }
+
+  &__title {
+    padding: 8px 8px 4px;
     color: var(--gray-11);
-    background: var(--gray-a2);
-    border-top: 1px solid var(--gray-a5);
-    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  &__status,
+  &__hint {
+    padding: 8px;
+    color: var(--gray-11);
+  }
+
+  &__status {
+    padding-left: 34px;
   }
 }
 
-// Individual suggestion item
-.search-radix-suggestion {
+// One row of the panel: 36px, a leading icon, the text and, on the active row, the Enter hint
+.search-radix-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
+  min-height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.1s ease;
-  border-bottom: 1px solid var(--gray-a3);
+  user-select: none;
 
-  &:last-of-type {
-    border-bottom: none;
-  }
+  &--active {
+    background-color: var(--accent-a3);
 
-  &:hover,
-  &--selected {
-    background: var(--gray-a3);
+    .search-radix-row__icon {
+      color: var(--accent-11);
+    }
   }
 
   &__icon {
@@ -91,36 +132,65 @@
     color: var(--gray-11);
   }
 
-  &__content {
+  &__label {
     flex: 1;
     min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  &__name {
-    font-size: 14px;
-    font-weight: 500;
+    overflow: hidden;
     color: var(--gray-12);
     white-space: nowrap;
-    overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  &__version {
-    font-size: 12px;
+  &__meta,
+  &__version,
+  &__repository {
     color: var(--gray-11);
+  }
+
+  &__meta,
+  &__version {
+    margin-left: 8px;
+  }
+
+  &__version {
     font-family: var(--code-font-family);
+    font-size: 12px;
+  }
+
+  &__repository {
+    font-size: 12px;
     white-space: nowrap;
   }
 
-  &__format {
+  &__chips {
+    display: inline-flex;
     flex-shrink: 0;
-    padding: 2px 8px;
-    font-size: 11px;
-    font-weight: 500;
-    border-radius: 12px;
-    text-transform: lowercase;
+    align-items: center;
+    gap: 6px;
   }
+
+  &__enter {
+    flex-shrink: 0;
+    padding: 0 6px;
+    border: 1px solid var(--gray-a5);
+    border-radius: 6px;
+    background-color: var(--color-panel-solid);
+    color: var(--gray-11);
+    font-family: var(--code-font-family);
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  &__remove.rt-IconButton {
+    flex-shrink: 0;
+    margin: 0;
+    color: var(--gray-11);
+    cursor: pointer;
+  }
+}
+
+// The part of a text that matches the query
+.search-radix-match {
+  font-weight: 600;
+  color: var(--gray-12);
 }

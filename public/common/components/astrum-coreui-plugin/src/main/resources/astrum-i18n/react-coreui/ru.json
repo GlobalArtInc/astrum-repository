@@ -1564,7 +1564,6 @@
   "SHELL.HEADER.LANGUAGE": "Язык",
   "SHELL.HEADER.LOGO_ALT": "Astrum Repository",
   "SHELL.HEADER.REFRESH": "Обновить",
-  "SHELL.HEADER.SEARCH_HINT": "Нажмите Enter, чтобы показать все результаты",
   "SHELL.HEADER.SEARCH_LABEL": "Поиск компонентов",
   "SHELL.HEADER.SEARCH_PLACEHOLDER": "Поиск компонентов или CVE...",
   "SHELL.HEADER.SEARCH_SHORTCUT": "Ctrl K",

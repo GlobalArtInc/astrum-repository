@@ -27,9 +27,23 @@ export default {
       SYSTEM_STATUS_UNHEALTHY: 'System Status: health checks are failing',
       SEARCH_LABEL: 'Search components',
       SEARCH_PLACEHOLDER: 'Search components or CVEs...',
-      SEARCH_HINT: 'Press Enter to search all results',
       SEARCH_SHORTCUT: 'Ctrl K',
-      SEARCH_SHORTCUT_MAC: '⌘ K'
+      SEARCH_SHORTCUT_MAC: '⌘ K',
+      SEARCH_CLEAR: 'Clear search',
+      SEARCH_PANEL: {
+        LABEL: 'Search suggestions',
+        RECENT: 'Recent searches',
+        REMOVE_RECENT: (query) => `Remove “${query}” from recent searches`,
+        EMPTY_HINT: 'Find components by name, group or version, or open a repository by its name.',
+        SEARCH_IN: (query) => `Search for “${query}” in…`,
+        THIS_REPOSITORY: 'this repository',
+        ALL_REPOSITORIES: 'all repositories',
+        REPOSITORIES: 'Repositories',
+        COMPONENTS: 'Components',
+        NO_RESULTS: 'No results',
+        SEARCHING: 'Searching…',
+        OPEN_HINT: '↵'
+      }
     },
     THEME: {
       SWITCH_TO_DARK: 'Switch to dark mode',

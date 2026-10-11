@@ -1,21 +1,31 @@
-
-
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, {useState, useEffect, useRef, useCallback, useId, useMemo} from 'react';
 import {useCurrentStateAndParams, useRouter} from '@uirouter/react';
-import {TextField} from '@radix-ui/themes';
-import {Search as SearchIcon} from 'lucide-react';
-import {FormatBadge} from '@globalart/astrum-ui-plugin';
-import {ExtJS, useIsVisible, handleExtJsUnsavedChanges} from '@globalart/astrum-ui-plugin';
+import {Badge, IconButton, TextField} from '@radix-ui/themes';
+import {Database, FolderSearch, History, Package, Search as SearchIcon, X} from 'lucide-react';
+import {ExtJS, FORMAT_LABELS, TYPE_LABELS, useIsVisible, handleExtJsUnsavedChanges} from '@globalart/astrum-ui-plugin';
 import {ROUTE_NAMES} from '../../routerConfig/routeNames/routeNames';
 import Axios from 'axios';
 
 import './SearchRadix.scss';
 import UIStrings from '../../constants/UIStrings';
+import {
+  MAX_COMPONENTS,
+  addRecentSearch,
+  classicBrowseParam,
+  classicSearchKeyword,
+  currentRepositoryOf,
+  highlightParts,
+  matchRepositories,
+  readRecentSearches,
+  removeRecentSearch,
+  toComponentResult,
+} from './searchPanel';
 
 const DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 2;
-const MAX_SUGGESTIONS = 8;
+const UNIFIED_SEARCH = 'preview.browse.search.unified';
 const {HEADER} = UIStrings.SHELL;
+const PANEL = HEADER.SEARCH_PANEL;
 
 /**
  * Whether the browser runs on an Apple platform, where shortcuts use the Command key instead of Control.
@@ -36,118 +46,122 @@ export function isSearchShortcut(event, apple = isApplePlatform()) {
   return Boolean(modifier && !event.altKey && !event.shiftKey && event.key?.toLowerCase() === 'k');
 }
 
-/**
- * Fetch search suggestions from the lightweight suggest API.
- */
-async function fetchSuggestions(query) {
-  if (!query || query.trim().length < MIN_QUERY_LENGTH) {
-    return [];
-  }
-  try {
-    const response = await Axios.get('/service/rest/v1/search/suggest', {
-      params: { q: query.trim(), limit: MAX_SUGGESTIONS }
-    });
-    return response.data || [];
-  } catch (error) {
-    console.error('[SearchRadix] Failed to fetch suggestions:', error);
-    return [];
-  }
+function isCancelled(error) {
+  return error?.name === 'CanceledError' || error?.name === 'AbortError' || error?.code === 'ERR_CANCELED';
+}
+
+function Highlighted({text, query}) {
+  return highlightParts(text, query).map((part, index) => (part.match
+    ? <strong key={index} className="search-radix-match">{part.text}</strong>
+    : <React.Fragment key={index}>{part.text}</React.Fragment>));
 }
 
 /**
- * Get display name for a suggestion.
- */
-function getDisplayName(suggestion) {
-  if (suggestion.group && suggestion.group !== suggestion.name) {
-    return `${suggestion.group}:${suggestion.name}`;
-  }
-  return suggestion.name;
-}
-
-/**
- * Global search bar with autocomplete in the header.
- * 
- * Features:
- * - Debounced autocomplete suggestions
- * - Keyboard navigation (up/down arrows, Enter, Escape)
- * - Click to select suggestion
- * - Format badges on suggestions
- * 
+ * Global search of the header, in the manner of GitLab: the field opens a panel right under it with the recent
+ * searches, or, while the user types, where to search, the repositories whose name matches and the first
+ * components found.
+ *
  * Routing behavior:
- * - Preview UI: Navigate to #preview/browse/search?q=<query>
- * - Default UI: Navigate to #browse/search/generic=keyword=<query>
+ * - Astrum One: the search page `#preview/browse/search?q=<query>`, repositories and components in its browse page
+ * - Classic UI: the search route `#browse/search/generic=keyword=<query>`, repositories and components in its
+ *   browse route
  */
 export default function SearchRadix({ isPreviewUI = false }) {
   const [searchValue, setSearchValue] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const inputRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [recentSearches, setRecentSearches] = useState(readRecentSearches);
+  const [repositories, setRepositories] = useState([]);
+  const [components, setComponents] = useState({query: '', items: [], loading: false});
+  const [panelTop, setPanelTop] = useState(null);
+
+  const containerRef = useRef(null);
   const fieldRef = useRef(null);
-  const suggestionsRef = useRef(null);
-  const debounceRef = useRef(null);
   const [isApple] = useState(isApplePlatform);
-  
+  const listboxId = useId();
+
   const router = useRouter();
-  const {state} = useCurrentStateAndParams();
+  const {state, params} = useCurrentStateAndParams();
+  const currentRepository = currentRepositoryOf(state?.name, params || {});
 
   // Check visibility for Default UI search route
   const searchRoute = router.stateRegistry.get(ROUTE_NAMES.BROWSE.SEARCH.GENERIC);
   const defaultUIVisible = useIsVisible(searchRoute?.data?.visibilityRequirements);
 
-  // Fetch suggestions with debounce
-  // NOTE: All hooks must be called before any conditional returns!
+  const query = searchValue.trim();
+
+  // The repositories the user can see, loaded again each time the panel opens so a new one shows up
   useEffect(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
+    if (!open) {
+      return undefined;
+    }
+    const controller = new AbortController();
+    Axios.get('/service/rest/v1/repositories', {signal: controller.signal})
+      .then((response) => setRepositories(Array.isArray(response?.data) ? response.data : []))
+      .catch((error) => {
+        if (!isCancelled(error)) {
+          setRepositories([]);
+        }
+      });
+    return () => controller.abort();
+  }, [open]);
+
+  // The first components found, debounced; a newer query cancels the request still in flight
+  useEffect(() => {
+    if (!open || query.length < MIN_QUERY_LENGTH) {
+      setComponents({query: '', items: [], loading: false});
+      return undefined;
     }
 
-    if (searchValue.trim().length < MIN_QUERY_LENGTH) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    // Autocomplete suggestions are only available in Preview UI
-    // Default UI uses the traditional search page (no autocomplete)
-    if (!isPreviewUI) {
-      return;
-    }
-
-    setIsLoading(true);
-    debounceRef.current = setTimeout(async () => {
-      const results = await fetchSuggestions(searchValue);
-      setSuggestions(results);
-      const shouldShow = results.length > 0;
-      setShowSuggestions(shouldShow);
-      setSelectedIndex(-1);
-      setIsLoading(false);
+    setComponents((previous) => ({...previous, loading: true}));
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      Axios.get('/service/rest/v1/search', {params: {q: query}, signal: controller.signal})
+        .then((response) => {
+          const items = response?.data?.items || [];
+          setComponents({query, items: items.slice(0, MAX_COMPONENTS).map(toComponentResult), loading: false});
+        })
+        .catch((error) => {
+          if (!isCancelled(error)) {
+            console.error('[SearchRadix] Failed to search components:', error);
+            setComponents({query, items: [], loading: false});
+          }
+        });
     }, DEBOUNCE_MS);
 
     return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
+      clearTimeout(timer);
+      controller.abort();
     };
-  }, [searchValue]);
+  }, [open, query]);
 
-  // Close suggestions when clicking outside
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [query]);
+
+  // Close the panel when clicking outside the field and the panel
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        suggestionsRef.current && 
-        !suggestionsRef.current.contains(event.target) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target)
-      ) {
-        setShowSuggestions(false);
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpen(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const openPanel = useCallback(() => {
+    const header = containerRef.current?.closest('.as-global-header-radix__sticky-bar');
+    const bottom = (header || containerRef.current)?.getBoundingClientRect().bottom;
+    setPanelTop(Number.isFinite(bottom) ? bottom : null);
+    setRecentSearches(readRecentSearches());
+    setOpen(true);
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setOpen(false);
+    setActiveIndex(-1);
   }, []);
 
   // Ctrl+K (Command+K on Apple platforms) focuses the search field from anywhere in the page
@@ -159,16 +173,32 @@ export default function SearchRadix({ isPreviewUI = false }) {
       event.preventDefault();
       fieldRef.current.focus();
       fieldRef.current.select();
+      openPanel();
     };
 
     document.addEventListener('keydown', handleShortcut);
     return () => document.removeEventListener('keydown', handleShortcut);
-  }, [isApple]);
+  }, [isApple, openPanel]);
 
-  // Navigate to search page
-  const navigateToSearch = useCallback((query) => {
-    setShowSuggestions(false);
-    
+  const withClassicNavigation = useCallback((navigate) => {
+    const menuCtrl =
+      window.Ext && Ext.getApplication && Ext.getApplication().getController
+        ? Ext.getApplication().getController('Menu')
+        : null;
+    handleExtJsUnsavedChanges(menuCtrl, navigate);
+  }, []);
+
+  const remember = useCallback((text) => {
+    if (text) {
+      setRecentSearches(addRecentSearch(text));
+    }
+  }, []);
+
+  // Run a search: in every repository, or only in the one the page browses
+  const navigateToSearch = useCallback((text, repository = null) => {
+    closePanel();
+    remember(text);
+
     if (isPreviewUI) {
       // inherit: false — `go` defaults to inheriting the router's cached params,
       // and those go stale because the search page writes its URL with raw
@@ -185,72 +215,134 @@ export default function SearchRadix({ isPreviewUI = false }) {
       // re-entry: options.reload === true resolves to the registry root
       // (stateService.transitionTo), remounting the whole preview shell —
       // including this header — on every search.
-      router.stateService.go(
-        'preview.browse.search.unified',
-        query ? { q: query } : {},
-        { inherit: false, reload: 'preview.browse.search.unified' },
-      );
+      const searchParams = text ? {q: text} : {};
+      if (text && repository) {
+        searchParams.repository = repository;
+      }
+      router.stateService.go(UNIFIED_SEARCH, searchParams, {inherit: false, reload: UNIFIED_SEARCH});
     } else {
-      const menuCtrl =
-        window.Ext && Ext.getApplication && Ext.getApplication().getController
-          ? Ext.getApplication().getController('Menu')
-          : null;
-
-      handleExtJsUnsavedChanges(menuCtrl, async () => {
+      withClassicNavigation(async () => {
         if (state.name !== ROUTE_NAMES.BROWSE.SEARCH.GENERIC) {
           await router.stateService.go(ROUTE_NAMES.BROWSE.SEARCH.GENERIC, {
-            keyword: query ? `=keyword=${encodeURIComponent(query)}` : null
+            keyword: classicSearchKeyword(text, repository)
           });
-        } else if (query) {
-          ExtJS.search(query);
+        } else if (text) {
+          ExtJS.search(text);
         }
       });
     }
-  }, [isPreviewUI, state.name, router]);
+  }, [isPreviewUI, state.name, router, closePanel, remember, withClassicNavigation]);
 
-  // Handle suggestion selection - navigate to the component detail page
-  const handleSelectSuggestion = useCallback((suggestion) => {
-    setShowSuggestions(false);
+  // Open a repository, or a component at the path of its first asset, in the browse page
+  const navigateToBrowse = useCallback((repository, path = null) => {
+    closePanel();
     setSearchValue('');
 
     if (isPreviewUI) {
-      // Build gaId (format:group:name) for the component detail route
-      const parts = [suggestion.format];
-      if (suggestion.group) parts.push(suggestion.group);
-      parts.push(suggestion.name);
-      const gaId = parts.join(':');
-
-      const params = {
-        gaId,
-        keyword: suggestion.name,
-      };
-      if (suggestion.version) {
-        params.version = suggestion.version;
-      }
-
-      // Defer navigation to next tick - ensures it runs after any focus/blur/portal
-      // handlers that could cancel navigation when triggered by mousedown/click
+      // Deferred so focus and blur handlers of the panel cannot cancel the transition
       queueMicrotask(() => {
-        router.stateService.go('preview.browse.search.component', params);
-      });
-    } else {
-      const displayName = getDisplayName(suggestion);
-      const menuCtrl =
-        window.Ext && Ext.getApplication && Ext.getApplication().getController
-          ? Ext.getApplication().getController('Menu')
-          : null;
-
-      handleExtJsUnsavedChanges(menuCtrl, async () => {
-        if (state.name !== ROUTE_NAMES.BROWSE.SEARCH.GENERIC) {
-          await router.stateService.go(ROUTE_NAMES.BROWSE.SEARCH.GENERIC, {
-            keyword: `=keyword=${encodeURIComponent(displayName)}`
-          });
+        if (path) {
+          router.stateService.go('preview.browse.browse.repo.path', {repoName: repository, path, tab: 'summary'});
         } else {
-          ExtJS.search(displayName);
+          router.stateService.go('preview.browse.browse.repo', {repoName: repository});
         }
       });
+    } else {
+      withClassicNavigation(() => router.stateService.go(ROUTE_NAMES.BROWSE.BROWSE.ROOT, {
+        repo: classicBrowseParam(repository, path)
+      }));
     }
-  }, [isPreviewUI, state.name, router]);
+  }, [isPreviewUI, router, closePanel, withClassicNavigation]);
+
+  const forgetRecentSearch = useCallback((text) => {
+    setRecentSearches(removeRecentSearch(text));
+    setActiveIndex(-1);
+    fieldRef.current?.focus();
+  }, []);
+
+  const matchedRepositories = useMemo(() => matchRepositories(repositories, query), [repositories, query]);
+
+  // The sections of the panel, each row with what it does when opened
+  const sections = useMemo(() => {
+    if (!query) {
+      return recentSearches.length === 0 ? [] : [{
+        id: 'recent',
+        title: PANEL.RECENT,
+        rows: recentSearches.map((recent) => ({
+          key: `recent-${recent}`,
+          kind: 'recent',
+          icon: History,
+          label: recent,
+          value: recent,
+          select: () => {
+            setSearchValue(recent);
+            navigateToSearch(recent);
+          },
+        })),
+      }];
+    }
+
+    const searchIn = {
+      id: 'search-in',
+      title: PANEL.SEARCH_IN(query),
+      rows: [
+        ...(currentRepository ? [{
+          key: 'search-repository',
+          kind: 'search',
+          icon: FolderSearch,
+          label: PANEL.THIS_REPOSITORY,
+          meta: currentRepository,
+          select: () => navigateToSearch(query, currentRepository),
+        }] : []),
+        {
+          key: 'search-all',
+          kind: 'search',
+          icon: SearchIcon,
+          label: PANEL.ALL_REPOSITORIES,
+          select: () => navigateToSearch(query),
+        },
+      ],
+    };
+    const repositoriesSection = matchedRepositories.length === 0 ? null : {
+      id: 'repositories',
+      title: PANEL.REPOSITORIES,
+      rows: matchedRepositories.map((repository) => ({
+        key: `repository-${repository.name}`,
+        kind: 'repository',
+        icon: Database,
+        repository,
+        select: () => navigateToBrowse(repository.name),
+      })),
+    };
+    const shownComponents = components.query === query ? components.items : [];
+    const componentsSection = shownComponents.length === 0 ? null : {
+      id: 'components',
+      title: PANEL.COMPONENTS,
+      rows: shownComponents.map((component) => ({
+        key: `component-${component.repository}-${component.id}`,
+        kind: 'component',
+        icon: Package,
+        component,
+        select: () => navigateToBrowse(component.repository, component.path),
+      })),
+    };
+    return [searchIn, repositoriesSection, componentsSection].filter(Boolean);
+  }, [query, recentSearches, currentRepository, matchedRepositories, components, navigateToSearch, navigateToBrowse]);
+
+  const rows = useMemo(() => sections.flatMap((section) => section.rows), [sections]);
+  const optionId = useCallback((index) => `${listboxId}-option-${index}`, [listboxId]);
+  const searching = query.length >= MIN_QUERY_LENGTH && (components.loading || components.query !== query);
+  const noResults = Boolean(query) && matchedRepositories.length === 0 && rows.length > 0 &&
+    rows.every((row) => row.kind === 'search') && !searching;
+  const showHint = !query && recentSearches.length === 0;
+  const expanded = open && (rows.length > 0 || showHint);
+
+  // Keep the active row in view when the keyboard moves past the visible part of the panel
+  useEffect(() => {
+    if (activeIndex >= 0) {
+      document.getElementById(optionId(activeIndex))?.scrollIntoView?.({block: 'nearest'});
+    }
+  }, [activeIndex, optionId]);
 
   // Both UIs should behave identically - use the same visibility check (permission-based)
   // In dev, anonymous has astrum:search:read so search shows
@@ -260,60 +352,140 @@ export default function SearchRadix({ isPreviewUI = false }) {
     return null;
   }
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e) => {
-    if (!showSuggestions || suggestions.length === 0) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        navigateToSearch(searchValue.trim());
-      }
-      return;
-    }
-
-    switch (e.key) {
+  const handleKeyDown = (event) => {
+    switch (event.key) {
       case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : prev
-        );
+      case 'ArrowUp': {
+        event.preventDefault();
+        if (!open) {
+          openPanel();
+          return;
+        }
+        if (rows.length === 0) {
+          return;
+        }
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        setActiveIndex((previous) => {
+          if (previous < 0) {
+            return step > 0 ? 0 : rows.length - 1;
+          }
+          return (previous + step + rows.length) % rows.length;
+        });
         break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
-        break;
+      }
       case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-          handleSelectSuggestion(suggestions[selectedIndex]);
+        event.preventDefault();
+        if (open && activeIndex >= 0 && rows[activeIndex]) {
+          rows[activeIndex].select();
         } else {
-          navigateToSearch(searchValue.trim());
+          navigateToSearch(query);
         }
         break;
       case 'Escape':
-        setShowSuggestions(false);
-        setSelectedIndex(-1);
+        if (open) {
+          event.preventDefault();
+          closePanel();
+        }
+        break;
+      case 'Tab':
+        closePanel();
+        break;
+      default:
         break;
     }
   };
 
-  // Handle input focus
-  const handleFocus = () => {
-    if (suggestions.length > 0 && searchValue.trim().length >= MIN_QUERY_LENGTH) {
-      setShowSuggestions(true);
-    }
+  const clearSearch = () => {
+    setSearchValue('');
+    fieldRef.current?.focus();
+    openPanel();
   };
 
+  const renderRowContent = (row) => {
+    if (row.kind === 'repository') {
+      const {repository} = row;
+      return (
+        <>
+          <span className="search-radix-row__label"><Highlighted text={repository.name} query={query} /></span>
+          <span className="search-radix-row__chips">
+            <Badge size="1" variant="soft" color="gray" radius="full">
+              {FORMAT_LABELS[repository.format] || repository.format}
+            </Badge>
+            {repository.type && (
+              <Badge size="1" variant="outline" color="gray" radius="full">
+                {TYPE_LABELS[repository.type] || repository.type}
+              </Badge>
+            )}
+          </span>
+        </>
+      );
+    }
+    if (row.kind === 'component') {
+      const {component} = row;
+      return (
+        <>
+          <span className="search-radix-row__label">
+            <Highlighted text={component.name} query={query} />
+            {component.version && <span className="search-radix-row__version">{component.version}</span>}
+            {component.group && (
+              <span className="search-radix-row__meta"><Highlighted text={component.group} query={query} /></span>
+            )}
+          </span>
+          <span className="search-radix-row__chips">
+            <span className="search-radix-row__repository">{component.repository}</span>
+            <Badge size="1" variant="soft" color="gray" radius="full">
+              {FORMAT_LABELS[component.format] || component.format}
+            </Badge>
+          </span>
+        </>
+      );
+    }
+    return (
+      <span className="search-radix-row__label">
+        {row.label}
+        {row.meta && <span className="search-radix-row__meta">{row.meta}</span>}
+      </span>
+    );
+  };
+
+  let rowIndex = -1;
+
   return (
-    <div className="search-radix-container" role="search" ref={inputRef}>
+    <div
+      className="search-radix-container"
+      role="search"
+      ref={containerRef}
+      onBlur={(event) => {
+        if (!containerRef.current?.contains(event.relatedTarget)) {
+          closePanel();
+        }
+      }}
+    >
       <TextField.Root
         ref={fieldRef}
+        role="combobox"
         placeholder={HEADER.SEARCH_PLACEHOLDER}
         aria-label={HEADER.SEARCH_LABEL}
         aria-keyshortcuts={isApple ? 'Meta+K' : 'Control+K'}
+        aria-autocomplete="list"
+        aria-expanded={expanded && rows.length > 0}
+        aria-controls={expanded && rows.length > 0 ? listboxId : undefined}
+        aria-activedescendant={expanded && rows[activeIndex] ? optionId(activeIndex) : undefined}
+        autoComplete="off"
         value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
+        onChange={(e) => {
+          setSearchValue(e.target.value);
+          if (!open) {
+            openPanel();
+          }
+        }}
         onKeyDown={handleKeyDown}
-        onFocus={handleFocus}
+        onFocus={openPanel}
+        onMouseDown={() => {
+          if (!open) {
+            openPanel();
+          }
+        }}
         size="3"
         className="search-radix-input"
         data-analytics-id="as-header-search"
@@ -322,47 +494,97 @@ export default function SearchRadix({ isPreviewUI = false }) {
           <SearchIcon size={16} aria-hidden />
         </TextField.Slot>
         <TextField.Slot side="right">
-          <kbd className="search-radix-shortcut" aria-hidden="true" data-testid="search-shortcut-hint">
-            {isApple ? HEADER.SEARCH_SHORTCUT_MAC : HEADER.SEARCH_SHORTCUT}
-          </kbd>
+          {searchValue ? (
+            <IconButton
+              type="button"
+              size="1"
+              variant="ghost"
+              color="gray"
+              className="search-radix-clear"
+              aria-label={HEADER.SEARCH_CLEAR}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={clearSearch}
+            >
+              <X size={14} aria-hidden />
+            </IconButton>
+          ) : (
+            <kbd className="search-radix-shortcut" aria-hidden="true" data-testid="search-shortcut-hint">
+              {isApple ? HEADER.SEARCH_SHORTCUT_MAC : HEADER.SEARCH_SHORTCUT}
+            </kbd>
+          )}
         </TextField.Slot>
       </TextField.Root>
 
-      {/* Autocomplete dropdown */}
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="search-radix-suggestions" ref={suggestionsRef}>
-          {suggestions.map((suggestion, index) => {
-            const displayName = getDisplayName(suggestion);
-            const isSelected = index === selectedIndex;
-            
-            return (
-              <div
-                key={`${suggestion.repository}-${suggestion.group}-${suggestion.name}-${suggestion.version}`}
-                className={`search-radix-suggestion ${isSelected ? 'search-radix-suggestion--selected' : ''}`}
-                onMouseDown={(e) => {
-                  // Use onMouseDown to trigger selection immediately before blur
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSelectSuggestion(suggestion);
-                }}
-                onMouseEnter={() => setSelectedIndex(index)}
-                role="option"
-                aria-selected={isSelected}
-                data-testid={`search-suggestion-${index}`}
-              >
-                <div className="search-radix-suggestion__content">
-                  <span className="search-radix-suggestion__name">{displayName}</span>
-                  <span className="search-radix-suggestion__version">{suggestion.version}</span>
+      {expanded && (
+        <div
+          className="search-radix-panel"
+          data-testid="search-panel"
+          style={panelTop == null ? undefined : {'--search-panel-top': `${panelTop}px`}}
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          {rows.length > 0 && (
+            <div role="listbox" id={listboxId} aria-label={PANEL.LABEL} className="search-radix-panel__list">
+              {sections.map((section) => (
+                <div
+                  key={section.id}
+                  role="group"
+                  aria-labelledby={`${listboxId}-${section.id}`}
+                  className="search-radix-panel__section"
+                  data-testid={`search-section-${section.id}`}
+                >
+                  <div id={`${listboxId}-${section.id}`} className="search-radix-panel__title">{section.title}</div>
+                  {section.rows.map((row) => {
+                    rowIndex += 1;
+                    const index = rowIndex;
+                    const active = index === activeIndex;
+                    const Icon = row.icon;
+                    return (
+                      <div
+                        key={row.key}
+                        id={optionId(index)}
+                        role="option"
+                        aria-selected={active}
+                        className={`search-radix-row${active ? ' search-radix-row--active' : ''}`}
+                        data-testid={`search-option-${index}`}
+                        onMouseMove={() => {
+                          if (!active) {
+                            setActiveIndex(index);
+                          }
+                        }}
+                        onClick={() => row.select()}
+                      >
+                        <Icon size={16} aria-hidden className="search-radix-row__icon" />
+                        {renderRowContent(row)}
+                        {active && <kbd className="search-radix-row__enter" aria-hidden="true">{PANEL.OPEN_HINT}</kbd>}
+                        {row.kind === 'recent' && (
+                          <IconButton
+                            type="button"
+                            size="1"
+                            variant="ghost"
+                            color="gray"
+                            tabIndex={-1}
+                            className="search-radix-row__remove"
+                            aria-label={PANEL.REMOVE_RECENT(row.value)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              forgetRecentSearch(row.value);
+                            }}
+                          >
+                            <X size={14} aria-hidden />
+                          </IconButton>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <FormatBadge format={suggestion.format} size={14} className="search-radix-suggestion__format" />
-              </div>
-            );
-          })}
-          
-          {/* Footer hint */}
-          <div className="search-radix-suggestions__footer">
-            {HEADER.SEARCH_HINT}
-          </div>
+              ))}
+            </div>
+          )}
+          {noResults && <div className="search-radix-panel__status" role="status">{PANEL.NO_RESULTS}</div>}
+          {searching && matchedRepositories.length === 0 && (
+            <div className="search-radix-panel__status" role="status">{PANEL.SEARCHING}</div>
+          )}
+          {showHint && <div className="search-radix-panel__hint">{PANEL.EMPTY_HINT}</div>}
         </div>
       )}
     </div>
