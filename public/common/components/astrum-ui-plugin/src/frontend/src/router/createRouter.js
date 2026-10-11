@@ -4,6 +4,7 @@ import ExtJS from '../interface/ExtJS';
 import {isVisible} from '../interface/NavigationUtils';
 import {showUnsavedChangesModal} from './unsavedChangesDialog';
 import {RouteNames} from "../constants/RouteNames";
+import {heritageToPreviewPath} from '../utils/previewHeritageNavigation';
 
 /**
  * Checks visibility for a state AND all its ancestor states.
@@ -346,6 +347,13 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
         // out to grant this route after all (ASTRUM-54422).
         const originalHash = window.location.hash;
         transition.abort();
+        if (stateTo.name !== missingRoute.name && !isPreviewUIRouteName(stateTo.name)) {
+          // The Classic UI is retired: a Classic page the user may not open, such as an old bookmark
+          // with stricter Classic requirements, opens its Astrum One page, which checks its own.
+          const classicPath = (router.stateService.href(stateTo, transition.params()) || '').replace(/^#/, '');
+          router.urlService.url(`#${heritageToPreviewPath(classicPath)}`);
+          return;
+        }
         const welcomeRoute = isPreviewUIRouteName(stateTo.name) ? 'preview.browse.welcome' : RouteNames.WELCOME;
         // Arm before navigating: permissions can land during the redirect itself.
         recoverWhenPermissionsArrive(stateTo, originalHash, welcomeRoute);

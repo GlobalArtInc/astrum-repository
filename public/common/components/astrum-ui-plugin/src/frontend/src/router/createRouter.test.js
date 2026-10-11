@@ -46,7 +46,7 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
     expect(router.stateService.current.name).toBe('login');
   });
 
-  it('authenticated user goes to unauthorized page, should redirect to welcome', async () => {
+  it('authenticated user goes to an unauthorized Classic page without an Astrum One page, should open the Astrum One dashboard', async () => {
     ExtJS.hasUser.mockReturnValue(true);
     // Navigate to a known state first to clear any residual state
     await router.stateService.go('browse.welcome');
@@ -61,11 +61,12 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
     await router.urlService.sync();
 
     const goSpy = jest.spyOn(router.stateService, 'go');
+    const urlSpy = jest.spyOn(router.urlService, 'url');
     await router.stateService.go('protected').catch(() => {});
 
-    expect(goSpy).toHaveBeenCalledTimes(2);
+    expect(goSpy).toHaveBeenCalledTimes(1);
     expect(goSpy).toHaveBeenNthCalledWith(1, 'protected');
-    expect(goSpy).toHaveBeenNthCalledWith(2, 'browse.welcome');
+    expect(urlSpy).toHaveBeenCalledWith('#preview/browse/welcome');
   });
 
   it('from login user goes to unauthorized page, should stay on login (transition aborted)', async () => {
@@ -320,14 +321,16 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
     expect(goSpy).toHaveBeenCalledWith('preview.browse.welcome');
   });
 
-  it('authenticated user accessing classic protected route should redirect to browse.welcome', async () => {
+  it('authenticated user accessing a classic protected route should open its Astrum One page, not browse.welcome', async () => {
     ExtJS.hasUser.mockReturnValue(true);
     await router.stateService.go('browse.welcome');
 
     const goSpy = jest.spyOn(router.stateService, 'go');
+    const urlSpy = jest.spyOn(router.urlService, 'url');
     await router.stateService.go('browse.search.generic').catch(() => {});
 
-    expect(goSpy).toHaveBeenCalledWith('browse.welcome');
+    expect(goSpy).not.toHaveBeenCalledWith('browse.welcome');
+    expect(urlSpy).toHaveBeenCalledWith(expect.stringMatching(/^#preview\/browse\/search/));
   });
 
   it('unauthenticated user can navigate to public routes without redirect', async () => {
