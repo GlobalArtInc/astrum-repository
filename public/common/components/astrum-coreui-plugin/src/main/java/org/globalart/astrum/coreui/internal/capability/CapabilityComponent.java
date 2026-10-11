@@ -1,34 +1,22 @@
 
 package org.globalart.astrum.coreui.internal.capability;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.groups.Default;
 
-import org.globalart.astrum.capability.Capability;
 import org.globalart.astrum.capability.CapabilityDescriptor;
 import org.globalart.astrum.capability.CapabilityDescriptorRegistry;
 import org.globalart.astrum.capability.CapabilityReference;
 import org.globalart.astrum.capability.CapabilityReferenceFilterBuilder.CapabilityReferenceFilter;
 import org.globalart.astrum.capability.CapabilityRegistry;
-import org.globalart.astrum.capability.CapabilityType;
-import org.globalart.astrum.capability.Tag;
-import org.globalart.astrum.internal.scheduling.SchedulerCapabilityDescriptor;
-import org.globalart.astrum.repository.capability.StorageSettingsCapabilityDescriptor;
-import org.globalart.astrum.capability.Taggable;
-import org.globalart.astrum.coreui.FormFieldXO;
 import org.globalart.astrum.extdirect.DirectComponent;
 import org.globalart.astrum.extdirect.DirectComponentSupport;
-import org.globalart.astrum.rapture.PasswordPlaceholder;
 import org.globalart.astrum.rapture.StateContributor;
 import org.globalart.astrum.validation.Validate;
 import org.globalart.astrum.validation.group.Create;
@@ -44,11 +32,13 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static org.globalart.astrum.capability.CapabilityIdentity.capabilityIdentity;
 import static org.globalart.astrum.capability.CapabilityReferenceFilterBuilder.capabilities;
 import static org.globalart.astrum.capability.CapabilityType.capabilityType;
+import static org.globalart.astrum.coreui.internal.capability.CapabilityConverter.asCapability;
+import static org.globalart.astrum.coreui.internal.capability.CapabilityConverter.isSystemCapability;
+import static org.globalart.astrum.coreui.internal.capability.CapabilityConverter.unfilterProperties;
 import org.springframework.stereotype.Component;
 
 // FIXME: update action name after refactor to use coreui_*
@@ -70,10 +60,6 @@ public class CapabilityComponent
 
   private final CapabilityRegistry capabilityRegistry;
 
-  private static final Set<String> SYSTEM_CAPABILITY_TYPES = Set.of(
-      SchedulerCapabilityDescriptor.TYPE_ID,
-      StorageSettingsCapabilityDescriptor.TYPE_ID);
-
   @Autowired
   public CapabilityComponent(
       final CapabilityDescriptorRegistry capabilityDescriptorRegistry,
@@ -94,7 +80,7 @@ public class CapabilityComponent
   @RequiresPermissions("astrum:capabilities:read")
   public List<CapabilityXO> read() {
     capabilityRegistry.pullAndRefreshReferencesFromDB();
-    return capabilityRegistry.get(capabilities()).stream().map(this::asCapability).collect(toList());
+    return capabilityRegistry.get(capabilities()).stream().map(CapabilityConverter::asCapability).collect(toList());
   }
 
   /**
@@ -109,7 +95,7 @@ public class CapabilityComponent
   public List<CapabilityTypeXO> readTypes() {
     return Arrays.stream(capabilityDescriptorRegistry.getAll())
         .filter(CapabilityDescriptor::isExposed)
-        .map(this::asCapabilityType)
+        .map(CapabilityConverter::asCapabilityType)
         .collect(toList());
   }
 
@@ -181,7 +167,7 @@ public class CapabilityComponent
   @Validate
   public void remove(final @NotEmpty String id) {
     CapabilityReference reference = capabilityRegistry.get(capabilityIdentity(id));
-    if (reference != null && isDefaultCapability(reference)) {
+    if (reference != null && isSystemCapability(reference)) {
       throw new IllegalArgumentException("Cannot delete system capability: " +
           reference.context().descriptor().name());
     }
@@ -224,109 +210,5 @@ public class CapabilityComponent
 
   private String capabilityToType(final CapabilityReference capabilityReference) {
     return capabilityReference.context().descriptor().type().toString();
-  }
-
-  private CapabilityXO asCapability(final CapabilityReference reference) {
-    CapabilityDescriptor descriptor = reference.context().descriptor();
-    Capability capability = reference.capability();
-
-    CapabilityXO capabilityXO = new CapabilityXO();
-    capabilityXO.setId(reference.context().id().toString());
-    capabilityXO.setNotes(reference.context().notes());
-    capabilityXO.setTypeId(descriptor.type().toString());
-    capabilityXO.setTypeName(descriptor.name());
-    capabilityXO.setEnabled(reference.context().isEnabled());
-    capabilityXO.setActive(reference.context().isActive());
-    capabilityXO.setError(reference.context().hasFailure());
-    capabilityXO.setState("disabled");
-    capabilityXO.setStateDescription(reference.context().stateDescription());
-    capabilityXO.setProperties(filterProperties(reference.context().properties(), capability));
-    capabilityXO.setDisableWarningMessage(descriptor.getDisableWarningMessage());
-    capabilityXO.setDeleteWarningMessage(descriptor.getDeleteWarningMessage());
-    capabilityXO.setSystem(isDefaultCapability(reference));
-
-    if (capabilityXO.getEnabled() && capabilityXO.getError()) {
-      capabilityXO.setState("error");
-    }
-    else if (capabilityXO.getEnabled() && capabilityXO.getActive()) {
-      capabilityXO.setState("active");
-    }
-    else if (capabilityXO.getEnabled() && !capabilityXO.getActive()) {
-      capabilityXO.setState("passive");
-    }
-
-    if (capability.description() != null) {
-      capabilityXO.setDescription(capability.description());
-    }
-
-    if (capability.status() != null) {
-      capabilityXO.setStatus(capability.status());
-    }
-
-    Set<Tag> tags = new HashSet<>();
-    if (descriptor instanceof Taggable && ((Taggable) descriptor).getTags() != null) {
-      tags.addAll(((Taggable) descriptor).getTags());
-    }
-    if (capability instanceof Taggable && ((Taggable) capability).getTags() != null) {
-      tags.addAll(((Taggable) capability).getTags());
-    }
-    if (!tags.isEmpty()) {
-      capabilityXO.setTags(tags.stream().collect(toMap(Tag::key, Tag::value)));
-    }
-
-    return capabilityXO;
-  }
-
-  private CapabilityTypeXO asCapabilityType(final CapabilityDescriptor capabilityDescriptor) {
-    CapabilityTypeXO capabilityTypeXO = new CapabilityTypeXO();
-    capabilityTypeXO.setId(capabilityDescriptor.type().toString());
-    capabilityTypeXO.setName(capabilityDescriptor.name());
-    capabilityTypeXO.setAbout(capabilityDescriptor.about());
-    if (capabilityDescriptor.formFields() != null) {
-      capabilityTypeXO.setFormFields(
-          capabilityDescriptor.formFields().stream().map(FormFieldXO::create).collect(toList()));
-    }
-    return capabilityTypeXO;
-  }
-
-  private Map<String, String> filterProperties(final Map<String, String> properties, final Capability capability) {
-    return properties.entrySet()
-        .stream()
-        .filter(this::nonNullKeyAndValue)
-        .map(entry -> {
-          if (capability.isPasswordProperty(entry.getKey())) {
-            if ("PKI".equals(properties.get("authenticationType"))) {
-              return new SimpleEntry<>(entry.getKey(), "");
-            }
-            return new SimpleEntry<>(entry.getKey(), PasswordPlaceholder.get());
-          }
-          return entry;
-        })
-        .collect(toMap(Entry::getKey, Entry::getValue));
-  }
-
-  private Map<String, String> unfilterProperties(
-      final Map<String, String> properties,
-      final Map<String, String> referenceProperties)
-  {
-    return properties.entrySet()
-        .stream()
-        .filter(this::nonNullKeyAndValue)
-        .map(entry -> {
-          if (PasswordPlaceholder.is(entry.getValue())) {
-            return new SimpleEntry<>(entry.getKey(), referenceProperties.get(entry.getKey()));
-          }
-          return entry;
-        })
-        .collect(toMap(Entry::getKey, Entry::getValue));
-  }
-
-  private boolean nonNullKeyAndValue(final Entry<?, ?> entry) {
-    return entry != null && entry.getKey() != null && entry.getValue() != null;
-  }
-
-  private boolean isDefaultCapability(CapabilityReference reference) {
-    CapabilityType type = reference.context().descriptor().type();
-    return SYSTEM_CAPABILITY_TYPES.contains(type.toString());
   }
 }
