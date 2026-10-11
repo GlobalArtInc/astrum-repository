@@ -19,16 +19,16 @@
 
   .risk-on-disk-container {
     flex: none !important;
-    border-bottom: 8px solid #606060;
+    border-bottom: 8px solid var(--gray-9);
   }
   .searchInfo .x-title-text {
     white-space: normal !important;
   }
 
   .responsive-graph{
-    background: #fff;
-    border-color: #c2c2c2;
-    color: #333;
+    background: var(--color-panel-solid);
+    border-color: var(--gray-a7);
+    color: var(--gray-12);
     font-size: 16px;
     font-weight: normal;
     font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;

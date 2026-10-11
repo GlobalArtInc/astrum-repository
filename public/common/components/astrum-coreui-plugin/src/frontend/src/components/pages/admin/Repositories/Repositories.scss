@@ -22,7 +22,7 @@
   }
 
   .as-docker-connectors-help {
-    color: #333;
+    color: var(--gray-11);
     margin-bottom: var(--as-spacing-8x);
   }
 
@@ -35,7 +35,7 @@
 
   .as-oci-connectors-help,
   .as-oci-cosign-help {
-    color: #333;
+    color: var(--gray-11);
     margin-left: 0;
     padding-left: 0;
     margin-bottom: var(--as-spacing-8x);

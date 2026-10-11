@@ -5,7 +5,7 @@
   font-weight: bold;
   &::before {
     content: "* " !important;
-    color: red !important;
+    color: var(--red-11) !important;
     margin-right: 2px !important;
   }
 }

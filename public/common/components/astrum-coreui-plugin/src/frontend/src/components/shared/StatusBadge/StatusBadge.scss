@@ -20,16 +20,16 @@
   // Status colors
   &--online &__indicator,
   &--success &__indicator {
-    color: var(--color-success);
+    color: var(--green-11);
   }
 
   &--offline &__indicator,
   &--error &__indicator {
-    color: var(--color-error);
+    color: var(--red-11);
   }
 
   &--warning &__indicator {
-    color: var(--color-warning);
+    color: var(--amber-11);
   }
 
   &--unknown &__indicator {
