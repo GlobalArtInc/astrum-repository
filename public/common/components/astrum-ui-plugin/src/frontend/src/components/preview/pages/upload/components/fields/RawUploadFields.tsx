@@ -11,6 +11,7 @@ import type { FormatFieldsProps, UploadComponentField } from '../../upload.types
 import { FORMAT_FIELD_STRINGS } from '../../upload.types';
 
 import './RawUploadFields.scss';
+import UploadStrings from '../../../../constants/pages/upload/UploadStrings';
 
 const RAW_FIELD_NAMES = {
   DIRECTORY: 'directory',
@@ -38,7 +39,7 @@ export function RawUploadFields({
 
   return (
     <Box className="as-raw-upload-fields" data-testid="raw-upload-fields">
-      <SettingsFormSection title="Raw File Details" icon={<File size={18} />}>
+      <SettingsFormSection title={UploadStrings.RAW_FIELDS.RAW_FILE_DETAILS} icon={<File size={18} />}>
         <Box className="as-raw-upload-fields__grid">
           <SettingsTextInput
             name="raw-directory"

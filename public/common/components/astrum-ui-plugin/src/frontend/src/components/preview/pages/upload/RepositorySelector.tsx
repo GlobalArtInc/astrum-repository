@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 
 import { SettingsCombobox, SettingsFormSection } from '../../shared/form';
 import type { UploadableRepository } from './upload.types';
+import UploadStrings from '../../constants/pages/upload/UploadStrings';
 
 interface RepositorySelectorProps {
   repositoryName: string;
@@ -35,18 +36,18 @@ export function RepositorySelector({
   );
 
   return (
-    <SettingsFormSection title="Repository">
+    <SettingsFormSection title={UploadStrings.REPOSITORY_SELECTOR.REPOSITORY}>
       <SettingsCombobox
         name="repository"
-        label="Target Repository"
+        label={UploadStrings.REPOSITORY_SELECTOR.TARGET_REPOSITORY}
         value={repositoryName}
         onChange={(val) => onRepositoryChange(val)}
         options={repositoryOptions}
-        helpText="The hosted repository where the component will be uploaded"
+        helpText={UploadStrings.REPOSITORY_SELECTOR.HOSTED_REPOSITORY_WHERE_COMPONENT_UPLOADED}
         required
         allowCustom={false}
         disabled={disabled}
-        aria-label="Select target repository"
+        aria-label={UploadStrings.REPOSITORY_SELECTOR.SELECT_TARGET_REPOSITORY_ARIA}
       />
     </SettingsFormSection>
   );

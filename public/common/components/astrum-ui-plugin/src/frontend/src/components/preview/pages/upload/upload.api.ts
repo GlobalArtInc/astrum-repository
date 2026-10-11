@@ -2,6 +2,9 @@
 
 import Axios, { AxiosProgressEvent } from 'axios';
 import { APIConstants } from '@globalart/astrum-ui-plugin';
+import UploadStrings from '../../constants/pages/upload/UploadStrings';
+import CommonStrings from '../../constants/CommonStrings';
+import { formatDuration } from '../../shared/utils/formatLocale';
 
 /**
  * Upload progress information.
@@ -134,14 +137,14 @@ export async function uploadToRepository({
 
     return {
       success: false,
-      error: errorMessage || 'Upload failed',
+      error: errorMessage || UploadStrings.API.UPLOAD_FAILED,
     };
   } catch (err: unknown) {
     // Check for cancellation (AbortController or Axios CancelToken)
     if (err instanceof Error && err.name === 'CanceledError') {
       return {
         success: false,
-        error: 'Upload cancelled',
+        error: UploadStrings.API.UPLOAD_CANCELLED,
       };
     }
 
@@ -152,7 +155,7 @@ export async function uploadToRepository({
         axiosErr.response?.data?.message ||
         axiosErr.response?.data?.[0]?.message ||
         axiosErr.message ||
-        'Network error';
+        UploadStrings.API.NETWORK_ERROR;
       return {
         success: false,
         error: message,
@@ -161,7 +164,7 @@ export async function uploadToRepository({
 
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: err instanceof Error ? err.message : CommonStrings.MESSAGES.UNKNOWN_ERROR,
     };
   }
 }
@@ -256,10 +259,10 @@ export function formatBytes(bytes: number): string {
  * Format milliseconds as human-readable time string.
  */
 export function formatTime(ms: number): string {
-  if (ms < 1000) return 'less than a second';
+  if (ms < 1000) return UploadStrings.API.LESS_THAN_SECOND;
 
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+  if (seconds < 60) return formatDuration(seconds, 'second');
 
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
@@ -268,7 +271,7 @@ export function formatTime(ms: number): string {
     if (remainingSeconds > 0) {
       return `${minutes}m ${remainingSeconds}s`;
     }
-    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    return formatDuration(minutes, 'minute');
   }
 
   const hours = Math.floor(minutes / 60);

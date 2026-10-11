@@ -17,6 +17,7 @@ import type {
   UploadDefinitionExtended,
 } from '../upload.types';
 import { UPLOAD_FORM_STRINGS } from '../upload.types';
+import UploadStrings from '../../../constants/pages/upload/UploadStrings';
 
 interface UseUploadFormProps {
   repositoryName: string;
@@ -115,7 +116,7 @@ export function useUploadForm({
     // 'editing' (validation failed) or 'submitting' (invoke started).
     const snap = service.getSnapshot();
     if (!snap.matches('submitting')) {
-      return { success: false, error: 'Please fix validation errors' };
+      return { success: false, error: UploadStrings.FORM_HOOK.PLEASE_FIX_VALIDATION_ERRORS };
     }
     try {
       const settled = await waitFor(
@@ -131,10 +132,10 @@ export function useUploadForm({
         : {
             success: false,
             error:
-              submitError ?? `${UPLOAD_FORM_STRINGS.uploadError}: Upload failed`,
+              submitError ?? UploadStrings.FORM_HOOK.UPLOAD_FAILED(UPLOAD_FORM_STRINGS.uploadError),
           };
     } catch {
-      return { success: false, error: `${UPLOAD_FORM_STRINGS.uploadError}: Upload timed out` };
+      return { success: false, error: UploadStrings.FORM_HOOK.UPLOAD_TIMED_OUT(UPLOAD_FORM_STRINGS.uploadError) };
     }
   }, [send, service]);
 

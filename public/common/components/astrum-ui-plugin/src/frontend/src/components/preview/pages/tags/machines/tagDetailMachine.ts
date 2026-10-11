@@ -6,6 +6,7 @@ import type { TagDetail, TaggedComponent } from '../tags.types';
 import { fetchTagDetail } from '../tags.api';
 import { restClient, parseApiError, urlBuilder } from '../../../../../interface/api';
 import ExtJS from '../../../../../interface/ExtJS';
+import TagsStrings from '../../../constants/pages/tags/TagsStrings';
 
 // =============================================================================
 // Types
@@ -79,7 +80,7 @@ export function createInitialContext(tagName: string): TagDetailMachineContext {
 
 async function loadTagDetailService(context: TagDetailMachineContext): Promise<LoadResult> {
   if (!context.tagName || context.tagName.trim() === '') {
-    throw new Error('Tag name is required');
+    throw new Error(TagsStrings.DETAIL_MACHINE.TAG_NAME_REQUIRED);
   }
 
   await ExtJS.waitForPermissions();
@@ -211,7 +212,7 @@ const setTagSuccess = assign<TagDetailMachineContext, { data: LoadResult }>({
 const setTagError = assign<TagDetailMachineContext, { data: Error }>({
   tagLoading: false,
   tagError: (_context, event) =>
-    event.data instanceof Error ? event.data.message : 'Failed to load tag details',
+    event.data instanceof Error ? event.data.message : TagsStrings.DETAIL_MACHINE.FAILED_LOAD_TAG_DETAILS,
 });
 
 const setComponentsLoading = assign<TagDetailMachineContext>({
@@ -228,7 +229,7 @@ const appendComponents = assign<TagDetailMachineContext, { data: LoadComponentsR
 const setComponentsError = assign<TagDetailMachineContext, { data: Error }>({
   componentsLoading: false,
   componentsError: (_context, event) =>
-    event.data instanceof Error ? event.data.message : 'Failed to load components',
+    event.data instanceof Error ? event.data.message : TagsStrings.DETAIL_MACHINE.FAILED_LOAD_COMPONENTS,
 });
 
 const clearError = assign<TagDetailMachineContext>({

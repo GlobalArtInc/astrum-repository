@@ -7,6 +7,7 @@ import { APIConstants } from '../../../../constants/APIConstants';
 import { ExtJS } from '../../../../interface/ExtJS';
 import { useToast } from '../../shared';
 import { createRevealTokenMachine } from './shared/revealTokenMachine';
+import UserPagesStrings from '../../constants/pages/user/UserPagesStrings';
 
 const USER_TOKEN_BASE = '/service/rest/internal/current-user/user-token';
 const ATTRIBUTES_URL = `/${APIConstants.REST.USER_TOKEN_TIMESTAMP}`;
@@ -165,7 +166,7 @@ export function useUserToken(): UseUserTokenReturn {
   useEffect(() => {
     const isLoadError = state.matches('loadError');
     if (isLoadError && !wasLoadingErrorRef.current) {
-      toastRef.current.error('Failed to load user token status.');
+      toastRef.current.error(UserPagesStrings.USER_TOKEN_HOOK.FAILED_LOAD_USER_TOKEN_STATUS);
     }
     wasLoadingErrorRef.current = isLoadError;
   }, [state]);
@@ -173,7 +174,7 @@ export function useUserToken(): UseUserTokenReturn {
   useEffect(() => {
     const isDeleting = state.matches('deleting');
     if (wasDeletingRef.current && !isDeleting && !state.context.actionError) {
-      toastRef.current.success('User token reset successfully.');
+      toastRef.current.success(UserPagesStrings.USER_TOKEN_HOOK.USER_TOKEN_RESET_SUCCESSFULLY);
       pendingActionRef.current = null;
     }
     wasDeletingRef.current = isDeleting;
@@ -184,11 +185,11 @@ export function useUserToken(): UseUserTokenReturn {
     if (err && err !== prevActionErrorRef.current) {
       const action = pendingActionRef.current;
       if (action === 'reveal') {
-        toastRef.current.error('Failed to retrieve user token. Please check your credentials.');
+        toastRef.current.error(UserPagesStrings.USER_TOKEN_HOOK.FAILED_RETRIEVE_USER_TOKEN_PLEASE);
       } else if (action === 'generate') {
-        toastRef.current.error('Failed to generate user token. Please check your credentials.');
+        toastRef.current.error(UserPagesStrings.USER_TOKEN_HOOK.FAILED_GENERATE_USER_TOKEN_PLEASE);
       } else if (action === 'delete') {
-        toastRef.current.error('Failed to reset user token. Please check your credentials.');
+        toastRef.current.error(UserPagesStrings.USER_TOKEN_HOOK.FAILED_RESET_USER_TOKEN_PLEASE);
       }
       pendingActionRef.current = null;
     }

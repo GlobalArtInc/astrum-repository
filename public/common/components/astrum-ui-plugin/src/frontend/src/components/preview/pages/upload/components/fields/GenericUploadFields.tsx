@@ -17,23 +17,24 @@ import type {
 } from '../../upload.types';
 
 import './GenericUploadFields.scss';
+import UploadStrings from '../../../../constants/pages/upload/UploadStrings';
 
 const FIELD_HELP_TEXT: Record<string, string> = {
-  groupId: 'The Maven group identifier (e.g., com.example.myapp)',
-  artifactId: 'The Maven artifact name (e.g., my-library)',
-  version: 'Artifact version (e.g., 1.0.0, 1.0-SNAPSHOT)',
-  packaging: 'Packaging type (e.g., jar, war, pom)',
-  classifier: 'Optional classifier for variants (e.g., sources, javadoc)',
+  groupId: UploadStrings.GENERIC_FIELDS.MAVEN_GROUP_IDENTIFIER_E_G,
+  artifactId: UploadStrings.GENERIC_FIELDS.MAVEN_ARTIFACT_NAME_E_G,
+  version: UploadStrings.GENERIC_FIELDS.ARTIFACT_VERSION_E_G_1,
+  packaging: UploadStrings.GENERIC_FIELDS.PACKAGING_TYPE_E_G_JAR,
+  classifier: UploadStrings.GENERIC_FIELDS.OPTIONAL_CLASSIFIER_VARIANTS_E_G,
   extension: 'File extension for this asset (e.g., jar, pom)',
-  'generate-pom': 'Automatically creates a POM file with the specified coordinates',
+  'generate-pom': UploadStrings.GENERIC_FIELDS.AUTOMATICALLY_CREATES_POM_FILE_SPECIFIED,
   tag: 'Optional tag to categorize components',
-  directory: 'Target directory path (e.g., /path/to/files)',
+  directory: UploadStrings.GENERIC_FIELDS.TARGET_DIRECTORY_PATH_E_G,
   id: 'Unique package identifier (e.g., MyCompany.MyPackage)',
   name: 'Package name using lowercase with hyphens (e.g., my-package)',
   filename: 'Name of the file being uploaded',
   path: 'Storage path within the repository',
-  'docker.imageName': 'Docker image name (e.g., nginx, mycompany/myimage)',
-  'docker.imageTag': 'Docker image tag (e.g., latest, 1.0.0)',
+  'docker.imageName': UploadStrings.GENERIC_FIELDS.DOCKER_IMAGE_NAME_E_G,
+  'docker.imageTag': UploadStrings.GENERIC_FIELDS.DOCKER_IMAGE_TAG_E_G,
 };
 
 const FIELD_PLACEHOLDERS: Record<string, string> = {
@@ -139,7 +140,7 @@ export function GenericUploadFields({
         return (
           <SettingsFormSection
             key={groupName}
-            title={groupName}
+            title={groupName === 'Other' ? UploadStrings.GENERIC_FIELDS.OTHER_GROUP : groupName}
           >
             {fields.map((field: UploadComponentField) => (
               <UploadField

@@ -16,11 +16,14 @@ import { X, MoreHorizontal } from 'lucide-react';
 
 import { SortableTableHeader, type SortDirection } from '../../shared';
 import type { TagWithCount, TagSortField } from './hooks/useFilteredTags';
+import TagsStrings from '../../constants/pages/tags/TagsStrings';
+import CommonStrings from '../../constants/CommonStrings';
+import { pageLanguage } from '../../../../interface/plural';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '-';
   try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return new Date(dateStr).toLocaleDateString(pageLanguage(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -33,14 +36,14 @@ function formatDate(dateStr: string | null): string {
 const STRINGS = {
   columns: {
     name: 'Name',
-    components: 'Components',
-    created: 'Created',
-    lastUpdated: 'Last Updated',
+    components: TagsStrings.TABLE.COMPONENTS,
+    created: TagsStrings.TABLE.CREATED,
+    lastUpdated: TagsStrings.TABLE.LAST_UPDATED,
     actions: '',
   },
-  loadingMessage: 'Loading tags...',
-  emptyMessage: 'No tags found',
-  emptyMessageFiltered: 'No tags match your current filters',
+  loadingMessage: TagsStrings.TABLE.LOADING_TAGS,
+  emptyMessage: TagsStrings.TABLE.NO_TAGS_FOUND,
+  emptyMessageFiltered: TagsStrings.TABLE.NO_TAGS_MATCH_CURRENT_FILTERS,
 };
 
 export interface TagsTableProps {
@@ -105,7 +108,7 @@ export function TagsTable({
         </Callout.Root>
         <Flex justify="center">
           <Button variant="outline" size="2" onClick={onRetry}>
-            Retry
+            {CommonStrings.ACTIONS.RETRY}
           </Button>
         </Flex>
       </Box>
@@ -156,7 +159,7 @@ export function TagsTable({
           <Table.ColumnHeaderCell
             width="80px"
             justify="end"
-            aria-label="Row actions"
+            aria-label={TagsStrings.TABLE.ROW_ACTIONS_ARIA}
             style={{ paddingRight: 32 }}
           />
         </Table.Row>
@@ -180,7 +183,7 @@ export function TagsTable({
               onKeyDown={handleRowKeyDown(tag.name)}
               tabIndex={0}
               role="button"
-              aria-label={`View tag ${tag.name}`}
+              aria-label={TagsStrings.TABLE.VIEW_TAG(tag.name)}
               style={{ cursor: 'pointer' }}
             >
               <Table.Cell>
@@ -205,14 +208,14 @@ export function TagsTable({
                       color="gray"
                       size="1"
                       onClick={(e) => e.stopPropagation()}
-                      aria-label={`Actions for tag ${tag.name}`}
+                      aria-label={TagsStrings.TABLE.ACTIONS_TAG(tag.name)}
                     >
                       <MoreHorizontal size={16} />
                     </IconButton>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Content align="end" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu.Item onClick={() => handleRowClick(tag.name)}>
-                      View Tag Details
+                      {TagsStrings.TABLE.VIEW_TAG_DETAILS}
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Root>

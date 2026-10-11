@@ -1,6 +1,7 @@
 
 
 import { assign, createMachine } from 'xstate';
+import UserPagesStrings from '../../../constants/pages/user/UserPagesStrings';
 
 export type RevealTokenType = 'user' | 'nuget';
 
@@ -197,7 +198,7 @@ export function createRevealTokenMachine<TStatus, TToken>(
         setLoadError: assign({
           loadError: (_ctx, event) => {
             const invokeEvent = event as unknown as { data: unknown };
-            return extractMessage(invokeEvent.data, 'Failed to load token status.');
+            return extractMessage(invokeEvent.data, UserPagesStrings.REVEAL_TOKEN.FAILED_LOAD_TOKEN_STATUS);
           },
         }),
         setStatus: assign({
@@ -217,7 +218,7 @@ export function createRevealTokenMachine<TStatus, TToken>(
         setActionError: assign({
           actionError: (_ctx, event) => {
             const invokeEvent = event as unknown as { data: unknown };
-            return extractMessage(invokeEvent.data, 'Action failed.');
+            return extractMessage(invokeEvent.data, UserPagesStrings.REVEAL_TOKEN.ACTION_FAILED);
           },
         }),
         onDeleteSuccess: assign({

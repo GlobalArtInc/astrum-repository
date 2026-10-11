@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { restClient } from '../../interface/api';
 import type { AuditLogResponse, AuditFilters } from './audit.types';
+import { AUDIT_EVENT_STRINGS } from './auditStrings';
 
 interface UseAuditLogApiParams {
   filters: AuditFilters;
@@ -87,7 +88,7 @@ export function useAuditLogApi({
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to fetch audit log');
+          setError(err instanceof Error ? err.message : AUDIT_EVENT_STRINGS.FETCH_FAILED);
         }
       } finally {
         if (!cancelled) {

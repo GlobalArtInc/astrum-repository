@@ -1,6 +1,7 @@
 
 
 import type { AuditCategory } from './audit.types';
+import { AUDIT_EVENT_STRINGS } from './auditStrings';
 
 /**
  * Maps audit event domains to UI categories for filtering and display.
@@ -64,10 +65,10 @@ export const CATEGORY_COLORS: Record<AuditCategory, string> = {
  * User-friendly labels for categories.
  */
 export const CATEGORY_LABELS: Record<AuditCategory, string> = {
-  security: 'Security',
-  repository: 'Repository',
-  configuration: 'Configuration',
-  protection: 'Protection',
+  security: AUDIT_EVENT_STRINGS.CATEGORIES.security,
+  repository: AUDIT_EVENT_STRINGS.CATEGORIES.repository,
+  configuration: AUDIT_EVENT_STRINGS.CATEGORIES.configuration,
+  protection: AUDIT_EVENT_STRINGS.CATEGORIES.protection,
 };
 
 /**
@@ -89,21 +90,21 @@ export const COMMON_EVENT_TYPES = [
  */
 export const COMMON_DOMAINS = [
   // Security
-  { value: 'security.user', label: 'Users', category: 'security' as AuditCategory },
-  { value: 'security.role', label: 'Roles', category: 'security' as AuditCategory },
-  { value: 'security.privilege', label: 'Privileges', category: 'security' as AuditCategory },
+  { value: 'security.user', label: AUDIT_EVENT_STRINGS.DOMAINS.USERS, category: 'security' as AuditCategory },
+  { value: 'security.role', label: AUDIT_EVENT_STRINGS.DOMAINS.ROLES, category: 'security' as AuditCategory },
+  { value: 'security.privilege', label: AUDIT_EVENT_STRINGS.DOMAINS.PRIVILEGES, category: 'security' as AuditCategory },
   { value: 'security.ldap', label: 'LDAP', category: 'security' as AuditCategory },
   { value: 'SamlRealm', label: 'SAML', category: 'security' as AuditCategory },
   // Repository
-  { value: 'repository', label: 'Repositories', category: 'repository' as AuditCategory },
-  { value: 'blobstore', label: 'Blob Stores', category: 'repository' as AuditCategory },
-  { value: 'repository.component', label: 'Components', category: 'repository' as AuditCategory },
+  { value: 'repository', label: AUDIT_EVENT_STRINGS.DOMAINS.REPOSITORIES, category: 'repository' as AuditCategory },
+  { value: 'blobstore', label: AUDIT_EVENT_STRINGS.DOMAINS.BLOB_STORES, category: 'repository' as AuditCategory },
+  { value: 'repository.component', label: AUDIT_EVENT_STRINGS.DOMAINS.COMPONENTS, category: 'repository' as AuditCategory },
   // Configuration
-  { value: 'tasks', label: 'Tasks', category: 'configuration' as AuditCategory },
-  { value: 'capability', label: 'Capabilities', category: 'configuration' as AuditCategory },
-  { value: 'cleanupPolicy', label: 'Cleanup Policies', category: 'configuration' as AuditCategory },
+  { value: 'tasks', label: AUDIT_EVENT_STRINGS.DOMAINS.TASKS, category: 'configuration' as AuditCategory },
+  { value: 'capability', label: AUDIT_EVENT_STRINGS.DOMAINS.CAPABILITIES, category: 'configuration' as AuditCategory },
+  { value: 'cleanupPolicy', label: AUDIT_EVENT_STRINGS.DOMAINS.CLEANUP_POLICIES, category: 'configuration' as AuditCategory },
   // Protection
-  { value: 'protection.config', label: 'Protection Config', category: 'protection' as AuditCategory },
-  { value: 'malware.removal', label: 'Malware Removal', category: 'protection' as AuditCategory },
-  { value: 'firewall.quarantine', label: 'Firewall Quarantine', category: 'protection' as AuditCategory },
+  { value: 'protection.config', label: AUDIT_EVENT_STRINGS.DOMAINS.PROTECTION_CONFIG, category: 'protection' as AuditCategory },
+  { value: 'malware.removal', label: AUDIT_EVENT_STRINGS.DOMAINS.MALWARE_REMOVAL, category: 'protection' as AuditCategory },
+  { value: 'firewall.quarantine', label: AUDIT_EVENT_STRINGS.DOMAINS.FIREWALL_QUARANTINE, category: 'protection' as AuditCategory },
 ] as const;

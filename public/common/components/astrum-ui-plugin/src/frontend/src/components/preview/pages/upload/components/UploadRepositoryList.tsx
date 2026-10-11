@@ -8,6 +8,7 @@ import { CopyUrlButton } from '../../browse/actions/CopyUrlButton';
 import { FormatBadge } from '../../../shared';
 import type { UploadRepositoryListProps, SortColumn } from '../upload.types';
 import { UPLOAD_STRINGS } from '../upload.types';
+import UploadStrings from '../../../constants/pages/upload/UploadStrings';
 
 
 /**
@@ -71,15 +72,15 @@ export function UploadRepositoryList({
 
   const getSortAriaLabel = (column: SortColumn): string => {
     if (sortColumn !== column) {
-      return `Sort by ${UPLOAD_STRINGS.columns[column]}`;
+      return UploadStrings.REPOSITORY_LIST.SORT_BY(UPLOAD_STRINGS.columns[column]);
     }
     if (sortDirection === 'asc') {
-      return `${UPLOAD_STRINGS.columns[column]} sorted ascending, click to sort descending`;
+      return UploadStrings.REPOSITORY_LIST.SORTED_ASCENDING_CLICK_SORT_DESCENDING(UPLOAD_STRINGS.columns[column]);
     }
     if (sortDirection === 'desc') {
-      return `${UPLOAD_STRINGS.columns[column]} sorted descending, click to remove sort`;
+      return UploadStrings.REPOSITORY_LIST.SORTED_DESCENDING_CLICK_REMOVE_SORT(UPLOAD_STRINGS.columns[column]);
     }
-    return `Sort by ${UPLOAD_STRINGS.columns[column]}`;
+    return UploadStrings.REPOSITORY_LIST.SORT_BY(UPLOAD_STRINGS.columns[column]);
   };
 
   // Loading state
@@ -175,7 +176,7 @@ export function UploadRepositoryList({
               onKeyDown={(e) => handleKeyDown(e, repo.name)}
               tabIndex={0}
               role="button"
-              aria-label={`Upload to ${repo.name}`}
+              aria-label={UploadStrings.REPOSITORY_LIST.UPLOAD_TO(repo.name)}
             >
               <Table.Cell className="upload-repository-list__cell upload-repository-list__cell--name">
                 <Text weight="medium">{repo.name}</Text>

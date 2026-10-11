@@ -22,6 +22,9 @@ import { UPLOAD_STRINGS } from './upload.types';
 import type { SortColumn } from './upload.types';
 
 import '../search/unified/SearchSidebar.scss';
+import UploadStrings from '../../constants/pages/upload/UploadStrings';
+import CommonStrings from '../../constants/CommonStrings';
+import plural from '../../../../interface/plural';
 
 const UPLOAD_FORM_ROUTE = 'preview.browse.upload.form';
 
@@ -83,10 +86,10 @@ export function UploadRepositoryListPage(): JSX.Element {
   const sortDir = sortDirection ?? 'asc';
 
   const SORT_VALUES = [
-    { value: 'name-asc', label: 'Name (Ascending)' },
-    { value: 'name-desc', label: 'Name (Descending)' },
-    { value: 'format-asc', label: 'Format (Ascending)' },
-    { value: 'format-desc', label: 'Format (Descending)' },
+    { value: 'name-asc', label: UploadStrings.LIST_PAGE.NAME_ASCENDING },
+    { value: 'name-desc', label: UploadStrings.LIST_PAGE.NAME_DESCENDING },
+    { value: 'format-asc', label: UploadStrings.LIST_PAGE.FORMAT_ASCENDING },
+    { value: 'format-desc', label: UploadStrings.LIST_PAGE.FORMAT_DESCENDING },
   ] as const;
 
   const sortValue = `${sortField}-${sortDir}`;
@@ -101,7 +104,7 @@ export function UploadRepositoryListPage(): JSX.Element {
       size="2"
     >
       <Select.Trigger
-        placeholder="Name (Ascending)"
+        placeholder={UploadStrings.LIST_PAGE.NAME_ASCENDING_PLACEHOLDER}
         className="upload-list-page__sort-trigger"
       />
       <Select.Content position="popper" side="bottom" avoidCollisions={false} sideOffset={4}>
@@ -147,7 +150,7 @@ export function UploadRepositoryListPage(): JSX.Element {
             className="filter-bar upload-list-page__sidebar"
             display={{ initial: 'none', sm: 'block' }}
             role="complementary"
-            aria-label="Filter bar"
+            aria-label={UploadStrings.LIST_PAGE.FILTER_BAR_ARIA}
           >
             <aside className="search-sidebar">{filterBarContent}</aside>
           </Box>
@@ -158,15 +161,15 @@ export function UploadRepositoryListPage(): JSX.Element {
             minWidth="0"
             width="100%"
             role="main"
-            aria-label="Page content"
+            aria-label={UploadStrings.LIST_PAGE.PAGE_CONTENT_ARIA}
           >
             <Box mb="4">
               <PageHeader
-                title="Upload"
-                description={`${repositories.length} repositories`}
+                title={UploadStrings.LIST_PAGE.UPLOAD}
+                description={plural(UploadStrings.LIST_PAGE.REPOSITORY_COUNT, repositories.length)}
               />
             </Box>
-            <Box mb="4" role="toolbar" aria-label="Actions bar">
+            <Box mb="4" role="toolbar" aria-label={UploadStrings.LIST_PAGE.ACTIONS_BAR_ARIA}>
               <Flex
                 className="actions-bar upload-list-page__actions-bar"
                 align="center"
@@ -181,7 +184,7 @@ export function UploadRepositoryListPage(): JSX.Element {
                     onKeyDown={handleKeyDown}
                     size="2"
                     className="upload-list-page__filter-input"
-                    aria-label="Filter repositories by name"
+                    aria-label={UploadStrings.LIST_PAGE.FILTER_REPOSITORIES_NAME_ARIA}
                   >
                     <TextField.Slot>
                       <Search size={14} />
@@ -193,7 +196,7 @@ export function UploadRepositoryListPage(): JSX.Element {
                           color="gray"
                           size="1"
                           onClick={clearFilter}
-                          aria-label="Clear filter"
+                          aria-label={UploadStrings.LIST_PAGE.CLEAR_FILTER_ARIA}
                         >
                           <X size={14} />
                         </IconButton>
@@ -206,11 +209,11 @@ export function UploadRepositoryListPage(): JSX.Element {
                   size="2"
                   color="gray"
                   onClick={() => setShowMobileFilters(true)}
-                  aria-label="Open filters"
+                  aria-label={UploadStrings.LIST_PAGE.OPEN_FILTERS_ARIA}
                   display={{ initial: 'flex', sm: 'none' }}
                 >
                   <Filter size={14} />
-                  Filter
+                  {CommonStrings.ACTIONS.FILTER}
                 </Button>
                 {renderSortDropdown()}
               </Flex>
@@ -233,7 +236,7 @@ export function UploadRepositoryListPage(): JSX.Element {
       <MobileFilterDrawer
         isOpen={showMobileFilters}
         onClose={() => setShowMobileFilters(false)}
-        title="Filter"
+        title={CommonStrings.ACTIONS.FILTER}
         onClearAll={clearAllFilters}
       >
         {filterBarContent}

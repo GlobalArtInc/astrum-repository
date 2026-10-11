@@ -7,6 +7,7 @@ import {
   type FormContext,
   type ValidationErrors,
 } from '../../../../../interface/form';
+import UserPagesStrings from '../../../constants/pages/user/UserPagesStrings';
 
 const PASSWORD_MIN_LENGTH = 8;
 
@@ -73,11 +74,11 @@ export function validateUserAccount(data: UserAccountData): ValidationErrors {
   }
 
   if (newPassword && newPassword.length < PASSWORD_MIN_LENGTH) {
-    errors.newPassword = `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
+    errors.newPassword = UserPagesStrings.ACCOUNT_FORM_MACHINE.PASSWORD_MUST_LEAST_CHARACTERS(PASSWORD_MIN_LENGTH);
   }
 
   if (newPassword !== confirmPassword) {
-    errors.confirmPassword = 'Passwords do not match';
+    errors.confirmPassword = UserPagesStrings.ACCOUNT_FORM_MACHINE.PASSWORDS_DO_NOT_MATCH;
   }
 
   return errors;
@@ -126,7 +127,7 @@ export function createUserAccountFormMachine() {
       save: async (ctx: FormContext<UserAccountData>) => {
         const { userId, newPassword } = ctx.data;
         if (!userId) {
-          throw new Error('User not found');
+          throw new Error(UserPagesStrings.ACCOUNT_FORM_MACHINE.USER_NOT_FOUND);
         }
         await restClient.put(
           `/service/rest/v1/security/users/${encodeURIComponent(userId)}/change-password`,

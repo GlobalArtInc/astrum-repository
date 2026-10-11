@@ -8,6 +8,9 @@ import type { AuditFilters, AuditCategory } from '@globalart/astrum-ui-plugin';
 import { CATEGORY_LABELS, COMMON_EVENT_TYPES } from '@globalart/astrum-ui-plugin';
 import type { Repository } from '../settings/repository/repositories/types';
 import './AuditFilterSidebar.scss';
+import AuditStrings from '../../constants/pages/audit/AuditStrings';
+import CommonStrings from '../../constants/CommonStrings';
+import { AUDIT_EVENT_STRINGS } from '../../../../utils/audit/auditStrings';
 
 const CATEGORY_OPTIONS: Array<{ value: AuditCategory; label: string }> = [
   { value: 'security', label: CATEGORY_LABELS.security },
@@ -17,18 +20,18 @@ const CATEGORY_OPTIONS: Array<{ value: AuditCategory; label: string }> = [
 ];
 
 const DATE_RANGE_OPTIONS = [
-  { value: 'last-24-hours', label: 'Last 24 hours' },
-  { value: 'last-7-days', label: 'Last 7 days' },
-  { value: 'last-30-days', label: 'Last 30 days' },
-  { value: 'last-90-days', label: 'Last 90 days' },
+  { value: 'last-24-hours', label: AuditStrings.FILTERS.LAST_24_HOURS },
+  { value: 'last-7-days', label: AuditStrings.FILTERS.LAST_7_DAYS },
+  { value: 'last-30-days', label: AuditStrings.FILTERS.LAST_30_DAYS },
+  { value: 'last-90-days', label: AuditStrings.FILTERS.LAST_90_DAYS },
 ];
 
 const EVENT_TYPE_OPTIONS = [
   ...COMMON_EVENT_TYPES.map((type) => ({
     value: type,
-    label: type.charAt(0).toUpperCase() + type.slice(1),
+    label: AUDIT_EVENT_STRINGS.EVENT_LABELS[type],
   })),
-  { value: 'automatic-malware-removed', label: 'Malware Cleaned' },
+  { value: 'automatic-malware-removed', label: AuditStrings.FILTERS.MALWARE_CLEANED },
 ];
 
 export interface AuditFilterSidebarProps {
@@ -84,14 +87,14 @@ export function AuditFilterSidebar({
         disabled={disabled}
       >
         <RefreshCw size={12} />
-        Reset filters
+        {AuditStrings.FILTERS.RESET_FILTERS}
       </Button>
 
       <Flex direction="column" gap="4">
         {/* Date Range */}
         <Box>
           <Text as="p" size="2" weight="bold" mb="2">
-            Date Range
+            {AuditStrings.FILTERS.DATE_RANGE}
           </Text>
           <Select.Root
             size="2"
@@ -113,7 +116,7 @@ export function AuditFilterSidebar({
         {/* Categories */}
         <Box>
           <Text as="p" size="2" weight="bold" mb="2">
-            Categories
+            {AuditStrings.FILTERS.CATEGORIES}
           </Text>
           <Flex direction="column">
             {CATEGORY_OPTIONS.map(({ value, label }) => (
@@ -136,7 +139,7 @@ export function AuditFilterSidebar({
         {/* Format */}
         <Box>
           <Text as="p" size="2" weight="bold" mb="2">
-            Format
+            {CommonStrings.LABELS.FORMAT}
           </Text>
           <Select.Root
             size="2"
@@ -146,7 +149,7 @@ export function AuditFilterSidebar({
           >
             <Select.Trigger className="audit-filter-sidebar__select-trigger" />
             <Select.Content>
-              <Select.Item value="__all__">All Formats</Select.Item>
+              <Select.Item value="__all__">{AuditStrings.FILTERS.ALL_FORMATS}</Select.Item>
               {formatOptions.map((opt) => (
                 <Select.Item key={opt.value} value={opt.value}>
                   {opt.label}
@@ -159,7 +162,7 @@ export function AuditFilterSidebar({
         {/* Repository */}
         <Box>
           <Text as="p" size="2" weight="bold" mb="2">
-            Repository
+            {AuditStrings.FILTERS.REPOSITORY}
           </Text>
           <Select.Root
             size="2"
@@ -169,7 +172,7 @@ export function AuditFilterSidebar({
           >
             <Select.Trigger className="audit-filter-sidebar__select-trigger" />
             <Select.Content>
-              <Select.Item value="__all__">All Repositories</Select.Item>
+              <Select.Item value="__all__">{AuditStrings.FILTERS.ALL_REPOSITORIES}</Select.Item>
               {repoOptions.map((opt) => (
                 <Select.Item key={opt.value} value={opt.value}>
                   {opt.label}
@@ -182,7 +185,7 @@ export function AuditFilterSidebar({
         {/* Event Types */}
         <Box>
           <Text as="p" size="2" weight="bold" mb="2">
-            Event Types
+            {AuditStrings.FILTERS.EVENT_TYPES}
           </Text>
           <Flex direction="column">
             {EVENT_TYPE_OPTIONS.map(({ value, label }) => (
@@ -206,10 +209,10 @@ export function AuditFilterSidebar({
         {/* Intentionally not disabled during loading to prevent focus loss while typing */}
         <Box>
           <Text as="p" size="2" weight="bold" mb="2">
-            Initiator
+            {AuditStrings.FILTERS.INITIATOR}
           </Text>
           <TextField.Root
-            placeholder="Filter by initiator..."
+            placeholder={AuditStrings.FILTERS.FILTER_INITIATOR_PLACEHOLDER}
             value={filters.initiator || ''}
             onChange={(e) => onInitiatorChange(e.target.value)}
             size="2"

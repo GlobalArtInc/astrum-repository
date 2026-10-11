@@ -12,6 +12,7 @@ import type {
 import { UPLOAD_FORM_STRINGS } from '../upload.types';
 import { restClient } from '../../../../../interface/api';
 import { APIConstants } from '../../../../../constants/APIConstants';
+import UploadStrings from '../../../constants/pages/upload/UploadStrings';
 
 // =============================================================================
 // FIELD VALIDATION PATTERNS (ported from useUploadForm.ts:31-48)
@@ -20,19 +21,19 @@ import { APIConstants } from '../../../../../constants/APIConstants';
 const FIELD_VALIDATION: Record<string, { pattern: RegExp; message: string }> = {
   groupId: {
     pattern: /^[a-zA-Z0-9._-]+$/,
-    message: 'Group ID must contain only letters, numbers, dots, hyphens, and underscores (e.g., com.example.myapp)',
+    message: UploadStrings.FORM_MACHINE.GROUP_ID_MUST_CONTAIN_ONLY,
   },
   artifactId: {
     pattern: /^[a-zA-Z0-9._-]+$/,
-    message: 'Artifact ID must contain only letters, numbers, dots, hyphens, and underscores (e.g., my-library)',
+    message: UploadStrings.FORM_MACHINE.ARTIFACT_ID_MUST_CONTAIN_ONLY,
   },
   version: {
     pattern: /^[a-zA-Z0-9._+-]+$/,
-    message: 'Version must contain only letters, numbers, dots, hyphens, underscores, and plus signs (e.g., 1.0.0-SNAPSHOT)',
+    message: UploadStrings.FORM_MACHINE.VERSION_MUST_CONTAIN_ONLY_LETTERS,
   },
   name: {
     pattern: /^[@a-zA-Z0-9._/-]+$/,
-    message: 'Package name must be a valid npm package name (e.g., @scope/my-package)',
+    message: UploadStrings.FORM_MACHINE.PACKAGE_NAME_MUST_VALID_NPM,
   },
 };
 
@@ -365,7 +366,7 @@ function extractUploadErrorMessage(errData: unknown): string {
   const envelopeMessage =
     (Array.isArray(responseData) ? (responseData[0] as { message?: string })?.message : undefined) ??
     (responseData as { message?: string })?.message;
-  return envelopeMessage ?? (errData instanceof Error ? errData.message : 'Upload failed');
+  return envelopeMessage ?? (errData instanceof Error ? errData.message : UploadStrings.FORM_MACHINE.UPLOAD_FAILED);
 }
 
 // =============================================================================
@@ -745,7 +746,7 @@ export function createUploadFormMachine(init: UploadFormMachineInit) {
           );
 
           if (data?.success !== true) {
-            throw new Error(data?.[0]?.message ?? 'Upload failed');
+            throw new Error(data?.[0]?.message ?? UploadStrings.FORM_MACHINE.UPLOAD_FAILED);
           }
 
           return { componentName: data.data };

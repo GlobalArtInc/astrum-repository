@@ -13,12 +13,14 @@ import {
 import { useUserAccountForm } from './useUserAccountForm';
 
 import './UserAccountPage.scss';
+import UserPagesStrings from '../../../constants/pages/user/UserPagesStrings';
+import CommonStrings from '../../../constants/CommonStrings';
 
 interface UserAccountPageProps {
   className?: string;
 }
 
-const LOAD_ERROR_MESSAGE = 'Failed to load account information.';
+const LOAD_ERROR_MESSAGE = UserPagesStrings.ACCOUNT.FAILED_LOAD_ACCOUNT_INFORMATION;
 
 export function UserAccountPage({ className }: UserAccountPageProps) {
   const user = ExtJS.useUser();
@@ -37,15 +39,15 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
         <Flex align="center" gap="3" className="user-account-page__header">
           <User size={24} className="user-account-page__icon" />
           <Box>
-            <Heading as="h1" size="6" weight="medium">User Account</Heading>
+            <Heading as="h1" size="6" weight="medium">{UserPagesStrings.ACCOUNT.USER_ACCOUNT}</Heading>
             <Text size="2" className="user-account-page__description">
-              Manage your account settings
+              {UserPagesStrings.ACCOUNT.MANAGE_ACCOUNT_SETTINGS}
             </Text>
           </Box>
         </Flex>
 
         <SettingsAlert type="warning">
-          You must be logged in to view your account settings.
+          {UserPagesStrings.ACCOUNT.YOU_MUST_LOGGED_VIEW_ACCOUNT}
         </SettingsAlert>
       </Box>
     );
@@ -56,7 +58,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
       <Box className={`user-account-page ${className || ''}`.trim()}>
         <Flex align="center" justify="center" className="user-account-page__loading">
           <Loader2 size={24} className="user-account-page__spinner" />
-          <Text size="2">Loading account information...</Text>
+          <Text size="2">{UserPagesStrings.ACCOUNT.LOADING_ACCOUNT_INFORMATION}</Text>
         </Flex>
       </Box>
     );
@@ -67,8 +69,8 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
 
   const displayName = data.firstName || data.lastName
     ? `${data.firstName} ${data.lastName}`.trim()
-    : 'Not set';
-  const displayEmail = data.email || 'Not set';
+    : UserPagesStrings.ACCOUNT.NOT_SET;
+  const displayEmail = data.email || UserPagesStrings.ACCOUNT.NOT_SET;
   const isExternal = data.external;
   const showLoadError = form.hasLoadError && !dismissedError;
 
@@ -77,9 +79,9 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
       <Flex align="center" gap="3" className="user-account-page__header">
         <User size={24} className="user-account-page__icon" />
         <Box>
-          <Heading as="h1" size="6" weight="medium">User Account</Heading>
+          <Heading as="h1" size="6" weight="medium">{UserPagesStrings.ACCOUNT.USER_ACCOUNT}</Heading>
           <Text size="2" className="user-account-page__description">
-            Manage your account settings
+            {UserPagesStrings.ACCOUNT.MANAGE_ACCOUNT_SETTINGS}
           </Text>
         </Box>
       </Flex>
@@ -92,12 +94,12 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
         </Box>
       )}
 
-      <SettingsFormSection title="Account Information">
+      <SettingsFormSection title={UserPagesStrings.ACCOUNT.ACCOUNT_INFORMATION}>
         <Box className="user-account-page__info">
           <Flex className="user-account-page__info-row">
             <User size={16} className="user-account-page__info-icon" />
             <Box>
-              <Text size="1" className="user-account-page__info-label">Username</Text>
+              <Text size="1" className="user-account-page__info-label">{UserPagesStrings.ACCOUNT.USERNAME}</Text>
               <Text size="2" weight="medium">{data.userId || user.id}</Text>
             </Box>
           </Flex>
@@ -105,7 +107,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
           <Flex className="user-account-page__info-row">
             <Mail size={16} className="user-account-page__info-icon" />
             <Box>
-              <Text size="1" className="user-account-page__info-label">Email</Text>
+              <Text size="1" className="user-account-page__info-label">{UserPagesStrings.ACCOUNT.EMAIL}</Text>
               <Text size="2" weight="medium">{displayEmail}</Text>
             </Box>
           </Flex>
@@ -113,7 +115,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
           <Flex className="user-account-page__info-row">
             <User size={16} className="user-account-page__info-icon" />
             <Box>
-              <Text size="1" className="user-account-page__info-label">Name</Text>
+              <Text size="1" className="user-account-page__info-label">{CommonStrings.LABELS.NAME}</Text>
               <Text size="2" weight="medium">{displayName}</Text>
             </Box>
           </Flex>
@@ -121,7 +123,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
           <Flex className="user-account-page__info-row">
             <Shield size={16} className="user-account-page__info-icon" />
             <Box>
-              <Text size="1" className="user-account-page__info-label">Source</Text>
+              <Text size="1" className="user-account-page__info-label">{UserPagesStrings.ACCOUNT.SOURCE}</Text>
               <Badge variant="soft" color={isExternal ? 'gray' : 'blue'}>
                 {isExternal ? 'external' : 'default'}
               </Badge>
@@ -132,14 +134,14 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
       </SettingsFormSection>
 
       {profileLoaded && !isExternal && (
-        <SettingsFormSection title="Change Password">
+        <SettingsFormSection title={UserPagesStrings.ACCOUNT.CHANGE_PASSWORD}>
           <Text size="2" className="user-account-page__section-description">
-            Update your account password. Password must be at least 8 characters.
+            {UserPagesStrings.ACCOUNT.UPDATE_ACCOUNT_PASSWORD_PASSWORD_MUST}
           </Text>
 
           <SettingsPasswordInput
             name="currentPassword"
-            label="Current Password"
+            label={UserPagesStrings.ACCOUNT.CURRENT_PASSWORD}
             value={data.currentPassword}
             onChange={(value) => form.send({ type: 'UPDATE', name: 'currentPassword', value })}
             required
@@ -147,17 +149,17 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
 
           <SettingsPasswordInput
             name="newPassword"
-            label="New Password"
+            label={UserPagesStrings.ACCOUNT.NEW_PASSWORD}
             value={data.newPassword}
             onChange={(value) => form.send({ type: 'UPDATE', name: 'newPassword', value })}
             error={touched.newPassword ? validationErrors.newPassword ?? undefined : undefined}
-            helpText="Minimum 8 characters"
+            helpText={UserPagesStrings.ACCOUNT.MINIMUM_8_CHARACTERS}
             required
           />
 
           <SettingsPasswordInput
             name="confirmPassword"
-            label="Confirm New Password"
+            label={UserPagesStrings.ACCOUNT.CONFIRM_NEW_PASSWORD}
             value={data.confirmPassword}
             onChange={(value) => form.send({ type: 'UPDATE', name: 'confirmPassword', value })}
             error={touched.confirmPassword ? validationErrors.confirmPassword ?? undefined : undefined}
@@ -173,7 +175,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               onClick={() => form.submit()}
               data-testid="change-password-submit"
             >
-              Change Password
+              {UserPagesStrings.ACCOUNT.CHANGE_PASSWORD}
             </Button>
             <Button
               type="button"
@@ -182,31 +184,30 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               onClick={() => form.reset()}
               data-testid="change-password-cancel"
             >
-              Discard
+              {UserPagesStrings.ACCOUNT.DISCARD}
             </Button>
           </Flex>
         </SettingsFormSection>
       )}
 
       {profileLoaded && isExternal && (
-        <SettingsFormSection title="Password">
+        <SettingsFormSection title={UserPagesStrings.ACCOUNT.PASSWORD}>
           <SettingsAlert type="info">
-            Your account is managed externally. Password changes must be made through your
-            authentication provider.
+            {UserPagesStrings.ACCOUNT.ACCOUNT_MANAGED_EXTERNALLY_PASSWORD_CHANGES}
           </SettingsAlert>
         </SettingsFormSection>
       )}
 
-      <SettingsFormSection title="Security">
+      <SettingsFormSection title={UserPagesStrings.ACCOUNT.SECURITY}>
         <Flex direction="column" gap="3" data-testid="security-section">
           <Card size="1" data-testid="user-token-link-card">
             <Flex align="center" justify="between">
               <Flex align="center" gap="3">
                 <Key size={20} color="var(--gray-10)" />
                 <Box>
-                  <Text size="2" weight="medium">User Token</Text>
+                  <Text size="2" weight="medium">{UserPagesStrings.ACCOUNT.USER_TOKEN}</Text>
                   <Text size="1" color="gray" style={{ display: 'block' }}>
-                    Personal access token for API authentication
+                    {UserPagesStrings.ACCOUNT.PERSONAL_ACCESS_TOKEN_API_AUTHENTICATION}
                   </Text>
                 </Box>
               </Flex>
@@ -214,10 +215,10 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
                 variant="ghost"
                 size="2"
                 onClick={() => { window.location.hash = '#preview/user/usertoken'; }}
-                aria-label="Manage User Token"
+                aria-label={UserPagesStrings.ACCOUNT.MANAGE_USER_TOKEN_ARIA}
                 data-testid="manage-user-token-btn"
               >
-                Manage User Token
+                {UserPagesStrings.ACCOUNT.MANAGE_USER_TOKEN}
                 <ArrowRight size={14} />
               </Button>
             </Flex>
@@ -229,11 +230,11 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
                 <Package size={20} color="var(--gray-10)" />
                 <Box>
                   <Flex align="center" gap="2">
-                    <Text size="2" weight="medium">NuGet API Key</Text>
-                    <Badge variant="soft" color="blue" size="1">Pro</Badge>
+                    <Text size="2" weight="medium">{UserPagesStrings.ACCOUNT.NUGET_API_KEY}</Text>
+                    <Badge variant="soft" color="blue" size="1">{UserPagesStrings.ACCOUNT.PRO}</Badge>
                   </Flex>
                   <Text size="1" color="gray" style={{ display: 'block' }}>
-                    API key for NuGet package feed authentication
+                    {UserPagesStrings.ACCOUNT.API_KEY_NUGET_PACKAGE_FEED}
                   </Text>
                 </Box>
               </Flex>
@@ -241,10 +242,10 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
                 variant="ghost"
                 size="2"
                 onClick={() => { window.location.hash = '#preview/user/nugetapitoken'; }}
-                aria-label="Manage NuGet API Key"
+                aria-label={UserPagesStrings.ACCOUNT.MANAGE_NUGET_API_KEY_ARIA}
                 data-testid="manage-nuget-key-btn"
               >
-                Manage NuGet API Key
+                {UserPagesStrings.ACCOUNT.MANAGE_NUGET_API_KEY}
                 <ArrowRight size={14} />
               </Button>
             </Flex>

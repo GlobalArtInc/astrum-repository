@@ -35,6 +35,9 @@ import { MobileFilterDrawer, TablePagination, useRepositoriesApi } from '@global
 import { PageHeader } from '../../shared/PageHeader/PageHeader';
 import type { Repository } from '../settings/repository/repositories/types';
 import '@globalart/astrum-ui-plugin/sidebar.scss';
+import AuditStrings from '../../constants/pages/audit/AuditStrings';
+import CommonStrings from '../../constants/CommonStrings';
+import plural, { pageLanguage } from '../../../../interface/plural';
 
 const DEFAULT_FILTERS: AuditFilters = {
   categories: [],
@@ -202,28 +205,26 @@ export function AuditLogPage() {
           style={{ overflow: 'visible', minWidth: 0 }}
           data-testid="filter-sidebar"
           role="complementary"
-          aria-label="Audit log filters"
+          aria-label={AuditStrings.PAGE.AUDIT_LOG_FILTERS_ARIA}
         >
           {filterBarContent}
         </Box>
 
         {/* Main Content */}
-        <Box className="page-content" minWidth="0" width="100%" role="main" aria-label="Page content">
+        <Box className="page-content" minWidth="0" width="100%" role="main" aria-label={AuditStrings.PAGE.PAGE_CONTENT_ARIA}>
           <Box mb="4">
             <PageHeader
-              title="Audit Log"
+              title={AuditStrings.PAGE.AUDIT_LOG}
               description={
                 data
-                  ? `${data.pagination.totalItems.toLocaleString()} event${
-                      data.pagination.totalItems !== 1 ? 's' : ''
-                    }`
+                  ? plural(AuditStrings.PAGE.EVENT_COUNT, data.pagination.totalItems, data.pagination.totalItems.toLocaleString(pageLanguage()))
                   : undefined
               }
               actions={
                 <Flex align="center" gap="3">
                   <Button variant="ghost" size="2" onClick={refetch} disabled={loading}>
                     <RefreshCw size={16} />
-                    Refresh
+                    {CommonStrings.ACTIONS.REFRESH}
                   </Button>
                 </Flex>
               }
@@ -231,7 +232,7 @@ export function AuditLogPage() {
           </Box>
 
           {/* Search and Mobile Filter Bar */}
-          <Box mb="4" role="toolbar" aria-label="Actions bar">
+          <Box mb="4" role="toolbar" aria-label={AuditStrings.PAGE.ACTIONS_BAR_ARIA}>
             <Flex
               className="actions-bar"
               align="center"
@@ -241,7 +242,7 @@ export function AuditLogPage() {
             >
               <Box style={{ flex: 1, minWidth: 200 }}>
                 <TextField.Root
-                  placeholder="Search by context (e.g., user, repository name)..."
+                  placeholder={AuditStrings.PAGE.SEARCH_CONTEXT_E_G_USER_PLACEHOLDER}
                   value={searchInput}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   size="2"
@@ -257,7 +258,7 @@ export function AuditLogPage() {
                         color="gray"
                         size="1"
                         onClick={() => handleSearchChange('')}
-                        aria-label="Clear search"
+                        aria-label={AuditStrings.PAGE.CLEAR_SEARCH_ARIA}
                       >
                         <X size={14} />
                       </IconButton>
@@ -271,10 +272,10 @@ export function AuditLogPage() {
                   size="2"
                   color="gray"
                   onClick={() => setShowMobileFilters(true)}
-                  aria-label="Open filters"
+                  aria-label={AuditStrings.PAGE.OPEN_FILTERS_ARIA}
                 >
                   <Filter size={16} />
-                  Filter
+                  {CommonStrings.ACTIONS.FILTER}
                 </Button>
               </Box>
             </Flex>
@@ -283,7 +284,7 @@ export function AuditLogPage() {
           {repositoryError && (
             <Callout.Root color="red" mb="4">
               <Callout.Icon><AlertCircle size={16} /></Callout.Icon>
-              <Callout.Text>Failed to load repositories: {repositoryError}</Callout.Text>
+              <Callout.Text>{AuditStrings.PAGE.FAILED_LOAD_REPOSITORIES(repositoryError)}</Callout.Text>
             </Callout.Root>
           )}
 
@@ -309,7 +310,7 @@ export function AuditLogPage() {
             <Flex justify="center" align="center" style={{ minHeight: '400px' }}>
               <Flex direction="column" align="center" gap="3">
                 <Spinner size="3" />
-                <Text color="gray">Loading audit events...</Text>
+                <Text color="gray">{AuditStrings.PAGE.LOADING_AUDIT_EVENTS}</Text>
               </Flex>
             </Flex>
           ) : data && data.items.length > 0 ? (
@@ -321,11 +322,11 @@ export function AuditLogPage() {
                       <Table.Header>
                         <Table.Row>
                           <Table.ColumnHeaderCell style={{ width: '40px' }}></Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Timestamp</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Category</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Event</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Summary</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Initiator</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>{AuditStrings.PAGE.TIMESTAMP}</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>{AuditStrings.PAGE.CATEGORY}</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>{AuditStrings.PAGE.EVENT}</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>{AuditStrings.PAGE.SUMMARY}</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>{AuditStrings.PAGE.INITIATOR}</Table.ColumnHeaderCell>
                         </Table.Row>
                       </Table.Header>
 
@@ -379,25 +380,25 @@ export function AuditLogPage() {
                                   <Table.Cell colSpan={6}>
                                     <Box p="4" style={{ backgroundColor: 'var(--gray-2)' }}>
                                       <Heading size="3" mb="2">
-                                        Event Details
+                                        {AuditStrings.PAGE.EVENT_DETAILS}
                                       </Heading>
                                       <Flex direction="column" gap="2" mb="3">
                                         <Text size="2">
-                                          <strong>Domain:</strong> {event.domain}
+                                          <strong>{AuditStrings.PAGE.DOMAIN}</strong> {event.domain}
                                         </Text>
                                         <Text size="2">
-                                          <strong>Type:</strong> {event.type}
+                                          <strong>{AuditStrings.PAGE.TYPE}</strong> {event.type}
                                         </Text>
                                         <Text size="2">
-                                          <strong>Context:</strong> {event.context || '-'}
+                                          <strong>{AuditStrings.PAGE.CONTEXT}</strong> {event.context || '-'}
                                         </Text>
                                         <Text size="2">
-                                          <strong>Node ID:</strong> {event.nodeId}
+                                          <strong>{AuditStrings.PAGE.NODE_ID}</strong> {event.nodeId}
                                         </Text>
                                       </Flex>
 
                                       <Text size="2" weight="medium" mb="1">
-                                        Attributes:
+                                        {AuditStrings.PAGE.ATTRIBUTES}
                                       </Text>
                                       <Code
                                         size="2"
@@ -436,16 +437,16 @@ export function AuditLogPage() {
             <Card>
               <Flex direction="column" align="center" justify="center" gap="2" py="8">
                 <Text size="3" weight="medium">
-                  No Audit Events Found
+                  {AuditStrings.PAGE.NO_AUDIT_EVENTS_FOUND}
                 </Text>
                 <Text size="2" color="gray">
                   {hasActiveFilters || filters.searchQuery
-                    ? 'No audit events match the current filters. Try adjusting your search criteria.'
-                    : 'No audit events have been recorded.'}
+                    ? AuditStrings.PAGE.NO_AUDIT_EVENTS_MATCH_CURRENT
+                    : AuditStrings.PAGE.NO_AUDIT_EVENTS_HAVE_BEEN}
                 </Text>
                 {(hasActiveFilters || filters.searchQuery) && (
                   <Button variant="outline" size="2" mt="2" onClick={handleClearAllFilters}>
-                    Clear all filters
+                    {AuditStrings.PAGE.CLEAR_ALL_FILTERS}
                   </Button>
                 )}
               </Flex>
@@ -457,7 +458,7 @@ export function AuditLogPage() {
       <MobileFilterDrawer
         isOpen={showMobileFilters}
         onClose={() => setShowMobileFilters(false)}
-        title="Filter"
+        title={CommonStrings.ACTIONS.FILTER}
         onClearAll={handleClearAllFilters}
       >
         <AuditFilterSidebar

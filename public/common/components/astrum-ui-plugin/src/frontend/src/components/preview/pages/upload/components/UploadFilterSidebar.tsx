@@ -14,6 +14,8 @@ import { ChevronDown, ChevronUp, ChevronLeft, RefreshCw } from 'lucide-react';
 
 import { FORMAT_LABELS } from '../../../pages/settings/repository/repositories/types';
 import type { SortColumn, SortDirection } from '../upload.types';
+import CommonStrings from '../../../constants/CommonStrings';
+import UploadStrings from '../../../constants/pages/upload/UploadStrings';
 
 interface FilterOption {
   value: string;
@@ -24,13 +26,13 @@ interface FilterOption {
 const VISIBLE_OPTIONS_COUNT = 7;
 
 const SORT_FIELD_OPTIONS: { value: SortColumn; label: string }[] = [
-  { value: 'name', label: 'Name' },
-  { value: 'format', label: 'Format' },
+  { value: 'name', label: CommonStrings.LABELS.NAME },
+  { value: 'format', label: CommonStrings.LABELS.FORMAT },
 ];
 
 const SORT_DIRECTION_OPTIONS: { value: 'asc' | 'desc'; label: string }[] = [
-  { value: 'asc', label: 'Ascending' },
-  { value: 'desc', label: 'Descending' },
+  { value: 'asc', label: UploadStrings.FILTERS.ASCENDING },
+  { value: 'desc', label: UploadStrings.FILTERS.DESCENDING },
 ];
 
 export interface UploadFilterSidebarProps {
@@ -90,7 +92,7 @@ function FilterSection({
           >
             <ChevronLeft size={14} className="upload-filter-sidebar__clear-icon" />
             <RadixText size="2" color="blue" className="upload-filter-sidebar__clear-label">
-              Clear
+              {UploadStrings.FILTERS.CLEAR}
             </RadixText>
           </Flex>
         )}
@@ -116,7 +118,7 @@ function FilterSection({
             className="upload-filter-sidebar__show-more"
           >
             {showAll ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            <RadixText size="2">{showAll ? 'See less' : 'See more'}</RadixText>
+            <RadixText size="2">{showAll ? UploadStrings.FILTERS.SEE_LESS : UploadStrings.FILTERS.SEE_MORE}</RadixText>
           </Button>
         )}
       </Flex>
@@ -162,14 +164,14 @@ export function UploadFilterSidebar({
           disabled={disabled}
         >
           <RefreshCw size={12} />
-          Reset filters
+          {UploadStrings.FILTERS.RESET_FILTERS}
         </Button>
       </Flex>
 
       <Flex direction="column" gap="4">
         <Box mt="1">
           <Flex mb="2" align="center" gap="2">
-            <RadixText size="2" weight="medium" className="upload-filter-sidebar__sort-label">Sort</RadixText>
+            <RadixText size="2" weight="medium" className="upload-filter-sidebar__sort-label">{UploadStrings.FILTERS.SORT}</RadixText>
           </Flex>
           <Flex direction="column" gap="2">
             <Select.Root
@@ -206,7 +208,7 @@ export function UploadFilterSidebar({
         </Box>
 
         <FilterSection
-          label="Format"
+          label={CommonStrings.LABELS.FORMAT}
           options={formatOptions}
           selected={selectedFormats}
           onChange={onFormatsChange}

@@ -20,6 +20,8 @@ import { Check, Copy, Package } from 'lucide-react';
 import { ExtJS } from '../../../../interface/ExtJS';
 import { ConfirmDialog } from '../../shared/form';
 import { useNuGetApiToken } from './useNuGetApiToken';
+import UserPagesStrings from '../../constants/pages/user/UserPagesStrings';
+import CommonStrings from '../../constants/CommonStrings';
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
@@ -44,12 +46,12 @@ function CopyField({ label, value }: { label: string; value: string }) {
         >
           {value}
         </Code>
-        <Tooltip content={copied ? 'Copied!' : 'Copy to clipboard'}>
+        <Tooltip content={copied ? UserPagesStrings.NUGET_API_KEY.COPIED : UserPagesStrings.NUGET_API_KEY.COPY_CLIPBOARD}>
           <IconButton
             variant="ghost"
             size="2"
             onClick={handleCopy}
-            aria-label={`Copy ${label || 'value'}`}
+            aria-label={UserPagesStrings.NUGET_API_KEY.COPY_LABEL(label || UserPagesStrings.NUGET_API_KEY.VALUE_FALLBACK)}
             data-testid={`copy-btn-${label.toLowerCase().replace(/\s+/g, '-')}`}
           >
             {copied ? <Check size={14} color="var(--green-9)" /> : <Copy size={14} />}
@@ -73,22 +75,22 @@ function NuGetRevealDialog({ apiKey, userId, onClose }: NuGetRevealDialogProps) 
   return (
     <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
       <Dialog.Content maxWidth="520px" data-testid="nuget-reveal-dialog">
-        <Dialog.Title>NuGet API Key</Dialog.Title>
+        <Dialog.Title>{UserPagesStrings.NUGET_API_KEY.NUGET_API_KEY}</Dialog.Title>
 
         <Callout.Root color="amber" mb="4">
           <Callout.Text>
-            Keep this key secret. Store it in your NuGet configuration, not in source code.
+            {UserPagesStrings.NUGET_API_KEY.KEEP_KEY_SECRET_STORE_NUGET}
           </Callout.Text>
         </Callout.Root>
 
         <Flex direction="column" gap="4">
-          <CopyField label="Your API Key" value={apiKey} />
+          <CopyField label={UserPagesStrings.NUGET_API_KEY.API_KEY} value={apiKey} />
 
           <Separator size="4" />
 
           <Box>
             <Text size="2" weight="medium" mb="1" style={{ display: 'block' }}>
-              dotnet nuget add source command
+              {UserPagesStrings.NUGET_API_KEY.DOTNET_NUGET_ADD_SOURCE_COMMAND}
             </Text>
             <Box
               style={{
@@ -105,14 +107,14 @@ function NuGetRevealDialog({ apiKey, userId, onClose }: NuGetRevealDialogProps) 
             >
               {dotnetCmd}
             </Box>
-            <CopyField label="Copy command" value={dotnetCmd} />
+            <CopyField label={UserPagesStrings.NUGET_API_KEY.COPY_COMMAND} value={dotnetCmd} />
           </Box>
         </Flex>
 
         <Flex justify="end" mt="4">
           <Dialog.Close>
             <Button variant="soft" color="gray" onClick={onClose}>
-              Close
+              {CommonStrings.ACTIONS.CLOSE}
             </Button>
           </Dialog.Close>
         </Flex>
@@ -156,16 +158,15 @@ export function NuGetApiTokenPage() {
       <Flex align="center" gap="3" mb="4">
         <Package size={24} color="var(--accent-9)" />
         <Box>
-          <Heading size="5">NuGet API Key</Heading>
-          <Text size="2" color="gray">Authentication key for NuGet package feeds</Text>
+          <Heading size="5">{UserPagesStrings.NUGET_API_KEY.NUGET_API_KEY}</Heading>
+          <Text size="2" color="gray">{UserPagesStrings.NUGET_API_KEY.AUTHENTICATION_KEY_NUGET_PACKAGE_FEEDS}</Text>
         </Box>
       </Flex>
 
       <Card mb="4" data-testid="nuget-key-card">
-        <Heading size="3" mb="2">Your API Key</Heading>
+        <Heading size="3" mb="2">{UserPagesStrings.NUGET_API_KEY.API_KEY}</Heading>
         <Text size="2" color="gray" mb="3" style={{ display: 'block' }}>
-          Access your NuGet API key to authenticate NuGet package manager clients against this
-          Astrum Repository instance.
+          {UserPagesStrings.NUGET_API_KEY.ACCESS_NUGET_API_KEY_AUTHENTICATE}
         </Text>
         <Flex gap="2">
           <Button
@@ -176,7 +177,7 @@ export function NuGetApiTokenPage() {
             data-testid="access-api-key-btn"
           >
             {accessLoading && <Spinner size="1" />}
-            Access API Key
+            {UserPagesStrings.NUGET_API_KEY.ACCESS_API_KEY}
           </Button>
           <Button
             variant="soft"
@@ -186,18 +187,18 @@ export function NuGetApiTokenPage() {
             data-testid="reset-api-key-btn"
           >
             {resetLoading && <Spinner size="1" />}
-            Reset API Key
+            {UserPagesStrings.NUGET_API_KEY.RESET_API_KEY}
           </Button>
         </Flex>
       </Card>
 
       <Card data-testid="usage-instructions-card">
-        <Heading size="3" mb="3">Usage Instructions</Heading>
+        <Heading size="3" mb="3">{UserPagesStrings.NUGET_API_KEY.USAGE_INSTRUCTIONS}</Heading>
 
         <Flex direction="column" gap="4">
           <Box>
             <Text size="2" weight="medium" mb="1" style={{ display: 'block' }}>
-              dotnet nuget CLI
+              {UserPagesStrings.NUGET_API_KEY.DOTNET_NUGET_CLI}
             </Text>
             <Separator size="4" mb="2" />
             <Box
@@ -216,13 +217,13 @@ export function NuGetApiTokenPage() {
               {dotnetCmdPreview}
             </Box>
             <Flex justify="end" mt="1">
-              <CopyField label="dotnet command" value={dotnetCmdPreview} />
+              <CopyField label={UserPagesStrings.NUGET_API_KEY.DOTNET_COMMAND} value={dotnetCmdPreview} />
             </Flex>
           </Box>
 
           <Box>
             <Text size="2" weight="medium" mb="1" style={{ display: 'block' }}>
-              nuget.exe CLI
+              {UserPagesStrings.NUGET_API_KEY.NUGET_EXE_CLI}
             </Text>
             <Separator size="4" mb="2" />
             <Box
@@ -241,13 +242,13 @@ export function NuGetApiTokenPage() {
               {nugetCmdPreview}
             </Box>
             <Flex justify="end" mt="1">
-              <CopyField label="nuget.exe command" value={nugetCmdPreview} />
+              <CopyField label={UserPagesStrings.NUGET_API_KEY.NUGET_EXE_COMMAND} value={nugetCmdPreview} />
             </Flex>
           </Box>
 
           <Box>
             <Text size="2" weight="medium" mb="1" style={{ display: 'block' }}>
-              Chocolatey CLI
+              {UserPagesStrings.NUGET_API_KEY.CHOCOLATEY_CLI}
             </Text>
             <Separator size="4" mb="2" />
             <Box
@@ -266,7 +267,7 @@ export function NuGetApiTokenPage() {
               {chocoCmdPreview}
             </Box>
             <Flex justify="end" mt="1">
-              <CopyField label="choco command" value={chocoCmdPreview} />
+              <CopyField label={UserPagesStrings.NUGET_API_KEY.CHOCO_COMMAND} value={chocoCmdPreview} />
             </Flex>
           </Box>
         </Flex>
@@ -283,9 +284,9 @@ export function NuGetApiTokenPage() {
       <ConfirmDialog
         open={showResetConfirm}
         onOpenChange={setShowResetConfirm}
-        title="Reset NuGet API Key"
-        message="This will permanently invalidate your current NuGet API key. Any NuGet clients using the existing key will fail to authenticate. You can generate a new key after resetting."
-        confirmLabel="Reset Key"
+        title={UserPagesStrings.NUGET_API_KEY.RESET_NUGET_API_KEY}
+        message={UserPagesStrings.NUGET_API_KEY.PERMANENTLY_INVALIDATE_CURRENT_NUGET_API}
+        confirmLabel={UserPagesStrings.NUGET_API_KEY.RESET_KEY}
         variant="danger"
         onConfirm={handleResetConfirm}
         testId="reset-nuget-key-dialog"

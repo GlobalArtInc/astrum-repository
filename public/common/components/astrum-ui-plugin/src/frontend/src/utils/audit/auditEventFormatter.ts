@@ -2,6 +2,12 @@
 
 import type { AuditEvent, AuditEventDisplay, } from './audit.types';
 import { DOMAIN_CATEGORY_MAP } from './audit.constants';
+import { AUDIT_EVENT_STRINGS } from './auditStrings';
+import { pageLanguage } from '../../interface/plural';
+
+const SUMMARIES = AUDIT_EVENT_STRINGS.SUMMARIES;
+const ENTITY_TYPES = AUDIT_EVENT_STRINGS.ENTITY_TYPES;
+const ACTIONS = AUDIT_EVENT_STRINGS.ACTIONS;
 
 /**
  * Enhance audit event with computed display fields.
@@ -9,7 +15,7 @@ import { DOMAIN_CATEGORY_MAP } from './audit.constants';
 export function formatAuditEvent(event: AuditEvent): AuditEventDisplay {
   const category = DOMAIN_CATEGORY_MAP[event.domain] || 'configuration';
   const entityType = deriveEntityType(event.domain);
-  const entityName = event.context || event.attributes?.name || 'Unknown';
+  const entityName = event.context || event.attributes?.name || SUMMARIES.UNKNOWN;
 
   return {
     ...event,
@@ -25,6 +31,10 @@ export function formatAuditEvent(event: AuditEvent): AuditEventDisplay {
  * Format event type for display ("created" → "Created").
  */
 function formatEventLabel(type: string): string {
+  const label = (AUDIT_EVENT_STRINGS.EVENT_LABELS as Record<string, string>)[type];
+  if (label) {
+    return label;
+  }
   return type
     .split(/[-_]/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -40,7 +50,11 @@ function buildSummary(event: AuditEvent, entityType: string, entityName: string)
 
   // Handle special cases
   if (event.domain.includes('login') || event.domain.includes('logout')) {
-    return `User '${entityName}' ${event.type}`;
+    const sessionEvents: Record<string, string> = {
+      login: AUDIT_EVENT_STRINGS.SESSION_EVENTS.LOGIN_EVENT,
+      logout: AUDIT_EVENT_STRINGS.SESSION_EVENTS.LOGOUT_EVENT,
+    };
+    return SUMMARIES.USER_SESSION(entityName, sessionEvents[event.type] ?? event.type);
   }
 
   if (event.type === 'automatic-malware-removed') {
@@ -48,17 +62,21 @@ function buildSummary(event: AuditEvent, entityType: string, entityName: string)
     if (parts.length >= 2) {
       const repo = parts[0];
       const asset = parts.slice(1).join(':');
-      return `Component '${asset}' in repository '${repo}' removed (malware) by system`;
+      return SUMMARIES.MALWARE_REMOVED_IN_REPOSITORY(asset, repo);
     }
-    return `Component '${entityName}' removed (malware) by system`;
+    return SUMMARIES.MALWARE_REMOVED(entityName);
   }
 
   if (event.type === 'quarantined-new-violation' || event.type === 'blocked-download-already-quarantined') {
-    return `Download blocked: ${entityName}${initiator !== 'system' ? ` (user: ${initiator})` : ''}`;
+    return initiator !== 'system'
+      ? SUMMARIES.DOWNLOAD_BLOCKED_FOR_USER(entityName, initiator)
+      : SUMMARIES.DOWNLOAD_BLOCKED(entityName);
   }
 
   // Default format
-  return `${entityType} '${entityName}' ${action}${initiator !== 'system' ? ` by ${initiator}` : ''}`;
+  return initiator !== 'system'
+    ? SUMMARIES.EVENT_BY(entityType, entityName, action, initiator)
+    : SUMMARIES.EVENT(entityType, entityName, action);
 }
 
 /**
@@ -66,24 +84,24 @@ function buildSummary(event: AuditEvent, entityType: string, entityName: string)
  */
 function formatAction(type: string): string {
   const actionMap: Record<string, string> = {
-    created: 'created',
-    updated: 'updated',
-    deleted: 'deleted',
-    started: 'started',
-    stopped: 'stopped',
-    finished: 'finished',
-    failed: 'failed',
-    login: 'logged in',
-    logout: 'logged out',
-    scheduled: 'scheduled',
-    canceled: 'canceled',
-    activated: 'activated',
-    passivated: 'deactivated',
-    purged: 'purged',
-    downloaded: 'downloaded',
-    uploaded: 'uploaded',
-    associated: 'tagged',
-    disassociated: 'untagged',
+    created: ACTIONS.WAS_CREATED,
+    updated: ACTIONS.WAS_UPDATED,
+    deleted: ACTIONS.WAS_DELETED,
+    started: ACTIONS.WAS_STARTED,
+    stopped: ACTIONS.WAS_STOPPED,
+    finished: ACTIONS.WAS_FINISHED,
+    failed: ACTIONS.HAS_FAILED,
+    login: ACTIONS.LOGGED_IN,
+    logout: ACTIONS.LOGGED_OUT,
+    scheduled: ACTIONS.WAS_SCHEDULED,
+    canceled: ACTIONS.WAS_CANCELED,
+    activated: ACTIONS.WAS_ACTIVATED,
+    passivated: ACTIONS.WAS_DEACTIVATED,
+    purged: ACTIONS.WAS_PURGED,
+    downloaded: ACTIONS.WAS_DOWNLOADED,
+    uploaded: ACTIONS.WAS_UPLOADED,
+    associated: ACTIONS.WAS_TAGGED,
+    disassociated: ACTIONS.WAS_UNTAGGED,
   };
 
   return actionMap[type] || type.replace(/-/g, ' ');
@@ -94,44 +112,44 @@ function formatAction(type: string): string {
  */
 function deriveEntityType(domain: string): string {
   const typeMap: Record<string, string> = {
-    'security.user': 'User',
-    'security.role': 'Role',
-    'security.privilege': 'Privilege',
-    'security.user-role-mapping': 'User-Role Mapping',
-    'security.anonymous': 'Anonymous Access',
-    'security.realm': 'Realm Configuration',
-    'security.ldap': 'LDAP Configuration',
-    'security.crowd': 'Crowd Configuration',
-    'security.sslcertificate': 'SSL Certificate',
-    'security.secrets': 'Encryption Key',
-    'security.jwt': 'JWT Token',
-    'SamlRealm': 'SAML Configuration',
-    'repository': 'Repository',
-    'repository.component': 'Component',
-    'repository.asset': 'Asset',
-    'repository.component.tag': 'Component Tag',
-    'blobstore': 'Blob Store',
-    'tasks': 'Task',
-    'capability': 'Capability',
-    'cleanupPolicy': 'Cleanup Policy',
-    'ContentSelector': 'Content Selector',
-    'RoutingRule': 'Routing Rule',
-    'email': 'Email Configuration',
-    'httpclient': 'HTTP Client Configuration',
-    'logging': 'Logging Configuration',
-    'script': 'Script',
-    'license': 'License',
-    'freeze': 'Database Freeze',
-    'DataStore': 'Data Store',
-    'database-migration': 'Database Migration',
-    'userToken': 'User Token',
-    'userToken.admin': 'User Token (Admin)',
-    'protection.config': 'Protection Configuration',
-    'malware.removal': 'Malware Removal',
-    'firewall.quarantine': 'Firewall Quarantine',
+    'security.user': ENTITY_TYPES.USER,
+    'security.role': ENTITY_TYPES.ROLE,
+    'security.privilege': ENTITY_TYPES.PRIVILEGE,
+    'security.user-role-mapping': ENTITY_TYPES.USER_ROLE_MAPPING,
+    'security.anonymous': ENTITY_TYPES.ANONYMOUS_ACCESS,
+    'security.realm': ENTITY_TYPES.REALM_CONFIGURATION,
+    'security.ldap': ENTITY_TYPES.LDAP_CONFIGURATION,
+    'security.crowd': ENTITY_TYPES.CROWD_CONFIGURATION,
+    'security.sslcertificate': ENTITY_TYPES.SSL_CERTIFICATE,
+    'security.secrets': ENTITY_TYPES.ENCRYPTION_KEY,
+    'security.jwt': ENTITY_TYPES.JWT_TOKEN,
+    'SamlRealm': ENTITY_TYPES.SAML_CONFIGURATION,
+    'repository': ENTITY_TYPES.REPOSITORY,
+    'repository.component': ENTITY_TYPES.COMPONENT,
+    'repository.asset': ENTITY_TYPES.ASSET,
+    'repository.component.tag': ENTITY_TYPES.COMPONENT_TAG,
+    'blobstore': ENTITY_TYPES.BLOB_STORE,
+    'tasks': ENTITY_TYPES.TASK,
+    'capability': ENTITY_TYPES.CAPABILITY,
+    'cleanupPolicy': ENTITY_TYPES.CLEANUP_POLICY,
+    'ContentSelector': ENTITY_TYPES.CONTENT_SELECTOR,
+    'RoutingRule': ENTITY_TYPES.ROUTING_RULE,
+    'email': ENTITY_TYPES.EMAIL_CONFIGURATION,
+    'httpclient': ENTITY_TYPES.HTTP_CLIENT_CONFIGURATION,
+    'logging': ENTITY_TYPES.LOGGING_CONFIGURATION,
+    'script': ENTITY_TYPES.SCRIPT,
+    'license': ENTITY_TYPES.LICENSE,
+    'freeze': ENTITY_TYPES.DATABASE_FREEZE,
+    'DataStore': ENTITY_TYPES.DATA_STORE,
+    'database-migration': ENTITY_TYPES.DATABASE_MIGRATION,
+    'userToken': ENTITY_TYPES.USER_TOKEN,
+    'userToken.admin': ENTITY_TYPES.USER_TOKEN_ADMIN,
+    'protection.config': ENTITY_TYPES.PROTECTION_CONFIGURATION,
+    'malware.removal': ENTITY_TYPES.MALWARE_REMOVAL,
+    'firewall.quarantine': ENTITY_TYPES.FIREWALL_QUARANTINE,
   };
 
-  return typeMap[domain] || 'Event';
+  return typeMap[domain] || ENTITY_TYPES.EVENT;
 }
 
 /**
@@ -140,13 +158,12 @@ function deriveEntityType(domain: string): string {
 export function formatTimestamp(timestamp: string): string {
   try {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(pageLanguage(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
     });
   } catch {
     return timestamp;
@@ -159,14 +176,13 @@ export function formatTimestamp(timestamp: string): string {
 export function formatTimestampFull(timestamp: string): string {
   try {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(pageLanguage(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
       second: '2-digit',
-      hour12: true,
     });
   } catch {
     return timestamp;

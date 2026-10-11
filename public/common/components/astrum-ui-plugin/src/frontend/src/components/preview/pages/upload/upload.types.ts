@@ -1,3 +1,5 @@
+import UploadStrings from '../../constants/pages/upload/UploadStrings';
+import CommonStrings from '../../constants/CommonStrings';
 
 
 /**
@@ -115,19 +117,19 @@ export interface UploadRepositoryListProps {
  * UI strings for the upload module.
  */
 export const UPLOAD_STRINGS = {
-  pageTitle: 'Upload',
-  pageDescription: 'Upload content to hosted repositories',
-  filterPlaceholder: 'Filter by name...',
-  emptyMessage: 'No repositories found.',
+  pageTitle: UploadStrings.TYPES.UPLOAD,
+  pageDescription: UploadStrings.TYPES.UPLOAD_CONTENT_HOSTED_REPOSITORIES,
+  filterPlaceholder: UploadStrings.TYPES.FILTER_NAME,
+  emptyMessage: UploadStrings.TYPES.NO_REPOSITORIES_FOUND,
   columns: {
-    name: 'Name',
-    format: 'Format',
+    name: CommonStrings.LABELS.NAME,
+    format: CommonStrings.LABELS.FORMAT,
     url: 'URL',
   },
-  copyUrlTooltip: 'Copy URL to Clipboard',
-  urlCopied: 'URL copied to clipboard',
-  loadingMessage: 'Loading repositories...',
-  errorPrefix: 'Error loading repositories:',
+  copyUrlTooltip: UploadStrings.TYPES.COPY_URL_CLIPBOARD,
+  urlCopied: UploadStrings.TYPES.URL_COPIED_CLIPBOARD,
+  loadingMessage: UploadStrings.TYPES.LOADING_REPOSITORIES,
+  errorPrefix: UploadStrings.TYPES.ERROR_LOADING_REPOSITORIES,
 };
 
 /**
@@ -232,21 +234,21 @@ export interface UseUploadFormResult {
  * Upload form strings.
  */
 export const UPLOAD_FORM_STRINGS = {
-  backButton: 'Back to Upload',
-  uploadTo: 'Upload to',
-  assetLabel: 'Asset',
-  fileRequired: 'File is required',
-  fieldRequired: 'This field is required',
-  assetNotUnique: 'Asset fields must be unique',
-  addAsset: 'Add another asset',
-  removeAsset: 'Remove asset',
-  uploadButton: 'Upload',
-  uploading: 'Uploading...',
-  uploadSuccess: 'Upload successful!',
-  uploadError: 'Upload failed',
-  coordinatesFromPom: 'Component details will be extracted from the provided POM file.',
-  noDefinition: 'No upload definition found for this repository format.',
-  repositoryNotFound: 'Repository not found.',
+  backButton: UploadStrings.TYPES.BACK_UPLOAD,
+  uploadTo: UploadStrings.TYPES.UPLOAD_TO,
+  assetLabel: UploadStrings.TYPES.ASSET,
+  fileRequired: UploadStrings.TYPES.FILE_REQUIRED,
+  fieldRequired: UploadStrings.TYPES.FIELD_REQUIRED,
+  assetNotUnique: UploadStrings.TYPES.ASSET_FIELDS_MUST_UNIQUE,
+  addAsset: UploadStrings.TYPES.ADD_ANOTHER_ASSET,
+  removeAsset: UploadStrings.TYPES.REMOVE_ASSET,
+  uploadButton: UploadStrings.TYPES.UPLOAD,
+  uploading: UploadStrings.TYPES.UPLOADING,
+  uploadSuccess: UploadStrings.TYPES.UPLOAD_SUCCESSFUL,
+  uploadError: UploadStrings.TYPES.UPLOAD_FAILED,
+  coordinatesFromPom: UploadStrings.TYPES.COMPONENT_DETAILS_EXTRACTED_PROVIDED_POM,
+  noDefinition: UploadStrings.TYPES.NO_UPLOAD_DEFINITION_FOUND_REPOSITORY,
+  repositoryNotFound: UploadStrings.TYPES.REPOSITORY_NOT_FOUND,
 };
 
 // =============================================================================
@@ -345,39 +347,39 @@ export const MAVEN_PACKAGING_OPTIONS = [
  */
 export const FORMAT_FIELD_STRINGS = {
   maven: {
-    groupName: 'Component coordinates',
-    groupIdLabel: 'Group ID',
-    groupIdHelp: 'The Maven groupId (e.g., com.example)',
-    artifactIdLabel: 'Artifact ID',
-    artifactIdHelp: 'The Maven artifactId (e.g., my-library)',
-    versionLabel: 'Version',
-    versionHelp: 'The version number (e.g., 1.0.0)',
-    packagingLabel: 'Packaging',
-    packagingHelp: 'The packaging type',
-    extensionLabel: 'Extension',
-    extensionHelp: 'File extension (optional, defaults to packaging)',
-    classifierLabel: 'Classifier',
-    classifierHelp: 'Optional classifier (e.g., sources, javadoc)',
-    generatePomLabel: 'Generate POM',
-    generatePomHelp: 'Automatically generate a POM file',
-    pomDetectedInfo: 'Component coordinates will be extracted from the provided POM file.',
+    groupName: UploadStrings.TYPES.COMPONENT_COORDINATES,
+    groupIdLabel: UploadStrings.TYPES.GROUP_ID,
+    groupIdHelp: UploadStrings.TYPES.MAVEN_GROUPID_E_G_COM,
+    artifactIdLabel: UploadStrings.TYPES.ARTIFACT_ID,
+    artifactIdHelp: UploadStrings.TYPES.MAVEN_ARTIFACTID_E_G_MY,
+    versionLabel: UploadStrings.TYPES.VERSION,
+    versionHelp: UploadStrings.TYPES.VERSION_NUMBER_E_G_1,
+    packagingLabel: UploadStrings.TYPES.PACKAGING,
+    packagingHelp: UploadStrings.TYPES.PACKAGING_TYPE,
+    extensionLabel: UploadStrings.TYPES.EXTENSION,
+    extensionHelp: UploadStrings.TYPES.FILE_EXTENSION_OPTIONAL_DEFAULTS_PACKAGING,
+    classifierLabel: UploadStrings.TYPES.CLASSIFIER,
+    classifierHelp: UploadStrings.TYPES.OPTIONAL_CLASSIFIER_E_G_SOURCES,
+    generatePomLabel: UploadStrings.TYPES.GENERATE_POM,
+    generatePomHelp: UploadStrings.TYPES.AUTOMATICALLY_GENERATE_POM_FILE,
+    pomDetectedInfo: UploadStrings.TYPES.COMPONENT_COORDINATES_EXTRACTED_PROVIDED_POM,
   },
   npm: {
-    packageNameLabel: 'Package Name',
-    packageNameHelp: 'The npm package name (e.g., @scope/package)',
-    versionLabel: 'Version',
-    versionHelp: 'The semver version (e.g., 1.0.0)',
+    packageNameLabel: UploadStrings.TYPES.PACKAGE_NAME,
+    packageNameHelp: UploadStrings.TYPES.NPM_PACKAGE_NAME_E_G,
+    versionLabel: UploadStrings.TYPES.VERSION,
+    versionHelp: UploadStrings.TYPES.SEMVER_VERSION_E_G_1,
   },
   raw: {
-    directoryLabel: 'Directory',
-    directoryHelp: 'Target directory path (e.g., /path/to/file)',
-    filenameLabel: 'Filename',
-    filenameHelp: 'The filename (optional, uses uploaded filename by default)',
+    directoryLabel: UploadStrings.TYPES.DIRECTORY,
+    directoryHelp: UploadStrings.TYPES.TARGET_DIRECTORY_PATH_E_G,
+    filenameLabel: UploadStrings.TYPES.FILENAME,
+    filenameHelp: UploadStrings.TYPES.FILENAME_OPTIONAL_USES_UPLOADED_FILENAME,
   },
   generic: {
-    optionalSuffix: '(optional)',
+    optionalSuffix: UploadStrings.TYPES.OPTIONAL_SUFFIX,
     requiredIndicator: '*',
-    selectPlaceholder: 'Select...',
+    selectPlaceholder: UploadStrings.TYPES.SELECT,
   },
 };
 

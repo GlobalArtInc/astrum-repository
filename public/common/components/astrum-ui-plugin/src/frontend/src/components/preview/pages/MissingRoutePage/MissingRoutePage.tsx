@@ -7,6 +7,7 @@ import { useSref } from '@uirouter/react';
 import { ROUTE_NAMES } from '../../constants/RouteNames';
 
 import './MissingRoutePage.scss';
+import AuditStrings from '../../constants/pages/audit/AuditStrings';
 
 /**
  * Preview UI 404 Page - Missing Route
@@ -41,7 +42,7 @@ export function MissingRoutePage(): JSX.Element {
 
         {/* Title */}
         <Heading size="6" className="as-missing-route-page__title">
-          Resource Not Found
+          {AuditStrings.MISSING_ROUTE.RESOURCE_NOT_FOUND}
         </Heading>
 
         {/* Divider */}
@@ -49,20 +50,20 @@ export function MissingRoutePage(): JSX.Element {
 
         {/* Message */}
         <Text size="3" color="gray" className="as-missing-route-page__message">
-          This resource is not available. It may have been moved, deleted, or you don&apos;t have access.
+          {AuditStrings.MISSING_ROUTE.RESOURCE_NOT_AVAILABLE_MAY_HAVE}
         </Text>
 
         {/* Actions */}
         <Flex direction="column" gap="4" align="center" className="as-missing-route-page__actions">
           <Text size="2" color="gray" className="as-missing-route-page__actions-message">
-            You might want to:
+            {AuditStrings.MISSING_ROUTE.YOU_MIGHT_WANT}
           </Text>
 
           <Flex gap="3" wrap="wrap" justify="center" className="as-missing-route-page__buttons">
             <Button asChild variant="solid" size="3">
               <a href={dashboardHref} data-analytics-id="as-404-page-dashboard-lnk">
                 <Home size={16} />
-                Return to Dashboard
+                {AuditStrings.MISSING_ROUTE.RETURN_DASHBOARD}
               </a>
             </Button>
 
@@ -74,7 +75,7 @@ export function MissingRoutePage(): JSX.Element {
                 data-analytics-id="as-404-page-support-lnk"
               >
                 <BookOpen size={16} />
-                Visit Documentation
+                {AuditStrings.MISSING_ROUTE.VISIT_DOCUMENTATION}
               </a>
             </Button>
           </Flex>

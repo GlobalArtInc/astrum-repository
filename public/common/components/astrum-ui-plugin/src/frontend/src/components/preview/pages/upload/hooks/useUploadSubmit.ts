@@ -12,6 +12,8 @@ import {
   type UploadResult,
 } from '../upload.api';
 import type { AssetFieldData, UploadFieldDefinition, UploadComponentField } from '../upload.types';
+import UploadStrings from '../../../constants/pages/upload/UploadStrings';
+import CommonStrings from '../../../constants/CommonStrings';
 
 /**
  * Parameters for the upload submission.
@@ -84,13 +86,13 @@ const DEFAULT_RETRY_DELAY = 1000;
  * UI strings for upload submission.
  */
 export const UPLOAD_SUBMIT_STRINGS = {
-  uploading: 'Uploading...',
-  uploadSuccess: 'Upload successful!',
-  uploadFailed: 'Upload failed',
-  uploadCancelled: 'Upload cancelled',
-  retrying: 'Retrying upload...',
-  calculating: 'Calculating...',
-  unknown: 'Unknown',
+  uploading: UploadStrings.SUBMIT_HOOK.UPLOADING,
+  uploadSuccess: UploadStrings.SUBMIT_HOOK.UPLOAD_SUCCESSFUL,
+  uploadFailed: UploadStrings.SUBMIT_HOOK.UPLOAD_FAILED,
+  uploadCancelled: UploadStrings.SUBMIT_HOOK.UPLOAD_CANCELLED,
+  retrying: UploadStrings.SUBMIT_HOOK.RETRYING_UPLOAD,
+  calculating: UploadStrings.SUBMIT_HOOK.CALCULATING,
+  unknown: UploadStrings.SUBMIT_HOOK.UNKNOWN,
 };
 
 /**
@@ -210,8 +212,9 @@ export function useUploadSubmit(options: UseUploadSubmitOptions = {}): UseUpload
           setUploading(false);
           setProgress({ loaded: 100, total: 100, percentage: 100, estimatedTimeRemaining: 0, bytesPerSecond: 0 });
           setError(null);
-          const componentLabel = result.componentName ? `"${result.componentName}" ` : '';
-          toast.success(`Component ${componentLabel}uploaded to "${repositoryName}" successfully`);
+          toast.success(result.componentName
+            ? UploadStrings.SUBMIT_HOOK.COMPONENT_UPLOADED_NAMED(result.componentName, repositoryName)
+            : UploadStrings.SUBMIT_HOOK.COMPONENT_UPLOADED(repositoryName));
           onSuccess?.(result.componentName || '');
           return result;
         }
@@ -219,7 +222,7 @@ export function useUploadSubmit(options: UseUploadSubmitOptions = {}): UseUpload
         // Upload failed
         if (attempt < maxRetries) {
           setRetryCount(attempt);
-          toast.warning(`${UPLOAD_SUBMIT_STRINGS.retrying} (attempt ${attempt + 1}/${maxRetries})`);
+          toast.warning(UploadStrings.SUBMIT_HOOK.ATTEMPT(UPLOAD_SUBMIT_STRINGS.retrying, attempt + 1, maxRetries));
 
           // Wait before retry
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
@@ -237,7 +240,7 @@ export function useUploadSubmit(options: UseUploadSubmitOptions = {}): UseUpload
         onError?.(result.error || UPLOAD_SUBMIT_STRINGS.uploadFailed);
         return result;
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        const errorMessage = err instanceof Error ? err.message : CommonStrings.MESSAGES.UNKNOWN_ERROR;
         setUploading(false);
         setError(errorMessage);
         onError?.(errorMessage);

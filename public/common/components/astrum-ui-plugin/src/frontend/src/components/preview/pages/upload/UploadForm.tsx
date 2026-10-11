@@ -16,6 +16,8 @@ import type {
   UploadFieldDefinition,
   UploadDefinitionExtended,
 } from './upload.types';
+import UploadStrings from '../../constants/pages/upload/UploadStrings';
+import plural from '../../../../interface/plural';
 
 const UPLOAD_FORM_DIRTY_ID = 'upload-form';
 const MAVEN_FORMAT = 'maven2';
@@ -102,8 +104,8 @@ export function UploadForm({
     const result = await submit();
     if (result.success) {
       toast.success(
-        `Component uploaded to ${repositoryName}`,
-        result.componentName ? `Component: ${result.componentName}` : undefined,
+        UploadStrings.FORM.COMPONENT_UPLOADED(repositoryName),
+        result.componentName ? UploadStrings.FORM.COMPONENT(result.componentName) : undefined,
       );
       // A successful upload leaves formData intact (isDirty stays true), so clear
       // the guard registration synchronously before navigating; the router reads
@@ -120,7 +122,7 @@ export function UploadForm({
   return (
     <Box className="upload-form">
       <SettingsForm
-        title={`Upload to ${repositoryName}`}
+        title={UploadStrings.FORM.UPLOAD_TO(repositoryName)}
         headerActions={
           formatDisplay && (
             <Badge size="2" variant="soft" color="blue">
@@ -134,8 +136,8 @@ export function UploadForm({
         noDirtyTracking
         saving={isSubmitting}
         error={submitError || undefined}
-        submitLabel="Upload Component"
-        cancelLabel="Back to Upload"
+        submitLabel={UploadStrings.FORM.UPLOAD_COMPONENT}
+        cancelLabel={UploadStrings.FORM.BACK_UPLOAD}
         submitDisabled={filesSelected === 0}
         testId="upload-form"
         data-valid={isValid ? 'true' : 'false'}
@@ -145,13 +147,13 @@ export function UploadForm({
               <>
                 <CheckCircle2 size={14} className="upload-form__footer-check" />
                 <Text size="1" weight="medium">
-                  {filesSelected} file{filesSelected !== 1 ? 's' : ''} ready
+                  {plural(UploadStrings.FORM.FILES_READY, filesSelected)}
                 </Text>
               </>
             ) : (
               <>
                 <Clock size={14} />
-                <Text size="1" color="gray">No files selected</Text>
+                <Text size="1" color="gray">{UploadStrings.FORM.NO_FILES_SELECTED}</Text>
               </>
             )}
           </Flex>
@@ -173,7 +175,7 @@ export function UploadForm({
           disabledFields={localDisabledFields}
           hasPomFile={hasPom}
         />
-        <SettingsFormSection title="Assets">
+        <SettingsFormSection title={UploadStrings.FORM.ASSETS}>
           <FileUploadZone
             assets={formData.assets}
             assetFields={assetFields}

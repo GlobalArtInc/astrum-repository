@@ -17,6 +17,7 @@ import { SortableTableHeader, type SortDirection } from '../../../shared';
 import type { UploadableRepository, SortColumn } from '../upload.types';
 import { UPLOAD_STRINGS } from '../upload.types';
 import { FORMAT_LABELS } from '../../../pages/settings/repository/repositories/types';
+import UploadStrings from '../../../constants/pages/upload/UploadStrings';
 
 export interface UploadRepositoryTableProps {
   repositories: readonly UploadableRepository[];
@@ -131,7 +132,7 @@ export function UploadRepositoryTable({
             <Table.ColumnHeaderCell
               width="80px"
               justify="end"
-              aria-label="Row actions"
+              aria-label={UploadStrings.REPOSITORY_TABLE.ROW_ACTIONS_ARIA}
               style={{ paddingRight: 32 }}
             />
           </Table.Row>
@@ -144,7 +145,7 @@ export function UploadRepositoryTable({
               onKeyDown={handleRowKeyDown(repo.name)}
               tabIndex={0}
               role="button"
-              aria-label={`Upload to ${repo.name}`}
+              aria-label={UploadStrings.REPOSITORY_TABLE.UPLOAD_TO(repo.name)}
               className="upload-repository-table__row"
             >
               <Table.Cell>
@@ -161,7 +162,7 @@ export function UploadRepositoryTable({
                       color="gray"
                       size="1"
                       onClick={(e) => e.stopPropagation()}
-                      aria-label={`Actions for ${repo.name}`}
+                      aria-label={UploadStrings.REPOSITORY_TABLE.ACTIONS_FOR(repo.name)}
                     >
                       <MoreHorizontal size={16} />
                     </IconButton>
@@ -171,7 +172,7 @@ export function UploadRepositoryTable({
                       e.stopPropagation();
                       onSelect(repo.name);
                     }}>
-                      Upload to {repo.name}
+                      {UploadStrings.REPOSITORY_TABLE.UPLOAD_TO(repo.name)}
                     </DropdownMenu.Item>
                     <DropdownMenu.Item onClick={async (e) => {
                       e.stopPropagation();
@@ -179,7 +180,7 @@ export function UploadRepositoryTable({
                       // Failure is intentionally silent — no toast infrastructure exists in this component.
                       await navigator.clipboard.writeText(repo.url).catch(() => {});
                     }}>
-                      Copy URL
+                      {UploadStrings.REPOSITORY_TABLE.COPY_URL}
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Root>

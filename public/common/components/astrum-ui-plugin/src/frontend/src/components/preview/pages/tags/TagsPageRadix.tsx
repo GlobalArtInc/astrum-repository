@@ -26,27 +26,30 @@ import { TagsTable } from './TagsTable';
 import { MobileFilterDrawer } from '../../shared/MobileFilterDrawer/MobileFilterDrawer';
 
 import '../search/unified/SearchSidebar.scss';
+import TagsStrings from '../../constants/pages/tags/TagsStrings';
+import CommonStrings from '../../constants/CommonStrings';
+import { pageLanguage } from '../../../../interface/plural';
 
 const STRINGS = {
-  pageTitle: 'Tags',
-  filterPlaceholder: 'Filter tags by name...',
-  createTag: 'Create Tag',
-  aboutTags: 'About Tags',
+  pageTitle: TagsStrings.PAGE.TAGS,
+  filterPlaceholder: TagsStrings.PAGE.FILTER_TAGS_NAME,
+  createTag: TagsStrings.PAGE.CREATE_TAG,
+  aboutTags: TagsStrings.PAGE.ABOUT_TAGS,
   aboutTagsDescription:
-    'Tags let you label and organize components across repositories. Use tags to mark release candidates, track deployments, or group related components. Tags can be applied to any component via the REST API or through automation workflows.',
-  learnMore: 'Learn more about tags',
+    TagsStrings.PAGE.TAGS_LET_YOU_LABEL_ORGANIZE,
+  learnMore: TagsStrings.PAGE.LEARN_MORE_ABOUT_TAGS,
   learnMoreUrl: 'https://help.globalart.dev/en/tagging.html',
 };
 
 const TAG_NAME_REGEX = /^[a-zA-Z0-9-]{1}[a-zA-Z0-9_\-.]*$/;
 const TAG_NAME_VALIDATION_MESSAGE =
-  'Tag name is invalid. Only letters, digits, hyphens (-), underscores (_), and dots (.) are allowed and may not start with underscore or dot.';
+  TagsStrings.PAGE.TAG_NAME_INVALID_ONLY_LETTERS;
 
 const TAGS_SORT_OPTIONS: Array<{ value: TagSortField; label: string }> = [
-  { value: 'name', label: 'Name' },
-  { value: 'componentCount', label: 'Components' },
-  { value: 'firstCreated', label: 'Created' },
-  { value: 'lastUpdated', label: 'Last Updated' },
+  { value: 'name', label: CommonStrings.LABELS.NAME },
+  { value: 'componentCount', label: TagsStrings.PAGE.COMPONENTS },
+  { value: 'firstCreated', label: TagsStrings.PAGE.CREATED },
+  { value: 'lastUpdated', label: TagsStrings.PAGE.LAST_UPDATED },
 ];
 
 /** Delay before a typed name filter is committed to the server-side fetch. */
@@ -141,7 +144,7 @@ export function TagsPageRadix(): JSX.Element {
     setIsCreating(true);
     try {
       await createTag(trimmed);
-      toast.success(`Tag "${trimmed}" created successfully`);
+      toast.success(TagsStrings.PAGE.TAG_CREATED_SUCCESSFULLY(trimmed));
       setCreateDialogOpen(false);
       setNewTagName('');
       setTagNameError('');
@@ -213,9 +216,9 @@ export function TagsPageRadix(): JSX.Element {
       <Select.Trigger style={{ width: 180, flexShrink: 0, ...triggerStyle }}>
         <Flex align="center" gap="2">
           <ArrowUpDown size={14} aria-hidden />
-          <Text size="2">sort:</Text>
+          <Text size="2">{TagsStrings.PAGE.SORT}</Text>
           <Text size="2">
-            {TAGS_SORT_OPTIONS.find((o) => o.value === sortField)?.label ?? 'Name'}
+            {TAGS_SORT_OPTIONS.find((o) => o.value === sortField)?.label ?? CommonStrings.LABELS.NAME}
           </Text>
         </Flex>
       </Select.Trigger>
@@ -256,17 +259,17 @@ export function TagsPageRadix(): JSX.Element {
             display={{ initial: 'none', sm: 'block' }}
             style={{ overflow: 'visible', minWidth: 0 }}
             role="complementary"
-            aria-label="Filter bar"
+            aria-label={TagsStrings.PAGE.FILTER_BAR_ARIA}
           >
             <aside className="search-sidebar">{filterBarContent}</aside>
           </Box>
 
           {/* Main Content */}
-          <Box className="page-content" minWidth="0" width="100%" role="main" aria-label="Page content">
+          <Box className="page-content" minWidth="0" width="100%" role="main" aria-label={TagsStrings.PAGE.PAGE_CONTENT_ARIA}>
             <Box mb="4">
               <PageHeader
                 title={STRINGS.pageTitle}
-                count={loading ? '-' : headerCount.toLocaleString()}
+                count={loading ? '-' : headerCount.toLocaleString(pageLanguage())}
                 actions={
                   <Button
                     variant="solid"
@@ -281,7 +284,7 @@ export function TagsPageRadix(): JSX.Element {
                 }
               />
             </Box>
-            <Box mb="4" role="toolbar" aria-label="Actions bar">
+            <Box mb="4" role="toolbar" aria-label={TagsStrings.PAGE.ACTIONS_BAR_ARIA}>
               <Flex
                 className="actions-bar"
                 align="center"
@@ -307,7 +310,7 @@ export function TagsPageRadix(): JSX.Element {
                           color="gray"
                           size="1"
                           onClick={() => handleNameFilterChange('')}
-                          aria-label="Clear filter"
+                          aria-label={TagsStrings.PAGE.CLEAR_FILTER_ARIA}
                         >
                           <X size={14} />
                         </IconButton>
@@ -320,11 +323,11 @@ export function TagsPageRadix(): JSX.Element {
                   size="2"
                   color="gray"
                   onClick={() => setShowMobileFilters(true)}
-                  aria-label="Open filters"
+                  aria-label={TagsStrings.PAGE.OPEN_FILTERS_ARIA}
                   display={{ initial: 'flex', sm: 'none' }}
                 >
                   <Filter size={14} />
-                  Filter
+                  {CommonStrings.ACTIONS.FILTER}
                 </Button>
                 {renderSortDropdown()}
               </Flex>
@@ -363,7 +366,7 @@ export function TagsPageRadix(): JSX.Element {
       <MobileFilterDrawer
         isOpen={showMobileFilters}
         onClose={() => setShowMobileFilters(false)}
-        title="Filter"
+        title={CommonStrings.ACTIONS.FILTER}
         onClearAll={clearAllFilters}
       >
         {filterBarContent}
@@ -405,13 +408,13 @@ export function TagsPageRadix(): JSX.Element {
         }}
       >
         <AlertDialog.Content maxWidth="450px">
-          <AlertDialog.Title>Create Tag</AlertDialog.Title>
+          <AlertDialog.Title>{TagsStrings.PAGE.CREATE_TAG}</AlertDialog.Title>
           <AlertDialog.Description size="2">
-            Enter a name for the new tag. Tags can be applied to components via the REST API.
+            {TagsStrings.PAGE.ENTER_NAME_NEW_TAG_TAGS}
           </AlertDialog.Description>
           <Box mt="3">
             <Text as="label" size="2" weight="medium" mb="1">
-              Tag Name
+              {TagsStrings.PAGE.TAG_NAME}
             </Text>
             <TextField.Root
               size="2"
@@ -432,7 +435,7 @@ export function TagsPageRadix(): JSX.Element {
           <Flex gap="3" mt="4" justify="end">
             <AlertDialog.Cancel>
               <Button variant="soft" color="gray" disabled={isCreating}>
-                Cancel
+                {CommonStrings.ACTIONS.CANCEL}
               </Button>
             </AlertDialog.Cancel>
             <Button
@@ -440,7 +443,7 @@ export function TagsPageRadix(): JSX.Element {
               onClick={handleCreateTag}
               disabled={isCreating || !newTagName.trim() || !!tagNameError}
             >
-              {isCreating ? 'Creating...' : 'Create'}
+              {isCreating ? TagsStrings.PAGE.CREATING : CommonStrings.ACTIONS.CREATE}
             </Button>
           </Flex>
         </AlertDialog.Content>

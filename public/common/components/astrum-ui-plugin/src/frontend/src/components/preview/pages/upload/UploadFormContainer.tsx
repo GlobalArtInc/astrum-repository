@@ -12,6 +12,7 @@ import { useUploadableRepositories } from './hooks/useUploadableRepositories';
 import { UploadForm } from './UploadForm';
 
 import './UploadFormPage.scss';
+import UploadStrings from '../../constants/pages/upload/UploadStrings';
 
 /**
  * Page shell for the Upload Form.
@@ -53,7 +54,7 @@ export function UploadFormContainer(): JSX.Element {
   );
 
   const breadcrumbItems = [
-    { label: 'Upload', onClick: handleBack },
+    { label: UploadStrings.FORM_CONTAINER.UPLOAD, onClick: handleBack },
     ...(repositoryName ? [{ label: repositoryName }] : []),
   ];
 
@@ -65,8 +66,8 @@ export function UploadFormContainer(): JSX.Element {
           <Box className="upload-form-page__loading-spinner">
             <Spinner size="3" />
           </Box>
-          <Text size="3" weight="medium">Loading upload configuration...</Text>
-          <Text size="2" color="gray">Preparing form for {repositoryName}</Text>
+          <Text size="3" weight="medium">{UploadStrings.FORM_CONTAINER.LOADING_UPLOAD_CONFIGURATION}</Text>
+          <Text size="2" color="gray">{UploadStrings.FORM_CONTAINER.PREPARING_FORM(repositoryName)}</Text>
         </Flex>
       </Box>
     );

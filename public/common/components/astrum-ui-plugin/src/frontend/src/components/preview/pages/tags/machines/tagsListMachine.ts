@@ -5,6 +5,7 @@ import { assign, createMachine } from 'xstate';
 import type { TagWithCount, TagSortField, TagsFilters } from '../tags.types';
 import { fetchTagsFiltered } from '../tags.api';
 import ExtJS from '../../../../../interface/ExtJS';
+import TagsStrings from '../../../constants/pages/tags/TagsStrings';
 
 // =============================================================================
 // Types
@@ -118,7 +119,7 @@ const setSuccess = assign<TagsListMachineContext, { data: FetchResult }>({
 const setError = assign<TagsListMachineContext, { data: Error }>({
   loading: false,
   error: (_context, event) =>
-    event.data instanceof Error ? event.data.message : 'Failed to load tags. Please try again.',
+    event.data instanceof Error ? event.data.message : TagsStrings.LIST_MACHINE.FAILED_LOAD_TAGS_PLEASE_TRY,
   tags: [],
 });
 

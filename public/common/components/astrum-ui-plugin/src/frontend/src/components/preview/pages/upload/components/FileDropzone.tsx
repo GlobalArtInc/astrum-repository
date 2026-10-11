@@ -5,6 +5,7 @@ import { Flex, IconButton, Text } from '@radix-ui/themes';
 import { Upload, File, X, Plus, AlertCircle } from 'lucide-react';
 
 import './FileDropzone.scss';
+import UploadStrings from '../../../constants/pages/upload/UploadStrings';
 
 /**
  * Props for the FileDropzone component.
@@ -61,7 +62,7 @@ function validateFile(
   if (maxSize && file.size > maxSize) {
     return {
       valid: false,
-      error: `File "${file.name}" exceeds maximum size of ${formatFileSize(maxSize)}`,
+      error: UploadStrings.DROPZONE.FILE_EXCEEDS_MAXIMUM_SIZE(file.name, formatFileSize(maxSize)),
     };
   }
 
@@ -88,7 +89,7 @@ function validateFile(
     if (!isAccepted) {
       return {
         valid: false,
-        error: `File "${file.name}" is not an accepted file type`,
+        error: UploadStrings.DROPZONE.FILE_NOT_ACCEPTED_FILE_TYPE(file.name),
       };
     }
   }
@@ -294,7 +295,7 @@ export function FileDropzone({
   const getAcceptedTypesDisplay = (): string | null => {
     if (!accept) return null;
     const types = accept.split(',').map((t) => t.trim());
-    return `Supports: ${types.join(', ')}`;
+    return UploadStrings.DROPZONE.SUPPORTS(types.join(', '));
   };
 
   const hasFiles = files.length > 0;
@@ -355,7 +356,7 @@ export function FileDropzone({
         onDrop={handleDrop}
         role="button"
         tabIndex={disabled ? -1 : 0}
-        aria-label={label || 'File upload dropzone'}
+        aria-label={label || UploadStrings.DROPZONE.FILE_UPLOAD_DROPZONE}
         aria-disabled={disabled}
       >
         {!hasFiles ? (
@@ -367,10 +368,10 @@ export function FileDropzone({
               aria-hidden="true"
             />
             <Text size="2" weight="medium">
-              Drop files here
+              {UploadStrings.DROPZONE.DROP_FILES_HERE}
             </Text>
             <Text size="1" color="gray">
-              or click to browse
+              {UploadStrings.DROPZONE.CLICK_BROWSE}
             </Text>
             {accept && (
               <Text size="1" color="gray" className="as-file-dropzone__types">
@@ -406,7 +407,7 @@ export function FileDropzone({
                   className="as-file-dropzone__remove"
                   onClick={(e) => handleRemoveFile(index, e)}
                   disabled={disabled}
-                  aria-label={`Remove ${file.name}`}
+                  aria-label={UploadStrings.DROPZONE.REMOVE(file.name)}
                 >
                   <X size={16} />
                 </IconButton>
@@ -422,7 +423,7 @@ export function FileDropzone({
                 className="as-file-dropzone__add-more"
               >
                 <Plus size={14} aria-hidden="true" />
-                <Text size="1">Add more files</Text>
+                <Text size="1">{UploadStrings.DROPZONE.ADD_MORE_FILES}</Text>
               </Flex>
             )}
           </Flex>

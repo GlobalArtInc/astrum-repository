@@ -11,6 +11,7 @@ import type { FormatFieldsProps, UploadComponentField } from '../../upload.types
 import { FORMAT_FIELD_STRINGS } from '../../upload.types';
 
 import './NpmUploadFields.scss';
+import UploadStrings from '../../../../constants/pages/upload/UploadStrings';
 
 const NPM_FIELD_NAMES = {
   PACKAGE_NAME: 'name',
@@ -39,9 +40,9 @@ export function NpmUploadFields({
   if (allFields.length === 0) {
     return (
       <Box className="as-npm-upload-fields" data-testid="npm-upload-fields">
-        <SettingsFormSection title="npm Package" icon={<Package size={18} />}>
+        <SettingsFormSection title={UploadStrings.NPM_FIELDS.NPM_PACKAGE} icon={<Package size={18} />}>
           <Text size="2" color="gray">
-            Upload your npm package tarball (.tgz). Package metadata will be extracted from package.json.
+            {UploadStrings.NPM_FIELDS.UPLOAD_NPM_PACKAGE_TARBALL_TGZ}
           </Text>
         </SettingsFormSection>
       </Box>
@@ -50,7 +51,7 @@ export function NpmUploadFields({
 
   return (
     <Box className="as-npm-upload-fields" data-testid="npm-upload-fields">
-      <SettingsFormSection title="npm Package Details" icon={<Package size={18} />}>
+      <SettingsFormSection title={UploadStrings.NPM_FIELDS.NPM_PACKAGE_DETAILS} icon={<Package size={18} />}>
         <Box className="as-npm-upload-fields__grid">
           {packageNameField && (
             <SettingsTextInput

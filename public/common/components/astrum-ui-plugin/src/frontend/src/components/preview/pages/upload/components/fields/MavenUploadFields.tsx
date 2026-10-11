@@ -19,6 +19,7 @@ import {
 } from '../../upload.types';
 
 import './MavenUploadFields.scss';
+import UploadStrings from '../../../../constants/pages/upload/UploadStrings';
 
 const MAVEN_COMPONENT_COORDS_GROUP = 'Component coordinates';
 
@@ -159,7 +160,7 @@ export function MavenUploadFields({
       </SettingsFormSection>
 
       {otherGroups.map(([groupName, fields]) => (
-        <SettingsFormSection key={groupName} title={groupName}>
+        <SettingsFormSection key={groupName} title={groupName === 'Other' ? UploadStrings.GENERIC_FIELDS.OTHER_GROUP : groupName}>
           {fields.map((field: UploadComponentField) => (
             <SettingsTextInput
               key={field.name}

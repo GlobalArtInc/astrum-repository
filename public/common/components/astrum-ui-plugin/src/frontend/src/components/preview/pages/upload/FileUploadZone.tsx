@@ -8,6 +8,7 @@ import { FileDropzone } from './components/FileDropzone';
 import { UploadField } from './UploadField';
 import type { AssetFieldData, UploadFieldDefinition, ValidationErrors } from './upload.types';
 import { UPLOAD_FORM_STRINGS } from './upload.types';
+import UploadStrings from '../../constants/pages/upload/UploadStrings';
 
 interface FileUploadZoneProps {
   assets: AssetFieldData[];
@@ -103,7 +104,7 @@ export function FileUploadZone({
             <Flex justify="between" align="center" mb="3" className="upload-form-page__asset-header">
               <Flex align="center" gap="2">
                 <Box className="upload-form-page__asset-number">{assetIndex + 1}</Box>
-                <Text size="2" weight="medium">Asset {assetIndex + 1}</Text>
+                <Text size="2" weight="medium">{UploadStrings.FILE_UPLOAD_ZONE.ASSET(assetIndex + 1)}</Text>
               </Flex>
               <IconButton
                 type="button"
@@ -121,10 +122,10 @@ export function FileUploadZone({
           <FileDropzone
             files={asset.file ? [asset.file] : []}
             onChange={(files) => handleFileChange(assetIndex, files)}
-            label="File"
+            label={UploadStrings.FILE_UPLOAD_ZONE.FILE}
             helpText={
               assetFields.find((f) => f.type === 'FILE')?.helpText ??
-              'The artifact or asset file to upload. Drag and drop or click to browse. Accepted types vary by repository format (e.g., .jar and .pom for Maven).'
+              UploadStrings.FILE_UPLOAD_ZONE.ARTIFACT_ASSET_FILE_UPLOAD_DRAG
             }
             required
             error={validationErrors.assets?.[assetIndex]?.file ?? undefined}
@@ -138,7 +139,7 @@ export function FileUploadZone({
                 <AlertTriangle size={14} />
               </Callout.Icon>
               <Callout.Text>
-                File exceeds 50 MB — module path could not be extracted automatically. Upload will still proceed normally.
+                {UploadStrings.FILE_UPLOAD_ZONE.FILE_EXCEEDS_50_MB_MODULE}
               </Callout.Text>
             </Callout.Root>
           )}
@@ -149,7 +150,7 @@ export function FileUploadZone({
                 <AlertTriangle size={14} />
               </Callout.Icon>
               <Callout.Text>
-                No Go module path found in the zip. Ensure the archive contains a valid .mod file with a <strong>module</strong> directive. Upload will still be attempted.
+                {UploadStrings.FILE_UPLOAD_ZONE.NO_GO_MODULE_PATH(<strong>module</strong>)}
               </Callout.Text>
             </Callout.Root>
           )}
@@ -160,7 +161,7 @@ export function FileUploadZone({
                 <Info size={14} />
               </Callout.Icon>
               <Callout.Text>
-                Module: <strong>{(goZipStates[assetIndex] as { status: 'found'; path: string }).path}</strong>
+                {UploadStrings.FILE_UPLOAD_ZONE.GO_MODULE_PATH(<strong>{(goZipStates[assetIndex] as { status: 'found'; path: string }).path}</strong>)}
               </Callout.Text>
             </Callout.Root>
           )}
@@ -168,7 +169,7 @@ export function FileUploadZone({
           {assetFields.filter((f) => f.type !== 'FILE').length > 0 && (
             <Box mt="4">
               <Text as="p" size="1" color="gray" mb="3">
-                Specify additional metadata for this asset. Hover over or focus each field for details.
+                {UploadStrings.FILE_UPLOAD_ZONE.SPECIFY_ADDITIONAL_METADATA_ASSET_HOVER}
               </Text>
               {assetFields
                 .filter((field) => field.type !== 'FILE')
@@ -198,10 +199,10 @@ export function FileUploadZone({
           onClick={onAddAsset}
           mt="2"
           className="upload-form-page__add-asset"
-          aria-label="Add another asset"
+          aria-label={UploadStrings.FILE_UPLOAD_ZONE.ADD_ANOTHER_ASSET_ARIA}
         >
           <Plus size={16} />
-          Add Another Asset
+          {UploadStrings.FILE_UPLOAD_ZONE.ADD_ANOTHER_ASSET}
         </Button>
       )}
     </Box>

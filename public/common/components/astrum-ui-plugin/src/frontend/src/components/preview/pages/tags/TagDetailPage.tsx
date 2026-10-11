@@ -41,6 +41,9 @@ import { useTagDetailExtended, type TaggedComponent } from './hooks';
 import { useSearchNavigation } from '../search/unified/useSearchNavigation';
 
 import './TagDetailPage.scss';
+import TagsStrings from '../../constants/pages/tags/TagsStrings';
+import CommonStrings from '../../constants/CommonStrings';
+import { pageLanguage } from '../../../../interface/plural';
 
 /**
  * Sort configuration.
@@ -52,53 +55,53 @@ type SortDirection = 'asc' | 'desc';
  * UI Strings.
  */
 const STRINGS = {
-  backToTags: 'Tags',
-  loading: 'Loading tag details...',
-  loadingComponents: 'Loading tagged components...',
-  error: 'Failed to load tag details',
-  retry: 'Retry',
+  backToTags: TagsStrings.DETAIL.TAGS,
+  loading: TagsStrings.DETAIL.LOADING_TAG_DETAILS,
+  loadingComponents: TagsStrings.DETAIL.LOADING_TAGGED_COMPONENTS,
+  error: TagsStrings.DETAIL.FAILED_LOAD_TAG_DETAILS,
+  retry: CommonStrings.ACTIONS.RETRY,
 
   header: {
-    created: 'Created',
-    lastUpdated: 'Last Updated',
-    totalComponents: 'Total Components',
+    created: TagsStrings.DETAIL.CREATED,
+    lastUpdated: TagsStrings.DETAIL.LAST_UPDATED,
+    totalComponents: TagsStrings.DETAIL.TOTAL_COMPONENTS,
   },
 
   components: {
-    title: 'Tagged Components',
-    searchPlaceholder: 'Search components...',
-    formatFilter: 'Format',
-    repositoryFilter: 'Repository',
-    allFormats: 'All Formats',
-    allRepositories: 'All Repositories',
-    exportCsv: 'Export CSV',
-    empty: 'No components tagged with this tag yet.',
-    emptyFiltered: 'No components match your filters.',
-    error: 'Failed to load tagged components',
-    loadMoreError: 'Failed to load more components',
-    retry: 'Retry',
+    title: TagsStrings.DETAIL.TAGGED_COMPONENTS,
+    searchPlaceholder: TagsStrings.DETAIL.SEARCH_COMPONENTS,
+    formatFilter: CommonStrings.LABELS.FORMAT,
+    repositoryFilter: TagsStrings.DETAIL.REPOSITORY,
+    allFormats: TagsStrings.DETAIL.ALL_FORMATS,
+    allRepositories: TagsStrings.DETAIL.ALL_REPOSITORIES,
+    exportCsv: TagsStrings.DETAIL.EXPORT_CSV,
+    empty: TagsStrings.DETAIL.NO_COMPONENTS_TAGGED_TAG_YET,
+    emptyFiltered: TagsStrings.DETAIL.NO_COMPONENTS_MATCH_FILTERS,
+    error: TagsStrings.DETAIL.FAILED_LOAD_TAGGED_COMPONENTS,
+    loadMoreError: TagsStrings.DETAIL.FAILED_LOAD_MORE_COMPONENTS,
+    retry: CommonStrings.ACTIONS.RETRY,
   },
 
   table: {
-    component: 'Component',
+    component: TagsStrings.DETAIL.COMPONENT,
     format: 'Format',
-    version: 'Version',
-    repository: 'Repository',
+    version: TagsStrings.DETAIL.VERSION,
+    repository: TagsStrings.DETAIL.REPOSITORY,
     actions: '',
   },
 
   actions: {
-    view: 'View Details',
-    remove: 'Remove Tag',
-    delete: 'Delete Tag',
+    view: TagsStrings.DETAIL.VIEW_DETAILS,
+    remove: TagsStrings.DETAIL.REMOVE_TAG,
+    delete: TagsStrings.DETAIL.DELETE_TAG,
   },
 
   deleteDialog: {
-    title: 'Delete Tag',
-    message: 'Are you sure you want to delete this tag?',
-    warning: 'This will remove the tag from all associated components. This action cannot be undone.',
-    cancel: 'Cancel',
-    confirm: 'Delete',
+    title: TagsStrings.DETAIL.DELETE_TAG,
+    message: TagsStrings.DETAIL.YOU_SURE_YOU_WANT_DELETE,
+    warning: TagsStrings.DETAIL.REMOVE_TAG_ALL_ASSOCIATED_COMPONENTS,
+    cancel: CommonStrings.ACTIONS.CANCEL,
+    confirm: CommonStrings.ACTIONS.DELETE,
   },
 };
 
@@ -108,7 +111,7 @@ const STRINGS = {
 function formatDate(dateString: string | null): string {
   if (!dateString) return '-';
   try {
-    return new Date(dateString).toLocaleDateString(undefined, {
+    return new Date(dateString).toLocaleDateString(pageLanguage(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -213,7 +216,7 @@ export function TagDetailPage(): JSX.Element {
     tagName,
     onDeleted: useCallback(() => {
       setDeleteDialogOpen(false);
-      toast.success(`Tag "${tagName}" deleted`);
+      toast.success(TagsStrings.DETAIL.TAG_DELETED(tagName));
       handleBack();
     }, [tagName, toast, handleBack]),
     onDeleteError: useCallback(
@@ -422,10 +425,10 @@ export function TagDetailPage(): JSX.Element {
         style={{ minWidth: 0, boxSizing: 'border-box' }}
       >
         <PageHeader
-          title={tagName || 'Tag Details'}
+          title={tagName || TagsStrings.DETAIL.TAG_DETAILS}
           breadcrumbs={[
-            { label: 'Tags', onClick: handleBack },
-            { label: tagName || 'Unknown' },
+            { label: TagsStrings.DETAIL.TAGS, onClick: handleBack },
+            { label: tagName || TagsStrings.DETAIL.UNKNOWN },
           ]}
         />
         <Flex direction="column" align="center" justify="center" p="9" gap="3">
@@ -450,10 +453,10 @@ export function TagDetailPage(): JSX.Element {
       style={{ minWidth: 0, boxSizing: 'border-box' }}
     >
       <PageHeader
-        title={tagName || 'Tag Details'}
+        title={tagName || TagsStrings.DETAIL.TAG_DETAILS}
         breadcrumbs={[
-          { label: 'Tags', onClick: handleBack },
-          { label: tagName || 'Unknown' },
+          { label: TagsStrings.DETAIL.TAGS, onClick: handleBack },
+          { label: tagName || TagsStrings.DETAIL.UNKNOWN },
         ]}
       />
 
@@ -638,7 +641,7 @@ export function TagDetailPage(): JSX.Element {
                         onKeyDown: handleRowKeyDown(component),
                         tabIndex: 0,
                         role: 'button',
-                        'aria-label': `View ${component.name}`,
+                        'aria-label': TagsStrings.DETAIL.VIEW(component.name),
                       })}
                     >
                       <Table.Cell>
@@ -706,7 +709,7 @@ export function TagDetailPage(): JSX.Element {
             {hasMoreComponents && !componentsLoading && !componentsError && (
               <Flex justify="center" mt="4">
                 <Button variant="soft" onClick={loadMoreComponents}>
-                  Load More
+                  {TagsStrings.DETAIL.LOAD_MORE}
                 </Button>
               </Flex>
             )}

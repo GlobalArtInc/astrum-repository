@@ -6,6 +6,7 @@ import Axios from 'axios';
 import { ExtJS } from '../../../../interface/ExtJS';
 import { useToast } from '../../shared';
 import { createRevealTokenMachine } from './shared/revealTokenMachine';
+import UserPagesStrings from '../../constants/pages/user/UserPagesStrings';
 
 const NUGET_API_KEY_BASE = '/service/rest/internal/nuget-api-key';
 
@@ -72,7 +73,7 @@ export function useNuGetApiToken(): UseNuGetApiTokenReturn {
   useEffect(() => {
     const isDeleting = state.matches('deleting');
     if (wasDeletingRef.current && !isDeleting && !state.context.actionError) {
-      toastRef.current.success('API key reset. Generate a new one.');
+      toastRef.current.success(UserPagesStrings.NUGET_API_KEY_HOOK.API_KEY_RESET_GENERATE_NEW);
       pendingActionRef.current = null;
     }
     wasDeletingRef.current = isDeleting;
@@ -83,9 +84,9 @@ export function useNuGetApiToken(): UseNuGetApiTokenReturn {
     if (err && err !== prevActionErrorRef.current) {
       const action = pendingActionRef.current;
       if (action === 'reveal') {
-        toastRef.current.error('Failed to retrieve NuGet API key. Please check your credentials.');
+        toastRef.current.error(UserPagesStrings.NUGET_API_KEY_HOOK.FAILED_RETRIEVE_NUGET_API_KEY);
       } else if (action === 'delete') {
-        toastRef.current.error('Failed to reset NuGet API key. Please check your credentials.');
+        toastRef.current.error(UserPagesStrings.NUGET_API_KEY_HOOK.FAILED_RESET_NUGET_API_KEY);
       }
       pendingActionRef.current = null;
     }

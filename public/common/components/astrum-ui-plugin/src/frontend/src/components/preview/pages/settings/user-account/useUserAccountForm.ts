@@ -8,6 +8,7 @@ import {
   isPasswordFormReady,
   type UserAccountData,
 } from './userAccountFormMachine';
+import UserPagesStrings from '../../../constants/pages/user/UserPagesStrings';
 
 /**
  * Custom hook for managing the User Account settings form.
@@ -30,7 +31,7 @@ export function useUserAccountForm() {
 
   useEffect(() => {
     if (hasLoadError) {
-      toastRef.current.error('Failed to load account information.');
+      toastRef.current.error(UserPagesStrings.ACCOUNT_FORM_HOOK.FAILED_LOAD_ACCOUNT_INFORMATION);
     }
   }, [hasLoadError]);
 
@@ -40,7 +41,7 @@ export function useUserAccountForm() {
       if (saveError) {
         toastRef.current.error(saveError);
       } else {
-        toastRef.current.success('Password changed successfully');
+        toastRef.current.success(UserPagesStrings.ACCOUNT_FORM_HOOK.PASSWORD_CHANGED_SUCCESSFULLY);
       }
     }
     wasSavingRef.current = isSaving;

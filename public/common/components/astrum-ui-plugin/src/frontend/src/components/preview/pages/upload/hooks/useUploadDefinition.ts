@@ -10,6 +10,7 @@ import type {
   UploadFieldDefinition,
   UseUploadDefinitionResult,
 } from '../upload.types';
+import UploadStrings from '../../../constants/pages/upload/UploadStrings';
 
 // REST API endpoints
 // Available in both self-hosted and cloud distributions (see ASTRUM-54057).
@@ -53,7 +54,7 @@ export function useUploadDefinition(repositoryName: string): UseUploadDefinition
    */
   const fetchData = useCallback(async () => {
     if (!repositoryName) {
-      setError('Repository name is required');
+      setError(UploadStrings.DEFINITION_HOOK.REPOSITORY_NAME_REQUIRED);
       setLoading(false);
       return;
     }
@@ -92,7 +93,7 @@ export function useUploadDefinition(repositoryName: string): UseUploadDefinition
       );
 
       if (!repoSettings) {
-        throw new Error(`Repository "${repositoryName}" not found`);
+        throw new Error(UploadStrings.DEFINITION_HOOK.REPOSITORY_NOT_FOUND(repositoryName));
       }
 
       // Find the upload definition for this repository's format
@@ -102,7 +103,7 @@ export function useUploadDefinition(repositoryName: string): UseUploadDefinition
 
       if (!definition) {
         throw new Error(
-          `No upload definition found for format "${repoSettings.format}"`
+          UploadStrings.DEFINITION_HOOK.NO_UPLOAD_DEFINITION_FOUND_FORMAT(repoSettings.format)
         );
       }
 
@@ -110,12 +111,12 @@ export function useUploadDefinition(repositoryName: string): UseUploadDefinition
       // Note: the upload-specs endpoint does not return a uiUpload field,
       // so we assume formats in upload-specs support UI upload unless explicitly false
       if (definition.uiUpload === false) {
-        throw new Error(`Repository "${repositoryName}" does not support upload through the web UI`);
+        throw new Error(UploadStrings.DEFINITION_HOOK.REPOSITORY_DOES_NOT_SUPPORT_UPLOAD(repositoryName));
       }
 
       // Verify it's a hosted repository
       if (repoSettings.type !== 'hosted') {
-        throw new Error(`Repository "${repositoryName}" is not a hosted repository`);
+        throw new Error(UploadStrings.DEFINITION_HOOK.REPOSITORY_NOT_HOSTED_REPOSITORY(repositoryName));
       }
 
       setRepositorySettings(repoSettings);

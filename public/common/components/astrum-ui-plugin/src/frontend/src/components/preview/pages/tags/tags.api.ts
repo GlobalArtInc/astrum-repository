@@ -17,6 +17,7 @@ import type {
   TagSortField,
   SortDirection,
 } from './tags.types';
+import TagsStrings from '../../constants/pages/tags/TagsStrings';
 
 /**
  * Fetch details for a specific tag using REST API.
@@ -34,7 +35,7 @@ export async function fetchTagDetail(tagName: string): Promise<TagDetail> {
   } catch (err: unknown) {
     const apiError = parseApiError(err);
     console.error('Failed to fetch tag detail:', err);
-    throw new Error(apiError.message || 'Failed to load tag details');
+    throw new Error(apiError.message || TagsStrings.API.FAILED_LOAD_TAG_DETAILS);
   }
 }
 
@@ -58,7 +59,7 @@ export async function createTag(
   } catch (err: unknown) {
     const apiError = parseApiError(err);
     console.error('Failed to create tag:', err);
-    throw new Error(apiError.message || 'Failed to create tag');
+    throw new Error(apiError.message || TagsStrings.API.FAILED_CREATE_TAG);
   }
 }
 

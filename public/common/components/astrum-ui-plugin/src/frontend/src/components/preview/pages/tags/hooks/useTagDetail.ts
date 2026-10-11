@@ -6,6 +6,7 @@ import { useMachine } from '@xstate/react';
 import { parseApiError } from '../../../../../interface/api';
 import type { TagDetail, TaggedComponent } from '../tags.types';
 import { createTagDetailMachine } from '../machines/tagDetailMachine';
+import TagsStrings from '../../../constants/pages/tags/TagsStrings';
 
 export type { TaggedComponent };
 
@@ -186,7 +187,7 @@ export function useTagDetailExtended({
             const message =
               'data' in event && event.data !== undefined
                 ? parseApiError(event.data).message
-                : 'Failed to delete tag';
+                : TagsStrings.DETAIL_HOOK.FAILED_DELETE_TAG;
             onDeleteErrorRef.current?.(message);
           },
         },
