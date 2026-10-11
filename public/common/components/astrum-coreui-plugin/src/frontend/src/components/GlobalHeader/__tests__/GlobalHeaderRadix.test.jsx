@@ -51,6 +51,11 @@ jest.mock('../HelpMenuRadix', () => () => <div data-testid="help-menu" />);
 jest.mock('../LanguageMenuRadix', () => () => <div data-testid="language-menu" />);
 jest.mock('../LoginAndUserButtonRadix', () => () => <div data-testid="login-button" />);
 jest.mock('../../ThemeSwitcher/ThemeSwitcher', () => () => null);
+jest.mock('../SearchLayer', () => ({ onClose }) => (
+  <div data-testid="search-layer">
+    <button type="button" onClick={onClose}>close layer</button>
+  </div>
+));
 
 import GlobalHeaderRadix from '../GlobalHeaderRadix';
 
@@ -406,8 +411,10 @@ describe('GlobalHeaderRadix', () => {
 
       expect(container.querySelector('.as-global-header-radix--phone')).not.toBeNull();
       expect(screen.getByRole('button', { name: 'Open menu' })).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
       expect(screen.getByTestId('system-status')).toBeInTheDocument();
       expect(screen.getByTestId('login-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('search-radix')).not.toBeInTheDocument();
       expect(screen.queryByText('Switch to Classic UI')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Refresh')).not.toBeInTheDocument();
       expect(screen.queryByTestId('language-menu')).not.toBeInTheDocument();
@@ -443,6 +450,17 @@ describe('GlobalHeaderRadix', () => {
 
       window.removeEventListener('as-navigation-drawer', onDrawer);
       window.removeEventListener('as-sidebar-toggle', onSidebar);
+    });
+
+    it('opens the search full screen and closes it again', () => {
+      viewport(390);
+
+      renderHeader();
+      fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+      expect(screen.getByTestId('search-layer')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('close layer'));
+      expect(screen.queryByTestId('search-layer')).not.toBeInTheDocument();
     });
 
     it('switches to the Classic UI when the drawer asks for it', () => {

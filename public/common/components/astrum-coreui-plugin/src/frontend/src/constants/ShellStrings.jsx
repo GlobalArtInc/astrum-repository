@@ -5,6 +5,8 @@ export default {
       COLLAPSE_SIDEBAR: 'Collapse Sidebar',
       OPEN_MENU: 'Open menu',
       CLOSE_MENU: 'Close menu',
+      OPEN_SEARCH: 'Search',
+      CLOSE_SEARCH: 'Close search',
       HOME: 'Home',
       LOGO_ALT: 'Astrum Repository',
       SWITCH_TO_CLASSIC: 'Switch to Classic UI',

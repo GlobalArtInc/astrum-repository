@@ -1,0 +1,54 @@
+// Full-screen search of phones and tablets: a 60px bar like the header, with the back button and the search field.
+.as-search-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-background);
+}
+
+.as-search-layer__bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 60px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  background-color: var(--astrum-chrome-bg);
+  border-bottom: 1px solid var(--gray-a5);
+}
+
+.as-search-layer__close.rt-IconButton {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: 10px;
+  color: var(--gray-12);
+}
+
+.as-search-layer__field {
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+
+  .search-radix-container {
+    max-width: none;
+  }
+
+  // A 44px field; 16px text keeps mobile browsers from zooming in on focus
+  .rt-TextFieldRoot {
+    height: 44px;
+  }
+
+  .rt-TextFieldInput {
+    font-size: 16px;
+  }
+
+  // No keyboard shortcut to advertise on a touch screen
+  .search-radix-shortcut {
+    display: none;
+  }
+}

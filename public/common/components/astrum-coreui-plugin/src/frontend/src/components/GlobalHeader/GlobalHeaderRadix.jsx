@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {Flex, Box, IconButton, Button, Dialog, Text, Popover, TextArea, Heading} from '@radix-ui/themes';
 import {Tooltip} from '@globalart/astrum-ui-plugin';
-import {RefreshCw, Repeat, Menu} from 'lucide-react';
+import {RefreshCw, Repeat, Menu, Search} from 'lucide-react';
 import {
   ExtJS,
   handleExtJsUnsavedChanges,
@@ -23,6 +23,7 @@ import {useTheme} from '../../contexts/ThemeContext';
 import {getHeaderLogo, HEADER_MARK} from './headerLogo';
 
 import SearchRadix from './SearchRadix';
+import SearchLayer from './SearchLayer';
 import SystemStatusRadix from './SystemStatusRadix';
 import ThemeSwitcher from '../ThemeSwitcher/ThemeSwitcher';
 import HelpMenuRadix from './HelpMenuRadix';
@@ -141,13 +142,16 @@ export default function GlobalHeaderRadix() {
 
   const isPreviewUI = currentPath.startsWith('preview');
 
-  // Phones and tablets get a compact header in Astrum One: the menu is a drawer, and the controls that do not fit
-  // move into the drawer. The Classic UI keeps its desktop header at any width.
+  // Phones and tablets get a header of icons in Astrum One: the menu is a drawer, the search opens full screen, and
+  // the controls that do not fit move into the drawer. The Classic UI keeps its desktop header at any width.
   const isCompactViewport = useIsCompactViewport();
   const isPhoneViewport = useIsPhone();
   const isCompact = isPreviewUI && isCompactViewport;
   const isPhone = isCompact && isPhoneViewport;
   const isDrawerOpen = useNavigationDrawerOpen();
+  const [isSearchLayerOpen, setSearchLayerOpen] = useState(false);
+  const openSearchLayer = useCallback(() => setSearchLayerOpen(true), []);
+  const closeSearchLayer = useCallback(() => setSearchLayerOpen(false), []);
   
   // Redirect logic for rollout controls (Sprint 17)
   useEffect(() => {
@@ -358,12 +362,30 @@ export default function GlobalHeaderRadix() {
           </Flex>
 
           {/* Center: Search Bar */}
-          <Box className="as-global-header-radix__search">
-            <SearchRadix isPreviewUI={isPreviewUI} />
-          </Box>
+          {!isCompact && (
+            <Box className="as-global-header-radix__search">
+              <SearchRadix isPreviewUI={isPreviewUI} />
+            </Box>
+          )}
 
           {/* Right: Utility buttons */}
           <Flex align="center" gap="2" className="as-global-header-radix__side as-global-header-radix__actions">
+            {isCompact && (
+              <IconButton
+                variant="outline"
+                size="3"
+                color="gray"
+                className="as-global-header-radix__icon-button"
+                aria-label={HEADER.OPEN_SEARCH}
+                aria-haspopup="dialog"
+                aria-expanded={isSearchLayerOpen}
+                data-testid="search-layer-open"
+                onClick={openSearchLayer}
+              >
+                <Search size={18} aria-hidden />
+              </IconButton>
+            )}
+
             {!isCompact && canAccessPreviewUi && !isDisableLegacyUi && (
               isPreviewUI ? (
                 isDisableSwitchFeedback ? (
@@ -507,6 +529,8 @@ export default function GlobalHeaderRadix() {
           </Flex>
         </Flex>
       </Box>
+
+      {isCompact && isSearchLayerOpen && <SearchLayer onClose={closeSearchLayer} />}
 
       {/* Classic UI unavailable – shown when current Preview route has no Classic equivalent */}
       <Dialog.Root open={heritageUnavailableOpen} onOpenChange={(open) => !open && setHeritageUnavailableOpen(false)}>
