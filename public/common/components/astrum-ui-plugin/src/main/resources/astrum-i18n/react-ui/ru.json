@@ -156,6 +156,7 @@
   "BROWSE.LIST.COLUMNS.TYPE": "Тип",
   "BROWSE.LIST.COLUMNS.URL": "URL",
   "BROWSE.LIST.COPY_URL": "Копировать URL",
+  "BROWSE.LIST.COPY_URL_OF": "Скопировать URL {0}",
   "BROWSE.LIST.COUNT": "всего {0}",
   "BROWSE.LIST.EMPTY": "Нет репозиториев, которые вам доступны. Возможно, нужно войти или запросить права.",
   "BROWSE.LIST.EMPTY_FILTERED": "Ни один репозиторий не подходит под фильтры",
