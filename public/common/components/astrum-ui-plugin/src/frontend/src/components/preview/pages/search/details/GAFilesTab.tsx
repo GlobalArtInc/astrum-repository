@@ -501,8 +501,8 @@ function AssetRow({ asset }: { asset: GAAsset }) {
   };
 
   const handleBrowse = () => {
-    const browseUrl = `#browse/browse:${asset.repository}:${encodeURIComponent(asset.path)}`;
-    window.location.hash = browseUrl;
+    const path = asset.path.replace(/^\/+/, '');
+    window.location.hash = `#preview/browse/${encodeURIComponent(asset.repository)}/${path}?tab=summary`;
   };
 
   return (

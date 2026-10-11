@@ -305,6 +305,17 @@ describe('Export CSV button', () => {
       loading: false,
     };
 
+    it('opens a file in the browse tree of Astrum One, not of Classic', async () => {
+      window.location.hash = '#preview/browse/search/component/maven2%3Acom.example%3Alib/files';
+      renderWithTheme(<GAFilesTab {...defaultProps} />);
+
+      const trigger = screen.getAllByRole('button', { name: 'Row actions' })[0];
+      fireEvent.keyDown(trigger, { key: 'Enter' });
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Browse' }));
+
+      expect(window.location.hash).toMatch(/^#preview\/browse\/repo-a\/com\/example\/lib\/1\.0\/lib-1\.0\.(jar|pom)\?tab=summary$/);
+    });
+
     it('renders the Export CSV button', () => {
       renderWithTheme(<GAFilesTab {...defaultProps} />);
       expect(screen.getByText('Export CSV')).toBeInTheDocument();
