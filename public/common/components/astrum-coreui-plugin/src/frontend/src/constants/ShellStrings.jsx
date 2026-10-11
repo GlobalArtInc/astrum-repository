@@ -25,8 +25,11 @@ export default {
       LANGUAGE: 'Language',
       SYSTEM_STATUS: 'System Status',
       SYSTEM_STATUS_UNHEALTHY: 'System Status: health checks are failing',
+      SEARCH_LABEL: 'Search components',
       SEARCH_PLACEHOLDER: 'Search components or CVEs...',
-      SEARCH_HINT: 'Press Enter to search all results'
+      SEARCH_HINT: 'Press Enter to search all results',
+      SEARCH_SHORTCUT: 'Ctrl K',
+      SEARCH_SHORTCUT_MAC: '⌘ K'
     },
     THEME: {
       SWITCH_TO_DARK: 'Switch to dark mode',

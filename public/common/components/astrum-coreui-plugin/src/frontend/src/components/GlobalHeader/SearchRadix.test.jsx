@@ -5,7 +5,7 @@ import {render, screen, fireEvent, waitFor} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Axios from 'axios';
 
-import SearchRadix from './SearchRadix';
+import SearchRadix, {isApplePlatform, isSearchShortcut} from './SearchRadix';
 
 const mockGo = jest.fn().mockResolvedValue(undefined);
 const mockSearch = jest.fn();
@@ -249,6 +249,105 @@ describe('SearchRadix', () => {
           version: '1.0'
         });
       });
+    });
+  });
+
+  describe('keyboard shortcut', () => {
+    const originalPlatform = Object.getOwnPropertyDescriptor(window.navigator, 'platform');
+
+    function setPlatform(platform) {
+      Object.defineProperty(window.navigator, 'platform', {value: platform, configurable: true});
+    }
+
+    afterEach(() => {
+      if (originalPlatform) {
+        Object.defineProperty(window.navigator, 'platform', originalPlatform);
+      } else {
+        delete window.navigator.platform;
+      }
+    });
+
+    it('labels the field and announces the shortcut', () => {
+      setPlatform('Linux x86_64');
+      render(<SearchRadix />);
+
+      const input = screen.getByRole('textbox', {name: 'Search components'});
+      expect(input).toHaveAttribute('aria-keyshortcuts', 'Control+K');
+      expect(screen.getByTestId('search-shortcut-hint')).toHaveTextContent('Ctrl K');
+      expect(screen.getByRole('search')).toContainElement(input);
+    });
+
+    it('focuses the search field on Ctrl+K', () => {
+      setPlatform('Win32');
+      render(<SearchRadix />);
+      const input = screen.getByPlaceholderText('Search components or CVEs...');
+      expect(input).not.toHaveFocus();
+
+      const notPrevented = fireEvent.keyDown(document.body, {key: 'k', ctrlKey: true});
+
+      expect(input).toHaveFocus();
+      expect(notPrevented).toBe(false);
+    });
+
+    it('selects what the field already holds so typing replaces it', () => {
+      setPlatform('Win32');
+      render(<SearchRadix />);
+      const input = screen.getByPlaceholderText('Search components or CVEs...');
+      fireEvent.change(input, {target: {value: 'maven'}});
+      input.blur();
+
+      fireEvent.keyDown(document.body, {key: 'K', ctrlKey: true});
+
+      expect(input).toHaveFocus();
+      expect(input.selectionStart).toBe(0);
+      expect(input.selectionEnd).toBe('maven'.length);
+    });
+
+    it('uses Command+K and shows the Command key on Apple platforms', () => {
+      setPlatform('MacIntel');
+      render(<SearchRadix />);
+      const input = screen.getByPlaceholderText('Search components or CVEs...');
+
+      expect(screen.getByTestId('search-shortcut-hint')).toHaveTextContent('⌘ K');
+      expect(input).toHaveAttribute('aria-keyshortcuts', 'Meta+K');
+
+      fireEvent.keyDown(document.body, {key: 'k', ctrlKey: true});
+      expect(input).not.toHaveFocus();
+
+      fireEvent.keyDown(document.body, {key: 'k', metaKey: true});
+      expect(input).toHaveFocus();
+    });
+
+    it('leaves other keys and modifier combinations alone', () => {
+      setPlatform('Linux x86_64');
+      render(<SearchRadix />);
+      const input = screen.getByPlaceholderText('Search components or CVEs...');
+
+      expect(fireEvent.keyDown(document.body, {key: 'k'})).toBe(true);
+      expect(fireEvent.keyDown(document.body, {key: 'j', ctrlKey: true})).toBe(true);
+      expect(fireEvent.keyDown(document.body, {key: 'k', ctrlKey: true, shiftKey: true})).toBe(true);
+      expect(fireEvent.keyDown(document.body, {key: 'k', ctrlKey: true, altKey: true})).toBe(true);
+      expect(input).not.toHaveFocus();
+    });
+
+    it('stops listening once the header is gone', () => {
+      setPlatform('Linux x86_64');
+      const {unmount} = render(<SearchRadix />);
+      unmount();
+
+      expect(fireEvent.keyDown(document.body, {key: 'k', ctrlKey: true})).toBe(true);
+    });
+
+    it('recognises the platform and the shortcut', () => {
+      setPlatform('MacIntel');
+      expect(isApplePlatform()).toBe(true);
+      setPlatform('Linux x86_64');
+      expect(isApplePlatform()).toBe(false);
+
+      expect(isSearchShortcut({key: 'k', ctrlKey: true}, false)).toBe(true);
+      expect(isSearchShortcut({key: 'k', metaKey: true}, false)).toBe(false);
+      expect(isSearchShortcut({key: 'k', metaKey: true}, true)).toBe(true);
+      expect(isSearchShortcut({key: 'k', ctrlKey: true}, true)).toBe(false);
     });
   });
 });

@@ -15,6 +15,26 @@ import UIStrings from '../../constants/UIStrings';
 const DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 2;
 const MAX_SUGGESTIONS = 8;
+const {HEADER} = UIStrings.SHELL;
+
+/**
+ * Whether the browser runs on an Apple platform, where shortcuts use the Command key instead of Control.
+ */
+export function isApplePlatform() {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  const platform = navigator.userAgentData?.platform || navigator.platform || '';
+  return /mac|iphone|ipad|ipod/i.test(platform);
+}
+
+/**
+ * Whether a keydown is the shortcut that focuses the search: Ctrl+K, or Command+K on Apple platforms.
+ */
+export function isSearchShortcut(event, apple = isApplePlatform()) {
+  const modifier = apple ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+  return Boolean(modifier && !event.altKey && !event.shiftKey && event.key?.toLowerCase() === 'k');
+}
 
 /**
  * Fetch search suggestions from the lightweight suggest API.
@@ -65,8 +85,10 @@ export default function SearchRadix({ isPreviewUI = false }) {
   const [isLoading, setIsLoading] = useState(false);
   
   const inputRef = useRef(null);
+  const fieldRef = useRef(null);
   const suggestionsRef = useRef(null);
   const debounceRef = useRef(null);
+  const [isApple] = useState(isApplePlatform);
   
   const router = useRouter();
   const {state} = useCurrentStateAndParams();
@@ -127,6 +149,21 @@ export default function SearchRadix({ isPreviewUI = false }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Ctrl+K (Command+K on Apple platforms) focuses the search field from anywhere in the page
+  useEffect(() => {
+    const handleShortcut = (event) => {
+      if (!fieldRef.current || !isSearchShortcut(event, isApple)) {
+        return;
+      }
+      event.preventDefault();
+      fieldRef.current.focus();
+      fieldRef.current.select();
+    };
+
+    document.addEventListener('keydown', handleShortcut);
+    return () => document.removeEventListener('keydown', handleShortcut);
+  }, [isApple]);
 
   // Navigate to search page
   const navigateToSearch = useCallback((query) => {
@@ -267,19 +304,27 @@ export default function SearchRadix({ isPreviewUI = false }) {
   };
 
   return (
-    <div className="search-radix-container" ref={inputRef}>
+    <div className="search-radix-container" role="search" ref={inputRef}>
       <TextField.Root
-        placeholder={UIStrings.SHELL.HEADER.SEARCH_PLACEHOLDER}
+        ref={fieldRef}
+        placeholder={HEADER.SEARCH_PLACEHOLDER}
+        aria-label={HEADER.SEARCH_LABEL}
+        aria-keyshortcuts={isApple ? 'Meta+K' : 'Control+K'}
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
-        size="2"
+        size="3"
         className="search-radix-input"
         data-analytics-id="as-header-search"
       >
         <TextField.Slot>
-          <SearchIcon size={16} />
+          <SearchIcon size={16} aria-hidden />
+        </TextField.Slot>
+        <TextField.Slot side="right">
+          <kbd className="search-radix-shortcut" aria-hidden="true" data-testid="search-shortcut-hint">
+            {isApple ? HEADER.SEARCH_SHORTCUT_MAC : HEADER.SEARCH_SHORTCUT}
+          </kbd>
         </TextField.Slot>
       </TextField.Root>
 
@@ -316,7 +361,7 @@ export default function SearchRadix({ isPreviewUI = false }) {
           
           {/* Footer hint */}
           <div className="search-radix-suggestions__footer">
-            {UIStrings.SHELL.HEADER.SEARCH_HINT}
+            {HEADER.SEARCH_HINT}
           </div>
         </div>
       )}
