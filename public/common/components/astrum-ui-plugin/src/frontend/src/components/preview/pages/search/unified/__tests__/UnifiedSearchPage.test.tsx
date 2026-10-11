@@ -196,6 +196,15 @@ describe('UnifiedSearchPage', () => {
     expect(searchCalls()[0]).toContain('q=herald');
   });
 
+  it('restores a format of the URL while the formats offered are still loading', async () => {
+    window.location.hash = '#preview/browse/search?format=maven';
+    renderPage();
+
+    await waitFor(() => expect(searchCalls().length).toBeGreaterThan(0));
+    expect(searchCalls()[0]).toContain('format=maven2');
+    expect(window.location.hash).toContain('format=maven');
+  });
+
   it('clears the search', async () => {
     renderPage();
     const field = screen.getByRole('textbox', { name: 'Search components' });

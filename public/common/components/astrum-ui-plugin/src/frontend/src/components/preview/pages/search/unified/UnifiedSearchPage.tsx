@@ -179,6 +179,11 @@ export function UnifiedSearchPage(): JSX.Element {
 
   const handleFormatChange = useCallback(
     (value: string) => {
+      // Radix Select reports an empty value through its hidden native select while the format of the
+      // URL is not among the options yet, which load with the repositories. That is not a choice.
+      if (!getFormatOptions().some((option) => option.id === value)) {
+        return;
+      }
       const nextFormat = value as SearchFormat;
       setFormat(nextFormat);
       setQuery(input);
