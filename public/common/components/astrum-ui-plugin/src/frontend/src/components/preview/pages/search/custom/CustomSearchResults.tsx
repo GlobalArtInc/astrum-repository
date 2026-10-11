@@ -143,13 +143,13 @@ export function CustomSearchResults({
                 <Table.Cell>
                   <FormatBadge format={result.format} radius="full" />
                 </Table.Cell>
-                <Table.Cell>
+                <Table.Cell style={{ whiteSpace: 'nowrap' }}>
                   <Text weight="medium">{displayName(result)}</Text>
                 </Table.Cell>
                 <Table.Cell>
                   <Text size="2" color="gray">{(result.format !== 'npm' && result.group) || '—'}</Text>
                 </Table.Cell>
-                <Table.Cell>
+                <Table.Cell style={{ whiteSpace: 'nowrap' }}>
                   {result.version ? <Code size="2">{result.version}</Code> : <Text size="2" color="gray">—</Text>}
                 </Table.Cell>
                 <Table.Cell>

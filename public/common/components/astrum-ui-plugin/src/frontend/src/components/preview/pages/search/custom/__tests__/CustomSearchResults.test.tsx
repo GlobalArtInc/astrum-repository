@@ -47,6 +47,13 @@ describe('CustomSearchResults', () => {
     expect(screen.getByText('@acme/ui-kit')).toBeInTheDocument();
   });
 
+  it('keeps names and versions on one line, so a narrow screen scrolls the table instead of breaking them', () => {
+    renderResults();
+
+    expect(screen.getByText('@acme/ui-kit').closest('td')).toHaveStyle({ whiteSpace: 'nowrap' });
+    expect(screen.getByText('2.1.0').closest('td')).toHaveStyle({ whiteSpace: 'nowrap' });
+  });
+
   it('shows a dash rather than "Invalid Date" for a result without a timestamp', () => {
     renderResults();
 
