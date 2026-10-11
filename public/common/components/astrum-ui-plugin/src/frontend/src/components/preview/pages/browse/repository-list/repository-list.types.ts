@@ -139,6 +139,8 @@ export interface RepositoryListState {
   readonly firewallLoaded: boolean;
   /** Health check loading error */
   readonly healthCheckError?: string;
+  /** Whether the server offers health check: unknown until its status is read, false when it has no such API */
+  readonly healthCheckAvailable: boolean | null;
   /** Firewall status loading error */
   readonly firewallStatusError?: string;
 }

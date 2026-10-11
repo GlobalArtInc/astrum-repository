@@ -80,8 +80,22 @@ const initialState: RepositoryListState = {
   firewallStatus: {},
   firewallLoaded: false,
   healthCheckError: undefined,
+  healthCheckAvailable: null,
   firewallStatusError: undefined,
 };
+
+/**
+ * Set once the server answers that it has no health check API, so that the pages opened later in the session do not
+ * ask again.
+ */
+let healthCheckMissing = false;
+
+/**
+ * Forget that the server has no health check API. For tests.
+ */
+export function resetHealthCheckAvailability(): void {
+  healthCheckMissing = false;
+}
 
 /**
  * Compare function for sorting repositories.
@@ -211,6 +225,10 @@ export function useRepositoryList(options: UseRepositoryListOptions = {}) {
     if (!canUpdateHealthCheck()) {
       return;
     }
+    if (healthCheckMissing) {
+      setState(prev => ({ ...prev, healthCheckAvailable: false }));
+      return;
+    }
 
     try {
       const data = await restClient.get<Array<HealthCheckStatus & { repositoryName: string; detailUrl?: string; summaryUrl?: string }>>(ENDPOINTS.HEALTH_CHECK);
@@ -230,12 +248,19 @@ export function useRepositoryList(options: UseRepositoryListOptions = {}) {
         ...prev,
         healthCheck: healthCheckMap,
         healthCheckError: undefined,
+        healthCheckAvailable: true,
       }));
     } catch (err) {
       const apiError = parseApiError(err);
+      if (apiError.status === 404) {
+        healthCheckMissing = true;
+        setState(prev => ({ ...prev, healthCheckAvailable: false }));
+        return;
+      }
       setState(prev => ({
         ...prev,
         healthCheckError: apiError.message,
+        healthCheckAvailable: true,
       }));
     }
   }, []);
@@ -385,7 +410,10 @@ export function useRepositoryList(options: UseRepositoryListOptions = {}) {
   }, [fetchHealthCheck]);
 
   // Computed values
-  const showHealthCheckColumn = useMemo(() => canUpdateHealthCheck(), []);
+  const showHealthCheckColumn = useMemo(
+    () => canUpdateHealthCheck() && state.healthCheckAvailable === true,
+    [state.healthCheckAvailable]
+  );
   const showIqPolicyViolationsColumn = useMemo(
     () => isIqServerEnabled(),
     []

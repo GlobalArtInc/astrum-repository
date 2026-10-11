@@ -98,6 +98,7 @@ function createMockState(overrides: Partial<RepositoryListState> = {}): Reposito
     healthCheck: healthCheckDataToMap(mockHealthCheckData),
     firewallStatus: firewallStatusDataToMap(mockFirewallStatusData),
     healthCheckError: undefined,
+    healthCheckAvailable: true,
     firewallStatusError: undefined,
     ...overrides,
   };
