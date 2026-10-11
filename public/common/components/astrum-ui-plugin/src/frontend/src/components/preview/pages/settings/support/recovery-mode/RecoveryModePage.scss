@@ -11,6 +11,18 @@
     flex-shrink: 0;
   }
 
+  // Phones: the action goes under the text instead of beside it
+  @media (max-width: 639px) {
+    &__header {
+      flex-wrap: wrap;
+    }
+
+    &__actions {
+      flex-shrink: 1;
+      max-width: 100%;
+    }
+  }
+
   // Hover-capable wrapper around the disabled Disable button so its tooltip
   // (shown only while reconciliation tasks are running) can trigger.
   &__disable-wrap {

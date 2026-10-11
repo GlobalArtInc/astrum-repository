@@ -16,6 +16,15 @@
     max-width: 160px;
   }
 
+  // The input of the narrow page field keeps the width of its box; at its own default width it reached past the
+  // right edge of tablets and phones
+  @media (max-width: 1023px) {
+    .as-text-input__input {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+
   // Distinct from .selected, which RSC uses for the arrow-key cursor.
   .as-dropdown-button[aria-current='page'] {
     font-weight: 600;
