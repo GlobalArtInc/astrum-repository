@@ -23,6 +23,8 @@ import {
   CapabilityFormData,
   getStateBadgeColor,
   getStateName,
+  getTagLabel,
+  getTagValue,
 } from './types';
 import { DynamicCapabilityForm } from './DynamicCapabilityForm';
 import { useCapabilitiesApi } from './useCapabilitiesApi';
@@ -245,8 +247,8 @@ export function CapabilityDetail({
                 Object.entries(capability.tags).map(([key, value]) => (
                   <SummaryItem
                     key={key}
-                    label={key}
-                    value={value}
+                    label={getTagLabel(key)}
+                    value={getTagValue(capability, key, value)}
                   />
                 ))}
             </Box>

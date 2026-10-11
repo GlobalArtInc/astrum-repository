@@ -96,6 +96,27 @@ describe('CapabilityDetail', () => {
     });
   });
 
+  it('labels the category tag and shows the category of the type', async () => {
+    renderWithTheme(
+      <CapabilityDetail
+        capability={{
+          ...baseCapability,
+          typeId: 'webhook.global',
+          tags: { Category: 'Server category', Repository: 'maven-releases' },
+        }}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+        onEnable={mockOnEnable}
+        onDisable={mockOnDisable}
+        onBack={mockOnBack}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByText('Webhook')).toBeInTheDocument());
+    expect(screen.queryByText('Server category')).not.toBeInTheDocument();
+    expect(screen.getByText('maven-releases')).toBeInTheDocument();
+  });
+
   it('shows the state of a disabled capability in the header badge', () => {
     renderWithTheme(
       <CapabilityDetail

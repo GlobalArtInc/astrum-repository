@@ -157,4 +157,44 @@ export function getCapabilityDescription(capability: Capability): string {
   return description;
 }
 
+const CAPABILITY_CATEGORIES: Record<string, string> = {
+  audit: CapabilitiesStrings.LIST.CATEGORY_AUDIT,
+  baseurl: CapabilitiesStrings.LIST.CORE,
+  crowd: CapabilitiesStrings.LIST.SECURITY,
+  customs3regions: CapabilitiesStrings.LIST.CORE,
+  defaultrole: CapabilitiesStrings.LIST.SECURITY,
+  // 'firewall.audit' deliberately omitted: filtered out at fetchCapabilities() and not
+  // advertised by /v1/capabilities/types post-migration. See useCapabilitiesApi.ts.
+  healthcheck: CapabilitiesStrings.LIST.HEALTH_CHECK,
+  'license-expiration': CapabilitiesStrings.LIST.CORE,
+  LegacyUrlCapability: CapabilitiesStrings.LIST.CORE,
+  'node.identity': CapabilitiesStrings.LIST.CORE,
+  outreach: CapabilitiesStrings.LIST.CORE,
+  OutreachManagementCapability: CapabilitiesStrings.LIST.CORE,
+  'browse.trim': CapabilitiesStrings.LIST.REPOSITORY,
+  rutauth: CapabilitiesStrings.LIST.SECURITY,
+  'scheduling.scheduler': CapabilitiesStrings.LIST.SCHEDULING,
+  StorageSettings: CapabilitiesStrings.LIST.CORE,
+  'rapture.branding': 'UI',
+  'rapture.settings': 'UI',
+  migration: CapabilitiesStrings.LIST.CORE,
+  'webhook.global': CapabilitiesStrings.LIST.WEBHOOK,
+  'webhook.repository': CapabilitiesStrings.LIST.WEBHOOK,
+};
 
+export function getCategoryForType(typeId: string): string {
+  return CAPABILITY_CATEGORIES[typeId] || CapabilitiesStrings.LIST.CATEGORY_OTHER;
+}
+
+const TAG_LABELS: Record<string, string> = {
+  Category: CapabilitiesStrings.LIST.CATEGORY,
+  Repository: CapabilitiesStrings.LIST.REPOSITORY,
+};
+
+export function getTagLabel(key: string): string {
+  return TAG_LABELS[key] || key;
+}
+
+export function getTagValue(capability: Pick<Capability, 'typeId'>, key: string, value: string): string {
+  return key === 'Category' ? getCategoryForType(capability.typeId) : value;
+}

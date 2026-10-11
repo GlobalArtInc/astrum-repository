@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { TYPE_ICONS, DEFAULT_TYPE_ICON } from './capabilityConstants';
 import { ActionIcons } from '../../../../shared/icons/action-icons';
-import { Capability, getStateColor, getStateName } from './types';
+import { Capability, getCategoryForType, getStateColor, getStateName } from './types';
 import { useCapabilitiesApi } from './useCapabilitiesApi';
 import {
   EntityTable,
@@ -25,35 +25,6 @@ import CommonStrings from '../../../../constants/CommonStrings';
 interface CapabilitiesListProps {
   onSelect: (capability: Capability) => void;
   refreshKey?: number;
-}
-
-const CAPABILITY_CATEGORIES: Record<string, string> = {
-  audit: CapabilitiesStrings.LIST.CATEGORY_AUDIT,
-  baseurl: CapabilitiesStrings.LIST.CORE,
-  crowd: CapabilitiesStrings.LIST.SECURITY,
-  customs3regions: CapabilitiesStrings.LIST.CORE,
-  defaultrole: CapabilitiesStrings.LIST.SECURITY,
-  // 'firewall.audit' deliberately omitted: filtered out at fetchCapabilities() and not
-  // advertised by /v1/capabilities/types post-migration. See useCapabilitiesApi.ts.
-  healthcheck: CapabilitiesStrings.LIST.HEALTH_CHECK,
-  'license-expiration': CapabilitiesStrings.LIST.CORE,
-  LegacyUrlCapability: CapabilitiesStrings.LIST.CORE,
-  'node.identity': CapabilitiesStrings.LIST.CORE,
-  outreach: CapabilitiesStrings.LIST.CORE,
-  OutreachManagementCapability: CapabilitiesStrings.LIST.CORE,
-  'browse.trim': CapabilitiesStrings.LIST.REPOSITORY,
-  rutauth: CapabilitiesStrings.LIST.SECURITY,
-  'scheduling.scheduler': CapabilitiesStrings.LIST.SCHEDULING,
-  StorageSettings: CapabilitiesStrings.LIST.CORE,
-  'rapture.branding': 'UI',
-  'rapture.settings': 'UI',
-  migration: CapabilitiesStrings.LIST.CORE,
-  'webhook.global': CapabilitiesStrings.LIST.WEBHOOK,
-  'webhook.repository': CapabilitiesStrings.LIST.WEBHOOK,
-};
-
-function getCategoryForType(typeId: string): string {
-  return CAPABILITY_CATEGORIES[typeId] || CapabilitiesStrings.LIST.CATEGORY_OTHER;
 }
 
 function TypeIcon({ typeId }: { typeId: string }) {
