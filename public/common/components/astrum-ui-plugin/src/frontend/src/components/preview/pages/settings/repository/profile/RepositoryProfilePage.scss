@@ -1,4 +1,6 @@
-
-
-// This file has been emptied as part of the Radix refactor.
-// All styling is now done via Radix component props.
+// The Radix scroll area sizes its content to fit the widest line it holds (the header actions, the tabs), which made
+// the page wider than a phone screen. With vertical scrolling only, the content takes the width of the viewport and
+// wraps instead; the tab list scrolls sideways on its own.
+.repository-profile-page .rt-ScrollAreaViewport > div {
+  width: 100%;
+}

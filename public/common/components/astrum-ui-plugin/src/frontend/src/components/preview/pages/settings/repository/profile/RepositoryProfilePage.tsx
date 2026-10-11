@@ -40,6 +40,8 @@ import Permissions from '../../../../../../constants/Permissions';
 import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
 
+import './RepositoryProfilePage.scss';
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -252,7 +254,7 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
   });
 
   return (
-    <ScrollArea scrollbars="vertical" style={{ height: '100%' }}>
+    <ScrollArea scrollbars="vertical" style={{ height: '100%' }} className="repository-profile-page">
       <Box px="4" pt="0" pb="6">
         <Box maxWidth="1280px" mx="auto" width="100%" pb="9">
           {/* Breadcrumbs */}
