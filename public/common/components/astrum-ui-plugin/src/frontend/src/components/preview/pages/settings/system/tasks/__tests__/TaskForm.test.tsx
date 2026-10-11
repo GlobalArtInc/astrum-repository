@@ -445,6 +445,32 @@ describe('TaskForm', () => {
       );
     });
 
+    it('heads the schedule step once, with the title of the step', () => {
+      const allTypes = [...mockTaskTypes, moveTaskType];
+      mockUseTasksForm.mockImplementation(() => ({
+        form: createMockTaskForm(
+          { schedule: 'manual', typeId: 'repository.move', enabled: true, name: 'Move repos',
+            alertEmail: '', notificationCondition: 'FAILURE', properties: {},
+            startDate: null, recurringDays: [], cronExpression: '', timeZoneOffset: '' },
+          allTypes,
+        ),
+        task: moveTask,
+        taskTypes: allTypes,
+        selectedTaskType: moveTaskType,
+        isCreate: false,
+      } as any));
+
+      renderWithTheme(
+        <TaskForm taskTypes={allTypes} isCreate={false} task={moveTask} onSave={jest.fn()} onCancel={jest.fn()} />,
+      );
+      fireEvent.click(screen.getByTestId('wizard-next'));
+
+      // The step is titled "Schedule" and the scheduler labels its field so; the section adds no third heading
+      const section = screen.getByTestId('task-scheduler').closest('[data-testid="settings-form-section"]');
+      expect(section).toBeInTheDocument();
+      expect(section?.querySelector('h2')).toBeEmptyDOMElement();
+    });
+
     it('resets schedule to manual when the selected task type restricts schedules and the current schedule is not allowed', () => {
       const mockSend = jest.fn();
       const allTypes = [...mockTaskTypes, moveTaskType];

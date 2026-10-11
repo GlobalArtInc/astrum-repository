@@ -412,9 +412,9 @@ export function TaskForm({
         </>
       )}
 
-      {/* Schedule step */}
+      {/* Schedule step: the step's own title heads it */}
       {internalStep === scheduleStep && (
-        <SettingsFormSection title={TasksStrings.FORM.SCHEDULE}>
+        <SettingsFormSection>
           <TaskScheduler
             value={scheduleData}
             onChange={handleScheduleChange}

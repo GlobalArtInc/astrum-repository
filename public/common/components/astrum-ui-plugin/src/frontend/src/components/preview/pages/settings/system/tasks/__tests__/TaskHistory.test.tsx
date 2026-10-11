@@ -99,6 +99,17 @@ describe('TaskHistory', () => {
 
     expect(container.querySelector('.task-history__icon--canceled')).toBeInTheDocument();
   });
+
+  it('names the result the server reports as an end state', () => {
+    renderWithTheme(<TaskHistory task={{ ...baseTask, lastRunResult: 'INTERRUPTED' }} />);
+
+    expect(screen.getByText('Interrupted')).toBeInTheDocument();
+  });
+
+  it('shows the labels of the last execution above their values', () => {
+    renderWithTheme(<TaskHistory task={{ ...baseTask, statusDescription: 'Compacting [default]' }} />);
+
+    expect(screen.getByText('Started').tagName).toBe('DIV');
+    expect(screen.getByText('Details').tagName).toBe('DIV');
+  });
 });
-
-

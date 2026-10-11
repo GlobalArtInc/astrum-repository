@@ -5,6 +5,7 @@ import { Box, Flex, Text, Badge } from '@radix-ui/themes';
 import { Clock, CheckCircle, XCircle, History } from 'lucide-react';
 
 import { TaskHistoryProps, formatDate } from './types';
+import { getTaskStatusLabel } from './taskLabels';
 
 import './TaskHistory.scss';
 import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
@@ -50,22 +51,22 @@ export function TaskHistory({ task }: TaskHistoryProps) {
             <Flex direction="column" gap="3">
               <Flex justify="between" align="start" gap="4">
                 <Box>
-                  <Text size="1" color="gray">{TasksStrings.HISTORY.STARTED}</Text>
+                  <Text as="div" size="1" color="gray">{TasksStrings.HISTORY.STARTED}</Text>
                   <Text size="2">{formatDate(task.lastRun)}</Text>
                 </Box>
                 <Box>
-                  <Text size="1" color="gray">{TasksStrings.HISTORY.RESULT}</Text>
+                  <Text as="div" size="1" color="gray">{TasksStrings.HISTORY.RESULT}</Text>
                   <Flex align="center" gap="2">
                     {getResultIcon()}
                     <Badge color={getResultColor()} size="1">
-                      {task.lastRunResult || TasksStrings.HISTORY.UNKNOWN}
+                      {task.lastRunResult ? getTaskStatusLabel(task.lastRunResult) : TasksStrings.HISTORY.UNKNOWN}
                     </Badge>
                   </Flex>
                 </Box>
               </Flex>
               {task.statusDescription && (
                 <Box>
-                  <Text size="1" color="gray">{TasksStrings.HISTORY.DETAILS}</Text>
+                  <Text as="div" size="1" color="gray">{TasksStrings.HISTORY.DETAILS}</Text>
                   <Text size="2">{task.statusDescription}</Text>
                 </Box>
               )}
