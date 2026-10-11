@@ -163,6 +163,17 @@ describe('HttpPage', () => {
     expect(mockSubmit).toHaveBeenCalled();
   });
 
+  it('disables Discard while there is nothing to discard', async () => {
+    mockedUseHttpForm.mockReturnValue(createHttpFormMock(mockSettings, { isPristine: true }));
+    render(<HttpPage />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('User-Agent Suffix')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+  });
+
   it('discards changes when Discard button is clicked', async () => {
     mockedUseHttpForm.mockReturnValue(createHttpFormMock(mockSettings, { isPristine: false }));
     render(<HttpPage />, { wrapper: TestWrapper });

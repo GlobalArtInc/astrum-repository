@@ -254,6 +254,7 @@ export function HttpPage({ className }: HttpPageProps) {
           onCancel={handleDiscard}
           loading={form.isSaving}
           pristine={form.isPristine}
+          cancelDisabled={form.isPristine}
           error={form.saveError || undefined}
           submitAnalyticsId="as-http-save"
         >
