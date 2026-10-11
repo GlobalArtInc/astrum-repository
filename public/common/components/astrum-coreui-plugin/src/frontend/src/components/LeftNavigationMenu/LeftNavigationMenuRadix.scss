@@ -1,5 +1,6 @@
 
 // Left menu of the shell: 232px expanded, an icon rail of 40px items collapsed, chrome background, one right border.
+// The items start 20px from the left like the menu button of the header, and their icons sit right under its icon.
 .guide-sidebar {
   grid-area: global-sidebar !important;
   display: flex;
@@ -14,7 +15,7 @@
   z-index: 100;
 
   &--collapsed {
-    width: 65px;
+    width: 81px;
 
     .guide-nav-item__text,
     .guide-nav-item__external,
@@ -62,11 +63,11 @@
 
 .guide-sidebar__nav-content {
   display: block;
-  padding: 16px 12px;
+  padding: 16px 20px;
 }
 
 .guide-sidebar__divider {
-  margin: 10px 4px;
+  margin: 10px 0;
 
   .rt-Separator {
     background-color: var(--gray-a5);
@@ -91,7 +92,7 @@
   > .rt-Flex {
     min-height: 40px;
     gap: 10px;
-    padding: 0 12px;
+    padding: 0 11px;
   }
 
   &:hover {
@@ -264,11 +265,11 @@
 // Footer of the expanded menu: the product version
 .guide-sidebar__footer {
   flex-shrink: 0;
-  padding: 12px 16px 16px;
+  padding: 12px 20px 16px;
 }
 
 .guide-sidebar__version {
-  padding: 4px 8px 0;
+  padding: 4px 11px 0;
   color: var(--gray-11);
   overflow: hidden;
   text-overflow: ellipsis;

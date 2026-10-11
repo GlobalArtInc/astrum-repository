@@ -303,19 +303,17 @@ export default function GlobalHeaderRadix() {
                 <Menu size={18} aria-hidden />
               </IconButton>
             </Tooltip>
-            <Box asChild>
-              <a
-                href={`${contextPath}#${isPreviewUI ? 'preview/browse/welcome' : 'browse/welcome'}`}
-                title={HEADER.HOME}
-                className="as-global-header-radix__home"
-              >
-                <img
-                  src={getLogo()}
-                  alt={HEADER.LOGO_ALT}
-                  className="as-global-header-radix__logo"
-                />
-              </a>
-            </Box>
+            <a
+              href={`${contextPath}#${isPreviewUI ? 'preview/browse/welcome' : 'browse/welcome'}`}
+              title={HEADER.HOME}
+              className="as-global-header-radix__home"
+            >
+              <img
+                src={getLogo()}
+                alt={HEADER.LOGO_ALT}
+                className="as-global-header-radix__logo"
+              />
+            </a>
           </Flex>
 
           {/* Center: Search Bar */}
