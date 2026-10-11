@@ -356,17 +356,17 @@ public class FeatureFlags
   public static final String PREVIEW_UI_ANONYMOUS_ENABLED_NAMED_VALUE =
       "${astrum.preview.ui.anonymous.enabled:false}";
 
-  /* Preview UI for logged-in users. Available values: true, false. Default value: false */
+  /* Preview UI for logged-in users. Available values: true, false. Default value: true */
   public static final String PREVIEW_UI_LOGGEDIN_ENABLED = "astrum.preview.ui.loggedin.enabled";
 
   public static final String PREVIEW_UI_LOGGEDIN_ENABLED_NAMED_VALUE =
-      "${astrum.preview.ui.loggedin.enabled:false}";
+      "${astrum.preview.ui.loggedin.enabled:true}";
 
-  /* Default to Preview UI for all users. Available values: true, false. Default value: false */
+  /* Default to Preview UI for all users. Available values: true, false. Default value: true */
   public static final String PREVIEW_UI_DEFAULT_ENABLED = "astrum.preview.ui.default.enabled";
 
   public static final String PREVIEW_UI_DEFAULT_ENABLED_NAMED_VALUE =
-      "${astrum.preview.ui.default.enabled:false}";
+      "${astrum.preview.ui.default.enabled:true}";
 
   /* Disable Legacy UI (ExtJS) for all users. Available values: true, false. Default value: false */
   public static final String PREVIEW_UI_LEGACY_DISABLED = "astrum.preview.ui.legacy.disabled";
