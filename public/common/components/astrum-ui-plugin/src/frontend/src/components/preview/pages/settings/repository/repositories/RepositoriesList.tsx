@@ -117,6 +117,10 @@ function formatFileSize(bytes?: number | null): string {
 
 const DEFAULT_PAGE_SIZE = 40;
 
+function repositoryStatus(repo: Repository): 'online' | 'offline' {
+  return (repo.status?.online ?? repo.online ?? true) ? 'online' : 'offline';
+}
+
 // Pending confirmation state for operational row actions (rebuild index,
 // invalidate cache, toggle online). Mirrors the pattern in RepositoriesPage:
 // the menu item stages a pending action; ConfirmDialog renders the prompt
@@ -135,6 +139,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
   const [filter, setFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [formatFilter, setFormatFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sortField, setSortField] = useState<RepositorySortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [loadingRepos, setLoadingRepos] = useState(true);
@@ -235,14 +240,17 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     loadData();
   }, [fetchRepositories, fetchHealthCheck, fetchFirewallStatus, setError]);
 
-  // Get unique formats and types for filters with counts
-  const { formatOptions, typeOptions } = useMemo(() => {
+  // Get unique formats, types and statuses for filters with counts
+  const { formatOptions, typeOptions, statusOptions } = useMemo(() => {
     const formatCounts = new Map<string, number>();
     const typeCounts = new Map<string, number>();
+    const statusCounts = new Map<string, number>();
     
     repositories.forEach((repo) => {
       formatCounts.set(repo.format, (formatCounts.get(repo.format) || 0) + 1);
       typeCounts.set(repo.type, (typeCounts.get(repo.type) || 0) + 1);
+      const status = repositoryStatus(repo);
+      statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
     });
     
     return {
@@ -259,6 +267,13 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
           value,
           label: TYPE_LABELS[value as keyof typeof TYPE_LABELS] || value,
           count,
+        })),
+      statusOptions: (['online', 'offline'] as const)
+        .filter((value) => statusCounts.has(value))
+        .map((value) => ({
+          value,
+          label: value === 'online' ? RepositoriesPageStrings.LIST.ONLINE : RepositoriesPageStrings.LIST.OFFLINE,
+          count: statusCounts.get(value) || 0,
         })),
     };
   }, [repositories]);
@@ -285,10 +300,14 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
       if (formatFilter.length > 0 && !formatFilter.includes(repo.format)) {
         return false;
       }
+
+      if (statusFilter.length > 0 && !statusFilter.includes(repositoryStatus(repo))) {
+        return false;
+      }
       
       return true;
     });
-  }, [repositories, filter, typeFilter, formatFilter]);
+  }, [repositories, filter, typeFilter, formatFilter, statusFilter]);
 
   // Sort repositories
   const sortedRepositories = useMemo(() => {
@@ -347,6 +366,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     setFilter('');
     setTypeFilter([]);
     setFormatFilter([]);
+    setStatusFilter([]);
     setSortField('name');
     setSortDirection('asc');
     setCurrentPage(1);
@@ -356,6 +376,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     setFilter('');
     setTypeFilter([]);
     setFormatFilter([]);
+    setStatusFilter([]);
     setCurrentPage(1);
   }, []);
 
@@ -572,7 +593,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
 
   // Empty state for when no repositories exist
   const emptyState = useMemo(() => {
-    const hasFilters = filter || typeFilter.length > 0 || formatFilter.length > 0;
+    const hasFilters = filter || typeFilter.length > 0 || formatFilter.length > 0 || statusFilter.length > 0;
     
     if (hasFilters) {
       return (
@@ -605,24 +626,24 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
         tip={RepositoriesPageStrings.LIST.START_PROXY_REPOSITORY_CACHE_ARTIFACTS}
       />
     );
-  }, [filter, typeFilter, formatFilter, handleClearFilters, onCreate]);
+  }, [filter, typeFilter, formatFilter, statusFilter, handleClearFilters, onCreate]);
 
 
   const filterBarContent = (
     <BrowseFilterSidebar
       formatOptions={formatOptions}
       typeOptions={typeOptions}
-      statusOptions={[]}
+      statusOptions={statusOptions}
       selectedFormats={formatFilter}
       selectedTypes={typeFilter}
-      selectedStatuses={[]}
+      selectedStatuses={statusFilter}
       selectedProtection={[]}
       selectedHealthCheck={[]}
       sortField={sortField}
       sortDirection={sortDirection || 'asc'}
       onFormatsChange={(formats) => { setFormatFilter(formats); setCurrentPage(1); }}
       onTypesChange={(types) => { setTypeFilter(types); setCurrentPage(1); }}
-      onStatusesChange={() => {}}
+      onStatusesChange={(statuses) => { setStatusFilter(statuses); setCurrentPage(1); }}
       onSortChange={handleSortChange}
       onResetFilters={handleResetFilters}
       disabled={loadingRepos}

@@ -189,6 +189,21 @@ describe('RepositoriesList', () => {
     expect(within(row).queryByText('0 B')).not.toBeInTheDocument();
   });
 
+  it('filters repositories by status', async () => {
+    renderWithTheme(
+      <RepositoriesList onSelect={mockOnSelect} onCreate={mockOnCreate} />
+    );
+
+    await screen.findByText('maven-releases');
+    const sidebar = screen.getByTestId('filter-sidebar');
+    await userEvent.click(within(sidebar).getByRole('checkbox', { name: /offline/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('maven-releases')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('npm-proxy')).toBeInTheDocument();
+  });
+
   it('shows the page title only once', async () => {
     renderWithTheme(
       <RepositoriesList onSelect={mockOnSelect} onCreate={mockOnCreate} />
@@ -471,11 +486,10 @@ describe('RepositoriesList', () => {
     );
 
     await waitFor(() => {
-      // Each online repo has 1 "Online" text element
-      // 2 online repos × 1 = 2 "Online" text elements
-      expect(screen.getAllByText('Online').length).toBe(2);
-      // Offline repo shows "Offline"
-      expect(screen.getByText('Offline')).toBeInTheDocument();
+      // 2 online repos and 1 offline repo, each with its status in the table
+      const table = screen.getByRole('table');
+      expect(within(table).getAllByText('Online').length).toBe(2);
+      expect(within(table).getByText('Offline')).toBeInTheDocument();
     });
   });
 
