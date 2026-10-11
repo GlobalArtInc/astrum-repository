@@ -538,6 +538,32 @@ describe('useBrowseTree', () => {
       unmount();
     });
 
+    it('expandToPath finds a PyPI file by the path it is stored under, which the tree leaves packages/ out of', async () => {
+      const pypiNodes: Record<string, BrowseNode[]> = {
+        '/': [{ id: 'acme-tools', text: 'acme-tools', type: 'folder', leaf: false }],
+        'acme-tools': [{ id: 'acme-tools/0.3.0', text: '0.3.0', type: 'component', leaf: false }],
+        'acme-tools/0.3.0': [
+          { id: 'acme-tools/0.3.0/acme-tools-0.3.0.tar.gz', text: 'acme-tools-0.3.0.tar.gz', type: 'asset', leaf: true },
+        ],
+      };
+      ExtAPIUtils.extAPIRequest.mockImplementation(
+        async (_action: string, _method: string, { data }: { data: [{ repositoryName: string; node: string }] }) =>
+          mockApiResponse(pypiNodes[data[0].node] ?? [])
+      );
+
+      const { result } = renderHook(() => useBrowseTree('pypi-hosted', undefined, 'pypi'));
+
+      await waitFor(() => {
+        expect(result.current.state.loading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.actions.expandToPath('packages/acme-tools/0.3.0/acme-tools-0.3.0.tar.gz');
+      });
+
+      expect(result.current.state.selectedNodeId).toBe('acme-tools/0.3.0/acme-tools-0.3.0.tar.gz');
+    });
+
     it('expandToPath resolves + chars (decoded path vs %2B-encoded tree nodes)', async () => {
       ExtAPIUtils.extAPIRequest.mockImplementation(
         async (_action: string, _method: string, { data }: { data: [{ repositoryName: string; node: string }] }) => {

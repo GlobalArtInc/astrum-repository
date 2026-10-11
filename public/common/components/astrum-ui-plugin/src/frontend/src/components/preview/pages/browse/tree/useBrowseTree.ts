@@ -42,6 +42,27 @@ function isPassThrough(format: string | undefined, segment: string): boolean {
   return Boolean(format && PASS_THROUGH_SEGMENTS[format]?.has(segment));
 }
 
+/**
+ * Leading path segments a format stores its files under but leaves out of the ids of the tree: PyPI keeps every
+ * package under `packages/`, while its tree starts with the packages. A path to a file of such a format, as search
+ * results carry it, is shortened to the id of the tree.
+ */
+const OMITTED_ROOT_SEGMENTS: Readonly<Record<string, string>> = {
+  pypi: 'packages',
+};
+
+function withoutOmittedRoot(
+  format: string | undefined,
+  parts: string[],
+  roots: readonly TreeNodeState[],
+): string[] {
+  const omitted = format ? OMITTED_ROOT_SEGMENTS[format] : undefined;
+  if (omitted && parts.length > 1 && parts[0] === omitted && !roots.some((root) => root.node.id === omitted)) {
+    return parts.slice(1);
+  }
+  return parts;
+}
+
 const DIGEST_TEXT = /^sha256:/;
 
 /**
@@ -599,7 +620,11 @@ export function useBrowseTree(
     // tree.  Both NPM and Docker filter the literal "-" directory; keeping it
     // in the path would cause the lookup to fail and abort the expansion.
     const FILTERED_SEGMENTS = new Set(['-']);
-    const pathParts = path.split('/').filter((s) => s !== '' && !FILTERED_SEGMENTS.has(s));
+    const pathParts = withoutOmittedRoot(
+      format,
+      path.split('/').filter((s) => s !== '' && !FILTERED_SEGMENTS.has(s)),
+      nodesRef.current,
+    );
 
     // Build list of all nodes that need expanding along the path
     const expansions: Array<{ expandId: string; expandChildren: TreeNodeState[] }> = [];
