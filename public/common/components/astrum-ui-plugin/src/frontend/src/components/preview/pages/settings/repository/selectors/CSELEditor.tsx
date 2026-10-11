@@ -57,6 +57,8 @@ export function CSELEditor({
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
+  // An empty expression is only reported once the field has been left or edited, not on a fresh create form
+  const [touched, setTouched] = useState(false);
 
   // Validate on value change
   const validation = useMemo(() => validateCSEL(value), [value]);
@@ -161,6 +163,7 @@ export function CSELEditor({
   // Handle input change
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setTouched(true);
       onChange(e.target.value);
     },
     [onChange]
@@ -174,6 +177,7 @@ export function CSELEditor({
   // Handle blur
   const handleBlur = useCallback(() => {
     setIsFocused(false);
+    setTouched(true);
     // Delay hiding suggestions to allow click on suggestion
     setTimeout(() => {
       setShowSuggestions(false);
@@ -299,12 +303,14 @@ export function CSELEditor({
     }
   };
 
+  const showValidation = touched || value.trim().length > 0;
+
   return (
     <Box className="csel-editor">
       <Box className="csel-editor__container">
         <textarea
           ref={textareaRef}
-          className={`csel-editor__textarea ${validation.hasBlockingErrors ? 'csel-editor__textarea--error' : ''}`}
+          className={`csel-editor__textarea ${showValidation && validation.hasBlockingErrors ? 'csel-editor__textarea--error' : ''}`}
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -356,7 +362,7 @@ export function CSELEditor({
       </Box>
 
       {/* Validation messages */}
-      {validation.messages.length > 0 && (
+      {showValidation && validation.messages.length > 0 && (
         <Box className="csel-editor__validation">
           {validation.messages.map((msg, index) => (
             <ValidationMessageItem key={index} message={msg} />
