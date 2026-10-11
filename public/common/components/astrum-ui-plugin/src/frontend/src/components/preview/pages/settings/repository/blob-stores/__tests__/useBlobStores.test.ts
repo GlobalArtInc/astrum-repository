@@ -143,6 +143,26 @@ describe('useBlobStores hooks', () => {
       expect(result.current.error).toBeNull();
     });
 
+    it('names the known quota types through the strings file and keeps the server name of others', async () => {
+      mockRestClient.get
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { id: 'spaceRemainingQuota', name: 'server name' },
+          { id: 'customQuota', name: 'Custom Quota' },
+        ]);
+
+      const { result } = renderHook(() => useBlobStoreTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.quotaTypes).toEqual([
+        { id: 'spaceRemainingQuota', name: 'Space Remaining' },
+        { id: 'customQuota', name: 'Custom Quota' },
+      ]);
+    });
+
     it('handles error when fetching types', async () => {
       mockRestClient.get.mockRejectedValue(new Error('Failed to load blob store types'));
 

@@ -188,7 +188,11 @@ export function useBlobStoreTypes(): UseBlobStoreTypesResult {
         }
 
         if (Array.isArray(quotaData)) {
-          setQuotaTypes(quotaData);
+          // The server names the quota types in English; name the known ones in the page language
+          setQuotaTypes(quotaData.map((quotaType) => ({
+            ...quotaType,
+            name: (BlobStoresStrings.QUOTA_TYPES as Record<string, string>)[quotaType.id] ?? quotaType.name,
+          })));
         } else {
           console.warn('Quota types response is not an array:', quotaData);
           setQuotaTypes([]);

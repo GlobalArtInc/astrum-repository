@@ -461,4 +461,8 @@ export default localize('react-ui', {
     FAILED_LOAD_BLOB_STORE: 'Failed to load blob store',
     BLOB_STORE_TYPE_REQUIRED: 'Blob store type is required',
   },
+  QUOTA_TYPES: {
+    spaceRemainingQuota: 'Space Remaining',
+    spaceUsedQuota: 'Space Used',
+  },
 }, 'PREVIEW.BLOB_STORES');

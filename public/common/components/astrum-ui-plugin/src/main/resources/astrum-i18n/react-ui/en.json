@@ -1180,6 +1180,8 @@
   "PREVIEW.BLOB_STORES.PAGE.WHAT_BLOB_STORE": "What is a blob store?",
   "PREVIEW.BLOB_STORES.PAGE.YOU_DONT_HAVE_PERMISSION_DELETE": "You don't have permission to delete blob stores. Contact your administrator to request access.",
   "PREVIEW.BLOB_STORES.PAGE.YOU_SURE_YOU_WANT_DELETE": "Are you sure you want to delete this blob store? This action cannot be undone.",
+  "PREVIEW.BLOB_STORES.QUOTA_TYPES.spaceRemainingQuota": "Space Remaining",
+  "PREVIEW.BLOB_STORES.QUOTA_TYPES.spaceUsedQuota": "Space Used",
   "PREVIEW.BLOB_STORES.S3.ACCESS_KEY_ID": "Access Key ID",
   "PREVIEW.BLOB_STORES.S3.ADD_REPLICATION_BUCKET": "Add Replication Bucket",
   "PREVIEW.BLOB_STORES.S3.ADVANCED_CONNECTION_SETTINGS_OPTIONAL": "Advanced Connection Settings (Optional)",
