@@ -32,7 +32,8 @@
       "dir": "public/common/components/astrum-coreui-plugin/src/main/resources/astrum-i18n/react-coreui",
       "prefix": "react.coreui",
       "react": [
-        "public/common/components/astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx"
+        "public/common/components/astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx",
+        "public/common/components/astrum-coreui-plugin/src/frontend/src/routerConfig/routes/previewRouteTitles.js"
       ]
     }
   ]

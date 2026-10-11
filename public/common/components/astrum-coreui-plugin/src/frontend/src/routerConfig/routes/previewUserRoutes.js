@@ -7,6 +7,7 @@ import {
   NuGetApiTokenPage,
   AccessTokensPage,
 } from '@globalart/astrum-ui-plugin';
+import PreviewRouteTitles from './previewRouteTitles';
 
 export const previewUserRoutes = [
   {
@@ -19,24 +20,24 @@ export const previewUserRoutes = [
     name: 'preview.user.account',
     url: '/account',
     component: UserAccountPage,
-    data: {title: 'Account'},
+    data: {title: PreviewRouteTitles.ACCOUNT},
   },
   {
     name: 'preview.user.accesstokens',
     url: '/accesstokens',
     component: AccessTokensPage,
-    data: {title: 'Access Tokens', visibilityRequirements: {requiresUser: true}},
+    data: {title: PreviewRouteTitles.ACCESS_TOKENS, visibilityRequirements: {requiresUser: true}},
   },
   {
     name: 'preview.user.nugetapitoken',
     url: '/nugetapitoken',
     component: NuGetApiTokenPage,
-    data: {title: 'NuGet API Token'},
+    data: {title: PreviewRouteTitles.NUGET_API_TOKEN},
   },
   {
     name: 'preview.user.usertoken',
     url: '/usertoken',
     component: UserTokenPage,
-    data: {title: 'User Token'},
+    data: {title: PreviewRouteTitles.USER_TOKEN},
   },
 ];

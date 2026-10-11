@@ -21,6 +21,7 @@ import {
   CustomSearchPage,
   UnifiedSearchPage,
 } from '@globalart/astrum-ui-plugin';
+import PreviewRouteTitles from './previewRouteTitles';
 
 export const previewBrowseRoutes = [
   // =============================================================================
@@ -37,7 +38,7 @@ export const previewBrowseRoutes = [
     url: '/browse', // Nested under preview: #/preview/browse
     abstract: true,
     component: UIView,
-    data: {title: 'Browse'},
+    data: {title: PreviewRouteTitles.BROWSE},
   },
 
   // =============================================================================
@@ -51,7 +52,7 @@ export const previewBrowseRoutes = [
       tab: { type: 'string', dynamic: true, value: 'overview' },
     },
     data: {
-      title: 'Welcome',
+      title: PreviewRouteTitles.WELCOME,
       visibilityRequirements: {
         anonymousAccessOrHasUser: true,
       },
@@ -67,7 +68,7 @@ export const previewBrowseRoutes = [
     url: '/api',
     component: ApiPage,
     data: {
-      title: 'API',
+      title: PreviewRouteTitles.API,
       // ASTRUM-54048: API requires the same permission as the Default UI (adminRoutes.js
       // ADMIN.SYSTEM.API.ROOT) and Classic UI — astrum:settings:read. There is no
       // API-specific privilege in the platform; settings:read is the authoritative gate.
@@ -90,7 +91,7 @@ export const previewBrowseRoutes = [
       repositoryName: { type: 'string', dynamic: true, value: null },
     },
     data: {
-      title: 'Audit',
+      title: PreviewRouteTitles.AUDIT,
       visibilityRequirements: {
         requiresUser: true,
         permissions: ['astrum:audit:read'],
@@ -116,7 +117,7 @@ export const previewBrowseRoutes = [
       format: { type: 'string', value: null, dynamic: true, inherit: true },
     },
     data: {
-      title: 'Browse',
+      title: PreviewRouteTitles.BROWSE,
       // Mirrors Default UI BROWSE.BROWSE.ROOT (browseRoutes.js): visible to users with
       // any repository-view or content-selector permission and at least one browseable format.
       visibilityRequirements: {
@@ -134,7 +135,7 @@ export const previewBrowseRoutes = [
       repoName: { value: null, dynamic: true },
       format: { type: 'string', value: null, dynamic: true, inherit: true },
     },
-    data: {title: 'Browse Repository'},
+    data: {title: PreviewRouteTitles.BROWSE_REPOSITORY},
   },
   {
     name: 'preview.browse.browse.repo.path',
@@ -146,7 +147,7 @@ export const previewBrowseRoutes = [
       tab: { type: 'string', value: 'summary', dynamic: true }, // Default tab
       format: { type: 'string', value: null, dynamic: true, inherit: true },
     },
-    data: {title: 'Browse'},
+    data: {title: PreviewRouteTitles.BROWSE},
   },
   // Tab-based routing for asset detail views
   {
@@ -159,7 +160,7 @@ export const previewBrowseRoutes = [
       format: { type: 'string', value: null, dynamic: true, inherit: true },
       tab: { type: 'string', value: 'summary', dynamic: true },
     },
-    data: {title: 'Summary'},
+    data: {title: PreviewRouteTitles.SUMMARY},
   },
   {
     name: 'preview.browse.browse.repo.path.usage',
@@ -171,7 +172,7 @@ export const previewBrowseRoutes = [
       format: { type: 'string', value: null, dynamic: true, inherit: true },
       tab: { type: 'string', value: 'usage', dynamic: true },
     },
-    data: {title: 'Usage'},
+    data: {title: PreviewRouteTitles.USAGE},
   },
   {
     name: 'preview.browse.browse.repo.path.attributes',
@@ -183,7 +184,7 @@ export const previewBrowseRoutes = [
       format: { type: 'string', value: null, dynamic: true, inherit: true },
       tab: { type: 'string', value: 'attributes', dynamic: true },
     },
-    data: {title: 'Attributes'},
+    data: {title: PreviewRouteTitles.ATTRIBUTES},
   },
   {
     name: 'preview.browse.browse.repo.path.tags',
@@ -195,7 +196,7 @@ export const previewBrowseRoutes = [
       format: { type: 'string', value: null, dynamic: true, inherit: true },
       tab: { type: 'string', value: 'tags', dynamic: true },
     },
-    data: {title: 'Component Tags'},
+    data: {title: PreviewRouteTitles.COMPONENT_TAGS},
   },
   {
     name: 'preview.browse.browse.repo.path.lifecycle',
@@ -207,7 +208,7 @@ export const previewBrowseRoutes = [
       format: { type: 'string', value: null, dynamic: true, inherit: true },
       tab: { type: 'string', value: 'lifecycle', dynamic: true },
     },
-    data: {title: 'GlobalArt Lifecycle'},
+    data: {title: PreviewRouteTitles.GLOBALART_LIFECYCLE},
   },
 
   // =============================================================================
@@ -234,7 +235,7 @@ export const previewBrowseRoutes = [
         resolveFn: () => 'browse', // Tells component to show "Back to Browse"
       },
     ],
-    data: { title: 'Repository Profile' },
+    data: { title: PreviewRouteTitles.REPOSITORY_PROFILE },
   },
 
   // =============================================================================
@@ -247,7 +248,7 @@ export const previewBrowseRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Upload',
+      title: PreviewRouteTitles.UPLOAD,
       // Mirrors Default UI BROWSE.UPLOAD.ROOT (browseRoutes.js).
       visibilityRequirements: {
         permissions: [Permissions.COMPONENT.CREATE],
@@ -259,7 +260,7 @@ export const previewBrowseRoutes = [
     name: 'preview.browse.upload.list',
     url: '',
     component: UploadPage,
-    data: {title: 'Upload'},
+    data: {title: PreviewRouteTitles.UPLOAD},
   },
   // Upload form for a specific repository
   {
@@ -269,7 +270,7 @@ export const previewBrowseRoutes = [
     params: {
       repoName: { type: 'string', value: null, dynamic: true },
     },
-    data: {title: 'Upload to Repository'},
+    data: {title: PreviewRouteTitles.UPLOAD_TO_REPOSITORY},
   },
   // Alias for compatibility with left nav which uses browse.upload.edit -> preview.browse.upload.edit
   {
@@ -285,7 +286,7 @@ export const previewBrowseRoutes = [
     url: '/tags',
     component: TagsPage,
     data: {
-      title: 'Tags',
+      title: PreviewRouteTitles.TAGS,
       // Mirrors Default UI BROWSE.TAGS.ROOT (browseRoutes.js). The isProEdition gate in
       // LeftNavigationMenuRadix.tsx remains (now redundant with editions: ['PRO'], but harmless).
       visibilityRequirements: {
@@ -302,7 +303,7 @@ export const previewBrowseRoutes = [
       tagName: { type: 'string', value: null, dynamic: true },
     },
     data: {
-      title: 'Tag Details',
+      title: PreviewRouteTitles.TAG_DETAILS,
       // Tag detail is a sibling of preview.browse.tags (its UIRouter parent is
       // preview.browse, which is ungated), so it does not inherit the tags gate via the
       // guard's ancestor walk. Gate it explicitly so a direct URL to a tag detail
@@ -323,7 +324,7 @@ export const previewBrowseRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Search',
+      title: PreviewRouteTitles.SEARCH,
       visibilityRequirements: {
         permissions: ['astrum:search:read'],
       },
@@ -344,7 +345,7 @@ export const previewBrowseRoutes = [
       sort: { value: null, dynamic: true },
       direction: { value: null, dynamic: true },
     },
-    data: {title: 'Search Components'},
+    data: {title: PreviewRouteTitles.SEARCH_COMPONENTS},
   },
 
   // =============================================================================
@@ -354,7 +355,7 @@ export const previewBrowseRoutes = [
     name: 'preview.browse.search.custom',
     url: '/custom',
     component: CustomSearchPage,
-    data: {title: 'Custom Search'},
+    data: {title: PreviewRouteTitles.CUSTOM_SEARCH},
   },
 
   // =============================================================================
@@ -379,7 +380,7 @@ export const previewBrowseRoutes = [
       { token: 'gaId', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.gaId },
       { token: 'version', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.version },
     ],
-    data: {title: 'Component Details'},
+    data: {title: PreviewRouteTitles.COMPONENT_DETAILS},
   },
   {
     name: 'preview.browse.search.component.overview',
@@ -389,7 +390,7 @@ export const previewBrowseRoutes = [
       { token: 'gaId', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.gaId },
       { token: 'version', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.version },
     ],
-    data: {title: 'Overview'},
+    data: {title: PreviewRouteTitles.OVERVIEW},
   },
   {
     name: 'preview.browse.search.component.versions',
@@ -399,7 +400,7 @@ export const previewBrowseRoutes = [
       { token: 'gaId', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.gaId },
       { token: 'version', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.version },
     ],
-    data: {title: 'Versions'},
+    data: {title: PreviewRouteTitles.VERSIONS},
   },
   {
     name: 'preview.browse.search.component.repos',
@@ -409,7 +410,7 @@ export const previewBrowseRoutes = [
       { token: 'gaId', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.gaId },
       { token: 'version', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.version },
     ],
-    data: {title: 'Repositories'},
+    data: {title: PreviewRouteTitles.REPOSITORIES},
   },
   {
     name: 'preview.browse.search.component.files',
@@ -419,7 +420,7 @@ export const previewBrowseRoutes = [
       { token: 'gaId', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.gaId },
       { token: 'version', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.version },
     ],
-    data: {title: 'Files'},
+    data: {title: PreviewRouteTitles.FILES},
   },
   {
     name: 'preview.browse.search.component.security',
@@ -429,6 +430,6 @@ export const previewBrowseRoutes = [
       { token: 'gaId', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.gaId },
       { token: 'version', deps: ['$stateParams'], resolveFn: ($stateParams) => $stateParams.version },
     ],
-    data: {title: 'Security'},
+    data: {title: PreviewRouteTitles.SECURITY},
   },
 ];

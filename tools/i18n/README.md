@@ -21,7 +21,7 @@ one project holds all dictionaries.
 | `extjs-coreui` | `astrum-coreui-plugin/.../AS/coreui/app/PluginStrings.js` |
 | `extjs-onboarding` | `astrum-onboarding-plugin/.../AS/onboarding/app/PluginStrings.js` |
 | `react-ui` | `astrum-ui-plugin/src/frontend/src/constants/UIStrings.js`, the onboarding wizard's `UIStrings.ts` and Astrum One's `components/preview/constants/PreviewStrings.js` |
-| `react-coreui` | `astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx` |
+| `react-coreui` | `astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx` and the Astrum One route titles in `routerConfig/routes/previewRouteTitles.js` |
 
 ExtJS keys are the keys of `PluginStrings.js`; bundle keys are written `<class>/<key>`. Values that only
 reference another key (`@Other_Key`) or contain no letters are not translated.

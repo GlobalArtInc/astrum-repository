@@ -65,6 +65,7 @@ import {
   UserAccountPage as UserAccountPageRaw,
 } from '@globalart/astrum-ui-plugin';
 import {lazyLoad} from './lazyLoad';
+import PreviewRouteTitles from './previewRouteTitles';
 
 // ui-plugin already exports these as React.lazy(); wrapping with lazyLoad() would double-wrap them.
 // Two distinct wrapper functions force React to unmount→remount when transitioning
@@ -185,7 +186,7 @@ export const previewAdminRoutes = [
     url: '/settings',
     component: SettingsHubPage,
     data: {
-      title: 'Settings',
+      title: PreviewRouteTitles.SETTINGS,
       visibilityRequirements: {
         requiresAnyPermission: [
           Permissions.REPOSITORY_ADMIN.READ,
@@ -269,7 +270,7 @@ export const previewAdminRoutes = [
     url: '/repository',
     redirectTo: 'preview.admin.repository.repositories.list', /* DO NOT CHANGE - blobstores not on cloud (Agent0 fix) */
     component: UIView,
-    data: { title: 'Repository' },
+    data: { title: PreviewRouteTitles.REPOSITORY },
   },
   {
     name: 'preview.admin.repository.repositories',
@@ -277,7 +278,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Repositories',
+      title: PreviewRouteTitles.REPOSITORIES,
       // ASTRUM-54048: match Classic/Default UI (adminRoutes.js REPOSITORIES.ROOT), which uses a
       // repository-admin prefix so a user with admin on any single repo can see the menu. A specific
       // requiresPermission: 'astrum:repository-admin:*:*:read' would NOT be satisfied by a narrower
@@ -291,19 +292,19 @@ export const previewAdminRoutes = [
     name: 'preview.admin.repository.repositories.list',
     url: '',
     component: RepositoriesPage,
-    data: { title: 'Repositories' },
+    data: { title: PreviewRouteTitles.REPOSITORIES },
   },
   {
     name: 'preview.admin.repository.repositories.create',
     url: '/create',
     component: RepositoriesPage,
-    data: { title: 'Create Repository' },
+    data: { title: PreviewRouteTitles.CREATE_REPOSITORY },
   },
   {
     name: 'preview.admin.repository.repositories.createForm',
     url: '/create/:format/:type',
     component: RepositoriesPage,
-    data: { title: 'Create Repository' },
+    data: { title: PreviewRouteTitles.CREATE_REPOSITORY },
   },
   {
     name: 'preview.admin.repository.repositories.detail',
@@ -312,7 +313,7 @@ export const previewAdminRoutes = [
     params: {
       tab: { value: null, type: 'string', dynamic: true },
     },
-    data: { title: 'Repository Details' },
+    data: { title: PreviewRouteTitles.REPOSITORY_DETAILS },
   },
   {
     name: 'preview.admin.repository.repositories.profile',
@@ -321,7 +322,7 @@ export const previewAdminRoutes = [
     params: {
       tab: { value: null, type: 'string', dynamic: true },
     },
-    data: { title: 'Repository Profile' },
+    data: { title: PreviewRouteTitles.REPOSITORY_PROFILE },
     resolve: [
       {
         token: 'repositoryName',
@@ -340,7 +341,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Blob Stores',
+      title: PreviewRouteTitles.BLOB_STORES,
       visibilityRequirements: {
         requiresPermission: Permissions.BLOB_STORES.READ,
       },
@@ -350,19 +351,19 @@ export const previewAdminRoutes = [
     name: 'preview.admin.repository.blobstores.list',
     url: '',
     component: BlobStoresPage,
-    data: { title: 'Blob Stores' },
+    data: { title: PreviewRouteTitles.BLOB_STORES },
   },
   {
     name: 'preview.admin.repository.blobstores.create',
     url: '/create',
     component: BlobStoresPage,
-    data: { title: 'Create Blob Store' },
+    data: { title: PreviewRouteTitles.CREATE_BLOB_STORE },
   },
   {
     name: 'preview.admin.repository.blobstores.edit',
     url: '/:type/:name',
     component: BlobStoresPage,
-    data: { title: 'Edit Blob Store' },
+    data: { title: PreviewRouteTitles.EDIT_BLOB_STORE },
   },
   {
     name: 'preview.admin.repository.selectors',
@@ -370,7 +371,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Content Selectors',
+      title: PreviewRouteTitles.CONTENT_SELECTORS,
       visibilityRequirements: {
         requiresPermission: Permissions.SELECTORS.READ,
       },
@@ -380,19 +381,19 @@ export const previewAdminRoutes = [
     name: 'preview.admin.repository.selectors.list',
     url: '',
     component: ContentSelectorsPage,
-    data: { title: 'Content Selectors' },
+    data: { title: PreviewRouteTitles.CONTENT_SELECTORS },
   },
   {
     name: 'preview.admin.repository.selectors.create',
     url: '/create',
     component: ContentSelectorsPage,
-    data: { title: 'Create Content Selector' },
+    data: { title: PreviewRouteTitles.CREATE_CONTENT_SELECTOR },
   },
   {
     name: 'preview.admin.repository.selectors.detail',
     url: '/:name',
     component: ContentSelectorsPage,
-    data: { title: 'Content Selector Details' },
+    data: { title: PreviewRouteTitles.CONTENT_SELECTOR_DETAILS },
   },
   {
     name: 'preview.admin.repository.cleanuppolicies',
@@ -400,7 +401,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Cleanup Policies',
+      title: PreviewRouteTitles.CLEANUP_POLICIES,
       // ASTRUM-54048: match Classic/Default UI (adminRoutes.js CLEANUPPOLICIES.ROOT), which gates on
       // astrum:* — the write endpoints require admin, and the menu must not surface to a
       // settings:read-only user who would then hit a 403.
@@ -413,19 +414,19 @@ export const previewAdminRoutes = [
     name: 'preview.admin.repository.cleanuppolicies.list',
     url: '',
     component: CleanupPoliciesPage,
-    data: { title: 'Cleanup Policies' },
+    data: { title: PreviewRouteTitles.CLEANUP_POLICIES },
   },
   {
     name: 'preview.admin.repository.cleanuppolicies.create',
     url: '/create',
     component: CleanupPoliciesPage,
-    data: { title: 'Create Cleanup Policy' },
+    data: { title: PreviewRouteTitles.CREATE_CLEANUP_POLICY },
   },
   {
     name: 'preview.admin.repository.cleanuppolicies.detail',
     url: '/:name',
     component: CleanupPoliciesPage,
-    data: { title: 'Cleanup Policy Details' },
+    data: { title: PreviewRouteTitles.CLEANUP_POLICY_DETAILS },
   },
   {
     name: 'preview.admin.repository.routingrules',
@@ -434,7 +435,7 @@ export const previewAdminRoutes = [
     redirectTo: 'preview.admin.repository.routingrules.list',
     component: UIView,
     data: {
-      title: 'Routing Rules',
+      title: PreviewRouteTitles.ROUTING_RULES,
       // ASTRUM-54048: match Classic/Default UI (adminRoutes.js ROUTINGRULES.ROOT). RoutingRulesResource
       // requires astrum:* on every endpoint, including the GET/list — so settings:read here would show
       // the menu but 403 on load.
@@ -447,32 +448,32 @@ export const previewAdminRoutes = [
     name: 'preview.admin.repository.routingrules.list',
     url: '',
     component: RoutingRulesPage,
-    data: { title: 'Routing Rules' },
+    data: { title: PreviewRouteTitles.ROUTING_RULES },
   },
   {
     name: 'preview.admin.repository.routingrules.create',
     url: '/create',
     component: RoutingRulesPage,
-    data: { title: 'Create Routing Rule' },
+    data: { title: PreviewRouteTitles.CREATE_ROUTING_RULE },
   },
   {
     name: 'preview.admin.repository.routingrules.preview',
     url: '/preview',
     component: RoutingRulesPage,
-    data: { title: 'Routing Rules Preview' },
+    data: { title: PreviewRouteTitles.ROUTING_RULES_PREVIEW },
   },
   {
     name: 'preview.admin.repository.routingrules.detail',
     url: '/:name',
     component: RoutingRulesPage,
-    data: { title: 'Routing Rule Details' },
+    data: { title: PreviewRouteTitles.ROUTING_RULE_DETAILS },
   },
   {
     name: 'preview.admin.repository.datastore',
     url: '/datastore',
     component: DataStorePage,
     data: {
-      title: 'Data Store',
+      title: PreviewRouteTitles.DATA_STORE,
       visibilityRequirements: {
         // ASTRUM-54019: match Classic/Default UI (adminRoutes.js DATASTORE.ROOT). The Data Store
         // screen is admin-only (astrum:*) AND only available with the pro-datastore bundle on
@@ -489,7 +490,7 @@ export const previewAdminRoutes = [
     url: '/proprietary',
     component: ProprietaryPage,
     data: {
-      title: 'Proprietary Repositories',
+      title: PreviewRouteTitles.PROPRIETARY_REPOSITORIES,
       visibilityRequirements: {
         requiresPermission: Permissions.SETTINGS.READ,
       },
@@ -505,7 +506,7 @@ export const previewAdminRoutes = [
     url: '/security',
     redirectTo: 'preview.admin.security.privileges.list',
     component: UIView,
-    data: { title: 'Security' },
+    data: { title: PreviewRouteTitles.SECURITY },
   },
   {
     name: 'preview.admin.security.privileges',
@@ -513,7 +514,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Privileges',
+      title: PreviewRouteTitles.PRIVILEGES,
       visibilityRequirements: {
         requiresPermission: 'astrum:privileges:read',
       },
@@ -524,21 +525,21 @@ export const previewAdminRoutes = [
     url: '',
     component: PrivilegesPage,
     data: {
-      title: 'Privileges',
+      title: PreviewRouteTitles.PRIVILEGES,
     },
   },
   {
     name: 'preview.admin.security.privileges.create',
     url: '/create',
     component: PrivilegesPage,
-    data: { title: 'Create Privilege' },
+    data: { title: PreviewRouteTitles.CREATE_PRIVILEGE },
   },
   {
     name: 'preview.admin.security.privileges.createForm',
     url: '/create/:typeId',
     component: PrivilegesPage,
     params: { typeId: { type: 'string', value: null, dynamic: true } },
-    data: { title: 'Create Privilege' },
+    data: { title: PreviewRouteTitles.CREATE_PRIVILEGE },
   },
   {
     // ASTRUM-52167: `?tab` keeps the active profile tab in the URL so it survives
@@ -550,13 +551,13 @@ export const previewAdminRoutes = [
     params: {
       tab: { value: null, type: 'string', dynamic: true },
     },
-    data: { title: 'Privilege Profile' },
+    data: { title: PreviewRouteTitles.PRIVILEGE_PROFILE },
   },
   {
     name: 'preview.admin.security.privileges.detail',
     url: '/:privilegeId',
     component: PrivilegesPage,
-    data: { title: 'Privilege Details' },
+    data: { title: PreviewRouteTitles.PRIVILEGE_DETAILS },
   },
   {
     name: 'preview.admin.security.roles',
@@ -564,7 +565,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Roles',
+      title: PreviewRouteTitles.ROLES,
       // ASTRUM-54048: match Classic/Default UI (adminRoutes.js ROLES.ROOT), which requires BOTH
       // roles:read and privileges:read (permissions[] is AND).
       visibilityRequirements: {
@@ -577,26 +578,26 @@ export const previewAdminRoutes = [
     url: '',
     component: RolesPage,
     data: {
-      title: 'Roles',
+      title: PreviewRouteTitles.ROLES,
     },
   },
   {
     name: 'preview.admin.security.roles.create',
     url: '/create',
     component: RolesPage,
-    data: { title: 'Create Role' },
+    data: { title: PreviewRouteTitles.CREATE_ROLE },
   },
   {
     name: 'preview.admin.security.roles.detail',
     url: '/:roleId',
     component: RolesPage,
-    data: { title: 'Role Details' },
+    data: { title: PreviewRouteTitles.ROLE_DETAILS },
   },
   {
     name: 'preview.admin.security.roles.profile',
     url: '/:roleId/profile',
     component: RolesPage,
-    data: { title: 'Role Profile' },
+    data: { title: PreviewRouteTitles.ROLE_PROFILE },
   },
   {
     name: 'preview.admin.security.users',
@@ -605,7 +606,7 @@ export const previewAdminRoutes = [
     redirectTo: 'preview.admin.security.users.list',
     component: UIView,
     data: {
-      title: 'Users',
+      title: PreviewRouteTitles.USERS,
       // ASTRUM-54048: match Classic/Default UI (adminRoutes.js USERS.ROOT), which requires BOTH
       // users:read and roles:read (permissions[] is AND).
       visibilityRequirements: {
@@ -617,19 +618,19 @@ export const previewAdminRoutes = [
     name: 'preview.admin.security.users.list',
     url: '',
     component: UsersPage,
-    data: { title: 'Users' },
+    data: { title: PreviewRouteTitles.USERS },
   },
   {
     name: 'preview.admin.security.users.create',
     url: '/create',
     component: UsersPage,
-    data: { title: 'Create User' },
+    data: { title: PreviewRouteTitles.CREATE_USER },
   },
   {
     name: 'preview.admin.security.users.invite',
     url: '/invite',
     component: UsersPage,
-    data: { title: 'Invite User' },
+    data: { title: PreviewRouteTitles.INVITE_USER },
   },
   {
     name: 'preview.admin.security.users.detail',
@@ -639,7 +640,7 @@ export const previewAdminRoutes = [
       userId: { type: 'string', value: null, dynamic: true },
       source: { type: 'string', value: null, dynamic: true },
     },
-    data: { title: 'User Details' },
+    data: { title: PreviewRouteTitles.USER_DETAILS },
   },
   {
     name: 'preview.admin.security.users.profile',
@@ -649,14 +650,14 @@ export const previewAdminRoutes = [
       userId: { type: 'string', value: null, dynamic: true },
       source: { type: 'string', value: null, dynamic: true },
     },
-    data: { title: 'User Profile' },
+    data: { title: PreviewRouteTitles.USER_PROFILE },
   },
   {
     name: 'preview.admin.security.anonymous',
     url: '/anonymous',
     component: AnonymousPage,
     data: {
-      title: 'Anonymous Access',
+      title: PreviewRouteTitles.ANONYMOUS_ACCESS,
       visibilityRequirements: {
         requiresPermission: Permissions.SETTINGS.READ,
       },
@@ -668,7 +669,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'LDAP',
+      title: PreviewRouteTitles.LDAP,
       visibilityRequirements: {
         bundle: 'astrum-ldap-plugin',
         requiresPermission: Permissions.LDAP.READ,
@@ -679,26 +680,26 @@ export const previewAdminRoutes = [
     name: 'preview.admin.security.ldap.list',
     url: '',
     component: LdapPage,
-    data: { title: 'LDAP' },
+    data: { title: PreviewRouteTitles.LDAP },
   },
   {
     name: 'preview.admin.security.ldap.create',
     url: '/create',
     component: LdapPage,
-    data: { title: 'Create LDAP Server' },
+    data: { title: PreviewRouteTitles.CREATE_LDAP_SERVER },
   },
   {
     name: 'preview.admin.security.ldap.detail',
     url: '/:serverId',
     component: LdapPage,
-    data: { title: 'LDAP Server Details' },
+    data: { title: PreviewRouteTitles.LDAP_SERVER_DETAILS },
   },
   {
     name: 'preview.admin.security.realms',
     url: '/realms',
     component: RealmsPage,
     data: {
-      title: 'Realms',
+      title: PreviewRouteTitles.REALMS,
       visibilityRequirements: {
         requiresPermission: Permissions.SETTINGS.READ,
       },
@@ -710,7 +711,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: { 
-      title: 'SSL Certificates',
+      title: PreviewRouteTitles.SSL_CERTIFICATES,
       visibilityRequirements: {
         requiresPermission: 'astrum:ssl-truststore:read',
       },
@@ -720,14 +721,14 @@ export const previewAdminRoutes = [
     name: 'preview.admin.security.sslcertificates.list',
     url: '',
     component: SslCertificatesPage,
-    data: { title: 'SSL Certificates' },
+    data: { title: PreviewRouteTitles.SSL_CERTIFICATES },
   },
   {
     name: 'preview.admin.security.usertoken',
     url: '/user-tokens',
     component: UserTokensPage,
     data: {
-      title: 'User Tokens',
+      title: PreviewRouteTitles.USER_TOKENS,
       // ASTRUM-54019: match Classic/Default UI (adminRoutes.js USERTOKEN.ROOT) — usertoken-settings:read
       // gated to PRO edition AND a valid usertoken license. Without the licenseValid gate the tile
       // shows on PRO installs whose license does not include user tokens and then dead-ends.
@@ -743,7 +744,7 @@ export const previewAdminRoutes = [
     url: '/service-account-tokens',
     component: ServiceAccountTokensPage,
     data: {
-      title: 'Service Account Tokens',
+      title: PreviewRouteTitles.SERVICE_ACCOUNT_TOKENS,
       visibilityRequirements: {
         requiresPermission: Permissions.SERVICE_ACCOUNTS.READ,
         editions: ['PRO'],
@@ -756,7 +757,7 @@ export const previewAdminRoutes = [
     url: '/saml',
     component: SamlPage,
     data: {
-      title: 'SAML',
+      title: PreviewRouteTitles.SAML,
       visibilityRequirements: {
         // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SAML.ROOT). SAML is admin-only
         // (astrum:*) AND only available with the saml bundle on PRO — without the bundle+editions
@@ -772,7 +773,7 @@ export const previewAdminRoutes = [
     url: '/oauth2',
     component: OAuth2Page,
     data: {
-      title: 'OpenID Connect',
+      title: PreviewRouteTitles.OPENID_CONNECT,
       visibilityRequirements: {
         requiresPermission: Permissions.ADMIN,
         statesEnabled: [{ key: 'oauth2Available', defaultValue: false }],
@@ -784,7 +785,7 @@ export const previewAdminRoutes = [
     url: '/crowd',
     component: CrowdPage,
     data: {
-      title: 'Atlassian Crowd',
+      title: PreviewRouteTitles.ATLASSIAN_CROWD,
       visibilityRequirements: {
         // ASTRUM-54019: match Classic/Default UI (adminRoutes.js ATLASSIANCROWD.ROOT). Crowd is
         // only available with the crowd bundle and a valid crowd license — without the
@@ -805,7 +806,7 @@ export const previewAdminRoutes = [
     url: '/support',
     redirectTo: 'preview.admin.support.logs.list',
     component: UIView,
-    data: { title: 'Support' },
+    data: { title: PreviewRouteTitles.SUPPORT },
   },
   {
     name: 'preview.admin.support.logs',
@@ -813,7 +814,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Logs',
+      title: PreviewRouteTitles.LOGS,
       visibilityRequirements: {
         requiresPermission: Permissions.LOGGING.READ,
       },
@@ -824,7 +825,7 @@ export const previewAdminRoutes = [
     url: '',
     component: LogsPage,
     data: {
-      title: 'Logs',
+      title: PreviewRouteTitles.LOGS,
     },
   },
   {
@@ -837,7 +838,7 @@ export const previewAdminRoutes = [
       filename: {value: null, raw: true, dynamic: true},
     },
     data: {
-      title: 'Log Viewer',
+      title: PreviewRouteTitles.LOG_VIEWER,
     },
   },
   {
@@ -846,7 +847,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Logging',
+      title: PreviewRouteTitles.LOGGING,
       visibilityRequirements: {
         requiresPermission: Permissions.LOGGING.READ,
       },
@@ -857,7 +858,7 @@ export const previewAdminRoutes = [
     url: '',
     component: LoggingConfigPage,
     data: {
-      title: 'Logging',
+      title: PreviewRouteTitles.LOGGING,
       visibilityRequirements: {
         requiresPermission: Permissions.LOGGING.READ,
       },
@@ -868,7 +869,7 @@ export const previewAdminRoutes = [
     url: '/create',
     component: LoggingConfigPage,
     data: {
-      title: 'Create Logger',
+      title: PreviewRouteTitles.CREATE_LOGGER,
       visibilityRequirements: {
         requiresPermission: Permissions.LOGGING.UPDATE,
       },
@@ -879,7 +880,7 @@ export const previewAdminRoutes = [
     url: '/:itemId',
     component: LoggingConfigPage,
     data: {
-      title: 'Logger Details',
+      title: PreviewRouteTitles.LOGGER_DETAILS,
       visibilityRequirements: {
         requiresPermission: Permissions.LOGGING.READ,
       },
@@ -890,7 +891,7 @@ export const previewAdminRoutes = [
     url: '/systeminformation',
     component: SystemInfoPage,
     data: {
-      title: 'System Information',
+      title: PreviewRouteTitles.SYSTEM_INFORMATION,
       visibilityRequirements: {
         requiresPermission: 'astrum:atlas:read',
       },
@@ -901,7 +902,7 @@ export const previewAdminRoutes = [
     url: '/metrichealth',
     component: MetricHealthPage,
     data: {
-      title: 'Metric Health',
+      title: PreviewRouteTitles.METRIC_HEALTH,
       visibilityRequirements: {
         requiresPermission: 'astrum:metrics:read',
       },
@@ -912,7 +913,7 @@ export const previewAdminRoutes = [
     url: '/recoverymode',
     component: RecoveryModePage,
     data: {
-      title: 'Recovery Mode',
+      title: PreviewRouteTitles.RECOVERY_MODE,
       visibilityRequirements: {
         permissions: [Permissions.ADMIN],
       },
@@ -923,7 +924,7 @@ export const previewAdminRoutes = [
     url: '/supportrequest',
     component: SupportRequestPage,
     data: {
-      title: 'Support Request',
+      title: PreviewRouteTitles.SUPPORT_REQUEST,
       // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SUPPORTREQUEST.ROOT) — atlas:create
       // gated to PRO. Preview previously gated on atlas:read, which showed the tile to users who
       // lack the create permission the page actually requires.
@@ -938,7 +939,7 @@ export const previewAdminRoutes = [
     url: '/supportzip',
     component: SupportZipPage,
     data: {
-      title: 'Support ZIP',
+      title: PreviewRouteTitles.SUPPORT_ZIP,
       // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SUPPORTZIP.ROOT) — atlas:read.
       // Preview previously gated on the non-existent astrum:supportzip:read privilege.
       visibilityRequirements: {
@@ -956,7 +957,7 @@ export const previewAdminRoutes = [
     url: '/system',
     redirectTo: 'preview.admin.system.tasks.list',
     component: UIView,
-    data: { title: 'System' },
+    data: { title: PreviewRouteTitles.SYSTEM },
   },
   {
     name: 'preview.admin.system.tasks',
@@ -964,7 +965,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Tasks',
+      title: PreviewRouteTitles.TASKS,
       visibilityRequirements: {
         requiresPermission: Permissions.TASKS.READ,
       },
@@ -974,25 +975,25 @@ export const previewAdminRoutes = [
     name: 'preview.admin.system.tasks.list',
     url: '',
     component: TasksPage,
-    data: { title: 'Tasks' },
+    data: { title: PreviewRouteTitles.TASKS },
   },
   {
     name: 'preview.admin.system.tasks.create',
     url: '/create',
     component: TasksPage,
-    data: { title: 'Create Task' },
+    data: { title: PreviewRouteTitles.CREATE_TASK },
   },
   {
     name: 'preview.admin.system.tasks.createWithType',
     url: '/create/:typeId',
     component: TasksPage,
-    data: { title: 'Create Task' },
+    data: { title: PreviewRouteTitles.CREATE_TASK },
   },
   {
     name: 'preview.admin.system.tasks.detail',
     url: '/:taskId',
     component: TasksPage,
-    data: { title: 'Task Details' },
+    data: { title: PreviewRouteTitles.TASK_DETAILS },
   },
   {
     name: 'preview.admin.system.capabilities',
@@ -1000,7 +1001,7 @@ export const previewAdminRoutes = [
     abstract: true,
     component: UIView,
     data: {
-      title: 'Capabilities',
+      title: PreviewRouteTitles.CAPABILITIES,
       visibilityRequirements: {
         requiresPermission: Permissions.CAPABILITIES.READ,
       },
@@ -1010,34 +1011,34 @@ export const previewAdminRoutes = [
     name: 'preview.admin.system.capabilities.list',
     url: '',
     component: CapabilitiesPage,
-    data: { title: 'Capabilities' },
+    data: { title: PreviewRouteTitles.CAPABILITIES },
   },
   {
     name: 'preview.admin.system.capabilities.create',
     url: '/create',
     component: CapabilitiesPage,
-    data: { title: 'Create Capability' },
+    data: { title: PreviewRouteTitles.CREATE_CAPABILITY },
   },
   {
     name: 'preview.admin.system.capabilities.createWithType',
     url: '/create/:typeId',
     component: CapabilitiesPage,
     params: { typeId: { type: 'string', value: null, dynamic: true } },
-    data: { title: 'Create Capability' },
+    data: { title: PreviewRouteTitles.CREATE_CAPABILITY },
   },
   {
     name: 'preview.admin.system.capabilities.detail',
     url: '/:capabilityId',
     component: CapabilitiesPage,
     params: { capabilityId: { type: 'string', value: null, dynamic: true } },
-    data: { title: 'Capability Details' },
+    data: { title: PreviewRouteTitles.CAPABILITY_DETAILS },
   },
   {
     name: 'preview.admin.system.previewui',
     url: '/previewui',
     component: PreviewUiSettingsPage,
     data: { 
-      title: 'Astrum One UI',
+      title: PreviewRouteTitles.ASTRUM_ONE_UI,
       visibilityRequirements: {
         permissions: [Permissions.SETTINGS.READ],
       },
@@ -1048,7 +1049,7 @@ export const previewAdminRoutes = [
     url: '/notifications',
     component: NotificationsPage,
     data: {
-      title: 'Notifications',
+      title: PreviewRouteTitles.NOTIFICATIONS,
       visibilityRequirements: {
         requiresPermission: Permissions.SETTINGS.READ,
       },
@@ -1059,7 +1060,7 @@ export const previewAdminRoutes = [
     url: '/emailserver',
     component: EmailPage,
     data: {
-      title: 'Email Server',
+      title: PreviewRouteTitles.EMAIL_SERVER,
       visibilityRequirements: {
         requiresPermission: Permissions.SETTINGS.READ,
       },
@@ -1070,7 +1071,7 @@ export const previewAdminRoutes = [
     url: '/http',
     component: HttpPage,
     data: {
-      title: 'HTTP',
+      title: PreviewRouteTitles.HTTP,
       visibilityRequirements: {
         requiresPermission: Permissions.SETTINGS.READ,
       },
@@ -1081,7 +1082,7 @@ export const previewAdminRoutes = [
     url: '/nodes',
     component: NodesPage,
     data: {
-      title: 'Nodes',
+      title: PreviewRouteTitles.NODES,
       visibilityRequirements: {
         // ASTRUM-54048: match Classic/Default UI (adminRoutes.js NODES.ROOT), which gates on
         // astrum:* — the Nodes screen is an admin-only screen.
@@ -1094,7 +1095,7 @@ export const previewAdminRoutes = [
     url: '/usage',
     component: UsagePage,
     data: {
-      title: 'Usage',
+      title: PreviewRouteTitles.USAGE,
       // ASTRUM-54048: Usage is a cloud-oriented feature — its Settings Hub card is cloudOnly, so
       // this route is NOT surfaced in the self-hosted Settings menu (the card is filtered out).
       // The gate here is therefore dormant on self-hosted. The value differs from the cloud route
@@ -1139,6 +1140,6 @@ export const previewAdminRoutes = [
     url: '/useraccount',
     // Redirect so old/bookmarked links land on the standalone page, not Settings
     redirectTo: 'preview.user.account',
-    data: { title: 'User Account' },
+    data: { title: PreviewRouteTitles.USER_ACCOUNT },
   },
 ];
