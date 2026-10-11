@@ -87,6 +87,35 @@ function validateCapability(
   return errors;
 }
 
+/**
+ * The value a form field starts with when a capability has no property for it.
+ */
+function defaultFieldValue(field: FormField): string {
+  if (field.initialValue !== undefined && field.initialValue !== null) {
+    return String(field.initialValue);
+  }
+  return field.type === 'boolean' || field.type === 'checkbox' ? 'false' : '';
+}
+
+/**
+ * Fill every form field of the type from the capability's properties. A capability stores only
+ * the properties that were set when it was created or saved: one added by the server at startup
+ * (such as Audit) can have none, and the capability then works with the defaults its type declares
+ * as the initial values of its form fields. Show those instead of empty fields.
+ */
+export function fillFormProperties(
+  properties: Record<string, string> | undefined,
+  formFields: FormField[] | undefined
+): Record<string, string> {
+  const filled: Record<string, string> = { ...(properties || {}) };
+  formFields?.forEach((field) => {
+    if (filled[field.id] === undefined || filled[field.id] === null) {
+      filled[field.id] = defaultFieldValue(field);
+    }
+  });
+  return filled;
+}
+
 // =============================================================================
 // REST HELPERS
 // =============================================================================
@@ -218,15 +247,7 @@ export function createCapabilityFormMachine(
         ) ?? null;
 
         // Initialize properties with defaults from the selected capability type's form fields
-        const properties: Record<string, string> = {};
-        capType?.formFields?.forEach((field: FormField) => {
-          if (field.initialValue !== undefined && field.initialValue !== null) {
-            properties[field.id] = String(field.initialValue);
-          } else {
-            // Default empty value based on type
-            properties[field.id] = field.type === 'boolean' ? 'false' : '';
-          }
-        });
+        const properties = fillFormProperties({}, capType?.formFields);
 
         return {
           data: { ...context.data, typeId, properties },
@@ -268,7 +289,7 @@ export function createCapabilityFormMachine(
               typeId: capability.typeId,
               enabled: capability.enabled,
               notes: capability.notes || '',
-              properties: { ...capability.properties },
+              properties: fillFormProperties(capability.properties, selectedCapabilityType?.formFields),
             }
           : {
               typeId: initialTypeId ?? '',
@@ -280,15 +301,7 @@ export function createCapabilityFormMachine(
         // When creating with an initial type, pre-initialize the properties with defaults
         if (!capability && initialTypeId && initialData.typeId) {
           const capType = capabilityTypes.find((t) => t.id === initialTypeId);
-          if (capType?.formFields) {
-            capType.formFields.forEach((field: FormField) => {
-              if (field.initialValue !== undefined && field.initialValue !== null) {
-                initialData.properties[field.id] = String(field.initialValue);
-              } else {
-                initialData.properties[field.id] = field.type === 'boolean' ? 'false' : '';
-              }
-            });
-          }
+          initialData.properties = fillFormProperties({}, capType?.formFields);
         }
 
         return {

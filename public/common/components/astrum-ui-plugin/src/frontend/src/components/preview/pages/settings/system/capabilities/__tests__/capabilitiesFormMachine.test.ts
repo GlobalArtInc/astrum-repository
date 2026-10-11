@@ -2,7 +2,7 @@
 
 import { interpret } from 'xstate';
 import { waitFor } from 'xstate/lib/waitFor';
-import { createCapabilityFormMachine } from '../capabilitiesFormMachine';
+import { createCapabilityFormMachine, fillFormProperties } from '../capabilitiesFormMachine';
 
 // Mock the local API module used by capabilitiesFormMachine
 jest.mock('../../../../../../../interface/api', () => ({
@@ -429,6 +429,31 @@ describe('capabilitiesFormMachine', () => {
       service.stop();
     });
 
+    it('fills a field the capability has no property for with the default of its type', async () => {
+      // A capability added by the server at startup stores no properties at all
+      const preloadedCapability = {
+        id: 'cap-321',
+        typeId: 'firewall.audit',
+        typeName: 'Firewall Audit',
+        enabled: true,
+        active: true,
+        error: false,
+        state: 'active' as const,
+        properties: { iqUrl: 'https://iq.example.com' },
+      };
+
+      const machine = createCapabilityFormMachine('cap-321', preloadedCapability);
+      const service = await startAndLoad(machine);
+
+      const state = service.getSnapshot();
+      expect(state.context.data.properties.maxRetries).toBe('3');
+      expect(state.context.data.properties.iqUrl).toBe('https://iq.example.com');
+      expect(state.context.data.properties.username).toBe('');
+      expect(state.context.isPristine).toBe(true);
+
+      service.stop();
+    });
+
     it('preserves capability id in form data for edit mode', async () => {
       const preloadedCapability = {
         id: 'cap-789',
@@ -450,5 +475,26 @@ describe('capabilitiesFormMachine', () => {
 
       service.stop();
     });
+  });
+});
+
+describe('fillFormProperties', () => {
+  const fields = [
+    { id: 'retentionDays', type: 'number', label: 'Retention (days)', required: true, disabled: false, readOnly: false, initialValue: '90' },
+    { id: 'enabled', type: 'checkbox', label: 'Enabled', required: false, disabled: false, readOnly: false },
+    { id: 'url', type: 'url', label: 'URL', required: true, disabled: false, readOnly: false },
+  ] as any;
+
+  it('keeps the stored values', () => {
+    expect(fillFormProperties({ retentionDays: '30', enabled: 'true', url: 'https://example.com' }, fields))
+      .toEqual({ retentionDays: '30', enabled: 'true', url: 'https://example.com' });
+  });
+
+  it('uses the initial value of a field, false for a checkbox and empty text otherwise', () => {
+    expect(fillFormProperties({}, fields)).toEqual({ retentionDays: '90', enabled: 'false', url: '' });
+  });
+
+  it('keeps properties that have no form field', () => {
+    expect(fillFormProperties({ legacy: 'x' }, undefined)).toEqual({ legacy: 'x' });
   });
 });
