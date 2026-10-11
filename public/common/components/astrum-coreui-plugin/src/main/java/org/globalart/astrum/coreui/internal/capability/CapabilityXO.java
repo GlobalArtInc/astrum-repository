@@ -10,6 +10,12 @@ import org.globalart.astrum.capability.CapabilityTypeExists;
 import org.globalart.astrum.validation.group.Create;
 import org.globalart.astrum.validation.group.Update;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+/**
+ * Capability exchange object, shared by the ExtDirect component (serialized by field name) and the REST API
+ * (serialized by Jackson, where the type id is named {@code type} and the system flag {@code isSystem}).
+ */
 public class CapabilityXO
 {
   @NotEmpty(groups = Update.class)
@@ -17,6 +23,7 @@ public class CapabilityXO
 
   @NotBlank(groups = Create.class)
   @CapabilityTypeExists(groups = Create.class)
+  @JsonProperty("type")
   private String typeId;
 
   @NotNull
@@ -168,10 +175,12 @@ public class CapabilityXO
     this.deleteWarningMessage = deleteWarningMessage;
   }
 
+  @JsonProperty("isSystem")
   public Boolean isSystem() {
     return isSystem;
   }
 
+  @JsonProperty("isSystem")
   public void setSystem(final Boolean isSystem) {
     this.isSystem = isSystem;
   }
