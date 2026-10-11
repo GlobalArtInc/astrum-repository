@@ -171,6 +171,41 @@
   & &__search-link {
     color: var(--accent-11) !important;
   }
+
+  // Phones: the period and the repository take the full width as 44px controls, cards keep 16px padding and the
+  // cleanup action is a full-width button
+  @media (max-width: 639px) {
+    &__header {
+      align-items: stretch;
+    }
+
+    &__controls {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-2);
+
+      .rt-SegmentedControlRoot {
+        width: 100%;
+        height: 44px;
+      }
+    }
+
+    & &__repository-select {
+      width: 100%;
+      min-width: 0;
+      height: 44px;
+    }
+
+    & &__panel.rt-Card {
+      --card-padding: var(--space-4);
+    }
+
+    & &__cleanup.rt-Button {
+      width: 100%;
+      height: 44px;
+    }
+  }
 }
 
 .as-usage-bar {

@@ -103,7 +103,7 @@ export function UsageDashboard({
             {repository ? strings.SUBTITLE_REPOSITORY(repository, period) : strings.SUBTITLE(period)}
           </Text>
         </div>
-        <Flex gap="3" align="center" wrap="wrap">
+        <Flex gap="3" align="center" wrap="wrap" className="as-usage-dashboard__controls">
           {loading && data && <Spinner size="2" aria-label={strings.LOADING} />}
           <SegmentedControl.Root value={String(days)} aria-label={strings.PERIOD_LABEL}
             onValueChange={(value) => setDays(Number(value))}>

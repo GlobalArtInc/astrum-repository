@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { Theme } from '@radix-ui/themes';
-import { DownloadsChart } from '../DownloadsChart';
+import { DownloadsChart, labelStep } from '../DownloadsChart';
 
 jest.mock('recharts', () => {
   const Actual = jest.requireActual('recharts');
@@ -36,5 +36,19 @@ describe('DownloadsChart', () => {
     expect(peak?.textContent).toBe('25');
     expect(container.textContent).toContain('Fri 9');
     expect(container.textContent).toContain('Sun 11');
+  });
+});
+
+describe('labelStep', () => {
+  it('dates every fifth or fifteenth day on wide charts', () => {
+    expect(labelStep(7)).toBe(1);
+    expect(labelStep(30)).toBe(5);
+    expect(labelStep(90)).toBe(15);
+  });
+
+  it('keeps about three dates on phones', () => {
+    expect(labelStep(7, true)).toBe(1);
+    expect(labelStep(30, true)).toBe(10);
+    expect(labelStep(90, true)).toBe(30);
   });
 });

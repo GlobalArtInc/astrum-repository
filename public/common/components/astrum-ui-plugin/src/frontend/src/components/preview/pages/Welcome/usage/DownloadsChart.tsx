@@ -3,6 +3,7 @@ import { Box, Flex, Text } from '@radix-ui/themes';
 import { BarChart3 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Rectangle, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import UIStrings from '../../../../../constants/UIStrings';
+import { useIsPhone } from '../../../../../hooks/useMediaQuery';
 import { formatDay, formatLongDay, formatNumber, formatWeekday, isWeekend } from './usageFormat';
 import type { DownloadsOfDay } from './usageDashboard.types';
 
@@ -39,9 +40,12 @@ export function niceMax(peak: number): number {
  * How many days apart the x-axis labels are: every day of a week, every fifth day of a month, every fifteenth of a
  * quarter; counted back from today so that today is always labelled.
  */
-export function labelStep(days: number): number {
+export function labelStep(days: number, narrow = false): number {
   if (days <= 7) {
     return 1;
+  }
+  if (narrow) {
+    return days <= 31 ? 10 : 30;
   }
   return days <= 31 ? 5 : 15;
 }
@@ -96,9 +100,11 @@ function DayBar({ x = 0, y = 0, width = 0, height = 0, payload }: BarShapeProps)
  */
 export function DownloadsChart({ days }: DownloadsChartProps): JSX.Element {
   const strings = UIStrings.USAGE_DASHBOARD.CHART;
+  // A phone has room for about three dates under the bars, and the last one must not run off the card
+  const isPhone = useIsPhone();
   const { rows, max } = useMemo(() => {
     const peak = days.reduce((best, day, index) => (day.downloads > days[best].downloads ? index : best), 0);
-    const step = labelStep(days.length);
+    const step = labelStep(days.length, isPhone);
     const result: ChartRow[] = days.map((day, index) => ({
       ...day,
       weekend: isWeekend(day.day),
@@ -108,7 +114,7 @@ export function DownloadsChart({ days }: DownloadsChartProps): JSX.Element {
         : '',
     }));
     return { rows: result, max: niceMax(days[peak]?.downloads ?? 0) };
-  }, [days]);
+  }, [days, isPhone]);
 
   const total = days.reduce((sum, day) => sum + day.downloads, 0);
   if (total === 0) {
@@ -125,7 +131,7 @@ export function DownloadsChart({ days }: DownloadsChartProps): JSX.Element {
   return (
     <Box className="as-usage-chart" style={{ height: CHART_HEIGHT }} role="img" aria-label={strings.LABEL}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} margin={{ top: 28, right: 4, bottom: 0, left: 0 }}
+        <BarChart data={rows} margin={{ top: 28, right: isPhone ? 16 : 4, bottom: 0, left: 0 }}
           barCategoryGap={days.length > 60 ? 1 : days.length > 14 ? 3 : 10}>
           <CartesianGrid vertical={false} stroke="var(--gray-a4)" />
           <YAxis
@@ -134,7 +140,7 @@ export function DownloadsChart({ days }: DownloadsChartProps): JSX.Element {
             tickFormatter={(value: number) => formatNumber(value)}
             axisLine={false}
             tickLine={false}
-            width={48}
+            width={isPhone ? 32 : 48}
             tick={{ fill: 'var(--gray-11)', fontSize: 11 }}
             allowDecimals={false}
           />
