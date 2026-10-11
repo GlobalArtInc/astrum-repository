@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Theme } from '@radix-ui/themes';
 import '@testing-library/jest-dom';
 
@@ -203,17 +203,12 @@ describe('GlobalHeaderRadix', () => {
       expect(screen.queryByTestId('search-layer')).not.toBeInTheDocument();
     });
 
-    it('switches to the Classic UI when the drawer asks for it', () => {
+    it('offers no switch to the Classic UI', () => {
       viewport(390);
-      mockStateValues['disableSwitchFeedback'] = true;
 
       renderHeader();
-      act(() => {
-        window.dispatchEvent(new CustomEvent('as-switch-to-classic'));
-      });
 
-      expect(sessionStorage.getItem('user_requested_legacy')).toBe('true');
-      expect(window.location.hash).toBe('#browse/welcome');
+      expect(screen.queryByTestId('ui-toggle-button')).not.toBeInTheDocument();
     });
   });
 });
