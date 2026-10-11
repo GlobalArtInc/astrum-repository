@@ -7,7 +7,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -15,27 +15,19 @@
     animation: fadeIn 0.15s ease;
   }
 
-  background: var(--color-bg-primary, #fff);
+  background: var(--color-panel-solid);
   border-radius: var(--border-radius-lg, 8px);
   padding: 24px;
   max-width: 520px;
   width: calc(100% - 48px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-6);
   animation: slideIn 0.2s ease;
-
-  .dark-mode & {
-    background: var(--color-bg-secondary-dark, #292a2d);
-  }
 
   &__header {
     font-size: var(--font-size-lg, 18px);
     font-weight: var(--font-weight-semibold, 600);
-    color: var(--color-text-primary, #202124);
+    color: var(--gray-12);
     margin: 0 0 16px;
-
-    .dark-mode & {
-      color: var(--color-text-primary-dark, #e8eaed);
-    }
   }
 
   &__content {
@@ -48,11 +40,7 @@
     gap: 12px;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 1px solid var(--color-border, #dadce0);
-
-    .dark-mode & {
-      border-color: var(--color-border-dark, #5f6368);
-    }
+    border-top: 1px solid var(--color-border);
   }
 
   @keyframes fadeIn {

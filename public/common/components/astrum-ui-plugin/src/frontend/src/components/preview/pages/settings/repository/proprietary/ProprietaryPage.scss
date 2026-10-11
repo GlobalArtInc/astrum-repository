@@ -5,11 +5,7 @@
   flex-direction: column;
   height: 100%;
   padding: var(--space-6, 24px);
-  background: var(--color-background, #fff);
-
-  [data-theme='dark'] & {
-    background: var(--gray-1, #111113);
-  }
+  background: var(--color-background);
 
   &__alerts {
     margin-top: var(--space-4, 16px);
@@ -26,32 +22,24 @@
   &__actions {
     margin-top: var(--space-6, 24px);
     padding-top: var(--space-4, 16px);
-    border-top: 1px solid var(--gray-4, #ebebef);
+    border-top: 1px solid var(--gray-4);
 
     [data-theme='dark'] & {
-      border-top-color: var(--gray-4, #27272b);
+      border-top-color: var(--gray-4);
     }
   }
 
   &__read-only {
     padding: var(--space-4, 16px);
-    background: var(--gray-2, #f9f9fb);
+    background: var(--gray-2);
     border-radius: var(--radius-2, 6px);
-
-    [data-theme='dark'] & {
-      background: var(--gray-2, #19191b);
-    }
   }
 
   &__read-only-label {
     display: block;
     font-weight: 500;
     margin-bottom: var(--space-3, 12px);
-    color: var(--color-text-primary, #1a1a1a);
-
-    [data-theme='dark'] & {
-      color: var(--gray-12, #edeef0);
-    }
+    color: var(--gray-12);
   }
 
   &__read-only-list {
@@ -62,22 +50,13 @@
 
   &__read-only-item {
     padding: var(--space-1, 4px) var(--space-2, 8px);
-    background: var(--gray-4, #ebebef);
+    background: var(--gray-4);
     border-radius: var(--radius-1, 4px);
-    color: var(--color-text-primary, #1a1a1a);
-
-    [data-theme='dark'] & {
-      background: var(--gray-4, #27272b);
-      color: var(--gray-12, #edeef0);
-    }
+    color: var(--gray-12);
   }
 
   &__read-only-empty {
-    color: var(--gray-11, #6f6f78);
+    color: var(--gray-11);
     font-style: italic;
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
   }
 }

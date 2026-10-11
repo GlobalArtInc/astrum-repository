@@ -7,11 +7,7 @@
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  background: var(--color-background, #fff);
-
-  [data-theme='dark'] & {
-    background: var(--gray-1, #111113);
-  }
+  background: var(--color-background);
 
   &__alerts {
     margin-bottom: var(--space-4);

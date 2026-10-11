@@ -4,16 +4,12 @@
   &__link {
     display: inline-block;
     margin-left: 8px;
-    color: var(--color-primary, #1a73e8);
+    color: var(--color-primary);
     text-decoration: none;
     font-weight: var(--font-weight-medium, 500);
 
     &:hover {
       text-decoration: underline;
-    }
-
-    .dark-mode & {
-      color: var(--color-primary-dark, #8ab4f8);
     }
   }
 
@@ -22,13 +18,9 @@
     gap: 16px;
     align-items: flex-start;
     padding: 16px;
-    background: var(--color-bg-secondary, #f8f9fa);
+    background: var(--gray-a2);
     border-radius: var(--border-radius-md, 6px);
     margin-bottom: 16px;
-
-    .dark-mode & {
-      background: var(--color-bg-tertiary-dark, #35363a);
-    }
   }
 
   &__failover-fields {

@@ -11,7 +11,7 @@
   }
 
   &__field-row {
-    border-bottom: 1px solid var(--gray-a4, #e5e7eb);
+    border-bottom: 1px solid var(--gray-a4);
 
     &--last {
       border-bottom: none;
@@ -21,15 +21,15 @@
   &__error {
     padding: 8px 12px;
     border-radius: 6px;
-    background: var(--red-a3, #fee2e2);
-    color: var(--red-11, #991b1b);
+    background: var(--red-a3);
+    color: var(--red-11);
   }
 
   &__success {
     padding: 8px 12px;
     border-radius: 6px;
-    background: var(--green-a3, #dcfce7);
-    color: var(--green-11, #166534);
+    background: var(--green-a3);
+    color: var(--green-11);
   }
 
   &__inline-link,

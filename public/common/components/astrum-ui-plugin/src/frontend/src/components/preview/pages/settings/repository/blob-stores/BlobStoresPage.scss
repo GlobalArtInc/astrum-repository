@@ -45,7 +45,7 @@
     color: var(--gray-11);
 
     &--s3 {
-      color: var(--orange-9);
+      color: var(--orange-11);
     }
 
     &--azure {
@@ -53,7 +53,7 @@
     }
 
     &--google {
-      color: var(--red-9);
+      color: var(--red-11);
     }
 
     &--group {
@@ -75,7 +75,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;

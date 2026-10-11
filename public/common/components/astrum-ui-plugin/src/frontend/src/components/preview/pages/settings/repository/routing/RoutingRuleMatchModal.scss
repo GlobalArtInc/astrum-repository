@@ -13,11 +13,7 @@
     margin: 0;
 
     &:hover {
-      color: var(--gray-12, #1a1a1a);
-
-      [data-theme='dark'] & {
-        color: var(--gray-12, #edeef0);
-      }
+      color: var(--gray-12);
     }
   }
 
@@ -36,22 +32,18 @@
   }
 
   &__section--path {
-    background: var(--gray-2, #f9f9fb);
+    background: var(--gray-2);
     padding: var(--space-3, 12px);
     border-radius: var(--radius-2, 6px);
-
-    [data-theme='dark'] & {
-      background: var(--gray-2, #19191b);
-    }
   }
 
   &__section--matchers {
-    background: var(--blue-1, #eff8ff);
+    background: var(--blue-1);
     padding: var(--space-3, 12px);
     border-radius: var(--radius-2, 6px);
 
     [data-theme='dark'] & {
-      background: var(--blue-3, #1a3554);
+      background: var(--blue-3);
     }
   }
 
@@ -61,11 +53,7 @@
 
   &__label {
     margin-bottom: var(--space-1, 4px);
-    color: var(--gray-11, #6f6f78);
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
+    color: var(--gray-11);
   }
 
   &__mode {
@@ -81,17 +69,17 @@
     align-items: center;
 
     &--allow {
-      color: var(--green-9, #30a46c);
+      color: var(--green-11);
     }
 
     &--block {
-      color: var(--red-9, #e5484d);
+      color: var(--red-11);
     }
   }
 
   &__path {
     font-family: var(--font-family-mono);
-    color: var(--color-text-primary, #1a1a1a);
+    color: var(--gray-12);
     word-break: break-all;
   }
 
@@ -116,14 +104,10 @@
 
   &__matcher {
     font-family: var(--font-family-mono);
-    background: var(--gray-3, #f1f1f3);
+    background: var(--gray-3);
     padding: 2px var(--space-2, 8px);
     border-radius: var(--radius-1, 4px);
-    color: var(--color-text-primary, #1a1a1a);
-
-    [data-theme='dark'] & {
-      background: var(--gray-3, #222225);
-    }
+    color: var(--gray-12);
   }
 
   &__id {
@@ -137,7 +121,7 @@
   }
 
   &__close-button {
-    background: var(--gray-6, #e4e4e7);
+    background: var(--gray-6);
     border: none;
     padding: var(--space-2, 8px) var(--space-4, 16px);
     border-radius: var(--radius-2, 6px);
@@ -146,14 +130,14 @@
     cursor: pointer;
 
     &:hover {
-      background: var(--gray-7, #d0d0d4);
+      background: var(--gray-7);
     }
 
     [data-theme='dark'] & {
-      background: var(--gray-6, #3d3d43);
+      background: var(--gray-6);
 
       &:hover {
-        background: var(--gray-5, #4a4a50);
+        background: var(--gray-5);
       }
     }
   }

@@ -7,26 +7,17 @@
     align-items: center;
     justify-content: center;
     padding: 80px 24px;
-    color: var(--color-text-secondary, #5f6368);
-
-    .dark-mode & {
-      color: var(--color-text-secondary-dark, #9aa0a6);
-    }
+    color: var(--color-text-secondary);
   }
 
   &__spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid var(--color-border, #dadce0);
-    border-top-color: var(--color-primary, #1a73e8);
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
     margin-bottom: 16px;
-
-    .dark-mode & {
-      border-color: var(--color-border-dark, #5f6368);
-      border-top-color: var(--color-primary, #8ab4f8);
-    }
   }
 
   @keyframes spin {
@@ -42,7 +33,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -51,38 +42,26 @@
   }
 
   &__modal {
-    background: var(--color-bg-primary, #fff);
+    background: var(--color-panel-solid);
     border-radius: var(--border-radius-lg, 8px);
     padding: 24px;
     max-width: 480px;
     width: calc(100% - 48px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-6);
     animation: slideIn 0.2s ease;
-
-    .dark-mode & {
-      background: var(--color-bg-secondary-dark, #292a2d);
-    }
 
     h3 {
       font-size: var(--font-size-lg, 18px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--color-text-primary, #202124);
+      color: var(--gray-12);
       margin: 0 0 12px;
-
-      .dark-mode & {
-        color: var(--color-text-primary-dark, #e8eaed);
-      }
     }
 
     p {
       font-size: var(--font-size-sm, 14px);
-      color: var(--color-text-secondary, #5f6368);
+      color: var(--color-text-secondary);
       margin: 0 0 24px;
       line-height: 1.6;
-
-      .dark-mode & {
-        color: var(--color-text-secondary-dark, #9aa0a6);
-      }
     }
   }
 

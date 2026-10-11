@@ -14,7 +14,7 @@
     display: block;
     max-width: 100%;
     max-height: 100%;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    filter: drop-shadow(0 1px 2px var(--black-a2));
   }
 
   &__fallback {
@@ -41,7 +41,7 @@
       color: var(--blue-9);
     }
     &--hosted {
-      color: var(--green-9);
+      color: var(--green-11);
     }
     &--group {
       color: var(--purple-9);

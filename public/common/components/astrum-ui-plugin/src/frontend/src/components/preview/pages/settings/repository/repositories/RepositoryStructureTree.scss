@@ -35,7 +35,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-2);
     margin-bottom: var(--space-3);
   }
 
@@ -146,7 +146,7 @@
       color: var(--blue-9) !important;
     }
     &--hosted {
-      color: var(--green-9) !important;
+      color: var(--green-11) !important;
     }
     &--proxy {
       color: var(--purple-9) !important;

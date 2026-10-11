@@ -114,7 +114,7 @@
 
   &__copy-icon {
     &--success {
-      color: var(--green-9);
+      color: var(--green-11);
     }
   }
 
@@ -208,12 +208,12 @@
       }
 
       &:focus {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--focus-8);
         outline-offset: -2px;
       }
 
       &:focus-visible {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--focus-8);
         outline-offset: -2px;
       }
     }
