@@ -23,16 +23,6 @@
     animation: spin 1s linear infinite;
   }
 
-  &__header {
-    padding-bottom: var(--space-4);
-    border-bottom: 1px solid var(--gray-6);
-  }
-
-  &__type-icon {
-    color: var(--gray-10);
-    flex-shrink: 0;
-  }
-
   &__warning {
     margin-bottom: var(--space-4);
   }

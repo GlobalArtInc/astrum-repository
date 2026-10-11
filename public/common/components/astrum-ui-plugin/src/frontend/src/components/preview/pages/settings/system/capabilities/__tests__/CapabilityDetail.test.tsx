@@ -84,16 +84,50 @@ describe('CapabilityDetail', () => {
       />
     );
 
-    // Wait for the capability name to appear in the header
-    await waitFor(() => {
-      const headings = screen.getAllByText('Outreach: Management');
-      expect(headings.length).toBeGreaterThan(0);
-    });
-
-    // Check for state badge
+    // The page header names the capability once and shows its state in one badge
+    expect(screen.getByRole('heading', { name: 'Outreach: Management' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: 'Outreach: Management' })).toHaveLength(1);
     expect(screen.getByTestId('capability-state-badge')).toHaveTextContent('Active');
-    // Check for enabled badge
-    expect(screen.getByTestId('capability-enabled-badge')).toHaveTextContent('Enabled');
+    expect(screen.queryByTestId('capability-enabled-badge')).not.toBeInTheDocument();
+
+    // The description is shown once, in the summary
+    await waitFor(() => {
+      expect(screen.getAllByText('Enables outreach features')).toHaveLength(1);
+    });
+  });
+
+  it('shows the state of a disabled capability in the header badge', () => {
+    renderWithTheme(
+      <CapabilityDetail
+        capability={{ ...baseCapability, enabled: false, active: false, state: 'disabled' }}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+        onEnable={mockOnEnable}
+        onDisable={mockOnDisable}
+        onBack={mockOnBack}
+      />
+    );
+
+    expect(screen.getByTestId('capability-state-badge')).toHaveTextContent('Disabled');
+  });
+
+  it('renders the breadcrumbs it is given in the page header', () => {
+    const onCapabilities = jest.fn();
+    renderWithTheme(
+      <CapabilityDetail
+        capability={baseCapability}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+        onEnable={mockOnEnable}
+        onDisable={mockOnDisable}
+        onBack={mockOnBack}
+        breadcrumbs={[{ label: 'Capabilities', onClick: onCapabilities }, { label: 'Outreach: Management' }]}
+      />
+    );
+
+    screen.getByRole('button', { name: 'Capabilities' }).click();
+    expect(onCapabilities).toHaveBeenCalled();
+    expect(document.querySelector('[aria-current="page"]')?.textContent).toBe('Outreach: Management');
   });
 
   it('displays notes section', () => {

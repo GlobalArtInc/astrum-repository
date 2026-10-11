@@ -40,6 +40,7 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
     loading,
     setError,
     fetchCapabilities,
+    fetchCapability,
     fetchCapabilityTypes,
     createCapability,
     updateCapability,
@@ -208,6 +209,14 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
     }
   }, [selectedCapability, deleteCapability, handleBack, toast.error, toast.success]);
 
+  // The server decides the resulting state (an enabled capability can stay passive or fail), so
+  // replace the optimistic state with the capability as the server reports it
+  const reloadSelectedCapability = useCallback((id: string) => {
+    fetchCapability(id)
+      .then((fresh) => setSelectedCapability((prev) => (prev && prev.id === id ? fresh : prev)))
+      .catch(() => undefined);
+  }, [fetchCapability]);
+
   const handleEnable = useCallback(async () => {
     if (!selectedCapability) return;
 
@@ -216,11 +225,12 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
       toast.success(CapabilitiesStrings.PAGE.CAPABILITY_ENABLED(selectedCapability.typeName));
       setRefreshKey((k) => k + 1);
       setSelectedCapability((prev) => prev ? { ...prev, enabled: true, state: 'active' } : null);
+      reloadSelectedCapability(selectedCapability.id);
     } catch (err) {
       const message = err instanceof Error ? err.message : CapabilitiesStrings.PAGE.FAILED_ENABLE_CAPABILITY;
       toast.error(message);
     }
-  }, [selectedCapability, enableCapability, toast.error, toast.success]);
+  }, [selectedCapability, enableCapability, reloadSelectedCapability, toast.error, toast.success]);
 
   const handleDisable = useCallback(async () => {
     if (!selectedCapability) return;
@@ -231,16 +241,23 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
       setRefreshKey((k) => k + 1);
       // Refresh detail view
       setSelectedCapability((prev) => prev ? { ...prev, enabled: false, state: 'disabled' } : null);
+      reloadSelectedCapability(selectedCapability.id);
     } catch (err) {
       const message = err instanceof Error ? err.message : CapabilitiesStrings.PAGE.FAILED_DISABLE_CAPABILITY;
       toast.error(message);
     }
-  }, [selectedCapability, disableCapability, toast.error, toast.success]);
+  }, [selectedCapability, disableCapability, reloadSelectedCapability, toast.error, toast.success]);
 
   // Navigation helper for Settings breadcrumb
   const navigateToSettings = () => {
     window.location.hash = '#preview/admin/settings';
   };
+
+  const detailBreadcrumbs = [
+    { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+    { label: CapabilitiesStrings.PAGE.CAPABILITIES, onClick: handleBack },
+    { label: selectedCapability?.typeName || CapabilitiesStrings.PAGE.CAPABILITY },
+  ];
 
   // Render header based on view mode
   const renderHeader = () => {
@@ -279,18 +296,16 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
       );
     }
 
-    // Detail view
-    const breadcrumbs = [
-      { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
-      { label: CapabilitiesStrings.PAGE.CAPABILITIES, onClick: handleBack },
-      { label: selectedCapability?.typeName || CapabilitiesStrings.PAGE.CAPABILITY },
-    ];
+    // Detail view: once the capability is loaded, CapabilityDetail renders the header with its
+    // name, state and actions
+    if (selectedCapability) {
+      return null;
+    }
 
     return (
       <PageHeader
-        title={selectedCapability?.typeName || CapabilitiesStrings.PAGE.CAPABILITY}
-        description={selectedCapability?.description || CapabilitiesStrings.PAGE.VIEW_MANAGE_CAPABILITY_SETTINGS}
-        breadcrumbs={breadcrumbs}
+        title={CapabilitiesStrings.PAGE.CAPABILITY}
+        breadcrumbs={detailBreadcrumbs}
         className="capabilities-page__header"
       />
     );
@@ -374,6 +389,7 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
             onEnable={handleEnable}
             onDisable={handleDisable}
             onBack={handleBack}
+            breadcrumbs={detailBreadcrumbs}
             loading={loading}
           />
         )}

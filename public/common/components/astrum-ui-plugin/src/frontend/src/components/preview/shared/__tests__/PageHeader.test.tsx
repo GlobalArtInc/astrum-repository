@@ -61,6 +61,14 @@ describe('PageHeader', () => {
     expect(screen.queryByTestId('page-header-meta')).not.toBeInTheDocument();
   });
 
+  it('renders a node after the title, outside the heading', () => {
+    renderWithTheme(<PageHeader title="Audit" titleSuffix={<span data-testid="state">Active</span>} />);
+
+    expect(screen.getByRole('heading', { name: 'Audit' })).toBeInTheDocument();
+    expect(screen.getByTestId('state')).toHaveTextContent('Active');
+    expect(screen.getByRole('heading', { name: 'Audit' })).not.toContainElement(screen.getByTestId('state'));
+  });
+
   it('renders action buttons', () => {
     renderWithTheme(
       <PageHeader

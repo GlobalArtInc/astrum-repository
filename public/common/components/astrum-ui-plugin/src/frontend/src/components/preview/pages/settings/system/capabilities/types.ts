@@ -1,4 +1,4 @@
-
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
 
 /**
  * Capability state enum
@@ -118,11 +118,32 @@ export function getStateColor(state: CapabilityState): string {
   }
 }
 
+const STATE_NAMES: Record<CapabilityState, string> = {
+  active: CapabilitiesStrings.LIST.ACTIVE,
+  disabled: CapabilitiesStrings.LIST.DISABLED,
+  error: CapabilitiesStrings.LIST.ERROR,
+  passive: CapabilitiesStrings.LIST.PASSIVE,
+};
+
+const STATE_BADGE_COLORS: Record<CapabilityState, 'green' | 'gray' | 'red' | 'orange'> = {
+  active: 'green',
+  disabled: 'gray',
+  error: 'red',
+  passive: 'orange',
+};
+
 /**
  * Helper function to get a displayable state name
  */
 export function getStateName(state: CapabilityState): string {
-  return state.charAt(0).toUpperCase() + state.slice(1);
+  return STATE_NAMES[state] ?? state.charAt(0).toUpperCase() + state.slice(1);
+}
+
+/**
+ * Helper function to get the colour of the state badge
+ */
+export function getStateBadgeColor(state: CapabilityState): 'green' | 'gray' | 'red' | 'orange' {
+  return STATE_BADGE_COLORS[state] ?? 'gray';
 }
 
 /**

@@ -26,6 +26,8 @@ export interface PageHeaderProps {
    * the title. Matches the Repositories list header pattern.
    */
   count?: string | number;
+  /** Optional node rendered inline after the title, vertically centred on it (e.g. a status badge) */
+  titleSuffix?: React.ReactNode;
   /** Optional description text */
   description?: string;
   /** Optional node rendered inline immediately after the description text (e.g. a URL chip) */
@@ -79,6 +81,7 @@ export function PageHeader({
   title,
   headingAs = 'h1',
   count,
+  titleSuffix,
   description,
   descriptionSuffix,
   meta,
@@ -138,7 +141,7 @@ export function PageHeader({
           <Flex direction="column" gap="1" minWidth="0">
             {title && (
               // Title + optional inline count, baseline-aligned (see Repositories header).
-              <Flex align="baseline" gap="2">
+              <Flex align="baseline" gap="2" wrap={titleSuffix ? 'wrap' : undefined}>
                 <Heading as={headingAs} size="6" weight="bold">
                   {title}
                 </Heading>
@@ -146,6 +149,11 @@ export function PageHeader({
                   <Text size="2" color="gray">
                     {count}
                   </Text>
+                )}
+                {titleSuffix && (
+                  <Flex align="center" gap="2" style={{ alignSelf: 'center', flexShrink: 0 }}>
+                    {titleSuffix}
+                  </Flex>
                 )}
               </Flex>
             )}

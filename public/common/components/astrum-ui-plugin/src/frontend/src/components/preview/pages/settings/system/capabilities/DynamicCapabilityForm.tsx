@@ -514,21 +514,23 @@ export function DynamicCapabilityForm({
 
   const formContent = (
     <>
-      {/* Capability Type Info */}
-      <SettingsFormSection title={CapabilitiesStrings.FORM.CAPABILITY_TYPE}>
-        <Box className="dynamic-capability-form__type-info">
-          <Text weight="medium">{capabilityType.name}</Text>
-          {capabilityType.about && (
-            <ScrollArea scrollbars="vertical" style={{ maxHeight: '150px' }}>
-              <Text
-                size="2"
-                className="dynamic-capability-form__about"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(capabilityType.about) }}
-              />
-            </ScrollArea>
-          )}
-        </Box>
-      </SettingsFormSection>
+      {/* Capability Type Info: when editing, the page header names the type and the About tab describes it */}
+      {isCreate && (
+        <SettingsFormSection title={CapabilitiesStrings.FORM.CAPABILITY_TYPE}>
+          <Box className="dynamic-capability-form__type-info">
+            <Text weight="medium">{capabilityType.name}</Text>
+            {capabilityType.about && (
+              <ScrollArea scrollbars="vertical" style={{ maxHeight: '150px' }}>
+                <Text
+                  size="2"
+                  className="dynamic-capability-form__about"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(capabilityType.about) }}
+                />
+              </ScrollArea>
+            )}
+          </Box>
+        </SettingsFormSection>
+      )}
 
       {/* Settings Section */}
       <SettingsFormSection title={CommonStrings.LABELS.SETTINGS}>

@@ -209,6 +209,21 @@ describe('DynamicCapabilityForm', () => {
       expect(screen.getByText('A simple test capability')).toBeInTheDocument();
     });
 
+    it('leaves the capability type info to the detail page in edit mode', () => {
+      renderWithTheme(
+        <DynamicCapabilityForm
+          capabilityType={simpleCapabilityType}
+          capability={existingCapability}
+          isCreate={false}
+          onSave={mockOnSave}
+          onCancel={mockOnCancel}
+        />
+      );
+
+      expect(screen.queryByText('Capability Type')).not.toBeInTheDocument();
+      expect(screen.queryByText('A simple test capability')).not.toBeInTheDocument();
+    });
+
     it('renders Create button in create mode', () => {
       renderWithTheme(
         <DynamicCapabilityForm

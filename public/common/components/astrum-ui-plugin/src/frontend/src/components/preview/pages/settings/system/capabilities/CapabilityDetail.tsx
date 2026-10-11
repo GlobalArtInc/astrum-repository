@@ -1,12 +1,9 @@
 
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Flex, Text, Badge, Tabs, Spinner, Heading } from '@radix-ui/themes';
+import { Box, Flex, Text, Badge, Tabs, Spinner } from '@radix-ui/themes';
 import {
   AlertCircle,
-  CheckCircle,
-  XCircle,
-  Circle,
   Power,
   PowerOff,
   Trash2,
@@ -15,17 +12,16 @@ import {
   FileText,
   Edit3,
 } from 'lucide-react';
-import { TYPE_ICONS, DEFAULT_TYPE_ICON } from './capabilityConstants';
 import DOMPurify from 'dompurify';
 import { SettingsButton, SettingsAlert, SettingsFormSection, } from '../../../../shared/form';
-import { ConfirmDialog } from '../../../../shared';
+import { ConfirmDialog, PageHeader, type BreadcrumbItem } from '../../../../shared';
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
 import {
   Capability,
   CapabilityType,
   CapabilityFormData,
-  getStateColor,
+  getStateBadgeColor,
   getStateName,
 } from './types';
 import { DynamicCapabilityForm } from './DynamicCapabilityForm';
@@ -35,29 +31,6 @@ import './CapabilityDetail.scss';
 import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
 
-function TypeIcon({ typeId, size = 18 }: { typeId: string; size?: number }) {
-  const Icon = TYPE_ICONS[typeId] || DEFAULT_TYPE_ICON;
-  return <Icon size={size} className="capability-detail__type-icon" />;
-}
-
-function StateIcon({ state }: { state: string }) {
-  const color = getStateColor(state as 'active' | 'disabled' | 'error' | 'passive');
-  const iconProps = { size: 18, style: { color } };
-
-  switch (state) {
-    case 'active':
-      return <CheckCircle {...iconProps} />;
-    case 'disabled':
-      return <Circle {...iconProps} />;
-    case 'error':
-      return <XCircle {...iconProps} />;
-    case 'passive':
-      return <AlertCircle {...iconProps} />;
-    default:
-      return <Circle {...iconProps} />;
-  }
-}
-
 interface CapabilityDetailProps {
   capability: Capability;
   onSave: (data: CapabilityFormData) => Promise<void>;
@@ -65,6 +38,8 @@ interface CapabilityDetailProps {
   onEnable: () => void;
   onDisable: () => void;
   onBack: () => void;
+  /** Breadcrumbs of the page header, which this view renders with the capability's name, state and actions */
+  breadcrumbs?: BreadcrumbItem[];
   loading?: boolean;
   error?: string;
 }
@@ -76,6 +51,7 @@ export function CapabilityDetail({
   onEnable,
   onDisable,
   onBack,
+  breadcrumbs,
   loading = false,
   error,
 }: CapabilityDetailProps) {
@@ -158,87 +134,65 @@ export function CapabilityDetail({
     setIsEnabled(enabled);
   }, []);
 
+  const actions = (
+    <>
+      {canUpdate && !isEnabled && (
+        <SettingsButton
+          variant="secondary"
+          onClick={handleEnable}
+          disabled={loading}
+          icon={Power}
+          data-analytics-id="as-capability-toggle-enable"
+        >
+          {CapabilitiesStrings.DETAIL.ENABLE}
+        </SettingsButton>
+      )}
+      {canUpdate && isEnabled && (
+        <SettingsButton
+          variant="secondary"
+          onClick={handleDisable}
+          disabled={loading}
+          icon={PowerOff}
+          data-analytics-id="as-capability-toggle-disable"
+        >
+          {CapabilitiesStrings.DETAIL.DISABLE}
+        </SettingsButton>
+      )}
+      {!capability.isSystem && (
+        <SettingsButton
+          variant="danger"
+          onClick={handleDelete}
+          disabled={!canDelete || loading}
+          icon={Trash2}
+          testId="capability-delete-button"
+          data-analytics-id="as-capability-delete"
+        >
+          {CommonStrings.ACTIONS.DELETE}
+        </SettingsButton>
+      )}
+    </>
+  );
+
   return (
     <Box className="capability-detail" data-testid="capability-detail">
+      <PageHeader
+        title={capability.typeName}
+        titleSuffix={
+          <Badge color={getStateBadgeColor(capability.state)} variant="soft" data-testid="capability-state-badge">
+            {getStateName(capability.state)}
+          </Badge>
+        }
+        breadcrumbs={breadcrumbs}
+        actions={actions}
+        className="capability-detail__page-header"
+      />
+
       {/* Error display at top level */}
       {error && (
         <Box className="capability-detail__error-banner">
           <SettingsAlert type="error">{error}</SettingsAlert>
         </Box>
       )}
-
-      {/* Capability Header */}
-      <Box className="capability-detail__header">
-        <Flex justify="between" align="start">
-          <Flex align="center" gap="3">
-            <TypeIcon typeId={capability.typeId} />
-            <Box>
-              <Heading size="5" weight="bold">{capability.typeName}</Heading>
-              {capability.description && (
-                <Text size="2" color="gray">{capability.description}</Text>
-              )}
-            </Box>
-          </Flex>
-          <Flex gap="2" align="center">
-            <Badge
-              color={
-                capability.state === 'active' ? 'green'
-                  : capability.state === 'error' ? 'red'
-                  : capability.state === 'passive' ? 'orange'
-                  : 'gray'
-              }
-              variant="soft"
-              data-testid="capability-state-badge"
-            >
-              {getStateName(capability.state as 'active' | 'disabled' | 'error' | 'passive')}
-            </Badge>
-            <Badge
-              color={isEnabled ? 'green' : 'gray'}
-              variant="outline"
-              data-testid="capability-enabled-badge"
-            >
-              {isEnabled ? CapabilitiesStrings.DETAIL.ENABLED : CapabilitiesStrings.DETAIL.DISABLED}
-            </Badge>
-          </Flex>
-        </Flex>
-        {/* Action buttons in header */}
-        <Flex justify="end" gap="2" mt="4">
-          {canUpdate && !isEnabled && (
-            <SettingsButton
-              variant="secondary"
-              onClick={handleEnable}
-              disabled={loading}
-              icon={Power}
-              data-analytics-id="as-capability-toggle-enable"
-            >
-              {CapabilitiesStrings.DETAIL.ENABLE}
-            </SettingsButton>
-          )}
-          {canUpdate && isEnabled && (
-            <SettingsButton
-              variant="secondary"
-              onClick={handleDisable}
-              disabled={loading}
-              icon={PowerOff}
-              data-analytics-id="as-capability-toggle-disable"
-            >
-              {CapabilitiesStrings.DETAIL.DISABLE}
-            </SettingsButton>
-          )}
-          {!capability.isSystem && (
-            <SettingsButton
-              variant="danger"
-              onClick={handleDelete}
-              disabled={!canDelete || loading}
-              icon={Trash2}
-              testId="capability-delete-button"
-              data-analytics-id="as-capability-delete"
-            >
-              {CommonStrings.ACTIONS.DELETE}
-            </SettingsButton>
-          )}
-        </Flex>
-      </Box>
 
       {/* Tabs */}
       <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="capability-detail__tabs">
@@ -266,16 +220,6 @@ export function CapabilityDetail({
           <Tabs.Content value="summary">
 
             <Box className="capability-detail__summary-grid">
-              <SummaryItem
-                icon={<StateIcon state={capability.state} />}
-                label={CapabilitiesStrings.DETAIL.STATE}
-                value={getStateName(capability.state as 'active' | 'disabled' | 'error' | 'passive')}
-              />
-              <SummaryItem
-                icon={<TypeIcon typeId={capability.typeId} size={16} />}
-                label={CommonStrings.LABELS.TYPE}
-                value={capability.typeName}
-              />
               <SummaryItem
                 icon={<FileText size={16} />}
                 label={CommonStrings.LABELS.DESCRIPTION}

@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { Theme } from '@radix-ui/themes';
 import { ToastProvider } from '../../../../../shared';
 
@@ -130,15 +130,20 @@ jest.mock('../CapabilityDetail', () => ({
     onBack,
     onEnable,
     onDisable,
+    breadcrumbs,
   }: {
     onEdit: () => void;
     onDelete: () => void;
     onBack: () => void;
     onEnable: () => void;
     onDisable: () => void;
+    breadcrumbs?: { label: string; onClick?: () => void }[];
   }) {
+    // The real detail view renders the page header with these breadcrumbs
+    const { PageHeader } = jest.requireActual('../../../../../shared/PageHeader');
     return (
       <div data-testid="capability-detail">
+        <PageHeader breadcrumbs={breadcrumbs} />
         <button onClick={onEdit}>Edit</button>
         <button onClick={onDelete}>Delete</button>
         <button onClick={onBack}>Back</button>
@@ -549,6 +554,9 @@ describe('CapabilitiesPage', () => {
       await waitFor(() => {
         expect(document.querySelector('[aria-current="page"]')?.textContent).toBe('Outreach: Management');
       });
+      // Once loaded, the detail view renders the only page header
+      expect(screen.getAllByTestId('page-header')).toHaveLength(1);
+      expect(within(screen.getByTestId('capability-detail')).getByTestId('page-header')).toBeInTheDocument();
     });
   });
 });
