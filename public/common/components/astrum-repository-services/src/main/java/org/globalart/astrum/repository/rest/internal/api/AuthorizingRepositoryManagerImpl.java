@@ -1,7 +1,10 @@
 
 package org.globalart.astrum.repository.rest.internal.api;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +43,12 @@ import org.springframework.stereotype.Component;
 public class AuthorizingRepositoryManagerImpl
     implements AuthorizingRepositoryManager
 {
+  static final String TERRAFORM_SIGNING = "terraformSigning";
+
+  static final String KEYPAIR = "keypair";
+
+  static final String PASSPHRASE = "passphrase";
+
   private final RepositoryManager repositoryManager;
 
   private final RepositoryPermissionChecker repositoryPermissionChecker;
@@ -74,11 +83,38 @@ public class AuthorizingRepositoryManagerImpl
       Configuration updatedConfig = repository.getConfiguration().copy();
       updatedConfig.setRoutingRuleId(configuration.getRoutingRuleId());
       updatedConfig.setOnline(configuration.isOnline());
-      updatedConfig.setAttributes(configuration.getAttributes());
+      updatedConfig.setAttributes(
+          keepWriteOnlySecrets(repository.getConfiguration().getAttributes(), configuration.getAttributes()));
       repositoryManager.update(updatedConfig);
       return true;
     }
     return false;
+  }
+
+  /**
+   * The Terraform signing passphrase is write-only in the UI: it is never sent back to the browser, so
+   * an update without one keeps the saved passphrase as long as the signing key stays the same. A new
+   * key or an explicit passphrase replaces it.
+   */
+  static Map<String, Map<String, Object>> keepWriteOnlySecrets(
+      final Map<String, Map<String, Object>> saved,
+      final Map<String, Map<String, Object>> requested)
+  {
+    Map<String, Object> savedSigning = saved == null ? null : saved.get(TERRAFORM_SIGNING);
+    Map<String, Object> requestedSigning = requested == null ? null : requested.get(TERRAFORM_SIGNING);
+    if (savedSigning == null || requestedSigning == null || savedSigning.get(PASSPHRASE) == null) {
+      return requested;
+    }
+    Object passphrase = requestedSigning.get(PASSPHRASE);
+    if ((passphrase != null && !passphrase.toString().isEmpty())
+        || !Objects.equals(savedSigning.get(KEYPAIR), requestedSigning.get(KEYPAIR))) {
+      return requested;
+    }
+    Map<String, Object> signing = new HashMap<>(requestedSigning);
+    signing.put(PASSPHRASE, savedSigning.get(PASSPHRASE));
+    Map<String, Map<String, Object>> attributes = new HashMap<>(requested);
+    attributes.put(TERRAFORM_SIGNING, signing);
+    return attributes;
   }
 
   public boolean delete(@Nonnull final String name) throws Exception {
