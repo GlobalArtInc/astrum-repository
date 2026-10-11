@@ -1,21 +1,6 @@
 
 
 .user-profile-page {
-  &__hero {
-    padding: var(--space-4);
-    margin-bottom: var(--space-4);
-  }
-
-  &__hero-icon {
-    color: var(--gray-11);
-    flex-shrink: 0;
-  }
-
-  &__hero-content {
-    flex: 1;
-    min-width: 0;
-  }
-
   &__breadcrumbs {
     margin-bottom: var(--space-2);
   }
@@ -60,15 +45,8 @@
     flex-shrink: 0;
   }
 
-  &__title-row {
-    margin-bottom: 0;
-  }
-
-  &__title {
-    color: var(--gray-12);
-  }
-
   &__tabs-list {
+    margin-top: var(--space-4);
     margin-bottom: var(--space-2);
     border-bottom: 1px solid var(--gray-5);
   }

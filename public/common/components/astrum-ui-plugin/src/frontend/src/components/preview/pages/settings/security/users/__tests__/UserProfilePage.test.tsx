@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { Theme } from '@radix-ui/themes';
 import '@testing-library/jest-dom';
 
@@ -88,6 +88,20 @@ describe('UserProfilePage', () => {
     expect(screen.getByText('Deploy')).toBeInTheDocument();
     expect(screen.getByText('User')).toBeInTheDocument();
     expect(screen.getByText('deploy@example.com')).toBeInTheDocument();
+  });
+
+  it('names the user once and shows status and source as chips of the page header', async () => {
+    render(
+      <Theme>
+        <UserProfilePage {...defaultProps} />
+      </Theme>
+    );
+
+    expect(await screen.findByRole('heading', { name: 'deployer', level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'deployer', level: 2 })).not.toBeInTheDocument();
+    const meta = screen.getByTestId('page-header-meta');
+    expect(within(meta).getByText('Active')).toBeInTheDocument();
+    expect(within(meta).getByText('Local')).toBeInTheDocument();
   });
 
   it('shows Overview, Roles, Privileges, Security Tree tabs', async () => {

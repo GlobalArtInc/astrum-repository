@@ -1,10 +1,9 @@
 
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Flex, Text, Tabs, Badge, Card, Heading } from '@radix-ui/themes';
+import { Box, Flex, Text, Tabs, Badge, Card } from '@radix-ui/themes';
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import {
-  User as UserIcon,
   Shield,
   Key,
   Info,
@@ -318,29 +317,19 @@ export function UserProfilePage({
             )}
           </Flex>
         ) : undefined}
+        meta={
+          <>
+            <StatusBadge
+              status={isActive ? 'online' : 'offline'}
+              size="small"
+              label={statusLabel}
+            />
+            <Badge color="blue" variant="soft">
+              {sourceLabel}
+            </Badge>
+          </>
+        }
       />
-      <Card className="user-profile-page__hero">
-        <Flex gap="4" align="center">
-          <Box className="user-profile-page__hero-icon">
-            <UserIcon size={40} aria-hidden="true" />
-          </Box>
-          <Box className="user-profile-page__hero-content">
-            <Flex align="center" gap="3" className="user-profile-page__title-row">
-              <Heading as="h2" size="5" weight="bold" className="user-profile-page__title">
-                {user.userId}
-              </Heading>
-              <StatusBadge
-                status={isActive ? 'online' : 'offline'}
-                size="small"
-                label={isActive ? UsersStrings.PROFILE.ACTIVE : UsersStrings.PROFILE.DISABLED}
-              />
-              <Badge color="blue" variant="soft">
-                {sourceLabel}
-              </Badge>
-            </Flex>
-          </Box>
-        </Flex>
-      </Card>
 
       <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
         <Tabs.List className="user-profile-page__tabs-list">
