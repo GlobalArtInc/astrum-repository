@@ -47,7 +47,7 @@ export function LogsList({ onSelect }: LogsListProps) {
   };
 
   const formatDate = (timestamp: number): string => {
-    return DateTime.fromMillis(timestamp).toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS, { locale: pageLanguage() });
+    return DateTime.fromMillis(timestamp).setLocale(pageLanguage()).toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS);
   };
 
   if (isLoading) {

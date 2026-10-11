@@ -10,11 +10,16 @@ import * as useLogsListModule from '../useLogsList';
 // Mock the integration hook
 jest.mock('../useLogsList');
 
-// Mock luxon for date formatting
+// Mock luxon for date formatting; the format follows the locale the page sets
+const mockSetLocale = jest.fn();
 jest.mock('luxon', () => ({
   DateTime: {
+    DATETIME_SHORT_WITH_SECONDS: {},
     fromMillis: jest.fn().mockReturnValue({
-      toLocaleString: jest.fn().mockReturnValue('1/1/2024, 12:00:00 PM'),
+      setLocale: (locale: string) => {
+        mockSetLocale(locale);
+        return { toLocaleString: () => (locale === 'ru' ? '01.01.2024, 12:00:00' : '1/1/2024, 12:00:00 PM') };
+      },
     }),
   },
 }));
@@ -181,5 +186,18 @@ describe('LogsList', () => {
     expect(screen.getByText('File Name')).toBeInTheDocument();
     expect(screen.getByText('Size')).toBeInTheDocument();
     expect(screen.getByText('Last Modified')).toBeInTheDocument();
+  });
+
+  it('formats the modification dates in the language of the page', () => {
+    (window as any).AS_I18N = { language: 'ru' };
+    try {
+      render(<LogsList onSelect={mockOnSelect} />, { wrapper: TestWrapper });
+
+      expect(mockSetLocale).toHaveBeenCalledWith('ru');
+      expect(screen.getAllByText('01.01.2024, 12:00:00').length).toBeGreaterThan(0);
+    }
+    finally {
+      delete (window as any).AS_I18N;
+    }
   });
 });
