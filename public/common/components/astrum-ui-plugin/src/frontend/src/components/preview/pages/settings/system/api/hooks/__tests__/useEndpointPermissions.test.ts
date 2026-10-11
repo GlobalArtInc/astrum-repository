@@ -49,7 +49,7 @@ describe('useEndpointPermissions', () => {
 
     expect(result.current.data).toEqual(MOCK_RESPONSE);
     expect(result.current.error).toBeNull();
-    expect(mockGet).toHaveBeenCalled();
+    expect(mockGet).toHaveBeenCalledWith('/service/rest/internal/ui/api/permissions');
   });
 
   it('uses session cache on subsequent mounts without refetching', () => {

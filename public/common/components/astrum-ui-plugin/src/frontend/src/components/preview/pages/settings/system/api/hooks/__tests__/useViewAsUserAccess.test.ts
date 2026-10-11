@@ -144,7 +144,8 @@ describe('useViewAsUserAccess', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    const [, payload] = mockPost.mock.calls[0];
+    const [url, payload] = mockPost.mock.calls[0];
+    expect(url).toBe('/service/rest/internal/ui/security/access-check');
     expect(payload).toEqual(
       expect.objectContaining({
         userId: 'testUser',

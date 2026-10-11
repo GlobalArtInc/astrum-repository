@@ -102,6 +102,8 @@ export const ENDPOINTS = {
   DOCKER_SUGGEST_PORT: `${API_INTERNAL_UI}/docker/suggest-port`,
 
   // Internal UI endpoints
+  API_PERMISSIONS: `${API_INTERNAL_UI}/api/permissions`,
+  SECURITY_ACCESS_CHECK: `${API_INTERNAL_UI}/security/access-check`,
   PRIVILEGE_TYPES: `${API_INTERNAL_UI}/privileges/types`,
   ROLE_SOURCES: `${API_INTERNAL_UI}/roles/sources`,
   USER_SOURCES: `${API_V1}/security/user-sources`,
