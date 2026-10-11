@@ -2,7 +2,6 @@
 
 import { assign } from 'xstate';
 import { ENDPOINTS, restClient } from '../../../../../interface/api';
-import { ExtJS } from '../../../../../interface/ExtJS';
 import {
   createFormMachine,
   type FormContext,
@@ -101,17 +100,30 @@ export function isPasswordFormReady(data: UserAccountData): boolean {
   return Object.keys(validateUserAccount(data)).length === 0;
 }
 
+const AUTHENTICATION_TICKET_URL = '/service/rest/wonderland/authenticate';
+
+function base64(text: string): string {
+  return btoa(unescape(encodeURIComponent(text)));
+}
+
 /**
  * Proves the current password with an authentication ticket, as the Classic account page does, so that a password
- * cannot be changed by anyone who merely finds the session open.
+ * cannot be changed by anyone who merely finds the session open. The server answers a wrong password with 403.
  */
 async function authenticationTicket(userId: string, password: string): Promise<string> {
-  const response = (await ExtJS.fetchAuthenticationToken(userId, password)) as
-    { success?: boolean; data?: string } | null | undefined;
-  if (!response?.success || !response.data) {
-    throw new Error(UserPagesStrings.ACCOUNT_FORM_MACHINE.CURRENT_PASSWORD_WRONG);
+  try {
+    const response = await restClient.post<{ t?: string }>(AUTHENTICATION_TICKET_URL, {
+      u: base64(userId),
+      p: base64(password),
+    });
+    if (response?.t) {
+      return response.t;
+    }
   }
-  return response.data;
+  catch {
+    // A wrong password and a refused request read the same to the user.
+  }
+  throw new Error(UserPagesStrings.ACCOUNT_FORM_MACHINE.CURRENT_PASSWORD_WRONG);
 }
 
 /**

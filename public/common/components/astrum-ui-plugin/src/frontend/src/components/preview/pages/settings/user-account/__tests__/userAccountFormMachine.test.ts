@@ -15,17 +15,11 @@ jest.mock('../../../../../../interface/api', () => ({
   restClient: {
     get: jest.fn(),
     put: jest.fn(),
-  },
-}));
-
-jest.mock('../../../../../../interface/ExtJS', () => ({
-  ExtJS: {
-    fetchAuthenticationToken: jest.fn(),
+    post: jest.fn(),
   },
 }));
 
 const { restClient } = jest.requireMock('../../../../../../interface/api');
-const { ExtJS } = jest.requireMock('../../../../../../interface/ExtJS');
 
 const MOCK_USER = {
   userId: 'testuser',
@@ -244,7 +238,7 @@ describe('userAccountFormMachine', () => {
 
   describe('save flow', () => {
     it('proves the current password with a ticket and sends the new password with it', async () => {
-      ExtJS.fetchAuthenticationToken.mockResolvedValue({ success: true, data: 'ticket-1' });
+      restClient.post.mockResolvedValue({ t: 'ticket-1' });
       restClient.put.mockResolvedValue(undefined);
       const service = await startAndLoad();
 
@@ -255,7 +249,10 @@ describe('userAccountFormMachine', () => {
 
       await waitFor(service, (state) => state.matches('editing') && state.context.isPristine);
 
-      expect(ExtJS.fetchAuthenticationToken).toHaveBeenCalledWith('testuser', 'oldpass1');
+      expect(restClient.post).toHaveBeenCalledWith('/service/rest/wonderland/authenticate', {
+        u: btoa('testuser'),
+        p: btoa('oldpass1'),
+      });
       expect(restClient.put).toHaveBeenCalledWith(
         '/service/rest/internal/ui/user/testuser/password',
         { authToken: 'ticket-1', password: 'newpassword' }
@@ -265,7 +262,7 @@ describe('userAccountFormMachine', () => {
     });
 
     it('does not change the password when the current one is wrong', async () => {
-      ExtJS.fetchAuthenticationToken.mockResolvedValue({ success: false, message: 'Authentication failed' });
+      restClient.post.mockRejectedValue(new Error('Request failed with status code 403'));
       const service = await startAndLoad();
 
       service.send({ type: 'UPDATE', name: 'currentPassword', value: 'wrongpass' } as any);
@@ -282,7 +279,7 @@ describe('userAccountFormMachine', () => {
     });
 
     it('surfaces save error when API fails', async () => {
-      ExtJS.fetchAuthenticationToken.mockResolvedValue({ success: true, data: 'ticket-1' });
+      restClient.post.mockResolvedValue({ t: 'ticket-1' });
       restClient.put.mockRejectedValue(new Error('Change failed'));
       const service = await startAndLoad();
 
