@@ -82,7 +82,7 @@ describe('MetricHealthPage', () => {
     render(<MetricHealthPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Metric Health' })).toBeInTheDocument();
     });
 
     // Breadcrumb should show the selected check (first unhealthy check is auto-selected)
@@ -120,7 +120,7 @@ describe('MetricHealthPage', () => {
     render(<MetricHealthPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Metric Health' })).toBeInTheDocument();
     });
 
     const refreshButton = screen.getByTestId('refresh-button');
@@ -137,7 +137,7 @@ describe('MetricHealthPage', () => {
     render(<MetricHealthPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Metric Health' })).toBeInTheDocument();
     });
 
     const downloadButton = screen.getByTestId('download-button');
@@ -215,20 +215,22 @@ describe('MetricHealthPage', () => {
       const { container } = render(<MetricHealthPage />, { wrapper: TestWrapper });
 
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Metric Health' })).toBeInTheDocument();
       });
 
-      // First unhealthy check (memoryHealthCheck) is auto-selected, so check name appears in breadcrumb
+      // First unhealthy check (memoryHealthCheck) is auto-selected, so its readable name appears in breadcrumb
       const currentBreadcrumb = container.querySelector('[aria-current="page"]');
       expect(currentBreadcrumb).toBeInTheDocument();
-      expect(currentBreadcrumb?.textContent).toBe('memoryHealthCheck');
+      expect(currentBreadcrumb?.textContent).toBe('Memory');
+      // ...and the description stays the page's own, not the check's name again
+      expect(screen.getByText('View system health checks and diagnostics')).toBeInTheDocument();
     });
 
     it('renders Metric Health as non-clickable breadcrumb when a check is selected in single-node mode', async () => {
       const { container } = render(<MetricHealthPage />, { wrapper: TestWrapper });
 
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: 'Status' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Metric Health' })).toBeInTheDocument();
       });
 
       // In single-node mode, Metric Health does NOT have an onClick handler when a check is selected

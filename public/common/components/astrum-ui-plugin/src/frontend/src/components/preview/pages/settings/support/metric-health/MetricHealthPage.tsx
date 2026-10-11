@@ -9,7 +9,7 @@ import { useToast, PageHeader } from '../../../../shared';
 import { MetricHealthList } from './MetricHealthList';
 import { MetricHealthDetail } from './MetricHealthDetail';
 import { useMetricHealthApi } from './useMetricHealthApi';
-import { MetricHealthPageProps, HealthCheck, NodeInfo } from './types';
+import { MetricHealthPageProps, HealthCheck, NodeInfo, formatCheckName } from './types';
 
 import './MetricHealthPage.scss';
 import MetricHealthStrings from '../../../../constants/pages/settings/support/MetricHealthStrings';
@@ -179,7 +179,7 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
     return (
       <Box className={`metric-health-page ${className || ''}`.trim()} data-testid="metric-health-page">
         <PageHeader
-          title={CommonStrings.LABELS.STATUS}
+          title={MetricHealthStrings.PAGE.METRIC_HEALTH}
           description={MetricHealthStrings.PAGE.VIEW_SYSTEM_HEALTH_CHECKS_DIAGNOSTICS}
           breadcrumbs={breadcrumbs}
           className="metric-health-page__header"
@@ -242,17 +242,16 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
     <Box className={`metric-health-page ${className || ''}`.trim()} data-testid="metric-health-page" data-loading={loading}>
       {/* Header */}
       {(() => {
-        const description = selectedCheck
-          ? selectedCheck
-          : (isClusteredMode && selectedNode
-            ? MetricHealthStrings.PAGE.HEALTH_CHECKS(nodes.find(n => n.nodeId === selectedNode)?.hostname || selectedNode)
-            : MetricHealthStrings.PAGE.VIEW_SYSTEM_HEALTH_CHECKS_DIAGNOSTICS);
+        // The selected check is named in the breadcrumbs and in its detail card, not again in the description
+        const description = isClusteredMode && selectedNode
+          ? MetricHealthStrings.PAGE.HEALTH_CHECKS(nodes.find(n => n.nodeId === selectedNode)?.hostname || selectedNode)
+          : MetricHealthStrings.PAGE.VIEW_SYSTEM_HEALTH_CHECKS_DIAGNOSTICS;
 
         const breadcrumbs = selectedCheck
           ? [
               { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
               { label: MetricHealthStrings.PAGE.METRIC_HEALTH, onClick: isClusteredMode && selectedNode ? handleBackToNodes : undefined },
-              { label: selectedCheck },
+              { label: formatCheckName(selectedCheck) },
             ]
           : [
               { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
@@ -289,7 +288,7 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
 
         return (
           <PageHeader
-            title={CommonStrings.LABELS.STATUS}
+            title={MetricHealthStrings.PAGE.METRIC_HEALTH}
             description={description}
             breadcrumbs={breadcrumbs}
             actions={actions}

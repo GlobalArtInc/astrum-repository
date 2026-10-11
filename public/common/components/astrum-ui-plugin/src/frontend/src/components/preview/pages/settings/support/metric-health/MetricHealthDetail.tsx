@@ -63,9 +63,11 @@ export function MetricHealthDetail({
           <Heading as="h3" size="4" weight="medium" className="metric-health-detail__title">
             {formatCheckName(check.name)}
           </Heading>
-          <Text size="1" className="metric-health-detail__subtitle">
-            {check.name}
-          </Text>
+          {formatCheckName(check.name) !== check.name && (
+            <Text size="1" className="metric-health-detail__subtitle">
+              {check.name}
+            </Text>
+          )}
         </Box>
         <Box style={{ marginLeft: 'auto' }}>
           {getStatusBadge()}

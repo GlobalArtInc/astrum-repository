@@ -64,17 +64,26 @@ export interface NodeListProps {
 
 /**
  * Format health check name for display
- * e.g., 'threadDeadlockHealthCheck' -> 'Thread Deadlock'
+ * e.g., 'threadDeadlockHealthCheck' -> 'Thread Deadlock',
+ * 'com.codahale.metrics.health.jvm.ThreadDeadlockHealthCheck' -> 'Thread Deadlock'.
+ * Most checks already have a readable name ('Available CPUs'), which is kept as it is.
  */
 export function formatCheckName(name: string): string {
-  // Remove common suffixes
+  if (/\s/.test(name.trim())) {
+    return name.trim();
+  }
+
+  // A class name: keep its simple name, then remove common suffixes
   let formatted = name
+    .split('.')
+    .pop()!
     .replace(/HealthCheck$/i, '')
     .replace(/Check$/i, '');
 
-  // Convert camelCase to Title Case with spaces
+  // Convert camelCase to Title Case with spaces, keeping acronyms (CPUs, URL) together
   formatted = formatted
-    .replace(/([A-Z])/g, ' $1')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
     .replace(/^./, (str) => str.toUpperCase())
     .trim();
 
