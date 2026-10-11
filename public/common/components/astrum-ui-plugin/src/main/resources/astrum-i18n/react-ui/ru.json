@@ -514,7 +514,7 @@
   "USAGE_DASHBOARD.KPI.REPOSITORIES_CAPTION": "hosted {0} · proxy {1} · group {2}",
   "USAGE_DASHBOARD.KPI.STORAGE": "Хранилище",
   "USAGE_DASHBOARD.KPI.STORAGE_CAPTION": "из них кэш прокси {0}",
-  "USAGE_DASHBOARD.KPI.UNUSED": "Не используются {0}",
+  "USAGE_DASHBOARD.KPI.UNUSED": "Простаивают {0}",
   "USAGE_DASHBOARD.KPI.UNUSED_CAPTION": "{0} можно освободить",
   "USAGE_DASHBOARD.LOADING": "Загружаем данные об использовании репозиториев…",
   "USAGE_DASHBOARD.NO_REPOSITORIES": "Пока нет репозиториев, которые вы можете просматривать.",

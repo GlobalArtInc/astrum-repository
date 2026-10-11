@@ -18,9 +18,9 @@ function KpiTile({ icon, label, value, caption, tone }: KpiTileProps): JSX.Eleme
   return (
     <Card size="2" className="as-usage-dashboard__kpi">
       <Flex direction="column" gap="1">
-        <Text as="div" size="2" color={tone ?? 'gray'} className="as-usage-dashboard__kpi-label">
+        <Text as="div" size="2" color={tone ?? 'gray'} className="as-usage-dashboard__kpi-label" title={label}>
           <Flex align="center" gap="2" asChild>
-            <span>{icon}{label}</span>
+            <span>{icon}<span className="as-usage-dashboard__kpi-label-text">{label}</span></span>
           </Flex>
         </Text>
         <div className="as-usage-dashboard__kpi-value">{value}</div>
