@@ -145,6 +145,9 @@ export function EditUserView({
   return (
     <Box className="edit-user-view">
       <PageHeader
+        title={title}
+        description={description}
+        actions={headerActions}
         breadcrumbs={[
           { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
           { label: UsersStrings.EDIT.USERS, onClick: onCancel },
@@ -158,8 +161,6 @@ export function EditUserView({
 
       <SettingsForm
         testId="user-form"
-        title={title}
-        description={description}
         onSubmit={vm.submit}
         onCancel={vm.cancel}
         pristine={form.isPristine}
@@ -168,7 +169,6 @@ export function EditUserView({
         submitLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
         externalDirtyTracking={true}
         onDiscardConfirm={handleDiscardConfirm}
-        headerActions={headerActions}
         footerExtra={deleteFooter}
       >
         <UserForm vm={vm} />
