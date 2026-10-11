@@ -130,7 +130,19 @@ describe('RawUploadFields', () => {
       );
 
       expect(screen.getByTestId('input-raw-directory')).toBeInTheDocument();
-      expect(screen.getByTestId('input-raw-filename')).toBeInTheDocument();
+    });
+
+    it('leaves the filename to each file when the definition has no such component field', () => {
+      renderWithTheme(
+        <RawUploadFields
+          fieldsByGroup={emptyFieldsByGroup}
+          values={{}}
+          onChange={mockOnChange}
+          errors={{}}
+        />
+      );
+
+      expect(screen.queryByTestId('input-raw-filename')).not.toBeInTheDocument();
     });
   });
 

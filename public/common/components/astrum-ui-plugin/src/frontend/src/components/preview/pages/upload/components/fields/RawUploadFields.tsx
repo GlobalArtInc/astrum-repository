@@ -53,6 +53,7 @@ export function RawUploadFields({
             required={directoryField ? !directoryField.optional : false}
           />
 
+          {filenameField && (
           <SettingsTextInput
             name="raw-filename"
             label={raw.filenameLabel}
@@ -62,8 +63,9 @@ export function RawUploadFields({
             placeholder="filename.ext"
             helpText={raw.filenameHelp}
             error={errors[RAW_FIELD_NAMES.FILENAME] || ''}
-            required={filenameField ? !filenameField.optional : false}
+            required={!filenameField.optional}
           />
+          )}
         </Box>
 
         {otherFields.length > 0 && (

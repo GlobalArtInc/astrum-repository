@@ -165,6 +165,7 @@ export function UploadForm({
           availableRepositories={availableRepositories}
           disabled={isSubmitting}
         />
+        <Box className="upload-form__format-fields">
         <UploadFieldRenderer
           format={repositorySettings?.format || ''}
           definition={{ componentFields, assetFields, multipleUpload, format: repositorySettings?.format || '', uiUpload: true }}
@@ -175,6 +176,7 @@ export function UploadForm({
           disabledFields={localDisabledFields}
           hasPomFile={hasPom}
         />
+        </Box>
         <SettingsFormSection title={UploadStrings.FORM.ASSETS}>
           <FileUploadZone
             assets={formData.assets}

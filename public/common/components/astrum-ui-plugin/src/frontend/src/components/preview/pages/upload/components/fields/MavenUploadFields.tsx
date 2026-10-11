@@ -24,7 +24,8 @@ import UploadStrings from '../../../../constants/pages/upload/UploadStrings';
 const MAVEN_COMPONENT_COORDS_GROUP = 'Component coordinates';
 
 /**
- * Renders Maven-specific upload fields using shared form components.
+ * Renders Maven-specific upload fields using shared form components. The extension and the classifier belong to each
+ * file, so they show here only when the upload definition makes them fields of the component.
  */
 export function MavenUploadFields({
   fieldsByGroup,
@@ -126,6 +127,7 @@ export function MavenUploadFields({
             disabled={isPackagingDisabled}
           />
 
+          {findField(MAVEN_FIELD_NAMES.EXTENSION) && (
           <SettingsTextInput
             name="extension"
             label={maven.extensionLabel}
@@ -135,7 +137,9 @@ export function MavenUploadFields({
             placeholder="jar"
             helpText={getHelp(MAVEN_FIELD_NAMES.EXTENSION, maven.extensionHelp)}
           />
+          )}
 
+          {findField(MAVEN_FIELD_NAMES.CLASSIFIER) && (
           <SettingsTextInput
             name="classifier"
             label={maven.classifierLabel}
@@ -145,6 +149,7 @@ export function MavenUploadFields({
             placeholder="sources"
             helpText={getHelp(MAVEN_FIELD_NAMES.CLASSIFIER, maven.classifierHelp)}
           />
+          )}
         </div>
 
         <SettingsCheckbox

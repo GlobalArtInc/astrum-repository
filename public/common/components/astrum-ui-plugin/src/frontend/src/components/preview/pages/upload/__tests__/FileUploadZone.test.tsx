@@ -48,6 +48,30 @@ describe('FileUploadZone', () => {
     expect(screen.getByText('Drop files here')).toBeInTheDocument();
   });
 
+  it('labels the file fields the server describes by name only', () => {
+    render(
+      <Theme>
+        <FileUploadZone
+          assets={[{ file: null, classifier: '', extension: '' }]}
+          assetFields={[
+            { name: 'classifier', type: 'STRING', optional: true },
+            { name: 'extension', type: 'STRING', optional: false },
+          ]}
+          validationErrors={mockValidationErrors}
+          multipleUpload={false}
+          onFileChange={jest.fn()}
+          onAssetFieldChange={jest.fn()}
+          onAddAsset={jest.fn()}
+          onRemoveAsset={jest.fn()}
+        />
+      </Theme>
+    );
+
+    expect(screen.getByText('Classifier')).toBeInTheDocument();
+    expect(screen.getByText('Extension')).toBeInTheDocument();
+    expect(screen.queryByText('classifier')).not.toBeInTheDocument();
+  });
+
   it('shows go module path callout when zip is selected with go format', async () => {
     const encoder = { encode: (s: string) => Buffer.from(s) };
     fflate.unzipSync.mockReturnValue({

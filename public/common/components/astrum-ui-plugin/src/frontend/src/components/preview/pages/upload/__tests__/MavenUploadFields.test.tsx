@@ -121,6 +121,26 @@ describe('MavenUploadFields', () => {
       expect(screen.getByTestId('checkbox-generate-pom')).toBeInTheDocument();
     });
 
+    it('leaves the extension and the classifier to each file when they are no component fields', () => {
+      const serverFieldsByGroup = {
+        'Component coordinates': mavenFieldsByGroup['Component coordinates'].filter(
+          (field) => field.name !== 'extension' && field.name !== 'classifier'
+        ),
+      };
+      renderWithTheme(
+        <MavenUploadFields
+          fieldsByGroup={serverFieldsByGroup}
+          values={{}}
+          onChange={mockOnChange}
+          errors={{}}
+        />
+      );
+
+      expect(screen.getByTestId('input-groupId')).toBeInTheDocument();
+      expect(screen.queryByTestId('input-extension')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('input-classifier')).not.toBeInTheDocument();
+    });
+
     it('renders field labels', () => {
       renderWithTheme(
         <MavenUploadFields
