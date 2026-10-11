@@ -129,6 +129,30 @@ describe('auditEventFormatter', () => {
       });
     });
 
+    describe('Asset and component updates', () => {
+      it.each([
+        ['updated-attribute', 'Attributes Updated', 'attributes updated'],
+        ['updated-kind', 'Kind Changed', 'kind changed'],
+        ['updated-uploaded', 'Uploaded', 'uploaded'],
+      ])('names %s events in words', (type, label, action) => {
+        const event = {
+          id: 8,
+          domain: 'repository.asset',
+          type,
+          context: '/uploaded/install.txt',
+          timestamp: '2026-10-11T18:11:00.000Z',
+          initiator: 'admin/127.0.0.1',
+          nodeId: 'node-1',
+          attributes: { 'repository.name': 'raw-hosted' },
+        };
+
+        const result = formatAuditEvent(event);
+
+        expect(result.eventLabel).toBe(label);
+        expect(result.summary).toContain(`'/uploaded/install.txt' ${action} by admin/127.0.0.1`);
+      });
+    });
+
     describe('Event Label Formatting', () => {
       it('should capitalize event type', () => {
         const event: AuditEvent = {
