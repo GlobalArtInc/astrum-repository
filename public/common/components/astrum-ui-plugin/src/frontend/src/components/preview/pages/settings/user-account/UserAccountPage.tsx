@@ -148,7 +148,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
         )}
 
         {profileLoaded && !isExternal && (
-          <Box data-testid="account-details-form">
+          <Box mt="5" data-testid="account-details-form">
             <Box className="user-account-page__details">
               <SettingsTextInput
                 {...details.field('firstName')}
