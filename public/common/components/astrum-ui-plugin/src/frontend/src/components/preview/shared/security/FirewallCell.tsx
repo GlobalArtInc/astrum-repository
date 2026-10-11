@@ -11,6 +11,8 @@ import { isFirewallSupportedFormat } from '../../../../utils/firewallFormats';
 import { restClient, ENDPOINTS } from '../../../../interface/api';
 
 import './FirewallCell.scss';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
+import CommonStrings from '../../constants/CommonStrings';
 
 export interface ProxyProtectionSummary {
   totalProxy: number;
@@ -91,9 +93,9 @@ export function FirewallCell({
         align="center"
         gap="1"
         className="firewall-cell"
-        aria-label="Firewall: N/A for non-proxy repositories"
+        aria-label={SecurityReportStrings.FIREWALL_CELL.FIREWALL_N_NON_PROXY_REPOSITORIES_ARIA}
       >
-        <Text size="1" color="gray">N/A</Text>
+        <Text size="1" color="gray">{SecurityReportStrings.FIREWALL_CELL.N_A}</Text>
       </Flex>
     );
   }
@@ -121,44 +123,44 @@ export function FirewallCell({
         tabIndex={stillLoading ? -1 : 0}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openModal(e as unknown as React.MouseEvent)}
         aria-label={
-          stillLoading ? 'Firewall: Loading status...'
-            : hasError ? 'Firewall: Unavailable. Click for details.'
-            : isUnprotected ? 'Firewall: Unprotected. Click for details.'
-            : isAudit ? 'Firewall: Audited. Click for details.'
-            : 'Firewall: Quarantine. Click for details.'
+          stillLoading ? SecurityReportStrings.FIREWALL_CELL.FIREWALL_LOADING_STATUS
+            : hasError ? SecurityReportStrings.FIREWALL_CELL.FIREWALL_UNAVAILABLE_CLICK_DETAILS
+            : isUnprotected ? SecurityReportStrings.FIREWALL_CELL.FIREWALL_UNPROTECTED_CLICK_DETAILS
+            : isAudit ? SecurityReportStrings.FIREWALL_CELL.FIREWALL_AUDITED_CLICK_DETAILS
+            : SecurityReportStrings.FIREWALL_CELL.FIREWALL_QUARANTINE_CLICK_DETAILS
         }
       >
         {stillLoading ? (
-          <Tooltip content="Loading firewall status...">
+          <Tooltip content={SecurityReportStrings.FIREWALL_CELL.LOADING_FIREWALL_STATUS}>
             <Flex align="center" gap="1">
               <Shield size={12} color="var(--gray-8)" />
-              <Badge variant="soft" color="gray" size="1">Loading...</Badge>
+              <Badge variant="soft" color="gray" size="1">{CommonStrings.MESSAGES.LOADING}</Badge>
             </Flex>
           </Tooltip>
         ) : hasError ? (
-          <Tooltip content={firewallStatus?.errorMessage ?? 'IQ Server unreachable'}>
+          <Tooltip content={firewallStatus?.errorMessage ?? SecurityReportStrings.FIREWALL_CELL.IQ_SERVER_UNREACHABLE}>
             <Flex align="center" gap="1">
               <ShieldAlert size={14} color="var(--amber-9)" />
-              <Badge variant="soft" color="amber" size="1">Unavailable</Badge>
+              <Badge variant="soft" color="amber" size="1">{SecurityReportStrings.FIREWALL_CELL.UNAVAILABLE}</Badge>
             </Flex>
           </Tooltip>
         ) : isUnprotected ? (
-          <Tooltip content={hasFirewallLicense ? 'Click to configure Firewall protection' : 'Firewall license not available'}>
-            <Badge variant="soft" color="red" size="1">Unprotected</Badge>
+          <Tooltip content={hasFirewallLicense ? SecurityReportStrings.FIREWALL_CELL.CLICK_CONFIGURE_FIREWALL_PROTECTION : SecurityReportStrings.FIREWALL_CELL.FIREWALL_LICENSE_NOT_AVAILABLE}>
+            <Badge variant="soft" color="red" size="1">{SecurityReportStrings.FIREWALL_CELL.UNPROTECTED}</Badge>
           </Tooltip>
         ) : isAudit ? (
-          <Tooltip content="Audit mode - violations reported but not blocked">
+          <Tooltip content={SecurityReportStrings.FIREWALL_CELL.AUDIT_MODE_VIOLATIONS_REPORTED_BUT}>
             <Flex align="center" gap="1">
-              <Badge variant="soft" color="amber" size="1">Audited</Badge>
+              <Badge variant="soft" color="amber" size="1">{SecurityReportStrings.FIREWALL_CELL.AUDITED}</Badge>
               {(firewallStatus?.criticalComponentCount ?? 0) > 0 && (
                 <Badge variant="soft" color="red" size="1">{firewallStatus?.criticalComponentCount}</Badge>
               )}
             </Flex>
           </Tooltip>
         ) : (
-          <Tooltip content="Quarantine mode - risky components blocked">
+          <Tooltip content={SecurityReportStrings.FIREWALL_CELL.QUARANTINE_MODE_RISKY_COMPONENTS_BLOCKED}>
             <Flex align="center" gap="1">
-              <Badge variant="soft" color="green" size="1">Quarantine</Badge>
+              <Badge variant="soft" color="green" size="1">{SecurityReportStrings.FIREWALL_CELL.QUARANTINE}</Badge>
               {(firewallStatus?.quarantinedComponentCount ?? 0) > 0 && (
                 <Badge variant="soft" color="orange" size="1">{firewallStatus?.quarantinedComponentCount}</Badge>
               )}

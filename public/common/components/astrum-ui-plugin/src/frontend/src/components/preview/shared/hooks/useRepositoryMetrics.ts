@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { restClient } from '../../../../interface/api';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface RepositoryMetrics {
   componentCount: number;
@@ -64,7 +65,7 @@ export function useRepositoryMetrics(repositoryName: string): UseRepositoryMetri
       })
       .catch((err) => {
         if (!cancelled) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to fetch repository metrics';
+          const errorMessage = err instanceof Error ? err.message : SharedStrings.REPOSITORY_METRICS.FAILED_FETCH_REPOSITORY_METRICS;
           setError(errorMessage);
           setIsLoading(false);
         }

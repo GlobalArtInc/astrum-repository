@@ -7,6 +7,8 @@ import { ArrowLeft, } from 'lucide-react';
 import { SettingsButton } from '../form';
 
 import './StickyActionBar.scss';
+import CommonStrings from '../../constants/CommonStrings';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface StickyActionBarProps {
   /** Mode determines button labels and behavior */
@@ -88,12 +90,12 @@ export function StickyActionBar({
   onCancel,
   onDelete,
   subtitle,
-  backLabel = 'Back',
+  backLabel = CommonStrings.ACTIONS.BACK,
   saveDisabled = false,
 }: StickyActionBarProps): JSX.Element {
   const isCreate = mode === 'create';
-  const primaryLabel = isCreate ? 'Create' : 'Save';
-  const secondaryLabel = isCreate ? 'Cancel' : 'Discard';
+  const primaryLabel = isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE;
+  const secondaryLabel = isCreate ? CommonStrings.ACTIONS.CANCEL : SharedStrings.STICKY_ACTION_BAR.DISCARD;
 
   // In edit mode, Save is disabled unless there are changes (or explicitly disabled)
   const isPrimaryDisabled = isCreate ? saveDisabled : (!isDirty || saveDisabled);
@@ -136,7 +138,7 @@ export function StickyActionBar({
               className="sticky-action-bar__dirty-badge"
               data-testid="sticky-action-bar-dirty-badge"
             >
-              Unsaved changes
+              {SharedStrings.STICKY_ACTION_BAR.UNSAVED_CHANGES}
             </Badge>
           )}
 
@@ -149,7 +151,7 @@ export function StickyActionBar({
               className="sticky-action-bar__delete"
               testId="sticky-action-bar-delete"
             >
-              Delete
+              {CommonStrings.ACTIONS.DELETE}
             </SettingsButton>
           )}
 

@@ -3,12 +3,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AlertDialog, Box, Flex, Text, Button, TextField, IconButton } from '@radix-ui/themes';
 import { X } from 'lucide-react';
+import CommonStrings from '../../constants/CommonStrings';
+import SharedStrings from '../../constants/SharedStrings';
 
 // Fixed acknowledgement word required to confirm any destructive deletion. Using a
 // single literal word — instead of per-entity names — keeps the friction predictable
 // and short to type while still forcing a deliberate action. Displayed as-is; the
 // match is case-insensitive so "delete", "Delete", "DELETE" all confirm.
-const CONFIRMATION_TEXT = 'Delete';
+const CONFIRMATION_TEXT = SharedStrings.DELETE_CONFIRMATION.CONFIRMATION_WORD;
+
+const ENTITY_KEYS: Record<string, string> = {
+  'blob store': 'BLOB_STORE',
+  repository: 'REPOSITORY',
+  'routing rule': 'ROUTING_RULE',
+  task: 'TASK',
+  user: 'USER',
+};
+
+function entityStringsOf(entityType: string): { TITLE: string; MESSAGE: string } | undefined {
+  const key = ENTITY_KEYS[entityType];
+  return key ? SharedStrings.DELETE_CONFIRMATION.ENTITIES[key] : undefined;
+}
 
 export interface DeleteConfirmationModalProps {
   open: boolean;
@@ -35,7 +50,8 @@ export interface DeleteConfirmationModalProps {
  * @param onClose - Called when modal should close (cancel, X button)
  * @param onConfirm - Called when user confirms deletion with valid text
  * @param entityName - If provided, displayed in description for context
- * @param entityType - Display name for the entity type (e.g., "repository", "user", "blob store")
+ * @param entityType - The entity type in English (e.g., "repository", "user", "blob store"); the title and
+ *   message of the known types are translated, other types are shown as given
  * @param loading - Shows loading state during delete operation
  */
 export function DeleteConfirmationModal({
@@ -56,6 +72,7 @@ export function DeleteConfirmationModal({
   // can see what they're about to delete, but they no longer have to type it.
   const expectedLower = CONFIRMATION_TEXT.toLowerCase();
   const isValid = confirmationText.toLowerCase() === expectedLower;
+  const entityStrings = entityStringsOf(entityType);
 
   // Focus input when modal opens
   useEffect(() => {
@@ -103,12 +120,12 @@ export function DeleteConfirmationModal({
       <AlertDialog.Content maxWidth="450px">
         {/* Header with Close Button */}
         <Flex align="start" justify="between" mb="2">
-          <AlertDialog.Title size="5">Delete {entityType}?</AlertDialog.Title>
+          <AlertDialog.Title size="5">{entityStrings ? entityStrings.TITLE : SharedStrings.DELETE_CONFIRMATION.DELETE(entityType)}</AlertDialog.Title>
           <IconButton
             variant="ghost"
             size="1"
             color="gray"
-            aria-label="Close"
+            aria-label={CommonStrings.ACTIONS.CLOSE}
             disabled={loading}
             onClick={onClose}
           >
@@ -120,13 +137,9 @@ export function DeleteConfirmationModal({
             deleting now that the acknowledgement is a fixed literal word. */}
         <AlertDialog.Description size="2" mb="4">
           {entityName ? (
-            <>
-              This action cannot be undone. All data associated with{' '}
-              <Text as="span" weight="bold">{entityName}</Text>{' '}
-              will be permanently deleted.
-            </>
+            SharedStrings.DELETE_CONFIRMATION.ACTION_CANNOT_UNDONE_NAMED(<Text as="span" weight="bold">{entityName}</Text>)
           ) : (
-            <>This action cannot be undone. All data associated with this {entityType} will be permanently deleted.</>
+            <>{entityStrings ? entityStrings.MESSAGE : SharedStrings.DELETE_CONFIRMATION.ACTION_CANNOT_UNDONE_TYPED(entityType)}</>
           )}
         </AlertDialog.Description>
 
@@ -147,7 +160,7 @@ export function DeleteConfirmationModal({
             {CONFIRMATION_TEXT}
           </Text>
           <Text size="1" color="gray">
-            Type this to confirm deletion
+            {SharedStrings.DELETE_CONFIRMATION.TYPE_CONFIRM_DELETION}
           </Text>
         </Box>
 
@@ -155,7 +168,7 @@ export function DeleteConfirmationModal({
         <Box mb="4">
           <Flex align="center" gap="1" mb="2">
             <Text size="2" weight="bold">
-              Acknowledgement
+              {SharedStrings.DELETE_CONFIRMATION.ACKNOWLEDGEMENT}
             </Text>
             <Text size="2" style={{ color: 'var(--red-11)' }}>
               *
@@ -167,7 +180,7 @@ export function DeleteConfirmationModal({
             value={confirmationText}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder={`Type "${CONFIRMATION_TEXT}" to confirm`}
+            placeholder={SharedStrings.DELETE_CONFIRMATION.TYPE_CONFIRM(CONFIRMATION_TEXT)}
             disabled={loading}
             color={showError ? 'red' : undefined}
             style={
@@ -178,7 +191,7 @@ export function DeleteConfirmationModal({
                   }
                 : undefined
             }
-            aria-label="Acknowledgement"
+            aria-label={SharedStrings.DELETE_CONFIRMATION.ACKNOWLEDGEMENT_ARIA}
             autoFocus
           />
           {showError && (
@@ -189,7 +202,7 @@ export function DeleteConfirmationModal({
               style={{ display: 'block' }}
               role="alert"
             >
-              The confirmation text provided is incorrect
+              {SharedStrings.DELETE_CONFIRMATION.CONFIRMATION_TEXT_PROVIDED_INCORRECT}
             </Text>
           )}
         </Box>
@@ -198,7 +211,7 @@ export function DeleteConfirmationModal({
         <Flex gap="3" mt="4" justify="end">
           <AlertDialog.Cancel>
             <Button variant="surface" size="2" disabled={loading}>
-              Cancel
+              {CommonStrings.ACTIONS.CANCEL}
             </Button>
           </AlertDialog.Cancel>
           <AlertDialog.Action>
@@ -209,7 +222,7 @@ export function DeleteConfirmationModal({
               onClick={handleConfirm}
               disabled={!isValid || loading}
             >
-              {loading ? 'Deleting...' : 'Delete'}
+              {loading ? SharedStrings.DELETE_CONFIRMATION.DELETING : CommonStrings.ACTIONS.DELETE}
             </Button>
           </AlertDialog.Action>
         </Flex>

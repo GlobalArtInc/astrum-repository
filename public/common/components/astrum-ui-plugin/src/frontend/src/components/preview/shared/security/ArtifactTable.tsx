@@ -5,6 +5,8 @@ import { Box, Button, Flex, Table, Text } from '@radix-ui/themes';
 import type { ArtifactSecurityItem } from './useArtifactList';
 
 import './ArtifactTable.scss';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
+import CommonStrings from '../../constants/CommonStrings';
 
 export interface ArtifactTableProps {
   items: ArtifactSecurityItem[];
@@ -36,7 +38,7 @@ export function ArtifactTable({
     return (
       <Box className="artifact-table artifact-table--loading">
         <Text size="2" color="gray">
-          Loading artifacts…
+          {SecurityReportStrings.ARTIFACTS.LOADING_ARTIFACTS}
         </Text>
       </Box>
     );
@@ -56,7 +58,7 @@ export function ArtifactTable({
     return (
       <Box className="artifact-table artifact-table--empty">
         <Text size="2" color="gray">
-          No artifacts found.
+          {SecurityReportStrings.ARTIFACTS.NO_ARTIFACTS_FOUND}
         </Text>
       </Box>
     );
@@ -67,14 +69,14 @@ export function ArtifactTable({
       <Table.Root variant="surface" size="1" className="artifact-table__table">
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeaderCell>Group</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Version</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Format</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell className="artifact-table__severity">Critical</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell className="artifact-table__severity">Severe</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell className="artifact-table__severity">Moderate</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>License</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{SecurityReportStrings.ARTIFACTS.GROUP}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{CommonStrings.LABELS.NAME}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{SecurityReportStrings.ARTIFACTS.VERSION}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{CommonStrings.LABELS.FORMAT}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell className="artifact-table__severity">{SecurityReportStrings.ARTIFACTS.CRITICAL}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell className="artifact-table__severity">{SecurityReportStrings.ARTIFACTS.SEVERE}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell className="artifact-table__severity">{SecurityReportStrings.ARTIFACTS.MODERATE}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{SecurityReportStrings.ARTIFACTS.LICENSE}</Table.ColumnHeaderCell>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -105,7 +107,7 @@ export function ArtifactTable({
               </Table.Cell>
               <Table.Cell>
                 <Text size="2" color="gray">
-                  {item.licenseThreatName ?? (item.licenseThreatLevel != null ? `Level ${item.licenseThreatLevel}` : '—')}
+                  {item.licenseThreatName ?? (item.licenseThreatLevel != null ? SecurityReportStrings.ARTIFACTS.LEVEL(item.licenseThreatLevel) : '—')}
                 </Text>
               </Table.Cell>
             </Table.Row>
@@ -119,7 +121,7 @@ export function ArtifactTable({
             disabled={loadingMore}
             onClick={handleLoadMore}
           >
-            {loadingMore ? 'Loading…' : 'Load more'}
+            {loadingMore ? SecurityReportStrings.ARTIFACTS.LOADING : SecurityReportStrings.ARTIFACTS.LOAD_MORE}
           </Button>
         </Flex>
       )}

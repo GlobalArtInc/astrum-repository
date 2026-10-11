@@ -4,6 +4,7 @@ import React from 'react';
 import { Flex, Spinner, Text } from '@radix-ui/themes';
 
 import './LoadingState.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface LoadingStateProps {
   /** Optional message to display */
@@ -62,7 +63,7 @@ export function LoadingState({
         </Text>
       )}
       {/* Screen reader text */}
-      <span className="sr-only">Loading{message ? `: ${message}` : ''}</span>
+      <span className="sr-only">{message ? SharedStrings.LOADING_STATE.LOADING_MESSAGE(message) : SharedStrings.LOADING_STATE.LOADING}</span>
     </Flex>
   );
 }

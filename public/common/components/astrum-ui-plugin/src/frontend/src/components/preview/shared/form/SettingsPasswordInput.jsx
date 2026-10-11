@@ -6,6 +6,7 @@ import { Box, IconButton, Text, TextField } from '@radix-ui/themes';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 import './SettingsPasswordInput.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 /**
  * SettingsPasswordInput - Password input with visibility toggle
@@ -93,7 +94,7 @@ export function SettingsPasswordInput({
               size="1"
               className="settings-password-input__toggle"
               onClick={toggleVisibility}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? SharedStrings.SETTINGS_PASSWORD_INPUT.HIDE_PASSWORD : SharedStrings.SETTINGS_PASSWORD_INPUT.SHOW_PASSWORD}
               data-testid={`password-toggle-${name}`}
               tabIndex={-1}
             >

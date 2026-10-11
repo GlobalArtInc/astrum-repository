@@ -3,6 +3,7 @@
 import React, { useRef } from 'react';
 import { AlertDialog, Button, Flex, Text, Box, Callout } from '@radix-ui/themes';
 import { Loader2 } from 'lucide-react';
+import CommonStrings from '../../constants/CommonStrings';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -38,8 +39,8 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel = CommonStrings.ACTIONS.CONFIRM,
+  cancelLabel = CommonStrings.ACTIONS.CANCEL,
   variant = 'danger',
   onConfirm,
   loading = false,

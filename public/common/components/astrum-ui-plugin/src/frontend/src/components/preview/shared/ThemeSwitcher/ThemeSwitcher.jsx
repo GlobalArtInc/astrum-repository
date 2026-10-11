@@ -4,6 +4,7 @@ import React from 'react';
 import { IconButton, Tooltip } from '@radix-ui/themes';
 import { Sun, MoonStar } from 'lucide-react';
 import { useTheme, THEMES } from '../../../../contexts/ThemeContext';
+import SharedStrings from '../../constants/SharedStrings';
 
 /**
  * ThemeSwitcher - Icon-only toggle for dark/light mode.
@@ -22,7 +23,7 @@ export function ThemeSwitcher() {
   };
 
   const getTooltip = () => {
-    return effectiveTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    return effectiveTheme === 'dark' ? SharedStrings.THEME_SWITCHER.SWITCH_LIGHT_MODE : SharedStrings.THEME_SWITCHER.SWITCH_DARK_MODE;
   };
 
   return (

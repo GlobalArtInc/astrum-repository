@@ -3,5 +3,7 @@
  * tools/i18n reads the English texts from and what the tests of the translations load.
  */
 export { default as CommonStrings } from './CommonStrings';
+export { default as SharedStrings } from './SharedStrings';
+export { default as SecurityReportStrings } from './SecurityReportStrings';
 export { default as TasksStrings } from './pages/settings/system/TasksStrings';
 export { TASK_TYPE_SELECTOR, DYNAMIC_FORM_FIELDS } from '../pages/settings/system/tasks/TaskStrings';

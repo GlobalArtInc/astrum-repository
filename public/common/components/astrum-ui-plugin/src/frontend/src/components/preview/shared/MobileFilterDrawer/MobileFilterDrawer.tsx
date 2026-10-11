@@ -3,6 +3,8 @@ import {Button, Dialog, Flex, IconButton, ScrollArea} from '@radix-ui/themes';
 import {X} from 'lucide-react';
 
 import './MobileFilterDrawer.scss';
+import SharedStrings from '../../constants/SharedStrings';
+import CommonStrings from '../../constants/CommonStrings';
 
 export interface MobileFilterDrawerProps {
   isOpen: boolean;
@@ -18,7 +20,7 @@ export function MobileFilterDrawer({
   onClose,
   title,
   onClearAll,
-  clearAllLabel = 'Clear all',
+  clearAllLabel = SharedStrings.MOBILE_FILTER_DRAWER.CLEAR_ALL,
   children
 }: MobileFilterDrawerProps) {
   const handleOpenChange = (open: boolean) => {
@@ -41,7 +43,7 @@ export function MobileFilterDrawer({
               </Button>
             )}
             <Dialog.Close>
-              <IconButton type="button" variant="ghost" size="2" aria-label="Close">
+              <IconButton type="button" variant="ghost" size="2" aria-label={CommonStrings.ACTIONS.CLOSE}>
                 <X size={18} />
               </IconButton>
             </Dialog.Close>

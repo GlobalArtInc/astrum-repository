@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import * as ToastPrimitive from '@radix-ui/react-toast';
 import { CheckCircle2, XCircle, AlertCircle, Info, X } from 'lucide-react';
 import './Toast.scss';
+import CommonStrings from '../constants/CommonStrings';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -61,7 +62,7 @@ function Toast({ toast, onOpenChange }: { toast: ToastMessage; onOpenChange: (op
           </ToastPrimitive.Description>
         )}
       </div>
-      <ToastPrimitive.Close className="toast__close" aria-label="Close">
+      <ToastPrimitive.Close className="toast__close" aria-label={CommonStrings.ACTIONS.CLOSE}>
         <X size={16} />
       </ToastPrimitive.Close>
     </ToastPrimitive.Root>

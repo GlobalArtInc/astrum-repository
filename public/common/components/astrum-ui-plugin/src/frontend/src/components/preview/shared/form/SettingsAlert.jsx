@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import { AlertCircle, CheckCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 import './SettingsAlert.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 const ICONS = {
   error: AlertCircle,
@@ -54,7 +55,7 @@ export function SettingsAlert({
           type="button"
           className="settings-alert__close"
           onClick={onClose}
-          aria-label="Dismiss"
+          aria-label={SharedStrings.SETTINGS_ALERT.DISMISS_ARIA}
         >
           <X size={16} />
         </button>

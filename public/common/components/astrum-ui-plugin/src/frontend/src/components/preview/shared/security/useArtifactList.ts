@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { restClient, ENDPOINTS } from '../../../../interface/api';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
 
 export interface ArtifactSecurityItem {
   id?: string;
@@ -82,7 +83,7 @@ export function useArtifactList(
           setItems([]);
           setContinuationToken(null);
         } else {
-          setError(err instanceof Error ? err.message : 'Failed to load artifacts');
+          setError(err instanceof Error ? err.message : SecurityReportStrings.ARTIFACTS.FAILED_LOAD_ARTIFACTS);
         }
       } finally {
         setLoading(false);

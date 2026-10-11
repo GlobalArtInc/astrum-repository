@@ -4,6 +4,7 @@ import React from 'react';
 import { Button, Tooltip } from '@radix-ui/themes';
 import { ExternalLink } from 'lucide-react';
 import { buildGuideComponentUrl } from '../../../utils/guideIntegration';
+import SharedStrings from '../constants/SharedStrings';
 
 export interface DeepResearchLinkProps {
   ecosystem: string;
@@ -54,11 +55,11 @@ export function DeepResearchLink({
     >
       <a href={url} target="_blank" rel="noopener noreferrer">
         {iconOnly ? (
-          <ExternalLink size={14} aria-label="Research in Guide" />
+          <ExternalLink size={14} aria-label={SharedStrings.DEEP_RESEARCH.RESEARCH_GUIDE_ARIA} />
         ) : (
           <>
             <ExternalLink size={14} aria-hidden="true" />
-            Research in Guide
+            {SharedStrings.DEEP_RESEARCH.RESEARCH_GUIDE}
           </>
         )}
       </a>
@@ -67,7 +68,7 @@ export function DeepResearchLink({
 
   if (iconOnly) {
     return (
-      <Tooltip content="Research this component in GlobalArt Guide">
+      <Tooltip content={SharedStrings.DEEP_RESEARCH.RESEARCH_COMPONENT_GLOBALART_GUIDE}>
         {button}
       </Tooltip>
     );

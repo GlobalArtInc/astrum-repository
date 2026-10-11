@@ -6,6 +6,7 @@ import { Box, Flex, IconButton, Text, TextField } from '@radix-ui/themes';
 import { Search, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft } from 'lucide-react';
 
 import './SettingsTransferList.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 /**
  * SettingsTransferList - Dual-list selector for assigning items (roles, privileges, etc.)
@@ -34,8 +35,8 @@ export function SettingsTransferList({
   availableItems = [],
   selectedItems = [],
   onChange,
-  availableLabel = 'Available',
-  selectedLabel = 'Selected',
+  availableLabel = SharedStrings.SETTINGS_TRANSFER_LIST.AVAILABLE,
+  selectedLabel = SharedStrings.SETTINGS_TRANSFER_LIST.SELECTED,
   getItemId = (item) => item.id ?? item,
   getItemLabel = (item) => item.name ?? item.label ?? item,
   helpText = '',
@@ -209,7 +210,7 @@ export function SettingsTransferList({
           </Flex>
           <Box className="settings-transfer-list__search">
             <TextField.Root
-              placeholder="Filter..."
+              placeholder={SharedStrings.SETTINGS_TRANSFER_LIST.FILTER_PLACEHOLDER}
               value={availableSearch}
               onChange={(e) => setAvailableSearch(e.target.value)}
               disabled={disabled}
@@ -254,7 +255,7 @@ export function SettingsTransferList({
             })}
             {filteredAvailable.length === 0 && (
               <Box className="settings-transfer-list__empty">
-                <Text size="1" color="gray">{availableSearch ? 'No matches' : 'No items available'}</Text>
+                <Text size="1" color="gray">{availableSearch ? SharedStrings.SETTINGS_TRANSFER_LIST.NO_MATCHES : SharedStrings.SETTINGS_TRANSFER_LIST.NO_ITEMS_AVAILABLE}</Text>
               </Box>
             )}
           </div>
@@ -269,8 +270,8 @@ export function SettingsTransferList({
             size="1"
             onClick={moveAllToSelected}
             disabled={disabled || filteredAvailable.length === 0}
-            aria-label="Move all to selected"
-            title="Move all"
+            aria-label={SharedStrings.SETTINGS_TRANSFER_LIST.MOVE_ALL_SELECTED_ARIA}
+            title={SharedStrings.SETTINGS_TRANSFER_LIST.MOVE_ALL}
           >
             <ChevronsRight size={16} />
           </IconButton>
@@ -281,8 +282,8 @@ export function SettingsTransferList({
             size="1"
             onClick={moveToSelected}
             disabled={disabled || availableSelection.length === 0}
-            aria-label="Move selected to right"
-            title="Move selected"
+            aria-label={SharedStrings.SETTINGS_TRANSFER_LIST.MOVE_SELECTED_RIGHT_ARIA}
+            title={SharedStrings.SETTINGS_TRANSFER_LIST.MOVE_SELECTED}
           >
             <ChevronRight size={16} />
           </IconButton>
@@ -293,8 +294,8 @@ export function SettingsTransferList({
             size="1"
             onClick={moveToAvailable}
             disabled={disabled || selectedSelection.length === 0}
-            aria-label="Move selected to left"
-            title="Remove selected"
+            aria-label={SharedStrings.SETTINGS_TRANSFER_LIST.MOVE_SELECTED_LEFT_ARIA}
+            title={SharedStrings.SETTINGS_TRANSFER_LIST.REMOVE_SELECTED}
           >
             <ChevronLeft size={16} />
           </IconButton>
@@ -305,8 +306,8 @@ export function SettingsTransferList({
             size="1"
             onClick={moveAllToAvailable}
             disabled={disabled || selectedItems.length === 0}
-            aria-label="Move all to available"
-            title="Remove all"
+            aria-label={SharedStrings.SETTINGS_TRANSFER_LIST.MOVE_ALL_AVAILABLE_ARIA}
+            title={SharedStrings.SETTINGS_TRANSFER_LIST.REMOVE_ALL}
           >
             <ChevronsLeft size={16} />
           </IconButton>
@@ -318,13 +319,13 @@ export function SettingsTransferList({
             <Text size="1" weight="medium">{selectedLabel}</Text>
             <Text size="1" className="settings-transfer-list__count" aria-live="polite">
               {selectedItems.length === 0 && selectedEmptyText
-                ? 'All items'
+                ? SharedStrings.SETTINGS_TRANSFER_LIST.ALL_ITEMS
                 : `${selectedItems.length} ${selectedItems.length === 1 ? 'item' : 'items'}`}
             </Text>
           </Flex>
           <Box className="settings-transfer-list__search">
             <TextField.Root
-              placeholder="Filter..."
+              placeholder={SharedStrings.SETTINGS_TRANSFER_LIST.FILTER_PLACEHOLDER}
               value={selectedSearch}
               onChange={(e) => setSelectedSearch(e.target.value)}
               disabled={disabled}
@@ -370,7 +371,7 @@ export function SettingsTransferList({
             {filteredSelected.length === 0 && (
               <Box className="settings-transfer-list__empty">
                 <Text size="1" color="gray">
-                  {selectedSearch ? 'No matches' : (selectedEmptyText || 'No items selected')}
+                  {selectedSearch ? SharedStrings.SETTINGS_TRANSFER_LIST.NO_MATCHES : (selectedEmptyText || SharedStrings.SETTINGS_TRANSFER_LIST.NO_ITEMS_SELECTED)}
                 </Text>
               </Box>
             )}

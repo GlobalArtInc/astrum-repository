@@ -4,6 +4,7 @@ import React from 'react';
 import { Dialog, Flex, Text, Button, Box, Heading } from '@radix-ui/themes';
 import { AlertCircle, LogIn, RefreshCw } from 'lucide-react';
 import { useRouter } from '@uirouter/react';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface SessionExpiryModalProps {
   /** Whether the modal is open */
@@ -25,7 +26,7 @@ export interface SessionExpiryModalProps {
 export function SessionExpiryModal({
   isOpen,
   onClose,
-  message = 'Your session has expired. Please sign in again to continue.',
+  message = SharedStrings.SESSION_EXPIRY.SESSION_HAS_EXPIRED_PLEASE_SIGN,
 }: SessionExpiryModalProps): JSX.Element {
   const router = useRouter();
 
@@ -77,9 +78,9 @@ export function SessionExpiryModal({
               <AlertCircle size={28} color="var(--orange-9)" />
             </Box>
             <Box>
-              <Heading size="4">Session Expired</Heading>
+              <Heading size="4">{SharedStrings.SESSION_EXPIRY.SESSION_EXPIRED}</Heading>
               <Text size="2" color="gray">
-                Authentication Required
+                {SharedStrings.SESSION_EXPIRY.AUTHENTICATION_REQUIRED}
               </Text>
             </Box>
           </Flex>
@@ -93,11 +94,11 @@ export function SessionExpiryModal({
           <Flex gap="3" justify="end" mt="2">
             <Button variant="soft" color="gray" onClick={handleRefresh}>
               <RefreshCw size={16} />
-              Refresh Page
+              {SharedStrings.SESSION_EXPIRY.REFRESH_PAGE}
             </Button>
             <Button variant="solid" onClick={handleSignIn}>
               <LogIn size={16} />
-              Sign In
+              {SharedStrings.SESSION_EXPIRY.SIGN_IN}
             </Button>
           </Flex>
         </Flex>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { restClient } from '../../../../interface/api';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface BlobStoreInfo {
   name: string;
@@ -33,7 +34,7 @@ async function fetchBlobStore(blobStoreName: string): Promise<BlobStoreInfo | nu
     const bs = match;
     return {
       name: String(bs.name),
-      type: String(bs.typeName ?? bs.typeId ?? 'Unknown'),
+      type: String(bs.typeName ?? bs.typeId ?? SharedStrings.BLOB_STORE_INFO.UNKNOWN),
       path: bs.path ? String(bs.path) : undefined,
       unavailable: Boolean(bs.unavailable),
       totalSizeInBytes: bs.totalSizeInBytes ? Number(bs.totalSizeInBytes) : undefined,
@@ -72,7 +73,7 @@ export function useBlobStoreInfo(
       })
       .catch((err) => {
         if (!cancelled) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to fetch blob store';
+          const errorMessage = err instanceof Error ? err.message : SharedStrings.BLOB_STORE_INFO.FAILED_FETCH_BLOB_STORE;
           setError(errorMessage);
           setIsLoading(false);
         }

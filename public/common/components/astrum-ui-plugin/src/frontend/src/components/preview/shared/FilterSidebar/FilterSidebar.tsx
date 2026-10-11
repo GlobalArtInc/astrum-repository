@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Filter, RotateCcw } from 'lucide-react';
 import { Checkbox, Text, TextField } from '@radix-ui/themes';
 
 import './FilterSidebar.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 /**
  * Filter option representing a selectable item.
@@ -154,7 +155,7 @@ function TextFilter({
   value,
   onChange,
   disabled,
-  placeholder = 'Type to filter...',
+  placeholder = SharedStrings.FILTER_SIDEBAR.TYPE_FILTER,
 }: TextFilterProps): JSX.Element {
   return (
     <TextField.Root
@@ -207,8 +208,8 @@ export function FilterSidebar({
   onFilterChange,
   onClear,
   disabled = false,
-  title = 'Filters',
-  footerText = 'Filters apply automatically',
+  title = SharedStrings.FILTER_SIDEBAR.FILTERS,
+  footerText = SharedStrings.FILTER_SIDEBAR.FILTERS_APPLY_AUTOMATICALLY,
   className = '',
 }: FilterSidebarProps): JSX.Element {
   // Track expanded state for each section
@@ -263,10 +264,10 @@ export function FilterSidebar({
             className="filter-sidebar__reset"
             onClick={onClear}
             disabled={disabled}
-            title="Clear all filters"
+            title={SharedStrings.FILTER_SIDEBAR.CLEAR_ALL_FILTERS}
           >
             <RotateCcw size={14} aria-hidden="true" />
-            Clear all
+            {SharedStrings.FILTER_SIDEBAR.CLEAR_ALL}
           </button>
         )}
       </div>

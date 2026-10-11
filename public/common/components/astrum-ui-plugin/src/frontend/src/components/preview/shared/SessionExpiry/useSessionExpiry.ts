@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { ASTRUM_SESSION_EXPIRED_EVENT } from '../../../../interface/api/sessionExpiryBroadcast';
+import SharedStrings from '../../constants/SharedStrings';
 
 interface SessionExpiryState {
   isExpired: boolean;
@@ -39,7 +40,7 @@ export interface UseSessionExpiryReturn {
 export function useSessionExpiry(): UseSessionExpiryReturn {
   const [state, setState] = useState<SessionExpiryState>({
     isExpired: false,
-    message: 'Your session has expired. Please sign in again to continue.',
+    message: SharedStrings.SESSION_EXPIRY.SESSION_HAS_EXPIRED_PLEASE_SIGN,
   });
 
   // Ref to track if we've already shown the modal (to prevent multiple popups)
@@ -50,7 +51,7 @@ export function useSessionExpiry(): UseSessionExpiryReturn {
       hasShownRef.current = true;
       setState({
         isExpired: true,
-        message: message || 'Your session has expired. Please sign in again to continue.',
+        message: message || SharedStrings.SESSION_EXPIRY.SESSION_HAS_EXPIRED_PLEASE_SIGN,
       });
     }
   }, []);

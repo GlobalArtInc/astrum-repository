@@ -10,6 +10,7 @@ import {useIsVisible} from '../../../../interface/NavigationUtils';
 import {useIsPreviewUI} from '../Navigation';
 import {useUnreadStatusFailure} from '../hooks';
 import {Tooltip} from '../Tooltip/TooltipContainerContext';
+import SharedStrings from '../../constants/SharedStrings';
 
 /**
  * Global-header bell that routes to the appropriate system-status page for the
@@ -28,7 +29,7 @@ export default function SystemStatusBell({
   buttonClassName,
   variant = 'ghost',
   size,
-  label = 'System Status',
+  label = SharedStrings.SYSTEM_STATUS_BELL.SYSTEM_STATUS,
   unhealthyLabel = 'System status -- unhealthy',
 }) {
   const isPreviewUI = useIsPreviewUI();

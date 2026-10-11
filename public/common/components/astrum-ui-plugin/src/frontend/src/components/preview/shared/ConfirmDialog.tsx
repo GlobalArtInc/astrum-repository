@@ -6,6 +6,7 @@ import { Flex, Text } from '@radix-ui/themes';
 import { AlertTriangle } from 'lucide-react';
 
 import './ConfirmDialog.scss';
+import CommonStrings from '../constants/CommonStrings';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -29,8 +30,8 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel = CommonStrings.ACTIONS.CONFIRM,
+  cancelLabel = CommonStrings.ACTIONS.CANCEL,
   variant = 'danger',
   onConfirm,
 }: ConfirmDialogProps) {

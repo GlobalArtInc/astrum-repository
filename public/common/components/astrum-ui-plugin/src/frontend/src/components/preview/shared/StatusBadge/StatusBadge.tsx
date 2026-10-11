@@ -5,6 +5,7 @@ import { Flex, Text } from '@radix-ui/themes';
 import { Circle } from 'lucide-react';
 
 import './StatusBadge.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 export type StatusType = 'online' | 'offline' | 'warning' | 'unknown' | 'success' | 'error' | 'info';
 
@@ -59,7 +60,7 @@ export function StatusBadge({
       direction="column"
       gap="1"
       className={`status-badge ${statusClass} ${sizeClass} ${className}`}
-      aria-label={`Status: ${displayLabel}`}
+      aria-label={SharedStrings.STATUS_BADGE.STATUS(displayLabel)}
     >
       <Flex align="center" gap="2">
         <Circle

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Flex, Text, Heading, Badge, Tooltip, Link } from '@radix-ui/themes';
 import { AlertCircle, ShieldOff } from 'lucide-react';
+import SharedStrings from '../constants/SharedStrings';
 
 const FIREWALL_DOCS_URL = 'https://help.globalart.dev/en/repository-firewall.html';
 
@@ -29,7 +30,7 @@ export function FirewallNotSupportedEmptyState({
   format,
   context = 'cell',
 }: FirewallNotSupportedEmptyStateProps): JSX.Element {
-  const tooltipText = 'Format not Supported';
+  const tooltipText = SharedStrings.FIREWALL_NOT_SUPPORTED.FORMAT_NOT_SUPPORTED;
 
   if (context === 'tab') {
     return (
@@ -43,11 +44,10 @@ export function FirewallNotSupportedEmptyState({
       >
         <ShieldOff size={48} color="var(--gray-8)" aria-hidden="true" />
         <Heading size="4" color="gray">
-          Firewall Not Available
+          {SharedStrings.FIREWALL_NOT_SUPPORTED.FIREWALL_NOT_AVAILABLE}
         </Heading>
         <Text size="2" color="gray" align="center" style={{ maxWidth: 400 }}>
-          Repository Firewall does not support the {format} format. No malware scanning or
-          component quarantine is available for this repository.
+          {SharedStrings.FIREWALL_NOT_SUPPORTED.REPOSITORY_FIREWALL_DOES_NOT_SUPPORT(format)}
         </Text>
         <Link
           href={FIREWALL_DOCS_URL}
@@ -55,7 +55,7 @@ export function FirewallNotSupportedEmptyState({
           rel="noopener noreferrer"
           size="2"
         >
-          Learn about supported formats
+          {SharedStrings.FIREWALL_NOT_SUPPORTED.LEARN_ABOUT_SUPPORTED_FORMATS}
         </Link>
       </Flex>
     );
@@ -68,11 +68,11 @@ export function FirewallNotSupportedEmptyState({
         justify="center"
         gap="1"
         data-testid="firewall-not-supported-badge"
-        aria-label={`Firewall: Not supported for ${format}`}
+        aria-label={SharedStrings.FIREWALL_NOT_SUPPORTED.FIREWALL_NOT_SUPPORTED(format)}
       >
         <AlertCircle size={14} color="var(--gray-8)" aria-hidden="true" />
         <Text size="1" color="gray">
-          Not supported
+          {SharedStrings.FIREWALL_NOT_SUPPORTED.NOT_SUPPORTED}
         </Text>
       </Flex>
     </Tooltip>
@@ -84,7 +84,7 @@ export function FirewallNotSupportedEmptyState({
  * Separate from the inline cell variant to avoid nesting interactive elements.
  */
 export function FirewallNotSupportedBadge({ format }: { format: string }): JSX.Element {
-  const tooltipText = 'Format not Supported';
+  const tooltipText = SharedStrings.FIREWALL_NOT_SUPPORTED.FORMAT_NOT_SUPPORTED;
 
   return (
     <Tooltip content={tooltipText}>
@@ -93,9 +93,9 @@ export function FirewallNotSupportedBadge({ format }: { format: string }): JSX.E
         color="gray"
         size="1"
         data-testid="firewall-not-supported-badge"
-        aria-label={`Firewall: Not supported for ${format}`}
+        aria-label={SharedStrings.FIREWALL_NOT_SUPPORTED.FIREWALL_NOT_SUPPORTED(format)}
       >
-        Not supported
+        {SharedStrings.FIREWALL_NOT_SUPPORTED.NOT_SUPPORTED}
       </Badge>
     </Tooltip>
   );

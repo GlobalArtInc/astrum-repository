@@ -10,6 +10,7 @@ import { SecuritySummaryModal } from './SecuritySummaryModal';
 
 import './HealthCheckCell.scss';
 import { isHealthCheckSupportedFormat } from '../../../../utils/healthCheckFormats';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
 
 // Health check status from API - matching the shape returned by the backend
 export interface HealthCheckStatus {
@@ -73,12 +74,12 @@ export function HealthCheckCell({
 
   if (repository.type !== 'proxy') {
     const reason = repository.type === 'group'
-      ? 'Health Check runs on individual proxy repositories within this group'
-      : 'Health Check analyzes components fetched from remote proxy repositories';
+      ? SecurityReportStrings.HEALTH_CHECK_CELL.HEALTH_CHECK_RUNS_INDIVIDUAL_PROXY
+      : SecurityReportStrings.HEALTH_CHECK_CELL.HEALTH_CHECK_ANALYZES_COMPONENTS_FETCHED;
     return (
       <Tooltip content={reason}>
         <span className="health-check-cell health-check-cell--na">
-          <Text size="1" color="gray">Not supported</Text>
+          <Text size="1" color="gray">{SecurityReportStrings.HEALTH_CHECK_CELL.NOT_SUPPORTED}</Text>
         </span>
       </Tooltip>
     );
@@ -88,8 +89,8 @@ export function HealthCheckCell({
   const supportsHealthCheck = formatSupported && (rhcSupportedByBackend !== false);
 
   const unsupportedTooltip = formatSupported
-    ? 'Health Check only supports Maven proxy repositories with a RELEASE version policy. SNAPSHOT and MIXED policies are not supported.'
-    : `Health Check is not available for ${repository.format} repositories. Supported formats: Maven, npm, NuGet, PyPI, RubyGems, CocoaPods, Conan, Conda, Go, R, and APT.`;
+    ? SecurityReportStrings.HEALTH_CHECK_CELL.HEALTH_CHECK_ONLY_SUPPORTS_MAVEN
+    : SecurityReportStrings.HEALTH_CHECK_CELL.HEALTH_CHECK_NOT_AVAILABLE_REPOSITORIES(repository.format);
 
   if (!supportsHealthCheck) {
     return (
@@ -106,7 +107,7 @@ export function HealthCheckCell({
             aria-label={unsupportedTooltip}
             style={{ cursor: 'help' }}
           >
-            <Text size="1" color="gray">Not supported</Text>
+            <Text size="1" color="gray">{SecurityReportStrings.HEALTH_CHECK_CELL.NOT_SUPPORTED}</Text>
             <HelpCircle size={12} color="var(--gray-8)" />
           </Flex>
         </Tooltip>
@@ -140,7 +141,7 @@ export function HealthCheckCell({
     return (
       <Flex align="center" gap="2" className="health-check-cell health-check-cell--analyzing">
         <Spinner size="1" />
-        <Text size="1" color="gray">Analyzing...</Text>
+        <Text size="1" color="gray">{SecurityReportStrings.HEALTH_CHECK_CELL.ANALYZING}</Text>
       </Flex>
     );
   }
@@ -159,7 +160,7 @@ export function HealthCheckCell({
       setShowModal(true);
     };
 
-    const malwareAria = showMalwareBadge ? `, ${malwareCount} malware` : '';
+    const malwareAria = showMalwareBadge ? SecurityReportStrings.HEALTH_CHECK_CELL.MALWARE(malwareCount) : '';
 
     return (
       <>
@@ -171,10 +172,10 @@ export function HealthCheckCell({
           role="button"
           tabIndex={0}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openModal(e as unknown as React.MouseEvent)}
-          aria-label={`Health check: ${securityIssues} security, ${licenseIssues} license issues${malwareAria}. Click for details.`}
+          aria-label={SecurityReportStrings.HEALTH_CHECK_CELL.HEALTH_CHECK_SECURITY_LICENSE_ISSUES(securityIssues, licenseIssues, malwareAria)}
         >
           <Flex align="center" gap="1" className="health-check-cell__metric">
-            <Tooltip content="Security issues">
+            <Tooltip content={SecurityReportStrings.HEALTH_CHECK_CELL.SECURITY_ISSUES}>
               <Badge
                 color={securityIssues === 0 ? 'green' : 'red'}
                 variant="solid"
@@ -186,7 +187,7 @@ export function HealthCheckCell({
             </Tooltip>
           </Flex>
           <Flex align="center" gap="1" className="health-check-cell__metric">
-            <Tooltip content="License issues">
+            <Tooltip content={SecurityReportStrings.HEALTH_CHECK_CELL.LICENSE_ISSUES}>
               <Badge
                 color={licenseIssues === 0 ? 'green' : 'orange'}
                 variant="solid"
@@ -202,8 +203,8 @@ export function HealthCheckCell({
               <Tooltip
                 content={
                   malwareCount === 0
-                    ? 'No malicious components detected'
-                    : 'Malicious components detected'
+                    ? SecurityReportStrings.HEALTH_CHECK_CELL.NO_MALICIOUS_COMPONENTS_DETECTED
+                    : SecurityReportStrings.HEALTH_CHECK_CELL.MALICIOUS_COMPONENTS_DETECTED
                 }
               >
                 <Badge
@@ -230,7 +231,7 @@ export function HealthCheckCell({
               <Flex align="center" gap="2">
                 <ShieldCheck size={18} color="var(--green-9)" />
                 <Dialog.Title size="4" weight="bold" style={{ margin: 0 }}>
-                  Health Check &ndash; {repository.name}
+                  {SecurityReportStrings.HEALTH_CHECK_CELL.HEALTH_CHECK(repository.name)}
                 </Dialog.Title>
               </Flex>
               <Dialog.Close>
@@ -246,12 +247,12 @@ export function HealthCheckCell({
                   width={iframeW}
                   height={iframeH}
                   style={{ border: 'none', display: 'block' }}
-                  title={`Health Check summary for ${repository.name}`}
+                  title={SecurityReportStrings.HEALTH_CHECK_CELL.HEALTH_CHECK_SUMMARY(repository.name)}
                 />
               </Box>
             ) : (
               <Box px="4" pb="4">
-                <Text size="2" color="gray">Summary report not available.</Text>
+                <Text size="2" color="gray">{SecurityReportStrings.HEALTH_CHECK_CELL.SUMMARY_REPORT_NOT_AVAILABLE}</Text>
               </Box>
             )}
             <Flex px="4" pb="3" gap="3" align="center">
@@ -261,7 +262,7 @@ export function HealthCheckCell({
                   size="1"
                   onClick={() => window.open(healthStatus.detailedReport!, '_blank', 'noopener,noreferrer')}
                 >
-                  View Full Report
+                  {SecurityReportStrings.HEALTH_CHECK_CELL.VIEW_FULL_REPORT}
                 </Button>
               )}
               <Button
@@ -273,7 +274,7 @@ export function HealthCheckCell({
                   router?.stateService.go('preview.browse.browse.repo', { repoName: repository.name });
                 }}
               >
-                Browse Repo
+                {SecurityReportStrings.HEALTH_CHECK_CELL.BROWSE_REPO}
               </Button>
             </Flex>
           </Dialog.Content>
@@ -295,16 +296,16 @@ export function HealthCheckCell({
         }}
         className="health-check-cell__analyze-btn"
       >
-        Analyze
+        {SecurityReportStrings.HEALTH_CHECK_CELL.ANALYZE}
       </Button>
     );
   }
 
   // Default: not enabled, no action
   return (
-    <Tooltip content="Health Check is not yet enabled for this repository">
+    <Tooltip content={SecurityReportStrings.HEALTH_CHECK_CELL.HEALTH_CHECK_NOT_YET_ENABLED}>
       <span className="health-check-cell health-check-cell--disabled">
-        <Text size="2" color="gray">N/A</Text>
+        <Text size="2" color="gray">{SecurityReportStrings.HEALTH_CHECK_CELL.N_A}</Text>
       </span>
     </Tooltip>
   );

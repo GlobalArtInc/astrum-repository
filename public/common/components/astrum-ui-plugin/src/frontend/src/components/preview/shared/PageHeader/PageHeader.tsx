@@ -3,6 +3,7 @@
 import React from 'react';
 import { Box, Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { ChevronRight } from 'lucide-react';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface BreadcrumbItem {
   /** Display label */
@@ -86,7 +87,7 @@ export function PageHeader({
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Box mb="3">
-          <Flex as="nav" gap="1" align="center" aria-label="Breadcrumb">
+          <Flex as="nav" gap="1" align="center" aria-label={SharedStrings.PAGE_HEADER.BREADCRUMB_ARIA}>
             {breadcrumbs.map((item, index) => {
               const isLast = index === breadcrumbs.length - 1;
               const isClickable = item.href || item.onClick;

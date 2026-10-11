@@ -6,6 +6,9 @@ import { Shield, ExternalLink, ShieldCheck, X } from 'lucide-react';
 import { SecurityStatusData } from './security.types';
 
 import './SecurityReportModal.scss';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
+import CommonStrings from '../../constants/CommonStrings';
+import plural from '../../../../interface/plural';
 
 export interface SecurityReportModalProps {
   /** Repository name */
@@ -35,7 +38,7 @@ export function SecurityReportModal({
   data,
   isOpen,
   onClose,
-  title = 'Security Report',
+  title = SecurityReportStrings.REPORT_MODAL.SECURITY_REPORT,
   type = 'health-check',
 }: SecurityReportModalProps) {
   if (!data) return null;
@@ -72,10 +75,9 @@ export function SecurityReportModal({
           {isFirewall && (
             <Box mb="6" p="4" className="security-report-modal__policy-summary">
               <Flex direction="column" gap="2">
-                <Text size="2" weight="bold">Policy Summary</Text>
+                <Text size="2" weight="bold">{SecurityReportStrings.REPORT_MODAL.POLICY_SUMMARY}</Text>
                 <Text size="2" color="gray">
-                  Quarantined components are blocked by the repository firewall policy. View the repository profile
-                  in Settings → Repositories for policy configuration and auto-release settings.
+                  {SecurityReportStrings.REPORT_MODAL.QUARANTINED_COMPONENTS_BLOCKED_REPOSITORY_FIREWALL}
                 </Text>
               </Flex>
             </Box>
@@ -93,12 +95,12 @@ export function SecurityReportModal({
                 <Shield size={24} color="var(--orange-9)" />
                 <Box>
                   <Text size="3" weight="bold">
-                    {data.quarantinedComponentCount} component{(data.quarantinedComponentCount ?? 0) !== 1 ? 's' : ''} in quarantine
+                    {plural(SecurityReportStrings.QUARANTINED_COMPONENTS, data.quarantinedComponentCount ?? 0)}
                   </Text>
                   <Text size="2" color="gray">
                     {isFirewall
-                      ? 'Blocked by firewall policy. Configure auto-release in repository settings.'
-                      : 'These components require review.'}
+                      ? SecurityReportStrings.REPORT_MODAL.BLOCKED_FIREWALL_POLICY_CONFIGURE_AUTO
+                      : SecurityReportStrings.REPORT_MODAL.THESE_COMPONENTS_REQUIRE_REVIEW}
                   </Text>
                 </Box>
               </Flex>
@@ -108,22 +110,22 @@ export function SecurityReportModal({
           {/* Summary Stats */}
           <Grid columns="3" gap="4" mb="6">
             <SummaryCard
-              label="Critical"
+              label={SecurityReportStrings.REPORT_MODAL.CRITICAL}
               value={data.criticalComponentCount}
               color="red"
-              description={isFirewall ? 'Highest risk violations' : 'Highest risk vulnerabilities'}
+              description={isFirewall ? SecurityReportStrings.REPORT_MODAL.HIGHEST_RISK_VIOLATIONS : SecurityReportStrings.REPORT_MODAL.HIGHEST_RISK_VULNERABILITIES}
             />
             <SummaryCard
-              label="Severe"
+              label={SecurityReportStrings.REPORT_MODAL.SEVERE}
               value={data.severeComponentCount}
               color="orange"
-              description={isFirewall ? 'High risk violations' : 'High risk vulnerabilities'}
+              description={isFirewall ? SecurityReportStrings.REPORT_MODAL.HIGH_RISK_VIOLATIONS : SecurityReportStrings.REPORT_MODAL.HIGH_RISK_VULNERABILITIES}
             />
             <SummaryCard
-              label="Moderate"
+              label={SecurityReportStrings.REPORT_MODAL.MODERATE}
               value={data.moderateComponentCount}
               color="yellow"
-              description={isFirewall ? 'Medium risk violations' : 'Medium risk vulnerabilities'}
+              description={isFirewall ? SecurityReportStrings.REPORT_MODAL.MEDIUM_RISK_VIOLATIONS : SecurityReportStrings.REPORT_MODAL.MEDIUM_RISK_VULNERABILITIES}
             />
           </Grid>
 
@@ -131,12 +133,12 @@ export function SecurityReportModal({
 
           {/* Detailed Report Section */}
           <Box mb="6">
-            <Heading size="4" mb="3">Analysis Details</Heading>
+            <Heading size="4" mb="3">{SecurityReportStrings.REPORT_MODAL.ANALYSIS_DETAILS}</Heading>
             {data.reportUrl ? (
               <Box className="security-report-modal__iframe-wrapper">
                 <iframe
                   src={data.reportUrl}
-                  title={`Security report for ${repositoryName}`}
+                  title={SecurityReportStrings.REPORT_MODAL.SECURITY_REPORT_FOR(repositoryName)}
                   width="100%"
                   height="450px"
                   style={{ border: 'none', borderRadius: 'var(--radius-3)' }}
@@ -147,10 +149,10 @@ export function SecurityReportModal({
               <Flex direction="column" align="center" justify="center" p="8" className="security-report-modal__empty">
                 <ShieldCheck size={48} color="var(--gray-7)" mb="3" />
                 <Text size="3" weight="medium" color="gray">
-                  {hasIssues ? 'Full report data is being processed.' : 'No security issues detected.'}
+                  {hasIssues ? SecurityReportStrings.REPORT_MODAL.FULL_REPORT_DATA_BEING_PROCESSED : SecurityReportStrings.REPORT_MODAL.NO_SECURITY_ISSUES_DETECTED}
                 </Text>
                 <Text size="2" color="gray">
-                  Run a new analysis to update these results.
+                  {SecurityReportStrings.REPORT_MODAL.RUN_NEW_ANALYSIS_UPDATE_THESE}
                 </Text>
               </Flex>
             )}
@@ -162,12 +164,12 @@ export function SecurityReportModal({
             <Button variant="soft" asChild>
               <a href={data.reportUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink size={16} />
-                View Full Report
+                {SecurityReportStrings.REPORT_MODAL.VIEW_FULL_REPORT}
               </a>
             </Button>
           )}
           <Dialog.Close>
-            <Button variant="solid" onClick={onClose}>Close</Button>
+            <Button variant="solid" onClick={onClose}>{CommonStrings.ACTIONS.CLOSE}</Button>
           </Dialog.Close>
         </Flex>
       </Dialog.Content>

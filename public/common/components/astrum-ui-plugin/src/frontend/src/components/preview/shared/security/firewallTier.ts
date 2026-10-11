@@ -10,6 +10,7 @@
  */
 
 import { ExtJS } from '../../../../interface/ExtJS';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
 
 export type FirewallTier = 'none' | 'pro' | 'enterprise';
 
@@ -62,16 +63,16 @@ export function getFirewallTierInfo(): FirewallTierInfo {
 
   const tierInfo: Record<FirewallTier, Pick<FirewallTierInfo, 'displayName' | 'description'>> = {
     none: {
-      displayName: 'No Firewall',
-      description: 'Repository is not protected from malicious components.',
+      displayName: SecurityReportStrings.FIREWALL_TIER.NO_FIREWALL,
+      description: SecurityReportStrings.FIREWALL_TIER.REPOSITORY_NOT_PROTECTED_MALICIOUS_COMPONENTS,
     },
     pro: {
-      displayName: 'Firewall Pro',
-      description: 'Blocks known malicious packages.',
+      displayName: SecurityReportStrings.FIREWALL_TIER.FIREWALL_PRO,
+      description: SecurityReportStrings.FIREWALL_TIER.BLOCKS_KNOWN_MALICIOUS_PACKAGES,
     },
     enterprise: {
-      displayName: 'Firewall Enterprise',
-      description: 'Full IQ Server integration with policy enforcement and SCA governance.',
+      displayName: SecurityReportStrings.FIREWALL_TIER.FIREWALL_ENTERPRISE,
+      description: SecurityReportStrings.FIREWALL_TIER.FULL_IQ_SERVER_INTEGRATION_POLICY,
     },
   };
 
@@ -105,16 +106,16 @@ export function useFirewallTier(): FirewallTierInfo {
 
   const tierInfo: Record<FirewallTier, Pick<FirewallTierInfo, 'displayName' | 'description'>> = {
     none: {
-      displayName: 'No Firewall',
-      description: 'Repository is not protected from malicious components.',
+      displayName: SecurityReportStrings.FIREWALL_TIER.NO_FIREWALL,
+      description: SecurityReportStrings.FIREWALL_TIER.REPOSITORY_NOT_PROTECTED_MALICIOUS_COMPONENTS,
     },
     pro: {
-      displayName: 'Firewall Pro',
-      description: 'Blocks known malicious packages.',
+      displayName: SecurityReportStrings.FIREWALL_TIER.FIREWALL_PRO,
+      description: SecurityReportStrings.FIREWALL_TIER.BLOCKS_KNOWN_MALICIOUS_PACKAGES,
     },
     enterprise: {
-      displayName: 'Firewall Enterprise',
-      description: 'Full IQ Server integration with policy enforcement and SCA governance.',
+      displayName: SecurityReportStrings.FIREWALL_TIER.FIREWALL_ENTERPRISE,
+      description: SecurityReportStrings.FIREWALL_TIER.FULL_IQ_SERVER_INTEGRATION_POLICY,
     },
   };
 

@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types';
 import { Box, IconButton, Text, TextField, Tooltip } from '@radix-ui/themes';
 import { AlertCircle, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import SharedStrings from '../../constants/SharedStrings';
 
 const CHIP_TRUNCATE_LENGTH = 35;
 
@@ -88,7 +89,7 @@ export function SettingsCombobox({
     });
   }, []);
 
-  const effectivePlaceholder = placeholder || (multiple ? 'Search...' : 'Select or type...');
+  const effectivePlaceholder = placeholder || (multiple ? SharedStrings.SETTINGS_COMBOBOX.SEARCH : SharedStrings.SETTINGS_COMBOBOX.SELECT_TYPE);
   const inputId = `settings-combobox-${name}`;
   const listboxId = `settings-combobox-list-${name}`;
   const helpId = `settings-combobox-help-${name}`;
@@ -404,7 +405,7 @@ export function SettingsCombobox({
           {label}
           {required && <span className="settings-combobox__required">*</span>}
           {multiple && selectedValues.length > 0 && (
-            <span className="settings-combobox__count">{selectedValues.length} selected</span>
+            <span className="settings-combobox__count">{SharedStrings.SETTINGS_COMBOBOX.SELECTED(selectedValues.length)}</span>
           )}
         </label>
       )}
@@ -459,19 +460,19 @@ export function SettingsCombobox({
           >
             {multiple && (
               <li className="settings-combobox__counter" role="status" aria-live="polite">
-                {flatFilteredOptions.length} of {totalAvailable} matching
-                {selectedValues.length > 0 && ` · ${selectedValues.length} selected`}
+                {SharedStrings.SETTINGS_COMBOBOX.MATCHING(flatFilteredOptions.length, totalAvailable)}
+                {selectedValues.length > 0 && ` · ${SharedStrings.SETTINGS_COMBOBOX.SELECTED(selectedValues.length)}`}
               </li>
             )}
             {loading ? (
               <li className="settings-combobox__empty settings-combobox__loading" role="option" aria-disabled="true">
                 <Loader2 size={16} className="settings-combobox__spinner" />
-                Searching...
+                {SharedStrings.SETTINGS_COMBOBOX.SEARCHING}
               </li>
             ) : flatFilteredOptions.length > 0 ? renderDropdownItems() : (
               !hideEmptyMessage && (
                 <li className="settings-combobox__empty" role="option" aria-disabled="true">
-                  {emptyMessage || <>No results matching &ldquo;{inputValue}&rdquo;</>}
+                  {emptyMessage || <>{SharedStrings.SETTINGS_COMBOBOX.NO_RESULTS_MATCHING(inputValue)}</>}
                 </li>
               )
             )}
@@ -497,7 +498,7 @@ export function SettingsCombobox({
                     size="1"
                     className="settings-combobox__chip-remove"
                     onClick={() => removeChip(val)}
-                    aria-label={`Remove ${fullLabel}`}
+                    aria-label={SharedStrings.SETTINGS_COMBOBOX.REMOVE(fullLabel)}
                     tabIndex={-1}
                   >
                     ×
@@ -511,7 +512,7 @@ export function SettingsCombobox({
           })}
           {overflowCount > 0 && (
             <span className="settings-combobox__chip settings-combobox__chip--overflow">
-              +{overflowCount} more
+              {SharedStrings.SETTINGS_COMBOBOX.MORE(overflowCount)}
             </span>
           )}
         </div>

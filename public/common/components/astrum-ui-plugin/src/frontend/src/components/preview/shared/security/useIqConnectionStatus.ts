@@ -16,6 +16,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Axios from 'axios';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
 
 const IQ_API = 'service/rest/v1/iq';
 const IQ_VERIFY_API = 'service/rest/internal/ui/iq/verify-connection';
@@ -82,11 +83,11 @@ export function useIqConnectionStatus(autoTest = true): IqConnectionStatus {
         setState('connected');
       } else {
         setState('disconnected');
-        setErrorMessage(response.data?.reason || 'Connection failed');
+        setErrorMessage(response.data?.reason || SecurityReportStrings.IQ_CONNECTION.CONNECTION_FAILED);
       }
     } catch (err: any) {
       setState('disconnected');
-      const reason = err?.response?.data || err?.message || 'Connection verification failed';
+      const reason = err?.response?.data || err?.message || SecurityReportStrings.IQ_CONNECTION.CONNECTION_VERIFICATION_FAILED;
       setErrorMessage(typeof reason === 'string' ? reason : JSON.stringify(reason));
     }
   }, [config]);
@@ -111,11 +112,11 @@ export function useIqConnectionStatus(autoTest = true): IqConnectionStatus {
         setState('connected');
       } else {
         setState('disconnected');
-        setErrorMessage(response.data?.reason || 'Connection failed');
+        setErrorMessage(response.data?.reason || SecurityReportStrings.IQ_CONNECTION.CONNECTION_FAILED);
       }
     } catch (err: any) {
       setState('disconnected');
-      const reason = err?.response?.data || err?.message || 'Connection verification failed';
+      const reason = err?.response?.data || err?.message || SecurityReportStrings.IQ_CONNECTION.CONNECTION_VERIFICATION_FAILED;
       setErrorMessage(typeof reason === 'string' ? reason : JSON.stringify(reason));
     }
   }, [fetchConfig]);
@@ -144,12 +145,12 @@ export function useIqConnectionStatus(autoTest = true): IqConnectionStatus {
             setState('connected');
           } else {
             setState('disconnected');
-            setErrorMessage(response.data?.reason || 'Connection failed');
+            setErrorMessage(response.data?.reason || SecurityReportStrings.IQ_CONNECTION.CONNECTION_FAILED);
           }
         } catch (err: any) {
           if (!mounted) return;
           setState('disconnected');
-          const reason = err?.response?.data || err?.message || 'Connection verification failed';
+          const reason = err?.response?.data || err?.message || SecurityReportStrings.IQ_CONNECTION.CONNECTION_VERIFICATION_FAILED;
           setErrorMessage(typeof reason === 'string' ? reason : JSON.stringify(reason));
         }
       }

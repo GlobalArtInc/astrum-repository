@@ -6,6 +6,7 @@ import { Box, Text, Select } from '@radix-ui/themes';
 import { AlertCircle } from 'lucide-react';
 
 import './SettingsSelect.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 // Special value to represent "None" selection since Radix doesn't allow empty strings
 const NONE_VALUE = '__NONE__';
@@ -32,7 +33,7 @@ export function SettingsSelect({
   value,
   onChange,
   options = [],
-  placeholder = 'Select an option',
+  placeholder = SharedStrings.SETTINGS_SELECT.SELECT_OPTION,
   helpText = '',
   error = '',
   required = false,

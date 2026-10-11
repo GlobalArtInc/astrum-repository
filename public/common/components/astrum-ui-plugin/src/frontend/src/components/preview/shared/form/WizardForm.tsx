@@ -6,6 +6,8 @@ import { ArrowLeft } from 'lucide-react';
 import { SettingsForm } from './SettingsForm';
 
 import './WizardForm.scss';
+import CommonStrings from '../../constants/CommonStrings';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface WizardStep {
   id: string;
@@ -149,7 +151,7 @@ export function WizardForm({
   onStepChange,
   onComplete,
   onCancel,
-  completeLabel = 'Create',
+  completeLabel = CommonStrings.ACTIONS.CREATE,
   title,
   description,
   canAdvance = true,
@@ -202,7 +204,7 @@ export function WizardForm({
 
   const submitLabel = useMemo(() => {
     if (isLastStep) return completeLabel;
-    return 'Continue';
+    return SharedStrings.WIZARD_FORM.CONTINUE;
   }, [isLastStep, completeLabel]);
 
   return (
@@ -212,7 +214,7 @@ export function WizardForm({
       title={title}
       description={description}
       submitLabel={submitLabel}
-      cancelLabel="Cancel"
+      cancelLabel={CommonStrings.ACTIONS.CANCEL}
       loading={loading}
       dirty={dirty}
       pristine={false}
@@ -240,7 +242,7 @@ export function WizardForm({
             data-analytics-id={backAnalyticsId}
           >
             <ArrowLeft size={14} />
-            Back
+            {CommonStrings.ACTIONS.BACK}
           </Button>
         )
       }

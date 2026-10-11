@@ -13,6 +13,7 @@ import { AsCombobox } from '@globalart/astrum-react-shared-components';
 import { ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 
 import './TablePagination.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 export const PAGE_SIZE_OPTIONS = [20, 40, 50, 100, 250] as const;
 
@@ -174,8 +175,8 @@ function PageJumpControl({ currentPage, totalPages, onJump }: PageJumpControlPro
         onChange={handleChange}
         onSearch={handleSearch}
         autoComplete={false}
-        aria-label="Jump to page"
-        emptyMessage={`No page starts with "${draft.trim()}"`}
+        aria-label={SharedStrings.TABLE_PAGINATION.JUMP_PAGE_ARIA}
+        emptyMessage={SharedStrings.TABLE_PAGINATION.NO_PAGE_STARTS(draft.trim())}
         className="tablepagination-jump-combobox"
         style={{ width: inputWidth }}
         onKeyDown={handleKeyDown}
@@ -321,7 +322,7 @@ export function TablePagination({
       {/* Left: Showing [dropdown] of Y + Page dropdown */}
       <Flex align="center" gap="4" wrap="wrap">
         <Flex align="center" gap="2" style={{ whiteSpace: 'nowrap' }}>
-          <Text size="2">Showing</Text>
+          <Text size="2">{SharedStrings.TABLE_PAGINATION.SHOWING}</Text>
           {onItemsPerPageChange ? (
             <Select.Root
               value={itemsPerPageValue}
@@ -340,21 +341,21 @@ export function TablePagination({
           ) : (
             <Text size="2">{showingCount}</Text>
           )}
-          <Text size="2">of {totalItems.toLocaleString()}{totalItemsSuffix ?? ''}</Text>
+          <Text size="2">{SharedStrings.TABLE_PAGINATION.OF_ITEMS(totalItems.toLocaleString(), totalItemsSuffix ?? '')}</Text>
         </Flex>
         <Flex align="center" gap="2" style={{ whiteSpace: 'nowrap' }}>
-          <Text size="2">Page</Text>
+          <Text size="2">{SharedStrings.TABLE_PAGINATION.PAGE}</Text>
           <PageJumpControl
             currentPage={currentPage}
             totalPages={totalPages}
             onJump={handlePageChange}
           />
-          <Text size="2">of {totalPages}</Text>
+          <Text size="2">{SharedStrings.TABLE_PAGINATION.OF_PAGES(totalPages)}</Text>
         </Flex>
       </Flex>
 
       {/* Right: Navigation buttons */}
-      <nav aria-label={`Pagination, page ${currentPage} of ${totalPages}`}>
+      <nav aria-label={SharedStrings.TABLE_PAGINATION.PAGINATION_PAGE(currentPage, totalPages)}>
         <Flex align="center" gap="1">
           <IconButton
             variant="outline"
@@ -362,7 +363,7 @@ export function TablePagination({
             size="2"
             disabled={currentPage === 1}
             onClick={() => handlePageChange(1)}
-            aria-label="First page"
+            aria-label={SharedStrings.TABLE_PAGINATION.FIRST_PAGE_ARIA}
           >
             <ChevronsLeft size={16} />
           </IconButton>
@@ -372,7 +373,7 @@ export function TablePagination({
             size="2"
             disabled={currentPage === 1}
             onClick={() => handlePageChange(currentPage - 1)}
-            aria-label="Previous page"
+            aria-label={SharedStrings.TABLE_PAGINATION.PREVIOUS_PAGE_ARIA}
           >
             <ChevronLeft size={16} />
           </IconButton>
@@ -428,7 +429,7 @@ export function TablePagination({
                 handlePageChange(currentPage + 1);
               }
             }}
-            aria-label={currentPage === totalPages && hasMore ? 'Load more' : 'Next page'}
+            aria-label={currentPage === totalPages && hasMore ? SharedStrings.TABLE_PAGINATION.LOAD_MORE : SharedStrings.TABLE_PAGINATION.NEXT_PAGE}
           >
             <ChevronRight size={16} />
           </IconButton>
@@ -438,7 +439,7 @@ export function TablePagination({
             size="2"
             disabled={currentPage === totalPages}
             onClick={() => handlePageChange(totalPages)}
-            aria-label="Last page"
+            aria-label={SharedStrings.TABLE_PAGINATION.LAST_PAGE_ARIA}
           >
             <ChevronsRight size={16} />
           </IconButton>

@@ -11,6 +11,8 @@ import { useArtifactList } from './useArtifactList';
 import type { SecurityStatusData } from './security.types';
 
 import './SecurityReportPage.scss';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
+import CommonStrings from '../../constants/CommonStrings';
 
 export type SecurityReportType = 'health-check' | 'firewall';
 
@@ -51,8 +53,8 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const title = reportType === 'health-check' ? 'Health Check Report' : 'Firewall Report';
-  const breadcrumbReportLabel = reportType === 'health-check' ? 'Health Check Report' : 'Firewall Report';
+  const title = reportType === 'health-check' ? SecurityReportStrings.REPORT_PAGE.HEALTH_CHECK_REPORT : SecurityReportStrings.REPORT_PAGE.FIREWALL_REPORT;
+  const breadcrumbReportLabel = reportType === 'health-check' ? SecurityReportStrings.REPORT_PAGE.HEALTH_CHECK_REPORT : SecurityReportStrings.REPORT_PAGE.FIREWALL_REPORT;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -62,7 +64,7 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
         const items = await restClient.get<HealthCheckApiItem[]>(ENDPOINTS.HEALTH_CHECK);
         const item = (items || []).find((i) => i.repositoryName === repositoryName);
         if (!item) {
-          setError(`No health check data found for ${repositoryName}`);
+          setError(SecurityReportStrings.REPORT_PAGE.NO_HEALTH_CHECK_DATA_FOUND(repositoryName));
           setData(null);
           return;
         }
@@ -80,7 +82,7 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
         const items = await restClient.get<FirewallApiItem[]>(ENDPOINTS.FIREWALL_STATUS);
         const item = (items || []).find((i) => i.repositoryName === repositoryName);
         if (!item) {
-          setError(`No firewall data found for ${repositoryName}`);
+          setError(SecurityReportStrings.REPORT_PAGE.NO_FIREWALL_DATA_FOUND(repositoryName));
           setData(null);
           return;
         }
@@ -95,7 +97,7 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
         });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load report data');
+      setError(err instanceof Error ? err.message : SecurityReportStrings.REPORT_PAGE.FAILED_LOAD_REPORT_DATA);
       setData(null);
     } finally {
       setLoading(false);
@@ -120,7 +122,7 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
   if (loading) {
     return (
       <Box className="security-report-page">
-        <LoadingState message="Loading report..." />
+        <LoadingState message={SecurityReportStrings.REPORT_PAGE.LOADING_REPORT} />
       </Box>
     );
   }
@@ -132,11 +134,11 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
           <Box className="security-report-page__header">
             <Button variant="ghost" onClick={handleBack}>
               <ArrowLeft size={16} />
-              Back
+              {CommonStrings.ACTIONS.BACK}
             </Button>
           </Box>
         )}
-        <ErrorState title="Report Unavailable" message={error} action={embedded ? undefined : { label: 'Back to Browse', onClick: handleBack }} />
+        <ErrorState title={SecurityReportStrings.REPORT_PAGE.REPORT_UNAVAILABLE} message={error} action={embedded ? undefined : { label: SecurityReportStrings.REPORT_PAGE.BACK_BROWSE, onClick: handleBack }} />
       </Box>
     );
   }
@@ -153,11 +155,11 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
             <>
               <Button variant="ghost" color="gray" onClick={handleBack} className="security-report-page__back">
                 <ArrowLeft size={16} />
-                Back
+                {CommonStrings.ACTIONS.BACK}
               </Button>
               <Box className="security-report-page__breadcrumb">
                 <Text size="1" color="gray">
-                  Browse → {repositoryName} → {breadcrumbReportLabel}
+                  {SecurityReportStrings.REPORT_PAGE.BROWSE(repositoryName, breadcrumbReportLabel)}
                 </Text>
               </Box>
             </>
@@ -166,7 +168,7 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
             <Button variant="soft" asChild>
               <a href={data.reportUrl} target="_blank" rel="noopener noreferrer" className="security-report-page__open-iq">
                 <ExternalLink size={16} />
-                Open in IQ Server
+                {SecurityReportStrings.REPORT_PAGE.OPEN_IQ_SERVER}
               </a>
             </Button>
           )}
@@ -190,29 +192,29 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
             {reportType === 'firewall' && data.quarantinedComponentCount > 0 && (
               <Badge color="orange" size="2" variant="soft" className="security-report-page__quarantine">
                 <AlertTriangle size={16} />
-                {data.quarantinedComponentCount} components are currently in quarantine
+                {SecurityReportStrings.REPORT_PAGE.COMPONENTS_CURRENTLY_QUARANTINE(data.quarantinedComponentCount)}
               </Badge>
             )}
 
             {/* Summary row – three severity cards + artifacts identified */}
             <Flex gap="4" wrap="wrap" className="security-report-page__summary">
               <SummaryCard
-                label="Critical"
+                label={SecurityReportStrings.REPORT_PAGE.CRITICAL}
                 value={data.criticalComponentCount}
                 color="red"
               />
               <SummaryCard
-                label="Severe"
+                label={SecurityReportStrings.REPORT_PAGE.SEVERE}
                 value={data.severeComponentCount}
                 color="orange"
               />
               <SummaryCard
-                label="Moderate"
+                label={SecurityReportStrings.REPORT_PAGE.MODERATE}
                 value={data.moderateComponentCount}
                 color="yellow"
               />
               <SummaryCard
-                label="Artifacts identified"
+                label={SecurityReportStrings.REPORT_PAGE.ARTIFACTS_IDENTIFIED}
                 value={data.affectedComponentCount}
                 color="gray"
               />
@@ -231,7 +233,7 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
               ) : data.reportUrl ? (
                 <iframe
                   src={data.reportUrl}
-                  title={`${title} for ${repositoryName}`}
+                  title={SecurityReportStrings.REPORT_PAGE.FOR(title, repositoryName)}
                   className="security-report-page__iframe"
                   sandbox="allow-same-origin allow-scripts"
                 />
@@ -239,10 +241,10 @@ export function SecurityReportPage({ repositoryName, reportType, embedded = fals
                 <Flex direction="column" align="center" justify="center" p="8" className="security-report-page__empty">
                   <ShieldCheck size={48} color="var(--gray-7)" />
                   <Text size="3" weight="medium" color="gray" mt="3">
-                    {hasIssues ? 'Full report data is being processed.' : 'No security issues detected.'}
+                    {hasIssues ? SecurityReportStrings.REPORT_PAGE.FULL_REPORT_DATA_BEING_PROCESSED : SecurityReportStrings.REPORT_PAGE.NO_SECURITY_ISSUES_DETECTED}
                   </Text>
                   <Text size="2" color="gray" mt="1">
-                    Run a new analysis to update these results.
+                    {SecurityReportStrings.REPORT_PAGE.RUN_NEW_ANALYSIS_UPDATE_THESE}
                   </Text>
                 </Flex>
               )}

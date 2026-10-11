@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { parseApiError, restClient } from '../../../../interface/api';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
 
 /**
  * The four firewall modes persisted on a proxy repository's configuration post-migration
@@ -153,7 +154,7 @@ export async function setFirewallMode(
     `/service/rest/v1/repositories/${encodeURIComponent(repositoryName)}`,
   );
   if (!basic?.format || !basic?.type) {
-    throw new Error(`Repository '${repositoryName}' not found`);
+    throw new Error(SecurityReportStrings.FIREWALL.REPOSITORY_NOT_FOUND(repositoryName));
   }
   const typedUrl = `/service/rest/v1/repositories/${toApiFormat(basic.format)}/${encodeURIComponent(basic.type)}/${encodeURIComponent(repositoryName)}`;
   const typed = await restClient.get<Record<string, unknown>>(typedUrl);

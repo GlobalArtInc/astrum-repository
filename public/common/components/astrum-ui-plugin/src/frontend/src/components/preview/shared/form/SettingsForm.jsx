@@ -8,6 +8,8 @@ import { SettingsAlert } from './SettingsAlert';
 import { useUnsavedChangesWarning, clearDirtyState } from '../hooks/useUnsavedChangesWarning';
 
 import './SettingsForm.scss';
+import CommonStrings from '../../constants/CommonStrings';
+import SharedStrings from '../../constants/SharedStrings';
 
 /**
  * SettingsForm - Main form wrapper for settings pages
@@ -51,8 +53,8 @@ export function SettingsForm({
   // Support both dirty and pristine (inverted logic)
   dirty = false,
   pristine,
-  submitLabel = 'Save',
-  cancelLabel = 'Discard',
+  submitLabel = CommonStrings.ACTIONS.SAVE,
+  cancelLabel = SharedStrings.SETTINGS_FORM.DISCARD,
   error = null,
   success = null,
   submitDisabled = false,
@@ -258,7 +260,7 @@ export function SettingsForm({
                   data-pristine={isPristine || !!error || noDirtyTracking ? 'true' : 'false'}
                   aria-hidden={isPristine || !!error || noDirtyTracking ? 'true' : undefined}
                 >
-                  Unsaved changes
+                  {SharedStrings.SETTINGS_FORM.UNSAVED_CHANGES}
                 </span>
                 {actionButtons}
                 {onCancel && (
@@ -319,16 +321,16 @@ export function SettingsForm({
       {confirmDiscard && (
         <AlertDialog.Root open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
           <AlertDialog.Content maxWidth="450px">
-            <AlertDialog.Title>Unsaved Changes</AlertDialog.Title>
+            <AlertDialog.Title>{SharedStrings.SETTINGS_FORM.UNSAVED_CHANGES_TITLE}</AlertDialog.Title>
             <AlertDialog.Description size="2">
-              You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
+              {SharedStrings.SETTINGS_FORM.YOU_HAVE_UNSAVED_CHANGES_YOU}
             </AlertDialog.Description>
             <Flex gap="3" mt="4" justify="end">
               <AlertDialog.Cancel>
-                <Button variant="soft" color="gray">Stay</Button>
+                <Button variant="soft" color="gray">{SharedStrings.SETTINGS_FORM.STAY}</Button>
               </AlertDialog.Cancel>
               <AlertDialog.Action>
-                <Button variant="solid" color="red" onClick={handleDiscardConfirm}>Leave</Button>
+                <Button variant="solid" color="red" onClick={handleDiscardConfirm}>{SharedStrings.SETTINGS_FORM.LEAVE}</Button>
               </AlertDialog.Action>
             </Flex>
           </AlertDialog.Content>

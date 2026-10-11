@@ -8,6 +8,8 @@ import { LoadingState } from '../LoadingState';
 import { ErrorState } from '../ErrorState';
 
 import './EntityTable.scss';
+import CommonStrings from '../../constants/CommonStrings';
+import SharedStrings from '../../constants/SharedStrings';
 
 /**
  * Table column definition.
@@ -109,7 +111,7 @@ export function EntityTable<T>({
   getRowKey,
   onRowClick,
   loading = false,
-  loadingMessage = 'Loading...',
+  loadingMessage = CommonStrings.MESSAGES.LOADING,
   error,
   onRetry,
   emptyState,
@@ -121,7 +123,7 @@ export function EntityTable<T>({
   clickable = true,
   focusableRows = false,
   getRowAriaLabel,
-  ariaLabel = 'Data table',
+  ariaLabel = SharedStrings.ENTITY_TABLE.DATA_TABLE,
   getRowTestId,
 }: EntityTableProps<T>): JSX.Element {
   // Handle header click for sorting
@@ -188,7 +190,7 @@ export function EntityTable<T>({
       <div className={`entity-table entity-table--empty ${className}`}>
         {emptyState || (
           <Flex justify="center" p="6">
-            <Text color="gray">No data available</Text>
+            <Text color="gray">{SharedStrings.ENTITY_TABLE.NO_DATA_AVAILABLE}</Text>
           </Flex>
         )}
       </div>
@@ -240,7 +242,7 @@ export function EntityTable<T>({
           const isRowClickable = clickable && onRowClick;
           const isRowFocusable = !isRowClickable && focusableRows;
           const rowAriaLabel = isRowClickable
-            ? (getRowAriaLabel ? getRowAriaLabel(item) : `View ${key}`)
+            ? (getRowAriaLabel ? getRowAriaLabel(item) : SharedStrings.ENTITY_TABLE.VIEW(key))
             : isRowFocusable && getRowAriaLabel
               ? getRowAriaLabel(item)
               : undefined;

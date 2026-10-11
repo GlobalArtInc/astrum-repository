@@ -6,6 +6,8 @@ import { Shield, ShieldCheck, ExternalLink, ChevronRight } from 'lucide-react';
 import { SecurityStatusData } from './security.types';
 
 import './SecurityPopover.scss';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
+import plural from '../../../../interface/plural';
 
 export interface SecurityPopoverProps {
   /** The clickable element that triggers the popover */
@@ -34,7 +36,7 @@ export function SecurityPopover({
   const { criticalComponentCount, severeComponentCount, moderateComponentCount } = data;
   const isHealthy = criticalComponentCount === 0 && severeComponentCount === 0 && moderateComponentCount === 0;
 
-  const title = type === 'firewall' ? 'Firewall Protection' : 'Health Check Summary';
+  const title = type === 'firewall' ? SecurityReportStrings.POPOVER.FIREWALL_PROTECTION : SecurityReportStrings.POPOVER.HEALTH_CHECK_SUMMARY;
 
   return (
     <Popover.Root>
@@ -61,15 +63,15 @@ export function SecurityPopover({
             <Flex align="center" gap="2" p="2" className="security-popover__status--safe">
               <ShieldCheck size={20} color="var(--green-9)" />
               <Box>
-                <Text size="2" weight="bold" color="green">Secure</Text>
-                <Text size="1" color="gray" as="p">No malicious components detected.</Text>
+                <Text size="2" weight="bold" color="green">{SecurityReportStrings.POPOVER.SECURE}</Text>
+                <Text size="1" color="gray" as="p">{SecurityReportStrings.POPOVER.NO_MALICIOUS_COMPONENTS_DETECTED}</Text>
               </Box>
             </Flex>
           ) : (
             <Flex direction="column" gap="2">
-              <MetricRow label="Critical" count={criticalComponentCount} color="red" />
-              <MetricRow label="Severe" count={severeComponentCount} color="orange" />
-              <MetricRow label="Moderate" count={moderateComponentCount} color="yellow" />
+              <MetricRow label={SecurityReportStrings.POPOVER.CRITICAL} count={criticalComponentCount} color="red" />
+              <MetricRow label={SecurityReportStrings.POPOVER.SEVERE} count={severeComponentCount} color="orange" />
+              <MetricRow label={SecurityReportStrings.POPOVER.MODERATE} count={moderateComponentCount} color="yellow" />
             </Flex>
           )}
 
@@ -82,14 +84,14 @@ export function SecurityPopover({
             >
               <Shield size={14} />
               <Text size="1" weight="medium">
-                {data.quarantinedComponentCount} component{data.quarantinedComponentCount !== 1 ? 's' : ''} in quarantine
+                {plural(SecurityReportStrings.QUARANTINED_COMPONENTS, data.quarantinedComponentCount ?? 0)}
               </Text>
             </Flex>
           )}
           {type === 'firewall' && (
             <Box className="security-popover__policy-summary" p="2">
               <Text size="1" color="gray">
-                Policy details in repository profile (Settings → Repositories)
+                {SecurityReportStrings.POPOVER.POLICY_DETAILS_REPOSITORY_PROFILE_SETTINGS}
               </Text>
             </Box>
           )}
@@ -104,7 +106,7 @@ export function SecurityPopover({
             className="security-popover__action"
           >
             <ExternalLink size={14} />
-            View Detailed Report
+            {SecurityReportStrings.POPOVER.VIEW_DETAILED_REPORT}
             <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
           </Button>
         </Flex>

@@ -5,6 +5,7 @@ import { Box, Button, Callout, Flex, Text } from '@radix-ui/themes';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 import './ErrorState.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface ErrorStateProps {
   /** Error title (defaults to "Something went wrong") */
@@ -47,10 +48,10 @@ export interface ErrorStateProps {
  * ```
  */
 export function ErrorState({
-  title = 'Something went wrong',
+  title = SharedStrings.ERROR_STATE.SOMETHING_WENT_WRONG,
   message,
   onRetry,
-  retryText = 'Try again',
+  retryText = SharedStrings.ERROR_STATE.TRY_AGAIN,
   size = 'medium',
   variant = 'centered',
   className = '',

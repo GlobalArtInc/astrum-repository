@@ -7,6 +7,8 @@ import { SecurityStatusData } from './security.types';
 import { restClient } from '../../../../interface/api';
 
 import './SecuritySummaryModal.scss';
+import SecurityReportStrings from '../../constants/SecurityReportStrings';
+import CommonStrings from '../../constants/CommonStrings';
 
 interface MalwareCleanupSummary {
   repositoryName: string;
@@ -64,7 +66,7 @@ export function SecuritySummaryModal({
   const [malwareSummary, setMalwareSummary] = React.useState<MalwareCleanupSummary | null>(null);
   const isHealthCheck = type === 'health-check';
   const Icon = isHealthCheck ? ShieldCheck : Shield;
-  const title = isHealthCheck ? `Health Check – ${repositoryName}` : `Firewall Report – ${repositoryName}`;
+  const title = isHealthCheck ? SecurityReportStrings.SUMMARY_MODAL.HEALTH_CHECK(repositoryName) : SecurityReportStrings.SUMMARY_MODAL.FIREWALL_REPORT(repositoryName);
 
   React.useEffect(() => {
     if (!isHealthCheck && isOpen) {
@@ -165,7 +167,7 @@ export function SecuritySummaryModal({
             </Dialog.Title>
           </Flex>
           <Dialog.Close asChild>
-            <Button variant="ghost" color="gray" size="1" aria-label="Close">
+            <Button variant="ghost" color="gray" size="1" aria-label={CommonStrings.ACTIONS.CLOSE}>
               <X size={20} />
             </Button>
           </Dialog.Close>
@@ -176,15 +178,13 @@ export function SecuritySummaryModal({
           {isFirewallNoLicense && !unsupportedMessage && (
             <Box p="4">
               <Badge size="2" color="blue" variant="soft" style={{ marginBottom: 'var(--space-3)', display: 'inline-flex' }}>
-                Repository Firewall
+                {SecurityReportStrings.SUMMARY_MODAL.REPOSITORY_FIREWALL}
               </Badge>
               <Text size="3" weight="medium" as="p" mb="2">
-                Keep bad code out of your repository.
+                {SecurityReportStrings.SUMMARY_MODAL.KEEP_BAD_CODE_OUT_REPOSITORY}
               </Text>
               <Text size="2" color="gray" as="p">
-                Repository Firewall blocks malicious and vulnerable components at the moment
-                they're requested—before they ever enter your repo. No manual cleanup, no
-                surprises in builds, just trusted dependencies from the start.
+                {SecurityReportStrings.SUMMARY_MODAL.REPOSITORY_FIREWALL_BLOCKS_MALICIOUS_VULNERABLE}
               </Text>
               <Flex gap="2" mt="4">
                 <Button
@@ -192,7 +192,7 @@ export function SecuritySummaryModal({
                   size="2"
                   onClick={() => window.open('https://links.globalart.dev/astrum-repository-firewall', '_blank', 'noopener,noreferrer')}
                 >
-                  Learn More <ExternalLink size={12} />
+                  {CommonStrings.ACTIONS.LEARN_MORE_TITLE} <ExternalLink size={12} />
                 </Button>
               </Flex>
             </Box>
@@ -202,20 +202,18 @@ export function SecuritySummaryModal({
           {isFirewallUnprotected && !unsupportedMessage && (
             <Box p="4">
               <Badge size="2" color="red" variant="soft" style={{ marginBottom: 'var(--space-3)', display: 'inline-flex' }}>
-                Unprotected
+                {SecurityReportStrings.SUMMARY_MODAL.UNPROTECTED}
               </Badge>
               <Text size="3" weight="medium" as="p" mb="2">
-                This repository does not have Firewall protection enabled.
+                {SecurityReportStrings.SUMMARY_MODAL.REPOSITORY_DOES_NOT_HAVE_FIREWALL}
               </Text>
               <Text size="2" color="gray" as="p">
-                Enable Firewall to automatically evaluate components against your organization's
-                security policies. Choose Audit mode to monitor violations, or Quarantine mode
-                to block risky downloads.
+                {SecurityReportStrings.SUMMARY_MODAL.ENABLE_FIREWALL_AUTOMATICALLY_EVALUATE_COMPONENTS}
               </Text>
               <Flex gap="2" mt="4">
                 {onConfigureFirewall && (
                   <Button variant="solid" size="2" onClick={onConfigureFirewall}>
-                    Enable Firewall Protection
+                    {SecurityReportStrings.SUMMARY_MODAL.ENABLE_FIREWALL_PROTECTION}
                   </Button>
                 )}
                 <Button
@@ -223,7 +221,7 @@ export function SecuritySummaryModal({
                   size="2"
                   onClick={() => window.open('https://links.globalart.dev/astrum-repository-firewall', '_blank', 'noopener,noreferrer')}
                 >
-                  Learn More <ExternalLink size={12} />
+                  {CommonStrings.ACTIONS.LEARN_MORE_TITLE} <ExternalLink size={12} />
                 </Button>
               </Flex>
             </Box>
@@ -233,10 +231,10 @@ export function SecuritySummaryModal({
           {isFirewallUnavailable && !isFirewallNoLicense && !unsupportedMessage && (
             <Box p="4">
               <Badge size="2" color="amber" variant="soft" style={{ marginBottom: 'var(--space-3)', display: 'inline-flex' }}>
-                Unavailable
+                {SecurityReportStrings.SUMMARY_MODAL.UNAVAILABLE}
               </Badge>
               <Text size="2" color="gray" as="p">
-                Firewall status is temporarily unavailable. The IQ Server may be unreachable.
+                {SecurityReportStrings.SUMMARY_MODAL.FIREWALL_STATUS_TEMPORARILY_UNAVAILABLE_IQ}
               </Text>
             </Box>
           )}
@@ -251,7 +249,7 @@ export function SecuritySummaryModal({
               ) : (
                 <Flex align="center" gap="2" mb="3">
                   <AlertCircle size={20} color="var(--gray-8)" />
-                  <Text size="3" weight="bold" color="gray">Not Supported</Text>
+                  <Text size="3" weight="bold" color="gray">{SecurityReportStrings.SUMMARY_MODAL.NOT_SUPPORTED}</Text>
                 </Flex>
               )}
               <Text size="2" color="gray" as="p">{unsupportedMessage}</Text>
@@ -260,7 +258,7 @@ export function SecuritySummaryModal({
               )}
               {unsupportedExtraButtons === 'malware-defense' && onMalwareDefense && (
                 <Flex gap="2" mt="3">
-                  <Button variant="soft" size="2" onClick={onMalwareDefense}>Malware Defense</Button>
+                  <Button variant="soft" size="2" onClick={onMalwareDefense}>{SecurityReportStrings.SUMMARY_MODAL.MALWARE_DEFENSE}</Button>
                 </Flex>
               )}
               {unsupportedExtraButtons === 'learn-more' && (
@@ -270,7 +268,7 @@ export function SecuritySummaryModal({
                     size="2"
                     onClick={() => window.open('https://links.globalart.dev/astrum-repository-firewall', '_blank', 'noopener,noreferrer')}
                   >
-                    Learn More <ExternalLink size={12} />
+                    {CommonStrings.ACTIONS.LEARN_MORE_TITLE} <ExternalLink size={12} />
                   </Button>
                 </Flex>
               )}
@@ -282,7 +280,7 @@ export function SecuritySummaryModal({
             isFirewallReportBodyLoading ? (
               <Flex align="center" justify="center" gap="3" py="6" px="4" className="security-summary-modal__report-loading">
                 <Spinner size="3" />
-                <Text size="2" color="gray">Loading firewall report...</Text>
+                <Text size="2" color="gray">{SecurityReportStrings.SUMMARY_MODAL.LOADING_FIREWALL_REPORT}</Text>
               </Flex>
             ) : (
               <>
@@ -290,16 +288,16 @@ export function SecuritySummaryModal({
                   {!isFirewall && (reportDate || reportAge || componentsId > 0) && (
                     <Box>
                       <Text size="2" color="gray" as="div">
-                        <Text weight="medium" size="2">FOR:</Text> {repositoryName}
+                        <Text weight="medium" size="2">{SecurityReportStrings.SUMMARY_MODAL.FOR}</Text> {repositoryName}
                       </Text>
                       {reportDate && (
                         <Text size="2" color="gray" as="div">
-                          <Text weight="medium" size="2">ON:</Text> {reportDate}
+                          <Text weight="medium" size="2">{SecurityReportStrings.SUMMARY_MODAL.ON}</Text> {reportDate}
                         </Text>
                       )}
                       {reportAge && (
                         <Text size="2" color="gray" as="div">
-                          <Text weight="medium" size="2">AGE:</Text> {reportAge}
+                          <Text weight="medium" size="2">{SecurityReportStrings.SUMMARY_MODAL.AGE}</Text> {reportAge}
                         </Text>
                       )}
                     </Box>
@@ -307,7 +305,7 @@ export function SecuritySummaryModal({
                   {isFirewall && (
                     <Box>
                       <Text size="2" color="gray" as="div">
-                        <Text weight="medium" size="2">FOR:</Text> {repositoryName}
+                        <Text weight="medium" size="2">{SecurityReportStrings.SUMMARY_MODAL.FOR}</Text> {repositoryName}
                       </Text>
                     </Box>
                   )}
@@ -315,20 +313,20 @@ export function SecuritySummaryModal({
                     <Flex gap="5" align="start">
                       <Box style={{ textAlign: 'center' }}>
                         <Text size="4" weight="bold" as="div">{componentsId.toLocaleString()}</Text>
-                        <Text size="1" color="gray" as="div">COMPONENTS</Text>
-                        <Text size="1" color="gray" as="div">affected by policy violations</Text>
+                        <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.COMPONENTS}</Text>
+                        <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.AFFECTED_POLICY_VIOLATIONS}</Text>
                       </Box>
                       <Box style={{ textAlign: 'center' }}>
                         <Text size="4" weight="bold" as="div">{(quarantinedComponentCount ?? 0).toLocaleString()}</Text>
-                        <Text size="1" color="gray" as="div">QUARANTINED</Text>
-                        <Text size="1" color="gray" as="div">components</Text>
+                        <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.QUARANTINED}</Text>
+                        <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.COMPONENTS_LOWER}</Text>
                       </Box>
                     </Flex>
                   ) : (componentsId > 0 || componentsTot > 0) ? (
                     <Box className="security-summary-modal__components-block">
                       <Text size="4" weight="bold" as="div">{componentsId.toLocaleString()}</Text>
-                      <Text size="1" color="gray" as="div">COMPONENTS IDENTIFIED</Text>
-                      <Text size="1" color="gray" as="div">{pct}% of {componentsTot.toLocaleString()} total</Text>
+                      <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.COMPONENTS_IDENTIFIED}</Text>
+                      <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.OF_TOTAL(pct, componentsTot.toLocaleString())}</Text>
                     </Box>
                   ) : null}
                 </Flex>
@@ -337,17 +335,17 @@ export function SecuritySummaryModal({
                 {hasSecurityIssues && (
                   <Box className="security-summary-modal__section" mt="3">
                     <Text size="1" weight="bold" color="gray" className="security-summary-modal__section-title">
-                      {isHealthCheck ? 'Security Vulnerabilities' : 'POLICY VIOLATIONS'}
+                      {isHealthCheck ? SecurityReportStrings.SUMMARY_MODAL.SECURITY_VULNERABILITIES : SecurityReportStrings.SUMMARY_MODAL.POLICY_VIOLATIONS}
                     </Text>
                     {isFirewall && (
                       <Text size="1" color="gray" as="div" mb="2">
-                        Components grouped by highest violation severity
+                        {SecurityReportStrings.SUMMARY_MODAL.COMPONENTS_GROUPED_HIGHEST_VIOLATION_SEVERITY}
                       </Text>
                     )}
                     <Flex direction="column" gap="2" mt="2">
-                      <SeverityRow label="Critical (7-10)" value={critical} color="red" />
-                      <SeverityRow label="Severe (4-6)" value={severe} color="orange" />
-                      <SeverityRow label="Moderate (1-3)" value={moderate} color="yellow" />
+                      <SeverityRow label={SecurityReportStrings.SUMMARY_MODAL.CRITICAL_7_10} value={critical} color="red" />
+                      <SeverityRow label={SecurityReportStrings.SUMMARY_MODAL.SEVERE_4_6} value={severe} color="orange" />
+                      <SeverityRow label={SecurityReportStrings.SUMMARY_MODAL.MODERATE_1_3} value={moderate} color="yellow" />
                     </Flex>
 
                     {/* Threat bars -- Health Check only (real per-level data) */}
@@ -379,11 +377,11 @@ export function SecuritySummaryModal({
             <>
               <Separator size="4" my="3" />
               <Box>
-                <Text size="1" weight="bold" color="gray">Malicious Packages</Text>
+                <Text size="1" weight="bold" color="gray">{SecurityReportStrings.SUMMARY_MODAL.MALICIOUS_PACKAGES}</Text>
                 <Flex gap="4" mt="1">
-                  <Text size="2" color="gray">{malwareSummary.scrubbedCount} scrubbed</Text>
+                  <Text size="2" color="gray">{SecurityReportStrings.SUMMARY_MODAL.SCRUBBED(malwareSummary.scrubbedCount)}</Text>
                   {malwareSummary.pendingCount > 0 && (
-                    <Text size="2" color="red">{malwareSummary.pendingCount} pending removal</Text>
+                    <Text size="2" color="red">{SecurityReportStrings.SUMMARY_MODAL.PENDING_REMOVAL(malwareSummary.pendingCount)}</Text>
                   )}
                 </Flex>
               </Box>
@@ -394,19 +392,19 @@ export function SecuritySummaryModal({
           {isHealthCheck && hasLicenseData && (
             <Box className="security-summary-modal__section" mt="3">
               <Text size="1" weight="bold" color="gray" className="security-summary-modal__section-title">
-                License Warnings
+                {SecurityReportStrings.SUMMARY_MODAL.LICENSE_WARNINGS}
               </Text>
               <Flex direction="column" gap="2" mt="2">
                 {hasLicenseBreakdown ? (
                   <>
-                    {(licenseCopyleftCount ?? 0) > 0 && <LicenseBadge label="Copyleft" value={licenseCopyleftCount} color="red" />}
-                    {(licenseNonStandardCount ?? 0) > 0 && <LicenseBadge label="Non Standard" value={licenseNonStandardCount} color="orange" />}
-                    {(licenseNotProvidedCount ?? 0) > 0 && <LicenseBadge label="Not Provided" value={licenseNotProvidedCount} color="yellow" />}
-                    {(licenseWeakCopyleftCount ?? 0) > 0 && <LicenseBadge label="Weak Copyleft" value={licenseWeakCopyleftCount} color="amber" />}
-                    {(licenseLiberalCount ?? 0) > 0 && <LicenseBadge label="Liberal" value={licenseLiberalCount} color="green" />}
+                    {(licenseCopyleftCount ?? 0) > 0 && <LicenseBadge label={SecurityReportStrings.SUMMARY_MODAL.COPYLEFT} value={licenseCopyleftCount} color="red" />}
+                    {(licenseNonStandardCount ?? 0) > 0 && <LicenseBadge label={SecurityReportStrings.SUMMARY_MODAL.NON_STANDARD} value={licenseNonStandardCount} color="orange" />}
+                    {(licenseNotProvidedCount ?? 0) > 0 && <LicenseBadge label={SecurityReportStrings.SUMMARY_MODAL.NOT_PROVIDED} value={licenseNotProvidedCount} color="yellow" />}
+                    {(licenseWeakCopyleftCount ?? 0) > 0 && <LicenseBadge label={SecurityReportStrings.SUMMARY_MODAL.WEAK_COPYLEFT} value={licenseWeakCopyleftCount} color="amber" />}
+                    {(licenseLiberalCount ?? 0) > 0 && <LicenseBadge label={SecurityReportStrings.SUMMARY_MODAL.LIBERAL} value={licenseLiberalCount} color="green" />}
                   </>
                 ) : (licenseIssueCount ?? 0) > 0 ? (
-                  <SeverityRow label="License Issues" value={licenseIssueCount!} color="orange" />
+                  <SeverityRow label={SecurityReportStrings.SUMMARY_MODAL.LICENSE_ISSUES} value={licenseIssueCount!} color="orange" />
                 ) : null}
               </Flex>
             </Box>
@@ -417,7 +415,7 @@ export function SecuritySummaryModal({
             <Flex align="center" gap="3" p="4" className="security-summary-modal__empty">
               <ShieldCheck size={32} color="var(--green-9)" />
               <Box>
-                <Text size="3" weight="bold" color="green">No issues found</Text>
+                <Text size="3" weight="bold" color="green">{SecurityReportStrings.SUMMARY_MODAL.NO_ISSUES_FOUND}</Text>
               </Box>
             </Flex>
           )}
@@ -429,17 +427,17 @@ export function SecuritySummaryModal({
             {reportUrl ? (
               <Button variant="soft" size="3" asChild>
                 <a href={reportUrl} target="_blank" rel="noopener noreferrer">
-                  View Full Report <ExternalLink size={14} />
+                  {SecurityReportStrings.SUMMARY_MODAL.VIEW_FULL_REPORT} <ExternalLink size={14} />
                 </a>
               </Button>
             ) : onViewFullReport ? (
               <Button variant="soft" size="3" onClick={onViewFullReport}>
-                View Full Report <ExternalLink size={14} />
+                {SecurityReportStrings.SUMMARY_MODAL.VIEW_FULL_REPORT} <ExternalLink size={14} />
               </Button>
             ) : null}
             {onBrowseRepo && (
               <Button variant="ghost" size="2" onClick={onBrowseRepo}>
-                Browse Repo
+                {SecurityReportStrings.SUMMARY_MODAL.BROWSE_REPO}
               </Button>
             )}
           </Flex>

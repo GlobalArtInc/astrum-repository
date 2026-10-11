@@ -6,6 +6,7 @@ import { Construction, ArrowLeft, Sparkles, FlaskConical } from 'lucide-react';
 
 import { canPreviewWip, getWipPreviewUrl } from '../config/featureFlags';
 import './ComingSoonPage.scss';
+import SharedStrings from '../constants/SharedStrings';
 
 /**
  * Coming Soon / Not Implemented Placeholder Page
@@ -16,9 +17,9 @@ import './ComingSoonPage.scss';
  * - Development: Shows Coming Soon with "View WIP" link for testing
  */
 export default function ComingSoonPage({ 
-  featureName = 'This Feature',
+  featureName = SharedStrings.COMING_SOON.THIS_FEATURE,
   featureKey = null,
-  description = 'We\'re working hard to bring this feature to the new Astrum One UI.',
+  description = SharedStrings.COMING_SOON.WERE_WORKING_HARD_BRING_FEATURE,
   showBackButton = true,
   defaultUrl = '#browse/welcome',
 }) {
@@ -52,7 +53,7 @@ export default function ComingSoonPage({
 
           {/* Title */}
           <Text size="8" weight="bold" className="coming-soon-page__title">
-            Coming Soon
+            {SharedStrings.COMING_SOON.COMING_SOON}
           </Text>
 
           {/* Feature Name */}
@@ -68,8 +69,7 @@ export default function ComingSoonPage({
           {/* Migration Notice */}
           <Box className="coming-soon-page__notice">
             <Text size="2" color="gray">
-              This page is part of the Astrum One UI rollout. The feature will be available soon 
-              with a fresh new look using Radix UI components.
+              {SharedStrings.COMING_SOON.PAGE_PART_ASTRUM_ONE_UI}
             </Text>
           </Box>
 
@@ -83,7 +83,7 @@ export default function ComingSoonPage({
                 className="coming-soon-page__button"
               >
                 <ArrowLeft size={18} />
-                Go Back
+                {SharedStrings.COMING_SOON.GO_BACK}
               </Button>
             )}
             <Button 
@@ -92,7 +92,7 @@ export default function ComingSoonPage({
               onClick={handleGoToDefault}
               className="coming-soon-page__button coming-soon-page__button--primary"
             >
-              Go to Dashboard
+              {SharedStrings.COMING_SOON.GO_DASHBOARD}
             </Button>
           </Flex>
 

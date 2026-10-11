@@ -11,6 +11,7 @@ import {handleExtJsUnsavedChanges} from '../../../../router/extJsUnsavedChanges'
 import Axios from 'axios';
 
 import './SearchRadix.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 const DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 2;
@@ -264,7 +265,7 @@ export default function SearchRadix({ isPreviewUI = false, routes }) {
   return (
     <div className="search-radix-container" ref={inputRef}>
       <TextField.Root
-        placeholder="Search components or CVEs..."
+        placeholder={SharedStrings.SEARCH.SEARCH_COMPONENTS_CVES_PLACEHOLDER}
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -311,7 +312,7 @@ export default function SearchRadix({ isPreviewUI = false, routes }) {
 
           {/* Footer hint */}
           <div className="search-radix-suggestions__footer">
-            Press Enter to search all results
+            {SharedStrings.SEARCH.PRESS_ENTER_SEARCH_ALL_RESULTS}
           </div>
         </div>
       )}

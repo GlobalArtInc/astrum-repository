@@ -5,15 +5,16 @@ import { useCurrentStateAndParams, useRouter } from '@uirouter/react';
 import { ExtJS } from '../../../../interface/ExtJS';
 
 import { SystemAlert } from './SystemAlert';
+import SharedStrings from '../../constants/SharedStrings';
 
 /** UI-Router state name for the Preview UI Recovery Mode page. */
 const RECOVERY_MODE_STATE = 'preview.admin.support.recoverymode';
 
 const LABELS = {
-  TITLE: 'Recovery Mode Enabled',
+  TITLE: SharedStrings.RECOVERY_MODE_ALERT.RECOVERY_MODE_ENABLED,
   MESSAGE:
-    'While Recovery Mode is on, data repair conflicting tasks are blocked to protect data consistency.',
-  VIEW_DETAILS: 'View Details',
+    SharedStrings.RECOVERY_MODE_ALERT.WHILE_RECOVERY_MODE_DATA_REPAIR,
+  VIEW_DETAILS: SharedStrings.RECOVERY_MODE_ALERT.VIEW_DETAILS,
 };
 
 /**

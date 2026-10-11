@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react';
 
 import './Sparkline.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 export interface DataPoint {
   date: string;
@@ -60,7 +61,7 @@ export function Sparkline({data, width, height, color = 'currentColor', strokeWi
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={`Trend ${trend}`}
+      aria-label={SharedStrings.SPARKLINE.TREND(trend)}
     >
       <path d={path} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" strokeLinecap="round" />
       {showTrend && <circle cx={last.x} cy={last.y} r={2} fill={color} />}

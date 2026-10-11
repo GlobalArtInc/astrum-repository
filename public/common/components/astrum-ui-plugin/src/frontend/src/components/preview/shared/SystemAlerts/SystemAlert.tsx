@@ -5,6 +5,7 @@ import { Box, Flex, Text, Button, IconButton } from '@radix-ui/themes';
 import { Info, AlertTriangle, AlertCircle, CheckCircle, X } from 'lucide-react';
 
 import './SystemAlert.scss';
+import SharedStrings from '../../constants/SharedStrings';
 
 /** Alert severity tiers. Each maps to a Radix color scale via the .scss. */
 export type SystemAlertTier = 'info' | 'warning' | 'error' | 'success';
@@ -141,7 +142,7 @@ export function SystemAlert({
               color="gray"
               size="1"
               onClick={handleDismiss}
-              aria-label="Dismiss alert"
+              aria-label={SharedStrings.SYSTEM_ALERT.DISMISS_ALERT_ARIA}
               className="as-system-alert__dismiss"
             >
               <X size={16} />
