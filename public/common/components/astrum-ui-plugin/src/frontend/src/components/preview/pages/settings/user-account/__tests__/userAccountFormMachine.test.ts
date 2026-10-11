@@ -18,7 +18,14 @@ jest.mock('../../../../../../interface/api', () => ({
   },
 }));
 
+jest.mock('../../../../../../interface/ExtJS', () => ({
+  ExtJS: {
+    fetchAuthenticationToken: jest.fn(),
+  },
+}));
+
 const { restClient } = jest.requireMock('../../../../../../interface/api');
+const { ExtJS } = jest.requireMock('../../../../../../interface/ExtJS');
 
 const MOCK_USER = {
   userId: 'testuser',
@@ -194,6 +201,18 @@ describe('userAccountFormMachine', () => {
     });
   });
 
+  describe('new password', () => {
+    it('must differ from the current one', () => {
+      const errors = validateUserAccount({
+        ...MOCK_USER,
+        currentPassword: 'samepassword',
+        newPassword: 'samepassword',
+        confirmPassword: 'samepassword',
+      });
+      expect(errors.newPassword).toMatch(/differ/i);
+    });
+  });
+
   describe('validateUserAccount function', () => {
     const baseData = {
       userId: 'u',
@@ -224,7 +243,8 @@ describe('userAccountFormMachine', () => {
   });
 
   describe('save flow', () => {
-    it('calls PUT change-password with new password as text/plain', async () => {
+    it('proves the current password with a ticket and sends the new password with it', async () => {
+      ExtJS.fetchAuthenticationToken.mockResolvedValue({ success: true, data: 'ticket-1' });
       restClient.put.mockResolvedValue(undefined);
       const service = await startAndLoad();
 
@@ -235,16 +255,34 @@ describe('userAccountFormMachine', () => {
 
       await waitFor(service, (state) => state.matches('editing') && state.context.isPristine);
 
+      expect(ExtJS.fetchAuthenticationToken).toHaveBeenCalledWith('testuser', 'oldpass1');
       expect(restClient.put).toHaveBeenCalledWith(
-        '/service/rest/v1/security/users/testuser/change-password',
-        'newpassword',
-        { headers: { 'Content-Type': 'text/plain' } }
+        '/service/rest/internal/ui/user/testuser/password',
+        { authToken: 'ticket-1', password: 'newpassword' }
       );
 
       service.stop();
     });
 
+    it('does not change the password when the current one is wrong', async () => {
+      ExtJS.fetchAuthenticationToken.mockResolvedValue({ success: false, message: 'Authentication failed' });
+      const service = await startAndLoad();
+
+      service.send({ type: 'UPDATE', name: 'currentPassword', value: 'wrongpass' } as any);
+      service.send({ type: 'UPDATE', name: 'newPassword', value: 'newpassword' } as any);
+      service.send({ type: 'UPDATE', name: 'confirmPassword', value: 'newpassword' } as any);
+      service.send({ type: 'SUBMIT' } as any);
+
+      await waitFor(service, (state) => state.matches('editing') && state.context.saveError !== null);
+
+      expect(service.getSnapshot().context.saveError).toMatch(/current password is not correct/i);
+      expect(restClient.put).not.toHaveBeenCalled();
+
+      service.stop();
+    });
+
     it('surfaces save error when API fails', async () => {
+      ExtJS.fetchAuthenticationToken.mockResolvedValue({ success: true, data: 'ticket-1' });
       restClient.put.mockRejectedValue(new Error('Change failed'));
       const service = await startAndLoad();
 

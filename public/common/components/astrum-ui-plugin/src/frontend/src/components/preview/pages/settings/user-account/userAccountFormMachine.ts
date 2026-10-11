@@ -2,6 +2,7 @@
 
 import { assign } from 'xstate';
 import { ENDPOINTS, restClient } from '../../../../../interface/api';
+import { ExtJS } from '../../../../../interface/ExtJS';
 import {
   createFormMachine,
   type FormContext,
@@ -77,6 +78,10 @@ export function validateUserAccount(data: UserAccountData): ValidationErrors {
     errors.newPassword = UserPagesStrings.ACCOUNT_FORM_MACHINE.PASSWORD_MUST_LEAST_CHARACTERS(PASSWORD_MIN_LENGTH);
   }
 
+  if (newPassword && currentPassword && newPassword === currentPassword) {
+    errors.newPassword = UserPagesStrings.ACCOUNT_FORM_MACHINE.PASSWORD_MUST_DIFFER;
+  }
+
   if (newPassword !== confirmPassword) {
     errors.confirmPassword = UserPagesStrings.ACCOUNT_FORM_MACHINE.PASSWORDS_DO_NOT_MATCH;
   }
@@ -97,15 +102,28 @@ export function isPasswordFormReady(data: UserAccountData): boolean {
 }
 
 /**
- * User account settings form machine.
+ * Proves the current password with an authentication ticket, as the Classic account page does, so that a password
+ * cannot be changed by anyone who merely finds the session open.
+ */
+async function authenticationTicket(userId: string, password: string): Promise<string> {
+  const response = (await ExtJS.fetchAuthenticationToken(userId, password)) as
+    { success?: boolean; data?: string } | null | undefined;
+  if (!response?.success || !response.data) {
+    throw new Error(UserPagesStrings.ACCOUNT_FORM_MACHINE.CURRENT_PASSWORD_WRONG);
+  }
+  return response.data;
+}
+
+/**
+ * User account password form machine.
  *
  * Loads the current user's profile (userId, firstName, lastName, email, external) from
- * the internal UI endpoint. The profile fields are display-only; the editable surface is
- * the change-password form (currentPassword, newPassword, confirmPassword).
+ * the internal UI endpoint; its editable surface is the change-password form (currentPassword,
+ * newPassword, confirmPassword). The name and email are edited by the details form.
  *
- * Save is a PUT to /service/rest/v1/security/users/{userId}/change-password with the new
- * password as a text/plain body. Password validation only fires when the user has begun
- * typing in any password field.
+ * Save proves the current password with an authentication ticket and PUTs the new password
+ * with that ticket to /service/rest/internal/ui/user/{userId}/password. Password validation
+ * only fires when the user has begun typing in any password field.
  */
 export function createUserAccountFormMachine() {
   return createFormMachine<UserAccountData>({
@@ -125,14 +143,14 @@ export function createUserAccountFormMachine() {
         return { data: restToData(rest) };
       },
       save: async (ctx: FormContext<UserAccountData>) => {
-        const { userId, newPassword } = ctx.data;
+        const { userId, currentPassword, newPassword } = ctx.data;
         if (!userId) {
           throw new Error(UserPagesStrings.ACCOUNT_FORM_MACHINE.USER_NOT_FOUND);
         }
+        const authToken = await authenticationTicket(userId, currentPassword);
         await restClient.put(
-          `/service/rest/v1/security/users/${encodeURIComponent(userId)}/change-password`,
-          newPassword,
-          { headers: { 'Content-Type': 'text/plain' } }
+          `${ENDPOINTS.USER_ACCOUNT}/${encodeURIComponent(userId)}/password`,
+          { authToken, password: newPassword }
         );
       },
     },

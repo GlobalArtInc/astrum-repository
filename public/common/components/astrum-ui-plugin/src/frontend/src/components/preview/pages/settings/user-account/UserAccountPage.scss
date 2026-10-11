@@ -65,6 +65,12 @@
     margin-bottom: var(--space-1);
   }
 
+  &__details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0 var(--space-4);
+  }
+
   &__section-description {
     color: var(--gray-11);
     margin-bottom: var(--space-3);

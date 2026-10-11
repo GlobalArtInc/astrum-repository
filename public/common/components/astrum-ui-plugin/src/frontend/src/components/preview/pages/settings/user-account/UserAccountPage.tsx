@@ -8,9 +8,12 @@ import { ExtJS } from '../../../../../interface/ExtJS';
 import {
   SettingsFormSection,
   SettingsPasswordInput,
+  SettingsTextInput,
   SettingsAlert,
 } from '../../../shared/form';
+import { useRouteVisibility } from '../../../shared/Navigation/useRouteVisibility';
 import { useUserAccountForm } from './useUserAccountForm';
+import { useUserDetailsForm } from './useUserDetailsForm';
 
 import './UserAccountPage.scss';
 import UserPagesStrings from '../../../constants/pages/user/UserPagesStrings';
@@ -25,6 +28,9 @@ const LOAD_ERROR_MESSAGE = UserPagesStrings.ACCOUNT.FAILED_LOAD_ACCOUNT_INFORMAT
 export function UserAccountPage({ className }: UserAccountPageProps) {
   const user = ExtJS.useUser();
   const form = useUserAccountForm();
+  const details = useUserDetailsForm();
+  const showUserToken = useRouteVisibility('preview.user.usertoken');
+  const showNugetApiKey = useRouteVisibility('preview.user.nugetapitoken');
   const [dismissedError, setDismissedError] = useState(false);
 
   useEffect(() => {
@@ -53,7 +59,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
     );
   }
 
-  if (form.isLoading) {
+  if (form.isLoading || details.isLoading) {
     return (
       <Box className={`user-account-page ${className || ''}`.trim()}>
         <Flex align="center" justify="center" className="user-account-page__loading">
@@ -105,32 +111,89 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
           </Flex>
 
           <Flex className="user-account-page__info-row">
-            <Mail size={16} className="user-account-page__info-icon" />
-            <Box>
-              <Text size="1" className="user-account-page__info-label">{UserPagesStrings.ACCOUNT.EMAIL}</Text>
-              <Text size="2" weight="medium">{displayEmail}</Text>
-            </Box>
-          </Flex>
-
-          <Flex className="user-account-page__info-row">
-            <User size={16} className="user-account-page__info-icon" />
-            <Box>
-              <Text size="1" className="user-account-page__info-label">{CommonStrings.LABELS.NAME}</Text>
-              <Text size="2" weight="medium">{displayName}</Text>
-            </Box>
-          </Flex>
-
-          <Flex className="user-account-page__info-row">
             <Shield size={16} className="user-account-page__info-icon" />
             <Box>
               <Text size="1" className="user-account-page__info-label">{UserPagesStrings.ACCOUNT.SOURCE}</Text>
               <Badge variant="soft" color={isExternal ? 'gray' : 'blue'}>
-                {isExternal ? 'external' : 'default'}
+                {isExternal ? UserPagesStrings.ACCOUNT.SOURCE_EXTERNAL : UserPagesStrings.ACCOUNT.SOURCE_LOCAL}
               </Badge>
             </Box>
           </Flex>
 
+          {(!profileLoaded || isExternal) && (
+            <>
+              <Flex className="user-account-page__info-row">
+                <Mail size={16} className="user-account-page__info-icon" />
+                <Box>
+                  <Text size="1" className="user-account-page__info-label">{UserPagesStrings.ACCOUNT.EMAIL}</Text>
+                  <Text size="2" weight="medium">{displayEmail}</Text>
+                </Box>
+              </Flex>
+
+              <Flex className="user-account-page__info-row">
+                <User size={16} className="user-account-page__info-icon" />
+                <Box>
+                  <Text size="1" className="user-account-page__info-label">{CommonStrings.LABELS.NAME}</Text>
+                  <Text size="2" weight="medium">{displayName}</Text>
+                </Box>
+              </Flex>
+            </>
+          )}
         </Box>
+
+        {profileLoaded && isExternal && (
+          <Text size="2" className="user-account-page__section-description">
+            {UserPagesStrings.ACCOUNT.DETAILS_MANAGED_EXTERNALLY}
+          </Text>
+        )}
+
+        {profileLoaded && !isExternal && (
+          <Box data-testid="account-details-form">
+            <Box className="user-account-page__details">
+              <SettingsTextInput
+                {...details.field('firstName')}
+                label={UserPagesStrings.ACCOUNT.FIRST_NAME}
+                autoComplete="given-name"
+                required
+              />
+              <SettingsTextInput
+                {...details.field('lastName')}
+                label={UserPagesStrings.ACCOUNT.LAST_NAME}
+                autoComplete="family-name"
+                required
+              />
+            </Box>
+            <SettingsTextInput
+              {...details.field('email')}
+              label={UserPagesStrings.ACCOUNT.EMAIL}
+              type="email"
+              autoComplete="email"
+              required
+            />
+            <Flex gap="2" mt="4">
+              <Button
+                type="button"
+                variant="solid"
+                size="2"
+                disabled={details.isPristine || details.hasValidationErrors || details.isSaving}
+                onClick={() => details.submit()}
+                data-testid="account-details-submit"
+              >
+                {UserPagesStrings.ACCOUNT.SAVE_DETAILS}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="2"
+                disabled={details.isPristine || details.isSaving}
+                onClick={() => details.reset()}
+                data-testid="account-details-discard"
+              >
+                {UserPagesStrings.ACCOUNT.DISCARD}
+              </Button>
+            </Flex>
+          </Box>
+        )}
       </SettingsFormSection>
 
       {profileLoaded && !isExternal && (
@@ -198,8 +261,10 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
         </SettingsFormSection>
       )}
 
+      {(showUserToken || showNugetApiKey) && (
       <SettingsFormSection title={UserPagesStrings.ACCOUNT.SECURITY}>
         <Flex direction="column" gap="3" data-testid="security-section">
+          {showUserToken && (
           <Card size="1" data-testid="user-token-link-card">
             <Flex align="center" justify="between">
               <Flex align="center" gap="3">
@@ -223,16 +288,15 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               </Button>
             </Flex>
           </Card>
+          )}
 
+          {showNugetApiKey && (
           <Card size="1" data-testid="nuget-key-link-card">
             <Flex align="center" justify="between">
               <Flex align="center" gap="3">
                 <Package size={20} color="var(--gray-10)" />
                 <Box>
-                  <Flex align="center" gap="2">
-                    <Text size="2" weight="medium">{UserPagesStrings.ACCOUNT.NUGET_API_KEY}</Text>
-                    <Badge variant="soft" color="blue" size="1">{UserPagesStrings.ACCOUNT.PRO}</Badge>
-                  </Flex>
+                  <Text size="2" weight="medium">{UserPagesStrings.ACCOUNT.NUGET_API_KEY}</Text>
                   <Text size="1" color="gray" style={{ display: 'block' }}>
                     {UserPagesStrings.ACCOUNT.API_KEY_NUGET_PACKAGE_FEED}
                   </Text>
@@ -250,8 +314,10 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               </Button>
             </Flex>
           </Card>
+          )}
         </Flex>
       </SettingsFormSection>
+      )}
     </Box>
   );
 }

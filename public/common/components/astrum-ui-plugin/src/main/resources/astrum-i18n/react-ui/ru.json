@@ -5656,7 +5656,6 @@
   "PREVIEW.USER.ACCOUNT.NUGET_API_KEY": "API-ключ NuGet",
   "PREVIEW.USER.ACCOUNT.PASSWORD": "Пароль",
   "PREVIEW.USER.ACCOUNT.PERSONAL_ACCESS_TOKEN_API_AUTHENTICATION": "Персональный токен доступа для аутентификации в API",
-  "PREVIEW.USER.ACCOUNT.PRO": "Pro",
   "PREVIEW.USER.ACCOUNT.SECURITY": "Безопасность",
   "PREVIEW.USER.ACCOUNT.SOURCE": "Источник",
   "PREVIEW.USER.ACCOUNT.UPDATE_ACCOUNT_PASSWORD_PASSWORD_MUST": "Смена пароля учётной записи. Пароль должен содержать не меньше 8 символов.",

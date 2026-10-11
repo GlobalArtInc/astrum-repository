@@ -28,16 +28,32 @@ export const previewUserRoutes = [
     component: AccessTokensPage,
     data: {title: PreviewRouteTitles.ACCESS_TOKENS, visibilityRequirements: {requiresUser: true}},
   },
+  // Both mirror the Classic routes (userRoutes.js): the pages work only where their realm is active.
   {
     name: 'preview.user.nugetapitoken',
     url: '/nugetapitoken',
     component: NuGetApiTokenPage,
-    data: {title: PreviewRouteTitles.NUGET_API_TOKEN},
+    data: {
+      title: PreviewRouteTitles.NUGET_API_TOKEN,
+      visibilityRequirements: {
+        requiresUser: true,
+        permissions: ['astrum:apikey:*'],
+        statesEnabled: [{key: 'nugetApiKeyRealmEnabled', defaultValue: false}],
+      },
+    },
   },
   {
     name: 'preview.user.usertoken',
     url: '/usertoken',
     component: UserTokenPage,
-    data: {title: PreviewRouteTitles.USER_TOKEN},
+    data: {
+      title: PreviewRouteTitles.USER_TOKEN,
+      visibilityRequirements: {
+        bundle: 'astrum-usertoken-plugin',
+        statesEnabled: [{key: 'userTokenRealmEnabled', defaultValue: false}],
+        permissions: ['astrum:usertoken-current:read'],
+        editions: ['PRO'],
+      },
+    },
   },
 ];

@@ -77,7 +77,11 @@ export default localize('react-ui', {
   ACCOUNT_FORM_MACHINE: {
     PASSWORD_MUST_LEAST_CHARACTERS: (PASSWORD_MIN_LENGTH) => `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
     PASSWORDS_DO_NOT_MATCH: 'Passwords do not match',
+    PASSWORD_MUST_DIFFER: 'The new password must differ from the current one',
+    CURRENT_PASSWORD_WRONG: 'The current password is not correct',
     USER_NOT_FOUND: 'User not found',
+    FIELD_REQUIRED: 'This field is required',
+    EMAIL_INVALID: 'Enter a valid email address',
   },
   ACCOUNT: {
     FAILED_LOAD_ACCOUNT_INFORMATION: 'Failed to load account information.',
@@ -90,6 +94,12 @@ export default localize('react-ui', {
     USERNAME: 'Username',
     EMAIL: 'Email',
     SOURCE: 'Source',
+    SOURCE_LOCAL: 'Local',
+    SOURCE_EXTERNAL: 'External',
+    FIRST_NAME: 'First name',
+    LAST_NAME: 'Last name',
+    SAVE_DETAILS: 'Save changes',
+    DETAILS_MANAGED_EXTERNALLY: 'Your name and email come from your authentication provider and are changed there.',
     CHANGE_PASSWORD: 'Change Password',
     UPDATE_ACCOUNT_PASSWORD_PASSWORD_MUST: 'Update your account password. Password must be at least 8 characters.',
     CURRENT_PASSWORD: 'Current Password',
@@ -105,7 +115,6 @@ export default localize('react-ui', {
     MANAGE_USER_TOKEN_ARIA: 'Manage User Token',
     MANAGE_USER_TOKEN: 'Manage User Token',
     NUGET_API_KEY: 'NuGet API Key',
-    PRO: 'Pro',
     API_KEY_NUGET_PACKAGE_FEED: 'API key for NuGet package feed authentication',
     MANAGE_NUGET_API_KEY_ARIA: 'Manage NuGet API Key',
     MANAGE_NUGET_API_KEY: 'Manage NuGet API Key',
@@ -113,5 +122,6 @@ export default localize('react-ui', {
   ACCOUNT_FORM_HOOK: {
     FAILED_LOAD_ACCOUNT_INFORMATION: 'Failed to load account information.',
     PASSWORD_CHANGED_SUCCESSFULLY: 'Password changed successfully',
+    DETAILS_SAVED: 'Account details saved',
   },
 }, 'PREVIEW.USER');

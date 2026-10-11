@@ -14,6 +14,12 @@ jest.mock('../../../../../../interface/ExtJS', () => ({
   },
 }));
 
+const mockVisibleRoutes = new Set(['preview.user.usertoken', 'preview.user.nugetapitoken']);
+
+jest.mock('../../../../shared/Navigation/useRouteVisibility', () => ({
+  useRouteVisibility: (name: string) => mockVisibleRoutes.has(name),
+}));
+
 // Mock restClient
 jest.mock('../../../../../../interface/api', () => ({
   restClient: {
@@ -75,51 +81,58 @@ describe('UserAccountPage', () => {
     });
   });
 
-  it('displays real Name from API response', async () => {
+  it('lets a local user edit the name and email from the API', async () => {
+    render(<UserAccountPage />, { wrapper: TestWrapper });
+
+    expect(await screen.findByLabelText(/First name/)).toHaveValue('Test');
+    expect(screen.getByLabelText(/Last name/)).toHaveValue('User');
+    expect(screen.getByLabelText(/^Email/)).toHaveValue('test@example.com');
+    expect(screen.getByText('Local')).toBeInTheDocument();
+  });
+
+  it('saves the changed name and email', async () => {
+    const { restClient } = require('../../../../../../interface/api');
+    restClient.put.mockResolvedValue(undefined);
+    render(<UserAccountPage />, { wrapper: TestWrapper });
+
+    const lastName = await screen.findByLabelText(/Last name/);
+    expect(screen.getByTestId('account-details-submit')).toBeDisabled();
+    fireEvent.change(lastName, { target: { value: 'Tester' } });
+    fireEvent.click(screen.getByTestId('account-details-submit'));
+
+    await waitFor(() => {
+      expect(restClient.put).toHaveBeenCalledWith('/service/rest/internal/ui/user', {
+        userId: 'testuser',
+        firstName: 'Test',
+        lastName: 'Tester',
+        email: 'test@example.com',
+        external: false,
+      });
+    });
+  });
+
+  it('shows the details of an external user read-only', async () => {
+    const { restClient } = require('../../../../../../interface/api');
+    restClient.get.mockResolvedValue({ ...mockApiUser, external: true });
+
     render(<UserAccountPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
       expect(screen.getByText('Test User')).toBeInTheDocument();
     });
+    expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    expect(screen.getByText('External')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/First name/)).not.toBeInTheDocument();
   });
 
-  it('displays real Email from API response', async () => {
+  it('shows "Not set" for an external user without name and email', async () => {
+    const { restClient } = require('../../../../../../interface/api');
+    restClient.get.mockResolvedValue({ ...mockApiUser, firstName: '', lastName: '', email: '', external: true });
+
     render(<UserAccountPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('test@example.com')).toBeInTheDocument();
-    });
-  });
-
-  it('does not show "Not set" when API returns real name and email', async () => {
-    render(<UserAccountPage />, { wrapper: TestWrapper });
-
-    await waitFor(() => {
-      expect(screen.queryByText('Not set')).not.toBeInTheDocument();
-    });
-  });
-
-  it('shows "Not set" in the Name row when API returns empty firstName and lastName', async () => {
-    const { restClient } = require('../../../../../../interface/api');
-    restClient.get.mockResolvedValue({ ...mockApiUser, firstName: '', lastName: '' });
-
-    const { container } = render(<UserAccountPage />, { wrapper: TestWrapper });
-
-    await waitFor(() => {
-      const nameRow = container.querySelector('.user-account-page__info-row:nth-child(3)');
-      expect(nameRow).toHaveTextContent('Not set');
-    });
-  });
-
-  it('shows "Not set" in the Email row when API returns empty email', async () => {
-    const { restClient } = require('../../../../../../interface/api');
-    restClient.get.mockResolvedValue({ ...mockApiUser, email: '' });
-
-    const { container } = render(<UserAccountPage />, { wrapper: TestWrapper });
-
-    await waitFor(() => {
-      const emailRow = container.querySelector('.user-account-page__info-row:nth-child(2)');
-      expect(emailRow).toHaveTextContent('Not set');
+      expect(screen.getAllByText('Not set')).toHaveLength(2);
     });
   });
 
@@ -217,7 +230,7 @@ describe('UserAccountPage', () => {
     const currentPasswordInput = screen.getByLabelText(/Current Password/);
     fireEvent.change(currentPasswordInput, { target: { value: 'oldpassword' } });
 
-    const discardButton = screen.getByRole('button', { name: /discard/i });
+    const discardButton = screen.getByTestId('change-password-cancel');
     fireEvent.click(discardButton);
 
     expect(currentPasswordInput).toHaveValue('');
@@ -235,14 +248,28 @@ describe('UserAccountPage', () => {
       expect(screen.getByTestId('nuget-key-link-card')).toBeInTheDocument();
     });
 
-    it('NuGet API Key shows Pro badge', async () => {
+    it('leaves out the links to pages the server does not offer', async () => {
+      mockVisibleRoutes.delete('preview.user.usertoken');
       render(<UserAccountPage />, { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(screen.getByTestId('nuget-key-link-card')).toBeInTheDocument();
       });
+      expect(screen.queryByTestId('user-token-link-card')).not.toBeInTheDocument();
+      expect(screen.queryByText('Pro')).not.toBeInTheDocument();
+      mockVisibleRoutes.add('preview.user.usertoken');
+    });
 
-      expect(screen.getByText('Pro')).toBeInTheDocument();
+    it('leaves out the Security section when no such page is offered', async () => {
+      mockVisibleRoutes.clear();
+      render(<UserAccountPage />, { wrapper: TestWrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText('Account Information')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('security-section')).not.toBeInTheDocument();
+      mockVisibleRoutes.add('preview.user.usertoken');
+      mockVisibleRoutes.add('preview.user.nugetapitoken');
     });
 
     it('Manage User Token button navigates to user token hash', async () => {
