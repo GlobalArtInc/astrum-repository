@@ -114,6 +114,15 @@ describe('LogViewer', () => {
     });
   });
 
+  it('wraps the marker and the options when the toolbar is narrow', async () => {
+    const { container } = render(<LogViewer filename="astrum.log" onBack={mockOnBack} />, { wrapper: TestWrapper });
+
+    await waitFor(() => expect(screen.getByText('Marker to insert:')).toBeInTheDocument());
+
+    expect(container.querySelector('.log-viewer__mark-section')).toHaveClass('rt-r-fw-wrap');
+    expect(container.querySelector('.log-viewer__options')).toHaveClass('rt-r-fw-wrap');
+  });
+
   it('does not show mark input for other log files', async () => {
     render(<LogViewer filename="request.log" onBack={mockOnBack} />, { wrapper: TestWrapper });
 

@@ -73,7 +73,7 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
         <Flex align="center" justify="between" gap="4" wrap="wrap">
           {/* Mark insertion (only for astrum.log with update permission) */}
           {isAstrumLog && canUpdate && (
-            <Flex align="center" gap="2" className="log-viewer__mark-section">
+            <Flex align="center" gap="2" wrap="wrap" className="log-viewer__mark-section">
               <Text size="2" className="log-viewer__label">
                 {LogsStrings.VIEWER.MARKER_INSERT}
               </Text>
@@ -95,7 +95,7 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
             </Flex>
           )}
 
-          <Flex align="center" gap="4" className="log-viewer__options">
+          <Flex align="center" gap="4" wrap="wrap" className="log-viewer__options">
             {/* Refresh rate */}
             <Flex align="center" gap="2">
               <Text size="2" className="log-viewer__label">
