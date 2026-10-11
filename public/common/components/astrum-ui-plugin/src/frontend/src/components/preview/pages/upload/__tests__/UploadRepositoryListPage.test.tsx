@@ -257,7 +257,16 @@ describe('UploadRepositoryListPage', () => {
   });
 
   describe('Sorting', () => {
-    it('calls handleSortChange when clicking name column header', async () => {
+    it('marks the name column as sorted ascending before any sort is chosen, as the sort controls do', () => {
+      renderWithTheme(<UploadRepositoryListPage />);
+
+      const table = screen.getByRole('table');
+      const headers = within(table).getAllByRole('columnheader');
+      expect(headers[0]).toHaveAttribute('aria-sort', 'ascending');
+      expect(headers[1]).toHaveAttribute('aria-sort', 'none');
+    });
+
+    it('sorts by name descending when clicking the name column header first', async () => {
       const mockHandleSortChange = jest.fn();
       mockUseUploadableRepositories.mockReturnValue({
         ...defaultHookReturn,
@@ -270,7 +279,7 @@ describe('UploadRepositoryListPage', () => {
       const nameHeader = within(table).getByText(UPLOAD_STRINGS.columns.name);
       await userEvent.click(nameHeader);
 
-      expect(mockHandleSortChange).toHaveBeenCalledWith('name', 'asc');
+      expect(mockHandleSortChange).toHaveBeenCalledWith('name', 'desc');
     });
 
     it('calls handleSortChange when clicking format column header', async () => {

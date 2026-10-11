@@ -85,16 +85,16 @@ function filterUploadableRepositories(
 }
 
 /**
- * Sorts repositories by the specified column and direction.
+ * Sorts repositories by the specified column and direction, by name ascending where none is chosen,
+ * as the sort controls show.
  */
 function sortRepositories(
   repositories: UploadableRepository[],
-  column: SortColumn | null,
-  direction: SortDirection
+  sortColumn: SortColumn | null,
+  sortDirection: SortDirection
 ): UploadableRepository[] {
-  if (!(column && direction)) {
-    return repositories;
-  }
+  const column = sortColumn ?? 'name';
+  const direction = sortDirection ?? 'asc';
 
   return [...repositories].sort((a, b) => {
     const aVal = a[column].toLowerCase();

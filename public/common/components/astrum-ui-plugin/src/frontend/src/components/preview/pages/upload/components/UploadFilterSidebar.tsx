@@ -149,8 +149,8 @@ export function UploadFilterSidebar({
   );
 
   const handleSortDirectionChange = useCallback(
-    (v: string) => onSortChange(sortColumn, v as 'asc' | 'desc'),
-    [onSortChange, sortColumn]
+    (v: string) => onSortChange(sortField, v as 'asc' | 'desc'),
+    [onSortChange, sortField]
   );
 
   return (

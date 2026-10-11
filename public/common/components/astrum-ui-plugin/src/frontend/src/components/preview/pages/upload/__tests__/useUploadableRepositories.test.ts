@@ -330,6 +330,33 @@ describe('useUploadableRepositories', () => {
   });
 
   describe('Sorting', () => {
+    it('lists repositories by name before any sort is chosen', async () => {
+      const { result } = renderHook(() => useUploadableRepositories());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.sortColumn).toBeNull();
+      const names = result.current.repositories.map((r) => r.name);
+      expect(names).toEqual([...names].sort());
+    });
+
+    it('sorts by name when only a direction is chosen', async () => {
+      const { result } = renderHook(() => useUploadableRepositories());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      act(() => {
+        result.current.handleSortChange(null, 'desc');
+      });
+
+      const names = result.current.repositories.map((r) => r.name);
+      expect(names).toEqual([...names].sort().reverse());
+    });
+
     it('sorts ascending on first click', async () => {
       const { result } = renderHook(() => useUploadableRepositories());
 

@@ -231,8 +231,8 @@ export function UploadRepositoryListPage(): JSX.Element {
               repositories={repositories}
               loading={loading}
               error={error}
-              sortColumn={sortColumn}
-              sortDirection={sortDirection}
+              sortColumn={sortField}
+              sortDirection={sortDir}
               onSort={(col, dir) => handleSortChange(col, dir)}
               onSelect={handleSelectRepository}
             />
