@@ -535,7 +535,7 @@
  * defined anywhere, so those declarations previously had no effect.
  */
 .radix-themes {
-  --font-family-base: 'Inter', system-ui, sans-serif;
+  --font-family-base: 'Geist', system-ui, sans-serif;
   --default-font-family: var(--font-family-base);
 
   --font-family-mono: 'Geist Mono', ui-monospace, 'Roboto Mono', consolas, 'Liberation Mono', menlo, monospace;

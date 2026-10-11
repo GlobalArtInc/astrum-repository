@@ -58,8 +58,8 @@ function getStoredTheme() {
   } catch (error) {
     console.warn('Failed to read theme preference from localStorage:', error);
   }
-  // Default to light - dark mode is only available in Preview UI
-  return THEMES.LIGHT;
+  // Dark by default; the Classic UI still renders light, see the effect in ThemeProvider
+  return THEMES.DARK;
 }
 
 /**
@@ -106,7 +106,7 @@ function applyTheme(theme) {
   
   // 3. Set data-* attributes that Radix may use for theming
   document.body.setAttribute('data-is-root-theme', 'true');
-  document.body.setAttribute('data-accent-color', 'green');
+  document.body.setAttribute('data-accent-color', 'blue');
   document.body.setAttribute('data-gray-color', 'slate');
   document.body.setAttribute('data-radius', 'medium');
 }

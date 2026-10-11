@@ -9,6 +9,8 @@ import ThemeSwitcher from './ThemeSwitcher';
 describe('ThemeSwitcher', () => {
   beforeEach(() => {
     localStorage.clear();
+    // The tests start from the light theme; dark is the default without a stored choice
+    localStorage.setItem('astrum-theme-preference', THEMES.LIGHT);
     document.documentElement.removeAttribute('data-theme');
     // ThemeSwitcher only renders in Preview UI, so simulate that context
     window.location.hash = '#preview/browse/welcome';

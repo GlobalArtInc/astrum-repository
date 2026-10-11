@@ -14,18 +14,17 @@
  * css-loader branch in rspack.common.js, so the relative url(./files/*.woff2) references
  * resolve and the font files are emitted.
  *
- * Only the latin subset is imported, for the weights the design system uses. Fontsource's
- * per-subset stylesheets carry no unicode-range descriptor, so importing more than one
- * subset for the same family and weight would make the later @font-face shadow the earlier
- * one entirely rather than combining them. Glyphs outside the latin subset fall back
- * through the rest of the font stack, which is the intended behaviour.
+ * The full per-weight stylesheets are imported: each declares one @font-face per subset with
+ * its unicode-range, so the browser downloads only the subsets a page uses and Cyrillic text is
+ * set in the same fonts as Latin text.
  */
 
-// Inter — UI text. Weights 400/500/600/700.
-import '@fontsource/inter/latin-400.css';
-import '@fontsource/inter/latin-500.css';
-import '@fontsource/inter/latin-600.css';
-import '@fontsource/inter/latin-700.css';
+// Geist — UI text. Weights 400/500/600/700.
+import '@fontsource/geist/400.css';
+import '@fontsource/geist/500.css';
+import '@fontsource/geist/600.css';
+import '@fontsource/geist/700.css';
 
-// Geist Mono — code, logs, and other monospaced content. Weight 400.
-import '@fontsource/geist-mono/latin-400.css';
+// Geist Mono — code, logs, and other monospaced content. Weights 400/500.
+import '@fontsource/geist-mono/400.css';
+import '@fontsource/geist-mono/500.css';

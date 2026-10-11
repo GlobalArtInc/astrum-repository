@@ -48,7 +48,7 @@ function AppWithRadixTheme() {
   const {effectiveTheme} = useTheme();
 
   return (
-    <Theme appearance={effectiveTheme} accentColor="green" grayColor="slate" radius="medium">
+    <Theme appearance={effectiveTheme} accentColor="blue" grayColor="slate" radius="medium">
       <TooltipContainerProvider>
         <NuiTooltipContainerProvider>
           <ToastProvider>

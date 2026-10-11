@@ -52,7 +52,7 @@ describe('ThemeContext', () => {
         </ThemeProvider>
       );
 
-      expect(screen.getByTestId('theme')).toHaveTextContent(THEMES.LIGHT);
+      expect(screen.getByTestId('theme')).toHaveTextContent(THEMES.DARK);
       expect(screen.getByTestId('effective-theme')).toHaveTextContent(THEMES.LIGHT);
     });
   });
@@ -89,12 +89,12 @@ describe('ThemeContext', () => {
   });
 
   describe('Theme state management', () => {
-    it('should default to light theme', () => {
+    it('should prefer the dark theme by default and keep the Classic UI light', () => {
       const { result } = renderHook(() => useTheme(), {
         wrapper: ThemeProvider,
       });
 
-      expect(result.current.theme).toBe(THEMES.LIGHT);
+      expect(result.current.theme).toBe(THEMES.DARK);
       expect(result.current.effectiveTheme).toBe(THEMES.LIGHT);
     });
 
@@ -161,8 +161,8 @@ describe('ThemeContext', () => {
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Invalid theme: invalid-theme')
       );
-      // Theme should not change from default (light)
-      expect(result.current.theme).toBe(THEMES.LIGHT);
+      // Theme should not change from the default (dark)
+      expect(result.current.theme).toBe(THEMES.DARK);
 
       consoleSpy.mockRestore();
     });

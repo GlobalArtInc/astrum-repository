@@ -9,6 +9,9 @@
 /* Import design tokens for Radix UI components */
 @import '../../../../astrum-ui-plugin/src/frontend/src/styles/design-tokens.css';
 
+/* Astrum brand colours and type; must come after the imports above */
+@import './styles/astrum-brand.css';
+
 /* ==========================================================================
  * Radix Tooltip Styling
  *
