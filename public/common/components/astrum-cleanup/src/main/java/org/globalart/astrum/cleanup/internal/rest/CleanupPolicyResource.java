@@ -44,6 +44,7 @@ import org.globalart.astrum.cleanup.content.CleanupPolicyDeletedEvent;
 import org.globalart.astrum.cleanup.content.CleanupPolicyUpdatedEvent;
 import org.globalart.astrum.cleanup.internal.preview.CsvCleanupPreviewContentWriter;
 import org.globalart.astrum.cleanup.preview.CleanupPreviewHelper;
+import org.globalart.astrum.cleanup.preview.CleanupPreviewSummaryXO;
 import org.globalart.astrum.cleanup.rest.CleanupPolicyRequestValidator;
 import org.globalart.astrum.cleanup.rest.CleanupPolicyXO;
 import org.globalart.astrum.cleanup.storage.CleanupPolicy;
@@ -414,21 +415,8 @@ public class CleanupPolicyResource
   @RequiresPermissions("astrum:*")
   @Operation(hidden = true)
   public PageResult<ComponentXO> previewContent(final PreviewRequestXO request) {
-    Repository repository = repositoryManager.get(request.getRepository());
-
-    if (repository == null) {
-      throw new NotFoundException("Repository " + request.getRepository() + " not found.");
-    }
-
-    CleanupPolicyPreviewXO xo = new CleanupPolicyPreviewXO();
-    CleanupPolicyCriteria criteria = new CleanupPolicyCriteria(
-        request.getCriteriaLastBlobUpdated(),
-        request.getCriteriaLastDownloaded(),
-        request.getCriteriaReleaseType(),
-        request.getCriteriaAssetRegex(),
-        request.getCriteriaRetain(),
-        request.getCriteriaSortBy());
-    xo.setCriteria(criteria);
+    Repository repository = previewRepository(request);
+    CleanupPolicyPreviewXO xo = toPreviewXO(request);
     QueryOptions options = new QueryOptions(request.getFilter(), "name", "asc", 0, PREVIEW_ITEM_COUNT);
 
     try {
@@ -439,6 +427,54 @@ public class CleanupPolicyResource
     catch (IllegalArgumentException e) {
       throw new ValidationErrorsException("filter", e.getMessage());
     }
+  }
+
+  /**
+   * Counts what the policy described by the request would delete from the repository: components, their assets and
+   * the total size of the assets in bytes. The work is bounded by {@code astrum.cleanup.preview.summary.timeout};
+   * when it runs out the totals found so far come back with {@code complete} set to false.
+   */
+  @POST
+  @Path("preview/summary")
+  @RequiresAuthentication
+  @RequiresPermissions("astrum:*")
+  @Operation(hidden = true)
+  public CleanupPreviewSummaryXO previewSummary(final PreviewRequestXO request) {
+    Repository repository = previewRepository(request);
+    CleanupPolicyPreviewXO xo = toPreviewXO(request);
+
+    try {
+      return cleanupPreviewHelper.get().getSummary(xo, repository, request.getFilter());
+    }
+    catch (IllegalArgumentException e) {
+      throw new ValidationErrorsException("filter", e.getMessage());
+    }
+  }
+
+  private Repository previewRepository(@Nullable final PreviewRequestXO request) {
+    if (request == null || isBlank(request.getRepository())) {
+      throw new ValidationErrorsException("repository", "A repository is required to preview a cleanup policy.");
+    }
+
+    Repository repository = repositoryManager.get(request.getRepository());
+
+    if (repository == null) {
+      throw new NotFoundException("Repository " + request.getRepository() + " not found.");
+    }
+    return repository;
+  }
+
+  private CleanupPolicyPreviewXO toPreviewXO(final PreviewRequestXO request) {
+    CleanupPolicyPreviewXO xo = new CleanupPolicyPreviewXO();
+    xo.setRepositoryName(request.getRepository());
+    xo.setCriteria(new CleanupPolicyCriteria(
+        request.getCriteriaLastBlobUpdated(),
+        request.getCriteriaLastDownloaded(),
+        request.getCriteriaReleaseType(),
+        normalizeAndValidateRegex(request.getCriteriaAssetRegex()),
+        request.getCriteriaRetain(),
+        request.getCriteriaSortBy()));
+    return xo;
   }
 
   @GET

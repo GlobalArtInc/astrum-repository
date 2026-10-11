@@ -78,6 +78,18 @@ export interface PreviewResult {
 }
 
 /**
+ * Everything a policy would delete from one repository; when `complete` is false the server stopped at its time
+ * limit and the numbers are a lower bound.
+ */
+export interface CleanupPreviewSummary {
+  repository: string;
+  componentCount: number;
+  assetCount: number;
+  totalSize: number;
+  complete: boolean;
+}
+
+/**
  * Form validation errors
  */
 export interface CleanupPolicyFormErrors {
@@ -140,6 +152,7 @@ export const CLEANUP_POLICY_API = {
   BASE_URL: '/service/rest/internal/cleanup-policies',
   CRITERIA_FORMATS_URL: '/service/rest/internal/cleanup-policies/criteria/formats',
   PREVIEW_URL: '/service/rest/internal/cleanup-policies/preview/components',
+  PREVIEW_SUMMARY_URL: '/service/rest/internal/cleanup-policies/preview/summary',
   PREVIEW_CSV_URL: 'service/rest/internal/cleanup-policies/preview/components/csv', // CSV URL is used differently via ExtJS.urlOf
 };
 

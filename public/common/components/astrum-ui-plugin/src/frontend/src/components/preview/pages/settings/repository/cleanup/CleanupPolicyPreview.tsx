@@ -6,6 +6,7 @@ import { Search, ChevronUp, ChevronDown, AlertTriangle } from 'lucide-react';
 
 import { SettingsSelect, SettingsButton, SettingsAlert } from '../../../../shared/form';
 import { useCleanupPoliciesApi } from './useCleanupPoliciesApi';
+import { CleanupPolicySummary } from './CleanupPolicySummary';
 import {
   CleanupPolicyFormData,
   RepositoryOption,
@@ -218,6 +219,8 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
           {isLoadingPreview ? 'Loading...' : 'Preview'}
         </SettingsButton>
       </Box>
+
+      <CleanupPolicySummary policyData={policyData} repository={selectedRepository} />
 
       {repoError && (
         <SettingsAlert type="error" className="cleanup-policy-preview__error">

@@ -3,6 +3,7 @@
 import ListMachineUtils from '../../../interface/ListMachineUtils';
 import ValidationUtils from '../../../interface/ValidationUtils';
 import APIConstants from '../../../constants/APIConstants';
+import {previewErrorMessage} from './CleanupPoliciesHelper';
 import {actions, assign, send} from 'xstate';
 import {mergeDeepRight} from 'ramda';
 import Axios from 'axios';
@@ -79,10 +80,11 @@ export default ListMachineUtils.buildListMachine({
     }),
     setError: assign({
       error: (_, event) => {
+        const message = previewErrorMessage(event.data);
         if (event.data?.response?.data && event.data?.response?.status) {
-            return `${event.data.response.data} (${event.data.response.status})`;
+            return `${message} (${event.data.response.status})`;
         }
-        return event.data?.message;
+        return message;
       },
     }),
 

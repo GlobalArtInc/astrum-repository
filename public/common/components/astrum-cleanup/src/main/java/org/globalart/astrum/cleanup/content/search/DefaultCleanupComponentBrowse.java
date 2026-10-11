@@ -67,6 +67,7 @@ public class DefaultCleanupComponentBrowse
   @Override
   public Stream<FluentComponent> browseIncludingAssets(final CleanupPolicy policy, final Repository repository) {
     return Continuations.streamOf(repository.facet(ContentFacet.class).components()::browseEager)
+        .peek(__ -> CancelableHelper.checkCancellation())
         .filter(createComponentFilter(repository, policy));
   }
 

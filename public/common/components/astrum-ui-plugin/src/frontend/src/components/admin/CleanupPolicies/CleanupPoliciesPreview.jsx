@@ -24,6 +24,7 @@ import UIStrings from '../../../constants/UIStrings';
 
 import CleanupPoliciesPreviewFormMachine from './CleanupPoliciesPreviewFormMachine';
 import CleanupPoliciesPreviewListMachine from './CleanupPoliciesPreviewListMachine';
+import CleanupPolicySummary from './CleanupPolicySummary';
 
 export default function CleanupPoliciesPreview({policyData}) {
   const [formState, sendToForm] = useMachine(CleanupPoliciesPreviewFormMachine, {devTools: true});
@@ -104,6 +105,7 @@ export default function CleanupPoliciesPreview({policyData}) {
             </AsTooltip>
           </div>
         </div>
+        <CleanupPolicySummary policyData={policyData} repository={repository}/>
         {isAlertShown &&
             <AsWarningAlert onClose={() => sendToList({type: 'HIDE_ALERT'})}>
               <p className="as-p">{UIStrings.CLEANUP_POLICIES.PREVIEW.SAMPLE_WARNING}</p>

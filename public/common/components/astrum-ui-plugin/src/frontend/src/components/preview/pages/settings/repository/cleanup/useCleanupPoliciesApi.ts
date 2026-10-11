@@ -9,6 +9,7 @@ import {
   FormatCriteria,
   RepositoryOption,
   PreviewComponent,
+  CleanupPreviewSummary,
   CLEANUP_POLICY_API,
   getCleanupPolicyUrl,
   getRepositoriesUrl,
@@ -48,6 +49,42 @@ function buildPolicyPayload(
     payload.repositories = formData.repositories;
   }
   return payload;
+}
+
+/**
+ * Build the body of the preview requests: the repository and the criteria the form has set.
+ */
+function buildPreviewRequest(
+  repository: string,
+  policyData: CleanupPolicyFormData,
+  policyName?: string
+): Record<string, unknown> {
+  const requestBody: Record<string, unknown> = {
+    repository,
+  };
+
+  if (policyName) {
+    requestBody.name = policyName;
+  }
+  if (policyData.criteriaLastBlobUpdated) {
+    requestBody.criteriaLastBlobUpdated = policyData.criteriaLastBlobUpdated;
+  }
+  if (policyData.criteriaLastDownloaded) {
+    requestBody.criteriaLastDownloaded = policyData.criteriaLastDownloaded;
+  }
+  if (policyData.criteriaReleaseType) {
+    requestBody.criteriaReleaseType = policyData.criteriaReleaseType;
+  }
+  if (policyData.criteriaAssetRegex) {
+    requestBody.criteriaAssetRegex = policyData.criteriaAssetRegex;
+  }
+  if (policyData.retain) {
+    requestBody.criteriaRetain = policyData.retain;
+  }
+  if (policyData.sortBy) {
+    requestBody.criteriaSortBy = policyData.sortBy;
+  }
+  return requestBody;
 }
 
 /**
@@ -196,32 +233,7 @@ export function useCleanupPoliciesApi() {
     policyName?: string
   ): Promise<{ components: PreviewComponent[]; total: number }> => {
     try {
-      // Build request body for POST endpoint
-      const requestBody: Record<string, unknown> = {
-        repository,
-      };
-
-      if (policyName) {
-        requestBody.name = policyName;
-      }
-      if (policyData.criteriaLastBlobUpdated) {
-        requestBody.criteriaLastBlobUpdated = policyData.criteriaLastBlobUpdated;
-      }
-      if (policyData.criteriaLastDownloaded) {
-        requestBody.criteriaLastDownloaded = policyData.criteriaLastDownloaded;
-      }
-      if (policyData.criteriaReleaseType) {
-        requestBody.criteriaReleaseType = policyData.criteriaReleaseType;
-      }
-      if (policyData.criteriaAssetRegex) {
-        requestBody.criteriaAssetRegex = policyData.criteriaAssetRegex;
-      }
-      if (policyData.retain) {
-        requestBody.criteriaRetain = policyData.retain;
-      }
-      if (policyData.sortBy) {
-        requestBody.criteriaSortBy = policyData.sortBy;
-      }
+      const requestBody = buildPreviewRequest(repository, policyData, policyName);
 
       // restClient.post() returns data directly, not Axios response
       const data = await restClient.post<{ results: PreviewComponent[]; total: number }>(CLEANUP_POLICY_API.PREVIEW_URL, requestBody);
@@ -231,6 +243,27 @@ export function useCleanupPoliciesApi() {
       };
     } catch (err: unknown) {
       console.error('Failed to preview cleanup policy:', err);
+      const apiError = parseApiError(err);
+      throw new Error(apiError.message);
+    }
+  }, []);
+
+  /**
+   * Count everything the policy would delete from the repository. The server bounds the work by its own time limit
+   * (two minutes by default), so the client's default timeout must not cut the request short.
+   */
+  const fetchCleanupSummary = useCallback(async (
+    repository: string,
+    policyData: CleanupPolicyFormData,
+    policyName?: string
+  ): Promise<CleanupPreviewSummary> => {
+    try {
+      return await restClient.post<CleanupPreviewSummary>(
+        CLEANUP_POLICY_API.PREVIEW_SUMMARY_URL,
+        buildPreviewRequest(repository, policyData, policyName),
+        { timeout: 0 }
+      );
+    } catch (err: unknown) {
       const apiError = parseApiError(err);
       throw new Error(apiError.message);
     }
@@ -331,6 +364,7 @@ export function useCleanupPoliciesApi() {
     updateCleanupPolicy,
     deleteCleanupPolicy,
     previewCleanupPolicy,
+    fetchCleanupSummary,
     getDryRunCsvUrl,
     isPreviewEnabled,
     isRetainEnabled,

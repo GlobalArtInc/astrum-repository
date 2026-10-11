@@ -296,6 +296,41 @@ describe('useCleanupPoliciesApi', () => {
     });
   });
 
+  describe('fetchCleanupSummary', () => {
+    it('posts the criteria to the summary endpoint without a client-side timeout', async () => {
+      const totals = { repository: 'repo1', componentCount: 2, assetCount: 3, totalSize: 300, complete: true };
+      mockRestClient.post.mockResolvedValueOnce(totals);
+
+      const { result } = renderHook(() => useCleanupPoliciesApi());
+
+      const summary = await act(async () =>
+        result.current.fetchCleanupSummary(
+          'repo1',
+          formData({ criteriaAssetRegex: '.*\\.zip', criteriaLastDownloaded: 10 }),
+          'zips'
+        )
+      );
+
+      expect(mockRestClient.post).toHaveBeenCalledWith(
+        CLEANUP_POLICY_API.PREVIEW_SUMMARY_URL,
+        { repository: 'repo1', name: 'zips', criteriaAssetRegex: '.*\\.zip', criteriaLastDownloaded: 10 },
+        { timeout: 0 }
+      );
+      expect(summary).toEqual(totals);
+    });
+
+    it('throws the parsed message on error', async () => {
+      mockRestClient.post.mockRejectedValueOnce({
+        response: { status: 400, data: { message: 'The preview cannot evaluate this policy' } },
+      });
+      const { result } = renderHook(() => useCleanupPoliciesApi());
+
+      await expect(
+        result.current.fetchCleanupSummary('repo1', formData({ criteriaLastBlobUpdated: 30 }))
+      ).rejects.toThrow('The preview cannot evaluate this policy');
+    });
+  });
+
   describe('getDryRunCsvUrl', () => {
     it('generates correct CSV download URL', () => {
       const { result } = renderHook(() => useCleanupPoliciesApi());

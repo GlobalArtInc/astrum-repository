@@ -1,0 +1,41 @@
+.cleanup-policy-summary {
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-3);
+
+  &__header {
+    display: flex;
+  }
+
+  &__title {
+    margin-bottom: var(--space-1);
+  }
+
+  &__alert {
+    margin-top: var(--space-3);
+  }
+
+  &__result {
+    margin-top: var(--space-3);
+  }
+
+  &__figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6);
+    margin: var(--space-3) 0 0;
+
+    dt {
+      font-size: var(--font-size-1);
+      color: var(--gray-11);
+    }
+
+    dd {
+      margin: 0;
+      font-size: var(--font-size-6);
+      font-weight: var(--font-weight-bold);
+      color: var(--gray-12);
+    }
+  }
+}

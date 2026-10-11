@@ -4,6 +4,7 @@ package org.globalart.astrum.cleanup.content.search;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import org.globalart.astrum.cleanup.datastore.search.criteria.AssetCleanupEvaluator;
@@ -21,6 +22,8 @@ import org.globalart.astrum.repository.content.fluent.FluentAsset;
 import org.globalart.astrum.repository.content.fluent.FluentComponent;
 import org.globalart.astrum.repository.content.fluent.FluentComponents;
 import org.globalart.astrum.repository.query.QueryOptions;
+import org.globalart.astrum.scheduling.CancelableHelper;
+import org.globalart.astrum.scheduling.TaskInterruptedException;
 
 import com.google.common.collect.ForwardingCollection;
 import org.junit.jupiter.api.AfterEach;
@@ -36,8 +39,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -112,6 +117,25 @@ class DefaultCleanupComponentBrowseTest
 
     Stream<FluentComponent> result = underTest.browseIncludingAssets(policy, repository);
     validateResult(result);
+  }
+
+  @Test
+  void testBrowseIncludingAssetsStopsWhenCancelledEvenWithoutMatches() {
+    when(fluentComponents.browseEager(anyInt(), any())).thenReturn(
+        new TestContinuation<>(List.of(fluentComponent, fluentComponent2), null));
+    lenient().when(componentCleanupEvaluator.getPredicate(repository, "componentValue"))
+        .thenReturn((component, assets) -> false);
+    lenient().when(assetCleanupEvaluator.getPredicate(repository, "componentValue")).thenReturn(asset -> false);
+    CancelableHelper.set(new AtomicBoolean(true));
+
+    try {
+      Stream<FluentComponent> result = underTest.browseIncludingAssets(createPolicy(), repository);
+
+      assertThrows(TaskInterruptedException.class, result::count);
+    }
+    finally {
+      CancelableHelper.remove();
+    }
   }
 
   @Test

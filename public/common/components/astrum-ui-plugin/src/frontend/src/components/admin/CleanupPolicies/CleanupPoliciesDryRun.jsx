@@ -16,6 +16,7 @@ import FormUtils from '../../../interface/FormUtils';
 
 import UIStrings from '../../../constants/UIStrings';
 import cleanupPoliciesDryRunMachine from './CleanupPoliciesDryRunMachine';
+import CleanupPolicySummary from './CleanupPolicySummary';
 
 const {BUTTON, REPOSITORY_DESCRIPTION, REPOSITORY_SELECT, TITLE} = UIStrings.CLEANUP_POLICIES.DRY_RUN;
 
@@ -75,6 +76,7 @@ export default function CleanupPoliciesDryRun({policyData}) {
               </AsTooltip>
             </AsButtonBar>
           </AsFormRow>
+          <CleanupPolicySummary policyData={policyData} repository={repository}/>
         </>
       }
     </AsLoadWrapper>

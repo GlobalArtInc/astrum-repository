@@ -4,14 +4,20 @@ package org.globalart.astrum.cleanup.internal.content.service;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.ws.rs.WebApplicationException;
@@ -20,6 +26,7 @@ import jakarta.ws.rs.core.Response;
 import org.globalart.astrum.cleanup.content.search.CleanupBrowseServiceFactory;
 import org.globalart.astrum.cleanup.content.search.CleanupComponentBrowse;
 import org.globalart.astrum.cleanup.preview.CleanupPreviewHelper;
+import org.globalart.astrum.cleanup.preview.CleanupPreviewSummaryXO;
 import org.globalart.astrum.cleanup.storage.CleanupPolicy;
 import org.globalart.astrum.cleanup.storage.CleanupPolicyCriteria;
 import org.globalart.astrum.cleanup.storage.CleanupPolicyPreviewXO;
@@ -34,7 +41,9 @@ import org.globalart.astrum.repository.query.QueryOptions;
 import org.globalart.astrum.repository.rest.api.AssetXO;
 import org.globalart.astrum.repository.rest.api.ComponentXO;
 import org.globalart.astrum.repository.rest.api.DefaultComponentXO;
+import org.globalart.astrum.rest.ValidationErrorsException;
 import org.globalart.astrum.scheduling.CancelableHelper;
+import org.globalart.astrum.scheduling.TaskInterruptedException;
 
 import org.globalart.astrum.common.time.DateHelper;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.globalart.astrum.common.app.FeatureFlags.CLEANUP_RETAIN_ALL_FORMATS_NAMED_VALUE;
 import static org.globalart.astrum.common.time.DateHelper.optionalOffsetToDate;
 
 /**
@@ -57,6 +67,8 @@ public class CleanupPreviewHelperImpl
 
   private final Duration previewTimeout;
 
+  private final Duration summaryTimeout;
+
   private final CleanupBrowseServiceFactory browseServiceFactory;
 
   private final boolean retainAllFormatsEnabled;
@@ -65,11 +77,13 @@ public class CleanupPreviewHelperImpl
   public CleanupPreviewHelperImpl(
       final CleanupPolicyStorage cleanupPolicyStorage,
       @Value("${astrum.cleanup.preview.timeout:60s}") final Duration previewTimeout,
+      @Value("${astrum.cleanup.preview.summary.timeout:120s}") final Duration summaryTimeout,
       final CleanupBrowseServiceFactory browseServiceFactory,
-      @Value("${astrum.cleanup.retainAllFormats.enabled:false}") final boolean retainAllFormatsEnabled)
+      @Value(CLEANUP_RETAIN_ALL_FORMATS_NAMED_VALUE) final boolean retainAllFormatsEnabled)
   {
     this.cleanupPolicyStorage = checkNotNull(cleanupPolicyStorage);
     this.previewTimeout = checkNotNull(previewTimeout);
+    this.summaryTimeout = checkNotNull(summaryTimeout);
     this.browseServiceFactory = checkNotNull(browseServiceFactory);
     this.retainAllFormatsEnabled = retainAllFormatsEnabled;
   }
@@ -154,13 +168,130 @@ public class CleanupPreviewHelperImpl
     try {
       return future.get(previewTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
-    catch (Exception e) {
+    catch (TimeoutException e) {
       cancelled.set(true);
       log.debug("Timeout computing preview for cleanup for policy {} in repository {}", policy, repository.getName(),
           e);
       // indicate failure to UI
       throw new WebApplicationException(
           Response.serverError().entity("A timeout occurred while computing the preview results.").build());
+    }
+    catch (ExecutionException e) {
+      throw failure(e);
+    }
+    catch (InterruptedException e) {
+      cancelled.set(true);
+      Thread.currentThread().interrupt();
+      throw new WebApplicationException(e, Response.serverError().build());
+    }
+  }
+
+  @Override
+  public CleanupPreviewSummaryXO getSummary(
+      final CleanupPolicyPreviewXO previewXO,
+      final Repository repository,
+      @Nullable final String filter)
+  {
+    CleanupPolicy policy = toCleanupPolicy(previewXO);
+
+    if (policy.getCriteria().isEmpty()) {
+      return new CleanupPreviewSummaryXO(repository.getName(), 0, 0, 0, true);
+    }
+
+    Predicate<FluentComponent> textFilter = textFilter(filter);
+    Totals totals = new Totals();
+    AtomicBoolean cancelled = new AtomicBoolean(false);
+
+    Future<Void> future = CompletableFuture.runAsync(() -> {
+      CancelableHelper.set(cancelled);
+      try (Stream<FluentComponent> components =
+               browseServiceFactory.getPreviewService().browseIncludingAssets(policy, repository)) {
+        components
+            .peek(__ -> CancelableHelper.checkCancellation())
+            .filter(textFilter)
+            .forEach(totals::add);
+      }
+      catch (TaskInterruptedException e) {
+        if (!cancelled.get()) {
+          throw e;
+        }
+        log.debug("Stopped summing up cleanup preview of repository {}", repository.getName());
+      }
+      finally {
+        CancelableHelper.remove();
+      }
+    });
+
+    try {
+      future.get(summaryTimeout.toMillis(), TimeUnit.MILLISECONDS);
+      return totals.toXO(repository.getName(), true);
+    }
+    catch (TimeoutException e) {
+      cancelled.set(true);
+      CleanupPreviewSummaryXO partial = totals.toXO(repository.getName(), false);
+      log.debug("Cleanup preview of repository {} reached its time limit of {}: {}", repository.getName(),
+          summaryTimeout, partial);
+      return partial;
+    }
+    catch (ExecutionException e) {
+      throw failure(e);
+    }
+    catch (InterruptedException e) {
+      cancelled.set(true);
+      Thread.currentThread().interrupt();
+      throw new WebApplicationException(e, Response.serverError().build());
+    }
+  }
+
+  /**
+   * Unwraps what the background computation threw. Criteria without an evaluator are a mistake in the request rather
+   * than a server failure, so they are reported as a validation error.
+   */
+  private static RuntimeException failure(final ExecutionException e) {
+    Throwable cause = e.getCause();
+    if (cause instanceof UnsupportedOperationException) {
+      return new ValidationErrorsException(
+          "The preview cannot evaluate this policy: " + cause.getMessage() +
+              ". Remove the unsupported criteria to see what the policy would delete.", cause);
+    }
+    if (cause instanceof RuntimeException runtimeException) {
+      return runtimeException;
+    }
+    return new WebApplicationException(cause, Response.serverError().build());
+  }
+
+  private static Predicate<FluentComponent> textFilter(@Nullable final String filter) {
+    if (filter == null || filter.isBlank()) {
+      return component -> true;
+    }
+    return component -> Objects.toString(component.name(), "").contains(filter) ||
+        Objects.toString(component.namespace(), "").contains(filter) ||
+        Objects.toString(component.version(), "").contains(filter);
+  }
+
+  /**
+   * Running totals shared with the request thread, which reads them when the time limit is reached.
+   */
+  private static final class Totals
+  {
+    private long components;
+
+    private long assets;
+
+    private long size;
+
+    void add(final FluentComponent component) {
+      Collection<FluentAsset> componentAssets = component.assets();
+      long componentSize = componentAssets.stream().mapToLong(FluentAsset::assetBlobSize).sum();
+      synchronized (this) {
+        components++;
+        assets += componentAssets.size();
+        size += componentSize;
+      }
+    }
+
+    synchronized CleanupPreviewSummaryXO toXO(final String repository, final boolean complete) {
+      return new CleanupPreviewSummaryXO(repository, components, assets, size, complete);
     }
   }
 

@@ -1,6 +1,7 @@
 
 package org.globalart.astrum.cleanup.internal.rest;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -18,11 +19,18 @@ import org.globalart.astrum.extdirect.model.PagedResponse;
 import org.globalart.astrum.repository.rest.api.ComponentXO;
 import org.globalart.astrum.cleanup.config.CleanupPolicyConfiguration;
 import org.globalart.astrum.cleanup.config.DefaultCleanupPolicyConfiguration;
+import org.globalart.astrum.cleanup.content.search.CleanupBrowseServiceFactory;
+import org.globalart.astrum.cleanup.content.search.CleanupComponentBrowse;
+import org.globalart.astrum.cleanup.internal.content.service.CleanupPreviewHelperImpl;
 import org.globalart.astrum.cleanup.internal.preview.CsvCleanupPreviewContentWriter;
+import org.globalart.astrum.cleanup.internal.storage.CleanupPolicyData;
 import org.globalart.astrum.cleanup.preview.CleanupPreviewHelper;
+import org.globalart.astrum.cleanup.preview.CleanupPreviewSummaryXO;
 import org.globalart.astrum.cleanup.rest.CleanupPolicyRequestValidator;
 import org.globalart.astrum.cleanup.rest.CleanupPolicyXO;
 import org.globalart.astrum.cleanup.storage.CleanupPolicy;
+import org.globalart.astrum.cleanup.storage.CleanupPolicyCriteria;
+import org.globalart.astrum.cleanup.storage.CleanupPolicyPreviewXO;
 import org.globalart.astrum.cleanup.storage.CleanupPolicyStorage;
 import org.globalart.astrum.common.QualifierUtil;
 import org.globalart.astrum.common.event.EventManager;
@@ -49,6 +57,8 @@ import static java.util.Collections.singleton;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringEndsWith.endsWith;
@@ -57,10 +67,12 @@ import static org.hamcrest.text.IsEmptyString.isEmptyOrNullString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.globalart.astrum.cleanup.config.CleanupPolicyConstants.LAST_BLOB_UPDATED_KEY;
@@ -1145,6 +1157,101 @@ class CleanupPolicyResourceTest
     when(helper.getSearchResults(any(), any(), any())).thenThrow(new IllegalArgumentException("bad filter"));
 
     assertThrows(ValidationErrorsException.class, () -> underTest.previewContent(req));
+  }
+
+  @Test
+  void testPreviewSummaryReturnsTotalsOfTheRequestedPolicy() {
+    underTest = newResource(formats, true, true);
+    PreviewRequestXO req = new PreviewRequestXO();
+    req.setRepository(repositoryName);
+    req.setCriteriaLastBlobUpdated(30);
+    req.setCriteriaAssetRegex(".*\\.zip");
+
+    CleanupPreviewHelper helper = mock(CleanupPreviewHelper.class);
+    when(cleanupPreviewHelper.get()).thenReturn(helper);
+    CleanupPreviewSummaryXO totals = new CleanupPreviewSummaryXO(repositoryName, 3, 4, 1_234, true);
+    ArgumentCaptor<CleanupPolicyPreviewXO> previewCaptor = ArgumentCaptor.forClass(CleanupPolicyPreviewXO.class);
+    Repository repository = repositoryManager.get(repositoryName);
+    when(helper.getSummary(previewCaptor.capture(), eq(repository), isNull())).thenReturn(totals);
+
+    assertThat(underTest.previewSummary(req), sameInstance(totals));
+
+    CleanupPolicyPreviewXO previewXO = previewCaptor.getValue();
+    assertThat(previewXO.getRepositoryName(), is(repositoryName));
+    Map<String, String> criteria = CleanupPolicyCriteria.toMap(previewXO.getCriteria());
+    assertThat(criteria, hasEntry(LAST_BLOB_UPDATED_KEY, "2592000"));
+    assertThat(criteria, hasEntry(REGEX_KEY, ".*\\.zip"));
+    assertThat(criteria.size(), is(2));
+  }
+
+  @Test
+  void testPreviewSummaryPassesTheFilterOn() {
+    underTest = newResource(formats, true, true);
+    PreviewRequestXO req = new PreviewRequestXO();
+    req.setRepository(repositoryName);
+    req.setCriteriaLastDownloaded(10);
+    req.setFilter("commons");
+
+    CleanupPreviewHelper helper = mock(CleanupPreviewHelper.class);
+    when(cleanupPreviewHelper.get()).thenReturn(helper);
+    when(helper.getSummary(any(), any(), eq("commons")))
+        .thenReturn(new CleanupPreviewSummaryXO(repositoryName, 0, 0, 0, false));
+
+    assertThat(underTest.previewSummary(req).isComplete(), is(false));
+  }
+
+  @Test
+  void testPreviewSummaryRepositoryNotFound() {
+    underTest = newResource(formats, true, true);
+    PreviewRequestXO req = new PreviewRequestXO();
+    req.setRepository("missing");
+
+    assertThrows(NotFoundException.class, () -> underTest.previewSummary(req));
+  }
+
+  @Test
+  void testPreviewSummaryRequiresRepository() {
+    underTest = newResource(formats, true, true);
+
+    assertThrows(ValidationErrorsException.class, () -> underTest.previewSummary(null));
+    assertThrows(ValidationErrorsException.class, () -> underTest.previewSummary(new PreviewRequestXO()));
+  }
+
+  @Test
+  void testPreviewSummaryRejectsInvalidRegex() {
+    underTest = newResource(formats, true, true);
+    PreviewRequestXO req = new PreviewRequestXO();
+    req.setRepository(repositoryName);
+    req.setCriteriaAssetRegex("*.jar");
+
+    ValidationErrorsException e = assertThrows(ValidationErrorsException.class, () -> underTest.previewSummary(req));
+
+    assertThat(e.getValidationErrors().get(0).getId(), is("criteriaAssetRegex"));
+    verify(cleanupPreviewHelper, never()).get();
+  }
+
+  @Test
+  void testPreviewSummaryRejectsCriteriaThePreviewCannotEvaluate() {
+    CleanupComponentBrowse browse = mock(CleanupComponentBrowse.class);
+    when(browse.browseIncludingAssets(any(), any()))
+        .thenThrow(new UnsupportedOperationException("Criteria of type(s) [retain, sortBy] not supported"));
+    CleanupBrowseServiceFactory browseFactory = mock(CleanupBrowseServiceFactory.class);
+    when(browseFactory.getPreviewService()).thenReturn(browse);
+    when(cleanupPolicyStorage.newCleanupPolicy()).thenReturn(new CleanupPolicyData());
+    when(cleanupPreviewHelper.get()).thenReturn(new CleanupPreviewHelperImpl(
+        cleanupPolicyStorage, Duration.ofSeconds(60), Duration.ofSeconds(60), browseFactory, true));
+    underTest = newResource(formats, true, true);
+
+    PreviewRequestXO req = new PreviewRequestXO();
+    req.setRepository(repositoryName);
+    req.setCriteriaLastBlobUpdated(30);
+    req.setCriteriaRetain(3);
+    req.setCriteriaSortBy("version");
+
+    ValidationErrorsException e = assertThrows(ValidationErrorsException.class, () -> underTest.previewSummary(req));
+
+    assertThat(e.getValidationErrors().get(0).getMessage(),
+        containsString("The preview cannot evaluate this policy: Criteria of type(s) [retain, sortBy] not supported."));
   }
 
   @Test

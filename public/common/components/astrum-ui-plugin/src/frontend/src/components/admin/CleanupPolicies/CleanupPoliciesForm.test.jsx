@@ -50,6 +50,7 @@ const FORMATS_URL = 'service/rest/internal/cleanup-policies/criteria/formats';
 const REPOSITORIES_URL = 'service/rest/internal/ui/repositories';
 const PREVIEW_URL =
   'service/rest/internal/cleanup-policies/preview/components';
+const SUMMARY_URL = 'service/rest/internal/cleanup-policies/preview/summary';
 
 const {CLEANUP_POLICIES: LABELS} = UIStrings;
 
@@ -559,6 +560,30 @@ describe('CleanupPoliciesForm', function () {
       expect(previewSampleWarning()).not.toBeInTheDocument();
     });
 
+    it('calculates what the policy would delete from the preview repository', async function () {
+      const {previewRepositories} = selectors;
+
+      await renderEditView(EDITABLE_ITEM.name);
+
+      await act(async () => userEvent.selectOptions(previewRepositories(), 'maven-central'));
+
+      when(axios.post)
+        .calledWith(SUMMARY_URL, expect.objectContaining({
+          repository: 'maven-central',
+          criteriaLastBlobUpdated: EDITABLE_ITEM.criteriaLastBlobUpdated,
+          criteriaAssetRegex: EDITABLE_ITEM.criteriaAssetRegex,
+        }))
+        .mockResolvedValueOnce({
+          data: {repository: 'maven-central', componentCount: 12, assetCount: 36, totalSize: 3000000, complete: true},
+        });
+
+      await act(async () => userEvent.click(screen.getByRole('button', {name: LABELS.SUMMARY.BUTTON})));
+
+      expect(screen.getByText(LABELS.SUMMARY.COMPONENTS).nextSibling).toHaveTextContent('12');
+      expect(screen.getByText(LABELS.SUMMARY.FILES).nextSibling).toHaveTextContent('36');
+      expect(screen.getByText(LABELS.SUMMARY.SIZE).nextSibling).toHaveTextContent('3.00 MB');
+    });
+
     it('clears preview results when the cleanup policies form is changed', async function () {
       const {
         format,
@@ -713,6 +738,24 @@ describe('CleanupPoliciesForm', function () {
 
       expect(selectDropdown).toHaveValue('');
       expect(createButton).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('calculates what the policy would delete next to the csv report', async function () {
+      const {dryRunRepositories} = selectors;
+
+      await renderEditView(EDITABLE_ITEM.name);
+
+      await act(async () => userEvent.selectOptions(dryRunRepositories(), 'maven-central'));
+
+      when(axios.post)
+        .calledWith(SUMMARY_URL, expect.objectContaining({repository: 'maven-central'}))
+        .mockResolvedValueOnce({
+          data: {repository: 'maven-central', componentCount: 0, assetCount: 0, totalSize: 0, complete: true},
+        });
+
+      await act(async () => userEvent.click(screen.getByRole('button', {name: LABELS.SUMMARY.BUTTON})));
+
+      expect(screen.getByText(/Nothing to delete: no component in/)).toBeInTheDocument();
     });
 
     it('generates the csv url with the right params', async function() {

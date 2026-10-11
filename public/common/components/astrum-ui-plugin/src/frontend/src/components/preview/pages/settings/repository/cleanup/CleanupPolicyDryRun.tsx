@@ -5,7 +5,9 @@ import { Box, Flex, Text, Tooltip, Table, Callout } from '@radix-ui/themes';
 import { Download, AlertTriangle, Loader2 } from 'lucide-react';
 
 import { SettingsSelect, SettingsButton, SettingsAlert } from '../../../../shared/form';
+import UIStrings from '../../../../../../constants/UIStrings';
 import { useCleanupPoliciesApi } from './useCleanupPoliciesApi';
+import { CleanupPolicySummary } from './CleanupPolicySummary';
 import {
   CleanupPolicyFormData,
   RepositoryOption,
@@ -14,6 +16,8 @@ import {
 } from './types';
 
 import './CleanupPolicyDryRun.scss';
+
+const { DRY_RUN } = UIStrings.CLEANUP_POLICIES;
 
 interface CleanupPolicyDryRunProps {
   policyData: CleanupPolicyFormData;
@@ -30,7 +34,6 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [repoError, setRepoError] = useState<string | null>(null);
   const [previewResults, setPreviewResults] = useState<PreviewComponent[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
@@ -116,17 +119,14 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
       previewCleanupPolicy(selectedRepository, policyData, policyName)
         .then((result) => {
           setPreviewResults(result.components);
-          setTotalCount(result.total);
         })
         .catch((err) => {
           setPreviewError(err.message);
           setPreviewResults([]);
-          setTotalCount(0);
         })
         .finally(() => setIsLoadingPreview(false));
     } else {
       setPreviewResults([]);
-      setTotalCount(0);
     }
   }, [
     selectedRepository,
@@ -192,6 +192,12 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
         )}
       </Flex>
 
+      <CleanupPolicySummary
+        policyData={policyData}
+        repository={selectedRepository}
+        policyName={policyName}
+      />
+
       {/* Preview Table — shows components that would be deleted */}
       {selectedRepository && hasCriteria && (
         <Box mt="4">
@@ -201,14 +207,14 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
             </SettingsAlert>
           )}
 
-          {totalCount > 0 && (
+          {!isLoadingPreview && previewResults.length > 0 && (
             <Callout.Root color="amber" mb="3">
               <Callout.Icon>
                 <AlertTriangle size={16} />
               </Callout.Icon>
               <Callout.Text>
                 <Text size="2">
-                  Showing {previewResults.length} of {totalCount} components that would be deleted.
+                  {DRY_RUN.SAMPLE_COUNT(previewResults.length)}
                 </Text>
               </Callout.Text>
             </Callout.Root>
@@ -253,14 +259,6 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
               )}
             </Table.Body>
           </Table.Root>
-
-          {totalCount === 0 && !isLoadingPreview && !previewError && (
-            <Box mt="2">
-              <Text size="2" color="gray">
-                No assets in this repository match the current criteria.
-              </Text>
-            </Box>
-          )}
         </Box>
       )}
     </Box>
