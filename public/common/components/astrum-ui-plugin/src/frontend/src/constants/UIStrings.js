@@ -8,6 +8,7 @@ import WelcomeStrings from "./WelcomeStrings";
 import AccessTokensStrings from "./pages/AccessTokensStrings";
 import BrowseDetailStrings from "./BrowseDetailStrings";
 import NotificationsStrings from "./pages/NotificationsStrings";
+import UsageDashboardStrings from "./UsageDashboardStrings";
 import localize from "../interface/localize";
 
 /**
@@ -132,5 +133,6 @@ export default localize('react-ui', {
   ...WelcomeStrings,
   ...AccessTokensStrings,
   ...BrowseDetailStrings,
-  ...NotificationsStrings
+  ...NotificationsStrings,
+  ...UsageDashboardStrings
 });

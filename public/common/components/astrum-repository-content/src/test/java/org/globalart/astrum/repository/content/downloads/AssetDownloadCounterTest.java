@@ -1,6 +1,10 @@
 package org.globalart.astrum.repository.content.downloads;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -17,6 +21,7 @@ import org.globalart.astrum.common.scheduling.PeriodicJobService;
 import org.globalart.astrum.common.scheduling.PeriodicJobService.PeriodicJob;
 import org.globalart.astrum.repository.content.event.asset.AssetDeletedEvent;
 import org.globalart.astrum.repository.content.event.asset.AssetPurgedEvent;
+import org.globalart.astrum.repository.content.event.component.ComponentDeletedEvent;
 import org.globalart.astrum.repository.content.event.component.ComponentPurgedEvent;
 import org.globalart.astrum.repository.content.event.repository.ContentRepositoryDeletedEvent;
 import org.globalart.astrum.repository.content.store.AssetData;
@@ -54,8 +59,15 @@ public class AssetDownloadCounterTest
 {
   private static final long NOW = Instant.parse("2026-10-01T12:00:00Z").toEpochMilli();
 
+  private static final long DAY = 24 * 60 * 60 * 1000L;
+
+  private static final LocalDate TODAY = LocalDate.of(2026, 10, 1);
+
   @Mock
   private AssetDownloadCountStore store;
+
+  @Mock
+  private AssetDownloadDailyStore dailyStore;
 
   @Mock
   private PeriodicJobService periodicJobService;
@@ -65,13 +77,18 @@ public class AssetDownloadCounterTest
 
   private final List<AssetDownloadCountData> written = new ArrayList<>();
 
+  private final List<AssetDownloadDailyData> writtenDays = new ArrayList<>();
+
+  private final MutableClock clock = new MutableClock(NOW);
+
   private AssetDownloadCounter underTest;
 
   @Before
   public void setUp() {
     when(periodicJobService.schedule(any(Runnable.class), anyInt())).thenReturn(periodicJob);
     doAnswerAddDownloads();
-    underTest = new AssetDownloadCounter(store, periodicJobService, 10);
+    doAnswerAddDays();
+    underTest = new AssetDownloadCounter(store, dailyStore, periodicJobService, 10, 180, clock);
   }
 
   @Test
@@ -341,7 +358,188 @@ public class AssetDownloadCounterTest
 
   @Test
   public void rejectsANonPositiveFlushPeriod() {
-    assertThrows(IllegalArgumentException.class, () -> new AssetDownloadCounter(store, periodicJobService, 0));
+    assertThrows(IllegalArgumentException.class,
+        () -> new AssetDownloadCounter(store, dailyStore, periodicJobService, 0, 180, clock));
+  }
+
+  @Test
+  public void rejectsANonPositiveRetention() {
+    assertThrows(IllegalArgumentException.class,
+        () -> new AssetDownloadCounter(store, dailyStore, periodicJobService, 10, 0, clock));
+  }
+
+  @Test
+  public void addsUpTheDownloadsOfEachDayAndComponent() {
+    underTest.recordDownload("raw", 1, 10, 100, NOW);
+    underTest.recordDownload("raw", 2, 10, 100, NOW + 1000);
+    underTest.recordDownload("raw", 3, 10, 200, NOW);
+    underTest.recordDownload("raw", 4, 10, null, NOW);
+    underTest.recordDownload("raw", 5, 10, null, NOW);
+    underTest.recordDownload("raw", 1, 10, 100, NOW + DAY);
+    underTest.recordDownload("maven2", 1, 20, 100, NOW);
+
+    underTest.flush();
+
+    Map<String, Long> days = writtenDaysByKey();
+    assertThat(days.keySet(), containsInAnyOrder("2026-10-01:raw:10:100", "2026-10-01:raw:10:200",
+        "2026-10-01:raw:10:0", "2026-10-02:raw:10:100", "2026-10-01:maven2:20:100"));
+    assertThat(days.get("2026-10-01:raw:10:100"), is(2L));
+    assertThat(days.get("2026-10-01:raw:10:0"), is(2L));
+    assertThat(days.get("2026-10-02:raw:10:100"), is(1L));
+    assertThat(underTest.pendingDayCount(), is(0));
+  }
+
+  @Test
+  public void countsDaysInUtc() {
+    underTest.recordDownload("raw", 1, 10, null, Instant.parse("2026-10-01T23:59:59Z").toEpochMilli());
+    underTest.recordDownload("raw", 1, 10, null, Instant.parse("2026-10-02T00:00:00Z").toEpochMilli());
+
+    underTest.flush();
+
+    assertThat(writtenDaysByKey().keySet(), containsInAnyOrder("2026-10-01:raw:10:0", "2026-10-02:raw:10:0"));
+  }
+
+  @Test
+  public void writesTheDaysOfADownloadOnce() {
+    underTest.recordDownload("raw", 1, 10, 100, NOW);
+    underTest.flush();
+    underTest.flush();
+
+    assertThat(writtenDays.stream().mapToLong(AssetDownloadDailyData::getDownloadCount).sum(), is(1L));
+  }
+
+  @Test
+  public void keepsTheDaysWhenWritingThemFails() {
+    underTest.recordDownload("raw", 1, 10, 100, NOW);
+    underTest.recordDownload("raw", 1, 10, 100, NOW);
+    doThrow(new IllegalStateException("database down")).when(dailyStore).addDownloads(any());
+
+    assertThrows(IllegalStateException.class, () -> underTest.flush());
+    assertThat(underTest.pendingDayCount(), is(1));
+    assertThat(underTest.pendingCount(), is(0));
+
+    doAnswerAddDays();
+    underTest.recordDownload("raw", 1, 10, 100, NOW);
+    underTest.flush();
+
+    assertThat(writtenDaysByKey().get("2026-10-01:raw:10:100"), is(3L));
+    assertThat(written.stream().mapToLong(AssetDownloadCountData::getDownloadCount).sum(), is(3L));
+  }
+
+  @Test
+  public void deletedRepositoriesLoseTheirDays() {
+    underTest.recordDownload("raw", 1, 10, 100, NOW);
+    underTest.recordDownload("raw", 2, 11, 100, NOW);
+    ContentRepositoryData contentRepository = new ContentRepositoryData();
+    contentRepository.setRepositoryId(10);
+
+    underTest.on(new ContentRepositoryDeletedEvent(contentRepository, "raw"));
+    underTest.flush();
+
+    assertThat(writtenDaysByKey().keySet(), containsInAnyOrder("2026-10-01:raw:11:100"));
+    verify(dailyStore).deleteRepository("raw", 10);
+  }
+
+  @Test
+  public void deletedComponentsAndAssetsKeepTheirDays() {
+    underTest.recordDownload("raw", 1, 10, 100, NOW);
+    ComponentDeletedEvent componentDeleted = mock(ComponentDeletedEvent.class);
+    when(componentDeleted.getFormat()).thenReturn("raw");
+    ComponentData component = new ComponentData();
+    component.setComponentId(100);
+    when(componentDeleted.getComponent()).thenReturn(component);
+    AssetPurgedEvent assetsPurged = mock(AssetPurgedEvent.class);
+    when(assetsPurged.getFormat()).thenReturn("raw");
+    when(assetsPurged.getAssetIds()).thenReturn(new int[]{1});
+
+    underTest.on(componentDeleted);
+    underTest.on(assetsPurged);
+    underTest.flush();
+
+    assertThat(writtenDaysByKey().keySet(), containsInAnyOrder("2026-10-01:raw:10:100"));
+    assertThat(written, is(List.of()));
+    verify(dailyStore, never()).deleteRepository(anyString(), anyInt());
+  }
+
+  @Test
+  public void deletesTheDaysThatAreNoLongerKeptOnceAnHour() {
+    underTest.flush();
+    underTest.flush();
+
+    verify(dailyStore, times(1)).deleteBefore(TODAY.minusDays(179));
+
+    clock.advance(60 * 60 * 1000L);
+    underTest.flush();
+
+    verify(dailyStore, times(2)).deleteBefore(TODAY.minusDays(179));
+
+    clock.advance(DAY);
+    underTest.flush();
+
+    verify(dailyStore).deleteBefore(TODAY.minusDays(178));
+  }
+
+  @Test
+  public void retriesDeletingOldDaysThatFailed() {
+    when(dailyStore.deleteBefore(any())).thenThrow(new IllegalStateException("database down")).thenReturn(3);
+
+    assertThrows(IllegalStateException.class, () -> underTest.flush());
+    underTest.flush();
+    underTest.flush();
+
+    verify(dailyStore, times(2)).deleteBefore(TODAY.minusDays(179));
+  }
+
+  @Test
+  public void recordsTheDayOfTheClock() {
+    clock.advance(DAY);
+    underTest.recordDownload("raw", asset(7, 3, 42));
+
+    underTest.flush();
+
+    assertThat(writtenDaysByKey().keySet(), containsInAnyOrder("2026-10-02:raw:3:42"));
+  }
+
+  private void doAnswerAddDays() {
+    doAnswer(invocation -> {
+      writtenDays.addAll(invocation.getArgument(0));
+      return null;
+    }).when(dailyStore).addDownloads(any());
+  }
+
+  private Map<String, Long> writtenDaysByKey() {
+    return writtenDays.stream().collect(Collectors.toMap(
+        row -> row.getDownloadDay() + ":" + row.getFormat() + ':' + row.getRepositoryId() + ':' + row.getComponentId(),
+        AssetDownloadDailyData::getDownloadCount, Long::sum));
+  }
+
+  private static final class MutableClock
+      extends Clock
+  {
+    private long millis;
+
+    private MutableClock(final long millis) {
+      this.millis = millis;
+    }
+
+    private void advance(final long delta) {
+      millis += delta;
+    }
+
+    @Override
+    public ZoneId getZone() {
+      return ZoneOffset.UTC;
+    }
+
+    @Override
+    public Clock withZone(final ZoneId zone) {
+      return this;
+    }
+
+    @Override
+    public Instant instant() {
+      return Instant.ofEpochMilli(millis);
+    }
   }
 
   private void doAnswerAddDownloads() {

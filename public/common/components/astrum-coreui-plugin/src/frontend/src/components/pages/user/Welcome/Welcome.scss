@@ -11,6 +11,10 @@
     overflow-x: hidden;
   }
 
+  &__usage {
+    padding: var(--as-spacing-6x) var(--as-spacing-6x) var(--as-spacing-8x);
+  }
+
   &__outreach-frame {
     border-style: none;
     width: 100%;

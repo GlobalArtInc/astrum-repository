@@ -315,6 +315,8 @@ export const UploadFormPage = React.lazy(() => import('./components/preview/page
 
 // Top-level preview pages
 export const WelcomeSuper             = React.lazy(() => import('./components/preview/pages/Welcome/Welcome'));
+// Usage of the repositories, shared by the welcome pages of Astrum One and of the classic user interface
+export const UsageDashboard           = React.lazy(() => import('./components/preview/pages/Welcome/usage/UsageDashboard'));
 
 // Security entry pages (moved to preview/shared/security in Task 2)
 

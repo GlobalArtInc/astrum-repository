@@ -27,6 +27,19 @@ public interface AssetDownloadCountDAO
       @Param("assetIds") Collection<Integer> assetIds);
 
   /**
+   * Sums up the downloads of every content repository.
+   */
+  List<RepositoryDownloads> browseRepositoryTotals();
+
+  /**
+   * Returns the most downloaded components of the given content repositories of a format, most downloaded first.
+   */
+  List<ComponentDownloads> browseTopComponents(
+      @Param("format") String format,
+      @Param("repositoryIds") Collection<Integer> repositoryIds,
+      @Param("limit") int limit);
+
+  /**
    * Deletes the rows of the given assets of a format.
    */
   int deleteAssets(

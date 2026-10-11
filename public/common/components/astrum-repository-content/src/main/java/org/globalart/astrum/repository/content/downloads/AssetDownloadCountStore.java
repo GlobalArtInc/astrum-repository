@@ -56,6 +56,29 @@ public class AssetDownloadCountStore
     return rows;
   }
 
+  /**
+   * Sums up the stored downloads of every content repository.
+   */
+  @Transactional
+  public List<RepositoryDownloads> browseRepositoryTotals() {
+    return dao().browseRepositoryTotals();
+  }
+
+  /**
+   * Returns the most downloaded components of the given content repositories of a format, most downloaded first.
+   */
+  @Transactional
+  public List<ComponentDownloads> browseTopComponents(
+      final String format,
+      final Collection<Integer> repositoryIds,
+      final int limit)
+  {
+    if (repositoryIds.isEmpty()) {
+      return List.of();
+    }
+    return dao().browseTopComponents(format, repositoryIds, limit);
+  }
+
   @Transactional
   public int deleteAssets(final String format, final Collection<Integer> assetIds) {
     int deleted = 0;

@@ -19,9 +19,10 @@ jest.mock('@uirouter/react', () => ({
   }),
 }));
 
+let mockMachineData = {};
 jest.mock('@xstate/react', () => ({
   useMachine: () => [
-    {matches: () => false, context: {data: {}}},
+    {matches: () => false, context: {data: mockMachineData}},
     jest.fn(),
   ],
 }));
@@ -51,10 +52,15 @@ jest.mock('../../../shared', () => ({
   ErrorBoundary: ({children}) => <>{children}</>,
 }));
 
-jest.mock('../dashboard', () => ({
-  RepositoriesByFormatPanel: () => <div data-testid="repos-by-format" />,
-  QuickActionStatsPanel: () => <div data-testid="quick-action-stats" />,
-  useRepositoriesByFormat: () => ({data: [], loading: false, error: null, refetch: jest.fn()}),
+jest.mock('../usage', () => ({
+  UsageDashboard: (props) => (
+    <div
+      data-testid="usage-dashboard"
+      data-variant={props.variant}
+      data-can-search={String(props.canSearch)}
+      data-can-configure-cleanup={String(props.canConfigureCleanup)}
+    />
+  ),
 }));
 
 jest.mock('../OutreachActions', () => {
@@ -88,7 +94,40 @@ describe('Welcome', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockParams = {};
+    mockMachineData = {};
     ExtJS.checkPermission.mockReturnValue(true);
+  });
+
+  it('shows the usage of the repositories with links into Astrum One', () => {
+    ExtJS.useUser.mockReturnValue({userId: 'admin', administrator: true});
+
+    render(<Welcome />);
+
+    const dashboard = screen.getByTestId('usage-dashboard');
+    expect(dashboard).toHaveAttribute('data-variant', 'preview');
+    expect(dashboard).toHaveAttribute('data-can-search', 'true');
+    expect(dashboard).toHaveAttribute('data-can-configure-cleanup', 'true');
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+  });
+
+  it('offers cleanup policies only to administrators', () => {
+    ExtJS.useUser.mockReturnValue({userId: 'user', administrator: false});
+    ExtJS.checkPermission.mockImplementation((permission) => permission !== 'astrum:*');
+
+    render(<Welcome />);
+
+    expect(screen.getByTestId('usage-dashboard')).toHaveAttribute('data-can-configure-cleanup', 'false');
+  });
+
+  it('puts the dashboard next to the announcements when there are some', () => {
+    ExtJS.useUser.mockReturnValue({userId: 'admin', administrator: true});
+    mockMachineData = {showOutreachIframe: true};
+
+    render(<Welcome />);
+
+    expect(screen.getByRole('tab', {name: /Overview/, selected: true})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /Announcements/})).toBeInTheDocument();
+    expect(screen.getByTestId('usage-dashboard')).toBeInTheDocument();
   });
 
   it('hides the Usage Metrics tab for a non-admin even when the flag is enabled', () => {
@@ -123,7 +162,7 @@ describe('Welcome', () => {
       {tab: 'overview'},
       {notify: false, location: 'replace'}
     );
-    expect(screen.getByRole('tab', {name: /Overview/, selected: true})).toBeInTheDocument();
+    expect(screen.getByTestId('usage-dashboard')).toBeInTheDocument();
   });
 
   it('hides the Usage Metrics tab entirely when the flag is disabled', () => {

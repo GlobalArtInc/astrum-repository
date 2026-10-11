@@ -18,6 +18,7 @@ import org.junit.Test;
 
 import static org.globalart.astrum.datastore.api.DataStoreManager.DEFAULT_DATASTORE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -48,6 +49,7 @@ public class AssetDownloadCountStoreTest
     for (String format : List.of("raw", "maven2")) {
       underTest.deleteRepository(format, 10);
       underTest.deleteRepository(format, 11);
+      underTest.deleteRepository(format, 12);
     }
   }
 
@@ -167,6 +169,40 @@ public class AssetDownloadCountStoreTest
 
     assertThat(ids("raw", 1, 2), containsInAnyOrder(2));
     assertThat(ids("maven2", 3), containsInAnyOrder(3));
+  }
+
+  @Test
+  public void sumsUpTheDownloadsOfEachRepository() {
+    underTest.addDownloads(List.of(
+        row("raw", 1, 10, 100, 1, EARLIER),
+        row("raw", 2, 10, null, 2, EARLIER),
+        row("raw", 3, 11, 200, 4, EARLIER),
+        row("maven2", 1, 10, 100, 8, EARLIER)));
+
+    Map<String, Long> totals = underTest.browseRepositoryTotals().stream()
+        .collect(Collectors.toMap(row -> row.getFormat() + ':' + row.getRepositoryId(),
+            RepositoryDownloads::getDownloadCount));
+
+    assertThat(totals, is(Map.of("raw:10", 3L, "raw:11", 4L, "maven2:10", 8L)));
+  }
+
+  @Test
+  public void listsTheMostDownloadedComponentsOfTheGivenRepositories() {
+    underTest.addDownloads(List.of(
+        row("raw", 1, 10, 100, 2, EARLIER),
+        row("raw", 2, 10, 100, 3, EARLIER),
+        row("raw", 3, 10, 200, 9, EARLIER),
+        row("raw", 4, 10, null, 50, EARLIER),
+        row("raw", 5, 11, 300, 1, EARLIER),
+        row("raw", 6, 12, 400, 70, EARLIER),
+        row("maven2", 7, 10, 500, 60, EARLIER)));
+
+    List<ComponentDownloads> top = underTest.browseTopComponents("raw", List.of(10, 11), 2);
+
+    assertThat(top.stream().map(each -> each.getComponentId() + "=" + each.getDownloadCount()).toList(),
+        contains("200=9", "100=5"));
+    assertThat(underTest.browseTopComponents("raw", List.of(10, 11), 10).size(), is(3));
+    assertThat(underTest.browseTopComponents("raw", List.of(), 10), is(empty()));
   }
 
   @Test

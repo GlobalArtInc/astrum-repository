@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.repository.content.downloads.AssetDownloadDailyDAO">
+
+  <insert id="createSchema" databaseId="H2">
+    CREATE TABLE IF NOT EXISTS asset_download_daily
+    (
+      download_day   DATE         NOT NULL,
+      format         VARCHAR(100) NOT NULL,
+      repository_id  INT          NOT NULL,
+      component_id   INT          NOT NULL,
+      download_count BIGINT       NOT NULL,
+
+      CONSTRAINT pk_asset_download_daily PRIMARY KEY (download_day, format, repository_id, component_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_asset_download_daily_repository ON asset_download_daily (format, repository_id);
+  </insert>
+
+  <insert id="createSchema" databaseId="PostgreSQL">
+    CREATE TABLE IF NOT EXISTS asset_download_daily
+    (
+      download_day   DATE         NOT NULL,
+      format         VARCHAR(100) NOT NULL,
+      repository_id  INT          NOT NULL,
+      component_id   INT          NOT NULL,
+      download_count BIGINT       NOT NULL,
+
+      CONSTRAINT pk_asset_download_daily PRIMARY KEY (download_day, format, repository_id, component_id)
+    );
+
+    <!-- PostgreSQL: the catalog check keeps restarts from locking the table, see ASTRUM-49154 -->
+    DO $$
+    BEGIN
+      IF to_regclass('idx_asset_download_daily_repository') IS NULL THEN
+        CREATE INDEX idx_asset_download_daily_repository ON asset_download_daily (format, repository_id);
+      END IF;
+    END
+    $$;
+  </insert>
+
+  <insert id="addDownloads" databaseId="H2"
+          parameterType="org.globalart.astrum.repository.content.downloads.AssetDownloadDailyData">
+    MERGE INTO asset_download_daily t
+    USING (VALUES (CAST(#{downloadDay} AS DATE),
+                   CAST(#{format} AS VARCHAR(100)),
+                   CAST(#{repositoryId} AS INT),
+                   CAST(#{componentId} AS INT),
+                   CAST(#{downloadCount} AS BIGINT)))
+       AS s (download_day, format, repository_id, component_id, download_count)
+    ON t.download_day = s.download_day AND t.format = s.format AND t.repository_id = s.repository_id
+       AND t.component_id = s.component_id
+    WHEN MATCHED THEN UPDATE SET
+      download_count = t.download_count + s.download_count
+    WHEN NOT MATCHED THEN INSERT (download_day, format, repository_id, component_id, download_count)
+      VALUES (s.download_day, s.format, s.repository_id, s.component_id, s.download_count);
+  </insert>
+
+  <insert id="addDownloads" databaseId="PostgreSQL"
+          parameterType="org.globalart.astrum.repository.content.downloads.AssetDownloadDailyData">
+    INSERT INTO asset_download_daily (download_day, format, repository_id, component_id, download_count)
+    VALUES (#{downloadDay}, #{format}, #{repositoryId}, #{componentId}, #{downloadCount})
+    ON CONFLICT (download_day, format, repository_id, component_id) DO UPDATE SET
+      download_count = asset_download_daily.download_count + EXCLUDED.download_count;
+  </insert>
+
+  <select id="browseRepositoryDays" resultType="org.globalart.astrum.repository.content.downloads.RepositoryDownloads">
+    SELECT format, repository_id, download_day, SUM(download_count) AS download_count
+      FROM asset_download_daily
+     WHERE download_day &gt;= #{from}
+     GROUP BY format, repository_id, download_day;
+  </select>
+
+  <select id="browseRepositoryTotals" resultType="org.globalart.astrum.repository.content.downloads.RepositoryDownloads">
+    SELECT format, repository_id, SUM(download_count) AS download_count,
+           COUNT(DISTINCT NULLIF(component_id, 0)) AS component_count
+      FROM asset_download_daily
+     WHERE download_day &gt;= #{from}
+     GROUP BY format, repository_id;
+  </select>
+
+  <select id="browseTopComponents" resultType="org.globalart.astrum.repository.content.downloads.ComponentDownloads">
+    SELECT format, repository_id, component_id, SUM(download_count) AS download_count
+      FROM asset_download_daily
+     WHERE download_day &gt;= #{from}
+       AND format = #{format}
+       AND component_id &lt;&gt; 0
+       AND repository_id IN
+    <foreach collection="repositoryIds" item="repositoryId" open="(" separator="," close=")">#{repositoryId}</foreach>
+     GROUP BY format, repository_id, component_id
+     ORDER BY SUM(download_count) DESC, component_id
+     LIMIT #{limit};
+  </select>
+
+  <delete id="deleteBefore">
+    DELETE FROM asset_download_daily
+     WHERE download_day &lt; #{day};
+  </delete>
+
+  <delete id="deleteRepository">
+    DELETE FROM asset_download_daily
+     WHERE format = #{format}
+       AND repository_id = #{repositoryId};
+  </delete>
+
+</mapper>

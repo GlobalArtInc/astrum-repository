@@ -84,6 +84,24 @@
     <foreach collection="assetIds" item="assetId" open="(" separator="," close=")">#{assetId}</foreach>;
   </select>
 
+  <select id="browseRepositoryTotals" resultType="org.globalart.astrum.repository.content.downloads.RepositoryDownloads">
+    SELECT format, repository_id, SUM(download_count) AS download_count
+      FROM asset_download_count
+     GROUP BY format, repository_id;
+  </select>
+
+  <select id="browseTopComponents" resultType="org.globalart.astrum.repository.content.downloads.ComponentDownloads">
+    SELECT format, repository_id, component_id, SUM(download_count) AS download_count
+      FROM asset_download_count
+     WHERE format = #{format}
+       AND component_id IS NOT NULL
+       AND repository_id IN
+    <foreach collection="repositoryIds" item="repositoryId" open="(" separator="," close=")">#{repositoryId}</foreach>
+     GROUP BY format, repository_id, component_id
+     ORDER BY SUM(download_count) DESC, component_id
+     LIMIT #{limit};
+  </select>
+
   <delete id="deleteAssets">
     DELETE FROM asset_download_count
      WHERE format = #{format}

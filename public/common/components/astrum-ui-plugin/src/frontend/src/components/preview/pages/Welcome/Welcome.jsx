@@ -1,20 +1,17 @@
 
-import React, {useEffect, useRef, useState, useCallback} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {useMachine} from '@xstate/react';
 import {useRouter} from '@uirouter/react';
-import {Box, Flex, Tabs, Heading} from '@radix-ui/themes';
+import {Box, Tabs} from '@radix-ui/themes';
 import { ExtJS } from '../../../../interface/ExtJS';
 import { toURIParams } from '../../../../interface/urlUtil';
 import { getVersionMajorMinor } from '../../../../interface/versionUtil';
+import { Permissions } from '../../../../constants/Permissions';
+import UIStrings from '../../../../constants/UIStrings';
 import welcomeMachine from '../../../pages/user/Welcome/WelcomeMachine';
 import OutreachActions from './OutreachActions';
-
-import {
-  RepositoriesByFormatPanel,
-  QuickActionStatsPanel,
-  useRepositoriesByFormat,
-} from './dashboard';
-import { LoadingState, ErrorState, ErrorBoundary } from '../../shared';
+import { UsageDashboard } from './usage';
+import { ErrorBoundary } from '../../shared';
 
 import './Welcome.scss';
 
@@ -39,15 +36,16 @@ function getDatabaseType() {
 }
 
 function WelcomeDashboard({
-  loading, error, load, state, iframeProps, proxyDownloadNumberParams,
-  reposByFormat, handleViewRepos, iframeRef, onLoad, iframeHeight,
+  state, iframeProps, proxyDownloadNumberParams, iframeRef, onLoad, iframeHeight,
 }) {
   const router = useRouter();
   const { params } = router.globals;
   const user = ExtJS.useUser();
-  const isAdmin = user?.administrator;
   const isAuthenticated = !!user;
   const canSeeUsageMetrics = false;
+  const canSearch = ExtJS.usePermission(() => ExtJS.checkPermission(Permissions.SEARCH.READ), []);
+  const canConfigureCleanup = ExtJS.usePermission(() => ExtJS.checkPermission(Permissions.ADMIN), []) && isAuthenticated;
+  const showAnnouncements = isAuthenticated && !!state.context.data?.showOutreachIframe;
   const initialTab = params?.tab || 'overview';
   const [activeTab, setActiveTab] = useState(initialTab);
   // isAdmin can resolve after first render, so re-derive on every render rather than
@@ -78,60 +76,27 @@ function WelcomeDashboard({
     router.stateService.go('preview.browse.welcome', { tab }, { notify: false, location: 'replace' });
   };
 
-  if (loading) {
-    return (
-      <Box p="6">
-        <LoadingState message="Loading dashboard..." />
-      </Box>
-    );
-  }
-  if (error) {
-    return (
-      <Box p="6">
-        <ErrorState title="Dashboard Error" message={error} onRetry={load} />
-      </Box>
-    );
-  }
+  const dashboard = (
+    <ErrorBoundary>
+      <UsageDashboard variant="preview" canSearch={canSearch} canConfigureCleanup={canConfigureCleanup} />
+    </ErrorBoundary>
+  );
 
   return (
-    <Box p="5">
-      <Heading as="h1" size="6" mb="4">Dashboard</Heading>
-
+    <Box px={{ initial: '4', md: '6' }} py="5">
       <OutreachActions ref={outreachRef} showCards={false} />
 
-      <Tabs.Root value={effectiveTab} onValueChange={handleTabChange}>
-        <Tabs.List className="as-welcome-tabs">
-          <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-          {isAuthenticated && state.context.data?.showOutreachIframe && (
-            <Tabs.Trigger value="announcements">Announcements</Tabs.Trigger>
-          )}
-        </Tabs.List>
+      {showAnnouncements ? (
+        <Tabs.Root value={effectiveTab} onValueChange={handleTabChange}>
+          <Tabs.List className="as-welcome-tabs">
+            <Tabs.Trigger value="overview">{UIStrings.USAGE_DASHBOARD.TITLE}</Tabs.Trigger>
+            <Tabs.Trigger value="announcements">{UIStrings.USAGE_DASHBOARD.ANNOUNCEMENTS}</Tabs.Trigger>
+          </Tabs.List>
 
-        <Tabs.Content value="overview">
-          <Flex direction="column" gap="6" pt="4">
-            <ErrorBoundary>
-              <QuickActionStatsPanel
-                onConnectClick={() => outreachRef.current?.openConnectModal?.()}
-              />
-            </ErrorBoundary>
-            <Flex direction="row" gap="6" wrap="wrap" align="start">
-              {isAdmin && (
-                <Box style={{ flex: '1 1 300px', minWidth: 0 }}>
-                  <RepositoriesByFormatPanel
-                    data={reposByFormat.data}
-                    loading={reposByFormat.loading}
-                    error={reposByFormat.error}
-                    onRetry={reposByFormat.refetch}
-                    onViewRepos={handleViewRepos}
-                  />
-                </Box>
-              )}
-            </Flex>
-          </Flex>
-        </Tabs.Content>
+          <Tabs.Content value="overview">
+            <Box pt="4">{dashboard}</Box>
+          </Tabs.Content>
 
-
-        {isAuthenticated && state.context.data?.showOutreachIframe && (
           <Tabs.Content value="announcements">
             <Box pt="4" style={{ width: '100%', minHeight: '400px' }}>
               <iframe
@@ -154,8 +119,8 @@ function WelcomeDashboard({
               />
             </Box>
           </Tabs.Content>
-        )}
-      </Tabs.Root>
+        </Tabs.Root>
+      ) : dashboard}
     </Box>
   );
 }
@@ -164,20 +129,11 @@ export default function Welcome() {
   const [state, send] = useMachine(welcomeMachine, {devtools: false});
   const [iframeHeight, setIframeHeight] = useState(iframeDefaultHeight);
   const ref = useRef();
-  const router = useRouter();
 
   const user = ExtJS.useUser();
   const status = ExtJS.useStatus();
   const license = ExtJS.useLicense();
 
-  const reposByFormat = useRepositoriesByFormat();
-
-  const handleViewRepos = useCallback((formatCode) => {
-    router.stateService.go('preview.browse.browse', { format: formatCode });
-  }, [router]);
-
-  const loading = state.matches('loading');
-  const error = state.matches('error') ? state.context.error : null;
   const proxyDownloadNumberParams = state.context.data?.proxyDownloadNumberParams;
 
   const iframeProps = {
@@ -225,14 +181,9 @@ export default function Welcome() {
       style={{ height: '100%' }}
     >
       <WelcomeDashboard
-        loading={loading}
-        error={error}
-        load={load}
         state={state}
         iframeProps={iframeProps}
         proxyDownloadNumberParams={proxyDownloadNumberParams}
-        reposByFormat={reposByFormat}
-        handleViewRepos={handleViewRepos}
         iframeRef={ref}
         onLoad={onLoad}
         iframeHeight={iframeHeight}

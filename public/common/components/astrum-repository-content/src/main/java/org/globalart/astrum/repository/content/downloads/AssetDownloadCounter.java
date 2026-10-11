@@ -1,6 +1,8 @@
 package org.globalart.astrum.repository.content.downloads;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -17,6 +19,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nullable;
 
@@ -58,6 +61,11 @@ import static org.globalart.astrum.repository.content.store.InternalIds.internal
  * written yet, so a count changes as soon as an asset is downloaded. Rows of deleted assets, components and
  * repositories are deleted by the same periodic job, after the downloads it writes.
  *
+ * The same job adds the downloads per UTC day and component to the {@link AssetDownloadDailyStore}, which keeps the
+ * last {@code astrum.downloads.dailyRetentionDays} days; the job deletes older days once an hour. The days of a deleted
+ * repository are deleted with its counts, while the days of deleted assets and components stay, since those downloads
+ * did happen.
+ *
  * Counting does not post asset events, so downloads neither reindex the asset nor wake up event subscribers.
  */
 @ManagedLifecycle(phase = SERVICES)
@@ -68,13 +76,25 @@ public class AssetDownloadCounter
 {
   private static final String FLUSH_SECONDS_KEY = "astrum.downloads.flushSeconds";
 
+  private static final String RETENTION_DAYS_KEY = "astrum.downloads.dailyRetentionDays";
+
+  private static final long PURGE_INTERVAL_MILLIS = TimeUnit.HOURS.toMillis(1);
+
   private final AssetDownloadCountStore store;
+
+  private final AssetDownloadDailyStore dailyStore;
 
   private final PeriodicJobService periodicJobService;
 
   private final int flushSeconds;
 
+  private final int retentionDays;
+
+  private final Clock clock;
+
   private final Map<Key, Pending> pending = new ConcurrentHashMap<>();
+
+  private final Map<DayKey, Long> pendingDays = new ConcurrentHashMap<>();
 
   private final Queue<Removal> removals = new ConcurrentLinkedQueue<>();
 
@@ -82,16 +102,43 @@ public class AssetDownloadCounter
 
   private PeriodicJob flushJob;
 
+  private long nextPurge;
+
   @Autowired
   public AssetDownloadCounter(
       final AssetDownloadCountStore store,
+      final AssetDownloadDailyStore dailyStore,
       final PeriodicJobService periodicJobService,
-      @Value("${" + FLUSH_SECONDS_KEY + ":10}") final int flushSeconds)
+      @Value("${" + FLUSH_SECONDS_KEY + ":10}") final int flushSeconds,
+      @Value("${" + RETENTION_DAYS_KEY + ":180}") final int retentionDays)
+  {
+    this(store, dailyStore, periodicJobService, flushSeconds, retentionDays, Clock.systemUTC());
+  }
+
+  @VisibleForTesting
+  AssetDownloadCounter(
+      final AssetDownloadCountStore store,
+      final AssetDownloadDailyStore dailyStore,
+      final PeriodicJobService periodicJobService,
+      final int flushSeconds,
+      final int retentionDays,
+      final Clock clock)
   {
     this.store = checkNotNull(store);
+    this.dailyStore = checkNotNull(dailyStore);
     this.periodicJobService = checkNotNull(periodicJobService);
     checkArgument(flushSeconds > 0, FLUSH_SECONDS_KEY + " must be positive");
+    checkArgument(retentionDays > 0, RETENTION_DAYS_KEY + " must be positive");
     this.flushSeconds = flushSeconds;
+    this.retentionDays = retentionDays;
+    this.clock = checkNotNull(clock);
+  }
+
+  /**
+   * Returns how many days of downloads per day are kept, today included.
+   */
+  public int getRetentionDays() {
+    return retentionDays;
   }
 
   @Override
@@ -114,7 +161,7 @@ public class AssetDownloadCounter
   public void recordDownload(final String format, final Asset asset) {
     OptionalInt componentId = internalComponentId(asset);
     recordDownload(format, internalAssetId(asset), contentRepositoryId(asset),
-        componentId.isPresent() ? componentId.getAsInt() : null, System.currentTimeMillis());
+        componentId.isPresent() ? componentId.getAsInt() : null, clock.millis());
   }
 
   @VisibleForTesting
@@ -131,6 +178,8 @@ public class AssetDownloadCounter
       downloads.add(1, downloadedAt);
       return downloads;
     });
+    pendingDays.merge(new DayKey(dayOf(downloadedAt), format, repositoryId,
+        componentId != null ? componentId : AssetDownloadDailyData.NO_COMPONENT), 1L, Long::sum);
   }
 
   /**
@@ -169,18 +218,26 @@ public class AssetDownloadCounter
   }
 
   /**
-   * Writes the downloads counted so far, then deletes the rows of assets deleted so far.
+   * Writes the downloads counted so far, then deletes the rows of assets deleted so far, and the days that are no longer
+   * kept when that is due.
    */
   public void flush() {
     synchronized (flushMutex) {
       writeDownloads(drainDownloads());
+      writeDays(drainDays());
       applyRemovals();
+      purgeDaysWhenDue();
     }
   }
 
   @VisibleForTesting
   int pendingCount() {
     return pending.size();
+  }
+
+  @VisibleForTesting
+  int pendingDayCount() {
+    return pendingDays.size();
   }
 
   private void flushQuietly() {
@@ -219,6 +276,49 @@ public class AssetDownloadCounter
     }
   }
 
+  private List<AssetDownloadDailyData> drainDays() {
+    List<AssetDownloadDailyData> days = new ArrayList<>();
+    for (DayKey key : pendingDays.keySet()) {
+      Long removed = pendingDays.remove(key);
+      if (removed != null) {
+        days.add(new AssetDownloadDailyData(key.day(), key.format(), key.repositoryId(), key.componentId(), removed));
+      }
+    }
+    return days;
+  }
+
+  private void writeDays(final List<AssetDownloadDailyData> days) {
+    List<List<AssetDownloadDailyData>> batches = Lists.partition(days, AssetDownloadCountStore.BATCH_SIZE);
+    for (int i = 0; i < batches.size(); i++) {
+      try {
+        dailyStore.addDownloads(batches.get(i));
+      }
+      catch (RuntimeException e) {
+        batches.subList(i, batches.size()).forEach(batch -> batch.forEach(day -> pendingDays.merge(
+            new DayKey(day.getDownloadDay(), day.getFormat(), day.getRepositoryId(), day.getComponentId()),
+            day.getDownloadCount(), Long::sum)));
+        throw e;
+      }
+    }
+  }
+
+  private void purgeDaysWhenDue() {
+    long now = clock.millis();
+    if (now < nextPurge) {
+      return;
+    }
+    LocalDate keepFrom = dayOf(now).minusDays(retentionDays - 1L);
+    int deleted = dailyStore.deleteBefore(keepFrom);
+    nextPurge = now + PURGE_INTERVAL_MILLIS;
+    if (deleted > 0) {
+      log.debug("Deleted {} download counts of the days before {}", deleted, keepFrom);
+    }
+  }
+
+  private static LocalDate dayOf(final long millis) {
+    return LocalDate.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC);
+  }
+
   private void restore(final AssetDownloadCountData downloads) {
     long downloadedAt = downloads.getLastDownloaded().toInstant().toEpochMilli();
     pending.compute(new Key(downloads.getFormat(), downloads.getAssetId()), (key, existing) -> {
@@ -243,7 +343,8 @@ public class AssetDownloadCounter
         .computeIfAbsent(each.format(), format -> new LinkedHashSet<>())
         .add(each.id()));
     try {
-      grouped.forEach((kind, idsByFormat) -> idsByFormat.forEach((format, ids) -> kind.delete(store, format, ids)));
+      grouped.forEach((kind, idsByFormat) -> idsByFormat.forEach(
+          (format, ids) -> kind.delete(store, dailyStore, format, ids)));
     }
     catch (RuntimeException e) {
       removals.addAll(drained);
@@ -295,6 +396,7 @@ public class AssetDownloadCounter
     int repositoryId = contentRepositoryId(event);
     pending.entrySet().removeIf(entry -> entry.getKey().format().equals(format)
         && entry.getValue().repositoryId == repositoryId);
+    pendingDays.keySet().removeIf(key -> key.format().equals(format) && key.repositoryId() == repositoryId);
     removals.add(new Removal(RemovalKind.REPOSITORY, format, repositoryId));
   }
 
@@ -322,6 +424,10 @@ public class AssetDownloadCounter
   }
 
   private record Key(String format, int assetId)
+  {
+  }
+
+  private record DayKey(LocalDate day, String format, int repositoryId, int componentId)
   {
   }
 
@@ -372,25 +478,47 @@ public class AssetDownloadCounter
     ASSET
         {
           @Override
-          void delete(final AssetDownloadCountStore store, final String format, final Set<Integer> ids) {
+          void delete(
+              final AssetDownloadCountStore store,
+              final AssetDownloadDailyStore dailyStore,
+              final String format,
+              final Set<Integer> ids)
+          {
             store.deleteAssets(format, ids);
           }
         },
     COMPONENT
         {
           @Override
-          void delete(final AssetDownloadCountStore store, final String format, final Set<Integer> ids) {
+          void delete(
+              final AssetDownloadCountStore store,
+              final AssetDownloadDailyStore dailyStore,
+              final String format,
+              final Set<Integer> ids)
+          {
             store.deleteComponents(format, ids);
           }
         },
     REPOSITORY
         {
           @Override
-          void delete(final AssetDownloadCountStore store, final String format, final Set<Integer> ids) {
-            ids.forEach(repositoryId -> store.deleteRepository(format, repositoryId));
+          void delete(
+              final AssetDownloadCountStore store,
+              final AssetDownloadDailyStore dailyStore,
+              final String format,
+              final Set<Integer> ids)
+          {
+            ids.forEach(repositoryId -> {
+              store.deleteRepository(format, repositoryId);
+              dailyStore.deleteRepository(format, repositoryId);
+            });
           }
         };
 
-    abstract void delete(AssetDownloadCountStore store, String format, Set<Integer> ids);
+    abstract void delete(
+        AssetDownloadCountStore store,
+        AssetDownloadDailyStore dailyStore,
+        String format,
+        Set<Integer> ids);
   }
 }
