@@ -12,6 +12,7 @@ import { useCustomSearch } from './useCustomSearch';
 import { CustomSearchBuilder } from './CustomSearchBuilder';
 import { CustomSearchResults } from './CustomSearchResults';
 import S from '../../../constants/pages/search/CustomSearchStrings';
+import '../../../shared/PageScrollArea.scss';
 
 export interface CustomSearchPageProps {
   /** Optional callback when navigating to component detail */
@@ -66,7 +67,7 @@ export function CustomSearchPage({
   };
 
   return (
-    <ScrollArea scrollbars="vertical" style={{ height: '100%' }}>
+    <ScrollArea scrollbars="vertical" style={{ height: '100%' }} className="page-scroll-area">
       <Box px={{ initial: '4', md: '6' }} py={{ initial: '4', md: '5' }}>
         <Flex direction="column" gap="5">
           {/* Header */}

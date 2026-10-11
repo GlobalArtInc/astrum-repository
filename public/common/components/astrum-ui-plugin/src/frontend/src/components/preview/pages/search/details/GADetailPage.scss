@@ -1,7 +1,0 @@
-.ga-detail-page {
-  // The page scrolls vertically only. Radix lets the content of a scroll area grow to its widest row, which cut the
-  // header, tabs and tables off at the right edge of phones; the content keeps the width of the page instead.
-  .rt-ScrollAreaViewport > * {
-    width: 100%;
-  }
-}
