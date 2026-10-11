@@ -10,6 +10,8 @@
  * Repository → Security → Support → System
  */
 
+import UIStrings from '../../../../constants/UIStrings';
+
 export interface VisibilityRequirements {
   permissions?: string[];
   requiresPermission?: string;
@@ -441,6 +443,15 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         description: 'Configure system capabilities and integrations',
         featureKey: 'system.capabilities',
         visibilityRequirements: { requiresPermission: 'astrum:capabilities:read' },
+      },
+      {
+        id: 'notifications',
+        path: 'system/notifications',
+        label: UIStrings.NOTIFICATIONS.MENU.text,
+        description: UIStrings.NOTIFICATIONS.MENU.description,
+        searchTerms: ['telegram', 'slack', 'mattermost', 'rocket.chat', 'chat', 'webhook', 'alert'],
+        featureKey: 'system.notifications',
+        visibilityRequirements: { requiresPermission: 'astrum:settings:read' },
       },
       {
         id: 'nodes',

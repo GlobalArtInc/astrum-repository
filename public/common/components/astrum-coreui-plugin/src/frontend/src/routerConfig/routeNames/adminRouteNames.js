@@ -123,6 +123,10 @@ export default {
       ROOT: 'admin.system.nodes',
       TITLE: 'Nodes',
     },
+    NOTIFICATIONS: {
+      ROOT: 'admin.system.notifications',
+      TITLE: 'Notifications',
+    },
     PREVIEWUI: {
       ROOT: 'admin.system.previewui',
       TITLE: 'Astrum One UI',

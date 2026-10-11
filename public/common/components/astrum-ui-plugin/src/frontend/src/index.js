@@ -271,6 +271,7 @@ export const PreviewUiSettingsPage  = React.lazy(() => import('./components/prev
 export const EmailPage              = React.lazy(() => import('./components/preview/pages/settings/system/email/EmailPage'));
 export const HttpPage               = React.lazy(() => import('./components/preview/pages/settings/system/http/HttpPage'));
 export const NodesPage              = React.lazy(() => import('./components/preview/pages/settings/system/nodes/NodesPage'));
+export const NotificationsPage      = React.lazy(() => import('./components/preview/pages/settings/system/notifications/NotificationsPage'));
 export const UsagePage              = React.lazy(() => import('./components/preview/pages/settings/system/usage/UsagePage'));
 
 // Settings — User account (shared by admin settings and user menu routes)

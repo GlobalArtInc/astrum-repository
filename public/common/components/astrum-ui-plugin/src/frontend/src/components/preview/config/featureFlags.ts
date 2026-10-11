@@ -94,6 +94,7 @@ export const PREVIEW_FEATURE_FLAGS = {
   'system.http': true,
   'system.licensing': true,
   'system.nodes': true,
+  'system.notifications': true,
   'system.upgrade': false,       // Coming Soon
   'system.api': true,
 

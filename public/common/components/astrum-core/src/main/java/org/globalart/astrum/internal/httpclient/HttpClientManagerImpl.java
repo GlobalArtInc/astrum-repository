@@ -2,6 +2,7 @@
 package org.globalart.astrum.internal.httpclient;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map.Entry;
@@ -271,9 +272,10 @@ public class HttpClientManagerImpl
     builder.addInterceptorLast(
         (HttpRequest httpRequest, HttpContext httpContext) -> {
           httpContext.setAttribute(CTX_REQ_STOPWATCH, Stopwatch.createStarted());
-          httpContext.setAttribute(CTX_REQ_URI, getRequestURI(httpContext));
+          httpContext.setAttribute(CTX_REQ_URI, getLoggedRequestURI(httpContext));
           if (outboundLog.isDebugEnabled()) {
-            outboundLog.debug("{} > {}", httpContext.getAttribute(CTX_REQ_URI), httpRequest.getRequestLine());
+            outboundLog.debug("{} > {}", httpContext.getAttribute(CTX_REQ_URI),
+                isRedacted(httpContext) ? httpRequest.getRequestLine().getMethod() : httpRequest.getRequestLine());
           }
         });
     builder.addInterceptorLast(
@@ -316,7 +318,7 @@ public class HttpClientManagerImpl
         dateFormat.format(new Date()),
         getAuthUser(httpContext),
         request.getRequestLine().getMethod(),
-        getRequestURI(httpContext),
+        getLoggedRequestURI(httpContext),
         request.getRequestLine().getProtocolVersion(),
         statusCode,
         responseLength,
@@ -333,7 +335,7 @@ public class HttpClientManagerImpl
     if (null != httpResponse.getEntity())
       responseLength = httpResponse.getEntity().getContentLength();
     Stopwatch stopwatch = (Stopwatch) httpContext.getAttribute(CTX_REQ_STOPWATCH);
-    String requestUri = getRequestURI(httpContext).toString();
+    String requestUri = getLoggedRequestURI(httpContext).toString();
 
     String logMessage = String.format("[%s] %s \"%s %s %s\" %d %d %s %s [%s]",
         OutboundRequestContext.TIMESTAMP_PLACEHOLDER,
@@ -383,6 +385,29 @@ public class HttpClientManagerImpl
       return credentials.getUserPrincipal().getName();
     else
       return "-";
+  }
+
+  private static boolean isRedacted(final HttpContext context) {
+    return Boolean.TRUE.equals(context.getAttribute(REDACT_REQUEST_PATH));
+  }
+
+  /**
+   * The request URI as the outbound logs show it: without path and query when the request asks for
+   * {@link HttpClientManager#REDACT_REQUEST_PATH}.
+   */
+  @Nonnull
+  @VisibleForTesting
+  URI getLoggedRequestURI(final HttpContext context) {
+    URI uri = getRequestURI(context);
+    if (!isRedacted(context)) {
+      return uri;
+    }
+    try {
+      return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), "/***", null, null);
+    }
+    catch (URISyntaxException e) {
+      return URI.create("redacted:/***");
+    }
   }
 
   /**

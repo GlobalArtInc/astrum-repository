@@ -96,6 +96,7 @@ export const PREVIEW_TO_HERITAGE_ROUTES = [
   { preview: 'preview/admin/system/emailserver', heritage: 'admin/system/emailserver' },
   { preview: 'preview/admin/system/http', heritage: 'admin/system/http' },
   { preview: 'preview/admin/system/nodes', heritage: 'admin/system/nodes' },
+  { preview: 'preview/admin/system/notifications', heritage: 'admin/system/notifications' },
   { preview: 'preview/admin/system/api', heritage: 'admin/system/api' },
   { preview: 'preview/admin/system/previewui', heritage: 'admin/system/previewui' },
   { preview: 'preview/user/account', heritage: 'user/account' },

@@ -17,6 +17,13 @@ import org.apache.http.impl.client.HttpClientBuilder;
 public interface HttpClientManager
 {
   /**
+   * Name of an {@link org.apache.http.protocol.HttpContext} attribute, usually set through
+   * {@link HttpClientPlan#getAttributes()}, that keeps the path and query of the requests out of the outbound request
+   * logs when it is {@link Boolean#TRUE}. For requests whose address carries a secret, such as a bot token.
+   */
+  String REDACT_REQUEST_PATH = "astrum.httpclient.redactRequestPath";
+
+  /**
    * Returns global HTTP-client configuration.
    */
   HttpClientConfiguration getConfiguration();

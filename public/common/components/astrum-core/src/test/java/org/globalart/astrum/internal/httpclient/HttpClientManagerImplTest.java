@@ -7,6 +7,7 @@ import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
 import org.globalart.astrum.common.event.EventManager;
+import org.globalart.astrum.httpclient.HttpClientManager;
 import org.globalart.astrum.httpclient.HttpClientPlan;
 import org.globalart.astrum.httpclient.config.HttpClientConfiguration;
 import org.globalart.astrum.httpclient.config.HttpClientConfigurationChangedEvent;
@@ -208,6 +209,49 @@ class HttpClientManagerImplTest
     assertThat(result.toString(), containsString(":8443"));
     assertThat(result.getPort(), is(8443));
     assertThat(result.getRawPath(), containsString("%20"));
+  }
+
+  @Test
+  void testGetLoggedRequestURI_RedactsPathAndQueryWhenAsked() {
+    HttpClientContext context = HttpClientContext.create();
+    context.setTargetHost(new HttpHost("api.example.com", 443, "https"));
+    context.setAttribute(HttpClientContext.HTTP_REQUEST,
+        new HttpGet("https://api.example.com/bot123456:secret-token/sendMessage?x=1"));
+
+    assertThat(underTest.getLoggedRequestURI(context).toString(),
+        is("https://api.example.com/bot123456:secret-token/sendMessage?x=1"));
+
+    context.setAttribute(HttpClientManager.REDACT_REQUEST_PATH, Boolean.TRUE);
+
+    assertThat(underTest.getLoggedRequestURI(context).toString(), is("https://api.example.com/***"));
+  }
+
+  @Test
+  void testPrintOutboundLogNonTwoHundredStatusCode_leavesRedactedPathsOut() throws Exception {
+    Logger mockReqLog = mock(Logger.class);
+    Field reqLogField = HttpClientManagerImpl.class.getDeclaredField("outboundReqLog");
+    reqLogField.setAccessible(true);
+    reqLogField.set(underTest, mockReqLog);
+
+    HttpClientContext context = HttpClientContext.create();
+    context.setTargetHost(new HttpHost("hooks.example.com", 8443, "https"));
+    context.setAttribute(HttpClientContext.HTTP_REQUEST, new BasicHttpRequest("POST", "/services/T0/B0/secret"));
+    context.setAttribute("request.stopwatch", com.google.common.base.Stopwatch.createStarted());
+    context.setAttribute(HttpClientManager.REDACT_REQUEST_PATH, Boolean.TRUE);
+    CredentialsProvider credentialsProvider = mock(CredentialsProvider.class);
+    when(credentialsProvider.getCredentials(AuthScope.ANY)).thenReturn(null);
+    context.setCredentialsProvider(credentialsProvider);
+
+    Method method = HttpClientManagerImpl.class.getDeclaredMethod(
+        "printOutboundLogNonTwoHundredStatusCode", HttpResponse.class,
+        org.apache.http.protocol.HttpContext.class);
+    method.setAccessible(true);
+    method.invoke(underTest, new BasicHttpResponse(new ProtocolVersion("HTTP", 1, 1), 503, "Busy"), context);
+
+    ArgumentCaptor<String> loggedMessage = ArgumentCaptor.forClass(String.class);
+    verify(mockReqLog).info(eq(OUTBOUND_REQUESTS_LOG_ONLY), eq("{}"), loggedMessage.capture());
+    assertThat(loggedMessage.getValue(), containsString("\"POST https://hooks.example.com:8443/*** HTTP/1.1\" 503"));
+    assertThat(loggedMessage.getValue(), not(containsString("secret")));
   }
 
   @Test

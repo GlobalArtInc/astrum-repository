@@ -247,6 +247,11 @@ export default function SettingsSidebar() {
           data-analytics-id="as-global-secondary-navbar-system-nodes"
         />
         <LeftNavigationMenuCollapsibleChildItem
+          name={ADMIN.SYSTEM.NOTIFICATIONS.ROOT}
+          text={UIStrings.ADMIN_SYSTEM_DIRECTORY.NOTIFICATIONS.text}
+          data-analytics-id="as-global-secondary-navbar-system-notifications"
+        />
+        <LeftNavigationMenuCollapsibleChildItem
           name={ADMIN.SYSTEM.TASKS.ROOT}
           text={UIStrings.TASKS.MENU.text}
           params={{ taskId: null }}

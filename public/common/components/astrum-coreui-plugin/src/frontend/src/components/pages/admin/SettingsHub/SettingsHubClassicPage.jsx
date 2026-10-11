@@ -56,6 +56,7 @@ export default function SettingsHubClassicPage() {
           <DirectoryList.DirectoryListItem text={HUB.SYSTEM.CAPABILITIES.TEXT} description={HUB.SYSTEM.CAPABILITIES.DESCRIPTION} routeName={ADMIN.SYSTEM.CAPABILITIES.LIST} />
         }
         <DirectoryList.DirectoryListItem text={HUB.SYSTEM.NODES.TEXT} description={HUB.SYSTEM.NODES.DESCRIPTION} routeName={ADMIN.SYSTEM.NODES.ROOT} />
+        <DirectoryList.DirectoryListItem text={HUB.SYSTEM.NOTIFICATIONS.TEXT} description={HUB.SYSTEM.NOTIFICATIONS.DESCRIPTION} routeName={ADMIN.SYSTEM.NOTIFICATIONS.ROOT} />
         <DirectoryList.DirectoryListItem text={HUB.SYSTEM.ASTRUM_ONE_UI.TEXT} description={HUB.SYSTEM.ASTRUM_ONE_UI.DESCRIPTION} routeName={ADMIN.SYSTEM.PREVIEWUI.ROOT} />
       </DirectoryList>
 

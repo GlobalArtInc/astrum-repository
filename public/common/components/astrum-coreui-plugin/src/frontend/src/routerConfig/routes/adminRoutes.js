@@ -1,6 +1,6 @@
 
 import { UIView } from '@uirouter/react';
-import { Permissions, CleanupPoliciesList, CleanupPoliciesForm, CapabilitiesList, CapabilitiesCreate, CapabilitiesEdit } from '@globalart/astrum-ui-plugin';
+import { Permissions, CleanupPoliciesList, CleanupPoliciesForm, CapabilitiesList, CapabilitiesCreate, CapabilitiesEdit, NotificationsPage } from '@globalart/astrum-ui-plugin';
 import { ROUTE_NAMES } from '../routeNames/routeNames';
 import { lazyLoad } from './lazyLoad';
 
@@ -835,6 +835,18 @@ export const adminRoutes = [
         permissions: [Permissions.ADMIN],
       },
       title: ADMIN.SYSTEM.NODES.TITLE,
+    },
+  },
+
+  {
+    name: ADMIN.SYSTEM.NOTIFICATIONS.ROOT,
+    url: '/notifications',
+    component: NotificationsPage,
+    data: {
+      visibilityRequirements: {
+        permissions: [Permissions.SETTINGS.READ],
+      },
+      title: ADMIN.SYSTEM.NOTIFICATIONS.TITLE,
     },
   },
 

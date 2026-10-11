@@ -76,6 +76,13 @@ export default function AdminSystemDirectoryPage() {
           />
 
           <DirectoryList.DirectoryListItem
+              data-analytics-id="as-admin-system-directory-notifications-lnk"
+              text={UIStrings.ADMIN_SYSTEM_DIRECTORY.NOTIFICATIONS.text}
+              description={UIStrings.ADMIN_SYSTEM_DIRECTORY.NOTIFICATIONS.description}
+              routeName={ADMIN.SYSTEM.NOTIFICATIONS.ROOT}
+          />
+
+          <DirectoryList.DirectoryListItem
               data-analytics-id="as-admin-system-directory-tasks-lnk"
               text={UIStrings.TASKS.MENU.text}
               description={UIStrings.TASKS.MENU.description}

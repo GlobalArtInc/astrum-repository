@@ -8,6 +8,10 @@ export default {
       text: 'System',
       description: 'System tools administration',
       icon: faServer
+    },
+    NOTIFICATIONS: {
+      text: 'Notifications',
+      description: 'Send repository changes to Telegram and Slack'
     }
   }
 }

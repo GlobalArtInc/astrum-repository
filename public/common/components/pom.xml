@@ -50,6 +50,7 @@
     <module>astrum-jmx</module>
     <module>astrum-logging</module>
     <module>astrum-mime</module>
+    <module>astrum-notifications-plugin</module>
     <module>astrum-onboarding-plugin</module>
     <module>astrum-outbound-request-context</module>
     <module>astrum-plugin-api</module>
@@ -290,6 +291,12 @@
       <dependency>
         <groupId>org.globalart.astrum.common.components</groupId>
         <artifactId>astrum-mime</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-notifications-plugin</artifactId>
         <version>3.96.4-01</version>
       </dependency>
 

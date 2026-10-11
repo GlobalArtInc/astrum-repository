@@ -341,6 +341,10 @@
     </dependency>
     <dependency>
       <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-notifications-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
       <artifactId>astrum-oidc-plugin</artifactId>
     </dependency>
     <dependency>

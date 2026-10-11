@@ -60,6 +60,7 @@ import {
   EmailPage as EmailPageRaw,
   HttpPage as HttpPageRaw,
   NodesPage as NodesPageRaw,
+  NotificationsPage as NotificationsPageRaw,
   UsagePage,
   UserAccountPage as UserAccountPageRaw,
 } from '@globalart/astrum-ui-plugin';
@@ -160,6 +161,7 @@ const HttpPage = withCloudExcluded(
   'HTTP',
 );
 const NodesPage = withFeatureGate(NodesPageRaw, 'system.nodes', 'Nodes');
+const NotificationsPage = withFeatureGate(NotificationsPageRaw, 'system.notifications', 'Notifications');
 
 // User Account
 const UserAccountPage = withFeatureGate(UserAccountPageRaw, 'useraccount', 'User Account');
@@ -1038,6 +1040,17 @@ export const previewAdminRoutes = [
       title: 'Astrum One UI',
       visibilityRequirements: {
         permissions: [Permissions.SETTINGS.READ],
+      },
+    },
+  },
+  {
+    name: 'preview.admin.system.notifications',
+    url: '/notifications',
+    component: NotificationsPage,
+    data: {
+      title: 'Notifications',
+      visibilityRequirements: {
+        requiresPermission: Permissions.SETTINGS.READ,
       },
     },
   },
