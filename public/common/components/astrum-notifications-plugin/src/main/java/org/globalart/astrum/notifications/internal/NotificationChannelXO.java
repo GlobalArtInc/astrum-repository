@@ -6,8 +6,9 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * A notification channel as the user interface sees it. The secret (bot token or webhook URL) is never returned, only
- * a placeholder that keeps the stored value when it comes back.
+ * A notification channel as the user interface sees it. The secret (bot token or webhook URL) and the proxy password
+ * are never returned, only a placeholder that keeps the stored value when it comes back. An empty proxy password
+ * removes the stored one.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class NotificationChannelXO
@@ -33,6 +34,18 @@ public class NotificationChannelXO
   private List<String> events = new ArrayList<>();
 
   private String language;
+
+  private String proxyMode;
+
+  private String proxyType;
+
+  private String proxyHost;
+
+  private Integer proxyPort;
+
+  private String proxyUsername;
+
+  private String proxyPassword;
 
   public String getId() {
     return id;
@@ -123,5 +136,60 @@ public class NotificationChannelXO
 
   public void setLanguage(final String language) {
     this.language = language;
+  }
+
+  /**
+   * @return {@code global} for the global HTTP settings, {@code none} for a direct connection, {@code custom} for the
+   *         proxy described by the other proxy fields
+   */
+  public String getProxyMode() {
+    return proxyMode;
+  }
+
+  public void setProxyMode(final String proxyMode) {
+    this.proxyMode = proxyMode;
+  }
+
+  /**
+   * @return {@code http} or {@code socks5}
+   */
+  public String getProxyType() {
+    return proxyType;
+  }
+
+  public void setProxyType(final String proxyType) {
+    this.proxyType = proxyType;
+  }
+
+  public String getProxyHost() {
+    return proxyHost;
+  }
+
+  public void setProxyHost(final String proxyHost) {
+    this.proxyHost = proxyHost;
+  }
+
+  public Integer getProxyPort() {
+    return proxyPort;
+  }
+
+  public void setProxyPort(final Integer proxyPort) {
+    this.proxyPort = proxyPort;
+  }
+
+  public String getProxyUsername() {
+    return proxyUsername;
+  }
+
+  public void setProxyUsername(final String proxyUsername) {
+    this.proxyUsername = proxyUsername;
+  }
+
+  public String getProxyPassword() {
+    return proxyPassword;
+  }
+
+  public void setProxyPassword(final String proxyPassword) {
+    this.proxyPassword = proxyPassword;
   }
 }

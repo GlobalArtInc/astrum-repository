@@ -27,7 +27,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * Keeps the notification channels in the key-value store, and their bot tokens and webhook URLs in the secrets store.
+ * Keeps the notification channels in the key-value store, and their bot tokens, webhook URLs and proxy passwords in the
+ * secrets store.
  */
 @Component
 public class NotificationChannelStore
@@ -80,9 +81,9 @@ public class NotificationChannelStore
   }
 
   /**
-   * Whether a secret change keeps the stored value or replaces it.
+   * Whether a secret change keeps the stored value or replaces it; a replacement without a value removes the secret.
    */
-  public record SecretChange(boolean replace, String value)
+  public record SecretChange(boolean replace, @Nullable String value)
   {
     public static SecretChange keep() {
       return new SecretChange(false, null);
@@ -91,16 +92,25 @@ public class NotificationChannelStore
     public static SecretChange set(final String value) {
       return new SecretChange(true, checkNotNull(value));
     }
+
+    public static SecretChange clear() {
+      return new SecretChange(true, null);
+    }
   }
 
+  /**
+   * @param proxyPassword the password of the channel's own proxy, or {@code null} when it has none
+   */
   public synchronized NotificationChannel create(
       final NotificationChannel channel,
       final String secret,
+      @Nullable final String proxyPassword,
       @Nullable final String userId)
   {
     NotificationChannel created = channel.copy();
     created.setId(UUID.randomUUID().toString());
     created.setSecretId(encrypt(secret, userId));
+    created.setProxyPasswordSecretId(proxyPassword != null ? encrypt(proxyPassword, userId) : null);
     List<NotificationChannel> channels = new ArrayList<>(snapshot());
     channels.add(created);
     save(channels);
@@ -111,18 +121,26 @@ public class NotificationChannelStore
   public synchronized NotificationChannel update(
       final NotificationChannel channel,
       final SecretChange secret,
+      final SecretChange proxyPassword,
       @Nullable final String userId)
   {
     List<NotificationChannel> channels = new ArrayList<>(snapshot());
     int index = indexOf(channels, channel.getId());
     checkArgument(index >= 0, "Unknown notification channel %s", channel.getId());
     String previousSecretId = channels.get(index).getSecretId();
+    String previousProxyPasswordId = channels.get(index).getProxyPasswordSecretId();
     NotificationChannel updated = channel.copy();
     updated.setSecretId(secret.replace() ? encrypt(secret.value(), userId) : previousSecretId);
+    updated.setProxyPasswordSecretId(proxyPassword.replace()
+        ? (proxyPassword.value() != null ? encrypt(proxyPassword.value(), userId) : null)
+        : previousProxyPasswordId);
     channels.set(index, updated);
     save(channels);
     if (secret.replace()) {
       removeSecret(previousSecretId);
+    }
+    if (proxyPassword.replace()) {
+      removeSecret(previousProxyPasswordId);
     }
     eventManager.post(new NotificationChannelChangedEvent(Type.UPDATED, updated));
     return updated.copy();
@@ -137,6 +155,7 @@ public class NotificationChannelStore
     NotificationChannel removed = channels.remove(index);
     save(channels);
     removeSecret(removed.getSecretId());
+    removeSecret(removed.getProxyPasswordSecretId());
     eventManager.post(new NotificationChannelChangedEvent(Type.DELETED, removed));
     return true;
   }
@@ -146,10 +165,24 @@ public class NotificationChannelStore
    */
   @Nullable
   public String secret(final NotificationChannel channel) {
-    if (channel.getSecretId() == null) {
-      return null;
-    }
-    return new String(secretsService.from(channel.getSecretId()).decrypt());
+    return decrypt(channel.getSecretId());
+  }
+
+  /**
+   * @return the decrypted secrets of the channel, or {@code null} if it has no bot token or webhook URL
+   */
+  @Nullable
+  public NotificationSecrets secrets(final NotificationChannel channel) {
+    String secret = secret(channel);
+    return secret != null ? new NotificationSecrets(secret, proxyPassword(channel)) : null;
+  }
+
+  /**
+   * @return the decrypted password of the channel's own proxy, or {@code null} if it has none
+   */
+  @Nullable
+  public String proxyPassword(final NotificationChannel channel) {
+    return decrypt(channel.getProxyPasswordSecretId());
   }
 
   @Subscribe
@@ -176,6 +209,14 @@ public class NotificationChannelStore
     List<NotificationChannel> copy = channels.stream().map(NotificationChannel::copy).toList();
     keyValueStore.setString(KEY, (Object) new Channels(new ArrayList<>(copy)));
     cached = copy;
+  }
+
+  @Nullable
+  private String decrypt(@Nullable final String secretId) {
+    if (secretId == null) {
+      return null;
+    }
+    return new String(secretsService.from(secretId).decrypt());
   }
 
   private String encrypt(final String secret, @Nullable final String userId) {

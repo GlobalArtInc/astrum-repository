@@ -11,7 +11,8 @@ import com.google.common.eventbus.Subscribe;
 import org.springframework.stereotype.Component;
 
 /**
- * Records notification channel changes in the audit log. Bot tokens and webhook URLs are never recorded.
+ * Records notification channel changes in the audit log. Bot tokens, webhook URLs and proxy passwords are never
+ * recorded.
  */
 @Component
 public class NotificationsAuditor
@@ -44,6 +45,12 @@ public class NotificationsAuditor
     attributes.put("repositories", string(channel.getRepositories()));
     attributes.put("events", string(channel.getEvents()));
     attributes.put("language", channel.getLanguage());
+    attributes.put("proxyMode", channel.getProxyMode());
+    if (channel.isCustomProxy()) {
+      attributes.put("proxyType", channel.getProxyType());
+      attributes.put("proxyHost", channel.getProxyHost());
+      attributes.put("proxyPort", string(channel.getProxyPort()));
+    }
     record(data);
   }
 }

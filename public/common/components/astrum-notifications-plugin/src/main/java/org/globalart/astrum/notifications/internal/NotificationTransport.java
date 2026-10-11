@@ -7,8 +7,8 @@ public interface NotificationTransport
 {
   /**
    * @param channel the channel to send to
-   * @param secret the channel's bot token or webhook URL
+   * @param secrets the channel's decrypted secrets
    * @param text the message, formatted for the channel's chat
    */
-  void send(NotificationChannel channel, String secret, String text) throws NotificationDeliveryException;
+  void send(NotificationChannel channel, NotificationSecrets secrets, String text) throws NotificationDeliveryException;
 }

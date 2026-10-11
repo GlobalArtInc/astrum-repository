@@ -1,7 +1,8 @@
 package org.globalart.astrum.notifications.internal;
 
 /**
- * A chat did not accept a message. The message never contains the bot token or the webhook URL.
+ * A chat did not accept a message, or the message did not get through to it. The message never contains the bot token,
+ * the webhook URL or the proxy password.
  */
 public class NotificationDeliveryException
     extends Exception

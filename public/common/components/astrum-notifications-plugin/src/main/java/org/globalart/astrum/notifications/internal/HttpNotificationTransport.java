@@ -3,6 +3,7 @@ package org.globalart.astrum.notifications.internal;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -10,6 +11,8 @@ import javax.annotation.Nullable;
 import jakarta.validation.ValidationException;
 
 import org.globalart.astrum.httpclient.HttpClientManager;
+import org.globalart.astrum.httpclient.SSLContextSelector;
+import org.globalart.astrum.internal.httpclient.AstrumSSLConnectionSocketFactory;
 import org.globalart.astrum.validation.ssrf.AntiSsrfService;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,6 +22,8 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.conn.socket.LayeredConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -32,8 +37,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Sends messages through the Telegram Bot API and through Slack-compatible incoming webhooks, using the global HTTP
- * settings (proxy, timeouts, user agent). Webhook hosts are checked against the SSRF protection settings; the
- * Telegram API address is set by the operator with {@code astrum.notifications.telegram.apiUrl}.
+ * settings (proxy, timeouts, user agent) or the connection chosen for the channel (see
+ * {@link NotificationConnection}). Webhook hosts are checked against the SSRF protection settings; the Telegram API
+ * address is set by the operator with {@code astrum.notifications.telegram.apiUrl}.
  */
 @Component
 public class HttpNotificationTransport
@@ -53,34 +59,43 @@ public class HttpNotificationTransport
 
   private final String telegramApiUrl;
 
+  private final LayeredConnectionSocketFactory tls;
+
   private final ObjectMapper mapper = new ObjectMapper();
 
   @Autowired
   public HttpNotificationTransport(
       final HttpClientManager httpClientManager,
       final AntiSsrfService antiSsrfService,
+      final List<SSLContextSelector> sslContextSelectors,
       @Value("${astrum.notifications.telegram.apiUrl:" + DEFAULT_TELEGRAM_API_URL + "}") final String telegramApiUrl)
   {
     this.httpClientManager = checkNotNull(httpClientManager);
     this.antiSsrfService = checkNotNull(antiSsrfService);
+    this.tls = new AstrumSSLConnectionSocketFactory(checkNotNull(sslContextSelectors));
     this.telegramApiUrl = checkNotNull(telegramApiUrl).replaceAll("/+$", "");
   }
 
   @Override
-  public void send(final NotificationChannel channel, final String secret, final String text)
+  public void send(final NotificationChannel channel, final NotificationSecrets secrets, final String text)
       throws NotificationDeliveryException
   {
-    checkNotNull(secret);
+    checkNotNull(secrets);
     checkNotNull(text);
+    NotificationConnection connection = new NotificationConnection(channel, secrets.proxyPassword(), tls);
     if (channel.isTelegram()) {
-      sendTelegram(channel, secret, text);
+      sendTelegram(channel, connection, secrets.secret(), text);
     }
     else {
-      sendWebhook(secret, text);
+      sendWebhook(connection, secrets.secret(), text);
     }
   }
 
-  private void sendTelegram(final NotificationChannel channel, final String token, final String text)
+  private void sendTelegram(
+      final NotificationChannel channel,
+      final NotificationConnection connection,
+      final String token,
+      final String text)
       throws NotificationDeliveryException
   {
     if (!BOT_TOKEN.matcher(token).matches()) {
@@ -96,9 +111,11 @@ public class HttpNotificationTransport
     }
     HttpPost post = new HttpPost(telegramApiUrl + "/bot" + token + "/sendMessage");
     post.setEntity(new StringEntity(body.toString(), ContentType.APPLICATION_JSON));
+    HttpClientContext context = connection.context();
 
-    try (CloseableHttpClient client = client();
-        CloseableHttpResponse response = client.execute(post)) {
+    try (CloseableHttpClient client = httpClientManager.create(connection);
+        CloseableHttpResponse response = client.execute(post, context)) {
+      refuseProxyAnswer(connection, response, context, post, token);
       int status = response.getStatusLine().getStatusCode();
       String content = content(response.getEntity());
       JsonNode json = parse(content);
@@ -118,12 +135,13 @@ public class HttpNotificationTransport
           Math.min(retryAfter, MAX_RETRY_AFTER_SECONDS) * 1000);
     }
     catch (IOException e) {
-      throw new NotificationDeliveryException(sanitize("Could not reach Telegram: " + e.getMessage(), token), 0,
-          true, 0);
+      throw sanitize(connection.unreachable("Telegram", e), token);
     }
   }
 
-  private void sendWebhook(final String url, final String text) throws NotificationDeliveryException {
+  private void sendWebhook(final NotificationConnection connection, final String url, final String text)
+      throws NotificationDeliveryException
+  {
     URI uri = webhookUri(url);
     if (uri == null) {
       throw NotificationDeliveryException.permanent("The webhook URL is not a valid http or https URL");
@@ -139,9 +157,11 @@ public class HttpNotificationTransport
     body.put("text", text);
     HttpPost post = new HttpPost(uri);
     post.setEntity(new StringEntity(body.toString(), ContentType.APPLICATION_JSON));
+    HttpClientContext context = connection.context();
 
-    try (CloseableHttpClient client = client();
-        CloseableHttpResponse response = client.execute(post)) {
+    try (CloseableHttpClient client = httpClientManager.create(connection);
+        CloseableHttpResponse response = client.execute(post, context)) {
+      refuseProxyAnswer(connection, response, context, post, url);
       int status = response.getStatusLine().getStatusCode();
       String content = content(response.getEntity());
       if (status >= 200 && status < 300) {
@@ -157,17 +177,23 @@ public class HttpNotificationTransport
           Math.min(retryAfterHeader(response), MAX_RETRY_AFTER_SECONDS) * 1000);
     }
     catch (IOException e) {
-      throw new NotificationDeliveryException(sanitize("Could not reach the webhook: " + e.getMessage(), url), 0, true,
-          0);
+      throw sanitize(connection.unreachable("the webhook", e), url);
     }
   }
 
-  /**
-   * A client that keeps the request paths, which carry the bot token or the webhook secret, out of the outbound request
-   * logs.
-   */
-  private CloseableHttpClient client() {
-    return httpClientManager.create(plan -> plan.getAttributes().put(HttpClientManager.REDACT_REQUEST_PATH, true));
+  private static void refuseProxyAnswer(
+      final NotificationConnection connection,
+      final CloseableHttpResponse response,
+      final HttpClientContext context,
+      final HttpPost post,
+      final String secret) throws NotificationDeliveryException
+  {
+    String target = post.getURI().getHost() + (post.getURI().getPort() > 0 ? ":" + post.getURI().getPort() : "");
+    NotificationDeliveryException refusal = connection.refusal(response, context, target);
+    if (refusal != null) {
+      EntityUtils.consumeQuietly(response.getEntity());
+      throw sanitize(refusal, secret);
+    }
   }
 
   /**
@@ -234,6 +260,11 @@ public class HttpNotificationTransport
     catch (IOException e) {
       return null;
     }
+  }
+
+  private static NotificationDeliveryException sanitize(final NotificationDeliveryException e, final String secret) {
+    return new NotificationDeliveryException(sanitize(e.getMessage(), secret), e.getStatus(), e.isRetryable(),
+        e.getRetryAfterMillis());
   }
 
   private static String sanitize(@Nullable final String message, final String secret) {

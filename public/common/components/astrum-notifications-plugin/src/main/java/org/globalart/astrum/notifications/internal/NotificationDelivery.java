@@ -75,12 +75,12 @@ public class NotificationDelivery
     }
     NotificationChannel channel = found.get();
     try {
-      String secret = store.secret(channel);
-      if (secret == null) {
+      NotificationSecrets secrets = store.secrets(channel);
+      if (secrets == null) {
         log.warn("Notification channel {} has no bot token or webhook URL", channel.getName());
         return;
       }
-      transport.send(channel, secret, text);
+      transport.send(channel, secrets, text);
       log.debug("Sent a notification to channel {}", channel.getName());
     }
     catch (NotificationDeliveryException e) {

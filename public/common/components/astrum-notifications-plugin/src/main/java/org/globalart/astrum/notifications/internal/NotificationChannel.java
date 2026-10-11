@@ -10,6 +10,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * A chat that receives repository notifications: a Telegram chat reached through a bot, or an incoming webhook of
  * Slack, Mattermost or Rocket.Chat. The bot token or the webhook URL lives in the secrets store under
  * {@link #getSecretId()}.
+ *
+ * <p>
+ * Messages go out with the global HTTP settings ({@link #PROXY_GLOBAL}, also the mode of channels stored before the
+ * connection could be chosen), directly ({@link #PROXY_NONE}), or through a proxy of the channel's own
+ * ({@link #PROXY_CUSTOM}); the password of that proxy lives in the secrets store under
+ * {@link #getProxyPasswordSecretId()}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class NotificationChannel
@@ -21,6 +27,16 @@ public class NotificationChannel
   public static final String RUSSIAN = "ru";
 
   public static final String ENGLISH = "en";
+
+  public static final String PROXY_GLOBAL = "global";
+
+  public static final String PROXY_NONE = "none";
+
+  public static final String PROXY_CUSTOM = "custom";
+
+  public static final String PROXY_HTTP = "http";
+
+  public static final String PROXY_SOCKS5 = "socks5";
 
   private String id;
 
@@ -44,6 +60,18 @@ public class NotificationChannel
 
   private String language = RUSSIAN;
 
+  private String proxyMode = PROXY_GLOBAL;
+
+  private String proxyType;
+
+  private String proxyHost;
+
+  private Integer proxyPort;
+
+  private String proxyUsername;
+
+  private String proxyPasswordSecretId;
+
   public NotificationChannel copy() {
     NotificationChannel copy = new NotificationChannel();
     copy.id = id;
@@ -57,6 +85,12 @@ public class NotificationChannel
     copy.repositories = new ArrayList<>(repositories);
     copy.events = new ArrayList<>(events);
     copy.language = language;
+    copy.proxyMode = proxyMode;
+    copy.proxyType = proxyType;
+    copy.proxyHost = proxyHost;
+    copy.proxyPort = proxyPort;
+    copy.proxyUsername = proxyUsername;
+    copy.proxyPasswordSecretId = proxyPasswordSecretId;
     return copy;
   }
 
@@ -68,6 +102,27 @@ public class NotificationChannel
   @JsonIgnore
   public boolean isEnglish() {
     return ENGLISH.equals(language);
+  }
+
+  /**
+   * @return whether the messages go through a proxy of the channel's own
+   */
+  @JsonIgnore
+  public boolean isCustomProxy() {
+    return PROXY_CUSTOM.equals(proxyMode);
+  }
+
+  /**
+   * @return whether the messages go straight to the chat, past the proxy of the global HTTP settings
+   */
+  @JsonIgnore
+  public boolean isDirect() {
+    return PROXY_NONE.equals(proxyMode);
+  }
+
+  @JsonIgnore
+  public boolean isSocksProxy() {
+    return isCustomProxy() && PROXY_SOCKS5.equals(proxyType);
   }
 
   public boolean wants(final NoticeAction action) {
@@ -160,6 +215,54 @@ public class NotificationChannel
 
   public void setLanguage(final String language) {
     this.language = language;
+  }
+
+  public String getProxyMode() {
+    return proxyMode;
+  }
+
+  public void setProxyMode(final String proxyMode) {
+    this.proxyMode = proxyMode != null ? proxyMode : PROXY_GLOBAL;
+  }
+
+  public String getProxyType() {
+    return proxyType;
+  }
+
+  public void setProxyType(final String proxyType) {
+    this.proxyType = proxyType;
+  }
+
+  public String getProxyHost() {
+    return proxyHost;
+  }
+
+  public void setProxyHost(final String proxyHost) {
+    this.proxyHost = proxyHost;
+  }
+
+  public Integer getProxyPort() {
+    return proxyPort;
+  }
+
+  public void setProxyPort(final Integer proxyPort) {
+    this.proxyPort = proxyPort;
+  }
+
+  public String getProxyUsername() {
+    return proxyUsername;
+  }
+
+  public void setProxyUsername(final String proxyUsername) {
+    this.proxyUsername = proxyUsername;
+  }
+
+  public String getProxyPasswordSecretId() {
+    return proxyPasswordSecretId;
+  }
+
+  public void setProxyPasswordSecretId(final String proxyPasswordSecretId) {
+    this.proxyPasswordSecretId = proxyPasswordSecretId;
   }
 
   @Override

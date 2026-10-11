@@ -34,10 +34,12 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -74,13 +76,14 @@ public class NotificationChannelsResourceTest
         .filter(channel -> channel.getId().equals(invocation.getArgument(0)))
         .findFirst()
         .map(NotificationChannel::copy));
-    when(store.create(any(), anyString(), any())).thenAnswer(invocation -> {
+    when(store.create(any(), anyString(), any(), any())).thenAnswer(invocation -> {
       NotificationChannel channel = ((NotificationChannel) invocation.getArgument(0)).copy();
       channel.setId("new");
       channel.setSecretId("_secret");
+      channel.setProxyPasswordSecretId(invocation.getArgument(2) != null ? "_proxy" : null);
       return channel;
     });
-    when(store.update(any(), any(), any())).thenAnswer(invocation -> {
+    when(store.update(any(), any(), any(), any())).thenAnswer(invocation -> {
       NotificationChannel channel = ((NotificationChannel) invocation.getArgument(0)).copy();
       channel.setSecretId("_secret");
       return channel;
@@ -127,6 +130,40 @@ public class NotificationChannelsResourceTest
     return channel;
   }
 
+  private static NotificationChannelXO proxyXO() {
+    NotificationChannelXO xo = telegramXO();
+    xo.setProxyMode("custom");
+    xo.setProxyType("socks5");
+    xo.setProxyHost(" proxy.internal ");
+    xo.setProxyPort(1080);
+    xo.setProxyUsername("robot");
+    xo.setProxyPassword(" pass word ");
+    return xo;
+  }
+
+  private NotificationChannel savedWithProxy(final String id) {
+    NotificationChannel channel = saved(id, "telegram");
+    channel.setName("Releases");
+    channel.setProxyMode("custom");
+    channel.setProxyType("socks5");
+    channel.setProxyHost("proxy.internal");
+    channel.setProxyPort(1080);
+    channel.setProxyUsername("robot");
+    channel.setProxyPasswordSecretId("_proxy");
+    return channel;
+  }
+
+  private SecretChange updatedProxyPassword(final String id, final NotificationChannelXO xo) {
+    resource.update(id, xo);
+    ArgumentCaptor<SecretChange> change = ArgumentCaptor.forClass(SecretChange.class);
+    verify(store).update(any(), any(), change.capture(), any());
+    return change.getValue();
+  }
+
+  private static NotificationSecrets withSecret(final String secret) {
+    return argThat(secrets -> secrets != null && secrets.secret().equals(secret));
+  }
+
   private static void assertBadRequest(final Runnable call, final String field, final String message) {
     WebApplicationException e = assertThrows(WebApplicationException.class, call::run);
     assertThat(e.getResponse().getStatus(), is(400));
@@ -142,7 +179,7 @@ public class NotificationChannelsResourceTest
     NotificationChannelXO created = resource.create(telegramXO());
 
     ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
-    verify(store).create(channel.capture(), eq(TOKEN), any());
+    verify(store).create(channel.capture(), eq(TOKEN), any(), any());
     assertThat(channel.getValue().getEvents(), contains("published", "deleted"));
     assertThat(channel.getValue().getLanguage(), is("en"));
     assertThat(created.getSecret(), is(PasswordPlaceholder.get()));
@@ -222,7 +259,7 @@ public class NotificationChannelsResourceTest
     badLanguage.setLanguage("de");
     assertBadRequest(() -> resource.create(badLanguage), "language", "ru or en");
 
-    verify(store, never()).create(any(), any(), any());
+    verify(store, never()).create(any(), any(), any(), any());
   }
 
   @Test
@@ -243,7 +280,7 @@ public class NotificationChannelsResourceTest
     resource.update("a", xo);
 
     ArgumentCaptor<SecretChange> change = ArgumentCaptor.forClass(SecretChange.class);
-    verify(store).update(any(), change.capture(), any());
+    verify(store).update(any(), change.capture(), any(), any());
     assertThat(change.getValue().replace(), is(false));
   }
 
@@ -254,7 +291,7 @@ public class NotificationChannelsResourceTest
     resource.update("a", telegramXO());
 
     ArgumentCaptor<SecretChange> change = ArgumentCaptor.forClass(SecretChange.class);
-    verify(store).update(any(), change.capture(), any());
+    verify(store).update(any(), change.capture(), any(), any());
     assertThat(change.getValue().replace(), is(true));
     assertThat(change.getValue().value(), is(TOKEN));
   }
@@ -285,7 +322,7 @@ public class NotificationChannelsResourceTest
 
     assertThat(result.isSuccess(), is(true));
     ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
-    verify(transport).send(any(), eq(TOKEN), text.capture());
+    verify(transport).send(any(), argThat(secrets -> secrets.secret().equals(TOKEN)), text.capture());
     assertThat(text.getValue(), containsString(channel.getName()));
     assertThat(text.getValue(), containsString("https://repo.example.com"));
   }
@@ -295,7 +332,7 @@ public class NotificationChannelsResourceTest
     saved("a", "telegram");
     when(store.secret(any())).thenReturn(TOKEN);
     doThrow(new NotificationDeliveryException("Telegram answered 400: Bad Request: chat not found", 400, false, 0))
-        .when(transport).send(any(), anyString(), anyString());
+        .when(transport).send(any(), any(), anyString());
 
     NotificationTestResultXO result = resource.test("a");
 
@@ -308,7 +345,7 @@ public class NotificationChannelsResourceTest
     NotificationChannelXO unsaved = slackXO();
     unsaved.setName(null);
     assertThat(resource.testUnsaved(unsaved).isSuccess(), is(true));
-    verify(transport).send(any(), eq("https://hooks.slack.com/services/T000/B000/XXXX"), anyString());
+    verify(transport).send(any(), withSecret("https://hooks.slack.com/services/T000/B000/XXXX"), anyString());
 
     saved("a", "slack");
     when(store.secret(any())).thenReturn("https://chat.example.com/hooks/abc");
@@ -316,7 +353,7 @@ public class NotificationChannelsResourceTest
     edited.setId("a");
     edited.setSecret(PasswordPlaceholder.get());
     assertThat(resource.testUnsaved(edited).isSuccess(), is(true));
-    verify(transport).send(any(), eq("https://chat.example.com/hooks/abc"), anyString());
+    verify(transport).send(any(), withSecret("https://chat.example.com/hooks/abc"), anyString());
 
     NotificationChannelXO withoutSecret = telegramXO();
     withoutSecret.setSecret(PasswordPlaceholder.get());
@@ -362,5 +399,219 @@ public class NotificationChannelsResourceTest
 
     assertThat(NotificationChannelsResource.toXO(channel).getSecret(), is(""));
     assertThat(Optional.ofNullable(NotificationChannelsResource.toXO(channel).getTarget()), is(Optional.of("-100")));
+  }
+
+  @Test
+  public void createsAChannelWithItsOwnProxy() {
+    NotificationChannelXO created = resource.create(proxyXO());
+
+    ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
+    verify(store).create(channel.capture(), eq(TOKEN), eq(" pass word "), any());
+    assertThat(channel.getValue().getProxyMode(), is("custom"));
+    assertThat(channel.getValue().getProxyType(), is("socks5"));
+    assertThat(channel.getValue().getProxyHost(), is("proxy.internal"));
+    assertThat(channel.getValue().getProxyPort(), is(1080));
+    assertThat(channel.getValue().getProxyUsername(), is("robot"));
+    assertThat(created.getProxyPassword(), is(PasswordPlaceholder.get()));
+    assertThat(created.getProxyHost(), is("proxy.internal"));
+  }
+
+  @Test
+  public void channelsWithoutAConnectionUseTheGlobalSettingsAndForgetProxyFields() {
+    NotificationChannelXO legacy = telegramXO();
+    assertThat(resource.create(legacy).getProxyMode(), is("global"));
+
+    NotificationChannelXO direct = proxyXO();
+    direct.setName("Direct");
+    direct.setProxyMode("none");
+    NotificationChannelXO created = resource.create(direct);
+
+    ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
+    verify(store, times(2)).create(channel.capture(), eq(TOKEN), eq(null), any());
+    assertThat(channel.getValue().getProxyMode(), is("none"));
+    assertThat(channel.getValue().getProxyHost(), is(nullValue()));
+    assertThat(channel.getValue().getProxyUsername(), is(nullValue()));
+    assertThat(created.getProxyPassword(), is(""));
+  }
+
+  @Test
+  public void rejectsInvalidProxies() {
+    NotificationChannelXO badMode = proxyXO();
+    badMode.setProxyMode("system");
+    assertBadRequest(() -> resource.create(badMode), "proxyMode", "global, none or custom");
+
+    NotificationChannelXO badType = proxyXO();
+    badType.setProxyType("socks4");
+    assertBadRequest(() -> resource.create(badType), "proxyType", "http or socks5");
+
+    NotificationChannelXO noHost = proxyXO();
+    noHost.setProxyHost(" ");
+    assertBadRequest(() -> resource.create(noHost), "proxyHost", "Proxy host is required");
+
+    NotificationChannelXO url = proxyXO();
+    url.setProxyHost("http://proxy.internal:3128");
+    assertBadRequest(() -> resource.create(url), "proxyHost", "without a scheme or port");
+
+    NotificationChannelXO longHost = proxyXO();
+    longHost.setProxyHost("a".repeat(256));
+    assertBadRequest(() -> resource.create(longHost), "proxyHost", "255 characters");
+
+    NotificationChannelXO noPort = proxyXO();
+    noPort.setProxyPort(null);
+    assertBadRequest(() -> resource.create(noPort), "proxyPort", "Proxy port is required");
+
+    NotificationChannelXO zeroPort = proxyXO();
+    zeroPort.setProxyPort(0);
+    assertBadRequest(() -> resource.create(zeroPort), "proxyPort", "between 1 and 65535");
+
+    NotificationChannelXO bigPort = proxyXO();
+    bigPort.setProxyPort(65536);
+    assertBadRequest(() -> resource.create(bigPort), "proxyPort", "between 1 and 65535");
+
+    NotificationChannelXO longUser = proxyXO();
+    longUser.setProxyUsername("u".repeat(256));
+    assertBadRequest(() -> resource.create(longUser), "proxyUsername", "255 characters");
+
+    NotificationChannelXO longPassword = proxyXO();
+    longPassword.setProxyPassword("p".repeat(256));
+    assertBadRequest(() -> resource.create(longPassword), "proxyPassword", "255 characters");
+
+    NotificationChannelXO passwordWithoutUser = proxyXO();
+    passwordWithoutUser.setProxyUsername(null);
+    assertBadRequest(() -> resource.create(passwordWithoutUser), "proxyUsername", "username that goes with");
+
+    verify(store, never()).create(any(), any(), any(), any());
+  }
+
+  @Test
+  public void acceptsProxyAddressesAndOptionalCredentials() {
+    NotificationChannelXO ipv6 = proxyXO();
+    ipv6.setProxyHost("[fd00::1]");
+    ipv6.setProxyUsername(null);
+    ipv6.setProxyPassword("");
+    ipv6.setProxyType("http");
+    assertThat(resource.create(ipv6).getProxyHost(), is("fd00::1"));
+
+    NotificationChannelXO userOnly = proxyXO();
+    userOnly.setName("User only");
+    userOnly.setProxyHost("10.0.0.5");
+    userOnly.setProxyPassword(null);
+    assertThat(resource.create(userOnly).getProxyUsername(), is("robot"));
+  }
+
+  @Test
+  public void thePlaceholderKeepsTheStoredProxyPassword() {
+    savedWithProxy("a");
+    NotificationChannelXO xo = proxyXO();
+    xo.setProxyHost("PROXY.internal");
+    xo.setProxyPassword(PasswordPlaceholder.get());
+
+    assertThat(updatedProxyPassword("a", xo).replace(), is(false));
+  }
+
+  @Test
+  public void aNewProxyPasswordReplacesTheStoredOne() {
+    savedWithProxy("a");
+
+    SecretChange change = updatedProxyPassword("a", proxyXO());
+
+    assertThat(change.replace(), is(true));
+    assertThat(change.value(), is(" pass word "));
+  }
+
+  @Test
+  public void anEmptyProxyPasswordRemovesTheStoredOne() {
+    savedWithProxy("a");
+    NotificationChannelXO xo = proxyXO();
+    xo.setProxyPassword("");
+
+    SecretChange change = updatedProxyPassword("a", xo);
+
+    assertThat(change.replace(), is(true));
+    assertThat(change.value(), is(nullValue()));
+  }
+
+  @Test
+  public void leavingTheProxyOrItsUsernameRemovesTheStoredPassword() {
+    savedWithProxy("a");
+    NotificationChannelXO global = proxyXO();
+    global.setProxyMode("global");
+    global.setProxyPassword(PasswordPlaceholder.get());
+    assertThat(updatedProxyPassword("a", global), is(SecretChange.clear()));
+
+    savedWithProxy("b");
+    NotificationChannelXO anonymous = proxyXO();
+    anonymous.setName("Saved b");
+    anonymous.setProxyUsername("");
+    anonymous.setProxyPassword(PasswordPlaceholder.get());
+    resource.update("b", anonymous);
+    ArgumentCaptor<SecretChange> change = ArgumentCaptor.forClass(SecretChange.class);
+    verify(store, times(2)).update(any(), any(), change.capture(), any());
+    assertThat(change.getValue(), is(SecretChange.clear()));
+  }
+
+  @Test
+  public void theStoredProxyPasswordIsNeverSentToAnotherProxy() {
+    savedWithProxy("a");
+    NotificationChannelXO otherHost = proxyXO();
+    otherHost.setProxyHost("attacker.example");
+    otherHost.setProxyPassword(PasswordPlaceholder.get());
+    assertBadRequest(() -> resource.update("a", otherHost), "proxyPassword", "Enter the proxy password again");
+
+    NotificationChannelXO otherPort = proxyXO();
+    otherPort.setProxyPort(1081);
+    otherPort.setProxyPassword(null);
+    assertBadRequest(() -> resource.update("a", otherPort), "proxyPassword", "Enter the proxy password again");
+
+    NotificationChannelXO otherType = proxyXO();
+    otherType.setId("a");
+    otherType.setProxyType("http");
+    otherType.setProxyPassword(PasswordPlaceholder.get());
+    assertBadRequest(() -> resource.testUnsaved(otherType), "proxyPassword", "Enter the proxy password again");
+  }
+
+  @Test
+  public void listNeverReturnsProxyPasswords() {
+    savedWithProxy("a");
+
+    NotificationChannelXO xo = resource.list().get(0);
+
+    assertThat(xo.getProxyPassword(), is(PasswordPlaceholder.get()));
+    assertThat(xo.getProxyMode(), is("custom"));
+    assertThat(xo.getProxyType(), is("socks5"));
+    assertThat(xo.getProxyPort(), is(1080));
+  }
+
+  @Test
+  public void testMessagesUseTheProxyPasswordOfTheFormOrTheSavedOne() throws Exception {
+    savedWithProxy("a");
+    when(store.secret(any())).thenReturn(TOKEN);
+    when(store.proxyPassword(any())).thenReturn("stored");
+
+    assertThat(resource.test("a").isSuccess(), is(true));
+    verify(transport).send(any(), argThat(secrets -> "stored".equals(secrets.proxyPassword())), anyString());
+
+    NotificationChannelXO typed = proxyXO();
+    typed.setId("a");
+    resource.testUnsaved(typed);
+    verify(transport).send(any(), argThat(secrets -> " pass word ".equals(secrets.proxyPassword())), anyString());
+
+    NotificationChannelXO kept = proxyXO();
+    kept.setId("a");
+    kept.setSecret(PasswordPlaceholder.get());
+    kept.setProxyPassword(PasswordPlaceholder.get());
+    resource.testUnsaved(kept);
+    ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
+    verify(transport, times(2))
+        .send(channel.capture(), argThat(secrets -> "stored".equals(secrets.proxyPassword())), anyString());
+    assertThat(channel.getValue().getProxyHost(), is("proxy.internal"));
+    assertThat(channel.getValue().isSocksProxy(), is(true));
+
+    NotificationChannelXO cleared = proxyXO();
+    cleared.setId("a");
+    cleared.setProxyPassword("");
+    resource.testUnsaved(cleared);
+    verify(transport).send(any(), argThat(secrets -> TOKEN.equals(secrets.secret()) && secrets.proxyPassword() == null),
+        anyString());
   }
 }

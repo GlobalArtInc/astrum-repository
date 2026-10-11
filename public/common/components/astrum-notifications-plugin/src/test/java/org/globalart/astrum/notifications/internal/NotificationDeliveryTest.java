@@ -43,7 +43,7 @@ public class NotificationDeliveryTest
     channel.setType(NotificationChannel.TELEGRAM);
     store = mock(NotificationChannelStore.class);
     when(store.find("c1")).thenAnswer(invocation -> Optional.of(channel.copy()));
-    when(store.secret(any())).thenReturn("1:token");
+    when(store.secrets(any())).thenReturn(NotificationSecrets.of("1:token"));
     NotificationTransport transport = (target, secret, text) -> {
       attempts.add(text);
       attemptTimes.add(System.nanoTime());

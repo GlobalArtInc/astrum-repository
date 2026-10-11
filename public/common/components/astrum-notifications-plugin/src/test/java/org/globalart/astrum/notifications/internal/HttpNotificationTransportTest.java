@@ -72,7 +72,7 @@ public class HttpNotificationTransportTest
       return HttpClients.createDefault();
     });
     antiSsrfService = mock(AntiSsrfService.class);
-    transport = new HttpNotificationTransport(httpClientManager, antiSsrfService, baseUrl() + "/telegram/");
+    transport = new HttpNotificationTransport(httpClientManager, antiSsrfService, List.of(), baseUrl() + "/telegram/");
   }
 
   @After
@@ -98,6 +98,10 @@ public class HttpNotificationTransportTest
     }
   }
 
+  private static NotificationSecrets secrets() {
+    return NotificationSecrets.of(TOKEN);
+  }
+
   private static NotificationChannel telegram() {
     NotificationChannel channel = new NotificationChannel();
     channel.setType(NotificationChannel.TELEGRAM);
@@ -116,7 +120,7 @@ public class HttpNotificationTransportTest
 
   @Test
   public void postsTelegramMessagesToTheBotApi() throws Exception {
-    transport.send(telegram(), TOKEN, "<b>hi</b>");
+    transport.send(telegram(), NotificationSecrets.of(TOKEN), "<b>hi</b>");
 
     assertThat(requests, hasSize(1));
     assertThat(requests.get(0).getKey(), is("/telegram/bot" + TOKEN + "/sendMessage"));
@@ -130,7 +134,7 @@ public class HttpNotificationTransportTest
 
   @Test
   public void keepsRequestPathsOutOfTheOutboundLog() throws Exception {
-    transport.send(telegram(), TOKEN, "hi");
+    transport.send(telegram(), NotificationSecrets.of(TOKEN), "hi");
 
     assertThat(planAttributes.get(HttpClientManager.REDACT_REQUEST_PATH), is(true));
   }
@@ -140,7 +144,7 @@ public class HttpNotificationTransportTest
     NotificationChannel channel = telegram();
     channel.setMessageThreadId(null);
 
-    transport.send(channel, TOKEN, "hi");
+    transport.send(channel, NotificationSecrets.of(TOKEN), "hi");
 
     assertThat(mapper.readTree(requests.get(0).getValue()).has("message_thread_id"), is(false));
   }
@@ -152,7 +156,7 @@ public class HttpNotificationTransportTest
         + "\"parameters\":{\"retry_after\":7}}";
 
     NotificationDeliveryException e =
-        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), TOKEN, "hi"));
+        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), "hi"));
 
     assertThat(e.isRetryable(), is(true));
     assertThat(e.getRetryAfterMillis(), is(7000L));
@@ -166,7 +170,7 @@ public class HttpNotificationTransportTest
     response = "{\"ok\":false,\"error_code\":400,\"description\":\"Bad Request: chat not found\"}";
 
     NotificationDeliveryException e =
-        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), TOKEN, "hi"));
+        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), "hi"));
 
     assertThat(e.isRetryable(), is(false));
     assertThat(e.getMessage(), is("Telegram answered 400: Bad Request: chat not found"));
@@ -175,7 +179,7 @@ public class HttpNotificationTransportTest
   @Test
   public void malformedBotTokenIsNeverPutIntoTheUrl() {
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
-        () -> transport.send(telegram(), "123:abc/../../admin?x=", "hi"));
+        () -> transport.send(telegram(), NotificationSecrets.of("123:abc/../../admin?x="), "hi"));
 
     assertThat(e.isRetryable(), is(false));
     assertThat(requests, is(empty()));
@@ -186,7 +190,7 @@ public class HttpNotificationTransportTest
     server.stop(0);
 
     NotificationDeliveryException e =
-        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), TOKEN, "hi"));
+        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), "hi"));
 
     assertThat(e.isRetryable(), is(true));
     assertThat(e.getMessage(), not(containsString(TOKEN)));
@@ -196,7 +200,7 @@ public class HttpNotificationTransportTest
   public void postsSlackMessagesToTheWebhook() throws Exception {
     response = "ok";
 
-    transport.send(slack(), baseUrl() + "/services/T000/B000/XXXX", "*hi*");
+    transport.send(slack(), NotificationSecrets.of(baseUrl() + "/services/T000/B000/XXXX"), "*hi*");
 
     assertThat(requests.get(0).getKey(), is("/services/T000/B000/XXXX"));
     assertThat(mapper.readTree(requests.get(0).getValue()).get("text").asText(), is("*hi*"));
@@ -210,7 +214,7 @@ public class HttpNotificationTransportTest
     retryAfter = "3";
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
-        () -> transport.send(slack(), baseUrl() + "/hooks/secret-path", "hi"));
+        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/secret-path"), "hi"));
 
     assertThat(e.isRetryable(), is(true));
     assertThat(e.getRetryAfterMillis(), is(3000L));
@@ -223,7 +227,7 @@ public class HttpNotificationTransportTest
     response = "no_team";
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
-        () -> transport.send(slack(), baseUrl() + "/hooks/x", "hi"));
+        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/x"), "hi"));
 
     assertThat(e.isRetryable(), is(false));
     assertThat(e.getMessage(), is("The webhook answered 404: no_team"));
@@ -235,7 +239,7 @@ public class HttpNotificationTransportTest
         .when(antiSsrfService).validateHost(anyString());
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
-        () -> transport.send(slack(), baseUrl() + "/hooks/x", "hi"));
+        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/x"), "hi"));
 
     assertThat(e.isRetryable(), is(false));
     assertThat(e.getMessage(), containsString("SSRF"));

@@ -15,7 +15,7 @@ import {
   Tooltip,
   VisuallyHidden,
 } from '@radix-ui/themes';
-import { Bell, BellRing, Hash, Pencil, Plus, Send, Trash2, XCircle } from 'lucide-react';
+import { Bell, BellRing, Hash, Network, Pencil, Plus, Send, Trash2, XCircle } from 'lucide-react';
 
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
@@ -61,6 +61,21 @@ function TypeBadge({ channel }: { channel: NotificationChannel }) {
       {telegram ? <Send size={12} /> : <Hash size={12} />}
       {telegram ? LABELS.TYPES.TELEGRAM : LABELS.TYPES.SLACK}
     </Badge>
+  );
+}
+
+function ProxyBadge({ channel }: { channel: NotificationChannel }) {
+  if (channel.proxyMode !== 'custom') {
+    return null;
+  }
+  const type = channel.proxyType === 'socks5' ? LABELS.DIALOG.PROXY_TYPES.SOCKS5 : LABELS.DIALOG.PROXY_TYPES.HTTP;
+  return (
+    <Tooltip content={LABELS.PROXY_TOOLTIP(type, `${channel.proxyHost}:${channel.proxyPort}`)}>
+      <Badge color="gray" variant="outline" data-testid={`notification-proxy-${channel.id}`}>
+        <Network size={12} />
+        {LABELS.PROXY_BADGE}
+      </Badge>
+    </Tooltip>
   );
 }
 
@@ -270,7 +285,10 @@ export function NotificationsPage() {
                         <Text size="2" weight="medium">
                           {channel.name}
                         </Text>
-                        <TypeBadge channel={channel} />
+                        <Flex gap="1" wrap="wrap">
+                          <TypeBadge channel={channel} />
+                          <ProxyBadge channel={channel} />
+                        </Flex>
                       </Flex>
                     </Table.RowHeaderCell>
                     <Table.Cell>

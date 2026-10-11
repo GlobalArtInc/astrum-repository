@@ -7,8 +7,10 @@ import {
   Checkbox,
   Dialog,
   Flex,
+  Link,
   RadioCards,
   ScrollArea,
+  SegmentedControl,
   Select,
   Spinner,
   Switch,
@@ -25,6 +27,8 @@ import {
   NotificationChannelType,
   NotificationEvent,
   NotificationLanguage,
+  NotificationProxyMode,
+  NotificationProxyType,
   RepositoryOption,
 } from './types';
 
@@ -39,7 +43,18 @@ const EVENT_LABELS: Record<NotificationEvent, { label: string; help: string }> =
 
 const THREAD_ID = /^\d+$/;
 
-const FIELDS = new Set(['name', 'chatId', 'messageThreadId', 'secret', 'events', 'repositories', 'type', 'language']);
+const PORT = /^\d{1,5}$/;
+
+const PROXY_HOST = /^(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9_.:-]+)$/;
+
+const CONNECTION_MODES: Array<{ value: NotificationProxyMode; label: string; help: string }> = [
+  { value: 'global', label: DIALOG.CONNECTION_MODES.GLOBAL, help: DIALOG.CONNECTION_HELP.GLOBAL },
+  { value: 'none', label: DIALOG.CONNECTION_MODES.NONE, help: DIALOG.CONNECTION_HELP.NONE },
+  { value: 'custom', label: DIALOG.CONNECTION_MODES.CUSTOM, help: DIALOG.CONNECTION_HELP.CUSTOM },
+];
+
+const FIELDS = new Set(['name', 'chatId', 'messageThreadId', 'secret', 'events', 'repositories', 'type', 'language',
+  'proxyMode', 'proxyType', 'proxyHost', 'proxyPort', 'proxyUsername', 'proxyPassword']);
 
 interface FormState {
   name: string;
@@ -51,10 +66,17 @@ interface FormState {
   repositories: string[];
   events: NotificationEvent[];
   language: NotificationLanguage;
+  proxyMode: NotificationProxyMode;
+  proxyType: NotificationProxyType;
+  proxyHost: string;
+  proxyPort: string;
+  proxyUsername: string;
+  proxyPassword: string;
+  removeProxyPassword: boolean;
 }
 
 type Errors = Partial<Record<'name' | 'chatId' | 'messageThreadId' | 'secret' | 'events' | 'repositories' | 'type'
-  | 'language', string>>;
+  | 'language' | 'proxyMode' | 'proxyType' | 'proxyHost' | 'proxyPort' | 'proxyUsername' | 'proxyPassword', string>>;
 
 type TestState = { status: 'idle' } | { status: 'running' } | { status: 'done'; success: boolean; message?: string };
 
@@ -69,7 +91,19 @@ function initialState(channel?: NotificationChannel | null): FormState {
     repositories: channel?.repositories ?? [],
     events: channel?.events ?? [...NOTIFICATION_EVENTS],
     language: channel?.language ?? 'ru',
+    proxyMode: channel?.proxyMode ?? 'global',
+    proxyType: channel?.proxyType ?? 'http',
+    proxyHost: channel?.proxyHost ?? '',
+    proxyPort: channel?.proxyPort ? String(channel.proxyPort) : '',
+    proxyUsername: channel?.proxyUsername ?? '',
+    proxyPassword: '',
+    removeProxyPassword: false,
   };
+}
+
+function proxyHost(value: string): string {
+  const host = value.trim();
+  return host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
 }
 
 function Field({
@@ -172,6 +206,14 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
 
   const keepsSecret = Boolean(channel?.secret) && channel?.type === form.type;
   const isTelegram = form.type === 'telegram';
+  const isCustomProxy = form.proxyMode === 'custom';
+  const savedProxyPassword = Boolean(channel?.proxyPassword) && channel?.proxyMode === 'custom';
+  const sameProxy = savedProxyPassword
+    && form.proxyType === channel?.proxyType
+    && proxyHost(form.proxyHost).toLowerCase() === (channel?.proxyHost ?? '').toLowerCase()
+    && Number(form.proxyPort) === channel?.proxyPort;
+  const keepsProxyPassword = isCustomProxy && sameProxy && Boolean(form.proxyUsername.trim())
+    && !form.removeProxyPassword;
 
   const repositoryOptions = useMemo(() => {
     const known = new Map(repositories.map((repository) => [repository.name, repository]));
@@ -206,6 +248,21 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
     if (!form.secret.trim() && !keepsSecret) {
       found.secret = isTelegram ? DIALOG.ERRORS.BOT_TOKEN : DIALOG.ERRORS.WEBHOOK;
     }
+    if (isCustomProxy) {
+      if (!form.proxyHost.trim()) {
+        found.proxyHost = DIALOG.ERRORS.PROXY_HOST;
+      }
+      else if (!PROXY_HOST.test(form.proxyHost.trim())) {
+        found.proxyHost = DIALOG.ERRORS.PROXY_HOST_FORMAT;
+      }
+      const port = form.proxyPort.trim();
+      if (!PORT.test(port) || Number(port) < 1 || Number(port) > 65535) {
+        found.proxyPort = DIALOG.ERRORS.PROXY_PORT;
+      }
+      if (form.proxyPassword && !form.proxyUsername.trim()) {
+        found.proxyUsername = DIALOG.ERRORS.PROXY_USERNAME;
+      }
+    }
     return found;
   };
 
@@ -231,7 +288,38 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
     repositories: form.repositories,
     events: NOTIFICATION_EVENTS.filter((event) => form.events.includes(event)),
     language: form.language,
+    proxyMode: form.proxyMode,
+    proxyType: isCustomProxy ? form.proxyType : null,
+    proxyHost: isCustomProxy ? proxyHost(form.proxyHost) : null,
+    proxyPort: isCustomProxy ? Number(form.proxyPort.trim()) : null,
+    proxyUsername: isCustomProxy ? form.proxyUsername.trim() || null : null,
+    proxyPassword: isCustomProxy ? form.proxyPassword || (keepsProxyPassword ? channel?.proxyPassword : '') : '',
   });
+
+  let proxyPasswordHelp: React.ReactNode = DIALOG.PROXY_CREDENTIALS_HELP;
+  if (keepsProxyPassword) {
+    proxyPasswordHelp = (
+      <>
+        {DIALOG.SECRET_SAVED}{' '}
+        <Link
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            update('removeProxyPassword', true);
+          }}
+          data-testid="notification-proxy-password-remove"
+        >
+          {DIALOG.PROXY_PASSWORD_REMOVE}
+        </Link>
+      </>
+    );
+  }
+  else if (savedProxyPassword && form.removeProxyPassword && sameProxy) {
+    proxyPasswordHelp = DIALOG.PROXY_PASSWORD_REMOVED;
+  }
+  else if (savedProxyPassword && !sameProxy && form.proxyUsername.trim()) {
+    proxyPasswordHelp = DIALOG.PROXY_PASSWORD_AGAIN;
+  }
 
   const showServerError = (error: unknown, fallback: string) => {
     const { field, message } = serverError(error, fallback);
@@ -402,6 +490,107 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
                 onChange={(event) => update('secret', event.target.value)}
               />
             </Field>
+          )}
+
+          <Field
+            label={DIALOG.CONNECTION_LABEL}
+            help={CONNECTION_MODES.find((mode) => mode.value === form.proxyMode)?.help}
+            error={errors.proxyMode}
+          >
+            <Select.Root
+              value={form.proxyMode}
+              onValueChange={(value) => update('proxyMode', value as NotificationProxyMode)}
+            >
+              <Select.Trigger aria-label={DIALOG.CONNECTION_LABEL} data-testid="notification-proxy-mode" />
+              <Select.Content position="popper">
+                {CONNECTION_MODES.map((mode) => (
+                  <Select.Item key={mode.value} value={mode.value}>{mode.label}</Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
+          </Field>
+
+          {isCustomProxy && (
+            <Box
+              p="3"
+              style={{ border: '1px solid var(--gray-a6)', borderRadius: 'var(--radius-3)' }}
+              data-testid="notification-proxy"
+            >
+              <Flex direction="column" gap="3">
+                <Field label={DIALOG.PROXY_TYPE_LABEL} error={errors.proxyType}>
+                  <SegmentedControl.Root
+                    size="1"
+                    value={form.proxyType}
+                    onValueChange={(value) => update('proxyType', value as NotificationProxyType)}
+                    aria-label={DIALOG.PROXY_TYPE_LABEL}
+                    data-testid="notification-proxy-type"
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    <SegmentedControl.Item value="http">{DIALOG.PROXY_TYPES.HTTP}</SegmentedControl.Item>
+                    <SegmentedControl.Item value="socks5">{DIALOG.PROXY_TYPES.SOCKS5}</SegmentedControl.Item>
+                  </SegmentedControl.Root>
+                </Field>
+                <Flex gap="3" direction={{ initial: 'column', sm: 'row' }}>
+                  <Box flexGrow="1">
+                    <Field label={DIALOG.PROXY_HOST_LABEL} htmlFor="notification-proxy-host" error={errors.proxyHost}>
+                      <TextField.Root
+                        id="notification-proxy-host"
+                        value={form.proxyHost}
+                        placeholder="proxy.example.com"
+                        maxLength={255}
+                        onChange={(event) => update('proxyHost', event.target.value)}
+                      />
+                    </Field>
+                  </Box>
+                  <Box width={{ initial: '100%', sm: '120px' }}>
+                    <Field label={DIALOG.PROXY_PORT_LABEL} htmlFor="notification-proxy-port" error={errors.proxyPort}>
+                      <TextField.Root
+                        id="notification-proxy-port"
+                        inputMode="numeric"
+                        value={form.proxyPort}
+                        placeholder={form.proxyType === 'socks5' ? '1080' : '3128'}
+                        onChange={(event) => update('proxyPort', event.target.value)}
+                      />
+                    </Field>
+                  </Box>
+                </Flex>
+                <Flex gap="3" direction={{ initial: 'column', sm: 'row' }}>
+                  <Box flexGrow="1" flexBasis="0">
+                    <Field
+                      label={DIALOG.PROXY_USERNAME_LABEL}
+                      htmlFor="notification-proxy-username"
+                      error={errors.proxyUsername}
+                    >
+                      <TextField.Root
+                        id="notification-proxy-username"
+                        autoComplete="off"
+                        value={form.proxyUsername}
+                        maxLength={255}
+                        onChange={(event) => update('proxyUsername', event.target.value)}
+                      />
+                    </Field>
+                  </Box>
+                  <Box flexGrow="1" flexBasis="0">
+                    <Field
+                      label={DIALOG.PROXY_PASSWORD_LABEL}
+                      htmlFor="notification-proxy-password"
+                      help={proxyPasswordHelp}
+                      error={errors.proxyPassword}
+                    >
+                      <TextField.Root
+                        id="notification-proxy-password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={form.proxyPassword}
+                        placeholder={keepsProxyPassword ? '••••••••' : undefined}
+                        maxLength={255}
+                        onChange={(event) => update('proxyPassword', event.target.value)}
+                      />
+                    </Field>
+                  </Box>
+                </Flex>
+              </Flex>
+            </Box>
           )}
 
           <Field label={DIALOG.EVENTS_LABEL} error={errors.events}>

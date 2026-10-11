@@ -61,7 +61,7 @@ public class NotificationDispatcherTest
     when(store.find(anyString())).thenAnswer(invocation -> channels.stream()
         .filter(channel -> channel.getId().equals(invocation.getArgument(0)))
         .findFirst());
-    when(store.secret(any())).thenReturn("1:token");
+    when(store.secrets(any())).thenReturn(NotificationSecrets.of("1:token"));
 
     BaseUrlManager baseUrlManager = mock(BaseUrlManager.class);
     when(baseUrlManager.getUrl()).thenReturn("https://repo.example.com");

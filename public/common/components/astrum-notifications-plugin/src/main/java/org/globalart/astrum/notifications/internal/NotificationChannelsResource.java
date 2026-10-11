@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -35,9 +36,12 @@ import org.springframework.stereotype.Component;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Manages the notification channels and sends test messages.
+ * Manages the notification channels and sends test messages. The address of a channel's own proxy is chosen by the
+ * administrator and may be in the local network; it is not checked against the SSRF protection settings, which apply
+ * to the webhook hosts the messages are meant for.
  */
 @Component
 @Consumes(APPLICATION_JSON)
@@ -50,7 +54,14 @@ public class NotificationChannelsResource
 
   static final int MAX_NAME_LENGTH = 100;
 
+  static final int MAX_PROXY_HOST_LENGTH = 255;
+
+  static final int MAX_PROXY_CREDENTIAL_BYTES = 255;
+
   private static final Pattern CHAT_ID = Pattern.compile("-?\\d{1,20}|@[A-Za-z][A-Za-z0-9_]{3,31}");
+
+  private static final Pattern PROXY_HOST =
+      Pattern.compile("[A-Za-z0-9_](?:[A-Za-z0-9_.-]*[A-Za-z0-9_])?|[0-9A-Fa-f.]*:[0-9A-Fa-f:.]*");
 
   private final NotificationChannelStore store;
 
@@ -87,7 +98,8 @@ public class NotificationChannelsResource
     NotificationChannel channel = toChannel(require(xo), null, false);
     Secret secret = secret(xo, channel, null);
     channel.setTargetHost(secret.targetHost());
-    return toXO(store.create(channel, secret.change().value(), UserIdHelper.get()));
+    SecretChange proxyPassword = proxyPassword(xo, channel, null);
+    return toXO(store.create(channel, secret.change().value(), proxyPassword.value(), UserIdHelper.get()));
   }
 
   @PUT
@@ -100,7 +112,8 @@ public class NotificationChannelsResource
     channel.setId(existing.getId());
     Secret secret = secret(xo, channel, existing);
     channel.setTargetHost(secret.targetHost());
-    return toXO(store.update(channel, secret.change(), UserIdHelper.get()));
+    SecretChange proxyPassword = proxyPassword(xo, channel, existing);
+    return toXO(store.update(channel, secret.change(), proxyPassword, UserIdHelper.get()));
   }
 
   @DELETE
@@ -122,12 +135,12 @@ public class NotificationChannelsResource
   @RequiresPermissions("astrum:settings:update")
   public NotificationTestResultXO test(@PathParam("id") final String id) {
     NotificationChannel channel = find(id);
-    return sendTest(channel, store.secret(channel));
+    return sendTest(channel, store.secret(channel), store.proxyPassword(channel));
   }
 
   /**
-   * Sends a test message with the settings of the form, which may not be saved yet. A secret placeholder stands for
-   * the secret of the saved channel with the id of the form.
+   * Sends a test message with the settings of the form, which may not be saved yet. A secret or proxy password
+   * placeholder stands for the secret or proxy password of the saved channel with the id of the form.
    */
   @POST
   @Path("test")
@@ -139,15 +152,23 @@ public class NotificationChannelsResource
     NotificationChannel channel = toChannel(xo, existing, true);
     Secret secret = secret(xo, channel, existing);
     String value = secret.change().replace() ? secret.change().value() : store.secret(existing);
-    return sendTest(channel, value);
+    SecretChange proxyPassword = proxyPassword(xo, channel, existing);
+    String password =
+        proxyPassword.replace() || existing == null ? proxyPassword.value() : store.proxyPassword(existing);
+    return sendTest(channel, value, password);
   }
 
-  private NotificationTestResultXO sendTest(final NotificationChannel channel, @Nullable final String secret) {
+  private NotificationTestResultXO sendTest(
+      final NotificationChannel channel,
+      @Nullable final String secret,
+      @Nullable final String proxyPassword)
+  {
     if (secret == null) {
       throw badRequest("secret", secretRequired(channel));
     }
     try {
-      transport.send(channel, secret, NotificationMessages.test(channel, baseUrlManager.getOrDetect()));
+      transport.send(channel, new NotificationSecrets(secret, proxyPassword),
+          NotificationMessages.test(channel, baseUrlManager.getOrDetect()));
       return new NotificationTestResultXO(true, null);
     }
     catch (NotificationDeliveryException e) {
@@ -220,11 +241,106 @@ public class NotificationChannelsResource
     }
     channel.setLanguage(language);
 
+    proxy(xo, channel);
+
     if (!forTest) {
       channel.setEvents(events(xo.getEvents()));
       channel.setRepositories(repositories(xo.getRepositories()));
     }
     return channel;
+  }
+
+  private static void proxy(final NotificationChannelXO xo, final NotificationChannel channel) {
+    String mode = trim(xo.getProxyMode());
+    if (mode == null) {
+      mode = NotificationChannel.PROXY_GLOBAL;
+    }
+    if (!List.of(NotificationChannel.PROXY_GLOBAL, NotificationChannel.PROXY_NONE, NotificationChannel.PROXY_CUSTOM)
+        .contains(mode)) {
+      throw badRequest("proxyMode", "Connection must be global, none or custom");
+    }
+    channel.setProxyMode(mode);
+    if (!channel.isCustomProxy()) {
+      return;
+    }
+
+    String type = trim(xo.getProxyType());
+    if (!NotificationChannel.PROXY_HTTP.equals(type) && !NotificationChannel.PROXY_SOCKS5.equals(type)) {
+      throw badRequest("proxyType", "Proxy type must be http or socks5");
+    }
+    channel.setProxyType(type);
+
+    String host = trim(xo.getProxyHost());
+    if (host == null) {
+      throw badRequest("proxyHost", "Proxy host is required");
+    }
+    if (host.startsWith("[") && host.endsWith("]")) {
+      host = host.substring(1, host.length() - 1);
+    }
+    if (host.length() > MAX_PROXY_HOST_LENGTH) {
+      throw badRequest("proxyHost", "Proxy host must not be longer than " + MAX_PROXY_HOST_LENGTH + " characters");
+    }
+    if (!PROXY_HOST.matcher(host).matches()) {
+      throw badRequest("proxyHost", "Proxy host must be a host name or an IP address, without a scheme or port");
+    }
+    channel.setProxyHost(host);
+
+    Integer port = xo.getProxyPort();
+    if (port == null) {
+      throw badRequest("proxyPort", "Proxy port is required");
+    }
+    if (port < 1 || port > 65535) {
+      throw badRequest("proxyPort", "Proxy port must be between 1 and 65535");
+    }
+    channel.setProxyPort(port);
+
+    String username = trim(xo.getProxyUsername());
+    if (username != null && username.getBytes(UTF_8).length > MAX_PROXY_CREDENTIAL_BYTES) {
+      throw badRequest("proxyUsername",
+          "Proxy username must not be longer than " + MAX_PROXY_CREDENTIAL_BYTES + " characters");
+    }
+    channel.setProxyUsername(username);
+  }
+
+  /**
+   * The proxy password of the form: a new password, the stored one (placeholder or no value), or none (empty). The
+   * stored password is kept only for the proxy it was entered for, so that it cannot be sent to another host.
+   */
+  private static SecretChange proxyPassword(
+      final NotificationChannelXO xo,
+      final NotificationChannel channel,
+      @Nullable final NotificationChannel existing)
+  {
+    String value = xo.getProxyPassword();
+    boolean keep = value == null || PasswordPlaceholder.is(value);
+    boolean stored = existing != null && existing.getProxyPasswordSecretId() != null;
+    if (!channel.isCustomProxy() || channel.getProxyUsername() == null) {
+      if (channel.isCustomProxy() && !keep && !value.isEmpty()) {
+        throw badRequest("proxyUsername", "Enter the username that goes with the proxy password");
+      }
+      return stored ? SecretChange.clear() : SecretChange.keep();
+    }
+    if (keep) {
+      if (stored && !sameProxy(existing, channel)) {
+        throw badRequest("proxyPassword", "Enter the proxy password again: the proxy has changed");
+      }
+      return SecretChange.keep();
+    }
+    if (value.isEmpty()) {
+      return stored ? SecretChange.clear() : SecretChange.keep();
+    }
+    if (value.getBytes(UTF_8).length > MAX_PROXY_CREDENTIAL_BYTES) {
+      throw badRequest("proxyPassword",
+          "Proxy password must not be longer than " + MAX_PROXY_CREDENTIAL_BYTES + " characters");
+    }
+    return SecretChange.set(value);
+  }
+
+  private static boolean sameProxy(final NotificationChannel existing, final NotificationChannel channel) {
+    return existing.isCustomProxy()
+        && Objects.equals(existing.getProxyType(), channel.getProxyType())
+        && existing.getProxyHost() != null && existing.getProxyHost().equalsIgnoreCase(channel.getProxyHost())
+        && Objects.equals(existing.getProxyPort(), channel.getProxyPort());
   }
 
   private static List<String> events(@Nullable final List<String> events) {
@@ -312,6 +428,14 @@ public class NotificationChannelsResource
     xo.setRepositories(new ArrayList<>(channel.getRepositories()));
     xo.setEvents(new ArrayList<>(channel.getEvents()));
     xo.setLanguage(channel.getLanguage());
+    xo.setProxyMode(channel.getProxyMode());
+    if (channel.isCustomProxy()) {
+      xo.setProxyType(channel.getProxyType());
+      xo.setProxyHost(channel.getProxyHost());
+      xo.setProxyPort(channel.getProxyPort());
+      xo.setProxyUsername(channel.getProxyUsername());
+    }
+    xo.setProxyPassword(channel.getProxyPasswordSecretId() != null ? PasswordPlaceholder.get() : "");
     return xo;
   }
 

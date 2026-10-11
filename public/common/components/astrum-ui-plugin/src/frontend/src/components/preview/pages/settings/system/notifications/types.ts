@@ -4,6 +4,11 @@ export type NotificationEvent = 'published' | 'updated' | 'deleted';
 
 export type NotificationLanguage = 'ru' | 'en';
 
+/** global: the System → HTTP settings; none: a direct connection; custom: the channel's own proxy. */
+export type NotificationProxyMode = 'global' | 'none' | 'custom';
+
+export type NotificationProxyType = 'http' | 'socks5';
+
 export interface NotificationChannel {
   id?: string;
   name: string;
@@ -18,6 +23,13 @@ export interface NotificationChannel {
   repositories: string[];
   events: NotificationEvent[];
   language: NotificationLanguage;
+  proxyMode?: NotificationProxyMode;
+  proxyType?: NotificationProxyType | null;
+  proxyHost?: string | null;
+  proxyPort?: number | null;
+  proxyUsername?: string | null;
+  /** The server only ever returns a placeholder for a saved one; an empty value removes it. */
+  proxyPassword?: string;
 }
 
 export interface NotificationTestResult {

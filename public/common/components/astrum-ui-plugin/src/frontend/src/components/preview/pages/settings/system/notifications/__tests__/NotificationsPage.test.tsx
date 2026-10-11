@@ -65,6 +65,18 @@ const SLACK: NotificationChannel = {
   language: 'en',
 };
 
+const PROXIED: NotificationChannel = {
+  ...TELEGRAM,
+  id: 'c5',
+  name: 'Through proxy',
+  proxyMode: 'custom',
+  proxyType: 'socks5',
+  proxyHost: 'proxy.internal',
+  proxyPort: 1080,
+  proxyUsername: 'robot',
+  proxyPassword: PLACEHOLDER,
+};
+
 function renderPage() {
   return render(
     <Theme>
@@ -75,7 +87,26 @@ function renderPage() {
   );
 }
 
+async function chooseConnection(dialog: HTMLElement, label: string) {
+  const trigger = within(dialog).getByTestId('notification-proxy-mode');
+  fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+  const option = await screen.findByRole('option', { name: label });
+  fireEvent.keyDown(option, { key: 'Enter' });
+  await waitFor(() => expect(trigger).toHaveTextContent(label));
+}
+
+async function editChannel(id: string) {
+  fireEvent.click(await screen.findByTestId(`notification-edit-${id}`));
+  return screen.findByTestId('notification-channel-dialog');
+}
+
 describe('NotificationsPage', () => {
+  beforeAll(() => {
+    window.HTMLElement.prototype.hasPointerCapture = jest.fn();
+    window.HTMLElement.prototype.releasePointerCapture = jest.fn();
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+  });
+
   beforeEach(() => {
     getCheckPermission().mockReturnValue(true);
     mocked.listChannels.mockResolvedValue([TELEGRAM, SLACK]);
@@ -146,6 +177,12 @@ describe('NotificationsPage', () => {
       repositories: ['docker-hosted'],
       events: ['published', 'deleted'],
       language: 'ru',
+      proxyMode: 'global',
+      proxyType: null,
+      proxyHost: null,
+      proxyPort: null,
+      proxyUsername: null,
+      proxyPassword: '',
     });
     await waitFor(() => expect(screen.queryByTestId('notification-channel-dialog')).not.toBeInTheDocument());
     expect(await screen.findByText(LABELS.SAVE_SUCCESS('Docker images'))).toBeInTheDocument();
@@ -314,5 +351,169 @@ describe('NotificationsPage', () => {
     renderPage();
 
     expect(await screen.findByTestId('notifications-load-error')).toHaveTextContent(LABELS.LOAD_ERROR);
+  });
+
+  describe('connection', () => {
+    const DIALOG = LABELS.DIALOG;
+
+    it('creates a Telegram channel that sends through a SOCKS5 proxy', async () => {
+      mocked.createChannel.mockResolvedValue({ ...PROXIED, id: 'c6' });
+      renderPage();
+      await screen.findByTestId('notification-row-c1');
+
+      fireEvent.click(screen.getByTestId('notification-create-button'));
+      const dialog = await screen.findByTestId('notification-channel-dialog');
+      expect(within(dialog).getByTestId('notification-proxy-mode')).toHaveTextContent(DIALOG.CONNECTION_MODES.GLOBAL);
+      expect(within(dialog).getByText(DIALOG.CONNECTION_HELP.GLOBAL)).toBeInTheDocument();
+      expect(within(dialog).queryByTestId('notification-proxy')).not.toBeInTheDocument();
+
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.NAME_LABEL), { target: { value: 'Russia' } });
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.BOT_TOKEN_LABEL), { target: { value: '123:abc' } });
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.CHAT_ID_LABEL), { target: { value: '-100777' } });
+      await chooseConnection(dialog, DIALOG.CONNECTION_MODES.CUSTOM);
+
+      const proxy = within(dialog).getByTestId('notification-proxy');
+      expect(within(dialog).getByText(DIALOG.CONNECTION_HELP.CUSTOM)).toBeInTheDocument();
+      expect(within(proxy).getByRole('radio', { name: DIALOG.PROXY_TYPES.HTTP })).toHaveAttribute('data-state', 'on');
+      fireEvent.click(within(proxy).getByRole('radio', { name: DIALOG.PROXY_TYPES.SOCKS5 }));
+      expect(within(proxy).getByRole('radio', { name: DIALOG.PROXY_TYPES.SOCKS5 })).toHaveAttribute('data-state', 'on');
+      fireEvent.change(within(proxy).getByLabelText(DIALOG.PROXY_HOST_LABEL), { target: { value: ' [fd00::1] ' } });
+      fireEvent.change(within(proxy).getByLabelText(DIALOG.PROXY_PORT_LABEL), { target: { value: '1080' } });
+      fireEvent.change(within(proxy).getByLabelText(DIALOG.PROXY_USERNAME_LABEL), { target: { value: ' robot ' } });
+      fireEvent.change(within(proxy).getByLabelText(DIALOG.PROXY_PASSWORD_LABEL), { target: { value: ' pass ' } });
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.createChannel).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'Russia',
+        proxyMode: 'custom',
+        proxyType: 'socks5',
+        proxyHost: 'fd00::1',
+        proxyPort: 1080,
+        proxyUsername: 'robot',
+        proxyPassword: ' pass ',
+      })));
+    });
+
+    it('validates the proxy before saving or testing', async () => {
+      renderPage();
+      await screen.findByTestId('notification-row-c1');
+
+      const dialog = await editChannel('c1');
+      await chooseConnection(dialog, DIALOG.CONNECTION_MODES.CUSTOM);
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.PROXY_PORT_LABEL), { target: { value: '70000' } });
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.PROXY_PASSWORD_LABEL), { target: { value: 'x' } });
+      fireEvent.click(within(dialog).getByTestId('notification-test-button'));
+
+      expect(await within(dialog).findByText(DIALOG.ERRORS.PROXY_HOST)).toBeInTheDocument();
+      expect(within(dialog).getByText(DIALOG.ERRORS.PROXY_PORT)).toBeInTheDocument();
+      expect(within(dialog).getByText(DIALOG.ERRORS.PROXY_USERNAME)).toBeInTheDocument();
+
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.PROXY_HOST_LABEL), {
+        target: { value: 'http://proxy:3128' },
+      });
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+      expect(await within(dialog).findByText(DIALOG.ERRORS.PROXY_HOST_FORMAT)).toBeInTheDocument();
+      expect(mocked.testUnsavedChannel).not.toHaveBeenCalled();
+      expect(mocked.updateChannel).not.toHaveBeenCalled();
+    });
+
+    it('keeps the saved proxy password when the field is left empty', async () => {
+      mocked.listChannels.mockResolvedValue([TELEGRAM, PROXIED]);
+      mocked.updateChannel.mockResolvedValue(PROXIED);
+      renderPage();
+
+      const dialog = await editChannel('c5');
+      const proxy = within(dialog).getByTestId('notification-proxy');
+      expect(within(dialog).getByTestId('notification-proxy-mode')).toHaveTextContent(DIALOG.CONNECTION_MODES.CUSTOM);
+      expect(within(proxy).getByRole('radio', { name: DIALOG.PROXY_TYPES.SOCKS5 })).toHaveAttribute('data-state', 'on');
+      expect(within(proxy).getByLabelText(DIALOG.PROXY_HOST_LABEL)).toHaveValue('proxy.internal');
+      expect(within(proxy).getByLabelText(DIALOG.PROXY_PORT_LABEL)).toHaveValue('1080');
+      expect(within(proxy).getByLabelText(DIALOG.PROXY_PASSWORD_LABEL)).toHaveValue('');
+      expect(within(proxy).getByText(DIALOG.SECRET_SAVED, { exact: false })).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.updateChannel).toHaveBeenCalledWith('c5', expect.objectContaining({
+        proxyMode: 'custom',
+        proxyType: 'socks5',
+        proxyHost: 'proxy.internal',
+        proxyPort: 1080,
+        proxyUsername: 'robot',
+        proxyPassword: PLACEHOLDER,
+      })));
+    });
+
+    it('asks for the proxy password again when the proxy changes, and can remove it', async () => {
+      mocked.listChannels.mockResolvedValue([PROXIED]);
+      mocked.testUnsavedChannel.mockResolvedValue({ success: false, message: 'The proxy rejected the username or password' });
+      renderPage();
+
+      const dialog = await editChannel('c5');
+      const proxy = within(dialog).getByTestId('notification-proxy');
+      fireEvent.change(within(proxy).getByLabelText(DIALOG.PROXY_HOST_LABEL), { target: { value: 'other.internal' } });
+      expect(within(proxy).getByText(DIALOG.PROXY_PASSWORD_AGAIN)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByTestId('notification-test-button'));
+
+      await waitFor(() => expect(mocked.testUnsavedChannel).toHaveBeenCalledWith(expect.objectContaining({
+        id: 'c5',
+        proxyHost: 'other.internal',
+        proxyPassword: '',
+      })));
+      expect(await within(dialog).findByTestId('notification-test-result'))
+        .toHaveTextContent('The proxy rejected the username or password');
+
+      fireEvent.change(within(proxy).getByLabelText(DIALOG.PROXY_HOST_LABEL), { target: { value: 'PROXY.internal' } });
+      fireEvent.click(within(proxy).getByTestId('notification-proxy-password-remove'));
+      expect(within(proxy).getByText(DIALOG.PROXY_PASSWORD_REMOVED)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.updateChannel).toHaveBeenCalledWith('c5', expect.objectContaining({
+        proxyHost: 'PROXY.internal',
+        proxyPassword: '',
+      })));
+    });
+
+    it('connects directly without proxy settings', async () => {
+      mocked.listChannels.mockResolvedValue([PROXIED]);
+      mocked.updateChannel.mockResolvedValue({ ...PROXIED, proxyMode: 'none' });
+      renderPage();
+
+      const dialog = await editChannel('c5');
+      await chooseConnection(dialog, DIALOG.CONNECTION_MODES.NONE);
+      expect(within(dialog).queryByTestId('notification-proxy')).not.toBeInTheDocument();
+      expect(within(dialog).getByText(DIALOG.CONNECTION_HELP.NONE)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.updateChannel).toHaveBeenCalledWith('c5', expect.objectContaining({
+        proxyMode: 'none',
+        proxyType: null,
+        proxyHost: null,
+        proxyPort: null,
+        proxyUsername: null,
+        proxyPassword: '',
+      })));
+    });
+
+    it('marks channels with their own proxy in the list', async () => {
+      mocked.listChannels.mockResolvedValue([TELEGRAM, PROXIED]);
+      renderPage();
+
+      const row = await screen.findByTestId('notification-row-c5');
+      expect(within(row).getByTestId('notification-proxy-c5')).toHaveTextContent(LABELS.PROXY_BADGE);
+      expect(within(screen.getByTestId('notification-row-c1')).queryByText(LABELS.PROXY_BADGE)).not.toBeInTheDocument();
+    });
+
+    it('shows proxy errors returned by the server at their field', async () => {
+      mocked.listChannels.mockResolvedValue([PROXIED]);
+      mocked.updateChannel.mockRejectedValue({
+        response: { status: 400, data: { id: 'proxyPassword', message: 'Enter the proxy password again: the proxy has changed' } },
+      });
+      renderPage();
+
+      const dialog = await editChannel('c5');
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      expect(await within(dialog).findByTestId('notification-proxy-password-error'))
+        .toHaveTextContent('Enter the proxy password again: the proxy has changed');
+    });
   });
 });
