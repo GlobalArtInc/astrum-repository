@@ -70,6 +70,20 @@
   font-size: 14px;
   line-height: 20px;
 
+  // The dark theme lifts the panel one step above the cards it covers
+  .dark & {
+    background-color: var(--gray-3);
+    border-color: var(--gray-a7);
+    box-shadow: 0 16px 40px var(--black-a9), 0 2px 6px var(--black-a6);
+  }
+
+  // The list is part of the panel: no surface of its own, though the dark theme gives every listbox one
+  & &__list[role='listbox'] {
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
   // Narrow screens: full width right under the header
   @media (max-width: 639px) {
     position: fixed;
