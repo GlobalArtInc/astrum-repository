@@ -5,7 +5,6 @@ export default localize('react-ui', {
   ADD_FORM: {
     CERTIFICATE_ALREADY_EXISTS_TRUST_STORE: 'This certificate already exists in the trust store and cannot be added again.',
     CERTIFICATE_PEM_CONTENT_REQUIRED: 'Certificate PEM content is required',
-    ADD_SSL_CERTIFICATE: 'Add SSL Certificate',
     ADD_CERTIFICATE_TRUST_STORE_LOADING: 'Add a certificate to the trust store by loading from a server or pasting PEM content',
     ADD_CERTIFICATE: 'Add Certificate',
     LOAD_CERTIFICATE: 'Load Certificate',

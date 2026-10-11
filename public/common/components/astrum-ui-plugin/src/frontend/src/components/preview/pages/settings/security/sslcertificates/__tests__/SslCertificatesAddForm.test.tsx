@@ -106,7 +106,8 @@ describe('SslCertificatesAddForm', () => {
       { wrapper: TestWrapper }
     );
     
-    expect(screen.getByText('Add SSL Certificate')).toBeInTheDocument();
+    // The page header names the page; the form does not repeat it
+    expect(screen.queryByText('Add SSL Certificate')).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Load from server/i)).toBeInTheDocument();
   });
 

@@ -140,8 +140,6 @@ export function SslCertificatesAddForm({
     <Box className="ssl-certificates-add-form">
       <SettingsForm
         testId="ssl-add-form"
-        title={SslCertificatesStrings.ADD_FORM.ADD_SSL_CERTIFICATE}
-        description={SslCertificatesStrings.ADD_FORM.ADD_CERTIFICATE_TRUST_STORE_LOADING}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         loading={loading}

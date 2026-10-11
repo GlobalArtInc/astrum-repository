@@ -4717,7 +4717,6 @@
   "PREVIEW.SHARED.WIZARD_FORM.CONTINUE": "Продолжить",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.ADD_CERTIFICATE": "Добавить сертификат",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.ADD_CERTIFICATE_TRUST_STORE_LOADING": "Добавьте сертификат в хранилище доверенных сертификатов: загрузите его с сервера или вставьте в формате PEM",
-  "PREVIEW.SSL_CERTIFICATES.ADD_FORM.ADD_SSL_CERTIFICATE": "Добавление SSL-сертификата",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.CERTIFICATE_ALREADY_EXISTS": "Сертификат уже есть",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.CERTIFICATE_ALREADY_EXISTS_CANNOT_ADDED": "Этот сертификат уже есть, повторно его добавить нельзя. Открыть существующий сертификат?",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.CERTIFICATE_ALREADY_EXISTS_TRUST_STORE": "Этот сертификат уже есть в хранилище доверенных сертификатов, повторно его добавить нельзя.",

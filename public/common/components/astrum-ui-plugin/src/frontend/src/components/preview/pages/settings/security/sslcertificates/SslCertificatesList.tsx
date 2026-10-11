@@ -11,7 +11,7 @@ import {
   AlertCircle,
   Info,
   ExternalLink,
-  Pencil,
+  ChevronRight,
 } from 'lucide-react';
 
 import { useSslCertificatesApi } from './useSslCertificatesApi';
@@ -250,7 +250,7 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
                           handleRowClick(certificate);
                         }}
                       >
-                        <Pencil size={16} className="ssl-certificates-list__row-edit-icon" />
+                        <ChevronRight size={16} className="ssl-certificates-list__row-edit-icon" />
                       </button>
                     </td>
                   </tr>

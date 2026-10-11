@@ -184,6 +184,7 @@ export function SslCertificatesPage() {
     return (
       <PageHeader
         title={title}
+        description={viewMode === 'create' ? SslCertificatesStrings.ADD_FORM.ADD_CERTIFICATE_TRUST_STORE_LOADING : undefined}
         breadcrumbs={[
           { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
           { label: SslCertificatesStrings.PAGE.SSL_CERTIFICATES, onClick: handleBack },

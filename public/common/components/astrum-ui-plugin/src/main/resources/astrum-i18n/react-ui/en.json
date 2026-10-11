@@ -4733,7 +4733,6 @@
   "PREVIEW.SHARED.WIZARD_FORM.CONTINUE": "Continue",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.ADD_CERTIFICATE": "Add Certificate",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.ADD_CERTIFICATE_TRUST_STORE_LOADING": "Add a certificate to the trust store by loading from a server or pasting PEM content",
-  "PREVIEW.SSL_CERTIFICATES.ADD_FORM.ADD_SSL_CERTIFICATE": "Add SSL Certificate",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.CERTIFICATE_ALREADY_EXISTS": "Certificate Already Exists",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.CERTIFICATE_ALREADY_EXISTS_CANNOT_ADDED": "This certificate already exists and cannot be added again. Would you like to view the existing certificate?",
   "PREVIEW.SSL_CERTIFICATES.ADD_FORM.CERTIFICATE_ALREADY_EXISTS_TRUST_STORE": "This certificate already exists in the trust store and cannot be added again.",
