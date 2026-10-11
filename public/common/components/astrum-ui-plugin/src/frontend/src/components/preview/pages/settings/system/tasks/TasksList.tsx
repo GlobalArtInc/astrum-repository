@@ -5,6 +5,7 @@ import { Box, Flex, Text, TextField, Badge, Skeleton } from '@radix-ui/themes';
 import { Clock, ListTodo, RefreshCw, CheckCircle, XCircle, AlertCircle, Play, Square } from 'lucide-react';
 import { ActionIcons } from '../../../../shared/icons/action-icons';
 import { ExtJS } from '../../../../../../interface/ExtJS';
+import plural from '../../../../../../interface/plural';
 
 import {
   EntityTable,
@@ -17,6 +18,7 @@ import {
 } from '../../../../shared';
 import { DeleteConfirmationModal } from '../../../../shared/modals/DeleteConfirmationModal';
 import { useTasksApi } from './useTasksApi';
+import { getTaskCategoryLabel } from './taskTypeDescriptions';
 import { usePolling, POLL_INTERVAL_MS, POST_ACTION_POLL_COUNT } from './usePolling';
 import {
   Task,
@@ -27,28 +29,30 @@ import {
 } from './types';
 
 import './TasksList.scss';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 type SortField = 'name' | 'typeName' | 'status' | 'schedule' | 'nextRun' | 'lastRun';
 
 const STATUS_LABELS: Record<string, string> = {
-  WAITING: 'Waiting',
-  RUNNING: 'Running',
+  WAITING: TasksStrings.LIST.WAITING,
+  RUNNING: TasksStrings.LIST.RUNNING,
   OK: 'OK',
-  ERROR: 'Error',
-  BLOCKED: 'Blocked',
-  CANCELED: 'Canceled',
-  FAILED: 'Failed',
+  ERROR: TasksStrings.LIST.ERROR,
+  BLOCKED: TasksStrings.LIST.BLOCKED,
+  CANCELED: TasksStrings.LIST.CANCELED,
+  FAILED: TasksStrings.LIST.FAILED,
 };
 
 const SCHEDULE_LABELS: Record<string, string> = {
-  manual: 'Manual',
-  once: 'Once',
-  hourly: 'Hourly',
-  daily: 'Daily',
-  weekly: 'Weekly',
-  monthly: 'Monthly',
+  manual: TasksStrings.LIST.MANUAL,
+  once: TasksStrings.LIST.ONCE,
+  hourly: TasksStrings.LIST.HOURLY,
+  daily: TasksStrings.LIST.DAILY,
+  weekly: TasksStrings.LIST.WEEKLY,
+  monthly: TasksStrings.LIST.MONTHLY,
   cron: 'Cron',
-  advanced: 'Cron',
+  advanced: TasksStrings.LIST.CRON,
 };
 
 function getStatusBadgeColor(status: TaskStatus): 'blue' | 'green' | 'gray' | 'yellow' | 'red' {
@@ -247,11 +251,11 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     setActionLoading(task.id);
     try {
       await runTask(task.id);
-      toast.success(`Task "${task.name}" started`);
+      toast.success(TasksStrings.LIST.TASK_STARTED(task.name));
       setPollsLeft(POST_ACTION_POLL_COUNT);
       pollTasksNow();
     } catch {
-      toast.error(`Failed to run task "${task.name}"`);
+      toast.error(TasksStrings.LIST.FAILED_RUN_TASK(task.name));
     } finally {
       setActionLoading(null);
     }
@@ -262,11 +266,11 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     setActionLoading(task.id);
     try {
       await stopTask(task.id);
-      toast.success(`Task "${task.name}" stopped`);
+      toast.success(TasksStrings.LIST.TASK_STOPPED(task.name));
       setPollsLeft(POST_ACTION_POLL_COUNT);
       pollTasksNow();
     } catch {
-      toast.error(`Failed to stop task "${task.name}"`);
+      toast.error(TasksStrings.LIST.FAILED_STOP_TASK(task.name));
     } finally {
       setActionLoading(null);
     }
@@ -283,12 +287,12 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     setActionLoading(taskToDelete.id);
     try {
       await deleteTask(taskToDelete.id);
-      toast.success(`Task "${taskToDelete.name}" deleted`);
+      toast.success(TasksStrings.LIST.TASK_DELETED(taskToDelete.name));
       setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id));
       setDeleteDialogOpen(false);
       setTaskToDelete(null);
     } catch {
-      toast.error(`Failed to delete task "${taskToDelete.name}"`);
+      toast.error(TasksStrings.LIST.FAILED_DELETE_TASK(taskToDelete.name));
       setDeleteDialogOpen(false);
     } finally {
       setActionLoading(null);
@@ -298,7 +302,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
   const filterSections = useMemo<FilterSection[]>(() => [
     {
       id: 'status',
-      label: 'Status',
+      label: CommonStrings.LABELS.STATUS,
       type: 'checkbox',
       options: Array.from(statusCounts.entries())
         .sort(([a], [b]) => a.localeCompare(b))
@@ -308,11 +312,11 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     },
     {
       id: 'type',
-      label: 'Category',
+      label: TasksStrings.LIST.CATEGORY,
       type: 'checkbox',
       options: Array.from(typeCounts.entries())
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([value, count]) => ({ value, label: value, count })),
+        .map(([value, count]) => ({ value, label: getTaskCategoryLabel(value), count })),
       value: typeFilter,
       defaultExpanded: true,
     },
@@ -321,11 +325,11 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
   const columns = useMemo<TableColumn<Task>[]>(() => [
     {
       id: 'name',
-      header: 'Name',
+      header: CommonStrings.LABELS.NAME,
       accessor: (task) => (
         <Flex align="center" gap="2">
           <Text weight="medium">{task.name}</Text>
-          {!task.enabled && <Badge size="1" color="gray">Disabled</Badge>}
+          {!task.enabled && <Badge size="1" color="gray">{TasksStrings.LIST.DISABLED}</Badge>}
         </Flex>
       ),
       sortable: true,
@@ -333,14 +337,14 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     },
     {
       id: 'typeName',
-      header: 'Type',
+      header: CommonStrings.LABELS.TYPE,
       accessor: (task) => <Text size="2">{task.typeName}</Text>,
       sortable: true,
       width: '130px',
     },
     {
       id: 'description',
-      header: 'Description',
+      header: CommonStrings.LABELS.DESCRIPTION,
       accessor: (task) => (
         <Text size="2" color="gray" style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
           {task.statusDescription || '-'}
@@ -351,7 +355,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     },
     {
       id: 'status',
-      header: 'Status',
+      header: CommonStrings.LABELS.STATUS,
       accessor: (task) => (
         <Flex align="center" gap="2">
           {getStatusIcon(task.status)}
@@ -370,7 +374,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     },
     {
       id: 'schedule',
-      header: 'Schedule',
+      header: TasksStrings.LIST.SCHEDULE,
       accessor: (task) => (
         <Text size="2">{SCHEDULE_LABELS[task.schedule] || task.schedule || '-'}</Text>
       ),
@@ -379,21 +383,21 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     },
     {
       id: 'nextRun',
-      header: 'Next Run',
+      header: TasksStrings.LIST.NEXT_RUN,
       accessor: (task) => <Text size="2">{formatDate(task.nextRun)}</Text>,
       sortable: true,
       width: '140px',
     },
     {
       id: 'lastRun',
-      header: 'Last Run',
+      header: TasksStrings.LIST.LAST_RUN,
       accessor: (task) => <Text size="2">{formatDate(task.lastRun)}</Text>,
       sortable: true,
       width: '140px',
     },
     {
       id: 'lastResult',
-      header: 'Last Result',
+      header: TasksStrings.LIST.LAST_RESULT,
       accessor: (task) => <Text size="2">{task.lastRunResult || '-'}</Text>,
       width: '80px',
     },
@@ -408,8 +412,8 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
               className="tasks-list__action-btn tasks-list__action-btn--run"
               onClick={(e) => handleRun(e, task)}
               disabled={actionLoading === task.id}
-              aria-label={`Run ${task.name}`}
-              title="Run now"
+              aria-label={TasksStrings.LIST.RUN_TASK(task.name)}
+              title={TasksStrings.LIST.RUN_NOW}
             >
               <Play size={14} />
             </button>
@@ -420,8 +424,8 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
               className="tasks-list__action-btn tasks-list__action-btn--stop"
               onClick={(e) => handleStop(e, task)}
               disabled={actionLoading === task.id}
-              aria-label={`Stop ${task.name}`}
-              title="Stop"
+              aria-label={TasksStrings.LIST.STOP_TASK(task.name)}
+              title={TasksStrings.LIST.STOP_TITLE}
             >
               <Square size={14} />
             </button>
@@ -431,8 +435,8 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
               type="button"
               className="tasks-list__action-btn tasks-list__action-btn--delete"
               onClick={(e) => handleDeleteClick(e, task)}
-              aria-label={`Delete ${task.name}`}
-              title="Delete"
+              aria-label={TasksStrings.LIST.DELETE_TASK(task.name)}
+              title={CommonStrings.ACTIONS.DELETE}
             >
               <ActionIcons.Delete size={14} />
             </button>
@@ -450,23 +454,23 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
       return (
         <EmptyState
           icon={ListTodo}
-          title="No Matching Tasks"
-          description="No tasks match your current filters. Try adjusting your filter criteria."
-          action={{ label: 'Clear Filters', onClick: handleClearFilters }}
+          title={TasksStrings.LIST.NO_MATCHING_TASKS}
+          description={TasksStrings.LIST.NO_TASKS_MATCH_CURRENT_FILTERS}
+          action={{ label: CommonStrings.ACTIONS.CLEAR_FILTERS, onClick: handleClearFilters }}
         />
       );
     }
     return (
       <EmptyState
         icon={ListTodo}
-        title="No Tasks"
-        description="Create your first scheduled task to automate repository maintenance."
-        action={onCreate ? { label: 'Create Task', onClick: onCreate, icon: ActionIcons.Add } : undefined}
+        title={TasksStrings.LIST.NO_TASKS}
+        description={TasksStrings.LIST.CREATE_FIRST_SCHEDULED_TASK_AUTOMATE}
+        action={onCreate ? { label: TasksStrings.LIST.CREATE_TASK, onClick: onCreate, icon: ActionIcons.Add } : undefined}
         secondaryAction={{
-          label: 'Learn more about tasks',
+          label: TasksStrings.LIST.LEARN_MORE_ABOUT_TASKS,
           href: 'http://links.globalart.dev/products/astrum/docs/tasks',
         }}
-        tip="Scheduled tasks automate common operations like cleanup, compaction, and health checks."
+        tip={TasksStrings.LIST.SCHEDULED_TASKS_AUTOMATE_COMMON_OPERATIONS}
       />
     );
   }, [searchQuery, statusFilter, typeFilter, handleClearFilters, onCreate]);
@@ -483,7 +487,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
         {hasActiveFilters && (
           <Box className="tasks-list__filter-badge">
             <Badge size="2" color="blue" variant="soft">
-              {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active
+              {plural(TasksStrings.LIST.FILTERS_ACTIVE, activeFilterCount)}
             </Badge>
           </Box>
         )}
@@ -492,7 +496,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
       <Box className="tasks-list__main">
         <Box className="tasks-list__search-container">
           <TextField.Root
-            placeholder="Search tasks by name, type, or status..."
+            placeholder={TasksStrings.LIST.SEARCH_TASKS_NAME_TYPE_STATUS_PLACEHOLDER}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="tasks-list__search-input"
@@ -508,7 +512,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
                   type="button"
                   className="tasks-list__clear-btn"
                   onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
+                  aria-label={TasksStrings.LIST.CLEAR_SEARCH_ARIA}
                 >
                   <ActionIcons.Cancel size={14} />
                 </button>
@@ -553,7 +557,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
             onSort={handleSort}
             showRowArrow={true}
             clickable={true}
-            ariaLabel="Tasks list"
+            ariaLabel={TasksStrings.LIST.TASKS_LIST_ARIA}
             className="tasks-list__table"
           />
         )}
@@ -561,16 +565,19 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
         {!(loading || apiError ) && filteredTasks.length > 0 && (
           <Box className="tasks-list__summary">
             <Text size="2" color="gray">
-              Showing <Text as="span" weight="medium">{filteredTasks.length}</Text> of <Text as="span" weight="medium">{tasks.length}</Text> tasks
+              {TasksStrings.LIST.SHOWING(
+                <Text as="span" weight="medium">{filteredTasks.length}</Text>,
+                <Text as="span" weight="medium">{tasks.length}</Text>
+              )}
             </Text>
           </Box>
         )}
 
         <HelpSection
-          title="About Scheduled Tasks"
-          content="Scheduled tasks automate common repository maintenance operations like cleanup, compaction, metadata rebuilding, and health checks. Tasks can run on various schedules including manual, hourly, daily, weekly, monthly, or via cron expressions."
+          title={TasksStrings.LIST.ABOUT_SCHEDULED_TASKS}
+          content={TasksStrings.LIST.ABOUT_SCHEDULED_TASKS_TEXT}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'http://links.globalart.dev/products/astrum/docs/tasks',
           }}
           className="tasks-list__help"
@@ -588,16 +595,16 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
         {taskToDelete && (
           <Flex direction="column" gap="1">
             <Flex gap="2">
-              <Text size="2" color="gray">Type:</Text>
+              <Text size="2" color="gray">{TasksStrings.LIST.TYPE_LABEL}</Text>
               <Text size="2">{taskToDelete.typeName}</Text>
             </Flex>
             <Flex gap="2">
-              <Text size="2" color="gray">Schedule:</Text>
-              <Text size="2">{SCHEDULE_LABELS[taskToDelete.schedule] || taskToDelete.schedule || 'None'}</Text>
+              <Text size="2" color="gray">{TasksStrings.LIST.SCHEDULE_LABEL}</Text>
+              <Text size="2">{SCHEDULE_LABELS[taskToDelete.schedule] || taskToDelete.schedule || TasksStrings.LIST.NONE}</Text>
             </Flex>
             {taskToDelete.lastRun && (
               <Flex gap="2">
-                <Text size="2" color="gray">Last Run:</Text>
+                <Text size="2" color="gray">{TasksStrings.LIST.LAST_RUN_LABEL}</Text>
                 <Text size="2">
                   {formatDate(taskToDelete.lastRun)}
                   {taskToDelete.lastRunResult && ` (${taskToDelete.lastRunResult})`}

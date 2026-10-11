@@ -8,6 +8,7 @@ import classnames from 'classnames';
 import { SettingsCombobox, SettingsTransferList, SettingsAlert } from '../../../../shared/form';
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import { restClient } from '../../../../../../interface/api';
+import plural from '../../../../../../interface/plural';
 import { TaskType, TaskTypeSelectorProps } from './types';
 import {
   TASK_TYPE_REPO_FILTERS,
@@ -22,13 +23,14 @@ import {
 } from './taskFieldMetadata';
 import { buildRepoQuery, deriveAllEntries, queryFromStaticFilter } from './taskRepoQuery';
 import { humanizePropertyKey } from './useTasksApi';
-import { getTaskTypeDescription, getTaskTypeCategory } from './taskTypeDescriptions';
+import { getTaskTypeDescription, getTaskTypeCategory, getTaskCategoryLabel } from './taskTypeDescriptions';
 import { TASK_TYPE_SELECTOR, DYNAMIC_FORM_FIELDS } from './TaskStrings';
 import { PlanInformationWidget } from './PlanInformationWidget';
 import { ReadOnlySelectedList } from './ReadOnlySelectedList';
 
 import './TaskTypeSelector.scss';
 import '../../../../shared/EntityTable/EntityTable.scss';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 interface TaskTypeRow {
   id: string;
@@ -69,6 +71,7 @@ export function TaskTypeSelector({
       result = result.filter(r =>
         r.name.toLowerCase().includes(q) ||
         r.category.toLowerCase().includes(q) ||
+        getTaskCategoryLabel(r.category).toLowerCase().includes(q) ||
         r.description.toLowerCase().includes(q)
       );
     }
@@ -135,7 +138,7 @@ export function TaskTypeSelector({
           />
         </div>
         <Text size="2" color="gray" className="task-type-selector__count">
-          {TASK_TYPE_SELECTOR.COUNT(rows.length)}
+          {plural(TASK_TYPE_SELECTOR.COUNT, rows.length)}
         </Text>
       </Flex>
 
@@ -144,7 +147,7 @@ export function TaskTypeSelector({
           <Text color="gray">{TASK_TYPE_SELECTOR.EMPTY_FILTER}</Text>
         </Flex>
       ) : (
-        <Table.Root className="entity-table" aria-label="Task types">
+        <Table.Root className="entity-table" aria-label={TasksStrings.TYPE_SELECTOR.TASK_TYPES_ARIA}>
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeaderCell
@@ -189,18 +192,18 @@ export function TaskTypeSelector({
                   }}
                   tabIndex={0}
                   aria-selected={isSelected}
-                  aria-label={`Select ${row.name}`}
+                  aria-label={TasksStrings.TYPE_SELECTOR.SELECT(row.name)}
                   data-testid={`task-type-row-${row.id}`}
                 >
                   <Table.Cell>
                     <Flex align="center" gap="2">
                       <Text weight="medium" size="2">{row.name}</Text>
                       {row.exposed === false && (
-                        <Badge size="1" color="blue" variant="soft">PRO</Badge>
+                        <Badge size="1" color="blue" variant="soft">{TasksStrings.TYPE_SELECTOR.PRO}</Badge>
                       )}
                     </Flex>
                   </Table.Cell>
-                  <Table.Cell>{row.category}</Table.Cell>
+                  <Table.Cell>{getTaskCategoryLabel(row.category)}</Table.Cell>
                   <Table.Cell>
                     <Text size="2" color="gray" className="task-type-selector__description-cell">
                       {row.description}
@@ -329,13 +332,13 @@ export function DynamicFormField({
               <Text as="label" size="2" style={{ cursor: 'pointer' }}>
                 <Flex align="center" gap="2">
                   <RadioGroup.Item value="duration" data-testid={`input-${field.id}-duration`} />
-                  Duration
+                  {TasksStrings.TYPE_SELECTOR.DURATION}
                 </Flex>
               </Text>
               <Text as="label" size="2" style={{ cursor: 'pointer' }}>
                 <Flex align="center" gap="2">
                   <RadioGroup.Item value="dates" data-testid={`input-${field.id}-dates`} />
-                  Start/End Dates
+                  {TasksStrings.TYPE_SELECTOR.START_END_DATES}
                 </Flex>
               </Text>
             </Flex>
@@ -398,8 +401,8 @@ export function DynamicFormField({
             }}
             getItemId={(item: {value: string}) => item.value}
             getItemLabel={(item: {label: string}) => item.label}
-            availableLabel="Available"
-            selectedLabel="Selected"
+            availableLabel={TasksStrings.TYPE_SELECTOR.AVAILABLE}
+            selectedLabel={TasksStrings.TYPE_SELECTOR.SELECTED}
             selectedEmptyText={ui?.selectedEmptyText}
             helpText={helpText}
             required={isRequired}
@@ -616,8 +619,8 @@ export function DynamicFormField({
               }
               getItemId={(item: {value: string}) => item.value}
               getItemLabel={(item: {label: string}) => item.label}
-              availableLabel="Available"
-              selectedLabel="Selected"
+              availableLabel={TasksStrings.TYPE_SELECTOR.AVAILABLE}
+              selectedLabel={TasksStrings.TYPE_SELECTOR.SELECTED}
               helpText={helpText}
               required={isRequired}
               error={error}
@@ -641,7 +644,7 @@ export function DynamicFormField({
             required={isRequired}
             disabled={disabled || field.disabled || field.readOnly}
             loading={loadingRepoOptions}
-            placeholder="Select repository..."
+            placeholder={TasksStrings.TYPE_SELECTOR.SELECT_REPOSITORY_PLACEHOLDER}
             showLabelForValue={showLabelInInput}
           />
         </Box>
@@ -660,7 +663,7 @@ export function DynamicFormField({
             helpText={helpText}
             required={isRequired}
             disabled={disabled || field.disabled || field.readOnly}
-            placeholder="Select blob store..."
+            placeholder={TasksStrings.TYPE_SELECTOR.SELECT_BLOB_STORE_PLACEHOLDER}
           />
         </Box>
       );
@@ -688,7 +691,7 @@ export function DynamicFormField({
               helpText={helpText}
               required={isRequired}
               disabled={disabled || field.disabled || field.readOnly}
-              placeholder="Select repository..."
+              placeholder={TasksStrings.TYPE_SELECTOR.SELECT_REPOSITORY_PLACEHOLDER}
             />
           </Box>
         );
@@ -706,7 +709,7 @@ export function DynamicFormField({
               helpText={helpText}
               required={isRequired}
               disabled={disabled || field.disabled || field.readOnly}
-              placeholder="Select blob store..."
+              placeholder={TasksStrings.TYPE_SELECTOR.SELECT_BLOB_STORE_PLACEHOLDER}
             />
           </Box>
         );

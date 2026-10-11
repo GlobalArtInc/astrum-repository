@@ -30,6 +30,7 @@ import {
   getTimezoneOffset,
   combineDateAndTime,
 } from './types';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 // Re-export from the shared transformer module so existing imports still resolve.
 export { humanizePropertyKey };
@@ -329,7 +330,7 @@ export function useTasksApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       console.error('Failed to fetch tasks:', err);
-      throw new Error(apiError.message || 'Failed to load tasks');
+      throw new Error(apiError.message || TasksStrings.API.FAILED_LOAD_TASKS);
     }
   }, []);
 
@@ -348,7 +349,7 @@ export function useTasksApi() {
         return null;
       }
       console.error('Failed to fetch task:', err);
-      throw new Error(apiError.message || 'Failed to load task details');
+      throw new Error(apiError.message || TasksStrings.API.FAILED_LOAD_TASK_DETAILS);
     }
   }, []);
 
@@ -363,7 +364,7 @@ export function useTasksApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       console.error('Failed to fetch task types:', err);
-      throw new Error(apiError.message || 'Failed to load task types');
+      throw new Error(apiError.message || TasksStrings.API.FAILED_LOAD_TASK_TYPES);
     }
   }, []);
 
@@ -385,7 +386,7 @@ export function useTasksApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to create task');
+      throw new Error(apiError.message || TasksStrings.API.FAILED_CREATE_TASK);
     } finally {
       setLoading(false);
     }
@@ -412,7 +413,7 @@ export function useTasksApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to update task');
+      throw new Error(apiError.message || TasksStrings.API.FAILED_UPDATE_TASK);
     } finally {
       setLoading(false);
     }
@@ -431,7 +432,7 @@ export function useTasksApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to delete task');
+      throw new Error(apiError.message || TasksStrings.API.FAILED_DELETE_TASK);
     } finally {
       setLoading(false);
     }
@@ -450,7 +451,7 @@ export function useTasksApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to run task');
+      throw new Error(apiError.message || TasksStrings.API.FAILED_RUN_TASK);
     } finally {
       setLoading(false);
     }
@@ -469,7 +470,7 @@ export function useTasksApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to stop task');
+      throw new Error(apiError.message || TasksStrings.API.FAILED_STOP_TASK);
     } finally {
       setLoading(false);
     }

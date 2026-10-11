@@ -15,6 +15,8 @@ import { usePolling, POLL_INTERVAL_MS, POST_ACTION_POLL_COUNT } from './usePolli
 import { Task, TaskType, TaskFormData, TasksPageProps, isActiveStatus, isTerminalStatus } from './types';
 
 import './TasksPage.scss';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 type ViewMode = 'list' | 'create' | 'detail';
 
@@ -149,11 +151,11 @@ export function TasksPage({ className }: TasksPageProps) {
           if (taskData) {
             setTask(taskData);
           } else {
-            setError('Task not found');
+            setError(TasksStrings.PAGE.TASK_NOT_FOUND);
             navigateTo(BASE_PATH);
           }
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to load task');
+          setError(err instanceof Error ? err.message : TasksStrings.PAGE.FAILED_LOAD_TASK);
           navigateTo(BASE_PATH);
         }
       };
@@ -253,7 +255,7 @@ export function TasksPage({ className }: TasksPageProps) {
   // props passed by TaskDetail/TaskForm; this callback is invoked AFTER that
   // save has already succeeded, so it must not re-issue the request.
   const handleSave = useCallback(async (_data: TaskFormData, _startTime?: string) => {
-    setSuccessMessage(viewMode === 'create' ? 'Task created successfully' : 'Task updated successfully');
+    setSuccessMessage(viewMode === 'create' ? TasksStrings.PAGE.TASK_CREATED_SUCCESSFULLY : TasksStrings.PAGE.TASK_UPDATED_SUCCESSFULLY);
     setRefreshKey((k) => k + 1);
     navigateTo(BASE_PATH);
   }, [viewMode]);
@@ -263,7 +265,7 @@ export function TasksPage({ className }: TasksPageProps) {
   // prop wired in TaskDetail. Re-issuing it here would produce a second 404'd call.
   const handleDelete = useCallback(async () => {
     if (!task) return;
-    setSuccessMessage(`Task "${task.name}" deleted successfully`);
+    setSuccessMessage(TasksStrings.PAGE.TASK_DELETED_SUCCESSFULLY(task.name));
     setRefreshKey((k) => k + 1);
     navigateTo(BASE_PATH);
   }, [task]);
@@ -279,7 +281,7 @@ export function TasksPage({ className }: TasksPageProps) {
 
     try {
       await runTask(task.id);
-      setSuccessMessage(`Task started: ${task.name}`);
+      setSuccessMessage(TasksStrings.PAGE.TASK_STARTED(task.name));
       setDetailPollsLeft(POST_ACTION_POLL_COUNT);
       pollDetailNow();
     } catch (err) {
@@ -295,7 +297,7 @@ export function TasksPage({ className }: TasksPageProps) {
 
     try {
       await stopTask(task.id);
-      setSuccessMessage(`Task stopped: ${task.name}`);
+      setSuccessMessage(TasksStrings.PAGE.TASK_STOPPED(task.name));
       setDetailPollsLeft(POST_ACTION_POLL_COUNT);
       pollDetailNow();
     } catch (err) {
@@ -315,18 +317,18 @@ export function TasksPage({ className }: TasksPageProps) {
   const renderHeader = () => {
     if (viewMode === 'list') {
       const breadcrumbs = [
-        { label: 'Settings', onClick: navigateToSettings },
-        { label: 'Tasks' },
+        { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+        { label: TasksStrings.PAGE.TASKS },
       ];
       const actions = canCreate ? (
         <SettingsButton variant="primary" onClick={handleCreate} icon={Plus} testId="tasks-create-button" data-analytics-id="as-task-create">
-          Create Task
+          {TasksStrings.PAGE.CREATE_TASK}
         </SettingsButton>
       ) : undefined;
       return (
         <PageHeader
-          title="Tasks"
-          description="Manage scheduled tasks and background jobs"
+          title={TasksStrings.PAGE.TASKS}
+          description={TasksStrings.PAGE.MANAGE_SCHEDULED_TASKS_BACKGROUND_JOBS}
           breadcrumbs={breadcrumbs}
           actions={actions}
           className="tasks-page__header"
@@ -335,15 +337,15 @@ export function TasksPage({ className }: TasksPageProps) {
     }
 
     const title = viewMode === 'create'
-      ? 'Create Task'
+      ? TasksStrings.PAGE.CREATE_TASK
       : task
         ? task.name
-        : 'Task Details';
+        : TasksStrings.PAGE.TASK_DETAILS;
 
     const breadcrumbs = [
-      { label: 'Settings', onClick: navigateToSettings },
-      { label: 'Tasks', onClick: handleBack },
-      { label: viewMode === 'create' ? 'Create' : (task?.name || 'Task') },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+      { label: TasksStrings.PAGE.TASKS, onClick: handleBack },
+      { label: viewMode === 'create' ? CommonStrings.ACTIONS.CREATE : (task?.name || TasksStrings.PAGE.TASK) },
     ];
 
     return (
@@ -413,10 +415,10 @@ export function TasksPage({ className }: TasksPageProps) {
         {viewMode === 'detail' && taskNotFound && (
           <Box className="tasks-page__alerts">
             <SettingsAlert type="error">
-              This task no longer exists. It may have been deleted.
+              {TasksStrings.PAGE.TASK_NO_LONGER_EXISTS_MAY}
             </SettingsAlert>
             <SettingsButton variant="secondary" onClick={handleBack} testId="task-not-found-back">
-              Back to Tasks
+              {TasksStrings.PAGE.BACK_TASKS}
             </SettingsButton>
           </Box>
         )}

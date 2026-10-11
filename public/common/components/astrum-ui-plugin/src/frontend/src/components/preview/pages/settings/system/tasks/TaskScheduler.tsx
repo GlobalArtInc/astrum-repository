@@ -19,12 +19,15 @@ import {
   getTimezoneOffset,
   validateCronExpression,
 } from './types';
+import plural from '../../../../../../interface/plural';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
+import { formatClockTime } from '../../../../shared/utils/formatLocale';
 
 const DAY_NAMES: Record<string, string> = {
-  SUN: 'Sunday', MON: 'Monday', TUE: 'Tuesday', WED: 'Wednesday',
-  THU: 'Thursday', FRI: 'Friday', SAT: 'Saturday',
-  '1': 'Sunday', '2': 'Monday', '3': 'Tuesday', '4': 'Wednesday',
-  '5': 'Thursday', '6': 'Friday', '7': 'Saturday',
+  SUN: TasksStrings.SCHEDULER.SUNDAY, MON: TasksStrings.SCHEDULER.MONDAY, TUE: TasksStrings.SCHEDULER.TUESDAY, WED: TasksStrings.SCHEDULER.WEDNESDAY,
+  THU: TasksStrings.SCHEDULER.THURSDAY, FRI: TasksStrings.SCHEDULER.FRIDAY, SAT: TasksStrings.SCHEDULER.SATURDAY,
+  '1': TasksStrings.SCHEDULER.SUNDAY, '2': TasksStrings.SCHEDULER.MONDAY, '3': TasksStrings.SCHEDULER.TUESDAY, '4': TasksStrings.SCHEDULER.WEDNESDAY,
+  '5': TasksStrings.SCHEDULER.THURSDAY, '6': TasksStrings.SCHEDULER.FRIDAY, '7': TasksStrings.SCHEDULER.SATURDAY,
 };
 
 export function describeCron(expr: string): string {
@@ -33,50 +36,44 @@ export function describeCron(expr: string): string {
 
   const [_sec, min, hour, dom, , dow] = parts;
 
-  const formatTime = (h: string, m: string) => {
-    const hh = parseInt(h, 10);
-    const mm = parseInt(m, 10);
-    const ampm = hh >= 12 ? 'PM' : 'AM';
-    const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
-    return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
-  };
+  const formatTime = (h: string, m: string) => formatClockTime(parseInt(h, 10), parseInt(m, 10));
 
   try {
     if (min.startsWith('*/')) {
-      return `Every ${min.slice(2)} minutes`;
+      return plural(TasksStrings.SCHEDULER.EVERY_MINUTES, Number(min.slice(2)), min.slice(2));
     }
     if (hour === '*') {
-      return 'Every hour';
+      return TasksStrings.SCHEDULER.EVERY_HOUR;
     }
     if (hour.startsWith('*/')) {
-      return `Every ${hour.slice(2)} hours`;
+      return plural(TasksStrings.SCHEDULER.EVERY_HOURS, Number(hour.slice(2)), hour.slice(2));
     }
 
     const isEveryDom = dom === '*' || dom === '?';
     const isEveryDow = dow === '*' || dow === '?';
 
     if (dow === 'MON-FRI' && isEveryDom) {
-      return `Weekdays at ${formatTime(hour, min)}`;
+      return TasksStrings.SCHEDULER.WEEKDAYS_AT(formatTime(hour, min));
     }
     if (dow === 'SAT,SUN' && isEveryDom) {
-      return `Weekends at ${formatTime(hour, min)}`;
+      return TasksStrings.SCHEDULER.WEEKENDS_AT(formatTime(hour, min));
     }
 
     if (!isEveryDow && isEveryDom) {
       const days = dow.split(',').map((d) => DAY_NAMES[d] || d).join(', ');
-      return `${days} at ${formatTime(hour, min)}`;
+      return TasksStrings.SCHEDULER.AT(days, formatTime(hour, min));
     }
 
     if (!isEveryDom && isEveryDow) {
-      if (dom === 'L') return `Last day of month at ${formatTime(hour, min)}`;
-      return `Day ${dom} of each month at ${formatTime(hour, min)}`;
+      if (dom === 'L') return TasksStrings.SCHEDULER.LAST_DAY_MONTH(formatTime(hour, min));
+      return TasksStrings.SCHEDULER.DAY_EACH_MONTH(dom, formatTime(hour, min));
     }
 
     if (isEveryDom && isEveryDow) {
-      return `Every day at ${formatTime(hour, min)}`;
+      return TasksStrings.SCHEDULER.EVERY_DAY(formatTime(hour, min));
     }
 
-    return `Runs at ${formatTime(hour, min)}`;
+    return TasksStrings.SCHEDULER.RUNS_AT(formatTime(hour, min));
   } catch {
     return '';
   }
@@ -91,7 +88,7 @@ const getTimezoneName = (): string => {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch {
-    return 'local timezone';
+    return TasksStrings.SCHEDULER.LOCAL_TIMEZONE;
   }
 };
 
@@ -200,7 +197,7 @@ export function TaskScheduler({
         return (
           <Box className="task-scheduler__info">
             <Info size={16} />
-            <Text size="2">This task will only run when manually triggered.</Text>
+            <Text size="2">{TasksStrings.SCHEDULER.TASK_ONLY_RUN_WHEN_MANUALLY}</Text>
           </Box>
         );
 
@@ -208,13 +205,13 @@ export function TaskScheduler({
         return (
           <Flex direction="column" gap="3">
             <Text size="2" weight="medium" className="task-scheduler__section-title">
-              Run Once At
+              {TasksStrings.SCHEDULER.RUN_ONCE}
             </Text>
             <Flex gap="3" wrap="wrap">
               <Box className="task-scheduler__field task-scheduler__field--date">
                 <label htmlFor="schedule-date" className="task-scheduler__label">
                   <Calendar size={14} />
-                  Date
+                  {TasksStrings.SCHEDULER.DATE}
                 </label>
                 <TextField.Root
                   id="schedule-date"
@@ -232,7 +229,7 @@ export function TaskScheduler({
               <Box className="task-scheduler__field task-scheduler__field--time">
                 <label htmlFor="schedule-time" className="task-scheduler__label">
                   <Clock size={14} />
-                  Time
+                  {TasksStrings.SCHEDULER.TIME}
                 </label>
                 <TextField.Root
                   id="schedule-time"
@@ -244,7 +241,7 @@ export function TaskScheduler({
                   aria-describedby={errors.startTime ? 'schedule-time-error' : undefined}
                   aria-invalid={errors.startTime ? true : undefined}
                 />
-                <Text size="1" color="gray" mt="1">Times are shown in your local timezone ({timezone})</Text>
+                <Text size="1" color="gray" mt="1">{TasksStrings.SCHEDULER.TIMES_SHOWN_LOCAL_TIMEZONE(timezone)}</Text>
                 {errors.startTime && (
                   <Text id="schedule-time-error" size="1" className="task-scheduler__error">{errors.startTime}</Text>
                 )}
@@ -257,13 +254,13 @@ export function TaskScheduler({
         return (
           <Flex direction="column" gap="3">
             <Text size="2" weight="medium" className="task-scheduler__section-title">
-              Run Every Hour Starting At
+              {TasksStrings.SCHEDULER.RUN_EVERY_HOUR_STARTING}
             </Text>
             <Flex gap="3" wrap="wrap">
               <Box className="task-scheduler__field task-scheduler__field--date">
                 <label htmlFor="schedule-date" className="task-scheduler__label">
                   <Calendar size={14} />
-                  Start Date
+                  {TasksStrings.SCHEDULER.START_DATE}
                 </label>
                 <TextField.Root
                   id="schedule-date"
@@ -281,7 +278,7 @@ export function TaskScheduler({
               <Box className="task-scheduler__field task-scheduler__field--time">
                 <label htmlFor="schedule-time" className="task-scheduler__label">
                   <Clock size={14} />
-                  Start Time ({timezone})
+                  {TasksStrings.SCHEDULER.START_TIME(timezone)}
                 </label>
                 <TextField.Root
                   id="schedule-time"
@@ -304,13 +301,13 @@ export function TaskScheduler({
         return (
           <Flex direction="column" gap="3">
             <Text size="2" weight="medium" className="task-scheduler__section-title">
-              Run Daily At
+              {TasksStrings.SCHEDULER.RUN_DAILY}
             </Text>
             <Flex gap="3" wrap="wrap">
               <Box className="task-scheduler__field task-scheduler__field--date">
                 <label htmlFor="schedule-date" className="task-scheduler__label">
                   <Calendar size={14} />
-                  Start Date
+                  {TasksStrings.SCHEDULER.START_DATE}
                 </label>
                 <TextField.Root
                   id="schedule-date"
@@ -328,7 +325,7 @@ export function TaskScheduler({
               <Box className="task-scheduler__field task-scheduler__field--time">
                 <label htmlFor="schedule-time" className="task-scheduler__label">
                   <Clock size={14} />
-                  Time
+                  {TasksStrings.SCHEDULER.TIME}
                 </label>
                 <TextField.Root
                   id="schedule-time"
@@ -340,7 +337,7 @@ export function TaskScheduler({
                   aria-describedby={errors.startTime ? 'schedule-time-error' : undefined}
                   aria-invalid={errors.startTime ? true : undefined}
                 />
-                <Text size="1" color="gray" mt="1">Times are shown in your local timezone ({timezone})</Text>
+                <Text size="1" color="gray" mt="1">{TasksStrings.SCHEDULER.TIMES_SHOWN_LOCAL_TIMEZONE(timezone)}</Text>
                 {errors.startTime && (
                   <Text id="schedule-time-error" size="1" className="task-scheduler__error">{errors.startTime}</Text>
                 )}
@@ -356,7 +353,7 @@ export function TaskScheduler({
               <Box className="task-scheduler__field task-scheduler__field--date">
                 <label htmlFor="schedule-date" className="task-scheduler__label">
                   <Calendar size={14} />
-                  Start Date
+                  {TasksStrings.SCHEDULER.START_DATE}
                 </label>
                 <TextField.Root
                   id="schedule-date"
@@ -374,7 +371,7 @@ export function TaskScheduler({
               <Box className="task-scheduler__field task-scheduler__field--time">
                 <label htmlFor="schedule-time" className="task-scheduler__label">
                   <Clock size={14} />
-                  Time
+                  {TasksStrings.SCHEDULER.TIME}
                 </label>
                 <TextField.Root
                   id="schedule-time"
@@ -386,7 +383,7 @@ export function TaskScheduler({
                   aria-describedby={errors.startTime ? 'schedule-time-error' : undefined}
                   aria-invalid={errors.startTime ? true : undefined}
                 />
-                <Text size="1" color="gray" mt="1">Times are shown in your local timezone ({timezone})</Text>
+                <Text size="1" color="gray" mt="1">{TasksStrings.SCHEDULER.TIMES_SHOWN_LOCAL_TIMEZONE(timezone)}</Text>
                 {errors.startTime && (
                   <Text id="schedule-time-error" size="1" className="task-scheduler__error">{errors.startTime}</Text>
                 )}
@@ -394,7 +391,7 @@ export function TaskScheduler({
             </Flex>
             <Box className="task-scheduler__days">
               <Text size="2" weight="medium" className="task-scheduler__section-title">
-                Days to Run
+                {TasksStrings.SCHEDULER.DAYS_RUN}
               </Text>
               <Flex gap="3" wrap="wrap" className="task-scheduler__days-grid">
                 {WEEKDAYS.map((day) => (
@@ -422,7 +419,7 @@ export function TaskScheduler({
               <Box className="task-scheduler__field task-scheduler__field--date">
                 <label htmlFor="schedule-date" className="task-scheduler__label">
                   <Calendar size={14} />
-                  Start Date
+                  {TasksStrings.SCHEDULER.START_DATE}
                 </label>
                 <TextField.Root
                   id="schedule-date"
@@ -440,7 +437,7 @@ export function TaskScheduler({
               <Box className="task-scheduler__field task-scheduler__field--time">
                 <label htmlFor="schedule-time" className="task-scheduler__label">
                   <Clock size={14} />
-                  Time
+                  {TasksStrings.SCHEDULER.TIME}
                 </label>
                 <TextField.Root
                   id="schedule-time"
@@ -452,7 +449,7 @@ export function TaskScheduler({
                   aria-describedby={errors.startTime ? 'schedule-time-error' : undefined}
                   aria-invalid={errors.startTime ? true : undefined}
                 />
-                <Text size="1" color="gray" mt="1">Times are shown in your local timezone ({timezone})</Text>
+                <Text size="1" color="gray" mt="1">{TasksStrings.SCHEDULER.TIMES_SHOWN_LOCAL_TIMEZONE(timezone)}</Text>
                 {errors.startTime && (
                   <Text id="schedule-time-error" size="1" className="task-scheduler__error">{errors.startTime}</Text>
                 )}
@@ -460,7 +457,7 @@ export function TaskScheduler({
             </Flex>
             <Box className="task-scheduler__days">
               <Text size="2" weight="medium" className="task-scheduler__section-title">
-                Days of Month to Run
+                {TasksStrings.SCHEDULER.DAYS_MONTH_RUN}
               </Text>
               <Grid columns="7" gap="2" className="task-scheduler__month-grid">
                 {MONTH_DAYS.map((day) => (
@@ -498,30 +495,30 @@ export function TaskScheduler({
           <Flex direction="column" gap="3">
             <SettingsTextInput
               name="cronExpression"
-              label="Cron Expression"
+              label={TasksStrings.SCHEDULER.CRON_EXPRESSION}
               value={value.cronExpression || ''}
               onChange={handleCronChange}
               placeholder="0 0 * * * ?"
-              helpText="Enter a Quartz cron expression. Format: [seconds] [minutes] [hours] [day-of-month] [month] [day-of-week] [year(optional)]"
+              helpText={TasksStrings.SCHEDULER.ENTER_QUARTZ_CRON_EXPRESSION_FORMAT}
               monospace
               error={errors.cronExpression || (
-                value.cronExpression && !cronResult.valid ? cronResult.reason || 'Invalid cron expression' : ''
+                value.cronExpression && !cronResult.valid ? cronResult.reason || TasksStrings.SCHEDULER.INVALID_CRON_EXPRESSION : ''
               )}
               required
               disabled={disabled}
             />
             {value.cronExpression && cronResult.valid && (
               <Text size="1" color="green" data-testid="cron-preview" className="task-scheduler__cron-preview">
-                {describeCron(value.cronExpression) || 'Valid cron expression'}
+                {describeCron(value.cronExpression) || TasksStrings.SCHEDULER.VALID_CRON_EXPRESSION}
               </Text>
             )}
             <Box className="task-scheduler__cron-help">
               <Text size="1" className="task-scheduler__cron-examples">
-                <strong>Examples:</strong><br />
-                <code>0 0 3 * * ?</code> - Daily at 3:00 AM<br />
-                <code>0 0 */4 * * ?</code> - Every 4 hours<br />
-                <code>0 0 9 ? * MON-FRI</code> - Weekdays at 9:00 AM<br />
-                <code>0 30 8 1 * ?</code> - 1st of each month at 8:30 AM
+                <strong>{TasksStrings.SCHEDULER.EXAMPLES}</strong><br />
+                <code>0 0 3 * * ?</code> - {TasksStrings.SCHEDULER.EXAMPLE_DAILY}<br />
+                <code>0 0 */4 * * ?</code> - {TasksStrings.SCHEDULER.EXAMPLE_EVERY_4_HOURS}<br />
+                <code>0 0 9 ? * MON-FRI</code> - {TasksStrings.SCHEDULER.EXAMPLE_WEEKDAYS}<br />
+                <code>0 30 8 1 * ?</code> - {TasksStrings.SCHEDULER.EXAMPLE_MONTHLY}
               </Text>
             </Box>
           </Flex>
@@ -537,14 +534,14 @@ export function TaskScheduler({
     <Box className="task-scheduler">
       <SettingsSelect
         name="schedule"
-        label="Schedule"
+        label={TasksStrings.SCHEDULER.SCHEDULE}
         value={value.schedule}
         onChange={handleScheduleChange}
         options={allowedSchedules
           ? SCHEDULE_OPTIONS.filter((o) => allowedSchedules.includes(o.value))
           : SCHEDULE_OPTIONS}
-        placeholder="Select a schedule"
-        helpText="Choose when this task should run"
+        placeholder={TasksStrings.SCHEDULER.SELECT_SCHEDULE_PLACEHOLDER}
+        helpText={TasksStrings.SCHEDULER.CHOOSE_WHEN_TASK_SHOULD_RUN}
         error={errors.schedule}
         required
         disabled={disabled}

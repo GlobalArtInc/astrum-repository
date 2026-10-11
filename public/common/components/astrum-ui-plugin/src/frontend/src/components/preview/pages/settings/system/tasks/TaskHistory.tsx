@@ -7,6 +7,7 @@ import { Clock, CheckCircle, XCircle, History } from 'lucide-react';
 import { TaskHistoryProps, formatDate } from './types';
 
 import './TaskHistory.scss';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 /**
  * TaskHistory - Displays task execution history and last run information
@@ -39,32 +40,32 @@ export function TaskHistory({ task }: TaskHistoryProps) {
     <Box className="task-history">
       <Flex align="center" gap="2" className="task-history__header">
         <History size={18} />
-        <Text size="3" weight="medium">Execution History</Text>
+        <Text size="3" weight="medium">{TasksStrings.HISTORY.EXECUTION_HISTORY}</Text>
       </Flex>
 
       <Box className="task-history__content">
         {hasLastRun ? (
           <Box className="task-history__run" data-testid="task-history-last-run">
-            <Text size="3" weight="medium" mb="3">Last Execution</Text>
+            <Text size="3" weight="medium" mb="3">{TasksStrings.HISTORY.LAST_EXECUTION}</Text>
             <Flex direction="column" gap="3">
               <Flex justify="between" align="start" gap="4">
                 <Box>
-                  <Text size="1" color="gray">Started</Text>
+                  <Text size="1" color="gray">{TasksStrings.HISTORY.STARTED}</Text>
                   <Text size="2">{formatDate(task.lastRun)}</Text>
                 </Box>
                 <Box>
-                  <Text size="1" color="gray">Result</Text>
+                  <Text size="1" color="gray">{TasksStrings.HISTORY.RESULT}</Text>
                   <Flex align="center" gap="2">
                     {getResultIcon()}
                     <Badge color={getResultColor()} size="1">
-                      {task.lastRunResult || 'Unknown'}
+                      {task.lastRunResult || TasksStrings.HISTORY.UNKNOWN}
                     </Badge>
                   </Flex>
                 </Box>
               </Flex>
               {task.statusDescription && (
                 <Box>
-                  <Text size="1" color="gray">Details</Text>
+                  <Text size="1" color="gray">{TasksStrings.HISTORY.DETAILS}</Text>
                   <Text size="2">{task.statusDescription}</Text>
                 </Box>
               )}
@@ -74,8 +75,8 @@ export function TaskHistory({ task }: TaskHistoryProps) {
           <Box className="task-history__empty" data-testid="task-history-empty">
             <Flex direction="column" align="center" gap="2" py="4">
               <Clock size={24} className="task-history__icon" />
-              <Text size="2" weight="medium">No execution history</Text>
-              <Text size="1" color="gray">This task has not been executed yet. Run it manually or wait for the next scheduled run.</Text>
+              <Text size="2" weight="medium">{TasksStrings.HISTORY.NO_EXECUTION_HISTORY}</Text>
+              <Text size="1" color="gray">{TasksStrings.HISTORY.TASK_HAS_NOT_BEEN_EXECUTED}</Text>
             </Flex>
           </Box>
         )}
@@ -83,7 +84,7 @@ export function TaskHistory({ task }: TaskHistoryProps) {
         {/* Next run information */}
         {task.nextRun && (
           <Box className="task-history__next">
-            <Text size="2" weight="medium" className="task-history__label">Next Scheduled Run</Text>
+            <Text size="2" weight="medium" className="task-history__label">{TasksStrings.HISTORY.NEXT_SCHEDULED_RUN}</Text>
             <Flex align="center" gap="2">
               <Clock size={14} className="task-history__icon task-history__icon--next" />
               <Text size="2" className="task-history__value">
@@ -95,15 +96,15 @@ export function TaskHistory({ task }: TaskHistoryProps) {
 
         {/* Schedule info */}
         <Box className="task-history__schedule">
-          <Text size="2" weight="medium" className="task-history__label">Schedule</Text>
+          <Text size="2" weight="medium" className="task-history__label">{TasksStrings.HISTORY.SCHEDULE}</Text>
           <Text size="2" className="task-history__value task-history__value--schedule">
-            {task.schedule === 'manual' ? 'Manual (run on demand)' :
-             task.schedule === 'once' ? 'Once' :
-             task.schedule === 'hourly' ? 'Hourly' :
-             task.schedule === 'daily' ? 'Daily' :
-             task.schedule === 'weekly' ? 'Weekly' :
-             task.schedule === 'monthly' ? 'Monthly' :
-             task.schedule === 'advanced' ? `Cron: ${task.cronExpression}` :
+            {task.schedule === 'manual' ? TasksStrings.HISTORY.MANUAL_RUN_DEMAND :
+             task.schedule === 'once' ? TasksStrings.HISTORY.ONCE :
+             task.schedule === 'hourly' ? TasksStrings.HISTORY.HOURLY :
+             task.schedule === 'daily' ? TasksStrings.HISTORY.DAILY :
+             task.schedule === 'weekly' ? TasksStrings.HISTORY.WEEKLY :
+             task.schedule === 'monthly' ? TasksStrings.HISTORY.MONTHLY :
+             task.schedule === 'advanced' ? TasksStrings.HISTORY.CRON(task.cronExpression) :
              task.schedule}
           </Text>
         </Box>

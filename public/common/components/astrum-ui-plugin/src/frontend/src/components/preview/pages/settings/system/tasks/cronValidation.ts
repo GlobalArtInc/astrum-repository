@@ -1,3 +1,4 @@
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 
 /**
@@ -54,36 +55,36 @@ const isDayOfMonth = (token: string): boolean => {
 
 export function validateCronExpression(input: string): CronValidationResult {
   if (!input || !input.trim()) {
-    return { valid: false, reason: 'Cron expression is required' };
+    return { valid: false, reason: TasksStrings.CRON.CRON_EXPRESSION_REQUIRED };
   }
 
   const parts = input.trim().split(/\s+/);
   if (parts.length < 6 || parts.length > 7) {
     return {
       valid: false,
-      reason: `Cron expression must have 6 or 7 parts (got ${parts.length})`,
+      reason: TasksStrings.CRON.CRON_EXPRESSION_MUST_HAVE_6(parts.length),
     };
   }
 
   const [sec, min, hour, dom, month, dow] = parts;
 
   if (!NUMERIC_RANGE(0, 59)(sec)) {
-    return { valid: false, reason: 'Seconds must be between 0 and 59' };
+    return { valid: false, reason: TasksStrings.CRON.SECONDS_MUST_BETWEEN_0_59 };
   }
   if (!NUMERIC_RANGE(0, 59)(min)) {
-    return { valid: false, reason: 'Minutes must be between 0 and 59' };
+    return { valid: false, reason: TasksStrings.CRON.MINUTES_MUST_BETWEEN_0_59 };
   }
   if (!NUMERIC_RANGE(0, 23)(hour)) {
-    return { valid: false, reason: 'Hours must be between 0 and 23' };
+    return { valid: false, reason: TasksStrings.CRON.HOURS_MUST_BETWEEN_0_23 };
   }
   if (!isDayOfMonth(dom)) {
-    return { valid: false, reason: 'Day of month must be between 1 and 31' };
+    return { valid: false, reason: TasksStrings.CRON.DAY_MONTH_MUST_BETWEEN_1 };
   }
   if (!isMonth(month)) {
-    return { valid: false, reason: 'Month must be between 1 and 12 (or names like JAN, FEB)' };
+    return { valid: false, reason: TasksStrings.CRON.MONTH_MUST_BETWEEN_1_12 };
   }
   if (!isDayOfWeek(dow)) {
-    return { valid: false, reason: 'Day of week must be between 0 and 7 (or names like SUN, MON)' };
+    return { valid: false, reason: TasksStrings.CRON.DAY_WEEK_MUST_BETWEEN_0 };
   }
 
   const domIsWild = dom === '?';
@@ -91,7 +92,7 @@ export function validateCronExpression(input: string): CronValidationResult {
   if (domIsWild === dowIsWild) {
     return {
       valid: false,
-      reason: 'Quartz requires either day-of-month or day-of-week to be "?"',
+      reason: TasksStrings.CRON.QUARTZ_REQUIRES_EITHER_DAY_MONTH,
     };
   }
 

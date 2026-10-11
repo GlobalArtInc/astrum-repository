@@ -24,6 +24,7 @@ import {
   EXECUTE_RECONCILE_PLAN_TYPE_ID,
   PLAN_RECONCILE_TYPE_ID,
 } from './taskFieldMetadata';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 // =============================================================================
 // PER-TASK-TYPE QUIRKS
@@ -159,17 +160,17 @@ export function validateTask(
 
   // Name is always required
   if (!data.name?.trim()) {
-    errors.name = 'Task name is required';
+    errors.name = TasksStrings.VALIDATION.TASK_NAME_REQUIRED;
   }
 
   // Task type is required
   if (!data.typeId) {
-    errors.typeId = 'Task type is required';
+    errors.typeId = TasksStrings.VALIDATION.TASK_TYPE_REQUIRED;
   }
 
   // Email validation (optional field)
   if (data.alertEmail && !isValidEmail(data.alertEmail)) {
-    errors.alertEmail = 'Invalid email address format';
+    errors.alertEmail = TasksStrings.VALIDATION.INVALID_EMAIL_ADDRESS_FORMAT;
   }
 
   // Per-property errors are written in two passes: (1) backend-supplied formFields metadata
@@ -192,38 +193,38 @@ export function validateTask(
     if (resolveTaskFieldMeta(data.typeId, field.id)?.required === false) return;
     const value = properties[field.id];
     if (value === undefined || value === null || String(value).trim() === '') {
-      propertyErrors[field.id] = 'Required';
+      propertyErrors[field.id] = TasksStrings.VALIDATION.REQUIRED;
     }
   });
 
   // Schedule-specific validation
   if (!data.schedule) {
-    errors.schedule = 'Schedule is required';
+    errors.schedule = TasksStrings.VALIDATION.SCHEDULE_REQUIRED;
   }
 
   // Time-based schedules require start date and time
   if (['once', 'hourly', 'daily', 'weekly', 'monthly'].includes(data.schedule)) {
     if (!data.startDate) {
-      errors.startDate = 'Start date is required';
+      errors.startDate = TasksStrings.VALIDATION.START_DATE_REQUIRED;
     }
     if (!data.startTime) {
-      errors.startTime = 'Start time is required';
+      errors.startTime = TasksStrings.VALIDATION.START_TIME_REQUIRED;
     }
   }
 
   // Weekly/monthly require at least one recurring day
   if (['weekly', 'monthly'].includes(data.schedule)) {
     if (!data.recurringDays || data.recurringDays.length === 0) {
-      errors.recurringDays = 'Select at least one day';
+      errors.recurringDays = TasksStrings.VALIDATION.SELECT_LEAST_ONE_DAY;
     }
   }
 
   // Advanced schedule requires a valid cron expression
   if (data.schedule === 'advanced') {
     if (!data.cronExpression?.trim()) {
-      errors.cronExpression = 'Cron expression is required';
+      errors.cronExpression = TasksStrings.VALIDATION.CRON_EXPRESSION_REQUIRED;
     } else if (!isValidCronExpression(data.cronExpression)) {
-      errors.cronExpression = 'Invalid cron expression format (expected 5-7 parts)';
+      errors.cronExpression = TasksStrings.VALIDATION.INVALID_CRON_EXPRESSION_FORMAT_EXPECTED;
     }
   }
 
@@ -243,18 +244,18 @@ export function validateTask(
     // Prevent saving with empty blobstoreName for cloud blob-store removal task
     // to avoid corrupting backend state (the original blobstore name must be preserved).
     if (isRequired && isEmpty) {
-      propertyErrors[key] = `${meta.label} is required`;
+      propertyErrors[key] = TasksStrings.VALIDATION.IS_REQUIRED(meta.label);
       continue;
     }
 
     if (meta.type === 'number' && !isEmpty) {
       const n = Number(value);
       if (Number.isNaN(n)) {
-        propertyErrors[key] = `${meta.label} must be a number`;
+        propertyErrors[key] = TasksStrings.VALIDATION.MUST_NUMBER(meta.label);
       } else if (meta.min !== undefined && n < meta.min) {
-        propertyErrors[key] = `${meta.label} must be ${meta.min} or greater`;
+        propertyErrors[key] = TasksStrings.VALIDATION.MUST_GREATER(meta.label, meta.min);
       } else if (meta.max !== undefined && n > meta.max) {
-        propertyErrors[key] = `${meta.label} must be ${meta.max} or less`;
+        propertyErrors[key] = TasksStrings.VALIDATION.MUST_LESS(meta.label, meta.max);
       }
     }
 
@@ -277,7 +278,7 @@ export function validateTask(
     const start = mdyToIso(properties.reconcileStartDate);
     const end = mdyToIso(properties.reconcileEndDate);
     if (start && end && end < start) {
-      propertyErrors.reconcileEndDate = 'End date must be on or after start date';
+      propertyErrors.reconcileEndDate = TasksStrings.VALIDATION.END_DATE_MUST_AFTER_START;
     }
   }
 
@@ -648,7 +649,7 @@ export function createTaskFormMachine(
         };
       },
       // save and delete services are provided via useForm options
-      delete: () => Promise.reject(new Error('Delete service not configured')),
+      delete: () => Promise.reject(new Error(TasksStrings.VALIDATION.DELETE_SERVICE_NOT_CONFIGURED)),
     },
     // Custom events for task type and schedule changes
     on: {
@@ -672,49 +673,49 @@ export function createTaskFormMachine(
       states: {
         manual: {
           meta: {
-            scheduleLabel: 'Manual',
+            scheduleLabel: TasksStrings.VALIDATION.MANUAL,
             scheduleFields: [],
             requiredScheduleFields: [],
           },
         },
         once: {
           meta: {
-            scheduleLabel: 'Once',
+            scheduleLabel: TasksStrings.VALIDATION.ONCE,
             scheduleFields: ['startDate', 'startTime'],
             requiredScheduleFields: ['startDate', 'startTime'],
           },
         },
         hourly: {
           meta: {
-            scheduleLabel: 'Hourly',
+            scheduleLabel: TasksStrings.VALIDATION.HOURLY,
             scheduleFields: ['startDate', 'startTime'],
             requiredScheduleFields: ['startDate', 'startTime'],
           },
         },
         daily: {
           meta: {
-            scheduleLabel: 'Daily',
+            scheduleLabel: TasksStrings.VALIDATION.DAILY,
             scheduleFields: ['startDate', 'startTime'],
             requiredScheduleFields: ['startDate', 'startTime'],
           },
         },
         weekly: {
           meta: {
-            scheduleLabel: 'Weekly',
+            scheduleLabel: TasksStrings.VALIDATION.WEEKLY,
             scheduleFields: ['startDate', 'startTime', 'recurringDays'],
             requiredScheduleFields: ['startDate', 'startTime', 'recurringDays'],
           },
         },
         monthly: {
           meta: {
-            scheduleLabel: 'Monthly',
+            scheduleLabel: TasksStrings.VALIDATION.MONTHLY,
             scheduleFields: ['startDate', 'startTime', 'recurringDays'],
             requiredScheduleFields: ['startDate', 'startTime', 'recurringDays'],
           },
         },
         advanced: {
           meta: {
-            scheduleLabel: 'Advanced (Cron)',
+            scheduleLabel: TasksStrings.VALIDATION.ADVANCED_CRON,
             scheduleFields: ['cronExpression'],
             requiredScheduleFields: ['cronExpression'],
           },

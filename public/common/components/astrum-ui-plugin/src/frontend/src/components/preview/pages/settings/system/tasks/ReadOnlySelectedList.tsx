@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Box, Text } from '@radix-ui/themes';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 interface ReadOnlySelectedListProps {
   label?: string;
@@ -24,7 +25,7 @@ export function ReadOnlySelectedList({ label, helpText, values, emptyText, testI
       {helpText && (
         <Text as="p" size="1" color="gray" className="dynamic-field__help">{helpText}</Text>
       )}
-      <Text as="div" size="2" weight="medium" className="read-only-selected-list__heading" mt="1">Selected</Text>
+      <Text as="div" size="2" weight="medium" className="read-only-selected-list__heading" mt="1">{TasksStrings.SELECTED_LIST.SELECTED}</Text>
       <Box
         role="list"
         className="read-only-selected-list__box"

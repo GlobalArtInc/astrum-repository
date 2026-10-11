@@ -37,6 +37,8 @@ import { isSingletonTaskType, isManualOnlyTaskType, filterCreatableTaskTypes } f
 import { CLOUD_BLOBSTORE_REMOVAL_TYPE_ID } from './tasksFormMachine';
 
 import './TaskForm.scss';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{size?: number; className?: string}>> = {
   Admin: SettingsIcon,
@@ -69,14 +71,14 @@ const CATEGORY_FORMAT_MAP: Record<string, string> = {
 };
 
 const WIZARD_STEPS_CREATE = [
-  { id: 'type', label: 'Select Type' },
-  { id: 'config', label: 'Configure' },
-  { id: 'schedule', label: 'Schedule' },
+  { id: 'type', label: TasksStrings.FORM.SELECT_TYPE },
+  { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+  { id: 'schedule', label: TasksStrings.FORM.SCHEDULE },
 ];
 
 const WIZARD_STEPS_EDIT = [
-  { id: 'config', label: 'Configure' },
-  { id: 'schedule', label: 'Schedule' },
+  { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+  { id: 'schedule', label: TasksStrings.FORM.SCHEDULE },
 ];
 
 /**
@@ -267,7 +269,7 @@ export function TaskForm({
     return (
       <Flex align="center" justify="center" gap="2" p="4">
         <Loader2 size={24} className="animate-spin" />
-        <Text size="2">Loading form...</Text>
+        <Text size="2">{CommonStrings.MESSAGES.LOADING_FORM}</Text>
       </Flex>
     );
   }
@@ -279,7 +281,7 @@ export function TaskForm({
       onStepChange={handleWizardStepChange}
       onComplete={() => form.send('SUBMIT')}
       onCancel={onCancel}
-      completeLabel={isCreate ? 'Create Task' : 'Save Task'}
+      completeLabel={isCreate ? TasksStrings.FORM.CREATE_TASK : TasksStrings.FORM.SAVE_TASK}
       submitAnalyticsId="as-task-save"
       canAdvance={canAdvance}
       dirty={internalStep >= configStep}
@@ -299,7 +301,7 @@ export function TaskForm({
                 testId="task-run-now"
                 data-analytics-id="as-task-run"
               >
-                Run Now
+                {TasksStrings.FORM.RUN_NOW}
               </SettingsButton>
             )}
             <SettingsButton
@@ -309,7 +311,7 @@ export function TaskForm({
               icon={Trash2}
               data-analytics-id="as-task-delete"
             >
-              Delete
+              {CommonStrings.ACTIONS.DELETE}
             </SettingsButton>
           </Flex>
         ) : undefined
@@ -345,7 +347,7 @@ export function TaskForm({
                   <Flex align="center" gap="2">
                     <Text weight="bold" size="4">{selectedTaskType.name}</Text>
                     {selectedTaskType.exposed === false && (
-                      <Badge size="1" color="blue" variant="soft">PRO</Badge>
+                      <Badge size="1" color="blue" variant="soft">{TasksStrings.FORM.PRO}</Badge>
                     )}
                   </Flex>
                   <Text size="2" color="gray" className="task-form__description-text">
@@ -356,21 +358,21 @@ export function TaskForm({
             </Box>
           )}
 
-          <SettingsFormSection title="Settings">
+          <SettingsFormSection title={CommonStrings.LABELS.SETTINGS}>
             <SettingsCheckbox
               name="enabled"
-              label="Enabled"
+              label={TasksStrings.FORM.ENABLED}
               checked={formData.enabled}
               onChange={(checked) => form.send({ type: 'UPDATE', name: 'enabled', value: checked })}
-              helpText="Enable or disable task execution"
+              helpText={TasksStrings.FORM.ENABLE_DISABLE_TASK_EXECUTION}
               disabled={form.isSaving || loading}
             />
 
             <SettingsTextInput
               {...form.field('name')}
-              label="Name"
-              placeholder="e.g. Daily Cleanup"
-              helpText="A unique name for this task"
+              label={CommonStrings.LABELS.NAME}
+              placeholder={TasksStrings.FORM.E_G_DAILY_CLEANUP_PLACEHOLDER}
+              helpText={TasksStrings.FORM.UNIQUE_NAME_TASK}
               required
               disabled={form.isSaving || loading}
               autoComplete="off"
@@ -378,26 +380,26 @@ export function TaskForm({
 
             <SettingsTextInput
               {...form.field('alertEmail')}
-              label="Email"
+              label={TasksStrings.FORM.EMAIL}
               placeholder="e.g. admin@example.com"
-              helpText="Email address to receive task notifications"
+              helpText={TasksStrings.FORM.EMAIL_ADDRESS_RECEIVE_TASK_NOTIFICATIONS}
               disabled={form.isSaving || loading}
               autoComplete="off"
             />
 
             <SettingsSelect
               name="notificationCondition"
-              label="Send Notification"
+              label={TasksStrings.FORM.SEND_NOTIFICATION}
               value={formData.notificationCondition || 'FAILURE'}
               onChange={(value) => form.send({ type: 'UPDATE', name: 'notificationCondition', value })}
               options={NOTIFICATION_CONDITIONS}
-              helpText="When to send email: on failure, success, or both"
+              helpText={TasksStrings.FORM.WHEN_SEND_EMAIL_FAILURE_SUCCESS}
               disabled={form.isSaving || loading}
             />
           </SettingsFormSection>
 
           {selectedTaskType?.formFields && selectedTaskType.formFields.length > 0 && (
-            <SettingsFormSection title="Task Configuration">
+            <SettingsFormSection title={TasksStrings.FORM.TASK_CONFIGURATION}>
               <DynamicFormFields
                 taskType={selectedTaskType}
                 values={formData.properties}
@@ -412,7 +414,7 @@ export function TaskForm({
 
       {/* Schedule step */}
       {internalStep === scheduleStep && (
-        <SettingsFormSection title="Schedule">
+        <SettingsFormSection title={TasksStrings.FORM.SCHEDULE}>
           <TaskScheduler
             value={scheduleData}
             onChange={handleScheduleChange}

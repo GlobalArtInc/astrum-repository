@@ -1,3 +1,4 @@
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 
 /**
@@ -318,26 +319,26 @@ export interface TaskHistoryProps {
  * Schedule type options for dropdown
  */
 export const SCHEDULE_OPTIONS: Array<{ value: ScheduleType; label: string }> = [
-  { value: 'manual', label: 'Manual' },
-  { value: 'once', label: 'Once' },
-  { value: 'hourly', label: 'Hourly' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'advanced', label: 'Advanced (Cron)' },
+  { value: 'manual', label: TasksStrings.SCHEDULE_OPTIONS.MANUAL },
+  { value: 'once', label: TasksStrings.SCHEDULE_OPTIONS.ONCE },
+  { value: 'hourly', label: TasksStrings.SCHEDULE_OPTIONS.HOURLY },
+  { value: 'daily', label: TasksStrings.SCHEDULE_OPTIONS.DAILY },
+  { value: 'weekly', label: TasksStrings.SCHEDULE_OPTIONS.WEEKLY },
+  { value: 'monthly', label: TasksStrings.SCHEDULE_OPTIONS.MONTHLY },
+  { value: 'advanced', label: TasksStrings.SCHEDULE_OPTIONS.ADVANCED_CRON },
 ];
 
 /**
  * Week days for weekly schedule
  */
 export const WEEKDAYS: WeekDay[] = [
-  { value: 1, label: 'Sunday', shortLabel: 'Sun' },
-  { value: 2, label: 'Monday', shortLabel: 'Mon' },
-  { value: 3, label: 'Tuesday', shortLabel: 'Tue' },
-  { value: 4, label: 'Wednesday', shortLabel: 'Wed' },
-  { value: 5, label: 'Thursday', shortLabel: 'Thu' },
-  { value: 6, label: 'Friday', shortLabel: 'Fri' },
-  { value: 7, label: 'Saturday', shortLabel: 'Sat' },
+  { value: 1, label: TasksStrings.SCHEDULE_OPTIONS.SUNDAY, shortLabel: TasksStrings.SCHEDULE_OPTIONS.SUN },
+  { value: 2, label: TasksStrings.SCHEDULE_OPTIONS.MONDAY, shortLabel: TasksStrings.SCHEDULE_OPTIONS.MON },
+  { value: 3, label: TasksStrings.SCHEDULE_OPTIONS.TUESDAY, shortLabel: TasksStrings.SCHEDULE_OPTIONS.TUE },
+  { value: 4, label: TasksStrings.SCHEDULE_OPTIONS.WEDNESDAY, shortLabel: TasksStrings.SCHEDULE_OPTIONS.WED },
+  { value: 5, label: TasksStrings.SCHEDULE_OPTIONS.THURSDAY, shortLabel: TasksStrings.SCHEDULE_OPTIONS.THU },
+  { value: 6, label: TasksStrings.SCHEDULE_OPTIONS.FRIDAY, shortLabel: TasksStrings.SCHEDULE_OPTIONS.FRI },
+  { value: 7, label: TasksStrings.SCHEDULE_OPTIONS.SATURDAY, shortLabel: TasksStrings.SCHEDULE_OPTIONS.SAT },
 ];
 
 /**
@@ -348,15 +349,15 @@ export const MONTH_DAYS: MonthDay[] = [
     value: i + 1, 
     label: String(i + 1) 
   })),
-  { value: 999, label: 'Last' },
+  { value: 999, label: TasksStrings.SCHEDULE_OPTIONS.LAST },
 ];
 
 /**
  * Notification condition options
  */
 export const NOTIFICATION_CONDITIONS: Array<{ value: NotificationCondition; label: string }> = [
-  { value: 'FAILURE', label: 'On failure only' },
-  { value: 'SUCCESS_FAILURE', label: 'On success or failure' },
+  { value: 'FAILURE', label: TasksStrings.SCHEDULE_OPTIONS.FAILURE_ONLY },
+  { value: 'SUCCESS_FAILURE', label: TasksStrings.SCHEDULE_OPTIONS.SUCCESS_FAILURE },
 ];
 
 /**

@@ -34,6 +34,8 @@ import {
 } from './types';
 
 import './TaskDetail.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 function getStatusBadgeColor(status: string): 'blue' | 'green' | 'gray' | 'yellow' | 'red' {
   switch (status) {
@@ -221,7 +223,7 @@ export function TaskDetail({
           onClick={() => setActiveTab('settings')}
           testId="task-edit-button"
         >
-          Edit
+          {CommonStrings.ACTIONS.EDIT}
         </SettingsButton>
       )}
       {canDelete && (
@@ -235,7 +237,7 @@ export function TaskDetail({
           testId="form-delete"
           data-analytics-id="as-task-delete"
         >
-          Delete
+          {CommonStrings.ACTIONS.DELETE}
         </SettingsButton>
       )}
       {displayTask.status === 'RUNNING' && canStop ? (
@@ -246,7 +248,7 @@ export function TaskDetail({
           testId="task-stop"
           data-analytics-id="as-task-stop"
         >
-          Stop
+          {TasksStrings.DETAIL.STOP}
         </SettingsButton>
       ) : displayTask.enabled && canRun && displayTask.status !== 'RUNNING' ? (
         <SettingsButton
@@ -256,7 +258,7 @@ export function TaskDetail({
           testId="task-run"
           data-analytics-id="as-task-run"
         >
-          Run Now
+          {TasksStrings.DETAIL.RUN_NOW}
         </SettingsButton>
       ) : null}
     </Flex>
@@ -273,8 +275,8 @@ export function TaskDetail({
         // Without this the canSave guard still blocks SUBMIT but the button looks enabled.
         submitDisabled={form.hasValidationErrors}
         error={externalError || form.saveError || undefined}
-        submitLabel="Save"
-        cancelLabel="Back"
+        submitLabel={CommonStrings.ACTIONS.SAVE}
+        cancelLabel={CommonStrings.ACTIONS.BACK}
         showActions={canEdit}
         footerExtra={footerActions}
         testId="task-detail-form"
@@ -302,7 +304,7 @@ export function TaskDetail({
                 variant="outline"
                 data-testid="task-enabled-badge"
               >
-                {displayTask.enabled ? 'Enabled' : 'Disabled'}
+                {displayTask.enabled ? TasksStrings.DETAIL.ENABLED : TasksStrings.DETAIL.DISABLED}
               </Badge>
             </Flex>
           </Flex>
@@ -312,18 +314,18 @@ export function TaskDetail({
         <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="task-detail__tabs">
           <Tabs.List>
             <Tabs.Trigger value="summary">
-              <FileText size={16} /> Summary
+              <FileText size={16} /> {TasksStrings.DETAIL.SUMMARY}
             </Tabs.Trigger>
             <Tabs.Trigger value="settings">
-              <Settings size={16} /> Settings
+              <Settings size={16} /> {CommonStrings.LABELS.SETTINGS}
             </Tabs.Trigger>
             {!isManualOnly && (
               <Tabs.Trigger value="schedule">
-                <Calendar size={16} /> Schedule
+                <Calendar size={16} /> {TasksStrings.DETAIL.SCHEDULE}
               </Tabs.Trigger>
             )}
             <Tabs.Trigger value="history">
-              <History size={16} /> History
+              <History size={16} /> {TasksStrings.DETAIL.HISTORY}
             </Tabs.Trigger>
           </Tabs.List>
 
@@ -333,45 +335,45 @@ export function TaskDetail({
               <Box className="task-detail__summary-grid">
                 <SummaryItem
                   icon={<Info size={16} />}
-                  label="ID"
+                  label={TasksStrings.DETAIL.ID}
                   value={displayTask.id}
                 />
                 <SummaryItem
                   icon={<CheckCircle size={16} />}
-                  label="Status"
+                  label={CommonStrings.LABELS.STATUS}
                   value={displayTask.status}
                 />
                 <SummaryItem
                   icon={<FileText size={16} />}
-                  label="Last Result"
+                  label={TasksStrings.DETAIL.LAST_RESULT}
                   value={displayTask.lastRunResult || '-'}
                 />
                 <SummaryItem
                   icon={<Calendar size={16} />}
-                  label="Schedule"
+                  label={TasksStrings.DETAIL.SCHEDULE}
                   value={displayTask.schedule || '-'}
                   onClick={canEdit && !isManualOnly ? () => setActiveTab('schedule') : undefined}
                 />
                 <SummaryItem
                   icon={<Clock size={16} />}
-                  label="Next Run"
+                  label={TasksStrings.DETAIL.NEXT_RUN}
                   value={displayTask.nextRun ? formatDate(displayTask.nextRun) : '-'}
                 />
                 <SummaryItem
                   icon={<History size={16} />}
-                  label="Last Run"
-                  value={displayTask.lastRun ? formatDate(displayTask.lastRun) : 'Never'}
+                  label={TasksStrings.DETAIL.LAST_RUN}
+                  value={displayTask.lastRun ? formatDate(displayTask.lastRun) : TasksStrings.DETAIL.NEVER}
                 />
                 <SummaryItem
                   icon={<Mail size={16} />}
-                  label="Alert Email"
-                  value={displayTask.alertEmail || 'Not configured'}
+                  label={TasksStrings.DETAIL.ALERT_EMAIL}
+                  value={displayTask.alertEmail || TasksStrings.DETAIL.NOT_CONFIGURED}
                   onClick={canEdit ? () => setActiveTab('settings') : undefined}
                 />
                 {displayTask.statusDescription && (
                   <SummaryItem
                     icon={<Info size={16} />}
-                    label="Description"
+                    label={CommonStrings.LABELS.DESCRIPTION}
                     value={displayTask.statusDescription}
                   />
                 )}
@@ -389,56 +391,56 @@ export function TaskDetail({
 
             {/* Settings Tab (editable via form hook) */}
             <Tabs.Content value="settings">
-              <SettingsFormSection title="Basic Settings">
+              <SettingsFormSection title={TasksStrings.DETAIL.BASIC_SETTINGS}>
                 <SettingsToggle
                   name="enabled"
-                  label="Task Status"
+                  label={TasksStrings.DETAIL.TASK_STATUS}
                   checked={formData.enabled}
                   onChange={(checked) => form.send({ type: 'UPDATE', name: 'enabled', value: checked })}
                   disabled={!canEdit || form.isSaving}
-                  helpText="Enable or disable this task"
-                  checkedText="Enabled"
-                  uncheckedText="Disabled"
+                  helpText={TasksStrings.DETAIL.ENABLE_DISABLE_TASK}
+                  checkedText={TasksStrings.DETAIL.ENABLED}
+                  uncheckedText={TasksStrings.DETAIL.DISABLED}
                 />
                 <SettingsTextInput
                   name="name"
-                  label="Name"
+                  label={CommonStrings.LABELS.NAME}
                   value={displayTask.name}
                   onChange={() => {}}
                   disabled
-                  helpText="Task name (cannot be changed)"
+                  helpText={TasksStrings.DETAIL.TASK_NAME_CANNOT_CHANGED}
                 />
                 <SettingsTextInput
                   name="typeId"
-                  label="Task Type"
+                  label={TasksStrings.DETAIL.TASK_TYPE}
                   value={displayTask.typeName}
                   onChange={() => {}}
                   disabled
-                  helpText="Task type (cannot be changed after creation)"
+                  helpText={TasksStrings.DETAIL.TASK_TYPE_CANNOT_CHANGED_AFTER}
                 />
                 <SettingsTextInput
                   {...form.field('alertEmail')}
-                  label="Notification Email"
+                  label={TasksStrings.DETAIL.NOTIFICATION_EMAIL}
                   disabled={!canEdit || form.isSaving}
-                  helpText="Leave empty to disable notifications. Enter an email to receive alerts."
+                  helpText={TasksStrings.DETAIL.LEAVE_EMPTY_DISABLE_NOTIFICATIONS_ENTER}
                   placeholder="admin@example.com"
                   inputRef={firstEditableRef}
                 />
                 {formData.alertEmail && (
                   <SettingsSelect
                     name="notificationCondition"
-                    label="Send Notification"
+                    label={TasksStrings.DETAIL.SEND_NOTIFICATION}
                     value={formData.notificationCondition || 'FAILURE'}
                     onChange={(v) => form.send({ type: 'UPDATE', name: 'notificationCondition', value: v })}
                     disabled={!canEdit || form.isSaving}
                     options={NOTIFICATION_CONDITIONS}
-                    helpText="When to send email notifications"
+                    helpText={TasksStrings.DETAIL.WHEN_SEND_EMAIL_NOTIFICATIONS}
                   />
                 )}
               </SettingsFormSection>
 
               {selectedTaskType?.formFields && selectedTaskType.formFields.length > 0 && (
-                <SettingsFormSection title="Task Configuration">
+                <SettingsFormSection title={TasksStrings.DETAIL.TASK_CONFIGURATION}>
                   <DynamicFormFields
                     taskType={selectedTaskType}
                     values={formData.properties}
@@ -453,7 +455,7 @@ export function TaskDetail({
             {/* Schedule Tab — omitted for manual-only tasks (no configurable schedule) */}
             {!isManualOnly && (
               <Tabs.Content value="schedule">
-                <SettingsFormSection title="Schedule Configuration">
+                <SettingsFormSection title={TasksStrings.DETAIL.SCHEDULE_CONFIGURATION}>
                   <TaskScheduler
                     value={scheduleData}
                     onChange={handleScheduleChange}
@@ -500,9 +502,9 @@ export function TaskDetail({
         open={confirmAction === 'run'}
         testId="task-run-dialog"
         onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
-        title="Run Task"
-        message={`Run "${displayTask.name}" now?`}
-        confirmLabel="Run"
+        title={TasksStrings.DETAIL.RUN_TASK}
+        message={TasksStrings.DETAIL.RUN_CONFIRM(displayTask.name)}
+        confirmLabel={TasksStrings.DETAIL.RUN}
         variant="warning"
         onConfirm={() => { setConfirmAction(null); onRun(); }}
       />
@@ -510,9 +512,9 @@ export function TaskDetail({
         open={confirmAction === 'stop'}
         testId="task-stop-dialog"
         onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
-        title="Stop Task"
-        message={`Stop "${displayTask.name}"?`}
-        confirmLabel="Stop"
+        title={TasksStrings.DETAIL.STOP_TASK}
+        message={TasksStrings.DETAIL.STOP_CONFIRM(displayTask.name)}
+        confirmLabel={TasksStrings.DETAIL.STOP}
         variant="warning"
         onConfirm={() => { setConfirmAction(null); onStop(); }}
       />

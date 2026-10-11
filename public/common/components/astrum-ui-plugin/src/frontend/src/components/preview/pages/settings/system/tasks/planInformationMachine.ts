@@ -1,6 +1,7 @@
 
 import { assign, createMachine } from 'xstate';
 import { restClient } from '../../../../../../interface/api';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 const PLAN_URL = '/service/rest/v1/plan';
 
@@ -113,7 +114,7 @@ export const planInformationMachine = createMachine<PlanInformationContext, Plan
       }),
       setError: assign((_ctx, event) => {
         if (event.type !== 'error.platform.fetchPlans') return {};
-        return { error: event.data?.message ?? 'Failed to load plan information' };
+        return { error: event.data?.message ?? TasksStrings.PLAN_INFORMATION.FAILED_LOAD_PLAN_INFORMATION };
       }),
       clearError: assign({ error: null }),
     },

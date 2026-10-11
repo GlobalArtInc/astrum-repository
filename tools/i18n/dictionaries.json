@@ -24,7 +24,8 @@
       "prefix": "react.ui",
       "react": [
         "public/common/components/astrum-ui-plugin/src/frontend/src/constants/UIStrings.js",
-        "public/common/components/astrum-ui-plugin/src/frontend/src/components/onboarding-wizard/UIStrings.ts"
+        "public/common/components/astrum-ui-plugin/src/frontend/src/components/onboarding-wizard/UIStrings.ts",
+        "public/common/components/astrum-ui-plugin/src/frontend/src/components/preview/constants/PreviewStrings.js"
       ]
     },
     {

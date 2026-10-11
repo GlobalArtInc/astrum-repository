@@ -5,6 +5,7 @@ import { useMachine } from '@xstate/react';
 import { Box, Flex, Text } from '@radix-ui/themes';
 import { Loader2, AlertCircle, AlertTriangle } from 'lucide-react';
 import { planInformationMachine } from './planInformationMachine';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 const EMPTY = 'N/A';
 
@@ -39,7 +40,7 @@ export function PlanInformationWidget(): React.ReactElement {
       <Box className="dynamic-field plan-information plan-information--loading">
         <Flex align="center" gap="2">
           <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-          <Text size="2" color="gray">Loading plan information…</Text>
+          <Text size="2" color="gray">{TasksStrings.PLAN_INFORMATION.LOADING_PLAN_INFORMATION}</Text>
         </Flex>
       </Box>
     );
@@ -50,18 +51,18 @@ export function PlanInformationWidget(): React.ReactElement {
       <Box className="dynamic-field plan-information plan-information--error" role="alert">
         <Flex align="center" gap="2">
           <AlertCircle size={16} aria-hidden="true" />
-          <Text size="2">{error ?? 'Failed to load plan information'}</Text>
+          <Text size="2">{error ?? TasksStrings.PLAN_INFORMATION.FAILED_LOAD_PLAN_INFORMATION}</Text>
         </Flex>
       </Box>
     );
   }
 
   const rows: Row[] = [
-    { label: 'Plans', value: planCount > 0 ? String(planCount) : EMPTY },
-    { label: 'Blob stores', value: blobStoreCount > 0 ? String(blobStoreCount) : EMPTY },
-    { label: 'Repositories', value: repositoryCount > 0 ? String(repositoryCount) : EMPTY },
-    { label: 'Start date', value: formatLongDateTime(startDate) },
-    { label: 'End date', value: formatLongDateTime(endDate) },
+    { label: TasksStrings.PLAN_INFORMATION.PLANS, value: planCount > 0 ? String(planCount) : EMPTY },
+    { label: TasksStrings.PLAN_INFORMATION.BLOB_STORES, value: blobStoreCount > 0 ? String(blobStoreCount) : EMPTY },
+    { label: TasksStrings.PLAN_INFORMATION.REPOSITORIES, value: repositoryCount > 0 ? String(repositoryCount) : EMPTY },
+    { label: TasksStrings.PLAN_INFORMATION.START_DATE, value: formatLongDateTime(startDate) },
+    { label: TasksStrings.PLAN_INFORMATION.END_DATE, value: formatLongDateTime(endDate) },
   ];
 
   return (
@@ -78,7 +79,7 @@ export function PlanInformationWidget(): React.ReactElement {
         {truncated && (
           <Flex align="center" gap="1" mt="1" role="alert" className="plan-information--truncated">
             <AlertTriangle size={14} aria-hidden="true" />
-            <Text size="1" color="orange">Plan list exceeds maximum page limit — counts may be incomplete.</Text>
+            <Text size="1" color="orange">{TasksStrings.PLAN_INFORMATION.PLAN_LIST_EXCEEDS_MAXIMUM_PAGE}</Text>
           </Flex>
         )}
       </Flex>

@@ -5,6 +5,8 @@ import { useForm } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createTaskFormMachine, TaskMachineFormData } from './tasksFormMachine';
 import { Task, TaskType, TaskFormData } from './types';
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface UseTasksFormOptions {
   taskId?: string;
@@ -63,14 +65,14 @@ export function useTasksForm({
 
           if (isCreate) {
             await createTask(formData, startTime);
-            toast.success(`Task "${ctx.data.name}" created successfully`);
+            toast.success(TasksStrings.MESSAGES.TASK_CREATED_SUCCESSFULLY(ctx.data.name));
           } else if (taskToUpdate) {
             await updateTask(taskToUpdate.id, formData, startTime);
-            toast.success(`Task "${ctx.data.name}" updated successfully`);
+            toast.success(TasksStrings.MESSAGES.TASK_UPDATED_SUCCESSFULLY(ctx.data.name));
           }
           onCancel();
         } catch (err) {
-          const rawMessage = err instanceof Error ? err.message : 'Operation failed';
+          const rawMessage = err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED;
           // Translate the backend's "Property 'X' not found" into a clearer
           // user-facing message. canAdvance should prevent this for normal
           // flows (ASTRUM-53357), but this still helps when a new field is
@@ -88,7 +90,7 @@ export function useTasksForm({
           const taskToDelete = task || ctx.task;
           if (taskToDelete) {
             await deleteTask(taskToDelete.id);
-            toast.success(`Task "${taskToDelete.name}" deleted successfully`);
+            toast.success(TasksStrings.MESSAGES.TASK_DELETED_SUCCESSFULLY(taskToDelete.name));
             onCancel();
           }
         },

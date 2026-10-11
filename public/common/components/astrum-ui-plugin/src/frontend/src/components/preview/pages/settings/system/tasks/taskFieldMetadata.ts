@@ -1,3 +1,4 @@
+import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
 
 /**
@@ -93,12 +94,12 @@ export interface TaskFieldMeta {
 
 export const TASK_FIELD_UI: Record<string, TaskFieldMeta> = {
   // Repository selectors
-  repositoryName: { label: 'Repository', type: 'repo', helpText: 'Select the repository to operate on', allowAll: true },
-  moveRepositoryName: { label: 'Repository to Move', type: 'repo', helpText: 'Select the repository to move', allowAll: false },
+  repositoryName: { label: TasksStrings.FIELDS.REPOSITORY, type: 'repo', helpText: TasksStrings.FIELDS.SELECT_REPOSITORY_OPERATE, allowAll: true },
+  moveRepositoryName: { label: TasksStrings.FIELDS.REPOSITORY_MOVE, type: 'repo', helpText: TasksStrings.FIELDS.SELECT_REPOSITORY_MOVE, allowAll: false },
   restrictComponentDelete: {
-    label: 'Restrict Delete',
+    label: TasksStrings.FIELDS.RESTRICT_DELETE,
     type: 'repo',
-    helpText: 'Restrict the delete to the selected repository or format only',
+    helpText: TasksStrings.FIELDS.RESTRICT_DELETE_SELECTED_REPOSITORY_FORMAT,
     includeFormatEntries: true,
     order: 5,
     required: false,
@@ -108,83 +109,83 @@ export const TASK_FIELD_UI: Record<string, TaskFieldMeta> = {
   // before sibling configuration fields (e.g. olderThanDays, blobsOlderThan). The REST
   // template endpoint flattens descriptor form fields into a HashMap, so without this the
   // iteration order is non-deterministic and the picker may render below its companions.
-  blobstoreName: { label: 'Blob Store', type: 'blobstore', helpText: 'Select the blob store', order: 1 },
-  moveTargetBlobstore: { label: 'Target Blob Store', type: 'blobstore', helpText: 'Select the destination blob store', dependsOnRepo: 'moveRepositoryName' },
+  blobstoreName: { label: TasksStrings.FIELDS.BLOB_STORE, type: 'blobstore', helpText: TasksStrings.FIELDS.SELECT_BLOB_STORE, order: 1 },
+  moveTargetBlobstore: { label: TasksStrings.FIELDS.TARGET_BLOB_STORE, type: 'blobstore', helpText: TasksStrings.FIELDS.SELECT_DESTINATION_BLOB_STORE, dependsOnRepo: 'moveRepositoryName' },
   // Internal property set at runtime by the move task to record the source blobstore — never user-editable
   moveInitialBlobstore: { label: '', hidden: true },
-  memberToRemove: { label: 'Member to Remove', type: 'blobstore', helpText: 'Select the blob store member to remove' },
-  fromGroup: { label: 'From Group', type: 'blobstore', helpText: 'Select the blob store group' },
+  memberToRemove: { label: TasksStrings.FIELDS.MEMBER_REMOVE, type: 'blobstore', helpText: TasksStrings.FIELDS.SELECT_BLOB_STORE_MEMBER_REMOVE },
+  fromGroup: { label: TasksStrings.FIELDS.FROM_GROUP, type: 'blobstore', helpText: TasksStrings.FIELDS.SELECT_BLOB_STORE_GROUP },
 
   // Days fields — most are "0 = all/any", so optional
-  olderThanDays: { label: 'Age Threshold (days)', type: 'number', helpText: 'Number of days (0 = all files)', min: 0, max: 36500, placeholder: '0', required: false },
-  blobsOlderThan: { label: 'Blobs Older Than (days)', type: 'number', helpText: 'Number of days (0 = all blobs)', min: 0, max: 36500, placeholder: '0', required: false },
-  firstCreatedDays: { label: 'Tag Creation Age (days)', type: 'number', helpText: 'Delete tags older than this many days (0 = any age)', min: 0, max: 36500, placeholder: '0', order: 1, required: false },
-  lastUpdatedDays: { label: 'Tag Modified Age (days)', type: 'number', helpText: 'Delete tags not modified in this many days (0 = any)', min: 0, max: 36500, placeholder: '0', order: 2, required: false },
-  snapshotRetentionDays: { label: 'Snapshot Retention (days)', type: 'number', helpText: 'Days to retain snapshots', min: 0, max: 36500, placeholder: '30' },
-  gracePeriodInDays: { label: 'Grace Period (days)', type: 'number', helpText: 'Days after release before removal (0 = immediate)', min: 0, max: 36500, placeholder: '0', required: false },
-  lastUsed: { label: 'Last Used (days)', type: 'number', helpText: 'Days since last download', min: 1, max: 36500, placeholder: '1' },
-  sinceDays: { label: 'Since (days)', type: 'number', helpText: 'Number of days to look back', min: 0, max: 36500, placeholder: '0', required: false },
+  olderThanDays: { label: TasksStrings.FIELDS.AGE_THRESHOLD_DAYS, type: 'number', helpText: TasksStrings.FIELDS.NUMBER_DAYS_0_ALL_FILES, min: 0, max: 36500, placeholder: '0', required: false },
+  blobsOlderThan: { label: TasksStrings.FIELDS.BLOBS_OLDER_THAN_DAYS, type: 'number', helpText: TasksStrings.FIELDS.NUMBER_DAYS_0_ALL_BLOBS, min: 0, max: 36500, placeholder: '0', required: false },
+  firstCreatedDays: { label: TasksStrings.FIELDS.TAG_CREATION_AGE_DAYS, type: 'number', helpText: TasksStrings.FIELDS.DELETE_TAGS_OLDER_THAN_MANY, min: 0, max: 36500, placeholder: '0', order: 1, required: false },
+  lastUpdatedDays: { label: TasksStrings.FIELDS.TAG_MODIFIED_AGE_DAYS, type: 'number', helpText: TasksStrings.FIELDS.DELETE_TAGS_NOT_MODIFIED_MANY, min: 0, max: 36500, placeholder: '0', order: 2, required: false },
+  snapshotRetentionDays: { label: TasksStrings.FIELDS.SNAPSHOT_RETENTION_DAYS, type: 'number', helpText: TasksStrings.FIELDS.DAYS_RETAIN_SNAPSHOTS, min: 0, max: 36500, placeholder: '30' },
+  gracePeriodInDays: { label: TasksStrings.FIELDS.GRACE_PERIOD_DAYS, type: 'number', helpText: TasksStrings.FIELDS.DAYS_AFTER_RELEASE_BEFORE_REMOVAL, min: 0, max: 36500, placeholder: '0', required: false },
+  lastUsed: { label: TasksStrings.FIELDS.LAST_USED_DAYS, type: 'number', helpText: TasksStrings.FIELDS.DAYS_SINCE_LAST_DOWNLOAD, min: 1, max: 36500, placeholder: '1' },
+  sinceDays: { label: TasksStrings.FIELDS.SINCE_DAYS, type: 'number', helpText: TasksStrings.FIELDS.NUMBER_DAYS_LOOK_BACK, min: 0, max: 36500, placeholder: '0', required: false },
 
   // Hours fields
-  age: { label: 'Age (hours)', type: 'number', helpText: 'Hours since upload', min: 1, max: 8760, placeholder: '24' },
-  deployOffset: { label: 'Deploy Offset (hours)', type: 'number', helpText: 'Hours since last deploy before eligible for cleanup', min: 0, max: 8760, placeholder: '24' },
-  sinceHours: { label: 'Hours', type: 'number', helpText: 'Number of hours to look back', min: 0, max: 8760, placeholder: '0' },
+  age: { label: TasksStrings.FIELDS.AGE_HOURS, type: 'number', helpText: TasksStrings.FIELDS.HOURS_SINCE_UPLOAD, min: 1, max: 8760, placeholder: '24' },
+  deployOffset: { label: TasksStrings.FIELDS.DEPLOY_OFFSET_HOURS, type: 'number', helpText: TasksStrings.FIELDS.HOURS_SINCE_LAST_DEPLOY_BEFORE, min: 0, max: 8760, placeholder: '24' },
+  sinceHours: { label: TasksStrings.FIELDS.HOURS, type: 'number', helpText: TasksStrings.FIELDS.NUMBER_HOURS_LOOK_BACK, min: 0, max: 8760, placeholder: '0' },
 
   // Minutes
-  sinceMinutes: { label: 'Minutes', type: 'number', helpText: 'Number of minutes', min: 0, max: 525600, placeholder: '30' },
+  sinceMinutes: { label: TasksStrings.FIELDS.MINUTES, type: 'number', helpText: TasksStrings.FIELDS.NUMBER_MINUTES, min: 0, max: 525600, placeholder: '30' },
 
   // Count fields
-  minimumRetained: { label: 'Minimum Versions Retained', type: 'number', helpText: 'Minimum snapshots to retain per groupId:artifactId (use -1 to delete all snapshots)', min: -1, max: 1000, placeholder: '1' },
-  exportThreshold: { label: 'Threshold (in days)', type: 'number', helpText: 'Only export assets that have not been updated or downloaded in the configured number of days; leave blank to include all assets.', min: 1, required: false, placeholder: '30' },
-  batchSize: { label: 'Batch Size', type: 'number', helpText: 'Enter batch size for the import', min: 1, required: false, placeholder: '100' },
+  minimumRetained: { label: TasksStrings.FIELDS.MINIMUM_VERSIONS_RETAINED, type: 'number', helpText: TasksStrings.FIELDS.MINIMUM_SNAPSHOTS_RETAIN_PER_GROUPID, min: -1, max: 1000, placeholder: '1' },
+  exportThreshold: { label: TasksStrings.FIELDS.THRESHOLD_DAYS, type: 'number', helpText: TasksStrings.FIELDS.ONLY_EXPORT_ASSETS_HAVE_NOT, min: 1, required: false, placeholder: '30' },
+  batchSize: { label: TasksStrings.FIELDS.BATCH_SIZE, type: 'number', helpText: TasksStrings.FIELDS.ENTER_BATCH_SIZE_IMPORT, min: 1, required: false, placeholder: '100' },
 
   // Path fields
-  location: { label: 'Backup Location', type: 'string', helpText: 'Absolute server path for the backup file', placeholder: '/tmp/astrum-backup' },
-  targetDir: { label: 'Target Directory', type: 'string', helpText: 'Absolute server path to export assets to', placeholder: '/tmp/astrum-export' },
-  sourceDir: { label: 'Source Directory', type: 'string', helpText: 'Absolute server path to import files from', placeholder: '/tmp/astrum-import' },
+  location: { label: TasksStrings.FIELDS.BACKUP_LOCATION, type: 'string', helpText: TasksStrings.FIELDS.ABSOLUTE_SERVER_PATH_BACKUP_FILE, placeholder: '/tmp/astrum-backup' },
+  targetDir: { label: TasksStrings.FIELDS.TARGET_DIRECTORY, type: 'string', helpText: TasksStrings.FIELDS.ABSOLUTE_SERVER_PATH_EXPORT_ASSETS, placeholder: '/tmp/astrum-export' },
+  sourceDir: { label: TasksStrings.FIELDS.SOURCE_DIRECTORY, type: 'string', helpText: TasksStrings.FIELDS.ABSOLUTE_SERVER_PATH_IMPORT_FILES, placeholder: '/tmp/astrum-import' },
 
   // Checkbox fields
-  removeIfReleased: { label: 'Remove if Released', type: 'checkbox', helpText: 'Remove snapshots that have a corresponding release version' },
-  rebuildChecksums: { label: 'Rebuild Checksums', type: 'checkbox', helpText: 'Recalculate checksums during the rebuild' },
-  cascadeRebuild: { label: 'Cascade Rebuild', type: 'checkbox', helpText: 'Also rebuild metadata in contained repositories' },
+  removeIfReleased: { label: TasksStrings.FIELDS.REMOVE_IF_RELEASED, type: 'checkbox', helpText: TasksStrings.FIELDS.REMOVE_SNAPSHOTS_HAVE_CORRESPONDING_RELEASE },
+  rebuildChecksums: { label: TasksStrings.FIELDS.REBUILD_CHECKSUMS, type: 'checkbox', helpText: TasksStrings.FIELDS.RECALCULATE_CHECKSUMS_DURING_REBUILD },
+  cascadeRebuild: { label: TasksStrings.FIELDS.CASCADE_REBUILD, type: 'checkbox', helpText: TasksStrings.FIELDS.ALSO_REBUILD_METADATA_CONTAINED_REPOSITORIES },
   // RubyGems RebuildVersionsTask - matches RebuildVersionsTaskDescriptor.java
-  forceRebuild: { label: 'Force rebuild', type: 'checkbox', helpText: 'Rebuilds even if not marked as out of date' },
+  forceRebuild: { label: TasksStrings.FIELDS.FORCE_REBUILD, type: 'checkbox', helpText: TasksStrings.FIELDS.REBUILDS_EVEN_IF_NOT_MARKED },
   // APT RebuildAptMetadataTask - matches RebuildAptMetadataTaskDescriptor.java
   // These mirror the Classic/ExtJS updateAptRebuildCheckboxVisibility listener behavior.
-  rebuildAptMetadataFullRebuild: { label: 'Full rebuild (hosted only)', type: 'checkbox', helpText: 'Repopulate apt_key_value table and execute full rebuild of metadata. Only applies to hosted repositories.', visibleForRepoTypes: ['hosted'] },
-  resetProxyMetadata: { label: 'Reset proxy metadata', type: 'checkbox', helpText: 'Clear all generated metadata before rebuild. Use this after changing the upstream URL. Only applies to proxy repositories.', visibleForRepoTypes: ['proxy'] },
+  rebuildAptMetadataFullRebuild: { label: TasksStrings.FIELDS.FULL_REBUILD_HOSTED_ONLY, type: 'checkbox', helpText: TasksStrings.FIELDS.REPOPULATE_APT_KEY_VALUE_TABLE, visibleForRepoTypes: ['hosted'] },
+  resetProxyMetadata: { label: TasksStrings.FIELDS.RESET_PROXY_METADATA, type: 'checkbox', helpText: TasksStrings.FIELDS.CLEAR_ALL_GENERATED_METADATA_BEFORE, visibleForRepoTypes: ['proxy'] },
   // Helm RebuildHelmMetadataTask - matches RebuildHelmMetadataTaskDescriptor.java
-  rebuildHelmMetadataFullRebuild: { label: 'Full rebuild', type: 'checkbox', helpText: 'Repopulate helm_key_value table and execute full rebuild of index.yaml' },
+  rebuildHelmMetadataFullRebuild: { label: TasksStrings.FIELDS.FULL_REBUILD, type: 'checkbox', helpText: TasksStrings.FIELDS.REPOPULATE_HELM_KEY_VALUE_TABLE },
   // Alpine RebuildAlpineMetadataTask - matches RebuildAlpineMetadataTaskDescriptor.java
-  rebuildAlpineMetadataFullRebuild: { label: 'Full rebuild', type: 'checkbox', helpText: 'Execute full rebuild of metadata. Use this if the index is out of sync with stored packages.' },
+  rebuildAlpineMetadataFullRebuild: { label: TasksStrings.FIELDS.FULL_REBUILD, type: 'checkbox', helpText: TasksStrings.FIELDS.EXECUTE_FULL_REBUILD_METADATA_USE },
   // Yum YumCreateRepoTask - matches YumCreateRepoTaskDescriptor.java
-  yumMetadataCaching: { label: 'Soft repair', type: 'checkbox', helpText: 'Only update the metadata with RPM changes since the last metadata generation' },
-  deleteAssociatedComponents: { label: 'Delete Associated Components', type: 'checkbox', helpText: 'Also delete components when removing matched tags', order: 4 },
-  enableHardLinks: { label: 'Enable Hard Links', type: 'checkbox', helpText: 'Use hard links instead of copying files (faster, same filesystem only)' },
-  onlyNotify: { label: 'Notify Only', type: 'checkbox', helpText: 'Send notifications without making changes (dry run)' },
+  yumMetadataCaching: { label: TasksStrings.FIELDS.SOFT_REPAIR, type: 'checkbox', helpText: TasksStrings.FIELDS.ONLY_UPDATE_METADATA_RPM_CHANGES },
+  deleteAssociatedComponents: { label: TasksStrings.FIELDS.DELETE_ASSOCIATED_COMPONENTS, type: 'checkbox', helpText: TasksStrings.FIELDS.ALSO_DELETE_COMPONENTS_WHEN_REMOVING, order: 4 },
+  enableHardLinks: { label: TasksStrings.FIELDS.ENABLE_HARD_LINKS, type: 'checkbox', helpText: TasksStrings.FIELDS.USE_HARD_LINKS_INSTEAD_COPYING },
+  onlyNotify: { label: TasksStrings.FIELDS.NOTIFY_ONLY, type: 'checkbox', helpText: TasksStrings.FIELDS.SEND_NOTIFICATIONS_WITHOUT_MAKING_CHANGES },
   // Cluster-only checkbox injected by TaskDescriptorSupport.newMultinodeFormField() on many
   // task types when nodeAccess.isClustered(). Label/helpText mirror MULTINODE_LABEL/MULTINODE_HELP
   // so it renders as an optional checkbox (checkboxes are never required) instead of the
   // fallback heuristic's required "Multinode *".
-  multinode: { label: 'Multi node', type: 'checkbox', helpText: 'Run task on all nodes in the cluster.' },
+  multinode: { label: TasksStrings.FIELDS.MULTI_NODE, type: 'checkbox', helpText: TasksStrings.FIELDS.RUN_TASK_ALL_NODES_CLUSTER },
 
   // External blobstore metadata task — descriptor declares `external.metadata.repository.format`
   // as a free-form, non-required StringTextFormField. Without this entry the field id contains
   // "repository" so both the API mapper and the render heuristic auto-detect it as a repo
   // combobox, which is wrong — the classic UI renders it as a plain text input.
   'external.metadata.repository.format': {
-    label: 'Repository format',
+    label: TasksStrings.FIELDS.REPOSITORY_FORMAT,
     type: 'string',
-    helpText: 'Repository format to retrieve metadata for (leave empty for all formats)',
+    helpText: TasksStrings.FIELDS.REPOSITORY_FORMAT_RETRIEVE_METADATA_LEAVE,
     placeholder: 'e.g. maven2',
     required: false,
   },
 
   // Text fields with examples
   nameRegex: {
-    label: 'Tag Name Pattern',
+    label: TasksStrings.FIELDS.TAG_NAME_PATTERN,
     type: 'string',
-    helpText: 'Regular expression matching tag names (validated by the server).',
+    helpText: TasksStrings.FIELDS.REGULAR_EXPRESSION_MATCHING_TAG_NAMES,
     placeholder: 'release-.*',
     order: 3,
     required: false,
@@ -194,16 +195,16 @@ export const TASK_FIELD_UI: Record<string, TaskFieldMeta> = {
         new RegExp(value);
         return null;
       } catch {
-        return 'Tag name regex is not a valid regular expression';
+        return TasksStrings.FIELDS.TAG_NAME_REGEX_NOT_VALID;
       }
     },
   },
-  groupId: { label: 'Group ID', type: 'string', helpText: 'Maven group ID to filter (leave empty for all)', placeholder: 'org.apache.commons', required: false },
-  artifactId: { label: 'Artifact ID', type: 'string', helpText: 'Maven artifact ID to filter (leave empty for all)', placeholder: 'commons-lang3', required: false },
-  baseVersion: { label: 'Base Version', type: 'string', helpText: 'Version to filter (leave empty for all)', placeholder: '1.0-SNAPSHOT', required: false },
-  packageName: { label: 'Package Name', type: 'string', helpText: 'npm package name to rebuild metadata for (leave empty for all)', placeholder: '@scope/package-name', required: false },
-  vendor: { label: 'Vendor', type: 'string', helpText: 'Scope the rebuild to packages with the specified vendor (leave empty for all)', placeholder: 'acme', required: false },
-  baseUrl: { label: 'Base URL', type: 'url', helpText: 'Base URL of the Astrum Repository server. Required if Base URL Capability is not configured.', required: false },
+  groupId: { label: TasksStrings.FIELDS.GROUP_ID, type: 'string', helpText: TasksStrings.FIELDS.MAVEN_GROUP_ID_FILTER_LEAVE, placeholder: 'org.apache.commons', required: false },
+  artifactId: { label: TasksStrings.FIELDS.ARTIFACT_ID, type: 'string', helpText: TasksStrings.FIELDS.MAVEN_ARTIFACT_ID_FILTER_LEAVE, placeholder: 'commons-lang3', required: false },
+  baseVersion: { label: TasksStrings.FIELDS.BASE_VERSION, type: 'string', helpText: TasksStrings.FIELDS.VERSION_FILTER_LEAVE_EMPTY_ALL, placeholder: '1.0-SNAPSHOT', required: false },
+  packageName: { label: TasksStrings.FIELDS.PACKAGE_NAME, type: 'string', helpText: TasksStrings.FIELDS.NPM_PACKAGE_NAME_REBUILD_METADATA, placeholder: '@scope/package-name', required: false },
+  vendor: { label: TasksStrings.FIELDS.VENDOR, type: 'string', helpText: TasksStrings.FIELDS.SCOPE_REBUILD_PACKAGES_SPECIFIED_VENDOR, placeholder: 'acme', required: false },
+  baseUrl: { label: TasksStrings.FIELDS.BASE_URL, type: 'url', helpText: TasksStrings.FIELDS.BASE_URL_ASTRUM_REPOSITORY_SERVER, required: false },
 
   // Script task (ScriptTaskDescriptor) — `language` is a plain string and `source` is a
   // multi-line script body (TextAreaFormField). The REST template flattens both to
@@ -212,8 +213,8 @@ export const TASK_FIELD_UI: Record<string, TaskFieldMeta> = {
   // fallback heuristic. Labels/help mirror the descriptor messages. No syntax highlighting:
   // the classic ExtJS UI renders a plain <textarea>, and parity is preferred. Both are
   // MANDATORY in the descriptor, so they stay required (the default).
-  language: { label: 'Language', type: 'string', helpText: 'Script language' },
-  source: { label: 'Script Source', type: 'text', helpText: 'Script source to execute', rows: 12 },
+  language: { label: TasksStrings.FIELDS.LANGUAGE, type: 'string', helpText: TasksStrings.FIELDS.SCRIPT_LANGUAGE },
+  source: { label: TasksStrings.FIELDS.SCRIPT_SOURCE, type: 'text', helpText: TasksStrings.FIELDS.SCRIPT_SOURCE_EXECUTE, rows: 12 },
 };
 
 /**
@@ -537,28 +538,22 @@ export function filterCreatableTaskTypes<T extends { id: string }>(
 // interface (planReconciliationTopPanelMessage / planReconciliationBottomPanelMessage). The copy
 // must be kept in sync manually when the backend messages change.
 const PLAN_RECONCILE_TOP_BANNER =
-  'This task generates recovery plans to reconcile blobstores and their associated repositories. ' +
-  'To apply generated plans, run the "Repair - Execute Data Repair Plan" task. ' +
-  'You can view created plans using the /v1/reconcile/plan API';
+  TasksStrings.FIELDS.TASK_GENERATES_RECOVERY_PLANS_RECONCILE;
 
 const PLAN_RECONCILE_BOTTOM_BANNER =
-  'Tasks do not run automatically after creation. You must manually run the task after saving.';
+  TasksStrings.FIELDS.TASKS_DO_NOT_RUN_AUTOMATICALLY;
 
 // Execute Data Repair Plan copy — hard-coded verbatim from com.globalart.astrum.reconcile.task.Messages
 // (the REST /v1/tasks/templates contract drops AlertBanner/StaticInfo copy). Help text is stored
 // pre-stripped of the descriptor's <span class='as-boxlabel'> wrapper.
 const EXECUTE_RECONCILE_TOP_BANNER =
-  'This task executes recovery plans created using the "Repair - Data Repair Plan" task. ' +
-  'Execution is limited to the blob stores that were selected when creating the plan. ' +
-  'It is recommended to perform a backup before executing a recovery plan. ' +
-  'View available plans using the /v1/reconcile/plan-details API.';
+  TasksStrings.FIELDS.TASK_EXECUTES_RECOVERY_PLANS_CREATED;
 
 const EXECUTE_PLAN_OPTIONS_HELP =
-  'Execution details for recovery plan generated by the Data Repair Plan task.';
+  TasksStrings.FIELDS.EXECUTION_DETAILS_RECOVERY_PLAN_GENERATED;
 
 const EXECUTE_PLAN_INFORMATION_HELP =
-  'Displays details for recovery plans generated by the "Repair - Data Repair Plan", including the ' +
-  'number of plans, associated blob stores and repositories, and the date range covered.';
+  TasksStrings.FIELDS.DISPLAYS_DETAILS_RECOVERY_PLANS_GENERATED;
 
 // Malware remediator banner copy — hardcoded verbatim from
 // com.globalart.astrum.risk.remediation.MalwareRemediatorTaskDescriptor (the REST
@@ -573,14 +568,10 @@ const EXECUTE_PLAN_INFORMATION_HELP =
 // Update these strings to match. There is no compile-time guard — search for
 // "MalwareRemediatorTaskDescriptor" when upgrading that plugin.
 const MALWARE_REQUIREMENTS_BANNER =
-  'This task requires the Repository Firewall enabled with the Security-Malicious policy set to fail to ' +
-  'function as expected. Setting the connection to IQ Server is a requirement for Firewall to work and ' +
-  'this task is using Firewall to generate the results.';
+  TasksStrings.FIELDS.TASK_REQUIRES_REPOSITORY_FIREWALL_ENABLED;
 
 const MALWARE_CLEANUP_WARNING_BANNER =
-  'Enabling automatic malware clean up may remove dependencies currently in use by your applications, ' +
-  'this may break any automated builds when Repository Firewall quarantines these components the next ' +
-  'time they are requested.';
+  TasksStrings.FIELDS.ENABLING_AUTOMATIC_MALWARE_CLEAN_UP;
 
 /**
  * Per-task-type field metadata overrides, layered on top of the field-id-keyed TASK_FIELD_UI.
@@ -618,52 +609,52 @@ export const TASK_TYPE_FIELD_OVERRIDES: Record<string, Record<string, TaskFieldM
       order: 999,
     },
     onlyNotify: {
-      label: 'Keep database records when blob is missing:',
+      label: TasksStrings.FIELDS.KEEP_DATABASE_RECORDS_WHEN_BLOB,
       type: 'checkbox',
       helpText:
-        'Notify when records have missing blobs in the plan-details API, do not remove database records for missing blobs.',
+        TasksStrings.FIELDS.NOTIFY_WHEN_RECORDS_HAVE_MISSING,
       order: 10,
     },
     blobstoreName: {
-      label: 'Blob store',
+      label: TasksStrings.FIELDS.BLOB_STORE_SINGLE,
       type: 'itemselect',
       multiSelect: true,
       filterByBlobstore: true,
       // Empty selection = the "(All Blob Stores)" sentinel; show that clearly so it doesn't read as
       // "nothing will be processed" (Classic shows an all-selected state).
-      selectedEmptyText: 'All Blob Stores selected',
+      selectedEmptyText: TasksStrings.FIELDS.ALL_BLOB_STORES_SELECTED,
       // ...but the saved payload must match Classic, which omits blobstoreName entirely for the
       // implicit all-blob-stores state (it never sends the sentinel as a property).
       omitWhenEmpty: true,
-      helpText: 'Select the blob stores to repair. The repository list updates to match your selection',
+      helpText: TasksStrings.FIELDS.SELECT_BLOB_STORES_REPAIR_REPOSITORY,
       required: false,
       order: 20,
     },
     repositoryName: {
-      label: 'Repository',
+      label: TasksStrings.FIELDS.REPOSITORY,
       type: 'itemselect',
       multiSelect: true,
       // Classic omits an empty repository selector from the payload (exportProperties → null).
       omitWhenEmpty: true,
-      helpText: 'Select the priority order of the repositories to repair',
+      helpText: TasksStrings.FIELDS.SELECT_PRIORITY_ORDER_REPOSITORIES_REPAIR,
       required: false,
       order: 30,
     },
     taskScope: {
-      label: 'Timespan:',
+      label: TasksStrings.FIELDS.TIMESPAN,
       type: 'taskScope',
-      helpText: 'Limit this task to files added to the repository during a specific timespan.',
+      helpText: TasksStrings.FIELDS.LIMIT_TASK_FILES_ADDED_REPOSITORY,
       required: true,
       order: 40,
     },
     // Descriptor TemplateFormField that defaults the task NAME (not a persisted property).
     name: { label: '', hidden: true, isNameTemplate: true, required: false },
     // Empty duration fields serialize as the literal "null" string (Classic parity).
-    sinceDays: { label: 'Days', type: 'number', required: false, scope: 'duration', min: 0, order: 50, serializeEmptyAs: 'null' },
-    sinceHours: { label: 'Hours', type: 'number', required: false, scope: 'duration', min: 0, order: 51, serializeEmptyAs: 'null' },
-    sinceMinutes: { label: 'Minutes', type: 'number', required: false, scope: 'duration', min: 0, order: 52, serializeEmptyAs: 'null' },
-    reconcileStartDate: { label: 'Start date', type: 'date', required: false, scope: 'dates', order: 60 },
-    reconcileEndDate: { label: 'End date', type: 'date', required: false, scope: 'dates', order: 61 },
+    sinceDays: { label: TasksStrings.FIELDS.DAYS, type: 'number', required: false, scope: 'duration', min: 0, order: 50, serializeEmptyAs: 'null' },
+    sinceHours: { label: TasksStrings.FIELDS.HOURS, type: 'number', required: false, scope: 'duration', min: 0, order: 51, serializeEmptyAs: 'null' },
+    sinceMinutes: { label: TasksStrings.FIELDS.MINUTES, type: 'number', required: false, scope: 'duration', min: 0, order: 52, serializeEmptyAs: 'null' },
+    reconcileStartDate: { label: TasksStrings.FIELDS.START_DATE, type: 'date', required: false, scope: 'dates', order: 60 },
+    reconcileEndDate: { label: TasksStrings.FIELDS.END_DATE, type: 'date', required: false, scope: 'dates', order: 61 },
   },
   [EXECUTE_RECONCILE_PLAN_TYPE_ID]: {
     topAlertBanner: {
@@ -677,15 +668,15 @@ export const TASK_TYPE_FIELD_OVERRIDES: Record<string, Record<string, TaskFieldM
     // Same descriptor field id on both editions, different label: self-hosted "Execution Information"
     // (createExecutionInformationInfo) vs cloud "Plan Options" (createPlanOptionsInfo).
     planOptionsLabelId: {
-      label: 'Execution Information',
-      cloudLabel: 'Plan Options',
+      label: TasksStrings.FIELDS.EXECUTION_INFORMATION,
+      cloudLabel: TasksStrings.FIELDS.PLAN_OPTIONS,
       type: 'staticInfo',
       helpText: EXECUTE_PLAN_OPTIONS_HELP,
       required: false,
       order: 10,
     },
     planInformationLabelId: {
-      label: 'Plan Information',
+      label: TasksStrings.FIELDS.PLAN_INFORMATION,
       type: 'staticInfo',
       helpText: EXECUTE_PLAN_INFORMATION_HELP,
       required: false,
@@ -700,17 +691,17 @@ export const TASK_TYPE_FIELD_OVERRIDES: Record<string, Record<string, TaskFieldM
     // Read-only (Classic renderExecutePlanFields): Selected-only, no Available column, no filtering.
     // Self-hosted only — cloud template omits this field.
     blobstoreName: {
-      label: 'Blob store',
+      label: TasksStrings.FIELDS.BLOB_STORE_SINGLE,
       type: 'itemselect',
       multiSelect: true,
       readOnly: true,
       neverSerialize: true,
-      helpText: 'Select the blob stores to repair. The repository list updates to match your selection',
+      helpText: TasksStrings.FIELDS.SELECT_BLOB_STORES_REPAIR_REPOSITORY,
       required: false,
       order: 40,
     },
     repositoryName: {
-      label: 'Repository',
+      label: TasksStrings.FIELDS.REPOSITORY,
       type: 'itemselect',
       multiSelect: true,
       readOnly: true,
@@ -718,23 +709,23 @@ export const TASK_TYPE_FIELD_OVERRIDES: Record<string, Record<string, TaskFieldM
       // When the Plan task has no repo filter (common), repositoryName is absent from
       // the derived properties and the list would render as a blank grey box.
       // Mirror the blob-store field's treatment so empty reads as "all selected".
-      selectedEmptyText: 'All Repositories selected',
-      helpText: 'Select the priority order of the repositories to repair',
+      selectedEmptyText: TasksStrings.FIELDS.ALL_REPOSITORIES_SELECTED,
+      helpText: TasksStrings.FIELDS.SELECT_PRIORITY_ORDER_REPOSITORIES_REPAIR,
       required: false,
       order: 50,
     },
     taskScope: {
-      label: 'Timespan:',
+      label: TasksStrings.FIELDS.TIMESPAN,
       type: 'taskScope',
       defaultScope: 'dates',
       readOnly: true,
       neverSerialize: true,
-      helpText: 'Limit this task to files added to the repository during a specific timespan.',
+      helpText: TasksStrings.FIELDS.LIMIT_TASK_FILES_ADDED_REPOSITORY,
       required: true,
       order: 60,
     },
-    reconcileStartDate: { label: 'Start date', type: 'date', required: false, readOnly: true, neverSerialize: true, scope: 'dates', order: 70 },
-    reconcileEndDate: { label: 'End date', type: 'date', required: false, readOnly: true, neverSerialize: true, scope: 'dates', order: 71 },
+    reconcileStartDate: { label: TasksStrings.FIELDS.START_DATE, type: 'date', required: false, readOnly: true, neverSerialize: true, scope: 'dates', order: 70 },
+    reconcileEndDate: { label: TasksStrings.FIELDS.END_DATE, type: 'date', required: false, readOnly: true, neverSerialize: true, scope: 'dates', order: 71 },
     // Self-hosted only — descriptor TemplateFormField defaulting the task NAME (not a property).
     name: { label: '', hidden: true, isNameTemplate: true, required: false },
   },
@@ -754,17 +745,17 @@ export const TASK_TYPE_FIELD_OVERRIDES: Record<string, Record<string, TaskFieldM
       order: 0,
     },
     repositoryName: {
-      label: 'Repository',
+      label: TasksStrings.FIELDS.REPOSITORY,
       type: 'repo',
-      helpText: 'Select the proxy repository to remove malware from',
+      helpText: TasksStrings.FIELDS.SELECT_PROXY_REPOSITORY_REMOVE_MALWARE,
       allowAll: true,
       required: true,
       order: 10,
     },
     enableMalwareCleanup: {
-      label: 'Enable Malware Cleanup',
+      label: TasksStrings.FIELDS.ENABLE_MALWARE_CLEANUP,
       type: 'checkbox',
-      helpText: 'When selected, malware found will be scheduled to be cleaned up in the target proxy repositories.',
+      helpText: TasksStrings.FIELDS.WHEN_SELECTED_MALWARE_FOUND_SCHEDULED,
       order: 20,
     },
     enableMalwareCleanupMessage: {

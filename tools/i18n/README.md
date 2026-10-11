@@ -20,7 +20,7 @@ one project holds all dictionaries.
 | `extjs-rapture` | `astrum-rapture/.../AS/app/PluginStrings.js` |
 | `extjs-coreui` | `astrum-coreui-plugin/.../AS/coreui/app/PluginStrings.js` |
 | `extjs-onboarding` | `astrum-onboarding-plugin/.../AS/onboarding/app/PluginStrings.js` |
-| `react-ui` | `astrum-ui-plugin/src/frontend/src/constants/UIStrings.js` |
+| `react-ui` | `astrum-ui-plugin/src/frontend/src/constants/UIStrings.js`, the onboarding wizard's `UIStrings.ts` and Astrum One's `components/preview/constants/PreviewStrings.js` |
 | `react-coreui` | `astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx` |
 
 ExtJS keys are the keys of `PluginStrings.js`; bundle keys are written `<class>/<key>`. Values that only
@@ -38,6 +38,12 @@ language. A key is the dotted path of the text in the object, e.g. `USERS.LIST.C
 - A JSX element, or a function returning one, is translated as its text with the descendant
   elements numbered in document order: `See <0>the documentation</0>.<1/>`. The translation keeps
   the elements (links, bold text) and may move them.
+
+A module passed with a scope, `localize('react-ui', strings, 'PREVIEW.TASKS')`, has its keys under the scope,
+e.g. `PREVIEW.TASKS.LIST.CREATE_TASK`. The strings modules of Astrum One localize themselves this way, each under
+`PREVIEW.<AREA>`, so that a component importing one directly always reads the translations; `PreviewStrings.js` lists
+them. A text that depends on a count is an object of plural forms, `ONE`, `FEW`, `MANY` and `OTHER` (texts or
+templates of the count), from which `plural()` (`interface/plural.js`) picks the form the page's language needs.
 
 `extract` loads the modules in Node to read these texts. It leaves English, and lists, the functions
 whose text depends on their arguments in other ways (plurals, lists, conditions) and values that look
