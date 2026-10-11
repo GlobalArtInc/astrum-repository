@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { render, screen, waitFor, } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Theme } from '@radix-ui/themes';
 
@@ -190,6 +190,30 @@ describe('RepositoriesPage', () => {
     // Verify the hook provides setError
     expect(mockApiHook.setError).toBeDefined();
     expect(typeof mockApiHook.setError).toBe('function');
+  });
+
+  describe('repository edit view header', () => {
+    beforeEach(() => {
+      window.location.hash = '#preview/admin/repository/repositories/maven-central';
+    });
+
+    it('shows the name with status, type and format chips and the actions in one header', async () => {
+      renderWithTheme(<RepositoriesPage />);
+
+      const header = await waitFor(() => {
+        const headers = screen.getAllByTestId('page-header');
+        expect(headers).toHaveLength(1);
+        expect(within(headers[0]).getByRole('button', { name: /delete/i })).toBeInTheDocument();
+        return headers[0];
+      });
+
+      expect(within(header).getByRole('heading', { name: 'maven-central' })).toBeInTheDocument();
+      expect(within(header).getByTestId('repository-chip-status')).toHaveTextContent('Online');
+      expect(within(header).getByTestId('repository-chip-type')).toHaveTextContent('Proxy');
+      expect(within(header).getByTestId('repository-chip-format')).toHaveTextContent('Maven');
+      expect(within(header).getByRole('button', { name: /take offline/i })).toBeInTheDocument();
+      expect(within(header).queryByText(/•/)).not.toBeInTheDocument();
+    });
   });
 
   describe('repository edit view deletion', () => {

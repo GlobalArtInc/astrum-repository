@@ -513,7 +513,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     }
     const isGoingOffline = !pendingRowAction.nextOnline;
     return {
-      title: isGoingOffline ? RepositoriesPageStrings.LIST.DISABLE_SYSTEM_STATUS : RepositoriesPageStrings.LIST.ENABLE_SYSTEM_STATUS,
+      title: isGoingOffline ? RepositoriesPageStrings.LIST.TAKE_REPOSITORY_OFFLINE : RepositoriesPageStrings.LIST.BRING_REPOSITORY_ONLINE,
       message: isGoingOffline
         ? RepositoriesPageStrings.LIST.TAKE_REPOSITORY_OFFLINE_CLIENTS_NO(name)
         : RepositoriesPageStrings.LIST.BRING_REPOSITORY_ONLINE_CLIENTS_ABLE(name),
@@ -947,8 +947,8 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                                       data-testid={`repo-action-toggle-online-${repo.name}`}
                                     >
                                       {(repo.status?.online ?? repo.online ?? true)
-                                        ? RepositoriesPageStrings.LIST.DISABLE_SYSTEM_STATUS
-                                        : RepositoriesPageStrings.LIST.ENABLE_SYSTEM_STATUS}
+                                        ? RepositoriesPageStrings.LIST.TAKE_OFFLINE
+                                        : RepositoriesPageStrings.LIST.BRING_ONLINE}
                                     </DropdownMenu.Item>
                                   )}
                                   <DropdownMenu.Item

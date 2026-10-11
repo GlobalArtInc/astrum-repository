@@ -246,6 +246,23 @@ describe('SettingsForm', () => {
     expect(screen.queryByText('Save')).not.toBeInTheDocument();
   });
 
+  it('puts the action bar above the content by default', () => {
+    const { container } = render(<SettingsForm {...defaultProps} onSubmit={jest.fn()} />);
+
+    const bar = container.querySelector('.settings-form__action-bar');
+    expect(bar).toHaveClass('settings-form__action-bar--top');
+    expect(bar.compareDocumentPosition(screen.getByTestId('form-content')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('puts the action bar below the content with actionBarPosition="bottom"', () => {
+    const { container } = render(<SettingsForm {...defaultProps} onSubmit={jest.fn()} actionBarPosition="bottom" />);
+
+    const bars = container.querySelectorAll('.settings-form__action-bar');
+    expect(bars).toHaveLength(1);
+    expect(bars[0]).toHaveClass('settings-form__action-bar--bottom');
+    expect(bars[0].compareDocumentPosition(screen.getByTestId('form-content')) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
   it('applies custom className', () => {
     const { container } = render(<SettingsForm {...defaultProps} className="custom-class" />);
     

@@ -51,6 +51,14 @@
     z-index: 100;
     min-height: 52px;
     box-sizing: border-box;
+
+    // Below the content: sticks to the bottom of the scroll area while the form is taller than it
+    &--bottom {
+      top: auto;
+      bottom: 0;
+      border-bottom: none;
+      border-top: 1px solid var(--color-border);
+    }
   }
 
   &__progress-bar {

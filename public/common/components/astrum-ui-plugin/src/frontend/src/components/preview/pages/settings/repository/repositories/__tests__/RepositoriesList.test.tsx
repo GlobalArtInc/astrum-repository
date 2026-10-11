@@ -871,14 +871,14 @@ describe('RepositoriesList', () => {
         expect(screen.getByText('maven-central')).toBeInTheDocument();
       });
 
-      // maven-central + maven-releases are online → "Disable System Status"
-      // npm-proxy is offline → "Enable System Status"
+      // maven-central + maven-releases are online → "Take Offline"
+      // npm-proxy is offline → "Bring Online"
       const central = screen.getByTestId('repo-action-toggle-online-maven-central');
-      expect(central).toHaveTextContent('Disable System Status');
+      expect(central).toHaveTextContent('Take Offline');
       const releases = screen.getByTestId('repo-action-toggle-online-maven-releases');
-      expect(releases).toHaveTextContent('Disable System Status');
+      expect(releases).toHaveTextContent('Take Offline');
       const npm = screen.getByTestId('repo-action-toggle-online-npm-proxy');
-      expect(npm).toHaveTextContent('Enable System Status');
+      expect(npm).toHaveTextContent('Bring Online');
     });
 
     it('opens confirm dialog and calls rebuildIndex on confirm', async () => {

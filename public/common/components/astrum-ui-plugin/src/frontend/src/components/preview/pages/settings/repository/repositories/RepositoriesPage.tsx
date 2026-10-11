@@ -18,6 +18,7 @@ import { RepositoryForm } from './RepositoryForm';
 import { RepositoryFirewallStep } from './RepositoryFirewallStep';
 import { RepositoryRHCStep } from './RepositoryRHCStep';
 import { FormatIcon } from '../repositories/components/FormatIcon';
+import { RepositoryChips } from './RepositoryChips';
 import {
   enableFirewallAudit,
   enableFirewallPccs,
@@ -498,7 +499,7 @@ export function RepositoriesPage() {
     // toggle-online
     const isGoingOffline = !pendingAction.nextOnline;
     return {
-      title: isGoingOffline ? RepositoriesPageStrings.PAGE.DISABLE_SYSTEM_STATUS : RepositoriesPageStrings.PAGE.ENABLE_SYSTEM_STATUS,
+      title: isGoingOffline ? RepositoriesPageStrings.PAGE.TAKE_REPOSITORY_OFFLINE : RepositoriesPageStrings.PAGE.BRING_REPOSITORY_ONLINE,
       message: isGoingOffline
         ? RepositoriesPageStrings.PAGE.TAKE_REPOSITORY_OFFLINE_CLIENTS_NO(name)
         : RepositoriesPageStrings.PAGE.BRING_REPOSITORY_ONLINE_CLIENTS_ABLE(name),
@@ -507,12 +508,29 @@ export function RepositoriesPage() {
     };
   }, [pendingAction, repository]);
 
-  const getHeaderProps = () => {
+  const getHeaderProps = (): {
+    icon?: React.ReactNode | typeof Database;
+    title: string;
+    description?: string;
+    meta?: React.ReactNode;
+    actions?: React.ReactNode;
+  } => {
     switch (routeState.viewMode) {
       case 'list': return { icon: Database, title: RepositoriesPageStrings.PAGE.REPOSITORIES, description: RepositoriesPageStrings.PAGE.MANAGE_HOSTED_PROXY_GROUP_REPOSITORIES, actions: canCreate ? <Button variant="solid" onClick={handleCreate}><Plus size={16} /> {RepositoriesPageStrings.PAGE.CREATE_REPOSITORY}</Button> : undefined };
       case 'select-type': return { icon: Database, title: RepositoriesPageStrings.PAGE.CREATE_REPOSITORY, description: RepositoriesPageStrings.PAGE.CONFIGURE_NEW_REPOSITORY_SETTINGS };
       case 'create': return { icon: selectedRecipe ? <FormatIcon format={selectedRecipe.format} type={selectedRecipe.type} size={24} /> : Database, title: RepositoriesPageStrings.PAGE.CREATE_TYPED_REPOSITORY((selectedRecipe?.format || '').replace(/2$/, ''), TYPE_LABELS[selectedRecipe?.type as RepositoryType] || selectedRecipe?.type || ''), description: RepositoriesPageStrings.PAGE.CONFIGURE_SETTINGS };
-      case 'edit': return { icon: repository ? <FormatIcon format={repository.format} type={repository.type} size={24} /> : Database, title: repository ? RepositoriesPageStrings.PAGE.EDIT(repository.name) : RepositoriesPageStrings.PAGE.DETAILS, description: repository ? `${repository.format} • ${TYPE_LABELS[repository.type] || repository.type} • ${repository.status?.online ? RepositoriesPageStrings.PAGE.ONLINE : RepositoriesPageStrings.PAGE.OFFLINE}` : CommonStrings.MESSAGES.LOADING };
+      case 'edit': return {
+        icon: repository ? <FormatIcon format={repository.format} type={repository.type} size={24} /> : Database,
+        title: repository ? repository.name : RepositoriesPageStrings.PAGE.DETAILS,
+        description: repository ? undefined : CommonStrings.MESSAGES.LOADING,
+        meta: repository ? (
+          <RepositoryChips
+            format={repository.format}
+            type={repository.type}
+            online={repository.status?.online ?? repository.online ?? true}
+          />
+        ) : undefined,
+      };
       default: return { icon: Database, title: RepositoriesPageStrings.PAGE.REPOSITORIES, description: RepositoriesPageStrings.PAGE.MANAGE_REPOSITORIES };
     }
   };
@@ -541,11 +559,16 @@ export function RepositoriesPage() {
   const evalHubHref =
     router.stateService.href(EVAL_HUB_STATE, {}) ?? '#preview/admin/iq/hosted-repos-eval';
 
-  return (
-    <Box className="repositories-page" data-testid="repositories-page" data-view={routeState.viewMode}>
-      <PageHeader icon={headerProps.icon} title={headerProps.title} description={headerProps.description} actions={headerProps.actions}
-          breadcrumbs={getBreadcrumbs()}
-/>
+  // On the edit page the form renders this header itself, so that the repository actions can sit next to the title.
+  const renderHeader = (actions?: React.ReactNode) => (
+    <>
+      <PageHeader
+        title={headerProps.title}
+        description={headerProps.description}
+        meta={headerProps.meta}
+        actions={actions ?? headerProps.actions}
+        breadcrumbs={getBreadcrumbs()}
+      />
       {showEvalBackLink && (
         <Box className="repositories-page__eval-back" mb="2">
           <Link
@@ -563,6 +586,13 @@ export function RepositoriesPage() {
         </Box>
       )}
       {error && <Box className="repositories-page__alerts"><SettingsAlert type="error" onClose={() => setError(null)}>{error}</SettingsAlert></Box>}
+    </>
+  );
+  const formRendersHeader = routeState.viewMode === 'edit' && !!editRecipe;
+
+  return (
+    <Box className="repositories-page" data-testid="repositories-page" data-view={routeState.viewMode}>
+      {!formRendersHeader && renderHeader()}
       <Box className="repositories-page__content">
         {routeState.viewMode === 'list' && <RepositoriesList key={refreshKey} onSelect={handleSelectRepository} onCreate={handleCreate} onDelete={canDelete ? async (n) => { await deleteRepository(n); setRefreshKey(k => k + 1); } : undefined} />}
         {(routeState.viewMode === 'select-type' || routeState.viewMode === 'create') && (
@@ -660,6 +690,7 @@ export function RepositoriesPage() {
             onBrowseRepository={handleBrowseRepository}
             isActionInFlight={isExecutingAction}
             loading={loading}
+            renderHeader={renderHeader}
           />
         )}
       </Box>

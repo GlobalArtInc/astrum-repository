@@ -30,6 +30,8 @@ export interface PageHeaderProps {
   description?: string;
   /** Optional node rendered inline immediately after the description text (e.g. a URL chip) */
   descriptionSuffix?: React.ReactNode;
+  /** Optional row under the title, e.g. chips with the status and type of the entity */
+  meta?: React.ReactNode;
   /** Optional action buttons (rendered on the right) */
   actions?: React.ReactNode;
   /** Optional breadcrumb navigation */
@@ -79,6 +81,7 @@ export function PageHeader({
   count,
   description,
   descriptionSuffix,
+  meta,
   actions,
   breadcrumbs,
   className = '',
@@ -159,6 +162,11 @@ export function PageHeader({
                   {description}
                 </Text>
               )
+            )}
+            {meta && (
+              <Flex align="center" gap="2" wrap="wrap" mt="1" data-testid="page-header-meta">
+                {meta}
+              </Flex>
             )}
           </Flex>
 

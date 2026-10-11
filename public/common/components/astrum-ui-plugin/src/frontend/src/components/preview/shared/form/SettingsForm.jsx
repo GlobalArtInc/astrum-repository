@@ -77,6 +77,8 @@ export function SettingsForm({
   progressBar,
   // Wizard mode: Cancel on left, Submit on right (default: Cancel on right)
   cancelOnLeft = false,
+  // 'bottom' sticks the action bar to the bottom of the form instead of its top
+  actionBarPosition = 'top',
   className = '',
   // Testability props
   testId,
@@ -157,6 +159,106 @@ export function SettingsForm({
     return acc;
   }, {});
 
+  const actionBar = (
+    <Box className={`settings-form__action-bar settings-form__action-bar--${actionBarPosition}`}>
+      {cancelOnLeft ? (
+        // Wizard layout: Cancel on LEFT, Back + Continue on RIGHT
+        <>
+          {/* Left side: Cancel + footerExtra (e.g. Delete button) */}
+          <Flex gap="2" align="center">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                size="2"
+                onClick={handleCancelClick}
+                disabled={isLoading || cancelDisabled}
+                data-testid="form-cancel"
+                data-analytics-id={cancelAnalyticsId}
+              >
+                {cancelLabel}
+              </Button>
+            )}
+            {footerExtra}
+          </Flex>
+
+          {/* Right side: Back + Continue */}
+          <Flex gap="3" align="center">
+            {actionButtons}
+            {saveHandler && (
+              <Button
+                type="submit"
+                variant="solid"
+                size="2"
+                disabled={isSubmitDisabled}
+                loading={isLoading}
+                aria-busy={isLoading ? 'true' : undefined}
+                data-testid="form-submit"
+                data-analytics-id={submitAnalyticsId}
+              >
+                {submitLabel}
+              </Button>
+            )}
+          </Flex>
+        </>
+      ) : (
+        // Standard layout: Extra on LEFT, Cancel + Submit on RIGHT
+        <>
+          {/* Left side: Destructive actions (Delete) + error message */}
+          <Flex gap="2" align="center" className="settings-form__action-bar-extra">
+            {footerExtra}
+            {error && (
+              <Flex gap="1" align="center" className="settings-form__action-bar-error">
+                <AlertCircle size={14} />
+                <Text size="1" weight="medium">{error}</Text>
+              </Flex>
+            )}
+          </Flex>
+
+          {/* Right side: Primary actions + status */}
+          {/* "Unsaved changes" is always rendered so the action bar reserves the same horizontal space in pristine and dirty states — toggling visibility (not the DOM) prevents the layout shift that would otherwise wrap nearby buttons (e.g. Delete) when the indicator first appears. Plain <span> rather than Radix <Text> because Radix Text strips data-* attributes. */}
+          <Flex gap="3" align="center">
+            <span
+              className="settings-form__unsaved"
+              data-pristine={isPristine || !!error || noDirtyTracking ? 'true' : 'false'}
+              aria-hidden={isPristine || !!error || noDirtyTracking ? 'true' : undefined}
+            >
+              {SharedStrings.SETTINGS_FORM.UNSAVED_CHANGES}
+            </span>
+            {actionButtons}
+            {onCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                size="2"
+                onClick={handleCancelClick}
+                disabled={isLoading || cancelDisabled}
+                data-testid="form-cancel"
+                data-analytics-id={cancelAnalyticsId}
+              >
+                {cancelLabel}
+              </Button>
+            )}
+            {saveHandler && (
+              <Button
+                type="submit"
+                variant="solid"
+                size="2"
+                disabled={isSubmitDisabled}
+                loading={isLoading}
+                aria-busy={isLoading ? 'true' : undefined}
+                data-testid="form-submit"
+                data-analytics-id={submitAnalyticsId}
+              >
+                {submitLabel}
+              </Button>
+            )}
+          </Flex>
+        </>
+      )}
+    </Box>
+  );
+
   return (
     <form 
       className={`settings-form ${className}`.trim()} 
@@ -194,107 +296,9 @@ export function SettingsForm({
         </Box>
       )}
 
-      {/* Sticky Action Bar - always visible at top of form */}
+      {/* Sticky Action Bar - visible at the top (or, with actionBarPosition="bottom", the bottom) of the form */}
       {/* UX Best Practice: Primary actions (Save) on RIGHT, destructive (Delete) on LEFT */}
-      {showActions && (
-        <Box className="settings-form__action-bar">
-          {cancelOnLeft ? (
-            // Wizard layout: Cancel on LEFT, Back + Continue on RIGHT
-            <>
-              {/* Left side: Cancel + footerExtra (e.g. Delete button) */}
-              <Flex gap="2" align="center">
-                {onCancel && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="2"
-                    onClick={handleCancelClick}
-                    disabled={isLoading || cancelDisabled}
-                    data-testid="form-cancel"
-                    data-analytics-id={cancelAnalyticsId}
-                  >
-                    {cancelLabel}
-                  </Button>
-                )}
-                {footerExtra}
-              </Flex>
-
-              {/* Right side: Back + Continue */}
-              <Flex gap="3" align="center">
-                {actionButtons}
-                {saveHandler && (
-                  <Button
-                    type="submit"
-                    variant="solid"
-                    size="2"
-                    disabled={isSubmitDisabled}
-                    loading={isLoading}
-                    aria-busy={isLoading ? 'true' : undefined}
-                    data-testid="form-submit"
-                    data-analytics-id={submitAnalyticsId}
-                  >
-                    {submitLabel}
-                  </Button>
-                )}
-              </Flex>
-            </>
-          ) : (
-            // Standard layout: Extra on LEFT, Cancel + Submit on RIGHT
-            <>
-              {/* Left side: Destructive actions (Delete) + error message */}
-              <Flex gap="2" align="center" className="settings-form__action-bar-extra">
-                {footerExtra}
-                {error && (
-                  <Flex gap="1" align="center" className="settings-form__action-bar-error">
-                    <AlertCircle size={14} />
-                    <Text size="1" weight="medium">{error}</Text>
-                  </Flex>
-                )}
-              </Flex>
-
-              {/* Right side: Primary actions + status */}
-              {/* "Unsaved changes" is always rendered so the action bar reserves the same horizontal space in pristine and dirty states — toggling visibility (not the DOM) prevents the layout shift that would otherwise wrap nearby buttons (e.g. Delete) when the indicator first appears. Plain <span> rather than Radix <Text> because Radix Text strips data-* attributes. */}
-              <Flex gap="3" align="center">
-                <span
-                  className="settings-form__unsaved"
-                  data-pristine={isPristine || !!error || noDirtyTracking ? 'true' : 'false'}
-                  aria-hidden={isPristine || !!error || noDirtyTracking ? 'true' : undefined}
-                >
-                  {SharedStrings.SETTINGS_FORM.UNSAVED_CHANGES}
-                </span>
-                {actionButtons}
-                {onCancel && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="2"
-                    onClick={handleCancelClick}
-                    disabled={isLoading || cancelDisabled}
-                    data-testid="form-cancel"
-                    data-analytics-id={cancelAnalyticsId}
-                  >
-                    {cancelLabel}
-                  </Button>
-                )}
-                {saveHandler && (
-                  <Button
-                    type="submit"
-                    variant="solid"
-                    size="2"
-                    disabled={isSubmitDisabled}
-                    loading={isLoading}
-                    aria-busy={isLoading ? 'true' : undefined}
-                    data-testid="form-submit"
-                    data-analytics-id={submitAnalyticsId}
-                  >
-                    {submitLabel}
-                  </Button>
-                )}
-              </Flex>
-            </>
-          )}
-        </Box>
-      )}
+      {showActions && actionBarPosition === 'top' && actionBar}
 
       {/* Progress Bar / Stepper - for wizards */}
       {progressBar && (
@@ -316,6 +320,8 @@ export function SettingsForm({
           {children}
         </Box>
       </Box>
+
+      {showActions && actionBarPosition === 'bottom' && actionBar}
 
       {/* Discard Changes Confirmation - only rendered when confirmDiscard is enabled */}
       {confirmDiscard && (
@@ -391,6 +397,8 @@ SettingsForm.propTypes = {
   progressBar: PropTypes.node,
   /** Wizard mode: Cancel on left, Submit on right (default: Cancel on right) */
   cancelOnLeft: PropTypes.bool,
+  /** Where the sticky action bar sits: above the content (default) or below it */
+  actionBarPosition: PropTypes.oneOf(['top', 'bottom']),
   /** Additional CSS class */
   className: PropTypes.string,
   /** Custom test ID for the form (overrides default 'settings-form') */

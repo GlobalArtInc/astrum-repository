@@ -1,7 +1,7 @@
 
 
 import React, { useRef, useState } from 'react';
-import { Box, Flex, Text, Tabs } from '@radix-ui/themes';
+import { Box, Button, Flex, Text, Tabs } from '@radix-ui/themes';
 import {
   Loader2,
   Trash2,
@@ -25,7 +25,6 @@ import {
   SettingsFormSection,
   SettingsTextInput,
   SettingsCheckbox,
-  SettingsButton,
 } from '../../../../shared/form';
 
 import { useRepositoryForm } from './useRepositoryForm';
@@ -101,7 +100,12 @@ export function RepositoryForm({
   advanceOnly = false,
   onCanAdvanceChange,
   onDirtyChange,
-}: RepositoryFormProps & { onSubmitRef?: React.MutableRefObject<(() => void) | null> }) {
+  renderHeader,
+}: RepositoryFormProps & {
+  onSubmitRef?: React.MutableRefObject<(() => void) | null>;
+  /** Renders the page header of the edit page with the given repository actions (Browse, Rebuild index, ..., Delete) */
+  renderHeader?: (actions?: React.ReactNode) => React.ReactNode;
+}) {
   const {
     form,
     hasFirewallLicense,
@@ -198,16 +202,19 @@ export function RepositoryForm({
   // Loading state for reference data
   if (form.isLoading) {
     return (
-      <Flex align="center" justify="center" className="repository-form__loading">
-        <Loader2 size={24} className="repository-form__spinner" />
-        <Text size="2">{RepositoriesPageStrings.FORM.LOADING_FORM_DATA}</Text>
-      </Flex>
+      <>
+        {renderHeader?.()}
+        <Flex align="center" justify="center" className="repository-form__loading">
+          <Loader2 size={24} className="repository-form__spinner" />
+          <Text size="2">{RepositoriesPageStrings.FORM.LOADING_FORM_DATA}</Text>
+        </Flex>
+      </>
     );
   }
 
   // Form content
   const formContent = (
-    <Box>
+    <Box className="repository-form__fields">
       {/* Repository Info Section */}
         <SettingsFormSection title={RepositoriesPageStrings.FORM.REPOSITORY_SETTINGS}>
           <SettingsTextInput
@@ -604,8 +611,97 @@ export function RepositoryForm({
     ? RepositoriesPageStrings.FORM.SAVE_DISCARD_UNSAVED_CHANGES_BEFORE_2
     : undefined;
 
+  // The repository actions sit in the page header, next to the title; Delete comes last.
+  const headerActions = hasAnyAction ? (
+    <Flex gap="2" wrap="wrap" align="center" justify={{ initial: 'start', sm: 'end' }} className="repository-form__header-actions">
+      {showBrowseRepository && (
+        <Button
+          type="button"
+          variant="soft"
+          color="gray"
+          size="2"
+          onClick={onBrowseRepository}
+          disabled={browseRepositoryDisabled}
+          data-testid="form-browse-repository"
+          data-analytics-id="as-repository-browse"
+          title={browseRepositoryTitle}
+        >
+          <FolderTree size={16} aria-hidden="true" />
+          {RepositoriesPageStrings.FORM.BROWSE_REPOSITORY}
+        </Button>
+      )}
+      {showRebuildIndex && (
+        <Button
+          type="button"
+          variant="soft"
+          color="gray"
+          size="2"
+          onClick={onRebuildIndex}
+          disabled={actionsDisabled}
+          data-testid="form-rebuild-index"
+          data-analytics-id="as-repository-rebuild-index"
+        >
+          <Database size={16} aria-hidden="true" />
+          {RepositoriesPageStrings.FORM.REBUILD_INDEX}
+        </Button>
+      )}
+      {showInvalidateCache && (
+        <Button
+          type="button"
+          variant="soft"
+          color="gray"
+          size="2"
+          onClick={onInvalidateCache}
+          disabled={actionsDisabled}
+          data-testid="form-invalidate-cache"
+          data-analytics-id="as-repository-invalidate-cache"
+        >
+          <RotateCcw size={16} aria-hidden="true" />
+          {RepositoriesPageStrings.FORM.INVALIDATE_CACHE}
+        </Button>
+      )}
+      {showToggleOnline && (
+        <Button
+          type="button"
+          variant="soft"
+          color="gray"
+          size="2"
+          onClick={() => onToggleOnline?.(!isOnlineSaved)}
+          disabled={toggleOnlineDisabled}
+          data-testid="form-toggle-online"
+          data-analytics-id="as-repository-toggle-online"
+          title={toggleOnlineTitle}
+        >
+          <Power size={16} aria-hidden="true" />
+          {isOnlineSaved ? RepositoriesPageStrings.FORM.TAKE_OFFLINE : RepositoriesPageStrings.FORM.BRING_ONLINE}
+        </Button>
+      )}
+      {showDelete && (
+        <Button
+          type="button"
+          variant="soft"
+          color="red"
+          size="2"
+          onClick={onDelete}
+          disabled={actionsDisabled}
+          data-testid="form-delete"
+          data-analytics-id="as-repository-delete"
+        >
+          <Trash2 size={16} aria-hidden="true" />
+          {CommonStrings.ACTIONS.DELETE}
+        </Button>
+      )}
+    </Flex>
+  ) : undefined;
+
+  // Save and Cancel only act on the Settings (and Evaluation) tab, so their bar shows there, or while settings are unsaved.
+  const showSaveBar = isCreate || activeTab === 'settings' || isEvalTabActive || !form.isPristine;
+
   return (
-    <Box className="repository-form">
+    <Box className={`repository-form${isEdit ? ' repository-form--edit' : ''}`}>
+      {isEdit && (renderHeader
+        ? renderHeader(headerActions)
+        : headerActions && <Box className="repository-form__actions">{headerActions}</Box>)}
       <SettingsForm
         onSubmit={
           !canEdit
@@ -623,78 +719,11 @@ export function RepositoryForm({
         testId="repository-form"
         submitAnalyticsId={isCreate ? 'as-repository-create' : 'as-repository-save'}
         cancelAnalyticsId="as-repository-cancel"
-        footerExtra={
-          hasAnyAction ? (
-            <Flex gap="2" wrap="wrap" align="center">
-              {showBrowseRepository && (
-                <SettingsButton
-                  variant="secondary"
-                  onClick={onBrowseRepository}
-                  disabled={browseRepositoryDisabled}
-                  icon={FolderTree}
-                  testId="form-browse-repository"
-                  data-analytics-id="as-repository-browse"
-                  title={browseRepositoryTitle}
-                >
-                  {RepositoriesPageStrings.FORM.BROWSE_REPOSITORY}
-                </SettingsButton>
-              )}
-              {showRebuildIndex && (
-                <SettingsButton
-                  variant="secondary"
-                  onClick={onRebuildIndex}
-                  disabled={actionsDisabled}
-                  icon={Database}
-                  testId="form-rebuild-index"
-                  data-analytics-id="as-repository-rebuild-index"
-                >
-                  {RepositoriesPageStrings.FORM.REBUILD_INDEX}
-                </SettingsButton>
-              )}
-              {showInvalidateCache && (
-                <SettingsButton
-                  variant="secondary"
-                  onClick={onInvalidateCache}
-                  disabled={actionsDisabled}
-                  icon={RotateCcw}
-                  testId="form-invalidate-cache"
-                  data-analytics-id="as-repository-invalidate-cache"
-                >
-                  {RepositoriesPageStrings.FORM.INVALIDATE_CACHE}
-                </SettingsButton>
-              )}
-              {showToggleOnline && (
-                <SettingsButton
-                  variant="secondary"
-                  onClick={() => onToggleOnline?.(!isOnlineSaved)}
-                  disabled={toggleOnlineDisabled}
-                  icon={Power}
-                  testId="form-toggle-online"
-                  data-analytics-id="as-repository-toggle-online"
-                  title={toggleOnlineTitle}
-                >
-                  {isOnlineSaved ? RepositoriesPageStrings.FORM.DISABLE_SYSTEM_STATUS : RepositoriesPageStrings.FORM.ENABLE_SYSTEM_STATUS}
-                </SettingsButton>
-              )}
-              {showDelete && (
-                <SettingsButton
-                  variant="danger"
-                  onClick={onDelete}
-                  disabled={actionsDisabled}
-                  icon={Trash2}
-                  testId="form-delete"
-                  data-analytics-id="as-repository-delete"
-                >
-                  {CommonStrings.ACTIONS.DELETE}
-                </SettingsButton>
-              )}
-            </Flex>
-          ) : undefined
-        }
+        showActions={showSaveBar}
+        actionBarPosition={isEdit ? 'bottom' : 'top'}
       >
         {formBody}
       </SettingsForm>
     </Box>
   );
 }
-

@@ -49,6 +49,18 @@ describe('PageHeader', () => {
     expect(screen.getByText('0')).toBeInTheDocument();
   });
 
+  it('renders a meta row under the title', () => {
+    renderWithTheme(<PageHeader title="docker-onprem" meta={<span>Offline</span>} />);
+
+    expect(screen.getByTestId('page-header-meta')).toHaveTextContent('Offline');
+  });
+
+  it('omits the meta row when meta is not provided', () => {
+    renderWithTheme(<PageHeader title="docker-onprem" />);
+
+    expect(screen.queryByTestId('page-header-meta')).not.toBeInTheDocument();
+  });
+
   it('renders action buttons', () => {
     renderWithTheme(
       <PageHeader

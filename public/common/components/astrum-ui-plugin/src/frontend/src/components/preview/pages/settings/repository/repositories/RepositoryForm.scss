@@ -1,8 +1,35 @@
 
 
 .repository-form {
-  // 880px gives the sticky action bar enough horizontal budget to fit Rebuild + Disable + Delete on the left, the reserved-but-hidden "Unsaved changes" slot, plus Cancel + Save on the right — all on one row, in both pristine and dirty states. 800px overflowed once the indicator slot was reserved.
+  // The create wizard keeps the fields at a readable width
   max-width: 880px;
+
+  // The edit page uses the whole width of the page: the repository actions sit in the page header, the tabs and
+  // their content span the page, only the fields of the Settings tab keep a readable width, with Save and Cancel
+  // in a bar at the bottom
+  &--edit {
+    max-width: none;
+
+    .settings-form__inner {
+      max-width: none;
+      padding: 0;
+    }
+
+    .settings-form__action-bar--bottom {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .repository-form__fields {
+      max-width: 960px;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--space-4);
+  }
 
 
   // ==========================================================================
@@ -190,47 +217,21 @@
   // Tabs
   // ==========================================================================
   &__tabs {
+    margin-top: var(--space-4);
     margin-bottom: var(--space-4);
 
     [role="tablist"] {
-      display: flex;
-      gap: var(--space-1);
-      border-bottom: 1px solid var(--gray-6);
-      padding-bottom: var(--space-1);
-      margin-bottom: var(--space-4);
+      margin-bottom: var(--space-5);
     }
 
-    [role="tab"] {
-      display: flex;
-      align-items: center;
+    // Space between the icon and the label of a tab
+    .rt-BaseTabListTriggerInner,
+    .rt-BaseTabListTriggerInnerHidden {
       gap: var(--space-2);
-      padding: var(--space-2) var(--space-3);
-      font-size: var(--font-size-2);
-      font-weight: 500;
-      color: var(--gray-11);
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      transition: color 0.15s ease, border-color 0.15s ease;
+    }
 
-      &:hover:not(:disabled) {
-        color: var(--gray-12);
-      }
-
-      &[data-state="active"] {
-        color: var(--accent-11);
-        border-bottom-color: var(--accent-9);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      svg {
-        opacity: 0.7;
-      }
+    [role="tab"] svg {
+      opacity: 0.8;
     }
   }
 }
