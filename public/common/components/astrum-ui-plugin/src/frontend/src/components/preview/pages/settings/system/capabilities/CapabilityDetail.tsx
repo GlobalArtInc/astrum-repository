@@ -198,20 +198,28 @@ export function CapabilityDetail({
       <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="capability-detail__tabs">
         <Tabs.List>
           <Tabs.Trigger value="summary">
-            <Info size={16} />
-            {CapabilitiesStrings.DETAIL.SUMMARY}
+            <Flex align="center" gap="2">
+              <Info size={16} aria-hidden="true" />
+              {CapabilitiesStrings.DETAIL.SUMMARY}
+            </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="settings">
-            <Settings size={16} />
-            {CommonStrings.LABELS.SETTINGS}
+            <Flex align="center" gap="2">
+              <Settings size={16} aria-hidden="true" />
+              {CommonStrings.LABELS.SETTINGS}
+            </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="status">
-            <FileText size={16} />
-            {CommonStrings.LABELS.STATUS}
+            <Flex align="center" gap="2">
+              <FileText size={16} aria-hidden="true" />
+              {CommonStrings.LABELS.STATUS}
+            </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="about">
-            <Info size={16} />
-            {CapabilitiesStrings.DETAIL.ABOUT}
+            <Flex align="center" gap="2">
+              <Info size={16} aria-hidden="true" />
+              {CapabilitiesStrings.DETAIL.ABOUT}
+            </Flex>
           </Tabs.Trigger>
         </Tabs.List>
 
