@@ -8,7 +8,6 @@ export default localize('react-ui', {
     CREATE_LOGGER: 'Create Logger',
     LOGGER_NAME: 'Logger Name',
     FULLY_QUALIFIED_LOGGER_NAME_E: 'Fully qualified logger name (e.g., org.globalart.astrum.repository)',
-    ENTER_FULLY_QUALIFIED_LOGGER_NAME: 'Enter the fully qualified logger name (e.g., org.globalart.astrum.repository)',
     LOGGER_LEVEL: 'Logger Level',
     LOG_LEVEL_ERROR_LEAST_VERBOSE: 'Log level: ERROR (least verbose) through TRACE (most verbose)',
   },

@@ -55,6 +55,14 @@ describe('LoggerForm', () => {
       expect(screen.getByText('Create Logger')).toBeInTheDocument();
     });
 
+    it('explains the logger name once', () => {
+      render(<LoggerForm isCreate={true} onSave={mockOnSave} onCancel={mockOnCancel} />, {
+        wrapper: TestWrapper,
+      });
+
+      expect(screen.getAllByText(/fully qualified logger name/i)).toHaveLength(1);
+    });
+
     it('allows editing logger name in create mode', () => {
       const mockSetName = jest.fn();
       mockedUseLoggerForm.mockReturnValue(makeHook({ setName: mockSetName }));
@@ -200,6 +208,7 @@ describe('LoggerForm', () => {
       });
 
       expect(screen.getByText(/overrides the inherited level/i)).toBeInTheDocument();
+      expect(screen.getByTestId('logger-level-note').tagName).toBe('P');
     });
   });
 

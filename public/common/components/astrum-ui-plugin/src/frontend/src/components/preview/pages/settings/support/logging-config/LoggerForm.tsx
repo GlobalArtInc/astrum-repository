@@ -98,11 +98,6 @@ export function LoggerForm({ loggerName, isCreate = false, onSave, onCancel, onD
               required
               onKeyDown={handleKeyDown}
             />
-            {isCreate && (
-              <Text size="1" color="gray" mt="1">
-                {LoggingStrings.FORM.ENTER_FULLY_QUALIFIED_LOGGER_NAME}
-              </Text>
-            )}
           </Box>
 
           {/* Logger Level */}
@@ -115,7 +110,7 @@ export function LoggerForm({ loggerName, isCreate = false, onSave, onCancel, onD
               options={LOG_LEVELS.map((l) => ({ value: l, label: l }))}
               helpText={LoggingStrings.FORM.LOG_LEVEL_ERROR_LEAST_VERBOSE}
             />
-            <Text size="1" color="gray" mt="1">
+            <Text size="1" color="gray" mt="1" as="p" data-testid="logger-level-note">
               {LoggingStrings.FORM.OVERRIDES_INHERITED_LEVEL}
               {!isCreate && ` ${LoggingStrings.FORM.DELETE_TO_REVERT}`}
             </Text>

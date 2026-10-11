@@ -2184,7 +2184,6 @@
   "PREVIEW.LOGGING.API.FAILED_UPDATE_LOGGER": "Не удалось изменить логгер",
   "PREVIEW.LOGGING.FORM.CREATE_LOGGER": "Создать логгер",
   "PREVIEW.LOGGING.FORM.DELETE_TO_REVERT": "Чтобы вернуть унаследованный уровень, нажмите «Удалить».",
-  "PREVIEW.LOGGING.FORM.ENTER_FULLY_QUALIFIED_LOGGER_NAME": "Введите полное имя логгера (например, org.globalart.astrum.repository)",
   "PREVIEW.LOGGING.FORM.FULLY_QUALIFIED_LOGGER_NAME_E": "Полное имя логгера (например, org.globalart.astrum.repository)",
   "PREVIEW.LOGGING.FORM.LOADING_LOGGER": "Загрузка логгера...",
   "PREVIEW.LOGGING.FORM.LOGGER_LEVEL": "Уровень логгера",

@@ -2184,7 +2184,6 @@
   "PREVIEW.LOGGING.API.FAILED_UPDATE_LOGGER": "Failed to update logger",
   "PREVIEW.LOGGING.FORM.CREATE_LOGGER": "Create Logger",
   "PREVIEW.LOGGING.FORM.DELETE_TO_REVERT": "Use \"Delete\" to revert to the inherited level.",
-  "PREVIEW.LOGGING.FORM.ENTER_FULLY_QUALIFIED_LOGGER_NAME": "Enter the fully qualified logger name (e.g., org.globalart.astrum.repository)",
   "PREVIEW.LOGGING.FORM.FULLY_QUALIFIED_LOGGER_NAME_E": "Fully qualified logger name (e.g., org.globalart.astrum.repository)",
   "PREVIEW.LOGGING.FORM.LOADING_LOGGER": "Loading logger...",
   "PREVIEW.LOGGING.FORM.LOGGER_LEVEL": "Logger Level",
