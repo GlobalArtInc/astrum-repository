@@ -114,11 +114,11 @@ export function RepositoryAccessSecurityTab({
                     key={privilege.name}
                     align="center"
                     justify="between"
-                    gap="2"
-                    wrap="wrap"
+                    gap="3"
                   >
-                    <Flex align="center" gap="2">
-                      <Text size="1" weight="medium">
+                    {/* The name and description wrap on their side; the actions badge stays at the right of every row */}
+                    <Flex align="center" gap="2" wrap="wrap" minWidth="0">
+                      <Text size="1" weight="medium" style={{ overflowWrap: 'anywhere' }}>
                         <code>{privilege.name}</code>
                       </Text>
                       {privilege.description && (
@@ -130,6 +130,7 @@ export function RepositoryAccessSecurityTab({
                     <Badge
                       size="1"
                       color={privilege.actions?.includes('*') ? 'green' : 'blue'}
+                      style={{ flexShrink: 0 }}
                     >
                       {privilege.actions?.join(', ') || RepositoriesPageStrings.ACCESS_SECURITY.READ}
                     </Badge>
