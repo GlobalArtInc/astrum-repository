@@ -84,7 +84,6 @@ export default localize('react-ui', {
     ALL_REPOSITORIES: 'All Repositories',
     GROUP_REPOSITORIES: 'Group Repositories',
     PROXY_REPOSITORIES: 'Proxy Repositories',
-    TEST_HOW_ROUTING_RULES_AFFECT: 'Test how routing rules will affect requests to a specific path across all repositories.',
     TEST_PATH: 'Test Path',
     TESTING: 'Testing...',
     TEST: 'Test',

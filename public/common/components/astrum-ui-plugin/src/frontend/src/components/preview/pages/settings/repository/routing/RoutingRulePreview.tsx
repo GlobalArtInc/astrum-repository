@@ -235,10 +235,6 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
 
   return (
     <Box className="routing-rule-preview">
-      <Text size="2" className="routing-rule-preview__description">
-        {RoutingRulesStrings.GLOBAL_PREVIEW.TEST_HOW_ROUTING_RULES_AFFECT}
-      </Text>
-
       {/* Search Section */}
       <Box className="routing-rule-preview__search-section">
         <Box className="routing-rule-preview__search-controls">

@@ -4129,7 +4129,6 @@
   "PREVIEW.ROUTING_RULES.GLOBAL_PREVIEW.ROUTING_RULE_NOT_FOUND": "Правило маршрутизации не найдено",
   "PREVIEW.ROUTING_RULES.GLOBAL_PREVIEW.TEST": "Проверить",
   "PREVIEW.ROUTING_RULES.GLOBAL_PREVIEW.TESTING": "Проверка...",
-  "PREVIEW.ROUTING_RULES.GLOBAL_PREVIEW.TEST_HOW_ROUTING_RULES_AFFECT": "Проверьте, как правила маршрутизации повлияют на запросы к определённому пути во всех репозиториях.",
   "PREVIEW.ROUTING_RULES.GLOBAL_PREVIEW.TEST_PATH": "Путь для проверки",
   "PREVIEW.ROUTING_RULES.GLOBAL_PREVIEW.TOTAL": "Всего",
   "PREVIEW.ROUTING_RULES.GLOBAL_PREVIEW.VIEW_ROUTING_RULE": "Открыть правило маршрутизации {0}",
