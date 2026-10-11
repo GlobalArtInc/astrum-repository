@@ -1,7 +1,7 @@
 
 
 import UIStrings from '../../../constants/UIStrings';
-import { DirectoryList, DirectoryPage, ExtJS } from '@globalart/astrum-ui-plugin';
+import { DirectoryList, DirectoryPage } from '@globalart/astrum-ui-plugin';
 import React from 'react';
 import { ROUTE_NAMES } from '../../../routerConfig/routeNames/routeNames';
 import { isExtjsCapabilitiesEnabled, isReactCapabilitiesEnabled } from '@globalart/astrum-ui-plugin';
@@ -40,15 +40,6 @@ export default function AdminSystemDirectoryPage() {
                 description={UIStrings.CAPABILITIES.MENU.description}
                 routeName={ADMIN.SYSTEM.CAPABILITIES.LIST}
                 params={{ id: null }}
-            />
-          }
-
-          {ExtJS.state().getValue('astrum.previewui.enabled') &&
-            <DirectoryList.DirectoryListItem
-                data-analytics-id="as-admin-system-directory-previewui-lnk"
-                text={UIStrings.PREVIEW_UI_SETTINGS.MENU.text}
-                description={UIStrings.PREVIEW_UI_SETTINGS.MENU.description}
-                routeName={ADMIN.SYSTEM.PREVIEWUI.ROOT}
             />
           }
 

@@ -224,13 +224,6 @@ export default function SettingsSidebar() {
           text={UIStrings.API.MENU.text}
           data-analytics-id="as-global-secondary-navbar-system-api"
         />
-        {ExtJS.state().getValue('astrum.previewui.enabled') &&
-          <LeftNavigationMenuCollapsibleChildItem
-            name={ADMIN.SYSTEM.PREVIEWUI.ROOT}
-            text={UIStrings.PREVIEW_UI_SETTINGS.MENU.text}
-            data-analytics-id="as-global-secondary-navbar-system-previewui"
-          />
-        }
         <LeftNavigationMenuCollapsibleChildItem
           name={ADMIN.SYSTEM.EMAILSERVER.ROOT}
           text={UIStrings.EMAIL_SERVER.MENU.text}

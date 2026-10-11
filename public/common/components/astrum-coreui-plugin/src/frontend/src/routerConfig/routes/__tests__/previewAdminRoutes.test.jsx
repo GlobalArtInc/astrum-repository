@@ -22,13 +22,13 @@ describe('previewAdminRoutes', () => {
     expect(pagesRoute.component).not.toBe(UIView);
   });
 
-  it('defines the Astrum One UI settings route with correct permissions', () => {
+  it('sends old links to the Astrum One UI settings page to the settings hub', () => {
     const route = previewAdminRoutes.find((r) => r.name === 'preview.admin.system.previewui');
 
     expect(route).toBeDefined();
     expect(route.url).toBe('/previewui');
-    expect(route.component).toBeDefined();
-    expect(route.data.visibilityRequirements.permissions).toContain(Permissions.SETTINGS.READ);
+    expect(route.component).toBeUndefined();
+    expect(route.redirectTo).toBe('preview.settings');
   });
 
   it('defines the settings hub route', () => {

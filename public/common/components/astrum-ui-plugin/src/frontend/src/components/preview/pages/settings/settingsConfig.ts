@@ -477,15 +477,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         // ASTRUM-54048: match cloud Classic (cloud adminRoutes.js HISTORICAL_USAGE), gated on settings:read.
         visibilityRequirements: { requiresPermission: 'astrum:settings:read' },
       },
-      {
-        id: 'preview-ui',
-        path: 'system/previewui',
-        label: SettingsStrings.CARDS.ASTRUM_ONE_UI,
-        description: SettingsStrings.CARDS.CONFIGURE_ASTRUM_ONE_UI_SETTINGS,
-        searchTerms: ['interface', 'ui', 'theme'],
-        // No featureKey — always available
-        visibilityRequirements: { requiresPermission: 'astrum:settings:read' },
-      },
     ],
   },
 ];

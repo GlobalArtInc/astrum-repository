@@ -43,6 +43,14 @@ describe('AdminSystemDirectoryPage', () => {
     });
   });
 
+  describe('Astrum One UI Link', () => {
+    it('is gone now that the Classic UI cannot be chosen', async () => {
+      givenExtJSState({ ...defaultExtState(), 'astrum.previewui.enabled': true });
+      givenPermissions({ [Permissions.SETTINGS.READ]: true });
+      await runLinkNotVisibleTestForSystemPage(UIStrings.PREVIEW_UI_SETTINGS.MENU);
+    });
+  });
+
   describe('Capabilities Link', () => {
     it('renders both extjs and react links given sufficient permissions and feature flags enabled', async () => {
       givenPermissions({ 'astrum:capabilities:read': true });

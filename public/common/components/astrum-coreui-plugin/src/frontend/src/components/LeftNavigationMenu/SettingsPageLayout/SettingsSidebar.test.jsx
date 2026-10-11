@@ -648,6 +648,16 @@ describe('SettingsSidebar', () => {
         });
       });
 
+      describe('Astrum One UI link', () => {
+        it('is gone now that the Classic UI cannot be chosen', async () => {
+          givenUserLoggedIn();
+          givenPermissions({ 'astrum:settings:read': true });
+          givenStateValues({ ...getDefaultStateValues(), 'astrum.previewui.enabled': true });
+          renderComponent();
+          await assertLinkNotVisible('Astrum One UI', 'System');
+        });
+      });
+
       describe('email server link', () => {
         it('should render if user has permission and has active bundles', async () => {
           givenUserLoggedIn();

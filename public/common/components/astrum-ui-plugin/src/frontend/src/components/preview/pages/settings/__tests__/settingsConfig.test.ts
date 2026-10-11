@@ -9,6 +9,14 @@ const cardById = (id: string): SettingCard | undefined =>
 // mechanism but never asserts the real config's gates. These tests run against the
 // REAL config so a fix that removes a card's visibilityRequirements fails here
 // instead of silently regressing (ASTRUM-54048).
+describe('settingsConfig without the Classic UI', () => {
+  it('has no Astrum One UI card, since the Classic UI can no longer be chosen', () => {
+    expect(cardById('preview-ui')).toBeUndefined();
+    const paths = SETTINGS_SECTIONS.flatMap((section) => section.cards).map((card) => card.path);
+    expect(paths).not.toContain('system/previewui');
+  });
+});
+
 describe('settingsConfig permission gating (ASTRUM-54048)', () => {
   it('gates the API card on astrum:settings:read', () => {
     // The API page has no dedicated privilege; the Default UI and Classic UI gate it on
