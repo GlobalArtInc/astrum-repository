@@ -19,7 +19,7 @@ import {
   ApiPage,
   GADetailPage,
   CustomSearchPage,
-  ComingSoonPage,
+  UnifiedSearchPage,
 } from '@globalart/astrum-ui-plugin';
 
 export const previewBrowseRoutes = [
@@ -335,11 +335,12 @@ export const previewBrowseRoutes = [
   // =============================================================================
   {
     name: 'preview.browse.search.unified',
-    url: '?q&format&sort&direction',
-    component: ComingSoonPage,
+    url: '?q&format&repository&sort&direction',
+    component: UnifiedSearchPage,
     params: {
       q: { value: null, dynamic: true },
       format: { value: null, dynamic: true },
+      repository: { value: null, dynamic: true },
       sort: { value: null, dynamic: true },
       direction: { value: null, dynamic: true },
     },

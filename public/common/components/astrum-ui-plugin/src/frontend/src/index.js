@@ -286,6 +286,7 @@ export const AccessTokensPage  = React.lazy(() => import('./components/preview/p
 export const GASearchPage       = React.lazy(() => import('./components/preview/pages/search/results/GASearchPage'));
 export const GADetailPage       = React.lazy(() => import('./components/preview/pages/search/details/GADetailPage'));
 export const CustomSearchPage   = React.lazy(() => import('./components/preview/pages/search/custom/CustomSearchPage'));
+export const UnifiedSearchPage  = React.lazy(() => import('./components/preview/pages/search/unified/UnifiedSearchPage'));
 export const NpmSearchPage      = React.lazy(() => import('./components/preview/pages/search/npm/NpmSearchPage'));
 export const NpmDetailPage      = React.lazy(() => import('./components/preview/pages/search/npm/NpmDetailPage'));
 export const NuGetSearchPage    = React.lazy(() => import('./components/preview/pages/search/nuget/NuGetSearchPage'));

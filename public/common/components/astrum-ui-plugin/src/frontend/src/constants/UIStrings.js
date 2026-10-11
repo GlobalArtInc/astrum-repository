@@ -10,6 +10,7 @@ import BrowseDetailStrings from "./BrowseDetailStrings";
 import NotificationsStrings from "./pages/NotificationsStrings";
 import UsageDashboardStrings from "./UsageDashboardStrings";
 import BrowseStrings from "./pages/BrowseStrings";
+import SearchStrings from "./pages/SearchStrings";
 import localize from "../interface/localize";
 
 /**
@@ -136,5 +137,6 @@ export default localize('react-ui', {
   ...BrowseDetailStrings,
   ...NotificationsStrings,
   ...UsageDashboardStrings,
-  ...BrowseStrings
+  ...BrowseStrings,
+  ...SearchStrings
 });

@@ -1,0 +1,113 @@
+.unified-search {
+  --color-panel: var(--color-panel-solid);
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--color-background);
+
+  &__inner {
+    width: 100%;
+    min-width: 0;
+  }
+
+  &__title {
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  &__bar {
+    padding: var(--space-4);
+    border: 1px solid var(--gray-a5);
+    border-radius: var(--radius-5);
+    background-color: var(--color-panel-solid);
+  }
+
+  &__field {
+    flex: 1 1 320px;
+    min-width: 0;
+  }
+
+  &__select {
+    flex: 0 1 200px;
+    min-width: 160px;
+
+    .rt-SelectTrigger {
+      width: 100%;
+    }
+  }
+
+  &__table {
+    width: 100%;
+  }
+
+  &__row {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: var(--gray-a2);
+
+      .unified-search__name {
+        color: var(--accent-11);
+      }
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-8);
+      outline-offset: -2px;
+    }
+
+    .rt-TableCell {
+      vertical-align: middle;
+    }
+  }
+
+  &__name {
+    color: var(--gray-12);
+    overflow-wrap: anywhere;
+  }
+
+  &__mono {
+    font-family: var(--code-font-family);
+    overflow-wrap: anywhere;
+  }
+
+  &__message {
+    min-height: 240px;
+    padding: var(--space-6) var(--space-4);
+    border: 1px dashed var(--gray-a6);
+    border-radius: var(--radius-5);
+    background-color: var(--color-panel-solid);
+  }
+
+  &__message-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin-bottom: var(--space-2);
+    border-radius: 999px;
+    background-color: var(--accent-a3);
+    color: var(--accent-11);
+  }
+
+  &__message-text {
+    max-width: 460px;
+  }
+
+  &__loading {
+    border: 1px solid var(--gray-a5);
+    border-radius: var(--radius-5);
+    background-color: var(--color-panel-solid);
+  }
+}
+
+@media (max-width: 768px) {
+  .unified-search__updated {
+    display: none;
+  }
+}
