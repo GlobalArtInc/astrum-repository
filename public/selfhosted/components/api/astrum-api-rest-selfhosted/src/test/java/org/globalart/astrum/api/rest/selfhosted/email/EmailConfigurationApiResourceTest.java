@@ -9,6 +9,7 @@ import org.globalart.astrum.api.rest.selfhosted.email.model.ApiEmailValidation;
 import org.globalart.astrum.common.text.Strings2;
 import org.globalart.astrum.email.EmailConfiguration;
 import org.globalart.astrum.email.EmailManager;
+import org.globalart.astrum.rest.ValidationErrorsException;
 import org.globalart.astrum.testcommon.extensions.AuthenticationExtension;
 import org.globalart.astrum.testcommon.extensions.AuthenticationExtension.WithUser;
 import org.globalart.astrum.testcommon.validation.ValidationExtension;
@@ -123,8 +124,12 @@ class EmailConfigurationApiResourceTest
         .when(antiSsrfService)
         .validateHostWithoutCache("192.168.1.1");
 
-    assertThrows(ValidationException.class, () -> underTest.setEmailConfiguration(request));
+    ValidationErrorsException error =
+        assertThrows(ValidationErrorsException.class, () -> underTest.setEmailConfiguration(request));
 
+    // answered as a 400 naming the host, not as a server error
+    assertThat(error.getValidationErrors().get(0).getId(), is("host"));
+    assertThat(error.getValidationErrors().get(0).getMessage(), is("SSRF protection: private network address"));
     verify(emailManager, never()).setConfiguration(any(), any());
   }
 

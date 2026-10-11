@@ -3,6 +3,7 @@ package org.globalart.astrum.api.rest.selfhosted.email;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.validation.Valid;
+import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -18,6 +19,7 @@ import org.globalart.astrum.common.text.Strings2;
 import org.globalart.astrum.email.EmailConfiguration;
 import org.globalart.astrum.email.EmailManager;
 import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.rest.ValidationErrorsException;
 import org.globalart.astrum.validation.Validate;
 import org.globalart.astrum.validation.ssrf.AntiSsrfService;
 
@@ -59,7 +61,13 @@ public class EmailConfigurationApiResource
   @Validate
   @RequiresPermissions("astrum:settings:update")
   public void setEmailConfiguration(@NotNull @Valid final ApiEmailConfiguration apiEmailConfiguration) {
-    antiSsrfService.validateHostWithoutCache(apiEmailConfiguration.getHost());
+    try {
+      antiSsrfService.validateHostWithoutCache(apiEmailConfiguration.getHost());
+    }
+    catch (ValidationException e) {
+      // a host the SSRF protection refuses is invalid input, not a server error
+      throw new ValidationErrorsException("host", e.getMessage() != null ? e.getMessage() : "Invalid host");
+    }
     emailManager.setConfiguration(convert(apiEmailConfiguration), apiEmailConfiguration.getPassword());
   }
 
