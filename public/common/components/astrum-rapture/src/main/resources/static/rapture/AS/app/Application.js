@@ -206,6 +206,26 @@ Ext.define('AS.app.Application', {
       'AS-ANTI-CSRF-TOKEN': csrfToken
     });
 
+    // The token is read from the cookie before every request rather than once: the React shell reads and writes the
+    // same cookie, and a header that kept an old value would fail every request until the page was reloaded. A
+    // cookie that went missing is put back with the token this page has been sending.
+    Ext.Ajax.on('beforerequest', function () {
+      var current = Ext.util.Cookies.get('AS-ANTI-CSRF-TOKEN'),
+          cookieHostname = window.location.hostname;
+      if (!current) {
+        if ((Ext.isEdge || Ext.isIE) && cookieHostname && cookieHostname.indexOf('.') === -1) {
+          cookieHostname = null;
+        }
+        Ext.util.Cookies.set('AS-ANTI-CSRF-TOKEN', csrfToken, null,
+            AS.util.Url.baseUrl.substring(window.location.origin.length) || null, cookieHostname);
+        current = csrfToken;
+      }
+      if (current !== csrfToken) {
+        csrfToken = current;
+        Ext.Ajax.setDefaultHeaders(Ext.apply({}, { 'AS-ANTI-CSRF-TOKEN': csrfToken }, Ext.Ajax.getDefaultHeaders()));
+      }
+    });
+
     app.initErrorHandler();
     app.initDirect();
     app.initState();

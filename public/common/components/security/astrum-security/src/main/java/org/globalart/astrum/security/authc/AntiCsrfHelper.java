@@ -95,26 +95,24 @@ public class AntiCsrfHelper
     return subject != null && subject.getSession(false) != null;
   }
 
-  private static Optional<String> getCookie(final HttpServletRequest request, final String cookieName) {
+  /**
+   * A browser may hold several cookies of the same name, for instance one per path or one set for the host and one
+   * for its domain, and sends all of them. The token is valid when it matches any of them: each is a value only this
+   * site could have put there.
+   */
+  private static boolean isAntiCsrfTokenValid(final HttpServletRequest request, final Optional<String> token) {
+    if (token.isEmpty() || token.get().isEmpty()) {
+      return false;
+    }
     Cookie[] cookies = request.getCookies();
     if (cookies != null) {
       for (Cookie cookie : cookies) {
-        if (cookieName.equals(cookie.getName())) {
-          return Optional.ofNullable(cookie.getValue());
+        if (ANTI_CSRF_TOKEN_NAME.equals(cookie.getName()) && token.get().equals(cookie.getValue())) {
+          return true;
         }
       }
     }
-    return Optional.empty();
-  }
-
-  private static Optional<String> getAntiCsrfTokenCookie(final HttpServletRequest request) {
-    return getCookie(request, ANTI_CSRF_TOKEN_NAME);
-  }
-
-  private static boolean isAntiCsrfTokenValid(final HttpServletRequest request, final Optional<String> token) {
-    Optional<String> cookie = getAntiCsrfTokenCookie(request);
-
-    return token.isPresent() && token.equals(cookie);
+    return false;
   }
 
   /**

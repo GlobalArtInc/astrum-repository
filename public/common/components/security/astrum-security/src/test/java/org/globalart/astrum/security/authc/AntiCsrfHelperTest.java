@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -173,12 +174,11 @@ class AntiCsrfHelperTest
     setupBrowserSubject();
     when(httpServletRequest.getMethod()).thenReturn(HttpMethod.POST);
     // AS-ANTI-CSRF-TOKEN header not set
-    when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("AS-ANTI-CSRF-TOKEN", "avalue")});
 
     assertThat(underTest.isAccessAllowed(httpServletRequest), is(false));
 
-    // simple validation, we expect the code to access the cookies once
-    verify(httpServletRequest, times(1)).getCookies();
+    // without a token there is nothing to compare, so the cookies are not read
+    verify(httpServletRequest, never()).getCookies();
   }
 
   /*
@@ -196,6 +196,51 @@ class AntiCsrfHelperTest
 
     // simple validation, we expect the code to access the cookies once
     verify(httpServletRequest, times(1)).getCookies();
+  }
+
+  /*
+   * Test that a token matching any of several CSRF cookies of the same name is allowed
+   */
+  @Test
+  void testIsAccessAllowed_TokenMatchingOneOfSeveralCookies() {
+    setupBrowserSubject();
+    when(httpServletRequest.getMethod()).thenReturn(HttpMethod.POST);
+    when(httpServletRequest.getHeader("AS-ANTI-CSRF-TOKEN")).thenReturn("current");
+    when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{
+        new Cookie("AS-ANTI-CSRF-TOKEN", "stale"),
+        new Cookie("ASTRUMSESSIONID", "current"),
+        new Cookie("AS-ANTI-CSRF-TOKEN", "current")});
+
+    assertThat(underTest.isAccessAllowed(httpServletRequest), is(true));
+  }
+
+  /*
+   * Test that a token matching none of several CSRF cookies, or only a cookie of another name, is rejected
+   */
+  @Test
+  void testIsAccessAllowed_TokenMatchingNoneOfSeveralCookies() {
+    setupBrowserSubject();
+    when(httpServletRequest.getMethod()).thenReturn(HttpMethod.POST);
+    when(httpServletRequest.getHeader("AS-ANTI-CSRF-TOKEN")).thenReturn("guess");
+    when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{
+        new Cookie("AS-ANTI-CSRF-TOKEN", "one"),
+        new Cookie("ASTRUMSESSIONID", "guess"),
+        new Cookie("AS-ANTI-CSRF-TOKEN", "two")});
+
+    assertThat(underTest.isAccessAllowed(httpServletRequest), is(false));
+  }
+
+  /*
+   * Test that an empty token is rejected even when the cookie is empty too
+   */
+  @Test
+  void testIsAccessAllowed_EmptyTokenAndCookie() {
+    setupBrowserSubject();
+    when(httpServletRequest.getMethod()).thenReturn(HttpMethod.POST);
+    when(httpServletRequest.getHeader("AS-ANTI-CSRF-TOKEN")).thenReturn("");
+    lenient().when(httpServletRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("AS-ANTI-CSRF-TOKEN", "")});
+
+    assertThat(underTest.isAccessAllowed(httpServletRequest), is(false));
   }
 
   /*
