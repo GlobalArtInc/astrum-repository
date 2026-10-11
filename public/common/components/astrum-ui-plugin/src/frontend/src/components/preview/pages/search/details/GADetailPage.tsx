@@ -33,6 +33,7 @@ import GAFilesTab from './GAFilesTab';
 import GASecurityTab from './GASecurityTab';
 import { useGARepositoriesForVersion } from './useGARepositoriesForVersion';
 import S from '../../../constants/pages/search/ComponentDetailStrings';
+import './GADetailPage.scss';
 
 interface GADetailPageProps {
   /**
@@ -292,7 +293,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
   const componentPath = ver ? buildComponentPath(gaId, ver) : null;
 
   return (
-    <ScrollArea scrollbars="vertical" style={{ height: '100%' }}>
+    <ScrollArea scrollbars="vertical" style={{ height: '100%' }} className="ga-detail-page">
       <Box px="4" pt="0" pb="6">
         <Box maxWidth="1280px" mx="auto" width="100%" pb="9">
           {/* Breadcrumbs */}
