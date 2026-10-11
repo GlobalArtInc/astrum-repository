@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useMachine } from '@xstate/react';
+import { useCurrentStateAndParams, useRouter } from '@uirouter/react';
 import { useToast } from '../../../../shared';
 import { loggingConfigMachine } from './LoggingConfigMachine';
 import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
@@ -30,11 +31,44 @@ export interface UseLoggingConfigReturn {
   clearError: () => void;
 }
 
+const ROUTE_BASE = 'preview.admin.support.logging';
+
 export function useLoggingConfig(): UseLoggingConfigReturn {
   const toast = useToast();
   const [state, send] = useMachine(loggingConfigMachine);
+  const router = useRouter();
+  const { state: routeState, params } = useCurrentStateAndParams();
 
   const prevStateRef = useRef(state);
+
+  // The page has a route per view (…/logging, …/logging/create, …/logging/{logger}): follow the route, so a link or
+  // the browser's back and forward buttons open the view, and change it when the user opens another view
+  const routeName = routeState?.name ?? '';
+  const routeView: ViewMode = routeName.endsWith('.create')
+    ? 'create'
+    : routeName.endsWith('.detail')
+    ? 'detail'
+    : 'list';
+  const routeLogger: string | null = routeView === 'detail' ? params?.itemId ?? null : null;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a change of route drives the machine here; the machine's own changes navigate in the handlers
+  useEffect(() => {
+    if (routeView === 'create' && state.matches('list')) {
+      send({ type: 'CREATE' });
+    } else if (routeView === 'detail' && routeLogger && state.matches('list')) {
+      send({ type: 'SELECT', name: routeLogger });
+    } else if (routeView === 'list' && (state.matches('creating') || state.matches('editing'))) {
+      send({ type: 'BACK' });
+    }
+  }, [routeView, routeLogger]);
+
+  const goTo = useCallback((view: ViewMode, logger?: string) => {
+    if (view === 'detail' && logger) {
+      router.stateService.go(`${ROUTE_BASE}.detail`, { itemId: logger });
+    } else {
+      router.stateService.go(`${ROUTE_BASE}.${view === 'create' ? 'create' : 'list'}`);
+    }
+  }, [router]);
 
   // Show toast notifications on successful delete/reset operations.
   // `toast` is in deps so a reference change is picked up; extra runs are inert because
@@ -47,6 +81,7 @@ export function useLoggingConfig(): UseLoggingConfigReturn {
       // clearSelectedLogger action has already set it to null in the current state.
       const loggerName = prevState.context.selectedLogger;
       toast.success(LoggingStrings.HOOK.LOGGER_OVERRIDE_REMOVED(loggerName));
+      goTo('list');
     }
 
     if (prevState.matches('resettingAll') && state.matches('list')) {
@@ -54,7 +89,7 @@ export function useLoggingConfig(): UseLoggingConfigReturn {
     }
 
     prevStateRef.current = state;
-  }, [state, toast]);
+  }, [state, toast, goTo]);
 
   // Derive view mode from machine state
   const viewMode: ViewMode = state.matches('creating')
@@ -71,21 +106,25 @@ export function useLoggingConfig(): UseLoggingConfigReturn {
   const handleSelectLogger = useCallback(
     (name: string) => {
       send({ type: 'SELECT', name });
+      goTo('detail', name);
     },
-    [send]
+    [send, goTo]
   );
 
   const handleCreate = useCallback(() => {
     send({ type: 'CREATE' });
-  }, [send]);
+    goTo('create');
+  }, [send, goTo]);
 
   const handleBack = useCallback(() => {
     send({ type: 'BACK' });
-  }, [send]);
+    goTo('list');
+  }, [send, goTo]);
 
   const handleSave = useCallback(() => {
     send({ type: 'SAVE' });
-  }, [send]);
+    goTo('list');
+  }, [send, goTo]);
 
   const handleDeleteClick = useCallback(() => {
     send({ type: 'DELETE_CLICK' });
