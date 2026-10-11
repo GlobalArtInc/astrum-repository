@@ -1,7 +1,6 @@
 
 package org.globalart.astrum.coreui;
 
-import jakarta.validation.ValidationException;
 import jakarta.validation.Validator;
 
 import org.globalart.astrum.bootstrap.validation.ValidationConfiguration;
@@ -13,7 +12,6 @@ import org.globalart.astrum.testcommon.extensions.AuthenticationExtension;
 import org.globalart.astrum.testcommon.extensions.AuthenticationExtension.WithUser;
 import org.globalart.astrum.testcommon.validation.ValidationExtension;
 import org.globalart.astrum.testcommon.validation.ValidationExtension.ValidationExecutor;
-import org.globalart.astrum.validation.ssrf.AntiSsrfService;
 
 import org.hibernate.validator.internal.engine.constraintvalidation.ConstraintValidatorFactoryImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,12 +25,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,9 +44,6 @@ class EmailComponentTest
 
   @Mock
   private EmailManager emailManager;
-
-  @Mock
-  private AntiSsrfService antiSsrfService;
 
   @Mock
   private EmailConfiguration emailConfiguration;
@@ -122,20 +113,17 @@ class EmailComponentTest
 
     underTest.update(getConfigurationXO("baz"));
 
-    verify(antiSsrfService).validateHostWithoutCache("localhost");
     verify(emailManager).setConfiguration(emailConfiguration, "baz");
     verify(emailManager).getConfiguration();
   }
 
   @Test
-  void update_blocksPrivateSmtpHost() {
-    doThrow(new ValidationException("SSRF protection: private network address"))
-        .when(antiSsrfService)
-        .validateHostWithoutCache("localhost");
+  void updateAcceptsSmtpHostInPrivateNetwork() {
+    when(emailManager.newConfiguration()).thenReturn(emailConfiguration);
 
-    assertThrows(ValidationException.class, () -> underTest.update(getConfigurationXO("baz")));
+    underTest.update(getConfigurationXOWithHost("10.251.10.110", "baz"));
 
-    verify(emailManager, never()).setConfiguration(any(), any());
+    verify(emailManager).setConfiguration(emailConfiguration, "baz");
   }
 
   @Test
@@ -146,43 +134,17 @@ class EmailComponentTest
 
     underTest.sendVerification(formCredentials, ADDRESS);
 
-    verify(antiSsrfService).validateHostWithoutCache("localhost");
     verify(emailManager).sendVerification(emailConfig, "baz", ADDRESS);
   }
 
   @Test
-  void sendVerification_blocksLoopbackHost() throws Exception {
-    EmailConfigurationXO configuration = getConfigurationXO("baz");
-    doThrow(new ValidationException("SSRF protection: private network address"))
-        .when(antiSsrfService)
-        .validateHostWithoutCache("localhost");
-
-    assertThrows(ValidationException.class, () -> underTest.sendVerification(configuration, ADDRESS));
-
-    verify(emailManager, never()).sendVerification(any(), any(), any());
-  }
-
-  @Test
-  void sendVerification_blocksPrivateIpHost() throws Exception {
+  void sendVerificationReachesSmtpHostInPrivateNetwork() throws Exception {
     EmailConfigurationXO configuration = getConfigurationXOWithHost("192.168.1.1", "baz");
-    doThrow(new ValidationException("SSRF protection: private network address"))
-        .when(antiSsrfService)
-        .validateHostWithoutCache("192.168.1.1");
-
-    assertThrows(ValidationException.class, () -> underTest.sendVerification(configuration, ADDRESS));
-
-    verify(emailManager, never()).sendVerification(any(), any(), any());
-  }
-
-  @Test
-  void sendVerification_allowsPublicSmtpHost() throws Exception {
-    EmailConfigurationXO configuration = getConfigurationXOWithHost("smtp.example.com", "baz");
     EmailConfiguration emailConfig = mock(EmailConfiguration.class);
     when(emailManager.newConfiguration()).thenReturn(emailConfig);
 
     underTest.sendVerification(configuration, ADDRESS);
 
-    verify(antiSsrfService).validateHostWithoutCache("smtp.example.com");
     verify(emailManager).sendVerification(emailConfig, "baz", ADDRESS);
   }
 

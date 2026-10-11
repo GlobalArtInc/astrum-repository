@@ -12,7 +12,6 @@ import org.globalart.astrum.extdirect.DirectComponent;
 import org.globalart.astrum.extdirect.DirectComponentSupport;
 import org.globalart.astrum.rapture.PasswordPlaceholder;
 import org.globalart.astrum.validation.Validate;
-import org.globalart.astrum.validation.ssrf.AntiSsrfService;
 
 import com.codahale.metrics.annotation.ExceptionMetered;
 import com.codahale.metrics.annotation.Timed;
@@ -30,6 +29,12 @@ import org.springframework.stereotype.Component;
  *
  * @since 3.0
  */
+/**
+ * Email server settings.
+ *
+ * The SMTP server is set by administrators and usually sits in the local network or on the same host, so its address
+ * is not subject to SSRF protection.
+ */
 @Component
 @DirectAction(action = "coreui_Email")
 public class EmailComponent
@@ -37,12 +42,9 @@ public class EmailComponent
 {
   private final EmailManager emailManager;
 
-  private final AntiSsrfService antiSsrfService;
-
   @Autowired
-  public EmailComponent(final EmailManager emailManager, final AntiSsrfService antiSsrfService) {
+  public EmailComponent(final EmailManager emailManager) {
     this.emailManager = checkNotNull(emailManager);
-    this.antiSsrfService = checkNotNull(antiSsrfService);
   }
 
   /**
@@ -79,7 +81,6 @@ public class EmailComponent
   @RequiresPermissions("astrum:settings:update")
   @Validate
   public EmailConfigurationXO update(@NotNull @Valid final EmailConfigurationXO configuration) {
-    antiSsrfService.validateHostWithoutCache(configuration.getHost());
     emailManager.setConfiguration(convert(configuration), configuration.getPassword());
     return read();
   }
@@ -111,7 +112,6 @@ public class EmailComponent
       @NotNull @Valid final EmailConfigurationXO configuration,
       @NotNull @Email final String address) throws EmailException
   {
-    antiSsrfService.validateHostWithoutCache(configuration.getHost());
     emailManager.sendVerification(convert(configuration), configuration.getPassword(), address);
   }
 }
