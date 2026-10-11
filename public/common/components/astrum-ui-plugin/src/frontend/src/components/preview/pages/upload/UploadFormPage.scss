@@ -103,6 +103,11 @@
 .upload-form {
   padding: var(--space-4) var(--space-6);
 
+  // The form sections carry their own side padding; on phones the page gutter is enough
+  @media (max-width: 519px) {
+    padding: var(--space-4) 0;
+  }
+
   &__footer-check {
     color: var(--green-11);
   }

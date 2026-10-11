@@ -41,6 +41,11 @@
     gap: var(--space-3);
     margin-bottom: var(--space-3);
 
+    // Two columns of fields with wrapped hints leave the inputs of a row at different heights on phones
+    @media (max-width: 519px) {
+      grid-template-columns: 1fr;
+    }
+
     // Packaging is the 4th field — fill its column width
     > :nth-child(4) {
       width: 100%;
