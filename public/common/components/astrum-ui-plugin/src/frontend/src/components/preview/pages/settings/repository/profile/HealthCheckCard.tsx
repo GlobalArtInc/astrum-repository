@@ -6,9 +6,10 @@ import { ShieldCheck, ShieldAlert, Info, ExternalLink, Shield, CheckCircle2, Sku
 import type { HealthCheckData, CapabilityInfo } from './types';
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
+import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 
 const REPORT_NOT_AVAILABLE =
-  'Health Check report not yet available. Reports are generated periodically after enabling Health Check.';
+  RepositoryProfileStrings.HEALTH_CHECK_CARD.HEALTH_CHECK_REPORT_NOT_YET;
 
 function isSameOriginReportUrl(url: string): boolean {
   try {
@@ -129,10 +130,10 @@ export function HealthCheckCard({
           <Shield size={24} color="var(--gray-7)" />
           <Box>
             <Flex align="center" gap="2">
-              <Text size="2" weight="bold" color="gray">Health Check</Text>
-              {infoIcon("Repository Health Check is not supported for this repository format.")}
+              <Text size="2" weight="bold" color="gray">{RepositoryProfileStrings.HEALTH_CHECK_CARD.HEALTH_CHECK}</Text>
+              {infoIcon(RepositoryProfileStrings.HEALTH_CHECK_CARD.REPOSITORY_HEALTH_CHECK_NOT_SUPPORTED)}
             </Flex>
-            <Text size="2" color="gray">Not Supported</Text>
+            <Text size="2" color="gray">{RepositoryProfileStrings.HEALTH_CHECK_CARD.NOT_SUPPORTED}</Text>
           </Box>
         </Flex>
       </Card>
@@ -146,12 +147,12 @@ export function HealthCheckCard({
           <Flex align="center" justify="between">
             <Flex align="center" gap="2">
               <ShieldAlert size={20} color="var(--yellow-9)" />
-              <Text weight="bold">Health Check</Text>
-              {infoIcon("Repository Health Check analyzes your repositories for security vulnerabilities and license risks.")}
+              <Text weight="bold">{RepositoryProfileStrings.HEALTH_CHECK_CARD.HEALTH_CHECK}</Text>
+              {infoIcon(RepositoryProfileStrings.HEALTH_CHECK_CARD.REPOSITORY_HEALTH_CHECK_ANALYZES_REPOSITORIES)}
             </Flex>
-            <Badge color="yellow" variant="soft">Instance Disabled</Badge>
+            <Badge color="yellow" variant="soft">{RepositoryProfileStrings.HEALTH_CHECK_CARD.INSTANCE_DISABLED}</Badge>
           </Flex>
-          <Text size="2" color="gray">Health Check is disabled for this Astrum instance.</Text>
+          <Text size="2" color="gray">{RepositoryProfileStrings.HEALTH_CHECK_CARD.HEALTH_CHECK_DISABLED_ASTRUM_INSTANCE}</Text>
           {canUpdateHealthCheck && (
             <Button
               size="1"
@@ -159,7 +160,7 @@ export function HealthCheckCard({
               color="gray"
               onClick={() => onToggleInstance(true, false)}
             >
-              Enable Instance-wide
+              {RepositoryProfileStrings.HEALTH_CHECK_CARD.ENABLE_INSTANCE_WIDE}
             </Button>
           )}
         </Flex>
@@ -174,24 +175,24 @@ export function HealthCheckCard({
         <Flex align="center" justify="between">
           <Flex align="center" gap="2">
             <ShieldCheck size={20} color={isRepoEnabled ? "var(--green-9)" : "var(--gray-9)"} />
-            <Text weight="bold">Health Check</Text>
-            {infoIcon("Repository Health Check analyzes your repositories for security vulnerabilities and license risks.")}
+            <Text weight="bold">{RepositoryProfileStrings.HEALTH_CHECK_CARD.HEALTH_CHECK}</Text>
+            {infoIcon(RepositoryProfileStrings.HEALTH_CHECK_CARD.REPOSITORY_HEALTH_CHECK_ANALYZES_REPOSITORIES)}
           </Flex>
           <Badge color={isRepoEnabled ? "green" : "gray"} variant="soft">
-            {isRepoEnabled ? "Enabled" : "Disabled"}
+            {isRepoEnabled ? RepositoryProfileStrings.HEALTH_CHECK_CARD.ENABLED : RepositoryProfileStrings.HEALTH_CHECK_CARD.DISABLED}
           </Badge>
         </Flex>
 
         {canUpdateHealthCheck && isInstanceEnabled && !isRepoEnabled && (
           <Flex direction="column" gap="2">
-            <Text size="2" color="gray">Enable Health Check to scan for malware.</Text>
+            <Text size="2" color="gray">{RepositoryProfileStrings.HEALTH_CHECK_CARD.ENABLE_HEALTH_CHECK_SCAN_MALWARE}</Text>
             <Button
               size="1"
               variant="solid"
               onClick={() => onToggleRepo(true)}
               data-testid="health-check-enable-repo"
             >
-              Enable Health Check
+              {RepositoryProfileStrings.HEALTH_CHECK_CARD.ENABLE_HEALTH_CHECK}
             </Button>
           </Flex>
         )}
@@ -202,11 +203,11 @@ export function HealthCheckCard({
               <>
                 <Flex align="center" gap="2" p="2" style={{ backgroundColor: 'var(--blue-2)', borderRadius: '4px' }}>
                   <Info size={14} color="var(--blue-9)" />
-                  <Text size="2" color="blue">Analyzing components...</Text>
+                  <Text size="2" color="blue">{RepositoryProfileStrings.HEALTH_CHECK_CARD.ANALYZING_COMPONENTS}</Text>
                 </Flex>
                 <Flex align="center" justify="between" p="2" style={{ backgroundColor: 'var(--gray-2)', borderRadius: '4px' }}>
-                  <Text size="2" weight="medium">Malicious Components</Text>
-                  <Text size="2" color="blue">Analyzing...</Text>
+                  <Text size="2" weight="medium">{RepositoryProfileStrings.HEALTH_CHECK_CARD.MALICIOUS_COMPONENTS}</Text>
+                  <Text size="2" color="blue">{RepositoryProfileStrings.HEALTH_CHECK_CARD.ANALYZING}</Text>
                 </Flex>
               </>
             ) : (
@@ -214,11 +215,11 @@ export function HealthCheckCard({
                 {/* ---- Security + License counts ---- */}
                 <Grid columns="2" gap="2">
                   <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--red-2)', borderRadius: '4px' }}>
-                    <Text size="1" color="red">Security Vulnerabilities</Text>
+                    <Text size="1" color="red">{RepositoryProfileStrings.HEALTH_CHECK_CARD.SECURITY_VULNERABILITIES}</Text>
                     <Text size="4" weight="bold" color="red">{hcSecurity.toLocaleString()}</Text>
                   </Flex>
                   <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--amber-2)', borderRadius: '4px' }}>
-                    <Text size="1" color="amber">License Issues</Text>
+                    <Text size="1" color="amber">{RepositoryProfileStrings.HEALTH_CHECK_CARD.LICENSE_ISSUES}</Text>
                     <Text size="4" weight="bold" color="amber">{hcLicense.toLocaleString()}</Text>
                   </Flex>
                 </Grid>
@@ -241,7 +242,7 @@ export function HealthCheckCard({
                         <CheckCircle2 size={16} color="var(--green-11)" aria-hidden />
                       )}
                       <Text size="2" weight="medium" color={malwareCount > 0 ? 'red' : 'green'}>
-                        Malicious Components
+                        {RepositoryProfileStrings.HEALTH_CHECK_CARD.MALICIOUS_COMPONENTS}
                       </Text>
                     </Flex>
                     <Badge color={malwareCount > 0 ? 'red' : 'green'} size="2" variant="soft">
@@ -254,8 +255,8 @@ export function HealthCheckCard({
 
             {/* ---- Last Analyzed timestamp ---- */}
             <Flex align="center" gap="1">
-              <Text size="1" color="gray">Last analyzed: {lastAnalyzed ?? 'Not Available'}</Text>
-              {infoIcon("Analysis runs automatically every 6 hours")}
+              <Text size="1" color="gray">{RepositoryProfileStrings.HEALTH_CHECK_CARD.LAST_ANALYZED(lastAnalyzed ?? RepositoryProfileStrings.HEALTH_CHECK_CARD.NOT_AVAILABLE)}</Text>
+              {infoIcon(RepositoryProfileStrings.HEALTH_CHECK_CARD.ANALYSIS_RUNS_AUTOMATICALLY_EVERY_6)}
             </Flex>
 
             {/* ---- View Full Report ---- */}
@@ -266,9 +267,9 @@ export function HealthCheckCard({
                 disabled={!healthCheck?.detailUrl}
                 onClick={() => void openFullReport()}
               >
-                View Full Report <ExternalLink size={14} />
+                {RepositoryProfileStrings.HEALTH_CHECK_CARD.VIEW_FULL_REPORT} <ExternalLink size={14} />
               </Button>
-              <Text size="1" color="gray">Report may take up to 6 hours to generate after enabling.</Text>
+              <Text size="1" color="gray">{RepositoryProfileStrings.HEALTH_CHECK_CARD.REPORT_MAY_TAKE_UP_6}</Text>
               {reportOpenError && (
                 <Text size="2" color="amber" style={{ maxWidth: '100%' }}>{reportOpenError}</Text>
               )}
@@ -288,7 +289,7 @@ export function HealthCheckCard({
                   checked={isRepoEnabled}
                   onCheckedChange={(checked) => onToggleRepo(checked)}
                 />
-                <Text size="1" color="gray">{isRepoEnabled ? 'Active' : 'Off'}</Text>
+                <Text size="1" color="gray">{isRepoEnabled ? RepositoryProfileStrings.HEALTH_CHECK_CARD.ACTIVE : RepositoryProfileStrings.HEALTH_CHECK_CARD.OFF}</Text>
               </Flex>
             </Flex>
           </>

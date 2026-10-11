@@ -12,6 +12,7 @@
 import { useState, useCallback } from 'react';
 import { restClient, parseApiError, ENDPOINTS } from '../../../../../../interface/api';
 import { RepositoryReference, ProprietaryRepositoriesSettings } from './types';
+import ProprietaryStrings from '../../../../constants/pages/settings/repository/ProprietaryStrings';
 
 const PROPRIETARY_URL = '/service/rest/internal/proprietary-content';
 
@@ -35,7 +36,7 @@ export function useProprietaryApi() {
       };
     } catch (err: unknown) {
       const apiError = parseApiError(err);
-      throw new Error(apiError.message || 'Failed to load proprietary repositories settings');
+      throw new Error(apiError.message || ProprietaryStrings.API.FAILED_LOAD_PROPRIETARY_REPOSITORIES_SETTINGS);
     }
   }, []);
 
@@ -48,7 +49,7 @@ export function useProprietaryApi() {
         .map((repo) => ({ id: repo.name, name: repo.name }));
     } catch (err: unknown) {
       const apiError = parseApiError(err);
-      throw new Error(apiError.message || 'Failed to load repositories');
+      throw new Error(apiError.message || ProprietaryStrings.API.FAILED_LOAD_REPOSITORIES);
     }
   }, []);
 
@@ -71,7 +72,7 @@ export function useProprietaryApi() {
       return await fetchSettings();
     } catch (err: unknown) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to update proprietary repositories settings';
+      const message = apiError.message || ProprietaryStrings.API.FAILED_UPDATE_PROPRIETARY_REPOSITORIES_SETTINGS;
       setError(message);
       throw new Error(message);
     } finally {

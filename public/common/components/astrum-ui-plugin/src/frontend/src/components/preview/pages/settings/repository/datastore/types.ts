@@ -2,6 +2,7 @@
 
 import { JdbcParameter, ParameterValidation } from './JdbcParameterEditor';
 import { isKnownParameter } from './jdbcParameters.config';
+import DataStoreStrings from '../../../../constants/pages/settings/repository/DataStoreStrings';
 
 /**
  * DataStore configuration data
@@ -44,19 +45,19 @@ export function validateConnectionPool(value: number | string): string | undefin
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   
   if (Number.isNaN(numValue)) {
-    return 'Must be a valid number';
+    return DataStoreStrings.TYPES.MUST_VALID_NUMBER;
   }
   
   if (numValue < 1) {
-    return 'Must be at least 1';
+    return DataStoreStrings.TYPES.MUST_LEAST_1;
   }
   
   if (numValue > 3000) {
-    return 'Must be at most 3000';
+    return DataStoreStrings.TYPES.MUST_MOST_3000;
   }
   
   if (!Number.isInteger(Number(numValue))) {
-    return 'Must be a whole number';
+    return DataStoreStrings.TYPES.MUST_WHOLE_NUMBER;
   }
   
   return undefined;
@@ -84,22 +85,22 @@ export function validateJdbcParameters(parameters: JdbcParameter[]): {
 
     // Blocking: Empty parameter name
     if (!param.name.trim()) {
-      validation.error = 'Parameter name is required';
+      validation.error = DataStoreStrings.TYPES.PARAMETER_NAME_REQUIRED;
       hasBlockingErrors = true;
     }
     // Blocking: Empty value
     else if (!param.value.trim()) {
-      validation.error = 'Value is required';
+      validation.error = DataStoreStrings.TYPES.VALUE_REQUIRED;
       hasBlockingErrors = true;
     }
     // Blocking: Duplicate parameter name
     else if (seenNames.has(param.name.toLowerCase())) {
-      validation.error = 'Duplicate parameter name';
+      validation.error = DataStoreStrings.TYPES.DUPLICATE_PARAMETER_NAME;
       hasBlockingErrors = true;
     }
     // Warning only: Unknown parameter (backend *might* reject unknown JDBC properties)
     else if (!isKnownParameter(param.name)) {
-      validation.warning = 'Unknown JDBC parameter - verify this is correct for your database driver. Unrecognized properties may be rejected by the server.';
+      validation.warning = DataStoreStrings.TYPES.UNKNOWN_JDBC_PARAMETER_VERIFY_CORRECT;
     }
 
     if (param.name) {
@@ -174,7 +175,7 @@ export function calculateEffectiveConfig(parameters: JdbcParameter[]): Effective
     }
 
     const source = param.isCustom ? 'Custom' : 'Default';
-    const displayValue = param.value.trim() || '(not set)';
+    const displayValue = param.value.trim() || DataStoreStrings.TYPES.NOT_SET;
 
     effective.set(param.name.toLowerCase(), {
       name: param.name,

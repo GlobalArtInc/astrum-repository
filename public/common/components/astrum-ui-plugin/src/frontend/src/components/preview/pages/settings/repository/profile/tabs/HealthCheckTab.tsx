@@ -6,6 +6,7 @@ import { Maximize2, Minimize2 } from 'lucide-react';
 import { SecurityReportPage } from '../../../../../shared/security/SecurityReportPage';
 
 import './HealthCheckTab.scss';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 
 export interface HealthCheckTabProps {
   repositoryName: string;
@@ -35,8 +36,8 @@ export function HealthCheckTab({ repositoryName }: HealthCheckTabProps): JSX.Ele
       className={`health-check-tab-container ${isFullscreen ? 'health-check-tab-container--fullscreen' : ''}`}
     >
       <Flex gap="3" align="center" className="health-check-tab-container__toolbar">
-        <Tooltip content={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Mode'}>
-          <IconButton variant="soft" size="2" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+        <Tooltip content={isFullscreen ? RepositoryProfileStrings.HEALTH_CHECK_TAB.EXIT_FULLSCREEN : RepositoryProfileStrings.HEALTH_CHECK_TAB.FULLSCREEN_MODE}>
+          <IconButton variant="soft" size="2" onClick={toggleFullscreen} aria-label={isFullscreen ? RepositoryProfileStrings.HEALTH_CHECK_TAB.EXIT_FULLSCREEN_2 : RepositoryProfileStrings.HEALTH_CHECK_TAB.ENTER_FULLSCREEN}>
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </IconButton>
         </Tooltip>

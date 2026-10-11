@@ -21,6 +21,7 @@ import {
 } from './repositoryTypeDescriptions';
 
 import './RepositoryTypeSelector.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 /**
  * RepositoryTypeSelector - Multi-stage wizard for selecting technology and architecture.
@@ -54,7 +55,7 @@ export function RepositoryTypeSelector({
         const data = await fetchRecipes();
         setRecipes(data);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load recipes');
+        setError(err instanceof Error ? err.message : RepositoriesPageStrings.TYPE_SELECTOR.FAILED_LOAD_RECIPES);
       } finally {
         setLoading(false);
       }
@@ -131,7 +132,7 @@ export function RepositoryTypeSelector({
     return (
       <Flex align="center" justify="center" p="8">
         <Loader2 className="animate-spin" />
-        <Text ml="2">Loading repository recipes...</Text>
+        <Text ml="2">{RepositoriesPageStrings.TYPE_SELECTOR.LOADING_REPOSITORY_RECIPES}</Text>
       </Flex>
     );
   }
@@ -151,7 +152,7 @@ export function RepositoryTypeSelector({
         {/* Title with count (matches PageHeader pattern) */}
         <Flex align="center" gap="2" mb="4">
           <Heading as="h2" size="6" weight="bold">
-            Select Type
+            {RepositoriesPageStrings.TYPE_SELECTOR.SELECT_TYPE}
           </Heading>
           <Text size="2" color="gray">
             {availableTypesForFormat.length}
@@ -206,7 +207,7 @@ export function RepositoryTypeSelector({
       {/* Title with count (matches PageHeader pattern) */}
       <Flex align="center" gap="2" mb="4">
         <Heading as="h2" size="6" weight="bold">
-          Select Format
+          {RepositoriesPageStrings.TYPE_SELECTOR.SELECT_FORMAT}
         </Heading>
         <Text size="2" color="gray">
           {availableFormats.length}
@@ -219,7 +220,7 @@ export function RepositoryTypeSelector({
           onFormatChange={() => {}}
           query={searchTerm}
           onSearch={setSearchTerm}
-          placeholder="Search technology (e.g. Docker, npm, Maven)..."
+          placeholder={RepositoriesPageStrings.TYPE_SELECTOR.SEARCH_TECHNOLOGY_E_G_DOCKER_PLACEHOLDER}
         />
       </Box>
 

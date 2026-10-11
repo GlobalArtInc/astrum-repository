@@ -1,12 +1,13 @@
 
 
 import React from 'react';
+import localize from '../../../../interface/localize';
 
 /**
  * UI strings for all repository facet components.
  * Centralises all user-visible text so it can be reviewed, localised, and tested in isolation.
  */
-export default {
+export default localize('react-ui', {
 
   // ---------------------------------------------------------------------------
   // AlpineFacet
@@ -208,6 +209,7 @@ export default {
       moveDown: 'Move down',
       remove: 'Remove',
     },
+    UNABLE_LOAD_NUGET_PROXY_VERSIONS: 'Unable to load NuGet proxy versions. Mixed-version group detection is unavailable.',
   },
 
   // ---------------------------------------------------------------------------
@@ -448,6 +450,7 @@ export default {
       label: 'Maximum Metadata Age',
       helpText: 'How long (in minutes) to cache metadata before rechecking the remote repository.',
     },
+    E_G_HTTPS_CENTER_CONAN: 'e.g., https://center.conan.io (v1) or https://center2.conan.io (v2)',
   },
 
   // ---------------------------------------------------------------------------
@@ -554,4 +557,49 @@ export default {
       },
     },
   },
-};
+  OCI: {
+    OFF_NO_COSIGN_ENFORCEMENT: 'Off (no cosign enforcement)',
+    KEYLESS_REQUIRE_COSIGN_SIGNATURE: 'Keyless (require cosign signature)',
+    OCI_REGISTRY_CONNECTORS: 'OCI Registry Connectors',
+    CONFIGURE_V2_DISTRIBUTION_SPEC_CONNECTORS: 'Configure the v2 distribution spec connectors and authentication for this OCI registry',
+    ENABLE_PATH_BASED_ROUTING: 'Enable Path-Based Routing',
+    EXPOSE_OCI_REPOSITORY_UNDER_PATH: 'Expose this OCI repository under a path prefix (e.g. /repository/<name>). Disable to require a connector port.',
+    HTTP_CONNECTOR: 'HTTP Connector',
+    CREATE_HTTP_CONNECTOR_SPECIFIED_PORT: 'Create an HTTP connector at the specified port. Normally used if the server is behind a reverse proxy.',
+    HTTPS_CONNECTOR: 'HTTPS Connector',
+    CREATE_HTTPS_CONNECTOR_SPECIFIED_PORT: 'Create an HTTPS connector at the specified port. Normally used if the server is not behind a reverse proxy.',
+    SUBDOMAIN: 'Subdomain',
+    USE_SPECIFIED_SUBDOMAIN_ACCESS_OCI: 'Use the specified subdomain to access this OCI repository. Only used when behind a reverse proxy with subdomain-based routing.',
+    FORCE_BASIC_AUTHENTICATION: 'Force Basic Authentication',
+    REQUIRE_AUTHENTICATION_EVEN_ANONYMOUS_ACCESS: 'Require authentication even for anonymous access (login required for pull)',
+    COSIGN_KEYLESS_POLICY: 'Cosign Keyless Policy',
+    REQUIRE_COSIGN_KEYLESS_SIGNATURES_FULCIO: 'Require cosign keyless signatures (Fulcio/Rekor) for image pulls. When enabled, pulls are denied unless a valid cosign referrer is attached to the image.',
+    ENFORCEMENT_MODE: 'Enforcement mode',
+    OFF_DISABLES_ENFORCEMENT_KEYLESS_REQUIRES: 'Off disables enforcement. Keyless requires every pull to be covered by a cosign signature attached as an OCI referrer.',
+    KEYLESS_ENFORCEMENT_CONFIGURED_BUT_SIGNATURE: 'Keyless enforcement is configured but signature verification is not yet active in this release. Settings will be applied when the feature becomes available.',
+    IDENTITY_REGEX: 'Identity Regex',
+    REGEX_MATCHED_AGAINST_FULCIO_CERTIFICATE: 'Regex matched against the Fulcio certificate Subject Alternative Name. Required when Keyless enforcement is on.',
+    IDENTITY_REGEX_REQUIRED_WHEN_KEYLESS: 'Identity regex is required when Keyless enforcement is enabled',
+    ISSUER_REGEX: 'Issuer Regex',
+    REGEX_MATCHED_AGAINST_OIDC_ISSUER: 'Regex matched against the OIDC issuer extension on the Fulcio certificate. Required when Keyless enforcement is on.',
+    ISSUER_REGEX_REQUIRED_WHEN_KEYLESS: 'Issuer regex is required when Keyless enforcement is enabled',
+    OCI_PROXY: 'OCI Proxy',
+    INDEX_SOURCE_FOREIGN_LAYER_CACHING: 'Index source and foreign-layer caching policy for this proxy registry',
+    OCI_REGISTRY_INDEX: 'OCI Registry Index',
+    USE_PROXY_REGISTRY_SPECIFIED_ABOVE: 'Use proxy registry (specified above)',
+    CUSTOM_INDEX: 'Custom index',
+    OCI_REGISTRY_INDEX_URL: 'OCI Registry Index URL',
+    LOCATION_OCI_REGISTRY_INDEX: 'Location of OCI registry index',
+    INDEX_URL_REQUIRED_WHEN_CUSTOM: 'Index URL is required when Custom index is selected',
+    USE_ASTRUM_TRUSTSTORE_HTTPS_INDEX: 'Use the Astrum truststore for HTTPS index access',
+    VALIDATE_INDEX_SERVER_CERTIFICATE_AGAINST: 'Validate the index server certificate against Astrum\'s trust store rather than the default JVM CA bundle.',
+    FOREIGN_LAYER_CACHING: 'Foreign Layer Caching',
+    ALLOW_ASTRUM_REPOSITORY_MANAGER_DOWNLOAD: 'Allow Astrum Repository Manager to download and cache foreign layers',
+    FOREIGN_LAYER_ALLOWED_URLS: 'Foreign Layer Allowed URLs',
+    REGULAR_EXPRESSIONS_USED_IDENTIFY_URLS: 'Regular expressions used to identify URLs that are allowed for foreign layer requests',
+    ALLOWED_URL_PATTERN: 'Allowed URL pattern',
+    REMOVE_URL_PATTERN: (value) => `Remove URL pattern ${value}`,
+    ADD_URL_PATTERN_ARIA: 'Add URL Pattern',
+    ADD_URL_PATTERN: 'Add URL Pattern',
+  },
+}, 'PREVIEW.REPOSITORY_FACETS');

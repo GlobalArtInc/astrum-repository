@@ -26,6 +26,9 @@ import {
 } from './types';
 
 import './ContentSelectorForm.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
+import plural from '../../../../../../interface/plural';
 
 interface ContentSelectorFormProps {
   selector?: ContentSelector;
@@ -156,7 +159,7 @@ export function ContentSelectorForm({
     return (
       <Flex align="center" justify="center" className="content-selector-form__loading">
         <Loader2 size={24} className="content-selector-form__spinner" />
-        <Text size="2">Loading form...</Text>
+        <Text size="2">{CommonStrings.MESSAGES.LOADING_FORM}</Text>
       </Flex>
     );
   }
@@ -171,7 +174,7 @@ export function ContentSelectorForm({
           pristine={form.isPristine || isInDeleteFlow}
           externalDirtyTracking={true}
           error={error || form.saveError || undefined}
-          submitLabel={isCreate ? 'Create' : 'Save'}
+          submitLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
           noDirtyTracking={isInDeleteFlow}
           confirmDiscard={true}
           testId="content-selector-form"
@@ -190,9 +193,9 @@ export function ContentSelectorForm({
                 disabled={!canDelete || isSaving || isDeleting || loading || attachedPrivileges.length > 0}
                 icon={Trash2}
                 testId="form-delete"
-                title={attachedPrivileges.length > 0 ? `Cannot delete: used by ${attachedPrivileges.length} privilege${attachedPrivileges.length === 1 ? '' : 's'}` : undefined}
+                title={attachedPrivileges.length > 0 ? plural(ContentSelectorsStrings.FORM.CANNOT_DELETE_USED, attachedPrivileges.length) : undefined}
               >
-                Delete
+                {CommonStrings.ACTIONS.DELETE}
               </SettingsButton>
             ) : undefined
           }
@@ -203,10 +206,10 @@ export function ContentSelectorForm({
             testId="delete-content-selector-dialog"
             analyticsId="as-content-selector-delete"
             onOpenChange={(open) => { if (!open) form.cancelDelete(); }}
-            title="Delete Content Selector"
-            message={`Are you sure you want to delete the content selector "${formData?.name}"? This action cannot be undone.`}
-            confirmLabel="Delete"
-            cancelLabel="Cancel"
+            title={ContentSelectorsStrings.FORM.DELETE_CONTENT_SELECTOR}
+            message={ContentSelectorsStrings.FORM.YOU_SURE_YOU_WANT_DELETE(formData?.name)}
+            confirmLabel={CommonStrings.ACTIONS.DELETE}
+            cancelLabel={CommonStrings.ACTIONS.CANCEL}
             variant="danger"
             onConfirm={() => form.confirmDelete()}
           />
@@ -215,7 +218,7 @@ export function ContentSelectorForm({
           {form.deleteError && (
             <Box mb="3">
               <SettingsAlert type="error">
-                Delete failed: {form.deleteError}
+                {ContentSelectorsStrings.FORM.DELETE_FAILED(form.deleteError)}
               </SettingsAlert>
             </Box>
           )}
@@ -227,7 +230,7 @@ export function ContentSelectorForm({
                 <Flex align="center" gap="2">
                   <Link size={14} />
                   <Text size="2">
-                    This selector is used by {attachedPrivileges.length} privilege{attachedPrivileges.length === 1 ? '' : 's'}:{' '}
+                    {plural(ContentSelectorsStrings.FORM.USED_BY_PRIVILEGES, attachedPrivileges.length)}{' '}
                     <Text weight="medium">
                       {attachedPrivileges.map((p) => p.name).join(', ')}
                     </Text>
@@ -238,18 +241,18 @@ export function ContentSelectorForm({
           )}
 
           {/* Basic Info Section */}
-          <SettingsFormSection title="Selector Settings">
+          <SettingsFormSection title={ContentSelectorsStrings.FORM.SELECTOR_SETTINGS}>
             {isCreate ? (
               <SettingsTextInput
                 {...form.field('name')}
-                label="Name"
-                helpText="Unique name for this content selector. Cannot be changed after creation."
+                label={CommonStrings.LABELS.NAME}
+                helpText={ContentSelectorsStrings.FORM.UNIQUE_NAME_CONTENT_SELECTOR_CANNOT}
                 required
               />
             ) : (
               <Box className="content-selector-form__readonly">
                 <Text as="label" size="2" weight="medium" className="content-selector-form__label">
-                  Name
+                  {CommonStrings.LABELS.NAME}
                 </Text>
                 <Text size="2">{formData?.name}</Text>
               </Box>
@@ -257,21 +260,21 @@ export function ContentSelectorForm({
 
             <Box className="content-selector-form__readonly">
               <Text as="label" size="2" weight="medium" className="content-selector-form__label">
-                Type
+                {CommonStrings.LABELS.TYPE}
               </Text>
               <Text size="2">{CONTENT_SELECTOR_TYPE.toUpperCase()}</Text>
             </Box>
 
             <SettingsTextInput
               {...form.field('description')}
-              label="Description"
+              label={CommonStrings.LABELS.DESCRIPTION}
             />
           </SettingsFormSection>
 
           {/* CSEL Expression Editor Section */}
-          <SettingsFormSection title="Search Expression">
+          <SettingsFormSection title={ContentSelectorsStrings.FORM.SEARCH_EXPRESSION}>
             <Text as="p" size="2" color="gray" className="content-selector-form__sublabel">
-              Define the expression to identify repository content. Start typing for autocomplete suggestions.
+              {ContentSelectorsStrings.FORM.DEFINE_EXPRESSION_IDENTIFY_REPOSITORY_CONTENT}
             </Text>
 
             <CSELEditor
@@ -280,7 +283,7 @@ export function ContentSelectorForm({
                 form.send({ type: 'UPDATE', name: 'expression', value } as any)
               }
               onValidationChange={handleValidationChange}
-              placeholder='Enter CSEL expression (e.g., format == "maven2")'
+              placeholder={ContentSelectorsStrings.FORM.ENTER_CSEL_EXPRESSION_E_G_PLACEHOLDER}
               rows={4}
             />
 
@@ -298,9 +301,9 @@ export function ContentSelectorForm({
           {/* Examples Section - Click to use as starting point */}
           <Box className="content-selector-form__examples-section">
             <Text as="h4" size="2" weight="medium" className="content-selector-form__examples-title">
-              Example Expressions
+              {ContentSelectorsStrings.FORM.EXAMPLE_EXPRESSIONS}
               <Text size="1" color="gray" style={{ fontWeight: 'normal', marginLeft: '8px' }}>
-                Click to use as starting point
+                {ContentSelectorsStrings.FORM.CLICK_USE_STARTING_POINT}
               </Text>
             </Text>
             <Flex wrap="wrap" gap="2" className="content-selector-form__examples-list">
@@ -332,7 +335,7 @@ export function ContentSelectorForm({
             >
               {showReference ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               <Text size="2" weight="medium">
-                CSEL Reference Documentation
+                {ContentSelectorsStrings.FORM.CSEL_REFERENCE_DOCUMENTATION}
               </Text>
             </Flex>
 
@@ -340,13 +343,13 @@ export function ContentSelectorForm({
               <Box className="content-selector-form__reference-content">
                 {/* Attributes */}
                 <Box className="content-selector-form__reference-section">
-                  <Text as="h4" size="2" weight="medium">Available Attributes</Text>
+                  <Text as="h4" size="2" weight="medium">{ContentSelectorsStrings.FORM.AVAILABLE_ATTRIBUTES}</Text>
                   <Table.Root size="1">
                     <Table.Header>
                       <Table.Row>
-                        <Table.ColumnHeaderCell>Attribute</Table.ColumnHeaderCell>
-                        <Table.ColumnHeaderCell>Description</Table.ColumnHeaderCell>
-                        <Table.ColumnHeaderCell>Operators</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{ContentSelectorsStrings.FORM.ATTRIBUTE}</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{CommonStrings.LABELS.DESCRIPTION}</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{ContentSelectorsStrings.FORM.OPERATORS}</Table.ColumnHeaderCell>
                       </Table.Row>
                     </Table.Header>
                     <Table.Body>
@@ -372,12 +375,12 @@ export function ContentSelectorForm({
 
                 {/* Operators */}
                 <Box className="content-selector-form__reference-section">
-                  <Text as="h4" size="2" weight="medium">Comparison Operators</Text>
+                  <Text as="h4" size="2" weight="medium">{ContentSelectorsStrings.FORM.COMPARISON_OPERATORS}</Text>
                   <Table.Root size="1">
                     <Table.Header>
                       <Table.Row>
-                        <Table.ColumnHeaderCell>Operator</Table.ColumnHeaderCell>
-                        <Table.ColumnHeaderCell>Description</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{ContentSelectorsStrings.FORM.OPERATOR}</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{CommonStrings.LABELS.DESCRIPTION}</Table.ColumnHeaderCell>
                       </Table.Row>
                     </Table.Header>
                     <Table.Body>
@@ -395,12 +398,12 @@ export function ContentSelectorForm({
 
                 {/* Logical Operators */}
                 <Box className="content-selector-form__reference-section">
-                  <Text as="h4" size="2" weight="medium">Logical Operators</Text>
+                  <Text as="h4" size="2" weight="medium">{ContentSelectorsStrings.FORM.LOGICAL_OPERATORS}</Text>
                   <Table.Root size="1">
                     <Table.Header>
                       <Table.Row>
-                        <Table.ColumnHeaderCell>Operator</Table.ColumnHeaderCell>
-                        <Table.ColumnHeaderCell>Description</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{ContentSelectorsStrings.FORM.OPERATOR}</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{CommonStrings.LABELS.DESCRIPTION}</Table.ColumnHeaderCell>
                       </Table.Row>
                     </Table.Header>
                     <Table.Body>
@@ -421,7 +424,7 @@ export function ContentSelectorForm({
 
           {/* Preview Content Section */}
           {formData?.expression && !expressionHasBlockingErrors && (
-            <SettingsFormSection title="Preview Content Selector Results">
+            <SettingsFormSection title={ContentSelectorsStrings.FORM.PREVIEW_CONTENT_SELECTOR_RESULTS}>
               <ContentSelectorPreview
                 type={CONTENT_SELECTOR_TYPE}
                 expression={formData.expression}

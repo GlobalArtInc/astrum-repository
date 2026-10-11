@@ -7,6 +7,7 @@ import { Search, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft } from '
 
 import './SettingsTransferList.scss';
 import SharedStrings from '../../constants/SharedStrings';
+import plural from '../../../../interface/plural';
 
 /**
  * SettingsTransferList - Dual-list selector for assigning items (roles, privileges, etc.)
@@ -205,7 +206,7 @@ export function SettingsTransferList({
           <Flex justify="between" align="center" className="settings-transfer-list__header">
             <Text size="1" weight="medium">{availableLabel}</Text>
             <Text size="1" className="settings-transfer-list__count" aria-live="polite">
-              {filteredAvailable.length} {filteredAvailable.length === 1 ? 'item' : 'items'}
+              {plural(SharedStrings.SETTINGS_TRANSFER_LIST.ITEM_COUNT, filteredAvailable.length)}
             </Text>
           </Flex>
           <Box className="settings-transfer-list__search">
@@ -320,7 +321,7 @@ export function SettingsTransferList({
             <Text size="1" className="settings-transfer-list__count" aria-live="polite">
               {selectedItems.length === 0 && selectedEmptyText
                 ? SharedStrings.SETTINGS_TRANSFER_LIST.ALL_ITEMS
-                : `${selectedItems.length} ${selectedItems.length === 1 ? 'item' : 'items'}`}
+                : plural(SharedStrings.SETTINGS_TRANSFER_LIST.ITEM_COUNT, selectedItems.length)}
             </Text>
           </Flex>
           <Box className="settings-transfer-list__search">

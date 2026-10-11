@@ -54,6 +54,8 @@ import { DangerousEditConfirmDialog } from './DangerousEditConfirmDialog';
 import { hasDangerousFieldChanges, getDangerousFieldsChanged } from './dangerousFields';
 import type { BlobStore, BlobStoreFormData, SoftQuota } from './types';
 import './BlobStoresPage.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 // Base path for blob stores URLs
 const BASE_PATH = 'preview/admin/repository/blobstores';
@@ -73,84 +75,84 @@ interface RouteState {
 }
 
 const STRINGS = {
-  TITLE: 'Blob Stores',
-  DESCRIPTION: 'Configure local and cloud blob storage',
-  CREATE_BUTTON: 'Create Blob Store',
-  FILTER_PLACEHOLDER: 'Filter by name...',
-  LOADING: 'Loading blob stores...',
-  ERROR_TITLE: 'Failed to Load Blob Stores',
+  TITLE: BlobStoresStrings.PAGE.BLOB_STORES,
+  DESCRIPTION: BlobStoresStrings.PAGE.CONFIGURE_LOCAL_CLOUD_BLOB_STORAGE,
+  CREATE_BUTTON: BlobStoresStrings.PAGE.CREATE_BLOB_STORE,
+  FILTER_PLACEHOLDER: BlobStoresStrings.PAGE.FILTER_NAME,
+  LOADING: BlobStoresStrings.PAGE.LOADING_BLOB_STORES,
+  ERROR_TITLE: BlobStoresStrings.PAGE.FAILED_LOAD_BLOB_STORES,
   EMPTY: {
-    TITLE: 'No Blob Stores',
-    DESCRIPTION: 'Create your first blob store to configure storage for your repositories.',
-    ACTION: 'Create Blob Store',
+    TITLE: BlobStoresStrings.PAGE.NO_BLOB_STORES,
+    DESCRIPTION: BlobStoresStrings.PAGE.CREATE_FIRST_BLOB_STORE_CONFIGURE,
+    ACTION: BlobStoresStrings.PAGE.CREATE_BLOB_STORE,
   },
   COLUMNS: {
-    NAME: 'Name',
-    PATH: 'Path',
-    TYPE: 'Type',
-    STATE: 'State',
-    COUNT: 'Blob Count',
-    SIZE: 'Total Size',
-    SPACE: 'Available Space',
+    NAME: CommonStrings.LABELS.NAME,
+    PATH: BlobStoresStrings.PAGE.PATH,
+    TYPE: CommonStrings.LABELS.TYPE,
+    STATE: BlobStoresStrings.PAGE.STATE,
+    COUNT: BlobStoresStrings.PAGE.BLOB_COUNT,
+    SIZE: BlobStoresStrings.PAGE.TOTAL_SIZE,
+    SPACE: BlobStoresStrings.PAGE.AVAILABLE_SPACE,
   },
   STATUS: {
-    ONLINE: 'Started',
-    OFFLINE: 'Failed',
+    ONLINE: BlobStoresStrings.PAGE.STARTED,
+    OFFLINE: BlobStoresStrings.PAGE.FAILED,
   },
-  UNKNOWN: 'Unavailable',
-  UNLIMITED: 'Unlimited',
-  CALCULATING: 'Calculating...',
+  UNKNOWN: BlobStoresStrings.PAGE.UNAVAILABLE,
+  UNLIMITED: BlobStoresStrings.PAGE.UNLIMITED,
+  CALCULATING: BlobStoresStrings.PAGE.CALCULATING,
   HELP: {
-    TITLE: 'What is a blob store?',
+    TITLE: BlobStoresStrings.PAGE.WHAT_BLOB_STORE,
     CONTENT:
-      'The binary assets you download via proxy repositories, or publish to hosted repositories, are stored in the blob store attached to those repositories. In traditional, single node Astrum deployments, blob stores are typically associated with a local filesystem directory, usually within the globalart-work directory.',
-    DOC_LABEL: 'View Documentation',
+      BlobStoresStrings.PAGE.BINARY_ASSETS_YOU_DOWNLOAD_VIA,
+    DOC_LABEL: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
   },
-  CREATE_TITLE: 'Create Blob Store',
-  EDIT_TITLE: (name: string) => `Edit ${name}`,
-  EDIT_DESCRIPTION: (type: string) => `${type} Blob Store`,
+  CREATE_TITLE: BlobStoresStrings.PAGE.CREATE_BLOB_STORE,
+  EDIT_TITLE: (name: string) => BlobStoresStrings.PAGE.EDIT(name),
+  EDIT_DESCRIPTION: (type: string) => BlobStoresStrings.PAGE.BLOB_STORE(type),
   EDIT_WARNING:
-    'Updating the blob store configuration will cause it to be temporarily unavailable for a short period. Edits to configuration may also leave the blob store in a non-functional state.',
-  CONVERT_TO_GROUP_BUTTON: 'Convert to Group',
+    BlobStoresStrings.PAGE.UPDATING_BLOB_STORE_CONFIGURATION_CAUSE,
+  CONVERT_TO_GROUP_BUTTON: BlobStoresStrings.PAGE.CONVERT_GROUP,
   TYPE: {
-    label: 'Type',
-    sublabel: 'Select the type of the blob store',
+    label: CommonStrings.LABELS.TYPE,
+    sublabel: BlobStoresStrings.PAGE.SELECT_TYPE_BLOB_STORE,
   },
   NAME: {
-    label: 'Name',
-    placeholder: 'Enter blob store name',
+    label: CommonStrings.LABELS.NAME,
+    placeholder: BlobStoresStrings.PAGE.ENTER_BLOB_STORE_NAME,
   },
   SOFT_QUOTA: {
-    title: 'Soft Quota',
-    description: 'Raises an alert when the blob store exceeds a constraint',
-    ENABLED: 'Enable soft quota',
+    title: BlobStoresStrings.PAGE.SOFT_QUOTA,
+    description: BlobStoresStrings.PAGE.RAISES_ALERT_WHEN_BLOB_STORE,
+    ENABLED: BlobStoresStrings.PAGE.ENABLE_SOFT_QUOTA,
     TYPE: {
-      label: 'Constraint Type',
-      placeholder: 'Select constraint type',
+      label: BlobStoresStrings.PAGE.CONSTRAINT_TYPE,
+      placeholder: BlobStoresStrings.PAGE.SELECT_CONSTRAINT_TYPE,
     },
     LIMIT: {
-      label: 'Constraint Limit (in MB)',
-      placeholder: 'Enter limit in MB',
+      label: BlobStoresStrings.PAGE.CONSTRAINT_LIMIT_MB,
+      placeholder: BlobStoresStrings.PAGE.ENTER_LIMIT_MB,
     },
   },
   DELETE: {
-    button: 'Delete',
+    button: CommonStrings.ACTIONS.DELETE,
     tooltip: (repositoryUsage: number, blobStoreUsage: number, hasPermission: boolean) => {
       if (!hasPermission) {
-        return "You don't have permission to delete blob stores. Contact your administrator to request access.";
+        return BlobStoresStrings.PAGE.YOU_DONT_HAVE_PERMISSION_DELETE;
       }
-      return `This blob store is in use by ${repositoryUsage} repositories and ${blobStoreUsage} blob stores`;
+      return BlobStoresStrings.PAGE.BLOB_STORE_USE_REPOSITORIES_BLOB(repositoryUsage, blobStoreUsage);
     },
   },
   CONFIRM_DELETE: {
-    title: 'Delete Blob Store',
-    message: 'Are you sure you want to delete this blob store? This action cannot be undone.',
-    confirm: 'Delete',
-    cancel: 'Cancel',
+    title: BlobStoresStrings.PAGE.DELETE_BLOB_STORE,
+    message: BlobStoresStrings.PAGE.YOU_SURE_YOU_WANT_DELETE,
+    confirm: CommonStrings.ACTIONS.DELETE,
+    cancel: CommonStrings.ACTIONS.CANCEL,
   },
   SAVE_SUCCESS: (name: string, isCreate: boolean) =>
-    isCreate ? `Blob store "${name}" created successfully` : `Blob store "${name}" updated successfully`,
-  DELETE_SUCCESS: (name: string) => `Blob store "${name}" deleted successfully`,
+    isCreate ? BlobStoresStrings.PAGE.BLOB_STORE_CREATED_SUCCESSFULLY(name) : BlobStoresStrings.PAGE.BLOB_STORE_UPDATED_SUCCESSFULLY(name),
+  DELETE_SUCCESS: (name: string) => BlobStoresStrings.PAGE.BLOB_STORE_DELETED_SUCCESSFULLY(name),
 };
 
 const SPACE_USED_QUOTA_ID = 'spaceUsedQuota';
@@ -524,13 +526,13 @@ export default function BlobStoresPage() {
     const errors: Record<string, string> = {};
 
     if (!formData.name?.trim()) {
-      errors.name = 'Name is required';
+      errors.name = CommonStrings.MESSAGES.NAME_REQUIRED;
     } else if (!/^[a-zA-Z0-9_-]+$/.test(formData.name)) {
-      errors.name = 'Name can only contain letters, numbers, underscores, and hyphens';
+      errors.name = BlobStoresStrings.PAGE.NAME_CAN_ONLY_CONTAIN_LETTERS;
     }
 
     if (!selectedType && routeState.viewMode === 'create') {
-      errors.type = 'Type is required';
+      errors.type = BlobStoresStrings.PAGE.TYPE_REQUIRED;
     }
 
     const typeToCheck = (
@@ -543,17 +545,17 @@ export default function BlobStoresPage() {
         | Record<string, string>
         | undefined;
       if (!bucket?.name?.trim()) {
-        errors['bucketConfiguration.bucket.name'] = 'Bucket name is required for S3';
+        errors['bucketConfiguration.bucket.name'] = BlobStoresStrings.PAGE.BUCKET_NAME_REQUIRED_S3;
       }
     }
 
     if (typeToCheck === 'azure') {
       const config = formData.bucketConfiguration as Record<string, string> | undefined;
       if (!config?.accountName?.trim()) {
-        errors['bucketConfiguration.accountName'] = 'Account name is required for Azure';
+        errors['bucketConfiguration.accountName'] = BlobStoresStrings.PAGE.ACCOUNT_NAME_REQUIRED_AZURE;
       }
       if (!config?.containerName?.trim()) {
-        errors['bucketConfiguration.containerName'] = 'Container name is required for Azure';
+        errors['bucketConfiguration.containerName'] = BlobStoresStrings.PAGE.CONTAINER_NAME_REQUIRED_AZURE;
       }
     }
 
@@ -562,31 +564,31 @@ export default function BlobStoresPage() {
         | Record<string, string>
         | undefined;
       if (!bucket?.name?.trim()) {
-        errors['bucketConfiguration.bucket.name'] = 'Bucket name is required for Google Cloud';
+        errors['bucketConfiguration.bucket.name'] = BlobStoresStrings.PAGE.BUCKET_NAME_REQUIRED_GOOGLE_CLOUD;
       }
     }
 
     if (typeToCheck === 'file') {
       if (!formData.path?.trim()) {
-        errors.path = 'Path is required for File blob stores';
+        errors.path = BlobStoresStrings.PAGE.PATH_REQUIRED_FILE_BLOB_STORES;
       }
     }
 
     if (typeToCheck === 'group') {
       if (!formData.members || formData.members.length === 0) {
-        errors.members = 'At least one member blob store is required';
+        errors.members = BlobStoresStrings.PAGE.LEAST_ONE_MEMBER_BLOB_STORE;
       }
       if (!formData.fillPolicy) {
-        errors.fillPolicy = 'Fill policy is required for Group blob stores';
+        errors.fillPolicy = BlobStoresStrings.PAGE.FILL_POLICY_REQUIRED_GROUP_BLOB;
       }
     }
 
     if (formData.softQuota?.enabled) {
       if (!formData.softQuota.type) {
-        errors['softQuota.type'] = 'Constraint type is required when soft quota is enabled';
+        errors['softQuota.type'] = BlobStoresStrings.PAGE.CONSTRAINT_TYPE_REQUIRED_WHEN_SOFT;
       }
       if (!formData.softQuota.limit || formData.softQuota.limit <= 0) {
-        errors['softQuota.limit'] = 'Constraint limit must be greater than 0';
+        errors['softQuota.limit'] = BlobStoresStrings.PAGE.CONSTRAINT_LIMIT_MUST_GREATER_THAN;
       }
     }
 
@@ -619,7 +621,7 @@ export default function BlobStoresPage() {
     try {
       const typeToSave = selectedType || formData.type || routeState.blobStoreType || '';
       if (!typeToSave) {
-        toast.error('Blob store type is required');
+        toast.error(BlobStoresStrings.PAGE.BLOB_STORE_TYPE_REQUIRED);
         setSaving(false);
         return;
       }
@@ -634,7 +636,7 @@ export default function BlobStoresPage() {
       navigateTo(BASE_PATH);
       toast.success(STRINGS.SAVE_SUCCESS(blobStoreName, routeState.viewMode === 'create'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save blob store");
+      toast.error(err instanceof Error ? err.message : BlobStoresStrings.PAGE.FAILED_SAVE_BLOB_STORE);
       throw err;
     } finally {
       setSaving(false);
@@ -671,7 +673,7 @@ export default function BlobStoresPage() {
       setRefreshKey((k) => k + 1);
       navigateTo(BASE_PATH);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete blob store");
+      toast.error(err instanceof Error ? err.message : BlobStoresStrings.PAGE.FAILED_DELETE_BLOB_STORE);
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -686,11 +688,11 @@ export default function BlobStoresPage() {
       try {
         await promote(routeState.blobStoreName, newGroupName);
         setShowConvertModal(false);
-        toast.success(`Blob store "${routeState.blobStoreName}" converted to group "${newGroupName}" successfully`);
+        toast.success(BlobStoresStrings.PAGE.BLOB_STORE_CONVERTED_GROUP_SUCCESSFULLY(routeState.blobStoreName, newGroupName));
         setRefreshKey((k) => k + 1);
         navigateTo(BASE_PATH);
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to convert to group");
+        toast.error(err instanceof Error ? err.message : BlobStoresStrings.PAGE.FAILED_CONVERT_GROUP);
       }
     },
     [routeState.blobStoreName, promote, toast]
@@ -810,7 +812,7 @@ export default function BlobStoresPage() {
     return (
       <Box className="blob-stores-page" data-testid="blob-stores-page" data-view={routeState.viewMode}>
         <Box className="blob-stores-page__loading">
-          <Text>Loading...</Text>
+          <Text>{CommonStrings.MESSAGES.LOADING}</Text>
         </Box>
       </Box>
     );
@@ -824,8 +826,8 @@ export default function BlobStoresPage() {
         title={STRINGS.TITLE}
         description={STRINGS.DESCRIPTION}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'Blob Stores' }
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: BlobStoresStrings.PAGE.BLOB_STORES }
         ]}
         actions={
           <Button
@@ -877,7 +879,7 @@ export default function BlobStoresPage() {
             sortBy={sortBy}
             sortDirection={sortDirection}
             onSort={handleSort}
-            ariaLabel="Blob stores table"
+            ariaLabel={BlobStoresStrings.PAGE.BLOB_STORES_TABLE_ARIA}
           />
         </div>
 
@@ -903,9 +905,9 @@ export default function BlobStoresPage() {
       : STRINGS.CREATE_TITLE;
 
     const formBreadcrumbs = [
-      { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-      { label: 'Blob Stores', onClick: handleBack },
-      { label: isEdit ? (routeState.blobStoreName || 'Loading...') : 'Create' },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+      { label: BlobStoresStrings.PAGE.BLOB_STORES, onClick: handleBack },
+      { label: isEdit ? (routeState.blobStoreName || CommonStrings.MESSAGES.LOADING) : CommonStrings.ACTIONS.CREATE },
     ];
 
     return (
@@ -963,7 +965,7 @@ export default function BlobStoresPage() {
 
           {typesError && !isEdit && (
             <SettingsAlert variant="error" icon={<AlertCircle size={16} />}>
-              Failed to load blob store types: {typesError}
+              {BlobStoresStrings.PAGE.FAILED_LOAD_BLOB_STORE_TYPES(typesError)}
             </SettingsAlert>
           )}
 
@@ -975,14 +977,14 @@ export default function BlobStoresPage() {
 
           {/* Type Selection - only for create */}
           {!isEdit && (
-            <SettingsFormSection title="Blob Store Type">
+            <SettingsFormSection title={BlobStoresStrings.PAGE.BLOB_STORE_TYPE}>
               {typesLoading ? (
                 <Box style={{ padding: 'var(--space-4)' }}>
-                  <Text size="2">Loading blob store types...</Text>
+                  <Text size="2">{BlobStoresStrings.PAGE.LOADING_BLOB_STORE_TYPES}</Text>
                 </Box>
               ) : types.length === 0 ? (
                 <SettingsAlert variant="error" icon={<AlertCircle size={16} />}>
-                  No blob store types available. Please check your connection and try again.
+                  {BlobStoresStrings.PAGE.NO_BLOB_STORE_TYPES_AVAILABLE}
                 </SettingsAlert>
               ) : (
                 <SettingsSelect
@@ -992,7 +994,7 @@ export default function BlobStoresPage() {
                   value={selectedType}
                   onChange={handleTypeChange}
                   options={[
-                    { value: '', label: 'Select a type...' },
+                    { value: '', label: BlobStoresStrings.PAGE.SELECT_TYPE },
                     ...types.map((t) => ({ value: t.id, label: t.name })),
                   ]}
                   required
@@ -1005,7 +1007,7 @@ export default function BlobStoresPage() {
 
           {/* Name - only for create */}
           {!isEdit && selectedType && (
-            <SettingsFormSection title="Basic Configuration">
+            <SettingsFormSection title={BlobStoresStrings.PAGE.BASIC_CONFIGURATION}>
               <SettingsTextInput
                 name="blobstore-name"
                 label={STRINGS.NAME.label}
@@ -1133,7 +1135,7 @@ export default function BlobStoresPage() {
                   disabled={deleting}
                   testId="modal-confirm-delete"
                 >
-                  {deleting ? 'Deleting...' : STRINGS.CONFIRM_DELETE.confirm}
+                  {deleting ? BlobStoresStrings.PAGE.DELETING : STRINGS.CONFIRM_DELETE.confirm}
                 </SettingsButton>
               </div>
             </div>

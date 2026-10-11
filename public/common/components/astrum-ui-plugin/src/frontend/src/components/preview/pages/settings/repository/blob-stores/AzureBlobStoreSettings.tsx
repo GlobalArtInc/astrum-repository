@@ -15,6 +15,7 @@ import {
 import { useAzureConnectionTest } from './useBlobStores';
 import type { BlobStoreFormData, AzureBlobStoreConfig } from './types';
 import './AzureBlobStoreSettings.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 interface AzureBlobStoreSettingsProps {
   data: BlobStoreFormData;
@@ -25,49 +26,48 @@ interface AzureBlobStoreSettingsProps {
 }
 
 const STRINGS = {
-  TITLE: 'Azure Blob Storage Configuration',
-  DESCRIPTION: 'Configure your Azure Storage account for blob storage',
+  TITLE: BlobStoresStrings.AZURE.AZURE_BLOB_STORAGE_CONFIGURATION,
+  DESCRIPTION: BlobStoresStrings.AZURE.CONFIGURE_AZURE_STORAGE_ACCOUNT_BLOB,
   ACCOUNT_NAME: {
-    label: 'Account Name',
-    helpText: 'The name of the Azure storage account',
+    label: BlobStoresStrings.AZURE.ACCOUNT_NAME,
+    helpText: BlobStoresStrings.AZURE.NAME_AZURE_STORAGE_ACCOUNT,
     placeholder: 'mystorageaccount'
   },
   CONTAINER_NAME: {
-    label: 'Container Name',
-    helpText: 'The name of a container to be used for storage; the container will be created if it does not already exist',
+    label: BlobStoresStrings.AZURE.CONTAINER_NAME,
+    helpText: BlobStoresStrings.AZURE.NAME_CONTAINER_USED_STORAGE_CONTAINER,
     placeholder: 'astrum-blobs'
   },
   AUTH: {
-    label: 'Authentication Method',
+    label: BlobStoresStrings.AZURE.AUTHENTICATION_METHOD,
     ENVIRONMENT: {
       value: 'ENVIRONMENTVARIABLE',
-      label: 'Use Environment Variables'
+      label: BlobStoresStrings.AZURE.USE_ENVIRONMENT_VARIABLES
     },
     MANAGED: {
       value: 'MANAGEDIDENTITY',
-      label: 'Managed Identity (System)'
+      label: BlobStoresStrings.AZURE.MANAGED_IDENTITY_SYSTEM
     },
     ACCOUNT_KEY: {
       value: 'ACCOUNTKEY',
-      label: 'Account Key',
+      label: BlobStoresStrings.AZURE.ACCOUNT_KEY,
       field: {
-        label: 'Account Key',
-        helpText: 'Account key found under Access keys for the storage account',
-        placeholder: 'Your Azure storage account key'
+        label: BlobStoresStrings.AZURE.ACCOUNT_KEY,
+        helpText: BlobStoresStrings.AZURE.ACCOUNT_KEY_FOUND_UNDER_ACCESS,
+        placeholder: BlobStoresStrings.AZURE.AZURE_STORAGE_ACCOUNT_KEY
       }
     }
   },
   DIRECT_DOWNLOAD: {
-    label: 'Direct Download (SAS URLs)',
-    description: 'Redirect downloads directly to Azure Blob Storage. Reduces server bandwidth and improves download speed.',
-    rbacNote: 'The identity needs an Azure role that can generate a user delegation key — ' +
-      'any Storage Blob Data role, or Storage Blob Delegator. Verified on save.'
+    label: BlobStoresStrings.AZURE.DIRECT_DOWNLOAD_SAS_URLS,
+    description: BlobStoresStrings.AZURE.REDIRECT_DOWNLOADS_DIRECTLY_AZURE_BLOB,
+    rbacNote: BlobStoresStrings.AZURE.IDENTITY_NEEDS_AZURE_ROLE_CAN
   },
   TEST_CONNECTION: {
-    button: 'Test Connection',
-    testing: 'Testing connection...',
-    success: 'Connection succeeded',
-    error: 'Connection failed, check the logs for more information'
+    button: BlobStoresStrings.AZURE.TEST_CONNECTION,
+    testing: BlobStoresStrings.AZURE.TESTING_CONNECTION,
+    success: BlobStoresStrings.AZURE.CONNECTION_SUCCEEDED,
+    error: BlobStoresStrings.AZURE.CONNECTION_FAILED_CHECK_LOGS_MORE
   }
 };
 

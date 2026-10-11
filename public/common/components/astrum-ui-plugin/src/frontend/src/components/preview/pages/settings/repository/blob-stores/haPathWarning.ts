@@ -1,12 +1,9 @@
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 
 export const HA_PATH_WARNING = {
-  TITLE: 'High Availability Path Warning',
-  MESSAGE: 'Using a relative path or a path under the working directory in HA mode can cause ' +
-    'severe performance issues and data inconsistency. The path may not be shared between HA pods, leading to ' +
-    'random request failures. Additionally, initContainer recursive operations can cause severe I/O bottlenecks ' +
-    'and startup delays (10+ minutes). It is strongly recommended to use an absolute shared path outside the ' +
-    'working directory for file blob stores in HA deployments.'
+  TITLE: BlobStoresStrings.HA_PATH_WARNING.HIGH_AVAILABILITY_PATH_WARNING,
+  MESSAGE: BlobStoresStrings.HA_PATH_WARNING.USING_RELATIVE_PATH_PATH_UNDER
 };
 
 export function isRelativePath(path: string | undefined | null): boolean {

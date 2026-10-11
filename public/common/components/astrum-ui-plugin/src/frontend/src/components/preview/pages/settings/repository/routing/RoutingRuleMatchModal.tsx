@@ -7,6 +7,8 @@ import { X, Check, Ban } from 'lucide-react';
 import { RoutingRule, ROUTING_MODE_LABELS } from './types';
 
 import './RoutingRuleMatchModal.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
 
 export interface RoutingRuleMatchModalProps {
   isOpen: boolean;
@@ -47,7 +49,7 @@ export function RoutingRuleMatchModal({
           <Dialog.Close asChild>
             <button
               type="button"
-              aria-label="Close"
+              aria-label={CommonStrings.ACTIONS.CLOSE}
               className="routing-rule-match-modal__close"
             >
               <X size={20} />
@@ -61,7 +63,7 @@ export function RoutingRuleMatchModal({
           {rule.description && (
             <Box className="routing-rule-match-modal__section">
               <Text as="p" size="2" weight="medium" className="routing-rule-match-modal__label">
-                Description
+                {CommonStrings.LABELS.DESCRIPTION}
               </Text>
               <Text as="p" size="2" color="gray">
                 {rule.description}
@@ -72,7 +74,7 @@ export function RoutingRuleMatchModal({
           {/* Rule mode */}
           <Box className="routing-rule-match-modal__section">
             <Text as="p" size="2" weight="medium" className="routing-rule-match-modal__label">
-              Mode
+              {RoutingRulesStrings.MATCH_MODAL.MODE}
             </Text>
             <Flex align="center" gap="2" className="routing-rule-match-modal__mode">
               <span className={`routing-rule-match-modal__mode-icon routing-rule-match-modal__mode-icon--${rule.mode.toLowerCase()}`}>
@@ -87,7 +89,7 @@ export function RoutingRuleMatchModal({
           {/* Matching path info */}
           <Box className="routing-rule-match-modal__section routing-rule-match-modal__section--path">
             <Text as="p" size="2" weight="medium" className="routing-rule-match-modal__label">
-              Matched Path
+              {RoutingRulesStrings.MATCH_MODAL.MATCHED_PATH}
             </Text>
             <Text as="p" size="2" className="routing-rule-match-modal__path">
               {path}
@@ -98,10 +100,10 @@ export function RoutingRuleMatchModal({
           {rule.matchers && rule.matchers.length > 0 && (
             <Box className="routing-rule-match-modal__section routing-rule-match-modal__section--matchers">
               <Text as="p" size="2" weight="medium" className="routing-rule-match-modal__label">
-                Configured Patterns
+                {RoutingRulesStrings.MATCH_MODAL.CONFIGURED_PATTERNS}
               </Text>
               <Text as="p" size="2" color="gray" className="routing-rule-match-modal__matchers-note">
-                This rule will match if any of the following patterns match the request path:
+                {RoutingRulesStrings.MATCH_MODAL.RULE_MATCH_IF_ANY_FOLLOWING}
               </Text>
               <ul className="routing-rule-match-modal__matchers-list">
                 {rule.matchers.map((matcher, index) => (
@@ -116,7 +118,7 @@ export function RoutingRuleMatchModal({
           {/* Rule name for reference */}
           <Box className="routing-rule-match-modal__section routing-rule-match-modal__section--id">
             <Text as="p" size="2" weight="medium" className="routing-rule-match-modal__label">
-              Rule Name
+              {RoutingRulesStrings.MATCH_MODAL.RULE_NAME}
             </Text>
             <Text as="p" size="2" color="gray" className="routing-rule-match-modal__id">
               {rule.name}
@@ -131,7 +133,7 @@ export function RoutingRuleMatchModal({
             className="routing-rule-match-modal__close-button"
             onClick={onClose}
           >
-            Close
+            {CommonStrings.ACTIONS.CLOSE}
           </button>
         </Flex>
       </Dialog.Content>

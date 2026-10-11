@@ -20,6 +20,8 @@ import { restClient, ENDPOINTS } from '../../../../../../interface/api';
 import { useToast } from '../../../../shared';
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface RepositoryFirewallConfigTabProps {
   repositoryName: string;
@@ -200,8 +202,8 @@ export function RepositoryFirewallConfigTab({
       setHealthCheck((p) => (p ? { ...p, enabled: true, analyzing: false } : { enabled: true, analyzing: false }));
       onEnableSuccess?.();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to enable Health Check';
-      toast.warning(`Health Check could not be enabled for "${repositoryName}": ${message}`);
+      const message = err instanceof Error ? err.message : RepositoriesPageStrings.FIREWALL_CONFIG.FAILED_ENABLE_HEALTH_CHECK;
+      toast.warning(RepositoriesPageStrings.FIREWALL_CONFIG.HEALTH_CHECK_COULD_NOT_ENABLED(repositoryName, message));
     }
   };
 
@@ -211,8 +213,8 @@ export function RepositoryFirewallConfigTab({
       setHealthCheck((p) => (p ? { ...p, enabled: false, analyzing: false } : { enabled: false }));
       onEnableSuccess?.();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to disable Health Check';
-      toast.error(`Health Check could not be disabled for "${repositoryName}": ${message}`);
+      const message = err instanceof Error ? err.message : RepositoriesPageStrings.FIREWALL_CONFIG.FAILED_DISABLE_HEALTH_CHECK;
+      toast.error(RepositoriesPageStrings.FIREWALL_CONFIG.HEALTH_CHECK_COULD_NOT_DISABLED(repositoryName, message));
     }
   };
 
@@ -220,7 +222,7 @@ export function RepositoryFirewallConfigTab({
     return (
       <Box p="4">
         <Text size="2" color="gray">
-          Loading Firewall status…
+          {RepositoriesPageStrings.FIREWALL_CONFIG.LOADING_FIREWALL_STATUS}
         </Text>
       </Box>
     );
@@ -235,10 +237,10 @@ export function RepositoryFirewallConfigTab({
               <Shield size={24} color="var(--orange-9)" aria-hidden />
               <Box>
                 <Text size="4" weight="bold" as="div" mb="1">
-                  Repository Firewall
+                  {RepositoriesPageStrings.FIREWALL_CONFIG.REPOSITORY_FIREWALL}
                 </Text>
                 <Text size="2" color="gray" as="div">
-                  Protect this proxy repository by enabling Firewall to audit or block policy violations and malware.
+                  {RepositoriesPageStrings.FIREWALL_CONFIG.PROTECT_PROXY_REPOSITORY_ENABLING_FIREWALL}
                 </Text>
               </Box>
             </Flex>
@@ -253,7 +255,7 @@ export function RepositoryFirewallConfigTab({
               canEditFirewall && (
                 <Box>
                   <Text size="2" weight="medium" mb="2" as="p">
-                    Protection level
+                    {RepositoriesPageStrings.FIREWALL_CONFIG.PROTECTION_LEVEL}
                   </Text>
                   <ProtectionLevelSelector
                     value={protectionLevel}
@@ -263,14 +265,14 @@ export function RepositoryFirewallConfigTab({
                     pccsSupported={pccsSupported}
                   />
                   <Text size="1" color="gray" mt="2">
-                    Audit trail: Configuration change history will be available in a future release.
+                    {RepositoriesPageStrings.FIREWALL_CONFIG.AUDIT_TRAIL_CONFIGURATION_CHANGE_HISTORY}
                   </Text>
                 </Box>
               )
             ) : (
               <Flex direction="column" gap="3">
                 <Text size="2" color="gray">
-                  Protect this repository with Repository Firewall. Requires a Firewall license.
+                  {RepositoriesPageStrings.FIREWALL_CONFIG.PROTECT_REPOSITORY_REPOSITORY_FIREWALL_REQUIRES}
                 </Text>
                 <Flex gap="2" wrap="wrap">
                   <Button variant="ghost" size="2" asChild>
@@ -280,12 +282,12 @@ export function RepositoryFirewallConfigTab({
                       rel="noopener noreferrer"
                     >
                       <ExternalLink size={14} />
-                      Learn more
+                      {CommonStrings.ACTIONS.LEARN_MORE}
                     </a>
                   </Button>
                   <Button variant="ghost" size="2" asChild>
                     <a href="https://links.globalart.dev/contact-sales" target="_blank" rel="noopener noreferrer">
-                      Contact sales
+                      {RepositoriesPageStrings.FIREWALL_CONFIG.CONTACT_SALES}
                     </a>
                   </Button>
                 </Flex>
@@ -304,17 +306,17 @@ export function RepositoryFirewallConfigTab({
               <ShieldCheck size={24} color="var(--blue-9)" aria-hidden />
               <Box>
                 <Text size="4" weight="bold" as="div" mb="1">
-                  Repository Health Check
+                  {RepositoriesPageStrings.FIREWALL_CONFIG.REPOSITORY_HEALTH_CHECK}
                 </Text>
                 <Text size="2" color="gray" as="div">
-                  Repository Health Check analyzes components for security vulnerabilities and license issues.
+                  {RepositoriesPageStrings.FIREWALL_CONFIG.REPOSITORY_HEALTH_CHECK_ANALYZES_COMPONENTS}
                 </Text>
               </Box>
             </Flex>
 
             {healthCheckLoading ? (
               <Text size="2" color="gray">
-                Loading…
+                {RepositoriesPageStrings.FIREWALL_CONFIG.LOADING}
               </Text>
             ) : healthCheck?.enabled ? (
               <Flex direction="column" gap="3">
@@ -326,7 +328,7 @@ export function RepositoryFirewallConfigTab({
                     }}
                   />
                   <Text size="2" weight="medium" color={healthCheck.analyzing ? 'orange' : 'green'}>
-                    {healthCheck.analyzing ? 'Analyzing…' : 'Enabled'}
+                    {healthCheck.analyzing ? RepositoriesPageStrings.FIREWALL_CONFIG.ANALYZING : RepositoriesPageStrings.FIREWALL_CONFIG.ENABLED}
                   </Text>
                 </Flex>
                 {canUpdateHealthCheck && (
@@ -338,7 +340,7 @@ export function RepositoryFirewallConfigTab({
                       size="2"
                       onClick={handleDisableHealthCheck}
                     >
-                      Disable Health Check
+                      {RepositoriesPageStrings.FIREWALL_CONFIG.DISABLE_HEALTH_CHECK}
                     </Button>
                   </Flex>
                 )}
@@ -353,7 +355,7 @@ export function RepositoryFirewallConfigTab({
                     }}
                   />
                   <Text size="2" weight="medium" color="gray">
-                    Disabled
+                    {RepositoriesPageStrings.FIREWALL_CONFIG.DISABLED}
                   </Text>
                 </Flex>
                 {canUpdateHealthCheck && (
@@ -365,7 +367,7 @@ export function RepositoryFirewallConfigTab({
                       size="2"
                       onClick={handleEnableHealthCheck}
                     >
-                      Enable Health Check
+                      {RepositoriesPageStrings.FIREWALL_CONFIG.ENABLE_HEALTH_CHECK}
                     </Button>
                   </Flex>
                 )}

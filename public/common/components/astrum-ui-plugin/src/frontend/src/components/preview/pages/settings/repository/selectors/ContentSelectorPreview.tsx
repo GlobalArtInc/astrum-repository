@@ -9,6 +9,8 @@ import { useContentSelectorsApi } from './useContentSelectorsApi';
 import { RepositoryOption } from './types';
 
 import './ContentSelectorPreview.scss';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface ContentSelectorPreviewProps {
   type: string;
@@ -83,8 +85,7 @@ export function ContentSelectorPreview({ type, expression }: ContentSelectorPrev
   return (
     <Box className="content-selector-preview">
       <Text as="p" size="2" className="content-selector-preview__description">
-        Select a repository to evaluate the content selector and see the content that would be
-        available.
+        {ContentSelectorsStrings.PREVIEW.SELECT_REPOSITORY_EVALUATE_CONTENT_SELECTOR}
       </Text>
 
       {repoError && (
@@ -103,11 +104,11 @@ export function ContentSelectorPreview({ type, expression }: ContentSelectorPrev
         <Box className="content-selector-preview__select">
           <SettingsSelect
             name="previewRepository"
-            label="Preview Repository"
+            label={ContentSelectorsStrings.PREVIEW.PREVIEW_REPOSITORY}
             value={selectedRepository}
             onChange={setSelectedRepository}
             disabled={isLoadingRepos}
-            placeholder="Select an option"
+            placeholder={ContentSelectorsStrings.PREVIEW.SELECT_OPTION_PLACEHOLDER}
             options={repositories.map((repo) => ({
               value: repo.id,
               label: repo.name,
@@ -121,14 +122,14 @@ export function ContentSelectorPreview({ type, expression }: ContentSelectorPrev
           disabled={!isPreviewAvailable || isLoadingPreview}
           data-analytics-id="as-content-selector-preview"
         >
-          {isLoadingPreview ? 'Loading...' : 'Preview'}
+          {isLoadingPreview ? CommonStrings.MESSAGES.LOADING : ContentSelectorsStrings.PREVIEW.PREVIEW}
         </SettingsButton>
       </Flex>
 
       {/* Search/Filter */}
       <Box className="content-selector-preview__toolbar">
         <TextField.Root
-          placeholder="Filter results..."
+          placeholder={ContentSelectorsStrings.PREVIEW.FILTER_RESULTS_PLACEHOLDER}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="content-selector-preview__search"
@@ -143,7 +144,7 @@ export function ContentSelectorPreview({ type, expression }: ContentSelectorPrev
       <Table.Root className="content-selector-preview__table">
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{CommonStrings.LABELS.NAME}</Table.ColumnHeaderCell>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -152,7 +153,7 @@ export function ContentSelectorPreview({ type, expression }: ContentSelectorPrev
               <Table.Cell>
                 <Flex align="center" justify="center" py="4">
                   <Text size="2" color="gray">
-                    Loading preview...
+                    {ContentSelectorsStrings.PREVIEW.LOADING_PREVIEW}
                   </Text>
                 </Flex>
               </Table.Cell>
@@ -163,8 +164,8 @@ export function ContentSelectorPreview({ type, expression }: ContentSelectorPrev
                 <Flex align="center" justify="center" py="4">
                   <Text size="2" color="gray">
                     {previewResults.length === 0
-                      ? 'No content in repositories matched the expression'
-                      : 'No results match your filter'}
+                      ? ContentSelectorsStrings.PREVIEW.NO_CONTENT_REPOSITORIES_MATCHED_EXPRESSION
+                      : ContentSelectorsStrings.PREVIEW.NO_RESULTS_MATCH_FILTER}
                   </Text>
                 </Flex>
               </Table.Cell>

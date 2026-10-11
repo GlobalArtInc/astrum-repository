@@ -1,3 +1,5 @@
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 
 /**
@@ -77,43 +79,43 @@ export const NAME_MAX_LENGTH = 512;
  * CSEL Expression Language examples and help
  */
 export const CSEL_HELP = {
-  TITLE: 'Content Selector Expression Language (CSEL)',
+  TITLE: ContentSelectorsStrings.TYPES.CONTENT_SELECTOR_EXPRESSION_LANGUAGE_CSEL,
   DESCRIPTION:
-    'CSEL allows you to define expressions that select specific content from your repositories.',
+    ContentSelectorsStrings.TYPES.CSEL_ALLOWS_YOU_DEFINE_EXPRESSIONS,
   EXAMPLES: [
     {
-      label: 'Select "raw" format content',
+      label: ContentSelectorsStrings.TYPES.SELECT_RAW_FORMAT_CONTENT,
       expression: 'format == "raw"',
     },
     {
-      label: 'Select "maven2" content along a path that starts with "/org/"',
+      label: ContentSelectorsStrings.TYPES.SELECT_MAVEN2_CONTENT_ALONG_PATH,
       expression: 'format == "maven2" and path =^ "/org"',
     },
     {
-      label: 'Select content by repository name',
+      label: ContentSelectorsStrings.TYPES.SELECT_CONTENT_REPOSITORY_NAME,
       expression: 'coordinate.repositoryName == "maven-central"',
     },
     {
-      label: 'Select content by path pattern',
+      label: ContentSelectorsStrings.TYPES.SELECT_CONTENT_PATH_PATTERN,
       expression: 'path =~ ".*\\\\.jar$"',
     },
   ],
   OPERATORS: [
-    { operator: '==', description: 'Equals' },
-    { operator: '!=', description: 'Not equals' },
-    { operator: '=~', description: 'Regular expression match' },
-    { operator: '=^', description: 'Starts with' },
-    { operator: 'and', description: 'Logical AND' },
-    { operator: 'or', description: 'Logical OR' },
-    { operator: 'not', description: 'Logical NOT' },
+    { operator: '==', description: ContentSelectorsStrings.TYPES.EQUALS },
+    { operator: '!=', description: ContentSelectorsStrings.TYPES.NOT_EQUALS },
+    { operator: '=~', description: ContentSelectorsStrings.TYPES.REGULAR_EXPRESSION_MATCH },
+    { operator: '=^', description: ContentSelectorsStrings.TYPES.STARTS_WITH },
+    { operator: 'and', description: ContentSelectorsStrings.TYPES.LOGICAL_AND },
+    { operator: 'or', description: ContentSelectorsStrings.TYPES.LOGICAL_OR },
+    { operator: 'not', description: ContentSelectorsStrings.TYPES.LOGICAL_NOT },
   ],
   ATTRIBUTES: [
-    { attribute: 'format', description: 'Repository format (e.g., maven2, npm, docker)' },
-    { attribute: 'path', description: 'Asset path within the repository' },
-    { attribute: 'coordinate.repositoryName', description: 'Name of the repository' },
-    { attribute: 'coordinate.groupId', description: 'Maven group ID (maven2 only)' },
-    { attribute: 'coordinate.artifactId', description: 'Maven artifact ID (maven2 only)' },
-    { attribute: 'coordinate.version', description: 'Component version' },
+    { attribute: 'format', description: ContentSelectorsStrings.TYPES.REPOSITORY_FORMAT_E_G_MAVEN2 },
+    { attribute: 'path', description: ContentSelectorsStrings.TYPES.ASSET_PATH_WITHIN_REPOSITORY },
+    { attribute: 'coordinate.repositoryName', description: ContentSelectorsStrings.TYPES.NAME_REPOSITORY },
+    { attribute: 'coordinate.groupId', description: ContentSelectorsStrings.TYPES.MAVEN_GROUP_ID_MAVEN2_ONLY },
+    { attribute: 'coordinate.artifactId', description: ContentSelectorsStrings.TYPES.MAVEN_ARTIFACT_ID_MAVEN2_ONLY },
+    { attribute: 'coordinate.version', description: ContentSelectorsStrings.TYPES.COMPONENT_VERSION },
   ],
 };
 
@@ -122,13 +124,13 @@ export const CSEL_HELP = {
  */
 export const validateName = (name: string): string | undefined => {
   if (!name.trim()) {
-    return 'Name is required';
+    return CommonStrings.MESSAGES.NAME_REQUIRED;
   }
   if (name.length > NAME_MAX_LENGTH) {
-    return `Name must be ${NAME_MAX_LENGTH} characters or less`;
+    return ContentSelectorsStrings.TYPES.NAME_MUST_CHARACTERS_LESS(NAME_MAX_LENGTH);
   }
   if (!/^[a-zA-Z0-9\-_.]+$/.test(name)) {
-    return 'Name must contain only letters, digits, underscores, hyphens, and periods';
+    return ContentSelectorsStrings.TYPES.NAME_MUST_CONTAIN_ONLY_LETTERS;
   }
   return undefined;
 };
@@ -138,7 +140,7 @@ export const validateName = (name: string): string | undefined => {
  */
 export const validateExpression = (expression: string): string | undefined => {
   if (!expression.trim()) {
-    return 'Expression is required';
+    return ContentSelectorsStrings.TYPES.EXPRESSION_REQUIRED;
   }
   return undefined;
 };

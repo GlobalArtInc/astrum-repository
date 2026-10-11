@@ -15,6 +15,7 @@ import {
 import { useS3DropdownValues } from './useBlobStores';
 import type { BlobStoreFormData, S3BlobStoreConfig, } from './types';
 import './S3BlobStoreSettings.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 interface S3BlobStoreSettingsProps {
   data: BlobStoreFormData;
@@ -26,94 +27,94 @@ interface S3BlobStoreSettingsProps {
 
 const STRINGS = {
   BASIC: {
-    title: 'S3 Bucket Configuration',
-    description: 'Configure your AWS S3 bucket for blob storage',
+    title: BlobStoresStrings.S3.S3_BUCKET_CONFIGURATION,
+    description: BlobStoresStrings.S3.CONFIGURE_AWS_S3_BUCKET_BLOB,
     REGION: {
-      label: 'Region',
-      helpText: 'Select an AWS Region'
+      label: BlobStoresStrings.S3.REGION,
+      helpText: BlobStoresStrings.S3.SELECT_AWS_REGION
     },
     BUCKET: {
-      label: 'Bucket',
-      helpText: 'S3 Bucket Name (must be between 3 and 63 characters)',
+      label: BlobStoresStrings.S3.BUCKET,
+      helpText: BlobStoresStrings.S3.S3_BUCKET_NAME_MUST_BETWEEN,
       placeholder: 'my-blob-store-bucket'
     },
     PREFIX: {
-      label: 'Prefix',
-      helpText: 'S3 Path prefix (optional)',
+      label: BlobStoresStrings.S3.PREFIX,
+      helpText: BlobStoresStrings.S3.S3_PATH_PREFIX_OPTIONAL,
       placeholder: 'astrum/'
     },
     PRESIGNED: {
-      label: 'Pre-Signed URL',
-      description: 'Allow Astrum Repository to redirect users to download binaries from S3'
+      label: BlobStoresStrings.S3.PRE_SIGNED_URL,
+      description: BlobStoresStrings.S3.ALLOW_ASTRUM_REPOSITORY_REDIRECT_USERS
     }
   },
   AUTH: {
-    title: 'Authentication (Optional)',
-    description: 'AWS credentials for S3 access. Leave blank to use IAM roles or environment variables.',
+    title: BlobStoresStrings.S3.AUTHENTICATION_OPTIONAL,
+    description: BlobStoresStrings.S3.AWS_CREDENTIALS_S3_ACCESS_LEAVE,
     ACCESS_KEY: {
-      label: 'Access Key ID',
+      label: BlobStoresStrings.S3.ACCESS_KEY_ID,
       placeholder: 'AKIAIOSFODNN7EXAMPLE'
     },
     SECRET_KEY: {
-      label: 'Secret Access Key',
+      label: BlobStoresStrings.S3.SECRET_ACCESS_KEY,
       placeholder: '••••••••••••••••••••'
     },
     ROLE_ARN: {
-      label: 'Assume Role ARN',
+      label: BlobStoresStrings.S3.ASSUME_ROLE_ARN,
       placeholder: 'arn:aws:iam::123456789012:role/S3Access'
     },
     SESSION_TOKEN: {
-      label: 'Session Token',
-      placeholder: 'Temporary session token (optional)'
+      label: BlobStoresStrings.S3.SESSION_TOKEN,
+      placeholder: BlobStoresStrings.S3.TEMPORARY_SESSION_TOKEN_OPTIONAL
     }
   },
   ENCRYPTION: {
-    title: 'Encryption (Optional)',
-    description: 'Configure server-side encryption for objects in S3',
+    title: BlobStoresStrings.S3.ENCRYPTION_OPTIONAL,
+    description: BlobStoresStrings.S3.CONFIGURE_SERVER_SIDE_ENCRYPTION_OBJECTS,
     TYPE: {
-      label: 'Encryption Type',
-      helpText: 'The type of encryption for objects in the S3 Blob Store'
+      label: BlobStoresStrings.S3.ENCRYPTION_TYPE,
+      helpText: BlobStoresStrings.S3.TYPE_ENCRYPTION_OBJECTS_S3_BLOB
     },
     KEY_ID: {
-      label: 'KMS Key ID (Optional)',
-      helpText: 'If using KMS encryption, you can supply a Key ID. If left blank, the default will be used.',
+      label: BlobStoresStrings.S3.KMS_KEY_ID_OPTIONAL,
+      helpText: BlobStoresStrings.S3.IF_USING_KMS_ENCRYPTION_YOU,
       placeholder: 'arn:aws:kms:us-east-1:123456789012:key/...'
     }
   },
   ADVANCED: {
-    title: 'Advanced Connection Settings (Optional)',
-    description: 'Configure custom endpoints and connection settings',
+    title: BlobStoresStrings.S3.ADVANCED_CONNECTION_SETTINGS_OPTIONAL,
+    description: BlobStoresStrings.S3.CONFIGURE_CUSTOM_ENDPOINTS_CONNECTION_SETTINGS,
     ENDPOINT: {
-      label: 'Endpoint URL',
-      helpText: 'A custom endpoint URL for third party object stores using the S3 API',
+      label: BlobStoresStrings.S3.ENDPOINT_URL,
+      helpText: BlobStoresStrings.S3.CUSTOM_ENDPOINT_URL_THIRD_PARTY,
       placeholder: 'https://s3.example.com'
     },
     MAX_CONNECTIONS: {
-      label: 'Max Connection Pool Size',
-      helpText: 'Overrides the default connection pool size',
+      label: BlobStoresStrings.S3.MAX_CONNECTION_POOL_SIZE,
+      helpText: BlobStoresStrings.S3.OVERRIDES_DEFAULT_CONNECTION_POOL_SIZE,
       placeholder: '100'
     },
     PATH_STYLE: {
-      label: 'Use path-style access',
-      description: 'Setting this flag will result in path-style access being used for all requests'
+      label: BlobStoresStrings.S3.USE_PATH_STYLE_ACCESS,
+      description: BlobStoresStrings.S3.SETTING_FLAG_RESULT_PATH_STYLE
     }
   },
   FAILOVER: {
-    title: 'AWS S3 Replication Buckets (Optional)',
-    description: 'Configure failover buckets for high availability',
-    ADD_BUTTON: 'Add Replication Bucket',
-    REMOVE_BUTTON: 'Remove',
-    MAX_WARNING: 'You have reached the maximum number of failover buckets allowed (5).',
+    title: BlobStoresStrings.S3.AWS_S3_REPLICATION_BUCKETS_OPTIONAL,
+    description: BlobStoresStrings.S3.CONFIGURE_FAILOVER_BUCKETS_HIGH_AVAILABILITY,
+    ADD_BUTTON: BlobStoresStrings.S3.ADD_REPLICATION_BUCKET,
+    REMOVE_BUTTON: BlobStoresStrings.S3.REMOVE,
+    MAX_WARNING: BlobStoresStrings.S3.YOU_HAVE_REACHED_MAXIMUM_NUMBER,
     REGION: {
-      label: 'Region',
-      helpText: 'Select an AWS Region'
+      label: BlobStoresStrings.S3.REGION,
+      helpText: BlobStoresStrings.S3.SELECT_AWS_REGION
     },
     BUCKET: {
-      label: 'Bucket Name',
-      helpText: 'S3 Bucket Name for replication'
+      label: BlobStoresStrings.S3.BUCKET_NAME,
+      helpText: BlobStoresStrings.S3.S3_BUCKET_NAME_REPLICATION
     }
   },
-  HELP: 'S3 blob stores require specific permissions to support full provisioning and functionality. Consult our documentation for the required set of permissions.'
+  HELP: BlobStoresStrings.S3.S3_BLOB_STORES_REQUIRE_SPECIFIC
 };
 
 const MAX_FAILOVER_BUCKETS = 5;
@@ -189,7 +190,7 @@ export default function S3BlobStoreSettings({
           rel="noopener noreferrer"
           className="s3-blob-store-settings__link"
         >
-          View Documentation →
+          {BlobStoresStrings.S3.VIEW_DOCUMENTATION}
         </a>
       </SettingsAlert>
 
@@ -207,7 +208,7 @@ export default function S3BlobStoreSettings({
           value={config.bucket?.region || ''}
           onChange={(value) => updateBucket('region', value)}
           options={[
-            { value: '', label: 'Select a region...' },
+            { value: '', label: BlobStoresStrings.S3.SELECT_REGION },
             ...regions.map(r => ({ value: r.id, label: r.name }))
           ]}
           helpText={STRINGS.BASIC.REGION.helpText}
@@ -305,7 +306,7 @@ export default function S3BlobStoreSettings({
           value={config.encryption?.encryptionType || ''}
           onChange={(value) => updateEncryption('encryptionType', value)}
           options={[
-            { value: '', label: 'None' },
+            { value: '', label: BlobStoresStrings.S3.NONE },
             ...encryptionTypes.map(e => ({ value: e.id, label: e.name }))
           ]}
           helpText={STRINGS.ENCRYPTION.TYPE.helpText}
@@ -374,7 +375,7 @@ export default function S3BlobStoreSettings({
                   value={bucket.region || ''}
                   onChange={(value) => updateFailoverBucket(index, 'region', value)}
                   options={[
-                    { value: '', label: 'Select a region...' },
+                    { value: '', label: BlobStoresStrings.S3.SELECT_REGION },
                     ...regions.map(r => ({ value: r.id, label: r.name }))
                   ]}
                   helpText={STRINGS.FAILOVER.REGION.helpText}

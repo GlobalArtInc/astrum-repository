@@ -27,6 +27,8 @@ import {
 import { RoutingRuleMatchModal } from './RoutingRuleMatchModal';
 
 import './RoutingRulePreview.scss';
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * Tree node component for repository preview
@@ -119,8 +121,8 @@ function TreeNode({ item, level, onRuleClick }: TreeNodeProps) {
             onKeyDown={handleRuleKeyDown}
             role="button"
             tabIndex={0}
-            aria-label={`View routing rule ${item.rule}`}
-            title="Click to view routing rule details"
+            aria-label={RoutingRulesStrings.GLOBAL_PREVIEW.VIEW_ROUTING_RULE(item.rule)}
+            title={RoutingRulesStrings.GLOBAL_PREVIEW.CLICK_VIEW_ROUTING_RULE_DETAILS}
           >
             {item.rule}
           </Text>
@@ -130,7 +132,7 @@ function TreeNode({ item, level, onRuleClick }: TreeNodeProps) {
         <Box className="routing-rule-preview__status">
           {getStatusIcon()}
           <Text size="1" className={item.allowed ? 'routing-rule-preview__status-text--allowed' : 'routing-rule-preview__status-text--blocked'}>
-            {item.allowed ? 'Allowed' : 'Blocked'}
+            {item.allowed ? RoutingRulesStrings.GLOBAL_PREVIEW.ALLOWED : RoutingRulesStrings.GLOBAL_PREVIEW.BLOCKED}
           </Text>
         </Box>
       </Flex>
@@ -166,11 +168,11 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
         if (rule) {
           setSelectedRule(rule);
         } else {
-          setError('Routing rule not found');
+          setError(RoutingRulesStrings.GLOBAL_PREVIEW.ROUTING_RULE_NOT_FOUND);
         }
       })
       .catch((err) => {
-        setError(err.message || 'Failed to load routing rule details');
+        setError(err.message || RoutingRulesStrings.GLOBAL_PREVIEW.FAILED_LOAD_ROUTING_RULE_DETAILS);
       });
   }, [fetchRoutingRule]);
 
@@ -180,7 +182,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
 
   const handleSearch = useCallback(async () => {
     if (!path.trim()) {
-      setError('Please enter a path to test');
+      setError(RoutingRulesStrings.GLOBAL_PREVIEW.PLEASE_ENTER_PATH_TEST);
       return;
     }
 
@@ -191,7 +193,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
       const data = await fetchRoutingRulesPreview(path.trim(), filter);
       setPreviewData(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch preview');
+      setError(err.message || RoutingRulesStrings.GLOBAL_PREVIEW.FAILED_FETCH_PREVIEW);
       setPreviewData(null);
     } finally {
       setLoading(false);
@@ -205,9 +207,9 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
   }, [handleSearch]);
 
   const filterOptions = [
-    { value: 'all', label: 'All Repositories' },
-    { value: 'groups', label: 'Group Repositories' },
-    { value: 'proxies', label: 'Proxy Repositories' },
+    { value: 'all', label: RoutingRulesStrings.GLOBAL_PREVIEW.ALL_REPOSITORIES },
+    { value: 'groups', label: RoutingRulesStrings.GLOBAL_PREVIEW.GROUP_REPOSITORIES },
+    { value: 'proxies', label: RoutingRulesStrings.GLOBAL_PREVIEW.PROXY_REPOSITORIES },
   ];
 
   // Summary stats
@@ -234,7 +236,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
   return (
     <Box className="routing-rule-preview">
       <Text size="2" className="routing-rule-preview__description">
-        Test how routing rules will affect requests to a specific path across all repositories.
+        {RoutingRulesStrings.GLOBAL_PREVIEW.TEST_HOW_ROUTING_RULES_AFFECT}
       </Text>
 
       {/* Search Section */}
@@ -242,7 +244,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
         <Box className="routing-rule-preview__search-controls">
           <Box className="routing-rule-preview__path-input-wrapper">
             <Text as="label" size="2" weight="medium" className="routing-rule-preview__label">
-              Test Path
+              {RoutingRulesStrings.GLOBAL_PREVIEW.TEST_PATH}
             </Text>
             <Box className="routing-rule-preview__path-input-container">
               <Search size={16} className="routing-rule-preview__search-icon" />
@@ -260,7 +262,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
           <Box className="routing-rule-preview__filter-wrapper">
             <SettingsSelect
               name="filter"
-              label="Filter"
+              label={CommonStrings.ACTIONS.FILTER}
               value={filter}
               onChange={(value) => setFilter(value as PreviewFilter)}
               options={filterOptions}
@@ -274,7 +276,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
             loading={loading}
             className="routing-rule-preview__test-button"
           >
-            {loading ? 'Testing...' : 'Test'}
+            {loading ? RoutingRulesStrings.GLOBAL_PREVIEW.TESTING : RoutingRulesStrings.GLOBAL_PREVIEW.TEST}
           </SettingsButton>
         </Box>
       </Box>
@@ -294,15 +296,15 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
           {stats && (
             <Flex gap="4" className="routing-rule-preview__summary">
               <Box className="routing-rule-preview__stat">
-                <Text size="1" className="routing-rule-preview__stat-label">Total</Text>
+                <Text size="1" className="routing-rule-preview__stat-label">{RoutingRulesStrings.GLOBAL_PREVIEW.TOTAL}</Text>
                 <Text size="4" weight="medium">{stats.total}</Text>
               </Box>
               <Box className="routing-rule-preview__stat routing-rule-preview__stat--allowed">
-                <Text size="1" className="routing-rule-preview__stat-label">Allowed</Text>
+                <Text size="1" className="routing-rule-preview__stat-label">{RoutingRulesStrings.GLOBAL_PREVIEW.ALLOWED}</Text>
                 <Text size="4" weight="medium">{stats.allowed}</Text>
               </Box>
               <Box className="routing-rule-preview__stat routing-rule-preview__stat--blocked">
-                <Text size="1" className="routing-rule-preview__stat-label">Blocked</Text>
+                <Text size="1" className="routing-rule-preview__stat-label">{RoutingRulesStrings.GLOBAL_PREVIEW.BLOCKED}</Text>
                 <Text size="4" weight="medium">{stats.blocked}</Text>
               </Box>
             </Flex>
@@ -317,7 +319,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
             </Box>
           ) : (
             <Box className="routing-rule-preview__empty">
-              <Text size="2">No repositories found matching the filter criteria</Text>
+              <Text size="2">{RoutingRulesStrings.GLOBAL_PREVIEW.NO_REPOSITORIES_FOUND_MATCHING_FILTER}</Text>
             </Box>
           )}
         </>
@@ -328,12 +330,10 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
         <Box className="routing-rule-preview__help">
           <Flex align="center" gap="2" className="routing-rule-preview__help-header">
             <Info size={16} />
-            <Text size="2" weight="medium">How to Use</Text>
+            <Text size="2" weight="medium">{RoutingRulesStrings.GLOBAL_PREVIEW.HOW_USE}</Text>
           </Flex>
           <Text size="2" className="routing-rule-preview__help-text">
-            Enter a request path (e.g., <code>/com/example/artifact-1.0.jar</code>) to see how
-            routing rules will affect requests across all repositories. The preview shows which
-            repositories would allow or block the request based on their assigned routing rules.
+            {RoutingRulesStrings.GLOBAL_PREVIEW.HOW_TO_USE_TEXT(<code>/com/example/artifact-1.0.jar</code>)}
             {' '}
             <a
               href="http://links.globalart.dev/products/astrum/docs/routing-rule"
@@ -341,7 +341,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
               rel="noopener noreferrer"
               className="routing-rule-preview__help-link"
             >
-              Learn more
+              {CommonStrings.ACTIONS.LEARN_MORE}
               <ExternalLink size={12} />
             </a>
           </Text>

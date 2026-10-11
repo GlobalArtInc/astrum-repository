@@ -1,6 +1,7 @@
 
 
 import type { BlobStoreFormData } from './blobStoreFormMachine';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 export interface DangerousFieldInfo {
   field: string;
@@ -9,25 +10,25 @@ export interface DangerousFieldInfo {
 
 const DANGEROUS_FIELDS: Record<string, DangerousFieldInfo[]> = {
   file: [
-    { field: 'path', label: 'Path' },
+    { field: 'path', label: BlobStoresStrings.DANGEROUS_FIELDS.PATH },
   ],
   s3: [
-    { field: 'bucketConfiguration.bucket.name', label: 'Bucket Name' },
-    { field: 'bucketConfiguration.bucket.region', label: 'Region' },
-    { field: 'bucketConfiguration.encryption', label: 'Encryption' },
+    { field: 'bucketConfiguration.bucket.name', label: BlobStoresStrings.DANGEROUS_FIELDS.BUCKET_NAME },
+    { field: 'bucketConfiguration.bucket.region', label: BlobStoresStrings.DANGEROUS_FIELDS.REGION },
+    { field: 'bucketConfiguration.encryption', label: BlobStoresStrings.DANGEROUS_FIELDS.ENCRYPTION },
   ],
   google: [
-    { field: 'bucketConfiguration.bucket.name', label: 'Bucket Name' },
-    { field: 'bucketConfiguration.bucket.projectId', label: 'Project ID' },
-    { field: 'bucketConfiguration.bucket.region', label: 'Region' },
-    { field: 'bucketConfiguration.encryption', label: 'Encryption' },
+    { field: 'bucketConfiguration.bucket.name', label: BlobStoresStrings.DANGEROUS_FIELDS.BUCKET_NAME },
+    { field: 'bucketConfiguration.bucket.projectId', label: BlobStoresStrings.DANGEROUS_FIELDS.PROJECT_ID },
+    { field: 'bucketConfiguration.bucket.region', label: BlobStoresStrings.DANGEROUS_FIELDS.REGION },
+    { field: 'bucketConfiguration.encryption', label: BlobStoresStrings.DANGEROUS_FIELDS.ENCRYPTION },
   ],
   azure: [
-    { field: 'bucketConfiguration.accountName', label: 'Account Name' },
-    { field: 'bucketConfiguration.containerName', label: 'Container Name' },
+    { field: 'bucketConfiguration.accountName', label: BlobStoresStrings.DANGEROUS_FIELDS.ACCOUNT_NAME },
+    { field: 'bucketConfiguration.containerName', label: BlobStoresStrings.DANGEROUS_FIELDS.CONTAINER_NAME },
   ],
   group: [
-    { field: 'members', label: 'Members' },
+    { field: 'members', label: BlobStoresStrings.DANGEROUS_FIELDS.MEMBERS },
   ],
 };
 

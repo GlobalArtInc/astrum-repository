@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { restClient } from '../../../../../../interface/api';
 import type { RepositoryTreeNode } from './useRepositoryTree';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 const SEARCH_URL = '/service/rest/v1/search';
 const DEBOUNCE_MS = 400;
@@ -83,7 +84,7 @@ export function useStructureComponentSearch(
           setReposWithMatches(repos);
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Search failed';
+        const message = err instanceof Error ? err.message : RepositoriesPageStrings.STRUCTURE.SEARCH_FAILED;
         if (mountedRef.current) {
           setError(message);
           setReposWithMatches(new Set());

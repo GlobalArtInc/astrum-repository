@@ -5,6 +5,7 @@ import { Box, Flex, Text, Skeleton } from '@radix-ui/themes';
 import { Package, FileBox, AlertCircle } from 'lucide-react';
 import { useRepositoryMetrics } from '../../../../shared';
 import './RepositoryMetricsCard.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 interface RepositoryMetricsCardProps {
   repositoryName: string;
@@ -32,7 +33,7 @@ export function RepositoryMetricsCard({ repositoryName }: RepositoryMetricsCardP
           <Flex align="center" gap="2">
             <AlertCircle size={16} color="var(--red-11)" />
             <Text size="2" color="red">
-              Failed to load repository metrics
+              {RepositoriesPageStrings.METRICS.FAILED_LOAD_REPOSITORY_METRICS}
             </Text>
           </Flex>
         </Box>
@@ -49,7 +50,7 @@ export function RepositoryMetricsCard({ repositoryName }: RepositoryMetricsCardP
       <Flex className="metrics-card__header">
         <Package size={18} />
         <Text weight="bold" size="3">
-          Repository Metrics
+          {RepositoriesPageStrings.METRICS.REPOSITORY_METRICS}
         </Text>
       </Flex>
 
@@ -58,7 +59,7 @@ export function RepositoryMetricsCard({ repositoryName }: RepositoryMetricsCardP
           <Text className="metrics-card__label">
             <Flex align="center" gap="1">
               <Package size={14} />
-              Components
+              {RepositoriesPageStrings.METRICS.COMPONENTS}
             </Flex>
           </Text>
           <Text className="metrics-card__value">
@@ -70,7 +71,7 @@ export function RepositoryMetricsCard({ repositoryName }: RepositoryMetricsCardP
           <Text className="metrics-card__label">
             <Flex align="center" gap="1">
               <FileBox size={14} />
-              Assets
+              {RepositoriesPageStrings.METRICS.ASSETS}
             </Flex>
           </Text>
           <Text className="metrics-card__value">

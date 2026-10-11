@@ -17,6 +17,7 @@ import {
   OciCosignAttributes,
   OciProxyAttributes,
 } from '../types';
+import UIStrings from '../../../../../../../constants/pages/admin/repository/RepositoriesStrings';
 
 interface OciFacetProps {
   formData: RepositoryFormData;
@@ -29,8 +30,8 @@ interface OciFacetProps {
 }
 
 const COSIGN_ENFORCEMENT_OPTIONS = [
-  { value: 'NONE', label: 'Off (no cosign enforcement)' },
-  { value: 'KEYLESS', label: 'Keyless (require cosign signature)' },
+  { value: 'NONE', label: UIStrings.OCI.OFF_NO_COSIGN_ENFORCEMENT },
+  { value: 'KEYLESS', label: UIStrings.OCI.KEYLESS_REQUIRE_COSIGN_SIGNATURE },
 ];
 
 /**
@@ -75,56 +76,56 @@ export function OciFacet({
   return (
     <>
       <SettingsFormSection
-        title="OCI Registry Connectors"
-        description="Configure the v2 distribution spec connectors and authentication for this OCI registry"
+        title={UIStrings.OCI.OCI_REGISTRY_CONNECTORS}
+        description={UIStrings.OCI.CONFIGURE_V2_DISTRIBUTION_SPEC_CONNECTORS}
       >
         <SettingsCheckbox
           name="oci-pathEnabled"
-          label="Enable Path-Based Routing"
+          label={UIStrings.OCI.ENABLE_PATH_BASED_ROUTING}
           checked={formData.oci?.pathEnabled ?? true}
           onChange={(checked) => onNestedChange('oci', { pathEnabled: checked })}
-          description="Expose this OCI repository under a path prefix (e.g. /repository/<name>). Disable to require a connector port."
+          description={UIStrings.OCI.EXPOSE_OCI_REPOSITORY_UNDER_PATH}
         />
 
         <SettingsTextInput
           name="oci-httpPort"
-          label="HTTP Connector"
+          label={UIStrings.OCI.HTTP_CONNECTOR}
           value={formData.oci?.httpPort?.toString() || ''}
           onChange={(value) => onNestedChange('oci', {
             httpPort: value ? parseInt(value, 10) : null,
           })}
-          helpText="Create an HTTP connector at the specified port. Normally used if the server is behind a reverse proxy."
+          helpText={UIStrings.OCI.CREATE_HTTP_CONNECTOR_SPECIFIED_PORT}
           placeholder="e.g., 8082"
           type="number"
         />
 
         <SettingsTextInput
           name="oci-httpsPort"
-          label="HTTPS Connector"
+          label={UIStrings.OCI.HTTPS_CONNECTOR}
           value={formData.oci?.httpsPort?.toString() || ''}
           onChange={(value) => onNestedChange('oci', {
             httpsPort: value ? parseInt(value, 10) : null,
           })}
-          helpText="Create an HTTPS connector at the specified port. Normally used if the server is not behind a reverse proxy."
+          helpText={UIStrings.OCI.CREATE_HTTPS_CONNECTOR_SPECIFIED_PORT}
           placeholder="e.g., 8083"
           type="number"
         />
 
         <SettingsTextInput
           name="oci-subdomain"
-          label="Subdomain"
+          label={UIStrings.OCI.SUBDOMAIN}
           value={formData.oci?.subdomain || ''}
           onChange={(value) => onNestedChange('oci', { subdomain: value || null })}
-          helpText="Use the specified subdomain to access this OCI repository. Only used when behind a reverse proxy with subdomain-based routing."
+          helpText={UIStrings.OCI.USE_SPECIFIED_SUBDOMAIN_ACCESS_OCI}
           placeholder="e.g., oci-hosted"
         />
 
         <SettingsCheckbox
           name="oci-forceBasicAuth"
-          label="Force Basic Authentication"
+          label={UIStrings.OCI.FORCE_BASIC_AUTHENTICATION}
           checked={formData.oci?.forceBasicAuth ?? false}
           onChange={(checked) => onNestedChange('oci', { forceBasicAuth: checked })}
-          description="Require authentication even for anonymous access (login required for pull)"
+          description={UIStrings.OCI.REQUIRE_AUTHENTICATION_EVEN_ANONYMOUS_ACCESS}
         />
       </SettingsFormSection>
 
@@ -137,51 +138,50 @@ export function OciFacet({
       )}
 
       <SettingsFormSection
-        title="Cosign Keyless Policy"
-        description="Require cosign keyless signatures (Fulcio/Rekor) for image pulls. When enabled, pulls are denied unless a valid cosign referrer is attached to the image."
+        title={UIStrings.OCI.COSIGN_KEYLESS_POLICY}
+        description={UIStrings.OCI.REQUIRE_COSIGN_KEYLESS_SIGNATURES_FULCIO}
       >
         <SettingsSelect
           name="oci-cosign-enforcement"
-          label="Enforcement mode"
+          label={UIStrings.OCI.ENFORCEMENT_MODE}
           value={enforcement}
           onChange={(value) => updateCosign({ enforcement: (value || 'NONE') as OciCosignAttributes['enforcement'] })}
           options={COSIGN_ENFORCEMENT_OPTIONS}
-          helpText="Off disables enforcement. Keyless requires every pull to be covered by a cosign signature attached as an OCI referrer."
+          helpText={UIStrings.OCI.OFF_DISABLES_ENFORCEMENT_KEYLESS_REQUIRES}
         />
 
         {keylessActive && (
           <>
             <Text as="p" size="2" color="amber" className="as-oci-cosign-keyless-warning">
-              Keyless enforcement is configured but signature verification is not yet active in this
-              release. Settings will be applied when the feature becomes available.
+              {UIStrings.OCI.KEYLESS_ENFORCEMENT_CONFIGURED_BUT_SIGNATURE}
             </Text>
 
             <SettingsTextInput
               name="oci-cosign-identityRegex"
-              label="Identity Regex"
+              label={UIStrings.OCI.IDENTITY_REGEX}
               value={cosign.identityRegex || ''}
               onChange={(value) => updateCosign({ identityRegex: value || undefined })}
-              helpText="Regex matched against the Fulcio certificate Subject Alternative Name. Required when Keyless enforcement is on."
+              helpText={UIStrings.OCI.REGEX_MATCHED_AGAINST_FULCIO_CERTIFICATE}
               placeholder="e.g., ^https://github\.com/acme/.*$"
               required={keylessActive}
               error={
                 keylessActive && !(cosign.identityRegex?.trim())
-                  ? 'Identity regex is required when Keyless enforcement is enabled'
+                  ? UIStrings.OCI.IDENTITY_REGEX_REQUIRED_WHEN_KEYLESS
                   : errors?.oci?.cosign?.identityRegex
               }
             />
 
             <SettingsTextInput
               name="oci-cosign-issuerRegex"
-              label="Issuer Regex"
+              label={UIStrings.OCI.ISSUER_REGEX}
               value={cosign.issuerRegex || ''}
               onChange={(value) => updateCosign({ issuerRegex: value || undefined })}
-              helpText="Regex matched against the OIDC issuer extension on the Fulcio certificate. Required when Keyless enforcement is on."
+              helpText={UIStrings.OCI.REGEX_MATCHED_AGAINST_OIDC_ISSUER}
               placeholder="e.g., ^https://token\.actions\.githubusercontent\.com$"
               required={keylessActive}
               error={
                 keylessActive && !(cosign.issuerRegex?.trim())
-                  ? 'Issuer regex is required when Keyless enforcement is enabled'
+                  ? UIStrings.OCI.ISSUER_REGEX_REQUIRED_WHEN_KEYLESS
                   : errors?.oci?.cosign?.issuerRegex
               }
             />
@@ -258,12 +258,12 @@ function OciProxySection({ formData, onNestedChange, errors }: OciProxySectionPr
 
   return (
     <SettingsFormSection
-      title="OCI Proxy"
-      description="Index source and foreign-layer caching policy for this proxy registry"
+      title={UIStrings.OCI.OCI_PROXY}
+      description={UIStrings.OCI.INDEX_SOURCE_FOREIGN_LAYER_CACHING}
     >
       <Box mb="3">
         <Text as="div" weight="medium" size="2" mb="1">
-          OCI Registry Index
+          {UIStrings.OCI.OCI_REGISTRY_INDEX}
         </Text>
         <RadioGroup.Root
           value={indexType}
@@ -274,13 +274,13 @@ function OciProxySection({ formData, onNestedChange, errors }: OciProxySectionPr
             <Text as="label" size="2">
               <Flex gap="2" align="center">
                 <RadioGroup.Item value="REGISTRY" />
-                Use proxy registry (specified above)
+                {UIStrings.OCI.USE_PROXY_REGISTRY_SPECIFIED_ABOVE}
               </Flex>
             </Text>
             <Text as="label" size="2">
               <Flex gap="2" align="center">
                 <RadioGroup.Item value="CUSTOM" />
-                Custom index
+                {UIStrings.OCI.CUSTOM_INDEX}
               </Flex>
             </Text>
           </Flex>
@@ -291,50 +291,50 @@ function OciProxySection({ formData, onNestedChange, errors }: OciProxySectionPr
         <>
           <SettingsTextInput
             name="oci-proxy-indexUrl"
-            label="OCI Registry Index URL"
+            label={UIStrings.OCI.OCI_REGISTRY_INDEX_URL}
             value={ociProxy.indexUrl || ''}
             onChange={(value) => patchProxy({ indexUrl: value || null })}
-            helpText="Location of OCI registry index"
+            helpText={UIStrings.OCI.LOCATION_OCI_REGISTRY_INDEX}
             placeholder="https://index.example.com"
             required
             error={
               !(ociProxy.indexUrl?.trim())
-                ? 'Index URL is required when Custom index is selected'
+                ? UIStrings.OCI.INDEX_URL_REQUIRED_WHEN_CUSTOM
                 : errors?.oci?.ociProxy?.indexUrl
             }
           />
           <SettingsCheckbox
             name="oci-proxy-useTrustStoreForIndexAccess"
-            label="Use the Astrum truststore for HTTPS index access"
+            label={UIStrings.OCI.USE_ASTRUM_TRUSTSTORE_HTTPS_INDEX}
             checked={ociProxy.useTrustStoreForIndexAccess ?? false}
             onChange={(checked) => patchProxy({ useTrustStoreForIndexAccess: checked })}
-            description="Validate the index server certificate against Astrum's trust store rather than the default JVM CA bundle."
+            description={UIStrings.OCI.VALIDATE_INDEX_SERVER_CERTIFICATE_AGAINST}
           />
         </>
       )}
 
       <SettingsCheckbox
         name="oci-proxy-cacheForeignLayers"
-        label="Foreign Layer Caching"
+        label={UIStrings.OCI.FOREIGN_LAYER_CACHING}
         checked={cacheForeignLayers}
         onChange={onCacheToggle}
-        description="Allow Astrum Repository Manager to download and cache foreign layers"
+        description={UIStrings.OCI.ALLOW_ASTRUM_REPOSITORY_MANAGER_DOWNLOAD}
       />
 
       {cacheForeignLayers && (
         <Box mt="2">
           <Heading as="h4" size="2" mb="1">
-            Foreign Layer Allowed URLs
+            {UIStrings.OCI.FOREIGN_LAYER_ALLOWED_URLS}
           </Heading>
           <Text as="div" size="1" color="gray" mb="2">
-            Regular expressions used to identify URLs that are allowed for foreign layer requests
+            {UIStrings.OCI.REGULAR_EXPRESSIONS_USED_IDENTIFY_URLS}
           </Text>
           {whitelist.map((value, idx) => (
             <Flex key={`oci-proxy-whitelist-row-${idx}`} gap="2" align="center" mb="2">
               <Box flexGrow="1">
                 <SettingsTextInput
                   name={`oci-proxy-whitelist-${idx}`}
-                  label={idx === 0 ? 'Allowed URL pattern' : ''}
+                  label={idx === 0 ? UIStrings.OCI.ALLOWED_URL_PATTERN : ''}
                   value={value}
                   onChange={(v) => updateRow(idx, v)}
                   placeholder=".*"
@@ -346,7 +346,7 @@ function OciProxySection({ formData, onNestedChange, errors }: OciProxySectionPr
                 color="red"
                 size="1"
                 onClick={() => removeRow(idx)}
-                aria-label={`Remove URL pattern ${idx + 1}`}
+                aria-label={UIStrings.OCI.REMOVE_URL_PATTERN(idx + 1)}
               >
                 <Trash2 size={14} />
               </Button>
@@ -357,10 +357,10 @@ function OciProxySection({ formData, onNestedChange, errors }: OciProxySectionPr
             variant="soft"
             size="2"
             onClick={addRow}
-            aria-label="Add URL Pattern"
+            aria-label={UIStrings.OCI.ADD_URL_PATTERN_ARIA}
           >
             <Plus size={14} />
-            Add URL Pattern
+            {UIStrings.OCI.ADD_URL_PATTERN}
           </Button>
         </Box>
       )}

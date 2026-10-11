@@ -8,6 +8,8 @@ import {
   SettingsButton
 } from '../../../../shared/form';
 import './ConvertToGroupModal.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface ConvertToGroupModalProps {
   blobStoreName: string;
@@ -17,13 +19,13 @@ interface ConvertToGroupModalProps {
 }
 
 const STRINGS = {
-  HEADER: 'Convert to Group Blob Store',
-  LABEL: 'Rename Original Blob Store',
-  SUBLABEL: 'Assign a new name to the original blob store',
-  ALERT: 'You are converting to a group blob store. This action cannot be undone.',
-  CONVERT_BUTTON: 'Convert',
-  CANCEL_BUTTON: 'Cancel',
-  PLACEHOLDER: 'Enter new name for original blob store'
+  HEADER: BlobStoresStrings.CONVERT_TO_GROUP.CONVERT_GROUP_BLOB_STORE,
+  LABEL: BlobStoresStrings.CONVERT_TO_GROUP.RENAME_ORIGINAL_BLOB_STORE,
+  SUBLABEL: BlobStoresStrings.CONVERT_TO_GROUP.ASSIGN_NEW_NAME_ORIGINAL_BLOB,
+  ALERT: BlobStoresStrings.CONVERT_TO_GROUP.YOU_CONVERTING_GROUP_BLOB_STORE,
+  CONVERT_BUTTON: BlobStoresStrings.CONVERT_TO_GROUP.CONVERT,
+  CANCEL_BUTTON: CommonStrings.ACTIONS.CANCEL,
+  PLACEHOLDER: BlobStoresStrings.CONVERT_TO_GROUP.ENTER_NEW_NAME_ORIGINAL_BLOB
 };
 
 export default function ConvertToGroupModal({
@@ -37,12 +39,12 @@ export default function ConvertToGroupModal({
 
   const handleConfirm = () => {
     if (!newName.trim()) {
-      setError('Name is required');
+      setError(CommonStrings.MESSAGES.NAME_REQUIRED);
       return;
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
-      setError('Name can only contain letters, numbers, underscores, and hyphens');
+      setError(BlobStoresStrings.CONVERT_TO_GROUP.NAME_CAN_ONLY_CONTAIN_LETTERS);
       return;
     }
 
@@ -87,7 +89,7 @@ export default function ConvertToGroupModal({
             onClick={handleConfirm}
             disabled={promoting || !newName.trim()}
           >
-            {promoting ? 'Converting...' : STRINGS.CONVERT_BUTTON}
+            {promoting ? BlobStoresStrings.CONVERT_TO_GROUP.CONVERTING : STRINGS.CONVERT_BUTTON}
           </SettingsButton>
         </div>
       </div>

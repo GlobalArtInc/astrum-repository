@@ -1,3 +1,4 @@
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
 
 
 /**
@@ -42,96 +43,96 @@ export const CSEL_CONFIG: CSELConfig = {
   attributes: [
     {
       name: 'format',
-      description: 'Repository format (e.g., maven2, npm, docker)',
+      description: ContentSelectorsStrings.CSEL.REPOSITORY_FORMAT_E_G_MAVEN2,
       operators: ['==', '!=', '=~'],
     },
     {
       name: 'path',
-      description: 'Asset path within the repository',
+      description: ContentSelectorsStrings.CSEL.ASSET_PATH_WITHIN_REPOSITORY,
       operators: ['==', '!=', '=~', '=^'],
     },
     {
       name: 'coordinate.repositoryName',
-      description: 'Name of the repository',
+      description: ContentSelectorsStrings.CSEL.NAME_REPOSITORY,
       operators: ['==', '!='],
     },
     {
       name: 'coordinate.groupId',
-      description: 'Maven group ID',
+      description: ContentSelectorsStrings.CSEL.MAVEN_GROUP_ID,
       operators: ['==', '!=', '=~'],
       formatSpecific: 'maven2 only',
     },
     {
       name: 'coordinate.artifactId',
-      description: 'Maven artifact ID',
+      description: ContentSelectorsStrings.CSEL.MAVEN_ARTIFACT_ID,
       operators: ['==', '!=', '=~'],
       formatSpecific: 'maven2 only',
     },
     {
       name: 'coordinate.version',
-      description: 'Component version',
+      description: ContentSelectorsStrings.CSEL.COMPONENT_VERSION,
       operators: ['==', '!=', '=~'],
     },
     {
       name: 'coordinate.extension',
-      description: 'File extension (e.g., jar, pom)',
+      description: ContentSelectorsStrings.CSEL.FILE_EXTENSION_E_G_JAR,
       operators: ['==', '!=', '=~'],
       formatSpecific: 'maven2 only',
     },
     {
       name: 'coordinate.classifier',
-      description: 'Maven classifier (e.g., sources, javadoc)',
+      description: ContentSelectorsStrings.CSEL.MAVEN_CLASSIFIER_E_G_SOURCES,
       operators: ['==', '!=', '=~'],
       formatSpecific: 'maven2 only',
     },
   ],
 
   operators: [
-    { symbol: '==', description: 'Equals' },
-    { symbol: '!=', description: 'Not equals' },
-    { symbol: '=~', description: 'Regular expression match' },
-    { symbol: '=^', description: 'Starts with' },
+    { symbol: '==', description: ContentSelectorsStrings.CSEL.EQUALS },
+    { symbol: '!=', description: ContentSelectorsStrings.CSEL.NOT_EQUALS },
+    { symbol: '=~', description: ContentSelectorsStrings.CSEL.REGULAR_EXPRESSION_MATCH },
+    { symbol: '=^', description: ContentSelectorsStrings.CSEL.STARTS_WITH },
   ],
 
   logicalOperators: [
-    { symbol: 'and', description: 'Logical AND', isLogical: true },
-    { symbol: 'or', description: 'Logical OR', isLogical: true },
-    { symbol: 'not', description: 'Logical NOT', isLogical: true },
+    { symbol: 'and', description: ContentSelectorsStrings.CSEL.LOGICAL_AND, isLogical: true },
+    { symbol: 'or', description: ContentSelectorsStrings.CSEL.LOGICAL_OR, isLogical: true },
+    { symbol: 'not', description: ContentSelectorsStrings.CSEL.LOGICAL_NOT, isLogical: true },
   ],
 
   examples: [
     // Simple format selectors - safe to use
     {
-      label: 'Raw format',
+      label: ContentSelectorsStrings.CSEL.RAW_FORMAT,
       expression: 'format == "raw"',
-      description: 'Matches all content in raw repositories',
+      description: ContentSelectorsStrings.CSEL.MATCHES_ALL_CONTENT_RAW_REPOSITORIES,
     },
     {
-      label: 'Maven format',
+      label: ContentSelectorsStrings.CSEL.MAVEN_FORMAT,
       expression: 'format == "maven2"',
-      description: 'Matches all Maven artifacts',
+      description: ContentSelectorsStrings.CSEL.MATCHES_ALL_MAVEN_ARTIFACTS,
     },
     {
-      label: 'npm format',
+      label: ContentSelectorsStrings.CSEL.NPM_FORMAT,
       expression: 'format == "npm"',
-      description: 'Matches all npm packages',
+      description: ContentSelectorsStrings.CSEL.MATCHES_ALL_NPM_PACKAGES,
     },
     {
-      label: 'Docker format',
+      label: ContentSelectorsStrings.CSEL.DOCKER_FORMAT,
       expression: 'format == "docker"',
-      description: 'Matches all Docker images',
+      description: ContentSelectorsStrings.CSEL.MATCHES_ALL_DOCKER_IMAGES,
     },
     // Path-based selectors - work with any format
     {
-      label: 'Path starts with /org',
+      label: ContentSelectorsStrings.CSEL.PATH_STARTS_ORG,
       expression: 'path =^ "/org"',
-      description: 'Matches content with paths starting with /org',
+      description: ContentSelectorsStrings.CSEL.MATCHES_CONTENT_PATHS_STARTING_ORG,
     },
     // Combined expressions (from Default UI documentation)
     {
-      label: 'Maven + path filter',
+      label: ContentSelectorsStrings.CSEL.MAVEN_PATH_FILTER,
       expression: 'format == "maven2" and path =^ "/org"',
-      description: 'Matches Maven artifacts with paths starting with /org',
+      description: ContentSelectorsStrings.CSEL.MATCHES_MAVEN_ARTIFACTS_PATHS_STARTING,
     },
   ],
 };

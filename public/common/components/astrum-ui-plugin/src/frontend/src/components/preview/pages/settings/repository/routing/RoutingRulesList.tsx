@@ -30,6 +30,8 @@ import {
 } from './types';
 
 import './RoutingRulesList.scss';
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * RoutingRulesList - Displays routing rules in a searchable, sortable table
@@ -125,6 +127,18 @@ export function RoutingRulesList({ onSelect, onCreate, onPreview }: RoutingRules
     onSelect(rule.name);
   }, [onSelect]);
 
+  const sortLabel = (label: string, field: RoutingRuleSortField) => {
+    if (sortField !== field) {
+      return label;
+    }
+    if (sortDirection === 'asc') {
+      return RoutingRulesStrings.LIST.SORTED_ASCENDING(label);
+    }
+    return sortDirection === 'desc'
+      ? RoutingRulesStrings.LIST.SORTED_DESCENDING(label)
+      : RoutingRulesStrings.LIST.NOT_SORTED(label);
+  };
+
   const renderSortIcon = (field: RoutingRuleSortField) => {
     if (sortField !== field || !sortDirection) {
       return <ChevronsUpDown size={14} className="routing-rules-list__sort-icon routing-rules-list__sort-icon--inactive" />;
@@ -149,8 +163,8 @@ export function RoutingRulesList({ onSelect, onCreate, onPreview }: RoutingRules
           <Search size={16} className="routing-rules-list__search-icon" />
           <input
             type="text"
-            aria-label="Filter routing rules by name or description"
-            placeholder="Filter by name or description"
+            aria-label={RoutingRulesStrings.LIST.FILTER_ROUTING_RULES_NAME_DESCRIPTION_ARIA}
+            placeholder={RoutingRulesStrings.LIST.FILTER_NAME_DESCRIPTION_PLACEHOLDER}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="routing-rules-list__search-input"
@@ -169,26 +183,26 @@ export function RoutingRulesList({ onSelect, onCreate, onPreview }: RoutingRules
 
       {/* Loading State - using shared component */}
       {loadingRules && (
-        <LoadingState message="Loading routing rules..." />
+        <LoadingState message={RoutingRulesStrings.LIST.LOADING_ROUTING_RULES} />
       )}
 
       {/* Empty State - using shared component */}
       {!(loadingRules || error ) && sortedRules.length === 0 && (
         <EmptyState
           icon={Route}
-          title={filter ? 'No matching rules' : 'No Routing Rules'}
+          title={filter ? RoutingRulesStrings.LIST.NO_MATCHING_RULES : RoutingRulesStrings.LIST.NO_ROUTING_RULES}
           description={
             filter 
-              ? 'No routing rules match your filter criteria. Try adjusting your search.' 
-              : 'Create routing rules to control which requests are allowed or blocked for proxy repositories.'
+              ? RoutingRulesStrings.LIST.NO_ROUTING_RULES_MATCH_FILTER 
+              : RoutingRulesStrings.LIST.CREATE_ROUTING_RULES_CONTROL_WHICH
           }
           action={!filter ? {
-            label: 'Create Routing Rule',
+            label: RoutingRulesStrings.LIST.CREATE_ROUTING_RULE,
             onClick: onCreate,
             icon: Plus,
           } : undefined}
           secondaryAction={{
-            label: 'Learn about routing rules',
+            label: RoutingRulesStrings.LIST.LEARN_ABOUT_ROUTING_RULES,
             href: 'http://links.globalart.dev/products/astrum/docs/routing-rule',
           }}
           size="medium"
@@ -206,10 +220,10 @@ export function RoutingRulesList({ onSelect, onCreate, onPreview }: RoutingRules
                     type="button"
                     onClick={() => handleSort('name')}
                     className="routing-rules-list__sort-button"
-                    aria-label={`Sort by name${sortField === 'name' ? `, ${sortDirection === 'asc' ? 'ascending' : sortDirection === 'desc' ? 'descending' : 'not sorted'}` : ''}`}
+                    aria-label={sortLabel(RoutingRulesStrings.LIST.SORT_BY_NAME, 'name')}
                   >
                     <Flex align="center" gap="1">
-                      Name
+                      {CommonStrings.LABELS.NAME}
                       {renderSortIcon('name')}
                     </Flex>
                   </button>
@@ -219,10 +233,10 @@ export function RoutingRulesList({ onSelect, onCreate, onPreview }: RoutingRules
                     type="button"
                     onClick={() => handleSort('description')}
                     className="routing-rules-list__sort-button"
-                    aria-label={`Sort by description${sortField === 'description' ? `, ${sortDirection === 'asc' ? 'ascending' : sortDirection === 'desc' ? 'descending' : 'not sorted'}` : ''}`}
+                    aria-label={sortLabel(RoutingRulesStrings.LIST.SORT_BY_DESCRIPTION, 'description')}
                   >
                     <Flex align="center" gap="1">
-                      Description
+                      {CommonStrings.LABELS.DESCRIPTION}
                       {renderSortIcon('description')}
                     </Flex>
                   </button>
@@ -232,10 +246,10 @@ export function RoutingRulesList({ onSelect, onCreate, onPreview }: RoutingRules
                     type="button"
                     onClick={() => handleSort('mode')}
                     className="routing-rules-list__sort-button"
-                    aria-label={`Sort by mode${sortField === 'mode' ? `, ${sortDirection === 'asc' ? 'ascending' : sortDirection === 'desc' ? 'descending' : 'not sorted'}` : ''}`}
+                    aria-label={sortLabel(RoutingRulesStrings.LIST.SORT_BY_MODE, 'mode')}
                   >
                     <Flex align="center" gap="1">
-                      Mode
+                      {RoutingRulesStrings.LIST.MODE}
                       {renderSortIcon('mode')}
                     </Flex>
                   </button>
@@ -245,10 +259,10 @@ export function RoutingRulesList({ onSelect, onCreate, onPreview }: RoutingRules
                     type="button"
                     onClick={() => handleSort('assignedRepositoryCount')}
                     className="routing-rules-list__sort-button"
-                    aria-label={`Sort by repositories${sortField === 'assignedRepositoryCount' ? `, ${sortDirection === 'asc' ? 'ascending' : sortDirection === 'desc' ? 'descending' : 'not sorted'}` : ''}`}
+                    aria-label={sortLabel(RoutingRulesStrings.LIST.SORT_BY_REPOSITORIES, 'assignedRepositoryCount')}
                   >
                     <Flex align="center" gap="1">
-                      Repositories
+                      {RoutingRulesStrings.LIST.REPOSITORIES}
                       {renderSortIcon('assignedRepositoryCount')}
                     </Flex>
                   </button>
@@ -291,10 +305,10 @@ export function RoutingRulesList({ onSelect, onCreate, onPreview }: RoutingRules
 
       {/* Help Section - using shared component */}
       <HelpSection
-        title="What are Routing Rules?"
-        content="Routing rules allow you to control which requests are allowed or blocked for proxy repositories based on request path patterns. Rules use regular expressions to match request paths."
+        title={RoutingRulesStrings.LIST.WHAT_ROUTING_RULES}
+        content={RoutingRulesStrings.LIST.ROUTING_RULES_ALLOW_YOU_CONTROL}
         docLink={{
-          label: 'View Documentation',
+          label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
           href: 'http://links.globalart.dev/products/astrum/docs/routing-rule',
         }}
       />

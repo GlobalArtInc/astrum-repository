@@ -17,6 +17,8 @@ import type {
   IqCapabilities,
   CapabilityInfo,
 } from '../types';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../../constants/CommonStrings';
 
 interface InstanceConfigTabProps {
   iqCapabilities: IqCapabilities | null;
@@ -78,51 +80,51 @@ export function InstanceConfigTab({
             <Flex align="center" justify="between">
               <Flex align="center" gap="2">
                 <Shield size={18} color="var(--accent-9)" />
-                <Text weight="bold">IQ Server Connection</Text>
+                <Text weight="bold">{RepositoryProfileStrings.INSTANCE_CONFIG.IQ_SERVER_CONNECTION}</Text>
               </Flex>
-              <ClassicSettingsLink previewPath="preview/admin/iq" label="Configure" />
+              <ClassicSettingsLink previewPath="preview/admin/iq" label={CommonStrings.ACTIONS.CONFIGURE} />
             </Flex>
             <Separator size="4" />
             
             <Flex direction="column" gap="2">
               <Flex align="center" justify="between">
-                <Text size="2" color="gray">Status</Text>
+                <Text size="2" color="gray">{CommonStrings.LABELS.STATUS}</Text>
                 {iqCapabilities?.connected ? (
                   <Badge color="green" variant="soft">
                     <Flex align="center" gap="1">
-                      <CheckCircle size={12} /> Connected
+                      <CheckCircle size={12} /> {RepositoryProfileStrings.INSTANCE_CONFIG.CONNECTED}
                     </Flex>
                   </Badge>
                 ) : (
                   <Badge color="red" variant="soft">
                     <Flex align="center" gap="1">
-                      <XCircle size={12} /> Disconnected
+                      <XCircle size={12} /> {RepositoryProfileStrings.INSTANCE_CONFIG.DISCONNECTED}
                     </Flex>
                   </Badge>
                 )}
               </Flex>
               
               <Flex align="center" justify="between">
-                <Text size="2" color="gray">URL</Text>
+                <Text size="2" color="gray">{RepositoryProfileStrings.INSTANCE_CONFIG.URL}</Text>
                 <Text size="2" style={{ fontFamily: 'var(--code-font-family)' }}>
-                  {iqCapabilities?.url || 'Not configured'}
+                  {iqCapabilities?.url || RepositoryProfileStrings.INSTANCE_CONFIG.NOT_CONFIGURED}
                 </Text>
               </Flex>
 
               {iqCapabilities?.connected && (
                 <Flex align="center" justify="between" gap="2">
-                  <Text size="2" color="gray">Repository Manager ID</Text>
+                  <Text size="2" color="gray">{RepositoryProfileStrings.INSTANCE_CONFIG.REPOSITORY_MANAGER_ID}</Text>
                   <Flex align="center" gap="2" style={{ minWidth: 0 }}>
                     <Code size="2" variant="ghost" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {deploymentId || '—'}
                     </Code>
                     {deploymentId ? (
-                      <Tooltip content={deploymentIdCopied ? 'Copied!' : 'Copy'}>
+                      <Tooltip content={deploymentIdCopied ? RepositoryProfileStrings.INSTANCE_CONFIG.COPIED : RepositoryProfileStrings.INSTANCE_CONFIG.COPY}>
                         <IconButton
                           variant="ghost"
                           size="1"
                           onClick={copyDeploymentId}
-                          aria-label="Copy Repository Manager ID"
+                          aria-label={RepositoryProfileStrings.INSTANCE_CONFIG.COPY_REPOSITORY_MANAGER_ID_ARIA}
                         >
                           {deploymentIdCopied ? (
                             <Check size={14} color="var(--green-9)" />
@@ -140,47 +142,47 @@ export function InstanceConfigTab({
                 <Flex justify="end" mt="1">
                   <Button variant="soft" size="2" onClick={openFirewallManagement}>
                     <ExternalLink size={14} />
-                    Open Firewall Management
+                    {RepositoryProfileStrings.INSTANCE_CONFIG.OPEN_FIREWALL_MANAGEMENT}
                   </Button>
                 </Flex>
               )}
             </Flex>
 
             <Box mt="2">
-              <Text size="2" weight="medium" mb="2" display="block">License Features</Text>
+              <Text size="2" weight="medium" mb="2" display="block">{RepositoryProfileStrings.INSTANCE_CONFIG.LICENSE_FEATURES}</Text>
               <Grid columns="2" gap="2">
                 <Card variant="surface" size="1">
                   <Flex direction="column" gap="1">
-                    <Text size="1" color="gray">Lifecycle</Text>
+                    <Text size="1" color="gray">{RepositoryProfileStrings.INSTANCE_CONFIG.LIFECYCLE}</Text>
                     <Flex align="center" gap="2">
                       {iqCapabilities?.hasLifecycle ? (
                         <CheckCircle size={14} color="var(--green-9)" />
                       ) : (
                         <XCircle size={14} color="var(--gray-7)" />
                       )}
-                      <Text size="2">{iqCapabilities?.hasLifecycle ? 'Active' : 'Not Available'}</Text>
+                      <Text size="2">{iqCapabilities?.hasLifecycle ? RepositoryProfileStrings.INSTANCE_CONFIG.ACTIVE : RepositoryProfileStrings.INSTANCE_CONFIG.NOT_AVAILABLE}</Text>
                     </Flex>
                     {!iqCapabilities?.hasLifecycle && (
                       <a href="https://links.globalart.dev/products/astrum/browse/lc-learn" target="_blank" rel="noopener" className="iq-server-page__link" style={{ fontSize: '10px' }}>
-                        Learn More <ExternalLink size={8} />
+                        {CommonStrings.ACTIONS.LEARN_MORE_TITLE} <ExternalLink size={8} />
                       </a>
                     )}
                   </Flex>
                 </Card>
                 <Card variant="surface" size="1">
                   <Flex direction="column" gap="1">
-                    <Text size="1" color="gray">Firewall</Text>
+                    <Text size="1" color="gray">{RepositoryProfileStrings.INSTANCE_CONFIG.FIREWALL}</Text>
                     <Flex align="center" gap="2">
                       {iqCapabilities?.hasFirewall ? (
                         <CheckCircle size={14} color="var(--green-9)" />
                       ) : (
                         <XCircle size={14} color="var(--gray-7)" />
                       )}
-                      <Text size="2">{iqCapabilities?.hasFirewall ? 'Active' : 'Not Available'}</Text>
+                      <Text size="2">{iqCapabilities?.hasFirewall ? RepositoryProfileStrings.INSTANCE_CONFIG.ACTIVE : RepositoryProfileStrings.INSTANCE_CONFIG.NOT_AVAILABLE}</Text>
                     </Flex>
                     {!iqCapabilities?.hasFirewall && (
                       <a href="https://links.globalart.dev/astrum-repository-firewall" target="_blank" rel="noopener" className="iq-server-page__link" style={{ fontSize: '10px' }}>
-                        Learn More <ExternalLink size={8} />
+                        {CommonStrings.ACTIONS.LEARN_MORE_TITLE} <ExternalLink size={8} />
                       </a>
                     )}
                   </Flex>
@@ -196,9 +198,9 @@ export function InstanceConfigTab({
             <Flex align="center" justify="between">
               <Flex align="center" gap="2">
                 <Zap size={18} color="var(--yellow-9)" />
-                <Text weight="bold">Global Capabilities</Text>
+                <Text weight="bold">{RepositoryProfileStrings.INSTANCE_CONFIG.GLOBAL_CAPABILITIES}</Text>
               </Flex>
-              <ClassicSettingsLink previewPath="preview/admin/system/capabilities" label="Manage" />
+              <ClassicSettingsLink previewPath="preview/admin/system/capabilities" label={RepositoryProfileStrings.INSTANCE_CONFIG.MANAGE} />
             </Flex>
             <Separator size="4" />
 
@@ -206,32 +208,32 @@ export function InstanceConfigTab({
               {/* Health Check Instance Config */}
               <Box>
                 <Flex align="center" justify="between" mb="1">
-                  <Text size="2" weight="medium">Repository Health Check</Text>
+                  <Text size="2" weight="medium">{RepositoryProfileStrings.INSTANCE_CONFIG.REPOSITORY_HEALTH_CHECK}</Text>
                   {isHealthCheckConfigured ? (
                     <Badge color={isHealthCheckEnabled ? 'green' : 'yellow'} variant="soft">
-                      {isHealthCheckEnabled ? 'Active' : 'Disabled'}
+                      {isHealthCheckEnabled ? RepositoryProfileStrings.INSTANCE_CONFIG.ACTIVE : RepositoryProfileStrings.INSTANCE_CONFIG.DISABLED}
                     </Badge>
                   ) : (
-                    <Badge color="gray" variant="soft">Not Configured</Badge>
+                    <Badge color="gray" variant="soft">{RepositoryProfileStrings.INSTANCE_CONFIG.NOT_CONFIGURED_2}</Badge>
                   )}
                 </Flex>
                 <Text size="1" color="gray">
-                  Instance-level capability to analyze proxy repositories for security and license issues.
+                  {RepositoryProfileStrings.INSTANCE_CONFIG.INSTANCE_LEVEL_CAPABILITY_ANALYZE_PROXY}
                 </Text>
               </Box>
 
               {/* Firewall Instance Config */}
               <Box>
                 <Flex align="center" justify="between" mb="1">
-                  <Text size="2" weight="medium">Repository Firewall</Text>
+                  <Text size="2" weight="medium">{RepositoryProfileStrings.INSTANCE_CONFIG.REPOSITORY_FIREWALL}</Text>
                   {iqCapabilities?.hasFirewall ? (
-                    <Badge color="green" variant="soft">Available</Badge>
+                    <Badge color="green" variant="soft">{RepositoryProfileStrings.INSTANCE_CONFIG.AVAILABLE}</Badge>
                   ) : (
-                    <Badge color="gray" variant="soft">Requires License</Badge>
+                    <Badge color="gray" variant="soft">{RepositoryProfileStrings.INSTANCE_CONFIG.REQUIRES_LICENSE}</Badge>
                   )}
                 </Flex>
                 <Text size="1" color="gray">
-                  Keep bad code out of your repository. Blocks malicious and vulnerable components before they ever enter your repo.
+                  {RepositoryProfileStrings.INSTANCE_CONFIG.KEEP_BAD_CODE_OUT_REPOSITORY}
                 </Text>
               </Box>
             </Flex>
@@ -241,7 +243,7 @@ export function InstanceConfigTab({
                 <Flex gap="2">
                   <Info size={14} color="var(--gray-9)" />
                   <Text size="1" color="gray">
-                    These settings affect all supported repositories across the entire Astrum Repository instance.
+                    {RepositoryProfileStrings.INSTANCE_CONFIG.THESE_SETTINGS_AFFECT_ALL_SUPPORTED}
                   </Text>
                 </Flex>
               </Card>

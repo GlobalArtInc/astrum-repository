@@ -13,6 +13,8 @@ import {
   isReleaseType,
   getDefaultSortBy,
 } from './types';
+import CommonStrings from '../../../../constants/CommonStrings';
+import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
 
 /**
  * Extended context for the cleanup policy form machine.
@@ -60,55 +62,55 @@ export function validateCleanupPolicy(
 
   // Name validation
   if (!data.name?.trim()) {
-    errors.name = 'Name is required';
+    errors.name = CommonStrings.MESSAGES.NAME_REQUIRED;
   } else if (!/^[a-zA-Z0-9\-_.]+$/.test(data.name)) {
-    errors.name = 'Name must contain only letters, digits, underscores, hyphens, and periods';
+    errors.name = CleanupPoliciesStrings.FORM_MACHINE.NAME_MUST_CONTAIN_ONLY_LETTERS;
   }
 
   // Format validation
   if (!data.format) {
-    errors.format = 'Format is required';
+    errors.format = CleanupPoliciesStrings.FORM_MACHINE.FORMAT_REQUIRED;
   }
 
   // Notes length
   if (data.notes && data.notes.length > NOTES_MAX_LENGTH) {
-    errors.notes = `Description must be ${NOTES_MAX_LENGTH} characters or less`;
+    errors.notes = CleanupPoliciesStrings.FORM_MACHINE.DESCRIPTION_MUST_CHARACTERS_LESS(NOTES_MAX_LENGTH);
   }
 
   // Criteria number fields - only validate when enabled
   if (criteriaEnabled.lastBlobUpdated) {
     if (!data.criteriaLastBlobUpdated) {
-      errors.criteriaLastBlobUpdated = 'Component age is required';
+      errors.criteriaLastBlobUpdated = CleanupPoliciesStrings.FORM_MACHINE.COMPONENT_AGE_REQUIRED;
     } else if (!isValidCriteriaNumber(data.criteriaLastBlobUpdated)) {
-      errors.criteriaLastBlobUpdated = 'Must be a whole number between 1 and 24855';
+      errors.criteriaLastBlobUpdated = CleanupPoliciesStrings.FORM_MACHINE.MUST_WHOLE_NUMBER_BETWEEN_1;
     }
   }
 
   if (criteriaEnabled.lastDownloaded) {
     if (!data.criteriaLastDownloaded) {
-      errors.criteriaLastDownloaded = 'Component usage is required';
+      errors.criteriaLastDownloaded = CleanupPoliciesStrings.FORM_MACHINE.COMPONENT_USAGE_REQUIRED;
     } else if (!isValidCriteriaNumber(data.criteriaLastDownloaded)) {
-      errors.criteriaLastDownloaded = 'Must be a whole number between 1 and 24855';
+      errors.criteriaLastDownloaded = CleanupPoliciesStrings.FORM_MACHINE.MUST_WHOLE_NUMBER_BETWEEN_1;
     }
   }
 
   if (criteriaEnabled.assetRegex) {
     if (!data.criteriaAssetRegex?.trim()) {
-      errors.criteriaAssetRegex = 'Asset name pattern is required';
+      errors.criteriaAssetRegex = CleanupPoliciesStrings.FORM_MACHINE.ASSET_NAME_PATTERN_REQUIRED;
     } else {
       try {
         new RegExp(data.criteriaAssetRegex);
       } catch {
-        errors.criteriaAssetRegex = 'Invalid regular expression pattern';
+        errors.criteriaAssetRegex = CleanupPoliciesStrings.FORM_MACHINE.INVALID_REGULAR_EXPRESSION_PATTERN;
       }
     }
   }
 
   if (criteriaEnabled.retain) {
     if (!data.retain) {
-      errors.retain = 'Number of versions is required';
+      errors.retain = CleanupPoliciesStrings.FORM_MACHINE.NUMBER_VERSIONS_REQUIRED;
     } else if (!isValidCriteriaNumber(data.retain)) {
-      errors.retain = 'Must be a whole number between 1 and 24855';
+      errors.retain = CleanupPoliciesStrings.FORM_MACHINE.MUST_WHOLE_NUMBER_BETWEEN_1;
     }
   }
 
@@ -120,7 +122,7 @@ export function validateCleanupPolicy(
     !criteriaEnabled.assetRegex &&
     !criteriaEnabled.retain
   ) {
-    errors.criteriaSelected = 'At least one criterion must be selected';
+    errors.criteriaSelected = CleanupPoliciesStrings.FORM_MACHINE.LEAST_ONE_CRITERION_MUST_SELECTED;
   }
 
   return errors;

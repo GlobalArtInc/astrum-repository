@@ -10,6 +10,8 @@ import { BlobStoreStorageCard } from './BlobStoreStorageCard';
 import { RepositoryMetricsCard } from './RepositoryMetricsCard';
 
 import './RepositoryForm.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 interface RepositorySummaryProps {
   repository: Repository;
@@ -30,32 +32,32 @@ export function RepositorySummary({ repository, formData, onNavigateToTab, isClo
       <Box className="repository-summary__grid">
         {/* Status Section */}
         <SummaryItem 
-          label="Status" 
+          label={CommonStrings.LABELS.STATUS} 
           value={
             <Flex align="center" gap="2">
               <StatusBadge status={isOnline ? 'online' : 'offline'} size="small" />
-              <Text size="2">{repository.status?.description || (isOnline ? 'Online' : 'Offline')}</Text>
+              <Text size="2">{repository.status?.description || (isOnline ? RepositoriesPageStrings.SUMMARY.ONLINE : RepositoriesPageStrings.SUMMARY.OFFLINE)}</Text>
             </Flex>
           }
         />
 
         {/* Format & Type */}
         <SummaryItem 
-          label="Format" 
+          label={CommonStrings.LABELS.FORMAT} 
           value={<FormatBadge format={repository.format} />} 
         />
         <SummaryItem 
-          label="Type" 
+          label={CommonStrings.LABELS.TYPE} 
           value={<TypeBadge type={repository.type as any} />} 
         />
 
         {/* URL Section */}
         <SummaryItem
-          label="URL"
+          label={RepositoriesPageStrings.SUMMARY.URL}
           value={
             <Flex align="center" gap="2">
               <Text size="2" className="repository-summary__url">{repository.url + '/'}</Text>
-              <Tooltip content="Open in new tab">
+              <Tooltip content={RepositoriesPageStrings.SUMMARY.OPEN_NEW_TAB}>
                 <a href={repository.url + '/'} target="_blank" rel="noopener noreferrer" className="repository-summary__link">
                   <ExternalLink size={14} />
                 </a>
@@ -67,7 +69,7 @@ export function RepositorySummary({ repository, formData, onNavigateToTab, isClo
         {/* Proxy-specific: Remote URL */}
         {remoteUrl && (
           <SummaryItem
-            label="Remote Storage"
+            label={RepositoriesPageStrings.SUMMARY.REMOTE_STORAGE}
             value={
               <Flex align="center" gap="2">
                 <Globe size={14} className="repository-summary__icon" />
@@ -81,7 +83,7 @@ export function RepositorySummary({ repository, formData, onNavigateToTab, isClo
         {/* Storage Section - hidden in Cloud distribution */}
         {!isCloud && (
           <SummaryItem
-            label="Blob Store"
+            label={RepositoriesPageStrings.SUMMARY.BLOB_STORE}
             value={
               <Flex align="center" gap="2">
                 <HardDrive size={14} className="repository-summary__icon" />
@@ -95,11 +97,11 @@ export function RepositorySummary({ repository, formData, onNavigateToTab, isClo
         {/* Group-specific: Members */}
         {repository.type === 'group' && (
           <SummaryItem 
-            label="Group Members" 
+            label={RepositoriesPageStrings.SUMMARY.GROUP_MEMBERS} 
             value={
               <Flex align="center" gap="2">
                 <FolderSync size={14} className="repository-summary__icon" />
-                <Text size="2">{memberCount} member repositories</Text>
+                <Text size="2">{RepositoriesPageStrings.SUMMARY.MEMBER_REPOSITORIES(memberCount)}</Text>
               </Flex>
             }
             onClick={() => onNavigateToTab('settings')}
@@ -109,7 +111,7 @@ export function RepositorySummary({ repository, formData, onNavigateToTab, isClo
         {/* Cleanup Policies */}
         {formData.cleanup?.policyNames && formData.cleanup.policyNames.length > 0 && (
           <SummaryItem
-            label="Cleanup Policies"
+            label={RepositoriesPageStrings.SUMMARY.CLEANUP_POLICIES}
             value={
               <Flex gap="1" wrap="wrap">
                 {formData.cleanup.policyNames.map(policy => (

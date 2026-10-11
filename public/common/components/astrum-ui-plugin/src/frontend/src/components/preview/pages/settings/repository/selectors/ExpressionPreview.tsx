@@ -6,6 +6,7 @@ import { Eye } from 'lucide-react';
 import { interpretExpression } from './cselValidator';
 
 import './ExpressionPreview.scss';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
 
 interface ExpressionPreviewProps {
   expression: string;
@@ -28,7 +29,7 @@ export function ExpressionPreview({ expression }: ExpressionPreviewProps) {
     <Box className="expression-preview">
       <Flex align="center" gap="2" className="expression-preview__header">
         <Eye size={14} />
-        <Text size="1" weight="medium">Expression Preview</Text>
+        <Text size="1" weight="medium">{ContentSelectorsStrings.EXPRESSION_PREVIEW.EXPRESSION_PREVIEW}</Text>
       </Flex>
       <Text as="p" size="2" className="expression-preview__text">
         {interpretation.text}

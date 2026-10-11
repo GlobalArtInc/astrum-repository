@@ -5,6 +5,8 @@ import { useForm } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createBlobStoreFormMachine, BlobStoreFormData } from './blobStoreFormMachine';
 import type { BlobStoreTypeDescriptor as BlobStoreTypeInfo, QuotaType } from './types';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface UseBlobStoreFormOptions {
   /** Name of the blob store to edit (undefined for create mode). */
@@ -82,21 +84,21 @@ export function useBlobStoreForm({
         try {
           if (isCreate) {
             await saveBlobStore(ctx.data);
-            toast.success(`Blob store "${ctx.data.name}" created successfully`);
+            toast.success(BlobStoresStrings.FORM_HOOK.BLOB_STORE_CREATED_SUCCESSFULLY(ctx.data.name));
           } else {
             await updateBlobStore(ctx.data);
-            toast.success(`Blob store "${ctx.data.name}" updated successfully`);
+            toast.success(BlobStoresStrings.FORM_HOOK.BLOB_STORE_UPDATED_SUCCESSFULLY(ctx.data.name));
           }
           onCancel();
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },
       ...(deleteBlobStore && {
         delete: async (ctx: { data: BlobStoreFormData }) => {
           await deleteBlobStore(ctx.data.name);
-          toast.success(`Blob store "${ctx.data.name}" deleted successfully`);
+          toast.success(BlobStoresStrings.FORM_HOOK.BLOB_STORE_DELETED_SUCCESSFULLY(ctx.data.name));
         },
       }),
     },

@@ -24,9 +24,11 @@ import {
   enableFirewallQuarantine,
 } from '../../../../shared/security/useFirewallEnable';
 import { useRepositoriesApi } from './useRepositoriesApi';
-import { Repository, Recipe, RepositoryFormData, RepositoryType } from './types';
+import { Repository, Recipe, RepositoryFormData, RepositoryType, TYPE_LABELS } from './types';
 
 import './RepositoriesPage.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 function hasFirewallLicense(): boolean {
   try {
@@ -216,11 +218,11 @@ export function RepositoriesPage() {
 
   const wizardSteps = useMemo(
     () => [
-      { id: 'format', label: 'Select Format' },
-      { id: 'type', label: 'Select Type' },
-      { id: 'config', label: 'Configure' },
-      { id: 'firewall', label: 'Enable Firewall' },
-      { id: 'rhc', label: 'Enable RHC' },
+      { id: 'format', label: RepositoriesPageStrings.PAGE.SELECT_FORMAT },
+      { id: 'type', label: RepositoriesPageStrings.PAGE.SELECT_TYPE },
+      { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+      { id: 'firewall', label: RepositoriesPageStrings.PAGE.ENABLE_FIREWALL },
+      { id: 'rhc', label: RepositoriesPageStrings.PAGE.ENABLE_RHC },
     ],
     []
   );
@@ -303,8 +305,8 @@ export function RepositoriesPage() {
           try {
             await enableHealthCheck(repoName);
           } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to enable Health Check';
-            toast.warning(`Health Check could not be enabled for "${repoName}": ${errorMessage}`);
+            const errorMessage = err instanceof Error ? err.message : RepositoriesPageStrings.PAGE.FAILED_ENABLE_HEALTH_CHECK;
+            toast.warning(RepositoriesPageStrings.PAGE.HEALTH_CHECK_COULD_NOT_ENABLED(repoName, errorMessage));
           }
         } else {
           // The backend may auto-enable HC for new proxy repos; explicitly disable to enforce
@@ -315,10 +317,10 @@ export function RepositoriesPage() {
             console.warn(`Could not disable auto-enabled Health Check for "${repoName}":`, err);
           }
         }
-        toast.success(`Repository "${repoName}" created successfully`);
+        toast.success(RepositoriesPageStrings.PAGE.REPOSITORY_CREATED_SUCCESSFULLY(repoName));
         finishCreate();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to create repository');
+        toast.error(err instanceof Error ? err.message : RepositoriesPageStrings.PAGE.FAILED_CREATE_REPOSITORY);
         throw err;
       }
     } else if (repoFormSubmitRef.current) {
@@ -373,10 +375,10 @@ export function RepositoriesPage() {
       // so the form remains editable if creation fails)
       try {
         await createRepository(data);
-        toast.success(`Repository "${data.name}" created successfully`);
+        toast.success(RepositoriesPageStrings.PAGE.REPOSITORY_CREATED_SUCCESSFULLY_2(data.name));
         finishCreate();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to create repository');
+        toast.error(err instanceof Error ? err.message : RepositoriesPageStrings.PAGE.FAILED_CREATE_REPOSITORY);
       }
       return { skipNavigate: true };
     },
@@ -392,7 +394,7 @@ export function RepositoriesPage() {
     setIsDeleting(true);
     try {
       await deleteRepository(repository.name);
-      toast.success(`Repository "${repository.name}" deleted successfully`);
+      toast.success(RepositoriesPageStrings.PAGE.REPOSITORY_DELETED_SUCCESSFULLY(repository.name));
       setRefreshKey(k => k + 1);
       setDeleteModalOpen(false);
       handleBack();
@@ -436,10 +438,10 @@ export function RepositoriesPage() {
     try {
       if (pendingAction.kind === 'rebuild-index') {
         await rebuildIndex(repoName);
-        toast.success(`Repository index rebuild started for "${repoName}"`);
+        toast.success(RepositoriesPageStrings.PAGE.REPOSITORY_INDEX_REBUILD_STARTED(repoName));
       } else if (pendingAction.kind === 'invalidate-cache') {
         await invalidateCache(repoName);
-        toast.success(`Repository caches invalidated for "${repoName}"`);
+        toast.success(RepositoriesPageStrings.PAGE.REPOSITORY_CACHES_INVALIDATED(repoName));
       } else {
         await setRepositoryOnline(
           repoName,
@@ -449,8 +451,8 @@ export function RepositoriesPage() {
         );
         toast.success(
           pendingAction.nextOnline
-            ? `Repository "${repoName}" is now online`
-            : `Repository "${repoName}" is now offline`
+            ? RepositoriesPageStrings.PAGE.REPOSITORY_NOW_ONLINE(repoName)
+            : RepositoriesPageStrings.PAGE.REPOSITORY_NOW_OFFLINE(repoName)
         );
         // Refetch so pristineData.online (and the Online checkbox) reflect the
         // saved state. Failure to refetch here would leave the toggle button
@@ -462,8 +464,8 @@ export function RepositoriesPage() {
       }
       setPendingAction(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      toast.error('Action failed', message);
+      const message = err instanceof Error ? err.message : CommonStrings.MESSAGES.UNKNOWN_ERROR;
+      toast.error(RepositoriesPageStrings.PAGE.ACTION_FAILED, message);
     } finally {
       setIsExecutingAction(false);
     }
@@ -474,60 +476,60 @@ export function RepositoriesPage() {
   // run.
   const actionDialogProps = useMemo(() => {
     if (!pendingAction || !repository) {
-      return { title: '', message: '', confirmLabel: 'Confirm', variant: 'warning' as const };
+      return { title: '', message: '', confirmLabel: CommonStrings.ACTIONS.CONFIRM, variant: 'warning' as const };
     }
     const name = repository.name;
     if (pendingAction.kind === 'rebuild-index') {
       return {
-        title: 'Rebuild Repository Index',
-        message: `Rebuild the search index for repository "${name}"? This may take some time depending on repository size.`,
-        confirmLabel: 'Rebuild Index',
+        title: RepositoriesPageStrings.PAGE.REBUILD_REPOSITORY_INDEX,
+        message: RepositoriesPageStrings.PAGE.REBUILD_SEARCH_INDEX_REPOSITORY_MAY(name),
+        confirmLabel: RepositoriesPageStrings.PAGE.REBUILD_INDEX,
         variant: 'warning' as const,
       };
     }
     if (pendingAction.kind === 'invalidate-cache') {
       return {
-        title: 'Invalidate Repository Cache',
-        message: `Invalidate cached metadata and content for repository "${name}"? Subsequent requests will refetch from the upstream source.`,
-        confirmLabel: 'Invalidate Cache',
+        title: RepositoriesPageStrings.PAGE.INVALIDATE_REPOSITORY_CACHE,
+        message: RepositoriesPageStrings.PAGE.INVALIDATE_CACHED_METADATA_CONTENT_REPOSITORY(name),
+        confirmLabel: RepositoriesPageStrings.PAGE.INVALIDATE_CACHE,
         variant: 'warning' as const,
       };
     }
     // toggle-online
     const isGoingOffline = !pendingAction.nextOnline;
     return {
-      title: isGoingOffline ? 'Disable System Status' : 'Enable System Status',
+      title: isGoingOffline ? RepositoriesPageStrings.PAGE.DISABLE_SYSTEM_STATUS : RepositoriesPageStrings.PAGE.ENABLE_SYSTEM_STATUS,
       message: isGoingOffline
-        ? `Take repository "${name}" offline? Clients will no longer be able to read from or write to this repository until it is brought back online.`
-        : `Bring repository "${name}" online? Clients will be able to access it again.`,
-      confirmLabel: isGoingOffline ? 'Take Offline' : 'Bring Online',
+        ? RepositoriesPageStrings.PAGE.TAKE_REPOSITORY_OFFLINE_CLIENTS_NO(name)
+        : RepositoriesPageStrings.PAGE.BRING_REPOSITORY_ONLINE_CLIENTS_ABLE(name),
+      confirmLabel: isGoingOffline ? RepositoriesPageStrings.PAGE.TAKE_OFFLINE : RepositoriesPageStrings.PAGE.BRING_ONLINE,
       variant: 'warning' as const,
     };
   }, [pendingAction, repository]);
 
   const getHeaderProps = () => {
     switch (routeState.viewMode) {
-      case 'list': return { icon: Database, title: 'Repositories', description: 'Manage hosted, proxy, and group repositories', actions: canCreate ? <Button variant="solid" onClick={handleCreate}><Plus size={16} /> Create Repository</Button> : undefined };
-      case 'select-type': return { icon: Database, title: 'Create Repository', description: 'Configure your new repository settings' };
-      case 'create': return { icon: selectedRecipe ? <FormatIcon format={selectedRecipe.format} type={selectedRecipe.type} size={24} /> : Database, title: `Create ${(selectedRecipe?.format || '').replace(/2$/, '')} (${selectedRecipe?.type || ''}) Repository`, description: 'Configure settings' };
-      case 'edit': return { icon: repository ? <FormatIcon format={repository.format} type={repository.type} size={24} /> : Database, title: repository ? `Edit ${repository.name}` : 'Details', description: repository ? `${repository.format} • ${repository.type} • ${repository.status?.online ? 'Online' : 'Offline'}` : 'Loading...' };
-      default: return { icon: Database, title: 'Repositories', description: 'Manage repositories' };
+      case 'list': return { icon: Database, title: RepositoriesPageStrings.PAGE.REPOSITORIES, description: RepositoriesPageStrings.PAGE.MANAGE_HOSTED_PROXY_GROUP_REPOSITORIES, actions: canCreate ? <Button variant="solid" onClick={handleCreate}><Plus size={16} /> {RepositoriesPageStrings.PAGE.CREATE_REPOSITORY}</Button> : undefined };
+      case 'select-type': return { icon: Database, title: RepositoriesPageStrings.PAGE.CREATE_REPOSITORY, description: RepositoriesPageStrings.PAGE.CONFIGURE_NEW_REPOSITORY_SETTINGS };
+      case 'create': return { icon: selectedRecipe ? <FormatIcon format={selectedRecipe.format} type={selectedRecipe.type} size={24} /> : Database, title: RepositoriesPageStrings.PAGE.CREATE_TYPED_REPOSITORY((selectedRecipe?.format || '').replace(/2$/, ''), TYPE_LABELS[selectedRecipe?.type as RepositoryType] || selectedRecipe?.type || ''), description: RepositoriesPageStrings.PAGE.CONFIGURE_SETTINGS };
+      case 'edit': return { icon: repository ? <FormatIcon format={repository.format} type={repository.type} size={24} /> : Database, title: repository ? RepositoriesPageStrings.PAGE.EDIT(repository.name) : RepositoriesPageStrings.PAGE.DETAILS, description: repository ? `${repository.format} • ${TYPE_LABELS[repository.type] || repository.type} • ${repository.status?.online ? RepositoriesPageStrings.PAGE.ONLINE : RepositoriesPageStrings.PAGE.OFFLINE}` : CommonStrings.MESSAGES.LOADING };
+      default: return { icon: Database, title: RepositoriesPageStrings.PAGE.REPOSITORIES, description: RepositoriesPageStrings.PAGE.MANAGE_REPOSITORIES };
     }
   };
 
   const getBreadcrumbs = () => {
     const base = [
-      { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-      { label: 'Repositories', onClick: handleBack },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+      { label: RepositoriesPageStrings.PAGE.REPOSITORIES, onClick: handleBack },
     ];
     switch (routeState.viewMode) {
       case 'list': return [
-        { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-        { label: 'Repositories' }
+        { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+        { label: RepositoriesPageStrings.PAGE.REPOSITORIES }
       ];
-      case 'select-type': return [...base, { label: 'Create' }];
-      case 'create': return [...base, { label: 'Create' }];
-      case 'edit': return [...base, { label: repository?.name || 'Loading...' }];
+      case 'select-type': return [...base, { label: CommonStrings.ACTIONS.CREATE }];
+      case 'create': return [...base, { label: CommonStrings.ACTIONS.CREATE }];
+      case 'edit': return [...base, { label: repository?.name || CommonStrings.MESSAGES.LOADING }];
       default: return base;
     }
   };
@@ -555,7 +557,7 @@ export function RepositoriesPage() {
           >
             <Flex align="center" gap="1" as="span">
               <ArrowLeft size={14} aria-hidden />
-              <span>Hosted Repository Evaluation</span>
+              <span>{RepositoriesPageStrings.PAGE.HOSTED_REPOSITORY_EVALUATION}</span>
             </Flex>
           </Link>
         </Box>
@@ -585,7 +587,7 @@ export function RepositoriesPage() {
               setRhcChoice(null);
               handleBack();
             }}
-            completeLabel="Create Repository"
+            completeLabel={RepositoriesPageStrings.PAGE.CREATE_REPOSITORY}
             onStepSubmitOverride={(step) =>
               step === 2
                 ? () => {

@@ -27,41 +27,43 @@ import { DangerousEditConfirmDialog } from './DangerousEditConfirmDialog';
 import { hasDangerousFieldChanges, getDangerousFieldsChanged } from './dangerousFields';
 import type { BlobStoreFormData, SoftQuota } from './types';
 import './BlobStoresForm.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const STRINGS = {
-  CREATE_TITLE: 'Create Blob Store',
-  EDIT_TITLE: (name: string) => `Edit ${name}`,
-  EDIT_DESCRIPTION: (type: string) => `${type} Blob Store`,
-  EDIT_WARNING: 'Updating the blob store configuration will cause it to be temporarily unavailable for a short period. Edits to configuration may also leave the blob store in a non-functional state.',
-  CONVERT_TO_GROUP_BUTTON: 'Convert to Group',
+  CREATE_TITLE: BlobStoresStrings.FORM.CREATE_BLOB_STORE,
+  EDIT_TITLE: (name: string) => BlobStoresStrings.FORM.EDIT(name),
+  EDIT_DESCRIPTION: (type: string) => BlobStoresStrings.FORM.BLOB_STORE(type),
+  EDIT_WARNING: BlobStoresStrings.FORM.UPDATING_BLOB_STORE_CONFIGURATION_CAUSE,
+  CONVERT_TO_GROUP_BUTTON: BlobStoresStrings.FORM.CONVERT_GROUP,
   TYPE: {
-    label: 'Type',
-    sublabel: 'Select the type of the blob store'
+    label: CommonStrings.LABELS.TYPE,
+    sublabel: BlobStoresStrings.FORM.SELECT_TYPE_BLOB_STORE
   },
   NAME: {
-    label: 'Name',
-    placeholder: 'Enter blob store name'
+    label: CommonStrings.LABELS.NAME,
+    placeholder: BlobStoresStrings.FORM.ENTER_BLOB_STORE_NAME
   },
   SOFT_QUOTA: {
-    title: 'Soft Quota',
-    description: 'Raises an alert when the blob store exceeds a constraint',
-    ENABLED: 'Enable soft quota',
+    title: BlobStoresStrings.FORM.SOFT_QUOTA,
+    description: BlobStoresStrings.FORM.RAISES_ALERT_WHEN_BLOB_STORE,
+    ENABLED: BlobStoresStrings.FORM.ENABLE_SOFT_QUOTA,
     TYPE: {
-      label: 'Constraint Type',
-      placeholder: 'Select constraint type'
+      label: BlobStoresStrings.FORM.CONSTRAINT_TYPE,
+      placeholder: BlobStoresStrings.FORM.SELECT_CONSTRAINT_TYPE
     },
     LIMIT: {
-      label: 'Constraint Limit (in MB)',
-      placeholder: 'Enter limit in MB'
+      label: BlobStoresStrings.FORM.CONSTRAINT_LIMIT_MB,
+      placeholder: BlobStoresStrings.FORM.ENTER_LIMIT_MB
     }
   },
   DELETE: {
-    button: 'Delete',
+    button: CommonStrings.ACTIONS.DELETE,
     tooltip: (repositoryUsage: number, blobStoreUsage: number, hasPermission: boolean) => {
       if (!hasPermission) {
-        return "You don't have permission to delete blob stores. Contact your administrator to request access.";
+        return BlobStoresStrings.FORM.YOU_DONT_HAVE_PERMISSION_DELETE;
       }
-      return `This blob store is in use by ${repositoryUsage} repositories and ${blobStoreUsage} blob stores`;
+      return BlobStoresStrings.FORM.BLOB_STORE_USE_REPOSITORIES_BLOB(repositoryUsage, blobStoreUsage);
     }
   },
 };
@@ -224,7 +226,7 @@ export default function BlobStoresForm() {
       <div className="blob-stores-form">
         <div className="blob-stores-form__loading">
           <div className="blob-stores-form__spinner" />
-          <span>Loading...</span>
+          <span>{CommonStrings.MESSAGES.LOADING}</span>
         </div>
       </div>
     );
@@ -247,7 +249,7 @@ export default function BlobStoresForm() {
               onClick={handleBack}
               icon={ArrowLeft}
             >
-              Back
+              {CommonStrings.ACTIONS.BACK}
             </SettingsButton>
             {canConvertToGroup && hasUpdatePermissions && (
               <SettingsButton
@@ -289,10 +291,10 @@ export default function BlobStoresForm() {
 
         {/* Type Selection - only for create */}
         {!isEdit && (
-          <SettingsFormSection title="Blob Store Type">
+          <SettingsFormSection title={BlobStoresStrings.FORM.BLOB_STORE_TYPE}>
             {types.length === 0 ? (
               <SettingsAlert variant="error" icon={<AlertCircle size={16} />}>
-                No blob store types available. Please check your connection and try again.
+                {BlobStoresStrings.FORM.NO_BLOB_STORE_TYPES_AVAILABLE}
               </SettingsAlert>
             ) : (
               <SettingsSelect
@@ -301,7 +303,7 @@ export default function BlobStoresForm() {
                 value={selectedType}
                 onChange={handleTypeChange}
                 options={[
-                  { value: '', label: 'Select a type...' },
+                  { value: '', label: BlobStoresStrings.FORM.SELECT_TYPE },
                   ...types.map(t => ({ value: t.id, label: t.name }))
                 ]}
                 required
@@ -314,12 +316,12 @@ export default function BlobStoresForm() {
 
         {/* Name - only for create */}
         {!isEdit && selectedType && (
-          <SettingsFormSection title="Basic Configuration">
+          <SettingsFormSection title={BlobStoresStrings.FORM.BASIC_CONFIGURATION}>
             <SettingsTextInput
               {...form.field('name')}
               label={STRINGS.NAME.label}
               placeholder={STRINGS.NAME.placeholder}
-              helpText="Unique name for this blob store. Cannot be changed after creation."
+              helpText={BlobStoresStrings.FORM.UNIQUE_NAME_BLOB_STORE_CANNOT}
               required
               disabled={!hasUpdatePermissions}
               onChange={handleNameChange}

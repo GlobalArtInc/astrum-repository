@@ -15,6 +15,8 @@ import {
 } from './types';
 
 import './CleanupPolicyPreview.scss';
+import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface CleanupPolicyPreviewProps {
   policyData: CleanupPolicyFormData;
@@ -108,7 +110,7 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
       try {
         new RegExp(policyData.criteriaAssetRegex);
       } catch {
-        setPreviewError('Invalid regular expression pattern. Use regex syntax (e.g., ".*\\.jar" instead of "*.jar")');
+        setPreviewError(CleanupPoliciesStrings.PREVIEW.INVALID_REGULAR_EXPRESSION_PATTERN_USE);
         return;
       }
     }
@@ -191,19 +193,19 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
   return (
     <Card className="cleanup-policy-preview">
       <Text as="h3" size="4" weight="medium" className="cleanup-policy-preview__title">
-        Cleanup policy preview
+        {CleanupPoliciesStrings.PREVIEW.CLEANUP_POLICY_PREVIEW}
       </Text>
 
       {/* Repository Selection */}
       <Box className="cleanup-policy-preview__controls">
         <SettingsSelect
           name="previewRepository"
-          label="Preview Repository"
-          helpText="Select a repository to preview what might get cleaned up if this policy was applied"
+          label={CleanupPoliciesStrings.PREVIEW.PREVIEW_REPOSITORY}
+          helpText={CleanupPoliciesStrings.PREVIEW.SELECT_REPOSITORY_PREVIEW_WHAT_MIGHT}
           value={selectedRepository}
           onChange={setSelectedRepository}
           disabled={isLoadingRepos || !policyData.format}
-          placeholder="Select a repository..."
+          placeholder={CleanupPoliciesStrings.PREVIEW.SELECT_REPOSITORY_PLACEHOLDER}
           options={repositories.map((repo) => ({
             value: repo.id,
             label: repo.name,
@@ -216,7 +218,7 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
           disabled={!isPreviewAvailable || isLoadingPreview}
           className="cleanup-policy-preview__button"
         >
-          {isLoadingPreview ? 'Loading...' : 'Preview'}
+          {isLoadingPreview ? CommonStrings.MESSAGES.LOADING : CleanupPoliciesStrings.PREVIEW.PREVIEW}
         </SettingsButton>
       </Box>
 
@@ -242,14 +244,14 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
           </Callout.Icon>
           <Callout.Text>
             <Text size="2">
-              Results may only be a sample of what will be deleted using the current criteria.
+              {CleanupPoliciesStrings.PREVIEW.RESULTS_MAY_ONLY_SAMPLE_WHAT}
             </Text>
             <Text size="2" className="cleanup-policy-preview__count">
               {totalCount === 0
-                ? 'Criteria matched no components.'
+                ? CleanupPoliciesStrings.PREVIEW.CRITERIA_MATCHED_NO_COMPONENTS
                 : totalCount > 0
-                ? `Component count (matching criteria) viewing ${filteredResults.length} out of ${totalCount}.`
-                : `Component count (matching criteria) viewing first ${filteredResults.length}`}
+                ? CleanupPoliciesStrings.PREVIEW.COMPONENT_COUNT_MATCHING_CRITERIA_VIEWING(filteredResults.length, totalCount)
+                : CleanupPoliciesStrings.PREVIEW.COMPONENT_COUNT_MATCHING_CRITERIA_VIEWING_2(filteredResults.length)}
             </Text>
           </Callout.Text>
         </Callout.Root>
@@ -258,7 +260,7 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
       {/* Search/Filter */}
       <Box className="cleanup-policy-preview__toolbar">
         <TextField.Root
-          placeholder="Filter results..."
+          placeholder={CleanupPoliciesStrings.PREVIEW.FILTER_RESULTS_PLACEHOLDER}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="cleanup-policy-preview__search"
@@ -278,7 +280,7 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
               onClick={() => handleSort('name')}
             >
               <Flex align="center" gap="1">
-                Name {getSortIcon('name')}
+                {CommonStrings.LABELS.NAME} {getSortIcon('name')}
               </Flex>
             </Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell
@@ -286,7 +288,7 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
               onClick={() => handleSort('group')}
             >
               <Flex align="center" gap="1">
-                Group {getSortIcon('group')}
+                {CleanupPoliciesStrings.PREVIEW.GROUP} {getSortIcon('group')}
               </Flex>
             </Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell
@@ -294,7 +296,7 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
               onClick={() => handleSort('version')}
             >
               <Flex align="center" gap="1">
-                Version {getSortIcon('version')}
+                {CleanupPoliciesStrings.PREVIEW.VERSION} {getSortIcon('version')}
               </Flex>
             </Table.ColumnHeaderCell>
           </Table.Row>
@@ -305,7 +307,7 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
               <Table.Cell colSpan={3}>
                 <Flex align="center" justify="center" py="4">
                   <Text size="2" color="gray">
-                    Loading preview...
+                    {CleanupPoliciesStrings.PREVIEW.LOADING_PREVIEW}
                   </Text>
                 </Flex>
               </Table.Cell>
@@ -316,8 +318,8 @@ export function CleanupPolicyPreview({ policyData, selectedRepositories = [] }: 
                 <Flex align="center" justify="center" py="4">
                   <Text size="2" color="gray">
                     {previewResults.length === 0
-                      ? 'No assets in repository matched the criteria'
-                      : 'No results match your filter'}
+                      ? CleanupPoliciesStrings.PREVIEW.NO_ASSETS_REPOSITORY_MATCHED_CRITERIA
+                      : CleanupPoliciesStrings.PREVIEW.NO_RESULTS_MATCH_FILTER}
                   </Text>
                 </Flex>
               </Table.Cell>

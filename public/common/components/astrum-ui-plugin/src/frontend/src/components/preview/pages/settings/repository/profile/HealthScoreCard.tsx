@@ -3,6 +3,7 @@
 import React from 'react';
 import { Box, Text } from '@radix-ui/themes';
 import type { HealthCheckData, RepositoryMetrics } from './types';
+import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 
 // =============================================================================
 // Types
@@ -58,28 +59,28 @@ export function HealthScoreCard({
 
   return (
     <Box className="health-score-card">
-      <Text className="health-score-card__title">Health Score</Text>
+      <Text className="health-score-card__title">{RepositoryProfileStrings.HEALTH_SCORE.HEALTH_SCORE}</Text>
 
       <Text className={`health-score-card__score health-score-card__score--${scoreClass}`}>
         {score !== null ? score : '—'}
       </Text>
 
       <Text className="health-score-card__label">
-        {score !== null ? 'out of 100' : 'Not available'}
+        {score !== null ? RepositoryProfileStrings.HEALTH_SCORE.OUT_100 : RepositoryProfileStrings.HEALTH_SCORE.NOT_AVAILABLE}
       </Text>
 
       <Box className="health-score-card__divider" />
 
       <Box className="health-score-card__stats">
         <Box className="health-score-card__stat">
-          <Text className="health-score-card__stat-label">Components</Text>
+          <Text className="health-score-card__stat-label">{RepositoryProfileStrings.HEALTH_SCORE.COMPONENTS}</Text>
           <Text className="health-score-card__stat-value">
             {metrics?.componentCount?.toLocaleString() ?? '—'}
           </Text>
         </Box>
 
         <Box className="health-score-card__stat">
-          <Text className="health-score-card__stat-label">Assets</Text>
+          <Text className="health-score-card__stat-label">{RepositoryProfileStrings.HEALTH_SCORE.ASSETS}</Text>
           <Text className="health-score-card__stat-value">
             {metrics?.assetCount?.toLocaleString() ?? '—'}
           </Text>
@@ -87,7 +88,7 @@ export function HealthScoreCard({
 
         {healthCheck?.securityIssueCount !== undefined && (
           <Box className="health-score-card__stat">
-            <Text className="health-score-card__stat-label">Security Issues</Text>
+            <Text className="health-score-card__stat-label">{RepositoryProfileStrings.HEALTH_SCORE.SECURITY_ISSUES}</Text>
             <Text className="health-score-card__stat-value">
               {healthCheck.securityIssueCount}
             </Text>

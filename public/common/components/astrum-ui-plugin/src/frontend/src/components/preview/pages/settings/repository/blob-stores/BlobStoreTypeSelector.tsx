@@ -11,6 +11,7 @@ import { AwsS3Icon, AzureBlobIcon, GoogleCloudIcon } from './CloudProviderIcons'
 import { BLOB_STORE_TYPE_IDS } from './blobStoreFormMachine';
 
 import './BlobStoreTypeSelector.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 export type BlobStoreTypeId =
   | typeof BLOB_STORE_TYPE_IDS.FILE
@@ -30,36 +31,36 @@ export interface BlobStoreTypeOption {
 const BLOB_STORE_OPTIONS: BlobStoreTypeOption[] = [
   {
     id: BLOB_STORE_TYPE_IDS.FILE,
-    label: 'File',
-    description: 'Local filesystem storage. Simple and fast for single-node deployments.',
+    label: BlobStoresStrings.TYPE_SELECTOR.FILE,
+    description: BlobStoresStrings.TYPE_SELECTOR.LOCAL_FILESYSTEM_STORAGE_SIMPLE_FAST,
     icon: HardDrive,
     accentClass: 'blob-type-selector__card--file',
   },
   {
     id: BLOB_STORE_TYPE_IDS.S3,
-    label: 'Amazon S3',
-    description: 'AWS object storage. Scalable, durable, with IAM and encryption support.',
+    label: BlobStoresStrings.TYPE_SELECTOR.AMAZON_S3,
+    description: BlobStoresStrings.TYPE_SELECTOR.AWS_OBJECT_STORAGE_SCALABLE_DURABLE,
     icon: AwsS3Icon,
     accentClass: 'blob-type-selector__card--s3',
   },
   {
     id: BLOB_STORE_TYPE_IDS.AZURE,
-    label: 'Azure Blob',
-    description: 'Microsoft Azure Blob Storage. Enterprise cloud storage with managed identity.',
+    label: BlobStoresStrings.TYPE_SELECTOR.AZURE_BLOB,
+    description: BlobStoresStrings.TYPE_SELECTOR.MICROSOFT_AZURE_BLOB_STORAGE_ENTERPRISE,
     icon: AzureBlobIcon,
     accentClass: 'blob-type-selector__card--azure',
   },
   {
     id: BLOB_STORE_TYPE_IDS.GOOGLE,
-    label: 'Google Cloud',
-    description: 'Google Cloud Storage. Object storage with application-default credentials.',
+    label: BlobStoresStrings.TYPE_SELECTOR.GOOGLE_CLOUD,
+    description: BlobStoresStrings.TYPE_SELECTOR.GOOGLE_CLOUD_STORAGE_OBJECT_STORAGE,
     icon: GoogleCloudIcon,
     accentClass: 'blob-type-selector__card--google',
   },
   {
     id: BLOB_STORE_TYPE_IDS.GROUP,
-    label: 'Group',
-    description: 'Aggregate multiple blob stores. Supports fill policies like round-robin.',
+    label: BlobStoresStrings.TYPE_SELECTOR.GROUP,
+    description: BlobStoresStrings.TYPE_SELECTOR.AGGREGATE_MULTIPLE_BLOB_STORES_SUPPORTS,
     icon: Layers,
     accentClass: 'blob-type-selector__card--group',
   },
@@ -79,14 +80,13 @@ export function BlobStoreTypeSelector({
   return (
     <Box className="blob-type-selector">
       <Heading size="4" mb="2" weight="medium">
-        Choose storage type
+        {BlobStoresStrings.TYPE_SELECTOR.CHOOSE_STORAGE_TYPE}
       </Heading>
       <Text size="2" color="gray" mb="6" as="p">
-        Select the blob store type that matches your infrastructure. You can configure credentials and
-        advanced options in the next steps.
+        {BlobStoresStrings.TYPE_SELECTOR.SELECT_BLOB_STORE_TYPE_MATCHES}
       </Text>
 
-      <Box className="blob-type-selector__grid" role="listbox" aria-label="Blob store types">
+      <Box className="blob-type-selector__grid" role="listbox" aria-label={BlobStoresStrings.TYPE_SELECTOR.BLOB_STORE_TYPES_ARIA}>
         {BLOB_STORE_OPTIONS.map((opt) => {
           const Icon = opt.icon;
           const isSelected = selectedType === opt.id;

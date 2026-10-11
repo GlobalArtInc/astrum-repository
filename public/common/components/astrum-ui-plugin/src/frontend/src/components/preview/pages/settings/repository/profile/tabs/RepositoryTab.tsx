@@ -29,6 +29,9 @@ import type {
   RoutingRuleInfo,
 } from '../types';
 import { ensureTrailingSlash } from '../../../../../../../utils/url';
+import CommonStrings from '../../../../../constants/CommonStrings';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import { formatDuration } from '../../../../../shared/utils/formatLocale';
 
 // =============================================================================
 // Types
@@ -62,7 +65,7 @@ function ProfileSection({ title, icon: Icon, editPath, children }: ProfileSectio
             <Heading size="3" style={{ fontSize: 'var(--font-size-4)' }}>{title}</Heading>
           </Flex>
           {editPath && (
-            <ClassicSettingsLink previewPath={editPath} label="Configure" />
+            <ClassicSettingsLink previewPath={editPath} label={CommonStrings.ACTIONS.CONFIGURE} />
           )}
         </Flex>
         <Separator size="4" />
@@ -97,11 +100,11 @@ function ConfigRow({ label, value, isCode, isList, listItems, fullWidth }: Confi
           </Text>
         ))}
       </Flex>
-    ) : <Text size="2" color="gray">None</Text>;
+    ) : <Text size="2" color="gray">{RepositoryProfileStrings.REPOSITORY_TAB.NONE}</Text>;
   } else if (typeof value === 'boolean') {
     displayValue = (
       <Badge color={value ? 'green' : 'gray'} variant="soft">
-        {value ? 'Enabled' : 'Disabled'}
+        {value ? RepositoryProfileStrings.REPOSITORY_TAB.ENABLED : RepositoryProfileStrings.REPOSITORY_TAB.DISABLED}
       </Badge>
     );
   } else if (isCode) {
@@ -191,34 +194,34 @@ export function RepositoryTab({
   return (
     <Box>
       <ProfileSection
-        title="Repository Configuration"
+        title={RepositoryProfileStrings.REPOSITORY_TAB.REPOSITORY_CONFIGURATION}
         icon={Database}
         editPath={`preview/admin/repository/repositories/${encodeURIComponent(repository.name)}`}
       >
         <Grid columns="2" gapX="6" gapY="2">
           <Box style={{ gridColumn: 'span 2' }} mb="2">
-            <Text size="2" weight="bold" color="accent">General</Text>
+            <Text size="2" weight="bold" color="accent">{RepositoryProfileStrings.REPOSITORY_TAB.GENERAL}</Text>
           </Box>
-          <ConfigRow label="Name" value={repository.name} />
-          <ConfigRow label="Format" value={<FormatBadge format={repository.format} />} />
-          <ConfigRow label="Type" value={<TypeBadge type={repository.type as any} />} />
-          <ConfigRow label="Recipe" value={repository.recipe} />
-          <ConfigRow label="Online" value={repository.online} />
-          <ConfigRow label="URL" value={ensureTrailingSlash(repository.url)} isCode fullWidth />
+          <ConfigRow label={CommonStrings.LABELS.NAME} value={repository.name} />
+          <ConfigRow label={CommonStrings.LABELS.FORMAT} value={<FormatBadge format={repository.format} />} />
+          <ConfigRow label={CommonStrings.LABELS.TYPE} value={<TypeBadge type={repository.type as any} />} />
+          <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.RECIPE} value={repository.recipe} />
+          <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.ONLINE} value={repository.online} />
+          <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.URL} value={ensureTrailingSlash(repository.url)} isCode fullWidth />
           
           {repository.routingRuleId && (
-            <ConfigRow label="Routing Rule" value={repository.routingRuleId} />
+            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.ROUTING_RULE} value={repository.routingRuleId} />
           )}
 
           <Box style={{ gridColumn: 'span 2' }} mt="4" mb="2">
-            <Text size="2" weight="bold" color="accent">Storage & Cleanup</Text>
+            <Text size="2" weight="bold" color="accent">{RepositoryProfileStrings.REPOSITORY_TAB.STORAGE_CLEANUP}</Text>
           </Box>
-          <ConfigRow label="Blob Store" value={storage?.blobStoreName} />
-          <ConfigRow label="Strict Content Type Validation" value={storage?.strictContentTypeValidation} />
-          {isHosted && <ConfigRow label="Write Policy" value={storage?.writePolicy} />}
+          <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.BLOB_STORE} value={storage?.blobStoreName} />
+          <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.STRICT_CONTENT_TYPE_VALIDATION} value={storage?.strictContentTypeValidation} />
+          {isHosted && <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.WRITE_POLICY} value={storage?.writePolicy} />}
           
           <ConfigRow
-            label="Cleanup Policies"
+            label={RepositoryProfileStrings.REPOSITORY_TAB.CLEANUP_POLICIES}
             value={undefined}
             isList
             listItems={cleanup?.policyName || []}
@@ -227,35 +230,35 @@ export function RepositoryTab({
           {isProxy && (
             <>
               <Box style={{ gridColumn: 'span 2' }} mt="4" mb="2">
-                <Text size="2" weight="bold" color="accent">Proxy Configuration</Text>
+                <Text size="2" weight="bold" color="accent">{RepositoryProfileStrings.REPOSITORY_TAB.PROXY_CONFIGURATION}</Text>
               </Box>
-              <ConfigRow label="Remote Storage" value={proxy?.remoteUrl} isCode fullWidth />
-              <ConfigRow label="Content Max Age" value={proxy?.contentMaxAge !== undefined ? `${proxy.contentMaxAge} minutes` : undefined} />
-              <ConfigRow label="Metadata Max Age" value={proxy?.metadataMaxAge !== undefined ? `${proxy.metadataMaxAge} minutes` : undefined} />
+              <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.REMOTE_STORAGE} value={proxy?.remoteUrl} isCode fullWidth />
+              <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.CONTENT_MAX_AGE} value={proxy?.contentMaxAge !== undefined ? formatDuration(proxy.contentMaxAge, 'minute') : undefined} />
+              <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.METADATA_MAX_AGE} value={proxy?.metadataMaxAge !== undefined ? formatDuration(proxy.metadataMaxAge, 'minute') : undefined} />
 
               {negativeCache && (
                 <>
-                  <ConfigRow label="Negative Cache Enabled" value={negativeCache.enabled} />
-                  <ConfigRow label="Negative Cache TTL" value={negativeCache.timeToLive !== undefined ? `${negativeCache.timeToLive} minutes` : undefined} />
+                  <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.NEGATIVE_CACHE_ENABLED} value={negativeCache.enabled} />
+                  <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.NEGATIVE_CACHE_TTL} value={negativeCache.timeToLive !== undefined ? formatDuration(negativeCache.timeToLive, 'minute') : undefined} />
                 </>
               )}
 
               {httpClient && (
                 <>
                   <Box style={{ gridColumn: 'span 2' }} mt="2" mb="2">
-                    <Text size="1" weight="bold" color="gray">HTTP Client</Text>
+                    <Text size="1" weight="bold" color="gray">{RepositoryProfileStrings.REPOSITORY_TAB.HTTP_CLIENT}</Text>
                   </Box>
-                  <ConfigRow label="Blocked" value={httpClient.blocked} />
-                  <ConfigRow label="Auto Block" value={httpClient.autoBlock} />
+                  <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.BLOCKED} value={httpClient.blocked} />
+                  <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.AUTO_BLOCK} value={httpClient.autoBlock} />
                   {httpClient.connection && (
                     <>
-                      <ConfigRow label="Retries" value={httpClient.connection.retries} />
-                      <ConfigRow label="Timeout" value={httpClient.connection.timeout !== undefined ? `${httpClient.connection.timeout} seconds` : undefined} />
-                      <ConfigRow label="Use Trust Store" value={httpClient.connection.useTrustStore} />
+                      <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.RETRIES} value={httpClient.connection.retries} />
+                      <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.TIMEOUT} value={httpClient.connection.timeout !== undefined ? formatDuration(httpClient.connection.timeout, 'second') : undefined} />
+                      <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.USE_TRUST_STORE} value={httpClient.connection.useTrustStore} />
                     </>
                   )}
                   {httpClient.authentication && (
-                    <ConfigRow label="Auth Type" value={httpClient.authentication.type} />
+                    <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.AUTH_TYPE} value={httpClient.authentication.type} />
                   )}
                 </>
               )}
@@ -265,72 +268,72 @@ export function RepositoryTab({
           {isGroup && group && (
             <>
               <Box style={{ gridColumn: 'span 2' }} mt="4" mb="2">
-                <Text size="2" weight="bold" color="accent">Group Settings</Text>
+                <Text size="2" weight="bold" color="accent">{RepositoryProfileStrings.REPOSITORY_TAB.GROUP_SETTINGS}</Text>
               </Box>
               <ConfigRow
-                label="Member Repositories"
+                label={RepositoryProfileStrings.REPOSITORY_TAB.MEMBER_REPOSITORIES}
                 value={undefined}
                 isList
                 listItems={group.memberNames || []}
                 fullWidth
               />
-              <ConfigRow label="Writable Member" value={group.writableMember || 'None'} />
+              <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.WRITABLE_MEMBER} value={group.writableMember || RepositoryProfileStrings.REPOSITORY_TAB.NONE} />
             </>
           )}
 
           {/* Format Specific Settings */}
           {(maven || docker || npm || nugetProxy || apt || yum || raw || replication) && (
             <Box style={{ gridColumn: 'span 2' }} mt="4" mb="2">
-              <Text size="2" weight="bold" color="accent">Format Settings ({repository.format})</Text>
+              <Text size="2" weight="bold" color="accent">{RepositoryProfileStrings.REPOSITORY_TAB.FORMAT_SETTINGS(repository.format)}</Text>
             </Box>
           )}
           
           {maven && (
             <>
-              <ConfigRow label="Version Policy" value={maven.versionPolicy} />
-              <ConfigRow label="Layout Policy" value={maven.layoutPolicy} />
+              <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.VERSION_POLICY} value={maven.versionPolicy} />
+              <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.LAYOUT_POLICY} value={maven.layoutPolicy} />
             </>
           )}
           
           {docker && (
             <>
-              <ConfigRow label="HTTP Port" value={docker.httpPort} />
-              <ConfigRow label="HTTPS Port" value={docker.httpsPort} />
+              <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.HTTP_PORT} value={docker.httpPort} />
+              <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.HTTPS_PORT} value={docker.httpsPort} />
             </>
           )}
 
           {npm && (
-            <ConfigRow label="Remove Quarantined" value={npm.removeQuarantined} />
+            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.REMOVE_QUARANTINED} value={npm.removeQuarantined} />
           )}
         </Grid>
       </ProfileSection>
 
       <ProfileSection
-        title={`Blob Store: ${storage?.blobStoreName || '—'}`}
+        title={RepositoryProfileStrings.REPOSITORY_TAB.BLOB_STORE_2(storage?.blobStoreName || '—')}
         icon={HardDrive}
         editPath={storage?.blobStoreName ? `preview/admin/repository/blobstores/${encodeURIComponent(storage.blobStoreName)}` : undefined}
       >
         {blobStore ? (
           <Grid columns="3" gap="4">
-            <ConfigRow label="Name" value={blobStore.name} />
-            <ConfigRow label="Type" value={blobStore.type} />
-            <ConfigRow label="Status" value={blobStore.unavailable ? <Badge color="red">Unavailable</Badge> : <Badge color="green">Available</Badge>} />
-            <ConfigRow label="Total Size" value={formatBytes(blobStore.totalSizeInBytes ?? 0)} />
-            <ConfigRow label="Available Space" value={formatBytes(blobStore.availableSpaceInBytes ?? 0)} />
-            <ConfigRow label="Blob Count" value={(blobStore.blobCount ?? 0).toLocaleString()} />
-            {blobStore.path && <ConfigRow label="Location" value={blobStore.path} fullWidth />}
+            <ConfigRow label={CommonStrings.LABELS.NAME} value={blobStore.name} />
+            <ConfigRow label={CommonStrings.LABELS.TYPE} value={blobStore.type} />
+            <ConfigRow label={CommonStrings.LABELS.STATUS} value={blobStore.unavailable ? <Badge color="red">{RepositoryProfileStrings.REPOSITORY_TAB.UNAVAILABLE}</Badge> : <Badge color="green">{RepositoryProfileStrings.REPOSITORY_TAB.AVAILABLE}</Badge>} />
+            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.TOTAL_SIZE} value={formatBytes(blobStore.totalSizeInBytes ?? 0)} />
+            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.AVAILABLE_SPACE} value={formatBytes(blobStore.availableSpaceInBytes ?? 0)} />
+            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.BLOB_COUNT} value={(blobStore.blobCount ?? 0).toLocaleString()} />
+            {blobStore.path && <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.LOCATION} value={blobStore.path} fullWidth />}
           </Grid>
         ) : (
           <Flex align="center" gap="2" p="3" style={{ backgroundColor: 'var(--gray-2)', borderRadius: '4px' }}>
             <Info size={16} color="var(--gray-8)" />
-            <Text color="gray" size="2">Blob store details not available</Text>
+            <Text color="gray" size="2">{RepositoryProfileStrings.REPOSITORY_TAB.BLOB_STORE_DETAILS_NOT_AVAILABLE}</Text>
           </Flex>
         )}
       </ProfileSection>
 
       {cleanupPolicies.length > 0 && (
         <ProfileSection
-          title="Cleanup Policies"
+          title={RepositoryProfileStrings.REPOSITORY_TAB.CLEANUP_POLICIES}
           icon={Trash2}
           editPath="preview/admin/repository/cleanup-policies"
         >
@@ -342,7 +345,7 @@ export function RepositoryTab({
                   <Flex align="center" gap="2">
                     <Clock size={12} color="var(--gray-8)" />
                     <Text size="1" color="gray">
-                      {policy.lastRun ? `Last run: ${new Date(policy.lastRun).toLocaleDateString()}` : 'Never run'}
+                      {policy.lastRun ? RepositoryProfileStrings.REPOSITORY_TAB.LAST_RUN(new Date(policy.lastRun).toLocaleDateString()) : RepositoryProfileStrings.REPOSITORY_TAB.NEVER_RUN}
                     </Text>
                   </Flex>
                 </Flex>
@@ -354,14 +357,14 @@ export function RepositoryTab({
 
       {routingRule && (
         <ProfileSection
-          title="Routing Rules"
+          title={RepositoryProfileStrings.REPOSITORY_TAB.ROUTING_RULES}
           icon={Route}
           editPath="preview/admin/repository/routing-rules"
         >
           <Grid columns="2" gap="4">
-            <ConfigRow label="Name" value={routingRule.name} />
-            <ConfigRow label="Mode" value={routingRule.mode} />
-            <ConfigRow label="Matchers" value={undefined} isList listItems={routingRule.matchers} fullWidth />
+            <ConfigRow label={CommonStrings.LABELS.NAME} value={routingRule.name} />
+            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.MODE} value={routingRule.mode} />
+            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.MATCHERS} value={undefined} isList listItems={routingRule.matchers} fullWidth />
           </Grid>
         </ProfileSection>
       )}

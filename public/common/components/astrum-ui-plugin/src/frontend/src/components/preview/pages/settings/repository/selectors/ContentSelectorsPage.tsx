@@ -14,6 +14,8 @@ import { useContentSelectorsApi } from './useContentSelectorsApi';
 import { ContentSelector } from './types';
 
 import './ContentSelectorsPage.scss';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 // Base path for content selectors URLs
 const BASE_PATH = 'preview/admin/repository/selectors';
@@ -135,7 +137,7 @@ export function ContentSelectorsPage() {
           if (selectorData) {
             setSelector(selectorData);
           } else {
-            setError('Content selector not found');
+            setError(ContentSelectorsStrings.PAGE.CONTENT_SELECTOR_NOT_FOUND);
             navigateTo(BASE_PATH);
           }
         })
@@ -170,35 +172,35 @@ export function ContentSelectorsPage() {
   const getPageConfig = () => {
     if (routeState.viewMode === 'list') {
       return {
-        title: 'Content Selectors',
-        description: 'Define the content that users can access using Content Selector Expression Language (CSEL)',
+        title: ContentSelectorsStrings.PAGE.CONTENT_SELECTORS,
+        description: ContentSelectorsStrings.PAGE.DEFINE_CONTENT_USERS_CAN_ACCESS,
       };
     }
 
     if (routeState.viewMode === 'create') {
       return {
-        title: 'Create Content Selector',
-        description: 'Define a new content selector using CSEL expressions',
+        title: ContentSelectorsStrings.PAGE.CREATE_CONTENT_SELECTOR,
+        description: ContentSelectorsStrings.PAGE.DEFINE_NEW_CONTENT_SELECTOR_USING,
       };
     }
 
     // detail mode
     return {
-      title: selector ? `Edit: ${selector.name}` : 'Content Selector Details',
-      description: selector ? `Type: ${selector.type?.toUpperCase()}` : undefined,
+      title: selector ? ContentSelectorsStrings.PAGE.EDIT(selector.name) : ContentSelectorsStrings.PAGE.CONTENT_SELECTOR_DETAILS,
+      description: selector ? ContentSelectorsStrings.PAGE.TYPE(selector.type?.toUpperCase()) : undefined,
     };
   };
 
   const getBreadcrumbs = () => {
-    const settingsItem = { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') };
+    const settingsItem = { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') };
     if (routeState.viewMode === 'list') {
-      return [settingsItem, { label: 'Content Selectors' }];
+      return [settingsItem, { label: ContentSelectorsStrings.PAGE.CONTENT_SELECTORS }];
     }
-    const listItem = { label: 'Content Selectors', onClick: handleBack };
+    const listItem = { label: ContentSelectorsStrings.PAGE.CONTENT_SELECTORS, onClick: handleBack };
     if (routeState.viewMode === 'create') {
-      return [settingsItem, listItem, { label: 'Create' }];
+      return [settingsItem, listItem, { label: CommonStrings.ACTIONS.CREATE }];
     }
-    return [settingsItem, listItem, { label: selector?.name || 'Loading...' }];
+    return [settingsItem, listItem, { label: selector?.name || CommonStrings.MESSAGES.LOADING }];
   };
 
   const pageConfig = getPageConfig();
@@ -210,10 +212,10 @@ export function ContentSelectorsPage() {
       <Box className="content-selectors-page" data-testid="content-selectors-page" data-view="loading">
         <PageHeader
           icon={Layers}
-          title="Loading..."
+          title={CommonStrings.MESSAGES.LOADING}
           breadcrumbs={getBreadcrumbs()}
         />
-        <LoadingState message="Loading content selector details..." />
+        <LoadingState message={ContentSelectorsStrings.PAGE.LOADING_CONTENT_SELECTOR_DETAILS} />
       </Box>
     );
   }
@@ -239,7 +241,7 @@ export function ContentSelectorsPage() {
               testId="create-selector-button"
               data-analytics-id="as-content-selector-create"
             >
-              Create Selector
+              {ContentSelectorsStrings.PAGE.CREATE_SELECTOR}
             </SettingsButton>
           ) : undefined
         }

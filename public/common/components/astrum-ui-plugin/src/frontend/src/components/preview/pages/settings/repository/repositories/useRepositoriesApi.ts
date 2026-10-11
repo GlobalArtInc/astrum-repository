@@ -14,6 +14,7 @@ import {
   CleanupPolicy,
   HealthCheckStatus,
 } from './types';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 const { NUGET_SYMBOL_SERVER_ENABLED } = FeatureFlags;
 
@@ -231,7 +232,7 @@ export function useRepositoriesApi() {
     setError(null);
     try {
       await restClient.post(`${REPOSITORIES_REST_URL}/${encodeURIComponent(name)}/rebuild-index`);
-      return 'Index rebuild started';
+      return RepositoriesPageStrings.API.INDEX_REBUILD_STARTED;
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
@@ -267,7 +268,7 @@ export function useRepositoriesApi() {
         const url = `${REPOSITORIES_REST_URL}/${encodeURIComponent(apiFormat)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}`;
         const fullConfig = await restClient.get<Record<string, unknown>>(url);
         if (!fullConfig) {
-          throw new Error('Could not fetch repository configuration for update');
+          throw new Error(RepositoriesPageStrings.API.COULD_NOT_FETCH_REPOSITORY_CONFIGURATION);
         }
         await restClient.put(url, { ...fullConfig, online });
       } catch (err: unknown) {
@@ -294,7 +295,7 @@ export function useRepositoriesApi() {
       const data = await restClient.get<Array<{ format: string; type: string }>>(RECIPES_URL);
       const rawRecipes = Array.isArray(data) ? data : [];
       if (rawRecipes.length === 0) {
-        throw new Error('No repository recipes available');
+        throw new Error(RepositoriesPageStrings.API.NO_REPOSITORY_RECIPES_AVAILABLE);
       }
       // API returns {format, type} - add name field for compatibility
       return rawRecipes.map((r) => ({

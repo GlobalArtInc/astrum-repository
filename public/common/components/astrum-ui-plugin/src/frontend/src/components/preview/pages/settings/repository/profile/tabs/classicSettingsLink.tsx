@@ -4,8 +4,10 @@ import React from 'react';
 import { Button, Tooltip } from '@radix-ui/themes';
 import { ExternalLink } from 'lucide-react';
 import { getHeritageEquivalent } from '../../../../../../../utils/previewHeritageNavigation';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../../constants/CommonStrings';
 
-const CLASSIC_UI_TOOLTIP = 'Opens in default UI. Astrum One UI settings coming soon.';
+const CLASSIC_UI_TOOLTIP = RepositoryProfileStrings.CLASSIC_LINK.OPENS_DEFAULT_UI_ASTRUM_ONE;
 
 interface ClassicSettingsLinkProps {
   previewPath: string;
@@ -17,7 +19,7 @@ interface ClassicSettingsLinkProps {
  * Uses the existing heritage route mapping to compute the Classic URL.
  * ASTRUM-51915: Prevents Repository Profile from bypassing Coming Soon gates.
  */
-export function ClassicSettingsLink({ previewPath, label = 'Configure' }: ClassicSettingsLinkProps) {
+export function ClassicSettingsLink({ previewPath, label = CommonStrings.ACTIONS.CONFIGURE }: ClassicSettingsLinkProps) {
   const classicHash = getHeritageEquivalent(previewPath);
   if (!classicHash) return null;
 

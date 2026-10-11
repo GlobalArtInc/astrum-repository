@@ -16,6 +16,8 @@ import {
   useFirewallEnable,
 } from '../../../../shared/security/useFirewallEnable';
 import { ConfirmDialog } from '../../../../shared/form/ConfirmDialog';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export type ProtectionLevel = 'none' | 'audit' | 'quarantine' | 'pccs';
 
@@ -145,10 +147,10 @@ export function RepositoryFirewallStep({
         <Flex direction="column" gap="4">
           <Box>
             <Text size="4" weight="bold" as="div" mb="1">
-              Enable Repository Firewall
+              {RepositoriesPageStrings.FIREWALL_STEP.ENABLE_REPOSITORY_FIREWALL}
             </Text>
             <Text size="2" color="gray" as="div">
-              Protect this proxy repository by enabling Firewall to audit or block policy violations and malware.
+              {RepositoriesPageStrings.FIREWALL_STEP.PROTECT_PROXY_REPOSITORY_ENABLING_FIREWALL}
             </Text>
           </Box>
 
@@ -157,12 +159,12 @@ export function RepositoryFirewallStep({
               {isDeferred && (
                 <Text size="2" color="gray" mb="2" as="div">
                   {value === 'none'
-                    ? 'Current choice: Skip (no Firewall)'
+                    ? RepositoriesPageStrings.FIREWALL_STEP.CURRENT_CHOICE_SKIP_NO_FIREWALL
                     : value === 'audit'
-                      ? 'Firewall will be enabled in Audit mode'
+                      ? RepositoriesPageStrings.FIREWALL_STEP.FIREWALL_ENABLED_AUDIT_MODE
                       : value === 'pccs'
-                        ? 'Firewall will be enabled in PCCS mode'
-                        : 'Firewall will be enabled in Quarantine mode'}
+                        ? RepositoriesPageStrings.FIREWALL_STEP.FIREWALL_ENABLED_PCCS_MODE
+                        : RepositoriesPageStrings.FIREWALL_STEP.FIREWALL_ENABLED_QUARANTINE_MODE}
                 </Text>
               )}
               <Flex gap="3" wrap="wrap">
@@ -175,7 +177,7 @@ export function RepositoryFirewallStep({
                   disabled={!isDeferred && loading}
                   aria-pressed={isDeferred && value === 'none'}
                 >
-                  Skip
+                  {RepositoriesPageStrings.FIREWALL_STEP.SKIP}
                 </Button>
                 <Button
                   type="button"
@@ -186,7 +188,7 @@ export function RepositoryFirewallStep({
                   disabled={!isDeferred && loading}
                   aria-pressed={isDeferred && value === 'audit'}
                 >
-                  Audit
+                  {RepositoriesPageStrings.FIREWALL_STEP.AUDIT}
                 </Button>
                 <Button
                   type="button"
@@ -197,7 +199,7 @@ export function RepositoryFirewallStep({
                   disabled={!isDeferred && loading}
                   aria-pressed={isDeferred && value === 'quarantine'}
                 >
-                  Quarantine
+                  {RepositoriesPageStrings.FIREWALL_STEP.QUARANTINE}
                 </Button>
                 {pccsSupported && (
                   <Button
@@ -209,7 +211,7 @@ export function RepositoryFirewallStep({
                     disabled={!isDeferred && loading}
                     aria-pressed={isDeferred && value === 'pccs'}
                   >
-                    PCCS
+                    {RepositoriesPageStrings.FIREWALL_STEP.PCCS}
                   </Button>
                 )}
               </Flex>
@@ -217,7 +219,7 @@ export function RepositoryFirewallStep({
           ) : (
             <Flex direction="column" gap="3">
               <Text size="2" color="gray">
-                Protect this repository with Repository Firewall. Requires a Firewall license.
+                {RepositoriesPageStrings.FIREWALL_STEP.PROTECT_REPOSITORY_REPOSITORY_FIREWALL_REQUIRES}
               </Text>
               <Flex gap="2" wrap="wrap">
                 <Button variant="ghost" size="2" asChild>
@@ -227,16 +229,16 @@ export function RepositoryFirewallStep({
                     rel="noopener noreferrer"
                   >
                     <ExternalLink size={14} />
-                    Learn more
+                    {CommonStrings.ACTIONS.LEARN_MORE}
                   </a>
                 </Button>
                 <Button variant="ghost" size="2" asChild>
                   <a href="https://links.globalart.dev/contact-sales" target="_blank" rel="noopener noreferrer">
-                    Contact sales
+                    {RepositoriesPageStrings.FIREWALL_STEP.CONTACT_SALES}
                   </a>
                 </Button>
                 <Button type="button" variant="soft" size="2" onClick={() => (isDeferred ? onChoice?.('none') : onComplete?.())}>
-                  None
+                  {RepositoriesPageStrings.FIREWALL_STEP.NONE}
                 </Button>
               </Flex>
             </Flex>
@@ -247,10 +249,10 @@ export function RepositoryFirewallStep({
       <ConfirmDialog
         open={noneModalOpen}
         onOpenChange={setNoneModalOpen}
-        title="Repository Created Without Protection"
-        message="This repository will not be protected by Firewall. Malicious components may enter unchecked. Enable Firewall later from the repository's Firewall tab if needed."
-        confirmLabel="Continue Anyway"
-        cancelLabel="Go Back"
+        title={RepositoriesPageStrings.FIREWALL_STEP.REPOSITORY_CREATED_WITHOUT_PROTECTION}
+        message={RepositoriesPageStrings.FIREWALL_STEP.REPOSITORY_NOT_PROTECTED_FIREWALL_MALICIOUS}
+        confirmLabel={RepositoriesPageStrings.FIREWALL_STEP.CONTINUE_ANYWAY}
+        cancelLabel={RepositoriesPageStrings.FIREWALL_STEP.GO_BACK}
         variant="warning"
         onConfirm={handleNoneConfirm}
         testId="firewall-skip-confirm"
@@ -259,10 +261,10 @@ export function RepositoryFirewallStep({
       <ConfirmDialog
         open={auditModalOpen}
         onOpenChange={setAuditModalOpen}
-        title="Audit Mode – Not Fully Protected"
-        message="Audit mode monitors components but does not block them. Malicious components can still enter this repository. Enable Quarantine for full protection."
-        confirmLabel="Enable Audit Anyway"
-        cancelLabel="Cancel"
+        title={RepositoriesPageStrings.FIREWALL_STEP.AUDIT_MODE_NOT_FULLY_PROTECTED}
+        message={RepositoriesPageStrings.FIREWALL_STEP.AUDIT_MODE_MONITORS_COMPONENTS_BUT}
+        confirmLabel={RepositoriesPageStrings.FIREWALL_STEP.ENABLE_AUDIT_ANYWAY}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="warning"
         onConfirm={handleAuditConfirm}
         testId="firewall-audit-confirm"
@@ -276,7 +278,7 @@ export function RepositoryFirewallStep({
             onClick={handleEnableQuarantineFromAuditModal}
             disabled={loading}
           >
-            Enable Quarantine Instead
+            {RepositoriesPageStrings.FIREWALL_STEP.ENABLE_QUARANTINE_INSTEAD}
           </Button>
         </Flex>
       </ConfirmDialog>

@@ -22,6 +22,9 @@ import {
 } from 'lucide-react';
 import ExtJS from '../../../../../../interface/ExtJS';
 import { useRepositoryAccessSecurity } from './useRepositoryAccessSecurity';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 const USERS_DISPLAY_LIMIT = 10;
 
@@ -72,13 +75,13 @@ export function RepositoryAccessSecurityTab({
       <Card size="2">
         <Flex direction="column" align="center" gap="3" py="6">
           <Text color="red" size="2">
-            Failed to load access and security data.
+            {RepositoriesPageStrings.ACCESS_SECURITY.FAILED_LOAD_ACCESS_SECURITY_DATA}
           </Text>
           <Text size="1" color="gray">
             {error}
           </Text>
           <Button variant="outline" size="2" onClick={refetch}>
-            Retry
+            {CommonStrings.ACTIONS.RETRY}
           </Button>
         </Flex>
       </Card>
@@ -95,10 +98,10 @@ export function RepositoryAccessSecurityTab({
             <Flex align="center" gap="2">
               <Key size={18} color="var(--accent-9)" />
               <Text size="3" weight="bold">
-                Repository Privileges
+                {RepositoriesPageStrings.ACCESS_SECURITY.REPOSITORY_PRIVILEGES}
               </Text>
               <Badge variant="soft" color="gray" size="1">
-                {privileges.length} privilege{privileges.length === 1 ? '' : 's'}
+                {plural(RepositoriesPageStrings.ACCESS_SECURITY.PRIVILEGE_COUNT, privileges.length)}
               </Badge>
             </Flex>
 
@@ -128,7 +131,7 @@ export function RepositoryAccessSecurityTab({
                       size="1"
                       color={privilege.actions?.includes('*') ? 'green' : 'blue'}
                     >
-                      {privilege.actions?.join(', ') || 'Read'}
+                      {privilege.actions?.join(', ') || RepositoriesPageStrings.ACCESS_SECURITY.READ}
                     </Badge>
                   </Flex>
                 ))}
@@ -136,7 +139,7 @@ export function RepositoryAccessSecurityTab({
             ) : (
               <Box py="4">
                 <Text size="2" color="gray">
-                  No privileges target this repository.
+                  {RepositoriesPageStrings.ACCESS_SECURITY.NO_PRIVILEGES_TARGET_REPOSITORY}
                 </Text>
               </Box>
             )}
@@ -150,10 +153,10 @@ export function RepositoryAccessSecurityTab({
             <Flex align="center" gap="2">
               <UsersIcon size={18} color="var(--accent-9)" />
               <Text size="3" weight="bold">
-                Roles with Access
+                {RepositoriesPageStrings.ACCESS_SECURITY.ROLES_ACCESS}
               </Text>
               <Badge variant="soft" color="gray" size="1">
-                {roles.length} role{roles.length === 1 ? '' : 's'}
+                {plural(RepositoriesPageStrings.ACCESS_SECURITY.ROLE_COUNT, roles.length)}
               </Badge>
             </Flex>
 
@@ -163,8 +166,8 @@ export function RepositoryAccessSecurityTab({
               <Table.Root variant="surface" size="1">
                 <Table.Header>
                   <Table.Row>
-                    <Table.ColumnHeaderCell>Role</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>Privileges</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{RepositoriesPageStrings.ACCESS_SECURITY.ROLE_2}</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{RepositoriesPageStrings.ACCESS_SECURITY.PRIVILEGES}</Table.ColumnHeaderCell>
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
@@ -182,8 +185,7 @@ export function RepositoryAccessSecurityTab({
                       </Table.Cell>
                       <Table.Cell>
                         <Text size="1" color="gray">
-                          {role.privileges.length} privilege
-                          {role.privileges.length === 1 ? '' : 's'}
+                          {plural(RepositoriesPageStrings.ACCESS_SECURITY.PRIVILEGE_COUNT, role.privileges.length)}
                         </Text>
                       </Table.Cell>
                     </Table.Row>
@@ -193,7 +195,7 @@ export function RepositoryAccessSecurityTab({
             ) : (
               <Box py="4">
                 <Text size="2" color="gray">
-                  No roles reference the privileges for this repository.
+                  {RepositoriesPageStrings.ACCESS_SECURITY.NO_ROLES_REFERENCE_PRIVILEGES_REPOSITORY}
                 </Text>
               </Box>
             )}
@@ -207,10 +209,10 @@ export function RepositoryAccessSecurityTab({
             <Flex align="center" gap="2">
               <User size={18} color="var(--accent-9)" />
               <Text size="3" weight="bold">
-                Users with Access
+                {RepositoriesPageStrings.ACCESS_SECURITY.USERS_ACCESS}
               </Text>
               <Badge variant="soft" color="gray" size="1">
-                {users.length} user{users.length === 1 ? '' : 's'}
+                {plural(RepositoriesPageStrings.ACCESS_SECURITY.USER_COUNT, users.length)}
               </Badge>
             </Flex>
 
@@ -221,8 +223,8 @@ export function RepositoryAccessSecurityTab({
                 <Table.Root variant="surface" size="1">
                   <Table.Header>
                     <Table.Row>
-                      <Table.ColumnHeaderCell>User</Table.ColumnHeaderCell>
-                      <Table.ColumnHeaderCell>Via Role</Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>{RepositoriesPageStrings.ACCESS_SECURITY.USER_2}</Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>{RepositoriesPageStrings.ACCESS_SECURITY.VIA_ROLE}</Table.ColumnHeaderCell>
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
@@ -248,14 +250,14 @@ export function RepositoryAccessSecurityTab({
                 </Table.Root>
                 {extraUsers > 0 && (
                   <Text size="1" color="gray">
-                    ... and {extraUsers} more user{extraUsers === 1 ? '' : 's'}
+                    {plural(RepositoriesPageStrings.ACCESS_SECURITY.MORE_USERS, extraUsers)}
                   </Text>
                 )}
               </>
             ) : (
               <Box py="4">
                 <Text size="2" color="gray">
-                  No users have access via the roles for this repository.
+                  {RepositoriesPageStrings.ACCESS_SECURITY.NO_USERS_HAVE_ACCESS_VIA}
                 </Text>
               </Box>
             )}
@@ -269,7 +271,7 @@ export function RepositoryAccessSecurityTab({
             <Flex align="center" gap="2">
               <Ghost size={18} color="var(--accent-9)" />
               <Text size="3" weight="bold">
-                Anonymous Access
+                {RepositoriesPageStrings.ACCESS_SECURITY.ANONYMOUS_ACCESS}
               </Text>
               {anonymousAccess && (
                 <Badge
@@ -278,11 +280,11 @@ export function RepositoryAccessSecurityTab({
                 >
                   {anonymousAccess.enabled ? (
                     <>
-                      <CheckCircle size={12} /> Enabled
+                      <CheckCircle size={12} /> {RepositoriesPageStrings.ACCESS_SECURITY.ENABLED}
                     </>
                   ) : (
                     <>
-                      <XCircle size={12} /> Disabled
+                      <XCircle size={12} /> {RepositoriesPageStrings.ACCESS_SECURITY.DISABLED}
                     </>
                   )}
                 </Badge>
@@ -297,13 +299,13 @@ export function RepositoryAccessSecurityTab({
                   <>
                     <Flex align="center" justify="between">
                       <Text size="1" color="gray">
-                        User ID
+                        {RepositoriesPageStrings.ACCESS_SECURITY.USER_ID}
                       </Text>
                       <Text size="1">{anonymousAccess.userId || '—'}</Text>
                     </Flex>
                     <Flex align="center" justify="between">
                       <Text size="1" color="gray">
-                        Realm
+                        {RepositoriesPageStrings.ACCESS_SECURITY.REALM}
                       </Text>
                       <Text size="1">
                         {anonymousAccess.realmName || anonymousAccess.realm || '—'}
@@ -313,14 +315,14 @@ export function RepositoryAccessSecurityTab({
                 )}
                 {!anonymousAccess.enabled && (
                   <Text size="2" color="gray">
-                    Anonymous users cannot access this repository.
+                    {RepositoriesPageStrings.ACCESS_SECURITY.ANONYMOUS_USERS_CANNOT_ACCESS_REPOSITORY}
                   </Text>
                 )}
               </Flex>
             ) : (
               <Box py="4">
                 <Text size="2" color="gray">
-                  Anonymous access settings are not available on this instance.
+                  {RepositoriesPageStrings.ACCESS_SECURITY.ANONYMOUS_ACCESS_SETTINGS_NOT_AVAILABLE}
                 </Text>
               </Box>
             )}

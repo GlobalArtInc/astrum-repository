@@ -53,6 +53,8 @@ import { HealthCheckCell } from '../../../../shared/security/HealthCheckCell';
 import { FirewallCell } from '../../../../shared/security/FirewallCell';
 
 import './RepositoriesList.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface FirewallStatusData {
   repositoryName: string;
@@ -199,7 +201,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
         const repos = await fetchRepositories();
         setRepositories(repos);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to load repositories';
+        const message = err instanceof Error ? err.message : RepositoriesPageStrings.LIST.FAILED_LOAD_REPOSITORIES;
         setError(message);
       } finally {
         setLoadingRepos(false);
@@ -363,7 +365,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
       const repos = await fetchRepositories();
       setRepositories(repos);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load repositories';
+      const message = err instanceof Error ? err.message : RepositoriesPageStrings.LIST.FAILED_LOAD_REPOSITORIES;
       setError(message);
     } finally {
       setLoadingRepos(false);
@@ -393,10 +395,10 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
       await restClient.post(ENDPOINTS.HEALTH_CHECK_ANALYZE(repositoryName));
       const health = await fetchHealthCheck();
       setHealthStatus(health);
-      toast.success(`Health check enabled for ${repositoryName}`);
+      toast.success(RepositoriesPageStrings.LIST.HEALTH_CHECK_ENABLED(repositoryName));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to enable health check';
-      toast.error(`Failed to start analysis for ${repositoryName}: ${message}`);
+      const message = err instanceof Error ? err.message : RepositoriesPageStrings.LIST.FAILED_ENABLE_HEALTH_CHECK;
+      toast.error(RepositoriesPageStrings.LIST.FAILED_START_ANALYSIS(repositoryName, message));
     } finally {
       setAnalyzingRepos((prev) => {
         const next = new Set(prev);
@@ -419,11 +421,11 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
       }
       // Remove from local state
       setRepositories((prev) => prev.filter((r) => r.name !== repoToDelete.name));
-      toast.success(`Repository "${repoToDelete.name}" deleted successfully`);
+      toast.success(RepositoriesPageStrings.LIST.REPOSITORY_DELETED_SUCCESSFULLY(repoToDelete.name));
       setDeleteModalOpen(false);
       setRepoToDelete(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to delete repository';
+      const message = err instanceof Error ? err.message : RepositoriesPageStrings.LIST.FAILED_DELETE_REPOSITORY;
       toast.error(message);
     } finally {
       setIsDeleting(false);
@@ -458,17 +460,17 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     try {
       if (pendingRowAction.kind === 'rebuild-index') {
         await rebuildIndex(repoName);
-        toast.success(`Repository index rebuild started for "${repoName}"`);
+        toast.success(RepositoriesPageStrings.LIST.REPOSITORY_INDEX_REBUILD_STARTED(repoName));
       } else if (pendingRowAction.kind === 'invalidate-cache') {
         await invalidateCache(repoName);
-        toast.success(`Repository caches invalidated for "${repoName}"`);
+        toast.success(RepositoriesPageStrings.LIST.REPOSITORY_CACHES_INVALIDATED(repoName));
       } else {
         const nextOnline = pendingRowAction.nextOnline;
         await setRepositoryOnline(repoName, repo.format, repo.type, nextOnline);
         toast.success(
           nextOnline
-            ? `Repository "${repoName}" is now online`
-            : `Repository "${repoName}" is now offline`
+            ? RepositoriesPageStrings.LIST.REPOSITORY_NOW_ONLINE(repoName)
+            : RepositoriesPageStrings.LIST.REPOSITORY_NOW_OFFLINE(repoName)
         );
         // Refetch just this repository so the Status column reflects the
         // saved state. Failure to refetch would leave the row labelled with
@@ -480,8 +482,8 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
       }
       setPendingRowAction(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      toast.error('Action failed', message);
+      const message = err instanceof Error ? err.message : CommonStrings.MESSAGES.UNKNOWN_ERROR;
+      toast.error(RepositoriesPageStrings.LIST.ACTION_FAILED, message);
     } finally {
       setIsExecutingRowAction(false);
     }
@@ -489,32 +491,32 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
 
   const rowActionDialogProps = useMemo(() => {
     if (!pendingRowAction) {
-      return { title: '', message: '', confirmLabel: 'Confirm', variant: 'warning' as const };
+      return { title: '', message: '', confirmLabel: CommonStrings.ACTIONS.CONFIRM, variant: 'warning' as const };
     }
     const name = pendingRowAction.repository.name;
     if (pendingRowAction.kind === 'rebuild-index') {
       return {
-        title: 'Rebuild Repository Index',
-        message: `Rebuild the search index for repository "${name}"? This may take some time depending on repository size.`,
-        confirmLabel: 'Rebuild Index',
+        title: RepositoriesPageStrings.LIST.REBUILD_REPOSITORY_INDEX,
+        message: RepositoriesPageStrings.LIST.REBUILD_SEARCH_INDEX_REPOSITORY_MAY(name),
+        confirmLabel: RepositoriesPageStrings.LIST.REBUILD_INDEX,
         variant: 'warning' as const,
       };
     }
     if (pendingRowAction.kind === 'invalidate-cache') {
       return {
-        title: 'Invalidate Repository Cache',
-        message: `Invalidate cached metadata and content for repository "${name}"? Subsequent requests will refetch from the upstream source.`,
-        confirmLabel: 'Invalidate Cache',
+        title: RepositoriesPageStrings.LIST.INVALIDATE_REPOSITORY_CACHE,
+        message: RepositoriesPageStrings.LIST.INVALIDATE_CACHED_METADATA_CONTENT_REPOSITORY(name),
+        confirmLabel: RepositoriesPageStrings.LIST.INVALIDATE_CACHE,
         variant: 'warning' as const,
       };
     }
     const isGoingOffline = !pendingRowAction.nextOnline;
     return {
-      title: isGoingOffline ? 'Disable System Status' : 'Enable System Status',
+      title: isGoingOffline ? RepositoriesPageStrings.LIST.DISABLE_SYSTEM_STATUS : RepositoriesPageStrings.LIST.ENABLE_SYSTEM_STATUS,
       message: isGoingOffline
-        ? `Take repository "${name}" offline? Clients will no longer be able to read from or write to this repository until it is brought back online.`
-        : `Bring repository "${name}" online? Clients will be able to access it again.`,
-      confirmLabel: isGoingOffline ? 'Take Offline' : 'Bring Online',
+        ? RepositoriesPageStrings.LIST.TAKE_REPOSITORY_OFFLINE_CLIENTS_NO(name)
+        : RepositoriesPageStrings.LIST.BRING_REPOSITORY_ONLINE_CLIENTS_ABLE(name),
+      confirmLabel: isGoingOffline ? RepositoriesPageStrings.LIST.TAKE_OFFLINE : RepositoriesPageStrings.LIST.BRING_ONLINE,
       variant: 'warning' as const,
     };
   }, [pendingRowAction]);
@@ -556,10 +558,10 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     const urlWithSlash = url.endsWith('/') ? url : `${url}/`;
     navigator.clipboard.writeText(urlWithSlash)
       .then(() => {
-        toast.success('URL copied to clipboard');
+        toast.success(RepositoriesPageStrings.LIST.URL_COPIED_CLIPBOARD);
       })
       .catch(() => {
-        toast.error('Failed to copy URL to clipboard');
+        toast.error(RepositoriesPageStrings.LIST.FAILED_COPY_URL_CLIPBOARD);
       });
   };
 
@@ -574,10 +576,10 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
       return (
         <EmptyState
           icon={Database}
-          title="No Matching Repositories"
-          description="No repositories match your current filters. Try adjusting your filter criteria."
+          title={RepositoriesPageStrings.LIST.NO_MATCHING_REPOSITORIES}
+          description={RepositoriesPageStrings.LIST.NO_REPOSITORIES_MATCH_CURRENT_FILTERS}
           action={{
-            label: 'Clear Filters',
+            label: CommonStrings.ACTIONS.CLEAR_FILTERS,
             onClick: handleClearFilters,
           }}
         />
@@ -587,18 +589,18 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     return (
       <EmptyState
         icon={Database}
-        title="No Repositories"
-        description="Create your first repository to start storing and managing your software components."
+        title={RepositoriesPageStrings.LIST.NO_REPOSITORIES}
+        description={RepositoriesPageStrings.LIST.CREATE_FIRST_REPOSITORY_START_STORING}
         action={onCreate ? {
-          label: 'Create Repository',
+          label: RepositoriesPageStrings.LIST.CREATE_REPOSITORY,
           onClick: onCreate,
           icon: Plus,
         } : undefined}
         secondaryAction={{
-          label: 'Learn more about repositories',
+          label: RepositoriesPageStrings.LIST.LEARN_MORE_ABOUT_REPOSITORIES,
           href: 'https://help.globalart.dev/en/repository-administration.html',
         }}
-        tip="Start with a proxy repository to cache artifacts from Maven Central or npm registry."
+        tip={RepositoriesPageStrings.LIST.START_PROXY_REPOSITORY_CACHE_ARTIFACTS}
       />
     );
   }, [filter, typeFilter, formatFilter, handleClearFilters, onCreate]);
@@ -635,17 +637,17 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
       <Select.Trigger style={{ width: 180, flexShrink: 0 }}>
         <Flex align="center" gap="2">
           <ArrowUpDown size={14} aria-hidden />
-          <Text size="2">sort:</Text>
+          <Text size="2">{RepositoriesPageStrings.LIST.SORT}</Text>
           <Text size="2">
-            {sortField === 'name' ? 'Name' : sortField === 'format' ? 'Format' : sortField === 'type' ? 'Type' : 'Status'}
+            {sortField === 'name' ? CommonStrings.LABELS.NAME : sortField === 'format' ? CommonStrings.LABELS.FORMAT : sortField === 'type' ? CommonStrings.LABELS.TYPE : CommonStrings.LABELS.STATUS}
           </Text>
         </Flex>
       </Select.Trigger>
       <Select.Content position="popper" side="bottom" avoidCollisions={false} sideOffset={4}>
-        <Select.Item value="name">Name</Select.Item>
-        <Select.Item value="format">Format</Select.Item>
-        <Select.Item value="type">Type</Select.Item>
-        <Select.Item value="status">Status</Select.Item>
+        <Select.Item value="name">{CommonStrings.LABELS.NAME}</Select.Item>
+        <Select.Item value="format">{CommonStrings.LABELS.FORMAT}</Select.Item>
+        <Select.Item value="type">{CommonStrings.LABELS.TYPE}</Select.Item>
+        <Select.Item value="status">{CommonStrings.LABELS.STATUS}</Select.Item>
       </Select.Content>
     </Select.Root>
   );
@@ -668,7 +670,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
             <Box
               display={{ initial: 'none', sm: 'block' }}
               role="complementary"
-              aria-label="Filter bar"
+              aria-label={RepositoriesPageStrings.LIST.FILTER_BAR_ARIA}
             >
               <aside className="search-sidebar" data-testid="filter-sidebar">
                 {filterBarContent}
@@ -679,7 +681,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
             <Box className="repositories-list__main" minWidth="0" width="100%" role="main">
               <Box className="repositories-list__content">
                 <Flex align="baseline" gap="2" mb="4">
-                  <Heading as="h1" size="6" weight="bold">Repositories</Heading>
+                  <Heading as="h1" size="6" weight="bold">{RepositoriesPageStrings.LIST.REPOSITORIES}</Heading>
                   <Text size="2" color="gray">{displayTotal}</Text>
                 </Flex>
 
@@ -694,7 +696,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                   >
                     <Box style={{ flex: 1, minWidth: 200 }}>
                       <TextField.Root
-                        placeholder="Search repositories by name..."
+                        placeholder={RepositoriesPageStrings.LIST.SEARCH_REPOSITORIES_NAME_PLACEHOLDER}
                         value={filter}
                         onChange={(e) => { setFilter(e.target.value); setCurrentPage(1); }}
                         size="2"
@@ -710,7 +712,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                               color="gray"
                               size="1"
                               onClick={() => setFilter('')}
-                              aria-label="Clear filter"
+                              aria-label={RepositoriesPageStrings.LIST.CLEAR_FILTER_ARIA}
                             >
                               <X size={14} />
                             </IconButton>
@@ -725,7 +727,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                 {/* Results summary */}
                 {!loadingRepos && !error && (
                   <Text size="2" color="gray" mb="2" as="p">
-                    Showing {filteredRepositories.length} of {repositories.length} repositories
+                    {RepositoriesPageStrings.LIST.SHOWING_REPOSITORIES(filteredRepositories.length, repositories.length)}
                   </Text>
                 )}
 
@@ -733,7 +735,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                 {loadingRepos ? (
                   <Flex direction="column" align="center" justify="center" gap="3" p="9">
                     <Spinner size="3" />
-                    <Text color="gray">Loading repositories...</Text>
+                    <Text color="gray">{RepositoriesPageStrings.LIST.LOADING_REPOSITORIES}</Text>
                   </Flex>
                 ) : error ? (
                   <Box p="4">
@@ -755,9 +757,9 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                           onSort={handleSort}
                           align="left"
                         >
-                          Name
+                          {CommonStrings.LABELS.NAME}
                         </SortableTableHeader>
-                        <Table.ColumnHeaderCell>Size</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{RepositoriesPageStrings.LIST.SIZE}</Table.ColumnHeaderCell>
                         <SortableTableHeader
                           sortKey="type"
                           currentSortKey={sortField}
@@ -765,7 +767,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                           onSort={handleSort}
                           align="left"
                         >
-                          Type
+                          {CommonStrings.LABELS.TYPE}
                         </SortableTableHeader>
                         <SortableTableHeader
                           sortKey="format"
@@ -774,9 +776,9 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                           onSort={handleSort}
                           align="left"
                         >
-                          Ecosystem
+                          {RepositoriesPageStrings.LIST.ECOSYSTEM}
                         </SortableTableHeader>
-                        <Table.ColumnHeaderCell>Blob Store</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{RepositoriesPageStrings.LIST.BLOB_STORE}</Table.ColumnHeaderCell>
                         <SortableTableHeader
                           sortKey="status"
                           currentSortKey={sortField}
@@ -784,24 +786,24 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                           onSort={handleSort}
                           align="left"
                         >
-                          Status
+                          {CommonStrings.LABELS.STATUS}
                         </SortableTableHeader>
-                        <Table.ColumnHeaderCell>URL</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>{RepositoriesPageStrings.LIST.URL}</Table.ColumnHeaderCell>
                         {showHealthCheckColumn && (
                           <Table.ColumnHeaderCell className="table-cell-centered">
-                            Health Check
+                            {RepositoriesPageStrings.LIST.HEALTH_CHECK}
                           </Table.ColumnHeaderCell>
                         )}
                         {showFirewallColumn && (
                           <Table.ColumnHeaderCell className="table-cell-centered">
-                            Firewall Report
+                            {RepositoriesPageStrings.LIST.FIREWALL_REPORT}
                           </Table.ColumnHeaderCell>
                         )}
                         {/* paddingRight: 32 matches the Rapture-safe right gutter used across list tables (see EntityTable.scss). */}
                         <Table.ColumnHeaderCell
                           width="80px"
                           justify="end"
-                          aria-label="Row actions"
+                          aria-label={RepositoriesPageStrings.LIST.ROW_ACTIONS_ARIA}
                           style={{ paddingRight: 32 }}
                         />
                       </Table.Row>
@@ -813,8 +815,8 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                             <Flex justify="center" p="6">
                               <Text color="gray">
                                 {filter || typeFilter.length > 0 || formatFilter.length > 0
-                                  ? 'No repositories match the current filters'
-                                  : 'No repositories available'}
+                                  ? RepositoriesPageStrings.LIST.NO_REPOSITORIES_MATCH_CURRENT_FILTERS_2
+                                  : RepositoriesPageStrings.LIST.NO_REPOSITORIES_AVAILABLE}
                               </Text>
                             </Flex>
                           </Table.Cell>
@@ -828,7 +830,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                             onKeyDown={handleRowKeyDown(repo.name)}
                             tabIndex={0}
                             role="button"
-                            aria-label={`View ${repo.name}`}
+                            aria-label={RepositoriesPageStrings.LIST.VIEW(repo.name)}
                           >
                             <Table.Cell>
                               <Text size="2" weight="medium" color="blue">
@@ -852,16 +854,16 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                               </Text>
                             </Table.Cell>
                             <Table.Cell>
-                              <Text size="2">{repo.status?.online ? 'Online' : 'Offline'}</Text>
+                              <Text size="2">{repo.status?.online ? RepositoriesPageStrings.LIST.ONLINE : RepositoriesPageStrings.LIST.OFFLINE}</Text>
                             </Table.Cell>
                             <Table.Cell>
-                              <Tooltip content="Copy URL to Clipboard">
+                              <Tooltip content={RepositoriesPageStrings.LIST.COPY_URL_CLIPBOARD}>
                                 <IconButton
                                   variant="ghost"
                                   color="gray"
                                   size="1"
                                   onClick={handleCopyUrlButton(repo.url)}
-                                  aria-label="Copy URL to Clipboard"
+                                  aria-label={RepositoriesPageStrings.LIST.COPY_URL_CLIPBOARD_ARIA}
                                 >
                                   <Copy size={16} />
                                 </IconButton>
@@ -896,7 +898,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                                     color="gray"
                                     size="1"
                                     onClick={(e) => e.stopPropagation()}
-                                    aria-label={`Actions for ${repo.name}`}
+                                    aria-label={RepositoriesPageStrings.LIST.ACTIONS_FOR(repo.name)}
                                   >
                                     <MoreHorizontal size={16} />
                                   </IconButton>
@@ -910,7 +912,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                                       }}
                                       data-testid={`repo-action-edit-${repo.name}`}
                                     >
-                                      Edit
+                                      {CommonStrings.ACTIONS.EDIT}
                                     </DropdownMenu.Item>
                                   )}
                                   {canEdit && (repo.type === 'hosted' || repo.type === 'proxy') && (
@@ -921,7 +923,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                                       }}
                                       data-testid={`repo-action-rebuild-index-${repo.name}`}
                                     >
-                                      Rebuild Index
+                                      {RepositoriesPageStrings.LIST.REBUILD_INDEX}
                                     </DropdownMenu.Item>
                                   )}
                                   {canEdit && (repo.type === 'proxy' || repo.type === 'group') && (
@@ -932,7 +934,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                                       }}
                                       data-testid={`repo-action-invalidate-cache-${repo.name}`}
                                     >
-                                      Invalidate Cache
+                                      {RepositoriesPageStrings.LIST.INVALIDATE_CACHE}
                                     </DropdownMenu.Item>
                                   )}
                                   {canEdit && (
@@ -944,15 +946,15 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                                       data-testid={`repo-action-toggle-online-${repo.name}`}
                                     >
                                       {(repo.status?.online ?? repo.online ?? true)
-                                        ? 'Disable System Status'
-                                        : 'Enable System Status'}
+                                        ? RepositoriesPageStrings.LIST.DISABLE_SYSTEM_STATUS
+                                        : RepositoriesPageStrings.LIST.ENABLE_SYSTEM_STATUS}
                                     </DropdownMenu.Item>
                                   )}
                                   <DropdownMenu.Item
                                     onClick={handleCopyUrlButton(repo.url)}
                                     data-testid={`repo-action-copy-url-${repo.name}`}
                                   >
-                                    Copy URL
+                                    {RepositoriesPageStrings.LIST.COPY_URL}
                                   </DropdownMenu.Item>
                                   {canDelete && (
                                     <DropdownMenu.Item
@@ -964,7 +966,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                                       color="red"
                                       data-testid={`repo-action-delete-${repo.name}`}
                                     >
-                                      Delete
+                                      {CommonStrings.ACTIONS.DELETE}
                                     </DropdownMenu.Item>
                                   )}
                                 </DropdownMenu.Content>
@@ -994,10 +996,10 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
 
                 {/* Help Section */}
                 <HelpSection
-                  title="About Repositories"
-                  content="Repositories are storage locations where software components are stored, organized, and retrieved. Astrum supports hosted repositories for internal artifacts, proxy repositories for caching remote content, and group repositories for combining multiple repositories into a single URL."
+                  title={RepositoriesPageStrings.LIST.ABOUT_REPOSITORIES}
+                  content={RepositoriesPageStrings.LIST.REPOSITORIES_STORAGE_LOCATIONS_WHERE_SOFTWARE}
                   docLink={{
-                    label: 'View Documentation',
+                    label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
                     href: 'https://help.globalart.dev/en/repository-administration.html',
                   }}
                   className="repositories-list__help"

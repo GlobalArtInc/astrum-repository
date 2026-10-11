@@ -24,13 +24,14 @@ import {
   FormatCriteria,
   RepositoryOption,
   RELEASE_TYPES,
-  SORT_BY_OPTIONS,
   NOTES_MAX_LENGTH,
   isRetainSupportedFormat,
   isRepositoriesFieldSupportedFormat,
 } from './types';
 
 import './CleanupPolicyForm.scss';
+import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface CleanupPolicyFormProps {
   policy?: CleanupPolicy;
@@ -237,26 +238,26 @@ export function CleanupPolicyForm({
       return null;
     }
     if (isRenormalizationInProgress(formData.format)) {
-      return 'The ability to retain a select number of most-recent versions is temporarily unavailable while a migration task runs. It will be automatically re-enabled once the migration task completes.';
+      return CleanupPoliciesStrings.FORM.ABILITY_RETAIN_SELECT_NUMBER_MOST;
     }
     return null;
   }, [formData.format, isRetainAllFormatsEnabled, hasReleaseTypeSelected, isRenormalizationInProgress]);
 
   const retainDisabledReason = useMemo(() => {
     if (isMaven && !hasReleaseTypeSelected && !hasOtherCriteriaSelected) {
-      return 'This option is only applicable to releases. Select "Releases" and at least one cleanup criterion to enable this option.';
+      return CleanupPoliciesStrings.FORM.OPTION_ONLY_APPLICABLE_RELEASES_SELECT;
     }
     if (isMaven && !hasReleaseTypeSelected) {
-      return 'This option is only applicable to releases. Select "Releases" from the Release Type dropdown to enable this option.';
+      return CleanupPoliciesStrings.FORM.OPTION_ONLY_APPLICABLE_RELEASES_SELECT_2;
     }
     if (!hasOtherCriteriaSelected && !hasReleaseTypeSelected) {
-      return 'Select a release type and at least one other criterion to enable this option.';
+      return CleanupPoliciesStrings.FORM.SELECT_RELEASE_TYPE_LEAST_ONE;
     }
     if (!hasReleaseTypeSelected) {
-      return 'Select a release type (Releases or Pre-Releases) to enable this option.';
+      return CleanupPoliciesStrings.FORM.SELECT_RELEASE_TYPE_RELEASES_PRE;
     }
     if (!hasOtherCriteriaSelected) {
-      return 'Only after selecting the cleanup criteria, retain can be enabled.';
+      return CleanupPoliciesStrings.FORM.ONLY_AFTER_SELECTING_CLEANUP_CRITERIA;
     }
     return null;
   }, [hasOtherCriteriaSelected, hasReleaseTypeSelected, isMaven]);
@@ -284,7 +285,7 @@ export function CleanupPolicyForm({
       <Box className="cleanup-policy-form">
         <Flex align="center" justify="center" gap="2" p="4">
           <Loader2 size={24} className="cleanup-policy-form__spinner" />
-          <Text>Loading...</Text>
+          <Text>{CommonStrings.MESSAGES.LOADING}</Text>
         </Flex>
       </Box>
     );
@@ -298,8 +299,8 @@ export function CleanupPolicyForm({
           loading={form.isSaving}
           pristine={form.isPristine && !reposDirty}
           error={error || form.saveError || undefined}
-          submitLabel={isCreate ? 'Create' : 'Save'}
-          cancelLabel="Cancel"
+          submitLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
+          cancelLabel={CommonStrings.ACTIONS.CANCEL}
           testId="cleanup-policy-form"
           submitAnalyticsId={isCreate ? 'as-cleanup-policy-create' : 'as-cleanup-policy-save'}
           footerExtra={
@@ -312,25 +313,24 @@ export function CleanupPolicyForm({
                 testId="form-delete"
                 data-analytics-id="as-cleanup-policy-delete"
               >
-                Delete
+                {CommonStrings.ACTIONS.DELETE}
               </SettingsButton>
             ) : undefined
           }
         >
           <Box mb="4">
             <Text as="p" size="2">
-              <strong>Cleanup policies</strong> allow you to automatically delete unused components and
-              free up storage space. Define <strong>cleanup criteria</strong> for selecting components to delete.
+              {CleanupPoliciesStrings.FORM.INTRO}
             </Text>
           </Box>
 
           {/* Basic Info Section */}
-          <SettingsFormSection title="Policy Settings">
+          <SettingsFormSection title={CleanupPoliciesStrings.FORM.POLICY_SETTINGS}>
             <SettingsTextInput
               {...form.field('name')}
-              label="Name"
-              sublabel="Use a unique name for the cleanup policy"
-              helpText="Unique policy name (e.g., delete-old-releases)"
+              label={CommonStrings.LABELS.NAME}
+              sublabel={CleanupPoliciesStrings.FORM.USE_UNIQUE_NAME_CLEANUP_POLICY}
+              helpText={CleanupPoliciesStrings.FORM.UNIQUE_POLICY_NAME_E_G}
               disabled={!isCreate}
               required
               placeholder="delete-old-snapshots"
@@ -338,12 +338,12 @@ export function CleanupPolicyForm({
 
             <SettingsSelect
               name="format"
-              label="Format"
-              helpText="The format that this cleanup policy can be applied to"
+              label={CommonStrings.LABELS.FORMAT}
+              helpText={CleanupPoliciesStrings.FORM.FORMAT_CLEANUP_POLICY_CAN_APPLIED}
               value={formData.format || ''}
               onChange={changeFormat}
               required
-              placeholder="Select a format..."
+              placeholder={CleanupPoliciesStrings.FORM.SELECT_FORMAT_PLACEHOLDER}
               options={formatCriteria.map((fc) => ({
                 value: fc.id,
                 label: fc.name,
@@ -352,8 +352,8 @@ export function CleanupPolicyForm({
 
             <SettingsTextArea
               {...form.field('notes')}
-              label="Description"
-              helpText="Optional notes about why this policy exists"
+              label={CommonStrings.LABELS.DESCRIPTION}
+              helpText={CleanupPoliciesStrings.FORM.OPTIONAL_NOTES_ABOUT_WHY_POLICY}
               maxLength={NOTES_MAX_LENGTH}
               className="cleanup-policy-form__notes-textarea"
             />
@@ -361,26 +361,26 @@ export function CleanupPolicyForm({
 
           {/* Repository Selection — gated by feature flag and supported format set */}
           {showRepositoriesSection && (
-            <SettingsFormSection title="Repositories" description="Select the repositories this policy will apply to.">
+            <SettingsFormSection title={CleanupPoliciesStrings.FORM.REPOSITORIES} description={CleanupPoliciesStrings.FORM.SELECT_REPOSITORIES_POLICY_APPLY}>
               {reposLoading ? (
                 <Flex align="center" gap="2">
                   <Loader2 size={16} className="cleanup-policy-form__spinner" />
-                  <Text size="2">Loading repositories...</Text>
+                  <Text size="2">{CleanupPoliciesStrings.FORM.LOADING_REPOSITORIES}</Text>
                 </Flex>
               ) : availableRepos.length === 0 ? (
-                <Text size="2" color="gray">No repositories available for this format.</Text>
+                <Text size="2" color="gray">{CleanupPoliciesStrings.FORM.NO_REPOSITORIES_AVAILABLE_FORMAT}</Text>
               ) : (
                 <SettingsTransferList
                   name="cleanup-policy-repositories"
-                  label="Repositories"
+                  label={CleanupPoliciesStrings.FORM.REPOSITORIES}
                   availableItems={availableRepos}
                   selectedItems={availableRepos.filter((r) => selectedRepos.includes(r.name))}
                   onChange={handleReposChange}
-                  availableLabel="Available Repositories"
-                  selectedLabel="Applied Repositories"
+                  availableLabel={CleanupPoliciesStrings.FORM.AVAILABLE_REPOSITORIES}
+                  selectedLabel={CleanupPoliciesStrings.FORM.APPLIED_REPOSITORIES}
                   getItemId={(r: RepositoryOption) => r.name}
                   getItemLabel={(r: RepositoryOption) => r.name}
-                  helpText="Select repositories to apply this policy to"
+                  helpText={CleanupPoliciesStrings.FORM.SELECT_REPOSITORIES_APPLY_POLICY}
                   testId="cleanup-policy-repositories-transfer-list"
                 />
               )}
@@ -389,11 +389,11 @@ export function CleanupPolicyForm({
 
           {/* Release Type (for applicable formats) */}
           {isFieldApplicable('isPrerelease') && (
-            <SettingsFormSection title="Release Type">
+            <SettingsFormSection title={CleanupPoliciesStrings.FORM.RELEASE_TYPE}>
               <SettingsSelect
                 name="releaseType"
-                label="Release Type"
-                helpText="Remove components that are of the following release type"
+                label={CleanupPoliciesStrings.FORM.RELEASE_TYPE}
+                helpText={CleanupPoliciesStrings.FORM.REMOVE_COMPONENTS_FOLLOWING_RELEASE_TYPE}
                 value={formData.criteriaReleaseType || ''}
                 onChange={changeReleaseType}
                 placeholder=""
@@ -408,8 +408,8 @@ export function CleanupPolicyForm({
           {/* Cleanup Criteria Section */}
           {showCriteriaSection && (
             <SettingsFormSection
-              title="Cleanup Criteria"
-              description="Remove all components that match all selected criteria. At least one criterion must be selected."
+              title={CleanupPoliciesStrings.FORM.CLEANUP_CRITERIA_TITLE}
+              description={CleanupPoliciesStrings.FORM.REMOVE_ALL_COMPONENTS_MATCH_ALL}
             >
               {form.touched?.criteriaSelected && form.validationErrors?.criteriaSelected && (
                 <Box className="cleanup-policy-form__criteria-error">
@@ -435,10 +435,10 @@ export function CleanupPolicyForm({
                     />
                     <Box className="cleanup-policy-form__criteria-content">
                       <Text as="label" size="2" weight="medium">
-                        Component Age
+                        {CleanupPoliciesStrings.FORM.COMPONENT_AGE}
                       </Text>
                       <Text as="p" size="1" color="gray">
-                        Components published over "x" days ago (e.g 1-9999)
+                        {CleanupPoliciesStrings.FORM.COMPONENTS_PUBLISHED_OVER_X_DAYS}
                       </Text>
                       {criteriaEnabled?.lastBlobUpdated && (
                         <Box className="cleanup-policy-form__criteria-input">
@@ -468,10 +468,10 @@ export function CleanupPolicyForm({
                     />
                     <Box className="cleanup-policy-form__criteria-content">
                       <Text as="label" size="2" weight="medium">
-                        Component Usage
+                        {CleanupPoliciesStrings.FORM.COMPONENT_USAGE}
                       </Text>
                       <Text as="p" size="1" color="gray">
-                        Components downloaded in "x" amount of days (e.g 1-9999)
+                        {CleanupPoliciesStrings.FORM.COMPONENTS_DOWNLOADED_X_AMOUNT_DAYS}
                       </Text>
                       {criteriaEnabled?.lastDownloaded && (
                         <Box className="cleanup-policy-form__criteria-input">
@@ -501,11 +501,10 @@ export function CleanupPolicyForm({
                     />
                     <Box className="cleanup-policy-form__criteria-content">
                       <Text as="label" size="2" weight="medium">
-                        Asset Name Matcher
+                        {CleanupPoliciesStrings.FORM.ASSET_NAME_MATCHER}
                       </Text>
                       <Text as="p" size="1" color="gray">
-                        Remove components that have at least one asset name matching the following
-                        regular expression pattern
+                        {CleanupPoliciesStrings.FORM.REMOVE_COMPONENTS_HAVE_LEAST_ONE}
                       </Text>
                       {criteriaEnabled?.assetRegex && (
                         <Box className="cleanup-policy-form__criteria-input cleanup-policy-form__criteria-input--wide">
@@ -534,7 +533,7 @@ export function CleanupPolicyForm({
                   <Flex align="center" gap="2" className="cleanup-policy-form__exclusion-header">
                     <Info size={16} />
                     <Text size="2" weight="medium">
-                      Except, do not remove any component that meets the following criterion:
+                      {CleanupPoliciesStrings.FORM.EXCEPT_DO_NOT_REMOVE_ANY}
                     </Text>
                   </Flex>
                   {retainDisabledReason && (
@@ -555,14 +554,12 @@ export function CleanupPolicyForm({
                     />
                     <Box className="cleanup-policy-form__criteria-content" data-disabled={isRetainDisabled || undefined}>
                       <Text as="label" size="2" weight="medium">
-                        Number of Versions
+                        {CleanupPoliciesStrings.FORM.NUMBER_VERSIONS}
                       </Text>
                       <Text as="p" size="1" color="gray">
-                        Keep the latest "x" number of versions by{' '}
                         {formData.format === 'docker'
-                          ? SORT_BY_OPTIONS.DATE.label
-                          : SORT_BY_OPTIONS.VERSION.label}
-                        .
+                          ? CleanupPoliciesStrings.FORM.KEEP_LATEST_BY_AGE
+                          : CleanupPoliciesStrings.FORM.KEEP_LATEST_BY_VERSION}
                       </Text>
                       {criteriaEnabled?.retain && !isRetainDisabled && (
                         <Box className="cleanup-policy-form__criteria-input">
@@ -583,7 +580,7 @@ export function CleanupPolicyForm({
 
           {/* Preview Section */}
           {showPreview && formData.format && (
-            <SettingsFormSection title="Preview Cleanup Policy Results">
+            <SettingsFormSection title={CleanupPoliciesStrings.FORM.PREVIEW_CLEANUP_POLICY_RESULTS}>
               <CleanupPolicyDryRun
                 policyData={formData}
                 policyName={policy?.name}

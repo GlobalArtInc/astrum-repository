@@ -4,6 +4,8 @@ import React from 'react';
 import { Box, Card, Flex, Text } from '@radix-ui/themes';
 import { ShieldCheck, Shield } from 'lucide-react';
 import type { HealthCheckData, FirewallData } from './types';
+import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import plural from '../../../../../../interface/plural';
 
 export interface HealthCheckSummaryWidgetProps {
   repositoryName: string;
@@ -51,18 +53,18 @@ export function HealthCheckSummaryWidget({
         <Flex align="center" gap="2">
           <ShieldCheck size={18} color="var(--accent-9)" />
           <Box>
-            <Text size="1" color="gray">Health Check</Text>
+            <Text size="1" color="gray">{RepositoryProfileStrings.HEALTH_SUMMARY.HEALTH_CHECK}</Text>
             <Flex gap="2" align="center">
-              {hcSecurity > 0 && <Text size="2" weight="bold" color="red">{hcSecurity} vuln{hcSecurity !== 1 ? 's' : ''}</Text>}
-              {hcLicense > 0 && <Text size="2" weight="bold" color="amber">{hcLicense} license</Text>}
+              {hcSecurity > 0 && <Text size="2" weight="bold" color="red">{plural(RepositoryProfileStrings.HEALTH_SUMMARY.VULNERABILITIES, hcSecurity)}</Text>}
+              {hcLicense > 0 && <Text size="2" weight="bold" color="amber">{RepositoryProfileStrings.HEALTH_SUMMARY.LICENSE(hcLicense)}</Text>}
               {hcSecurity === 0 && hcLicense === 0 && (
-                <Text size="2" color="green">No issues</Text>
+                <Text size="2" color="green">{RepositoryProfileStrings.HEALTH_SUMMARY.NO_ISSUES}</Text>
               )}
             </Flex>
           </Box>
         </Flex>
         <Text size="1" color="blue" style={{ cursor: 'pointer' }}>
-          View report →
+          {RepositoryProfileStrings.HEALTH_SUMMARY.VIEW_REPORT}
         </Text>
       </Card>
       <Card
@@ -81,21 +83,21 @@ export function HealthCheckSummaryWidget({
         <Flex align="center" gap="2">
           <Shield size={18} color="var(--orange-9)" />
           <Box>
-            <Text size="1" color="gray">Firewall</Text>
+            <Text size="1" color="gray">{RepositoryProfileStrings.HEALTH_SUMMARY.FIREWALL}</Text>
             <Flex gap="2" align="center">
               {fwEnabled ? (
                 <>
-                  <Text size="2" color="green">Protected</Text>
-                  {fwQuarantine > 0 && <Text size="2" color="orange">· {fwQuarantine} quarantine</Text>}
+                  <Text size="2" color="green">{RepositoryProfileStrings.HEALTH_SUMMARY.PROTECTED}</Text>
+                  {fwQuarantine > 0 && <Text size="2" color="orange">{RepositoryProfileStrings.HEALTH_SUMMARY.QUARANTINE(fwQuarantine)}</Text>}
                 </>
               ) : (
-                <Text size="2" color="gray">Unprotected</Text>
+                <Text size="2" color="gray">{RepositoryProfileStrings.HEALTH_SUMMARY.UNPROTECTED}</Text>
               )}
             </Flex>
           </Box>
         </Flex>
         <Text size="1" color="blue" style={{ cursor: 'pointer' }}>
-          {fwEnabled ? 'View report →' : 'Enable →'}
+          {fwEnabled ? RepositoryProfileStrings.HEALTH_SUMMARY.VIEW_REPORT : RepositoryProfileStrings.HEALTH_SUMMARY.ENABLE}
         </Text>
       </Card>
     </Flex>

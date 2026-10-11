@@ -21,6 +21,7 @@ import type {
   CapabilityInfo,
   HttpSettingsInfo,
 } from './types';
+import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 
 // =============================================================================
 // Context
@@ -156,7 +157,7 @@ async function fetchBlobStore(blobStoreName: string): Promise<BlobStoreInfo | nu
     const bs = match as Record<string, unknown>;
     return {
       name: String(bs.name),
-      type: String(bs.typeName ?? bs.typeId ?? 'Unknown'),
+      type: String(bs.typeName ?? bs.typeId ?? RepositoryProfileStrings.MACHINE.UNKNOWN),
       path: bs.path ? String(bs.path) : undefined,
       unavailable: Boolean(bs.unavailable),
       totalSizeInBytes: bs.totalSizeInBytes ? Number(bs.totalSizeInBytes) : undefined,
@@ -757,7 +758,7 @@ export function createRepositoryProfileMachine(options: RepositoryProfileMachine
 
         executeToggleOnline: async (context) => {
           if (!context.repository) {
-            throw new Error('Repository not loaded');
+            throw new Error(RepositoryProfileStrings.MACHINE.REPOSITORY_NOT_LOADED);
           }
           const { format, type, repositoryName } = {
             format: context.repository.format,
@@ -773,7 +774,7 @@ export function createRepositoryProfileMachine(options: RepositoryProfileMachine
             `/service/rest/v1/repositories/${encodeURIComponent(format)}/${encodeURIComponent(type)}/${encodeURIComponent(repositoryName)}`
           );
           if (!fullConfig) {
-            throw new Error('Could not fetch repository configuration for update');
+            throw new Error(RepositoryProfileStrings.MACHINE.COULD_NOT_FETCH_REPOSITORY_CONFIGURATION);
           }
           await restClient.put(
             `/service/rest/v1/repositories/${encodeURIComponent(format)}/${encodeURIComponent(type)}/${encodeURIComponent(repositoryName)}`,
@@ -799,9 +800,7 @@ export function createRepositoryProfileMachine(options: RepositoryProfileMachine
               // state. Workaround: toggle the instance-level Health Check capability off then
               // back on, which resets the per-repository override.
               throw new Error(
-                'Health Check cannot be re-enabled at the repository level when it was automatically ' +
-                'configured by the instance capability. To re-enable, go to System Capabilities and ' +
-                'toggle the Health Check capability off then on again.'
+                RepositoryProfileStrings.MACHINE.HEALTH_CHECK_CANNOT_RE_ENABLED
               );
             }
             throw new Error(apiError.message);

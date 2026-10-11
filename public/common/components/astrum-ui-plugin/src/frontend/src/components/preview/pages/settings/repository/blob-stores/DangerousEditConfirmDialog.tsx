@@ -5,6 +5,8 @@ import { AlertDialog, Box, Flex, Text, Button, TextField, IconButton } from '@ra
 import { X } from 'lucide-react';
 
 import type { DangerousFieldInfo } from './dangerousFields';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface DangerousEditConfirmDialogProps {
   open: boolean;
@@ -63,12 +65,12 @@ export function DangerousEditConfirmDialog({
     <AlertDialog.Root open={open} onOpenChange={onClose}>
       <AlertDialog.Content maxWidth="450px">
         <Flex align="start" justify="between" mb="2">
-          <AlertDialog.Title size="5">Update Blob Store?</AlertDialog.Title>
+          <AlertDialog.Title size="5">{BlobStoresStrings.DANGEROUS_EDIT.UPDATE_BLOB_STORE}</AlertDialog.Title>
           <IconButton
             variant="ghost"
             size="1"
             color="gray"
-            aria-label="Close"
+            aria-label={CommonStrings.ACTIONS.CLOSE}
             onClick={onClose}
           >
             <X size={16} />
@@ -76,7 +78,7 @@ export function DangerousEditConfirmDialog({
         </Flex>
 
         <AlertDialog.Description size="2" mb="4">
-          You are about to change configuration fields that may cause data loss or make this blob store inaccessible.
+          {BlobStoresStrings.DANGEROUS_EDIT.YOU_ABOUT_CHANGE_CONFIGURATION_FIELDS}
         </AlertDialog.Description>
 
         <Box
@@ -89,7 +91,7 @@ export function DangerousEditConfirmDialog({
           }}
         >
           <Text size="2" weight="medium" style={{ display: 'block' }} mb="2">
-            The following fields have been modified:
+            {BlobStoresStrings.DANGEROUS_EDIT.FOLLOWING_FIELDS_HAVE_BEEN_MODIFIED}
           </Text>
           <ul style={{ margin: 0, paddingLeft: '20px' }}>
             {changedFields.map(({ field, label }) => (
@@ -113,14 +115,14 @@ export function DangerousEditConfirmDialog({
             {blobStoreName}
           </Text>
           <Text size="1" color="gray">
-            Type this name to confirm
+            {BlobStoresStrings.DANGEROUS_EDIT.TYPE_NAME_CONFIRM}
           </Text>
         </Box>
 
         <Box mb="4">
           <Flex align="center" gap="1" mb="2">
             <Text size="2" weight="bold">
-              Acknowledgement
+              {BlobStoresStrings.DANGEROUS_EDIT.ACKNOWLEDGEMENT}
             </Text>
             <Text size="2" style={{ color: 'var(--amber-11)' }}>
               *
@@ -132,7 +134,7 @@ export function DangerousEditConfirmDialog({
             value={confirmationText}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder={`Type "${blobStoreName}" to confirm`}
+            placeholder={BlobStoresStrings.DANGEROUS_EDIT.TYPE_CONFIRM(blobStoreName)}
             color={showError ? 'red' : undefined}
             style={
               showError
@@ -142,7 +144,7 @@ export function DangerousEditConfirmDialog({
                   }
                 : undefined
             }
-            aria-label="Acknowledgement"
+            aria-label={BlobStoresStrings.DANGEROUS_EDIT.ACKNOWLEDGEMENT_ARIA}
             autoFocus
           />
           {showError && (
@@ -153,7 +155,7 @@ export function DangerousEditConfirmDialog({
               style={{ display: 'block' }}
               role="alert"
             >
-              The confirmation text provided is incorrect
+              {BlobStoresStrings.DANGEROUS_EDIT.CONFIRMATION_TEXT_PROVIDED_INCORRECT}
             </Text>
           )}
         </Box>
@@ -161,7 +163,7 @@ export function DangerousEditConfirmDialog({
         <Flex gap="3" mt="4" justify="end">
           <AlertDialog.Cancel>
             <Button variant="surface" size="2" onClick={onClose}>
-              Cancel
+              {CommonStrings.ACTIONS.CANCEL}
             </Button>
           </AlertDialog.Cancel>
           <AlertDialog.Action>
@@ -172,7 +174,7 @@ export function DangerousEditConfirmDialog({
               onClick={handleConfirm}
               disabled={!isValid}
             >
-              Confirm Update
+              {BlobStoresStrings.DANGEROUS_EDIT.CONFIRM_UPDATE}
             </Button>
           </AlertDialog.Action>
         </Flex>

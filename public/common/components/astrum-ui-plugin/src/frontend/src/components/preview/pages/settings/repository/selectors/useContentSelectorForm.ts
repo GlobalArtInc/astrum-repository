@@ -5,6 +5,8 @@ import { useForm } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createContentSelectorFormMachine } from './contentSelectorFormMachine';
 import { ContentSelector, ContentSelectorFormData } from './types';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface UseContentSelectorFormOptions {
   /** Name of selector being edited (undefined for create mode) */
@@ -68,10 +70,10 @@ export function useContentSelectorForm({
 
           if (isCreate) {
             await createContentSelector(ctx.data);
-            toast.success(`Content selector "${ctx.data.name}" created successfully`);
+            toast.success(ContentSelectorsStrings.FORM_HOOK.CONTENT_SELECTOR_CREATED_SUCCESSFULLY(ctx.data.name));
           } else if (selectorToUpdate) {
             await updateContentSelector(selectorToUpdate.name, ctx.data);
-            toast.success(`Content selector "${ctx.data.name}" updated successfully`);
+            toast.success(ContentSelectorsStrings.FORM_HOOK.CONTENT_SELECTOR_UPDATED_SUCCESSFULLY(ctx.data.name));
           }
 
           // Notify parent of successful operation
@@ -81,7 +83,7 @@ export function useContentSelectorForm({
           // Navigate back after successful save
           onCancel();
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },
@@ -89,7 +91,7 @@ export function useContentSelectorForm({
         const selectorToDelete = selector || ctx.selector;
         if (selectorToDelete) {
           await deleteContentSelector(selectorToDelete.name);
-          toast.success(`Content selector "${selectorToDelete.name}" deleted`);
+          toast.success(ContentSelectorsStrings.FORM_HOOK.CONTENT_SELECTOR_DELETED(selectorToDelete.name));
 
           // Notify parent of successful operation
           if (onComplete) {

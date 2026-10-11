@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { restClient } from '../../../../../../interface/api';
 import { formatErrorMessage } from '../../system/iq-server/iqServerUtils';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 /**
  * Per-repository evaluation override endpoint.
@@ -94,7 +95,7 @@ export function useRepoEvaluationOverride() {
     } catch (err: any) {
       // 404 = no override (INHERIT); other errors bubble.
       if (err?.response?.status === 404) return null;
-      const message = formatErrorMessage(err, 'Failed to load evaluation override');
+      const message = formatErrorMessage(err, RepositoriesPageStrings.EVALUATION.FAILED_LOAD_EVALUATION_OVERRIDE);
       setError(message);
       throw err;
     } finally {
@@ -119,13 +120,13 @@ export function useRepoEvaluationOverride() {
         const data = await restClient.put<UnifiedSaveResponse>(evaluationSettingsUrl(repoName), body);
         // Backend may return 200 with success:false.
         if (data && data.success === false) {
-          const message = data.message || data.errorCode || 'Failed to save override';
+          const message = data.message || data.errorCode || RepositoriesPageStrings.EVALUATION.FAILED_SAVE_OVERRIDE;
           setError(message);
           return { ok: false, message };
         }
-        return { ok: true, message: data?.message || 'Override saved' };
+        return { ok: true, message: data?.message || RepositoriesPageStrings.EVALUATION.OVERRIDE_SAVED };
       } catch (err) {
-        const message = formatErrorMessage(err, 'Failed to save evaluation override');
+        const message = formatErrorMessage(err, RepositoriesPageStrings.EVALUATION.FAILED_SAVE_EVALUATION_OVERRIDE);
         setError(message);
         return { ok: false, message };
       } finally {

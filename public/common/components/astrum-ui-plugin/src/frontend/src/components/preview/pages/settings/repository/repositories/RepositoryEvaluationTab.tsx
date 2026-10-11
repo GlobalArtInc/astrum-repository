@@ -26,12 +26,14 @@ import {
 import { EVALUATION_SETTINGS_API } from '../../system/iq-server/useHostedRepoEvaluation';
 
 import './RepositoryEvaluationTab.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const STAGES: { value: PolicyEvaluationStage; label: string }[] = [
-  { value: 'BUILD', label: 'Build' },
-  { value: 'STAGE_RELEASE', label: 'Stage Release' },
-  { value: 'RELEASE', label: 'Release' },
-  { value: 'OPERATE', label: 'Operate' },
+  { value: 'BUILD', label: RepositoriesPageStrings.EVALUATION.BUILD },
+  { value: 'STAGE_RELEASE', label: RepositoriesPageStrings.EVALUATION.STAGE_RELEASE },
+  { value: 'RELEASE', label: RepositoriesPageStrings.EVALUATION.RELEASE },
+  { value: 'OPERATE', label: RepositoriesPageStrings.EVALUATION.OPERATE },
 ];
 
 const ACTIVITY_TIME_FRAMES = [30, 60, 90];
@@ -119,7 +121,7 @@ export function RepositoryEvaluationTab({
             artifactLatestVersions?: number;
             policyEvaluationStage?: string;
           } | null>(EVALUATION_SETTINGS_API).catch((err: any) => {
-            const msg = err?.response?.data?.message || err?.message || 'Failed to load global evaluation settings';
+            const msg = err?.response?.data?.message || err?.message || RepositoriesPageStrings.EVALUATION.FAILED_LOAD_GLOBAL_EVALUATION_SETTINGS;
             toast.error(msg);
             return null;
           }),
@@ -230,9 +232,9 @@ export function RepositoryEvaluationTab({
       if (mode === 'OVERRIDE') {
         setSavedOverride({ activityTimeFrame, artifactLatestVersions, policyEvaluationStage });
       }
-      toast.success(result.message || 'Override saved');
+      toast.success(result.message || RepositoriesPageStrings.EVALUATION.OVERRIDE_SAVED);
     } else {
-      toast.error(result.message || 'Failed to save override');
+      toast.error(result.message || RepositoriesPageStrings.EVALUATION.FAILED_SAVE_OVERRIDE);
     }
     setSaving(false);
   }, [mode, activityTimeFrame, artifactLatestVersions, policyEvaluationStage, saveOverride, repositoryName, toast]);
@@ -256,7 +258,7 @@ export function RepositoryEvaluationTab({
     return (
       <Theme accentColor="blue" hasBackground={false}>
         <Box p="4" className="repository-evaluation-tab">
-          <Text size="2" color="gray">Loading evaluation configuration…</Text>
+          <Text size="2" color="gray">{RepositoriesPageStrings.EVALUATION.LOADING_EVALUATION_CONFIGURATION}</Text>
         </Box>
       </Theme>
     );
@@ -265,16 +267,16 @@ export function RepositoryEvaluationTab({
   return (
     <Theme accentColor="blue" hasBackground={false}>
       <Box p="4" className="repository-evaluation-tab">
-        <Heading size="4" as="h2" mb="2">Evaluation</Heading>
+        <Heading size="4" as="h2" mb="2">{RepositoriesPageStrings.EVALUATION.EVALUATION}</Heading>
         <Text size="2" color="gray" as="div" mb="4">
-          Configure how evaluation is applied to this hosted repository.
+          {RepositoriesPageStrings.EVALUATION.CONFIGURE_HOW_EVALUATION_APPLIED_HOSTED}
         </Text>
 
         <Card size="2">
           <Box p="4">
-            <Heading size="3" as="h3" mb="2">Hosted Repository Evaluation</Heading>
+            <Heading size="3" as="h3" mb="2">{RepositoriesPageStrings.EVALUATION.HOSTED_REPOSITORY_EVALUATION}</Heading>
             <Text size="2" color="gray" as="div" mb="4">
-              Choose how evaluation settings should be applied to this repository.
+              {RepositoriesPageStrings.EVALUATION.CHOOSE_HOW_EVALUATION_SETTINGS_SHOULD}
             </Text>
 
             <RadioGroup.Root value={mode} onValueChange={(v) => handleModeChange(v as EvaluationMode)}>
@@ -284,16 +286,16 @@ export function RepositoryEvaluationTab({
                   <Flex gap="2" align="start" className="repository-evaluation-tab__radio-row">
                     <RadioGroup.Item value="INHERIT" />
                     <Box>
-                      <Text as="label" size="2" weight="medium">Use global settings</Text>
+                      <Text as="label" size="2" weight="medium">{RepositoriesPageStrings.EVALUATION.USE_GLOBAL_SETTINGS}</Text>
                       <Text size="2" color="gray" as="div">
-                        Inherit the settings configured in{' '}
-                        <Button asChild variant="ghost" size="1" color="blue" className="repository-evaluation-tab__inline-link">
-                          <a href="#preview/admin/iq/hosted-repos-eval">
-                            Hosted Repository Evaluation
-                            <ExternalLink size={12} aria-hidden="true" />
-                          </a>
-                        </Button>
-                        .
+                        {RepositoriesPageStrings.EVALUATION.INHERIT_SETTINGS(
+                          <Button asChild variant="ghost" size="1" color="blue" className="repository-evaluation-tab__inline-link">
+                            <a href="#preview/admin/iq/hosted-repos-eval">
+                              {RepositoriesPageStrings.EVALUATION.HOSTED_REPOSITORY_EVALUATION}
+                              <ExternalLink size={12} aria-hidden="true" />
+                            </a>
+                          </Button>
+                        )}
                       </Text>
                     </Box>
                   </Flex>
@@ -304,8 +306,8 @@ export function RepositoryEvaluationTab({
                   <Flex gap="2" align="start" className="repository-evaluation-tab__radio-row">
                     <RadioGroup.Item value="OVERRIDE" />
                     <Box>
-                      <Text as="label" size="2" weight="medium">Customize for this repository</Text>
-                      <Text size="2" color="gray" as="div">Override the global configuration with repository-specific settings.</Text>
+                      <Text as="label" size="2" weight="medium">{RepositoriesPageStrings.EVALUATION.CUSTOMIZE_REPOSITORY}</Text>
+                      <Text size="2" color="gray" as="div">{RepositoriesPageStrings.EVALUATION.OVERRIDE_GLOBAL_CONFIGURATION_REPOSITORY_SPECIFIC}</Text>
                     </Box>
                   </Flex>
                   {mode === 'OVERRIDE' && (
@@ -313,8 +315,8 @@ export function RepositoryEvaluationTab({
                       <Card size="1">
                         <Box p="3">
                           <FieldRow
-                            label="Activity Time Frame"
-                            description="Evaluate components based on recent repository activity."
+                            label={RepositoriesPageStrings.EVALUATION.ACTIVITY_TIME_FRAME}
+                            description={RepositoriesPageStrings.EVALUATION.EVALUATE_COMPONENTS_BASED_RECENT_REPOSITORY}
                             control={
                               <Select.Root
                                 value={String(activityTimeFrame)}
@@ -323,15 +325,15 @@ export function RepositoryEvaluationTab({
                                 <Select.Trigger style={{ minWidth: 160 }} />
                                 <Select.Content position="popper" side="bottom" align="start" sideOffset={4}>
                                   {ACTIVITY_TIME_FRAMES.map(n => (
-                                    <Select.Item key={n} value={String(n)}>{`Last ${n} Days`}</Select.Item>
+                                    <Select.Item key={n} value={String(n)}>{RepositoriesPageStrings.EVALUATION.LAST_DAYS(n)}</Select.Item>
                                   ))}
                                 </Select.Content>
                               </Select.Root>
                             }
                           />
                           <FieldRow
-                            label="Artifact Latest Versions"
-                            description="Set the number of versions of the artifact for evaluation."
+                            label={RepositoriesPageStrings.EVALUATION.ARTIFACT_LATEST_VERSIONS}
+                            description={RepositoriesPageStrings.EVALUATION.SET_NUMBER_VERSIONS_ARTIFACT_EVALUATION}
                             control={
                               <Select.Root
                                 value={String(artifactLatestVersions)}
@@ -347,8 +349,8 @@ export function RepositoryEvaluationTab({
                             }
                           />
                           <FieldRow
-                            label="Policy Evaluation Stage"
-                            description="Select the lifecycle stage for continuous policy evaluation."
+                            label={RepositoriesPageStrings.EVALUATION.POLICY_EVALUATION_STAGE}
+                            description={RepositoriesPageStrings.EVALUATION.SELECT_LIFECYCLE_STAGE_CONTINUOUS_POLICY}
                             control={
                               <Select.Root
                                 value={policyEvaluationStage}
@@ -375,8 +377,8 @@ export function RepositoryEvaluationTab({
                   <Flex gap="2" align="start" className="repository-evaluation-tab__radio-row">
                     <RadioGroup.Item value="DISABLE" />
                     <Box>
-                      <Text as="label" size="2" weight="medium">Disable evaluation</Text>
-                      <Text size="2" color="gray" as="div">Don't evaluate components in this repository.</Text>
+                      <Text as="label" size="2" weight="medium">{RepositoriesPageStrings.EVALUATION.DISABLE_EVALUATION}</Text>
+                      <Text size="2" color="gray" as="div">{RepositoriesPageStrings.EVALUATION.DONT_EVALUATE_COMPONENTS_REPOSITORY}</Text>
                     </Box>
                   </Flex>
                 </Box>
@@ -391,10 +393,10 @@ export function RepositoryEvaluationTab({
                   onClick={handleCancel}
                   disabled={!isDirty || saving || apiLoading}
                 >
-                  Cancel
+                  {CommonStrings.ACTIONS.CANCEL}
                 </Button>
                 <Button onClick={handleSave} disabled={!isDirty || saving || apiLoading}>
-                  {saving ? 'Saving…' : 'Save'}
+                  {saving ? RepositoriesPageStrings.EVALUATION.SAVING : CommonStrings.ACTIONS.SAVE}
                 </Button>
               </Flex>
             )}

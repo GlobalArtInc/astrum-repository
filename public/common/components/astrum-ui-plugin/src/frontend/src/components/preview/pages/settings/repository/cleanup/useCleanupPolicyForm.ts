@@ -5,6 +5,8 @@ import { useForm } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createCleanupPolicyFormMachine, type CleanupPolicyMachineContext } from './cleanupPolicyFormMachine';
 import { CleanupPolicy, CleanupPolicyFormData, FormatCriteria } from './types';
+import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface UseCleanupPolicyFormOptions {
   policyName?: string;
@@ -100,18 +102,18 @@ export function useCleanupPolicyForm({
 
           if (isCreate) {
             await createPolicy(saveData);
-            toast.success(`Cleanup policy "${saveData.name}" created successfully`);
+            toast.success(CleanupPoliciesStrings.FORM_HOOK.CLEANUP_POLICY_CREATED_SUCCESSFULLY(saveData.name));
           } else {
             const name = policy?.name || policyName || saveData.name;
             await updatePolicy(name, saveData);
-            toast.success(`Cleanup policy "${saveData.name}" updated successfully`);
+            toast.success(CleanupPoliciesStrings.FORM_HOOK.CLEANUP_POLICY_UPDATED_SUCCESSFULLY(saveData.name));
           }
           if (onSave) {
             await onSave(ctx.data);
           }
           onCancel();
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },

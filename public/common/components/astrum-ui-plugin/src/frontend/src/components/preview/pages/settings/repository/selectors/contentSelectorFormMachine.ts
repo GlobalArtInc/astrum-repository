@@ -10,6 +10,7 @@ import {
   CONTENT_SELECTOR_TYPE,
   validateName,
 } from './types';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
 
 /**
  * Validate content selector form data.
@@ -31,9 +32,9 @@ function validateContentSelector(
   }
 
   if (!data.expression?.trim()) {
-    errors.expression = 'Expression is required';
+    errors.expression = ContentSelectorsStrings.FORM_MACHINE.EXPRESSION_REQUIRED;
   } else if (expressionHasBlockingErrors) {
-    errors.expression = 'Expression has syntax errors';
+    errors.expression = ContentSelectorsStrings.FORM_MACHINE.EXPRESSION_HAS_SYNTAX_ERRORS;
   }
 
   return errors;
@@ -116,7 +117,7 @@ export function createContentSelectorFormMachine(
       // Placeholder: enables confirmingDelete/deleting/deleted states in the machine.
       // Actual implementation is overridden via useForm options in useContentSelectorForm.
       delete: async () => {
-        throw new Error('Delete service not configured');
+        throw new Error(ContentSelectorsStrings.FORM_MACHINE.DELETE_SERVICE_NOT_CONFIGURED);
       },
       // save service is provided via useForm options in useContentSelectorForm
     },

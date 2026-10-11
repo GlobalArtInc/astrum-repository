@@ -16,6 +16,8 @@ import {
   RepositoryReference,
   hasFormErrors,
 } from './types';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface RepositoryFormMachineContext {
   repository: Repository | null;
@@ -189,10 +191,10 @@ export function useRepositoryForm({
 
           if (isCreate) {
             await createRepository(ctx.data);
-            toast.success(`Repository "${ctx.data.name}" created successfully`);
+            toast.success(RepositoriesPageStrings.MESSAGES.REPOSITORY_CREATED_SUCCESSFULLY(ctx.data.name));
           } else if (repoToUpdate) {
             await updateRepository(repoToUpdate.name, ctx.data);
-            toast.success(`Repository "${ctx.data.name}" updated successfully`);
+            toast.success(RepositoriesPageStrings.MESSAGES.REPOSITORY_UPDATED_SUCCESSFULLY(ctx.data.name));
           }
           let skipNavigate = false;
           if (onSave) {
@@ -203,7 +205,7 @@ export function useRepositoryForm({
             onCancel();
           }
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },

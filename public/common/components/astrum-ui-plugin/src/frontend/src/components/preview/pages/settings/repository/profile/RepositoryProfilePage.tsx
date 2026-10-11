@@ -38,6 +38,8 @@ import { useRepositoryProfileMachine } from './useRepositoryProfileMachine';
 import { TABS, type TabId } from './types';
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
+import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 // =============================================================================
 // Types
@@ -134,7 +136,7 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
 
   // Context-aware back navigation
   const isBrowseContext = context === 'browse';
-  const _backLabel = isBrowseContext ? 'Back to Browse' : 'Back to Repositories';
+  const _backLabel = isBrowseContext ? RepositoryProfileStrings.PAGE.BACK_BROWSE : RepositoryProfileStrings.PAGE.BACK_REPOSITORIES;
 
   // Navigation handlers — defined before any useEffect that references them to avoid TDZ errors
   const handleBack = useCallback(() => {
@@ -164,14 +166,14 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
     setIsDeleting(true);
     try {
       await deleteRepository(repositoryName);
-      toast.success(`Repository "${repositoryName}" deleted successfully`);
+      toast.success(RepositoryProfileStrings.PAGE.REPOSITORY_DELETED_SUCCESSFULLY(repositoryName));
       setIsDeleteModalOpen(false);
       // After a successful delete the repo no longer exists, so navigate back
       // to the list (settings context) or browse view (browse context).
       handleBack();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      toast.error('Failed to delete repository', message);
+      const message = err instanceof Error ? err.message : CommonStrings.MESSAGES.UNKNOWN_ERROR;
+      toast.error(RepositoryProfileStrings.PAGE.FAILED_DELETE_REPOSITORY, message);
     } finally {
       setIsDeleting(false);
     }
@@ -181,13 +183,13 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
   const breadcrumbItems = useMemo(() => {
     if (isBrowseContext) {
       return [
-        { label: 'Browse', onClick: handleBack },
+        { label: RepositoryProfileStrings.PAGE.BROWSE, onClick: handleBack },
         { label: repositoryName }
       ];
     } else {
       return [
-        { label: 'Settings', onClick: () => router.stateService.go('preview.admin') },
-        { label: 'Repositories', onClick: handleBack },
+        { label: CommonStrings.LABELS.SETTINGS, onClick: () => router.stateService.go('preview.admin') },
+        { label: RepositoryProfileStrings.PAGE.REPOSITORIES, onClick: handleBack },
         { label: repositoryName }
       ];
     }
@@ -203,7 +205,7 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
   // Surface action errors (invalidate cache / rebuild index / toggle online failures) via toast
   useEffect(() => {
     if (actionError) {
-      toast.error('Action failed', actionError);
+      toast.error(RepositoryProfileStrings.PAGE.ACTION_FAILED, actionError);
     }
   }, [actionError, toast]);
 
@@ -214,7 +216,7 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
         <Flex justify="center" align="center" style={{ minHeight: '400px' }}>
           <Flex direction="column" align="center" gap="3">
             <Spinner size="3" />
-            <Text color="gray">{`Loading ${repositoryName}...`}</Text>
+            <Text color="gray">{RepositoryProfileStrings.PAGE.LOADING(repositoryName)}</Text>
           </Flex>
         </Flex>
       </Box>
@@ -230,10 +232,10 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
           <Callout.Icon>
             <Package size={16} />
           </Callout.Icon>
-          <Callout.Text>{error || `Repository "${repositoryName}" not found`}</Callout.Text>
+          <Callout.Text>{error || RepositoryProfileStrings.PAGE.REPOSITORY_NOT_FOUND(repositoryName)}</Callout.Text>
         </Callout.Root>
         <Box mt="4">
-          <Button onClick={retry}>Retry</Button>
+          <Button onClick={retry}>{CommonStrings.ACTIONS.RETRY}</Button>
         </Box>
       </Box>
     );
@@ -266,7 +268,7 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                 </Heading>
                 <Flex align="center" gap="3" wrap="wrap">
                   {/* Status Badge */}
-                  <Tooltip content={`Repository is ${isOnline ? 'online' : 'offline'}`}>
+                  <Tooltip content={isOnline ? RepositoryProfileStrings.PAGE.REPOSITORY_ONLINE : RepositoryProfileStrings.PAGE.REPOSITORY_OFFLINE}>
                     <Badge variant="soft" color="gray" size="2">
                       <Flex align="center" gap="1">
                         <Circle
@@ -274,20 +276,20 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                           fill={isOnline ? 'var(--green-9)' : 'var(--gray-9)'}
                           color={isOnline ? 'var(--green-9)' : 'var(--gray-9)'}
                         />
-                        {isOnline ? 'Online' : 'Offline'}
+                        {isOnline ? RepositoryProfileStrings.PAGE.ONLINE : RepositoryProfileStrings.PAGE.OFFLINE}
                       </Flex>
                     </Badge>
                   </Tooltip>
 
                   {/* Type Badge */}
-                  <Tooltip content={`Repository type: ${TYPE_LABELS[repository.type] || repository.type}`}>
+                  <Tooltip content={RepositoryProfileStrings.PAGE.REPOSITORY_TYPE(TYPE_LABELS[repository.type] || repository.type)}>
                     <Badge variant="soft" color="gray" size="2">
                       {TYPE_LABELS[repository.type] || repository.type}
                     </Badge>
                   </Tooltip>
 
                   {/* Format Badge */}
-                  <Tooltip content={`Format: ${FORMAT_LABELS[repository.format] || repository.format}`}>
+                  <Tooltip content={RepositoryProfileStrings.PAGE.FORMAT(FORMAT_LABELS[repository.format] || repository.format)}>
                     <Badge variant="soft" color="gray" size="2">
                       {FORMAT_LABELS[repository.format] || repository.format}
                     </Badge>
@@ -295,7 +297,7 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
 
                   <Separator orientation="vertical" />
                   <Text size="2" color="gray">
-                    URL: <code style={{
+                    {RepositoryProfileStrings.PAGE.URL_LABEL} <code style={{
                       fontFamily: 'var(--font-mono, monospace)',
                       fontSize: '12px',
                       padding: '2px 6px',
@@ -308,7 +310,7 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
               <Flex gap="2" align="center" wrap="wrap">
                 <Button variant="soft" size="2" onClick={handleViewInBrowse}>
                   <FolderTree size={16} />
-                  Browse Repository
+                  {RepositoryProfileStrings.PAGE.BROWSE_REPOSITORY}
                 </Button>
                 {canEditRepository && isProxy && (
                   <Button
@@ -316,10 +318,10 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                     size="2"
                     onClick={handleInvalidateCache}
                     disabled={isExecuting || isDeleting}
-                    title="Invalidate Cache"
+                    title={RepositoryProfileStrings.PAGE.INVALIDATE_CACHE}
                   >
                     <RotateCcw size={16} />
-                    Invalidate Cache
+                    {RepositoryProfileStrings.PAGE.INVALIDATE_CACHE}
                   </Button>
                 )}
                 {canEditRepository && (
@@ -328,10 +330,10 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                     size="2"
                     onClick={handleRebuildIndex}
                     disabled={isExecuting || isDeleting}
-                    title="Rebuild Index"
+                    title={RepositoryProfileStrings.PAGE.REBUILD_INDEX}
                   >
                     <Database size={16} />
-                    Rebuild Index
+                    {RepositoryProfileStrings.PAGE.REBUILD_INDEX}
                   </Button>
                 )}
                 {canEditRepository && (
@@ -341,10 +343,10 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                     onClick={handleToggleOnline}
                     disabled={isExecuting || isDeleting}
                     color={isOnline ? 'green' : 'red'}
-                    title={isOnline ? 'Take Offline' : 'Bring Online'}
+                    title={isOnline ? RepositoryProfileStrings.PAGE.TAKE_OFFLINE : RepositoryProfileStrings.PAGE.BRING_ONLINE}
                   >
                     <Power size={16} />
-                    {isOnline ? 'Online' : 'Offline'}
+                    {isOnline ? RepositoryProfileStrings.PAGE.ONLINE : RepositoryProfileStrings.PAGE.OFFLINE}
                   </Button>
                 )}
                 <Button
@@ -353,13 +355,13 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                   color="red"
                   onClick={handleOpenDeleteModal}
                   disabled={!canDeleteRepository || isExecuting || isDeleting}
-                  title="Delete Repository"
+                  title={RepositoryProfileStrings.PAGE.DELETE_REPOSITORY}
                   data-testid="repository-profile-delete-button"
                 >
                   <Trash2 size={16} />
-                  Delete
+                  {CommonStrings.ACTIONS.DELETE}
                 </Button>
-                <Button variant="ghost" size="2" onClick={refresh} title="Refresh">
+                <Button variant="ghost" size="2" onClick={refresh} title={CommonStrings.ACTIONS.REFRESH}>
                   <RefreshCw size={16} />
                 </Button>
               </Flex>

@@ -5,6 +5,7 @@ import { Box, Flex, Text, Callout, Tooltip, IconButton } from '@radix-ui/themes'
 import { Info, FolderTree, ExternalLink } from 'lucide-react';
 import { LoadingState, ErrorState, EntityTable } from '../../../../shared';
 import { useRepositoryTree } from './useRepositoryTree';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 export interface RepositoryGroupUsageTabProps {
   repositoryName: string;
@@ -16,20 +17,20 @@ export interface RepositoryGroupUsageTabProps {
 export function RepositoryGroupUsageTab({ repositoryName }: RepositoryGroupUsageTabProps) {
   const { usages, loading, error, refresh } = useRepositoryTree(repositoryName);
 
-  if (loading) return <LoadingState message="Checking group membership..." />;
+  if (loading) return <LoadingState message={RepositoriesPageStrings.GROUP_USAGE.CHECKING_GROUP_MEMBERSHIP} />;
   if (error) return <ErrorState message={error} onRetry={refresh} />;
 
   const columns = [
     {
       id: 'name',
-      header: 'Group Repository',
+      header: RepositoriesPageStrings.GROUP_USAGE.GROUP_REPOSITORY,
       accessor: (name: string) => (
         <Flex align="center" justify="between" style={{ width: '100%' }}>
           <Flex align="center" gap="2">
             <FolderTree size={16} color="var(--blue-9)" />
             <Text weight="medium">{name}</Text>
           </Flex>
-          <Tooltip content="View Structure">
+          <Tooltip content={RepositoriesPageStrings.GROUP_USAGE.VIEW_STRUCTURE}>
             <IconButton 
               variant="ghost" 
               size="1" 
@@ -51,7 +52,7 @@ export function RepositoryGroupUsageTab({ repositoryName }: RepositoryGroupUsage
           <Info size={16} />
         </Callout.Icon>
         <Callout.Text>
-          Showing group repositories that include <strong>{repositoryName}</strong> as a member.
+          {RepositoriesPageStrings.GROUP_USAGE.SHOWING_GROUPS(<strong>{repositoryName}</strong>)}
         </Callout.Text>
       </Callout.Root>
 
@@ -70,7 +71,7 @@ export function RepositoryGroupUsageTab({ repositoryName }: RepositoryGroupUsage
           p="6" 
           style={{ background: 'var(--gray-2)', borderRadius: 'var(--radius-3)' }}
         >
-          <Text color="gray" size="2">This repository is not a member of any groups.</Text>
+          <Text color="gray" size="2">{RepositoriesPageStrings.GROUP_USAGE.REPOSITORY_NOT_MEMBER_ANY_GROUPS}</Text>
         </Flex>
       )}
     </Box>

@@ -13,6 +13,9 @@ import { useCleanupPoliciesApi } from './useCleanupPoliciesApi';
 import { CleanupPolicy, CleanupPolicyFormData, FormatCriteria } from './types';
 
 import './CleanupPoliciesPage.scss';
+import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 // Base path for cleanup policies URLs
 const BASE_PATH = 'preview/admin/repository/cleanup-policies';
@@ -131,7 +134,7 @@ export function CleanupPoliciesPage() {
           if (policyData) {
             setPolicy(policyData);
           } else {
-            setError('Cleanup policy not found');
+            setError(CleanupPoliciesStrings.PAGE.CLEANUP_POLICY_NOT_FOUND);
             navigateTo(BASE_PATH);
           }
         })
@@ -171,12 +174,12 @@ export function CleanupPoliciesPage() {
 
     try {
       await deleteCleanupPolicy(policy.name);
-      toast.success(`Cleanup policy "${policy.name}" deleted successfully`);
+      toast.success(CleanupPoliciesStrings.PAGE.CLEANUP_POLICY_DELETED_SUCCESSFULLY(policy.name));
       setRefreshKey((k) => k + 1);
       setRouteState({ viewMode: 'list', policyName: null });
       setDeleteDialogOpen(false);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Operation failed';
+      const message = err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED;
       toast.error(message);
     }
   }, [policy, deleteCleanupPolicy, toast]);
@@ -186,11 +189,11 @@ export function CleanupPoliciesPage() {
     if (routeState.viewMode === 'list') {
       return (
         <PageHeader
-          title="Cleanup Policies"
-          description="Manage component removal configuration"
+          title={CleanupPoliciesStrings.PAGE.CLEANUP_POLICIES}
+          description={CleanupPoliciesStrings.PAGE.MANAGE_COMPONENT_REMOVAL_CONFIGURATION}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Cleanup Policies' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CleanupPoliciesStrings.PAGE.CLEANUP_POLICIES }
           ]}
           actions={canCreate && (
             <SettingsButton
@@ -200,7 +203,7 @@ export function CleanupPoliciesPage() {
               testId="create-policy-button"
               data-analytics-id="as-cleanup-policy-create"
             >
-              Create Cleanup Policy
+              {CleanupPoliciesStrings.PAGE.CREATE_CLEANUP_POLICY}
             </SettingsButton>
           )}
         />
@@ -208,26 +211,26 @@ export function CleanupPoliciesPage() {
     }
 
     const title = routeState.viewMode === 'create'
-      ? 'Create Cleanup Policy'
+      ? CleanupPoliciesStrings.PAGE.CREATE_CLEANUP_POLICY
       : policy
-        ? `Edit ${policy.name}`
-        : 'Cleanup Policy Details';
+        ? CleanupPoliciesStrings.PAGE.EDIT(policy.name)
+        : CleanupPoliciesStrings.PAGE.CLEANUP_POLICY_DETAILS;
 
     const description = policy && routeState.viewMode === 'detail'
-      ? `Format: ${policy.format}`
+      ? CleanupPoliciesStrings.PAGE.FORMAT(policy.format)
       : undefined;
 
     const lastBreadcrumb = routeState.viewMode === 'create'
-      ? 'Create'
-      : policy?.name || 'Loading...';
+      ? CommonStrings.ACTIONS.CREATE
+      : policy?.name || CommonStrings.MESSAGES.LOADING;
 
     return (
       <PageHeader
         title={title}
         description={description}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'Cleanup Policies', onClick: handleBack },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CleanupPoliciesStrings.PAGE.CLEANUP_POLICIES, onClick: handleBack },
           { label: lastBreadcrumb }
         ]}
       />
@@ -244,7 +247,7 @@ export function CleanupPoliciesPage() {
       >
         {renderHeader()}
         <Box p="4">
-          <LoadingState message="Loading cleanup policy details..." />
+          <LoadingState message={CleanupPoliciesStrings.PAGE.LOADING_CLEANUP_POLICY_DETAILS} />
         </Box>
       </Box>
     );
@@ -310,15 +313,15 @@ export function CleanupPoliciesPage() {
         open={deleteDialogOpen}
         testId="delete-cleanup-policy-dialog"
         onOpenChange={setDeleteDialogOpen}
-        title="Delete Cleanup Policy?"
+        title={CleanupPoliciesStrings.PAGE.DELETE_CLEANUP_POLICY}
         message={
           policy && policy.inUseCount > 0
-            ? `This Cleanup Policy is used by ${policy.inUseCount} ${policy.inUseCount === 1 ? 'repository' : 'repositories'}. Repositories using this policy will no longer automatically clean up assets. This action cannot be undone.`
-            : 'Repositories using this policy will no longer automatically clean up assets. This action cannot be undone.'
+            ? `${plural(CleanupPoliciesStrings.PAGE.USED_BY_REPOSITORIES, policy.inUseCount)} ${CleanupPoliciesStrings.PAGE.DELETE_WARNING}`
+            : CleanupPoliciesStrings.PAGE.DELETE_WARNING
         }
         entityName={policy?.name}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        confirmLabel={CommonStrings.ACTIONS.DELETE}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="danger"
         onConfirm={handleDeleteConfirm}
       />

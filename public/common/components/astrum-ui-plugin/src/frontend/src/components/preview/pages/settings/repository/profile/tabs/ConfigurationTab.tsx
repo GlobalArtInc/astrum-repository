@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import type { RepositoryProfileData } from '../types';
 import { ExtJS } from '@globalart/astrum-ui-plugin';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../../constants/CommonStrings';
+import { formatDuration } from '../../../../../shared/utils/formatLocale';
 
 // =============================================================================
 // Types
@@ -69,7 +72,7 @@ function ConfigRow({ label, value, isCode, isList, listItems }: ConfigRowProps):
       </Flex>
     ) : '—';
   } else if (typeof value === 'boolean') {
-    displayValue = value ? 'Yes' : 'No';
+    displayValue = value ? RepositoryProfileStrings.CONFIGURATION.YES : RepositoryProfileStrings.CONFIGURATION.NO;
   } else if (isCode) {
     displayValue = <code className="profile-section__value--code">{String(value)}</code>;
   } else {
@@ -127,65 +130,65 @@ export function ConfigurationTab({ repository }: ConfigurationTabProps): JSX.Ele
   return (
     <Box>
       {/* General Settings */}
-      <ConfigSection title="General" icon={Settings}>
-        <ConfigRow label="Name" value={repository.name} />
-        <ConfigRow label="Format" value={repository.format} />
-        <ConfigRow label="Type" value={repository.type} />
-        <ConfigRow label="Recipe" value={repository.recipe} />
-        <ConfigRow label="Online" value={repository.online} />
-        <ConfigRow label="URL" value={repository.url} isCode />
+      <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.GENERAL} icon={Settings}>
+        <ConfigRow label={CommonStrings.LABELS.NAME} value={repository.name} />
+        <ConfigRow label={CommonStrings.LABELS.FORMAT} value={repository.format} />
+        <ConfigRow label={CommonStrings.LABELS.TYPE} value={repository.type} />
+        <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.RECIPE} value={repository.recipe} />
+        <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.ONLINE} value={repository.online} />
+        <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.URL} value={repository.url} isCode />
         {repository.routingRuleId && (
-          <ConfigRow label="Routing Rule" value={repository.routingRuleId} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.ROUTING_RULE} value={repository.routingRuleId} />
         )}
       </ConfigSection>
 
       {/* Storage Settings */}
-      <ConfigSection title="Storage" icon={HardDrive}>
-        <ConfigRow label="Blob Store" value={storage?.blobStoreName} />
-        <ConfigRow label="Strict Content Type Validation" value={storage?.strictContentTypeValidation} />
-        {isHosted && <ConfigRow label="Write Policy" value={storage?.writePolicy} />}
+      <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.STORAGE} icon={HardDrive}>
+        <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.BLOB_STORE} value={storage?.blobStoreName} />
+        <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.STRICT_CONTENT_TYPE_VALIDATION} value={storage?.strictContentTypeValidation} />
+        {isHosted && <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.WRITE_POLICY} value={storage?.writePolicy} />}
       </ConfigSection>
 
       {/* Proxy Settings */}
       {isProxy && (
-        <ConfigSection title="Proxy" icon={Globe}>
-          <ConfigRow label="Remote Storage" value={proxy?.remoteUrl} isCode />
-          <ConfigRow label="Content Max Age" value={proxy?.contentMaxAge !== undefined ? `${proxy.contentMaxAge} minutes` : undefined} />
-          <ConfigRow label="Metadata Max Age" value={proxy?.metadataMaxAge !== undefined ? `${proxy.metadataMaxAge} minutes` : undefined} />
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.PROXY} icon={Globe}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.REMOTE_STORAGE} value={proxy?.remoteUrl} isCode />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.CONTENT_MAX_AGE} value={proxy?.contentMaxAge !== undefined ? formatDuration(proxy.contentMaxAge, 'minute') : undefined} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.METADATA_MAX_AGE} value={proxy?.metadataMaxAge !== undefined ? formatDuration(proxy.metadataMaxAge, 'minute') : undefined} />
 
           {negativeCache && (
             <>
               <Text size="2" weight="medium" mt="3" mb="2" style={{ color: 'var(--gray-11)' }}>
-                Negative Cache
+                {RepositoryProfileStrings.CONFIGURATION.NEGATIVE_CACHE}
               </Text>
-              <ConfigRow label="Enabled" value={negativeCache.enabled} />
-              <ConfigRow label="Time to Live" value={negativeCache.timeToLive !== undefined ? `${negativeCache.timeToLive} minutes` : undefined} />
+              <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.ENABLED} value={negativeCache.enabled} />
+              <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.TIME_LIVE} value={negativeCache.timeToLive !== undefined ? formatDuration(negativeCache.timeToLive, 'minute') : undefined} />
             </>
           )}
 
           {httpClient && (
             <>
               <Text size="2" weight="medium" mt="3" mb="2" style={{ color: 'var(--gray-11)' }}>
-                HTTP Connection
+                {RepositoryProfileStrings.CONFIGURATION.HTTP_CONNECTION}
               </Text>
-              <ConfigRow label="Blocked" value={httpClient.blocked} />
-              <ConfigRow label="Auto Block" value={httpClient.autoBlock} />
+              <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.BLOCKED} value={httpClient.blocked} />
+              <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.AUTO_BLOCK} value={httpClient.autoBlock} />
               {httpClient.connection && (
                 <>
-                  <ConfigRow label="Retries" value={httpClient.connection.retries} />
-                  <ConfigRow label="Timeout" value={httpClient.connection.timeout !== undefined ? `${httpClient.connection.timeout} seconds` : undefined} />
-                  <ConfigRow label="Use Trust Store" value={httpClient.connection.useTrustStore} />
-                  <ConfigRow label="Enable Circular Redirects" value={httpClient.connection.enableCircularRedirects} />
-                  <ConfigRow label="Enable Cookies" value={httpClient.connection.enableCookies} />
+                  <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.RETRIES} value={httpClient.connection.retries} />
+                  <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.TIMEOUT} value={httpClient.connection.timeout !== undefined ? formatDuration(httpClient.connection.timeout, 'second') : undefined} />
+                  <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.USE_TRUST_STORE} value={httpClient.connection.useTrustStore} />
+                  <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.ENABLE_CIRCULAR_REDIRECTS} value={httpClient.connection.enableCircularRedirects} />
+                  <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.ENABLE_COOKIES} value={httpClient.connection.enableCookies} />
                 </>
               )}
               {httpClient.authentication && (
                 <>
                   <Text size="2" weight="medium" mt="2" mb="2" style={{ color: 'var(--gray-11)' }}>
-                    Authentication
+                    {RepositoryProfileStrings.CONFIGURATION.AUTHENTICATION}
                   </Text>
-                  <ConfigRow label="Type" value={httpClient.authentication.type} />
-                  <ConfigRow label="Username" value={httpClient.authentication.username} />
+                  <ConfigRow label={CommonStrings.LABELS.TYPE} value={httpClient.authentication.type} />
+                  <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.USERNAME} value={httpClient.authentication.username} />
                 </>
               )}
             </>
@@ -195,16 +198,16 @@ export function ConfigurationTab({ repository }: ConfigurationTabProps): JSX.Ele
 
       {/* Hosted Settings */}
       {isHosted && component && (
-        <ConfigSection title="Hosted" icon={Server}>
-          <ConfigRow label="Proprietary Components" value={component.proprietaryComponents} />
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.HOSTED} icon={Server}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.PROPRIETARY_COMPONENTS} value={component.proprietaryComponents} />
         </ConfigSection>
       )}
 
       {/* Group Settings */}
       {isGroup && group && (
-        <ConfigSection title="Group" icon={Users}>
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.GROUP} icon={Users}>
           <ConfigRow
-            label="Member Repositories"
+            label={RepositoryProfileStrings.CONFIGURATION.MEMBER_REPOSITORIES}
             value={undefined}
             isList
             listItems={group.memberNames || []}
@@ -214,9 +217,9 @@ export function ConfigurationTab({ repository }: ConfigurationTabProps): JSX.Ele
 
       {/* Cleanup Policies */}
       {cleanup && (
-        <ConfigSection title="Cleanup" icon={Trash2}>
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.CLEANUP} icon={Trash2}>
           <ConfigRow
-            label="Cleanup Policies"
+            label={RepositoryProfileStrings.CONFIGURATION.CLEANUP_POLICIES}
             value={undefined}
             isList
             listItems={cleanup.policyName || []}
@@ -226,60 +229,60 @@ export function ConfigurationTab({ repository }: ConfigurationTabProps): JSX.Ele
 
       {/* Replication */}
       {replication && (
-        <ConfigSection title="Replication" icon={Copy}>
-          <ConfigRow label="Preemptive Pull Enabled" value={replication.preemptivePullEnabled} />
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.REPLICATION} icon={Copy}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.PREEMPTIVE_PULL_ENABLED} value={replication.preemptivePullEnabled} />
         </ConfigSection>
       )}
 
       {/* Format-Specific Settings */}
       {maven && (
-        <ConfigSection title="Maven" icon={Settings}>
-          <ConfigRow label="Version Policy" value={maven.versionPolicy} />
-          <ConfigRow label="Layout Policy" value={maven.layoutPolicy} />
-          {!isCloud && <ConfigRow label="Content Disposition" value={maven.contentDisposition} />}
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.MAVEN} icon={Settings}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.VERSION_POLICY} value={maven.versionPolicy} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.LAYOUT_POLICY} value={maven.layoutPolicy} />
+          {!isCloud && <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.CONTENT_DISPOSITION} value={maven.contentDisposition} />}
         </ConfigSection>
       )}
 
       {docker && (
-        <ConfigSection title="Docker" icon={Settings}>
-          <ConfigRow label="HTTP Port" value={docker.httpPort} />
-          <ConfigRow label="HTTPS Port" value={docker.httpsPort} />
-          <ConfigRow label="V1 Enabled" value={docker.v1Enabled} />
-          <ConfigRow label="Force Basic Auth" value={docker.forceBasicAuth} />
-          <ConfigRow label="Subdomain" value={docker.subdomain} />
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.DOCKER} icon={Settings}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.HTTP_PORT} value={docker.httpPort} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.HTTPS_PORT} value={docker.httpsPort} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.V1_ENABLED} value={docker.v1Enabled} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.FORCE_BASIC_AUTH} value={docker.forceBasicAuth} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.SUBDOMAIN} value={docker.subdomain} />
         </ConfigSection>
       )}
 
       {npm && (
         <ConfigSection title="npm" icon={Settings}>
-          <ConfigRow label="Remove Quarantined" value={npm.removeQuarantined} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.REMOVE_QUARANTINED} value={npm.removeQuarantined} />
         </ConfigSection>
       )}
 
       {nugetProxy && (
-        <ConfigSection title="NuGet" icon={Settings}>
-          <ConfigRow label="Query Cache Item Max Age" value={nugetProxy.queryCacheItemMaxAge !== undefined ? `${nugetProxy.queryCacheItemMaxAge} seconds` : undefined} />
-          <ConfigRow label="NuGet Version" value={nugetProxy.nugetVersion} />
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.NUGET} icon={Settings}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.QUERY_CACHE_ITEM_MAX_AGE} value={nugetProxy.queryCacheItemMaxAge !== undefined ? formatDuration(nugetProxy.queryCacheItemMaxAge, 'second') : undefined} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.NUGET_VERSION} value={nugetProxy.nugetVersion} />
         </ConfigSection>
       )}
 
       {apt && (
-        <ConfigSection title="APT" icon={Settings}>
-          <ConfigRow label="Distribution" value={apt.distribution} />
-          <ConfigRow label="Flat" value={apt.flat} />
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.APT} icon={Settings}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.DISTRIBUTION} value={apt.distribution} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.FLAT} value={apt.flat} />
         </ConfigSection>
       )}
 
       {yum && (
-        <ConfigSection title="Yum" icon={Settings}>
-          <ConfigRow label="Repodata Depth" value={yum.repodataDepth} />
-          <ConfigRow label="Deploy Policy" value={yum.deployPolicy} />
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.YUM} icon={Settings}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.REPODATA_DEPTH} value={yum.repodataDepth} />
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.DEPLOY_POLICY} value={yum.deployPolicy} />
         </ConfigSection>
       )}
 
       {raw && !isCloud && (
-        <ConfigSection title="Raw" icon={Settings}>
-          <ConfigRow label="Content Disposition" value={raw.contentDisposition} />
+        <ConfigSection title={RepositoryProfileStrings.CONFIGURATION.RAW} icon={Settings}>
+          <ConfigRow label={RepositoryProfileStrings.CONFIGURATION.CONTENT_DISPOSITION} value={raw.contentDisposition} />
         </ConfigSection>
       )}
     </Box>

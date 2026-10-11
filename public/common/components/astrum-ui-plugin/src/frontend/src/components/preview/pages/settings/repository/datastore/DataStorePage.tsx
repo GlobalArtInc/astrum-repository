@@ -19,6 +19,8 @@ import { useDataStoreForm } from './useDataStoreForm';
 import { JdbcParameterEditor, ParameterValidation } from './JdbcParameterEditor';
 
 import './DataStorePage.scss';
+import DataStoreStrings from '../../../../constants/pages/settings/repository/DataStoreStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -67,11 +69,11 @@ export function DataStorePage() {
       {/* Header - using shared PageHeader for consistent UX */}
       <PageHeader
         icon={Database}
-        title="Data Store"
-        description="Configure the connection used for the database"
+        title={DataStoreStrings.PAGE.DATA_STORE}
+        description={DataStoreStrings.PAGE.CONFIGURE_CONNECTION_USED_DATABASE}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'Data Store' }
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: DataStoreStrings.PAGE.DATA_STORE }
         ]}
       />
 
@@ -80,7 +82,7 @@ export function DataStorePage() {
         <Box className="datastore-page__alerts">
           <ErrorState
             variant="inline"
-            title="Error"
+            title={DataStoreStrings.PAGE.ERROR}
             message={error}
           />
         </Box>
@@ -92,14 +94,14 @@ export function DataStorePage() {
           <SettingsAlert type="warning">
             <Flex justify="between" align="center" gap="3">
               <Text size="2">
-                Reset all advanced JDBC parameters to defaults? This will remove all custom parameters.
+                {DataStoreStrings.PAGE.RESET_ALL_ADVANCED_JDBC_PARAMETERS}
               </Text>
               <Flex gap="2">
                 <SettingsButton variant="secondary" onClick={cancelResetParams}>
-                  Cancel
+                  {CommonStrings.ACTIONS.CANCEL}
                 </SettingsButton>
                 <SettingsButton variant="danger" onClick={confirmResetParams}>
-                  Reset to Defaults
+                  {DataStoreStrings.PAGE.RESET_DEFAULTS}
                 </SettingsButton>
               </Flex>
             </Flex>
@@ -109,7 +111,7 @@ export function DataStorePage() {
 
       {/* Content */}
       {isLoading ? (
-        <LoadingState message="Loading configuration..." />
+        <LoadingState message={DataStoreStrings.PAGE.LOADING_CONFIGURATION} />
       ) : !loadError ? (
         <SettingsForm
           testId="datastore-form"
@@ -120,11 +122,11 @@ export function DataStorePage() {
           submitDisabled={!(canUpdate && canSave)}
         >
           {/* 1. Connection Overview (Read-Only) */}
-          <SettingsFormSection title="Connection Overview">
+          <SettingsFormSection title={DataStoreStrings.PAGE.CONNECTION_OVERVIEW}>
             <Box className="datastore-page__readonly-fields">
               <Box className="datastore-page__readonly-field">
                 <Text size="2" weight="medium" className="datastore-page__readonly-label">
-                  Database Type
+                  {DataStoreStrings.PAGE.DATABASE_TYPE}
                 </Text>
                 <Text size="2" className="datastore-page__readonly-value">
                   {databaseType}
@@ -132,42 +134,42 @@ export function DataStorePage() {
               </Box>
               <Box className="datastore-page__readonly-field">
                 <Text size="2" weight="medium" className="datastore-page__readonly-label">
-                  JDBC URL
+                  {DataStoreStrings.PAGE.JDBC_URL}
                 </Text>
                 <Text size="2" className="datastore-page__readonly-value datastore-page__readonly-value--mono">
-                  {data.jdbcUrl || 'Not configured'}
+                  {data.jdbcUrl || DataStoreStrings.PAGE.NOT_CONFIGURED}
                 </Text>
               </Box>
               <Box className="datastore-page__readonly-field">
                 <Text size="2" weight="medium" className="datastore-page__readonly-label">
-                  Schema
+                  {DataStoreStrings.PAGE.SCHEMA}
                 </Text>
                 <Text size="2" className="datastore-page__readonly-value">
-                  {data.schema || 'Not configured'}
+                  {data.schema || DataStoreStrings.PAGE.NOT_CONFIGURED}
                 </Text>
               </Box>
               <Box className="datastore-page__readonly-field">
                 <Text size="2" weight="medium" className="datastore-page__readonly-label">
-                  Username
+                  {DataStoreStrings.PAGE.USERNAME}
                 </Text>
                 <Text size="2" className="datastore-page__readonly-value">
-                  {data.username || 'Not configured'}
+                  {data.username || DataStoreStrings.PAGE.NOT_CONFIGURED}
                 </Text>
               </Box>
             </Box>
           </SettingsFormSection>
 
           {/* 2. Connection Pool Settings */}
-          <SettingsFormSection title="Connection Pool Settings">
+          <SettingsFormSection title={DataStoreStrings.PAGE.CONNECTION_POOL_SETTINGS}>
             <SettingsTextInput
               name="maximumConnectionPool"
-              label="Maximum Connection Pool Size"
+              label={DataStoreStrings.PAGE.MAXIMUM_CONNECTION_POOL_SIZE}
               value={String(data.maximumConnectionPool)}
               onChange={setMaxPool}
               type="number"
               min={1}
               max={3000}
-              helpText="Maximum number of database connections in the pool. Default: 10. Valid range: 1-3000."
+              helpText={DataStoreStrings.PAGE.MAXIMUM_NUMBER_DATABASE_CONNECTIONS_POOL}
               error={field('maximumConnectionPool').error}
               disabled={!canUpdate || isSaving}
             />
@@ -175,13 +177,13 @@ export function DataStorePage() {
 
           {/* 3. Advanced JDBC Parameters */}
           <SettingsFormSection
-            title="Advanced JDBC Parameters"
-            description="Configure additional JDBC connection parameters. Each parameter is validated before save."
+            title={DataStoreStrings.PAGE.ADVANCED_JDBC_PARAMETERS}
+            description={DataStoreStrings.PAGE.CONFIGURE_ADDITIONAL_JDBC_CONNECTION_PARAMETERS}
           >
             {showAllValidation && hasParameterErrors && (
               <Flex align="center" gap="2" className="datastore-page__section-error">
                 <AlertCircle size={16} />
-                <Text size="2">Fix parameter errors before saving</Text>
+                <Text size="2">{DataStoreStrings.PAGE.FIX_PARAMETER_ERRORS_BEFORE_SAVING}</Text>
               </Flex>
             )}
             <JdbcParameterEditor
@@ -197,16 +199,16 @@ export function DataStorePage() {
           {/* 4. Effective Configuration Preview */}
           {effectiveConfig.length > 0 && (
             <SettingsFormSection
-              title="Effective JDBC Configuration"
-              description="Preview of the final resolved parameter list that will be applied after save."
+              title={DataStoreStrings.PAGE.EFFECTIVE_JDBC_CONFIGURATION}
+              description={DataStoreStrings.PAGE.PREVIEW_FINAL_RESOLVED_PARAMETER_LIST}
             >
               <Box className="datastore-page__effective-config">
                 <Table.Root>
                   <Table.Header>
                     <Table.Row>
-                      <Table.ColumnHeaderCell>Parameter</Table.ColumnHeaderCell>
-                      <Table.ColumnHeaderCell>Value</Table.ColumnHeaderCell>
-                      <Table.ColumnHeaderCell>Source</Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>{DataStoreStrings.PAGE.PARAMETER}</Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>{DataStoreStrings.PAGE.VALUE}</Table.ColumnHeaderCell>
+                      <Table.ColumnHeaderCell>{DataStoreStrings.PAGE.SOURCE}</Table.ColumnHeaderCell>
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
@@ -227,7 +229,7 @@ export function DataStorePage() {
                             size="1"
                             className={`datastore-page__effective-source datastore-page__effective-source--${param.source.toLowerCase()}`}
                           >
-                            {param.source}
+                            {param.source === 'Custom' ? DataStoreStrings.PAGE.SOURCE_CUSTOM : DataStoreStrings.PAGE.SOURCE_DEFAULT}
                           </Text>
                         </Table.Cell>
                       </Table.Row>
@@ -242,8 +244,8 @@ export function DataStorePage() {
         </SettingsForm>
       ) : (
         <ErrorState
-          title="Failed to Load Configuration"
-          message="Unable to load data store configuration. Please try again."
+          title={DataStoreStrings.PAGE.FAILED_LOAD_CONFIGURATION}
+          message={DataStoreStrings.PAGE.UNABLE_LOAD_DATA_STORE_CONFIGURATION}
           onRetry={() => window.location.reload()}
         />
       )}

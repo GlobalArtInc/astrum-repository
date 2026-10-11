@@ -59,6 +59,8 @@ import { isEvaluationFeatureEnabled } from './useRepoEvaluationOverride';
 import { RepositorySettingsUsageTab } from './RepositorySettingsUsageTab';
 import type { RepositoryUsageKind } from './repositoryUsageMachine';
 import { isFeatureEnabled } from '../../../../config/featureFlags';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const USAGE_TAB_FLAG = 'repository.settings.usageTab';
 
@@ -194,7 +196,7 @@ export function RepositoryForm({
     return (
       <Flex align="center" justify="center" className="repository-form__loading">
         <Loader2 size={24} className="repository-form__spinner" />
-        <Text size="2">Loading form data...</Text>
+        <Text size="2">{RepositoriesPageStrings.FORM.LOADING_FORM_DATA}</Text>
       </Flex>
     );
   }
@@ -203,21 +205,21 @@ export function RepositoryForm({
   const formContent = (
     <Box>
       {/* Repository Info Section */}
-        <SettingsFormSection title="Repository Settings">
+        <SettingsFormSection title={RepositoriesPageStrings.FORM.REPOSITORY_SETTINGS}>
           <SettingsTextInput
             {...form.field('name')}
-            label="Name"
+            label={CommonStrings.LABELS.NAME}
             disabled={!isCreate}
             required
-            helpText={isCreate ? 'A unique identifier for this repository' : 'Repository name cannot be changed'}
+            helpText={isCreate ? RepositoriesPageStrings.FORM.UNIQUE_IDENTIFIER_REPOSITORY : RepositoriesPageStrings.FORM.REPOSITORY_NAME_CANNOT_CHANGED}
           />
 
           <SettingsCheckbox
             name="repo-online"
-            label="Online"
+            label={RepositoriesPageStrings.FORM.ONLINE}
             checked={formData.online ?? true}
             onChange={(checked) => handleChange({ online: checked })}
-            description="Allow clients to access this repository"
+            description={RepositoriesPageStrings.FORM.ALLOW_CLIENTS_ACCESS_REPOSITORY}
           />
         </SettingsFormSection>
 
@@ -392,44 +394,44 @@ export function RepositoryForm({
         <Tabs.Root value={activeTab} onValueChange={setActiveTab as (v: string) => void} className="repository-form__tabs">
           <Tabs.List>
             <Tabs.Trigger value="summary">
-              <FileText size={16} /> Summary
+              <FileText size={16} /> {RepositoriesPageStrings.FORM.SUMMARY}
             </Tabs.Trigger>
             <Tabs.Trigger value="settings">
-              <SettingsIcon size={16} /> Settings
+              <SettingsIcon size={16} /> {CommonStrings.LABELS.SETTINGS}
             </Tabs.Trigger>
             {isFeatureEnabled(USAGE_TAB_FLAG) && (
               <Tabs.Trigger value="usage">
-                <Activity size={16} /> Usage
+                <Activity size={16} /> {RepositoriesPageStrings.FORM.USAGE}
               </Tabs.Trigger>
             )}
             {recipe.type === 'proxy' && (
               <>
                 <Tabs.Trigger value="firewall">
-                  <Shield size={16} /> Firewall
+                  <Shield size={16} /> {RepositoriesPageStrings.FORM.FIREWALL}
                 </Tabs.Trigger>
                 <Tabs.Trigger value="health-check">
-                  <ShieldCheck size={16} /> Health Check
+                  <ShieldCheck size={16} /> {RepositoriesPageStrings.FORM.HEALTH_CHECK}
                 </Tabs.Trigger>
               </>
             )}
             {auditEnabled && hasAuditRead && (
               <Tabs.Trigger value="audit">
-                <ScrollText size={16} /> Audit
+                <ScrollText size={16} /> {RepositoriesPageStrings.FORM.AUDIT}
               </Tabs.Trigger>
             )}
             {showEvaluationTab && (
               <Tabs.Trigger value="evaluation">
-                <ShieldQuestion size={16} /> Evaluation
+                <ShieldQuestion size={16} /> {RepositoriesPageStrings.FORM.EVALUATION}
               </Tabs.Trigger>
             )}
             {hasTasksOrCapabilitiesRead && (
               <Tabs.Trigger value="tasks-capabilities">
-                <ListChecks size={16} /> Tasks &amp; Capabilities
+                <ListChecks size={16} /> {RepositoriesPageStrings.FORM.TASKS_CAPABILITIES}
               </Tabs.Trigger>
             )}
             {hasAccessSecurityRead && (
               <Tabs.Trigger value="access-security">
-                <Lock size={16} /> Access &amp; Security
+                <Lock size={16} /> {RepositoriesPageStrings.FORM.ACCESS_SECURITY}
               </Tabs.Trigger>
             )}
           </Tabs.List>
@@ -553,16 +555,16 @@ export function RepositoryForm({
   const toggleOnlineBlockedByDirtyForm = !form.isPristine || (isEvalTabActive && evalDirty);
   const toggleOnlineDisabled = actionsDisabled || toggleOnlineBlockedByDirtyForm;
   const toggleOnlineTitle = toggleOnlineBlockedByDirtyForm
-    ? 'Save or discard your unsaved changes before toggling system status'
+    ? RepositoriesPageStrings.FORM.SAVE_DISCARD_UNSAVED_CHANGES_BEFORE
     : isOnlineSaved
-      ? 'Take this repository offline'
-      : 'Bring this repository online';
+      ? RepositoriesPageStrings.FORM.TAKE_REPOSITORY_OFFLINE
+      : RepositoriesPageStrings.FORM.BRING_REPOSITORY_ONLINE;
   // Browse Repository navigates away from the edit page; unsaved edits would
   // be silently lost. Block navigation while the form is dirty for the same
   // reason we block the toggle above.
   const browseRepositoryDisabled = actionsDisabled || toggleOnlineBlockedByDirtyForm;
   const browseRepositoryTitle = toggleOnlineBlockedByDirtyForm
-    ? 'Save or discard your unsaved changes before browsing the repository'
+    ? RepositoriesPageStrings.FORM.SAVE_DISCARD_UNSAVED_CHANGES_BEFORE_2
     : undefined;
 
   return (
@@ -579,8 +581,8 @@ export function RepositoryForm({
         loading={isEvalTabActive ? evalSaving || loading : form.isSaving || loading}
         pristine={isEvalTabActive ? !evalDirty : form.isPristine}
         error={error || form.saveError || undefined}
-        submitLabel={isCreate ? 'Create Repository' : 'Save Changes'}
-        cancelLabel="Cancel"
+        submitLabel={isCreate ? RepositoriesPageStrings.FORM.CREATE_REPOSITORY : RepositoriesPageStrings.FORM.SAVE_CHANGES}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         testId="repository-form"
         submitAnalyticsId={isCreate ? 'as-repository-create' : 'as-repository-save'}
         cancelAnalyticsId="as-repository-cancel"
@@ -597,7 +599,7 @@ export function RepositoryForm({
                   data-analytics-id="as-repository-browse"
                   title={browseRepositoryTitle}
                 >
-                  Browse Repository
+                  {RepositoriesPageStrings.FORM.BROWSE_REPOSITORY}
                 </SettingsButton>
               )}
               {showRebuildIndex && (
@@ -609,7 +611,7 @@ export function RepositoryForm({
                   testId="form-rebuild-index"
                   data-analytics-id="as-repository-rebuild-index"
                 >
-                  Rebuild Index
+                  {RepositoriesPageStrings.FORM.REBUILD_INDEX}
                 </SettingsButton>
               )}
               {showInvalidateCache && (
@@ -621,7 +623,7 @@ export function RepositoryForm({
                   testId="form-invalidate-cache"
                   data-analytics-id="as-repository-invalidate-cache"
                 >
-                  Invalidate Cache
+                  {RepositoriesPageStrings.FORM.INVALIDATE_CACHE}
                 </SettingsButton>
               )}
               {showToggleOnline && (
@@ -634,7 +636,7 @@ export function RepositoryForm({
                   data-analytics-id="as-repository-toggle-online"
                   title={toggleOnlineTitle}
                 >
-                  {isOnlineSaved ? 'Disable System Status' : 'Enable System Status'}
+                  {isOnlineSaved ? RepositoriesPageStrings.FORM.DISABLE_SYSTEM_STATUS : RepositoriesPageStrings.FORM.ENABLE_SYSTEM_STATUS}
                 </SettingsButton>
               )}
               {showDelete && (
@@ -646,7 +648,7 @@ export function RepositoryForm({
                   testId="form-delete"
                   data-analytics-id="as-repository-delete"
                 >
-                  Delete
+                  {CommonStrings.ACTIONS.DELETE}
                 </SettingsButton>
               )}
             </Flex>

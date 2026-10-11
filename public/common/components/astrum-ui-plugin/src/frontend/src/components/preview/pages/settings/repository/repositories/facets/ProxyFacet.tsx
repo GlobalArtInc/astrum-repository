@@ -55,7 +55,7 @@ const REMOTE_URL_EXAMPLES: Record<string, string> = {
   cargo: 'e.g., https://index.crates.io',
   terraform: 'e.g., https://registry.terraform.io',
   composer: 'e.g., https://repo.packagist.org',
-  conan: 'e.g., https://center.conan.io (v1) or https://center2.conan.io (v2)',
+  conan: UIStrings.PROXY.E_G_HTTPS_CENTER_CONAN,
   pub: 'e.g., https://pub.dev',
   r: 'e.g., https://cran.r-project.org',
   rubygems: 'e.g., https://rubygems.org',

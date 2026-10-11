@@ -11,6 +11,7 @@ import {
 } from '../../../../shared/form';
 import type { BlobStoreFormData, GoogleBlobStoreConfig } from './types';
 import './GoogleBlobStoreSettings.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 interface GoogleBlobStoreSettingsProps {
   data: BlobStoreFormData;
@@ -22,56 +23,56 @@ interface GoogleBlobStoreSettingsProps {
 
 const STRINGS = {
   BASIC: {
-    title: 'Google Cloud Storage Configuration',
-    description: 'Configure your GCP bucket for blob storage',
+    title: BlobStoresStrings.GOOGLE.GOOGLE_CLOUD_STORAGE_CONFIGURATION,
+    description: BlobStoresStrings.GOOGLE.CONFIGURE_GCP_BUCKET_BLOB_STORAGE,
     REGION: {
-      label: 'Region',
-      helpText: 'The region is automatically set based on where Astrum Repository is running in GCP. Ensure the bucket is in the same region.'
+      label: BlobStoresStrings.GOOGLE.REGION,
+      helpText: BlobStoresStrings.GOOGLE.REGION_AUTOMATICALLY_SET_BASED_WHERE
     },
     PROJECT_ID: {
-      label: 'Project ID',
-      helpText: 'Your GCP Project ID is a unique identifier for your Google Cloud project',
+      label: BlobStoresStrings.GOOGLE.PROJECT_ID,
+      helpText: BlobStoresStrings.GOOGLE.GCP_PROJECT_ID_UNIQUE_IDENTIFIER,
       placeholder: 'my-gcp-project'
     },
     BUCKET: {
-      label: 'Bucket',
-      helpText: 'Google Cloud Platform bucket name (must be between 3 and 63 characters)',
+      label: BlobStoresStrings.GOOGLE.BUCKET,
+      helpText: BlobStoresStrings.GOOGLE.GOOGLE_CLOUD_PLATFORM_BUCKET_NAME,
       placeholder: 'my-astrum-bucket'
     },
     PREFIX: {
-      label: 'Prefix',
-      helpText: 'Google Cloud Storage path prefix',
+      label: BlobStoresStrings.GOOGLE.PREFIX,
+      helpText: BlobStoresStrings.GOOGLE.GOOGLE_CLOUD_STORAGE_PATH_PREFIX,
       placeholder: 'astrum/'
     }
   },
   AUTH: {
-    title: 'Authentication',
-    label: 'Authentication Method',
+    title: BlobStoresStrings.GOOGLE.AUTHENTICATION,
+    label: BlobStoresStrings.GOOGLE.AUTHENTICATION_METHOD,
     APPLICATION_DEFAULT: {
       value: 'applicationDefault',
-      label: 'Use Google Application Default Credentials'
+      label: BlobStoresStrings.GOOGLE.USE_GOOGLE_APPLICATION_DEFAULT_CREDENTIALS
     },
     ACCOUNT_KEY: {
       value: 'accountKey',
-      label: 'Use a separate credential JSON file'
+      label: BlobStoresStrings.GOOGLE.USE_SEPARATE_CREDENTIAL_JSON_FILE
     },
     FILE: {
-      label: 'JSON Credential File',
-      helpText: 'Upload a .json file (maximum size: 4KB)',
-      button: 'Choose File',
-      selected: (name: string) => `Selected: ${name}`
+      label: BlobStoresStrings.GOOGLE.JSON_CREDENTIAL_FILE,
+      helpText: BlobStoresStrings.GOOGLE.UPLOAD_JSON_FILE_MAXIMUM_SIZE,
+      button: BlobStoresStrings.GOOGLE.CHOOSE_FILE,
+      selected: (name: string) => BlobStoresStrings.GOOGLE.SELECTED(name)
     }
   },
   ENCRYPTION: {
-    title: 'Encryption',
-    description: 'Data is encrypted by default. Enable KMS to use a custom encryption key.',
-    note: 'Encryption settings cannot be changed once the bucket is created',
+    title: BlobStoresStrings.GOOGLE.ENCRYPTION,
+    description: BlobStoresStrings.GOOGLE.DATA_ENCRYPTED_DEFAULT_ENABLE_KMS,
+    note: BlobStoresStrings.GOOGLE.ENCRYPTION_SETTINGS_CANNOT_CHANGED_ONCE,
     KMS_ENABLED: {
-      label: 'Enable KMS managed encryption'
+      label: BlobStoresStrings.GOOGLE.ENABLE_KMS_MANAGED_ENCRYPTION
     },
     KEY_NAME: {
-      label: 'KMS Key ID',
-      helpText: 'Enter the KMS Key ID to use for encryption',
+      label: BlobStoresStrings.GOOGLE.KMS_KEY_ID,
+      helpText: BlobStoresStrings.GOOGLE.ENTER_KMS_KEY_ID_USE,
       placeholder: 'projects/PROJECT_ID/locations/LOCATION/keyRings/KEY_RING_NAME/cryptoKeys/KEY_NAME'
     }
   }

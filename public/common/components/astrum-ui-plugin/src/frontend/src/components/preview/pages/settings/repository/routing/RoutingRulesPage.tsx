@@ -15,6 +15,9 @@ import { useRoutingRulesApi } from './useRoutingRulesApi';
 import { RoutingRule, RoutingRuleFormData } from './types';
 
 import './RoutingRulesPage.scss';
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 // Base path for routing rules URLs
 const BASE_PATH = 'preview/admin/repository/routing-rules';
@@ -133,7 +136,7 @@ export function RoutingRulesPage() {
           if (ruleData) {
             setRule(ruleData);
           } else {
-            setError('Routing rule not found');
+            setError(RoutingRulesStrings.PAGE.ROUTING_RULE_NOT_FOUND);
             navigateTo(BASE_PATH);
           }
         })
@@ -179,12 +182,12 @@ export function RoutingRulesPage() {
     setIsDeleting(true);
     try {
       await deleteRoutingRule(rule.name);
-      toast.success(`Routing rule "${rule.name}" deleted successfully`);
+      toast.success(RoutingRulesStrings.PAGE.ROUTING_RULE_DELETED_SUCCESSFULLY(rule.name));
       setRefreshKey((k) => k + 1);
       setDeleteDialogOpen(false);
       navigateTo(BASE_PATH);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete routing rule';
+      const message = err instanceof Error ? err.message : RoutingRulesStrings.PAGE.FAILED_DELETE_ROUTING_RULE;
       setError(message);
       toast.error(message);
     } finally {
@@ -197,11 +200,11 @@ export function RoutingRulesPage() {
     if (routeState.viewMode === 'list') {
       return (
         <PageHeader
-          title="Routing Rules"
-          description="Control which requests are allowed or blocked for repositories"
+          title={RoutingRulesStrings.PAGE.ROUTING_RULES}
+          description={RoutingRulesStrings.PAGE.CONTROL_WHICH_REQUESTS_ALLOWED_BLOCKED}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Routing Rules' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: RoutingRulesStrings.PAGE.ROUTING_RULES }
           ]}
           actions={
             <Flex gap="2">
@@ -211,7 +214,7 @@ export function RoutingRulesPage() {
                 icon={Eye}
                 testId="preview-button"
               >
-                Preview
+                {RoutingRulesStrings.PAGE.PREVIEW}
               </SettingsButton>
               {canCreate && (
                 <SettingsButton
@@ -220,7 +223,7 @@ export function RoutingRulesPage() {
                   icon={Plus}
                   testId="create-rule-button"
                 >
-                  Create Rule
+                  {RoutingRulesStrings.PAGE.CREATE_RULE}
                 </SettingsButton>
               )}
             </Flex>
@@ -232,38 +235,38 @@ export function RoutingRulesPage() {
     if (routeState.viewMode === 'preview') {
       return (
         <PageHeader
-          title="Global Routing Preview"
-          description="Test how routing rules affect requests across all repositories"
+          title={RoutingRulesStrings.PAGE.GLOBAL_ROUTING_PREVIEW}
+          description={RoutingRulesStrings.PAGE.TEST_HOW_ROUTING_RULES_AFFECT}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Routing Rules', onClick: handleBack },
-            { label: 'Preview' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: RoutingRulesStrings.PAGE.ROUTING_RULES, onClick: handleBack },
+            { label: RoutingRulesStrings.PAGE.PREVIEW }
           ]}
         />
       );
     }
 
     const title = routeState.viewMode === 'create'
-      ? 'Create Routing Rule'
+      ? RoutingRulesStrings.PAGE.CREATE_ROUTING_RULE
       : rule
-        ? `Edit ${rule.name}`
-        : 'Routing Rule Details';
+        ? RoutingRulesStrings.PAGE.EDIT(rule.name)
+        : RoutingRulesStrings.PAGE.ROUTING_RULE_DETAILS;
 
     const description = rule && routeState.viewMode === 'detail'
-      ? `Mode: ${rule.mode} • ${rule.matchers.length} matcher(s)${(rule.assignedRepositoryCount ?? 0) > 0 ? ` • Assigned to ${rule.assignedRepositoryCount} repositories` : ''}`
+      ? `${RoutingRulesStrings.PAGE.DETAIL_DESCRIPTION(RoutingRulesStrings.PAGE.MODE_NAMES[rule.mode as 'ALLOW' | 'BLOCK'] ?? rule.mode, rule.matchers.length)}${(rule.assignedRepositoryCount ?? 0) > 0 ? ` • ${plural(RoutingRulesStrings.PAGE.ASSIGNED_TO_REPOSITORIES, rule.assignedRepositoryCount ?? 0)}` : ''}`
       : undefined;
 
     const lastBreadcrumb = routeState.viewMode === 'create'
-      ? 'Create'
-      : rule?.name || 'Loading...';
+      ? CommonStrings.ACTIONS.CREATE
+      : rule?.name || CommonStrings.MESSAGES.LOADING;
 
     return (
       <PageHeader
         title={title}
         description={description}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'Routing Rules', onClick: handleBack },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: RoutingRulesStrings.PAGE.ROUTING_RULES, onClick: handleBack },
           { label: lastBreadcrumb }
         ]}
       />
@@ -284,7 +287,7 @@ export function RoutingRulesPage() {
           {renderHeader()}
         </Box>
         <Box p="4" className="routing-rules-page__content">
-          <LoadingState message="Loading routing rule details..." />
+          <LoadingState message={RoutingRulesStrings.PAGE.LOADING_ROUTING_RULE_DETAILS} />
         </Box>
       </Box>
     );

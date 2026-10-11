@@ -10,6 +10,8 @@ import {
   NAME_PATTERN,
   NAME_PATTERN_MESSAGE,
 } from './types';
+import CommonStrings from '../../../../constants/CommonStrings';
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
 
 // API endpoint for routing rules
 const ROUTING_RULES_URL = '/service/rest/internal/ui/routing-rules';
@@ -32,24 +34,24 @@ function validateRoutingRule(data: RoutingRuleFormData): ValidationErrors {
   const errors: ValidationErrors = {};
 
   if (!data.name?.trim()) {
-    errors.name = 'Name is required';
+    errors.name = CommonStrings.MESSAGES.NAME_REQUIRED;
   } else if (!NAME_PATTERN.test(data.name)) {
     errors.name = NAME_PATTERN_MESSAGE;
   }
 
   if (!data.mode) {
-    errors.mode = 'Mode is required';
+    errors.mode = RoutingRulesStrings.FORM_MACHINE.MODE_REQUIRED;
   }
 
   const validMatchers = data.matchers.filter((m) => m.trim());
   if (validMatchers.length === 0) {
-    errors.matchers = 'At least one matcher is required';
+    errors.matchers = RoutingRulesStrings.FORM_MACHINE.LEAST_ONE_MATCHER_REQUIRED;
   } else {
     for (const matcher of validMatchers) {
       try {
         new RegExp(matcher);
       } catch {
-        errors.matchers = `Invalid regex pattern: ${matcher}`;
+        errors.matchers = RoutingRulesStrings.FORM_MACHINE.INVALID_REGEX_PATTERN(matcher);
         break;
       }
     }
@@ -136,7 +138,7 @@ export function createRoutingRulesFormMachine(
         delete: async (ctx: RoutingRulesFormContext) => {
           const name = ctx.routingRule?.name || ctx.data.name;
           if (!name) {
-            throw new Error('Cannot delete: routing rule name is missing');
+            throw new Error(RoutingRulesStrings.FORM_MACHINE.CANNOT_DELETE_ROUTING_RULE_NAME);
           }
           const url = `${ROUTING_RULES_URL}/${encodeURIComponent(name)}`;
           await restClient.delete(url);

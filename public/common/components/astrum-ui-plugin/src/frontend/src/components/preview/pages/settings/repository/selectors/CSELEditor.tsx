@@ -16,6 +16,7 @@ import {
 } from './cselValidator';
 
 import './CSELEditor.scss';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
 
 interface AutocompleteSuggestion {
   value: string;
@@ -46,7 +47,7 @@ export function CSELEditor({
   value,
   onChange,
   onValidationChange,
-  placeholder = 'Enter CSEL expression...',
+  placeholder = ContentSelectorsStrings.EDITOR.ENTER_CSEL_EXPRESSION,
   disabled = false,
   rows = 4,
 }: CSELEditorProps) {
@@ -124,7 +125,7 @@ export function CSELEditor({
           {
             value: '""',
             label: '"value"',
-            description: 'Enter a quoted string value',
+            description: ContentSelectorsStrings.EDITOR.ENTER_QUOTED_STRING_VALUE,
             category: 'value' as const,
           },
         ];
@@ -316,7 +317,7 @@ export function CSELEditor({
           spellCheck={false}
           autoComplete="off"
           data-testid="content-selector-expression"
-          aria-label="Content selector expression"
+          aria-label={ContentSelectorsStrings.EDITOR.CONTENT_SELECTOR_EXPRESSION_ARIA}
         />
 
         {/* Autocomplete dropdown */}
@@ -367,7 +368,7 @@ export function CSELEditor({
       {value.trim() && validation.messages.length === 0 && (
         <Flex align="center" gap="1" className="csel-editor__valid">
           <Check size={14} />
-          <Text size="1">Valid expression</Text>
+          <Text size="1">{ContentSelectorsStrings.EDITOR.VALID_EXPRESSION}</Text>
         </Flex>
       )}
     </Box>

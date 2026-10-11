@@ -1,3 +1,4 @@
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 
 /**
@@ -6,144 +7,144 @@
  */
 export const RECIPE_DESCRIPTIONS: Record<string, string> = {
   // Maven
-  'maven2-hosted': 'Store your own Maven artifacts in a private repository.',
-  'maven2-proxy': 'Cache Maven artifacts from a remote repository like Maven Central.',
-  'maven2-group': 'Combine multiple Maven repositories into a single URL.',
+  'maven2-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_MAVEN_ARTIFACTS_PRIVATE,
+  'maven2-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_MAVEN_ARTIFACTS_REMOTE_REPOSITORY,
+  'maven2-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_MAVEN_REPOSITORIES_INTO,
 
   // Docker
-  'docker-hosted': 'Store your own Docker images in a private registry.',
-  'docker-proxy': 'Cache Docker images from a remote registry like Docker Hub.',
-  'docker-group': 'Combine multiple Docker registries into a single URL.',
+  'docker-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_DOCKER_IMAGES_PRIVATE,
+  'docker-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_DOCKER_IMAGES_REMOTE_REGISTRY,
+  'docker-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_DOCKER_REGISTRIES_INTO,
 
   // npm
-  'npm-hosted': 'Store your own npm packages in a private registry.',
-  'npm-proxy': 'Cache npm packages from a remote registry like npmjs.org.',
-  'npm-group': 'Combine multiple npm registries into a single URL.',
+  'npm-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_NPM_PACKAGES_PRIVATE,
+  'npm-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_NPM_PACKAGES_REMOTE_REGISTRY,
+  'npm-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_NPM_REGISTRIES_INTO,
 
   // NuGet
-  'nuget-hosted': 'Store your own NuGet packages in a private repository.',
-  'nuget-proxy': 'Cache NuGet packages from a remote repository like nuget.org.',
-  'nuget-group': 'Combine multiple NuGet repositories into a single URL.',
+  'nuget-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_NUGET_PACKAGES_PRIVATE,
+  'nuget-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_NUGET_PACKAGES_REMOTE_REPOSITORY,
+  'nuget-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_NUGET_REPOSITORIES_INTO,
 
   // PyPI
-  'pypi-hosted': 'Store your own Python packages in a private repository.',
-  'pypi-proxy': 'Cache Python packages from a remote repository like PyPI.',
-  'pypi-group': 'Combine multiple PyPI repositories into a single URL.',
+  'pypi-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_PYTHON_PACKAGES_PRIVATE,
+  'pypi-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_PYTHON_PACKAGES_REMOTE_REPOSITORY,
+  'pypi-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_PYPI_REPOSITORIES_INTO,
 
   // RubyGems
-  'rubygems-hosted': 'Store your own Ruby gems in a private repository.',
-  'rubygems-proxy': 'Cache Ruby gems from a remote repository like rubygems.org.',
-  'rubygems-group': 'Combine multiple RubyGems repositories into a single URL.',
+  'rubygems-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_RUBY_GEMS_PRIVATE,
+  'rubygems-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_RUBY_GEMS_REMOTE_REPOSITORY,
+  'rubygems-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_RUBYGEMS_REPOSITORIES_INTO,
 
   // Yum
-  'yum-hosted': 'Store your own RPM packages in a private Yum repository.',
-  'yum-proxy': 'Cache RPM packages from a remote Yum repository.',
-  'yum-group': 'Combine multiple Yum repositories into a single URL.',
+  'yum-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_RPM_PACKAGES_PRIVATE,
+  'yum-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_RPM_PACKAGES_REMOTE_YUM,
+  'yum-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_YUM_REPOSITORIES_INTO,
 
   // APT
-  'apt-hosted': 'Store your own Debian packages in a private APT repository.',
-  'apt-proxy': 'Cache Debian packages from a remote APT repository.',
+  'apt-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_DEBIAN_PACKAGES_PRIVATE,
+  'apt-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_DEBIAN_PACKAGES_REMOTE_APT,
 
   // Alpine
-  'alpine-hosted': 'Store your own Alpine Linux packages in a private repository.',
-  'alpine-proxy': 'Cache Alpine Linux packages from a remote repository.',
-  'alpine-group': 'Combine multiple Alpine repositories into a single URL.',
+  'alpine-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_ALPINE_LINUX_PACKAGES,
+  'alpine-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_ALPINE_LINUX_PACKAGES_REMOTE,
+  'alpine-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_ALPINE_REPOSITORIES_INTO,
 
   // Helm
-  'helm-hosted': 'Store your own Helm charts in a private repository.',
-  'helm-proxy': 'Cache Helm charts from a remote repository.',
+  'helm-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_HELM_CHARTS_PRIVATE,
+  'helm-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_HELM_CHARTS_REMOTE_REPOSITORY,
 
   // Raw
-  'raw-hosted': 'Store any binary files in a private repository without specific format requirements.',
-  'raw-proxy': 'Cache binary files from a remote location.',
-  'raw-group': 'Combine multiple raw repositories into a single URL.',
+  'raw-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_ANY_BINARY_FILES_PRIVATE,
+  'raw-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_BINARY_FILES_REMOTE_LOCATION,
+  'raw-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_RAW_REPOSITORIES_INTO,
 
   // Go
-  'go-proxy': 'Cache Go modules from a remote repository.',
-  'go-group': 'Combine multiple Go repositories into a single URL.',
+  'go-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_GO_MODULES_REMOTE_REPOSITORY,
+  'go-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_GO_REPOSITORIES_INTO,
 
   // R
-  'r-hosted': 'Store your own R packages in a private repository.',
-  'r-proxy': 'Cache R packages from a remote repository like CRAN.',
-  'r-group': 'Combine multiple R repositories into a single URL.',
+  'r-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_R_PACKAGES_PRIVATE,
+  'r-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_R_PACKAGES_REMOTE_REPOSITORY,
+  'r-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_R_REPOSITORIES_INTO,
 
   // Conan
-  'conan-proxy': 'Cache Conan C/C++ packages from a remote repository.',
+  'conan-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_CONAN_C_C_PACKAGES,
 
   // Conda
-  'conda-proxy': 'Cache Conda packages from a remote repository.',
+  'conda-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_CONDA_PACKAGES_REMOTE_REPOSITORY,
 
   // CocoaPods
-  'cocoapods-proxy': 'Cache CocoaPods for iOS/macOS development.',
+  'cocoapods-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_COCOAPODS_IOS_MACOS_DEVELOPMENT,
 
   // Git LFS
-  'gitlfs-hosted': 'Store large files for Git LFS in a private repository.',
+  'gitlfs-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_LARGE_FILES_GIT_LFS,
 
   // P2
-  'p2-proxy': 'Cache Eclipse P2 artifacts and metadata.',
+  'p2-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_ECLIPSE_P2_ARTIFACTS_METADATA,
 
   // Terraform
-  'terraform-proxy': 'Cache Terraform modules and providers.',
+  'terraform-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_TERRAFORM_MODULES_PROVIDERS,
 
   // Ansible Galaxy
-  'ansiblegalaxy-hosted': 'Store your own Ansible collections in a private repository.',
-  'ansiblegalaxy-proxy': 'Cache Ansible collections from a remote repository like Galaxy.',
-  'ansiblegalaxy-group': 'Combine multiple Ansible Galaxy repositories into a single URL.',
+  'ansiblegalaxy-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_ANSIBLE_COLLECTIONS_PRIVATE,
+  'ansiblegalaxy-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_ANSIBLE_COLLECTIONS_REMOTE_REPOSITORY,
+  'ansiblegalaxy-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_ANSIBLE_GALAXY_REPOSITORIES,
 
   // Composer
-  'composer-proxy': 'Cache PHP packages from a remote Composer repository like Packagist.',
-  'composer-hosted': 'Store your own PHP Composer packages in a private repository.',
-  'composer-group': 'Combine multiple Composer repositories into a single URL.',
+  'composer-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_PHP_PACKAGES_REMOTE_COMPOSER,
+  'composer-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_PHP_COMPOSER_PACKAGES,
+  'composer-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_COMPOSER_REPOSITORIES_INTO,
 };
 
 /**
  * General descriptions for repository types.
  */
 export const TYPE_DESCRIPTIONS: Record<string, string> = {
-  hosted: 'Store your own components and artifacts in a private, local repository. Perfect for internal builds and proprietary software.',
-  proxy: 'Cache components from a remote registry (like Maven Central or npmjs.org). This improves build speeds and ensures availability even if the remote is down.',
-  group: 'Combine multiple repositories (hosted and proxy) into a single URL. This allows users to access all components from a single entry point.',
+  hosted: RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_COMPONENTS_ARTIFACTS_PRIVATE,
+  proxy: RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_COMPONENTS_REMOTE_REGISTRY_LIKE,
+  group: RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_REPOSITORIES_HOSTED_PROXY,
 };
 
 /**
  * General descriptions for technology formats.
  */
 export const FORMAT_DESCRIPTIONS: Record<string, string> = {
-  maven2: 'Standard for Java development. Supports snapshots and releases.',
-  npm: 'The package manager for JavaScript and Node.js.',
-  docker: 'Container image registry for Docker and OCI images.',
-  nuget: 'The package manager for .NET development.',
-  pypi: 'The official third-party software repository for Python.',
-  rubygems: 'The standard ruby package manager.',
-  helm: 'The package manager for Kubernetes applications.',
-  go: 'The proxy and registry for Go modules.',
-  terraform: 'Registry for Terraform providers and modules.',
-  cocoapods: 'The dependency manager for Swift and Objective-C Cocoa projects.',
-  r: 'The comprehensive R archive network for statistical computing.',
-  conan: 'The open-source package manager for C and C++ development.',
-  conda: 'Package, dependency, and environment management for any language.',
-  gitlfs: 'Git Large File Storage for versioning large files.',
-  p2: 'The update mechanism for Eclipse plugins and applications.',
-  yum: 'The primary package management tool for RPM-based Linux distributions.',
-  apt: 'The advanced package tool for Debian and Ubuntu distributions.',
-  alpine: 'Package manager for Alpine Linux distributions.',
-  raw: 'Store any file format without specific metadata requirements.',
-  ansiblegalaxy: 'Repository for Ansible collections containing roles, modules, and plugins for automation.',
-  composer: 'The dependency manager for PHP.',
+  maven2: RepositoriesPageStrings.TYPE_DESCRIPTIONS.STANDARD_JAVA_DEVELOPMENT_SUPPORTS_SNAPSHOTS,
+  npm: RepositoriesPageStrings.TYPE_DESCRIPTIONS.PACKAGE_MANAGER_JAVASCRIPT_NODE_JS,
+  docker: RepositoriesPageStrings.TYPE_DESCRIPTIONS.CONTAINER_IMAGE_REGISTRY_DOCKER_OCI,
+  nuget: RepositoriesPageStrings.TYPE_DESCRIPTIONS.PACKAGE_MANAGER_NET_DEVELOPMENT,
+  pypi: RepositoriesPageStrings.TYPE_DESCRIPTIONS.OFFICIAL_THIRD_PARTY_SOFTWARE_REPOSITORY,
+  rubygems: RepositoriesPageStrings.TYPE_DESCRIPTIONS.STANDARD_RUBY_PACKAGE_MANAGER,
+  helm: RepositoriesPageStrings.TYPE_DESCRIPTIONS.PACKAGE_MANAGER_KUBERNETES_APPLICATIONS,
+  go: RepositoriesPageStrings.TYPE_DESCRIPTIONS.PROXY_REGISTRY_GO_MODULES,
+  terraform: RepositoriesPageStrings.TYPE_DESCRIPTIONS.REGISTRY_TERRAFORM_PROVIDERS_MODULES,
+  cocoapods: RepositoriesPageStrings.TYPE_DESCRIPTIONS.DEPENDENCY_MANAGER_SWIFT_OBJECTIVE_C,
+  r: RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMPREHENSIVE_R_ARCHIVE_NETWORK_STATISTICAL,
+  conan: RepositoriesPageStrings.TYPE_DESCRIPTIONS.OPEN_SOURCE_PACKAGE_MANAGER_C,
+  conda: RepositoriesPageStrings.TYPE_DESCRIPTIONS.PACKAGE_DEPENDENCY_ENVIRONMENT_MANAGEMENT_ANY,
+  gitlfs: RepositoriesPageStrings.TYPE_DESCRIPTIONS.GIT_LARGE_FILE_STORAGE_VERSIONING,
+  p2: RepositoriesPageStrings.TYPE_DESCRIPTIONS.UPDATE_MECHANISM_ECLIPSE_PLUGINS_APPLICATIONS,
+  yum: RepositoriesPageStrings.TYPE_DESCRIPTIONS.PRIMARY_PACKAGE_MANAGEMENT_TOOL_RPM,
+  apt: RepositoriesPageStrings.TYPE_DESCRIPTIONS.ADVANCED_PACKAGE_TOOL_DEBIAN_UBUNTU,
+  alpine: RepositoriesPageStrings.TYPE_DESCRIPTIONS.PACKAGE_MANAGER_ALPINE_LINUX_DISTRIBUTIONS,
+  raw: RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_ANY_FILE_FORMAT_WITHOUT,
+  ansiblegalaxy: RepositoriesPageStrings.TYPE_DESCRIPTIONS.REPOSITORY_ANSIBLE_COLLECTIONS_CONTAINING_ROLES,
+  composer: RepositoriesPageStrings.TYPE_DESCRIPTIONS.DEPENDENCY_MANAGER_PHP,
 };
 
 /**
  * Get description for a repository type.
  */
 export function getTypeDescription(type: string): string {
-  return TYPE_DESCRIPTIONS[type] || `Create a ${type} repository.`;
+  return TYPE_DESCRIPTIONS[type] || RepositoriesPageStrings.TYPE_DESCRIPTIONS.CREATE_REPOSITORY(type);
 }
 
 /**
  * Get description for a format.
  */
 export function getFormatDescription(format: string): string {
-  return FORMAT_DESCRIPTIONS[format] || `Manage ${format} components.`;
+  return FORMAT_DESCRIPTIONS[format] || RepositoriesPageStrings.TYPE_DESCRIPTIONS.MANAGE_COMPONENTS(format);
 }
 
 /**
@@ -151,5 +152,5 @@ export function getFormatDescription(format: string): string {
  */
 export function getRecipeDescription(format: string, type: string): string {
   const key = `${format}-${type}`;
-  return RECIPE_DESCRIPTIONS[key] || `Create a ${format} (${type}) repository.`;
+  return RECIPE_DESCRIPTIONS[key] || RepositoriesPageStrings.TYPE_DESCRIPTIONS.CREATE_REPOSITORY_2(format, type);
 }

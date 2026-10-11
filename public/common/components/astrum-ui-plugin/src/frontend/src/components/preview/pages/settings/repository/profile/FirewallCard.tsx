@@ -12,6 +12,8 @@ import {
 import { useToast } from '../../../../shared/Toast';
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
+import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface FirewallCardProps {
   repositoryName: string;
@@ -38,27 +40,27 @@ const CSS_COLOR: Record<ProtectionLevel, string> = {
 };
 
 const LABELS: Record<ProtectionLevel, string> = {
-  unprotected: 'Unprotected',
-  audit: 'Audit',
-  quarantine: 'Quarantine',
+  unprotected: RepositoryProfileStrings.FIREWALL_CARD.UNPROTECTED,
+  audit: RepositoryProfileStrings.FIREWALL_CARD.AUDIT,
+  quarantine: RepositoryProfileStrings.FIREWALL_CARD.QUARANTINE,
 };
 
 const DESCRIPTIONS: Record<ProtectionLevel, string> = {
-  unprotected: 'No protection - components are not evaluated',
-  audit: 'Evaluate components, log violations',
-  quarantine: 'Evaluate and block risky components',
+  unprotected: RepositoryProfileStrings.FIREWALL_CARD.NO_PROTECTION_COMPONENTS_NOT_EVALUATED,
+  audit: RepositoryProfileStrings.FIREWALL_CARD.EVALUATE_COMPONENTS_LOG_VIOLATIONS,
+  quarantine: RepositoryProfileStrings.FIREWALL_CARD.EVALUATE_BLOCK_RISKY_COMPONENTS,
 };
 
 const MALWARE_TASK_LABELS: Record<MalwareRemediatorMode, string> = {
-  disabled: 'Disabled',
-  audit: 'Audit',
-  delete: 'Delete',
+  disabled: RepositoryProfileStrings.FIREWALL_CARD.DISABLED,
+  audit: RepositoryProfileStrings.FIREWALL_CARD.AUDIT,
+  delete: CommonStrings.ACTIONS.DELETE,
 };
 
 const MALWARE_TASK_DESCRIPTIONS: Record<MalwareRemediatorMode, string> = {
-  disabled: 'No scheduled scanning for malicious packages',
-  audit: 'Scan and record malicious packages but do not remove them',
-  delete: 'Scan, record, and automatically remove malicious packages (Recommended)',
+  disabled: RepositoryProfileStrings.FIREWALL_CARD.NO_SCHEDULED_SCANNING_MALICIOUS_PACKAGES,
+  audit: RepositoryProfileStrings.FIREWALL_CARD.SCAN_RECORD_MALICIOUS_PACKAGES_BUT,
+  delete: RepositoryProfileStrings.FIREWALL_CARD.SCAN_RECORD_AUTOMATICALLY_REMOVE_MALICIOUS,
 };
 
 const MALWARE_TASK_COLORS: Record<MalwareRemediatorMode, string> = {
@@ -132,7 +134,7 @@ export function FirewallCard({
       else if (level === 'quarantine') await enableQuarantine();
 
       setOptimisticLevel(level);
-      toast.success(`Firewall set to ${LABELS[level]} for ${repositoryName}`);
+      toast.success(RepositoryProfileStrings.FIREWALL_CARD.FIREWALL_SET(LABELS[level], repositoryName));
 
       // Schedule periodic refreshes so the server-derived level eventually
       // catches up and the useEffect above clears the optimistic override.
@@ -146,7 +148,7 @@ export function FirewallCard({
       scheduleRefresh(5000, 4);
     } catch (err) {
       setOptimisticLevel(null);
-      toast.error(`Failed to update firewall: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(RepositoryProfileStrings.FIREWALL_CARD.FAILED_UPDATE_FIREWALL(err instanceof Error ? err.message : CommonStrings.MESSAGES.UNKNOWN_ERROR));
     }
   };
 
@@ -163,11 +165,11 @@ export function FirewallCard({
     try {
       await setMalwareRemediatorEnabledForRepository(repositoryName, mode);
       const label = MALWARE_TASK_LABELS[mode];
-      toast.success(`Malicious Packages set to ${label} for ${repositoryName}`);
+      toast.success(RepositoryProfileStrings.FIREWALL_CARD.MALICIOUS_PACKAGES_SET(label, repositoryName));
       refresh();
     } catch (err) {
       console.error('Malicious Packages mode change error:', err);
-      toast.error(`Failed to update Malicious Packages task: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      toast.error(RepositoryProfileStrings.FIREWALL_CARD.FAILED_UPDATE_MALICIOUS_PACKAGES_TASK(err instanceof Error ? err.message : CommonStrings.MESSAGES.UNKNOWN_ERROR));
     } finally {
       setTaskLoading(false);
     }
@@ -192,10 +194,10 @@ export function FirewallCard({
           <ShieldOff size={24} color="var(--gray-7)" />
           <Box>
             <Flex align="center" gap="2">
-              <Text size="2" weight="bold" color="gray">Firewall</Text>
-              {infoIcon("Repository Firewall is not supported for this repository format.")}
+              <Text size="2" weight="bold" color="gray">{RepositoryProfileStrings.FIREWALL_CARD.FIREWALL}</Text>
+              {infoIcon(RepositoryProfileStrings.FIREWALL_CARD.REPOSITORY_FIREWALL_NOT_SUPPORTED_REPOSITORY)}
             </Flex>
-            <Text size="2" color="gray">Format not Supported</Text>
+            <Text size="2" color="gray">{RepositoryProfileStrings.FIREWALL_CARD.FORMAT_NOT_SUPPORTED}</Text>
           </Box>
         </Flex>
       </Card>
@@ -209,18 +211,18 @@ export function FirewallCard({
           <Flex align="center" justify="between">
             <Flex align="center" gap="2">
               <Shield size={20} color="var(--gray-9)" />
-              <Text weight="bold">Firewall</Text>
+              <Text weight="bold">{RepositoryProfileStrings.FIREWALL_CARD.FIREWALL}</Text>
             </Flex>
-            <Badge color="gray" variant="soft">No Firewall Access</Badge>
+            <Badge color="gray" variant="soft">{RepositoryProfileStrings.FIREWALL_CARD.NO_FIREWALL_ACCESS}</Badge>
           </Flex>
-          <Text size="2" color="gray">Repository Firewall protection is not available.</Text>
+          <Text size="2" color="gray">{RepositoryProfileStrings.FIREWALL_CARD.REPOSITORY_FIREWALL_PROTECTION_NOT_AVAILABLE}</Text>
           <Button
             variant="soft"
             size="1"
             onClick={() => window.open('https://links.globalart.dev/astrum-repository-firewall', '_blank')}
             style={{ width: 'fit-content' }}
           >
-            Learn More <ExternalLink size={14} />
+            {CommonStrings.ACTIONS.LEARN_MORE_TITLE} <ExternalLink size={14} />
           </Button>
         </Flex>
       </Card>
@@ -243,8 +245,8 @@ export function FirewallCard({
         <Flex align="center" justify="between">
           <Flex align="center" gap="2">
             <ShieldCheck size={20} color={CSS_COLOR[protectionLevel]} />
-            <Text weight="bold">Firewall</Text>
-            {infoIcon("Astrum Repository Firewall stops malicious and risky open source from entering your software supply chain.")}
+            <Text weight="bold">{RepositoryProfileStrings.FIREWALL_CARD.FIREWALL}</Text>
+            {infoIcon(RepositoryProfileStrings.FIREWALL_CARD.ASTRUM_REPOSITORY_FIREWALL_STOPS_MALICIOUS)}
           </Flex>
           <Badge color={RADIX_COLOR[protectionLevel]} variant="soft">
             {LABELS[protectionLevel]}
@@ -254,23 +256,23 @@ export function FirewallCard({
         {/* ---- Violation counts: Critical / Severe / Moderate ---- */}
         <Grid columns="3" gap="2">
           <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--red-2)', borderRadius: '4px' }}>
-            <Text size="1" color="red">Critical</Text>
+            <Text size="1" color="red">{RepositoryProfileStrings.FIREWALL_CARD.CRITICAL}</Text>
             <Text size="4" weight="bold" color="red">{critical.toLocaleString()}</Text>
           </Flex>
           <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--orange-2)', borderRadius: '4px' }}>
-            <Text size="1" color="orange">Severe</Text>
+            <Text size="1" color="orange">{RepositoryProfileStrings.FIREWALL_CARD.SEVERE}</Text>
             <Text size="4" weight="bold" color="orange">{severe.toLocaleString()}</Text>
           </Flex>
           <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--yellow-2)', borderRadius: '4px' }}>
-            <Text size="1" color="yellow">Moderate</Text>
+            <Text size="1" color="yellow">{RepositoryProfileStrings.FIREWALL_CARD.MODERATE}</Text>
             <Text size="4" weight="bold" color="yellow">{moderate.toLocaleString()}</Text>
           </Flex>
         </Grid>
 
         {/* ---- Components + quarantine summary ---- */}
         <Text size="1" color="gray">
-          {totalViolations.toLocaleString()} violations &middot; {affected.toLocaleString()} components affected
-          {quarantined > 0 && ` · ${quarantined.toLocaleString()} quarantined`}
+          {RepositoryProfileStrings.FIREWALL_CARD.VIOLATIONS_SUMMARY(totalViolations.toLocaleString(), affected.toLocaleString())}
+          {quarantined > 0 && ` · ${RepositoryProfileStrings.FIREWALL_CARD.QUARANTINED_COUNT(quarantined.toLocaleString())}`}
         </Text>
 
         {firewall?.errorMessage && (
@@ -284,7 +286,7 @@ export function FirewallCard({
             size="1"
             onClick={() => window.open(firewall.reportUrl, '_blank')}
           >
-            Firewall Dashboard <ExternalLink size={14} />
+            {RepositoryProfileStrings.FIREWALL_CARD.FIREWALL_DASHBOARD} <ExternalLink size={14} />
           </Button>
         )}
 
@@ -294,8 +296,8 @@ export function FirewallCard({
         {canEditFirewall && (
         <Box data-testid="firewall-protection-level">
           <Flex align="center" gap="1" mb="2">
-            <Text size="1" color="gray">Protection Level</Text>
-            {infoIcon("Controls how Firewall handles policy violations for incoming components.")}
+            <Text size="1" color="gray">{RepositoryProfileStrings.FIREWALL_CARD.PROTECTION_LEVEL}</Text>
+            {infoIcon(RepositoryProfileStrings.FIREWALL_CARD.CONTROLS_HOW_FIREWALL_HANDLES_POLICY)}
           </Flex>
           <Flex gap="2">
             {(['unprotected', 'audit', 'quarantine'] as const).map((level) => {
@@ -351,8 +353,8 @@ export function FirewallCard({
         {canManageMalwareTask && (
         <Box data-testid="firewall-malware-task">
           <Flex align="center" gap="1" mb="2">
-            <Text size="1" color="gray">Malicious Packages</Text>
-            {infoIcon("Scheduled task that scans for malicious packages. Disabled = off. Audit = scan and record only. Delete = scan and remove (Recommended).")}
+            <Text size="1" color="gray">{RepositoryProfileStrings.FIREWALL_CARD.MALICIOUS_PACKAGES}</Text>
+            {infoIcon(RepositoryProfileStrings.FIREWALL_CARD.SCHEDULED_TASK_SCANS_MALICIOUS_PACKAGES)}
           </Flex>
           <Flex gap="2" mb="2">
             {(['disabled', 'audit', 'delete'] as const).map((mode) => {
@@ -402,8 +404,8 @@ export function FirewallCard({
             })}
           </Flex>
           <Flex gap="3" justify="end">
-            <Text size="1" color="gray">{scrubbed} scrubbed</Text>
-            {pending > 0 && <Text size="1" color="red">{pending} pending</Text>}
+            <Text size="1" color="gray">{RepositoryProfileStrings.FIREWALL_CARD.SCRUBBED(scrubbed)}</Text>
+            {pending > 0 && <Text size="1" color="red">{RepositoryProfileStrings.FIREWALL_CARD.PENDING(pending)}</Text>}
           </Flex>
         </Box>
         )}

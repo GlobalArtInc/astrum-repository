@@ -1,3 +1,5 @@
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 
 /**
@@ -148,16 +150,16 @@ export const INITIAL_ROUTING_RULE_FORM: RoutingRuleFormData = {
  * Routing mode display labels
  */
 export const ROUTING_MODE_LABELS: Record<RoutingMode, string> = {
-  ALLOW: 'Allow',
-  BLOCK: 'Block',
+  ALLOW: RoutingRulesStrings.TYPES.ALLOW,
+  BLOCK: RoutingRulesStrings.TYPES.BLOCK,
 };
 
 /**
  * Routing mode help text (updated per UX guidance)
  */
 export const ROUTING_MODE_HELP: Record<RoutingMode, string> = {
-  ALLOW: 'If any matcher matches the request path, the request will be allowed.',
-  BLOCK: 'If any matcher matches the request path, the request will be blocked.',
+  ALLOW: RoutingRulesStrings.TYPES.IF_ANY_MATCHER_MATCHES_REQUEST,
+  BLOCK: RoutingRulesStrings.TYPES.IF_ANY_MATCHER_MATCHES_REQUEST_2,
 };
 
 /**
@@ -180,7 +182,7 @@ export function hasInvalidMatchers(matchers: string[]): boolean {
  * Must start with a letter, can contain letters, digits, underscores, or hyphens
  */
 export const NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
-export const NAME_PATTERN_MESSAGE = 'Name must start with a letter and can only contain letters, digits, underscores, and hyphens';
+export const NAME_PATTERN_MESSAGE = RoutingRulesStrings.TYPES.NAME_MUST_START_LETTER_CAN;
 
 /**
  * Validate that a routing rule form has required fields
@@ -189,25 +191,25 @@ export function validateRoutingRuleForm(data: RoutingRuleFormData): RoutingRuleF
   const errors: RoutingRuleFormErrors = {};
 
   if (!data.name?.trim()) {
-    errors.name = 'Name is required';
+    errors.name = CommonStrings.MESSAGES.NAME_REQUIRED;
   } else if (!NAME_PATTERN.test(data.name)) {
     errors.name = NAME_PATTERN_MESSAGE;
   }
 
   if (!data.mode) {
-    errors.mode = 'Mode is required';
+    errors.mode = RoutingRulesStrings.TYPES.MODE_REQUIRED;
   }
 
   const validMatchers = data.matchers.filter(m => m.trim());
   if (validMatchers.length === 0) {
-    errors.matchers = 'At least one matcher is required';
+    errors.matchers = RoutingRulesStrings.TYPES.LEAST_ONE_MATCHER_REQUIRED;
   } else {
     // Validate regex patterns
     for (const matcher of validMatchers) {
       try {
         new RegExp(matcher);
       } catch (_e) {
-        errors.matchers = `Invalid regex pattern: ${matcher}`;
+        errors.matchers = RoutingRulesStrings.TYPES.INVALID_REGEX_PATTERN(matcher);
         break;
       }
     }

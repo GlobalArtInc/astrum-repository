@@ -16,16 +16,17 @@ import { useS3DropdownValues, useAzureConnectionTest } from './useBlobStores';
 import type { BlobStoreFormData, S3BlobStoreConfig, AzureBlobStoreConfig } from './types';
 import { BLOB_STORE_TYPE_IDS } from './blobStoreFormMachine';
 import type { BlobStoreTypeId } from './BlobStoreTypeSelector';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 const AUTH_OPTIONS_AZURE = [
-  { value: 'ENVIRONMENTVARIABLE', label: 'Use Environment Variables' },
-  { value: 'MANAGEDIDENTITY', label: 'Managed Identity (System)' },
-  { value: 'ACCOUNTKEY', label: 'Account Key' },
+  { value: 'ENVIRONMENTVARIABLE', label: BlobStoresStrings.WIZARD_CREDENTIALS.USE_ENVIRONMENT_VARIABLES },
+  { value: 'MANAGEDIDENTITY', label: BlobStoresStrings.WIZARD_CREDENTIALS.MANAGED_IDENTITY_SYSTEM },
+  { value: 'ACCOUNTKEY', label: BlobStoresStrings.WIZARD_CREDENTIALS.ACCOUNT_KEY },
 ];
 
 const AUTH_OPTIONS_GOOGLE = [
-  { value: 'applicationDefault', label: 'Application Default Credentials' },
-  { value: 'accountKey', label: 'Credential JSON file' },
+  { value: 'applicationDefault', label: BlobStoresStrings.WIZARD_CREDENTIALS.APPLICATION_DEFAULT_CREDENTIALS },
+  { value: 'accountKey', label: BlobStoresStrings.WIZARD_CREDENTIALS.CREDENTIAL_JSON_FILE },
 ];
 
 export interface BlobStoreWizardStepCredentialsProps {
@@ -67,13 +68,13 @@ export function BlobStoreWizardStepCredentials({
           <Shield size={32} color="var(--green-9)" />
           <Box>
             <Text weight="bold" size="3" as="p">
-              No credentials required
+              {BlobStoresStrings.WIZARD_CREDENTIALS.NO_CREDENTIALS_REQUIRED}
             </Text>
             <Text color="gray" size="2" as="p">
               {selectedType === BLOB_STORE_TYPE_IDS.FILE
-                ? 'File blob stores use local filesystem access. '
-                : 'Group blob stores aggregate existing blob stores. '}
-              Click Next to continue to advanced options.
+                ? BlobStoresStrings.WIZARD_CREDENTIALS.FILE_BLOB_STORES_USE_LOCAL
+                : BlobStoresStrings.WIZARD_CREDENTIALS.GROUP_BLOB_STORES_AGGREGATE_EXISTING}{' '}
+              {BlobStoresStrings.WIZARD_CREDENTIALS.CLICK_NEXT_CONTINUE_ADVANCED_OPTIONS}
             </Text>
           </Box>
         </Flex>
@@ -85,19 +86,19 @@ export function BlobStoreWizardStepCredentials({
     return (
       <>
         <SettingsFormSection
-          title="Authentication"
-          description="AWS credentials. Leave blank for IAM roles or environment variables."
+          title={BlobStoresStrings.WIZARD_CREDENTIALS.AUTHENTICATION}
+          description={BlobStoresStrings.WIZARD_CREDENTIALS.AWS_CREDENTIALS_LEAVE_BLANK_IAM}
         >
           <SettingsTextInput
             name="s3-access-key"
-            label="Access Key ID"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.ACCESS_KEY_ID}
             value={sec.accessKeyId || ''}
             onChange={(v) => onChange('bucketConfiguration.bucketSecurity.accessKeyId', v)}
-            placeholder="AKIAIOSFODNN7EXAMPLE"
+            placeholder={BlobStoresStrings.WIZARD_CREDENTIALS.AKIAIOSFODNN7EXAMPLE_PLACEHOLDER}
           />
           <SettingsPasswordInput
             name="s3-secret-key"
-            label="Secret Access Key"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.SECRET_ACCESS_KEY}
             value={sec.secretAccessKey || ''}
             onChange={(v) => onChange('bucketConfiguration.bucketSecurity.secretAccessKey', v)}
             placeholder="••••••••••••••••••••"
@@ -105,34 +106,34 @@ export function BlobStoreWizardStepCredentials({
           />
           <SettingsTextInput
             name="s3-role-arn"
-            label="Assume Role ARN"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.ASSUME_ROLE_ARN}
             value={sec.role || ''}
             onChange={(v) => onChange('bucketConfiguration.bucketSecurity.role', v)}
             placeholder="arn:aws:iam::123456789012:role/S3Access"
           />
           <SettingsPasswordInput
             name="s3-session-token"
-            label="Session Token"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.SESSION_TOKEN}
             value={sec.sessionToken || ''}
             onChange={(v) => onChange('bucketConfiguration.bucketSecurity.sessionToken', v)}
-            placeholder="Temporary token (optional)"
+            placeholder={BlobStoresStrings.WIZARD_CREDENTIALS.TEMPORARY_TOKEN_OPTIONAL_PLACEHOLDER}
           />
         </SettingsFormSection>
-        <SettingsFormSection title="Encryption" description="Optional server-side encryption for S3 objects">
+        <SettingsFormSection title={BlobStoresStrings.WIZARD_CREDENTIALS.ENCRYPTION} description={BlobStoresStrings.WIZARD_CREDENTIALS.OPTIONAL_SERVER_SIDE_ENCRYPTION_S3}>
           <SettingsSelect
             name="s3-encryption-type"
-            label="Encryption Type"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.ENCRYPTION_TYPE}
             value={enc?.encryptionType || ''}
             onChange={(v) => onChange('bucketConfiguration.encryption.encryptionType', v)}
             options={[
-              { value: '', label: 'None' },
+              { value: '', label: BlobStoresStrings.WIZARD_CREDENTIALS.NONE },
               ...encryptionTypes.map((e) => ({ value: e.id, label: e.name })),
             ]}
             disabled={s3Loading}
           />
           <SettingsTextInput
             name="s3-kms-key"
-            label="KMS Key ID (optional)"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.KMS_KEY_ID_OPTIONAL}
             value={enc?.encryptionKey || ''}
             onChange={(v) => onChange('bucketConfiguration.encryption.encryptionKey', v)}
             placeholder="arn:aws:kms:us-east-1:123456789012:key/..."
@@ -146,12 +147,12 @@ export function BlobStoreWizardStepCredentials({
     const showKey = azureAuth.authenticationMethod === 'ACCOUNTKEY';
     return (
       <SettingsFormSection
-        title="Authentication"
-        description="Configure how Astrum authenticates to Azure Storage"
+        title={BlobStoresStrings.WIZARD_CREDENTIALS.AUTHENTICATION}
+        description={BlobStoresStrings.WIZARD_CREDENTIALS.CONFIGURE_HOW_ASTRUM_AUTHENTICATES_AZURE}
       >
         <SettingsSelect
           name="azure-auth"
-          label="Authentication Method"
+          label={BlobStoresStrings.WIZARD_CREDENTIALS.AUTHENTICATION_METHOD}
           value={azureAuth.authenticationMethod || 'ENVIRONMENTVARIABLE'}
           onChange={(v) => {
             onChange('bucketConfiguration.authentication.authenticationMethod', v);
@@ -162,13 +163,13 @@ export function BlobStoreWizardStepCredentials({
         {showKey && (
           <SettingsPasswordInput
             name="azure-account-key"
-            label="Account Key"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.ACCOUNT_KEY}
             value={azureAuth.accountKey || ''}
             onChange={(v) => {
               onChange('bucketConfiguration.authentication.accountKey', v);
               reset();
             }}
-            placeholder="Your Azure storage account key"
+            placeholder={BlobStoresStrings.WIZARD_CREDENTIALS.AZURE_STORAGE_ACCOUNT_KEY_PLACEHOLDER}
             required
             autoComplete="new-password"
           />
@@ -187,16 +188,16 @@ export function BlobStoreWizardStepCredentials({
             disabled={azureTesting || !azureConfig.accountName || !azureConfig.containerName}
             loading={azureTesting}
           >
-            {azureTesting ? 'Testing...' : 'Test Connection'}
+            {azureTesting ? BlobStoresStrings.WIZARD_CREDENTIALS.TESTING : BlobStoresStrings.WIZARD_CREDENTIALS.TEST_CONNECTION}
           </SettingsButton>
           {azureResult === 'success' && (
             <SettingsAlert variant="success" icon={<CheckCircle size={16} />}>
-              Connection succeeded
+              {BlobStoresStrings.WIZARD_CREDENTIALS.CONNECTION_SUCCEEDED}
             </SettingsAlert>
           )}
           {azureResult === 'error' && (
             <SettingsAlert variant="error" icon={<XCircle size={16} />}>
-              Connection failed
+              {BlobStoresStrings.WIZARD_CREDENTIALS.CONNECTION_FAILED}
             </SettingsAlert>
           )}
         </Flex>
@@ -209,10 +210,10 @@ export function BlobStoreWizardStepCredentials({
     const isKms = gEnc.encryptionType === 'kmsManagedEncryption';
     return (
       <>
-        <SettingsFormSection title="Authentication" description="How Astrum authenticates to GCP">
+        <SettingsFormSection title={BlobStoresStrings.WIZARD_CREDENTIALS.AUTHENTICATION} description={BlobStoresStrings.WIZARD_CREDENTIALS.HOW_ASTRUM_AUTHENTICATES_GCP}>
           <SettingsSelect
             name="google-auth"
-            label="Method"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.METHOD}
             value={gSecurity.authenticationMethod || 'applicationDefault'}
             onChange={(v) => onChange('bucketConfiguration.bucketSecurity.authenticationMethod', v)}
             options={AUTH_OPTIONS_GOOGLE}
@@ -237,27 +238,27 @@ export function BlobStoreWizardStepCredentials({
                 onClick={() => fileInputRef.current?.click()}
                 icon={Upload}
               >
-                Choose JSON credential file
+                {BlobStoresStrings.WIZARD_CREDENTIALS.CHOOSE_JSON_CREDENTIAL_FILE}
               </SettingsButton>
               {googleFileName && (
                 <Text size="1" color="gray" ml="2" as="span">
-                  Selected: {googleFileName}
+                  {BlobStoresStrings.WIZARD_CREDENTIALS.SELECTED(googleFileName)}
                 </Text>
               )}
             </Box>
           )}
         </SettingsFormSection>
-        <SettingsFormSection title="Encryption" description="KMS encryption (optional)">
+        <SettingsFormSection title={BlobStoresStrings.WIZARD_CREDENTIALS.ENCRYPTION} description={BlobStoresStrings.WIZARD_CREDENTIALS.KMS_ENCRYPTION_OPTIONAL}>
           <SettingsCheckbox
             name="google-kms"
-            label="Enable KMS managed encryption"
+            label={BlobStoresStrings.WIZARD_CREDENTIALS.ENABLE_KMS_MANAGED_ENCRYPTION}
             checked={isKms}
             onChange={(v) => onChange('bucketConfiguration.encryption.encryptionType', v ? 'kmsManagedEncryption' : 'default')}
           />
           {isKms && (
             <SettingsTextInput
               name="google-kms-key"
-              label="KMS Key ID"
+              label={BlobStoresStrings.WIZARD_CREDENTIALS.KMS_KEY_ID}
               value={gEnc.encryptionKey || ''}
               onChange={(v) => onChange('bucketConfiguration.encryption.encryptionKey', v)}
               placeholder="projects/PROJECT/locations/LOC/keyRings/RING/cryptoKeys/KEY"

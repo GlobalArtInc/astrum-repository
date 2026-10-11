@@ -274,7 +274,7 @@ export function GroupFacet({
 
       {format === 'nuget' && nugetVersionFetchError && (
         <SettingsAlert type="error">
-          Unable to load NuGet proxy versions. Mixed-version group detection is unavailable.
+          {UIStrings.GROUP.UNABLE_LOAD_NUGET_PROXY_VERSIONS}
         </SettingsAlert>
       )}
     </SettingsFormSection>

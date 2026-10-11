@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRepositoriesApi } from './useRepositoriesApi';
 import { Repository, RepositoryType } from './types';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 export interface RepositoryTreeNode {
   id: string; // unique identifier (parentPath::name)
@@ -124,7 +125,7 @@ export function useRepositoryTree(repositoryName: string) {
       
       setError(undefined);
     } catch (err: any) {
-      setError(err.message || 'Failed to load repository data');
+      setError(err.message || RepositoriesPageStrings.STRUCTURE.FAILED_LOAD_REPOSITORY_DATA);
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,4 @@
+import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 
 
 // =============================================================================
@@ -347,21 +348,21 @@ export interface ActionMetadata {
  */
 export const ACTION_METADATA: Record<RepositoryAction, ActionMetadata> = {
   'invalidate-cache': {
-    title: 'Invalidate Cache',
-    message: 'This will clear all cached content from this proxy repository. Components will need to be re-fetched from the remote repository. This action cannot be undone.',
-    confirmLabel: 'Invalidate Cache',
+    title: RepositoryProfileStrings.TYPES.INVALIDATE_CACHE,
+    message: RepositoryProfileStrings.TYPES.CLEAR_ALL_CACHED_CONTENT_PROXY,
+    confirmLabel: RepositoryProfileStrings.TYPES.INVALIDATE_CACHE,
     variant: 'warning',
   },
   'rebuild-index': {
-    title: 'Rebuild Index',
-    message: 'This will rebuild the search index for this repository. The process may take a while for large repositories. During rebuild, search results may be incomplete.',
-    confirmLabel: 'Rebuild Index',
+    title: RepositoryProfileStrings.TYPES.REBUILD_INDEX,
+    message: RepositoryProfileStrings.TYPES.REBUILD_SEARCH_INDEX_REPOSITORY_PROCESS,
+    confirmLabel: RepositoryProfileStrings.TYPES.REBUILD_INDEX,
     variant: 'warning',
   },
   'toggle-online': {
-    title: 'Toggle Repository Status',
-    message: 'This will change the online status of the repository. Users may be affected.',
-    confirmLabel: 'Continue',
+    title: RepositoryProfileStrings.TYPES.TOGGLE_REPOSITORY_STATUS,
+    message: RepositoryProfileStrings.TYPES.CHANGE_ONLINE_STATUS_REPOSITORY_USERS,
+    confirmLabel: RepositoryProfileStrings.TYPES.CONTINUE,
     variant: 'warning',
   },
 };
@@ -381,12 +382,12 @@ export type TabId =
   | 'instance-config';
 
 export const TABS: Array<{ id: TabId; label: string }> = [
-  { id: 'repository', label: 'Repository' },
-  { id: 'structure', label: 'Structure' },
-  { id: 'membership', label: 'Group Membership' },
-  { id: 'usage', label: 'Usage' },
-  { id: 'audit', label: 'Audit' },
-  { id: 'security', label: 'Access & Security' },
-  { id: 'system', label: 'System' },
-  { id: 'instance-config', label: 'Instance Config' },
+  { id: 'repository', label: RepositoryProfileStrings.TYPES.REPOSITORY },
+  { id: 'structure', label: RepositoryProfileStrings.TYPES.STRUCTURE },
+  { id: 'membership', label: RepositoryProfileStrings.TYPES.GROUP_MEMBERSHIP },
+  { id: 'usage', label: RepositoryProfileStrings.TYPES.USAGE },
+  { id: 'audit', label: RepositoryProfileStrings.TYPES.AUDIT },
+  { id: 'security', label: RepositoryProfileStrings.TYPES.ACCESS_SECURITY },
+  { id: 'system', label: RepositoryProfileStrings.TYPES.SYSTEM },
+  { id: 'instance-config', label: RepositoryProfileStrings.TYPES.INSTANCE_CONFIG },
 ];

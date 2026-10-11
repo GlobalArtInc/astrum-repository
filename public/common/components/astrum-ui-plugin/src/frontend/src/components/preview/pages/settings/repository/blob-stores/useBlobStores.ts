@@ -9,6 +9,7 @@ import type {
   BlobStoreFormData,
   S3DropdownValues
 } from './types';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 // API URLs - matching Default UI endpoints (all with leading slash for restClient)
 const URLS = {
@@ -144,7 +145,7 @@ export function useBlobStoresList(): UseBlobStoresListResult {
       }));
       setBlobStores(transformed);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load blob stores');
+      setError(err instanceof Error ? err.message : BlobStoresStrings.API.FAILED_LOAD_BLOB_STORES);
     } finally {
       setLoading(false);
     }
@@ -193,7 +194,7 @@ export function useBlobStoreTypes(): UseBlobStoreTypesResult {
           setQuotaTypes([]);
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load blob store types';
+        const errorMessage = err instanceof Error ? err.message : BlobStoresStrings.API.FAILED_LOAD_BLOB_STORE_TYPES;
         setError(errorMessage);
         console.error('Failed to load blob store types:', err);
         // Set empty arrays on error so UI can still render
@@ -254,10 +255,10 @@ export function useBlobStore(name?: string, type?: string): UseBlobStoreResult {
           };
           setBlobStore(transformed);
         } else {
-          setError('Failed to load blob store');
+          setError(BlobStoresStrings.API.FAILED_LOAD_BLOB_STORE);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load blob store');
+        setError(err instanceof Error ? err.message : BlobStoresStrings.API.FAILED_LOAD_BLOB_STORE);
       } finally {
         setLoading(false);
       }
@@ -281,7 +282,7 @@ export function useBlobStore(name?: string, type?: string): UseBlobStoreResult {
 
   const save = useCallback(async (data: BlobStoreFormData) => {
     if (!data.type) {
-      throw new Error('Blob store type is required');
+      throw new Error(BlobStoresStrings.API.BLOB_STORE_TYPE_REQUIRED);
     }
     
     // Format data to match backend expectations (matching Default UI behavior)

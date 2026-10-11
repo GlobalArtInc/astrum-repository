@@ -11,13 +11,14 @@ import React from 'react';
 import { Flex, Button } from '@radix-ui/themes';
 
 import './ProtectionLevelSelector.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 export type ProtectionLevel = 'none' | 'audit' | 'quarantine' | 'pccs';
 
 const LABELS: Record<ProtectionLevel, string> = {
-  none: 'None',
-  audit: 'Audit',
-  quarantine: 'Quarantine',
+  none: RepositoriesPageStrings.PROTECTION_LEVELS.NONE,
+  audit: RepositoriesPageStrings.PROTECTION_LEVELS.AUDIT,
+  quarantine: RepositoriesPageStrings.PROTECTION_LEVELS.QUARANTINE,
   pccs: 'PCCS',
 };
 

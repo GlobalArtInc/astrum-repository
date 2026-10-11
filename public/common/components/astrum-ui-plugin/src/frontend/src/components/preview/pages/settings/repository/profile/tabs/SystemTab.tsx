@@ -18,6 +18,10 @@ import type {
   CapabilityInfo,
   HttpSettingsInfo,
 } from '../types';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../../constants/CommonStrings';
+import plural from '../../../../../../../interface/plural';
+import RepositoriesPageStrings from '../../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 // =============================================================================
 // Types
@@ -51,7 +55,7 @@ function ProfileSection({ title, icon: Icon, editPath, children }: ProfileSectio
           <Text weight="bold">{title}</Text>
         </Flex>
         {editPath && (
-          <ClassicSettingsLink previewPath={editPath} label="View" />
+          <ClassicSettingsLink previewPath={editPath} label={RepositoryProfileStrings.SYSTEM_TAB.VIEW} />
         )}
       </Flex>
       {children}
@@ -68,16 +72,16 @@ function getStatusBadge(status: string): JSX.Element {
     case 'ok':
     case 'success':
     case 'completed':
-      return <Badge color="green" size="1"><CheckCircle size={12} /> Success</Badge>;
+      return <Badge color="green" size="1"><CheckCircle size={12} /> {RepositoryProfileStrings.SYSTEM_TAB.SUCCESS}</Badge>;
     case 'running':
     case 'waiting':
-      return <Badge color="blue" size="1"><Loader2 size={12} /> Running</Badge>;
+      return <Badge color="blue" size="1"><Loader2 size={12} /> {RepositoryProfileStrings.SYSTEM_TAB.RUNNING}</Badge>;
     case 'failed':
     case 'error':
-      return <Badge color="red" size="1"><XCircle size={12} /> Failed</Badge>;
+      return <Badge color="red" size="1"><XCircle size={12} /> {RepositoryProfileStrings.SYSTEM_TAB.FAILED}</Badge>;
     case 'blocked':
     case 'waiting_to_run':
-      return <Badge color="yellow" size="1"><AlertTriangle size={12} /> Waiting</Badge>;
+      return <Badge color="yellow" size="1"><AlertTriangle size={12} /> {RepositoryProfileStrings.SYSTEM_TAB.WAITING}</Badge>;
     default:
       return <Badge color="gray" size="1">{status || '—'}</Badge>;
   }
@@ -92,9 +96,9 @@ function formatRelativeTime(dateString: string | undefined): string {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  return `${diffDays} days ago`;
+  if (diffMins < 60) return plural(RepositoriesPageStrings.TASKS_CAPABILITIES.MINUTES_AGO, diffMins);
+  if (diffHours < 24) return plural(RepositoriesPageStrings.TASKS_CAPABILITIES.HOURS_AGO, diffHours);
+  return plural(RepositoriesPageStrings.TASKS_CAPABILITIES.DAYS_AGO, diffDays);
 }
 
 // =============================================================================
@@ -120,9 +124,9 @@ export function SystemTab({
     return (
       <Box className="profile-empty-state">
         <Loader2 size={48} className="profile-empty-state__icon profile-empty-state__icon--spinning" />
-        <Text className="profile-empty-state__title">Loading System Data...</Text>
+        <Text className="profile-empty-state__title">{RepositoryProfileStrings.SYSTEM_TAB.LOADING_SYSTEM_DATA}</Text>
         <Text className="profile-empty-state__message">
-          Fetching tasks, capabilities, and HTTP settings.
+          {RepositoryProfileStrings.SYSTEM_TAB.FETCHING_TASKS_CAPABILITIES_HTTP_SETTINGS}
         </Text>
       </Box>
     );
@@ -132,7 +136,7 @@ export function SystemTab({
     <Box>
       {/* Scheduled Tasks Section */}
       <ProfileSection
-        title="Scheduled Tasks"
+        title={RepositoryProfileStrings.SYSTEM_TAB.SCHEDULED_TASKS}
         icon={Clock}
         editPath="preview/admin/system/tasks"
       >
@@ -140,10 +144,10 @@ export function SystemTab({
           <Table.Root>
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeaderCell>Task</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Schedule</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Last Run</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SYSTEM_TAB.TASK}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SYSTEM_TAB.SCHEDULE}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SYSTEM_TAB.LAST_RUN}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{CommonStrings.LABELS.STATUS}</Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -154,7 +158,7 @@ export function SystemTab({
                     <Text size="1" color="gray" as="div">{task.type}</Text>
                   </Table.Cell>
                   <Table.Cell>
-                    <Text size="2">{task.schedule || 'Manual'}</Text>
+                    <Text size="2">{task.schedule || RepositoryProfileStrings.SYSTEM_TAB.MANUAL}</Text>
                   </Table.Cell>
                   <Table.Cell>
                     <Text size="2">{formatRelativeTime(task.lastRun)}</Text>
@@ -168,14 +172,14 @@ export function SystemTab({
           </Table.Root>
         ) : (
           <Text color="gray" size="2">
-            No scheduled tasks found that specifically target this repository.
+            {RepositoryProfileStrings.SYSTEM_TAB.NO_SCHEDULED_TASKS_FOUND_SPECIFICALLY}
           </Text>
         )}
       </ProfileSection>
 
       {/* Capabilities Section */}
       <ProfileSection
-        title="Capabilities"
+        title={RepositoryProfileStrings.SYSTEM_TAB.CAPABILITIES}
         icon={Zap}
         editPath="preview/admin/system/capabilities"
       >
@@ -183,9 +187,9 @@ export function SystemTab({
           <Table.Root>
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeaderCell>Capability</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Affects This Repo</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SYSTEM_TAB.CAPABILITY}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{CommonStrings.LABELS.STATUS}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SYSTEM_TAB.AFFECTS_REPO}</Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -199,17 +203,17 @@ export function SystemTab({
                   </Table.Cell>
                   <Table.Cell>
                     <Badge color={capability.enabled ? 'green' : 'gray'} size="1">
-                      {capability.enabled ? 'Active' : 'Disabled'}
+                      {capability.enabled ? RepositoryProfileStrings.SYSTEM_TAB.ACTIVE : RepositoryProfileStrings.SYSTEM_TAB.DISABLED}
                     </Badge>
                   </Table.Cell>
                   <Table.Cell>
                     {capability.affectsRepo ? (
                       <Flex align="center" gap="1">
                         <CheckCircle size={14} color="var(--green-11)" />
-                        <Text size="2">{capability.affectsReason || 'Yes'}</Text>
+                        <Text size="2">{capability.affectsReason || RepositoryProfileStrings.SYSTEM_TAB.YES}</Text>
                       </Flex>
                     ) : (
-                      <Text size="2" color="gray">No</Text>
+                      <Text size="2" color="gray">{RepositoryProfileStrings.SYSTEM_TAB.NO}</Text>
                     )}
                   </Table.Cell>
                 </Table.Row>
@@ -218,7 +222,7 @@ export function SystemTab({
           </Table.Root>
         ) : (
           <Text color="gray" size="2">
-            No capabilities found that affect this repository.
+            {RepositoryProfileStrings.SYSTEM_TAB.NO_CAPABILITIES_FOUND_AFFECT_REPOSITORY}
           </Text>
         )}
       </ProfileSection>
@@ -226,45 +230,45 @@ export function SystemTab({
       {/* HTTP Settings Section (for proxy repositories) */}
       {repository.type === 'proxy' && (
         <ProfileSection
-          title="HTTP Settings"
+          title={RepositoryProfileStrings.SYSTEM_TAB.HTTP_SETTINGS}
           icon={Globe}
           editPath="preview/admin/system/http"
         >
           {httpSettings ? (
             <Flex direction="column" gap="2">
               <Box className="profile-section__row">
-                <Text className="profile-section__label">User Agent Suffix</Text>
+                <Text className="profile-section__label">{RepositoryProfileStrings.SYSTEM_TAB.USER_AGENT_SUFFIX}</Text>
                 <Text className="profile-section__value">
                   {httpSettings.userAgentSuffix || '—'}
                 </Text>
               </Box>
               <Box className="profile-section__row">
-                <Text className="profile-section__label">HTTP Proxy</Text>
+                <Text className="profile-section__label">{RepositoryProfileStrings.SYSTEM_TAB.HTTP_PROXY}</Text>
                 <Text className="profile-section__value">
                   {httpSettings.httpProxy ? (
                     <code className="profile-section__value--code">
                       {httpSettings.httpProxy.host}:{httpSettings.httpProxy.port}
                     </code>
                   ) : (
-                    'Not configured'
+                    RepositoryProfileStrings.SYSTEM_TAB.NOT_CONFIGURED
                   )}
                 </Text>
               </Box>
               <Box className="profile-section__row">
-                <Text className="profile-section__label">HTTPS Proxy</Text>
+                <Text className="profile-section__label">{RepositoryProfileStrings.SYSTEM_TAB.HTTPS_PROXY}</Text>
                 <Text className="profile-section__value">
                   {httpSettings.httpsProxy ? (
                     <code className="profile-section__value--code">
                       {httpSettings.httpsProxy.host}:{httpSettings.httpsProxy.port}
                     </code>
                   ) : (
-                    'Not configured'
+                    RepositoryProfileStrings.SYSTEM_TAB.NOT_CONFIGURED
                   )}
                 </Text>
               </Box>
               {httpSettings.nonProxyHosts && httpSettings.nonProxyHosts.length > 0 && (
                 <Box className="profile-section__row">
-                  <Text className="profile-section__label">Non-Proxy Hosts</Text>
+                  <Text className="profile-section__label">{RepositoryProfileStrings.SYSTEM_TAB.NON_PROXY_HOSTS}</Text>
                   <Text className="profile-section__value">
                     {httpSettings.nonProxyHosts.join(', ')}
                   </Text>
@@ -273,7 +277,7 @@ export function SystemTab({
             </Flex>
           ) : (
             <Text color="gray" size="2">
-              HTTP settings not available. Using system defaults.
+              {RepositoryProfileStrings.SYSTEM_TAB.HTTP_SETTINGS_NOT_AVAILABLE_USING}
             </Text>
           )}
         </ProfileSection>

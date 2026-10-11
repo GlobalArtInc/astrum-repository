@@ -11,14 +11,16 @@ import { useBlobStore, useBlobStoreTypes } from './useBlobStores';
 import { clearDirtyState, useToast, PageHeader } from '../../../../shared';
 import type { BlobStoreFormData } from './types';
 import { BLOB_STORE_TYPE_IDS } from './blobStoreFormMachine';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const BASE_PATH = 'preview/admin/repository/blobstores';
 
 const WIZARD_STEPS = [
-  { id: 'type', label: 'Select Type' },
-  { id: 'basic', label: 'Basic Config' },
-  { id: 'credentials', label: 'Credentials' },
-  { id: 'advanced', label: 'Advanced' },
+  { id: 'type', label: BlobStoresStrings.WIZARD.SELECT_TYPE },
+  { id: 'basic', label: BlobStoresStrings.WIZARD.BASIC_CONFIG },
+  { id: 'credentials', label: BlobStoresStrings.WIZARD.CREDENTIALS },
+  { id: 'advanced', label: BlobStoresStrings.WIZARD.ADVANCED },
 ];
 
 function navigateTo(path: string) {
@@ -140,29 +142,29 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
   const validateStep1Pure = useCallback(
     (d: BlobStoreFormData, t: BlobStoreTypeId | null): Record<string, string> => {
       const err: Record<string, string> = {};
-      if (!d.name?.trim()) err.name = 'Name is required';
+      if (!d.name?.trim()) err.name = CommonStrings.MESSAGES.NAME_REQUIRED;
       else if (!/^[a-zA-Z0-9_-]+$/.test(d.name)) {
-        err.name = 'Name can only contain letters, numbers, underscores, and hyphens';
+        err.name = BlobStoresStrings.WIZARD.NAME_CAN_ONLY_CONTAIN_LETTERS;
       }
       const tl = t?.toLowerCase();
       if (tl === BLOB_STORE_TYPE_IDS.FILE) {
         const path = d.path?.trim() ?? '';
         if (!path) {
-          err.path = 'Path is required';
+          err.path = BlobStoresStrings.WIZARD.PATH_REQUIRED;
         } else if (path === '/' || path === '\\') {
-          err.path = 'Path cannot be the root directory';
+          err.path = BlobStoresStrings.WIZARD.PATH_CANNOT_ROOT_DIRECTORY;
         } else if (/\.\./.test(path)) {
-          err.path = 'Path cannot contain ".." (parent directory references)';
+          err.path = BlobStoresStrings.WIZARD.PATH_CANNOT_CONTAIN_PARENT_DIRECTORY;
         } else if (/^[/\\]$/.test(path) || /^[A-Z]:[/\\]?$/i.test(path)) {
-          err.path = 'Path must specify a directory name, not just a drive or root';
+          err.path = BlobStoresStrings.WIZARD.PATH_MUST_SPECIFY_DIRECTORY_NAME;
         } else if (/[*?"<>|]/.test(path) || path.includes('\0')) {
-          err.path = 'Path cannot contain invalid characters (* ? " < > |)';
+          err.path = BlobStoresStrings.WIZARD.PATH_CANNOT_CONTAIN_INVALID_CHARACTERS;
         } else {
           const segments = path.split(/[/\\]+/).filter(Boolean);
           const tooLong = segments.find((s) => s.length > 255);
           if (tooLong) {
             err.path =
-              'Each folder name in the path must be 255 characters or fewer';
+              BlobStoresStrings.WIZARD.EACH_FOLDER_NAME_PATH_MUST;
           }
         }
       }
@@ -170,9 +172,9 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
         const b = (d.bucketConfiguration as Record<string, unknown>)?.bucket as Record<string, string>;
         const bucketName = b?.name?.trim() ?? '';
         if (!bucketName) {
-          err['bucketConfiguration.bucket.name'] = 'Bucket name is required';
+          err['bucketConfiguration.bucket.name'] = BlobStoresStrings.WIZARD.BUCKET_NAME_REQUIRED;
         } else if (bucketName.length < 3 || bucketName.length > 63) {
-          err['bucketConfiguration.bucket.name'] = 'Bucket name must be between 3 and 63 characters';
+          err['bucketConfiguration.bucket.name'] = BlobStoresStrings.WIZARD.BUCKET_NAME_MUST_BETWEEN_3;
         }
       }
       if (tl === BLOB_STORE_TYPE_IDS.AZURE) {
@@ -180,30 +182,30 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
         // Azure storage account names: 3-24 characters (per Azure naming rules).
         const accountName = c?.accountName?.trim() ?? '';
         if (!accountName) {
-          err['bucketConfiguration.accountName'] = 'Account name is required';
+          err['bucketConfiguration.accountName'] = BlobStoresStrings.WIZARD.ACCOUNT_NAME_REQUIRED;
         } else if (accountName.length < 3 || accountName.length > 24) {
-          err['bucketConfiguration.accountName'] = 'Account name must be between 3 and 24 characters';
+          err['bucketConfiguration.accountName'] = BlobStoresStrings.WIZARD.ACCOUNT_NAME_MUST_BETWEEN_3;
         }
         // Azure container names: 3-63 characters (per Azure naming rules).
         const containerName = c?.containerName?.trim() ?? '';
         if (!containerName) {
-          err['bucketConfiguration.containerName'] = 'Container name is required';
+          err['bucketConfiguration.containerName'] = BlobStoresStrings.WIZARD.CONTAINER_NAME_REQUIRED;
         } else if (containerName.length < 3 || containerName.length > 63) {
-          err['bucketConfiguration.containerName'] = 'Container name must be between 3 and 63 characters';
+          err['bucketConfiguration.containerName'] = BlobStoresStrings.WIZARD.CONTAINER_NAME_MUST_BETWEEN_3;
         }
       }
       if (tl === BLOB_STORE_TYPE_IDS.GOOGLE) {
         const b = (d.bucketConfiguration as Record<string, unknown>)?.bucket as Record<string, string>;
         const bucketName = b?.name?.trim() ?? '';
         if (!bucketName) {
-          err['bucketConfiguration.bucket.name'] = 'Bucket name is required';
+          err['bucketConfiguration.bucket.name'] = BlobStoresStrings.WIZARD.BUCKET_NAME_REQUIRED;
         } else if (bucketName.length < 3 || bucketName.length > 63) {
-          err['bucketConfiguration.bucket.name'] = 'Bucket name must be between 3 and 63 characters';
+          err['bucketConfiguration.bucket.name'] = BlobStoresStrings.WIZARD.BUCKET_NAME_MUST_BETWEEN_3;
         }
       }
       if (tl === BLOB_STORE_TYPE_IDS.GROUP) {
-        if (!d.members?.length) err.members = 'At least one member is required';
-        if (!d.fillPolicy?.trim()) err.fillPolicy = 'Fill policy is required';
+        if (!d.members?.length) err.members = BlobStoresStrings.WIZARD.LEAST_ONE_MEMBER_REQUIRED;
+        if (!d.fillPolicy?.trim()) err.fillPolicy = BlobStoresStrings.WIZARD.FILL_POLICY_REQUIRED;
       }
       return err;
     },
@@ -214,10 +216,10 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
     const err: Record<string, string> = {};
     const sq = d.softQuota;
     if (sq?.enabled) {
-      if (!sq.type) err['softQuota.type'] = 'Constraint type is required';
+      if (!sq.type) err['softQuota.type'] = BlobStoresStrings.WIZARD.CONSTRAINT_TYPE_REQUIRED;
       const limit = sq.limit;
       if (limit === undefined || limit === null || String(limit) === '' || limit < 1) {
-        err['softQuota.limit'] = 'Limit must be a positive number (MB)';
+        err['softQuota.limit'] = BlobStoresStrings.WIZARD.LIMIT_MUST_POSITIVE_NUMBER_MB;
       }
     }
     return err;
@@ -293,17 +295,17 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
       type: selectedType || formData.type || '',
     };
     if (!payload.type) {
-      toast.error('Blob store type is required');
+      toast.error(BlobStoresStrings.WIZARD.BLOB_STORE_TYPE_REQUIRED);
       return;
     }
 
     try {
       clearDirtyState('blob-store-wizard-create');
       await save(payload);
-      toast.success(`Blob store "${payload.name}" created successfully`);
+      toast.success(BlobStoresStrings.WIZARD.BLOB_STORE_CREATED_SUCCESSFULLY(payload.name));
       navigateTo(BASE_PATH);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to create blob store');
+      toast.error(e instanceof Error ? e.message : BlobStoresStrings.WIZARD.FAILED_CREATE_BLOB_STORE);
       throw e;
     }
   }, [formData, selectedType, save, runValidateStep1, runValidateStep3, toast]);
@@ -318,12 +320,12 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
       <Box p="8">
         <PageHeader
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Blob Stores', onClick: onBack },
-            { label: 'Create' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: BlobStoresStrings.WIZARD.BLOB_STORES, onClick: onBack },
+            { label: CommonStrings.ACTIONS.CREATE },
           ]}
         />
-        <p>Loading blob store types...</p>
+        <p>{BlobStoresStrings.WIZARD.LOADING_BLOB_STORE_TYPES}</p>
       </Box>
     );
   }
@@ -369,9 +371,9 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
     <Box className="blob-store-wizard-create" data-testid="blob-store-wizard-create">
       <PageHeader
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'Blob Stores', onClick: onBack },
-          { label: 'Create' },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: BlobStoresStrings.WIZARD.BLOB_STORES, onClick: onBack },
+          { label: CommonStrings.ACTIONS.CREATE },
         ]}
       />
       <WizardForm
@@ -380,9 +382,9 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
         onStepChange={handleStepChange}
         onComplete={handleComplete}
         onCancel={handleCancel}
-        completeLabel="Create Blob Store"
-        title="Create Blob Store"
-        description="Configure storage for your repositories"
+        completeLabel={BlobStoresStrings.WIZARD.CREATE_BLOB_STORE}
+        title={BlobStoresStrings.WIZARD.CREATE_BLOB_STORE}
+        description={BlobStoresStrings.WIZARD.CONFIGURE_STORAGE_REPOSITORIES}
         canAdvance={canAdvance}
         dirty={step > 0 || !!formData.name}
         noDirtyTracking={step < 1}

@@ -34,6 +34,8 @@ import {
   getAllMemberRepos,
 } from './useStructureComponentSearch';
 import './RepositoryStructureTree.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface RepositoryStructureTreeProps {
   repositoryName: string;
@@ -146,7 +148,7 @@ const TreeNode = ({
       const url = node.remoteUrl || `${window.location.origin}/repository/${node.name}`;
       navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success(`URL copied for ${node.name}`);
+      toast.success(RepositoriesPageStrings.STRUCTURE.URL_COPIED(node.name));
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -192,7 +194,7 @@ const TreeNode = ({
         <StatusBadge status={mapStatus(node.status)} size="small" />
 
         {node.blobStore && (
-          <Tooltip content="Go to Blob Store settings">
+          <Tooltip content={RepositoriesPageStrings.STRUCTURE.GO_BLOB_STORE_SETTINGS}>
             <Text 
               color="gray" 
               size="1" 
@@ -206,13 +208,13 @@ const TreeNode = ({
         )}
 
         {node.type === 'proxy' && node.remoteUrl && (
-          <Tooltip content="Open remote URL in new tab">
+          <Tooltip content={RepositoriesPageStrings.STRUCTURE.OPEN_REMOTE_URL_NEW_TAB}>
             <a
               href={node.remoteUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              aria-label="Open remote URL in new tab"
+              aria-label={RepositoriesPageStrings.STRUCTURE.OPEN_REMOTE_URL_NEW_TAB_ARIA}
               title={node.remoteUrl.length > 40 ? node.remoteUrl : undefined}
               className="repository-tree-node__remote-url-link"
             >
@@ -226,26 +228,26 @@ const TreeNode = ({
 
         <Flex gap="2" className="repository-tree-node__actions" ml="auto" pr="2">
 
-          <Tooltip content="Copy URL">
+          <Tooltip content={RepositoriesPageStrings.STRUCTURE.COPY_URL}>
             <Box onClick={copyUrl} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               {copied ? <Check size={14} color="var(--green-9)" /> : <Copy size={14} className="repository-tree-node__action-icon" />}
             </Box>
           </Tooltip>
 
-          <Tooltip content="View Profile">
+          <Tooltip content={RepositoriesPageStrings.STRUCTURE.VIEW_PROFILE}>
             <IconButton variant="ghost" size="1" onClick={goToProfile} className="repository-tree-node__action-btn">
               <ExternalLink size={14} />
             </IconButton>
           </Tooltip>
 
-          <Tooltip content="Edit Settings">
+          <Tooltip content={RepositoriesPageStrings.STRUCTURE.EDIT_SETTINGS}>
             <IconButton variant="ghost" size="1" onClick={goToSettings} className="repository-tree-node__action-btn">
               <Settings size={14} />
             </IconButton>
           </Tooltip>
 
           {node.isCircular && (
-            <Tooltip content="Circular dependency detected">
+            <Tooltip content={RepositoriesPageStrings.STRUCTURE.CIRCULAR_DEPENDENCY_DETECTED}>
               <AlertTriangle size={14} color="var(--orange-9)" data-testid="circular-warning" />
             </Tooltip>
           )}
@@ -389,7 +391,7 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
 
   // Flatten tree for CSV export
   const exportToCSV = useCallback(() => {
-    const rows: string[][] = [['Level', 'Name', 'Type', 'Format', 'Status', 'Blob Store', 'Remote URL']];
+    const rows: string[][] = [[RepositoriesPageStrings.STRUCTURE.LEVEL, CommonStrings.LABELS.NAME, CommonStrings.LABELS.TYPE, CommonStrings.LABELS.FORMAT, CommonStrings.LABELS.STATUS, RepositoriesPageStrings.STRUCTURE.BLOB_STORE, RepositoriesPageStrings.STRUCTURE.REMOTE_URL]];
     
     const traverse = (nodes: RepositoryTreeNode[], depth: number) => {
       for (const node of nodes) {
@@ -482,7 +484,7 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
     }
   };
 
-  if (loading) return <LoadingState message="Loading structure..." />;
+  if (loading) return <LoadingState message={RepositoriesPageStrings.STRUCTURE.LOADING_STRUCTURE} />;
   if (error) return <ErrorState message={error} onRetry={refresh} />;
 
   const showEmptyState =
@@ -494,7 +496,7 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
     <Box
       ref={containerRef}
       role="tree"
-      aria-label={`${repositoryName} structure`}
+      aria-label={RepositoriesPageStrings.STRUCTURE.STRUCTURE(repositoryName)}
       onKeyDown={handleKeyDown}
       tabIndex={0}
       className="repository-tree-container"
@@ -502,7 +504,7 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
       {showEmptyState ? (
         <Box p="4" style={{ textAlign: 'center' }}>
           <Text size="2" color="gray">
-            No matches for &quot;{filterText}&quot; in repo names, blob stores, or components
+            {RepositoriesPageStrings.STRUCTURE.NO_MATCHES_REPO_NAMES_BLOB(filterText)}
           </Text>
         </Box>
       ) : (
@@ -528,7 +530,7 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
     <Flex gap="3" align="center" className={isFullscreen ? '' : 'repository-tree-toolbar'}>
       <Box style={{ flex: 1, position: 'relative' }}>
         <TextField.Root
-          placeholder="Search structure (repo, blob store, or component)..."
+          placeholder={RepositoriesPageStrings.STRUCTURE.SEARCH_STRUCTURE_REPO_BLOB_STORE_PLACEHOLDER}
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
           size="2"
@@ -544,7 +546,7 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
       </Box>
 
       <Flex align="center" gap="2">
-        <Text size="1" color="gray">Issues only</Text>
+        <Text size="1" color="gray">{RepositoriesPageStrings.STRUCTURE.ISSUES_ONLY}</Text>
         <Switch 
           size="1" 
           checked={showIssuesOnly} 
@@ -555,28 +557,28 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
       <Separator orientation="vertical" size="1" />
 
       <Flex gap="2" align="center">
-        <Tooltip content="Expand All">
+        <Tooltip content={RepositoriesPageStrings.STRUCTURE.EXPAND_ALL}>
           <IconButton variant="ghost" size="2" onClick={expandAll} disabled={expanding}>
             {expanding ? <Loader2 size={16} className="repository-tree-node__spinner" /> : <ChevronsDown size={16} />}
           </IconButton>
         </Tooltip>
-        <Tooltip content="Collapse All">
+        <Tooltip content={RepositoriesPageStrings.STRUCTURE.COLLAPSE_ALL}>
           <IconButton variant="ghost" size="2" onClick={collapseAll}>
             <ChevronsUp size={16} />
           </IconButton>
         </Tooltip>
         <Separator orientation="vertical" size="1" />
-        <Tooltip content="Export to CSV">
+        <Tooltip content={RepositoriesPageStrings.STRUCTURE.EXPORT_CSV}>
           <IconButton variant="ghost" size="2" onClick={exportToCSV}>
             <Download size={16} />
           </IconButton>
         </Tooltip>
-        <Tooltip content={isFullscreen ? "Exit Fullscreen" : "Fullscreen Mode"}>
+        <Tooltip content={isFullscreen ? RepositoriesPageStrings.STRUCTURE.EXIT_FULLSCREEN : RepositoriesPageStrings.STRUCTURE.FULLSCREEN_MODE}>
           <IconButton variant="ghost" size="2" onClick={toggleFullscreen}>
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </IconButton>
         </Tooltip>
-        <Tooltip content="Refresh tree">
+        <Tooltip content={RepositoriesPageStrings.STRUCTURE.REFRESH_TREE}>
           <IconButton variant="ghost" onClick={refresh} size="2">
             <RefreshCw size={16} />
           </IconButton>
@@ -597,8 +599,7 @@ export function RepositoryStructureTree({ repositoryName }: RepositoryStructureT
                 <FolderTree size={16} />
               </Callout.Icon>
               <Callout.Text>
-                Visualizing membership hierarchy for group <strong>{repositoryName}</strong>.
-                Use arrow keys to navigate and expand/collapse levels.
+                {RepositoriesPageStrings.STRUCTURE.VISUALIZING_GROUP(<strong>{repositoryName}</strong>)}
               </Callout.Text>
             </Callout.Root>
           )}

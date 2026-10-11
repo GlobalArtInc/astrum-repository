@@ -25,6 +25,9 @@ import {
 } from './types';
 
 import './RoutingRuleForm.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
+import plural from '../../../../../../interface/plural';
 
 /**
  * RoutingRuleForm - Create/Edit form for routing rules
@@ -73,7 +76,7 @@ export function RoutingRuleForm({
     return (
       <Flex align="center" justify="center" className="routing-rule-form__loading">
         <Loader2 size={24} className="routing-rule-form__spinner" />
-        <Text size="2">Loading form...</Text>
+        <Text size="2">{CommonStrings.MESSAGES.LOADING_FORM}</Text>
       </Flex>
     );
   }
@@ -86,8 +89,8 @@ export function RoutingRuleForm({
         loading={form.isSaving || loading}
         pristine={form.isPristine}
         error={error || form.saveError || undefined}
-        submitLabel={isCreate ? 'Create' : 'Save'}
-        cancelLabel="Cancel"
+        submitLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         submitDisabled={hasBlockingErrors}
         confirmDiscard
         testId="routing-rule-form"
@@ -101,21 +104,21 @@ export function RoutingRuleForm({
               icon={Trash2}
               title={
                 !canDelete
-                  ? `Cannot delete: Assigned to ${currentRule?.assignedRepositoryCount ?? 0} repositories`
-                  : 'Delete routing rule'
+                  ? plural(RoutingRulesStrings.FORM.CANNOT_DELETE_ASSIGNED, currentRule?.assignedRepositoryCount ?? 0)
+                  : RoutingRulesStrings.FORM.DELETE_ROUTING_RULE
               }
             >
-              Delete
+              {CommonStrings.ACTIONS.DELETE}
             </SettingsButton>
           ) : undefined
         }
       >
-        <SettingsFormSection title="Basic Information">
+        <SettingsFormSection title={RoutingRulesStrings.FORM.BASIC_INFORMATION}>
           <SettingsTextInput
             {...form.field('name')}
-            label="Name"
+            label={CommonStrings.LABELS.NAME}
             placeholder="e.g., block-sources"
-            helpText="A unique name for this routing rule"
+            helpText={RoutingRulesStrings.FORM.UNIQUE_NAME_ROUTING_RULE}
             required
             disabled={!isCreate || form.isSaving || loading}
             readOnly={!isCreate}
@@ -123,16 +126,16 @@ export function RoutingRuleForm({
 
           <SettingsTextArea
             {...form.field('description')}
-            label="Description"
-            placeholder="Describe what this routing rule does"
-            helpText="Optional description for this routing rule"
+            label={CommonStrings.LABELS.DESCRIPTION}
+            placeholder={RoutingRulesStrings.FORM.DESCRIBE_WHAT_ROUTING_RULE_DOES_PLACEHOLDER}
+            helpText={RoutingRulesStrings.FORM.OPTIONAL_DESCRIPTION_ROUTING_RULE}
             disabled={form.isSaving || loading}
             rows={3}
           />
 
           <SettingsSelect
             name="mode"
-            label="Mode"
+            label={RoutingRulesStrings.FORM.MODE}
             value={formData.mode || 'BLOCK'}
             onChange={(value) => handleModeChange(value as RoutingMode)}
             options={modeOptions}
@@ -142,7 +145,7 @@ export function RoutingRuleForm({
           />
         </SettingsFormSection>
 
-        <SettingsFormSection title="Matchers">
+        <SettingsFormSection title={RoutingRulesStrings.FORM.MATCHERS}>
           <RoutingRuleMatcher
             matchers={matchers || ['']}
             onChange={handleMatchersChange}
@@ -158,12 +161,10 @@ export function RoutingRuleForm({
         <Box className="routing-rule-form__help">
           <Flex align="center" gap="2" className="routing-rule-form__help-header">
             <Info size={16} />
-            <Text size="2" weight="medium">About Routing Rules</Text>
+            <Text size="2" weight="medium">{RoutingRulesStrings.FORM.ABOUT_ROUTING_RULES}</Text>
           </Flex>
           <Text size="2" className="routing-rule-form__help-text">
-            Routing rules allow you to control which requests are allowed or blocked based on
-            request path patterns. Rules can be assigned to proxy repositories to restrict which
-            components can be retrieved from upstream.
+            {RoutingRulesStrings.FORM.ABOUT_TEXT}
             {' '}
             <a
               href="http://links.globalart.dev/products/astrum/docs/routing-rule"
@@ -171,7 +172,7 @@ export function RoutingRuleForm({
               rel="noopener noreferrer"
               className="routing-rule-form__help-link"
             >
-              Learn more
+              {CommonStrings.ACTIONS.LEARN_MORE}
               <ExternalLink size={12} />
             </a>
           </Text>
@@ -180,9 +181,9 @@ export function RoutingRuleForm({
         {/* Warning for assigned repositories */}
         {!isCreate && (currentRule?.assignedRepositoryCount ?? 0) > 0 && (
           <SettingsAlert type="warning" className="routing-rule-form__warning">
-            This routing rule is assigned to {currentRule?.assignedRepositoryCount} repositories: {' '}
-            {currentRule?.assignedRepositoryNames?.join(', ')}.
-            You must unassign it from all repositories before deleting.
+            {plural(RoutingRulesStrings.FORM.ASSIGNED_WARNING, currentRule?.assignedRepositoryCount ?? 0)}{' '}
+            {currentRule?.assignedRepositoryNames?.join(', ')}.{' '}
+            {RoutingRulesStrings.FORM.UNASSIGN_BEFORE_DELETING}
           </SettingsAlert>
         )}
       </SettingsForm>

@@ -1,3 +1,4 @@
+import DataStoreStrings from '../../../../constants/pages/settings/repository/DataStoreStrings';
 
 
 /**
@@ -50,20 +51,20 @@ export const JDBC_PARAMETERS_CONFIG: JdbcParameterDefinition[] = [
   // ===================
   {
     name: 'ApplicationName',
-    description: 'Application name to identify this connection in database logs',
+    description: DataStoreStrings.JDBC_PARAMETERS.APPLICATION_NAME_IDENTIFY_CONNECTION_DATABASE,
     type: 'string',
     category: 'connection',
     defaultValue: 'Astrum Repository',
   },
   {
     name: 'currentSchema',
-    description: 'Default schema to use for unqualified table names',
+    description: DataStoreStrings.JDBC_PARAMETERS.DEFAULT_SCHEMA_USE_UNQUALIFIED_TABLE,
     type: 'string',
     category: 'connection',
   },
   {
     name: 'readOnly',
-    description: 'Set connection to read-only mode',
+    description: DataStoreStrings.JDBC_PARAMETERS.SET_CONNECTION_READ_ONLY_MODE,
     type: 'boolean',
     allowedValues: ['true', 'false'],
     category: 'connection',
@@ -75,7 +76,7 @@ export const JDBC_PARAMETERS_CONFIG: JdbcParameterDefinition[] = [
   // ===================
   {
     name: 'connectTimeout',
-    description: 'Time to wait when establishing a connection',
+    description: DataStoreStrings.JDBC_PARAMETERS.TIME_WAIT_WHEN_ESTABLISHING_CONNECTION,
     type: 'number',
     min: 0,
     max: 600,
@@ -85,7 +86,7 @@ export const JDBC_PARAMETERS_CONFIG: JdbcParameterDefinition[] = [
   },
   {
     name: 'socketTimeout',
-    description: 'Time to wait for socket read operations',
+    description: DataStoreStrings.JDBC_PARAMETERS.TIME_WAIT_SOCKET_READ_OPERATIONS,
     type: 'number',
     min: 0,
     max: 600,
@@ -95,7 +96,7 @@ export const JDBC_PARAMETERS_CONFIG: JdbcParameterDefinition[] = [
   },
   {
     name: 'loginTimeout',
-    description: 'Time to wait for login to complete',
+    description: DataStoreStrings.JDBC_PARAMETERS.TIME_WAIT_LOGIN_COMPLETE,
     type: 'number',
     min: 0,
     max: 600,
@@ -109,7 +110,7 @@ export const JDBC_PARAMETERS_CONFIG: JdbcParameterDefinition[] = [
   // ===================
   {
     name: 'ssl',
-    description: 'Enable SSL/TLS encrypted connection',
+    description: DataStoreStrings.JDBC_PARAMETERS.ENABLE_SSL_TLS_ENCRYPTED_CONNECTION,
     type: 'boolean',
     allowedValues: ['true', 'false'],
     category: 'ssl',
@@ -117,7 +118,7 @@ export const JDBC_PARAMETERS_CONFIG: JdbcParameterDefinition[] = [
   },
   {
     name: 'sslmode',
-    description: 'SSL connection mode',
+    description: DataStoreStrings.JDBC_PARAMETERS.SSL_CONNECTION_MODE,
     type: 'enum',
     allowedValues: ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'],
     category: 'ssl',
@@ -129,7 +130,7 @@ export const JDBC_PARAMETERS_CONFIG: JdbcParameterDefinition[] = [
   // ===================
   {
     name: 'reWriteBatchedInserts',
-    description: 'Rewrite batched INSERT statements for better performance',
+    description: DataStoreStrings.JDBC_PARAMETERS.REWRITE_BATCHED_INSERT_STATEMENTS_BETTER,
     type: 'boolean',
     allowedValues: ['true', 'false'],
     category: 'performance',
@@ -141,7 +142,7 @@ export const JDBC_PARAMETERS_CONFIG: JdbcParameterDefinition[] = [
   // ===================
   {
     name: 'assumeMinServerVersion',
-    description: 'Assume minimum server version for feature compatibility',
+    description: DataStoreStrings.JDBC_PARAMETERS.ASSUME_MINIMUM_SERVER_VERSION_FEATURE,
     type: 'string',
     category: 'other',
   },
@@ -173,11 +174,11 @@ export function getParametersByCategory(category: JdbcParameterDefinition['categ
  */
 export function getParameterDescription(name: string): string {
   const def = getParameterDefinition(name);
-  if (!def) return 'Unknown parameter - not in standard JDBC parameter list';
+  if (!def) return DataStoreStrings.JDBC_PARAMETERS.UNKNOWN_PARAMETER_NOT_STANDARD_JDBC;
   
   let desc = def.description;
-  if (def.unit) desc += ` (${def.unit})`;
-  if (def.defaultValue) desc += `. Default: ${def.defaultValue}`;
+  if (def.unit) desc += ` (${unitLabel(def.unit)})`;
+  if (def.defaultValue) desc += `. ${DataStoreStrings.JDBC_PARAMETERS.DEFAULT_VALUE(def.defaultValue)}`;
   return desc;
 }
 
@@ -207,27 +208,27 @@ export function validateParameterValue(name: string, value: string): string | un
   switch (def.type) {
     case 'boolean':
       if (def.allowedValues && !def.allowedValues.includes(value.toLowerCase())) {
-        return `Must be one of: ${def.allowedValues.join(', ')}`;
+        return DataStoreStrings.JDBC_PARAMETERS.MUST_ONE(def.allowedValues.join(', '));
       }
       break;
 
     case 'number': {
       const num = parseFloat(value);
       if (Number.isNaN(num)) {
-        return 'Must be a valid number';
+        return DataStoreStrings.JDBC_PARAMETERS.MUST_VALID_NUMBER;
       }
       if (def.min !== undefined && num < def.min) {
-        return `Must be at least ${def.min}${def.unit ? ` ${def.unit}` : ''}`;
+        return DataStoreStrings.JDBC_PARAMETERS.MUST_BE_AT_LEAST(`${def.min}${def.unit ? ` ${unitLabel(def.unit)}` : ''}`);
       }
       if (def.max !== undefined && num > def.max) {
-        return `Must be at most ${def.max}${def.unit ? ` ${def.unit}` : ''}`;
+        return DataStoreStrings.JDBC_PARAMETERS.MUST_BE_AT_MOST(`${def.max}${def.unit ? ` ${unitLabel(def.unit)}` : ''}`);
       }
       break;
     }
 
     case 'enum':
       if (def.allowedValues && !def.allowedValues.includes(value)) {
-        return `Must be one of: ${def.allowedValues.join(', ')}`;
+        return DataStoreStrings.JDBC_PARAMETERS.MUST_ONE(def.allowedValues.join(', '));
       }
       break;
 
@@ -237,6 +238,13 @@ export function validateParameterValue(name: string, value: string): string | un
   }
 
   return undefined;
+}
+
+/**
+ * Get the display name of a parameter's unit
+ */
+export function unitLabel(unit: string): string {
+  return unit === 'seconds' ? DataStoreStrings.JDBC_PARAMETERS.UNIT_SECONDS : unit;
 }
 
 /**
@@ -252,11 +260,11 @@ export function getAllowedValues(name: string): string[] | undefined {
  */
 export function getCategoryDisplayName(category: JdbcParameterDefinition['category']): string {
   const names: Record<JdbcParameterDefinition['category'], string> = {
-    connection: 'Connection',
-    timeout: 'Timeouts',
+    connection: DataStoreStrings.JDBC_PARAMETERS.CONNECTION,
+    timeout: DataStoreStrings.JDBC_PARAMETERS.TIMEOUTS,
     ssl: 'SSL/TLS',
-    performance: 'Performance',
-    other: 'Other',
+    performance: DataStoreStrings.JDBC_PARAMETERS.PERFORMANCE,
+    other: DataStoreStrings.JDBC_PARAMETERS.OTHER,
   };
   return names[category];
 }

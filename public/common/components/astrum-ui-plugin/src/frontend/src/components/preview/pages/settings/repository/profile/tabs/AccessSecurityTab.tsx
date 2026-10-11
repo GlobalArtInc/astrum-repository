@@ -19,6 +19,8 @@ import type {
   UserWithAccess,
   AnonymousAccess,
 } from '../types';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../../constants/CommonStrings';
 
 // =============================================================================
 // Types
@@ -53,7 +55,7 @@ function ProfileSection({ title, icon: Icon, editPath, children }: ProfileSectio
           <Text weight="bold">{title}</Text>
         </Flex>
         {editPath && (
-          <ClassicSettingsLink previewPath={editPath} label="View" />
+          <ClassicSettingsLink previewPath={editPath} label={RepositoryProfileStrings.SECURITY_TAB.VIEW} />
         )}
       </Flex>
       {children}
@@ -86,9 +88,9 @@ export function AccessSecurityTab({
     return (
       <Box className="profile-empty-state">
         <Loader2 size={48} className="profile-empty-state__icon profile-empty-state__icon--spinning" />
-        <Text className="profile-empty-state__title">Loading Access Data...</Text>
+        <Text className="profile-empty-state__title">{RepositoryProfileStrings.SECURITY_TAB.LOADING_ACCESS_DATA}</Text>
         <Text className="profile-empty-state__message">
-          Fetching privileges, roles, and users with access to this repository.
+          {RepositoryProfileStrings.SECURITY_TAB.FETCHING_PRIVILEGES_ROLES_USERS_ACCESS}
         </Text>
       </Box>
     );
@@ -98,7 +100,7 @@ export function AccessSecurityTab({
     <Box>
       {/* Privileges Section */}
       <ProfileSection
-        title="Privileges"
+        title={RepositoryProfileStrings.SECURITY_TAB.PRIVILEGES}
         icon={Key}
         editPath="preview/admin/security/privileges"
       >
@@ -113,22 +115,21 @@ export function AccessSecurityTab({
                   )}
                 </Flex>
                 <Badge size="1" color={privilege.actions?.includes('*') ? 'green' : 'blue'}>
-                  {privilege.actions?.join(', ') || 'Read'}
+                  {privilege.actions?.join(', ') || RepositoryProfileStrings.SECURITY_TAB.READ}
                 </Badge>
               </Box>
             ))}
           </Flex>
         ) : (
           <Text color="gray" size="2">
-            No specific privileges found for this repository.
-            Default privileges may still apply.
+            {RepositoryProfileStrings.SECURITY_TAB.NO_SPECIFIC_PRIVILEGES_FOUND_REPOSITORY}
           </Text>
         )}
       </ProfileSection>
 
       {/* Roles with Access */}
       <ProfileSection
-        title="Roles with Access"
+        title={RepositoryProfileStrings.SECURITY_TAB.ROLES_ACCESS}
         icon={Users}
         editPath="preview/admin/security/roles"
       >
@@ -136,9 +137,9 @@ export function AccessSecurityTab({
           <Table.Root>
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeaderCell>Role</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Privileges</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Users</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SECURITY_TAB.ROLE}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SECURITY_TAB.PRIVILEGES}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SECURITY_TAB.USERS}</Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -149,7 +150,7 @@ export function AccessSecurityTab({
                   </Table.Cell>
                   <Table.Cell>
                     <Text size="1" color="gray">
-                      {role.privilegeCount ?? 0} privileges
+                      {RepositoryProfileStrings.SECURITY_TAB.PRIVILEGES_2(role.privilegeCount ?? 0)}
                     </Text>
                   </Table.Cell>
                   <Table.Cell>
@@ -161,14 +162,14 @@ export function AccessSecurityTab({
           </Table.Root>
         ) : (
           <Text color="gray" size="2">
-            No roles found with explicit access to this repository.
+            {RepositoryProfileStrings.SECURITY_TAB.NO_ROLES_FOUND_EXPLICIT_ACCESS}
           </Text>
         )}
       </ProfileSection>
 
       {/* Users with Access */}
       <ProfileSection
-        title="Users with Access"
+        title={RepositoryProfileStrings.SECURITY_TAB.USERS_ACCESS}
         icon={User}
         editPath="preview/admin/security/users"
       >
@@ -176,9 +177,9 @@ export function AccessSecurityTab({
           <Table.Root>
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeaderCell>User</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Via Role</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Permissions</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SECURITY_TAB.USER}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SECURITY_TAB.VIA_ROLE}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoryProfileStrings.SECURITY_TAB.PERMISSIONS}</Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -195,7 +196,7 @@ export function AccessSecurityTab({
                   </Table.Cell>
                   <Table.Cell>
                     <Badge size="1" color={user.permissions?.includes('Full Access') ? 'green' : 'blue'}>
-                      {user.permissions?.join(', ') || 'Read'}
+                      {user.permissions?.join(', ') || RepositoryProfileStrings.SECURITY_TAB.READ}
                     </Badge>
                   </Table.Cell>
                 </Table.Row>
@@ -204,36 +205,36 @@ export function AccessSecurityTab({
           </Table.Root>
         ) : (
           <Text color="gray" size="2">
-            No users found with explicit access to this repository.
+            {RepositoryProfileStrings.SECURITY_TAB.NO_USERS_FOUND_EXPLICIT_ACCESS}
           </Text>
         )}
         {users.length > 10 && (
           <Text size="1" color="gray" mt="2">
-            ... and {users.length - 10} more users
+            {RepositoryProfileStrings.SECURITY_TAB.MORE_USERS(users.length - 10)}
           </Text>
         )}
       </ProfileSection>
 
       {/* Anonymous Access */}
       <ProfileSection
-        title="Anonymous Access"
+        title={RepositoryProfileStrings.SECURITY_TAB.ANONYMOUS_ACCESS}
         icon={Ghost}
         editPath="preview/admin/security/anonymous"
       >
         {anonymousAccess ? (
           <Flex direction="column" gap="2">
             <Box className="profile-section__row">
-              <Text className="profile-section__label">Status</Text>
+              <Text className="profile-section__label">{CommonStrings.LABELS.STATUS}</Text>
               <Flex align="center" gap="1">
                 {anonymousAccess.enabled ? (
                   <>
                     <CheckCircle size={14} color="var(--green-11)" />
-                    <Text className="profile-section__value">Enabled</Text>
+                    <Text className="profile-section__value">{RepositoryProfileStrings.SECURITY_TAB.ENABLED}</Text>
                   </>
                 ) : (
                   <>
                     <XCircle size={14} color="var(--red-11)" />
-                    <Text className="profile-section__value">Disabled</Text>
+                    <Text className="profile-section__value">{RepositoryProfileStrings.SECURITY_TAB.DISABLED}</Text>
                   </>
                 )}
               </Flex>
@@ -241,19 +242,19 @@ export function AccessSecurityTab({
             {anonymousAccess.enabled && (
               <>
                 <Box className="profile-section__row">
-                  <Text className="profile-section__label">Can Read</Text>
+                  <Text className="profile-section__label">{RepositoryProfileStrings.SECURITY_TAB.CAN_READ}</Text>
                   <Text className="profile-section__value">
-                    {anonymousAccess.canRead ? 'Yes' : 'No'}
+                    {anonymousAccess.canRead ? RepositoryProfileStrings.SECURITY_TAB.YES : RepositoryProfileStrings.SECURITY_TAB.NO}
                   </Text>
                 </Box>
                 <Box className="profile-section__row">
-                  <Text className="profile-section__label">Can Browse</Text>
+                  <Text className="profile-section__label">{RepositoryProfileStrings.SECURITY_TAB.CAN_BROWSE}</Text>
                   <Text className="profile-section__value">
-                    {anonymousAccess.canBrowse ? 'Yes' : 'No'}
+                    {anonymousAccess.canBrowse ? RepositoryProfileStrings.SECURITY_TAB.YES : RepositoryProfileStrings.SECURITY_TAB.NO}
                   </Text>
                 </Box>
                 <Box className="profile-section__row">
-                  <Text className="profile-section__label">Realm</Text>
+                  <Text className="profile-section__label">{RepositoryProfileStrings.SECURITY_TAB.REALM}</Text>
                   <Text className="profile-section__value">{anonymousAccess.realm || '—'}</Text>
                 </Box>
               </>
@@ -261,7 +262,7 @@ export function AccessSecurityTab({
           </Flex>
         ) : (
           <Text color="gray" size="2">
-            Anonymous access settings not available.
+            {RepositoryProfileStrings.SECURITY_TAB.ANONYMOUS_ACCESS_SETTINGS_NOT_AVAILABLE}
           </Text>
         )}
       </ProfileSection>

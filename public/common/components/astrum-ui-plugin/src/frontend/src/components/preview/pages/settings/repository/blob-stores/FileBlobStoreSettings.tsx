@@ -12,6 +12,7 @@ import { ExtJS } from '../../../../../../interface/ExtJS';
 import { shouldShowHaPathWarning, HA_PATH_WARNING } from './haPathWarning';
 import type { BlobStoreFormData } from './types';
 import './FileBlobStoreSettings.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 interface FileBlobStoreSettingsProps {
   data: BlobStoreFormData;
@@ -22,14 +23,14 @@ interface FileBlobStoreSettingsProps {
 }
 
 const STRINGS = {
-  TITLE: 'File Storage Configuration',
-  DESCRIPTION: 'Configure the local filesystem path for blob storage',
+  TITLE: BlobStoresStrings.FILE.FILE_STORAGE_CONFIGURATION,
+  DESCRIPTION: BlobStoresStrings.FILE.CONFIGURE_LOCAL_FILESYSTEM_PATH_BLOB,
   PATH: {
-    label: 'Path',
-    helpText: 'An absolute path or a path relative to <data-directory>/blobs',
+    label: BlobStoresStrings.FILE.PATH,
+    helpText: BlobStoresStrings.FILE.ABSOLUTE_PATH_PATH_RELATIVE_DATA,
     placeholder: '/path/to/blob/storage'
   },
-  WARNING: 'Changing the path will not migrate existing data. Previously stored blobs will not be available at the new location.'
+  WARNING: BlobStoresStrings.FILE.CHANGING_PATH_NOT_MIGRATE_EXISTING
 };
 
 export default function FileBlobStoreSettings({

@@ -16,6 +16,8 @@ import { useContentSelectorsApi } from './useContentSelectorsApi';
 import { ContentSelector } from './types';
 
 import './ContentSelectorsList.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
 
 interface ContentSelectorsListProps {
   onSelect: (name: string) => void;
@@ -56,19 +58,19 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
   const columns: TableColumn<ContentSelector>[] = useMemo(() => [
     {
       id: 'name',
-      header: 'Name',
+      header: CommonStrings.LABELS.NAME,
       accessor: (item) => <Text weight="medium">{item.name}</Text>,
       sortable: true,
     },
     {
       id: 'type',
-      header: 'Type',
+      header: CommonStrings.LABELS.TYPE,
       accessor: (item) => item.type?.toUpperCase() || '',
       sortable: true,
     },
     {
       id: 'description',
-      header: 'Description',
+      header: CommonStrings.LABELS.DESCRIPTION,
       accessor: (item) => (
         <Text className="content-selectors-list__description">
           {item.description || '—'}
@@ -78,7 +80,7 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
     },
     {
       id: 'expression',
-      header: 'Expression',
+      header: ContentSelectorsStrings.LIST.EXPRESSION,
       accessor: (item) => (
         <Text className="content-selectors-list__expression">
           {item.expression || '—'}
@@ -140,7 +142,7 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
   if (isLoading) {
     return (
       <Box className="content-selectors-list">
-        <LoadingState message="Loading content selectors..." />
+        <LoadingState message={ContentSelectorsStrings.LIST.LOADING_CONTENT_SELECTORS} />
       </Box>
     );
   }
@@ -150,7 +152,7 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
     return (
       <Box className="content-selectors-list">
         <ErrorState
-          title="Failed to Load Content Selectors"
+          title={ContentSelectorsStrings.LIST.FAILED_LOAD_CONTENT_SELECTORS}
           message={loadError}
           onRetry={handleRetry}
         />
@@ -165,8 +167,8 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
       return (
         <EmptyState
           icon={Search}
-          title="No Matching Content Selectors"
-          description={`No content selectors match "${filter}". Try a different search term.`}
+          title={ContentSelectorsStrings.LIST.NO_MATCHING_CONTENT_SELECTORS}
+          description={ContentSelectorsStrings.LIST.NO_CONTENT_SELECTORS_MATCH_TRY(filter)}
           size="small"
         />
       );
@@ -176,15 +178,15 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
     return (
       <EmptyState
         icon={Layers}
-        title="No Content Selectors"
-        description="Create your first content selector to define what content users can access."
+        title={ContentSelectorsStrings.LIST.NO_CONTENT_SELECTORS}
+        description={ContentSelectorsStrings.LIST.CREATE_FIRST_CONTENT_SELECTOR_DEFINE}
         action={canCreate ? {
-          label: 'Create Selector',
+          label: ContentSelectorsStrings.LIST.CREATE_SELECTOR,
           onClick: onCreate,
           icon: Plus,
         } : undefined}
         secondaryAction={{
-          label: 'Learn more about Content Selectors',
+          label: ContentSelectorsStrings.LIST.LEARN_MORE_ABOUT_CONTENT_SELECTORS,
           href: 'http://links.globalart.dev/products/astrum/docs/content-selector',
         }}
       />
@@ -195,10 +197,10 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
     <Box className="content-selectors-list">
       {/* Help Section */}
       <HelpSection
-        title="What is a content selector?"
-        content="Content selectors provide a means for you to select specific content from your repositories. Repository content is evaluated against expressions written in CSEL (Content Selector Expression Language)."
+        title={ContentSelectorsStrings.LIST.WHAT_CONTENT_SELECTOR}
+        content={ContentSelectorsStrings.LIST.CONTENT_SELECTORS_PROVIDE_MEANS_YOU}
         docLink={{
-          label: 'Learn more',
+          label: CommonStrings.ACTIONS.LEARN_MORE,
           href: 'http://links.globalart.dev/products/astrum/docs/content-selector',
         }}
         className="content-selectors-list__help"
@@ -207,7 +209,7 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
       {/* Search Filter */}
       <Box className="content-selectors-list__toolbar">
         <TextField.Root
-          placeholder="Filter by name or description..."
+          placeholder={ContentSelectorsStrings.LIST.FILTER_NAME_DESCRIPTION_PLACEHOLDER}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="content-selectors-list__search"
@@ -230,7 +232,7 @@ export function ContentSelectorsList({ onSelect, onCreate, canCreate = true }: C
         sortDirection={sortDirection}
         onSort={handleSort}
         emptyState={renderEmptyState()}
-        ariaLabel="Content selectors table"
+        ariaLabel={ContentSelectorsStrings.LIST.CONTENT_SELECTORS_TABLE_ARIA}
         className="content-selectors-list__table"
       />
     </Box>

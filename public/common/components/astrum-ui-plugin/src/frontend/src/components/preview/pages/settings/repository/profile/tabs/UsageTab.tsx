@@ -21,6 +21,8 @@ import type {
   MalwareCleanupSummary,
   BlobStoreInfo,
 } from '../types';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../../constants/CommonStrings';
 
 export interface UsageTabProps {
   repository: RepositoryProfileData;
@@ -54,11 +56,11 @@ function formatTimestamp(epoch: number | undefined): string | null {
 }
 
 function deriveProtectionLabel(fw: FirewallData): { label: string; color: 'green' | 'amber' | 'red' } {
-  if (fw.quarantineEnabled) return { label: 'Quarantine', color: 'green' };
+  if (fw.quarantineEnabled) return { label: RepositoryProfileStrings.USAGE_TAB.QUARANTINE, color: 'green' };
   const msg = fw.message?.toLowerCase() ?? '';
-  if (msg.includes('quarantine')) return { label: 'Quarantine', color: 'green' };
-  if (msg.includes('audit') || msg.includes('enabled') || fw.enabled) return { label: 'Audit', color: 'amber' };
-  return { label: 'Unprotected', color: 'red' };
+  if (msg.includes('quarantine')) return { label: RepositoryProfileStrings.USAGE_TAB.QUARANTINE, color: 'green' };
+  if (msg.includes('audit') || msg.includes('enabled') || fw.enabled) return { label: RepositoryProfileStrings.USAGE_TAB.AUDIT, color: 'amber' };
+  return { label: RepositoryProfileStrings.USAGE_TAB.UNPROTECTED, color: 'red' };
 }
 
 function StatValue({ value, fallback = '\u2014' }: { value: number | undefined | null; fallback?: string }) {
@@ -93,7 +95,7 @@ function CopyableUrl({ url }: { url: string }) {
   return (
     <Flex align="center" gap="2" style={{ minWidth: 0 }}>
       <Text size="2" style={{ wordBreak: 'break-all', fontFamily: 'var(--code-font-family)', flex: 1 }}>{urlWithSlash}</Text>
-      <Tooltip content={copied ? 'Copied' : 'Copy URL'}>
+      <Tooltip content={copied ? RepositoryProfileStrings.USAGE_TAB.COPIED : RepositoryProfileStrings.USAGE_TAB.COPY_URL}>
         <Box onClick={handleCopy} style={{ cursor: 'pointer', flexShrink: 0, display: 'inline-flex' }}>
           {copied ? <Check size={14} color="var(--green-9)" /> : <Copy size={14} color="var(--gray-8)" />}
         </Box>
@@ -114,8 +116,8 @@ export function UsageTab({
     return (
       <Flex direction="column" align="center" justify="center" gap="3" py="9">
         <Activity size={48} color="var(--gray-7)" />
-        <Text size="3" weight="medium" color="gray">Usage Metrics Unavailable</Text>
-        <Text size="2" color="gray">Metrics are not yet available for this repository.</Text>
+        <Text size="3" weight="medium" color="gray">{RepositoryProfileStrings.USAGE_TAB.USAGE_METRICS_UNAVAILABLE}</Text>
+        <Text size="2" color="gray">{RepositoryProfileStrings.USAGE_TAB.METRICS_NOT_YET_AVAILABLE_REPOSITORY}</Text>
       </Flex>
     );
   }
@@ -144,10 +146,10 @@ export function UsageTab({
             ) : (
               <Flex align="center" gap="1">
                 <Text size="5" weight="bold" color="gray">{'\u2014'}</Text>
-                <InfoTip content="Size not yet calculated. The repository metrics task runs periodically." />
+                <InfoTip content={RepositoryProfileStrings.USAGE_TAB.SIZE_NOT_YET_CALCULATED_REPOSITORY} />
               </Flex>
             )}
-            <StatLabel>Repository Size</StatLabel>
+            <StatLabel>{RepositoryProfileStrings.USAGE_TAB.REPOSITORY_SIZE}</StatLabel>
           </Flex>
         </Card>
 
@@ -159,12 +161,12 @@ export function UsageTab({
             ) : metricsUnavailable ? (
               <Flex align="center" gap="1">
                 <Text size="5" weight="bold" color="gray">{'\u2014'}</Text>
-                <InfoTip content="Asset count not yet calculated. The repository metrics task runs periodically." />
+                <InfoTip content={RepositoryProfileStrings.USAGE_TAB.ASSET_COUNT_NOT_YET_CALCULATED} />
               </Flex>
             ) : (
               <StatValue value={0} />
             )}
-            <StatLabel>Total Assets</StatLabel>
+            <StatLabel>{RepositoryProfileStrings.USAGE_TAB.TOTAL_ASSETS}</StatLabel>
           </Flex>
         </Card>
 
@@ -174,8 +176,8 @@ export function UsageTab({
             <Text size="5" weight="bold">{blobStoreName ?? '\u2014'}</Text>
             <StatLabel>
               {blobStore?.availableSpaceInBytes != null
-                ? `${formatBytes(blobStore.availableSpaceInBytes)} available`
-                : 'Blob Store'}
+                ? RepositoryProfileStrings.USAGE_TAB.AVAILABLE(formatBytes(blobStore.availableSpaceInBytes))
+                : RepositoryProfileStrings.USAGE_TAB.BLOB_STORE}
             </StatLabel>
           </Flex>
         </Card>
@@ -189,7 +191,7 @@ export function UsageTab({
           <Flex direction="column" gap="3">
             <Flex align="center" gap="2">
               <ShieldCheck size={18} color="var(--accent-9)" />
-              <Text size="3" weight="bold">Security Posture</Text>
+              <Text size="3" weight="bold">{RepositoryProfileStrings.USAGE_TAB.SECURITY_POSTURE}</Text>
             </Flex>
             <Separator size="4" />
 
@@ -198,31 +200,31 @@ export function UsageTab({
               {hasHealthCheck && (
                 <Flex direction="column" gap="3">
                   <Flex align="center" gap="2">
-                    <Text size="2" weight="medium">Health Check</Text>
+                    <Text size="2" weight="medium">{RepositoryProfileStrings.USAGE_TAB.HEALTH_CHECK}</Text>
                     <Badge
                       size="1"
                       variant="soft"
                       color={healthCheck.enabled ? 'green' : 'gray'}
                     >
-                      {healthCheck.enabled ? 'Enabled' : 'Disabled'}
+                      {healthCheck.enabled ? RepositoryProfileStrings.USAGE_TAB.ENABLED : RepositoryProfileStrings.USAGE_TAB.DISABLED}
                     </Badge>
                   </Flex>
                   <Grid columns="2" gap="3">
                     <Box>
                       <StatValue value={healthCheck.securityIssueCount} />
-                      <StatLabel>Security Issues</StatLabel>
+                      <StatLabel>{RepositoryProfileStrings.USAGE_TAB.SECURITY_ISSUES}</StatLabel>
                     </Box>
                     <Box>
                       <StatValue value={healthCheck.licenseIssueCount} />
-                      <StatLabel>License Issues</StatLabel>
+                      <StatLabel>{RepositoryProfileStrings.USAGE_TAB.LICENSE_ISSUES}</StatLabel>
                     </Box>
                   </Grid>
                   {(() => {
                     const ts = formatTimestamp(healthCheck.lastAnalyzedDate);
                     return ts ? (
-                      <Text size="1" color="gray">Last analyzed: {ts}</Text>
+                      <Text size="1" color="gray">{RepositoryProfileStrings.USAGE_TAB.LAST_ANALYZED(ts)}</Text>
                     ) : (
-                      <Text size="1" color="gray">Last analyzed: Not Available</Text>
+                      <Text size="1" color="gray">{RepositoryProfileStrings.USAGE_TAB.LAST_ANALYZED_NOT_AVAILABLE}</Text>
                     );
                   })()}
                 </Flex>
@@ -234,7 +236,7 @@ export function UsageTab({
                   style={hasHealthCheck ? { borderLeft: '1px solid var(--gray-4)', paddingLeft: 'var(--space-5)' } : undefined}
                 >
                   <Flex align="center" gap="2">
-                    <Text size="2" weight="medium">Firewall</Text>
+                    <Text size="2" weight="medium">{RepositoryProfileStrings.USAGE_TAB.FIREWALL}</Text>
                     {(() => {
                       const { label, color } = deriveProtectionLabel(firewall);
                       return <Badge size="1" variant="soft" color={color}>{label}</Badge>;
@@ -243,35 +245,35 @@ export function UsageTab({
                   <Grid columns="2" gap="3">
                     <Box>
                       <StatValue value={firewall.affectedComponentCount} />
-                      <StatLabel>Affected Components</StatLabel>
+                      <StatLabel>{RepositoryProfileStrings.USAGE_TAB.AFFECTED_COMPONENTS}</StatLabel>
                     </Box>
                     <Box>
                       <StatValue value={firewall.quarantinedComponentCount} />
-                      <StatLabel>Quarantined</StatLabel>
+                      <StatLabel>{RepositoryProfileStrings.USAGE_TAB.QUARANTINED}</StatLabel>
                     </Box>
                     <Box>
                       <Flex gap="1" align="baseline">
                         <StatValue value={firewall.criticalComponentCount} />
-                        <Text size="1" color="red">critical</Text>
+                        <Text size="1" color="red">{RepositoryProfileStrings.USAGE_TAB.CRITICAL}</Text>
                       </Flex>
                     </Box>
                     <Box>
                       <Flex gap="1" align="baseline">
                         <StatValue value={firewall.severeComponentCount} />
-                        <Text size="1" color="orange">severe</Text>
+                        <Text size="1" color="orange">{RepositoryProfileStrings.USAGE_TAB.SEVERE}</Text>
                       </Flex>
                     </Box>
                   </Grid>
                   {malwareCleanupSummary && (
                     <Flex align="center" gap="3">
                       <Text size="1" color="gray">
-                        Malicious Packages: {malwareCleanupSummary.taskEnabled ? (malwareCleanupSummary.taskCleanupEnabled ? 'Delete' : 'Audit') : 'Off'}
+                        {RepositoryProfileStrings.USAGE_TAB.MALICIOUS_PACKAGES_MODE(malwareCleanupSummary.taskEnabled ? (malwareCleanupSummary.taskCleanupEnabled ? CommonStrings.ACTIONS.DELETE : RepositoryProfileStrings.USAGE_TAB.AUDIT) : RepositoryProfileStrings.USAGE_TAB.OFF)}
                       </Text>
                       {malwareCleanupSummary.scrubbedCount > 0 && (
-                        <Text size="1" color="gray">{malwareCleanupSummary.scrubbedCount} scrubbed</Text>
+                        <Text size="1" color="gray">{RepositoryProfileStrings.USAGE_TAB.SCRUBBED(malwareCleanupSummary.scrubbedCount)}</Text>
                       )}
                       {malwareCleanupSummary.pendingCount > 0 && (
-                        <Text size="1" color="red">{malwareCleanupSummary.pendingCount} pending</Text>
+                        <Text size="1" color="red">{RepositoryProfileStrings.USAGE_TAB.PENDING(malwareCleanupSummary.pendingCount)}</Text>
                       )}
                     </Flex>
                   )}
@@ -287,36 +289,36 @@ export function UsageTab({
           ================================================================ */}
       <Card size="2">
         <Flex direction="column" gap="3">
-          <Text size="3" weight="bold">Repository Configuration</Text>
+          <Text size="3" weight="bold">{RepositoryProfileStrings.USAGE_TAB.REPOSITORY_CONFIGURATION}</Text>
           <Separator size="4" />
           <Grid columns="2" gap="4" rows="auto">
             <Box>
-              <Text size="1" color="gray" as="div" mb="1">Format</Text>
+              <Text size="1" color="gray" as="div" mb="1">{CommonStrings.LABELS.FORMAT}</Text>
               <Text size="2" weight="medium">{repository.format}</Text>
             </Box>
             <Box>
-              <Text size="1" color="gray" as="div" mb="1">Type</Text>
+              <Text size="1" color="gray" as="div" mb="1">{CommonStrings.LABELS.TYPE}</Text>
               <Text size="2" weight="medium" style={{ textTransform: 'capitalize' }}>{repository.type}</Text>
             </Box>
             <Box style={{ gridColumn: 'span 2' }}>
-              <Text size="1" color="gray" as="div" mb="1">Repository URL</Text>
+              <Text size="1" color="gray" as="div" mb="1">{RepositoryProfileStrings.USAGE_TAB.REPOSITORY_URL}</Text>
               <CopyableUrl url={repository.url} />
             </Box>
             {remoteUrl && (
               <Box style={{ gridColumn: 'span 2' }}>
-                <Text size="1" color="gray" as="div" mb="1">Remote URL (Proxy)</Text>
+                <Text size="1" color="gray" as="div" mb="1">{RepositoryProfileStrings.USAGE_TAB.REMOTE_URL_PROXY}</Text>
                 <CopyableUrl url={remoteUrl} />
               </Box>
             )}
             <Box>
-              <Text size="1" color="gray" as="div" mb="1">Status</Text>
+              <Text size="1" color="gray" as="div" mb="1">{CommonStrings.LABELS.STATUS}</Text>
               <Badge color={repository.online ? 'green' : 'red'} variant="soft">
-                {repository.online ? 'Online' : 'Offline'}
+                {repository.online ? RepositoryProfileStrings.USAGE_TAB.ONLINE : RepositoryProfileStrings.USAGE_TAB.OFFLINE}
               </Badge>
             </Box>
             {blobStoreName && (
               <Box>
-                <Text size="1" color="gray" as="div" mb="1">Blob Store</Text>
+                <Text size="1" color="gray" as="div" mb="1">{RepositoryProfileStrings.USAGE_TAB.BLOB_STORE}</Text>
                 <Text size="2" weight="medium">{blobStoreName}</Text>
               </Box>
             )}

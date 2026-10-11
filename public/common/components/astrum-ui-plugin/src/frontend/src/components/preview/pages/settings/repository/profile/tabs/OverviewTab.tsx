@@ -17,6 +17,8 @@ import type {
   RepositoryMetrics,
 } from '../types';
 import { ensureTrailingSlash } from '../../../../../../../utils/url';
+import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import CommonStrings from '../../../../../constants/CommonStrings';
 
 // =============================================================================
 // Types
@@ -68,40 +70,40 @@ export function OverviewTab({
         <Box className="profile-section__card">
           <Flex align="center" gap="2" mb="4">
             <Database size={18} />
-            <Text weight="bold">Repository Details</Text>
+            <Text weight="bold">{RepositoryProfileStrings.OVERVIEW.REPOSITORY_DETAILS}</Text>
           </Flex>
 
           <Box className="profile-section__row">
-            <Text className="profile-section__label">Type</Text>
+            <Text className="profile-section__label">{CommonStrings.LABELS.TYPE}</Text>
             <Badge color={repository.type === 'hosted' ? 'blue' : repository.type === 'proxy' ? 'purple' : 'orange'}>
               {repository.type.charAt(0).toUpperCase() + repository.type.slice(1)}
             </Badge>
           </Box>
 
           <Box className="profile-section__row">
-            <Text className="profile-section__label">Format</Text>
+            <Text className="profile-section__label">{CommonStrings.LABELS.FORMAT}</Text>
             <Text className="profile-section__value">{repository.format}</Text>
           </Box>
 
           <Box className="profile-section__row">
-            <Text className="profile-section__label">Status</Text>
+            <Text className="profile-section__label">{CommonStrings.LABELS.STATUS}</Text>
             <Flex align="center" gap="1">
               {isOnline ? (
                 <>
                   <CheckCircle size={14} color="var(--green-11)" />
-                  <Text className="profile-section__value profile-section__value--success">Online</Text>
+                  <Text className="profile-section__value profile-section__value--success">{RepositoryProfileStrings.OVERVIEW.ONLINE}</Text>
                 </>
               ) : (
                 <>
                   <XCircle size={14} color="var(--red-11)" />
-                  <Text className="profile-section__value profile-section__value--error">Offline</Text>
+                  <Text className="profile-section__value profile-section__value--error">{RepositoryProfileStrings.OVERVIEW.OFFLINE}</Text>
                 </>
               )}
             </Flex>
           </Box>
 
           <Box className="profile-section__row">
-            <Text className="profile-section__label">URL</Text>
+            <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.URL}</Text>
             <Text className="profile-section__value profile-section__value--code">
               {ensureTrailingSlash(repository.url)}
             </Text>
@@ -109,14 +111,14 @@ export function OverviewTab({
 
           {maven?.versionPolicy && (
             <Box className="profile-section__row">
-              <Text className="profile-section__label">Version Policy</Text>
+              <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.VERSION_POLICY}</Text>
               <Text className="profile-section__value">{maven.versionPolicy}</Text>
             </Box>
           )}
 
           {maven?.layoutPolicy && (
             <Box className="profile-section__row">
-              <Text className="profile-section__label">Layout Policy</Text>
+              <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.LAYOUT_POLICY}</Text>
               <Text className="profile-section__value">{maven.layoutPolicy}</Text>
             </Box>
           )}
@@ -125,7 +127,7 @@ export function OverviewTab({
             <Box className="profile-section__row">
               <Text className="profile-section__label">
                 <Globe size={14} />
-                Remote URL
+                {RepositoryProfileStrings.OVERVIEW.REMOTE_URL}
               </Text>
               <Text className="profile-section__value profile-section__value--code">
                 {proxy.remoteUrl}
@@ -138,13 +140,13 @@ export function OverviewTab({
         <Box className="profile-section__card">
           <Flex align="center" gap="2" mb="4">
             <HardDrive size={18} />
-            <Text weight="bold">Storage & Metrics</Text>
+            <Text weight="bold">{RepositoryProfileStrings.OVERVIEW.STORAGE_METRICS}</Text>
           </Flex>
 
           <Box className="profile-section__row">
             <Text className="profile-section__label">
               <Package size={14} />
-              Components
+              {RepositoryProfileStrings.OVERVIEW.COMPONENTS}
             </Text>
             <Text className="profile-section__value">
               {metrics?.componentCount?.toLocaleString() ?? '—'}
@@ -154,7 +156,7 @@ export function OverviewTab({
           <Box className="profile-section__row">
             <Text className="profile-section__label">
               <FileBox size={14} />
-              Assets
+              {RepositoryProfileStrings.OVERVIEW.ASSETS}
             </Text>
             <Text className="profile-section__value">
               {metrics?.assetCount?.toLocaleString() ?? '—'}
@@ -162,20 +164,20 @@ export function OverviewTab({
           </Box>
 
           <Box className="profile-section__row">
-            <Text className="profile-section__label">Blob Store</Text>
+            <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.BLOB_STORE}</Text>
             <Text className="profile-section__value">{storage?.blobStoreName ?? '—'}</Text>
           </Box>
 
           {blobStore && (
             <>
               <Box className="profile-section__row">
-                <Text className="profile-section__label">Blob Store Type</Text>
+                <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.BLOB_STORE_TYPE}</Text>
                 <Text className="profile-section__value">{blobStore.type}</Text>
               </Box>
 
               {blobStore.totalSizeInBytes !== undefined && (
                 <Box className="profile-section__row">
-                  <Text className="profile-section__label">Total Size</Text>
+                  <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.TOTAL_SIZE}</Text>
                   <Text className="profile-section__value">
                     {formatBytes(blobStore.totalSizeInBytes)}
                   </Text>
@@ -184,7 +186,7 @@ export function OverviewTab({
 
               {blobStore.availableSpaceInBytes !== undefined && (
                 <Box className="profile-section__row">
-                  <Text className="profile-section__label">Available Space</Text>
+                  <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.AVAILABLE_SPACE}</Text>
                   <Text className="profile-section__value">
                     {formatBytes(blobStore.availableSpaceInBytes)}
                   </Text>
@@ -194,15 +196,15 @@ export function OverviewTab({
           )}
 
           <Box className="profile-section__row">
-            <Text className="profile-section__label">Strict Content Validation</Text>
+            <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.STRICT_CONTENT_VALIDATION}</Text>
             <Text className="profile-section__value">
-              {storage?.strictContentTypeValidation ? 'Yes' : 'No'}
+              {storage?.strictContentTypeValidation ? RepositoryProfileStrings.OVERVIEW.YES : RepositoryProfileStrings.OVERVIEW.NO}
             </Text>
           </Box>
 
           {storage?.writePolicy && (
             <Box className="profile-section__row">
-              <Text className="profile-section__label">Write Policy</Text>
+              <Text className="profile-section__label">{RepositoryProfileStrings.OVERVIEW.WRITE_POLICY}</Text>
               <Text className="profile-section__value">{storage.writePolicy}</Text>
             </Box>
           )}

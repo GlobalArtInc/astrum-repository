@@ -27,39 +27,41 @@ import {
 import { useBlobStoresList } from './useBlobStores';
 import type { BlobStore } from './types';
 import './BlobStoresList.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const STRINGS = {
-  TITLE: 'Blob Stores',
-  DESCRIPTION: 'Configure local and cloud blob storage',
-  CREATE_BUTTON: 'Create Blob Store',
-  FILTER_PLACEHOLDER: 'Filter by name...',
-  LOADING: 'Loading blob stores...',
-  ERROR_TITLE: 'Failed to Load Blob Stores',
+  TITLE: BlobStoresStrings.LIST.BLOB_STORES,
+  DESCRIPTION: BlobStoresStrings.LIST.CONFIGURE_LOCAL_CLOUD_BLOB_STORAGE,
+  CREATE_BUTTON: BlobStoresStrings.LIST.CREATE_BLOB_STORE,
+  FILTER_PLACEHOLDER: BlobStoresStrings.LIST.FILTER_NAME,
+  LOADING: BlobStoresStrings.LIST.LOADING_BLOB_STORES,
+  ERROR_TITLE: BlobStoresStrings.LIST.FAILED_LOAD_BLOB_STORES,
   EMPTY: {
-    TITLE: 'No Blob Stores',
-    DESCRIPTION: 'Create your first blob store to configure storage for your repositories.',
-    ACTION: 'Create Blob Store'
+    TITLE: BlobStoresStrings.LIST.NO_BLOB_STORES,
+    DESCRIPTION: BlobStoresStrings.LIST.CREATE_FIRST_BLOB_STORE_CONFIGURE,
+    ACTION: BlobStoresStrings.LIST.CREATE_BLOB_STORE
   },
   COLUMNS: {
-    NAME: 'Name',
-    PATH: 'Path',
-    TYPE: 'Type',
-    STATE: 'State',
-    COUNT: 'Blob Count',
-    SIZE: 'Total Size',
-    SPACE: 'Available Space'
+    NAME: CommonStrings.LABELS.NAME,
+    PATH: BlobStoresStrings.LIST.PATH,
+    TYPE: CommonStrings.LABELS.TYPE,
+    STATE: BlobStoresStrings.LIST.STATE,
+    COUNT: BlobStoresStrings.LIST.BLOB_COUNT,
+    SIZE: BlobStoresStrings.LIST.TOTAL_SIZE,
+    SPACE: BlobStoresStrings.LIST.AVAILABLE_SPACE
   },
   STATUS: {
-    ONLINE: 'Started',
-    OFFLINE: 'Failed'
+    ONLINE: BlobStoresStrings.LIST.STARTED,
+    OFFLINE: BlobStoresStrings.LIST.FAILED
   },
-  UNKNOWN: 'Unavailable',
-  UNLIMITED: 'Unlimited',
-  CALCULATING: 'Calculating...',
+  UNKNOWN: BlobStoresStrings.LIST.UNAVAILABLE,
+  UNLIMITED: BlobStoresStrings.LIST.UNLIMITED,
+  CALCULATING: BlobStoresStrings.LIST.CALCULATING,
   HELP: {
-    TITLE: 'What is a blob store?',
-    CONTENT: 'The binary assets you download via proxy repositories, or publish to hosted repositories, are stored in the blob store attached to those repositories. In traditional, single node Astrum deployments, blob stores are typically associated with a local filesystem directory, usually within the globalart-work directory.',
-    DOC_LABEL: 'View Documentation'
+    TITLE: BlobStoresStrings.LIST.WHAT_BLOB_STORE,
+    CONTENT: BlobStoresStrings.LIST.BINARY_ASSETS_YOU_DOWNLOAD_VIA,
+    DOC_LABEL: CommonStrings.ACTIONS.VIEW_DOCUMENTATION
   }
 };
 
@@ -275,7 +277,7 @@ export default function BlobStoresList() {
             sortBy={sortBy}
             sortDirection={sortDirection}
             onSort={handleSort}
-            ariaLabel="Blob stores table"
+            ariaLabel={BlobStoresStrings.LIST.BLOB_STORES_TABLE_ARIA}
           />
         </div>
 

@@ -20,6 +20,9 @@ import {
 } from 'lucide-react';
 import ExtJS from '../../../../../../interface/ExtJS';
 import { useRepositoryTasksCapabilities } from './useRepositoryTasksCapabilities';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 interface RepositoryTasksCapabilitiesTabProps {
   repositoryName: string;
@@ -35,7 +38,7 @@ function getLastRunResultBadge(lastRunResult: string | undefined): JSX.Element {
     case 'completed':
       return (
         <Badge color="green" size="1">
-          <CheckCircle size={12} /> Success
+          <CheckCircle size={12} /> {RepositoriesPageStrings.TASKS_CAPABILITIES.SUCCESS}
         </Badge>
       );
     case 'failed':
@@ -43,7 +46,7 @@ function getLastRunResultBadge(lastRunResult: string | undefined): JSX.Element {
     case 'errorrunning':
       return (
         <Badge color="red" size="1">
-          <XCircle size={12} /> Failed
+          <XCircle size={12} /> {RepositoriesPageStrings.TASKS_CAPABILITIES.FAILED}
         </Badge>
       );
     default:
@@ -59,14 +62,14 @@ function formatRelativeTime(dateString: string | undefined): string {
   if (!dateString) return '—';
   const date = new Date(dateString);
   const diffMs = Date.now() - date.getTime();
-  if (diffMs < 0) return 'just now';
+  if (diffMs < 0) return RepositoriesPageStrings.TASKS_CAPABILITIES.JUST_NOW;
   const diffMins = Math.floor(diffMs / (1000 * 60));
-  if (diffMins < 1) return 'just now';
+  if (diffMins < 1) return RepositoriesPageStrings.TASKS_CAPABILITIES.JUST_NOW;
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  return `${diffDays} days ago`;
+  if (diffMins < 60) return plural(RepositoriesPageStrings.TASKS_CAPABILITIES.MINUTES_AGO, diffMins);
+  if (diffHours < 24) return plural(RepositoriesPageStrings.TASKS_CAPABILITIES.HOURS_AGO, diffHours);
+  return plural(RepositoriesPageStrings.TASKS_CAPABILITIES.DAYS_AGO, diffDays);
 }
 
 /**
@@ -104,13 +107,13 @@ export function RepositoryTasksCapabilitiesTab({
       <Card size="2">
         <Flex direction="column" align="center" gap="3" py="6">
           <Text color="red" size="2">
-            Failed to load tasks and capabilities.
+            {RepositoriesPageStrings.TASKS_CAPABILITIES.FAILED_LOAD_TASKS_CAPABILITIES}
           </Text>
           <Text size="1" color="gray">
             {error}
           </Text>
           <Button variant="outline" size="2" onClick={refetch}>
-            Retry
+            {CommonStrings.ACTIONS.RETRY}
           </Button>
         </Flex>
       </Card>
@@ -125,10 +128,10 @@ export function RepositoryTasksCapabilitiesTab({
             <Flex align="center" gap="2">
               <Clock size={18} color="var(--accent-9)" />
               <Text size="3" weight="bold">
-                Scheduled Tasks
+                {RepositoriesPageStrings.TASKS_CAPABILITIES.SCHEDULED_TASKS}
               </Text>
               <Badge variant="soft" color="gray" size="1">
-                {tasks.length} task{tasks.length === 1 ? '' : 's'}
+                {plural(RepositoriesPageStrings.TASKS_CAPABILITIES.TASK_COUNT, tasks.length)}
               </Badge>
             </Flex>
 
@@ -138,10 +141,10 @@ export function RepositoryTasksCapabilitiesTab({
               <Table.Root variant="surface" size="1">
                 <Table.Header>
                   <Table.Row>
-                    <Table.ColumnHeaderCell>Task</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>Schedule</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>Last Run</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{RepositoriesPageStrings.TASKS_CAPABILITIES.TASK_2}</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{RepositoriesPageStrings.TASKS_CAPABILITIES.SCHEDULE}</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{RepositoriesPageStrings.TASKS_CAPABILITIES.LAST_RUN}</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{CommonStrings.LABELS.STATUS}</Table.ColumnHeaderCell>
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
@@ -156,7 +159,7 @@ export function RepositoryTasksCapabilitiesTab({
                         </Text>
                       </Table.Cell>
                       <Table.Cell>
-                        <Text size="1">{task.schedule || 'Manual'}</Text>
+                        <Text size="1">{task.schedule || RepositoriesPageStrings.TASKS_CAPABILITIES.MANUAL}</Text>
                       </Table.Cell>
                       <Table.Cell>
                         <Text size="1">{formatRelativeTime(task.lastRun)}</Text>
@@ -169,7 +172,7 @@ export function RepositoryTasksCapabilitiesTab({
             ) : (
               <Box py="4">
                 <Text size="2" color="gray">
-                  No scheduled tasks target this repository.
+                  {RepositoriesPageStrings.TASKS_CAPABILITIES.NO_SCHEDULED_TASKS_TARGET_REPOSITORY}
                 </Text>
               </Box>
             )}
@@ -183,10 +186,10 @@ export function RepositoryTasksCapabilitiesTab({
             <Flex align="center" gap="2">
               <Zap size={18} color="var(--accent-9)" />
               <Text size="3" weight="bold">
-                Capabilities
+                {RepositoriesPageStrings.TASKS_CAPABILITIES.CAPABILITIES}
               </Text>
               <Badge variant="soft" color="gray" size="1">
-                {capabilities.length} capabilit{capabilities.length === 1 ? 'y' : 'ies'}
+                {plural(RepositoriesPageStrings.TASKS_CAPABILITIES.CAPABILITY_COUNT, capabilities.length)}
               </Badge>
             </Flex>
 
@@ -196,9 +199,9 @@ export function RepositoryTasksCapabilitiesTab({
               <Table.Root variant="surface" size="1">
                 <Table.Header>
                   <Table.Row>
-                    <Table.ColumnHeaderCell>Capability</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
-                    <Table.ColumnHeaderCell>Notes</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{RepositoriesPageStrings.TASKS_CAPABILITIES.CAPABILITY}</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{CommonStrings.LABELS.STATUS}</Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell>{RepositoriesPageStrings.TASKS_CAPABILITIES.NOTES}</Table.ColumnHeaderCell>
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
@@ -211,7 +214,7 @@ export function RepositoryTasksCapabilitiesTab({
                       </Table.Cell>
                       <Table.Cell>
                         <Badge color={capability.enabled ? 'green' : 'gray'} size="1">
-                          {capability.enabled ? 'Active' : 'Disabled'}
+                          {capability.enabled ? RepositoriesPageStrings.TASKS_CAPABILITIES.ACTIVE : RepositoriesPageStrings.TASKS_CAPABILITIES.DISABLED}
                         </Badge>
                       </Table.Cell>
                       <Table.Cell>
@@ -226,7 +229,7 @@ export function RepositoryTasksCapabilitiesTab({
             ) : (
               <Box py="4">
                 <Text size="2" color="gray">
-                  No capabilities are scoped to this repository.
+                  {RepositoriesPageStrings.TASKS_CAPABILITIES.NO_CAPABILITIES_SCOPED_REPOSITORY}
                 </Text>
               </Box>
             )}

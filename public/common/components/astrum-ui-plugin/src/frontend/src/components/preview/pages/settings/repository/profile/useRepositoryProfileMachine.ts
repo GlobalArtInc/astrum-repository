@@ -6,6 +6,7 @@ import { useMachine } from '@xstate/react';
 import { createRepositoryProfileMachine } from './repositoryProfileMachine';
 import type { RepositoryProfileContext } from './repositoryProfileMachine';
 import { ACTION_METADATA, type RepositoryAction } from './types';
+import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 
 // =============================================================================
 // Types
@@ -149,7 +150,7 @@ export function useRepositoryProfileMachine(repositoryName: string): UseReposito
 
   let dialogTitle = '';
   let dialogMessage = '';
-  let dialogConfirmLabel = 'Continue';
+  let dialogConfirmLabel = RepositoryProfileStrings.USE_REPOSITORY_PROFILE_MACHINE.CONTINUE;
   let dialogVariant: 'warning' | 'danger' = 'warning';
 
   if (actionMetadata) {
@@ -161,11 +162,11 @@ export function useRepositoryProfileMachine(repositoryName: string): UseReposito
     // Customize toggle-online dialog copy based on current online state
     if (pendingAction === 'toggle-online' && context.repository) {
       const isOnline = context.repository.online;
-      dialogTitle = isOnline ? 'Take Repository Offline' : 'Bring Repository Online';
+      dialogTitle = isOnline ? RepositoryProfileStrings.USE_REPOSITORY_PROFILE_MACHINE.TAKE_REPOSITORY_OFFLINE : RepositoryProfileStrings.USE_REPOSITORY_PROFILE_MACHINE.BRING_REPOSITORY_ONLINE;
       dialogMessage = isOnline
-        ? `Taking "${repositoryName}" offline will prevent users from accessing this repository. Existing requests will fail. Continue?`
-        : `Bringing "${repositoryName}" online will allow users to access this repository again. Continue?`;
-      dialogConfirmLabel = isOnline ? 'Take Offline' : 'Bring Online';
+        ? RepositoryProfileStrings.USE_REPOSITORY_PROFILE_MACHINE.TAKING_OFFLINE_PREVENT_USERS_ACCESSING(repositoryName)
+        : RepositoryProfileStrings.USE_REPOSITORY_PROFILE_MACHINE.BRINGING_ONLINE_ALLOW_USERS_ACCESS(repositoryName);
+      dialogConfirmLabel = isOnline ? RepositoryProfileStrings.USE_REPOSITORY_PROFILE_MACHINE.TAKE_OFFLINE : RepositoryProfileStrings.USE_REPOSITORY_PROFILE_MACHINE.BRING_ONLINE;
     }
   }
 

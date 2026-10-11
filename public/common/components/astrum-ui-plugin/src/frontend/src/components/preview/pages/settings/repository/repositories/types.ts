@@ -1,3 +1,5 @@
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 
 // =============================================================================
@@ -659,18 +661,18 @@ export const FORMAT_LABELS: Record<string, string> = {
  * Repository type display names
  */
 export const TYPE_LABELS: Record<RepositoryType, string> = {
-  hosted: 'Hosted',
-  proxy: 'Proxy',
-  group: 'Group',
+  hosted: RepositoriesPageStrings.TYPES.HOSTED,
+  proxy: RepositoriesPageStrings.TYPES.PROXY,
+  group: RepositoriesPageStrings.TYPES.GROUP,
 };
 
 /**
  * Write policy display options
  */
 export const WRITE_POLICY_OPTIONS: { value: WritePolicy; label: string }[] = [
-  { value: 'ALLOW', label: 'Allow redeploy' },
-  { value: 'ALLOW_ONCE', label: 'Disable redeploy' },
-  { value: 'DENY', label: 'Read-only' },
+  { value: 'ALLOW', label: RepositoriesPageStrings.TYPES.ALLOW_REDEPLOY },
+  { value: 'ALLOW_ONCE', label: RepositoriesPageStrings.TYPES.DISABLE_REDEPLOY },
+  { value: 'DENY', label: RepositoriesPageStrings.TYPES.READ_ONLY },
 ];
 
 /**
@@ -696,7 +698,7 @@ export type RepositorySortField = 'name' | 'type' | 'format' | 'status';
  * Repository name validation pattern
  */
 export const NAME_PATTERN = /^[a-zA-Z0-9][-_.a-zA-Z0-9]*$/;
-export const NAME_PATTERN_MESSAGE = 'Name must start with a letter or number and may contain letters, numbers, hyphens, underscores, and periods';
+export const NAME_PATTERN_MESSAGE = RepositoriesPageStrings.TYPES.NAME_MUST_START_LETTER_NUMBER;
 
 // =============================================================================
 // Default Values
@@ -776,7 +778,7 @@ export const DEFAULT_GROUP_VALUES: Partial<RepositoryFormData> = {
  */
 export function validateRepositoryName(name: string | undefined): string | undefined {
   if (!name?.trim()) {
-    return 'Name is required';
+    return CommonStrings.MESSAGES.NAME_REQUIRED;
   }
   if (!NAME_PATTERN.test(name)) {
     return NAME_PATTERN_MESSAGE;
@@ -789,13 +791,13 @@ export function validateRepositoryName(name: string | undefined): string | undef
  */
 export function validateRemoteUrl(url: string | undefined): string | undefined {
   if (!url?.trim()) {
-    return 'Remote URL is required';
+    return RepositoriesPageStrings.TYPES.REMOTE_URL_REQUIRED;
   }
   try {
     new URL(url);
     return undefined;
   } catch {
-    return 'Invalid URL format';
+    return RepositoriesPageStrings.TYPES.INVALID_URL_FORMAT;
   }
 }
 
@@ -804,7 +806,7 @@ export function validateRemoteUrl(url: string | undefined): string | undefined {
  */
 export function validateBlobStore(blobStoreName: string | undefined): string | undefined {
   if (!blobStoreName?.trim()) {
-    return 'Blob store is required';
+    return RepositoriesPageStrings.TYPES.BLOB_STORE_REQUIRED;
   }
   return undefined;
 }
@@ -814,7 +816,7 @@ export function validateBlobStore(blobStoreName: string | undefined): string | u
  */
 export function validateGroupMembers(members: string[] | undefined): string | undefined {
   if (!members || members.length === 0) {
-    return 'At least one member repository is required';
+    return RepositoriesPageStrings.TYPES.LEAST_ONE_MEMBER_REPOSITORY_REQUIRED;
   }
   return undefined;
 }
@@ -841,10 +843,10 @@ export const ECR_ACCESS_KEY_ID_PATTERN = /^[A-Z0-9]{16,128}$/;
 
 export function validateEcrAwsRegion(value: string | undefined): string | undefined {
   if (!value?.trim()) {
-    return 'AWS region is required';
+    return RepositoriesPageStrings.TYPES.AWS_REGION_REQUIRED;
   }
   if (!ECR_AWS_REGION_PATTERN.test(value.trim())) {
-    return 'Invalid AWS region format (e.g., us-east-1)';
+    return RepositoriesPageStrings.TYPES.INVALID_AWS_REGION_FORMAT_E;
   }
   return undefined;
 }
@@ -854,17 +856,17 @@ export function validateEcrRegistryId(value: string | undefined): string | undef
     return undefined; // optional field
   }
   if (!ECR_REGISTRY_ID_PATTERN.test(value.trim())) {
-    return 'Registry ID must be a 12-digit AWS account number';
+    return RepositoriesPageStrings.TYPES.REGISTRY_ID_MUST_12_DIGIT;
   }
   return undefined;
 }
 
 export function validateEcrAccessKeyId(value: string | undefined): string | undefined {
   if (!value?.trim()) {
-    return 'Access Key ID is required';
+    return RepositoriesPageStrings.TYPES.ACCESS_KEY_ID_REQUIRED;
   }
   if (!ECR_ACCESS_KEY_ID_PATTERN.test(value.trim())) {
-    return 'Invalid AWS access key ID format';
+    return RepositoriesPageStrings.TYPES.INVALID_AWS_ACCESS_KEY_ID;
   }
   return undefined;
 }

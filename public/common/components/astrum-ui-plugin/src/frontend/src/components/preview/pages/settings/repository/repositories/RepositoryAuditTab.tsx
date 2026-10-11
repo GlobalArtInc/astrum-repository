@@ -17,6 +17,8 @@ import { useAuditLogApi } from '../../../../../../utils/audit/useAuditLogApi';
 import { formatAuditEvent, formatTimestamp } from '../../../../../../utils/audit/auditEventFormatter';
 import { CATEGORY_COLORS, CATEGORY_LABELS } from '../../../../../../utils/audit/audit.constants';
 import type { AuditFilters } from '../../../../../../utils/audit/audit.types';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import plural from '../../../../../../interface/plural';
 
 interface RepositoryAuditTabProps {
   repositoryName: string;
@@ -50,9 +52,9 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
     return (
       <Card size="2">
         <Flex direction="column" align="center" gap="3" py="6">
-          <Text color="red" size="2">Failed to load audit events.</Text>
+          <Text color="red" size="2">{RepositoriesPageStrings.AUDIT.FAILED_LOAD_AUDIT_EVENTS}</Text>
           <Button variant="outline" size="2" asChild>
-            <a href={auditUrl}>Open Full Audit Log <ExternalLink size={14} /></a>
+            <a href={auditUrl}>{RepositoriesPageStrings.AUDIT.OPEN_FULL_AUDIT_LOG} <ExternalLink size={14} /></a>
           </Button>
         </Flex>
       </Card>
@@ -67,10 +69,10 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
       <Card size="2">
         <Flex direction="column" align="center" gap="3" py="8">
           <ScrollText size={40} color="var(--gray-6)" />
-          <Text size="3" weight="medium" color="gray">No Audit Events</Text>
-          <Text size="2" color="gray">No audit activity recorded for this repository in the last 30 days.</Text>
+          <Text size="3" weight="medium" color="gray">{RepositoriesPageStrings.AUDIT.NO_AUDIT_EVENTS}</Text>
+          <Text size="2" color="gray">{RepositoriesPageStrings.AUDIT.NO_AUDIT_ACTIVITY_RECORDED_REPOSITORY}</Text>
           <Button variant="outline" size="2" mt="2" asChild>
-            <a href={auditUrl}>Open Full Audit Log <ExternalLink size={14} /></a>
+            <a href={auditUrl}>{RepositoriesPageStrings.AUDIT.OPEN_FULL_AUDIT_LOG} <ExternalLink size={14} /></a>
           </Button>
         </Flex>
       </Card>
@@ -84,14 +86,14 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
           <Flex justify="between" align="center">
             <Flex align="center" gap="2">
               <ScrollText size={18} color="var(--accent-9)" />
-              <Text size="3" weight="bold">Recent Activity</Text>
+              <Text size="3" weight="bold">{RepositoriesPageStrings.AUDIT.RECENT_ACTIVITY}</Text>
               <Badge variant="soft" color="gray" size="1">
-                {totalEvents.toLocaleString()} event{totalEvents !== 1 ? 's' : ''} (30 days)
+                {plural(RepositoriesPageStrings.AUDIT.EVENTS_30_DAYS, totalEvents, totalEvents.toLocaleString())}
               </Badge>
             </Flex>
             <Button variant="solid" size="2" asChild>
               <a href={auditUrl}>
-                View Full Audit Log <ExternalLink size={14} />
+                {RepositoriesPageStrings.AUDIT.VIEW_FULL_AUDIT_LOG} <ExternalLink size={14} />
               </a>
             </Button>
           </Flex>
@@ -101,11 +103,11 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
           <Table.Root variant="surface" size="1">
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeaderCell>Time</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Category</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Event</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Summary</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Initiator</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoriesPageStrings.AUDIT.TIME}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoriesPageStrings.AUDIT.CATEGORY}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoriesPageStrings.AUDIT.EVENT}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoriesPageStrings.AUDIT.SUMMARY}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{RepositoriesPageStrings.AUDIT.INITIATOR}</Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -143,10 +145,12 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
           {totalEvents > 5 && (
             <Box>
               <Text size="1" color="gray">
-                Showing 5 of {totalEvents.toLocaleString()} events.{' '}
-                <a href={auditUrl} style={{ color: 'var(--accent-11)' }}>
-                  View all in Audit Log
-                </a>
+                {RepositoriesPageStrings.AUDIT.SHOWING_LATEST(
+                  totalEvents.toLocaleString(),
+                  <a href={auditUrl} style={{ color: 'var(--accent-11)' }}>
+                    {RepositoriesPageStrings.AUDIT.VIEW_ALL_AUDIT_LOG}
+                  </a>
+                )}
               </Text>
             </Box>
           )}

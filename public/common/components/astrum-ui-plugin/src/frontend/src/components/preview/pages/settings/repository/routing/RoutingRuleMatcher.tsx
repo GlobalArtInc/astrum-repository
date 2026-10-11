@@ -20,6 +20,7 @@ import { SettingsButton } from '../../../../shared/form';
 import { RoutingRuleMatcherProps, } from './types';
 
 import './RoutingRuleMatcher.scss';
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
 
 /**
  * Pattern preset types for quick regex templates
@@ -38,33 +39,33 @@ interface PatternPresetOption {
 const PATTERN_PRESETS: PatternPresetOption[] = [
   {
     value: 'regex',
-    label: 'Regex',
+    label: RoutingRulesStrings.MATCHER.REGEX,
     icon: <FileCode size={14} />,
-    description: 'Custom regular expression',
+    description: RoutingRulesStrings.MATCHER.CUSTOM_REGULAR_EXPRESSION,
     toRegex: (value) => value,
     placeholder: 'e.g., .*-sources\\.jar',
   },
   {
     value: 'starts-with',
-    label: 'Starts with',
+    label: RoutingRulesStrings.MATCHER.STARTS_WITH,
     icon: <ArrowRight size={14} />,
-    description: 'Path starts with this prefix',
+    description: RoutingRulesStrings.MATCHER.PATH_STARTS_PREFIX,
     toRegex: (value) => `^${escapeRegex(value)}.*`,
     placeholder: 'e.g., /org/apache/',
   },
   {
     value: 'ends-with',
-    label: 'Ends with',
+    label: RoutingRulesStrings.MATCHER.ENDS_WITH,
     icon: <ArrowLeft size={14} />,
-    description: 'Path ends with this suffix',
+    description: RoutingRulesStrings.MATCHER.PATH_ENDS_SUFFIX,
     toRegex: (value) => `.*${escapeRegex(value)}$`,
     placeholder: 'e.g., .jar',
   },
   {
     value: 'contains',
-    label: 'Contains',
+    label: RoutingRulesStrings.MATCHER.CONTAINS,
     icon: <Search size={14} />,
-    description: 'Path contains this text',
+    description: RoutingRulesStrings.MATCHER.PATH_CONTAINS_TEXT,
     toRegex: (value) => `.*${escapeRegex(value)}.*`,
     placeholder: 'e.g., sources',
   },
@@ -99,7 +100,7 @@ function validateRegex(pattern: string): string | null {
     new RegExp(pattern);
     return null;
   } catch (e: any) {
-    return e.message || 'Invalid regex pattern';
+    return e.message || RoutingRulesStrings.MATCHER.INVALID_REGEX_PATTERN;
   }
 }
 
@@ -119,19 +120,19 @@ function describePattern(pattern: string): string {
   // Check for common patterns
   if (pattern.startsWith('^') && pattern.endsWith('.*')) {
     const prefix = pattern.slice(1, -2).replace(/\\\./g, '.').replace(/\\\//g, '/');
-    return `starts with "${prefix}"`;
+    return RoutingRulesStrings.MATCHER.STARTS_WITH_PATTERN(prefix);
   }
   if (pattern.startsWith('.*') && pattern.endsWith('$')) {
     const suffix = pattern.slice(2, -1).replace(/\\\./g, '.').replace(/\\\//g, '/');
-    return `ends with "${suffix}"`;
+    return RoutingRulesStrings.MATCHER.ENDS_WITH_PATTERN(suffix);
   }
   if (pattern.startsWith('.*') && pattern.endsWith('.*')) {
     const middle = pattern.slice(2, -2).replace(/\\\./g, '.').replace(/\\\//g, '/');
-    return `contains "${middle}"`;
+    return RoutingRulesStrings.MATCHER.CONTAINS_PATTERN(middle);
   }
   
   // Fallback to showing the pattern
-  return `matches "${pattern}"`;
+  return RoutingRulesStrings.MATCHER.MATCHES_PATTERN(pattern);
 }
 
 /**
@@ -270,9 +271,9 @@ export function RoutingRuleMatcher({
   const getModeHelperText = () => {
     if (!testMode) return null;
     if (testMode === 'BLOCK') {
-      return 'If any matcher matches the request path, the request will be blocked.';
+      return RoutingRulesStrings.MATCHER.IF_ANY_MATCHER_MATCHES_REQUEST;
     }
-    return 'If any matcher matches the request path, the request will be allowed.';
+    return RoutingRulesStrings.MATCHER.IF_ANY_MATCHER_MATCHES_REQUEST_2;
   };
 
   return (
@@ -281,11 +282,11 @@ export function RoutingRuleMatcher({
       <Flex justify="between" align="center" className="routing-rule-matcher__header">
         <Box>
           <Text size="2" weight="medium" className="routing-rule-matcher__label">
-            Matchers
+            {RoutingRulesStrings.MATCHER.MATCHERS}
             <span className="routing-rule-matcher__required">*</span>
           </Text>
           <Text size="1" className="routing-rule-matcher__help">
-            {getModeHelperText() || 'Define patterns to match request paths. Matchers use regular expressions.'}
+            {getModeHelperText() || RoutingRulesStrings.MATCHER.DEFINE_PATTERNS_MATCH_REQUEST_PATHS}
           </Text>
         </Box>
         
@@ -298,7 +299,7 @@ export function RoutingRuleMatcher({
             className="routing-rule-matcher__add-btn"
             icon={Plus}
           >
-            Add Matcher
+            {RoutingRulesStrings.MATCHER.ADD_MATCHER}
           </SettingsButton>
           
           {presetMenuOpen && (
@@ -369,19 +370,19 @@ export function RoutingRuleMatcher({
                       {hasMatch && (
                         <Flex align="center" gap="1" className="routing-rule-matcher__status-badge routing-rule-matcher__status-badge--match">
                           <CheckCircle size={14} />
-                          <span>Matches</span>
+                          <span>{RoutingRulesStrings.MATCHER.MATCHES}</span>
                         </Flex>
                       )}
                       {hasNoMatch && (
                         <Flex align="center" gap="1" className="routing-rule-matcher__status-badge routing-rule-matcher__status-badge--no-match">
                           <XCircle size={14} />
-                          <span>No match</span>
+                          <span>{RoutingRulesStrings.MATCHER.NO_MATCH}</span>
                         </Flex>
                       )}
                       {isInvalid && (
                         <Flex align="center" gap="1" className="routing-rule-matcher__status-badge routing-rule-matcher__status-badge--invalid">
                           <AlertCircle size={14} />
-                          <span>Invalid</span>
+                          <span>{RoutingRulesStrings.MATCHER.INVALID}</span>
                         </Flex>
                       )}
                     </>
@@ -394,7 +395,7 @@ export function RoutingRuleMatcher({
                   onClick={() => handleRemoveMatcher(index)}
                   disabled={disabled || matchers.length <= 1}
                   className="routing-rule-matcher__remove-btn"
-                  aria-label={`Remove matcher ${index + 1}`}
+                  aria-label={RoutingRulesStrings.MATCHER.REMOVE_MATCHER(index + 1)}
                   icon={Trash2}
                 />
               </Flex>
@@ -426,10 +427,10 @@ export function RoutingRuleMatcher({
       {onTest && (
         <Box className="routing-rule-matcher__test">
           <Text size="2" weight="medium" className="routing-rule-matcher__test-label">
-            Test Path
+            {RoutingRulesStrings.MATCHER.TEST_PATH}
           </Text>
           <Text size="1" className="routing-rule-matcher__test-help">
-            Enter a request path to see which matchers would match and the resulting action.
+            {RoutingRulesStrings.MATCHER.ENTER_REQUEST_PATH_SEE_WHICH}
           </Text>
           <Box className="routing-rule-matcher__test-input-wrapper">
             <Search size={16} className="routing-rule-matcher__test-search-icon" />
@@ -450,9 +451,9 @@ export function RoutingRuleMatcher({
                 <Flex align="center" gap="2">
                   <Ban size={18} className="routing-rule-matcher__outcome-icon" />
                   <Box>
-                    <Text size="2" weight="medium">This request would be BLOCKED</Text>
+                    <Text size="2" weight="medium">{RoutingRulesStrings.MATCHER.REQUEST_WOULD_BLOCKED}</Text>
                     <Text size="1" className="routing-rule-matcher__outcome-detail">
-                      {testMode === 'BLOCK' ? 'A matcher matched the path' : 'No matcher matched the path'}
+                      {testMode === 'BLOCK' ? RoutingRulesStrings.MATCHER.MATCHER_MATCHED_PATH : RoutingRulesStrings.MATCHER.NO_MATCHER_MATCHED_PATH}
                     </Text>
                   </Box>
                 </Flex>
@@ -461,9 +462,9 @@ export function RoutingRuleMatcher({
                 <Flex align="center" gap="2">
                   <Check size={18} className="routing-rule-matcher__outcome-icon" />
                   <Box>
-                    <Text size="2" weight="medium">This request would be ALLOWED</Text>
+                    <Text size="2" weight="medium">{RoutingRulesStrings.MATCHER.REQUEST_WOULD_ALLOWED}</Text>
                     <Text size="1" className="routing-rule-matcher__outcome-detail">
-                      {testMode === 'ALLOW' ? 'A matcher matched the path' : 'No matcher matched the path'}
+                      {testMode === 'ALLOW' ? RoutingRulesStrings.MATCHER.MATCHER_MATCHED_PATH : RoutingRulesStrings.MATCHER.NO_MATCHER_MATCHED_PATH}
                     </Text>
                   </Box>
                 </Flex>
@@ -472,9 +473,9 @@ export function RoutingRuleMatcher({
                 <Flex align="center" gap="2">
                   <AlertCircle size={18} className="routing-rule-matcher__outcome-icon" />
                   <Box>
-                    <Text size="2" weight="medium">This rule does not apply to this request</Text>
+                    <Text size="2" weight="medium">{RoutingRulesStrings.MATCHER.RULE_DOES_NOT_APPLY_REQUEST}</Text>
                     <Text size="1" className="routing-rule-matcher__outcome-detail">
-                      No valid matchers defined
+                      {RoutingRulesStrings.MATCHER.NO_VALID_MATCHERS_DEFINED}
                     </Text>
                   </Box>
                 </Flex>
@@ -488,19 +489,19 @@ export function RoutingRuleMatcher({
       {ruleSummary && ruleSummary.length > 0 && testMode && (
         <Box className="routing-rule-matcher__summary">
           <Text size="2" weight="medium" className="routing-rule-matcher__summary-title">
-            Rule Summary
+            {RoutingRulesStrings.MATCHER.RULE_SUMMARY}
           </Text>
           <Box className="routing-rule-matcher__summary-content">
             <Text size="2">
-              <strong>Mode:</strong> {testMode === 'BLOCK' ? 'Block' : 'Allow'}
+              <strong>{RoutingRulesStrings.MATCHER.MODE_LABEL}</strong> {testMode === 'BLOCK' ? RoutingRulesStrings.MATCHER.BLOCK : RoutingRulesStrings.MATCHER.ALLOW}
             </Text>
             <Text size="2" className="routing-rule-matcher__summary-matchers">
-              <strong>Matches requests where path:</strong>
+              <strong>{RoutingRulesStrings.MATCHER.MATCHES_REQUESTS_WHERE_PATH}</strong>
             </Text>
             <ul className="routing-rule-matcher__summary-list">
               {ruleSummary.map((desc, i) => (
                 <li key={i}>
-                  {i > 0 && <span className="routing-rule-matcher__summary-or">OR</span>}
+                  {i > 0 && <span className="routing-rule-matcher__summary-or">{RoutingRulesStrings.MATCHER.OR}</span>}
                   {desc}
                 </li>
               ))}

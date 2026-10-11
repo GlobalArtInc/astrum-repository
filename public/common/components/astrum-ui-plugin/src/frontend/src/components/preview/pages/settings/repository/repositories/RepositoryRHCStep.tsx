@@ -10,6 +10,7 @@ import { AlertCircle } from 'lucide-react';
 import { useRepositoriesApi } from './useRepositoriesApi';
 
 import './RepositoryRHCStep.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 export interface RepositoryRHCStepProps {
   /** Required for immediate mode; omit for deferred mode */
@@ -58,7 +59,7 @@ export function RepositoryRHCStep({
       await enableHealthCheck(repositoryName);
       onComplete?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to enable Health Check');
+      setError(err instanceof Error ? err.message : RepositoriesPageStrings.HEALTH_CHECK_STEP.FAILED_ENABLE_HEALTH_CHECK);
     } finally {
       setLoading(false);
     }
@@ -70,11 +71,10 @@ export function RepositoryRHCStep({
         <Flex direction="column" gap="4">
           <Box>
             <Text size="4" weight="bold" as="div" mb="1">
-              Repository Health Check
+              {RepositoriesPageStrings.HEALTH_CHECK_STEP.REPOSITORY_HEALTH_CHECK}
             </Text>
             <Text size="2" color="gray" as="div">
-              Repository Health Check analyzes components for security vulnerabilities and license issues. You can
-              enable it now or configure it later from the repository profile.
+              {RepositoriesPageStrings.HEALTH_CHECK_STEP.REPOSITORY_HEALTH_CHECK_ANALYZES_COMPONENTS}
             </Text>
           </Box>
 
@@ -84,8 +84,7 @@ export function RepositoryRHCStep({
                 <AlertCircle size={16} />
               </Callout.Icon>
               <Callout.Text>
-                Repository Health Check is not available — the system capability is not enabled.{' '}
-                <a href="#preview/admin/system/capabilities">Go to System Capabilities →</a>
+                {RepositoriesPageStrings.HEALTH_CHECK_STEP.NOT_AVAILABLE}
               </Callout.Text>
             </Callout.Root>
           )}
@@ -105,7 +104,7 @@ export function RepositoryRHCStep({
                 disabled={(!isDeferred && loading) || !capabilityEnabled}
               />
               <Text size="3" weight="medium" color={capabilityEnabled ? undefined : 'gray'}>
-                Enable Repository Health Check
+                {RepositoriesPageStrings.HEALTH_CHECK_STEP.ENABLE_REPOSITORY_HEALTH_CHECK}
               </Text>
             </label>
           </Flex>

@@ -8,6 +8,7 @@ import type {
   BlobStoreTypeDescriptor as BlobStoreTypeInfo,
   QuotaType,
 } from './types';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 /**
  * Blob store type IDs (lowercase, matching the REST API type path segments).
@@ -179,13 +180,13 @@ function validateBlobStore(data: BlobStoreFormData): ValidationErrors {
   const errors: ValidationErrors = {};
 
   if (!data.name?.trim()) {
-    errors.name = 'Blob store name is required';
+    errors.name = BlobStoresStrings.FORM_MACHINE.BLOB_STORE_NAME_REQUIRED;
   } else if (!/^[a-zA-Z0-9_-]+$/.test(data.name)) {
-    errors.name = 'Name can only contain letters, numbers, underscores, and hyphens';
+    errors.name = BlobStoresStrings.FORM_MACHINE.NAME_CAN_ONLY_CONTAIN_LETTERS;
   }
 
   if (!data.type) {
-    errors.type = 'Blob store type is required';
+    errors.type = BlobStoresStrings.FORM_MACHINE.BLOB_STORE_TYPE_REQUIRED;
   }
 
   const type = data.type?.toLowerCase();
@@ -193,7 +194,7 @@ function validateBlobStore(data: BlobStoreFormData): ValidationErrors {
   // Type-specific validation
   if (type === BLOB_STORE_TYPE_IDS.FILE) {
     if (!data.path?.trim()) {
-      errors.path = 'Path is required for File blob stores';
+      errors.path = BlobStoresStrings.FORM_MACHINE.PATH_REQUIRED_FILE_BLOB_STORES;
     }
   }
 
@@ -201,9 +202,9 @@ function validateBlobStore(data: BlobStoreFormData): ValidationErrors {
     const bucket = (data.bucketConfiguration?.bucket as Record<string, string>) ?? {};
     const bucketName = bucket.name?.trim() ?? '';
     if (!bucketName) {
-      errors['bucketConfiguration.bucket.name'] = 'Bucket name is required';
+      errors['bucketConfiguration.bucket.name'] = BlobStoresStrings.FORM_MACHINE.BUCKET_NAME_REQUIRED;
     } else if (bucketName.length < 3 || bucketName.length > 63) {
-      errors['bucketConfiguration.bucket.name'] = 'Bucket name must be between 3 and 63 characters';
+      errors['bucketConfiguration.bucket.name'] = BlobStoresStrings.FORM_MACHINE.BUCKET_NAME_MUST_BETWEEN_3;
     }
   }
 
@@ -212,16 +213,16 @@ function validateBlobStore(data: BlobStoreFormData): ValidationErrors {
     // Azure storage account names: 3-24 characters (per Azure naming rules).
     const accountName = (config.accountName as string)?.trim() ?? '';
     if (!accountName) {
-      errors['bucketConfiguration.accountName'] = 'Account name is required';
+      errors['bucketConfiguration.accountName'] = BlobStoresStrings.FORM_MACHINE.ACCOUNT_NAME_REQUIRED;
     } else if (accountName.length < 3 || accountName.length > 24) {
-      errors['bucketConfiguration.accountName'] = 'Account name must be between 3 and 24 characters';
+      errors['bucketConfiguration.accountName'] = BlobStoresStrings.FORM_MACHINE.ACCOUNT_NAME_MUST_BETWEEN_3;
     }
     // Azure container names: 3-63 characters (per Azure naming rules).
     const containerName = (config.containerName as string)?.trim() ?? '';
     if (!containerName) {
-      errors['bucketConfiguration.containerName'] = 'Container name is required';
+      errors['bucketConfiguration.containerName'] = BlobStoresStrings.FORM_MACHINE.CONTAINER_NAME_REQUIRED;
     } else if (containerName.length < 3 || containerName.length > 63) {
-      errors['bucketConfiguration.containerName'] = 'Container name must be between 3 and 63 characters';
+      errors['bucketConfiguration.containerName'] = BlobStoresStrings.FORM_MACHINE.CONTAINER_NAME_MUST_BETWEEN_3;
     }
   }
 
@@ -229,28 +230,28 @@ function validateBlobStore(data: BlobStoreFormData): ValidationErrors {
     const bucket = (data.bucketConfiguration?.bucket as Record<string, string>) ?? {};
     const bucketName = bucket.name?.trim() ?? '';
     if (!bucketName) {
-      errors['bucketConfiguration.bucket.name'] = 'Bucket name is required';
+      errors['bucketConfiguration.bucket.name'] = BlobStoresStrings.FORM_MACHINE.BUCKET_NAME_REQUIRED;
     } else if (bucketName.length < 3 || bucketName.length > 63) {
-      errors['bucketConfiguration.bucket.name'] = 'Bucket name must be between 3 and 63 characters';
+      errors['bucketConfiguration.bucket.name'] = BlobStoresStrings.FORM_MACHINE.BUCKET_NAME_MUST_BETWEEN_3;
     }
   }
 
   if (type === BLOB_STORE_TYPE_IDS.GROUP) {
     if (!data.members || data.members.length === 0) {
-      errors.members = 'At least one member blob store is required';
+      errors.members = BlobStoresStrings.FORM_MACHINE.LEAST_ONE_MEMBER_BLOB_STORE;
     }
     if (!data.fillPolicy) {
-      errors.fillPolicy = 'Fill policy is required';
+      errors.fillPolicy = BlobStoresStrings.FORM_MACHINE.FILL_POLICY_REQUIRED;
     }
   }
 
   // Soft quota validation
   if (data.softQuota?.enabled) {
     if (!data.softQuota.type) {
-      errors['softQuota.type'] = 'Quota type is required when quota is enabled';
+      errors['softQuota.type'] = BlobStoresStrings.FORM_MACHINE.QUOTA_TYPE_REQUIRED_WHEN_QUOTA;
     }
     if (!data.softQuota.limit || data.softQuota.limit <= 0) {
-      errors['softQuota.limit'] = 'Quota limit must be greater than 0';
+      errors['softQuota.limit'] = BlobStoresStrings.FORM_MACHINE.QUOTA_LIMIT_MUST_GREATER_THAN;
     }
   }
 
@@ -484,14 +485,14 @@ export function createBlobStoreFormMachine(
       states: {
         [BLOB_STORE_TYPE_IDS.FILE]: {
           meta: {
-            typeLabel: 'File',
+            typeLabel: BlobStoresStrings.FORM_MACHINE.FILE,
             fields: ['path'],
             requiredFields: ['path'],
             fieldConfig: {
               path: {
-                label: 'Path',
+                label: BlobStoresStrings.FORM_MACHINE.PATH,
                 type: 'text',
-                helpText: 'An absolute path or a path relative to <data-directory>/blobs',
+                helpText: BlobStoresStrings.FORM_MACHINE.ABSOLUTE_PATH_PATH_RELATIVE_DATA,
               },
             },
           },
@@ -516,25 +517,25 @@ export function createBlobStoreFormMachine(
             ],
             requiredFields: ['bucketConfiguration.bucket.name'],
             fieldConfig: {
-              'bucketConfiguration.bucket.region': { label: 'Region', type: 'select' },
-              'bucketConfiguration.bucket.name': { label: 'Bucket', type: 'text', helpText: 'S3 Bucket Name (must be between 3 and 63 characters)' },
-              'bucketConfiguration.bucket.prefix': { label: 'Prefix', type: 'text', helpText: 'S3 Path prefix (optional)' },
-              'bucketConfiguration.bucketSecurity.accessKeyId': { label: 'Access Key ID', type: 'text' },
-              'bucketConfiguration.bucketSecurity.secretAccessKey': { label: 'Secret Access Key', type: 'password' },
-              'bucketConfiguration.bucketSecurity.role': { label: 'Assume Role ARN', type: 'text' },
-              'bucketConfiguration.bucketSecurity.sessionToken': { label: 'Session Token', type: 'password' },
-              'bucketConfiguration.encryption.encryptionType': { label: 'Encryption Type', type: 'select' },
-              'bucketConfiguration.encryption.encryptionKey': { label: 'KMS Key ID', type: 'text' },
-              'bucketConfiguration.advancedBucketConnection.endpoint': { label: 'Endpoint URL', type: 'text' },
-              'bucketConfiguration.advancedBucketConnection.maxConnectionPoolSize': { label: 'Max Connection Pool Size', type: 'number' },
-              'bucketConfiguration.advancedBucketConnection.forcePathStyle': { label: 'Use path-style access', type: 'checkbox' },
-              'bucketConfiguration.preSignedUrlEnabled': { label: 'Pre-Signed URL', type: 'checkbox' },
+              'bucketConfiguration.bucket.region': { label: BlobStoresStrings.FORM_MACHINE.REGION, type: 'select' },
+              'bucketConfiguration.bucket.name': { label: BlobStoresStrings.FORM_MACHINE.BUCKET, type: 'text', helpText: BlobStoresStrings.FORM_MACHINE.S3_BUCKET_NAME_MUST_BETWEEN },
+              'bucketConfiguration.bucket.prefix': { label: BlobStoresStrings.FORM_MACHINE.PREFIX, type: 'text', helpText: BlobStoresStrings.FORM_MACHINE.S3_PATH_PREFIX_OPTIONAL },
+              'bucketConfiguration.bucketSecurity.accessKeyId': { label: BlobStoresStrings.FORM_MACHINE.ACCESS_KEY_ID, type: 'text' },
+              'bucketConfiguration.bucketSecurity.secretAccessKey': { label: BlobStoresStrings.FORM_MACHINE.SECRET_ACCESS_KEY, type: 'password' },
+              'bucketConfiguration.bucketSecurity.role': { label: BlobStoresStrings.FORM_MACHINE.ASSUME_ROLE_ARN, type: 'text' },
+              'bucketConfiguration.bucketSecurity.sessionToken': { label: BlobStoresStrings.FORM_MACHINE.SESSION_TOKEN, type: 'password' },
+              'bucketConfiguration.encryption.encryptionType': { label: BlobStoresStrings.FORM_MACHINE.ENCRYPTION_TYPE, type: 'select' },
+              'bucketConfiguration.encryption.encryptionKey': { label: BlobStoresStrings.FORM_MACHINE.KMS_KEY_ID, type: 'text' },
+              'bucketConfiguration.advancedBucketConnection.endpoint': { label: BlobStoresStrings.FORM_MACHINE.ENDPOINT_URL, type: 'text' },
+              'bucketConfiguration.advancedBucketConnection.maxConnectionPoolSize': { label: BlobStoresStrings.FORM_MACHINE.MAX_CONNECTION_POOL_SIZE, type: 'number' },
+              'bucketConfiguration.advancedBucketConnection.forcePathStyle': { label: BlobStoresStrings.FORM_MACHINE.USE_PATH_STYLE_ACCESS, type: 'checkbox' },
+              'bucketConfiguration.preSignedUrlEnabled': { label: BlobStoresStrings.FORM_MACHINE.PRE_SIGNED_URL, type: 'checkbox' },
             },
           },
         },
         [BLOB_STORE_TYPE_IDS.AZURE]: {
           meta: {
-            typeLabel: 'Azure',
+            typeLabel: BlobStoresStrings.FORM_MACHINE.AZURE,
             fields: [
               'bucketConfiguration.accountName',
               'bucketConfiguration.containerName',
@@ -547,17 +548,17 @@ export function createBlobStoreFormMachine(
               'bucketConfiguration.containerName',
             ],
             fieldConfig: {
-              'bucketConfiguration.accountName': { label: 'Account Name', type: 'text', helpText: 'The name of the Azure storage account' },
-              'bucketConfiguration.containerName': { label: 'Container Name', type: 'text', helpText: 'The name of the container for storage' },
-              'bucketConfiguration.authentication.authenticationMethod': { label: 'Authentication Method', type: 'select' },
-              'bucketConfiguration.authentication.accountKey': { label: 'Account Key', type: 'password' },
-              'bucketConfiguration.preSignedUrlEnabled': { label: 'Direct Download (SAS URLs)', type: 'checkbox' },
+              'bucketConfiguration.accountName': { label: BlobStoresStrings.FORM_MACHINE.ACCOUNT_NAME, type: 'text', helpText: BlobStoresStrings.FORM_MACHINE.NAME_AZURE_STORAGE_ACCOUNT },
+              'bucketConfiguration.containerName': { label: BlobStoresStrings.FORM_MACHINE.CONTAINER_NAME, type: 'text', helpText: BlobStoresStrings.FORM_MACHINE.NAME_CONTAINER_STORAGE },
+              'bucketConfiguration.authentication.authenticationMethod': { label: BlobStoresStrings.FORM_MACHINE.AUTHENTICATION_METHOD, type: 'select' },
+              'bucketConfiguration.authentication.accountKey': { label: BlobStoresStrings.FORM_MACHINE.ACCOUNT_KEY, type: 'password' },
+              'bucketConfiguration.preSignedUrlEnabled': { label: BlobStoresStrings.FORM_MACHINE.DIRECT_DOWNLOAD_SAS_URLS, type: 'checkbox' },
             },
           },
         },
         [BLOB_STORE_TYPE_IDS.GOOGLE]: {
           meta: {
-            typeLabel: 'Google Cloud',
+            typeLabel: BlobStoresStrings.FORM_MACHINE.GOOGLE_CLOUD,
             fields: [
               'bucketConfiguration.bucket.projectId',
               'bucketConfiguration.bucket.name',
@@ -568,23 +569,23 @@ export function createBlobStoreFormMachine(
             ],
             requiredFields: ['bucketConfiguration.bucket.name'],
             fieldConfig: {
-              'bucketConfiguration.bucket.projectId': { label: 'Project ID', type: 'text', helpText: 'Your GCP Project ID' },
-              'bucketConfiguration.bucket.name': { label: 'Bucket', type: 'text', helpText: 'Google Cloud Platform bucket name (must be between 3 and 63 characters)' },
-              'bucketConfiguration.bucket.prefix': { label: 'Prefix', type: 'text', helpText: 'Google Cloud Storage path prefix' },
-              'bucketConfiguration.bucketSecurity.authenticationMethod': { label: 'Authentication Method', type: 'select' },
-              'bucketConfiguration.encryption.encryptionType': { label: 'Encryption Type', type: 'select' },
-              'bucketConfiguration.encryption.encryptionKey': { label: 'KMS Key ID', type: 'text' },
+              'bucketConfiguration.bucket.projectId': { label: BlobStoresStrings.FORM_MACHINE.PROJECT_ID, type: 'text', helpText: BlobStoresStrings.FORM_MACHINE.GCP_PROJECT_ID },
+              'bucketConfiguration.bucket.name': { label: BlobStoresStrings.FORM_MACHINE.BUCKET, type: 'text', helpText: BlobStoresStrings.FORM_MACHINE.GOOGLE_CLOUD_PLATFORM_BUCKET_NAME },
+              'bucketConfiguration.bucket.prefix': { label: BlobStoresStrings.FORM_MACHINE.PREFIX, type: 'text', helpText: BlobStoresStrings.FORM_MACHINE.GOOGLE_CLOUD_STORAGE_PATH_PREFIX },
+              'bucketConfiguration.bucketSecurity.authenticationMethod': { label: BlobStoresStrings.FORM_MACHINE.AUTHENTICATION_METHOD, type: 'select' },
+              'bucketConfiguration.encryption.encryptionType': { label: BlobStoresStrings.FORM_MACHINE.ENCRYPTION_TYPE, type: 'select' },
+              'bucketConfiguration.encryption.encryptionKey': { label: BlobStoresStrings.FORM_MACHINE.KMS_KEY_ID, type: 'text' },
             },
           },
         },
         [BLOB_STORE_TYPE_IDS.GROUP]: {
           meta: {
-            typeLabel: 'Group',
+            typeLabel: BlobStoresStrings.FORM_MACHINE.GROUP,
             fields: ['members', 'fillPolicy'],
             requiredFields: ['members', 'fillPolicy'],
             fieldConfig: {
-              members: { label: 'Members', type: 'transferList', helpText: 'Select the blob stores to include in this group' },
-              fillPolicy: { label: 'Fill Policy', type: 'select', helpText: 'Determines how blobs are distributed across group members' },
+              members: { label: BlobStoresStrings.FORM_MACHINE.MEMBERS, type: 'transferList', helpText: BlobStoresStrings.FORM_MACHINE.SELECT_BLOB_STORES_INCLUDE_GROUP },
+              fillPolicy: { label: BlobStoresStrings.FORM_MACHINE.FILL_POLICY, type: 'select', helpText: BlobStoresStrings.FORM_MACHINE.DETERMINES_HOW_BLOBS_DISTRIBUTED_ACROSS },
             },
           },
         },

@@ -11,6 +11,8 @@ import { useRepositorySettingsUsageTab } from './useRepositorySettingsUsageTab';
 import type { RepositoryUsageKind } from './repositoryUsageMachine';
 
 import './RepositorySettingsUsageTab.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface RepositorySettingsUsageTabProps {
   repositoryName: string;
@@ -93,14 +95,14 @@ export function RepositorySettingsUsageTab({
   } = useRepositorySettingsUsageTab(repositoryName, repositoryType);
 
   if (loading && !loaded) {
-    return <LoadingState message="Loading usage data..." />;
+    return <LoadingState message={RepositoriesPageStrings.SETTINGS_USAGE.LOADING_USAGE_DATA} />;
   }
 
   if (error && !loaded) {
     return (
       <ErrorState
         message={error}
-        retryText="Retry"
+        retryText={CommonStrings.ACTIONS.RETRY}
         onRetry={retry}
       />
     );
@@ -112,42 +114,42 @@ export function RepositorySettingsUsageTab({
     <Flex direction="column" gap="5" p="4">
       <Box>
         <Text size="3" weight="bold" as="div" mb="3">
-          Storage Metrics
+          {RepositoriesPageStrings.SETTINGS_USAGE.STORAGE_METRICS}
         </Text>
         <Grid columns="3" gap="4">
           <Card size="2">
             <Flex direction="column" gap="2" align="center" py="2">
               <HardDrive size={22} color="var(--accent-9)" />
-              <Tooltip content={totalSizePending ? "Repository size not yet calculated. The repository metrics task runs periodically." : "Total size of all assets in this repository"}>
+              <Tooltip content={totalSizePending ? RepositoriesPageStrings.SETTINGS_USAGE.REPOSITORY_SIZE_NOT_YET_CALCULATED : RepositoriesPageStrings.SETTINGS_USAGE.TOTAL_SIZE_ALL_ASSETS_REPOSITORY}>
                 <Text size="5" weight="bold">
                   {formatBytes(metrics?.totalSize)}
                 </Text>
               </Tooltip>
-              <Text size="1" color="gray">Repository Size</Text>
+              <Text size="1" color="gray">{RepositoriesPageStrings.SETTINGS_USAGE.REPOSITORY_SIZE}</Text>
             </Flex>
           </Card>
 
           <Card size="2">
             <Flex direction="column" gap="2" align="center" py="2">
               <Package size={22} color="var(--accent-9)" />
-              <Tooltip content={componentCountPending ? "Component count not yet calculated. The repository metrics task runs periodically." : undefined}>
+              <Tooltip content={componentCountPending ? RepositoriesPageStrings.SETTINGS_USAGE.COMPONENT_COUNT_NOT_YET_CALCULATED : undefined}>
                 <Text size="5" weight="bold">
                   {formatNumber(metrics?.componentCount)}
                 </Text>
               </Tooltip>
-              <Text size="1" color="gray">Components</Text>
+              <Text size="1" color="gray">{RepositoriesPageStrings.SETTINGS_USAGE.COMPONENTS}</Text>
             </Flex>
           </Card>
 
           <Card size="2">
             <Flex direction="column" gap="2" align="center" py="2">
               <FileBox size={22} color="var(--accent-9)" />
-              <Tooltip content={assetCountPending ? "Asset count not yet calculated. The repository metrics task runs periodically." : undefined}>
+              <Tooltip content={assetCountPending ? RepositoriesPageStrings.SETTINGS_USAGE.ASSET_COUNT_NOT_YET_CALCULATED : undefined}>
                 <Text size="5" weight="bold">
                   {formatNumber(metrics?.assetCount)}
                 </Text>
               </Tooltip>
-              <Text size="1" color="gray">Assets</Text>
+              <Text size="1" color="gray">{RepositoriesPageStrings.SETTINGS_USAGE.ASSETS}</Text>
             </Flex>
           </Card>
         </Grid>
@@ -155,16 +157,16 @@ export function RepositorySettingsUsageTab({
 
       {showGroupMembers ? (
         <MembershipSection
-          title="Member Repositories"
+          title={RepositoriesPageStrings.SETTINGS_USAGE.MEMBER_REPOSITORIES}
           items={groupMembers}
-          emptyMessage="This group has no member repositories."
+          emptyMessage={RepositoriesPageStrings.SETTINGS_USAGE.GROUP_HAS_NO_MEMBER_REPOSITORIES}
           error={membershipError}
         />
       ) : (
         <MembershipSection
-          title="Group Membership"
+          title={RepositoriesPageStrings.SETTINGS_USAGE.GROUP_MEMBERSHIP}
           items={whereUsed}
-          emptyMessage="This repository is not a member of any groups."
+          emptyMessage={RepositoriesPageStrings.SETTINGS_USAGE.REPOSITORY_NOT_MEMBER_ANY_GROUPS}
           error={membershipError}
         />
       )}

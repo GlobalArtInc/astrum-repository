@@ -5,6 +5,8 @@ import { Box, Flex, Text, Skeleton } from '@radix-ui/themes';
 import { HardDrive, AlertCircle, CheckCircle } from 'lucide-react';
 import { useBlobStoreInfo } from '../../../../shared';
 import './BlobStoreStorageCard.scss';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface BlobStoreStorageCardProps {
   blobStoreName: string;
@@ -45,7 +47,7 @@ export function BlobStoreStorageCard({ blobStoreName }: BlobStoreStorageCardProp
           <Flex align="center" gap="2">
             <AlertCircle size={16} color="var(--red-11)" />
             <Text size="2" color="red">
-              Failed to load blob store information
+              {RepositoriesPageStrings.BLOB_STORE_CARD.FAILED_LOAD_BLOB_STORE_INFORMATION}
             </Text>
           </Flex>
         </Box>
@@ -62,57 +64,57 @@ export function BlobStoreStorageCard({ blobStoreName }: BlobStoreStorageCardProp
       <Flex className="blob-store-card__header">
         <HardDrive size={18} />
         <Text weight="bold" size="3">
-          Blob Store
+          {RepositoriesPageStrings.BLOB_STORE_CARD.BLOB_STORE}
         </Text>
       </Flex>
 
       <Box className="blob-store-card__grid">
         <Box className="blob-store-card__item">
-          <Text className="blob-store-card__label">Name</Text>
+          <Text className="blob-store-card__label">{CommonStrings.LABELS.NAME}</Text>
           <Text className="blob-store-card__value">{data.name}</Text>
         </Box>
 
         <Box className="blob-store-card__item">
-          <Text className="blob-store-card__label">Type</Text>
+          <Text className="blob-store-card__label">{CommonStrings.LABELS.TYPE}</Text>
           <Text className="blob-store-card__value">{data.type}</Text>
         </Box>
 
         {data.totalSizeInBytes !== undefined && (
           <Box className="blob-store-card__item">
-            <Text className="blob-store-card__label">Total Size</Text>
+            <Text className="blob-store-card__label">{RepositoriesPageStrings.BLOB_STORE_CARD.TOTAL_SIZE}</Text>
             <Text className="blob-store-card__value">{formatBytes(data.totalSizeInBytes)}</Text>
           </Box>
         )}
 
         {data.availableSpaceInBytes !== undefined && (
           <Box className="blob-store-card__item">
-            <Text className="blob-store-card__label">Available Space</Text>
+            <Text className="blob-store-card__label">{RepositoriesPageStrings.BLOB_STORE_CARD.AVAILABLE_SPACE}</Text>
             <Text className="blob-store-card__value">{formatBytes(data.availableSpaceInBytes)}</Text>
           </Box>
         )}
 
         {data.blobCount !== undefined && (
           <Box className="blob-store-card__item">
-            <Text className="blob-store-card__label">Blob Count</Text>
+            <Text className="blob-store-card__label">{RepositoriesPageStrings.BLOB_STORE_CARD.BLOB_COUNT}</Text>
             <Text className="blob-store-card__value">{data.blobCount.toLocaleString()}</Text>
           </Box>
         )}
 
         <Box className="blob-store-card__item">
-          <Text className="blob-store-card__label">Status</Text>
+          <Text className="blob-store-card__label">{CommonStrings.LABELS.STATUS}</Text>
           <Flex className="blob-store-card__status">
             {data.unavailable ? (
               <>
                 <AlertCircle size={14} color="var(--red-11)" />
                 <Text size="2" color="red">
-                  Unavailable
+                  {RepositoriesPageStrings.BLOB_STORE_CARD.UNAVAILABLE}
                 </Text>
               </>
             ) : (
               <>
                 <CheckCircle size={14} color="var(--green-11)" />
                 <Text size="2" color="green">
-                  Available
+                  {RepositoriesPageStrings.BLOB_STORE_CARD.AVAILABLE}
                 </Text>
               </>
             )}

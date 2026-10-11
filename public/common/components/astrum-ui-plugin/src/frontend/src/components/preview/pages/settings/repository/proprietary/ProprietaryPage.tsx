@@ -20,6 +20,8 @@ import { useProprietaryApi } from './useProprietaryApi';
 import { RepositoryReference } from './types';
 
 import './ProprietaryPage.scss';
+import ProprietaryStrings from '../../../../constants/pages/settings/repository/ProprietaryStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -107,7 +109,7 @@ export function ProprietaryPage() {
       const result = await updateSettings(enabledRepos);
       setInitialEnabledRepos(result.enabledRepositories);
       setEnabledRepos(result.enabledRepositories);
-      toast.success('Proprietary repositories settings saved successfully');
+      toast.success(ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES_SETTINGS_SAVED_SUCCESSFULLY);
   }, [enabledRepos, updateSettings, toast]);
 
   const handleDiscard = useCallback(() => {
@@ -118,7 +120,7 @@ export function ProprietaryPage() {
   const renderReadOnly = () => (
     <Box className="proprietary-page__read-only">
       <Text size="2" className="proprietary-page__read-only-label">
-        Enabled Proprietary Repositories
+        {ProprietaryStrings.PAGE.ENABLED_PROPRIETARY_REPOSITORIES}
       </Text>
       {enabledRepos.length > 0 ? (
         <Box className="proprietary-page__read-only-list">
@@ -130,7 +132,7 @@ export function ProprietaryPage() {
         </Box>
       ) : (
         <Text size="2" className="proprietary-page__read-only-empty">
-          No proprietary repositories configured
+          {ProprietaryStrings.PAGE.NO_PROPRIETARY_REPOSITORIES_CONFIGURED}
         </Text>
       )}
     </Box>
@@ -142,14 +144,14 @@ export function ProprietaryPage() {
       <Box className="proprietary-page">
         <PageHeader
           icon={Lock}
-          title="Proprietary Repositories"
-          description="Configure which repositories contain proprietary components"
+          title={ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES}
+          description={ProprietaryStrings.PAGE.CONFIGURE_WHICH_REPOSITORIES_CONTAIN_PROPRIETARY}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Proprietary Repositories' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES }
           ]}
         />
-        <LoadingState message="Loading settings..." />
+        <LoadingState message={ProprietaryStrings.PAGE.LOADING_SETTINGS} />
       </Box>
     );
   }
@@ -160,15 +162,15 @@ export function ProprietaryPage() {
       <Box className="proprietary-page">
         <PageHeader
           icon={Lock}
-          title="Proprietary Repositories"
-          description="Configure which repositories contain proprietary components"
+          title={ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES}
+          description={ProprietaryStrings.PAGE.CONFIGURE_WHICH_REPOSITORIES_CONTAIN_PROPRIETARY}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Proprietary Repositories' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES }
           ]}
         />
         <ErrorState
-          title="Failed to Load"
+          title={ProprietaryStrings.PAGE.FAILED_LOAD}
           message={error}
           onRetry={loadData}
         />
@@ -180,11 +182,11 @@ export function ProprietaryPage() {
     <Box className="proprietary-page">
       <PageHeader
         icon={Lock}
-        title="Proprietary Repositories"
-        description="Configure which repositories contain proprietary components"
+        title={ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES}
+        description={ProprietaryStrings.PAGE.CONFIGURE_WHICH_REPOSITORIES_CONTAIN_PROPRIETARY}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'Proprietary Repositories' }
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES }
         ]}
       />
 
@@ -193,10 +195,10 @@ export function ProprietaryPage() {
         <Box className="proprietary-page__alerts">
           <ErrorState
             variant="inline"
-            title="Error"
+            title={ProprietaryStrings.PAGE.ERROR}
             message={error}
             onRetry={() => setError(null)}
-            retryText="Dismiss"
+            retryText={ProprietaryStrings.PAGE.DISMISS}
           />
         </Box>
       )}
@@ -213,15 +215,15 @@ export function ProprietaryPage() {
         >
           {/* Help Section - Using standard HelpSection component */}
           <HelpSection
-            title="About Proprietary Components"
-            content="Marking a repository as containing proprietary components enables enhanced firewall and policy enforcement for components in that repository. This is useful for repositories that contain your organization's internal or licensed components."
+            title={ProprietaryStrings.PAGE.ABOUT_PROPRIETARY_COMPONENTS}
+            content={ProprietaryStrings.PAGE.MARKING_REPOSITORY_CONTAINING_PROPRIETARY_COMPONENTS}
             docLink={{
-              label: "Learn more",
+              label: CommonStrings.ACTIONS.LEARN_MORE,
               href: "https://help.globalart.dev/en/proprietary-component-configuration.html",
             }}
           />
 
-          <SettingsFormSection title="Repository Selection">
+          <SettingsFormSection title={ProprietaryStrings.PAGE.REPOSITORY_SELECTION}>
             {canUpdate ? (
               <SettingsTransferList
                 name="proprietaryRepositories"
@@ -229,8 +231,8 @@ export function ProprietaryPage() {
                 availableItems={availableItems}
                 selectedItems={selectedItemObjects}
                 onChange={handleTransferChange}
-                availableLabel="Generic Hosted Repositories"
-                selectedLabel="Proprietary Hosted Repositories"
+                availableLabel={ProprietaryStrings.PAGE.GENERIC_HOSTED_REPOSITORIES}
+                selectedLabel={ProprietaryStrings.PAGE.PROPRIETARY_HOSTED_REPOSITORIES}
                 disabled={loading}
               />
             ) : (

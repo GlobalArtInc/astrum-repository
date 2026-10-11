@@ -14,6 +14,7 @@ import { ExtJS } from '../../../../../../interface/ExtJS';
 import type { BlobStoreFormData, S3BlobStoreConfig, S3FailoverBucket } from './types';
 import { BLOB_STORE_TYPE_IDS } from './blobStoreFormMachine';
 import type { BlobStoreTypeId } from './BlobStoreTypeSelector';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 const SPACE_USED_QUOTA_ID = 'spaceUsedQuota';
 const MAX_FAILOVER = 5;
@@ -68,20 +69,20 @@ export function BlobStoreWizardStepAdvanced({
     <>
       {selectedType === BLOB_STORE_TYPE_IDS.S3 && (
         <SettingsFormSection
-          title="Advanced Connection"
-          description="Custom endpoints and connection settings"
+          title={BlobStoresStrings.WIZARD_ADVANCED.ADVANCED_CONNECTION}
+          description={BlobStoresStrings.WIZARD_ADVANCED.CUSTOM_ENDPOINTS_CONNECTION_SETTINGS}
         >
           <SettingsTextInput
             name="s3-endpoint"
-            label="Endpoint URL"
+            label={BlobStoresStrings.WIZARD_ADVANCED.ENDPOINT_URL}
             value={adv.endpoint || ''}
             onChange={(v) => onChange('bucketConfiguration.advancedBucketConnection.endpoint', v)}
             placeholder="https://s3.example.com"
-            helpText="Custom endpoint for S3-compatible stores"
+            helpText={BlobStoresStrings.WIZARD_ADVANCED.CUSTOM_ENDPOINT_S3_COMPATIBLE_STORES}
           />
           <SettingsTextInput
             name="s3-max-pool"
-            label="Max Connection Pool Size"
+            label={BlobStoresStrings.WIZARD_ADVANCED.MAX_CONNECTION_POOL_SIZE}
             value={adv.maxConnectionPoolSize?.toString() || ''}
             onChange={(v) => {
               const n = parseInt(String(v), 10);
@@ -92,28 +93,28 @@ export function BlobStoreWizardStepAdvanced({
           />
           <SettingsCheckbox
             name="s3-path-style"
-            label="Use path-style access"
-            description="Use path-style URLs for all requests"
+            label={BlobStoresStrings.WIZARD_ADVANCED.USE_PATH_STYLE_ACCESS}
+            description={BlobStoresStrings.WIZARD_ADVANCED.USE_PATH_STYLE_URLS_ALL}
             checked={adv.forcePathStyle}
             onChange={(v) => onChange('bucketConfiguration.advancedBucketConnection.forcePathStyle', v)}
           />
           {isFailoverAvailable && isProEdition && (
             <>
               <Text weight="medium" size="2" mb="2" as="p">
-                Replication Buckets
+                {BlobStoresStrings.WIZARD_ADVANCED.REPLICATION_BUCKETS}
               </Text>
               {failoverBuckets.map((fb, i) => (
                 <Flex key={i} gap="2" mb="2" align="center">
                   <SettingsTextInput
                     name={`failover-region-${i}`}
-                    label="Region"
+                    label={BlobStoresStrings.WIZARD_ADVANCED.REGION}
                     value={fb.region}
                     onChange={(v) => updateFailover(i, 'region', String(v))}
                     placeholder="us-east-1"
                   />
                   <SettingsTextInput
                     name={`failover-bucket-${i}`}
-                    label="Bucket"
+                    label={BlobStoresStrings.WIZARD_ADVANCED.BUCKET}
                     value={fb.bucketName}
                     onChange={(v) => updateFailover(i, 'bucketName', String(v))}
                     placeholder="replica-bucket"
@@ -123,13 +124,13 @@ export function BlobStoreWizardStepAdvanced({
                     size="1"
                     onClick={() => removeFailover(i)}
                     icon={Trash2}
-                    title="Remove"
+                    title={BlobStoresStrings.WIZARD_ADVANCED.REMOVE}
                   />
                 </Flex>
               ))}
               {failoverBuckets.length < MAX_FAILOVER && (
                 <SettingsButton variant="secondary" size="1" onClick={addFailover} icon={Plus}>
-                  Add Replication Bucket
+                  {BlobStoresStrings.WIZARD_ADVANCED.ADD_REPLICATION_BUCKET}
                 </SettingsButton>
               )}
             </>
@@ -138,12 +139,12 @@ export function BlobStoreWizardStepAdvanced({
       )}
 
       <SettingsFormSection
-        title="Soft Quota"
-        description="Alert when storage exceeds the configured limit"
+        title={BlobStoresStrings.WIZARD_ADVANCED.SOFT_QUOTA}
+        description={BlobStoresStrings.WIZARD_ADVANCED.ALERT_WHEN_STORAGE_EXCEEDS_CONFIGURED}
       >
         <SettingsCheckbox
           name="soft-quota-enabled"
-          label="Enable soft quota"
+          label={BlobStoresStrings.WIZARD_ADVANCED.ENABLE_SOFT_QUOTA}
           checked={softQuota.enabled}
           onChange={(v) =>
             updateField('softQuota', {
@@ -158,11 +159,11 @@ export function BlobStoreWizardStepAdvanced({
           <>
             <SettingsSelect
               name="soft-quota-type"
-              label="Constraint Type"
+              label={BlobStoresStrings.WIZARD_ADVANCED.CONSTRAINT_TYPE}
               value={softQuota.type || ''}
               onChange={(v) => updateField('softQuota', { ...softQuota, type: v })}
               options={[
-                { value: '', label: 'Select type...' },
+                { value: '', label: BlobStoresStrings.WIZARD_ADVANCED.SELECT_TYPE },
                 ...quotaTypes.map((q) => ({ value: q.id, label: q.name })),
               ]}
               required
@@ -170,7 +171,7 @@ export function BlobStoreWizardStepAdvanced({
             />
             <SettingsTextInput
               name="soft-quota-limit"
-              label="Constraint Limit (MB)"
+              label={BlobStoresStrings.WIZARD_ADVANCED.CONSTRAINT_LIMIT_MB}
               value={softQuota.limit?.toString() || ''}
               onChange={(v) => {
                 const n = parseInt(String(v), 10);

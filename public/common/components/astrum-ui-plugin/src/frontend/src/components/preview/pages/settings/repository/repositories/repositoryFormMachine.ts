@@ -20,6 +20,8 @@ import {
   DEFAULT_PROXY_VALUES,
   DEFAULT_GROUP_VALUES,
 } from './types';
+import CommonStrings from '../../../../constants/CommonStrings';
+import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 
 // =============================================================================
 // Constants
@@ -94,25 +96,25 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
 
   // Name is always required
   if (!data.name?.trim()) {
-    errors.name = 'Name is required';
+    errors.name = CommonStrings.MESSAGES.NAME_REQUIRED;
   } else if (!NAME_PATTERN.test(data.name)) {
     errors.name = NAME_PATTERN_MESSAGE;
   }
 
   // Blob store is required in self-hosted only (cloud manages its own storage)
   if (!options?.isCloud && !data.storage?.blobStoreName?.trim()) {
-    errors['storage.blobStoreName'] = 'Blob store is required';
+    errors['storage.blobStoreName'] = RepositoriesPageStrings.FORM_MACHINE.BLOB_STORE_REQUIRED;
   }
 
   // Proxy-specific validation
   if (data.type === 'proxy') {
     if (!data.proxy?.remoteUrl?.trim()) {
-      errors['proxy.remoteUrl'] = 'Remote URL is required';
+      errors['proxy.remoteUrl'] = RepositoriesPageStrings.FORM_MACHINE.REMOTE_URL_REQUIRED;
     } else {
       try {
         new URL(data.proxy.remoteUrl);
       } catch {
-        errors['proxy.remoteUrl'] = 'Invalid URL format';
+        errors['proxy.remoteUrl'] = RepositoriesPageStrings.FORM_MACHINE.INVALID_URL_FORMAT;
       }
     }
 
@@ -120,7 +122,7 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
     // These fields are optional but must be valid numbers when provided
     const contentMaxAge = data.proxy?.contentMaxAge;
     if (contentMaxAge != null && (Number.isNaN(contentMaxAge) || contentMaxAge < -1)) {
-      errors['proxy.contentMaxAge'] = 'Maximum Component Age must be a valid number (-1 or greater)';
+      errors['proxy.contentMaxAge'] = RepositoriesPageStrings.FORM_MACHINE.MAXIMUM_COMPONENT_AGE_MUST_VALID;
     }
 
     const metadataMaxAge = data.proxy?.metadataMaxAge;
@@ -129,40 +131,40 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
     // to >0 blocked editing existing Maven2 proxy repos that had been configured
     // with -1, manifesting as a silent Save failure.
     if (metadataMaxAge != null && (Number.isNaN(metadataMaxAge) || metadataMaxAge < -1)) {
-      errors['proxy.metadataMaxAge'] = 'Maximum Metadata Age must be a valid number (-1 or greater)';
+      errors['proxy.metadataMaxAge'] = RepositoriesPageStrings.FORM_MACHINE.MAXIMUM_METADATA_AGE_MUST_VALID;
     }
 
     // Negative cache validation — validate TTL regardless of enabled state so
     // an invalid value saved while disabled is caught before re-enabling trips it.
     const timeToLive = data.negativeCache?.timeToLive;
     if (timeToLive != null && (Number.isNaN(timeToLive) || timeToLive < 0)) {
-      errors['negativeCache.timeToLive'] = 'TTL must be 0 or greater';
+      errors['negativeCache.timeToLive'] = RepositoriesPageStrings.FORM_MACHINE.TTL_MUST_0_GREATER;
     }
     if (data.negativeCache?.enabled && (timeToLive == null || Number.isNaN(timeToLive) || timeToLive < 0)) {
-      errors['negativeCache.timeToLive'] = 'TTL is required when negative cache is enabled (0 or greater)';
+      errors['negativeCache.timeToLive'] = RepositoriesPageStrings.FORM_MACHINE.TTL_REQUIRED_WHEN_NEGATIVE_CACHE;
     }
 
     // HTTP Authentication validation — fields required vary by auth type
     const authType = data.httpClient?.authentication?.type;
     if (authType === 'bearer') {
       if (!data.httpClient?.authentication?.bearerToken?.trim()) {
-        errors['httpClient.authentication.bearerToken'] = 'Bearer token is required';
+        errors['httpClient.authentication.bearerToken'] = RepositoriesPageStrings.FORM_MACHINE.BEARER_TOKEN_REQUIRED;
       }
     } else if (authType) {
       // username/ntlm auth types all require username + password
       if (!data.httpClient?.authentication?.username?.trim()) {
-        errors['httpClient.authentication.username'] = 'Username is required when authentication is enabled';
+        errors['httpClient.authentication.username'] = RepositoriesPageStrings.FORM_MACHINE.USERNAME_REQUIRED_WHEN_AUTHENTICATION_ENABLED;
       }
       if (!data.httpClient?.authentication?.password?.trim()) {
-        errors['httpClient.authentication.password'] = 'Password is required when authentication is enabled';
+        errors['httpClient.authentication.password'] = RepositoriesPageStrings.FORM_MACHINE.PASSWORD_REQUIRED_WHEN_AUTHENTICATION_ENABLED;
       }
       // NTLM-specific fields
       if (authType === 'ntlm') {
         if (!data.httpClient?.authentication?.ntlmHost?.trim()) {
-          errors['httpClient.authentication.ntlmHost'] = 'NTLM Host is required for NTLM authentication';
+          errors['httpClient.authentication.ntlmHost'] = RepositoriesPageStrings.FORM_MACHINE.NTLM_HOST_REQUIRED_NTLM_AUTHENTICATION;
         }
         if (!data.httpClient?.authentication?.ntlmDomain?.trim()) {
-          errors['httpClient.authentication.ntlmDomain'] = 'NTLM Domain is required for NTLM authentication';
+          errors['httpClient.authentication.ntlmDomain'] = RepositoriesPageStrings.FORM_MACHINE.NTLM_DOMAIN_REQUIRED_NTLM_AUTHENTICATION;
         }
       }
     }
@@ -171,20 +173,20 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
   // Group-specific validation
   if (data.type === 'group') {
     if (!data.group?.memberNames || data.group.memberNames.length === 0) {
-      errors['group.memberNames'] = 'At least one member repository is required';
+      errors['group.memberNames'] = RepositoriesPageStrings.FORM_MACHINE.LEAST_ONE_MEMBER_REPOSITORY_REQUIRED;
     }
   }
 
   // Format-specific validation
   if (data.format === 'apt' && data.type === 'hosted') {
     if (!data.aptSigning?.keypair?.trim()) {
-      errors['aptSigning.keypair'] = 'GPG signing key is required for APT hosted repositories';
+      errors['aptSigning.keypair'] = RepositoriesPageStrings.FORM_MACHINE.GPG_SIGNING_KEY_REQUIRED_APT;
     }
   }
 
   if (data.format === 'alpine' && data.type === 'group') {
     if (!data.alpineSigning?.keypair?.trim()) {
-      errors['alpineSigning.keypair'] = 'RSA signing key is required for Alpine group repositories';
+      errors['alpineSigning.keypair'] = RepositoriesPageStrings.FORM_MACHINE.RSA_SIGNING_KEY_REQUIRED_ALPINE;
     }
   }
 
@@ -193,10 +195,10 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
     const httpPort = data.docker?.httpPort;
     const httpsPort = data.docker?.httpsPort;
     if (httpPort != null && (httpPort < 1 || httpPort > 65535)) {
-      errors['docker.httpPort'] = 'Port must be between 1 and 65535';
+      errors['docker.httpPort'] = RepositoriesPageStrings.FORM_MACHINE.PORT_MUST_BETWEEN_1_65535;
     }
     if (httpsPort != null && (httpsPort < 1 || httpsPort > 65535)) {
-      errors['docker.httpsPort'] = 'Port must be between 1 and 65535';
+      errors['docker.httpsPort'] = RepositoriesPageStrings.FORM_MACHINE.PORT_MUST_BETWEEN_1_65535;
     }
   }
 
@@ -213,7 +215,7 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
       try {
         new URL(entry);
       } catch {
-        errors[DOCKER_FOREIGN_LAYER_WHITELIST_ERROR_KEY] = `Invalid URL format: "${entry}"`;
+        errors[DOCKER_FOREIGN_LAYER_WHITELIST_ERROR_KEY] = RepositoriesPageStrings.FORM_MACHINE.INVALID_URL_FORMAT_2(entry);
         break;
       }
     }
@@ -225,15 +227,15 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
   if (data.format === 'docker' && data.type === 'proxy' && data.dockerProxy?.indexType === 'CUSTOM') {
     const indexUrl = data.dockerProxy.indexUrl?.trim();
     if (!indexUrl) {
-      errors['dockerProxy.indexUrl'] = 'Index URL is required';
+      errors['dockerProxy.indexUrl'] = RepositoriesPageStrings.FORM_MACHINE.INDEX_URL_REQUIRED;
     } else {
       try {
         const parsed = new URL(indexUrl);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          errors['dockerProxy.indexUrl'] = 'Index URL must use http or https';
+          errors['dockerProxy.indexUrl'] = RepositoriesPageStrings.FORM_MACHINE.INDEX_URL_MUST_USE_HTTP;
         }
       } catch {
-        errors['dockerProxy.indexUrl'] = 'Invalid URL format';
+        errors['dockerProxy.indexUrl'] = RepositoriesPageStrings.FORM_MACHINE.INVALID_URL_FORMAT;
       }
     }
   }
@@ -242,7 +244,7 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
   if (data.format === 'nuget' && data.type === 'proxy') {
     const queryCacheItemMaxAge = data.nugetProxy?.queryCacheItemMaxAge;
     if (queryCacheItemMaxAge != null && (Number.isNaN(queryCacheItemMaxAge) || queryCacheItemMaxAge < 0)) {
-      errors['nugetProxy.queryCacheItemMaxAge'] = 'Cache age must be 0 or greater';
+      errors['nugetProxy.queryCacheItemMaxAge'] = RepositoriesPageStrings.FORM_MACHINE.CACHE_AGE_MUST_0_GREATER;
     }
   }
 
@@ -675,7 +677,7 @@ export function createRepositoryFormMachine(options: RepositoryFormMachineOption
       states: {
         [REPOSITORY_TYPES.HOSTED]: {
           meta: {
-            typeLabel: 'Hosted',
+            typeLabel: RepositoriesPageStrings.FORM_MACHINE.HOSTED,
             fields: [
               'storage.blobStoreName',
               'storage.strictContentTypeValidation',
@@ -685,23 +687,23 @@ export function createRepositoryFormMachine(options: RepositoryFormMachineOption
             ],
             requiredFields: ['storage.blobStoreName'],
             fieldConfig: {
-              'storage.blobStoreName': { label: 'Blob Store', type: 'select' },
+              'storage.blobStoreName': { label: RepositoriesPageStrings.FORM_MACHINE.BLOB_STORE, type: 'select' },
               'storage.strictContentTypeValidation': {
-                label: 'Strict Content Type Validation',
+                label: RepositoriesPageStrings.FORM_MACHINE.STRICT_CONTENT_TYPE_VALIDATION,
                 type: 'checkbox',
               },
-              'storage.writePolicy': { label: 'Deployment Policy', type: 'select' },
+              'storage.writePolicy': { label: RepositoriesPageStrings.FORM_MACHINE.DEPLOYMENT_POLICY, type: 'select' },
               'component.proprietaryComponents': {
-                label: 'Proprietary Components',
+                label: RepositoriesPageStrings.FORM_MACHINE.PROPRIETARY_COMPONENTS,
                 type: 'checkbox',
               },
-              'cleanup.policyNames': { label: 'Cleanup Policies', type: 'multiselect' },
+              'cleanup.policyNames': { label: RepositoriesPageStrings.FORM_MACHINE.CLEANUP_POLICIES, type: 'multiselect' },
             },
           },
         },
         [REPOSITORY_TYPES.PROXY]: {
           meta: {
-            typeLabel: 'Proxy',
+            typeLabel: RepositoriesPageStrings.FORM_MACHINE.PROXY,
             fields: [
               'storage.blobStoreName',
               'storage.strictContentTypeValidation',
@@ -719,35 +721,35 @@ export function createRepositoryFormMachine(options: RepositoryFormMachineOption
             ],
             requiredFields: ['storage.blobStoreName', 'proxy.remoteUrl'],
             fieldConfig: {
-              'storage.blobStoreName': { label: 'Blob Store', type: 'select' },
+              'storage.blobStoreName': { label: RepositoriesPageStrings.FORM_MACHINE.BLOB_STORE, type: 'select' },
               'storage.strictContentTypeValidation': {
-                label: 'Strict Content Type Validation',
+                label: RepositoriesPageStrings.FORM_MACHINE.STRICT_CONTENT_TYPE_VALIDATION,
                 type: 'checkbox',
               },
               'proxy.remoteUrl': {
-                label: 'Remote Storage URL',
+                label: RepositoriesPageStrings.FORM_MACHINE.REMOTE_STORAGE_URL,
                 type: 'text',
-                helpText: 'Location of the remote repository being proxied',
+                helpText: RepositoriesPageStrings.FORM_MACHINE.LOCATION_REMOTE_REPOSITORY_BEING_PROXIED,
               },
-              'proxy.contentMaxAge': { label: 'Maximum Component Age', type: 'number' },
-              'proxy.metadataMaxAge': { label: 'Maximum Metadata Age', type: 'number' },
-              'negativeCache.enabled': { label: 'Not Found Cache Enabled', type: 'checkbox' },
-              'negativeCache.timeToLive': { label: 'Not Found Cache TTL', type: 'number' },
-              'httpClient.blocked': { label: 'Block Outbound Connections', type: 'checkbox' },
+              'proxy.contentMaxAge': { label: RepositoriesPageStrings.FORM_MACHINE.MAXIMUM_COMPONENT_AGE, type: 'number' },
+              'proxy.metadataMaxAge': { label: RepositoriesPageStrings.FORM_MACHINE.MAXIMUM_METADATA_AGE, type: 'number' },
+              'negativeCache.enabled': { label: RepositoriesPageStrings.FORM_MACHINE.NOT_FOUND_CACHE_ENABLED, type: 'checkbox' },
+              'negativeCache.timeToLive': { label: RepositoriesPageStrings.FORM_MACHINE.NOT_FOUND_CACHE_TTL, type: 'number' },
+              'httpClient.blocked': { label: RepositoriesPageStrings.FORM_MACHINE.BLOCK_OUTBOUND_CONNECTIONS, type: 'checkbox' },
               'httpClient.autoBlock': {
-                label: 'Auto-block Outbound Connections',
+                label: RepositoriesPageStrings.FORM_MACHINE.AUTO_BLOCK_OUTBOUND_CONNECTIONS,
                 type: 'checkbox',
               },
-              'httpClient.authentication': { label: 'Authentication', type: 'fieldset' },
-              'routingRuleId': { label: 'Routing Rule', type: 'select' },
-              'cleanup.policyNames': { label: 'Cleanup Policies', type: 'multiselect' },
-              'replication.preemptivePullEnabled': { label: 'Preemptive Pull', type: 'checkbox' },
+              'httpClient.authentication': { label: RepositoriesPageStrings.FORM_MACHINE.AUTHENTICATION, type: 'fieldset' },
+              'routingRuleId': { label: RepositoriesPageStrings.FORM_MACHINE.ROUTING_RULE, type: 'select' },
+              'cleanup.policyNames': { label: RepositoriesPageStrings.FORM_MACHINE.CLEANUP_POLICIES, type: 'multiselect' },
+              'replication.preemptivePullEnabled': { label: RepositoriesPageStrings.FORM_MACHINE.PREEMPTIVE_PULL, type: 'checkbox' },
             },
           },
         },
         [REPOSITORY_TYPES.GROUP]: {
           meta: {
-            typeLabel: 'Group',
+            typeLabel: RepositoriesPageStrings.FORM_MACHINE.GROUP,
             fields: [
               'storage.blobStoreName',
               'storage.strictContentTypeValidation',
@@ -757,22 +759,22 @@ export function createRepositoryFormMachine(options: RepositoryFormMachineOption
             ],
             requiredFields: ['storage.blobStoreName', 'group.memberNames'],
             fieldConfig: {
-              'storage.blobStoreName': { label: 'Blob Store', type: 'select' },
+              'storage.blobStoreName': { label: RepositoriesPageStrings.FORM_MACHINE.BLOB_STORE, type: 'select' },
               'storage.strictContentTypeValidation': {
-                label: 'Strict Content Type Validation',
+                label: RepositoriesPageStrings.FORM_MACHINE.STRICT_CONTENT_TYPE_VALIDATION,
                 type: 'checkbox',
               },
               'group.memberNames': {
-                label: 'Member Repositories',
+                label: RepositoriesPageStrings.FORM_MACHINE.MEMBER_REPOSITORIES,
                 type: 'transfer',
-                helpText: 'Select repositories to include in this group',
+                helpText: RepositoriesPageStrings.FORM_MACHINE.SELECT_REPOSITORIES_INCLUDE_GROUP,
               },
               'group.writableMember': {
-                label: 'Writable Member',
+                label: RepositoriesPageStrings.FORM_MACHINE.WRITABLE_MEMBER,
                 type: 'select',
-                helpText: 'Select a hosted member for deploy',
+                helpText: RepositoriesPageStrings.FORM_MACHINE.SELECT_HOSTED_MEMBER_DEPLOY,
               },
-              'routingRuleId': { label: 'Routing Rule', type: 'select' },
+              'routingRuleId': { label: RepositoriesPageStrings.FORM_MACHINE.ROUTING_RULE, type: 'select' },
             },
           },
         },

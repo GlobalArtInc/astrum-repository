@@ -14,6 +14,8 @@ import { useCleanupPoliciesApi } from './useCleanupPoliciesApi';
 import { CleanupPolicy } from './types';
 
 import './CleanupPoliciesList.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
 
 interface CleanupPoliciesListProps {
   onSelect: (name: string) => void;
@@ -90,19 +92,19 @@ export function CleanupPoliciesList({ onSelect, onCreate }: CleanupPoliciesListP
   const columns: TableColumn<CleanupPolicy>[] = useMemo(() => [
     {
       id: 'name',
-      header: 'Name',
+      header: CommonStrings.LABELS.NAME,
       accessor: 'name',
       sortable: true,
     },
     {
       id: 'format',
-      header: 'Format',
+      header: CommonStrings.LABELS.FORMAT,
       accessor: 'format',
       sortable: true,
     },
     {
       id: 'notes',
-      header: 'Description',
+      header: CommonStrings.LABELS.DESCRIPTION,
       accessor: (policy) => policy.notes || '—',
       sortable: true,
     },
@@ -114,8 +116,8 @@ export function CleanupPoliciesList({ onSelect, onCreate }: CleanupPoliciesListP
       return (
         <EmptyState
           icon={Trash2}
-          title="No Matching Policies"
-          description={`No cleanup policies match "${filter}"`}
+          title={CleanupPoliciesStrings.LIST.NO_MATCHING_POLICIES}
+          description={CleanupPoliciesStrings.LIST.NO_CLEANUP_POLICIES_MATCH(filter)}
           size="small"
         />
       );
@@ -123,14 +125,14 @@ export function CleanupPoliciesList({ onSelect, onCreate }: CleanupPoliciesListP
     return (
       <EmptyState
         icon={Trash2}
-        title="No Cleanup Policies"
-        description="Create your first cleanup policy to automatically remove unused components."
+        title={CleanupPoliciesStrings.LIST.NO_CLEANUP_POLICIES}
+        description={CleanupPoliciesStrings.LIST.CREATE_FIRST_CLEANUP_POLICY_AUTOMATICALLY}
         action={{
-          label: 'Create Cleanup Policy',
+          label: CleanupPoliciesStrings.LIST.CREATE_CLEANUP_POLICY,
           onClick: onCreate,
         }}
         secondaryAction={{
-          label: 'Learn more about cleanup policies',
+          label: CleanupPoliciesStrings.LIST.LEARN_MORE_ABOUT_CLEANUP_POLICIES,
           href: 'http://links.globalart.dev/products/astrum/docs/cleanup-policy',
         }}
       />
@@ -141,10 +143,10 @@ export function CleanupPoliciesList({ onSelect, onCreate }: CleanupPoliciesListP
     <Box className="cleanup-policies-list">
       {/* Help Section */}
       <HelpSection
-        title="What is a cleanup policy?"
-        content="Cleanup policies can be used to remove content from your repositories. These policies will execute at the configured frequency. Once created, a cleanup policy must be assigned to a repository from the repository configuration screen."
+        title={CleanupPoliciesStrings.LIST.WHAT_CLEANUP_POLICY}
+        content={CleanupPoliciesStrings.LIST.CLEANUP_POLICIES_CAN_USED_REMOVE}
         docLink={{
-          label: 'Learn more',
+          label: CommonStrings.ACTIONS.LEARN_MORE,
           href: 'http://links.globalart.dev/products/astrum/docs/cleanup-policy',
         }}
       />
@@ -152,7 +154,7 @@ export function CleanupPoliciesList({ onSelect, onCreate }: CleanupPoliciesListP
       {/* Search/Filter */}
       <Box className="cleanup-policies-list__toolbar">
         <TextField.Root
-          placeholder="Filter by name, format, or description..."
+          placeholder={CleanupPoliciesStrings.LIST.FILTER_NAME_FORMAT_DESCRIPTION_PLACEHOLDER}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="cleanup-policies-list__search"
@@ -171,14 +173,14 @@ export function CleanupPoliciesList({ onSelect, onCreate }: CleanupPoliciesListP
         getRowTestId={(policy) => `policy-row-${policy.name}`}
         onRowClick={(policy) => onSelect(policy.name)}
         loading={isLoading}
-        loadingMessage="Loading cleanup policies..."
+        loadingMessage={CleanupPoliciesStrings.LIST.LOADING_CLEANUP_POLICIES}
         error={loadError || undefined}
         onRetry={loadPolicies}
         emptyState={emptyState}
         sortBy={sortBy}
         sortDirection={sortDirection}
         onSort={handleSort}
-        ariaLabel="Cleanup policies table"
+        ariaLabel={CleanupPoliciesStrings.LIST.CLEANUP_POLICIES_TABLE_ARIA}
         className="cleanup-policies-list__table"
       />
     </Box>

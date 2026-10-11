@@ -16,6 +16,8 @@ import {
 } from './types';
 
 import './CleanupPolicyDryRun.scss';
+import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const { DRY_RUN } = UIStrings.CLEANUP_POLICIES;
 
@@ -98,13 +100,13 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
 
   const tooltipMessage = useMemo(() => {
     if (!(selectedRepository || hasCriteria)) {
-      return 'Please select a repository and at least one cleanup criterion';
+      return CleanupPoliciesStrings.DRY_RUN.PLEASE_SELECT_REPOSITORY_LEAST_ONE;
     }
     if (!selectedRepository) {
-      return 'Please select a repository';
+      return CleanupPoliciesStrings.DRY_RUN.PLEASE_SELECT_REPOSITORY;
     }
     if (!hasCriteria) {
-      return 'Please select at least one cleanup criterion';
+      return CleanupPoliciesStrings.DRY_RUN.PLEASE_SELECT_LEAST_ONE_CLEANUP;
     }
     return '';
   }, [selectedRepository, hasCriteria]);
@@ -144,9 +146,7 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
   return (
     <Box className="cleanup-policy-dry-run">
       <Text as="p" size="2" className="cleanup-policy-dry-run__description">
-        Export a spreadsheet listing which components would be deleted today based on selected
-        cleanup policy settings. Your export will list component namespaces, names, versions and
-        paths.
+        {CleanupPoliciesStrings.DRY_RUN.EXPORT_SPREADSHEET_LISTING_WHICH_COMPONENTS}
       </Text>
 
       {repoError && (
@@ -163,7 +163,7 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
             value={selectedRepository}
             onChange={setSelectedRepository}
             disabled={isLoadingRepos || !policyData.format}
-            placeholder="Select a repository"
+            placeholder={CleanupPoliciesStrings.DRY_RUN.SELECT_REPOSITORY_PLACEHOLDER}
             options={repositories.map((repo) => ({
               value: repo.id,
               label: repo.name,
@@ -178,14 +178,14 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
             className="cleanup-policy-dry-run__download-link"
           >
             <SettingsButton variant="secondary" icon={Download} data-analytics-id="as-cleanup-policy-preview">
-              Generate CSV Report
+              {CleanupPoliciesStrings.DRY_RUN.GENERATE_CSV_REPORT}
             </SettingsButton>
           </a>
         ) : (
           <Tooltip content={tooltipMessage}>
             <Box>
               <SettingsButton variant="secondary" disabled icon={Download} data-analytics-id="as-cleanup-policy-preview">
-                Generate CSV Report
+                {CleanupPoliciesStrings.DRY_RUN.GENERATE_CSV_REPORT}
               </SettingsButton>
             </Box>
           </Tooltip>
@@ -223,9 +223,9 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
           <Table.Root>
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Group</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Version</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{CommonStrings.LABELS.NAME}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{CleanupPoliciesStrings.DRY_RUN.GROUP}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{CleanupPoliciesStrings.DRY_RUN.VERSION}</Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -234,7 +234,7 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
                   <Table.Cell colSpan={3}>
                     <Flex align="center" justify="center" py="4" gap="2">
                       <Loader2 size={16} className="cleanup-policy-dry-run__spinner" />
-                      <Text size="2" color="gray">Loading preview...</Text>
+                      <Text size="2" color="gray">{CleanupPoliciesStrings.DRY_RUN.LOADING_PREVIEW}</Text>
                     </Flex>
                   </Table.Cell>
                 </Table.Row>
@@ -243,7 +243,7 @@ export function CleanupPolicyDryRun({ policyData, policyName, selectedRepositori
                   <Table.Cell colSpan={3}>
                     <Flex align="center" justify="center" py="4">
                       <Text size="2" color="gray">
-                        No components match the selected criteria
+                        {CleanupPoliciesStrings.DRY_RUN.NO_COMPONENTS_MATCH_SELECTED_CRITERIA}
                       </Text>
                     </Flex>
                   </Table.Cell>

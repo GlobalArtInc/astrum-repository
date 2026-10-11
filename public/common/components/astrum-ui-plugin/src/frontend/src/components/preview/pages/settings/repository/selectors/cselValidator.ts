@@ -1,6 +1,7 @@
 
 
 import { isKnownAttribute, isOperatorValidForAttribute, } from './cselConfig';
+import ContentSelectorsStrings from '../../../../constants/pages/settings/repository/ContentSelectorsStrings';
 
 /**
  * Validation result types
@@ -141,7 +142,7 @@ export function validateCSEL(expression: string): ValidationResult {
     return {
       isValid: false,
       hasBlockingErrors: true,
-      messages: [{ type: 'error', message: 'Expression is required' }],
+      messages: [{ type: 'error', message: ContentSelectorsStrings.VALIDATOR.EXPRESSION_REQUIRED }],
     };
   }
 
@@ -153,7 +154,7 @@ export function validateCSEL(expression: string): ValidationResult {
   if ((quoteCount - escapedQuoteCount) % 2 !== 0) {
     messages.push({
       type: 'error',
-      message: 'Unclosed quote in expression',
+      message: ContentSelectorsStrings.VALIDATOR.UNCLOSED_QUOTE_EXPRESSION,
     });
   }
 
@@ -165,7 +166,7 @@ export function validateCSEL(expression: string): ValidationResult {
     if (parenDepth < 0) {
       messages.push({
         type: 'error',
-        message: 'Unmatched closing parenthesis',
+        message: ContentSelectorsStrings.VALIDATOR.UNMATCHED_CLOSING_PARENTHESIS,
         position: token.start,
       });
       break;
@@ -174,7 +175,7 @@ export function validateCSEL(expression: string): ValidationResult {
   if (parenDepth > 0) {
     messages.push({
       type: 'error',
-      message: 'Unclosed parenthesis',
+      message: ContentSelectorsStrings.VALIDATOR.UNCLOSED_PARENTHESIS,
     });
   }
 
@@ -183,7 +184,7 @@ export function validateCSEL(expression: string): ValidationResult {
     if (token.type === 'unknown') {
       messages.push({
         type: 'error',
-        message: `Invalid character: "${token.value}"`,
+        message: ContentSelectorsStrings.VALIDATOR.INVALID_CHARACTER(token.value),
         position: token.start,
       });
     }
@@ -208,7 +209,7 @@ export function validateCSEL(expression: string): ValidationResult {
       if (!isKnownAttribute(attrName)) {
         messages.push({
           type: 'warning',
-          message: `Unknown attribute: "${attrName}"`,
+          message: ContentSelectorsStrings.VALIDATOR.UNKNOWN_ATTRIBUTE(attrName),
           position: token.start,
           length: token.value.length,
         });
@@ -221,7 +222,7 @@ export function validateCSEL(expression: string): ValidationResult {
         if (isKnownAttribute(attrName) && !isOperatorValidForAttribute(attrName, nextToken.value)) {
           messages.push({
             type: 'warning',
-            message: `Operator "${nextToken.value}" may not be supported for attribute "${attrName}"`,
+            message: ContentSelectorsStrings.VALIDATOR.OPERATOR_MAY_NOT_SUPPORTED_ATTRIBUTE(nextToken.value, attrName),
             position: nextToken.start,
             length: nextToken.value.length,
           });
@@ -232,7 +233,7 @@ export function validateCSEL(expression: string): ValidationResult {
         if (!valueToken || valueToken.type !== 'value') {
           messages.push({
             type: 'error',
-            message: `Expected quoted value after operator "${nextToken.value}"`,
+            message: ContentSelectorsStrings.VALIDATOR.EXPECTED_QUOTED_VALUE_AFTER_OPERATOR(nextToken.value),
             position: nextToken.end,
           });
         }
@@ -241,7 +242,7 @@ export function validateCSEL(expression: string): ValidationResult {
       } else if (nextToken && nextToken.type !== 'logical' && nextToken.type !== 'closeParen') {
         messages.push({
           type: 'error',
-          message: `Expected operator after attribute "${attrName}"`,
+          message: ContentSelectorsStrings.VALIDATOR.EXPECTED_OPERATOR_AFTER_ATTRIBUTE(attrName),
           position: token.end,
         });
       }
@@ -259,14 +260,14 @@ export function validateCSEL(expression: string): ValidationResult {
       if (!prevToken || (prevToken.type !== 'value' && prevToken.type !== 'closeParen')) {
         messages.push({
           type: 'error',
-          message: `Missing expression before "${token.value}"`,
+          message: ContentSelectorsStrings.VALIDATOR.MISSING_EXPRESSION_BEFORE(token.value),
           position: token.start,
         });
       }
       if (!nextToken || (nextToken.type !== 'attribute' && nextToken.type !== 'openParen' && nextToken.type !== 'logical')) {
         messages.push({
           type: 'error',
-          message: `Missing expression after "${token.value}"`,
+          message: ContentSelectorsStrings.VALIDATOR.MISSING_EXPRESSION_AFTER(token.value),
           position: token.end,
         });
       }
@@ -412,17 +413,17 @@ export function interpretExpression(expression: string): InterpretedExpression {
 
           switch (op) {
             case '==':
-              description = `${attrLabel} equals "${value}"`;
+              description = ContentSelectorsStrings.VALIDATOR.EQUALS(attrLabel, value);
               break;
             case '!=':
-              description = `${attrLabel} does not equal "${value}"`;
+              description = ContentSelectorsStrings.VALIDATOR.DOES_NOT_EQUAL(attrLabel, value);
               break;
             case '=~':
-              description = `${attrLabel} matches pattern "${value}"`;
+              description = ContentSelectorsStrings.VALIDATOR.MATCHES_PATTERN(attrLabel, value);
               break;
             case '=^':
             case '^=':
-              description = `${attrLabel} starts with "${value}"`;
+              description = ContentSelectorsStrings.VALIDATOR.STARTS_WITH(attrLabel, value);
               break;
             default:
               description = `${attrLabel} ${op} "${value}"`;
@@ -441,7 +442,7 @@ export function interpretExpression(expression: string): InterpretedExpression {
       return { success: false, text: '' };
     }
 
-    const text = 'Matches content where: ' + parts.join(' ');
+    const text = ContentSelectorsStrings.VALIDATOR.MATCHES_CONTENT_WHERE(parts.join(' '));
     return { success: true, text };
   } catch {
     return { success: false, text: '' };

@@ -6,6 +6,8 @@ import { useToast } from '../../../../shared';
 import { createRoutingRulesFormMachine } from './routingRulesFormMachine';
 import { useRoutingRulesApi } from './useRoutingRulesApi';
 import type { RoutingRule, RoutingRuleFormData, RoutingMode } from './types';
+import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * Options for useRoutingRulesForm hook
@@ -72,10 +74,10 @@ export function useRoutingRulesForm({
 
           if (isCreate) {
             await createRoutingRule(ctx.data);
-            toast.success(`Routing rule "${ctx.data.name}" created successfully`);
+            toast.success(RoutingRulesStrings.FORM_HOOK.ROUTING_RULE_CREATED_SUCCESSFULLY(ctx.data.name));
           } else if (ruleToUpdate) {
             await updateRoutingRule(ruleToUpdate.name, ctx.data);
-            toast.success(`Routing rule "${ctx.data.name}" updated successfully`);
+            toast.success(RoutingRulesStrings.FORM_HOOK.ROUTING_RULE_UPDATED_SUCCESSFULLY(ctx.data.name));
           }
 
           if (onSave) {
@@ -84,7 +86,7 @@ export function useRoutingRulesForm({
 
           onCancel();
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },

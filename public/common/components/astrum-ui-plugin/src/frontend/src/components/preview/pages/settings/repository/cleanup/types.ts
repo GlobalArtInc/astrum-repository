@@ -1,3 +1,4 @@
+import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
 
 
 /**
@@ -109,15 +110,15 @@ export interface CleanupPolicyFormErrors {
 export const RELEASE_TYPES = {
   RELEASES_AND_SNAPSHOT: {
     id: '',
-    label: 'Releases & Pre-Releases/Snapshots',
+    label: CleanupPoliciesStrings.TYPES.RELEASES_PRE_RELEASES_SNAPSHOTS,
   },
   RELEASES: {
     id: 'RELEASES',
-    label: 'Releases',
+    label: CleanupPoliciesStrings.TYPES.RELEASES,
   },
   PRERELEASES: {
     id: 'PRERELEASES',
-    label: 'Pre-Releases/Snapshots',
+    label: CleanupPoliciesStrings.TYPES.PRE_RELEASES_SNAPSHOTS,
   },
 } as const;
 

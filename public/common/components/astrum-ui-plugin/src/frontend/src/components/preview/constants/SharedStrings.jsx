@@ -127,6 +127,12 @@ export default localize('react-ui', {
     SELECT_OPTION: 'Select an option',
   },
   SETTINGS_TRANSFER_LIST: {
+    ITEM_COUNT: {
+      ONE: (count) => `${count} item`,
+      FEW: (count) => `${count} items`,
+      MANY: (count) => `${count} items`,
+      OTHER: (count) => `${count} items`,
+    },
     AVAILABLE: 'Available',
     SELECTED: 'Selected',
     FILTER_PLACEHOLDER: 'Filter...',

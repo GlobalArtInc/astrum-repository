@@ -14,10 +14,12 @@ import {
   getAllowedValues,
   getParametersByCategory,
   getCategoryDisplayName,
+  unitLabel,
   JdbcParameterDefinition,
 } from './jdbcParameters.config';
 
 import './JdbcParameterEditor.scss';
+import DataStoreStrings from '../../../../constants/pages/settings/repository/DataStoreStrings';
 
 /**
  * Single JDBC parameter with metadata
@@ -188,7 +190,7 @@ function ParameterNameAutocomplete({
         onChange={handleInputChange}
         onFocus={handleFocus}
         onPaste={handlePaste}
-        placeholder="Type or select parameter..."
+        placeholder={DataStoreStrings.PARAMETER_EDITOR.TYPE_SELECT_PARAMETER_PLACEHOLDER}
         disabled={disabled}
         className={hasError ? 'jdbc-parameter-row__input--error' : ''}
       />
@@ -242,7 +244,7 @@ function ParameterValueInput({
     return (
       <Select.Root value={value} onValueChange={onChange} disabled={disabled}>
         <Select.Trigger 
-          placeholder="Select value..." 
+          placeholder={DataStoreStrings.PARAMETER_EDITOR.SELECT_VALUE_PLACEHOLDER} 
           className={hasError ? 'jdbc-parameter-row__input--error' : ''}
         />
         <Select.Content>
@@ -258,8 +260,8 @@ function ParameterValueInput({
 
   // Regular text input for other types
   const placeholder = definition?.type === 'number' 
-    ? `Enter number${definition.unit ? ` (${definition.unit})` : ''}...`
-    : 'Enter value...';
+    ? (definition.unit ? DataStoreStrings.PARAMETER_EDITOR.ENTER_NUMBER_IN_UNIT(unitLabel(definition.unit)) : DataStoreStrings.PARAMETER_EDITOR.ENTER_NUMBER)
+    : DataStoreStrings.PARAMETER_EDITOR.ENTER_VALUE;
 
   return (
     <TextField.Root
@@ -378,10 +380,10 @@ function ParameterRow({
         {/* Source Badge */}
         <Box className="jdbc-parameter-row__badge">
           {parameter.isDefault && !parameter.isCustom && (
-            <Text size="1" className="jdbc-parameter-row__badge--default">Default</Text>
+            <Text size="1" className="jdbc-parameter-row__badge--default">{DataStoreStrings.PARAMETER_EDITOR.DEFAULT}</Text>
           )}
           {parameter.isCustom && (
-            <Text size="1" className="jdbc-parameter-row__badge--custom">Custom</Text>
+            <Text size="1" className="jdbc-parameter-row__badge--custom">{DataStoreStrings.PARAMETER_EDITOR.CUSTOM}</Text>
           )}
         </Box>
 
@@ -392,7 +394,7 @@ function ParameterRow({
             onClick={onRemove}
             disabled={disabled}
             className="jdbc-parameter-row__remove"
-            aria-label="Remove parameter"
+            aria-label={DataStoreStrings.PARAMETER_EDITOR.REMOVE_PARAMETER_ARIA}
             icon={Trash2}
           />
         )}
@@ -443,18 +445,14 @@ function CommonParametersHelp() {
         {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         <HelpCircle size={16} />
         <Text size="2" weight="medium">
-          Common PostgreSQL JDBC Parameters ({JDBC_PARAMETERS_CONFIG.length} parameters)
+          {DataStoreStrings.PARAMETER_EDITOR.COMMON_POSTGRESQL_JDBC_PARAMETERS_PARAMETERS(JDBC_PARAMETERS_CONFIG.length)}
         </Text>
       </Flex>
 
       {isExpanded && (
         <Box className="jdbc-parameter-editor__help-content">
           <Text size="2" color="gray" className="jdbc-parameter-editor__help-intro">
-            These are PostgreSQL connection parameter names (pgjdbc) and won't apply to an H2
-            data store. Start typing in the parameter name field to see suggestions, or browse
-            the list below. Parameters with dropdowns will show allowed values automatically.
-            You can still enter any other parameter your driver supports — it just won't be
-            validated or auto-completed here.
+            {DataStoreStrings.PARAMETER_EDITOR.THESE_POSTGRESQL_CONNECTION_PARAMETER_NAMES}
           </Text>
           
           {categories.map((category) => {
@@ -564,13 +562,13 @@ export function JdbcParameterEditor({
           {/* Header */}
           <Flex className="jdbc-parameter-editor__header" gap="3">
             <Text size="2" weight="medium" className="jdbc-parameter-editor__header-name">
-              Parameter Name <Text as="span" color="red">*</Text>
+              {DataStoreStrings.PARAMETER_EDITOR.PARAMETER_NAME} <Text as="span" color="red">*</Text>
             </Text>
             <Text size="2" weight="medium" className="jdbc-parameter-editor__header-value">
-              Value <Text as="span" color="red">*</Text>
+              {DataStoreStrings.PARAMETER_EDITOR.VALUE} <Text as="span" color="red">*</Text>
             </Text>
             <Text size="2" weight="medium" className="jdbc-parameter-editor__header-source">
-              Source
+              {DataStoreStrings.PARAMETER_EDITOR.SOURCE}
             </Text>
             <Box className="jdbc-parameter-editor__header-actions" />
           </Flex>
@@ -592,7 +590,7 @@ export function JdbcParameterEditor({
         </Box>
       ) : (
         <Box className="jdbc-parameter-editor__empty">
-          <Text size="2" color="gray">No advanced parameters configured</Text>
+          <Text size="2" color="gray">{DataStoreStrings.PARAMETER_EDITOR.NO_ADVANCED_PARAMETERS_CONFIGURED}</Text>
         </Box>
       )}
 
@@ -604,7 +602,7 @@ export function JdbcParameterEditor({
           disabled={disabled}
           icon={Plus}
         >
-          Add Parameter
+          {DataStoreStrings.PARAMETER_EDITOR.ADD_PARAMETER}
         </SettingsButton>
 
         {onReset && hasCustomParameters && (
@@ -613,7 +611,7 @@ export function JdbcParameterEditor({
             onClick={onReset}
             disabled={disabled}
           >
-            Reset to Defaults
+            {DataStoreStrings.PARAMETER_EDITOR.RESET_DEFAULTS}
           </SettingsButton>
         )}
       </Flex>

@@ -10,6 +10,7 @@ import {
 import { useGroupableBlobStores } from './useBlobStores';
 import type { BlobStoreFormData } from './types';
 import './GroupBlobStoreSettings.scss';
+import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 
 interface GroupBlobStoreSettingsProps {
   data: BlobStoreFormData;
@@ -19,24 +20,24 @@ interface GroupBlobStoreSettingsProps {
 }
 
 const STRINGS = {
-  TITLE: 'Group Configuration',
-  DESCRIPTION: 'Configure the blob store group settings',
+  TITLE: BlobStoresStrings.GROUP.GROUP_CONFIGURATION,
+  DESCRIPTION: BlobStoresStrings.GROUP.CONFIGURE_BLOB_STORE_GROUP_SETTINGS,
   MEMBERS: {
-    label: 'Members',
-    helpText: 'Select the blob stores to include in this group',
-    availableTitle: 'Available Blob Stores',
-    selectedTitle: 'Selected Blob Stores'
+    label: BlobStoresStrings.GROUP.MEMBERS,
+    helpText: BlobStoresStrings.GROUP.SELECT_BLOB_STORES_INCLUDE_GROUP,
+    availableTitle: BlobStoresStrings.GROUP.AVAILABLE_BLOB_STORES,
+    selectedTitle: BlobStoresStrings.GROUP.SELECTED_BLOB_STORES
   },
   FILL_POLICY: {
-    label: 'Fill Policy',
-    helpText: 'Determines how blobs are distributed across group members'
+    label: BlobStoresStrings.GROUP.FILL_POLICY,
+    helpText: BlobStoresStrings.GROUP.DETERMINES_HOW_BLOBS_DISTRIBUTED_ACROSS
   }
 };
 
 const FILL_POLICY_OPTIONS = [
-  { value: '', label: 'Select a fill policy...' },
-  { value: 'writeToFirst', label: 'Write to First' },
-  { value: 'roundRobin', label: 'Round Robin' }
+  { value: '', label: BlobStoresStrings.GROUP.SELECT_FILL_POLICY },
+  { value: 'writeToFirst', label: BlobStoresStrings.GROUP.WRITE_FIRST },
+  { value: 'roundRobin', label: BlobStoresStrings.GROUP.ROUND_ROBIN }
 ];
 
 export default function GroupBlobStoreSettings({
