@@ -5,6 +5,7 @@ import { Badge, Box, Checkbox, Flex, ScrollArea, Select, Text, TextField } from 
 
 import type { EndpointAccessDot } from './utils/endpointAccess';
 import type { MergedApiEndpoint } from './utils/mergeSwaggerPermissions';
+import ApiStrings from '../../../../constants/pages/settings/system/ApiStrings';
 
 export function endpointRowId(row: MergedApiEndpoint): string {
   return `${row.httpMethod}|${row.fullPath}`;
@@ -112,18 +113,18 @@ export function EndpointList({
     <Box className="api-endpoint-list">
       <Flex direction="column" gap="3" className="api-endpoint-list__filters">
         <TextField.Root
-          placeholder="Search path or summary…"
+          placeholder={ApiStrings.ENDPOINT_LIST.SEARCH_PATH_SUMMARY_PLACEHOLDER}
           value={search}
           onChange={(ev) => setSearch(ev.target.value)}
-          aria-label="Search endpoints"
+          aria-label={ApiStrings.ENDPOINT_LIST.SEARCH_ENDPOINTS_ARIA}
         />
         <Flex gap="2" wrap="wrap">
           <Box style={{ minWidth: 120 }}>
             <Text size="1" weight="medium" mb="1" as="div">
-              Method
+              {ApiStrings.ENDPOINT_LIST.METHOD}
             </Text>
             <Select.Root value={methodFilter} onValueChange={setMethodFilter}>
-              <Select.Trigger placeholder="Method" />
+              <Select.Trigger placeholder={ApiStrings.ENDPOINT_LIST.METHOD_PLACEHOLDER} />
               <Select.Content>
                 {METHODS.map((m) => (
                   <Select.Item key={m} value={m}>
@@ -135,10 +136,10 @@ export function EndpointList({
           </Box>
           <Box style={{ minWidth: 140 }}>
             <Text size="1" weight="medium" mb="1" as="div">
-              Tag
+              {ApiStrings.ENDPOINT_LIST.TAG}
             </Text>
             <Select.Root value={tagFilter} onValueChange={setTagFilter}>
-              <Select.Trigger placeholder="Tag" />
+              <Select.Trigger placeholder={ApiStrings.ENDPOINT_LIST.TAG_PLACEHOLDER} />
               <Select.Content>
                 {tags.map((t) => (
                   <Select.Item key={t} value={t}>
@@ -153,8 +154,8 @@ export function EndpointList({
           <Flex align="center" gap="2">
             <Checkbox checked={onlyDenied} onCheckedChange={(v) => setOnlyDenied(v === true)} />
             {accessDotPalette === 'roleLens'
-              ? 'Only endpoints this role cannot access'
-              : "Only endpoints I can't access"}
+              ? ApiStrings.ENDPOINT_LIST.ONLY_ENDPOINTS_ROLE_CANNOT_ACCESS
+              : ApiStrings.ENDPOINT_LIST.ONLY_ENDPOINTS_I_CANT_ACCESS}
           </Flex>
         </Text>
       </Flex>
@@ -177,12 +178,12 @@ export function EndpointList({
           </Flex>
         ) : filtered.length === 0 ? (
           <Text size="2" color="gray" p="3">
-            No endpoints match your search. Try adjusting your filters.
+            {ApiStrings.ENDPOINT_LIST.NO_ENDPOINTS_MATCH_SEARCH_TRY}
           </Text>
         ) : (
           <Box
             role="listbox"
-            aria-label="API endpoints"
+            aria-label={ApiStrings.ENDPOINT_LIST.API_ENDPOINTS_ARIA}
             className="api-endpoint-list__list"
           >
             {grouped.map(([tag, rows]) => (

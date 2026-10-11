@@ -5,6 +5,7 @@ import { ENDPOINTS, restClient } from '../../../../../../interface/api';
 import { createFormMachine, type FormContext, type ValidationErrors } from '../../../../../../interface/form';
 
 import { EmailConfiguration, DEFAULT_EMAIL_CONFIGURATION } from './types';
+import EmailStrings from '../../../../constants/pages/settings/system/EmailStrings';
 
 /**
  * Email address regex (simple but sufficient for UI validation)
@@ -20,19 +21,19 @@ function validateEmailConfig(data: EmailConfiguration): ValidationErrors {
 
   if (data.enabled) {
     if (!data.host?.trim()) {
-      errors.host = 'SMTP host is required';
+      errors.host = EmailStrings.FORM_MACHINE.SMTP_HOST_REQUIRED;
     }
 
     if (data.port == null || data.port === 0) {
-      errors.port = 'Port is required';
+      errors.port = EmailStrings.FORM_MACHINE.PORT_REQUIRED;
     } else if (!Number.isInteger(Number(data.port)) || data.port < 1 || data.port > 65535) {
-      errors.port = 'Port must be between 1 and 65535';
+      errors.port = EmailStrings.FORM_MACHINE.PORT_MUST_BETWEEN_1_65535;
     }
 
     if (!data.fromAddress?.trim()) {
-      errors.fromAddress = 'From address is required';
+      errors.fromAddress = EmailStrings.FORM_MACHINE.ADDRESS_REQUIRED;
     } else if (!EMAIL_REGEX.test(data.fromAddress)) {
-      errors.fromAddress = 'Invalid email address format';
+      errors.fromAddress = EmailStrings.FORM_MACHINE.INVALID_EMAIL_ADDRESS_FORMAT;
     }
   }
 

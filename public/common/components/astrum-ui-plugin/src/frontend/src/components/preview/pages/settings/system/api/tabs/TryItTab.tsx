@@ -8,6 +8,7 @@ import { sliceSwaggerSpec, type MergedApiEndpoint } from '../utils/mergeSwaggerP
 import { swaggerRequestInterceptor, swaggerResponseInterceptor } from '../swaggerInterceptors';
 
 import 'swagger-ui-react/swagger-ui.css';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 
 export interface TryItTabProps {
   fullSwagger: Record<string, unknown> | null;
@@ -28,7 +29,7 @@ export function TryItTab({ fullSwagger, row, accessDenied }: TryItTabProps) {
   if (!(fullSwagger && slim)) {
     return (
       <Text size="2" color="gray">
-        API documentation is not available. Load swagger.json to use Try It.
+        {ApiStrings.TRY_IT_TAB.API_DOCUMENTATION_NOT_AVAILABLE_LOAD}
       </Text>
     );
   }
@@ -38,7 +39,7 @@ export function TryItTab({ fullSwagger, row, accessDenied }: TryItTabProps) {
       {accessDenied && (
         <Box mb="3" p="2" className="api-try-it-tab__banner">
           <Text size="2">
-            You may not have permission to execute this endpoint. Requests may return 403.
+            {ApiStrings.TRY_IT_TAB.YOU_MAY_NOT_HAVE_PERMISSION}
           </Text>
         </Box>
       )}

@@ -1,6 +1,7 @@
 
 
 import { IqServerConfiguration, IqValidationErrors, PASSWORD_PLACEHOLDER } from './types';
+import IqServerStrings from '../../../../constants/pages/settings/system/IqServerStrings';
 
 /** validateIqConfig doesn't read `properties`, so it accepts either the wire shape
  *  (IqServerConfiguration, string properties) or the form shape (IqServerFormData,
@@ -36,18 +37,18 @@ export function validateIqConfig(config: IqConfigForValidation, pristineConfig: 
   const errors: IqValidationErrors = {};
 
   if (!config.url?.trim()) {
-    errors.url = 'IQ Server URL is required';
+    errors.url = IqServerStrings.UTILS.IQ_SERVER_URL_REQUIRED;
   } else if (!isValidUrl(config.url)) {
-    errors.url = 'Please enter a valid URL';
+    errors.url = IqServerStrings.UTILS.PLEASE_ENTER_VALID_URL;
   }
 
   if (!config.authenticationType) {
-    errors.authenticationType = 'Authentication method is required';
+    errors.authenticationType = IqServerStrings.UTILS.AUTHENTICATION_METHOD_REQUIRED;
   }
 
   if (config.authenticationType === 'USER') {
     if (!config.username?.trim()) {
-      errors.username = 'Username is required';
+      errors.username = IqServerStrings.UTILS.USERNAME_REQUIRED;
     }
 
     // Password is required for new configs or when URL changes
@@ -55,14 +56,14 @@ export function validateIqConfig(config: IqConfigForValidation, pristineConfig: 
     const isPlaceholder = config.password === PASSWORD_PLACEHOLDER;
 
     if (!config.password?.trim() && !isPlaceholder) {
-      errors.password = 'Password is required';
+      errors.password = IqServerStrings.UTILS.PASSWORD_REQUIRED;
     } else if (urlChanged && isPlaceholder) {
-      errors.password = 'Password is required when changing the URL';
+      errors.password = IqServerStrings.UTILS.PASSWORD_REQUIRED_WHEN_CHANGING_URL;
     }
   }
 
   if (config.timeoutSeconds !== null && (config.timeoutSeconds < 1 || config.timeoutSeconds > 3600)) {
-    errors.timeoutSeconds = 'Timeout must be between 1 and 3600 seconds';
+    errors.timeoutSeconds = IqServerStrings.UTILS.TIMEOUT_MUST_BETWEEN_1_3600;
   }
 
   return errors;
@@ -146,27 +147,27 @@ function humanizeIqError(raw: string): string {
     const [, target, cause] = connectMatch;
     const causeLc = cause.toLowerCase();
     if (causeLc.includes('connection refused')) {
-      return `Cannot reach ${target} — connection refused. Check the URL and that the IQ Server is running.`;
+      return IqServerStrings.UTILS.CANNOT_REACH_CONNECTION_REFUSED_CHECK(target);
     }
     if (causeLc.includes('timed out') || causeLc.includes('timeout')) {
-      return `Cannot reach ${target} — connection timed out. Check the URL, network, and firewall.`;
+      return IqServerStrings.UTILS.CANNOT_REACH_CONNECTION_TIMED_OUT(target);
     }
-    return `Cannot reach ${target} — ${cause}.`;
+    return IqServerStrings.UTILS.CANNOT_REACH(target, cause);
   }
   if (/UnknownHostException|unknown host|nodename nor servname/i.test(text)) {
     const host = text.match(/([\w.-]+)(?::\d+)?/)?.[1];
     return host
-      ? `Host not found: ${host}. Check the URL is spelled correctly.`
-      : 'Host not found. Check the URL is spelled correctly.';
+      ? IqServerStrings.UTILS.HOST_NOT_FOUND_CHECK_URL(host)
+      : IqServerStrings.UTILS.HOST_NOT_FOUND_CHECK_URL_2;
   }
   if (/SSLHandshake|PKIX|certificate/i.test(text)) {
-    return 'SSL certificate could not be verified. Add the IQ Server certificate to the Astrum truststore or use "Use Astrum Truststore".';
+    return IqServerStrings.UTILS.SSL_CERTIFICATE_COULD_NOT_VERIFIED;
   }
   if (/401|unauthorized|invalid credentials/i.test(text)) {
-    return 'Authentication failed. Check the username and password.';
+    return IqServerStrings.UTILS.AUTHENTICATION_FAILED_CHECK_USERNAME_PASSWORD;
   }
   if (/403|forbidden/i.test(text)) {
-    return 'The IQ Server user does not have permission to read policy data.';
+    return IqServerStrings.UTILS.IQ_SERVER_USER_DOES_NOT;
   }
   return text;
 }

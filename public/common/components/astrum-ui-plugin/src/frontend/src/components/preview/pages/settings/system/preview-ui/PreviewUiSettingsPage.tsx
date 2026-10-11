@@ -9,6 +9,7 @@ import { PageHeader, clearDirtyState } from '../../../../shared';
 import { usePreviewUiSettingsForm } from './usePreviewUiSettingsForm';
 import { PREVIEW_UI_SETTINGS_FORM_ID } from './previewUiSettingsFormMachine';
 import PreviewUiStrings from '../../../../constants/pages/admin/system/PreviewUiStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 import './PreviewUiSettingsPage.scss';
 
@@ -61,7 +62,7 @@ export default function PreviewUiSettingsPage() {
         title={UI_STRINGS.title}
         description={UI_STRINGS.description}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
           { label: UI_STRINGS.title },
         ]}
       />
@@ -87,7 +88,7 @@ export default function PreviewUiSettingsPage() {
         title={UI_STRINGS.title}
         description={UI_STRINGS.description}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
           { label: UI_STRINGS.title },
         ]}
       />
@@ -229,16 +230,16 @@ export default function PreviewUiSettingsPage() {
 
       <AlertDialog.Root open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
         <AlertDialog.Content maxWidth="450px">
-          <AlertDialog.Title>Unsaved Changes</AlertDialog.Title>
+          <AlertDialog.Title>{UI_STRINGS.UNSAVED_DIALOG.title}</AlertDialog.Title>
           <AlertDialog.Description size="2">
-            You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
+            {UI_STRINGS.UNSAVED_DIALOG.description}
           </AlertDialog.Description>
           <Flex gap="3" mt="4" justify="end">
             <AlertDialog.Cancel>
-              <Button variant="soft" color="gray">Stay</Button>
+              <Button variant="soft" color="gray">{UI_STRINGS.UNSAVED_DIALOG.stay}</Button>
             </AlertDialog.Cancel>
             <AlertDialog.Action>
-              <Button variant="solid" color="red" onClick={handleDiscardConfirm}>Leave</Button>
+              <Button variant="solid" color="red" onClick={handleDiscardConfirm}>{UI_STRINGS.UNSAVED_DIALOG.leave}</Button>
             </AlertDialog.Action>
           </Flex>
         </AlertDialog.Content>

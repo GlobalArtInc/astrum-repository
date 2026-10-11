@@ -9,6 +9,7 @@ import { GrantAccessTab } from './tabs/GrantAccessTab';
 import { TryItTab } from './tabs/TryItTab';
 import { WhoHasAccessTab } from './tabs/WhoHasAccessTab';
 import { useEndpointDetail } from './useEndpointDetail';
+import ApiStrings from '../../../../constants/pages/settings/system/ApiStrings';
 
 export interface EndpointDetailProps {
   row: MergedApiEndpoint | null;
@@ -19,7 +20,7 @@ export interface EndpointDetailProps {
 function formatPermissions(row: MergedApiEndpoint): string {
   const reqs = row.permission?.permissions ?? [];
   if (reqs.length === 0) {
-    return row.permission?.authenticated ? 'None mapped (see documentation)' : 'None (may allow anonymous)';
+    return row.permission?.authenticated ? ApiStrings.ENDPOINT_DETAIL.NONE_MAPPED_SEE_DOCUMENTATION : ApiStrings.ENDPOINT_DETAIL.NONE_MAY_ALLOW_ANONYMOUS;
   }
   const logical = reqs[0]?.logical === 'OR' ? 'OR' : 'AND';
   const parts = reqs.map((r) => r.permission);
@@ -33,39 +34,42 @@ export function EndpointDetail({ row, fullSwagger, access }: EndpointDetailProps
     return (
       <Box className="api-endpoint-detail api-endpoint-detail--empty" p="4" aria-live="polite">
         <Text size="3" weight="medium" mb="2" as="div">
-          Choose an endpoint
+          {ApiStrings.ENDPOINT_DETAIL.CHOOSE_ENDPOINT}
         </Text>
         <Text size="2" color="gray" mb="3" as="div">
-          Click any operation in the list on the left. The detail panel opens with:
+          {ApiStrings.ENDPOINT_DETAIL.CLICK_ANY_OPERATION_LIST_LEFT}
         </Text>
         <Box as="ul" style={{ margin: 0, paddingLeft: '1.25rem' }} mb="3">
           <li>
             <Text size="2">
-              <Text weight="bold" as="span">
-                Try It
-              </Text>{' '}
-              — run the request in the browser
+              {ApiStrings.ENDPOINT_DETAIL.TRY_IT_HINT(
+                <Text weight="bold" as="span">
+                  {ApiStrings.ENDPOINT_DETAIL.TRY_IT}
+                </Text>
+              )}
             </Text>
           </li>
           <li>
             <Text size="2">
-              <Text weight="bold" as="span">
-                Who Has Access
-              </Text>{' '}
-              — roles and users that can call it
+              {ApiStrings.ENDPOINT_DETAIL.WHO_HAS_ACCESS_HINT(
+                <Text weight="bold" as="span">
+                  {ApiStrings.ENDPOINT_DETAIL.WHO_HAS_ACCESS}
+                </Text>
+              )}
             </Text>
           </li>
           <li>
             <Text size="2">
-              <Text weight="bold" as="span">
-                Grant Access
-              </Text>{' '}
-              — guided wizard (requires role/user admin permissions)
+              {ApiStrings.ENDPOINT_DETAIL.GRANT_ACCESS_HINT(
+                <Text weight="bold" as="span">
+                  {ApiStrings.ENDPOINT_DETAIL.GRANT_ACCESS}
+                </Text>
+              )}
             </Text>
           </li>
         </Box>
         <Text size="2" color="gray">
-          Access dots in the list reflect your permissions when the permission map loaded successfully.
+          {ApiStrings.ENDPOINT_DETAIL.ACCESS_DOTS_LIST_REFLECT_PERMISSIONS}
         </Text>
       </Box>
     );
@@ -87,7 +91,7 @@ export function EndpointDetail({ row, fullSwagger, access }: EndpointDetailProps
               </Text>
             </Flex>
             <Text size="2" color="gray" mb="1">
-              Required: {formatPermissions(row)}
+              {ApiStrings.ENDPOINT_DETAIL.REQUIRED(formatPermissions(row))}
             </Text>
             {row.summary && (
               <Text size="2" mt="2">
@@ -96,9 +100,9 @@ export function EndpointDetail({ row, fullSwagger, access }: EndpointDetailProps
             )}
           </Box>
           <Tabs.List className="api-endpoint-detail__tabs-list">
-            <Tabs.Trigger value="try">Try It</Tabs.Trigger>
-            {hasSecurityDirectoryRead && <Tabs.Trigger value="who">Who Has Access</Tabs.Trigger>}
-            {hasGrantAccess && <Tabs.Trigger value="grant">Grant Access</Tabs.Trigger>}
+            <Tabs.Trigger value="try">{ApiStrings.ENDPOINT_DETAIL.TRY_IT}</Tabs.Trigger>
+            {hasSecurityDirectoryRead && <Tabs.Trigger value="who">{ApiStrings.ENDPOINT_DETAIL.WHO_HAS_ACCESS}</Tabs.Trigger>}
+            {hasGrantAccess && <Tabs.Trigger value="grant">{ApiStrings.ENDPOINT_DETAIL.GRANT_ACCESS}</Tabs.Trigger>}
           </Tabs.List>
         </Box>
         <Tabs.Content value="try">

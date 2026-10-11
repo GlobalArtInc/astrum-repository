@@ -1,6 +1,7 @@
 
 
 import { assign, createMachine } from 'xstate';
+import ApiStrings from '../../../../constants/pages/settings/system/ApiStrings';
 
 export type SwaggerSpec = Record<string, unknown>;
 
@@ -107,7 +108,7 @@ export async function defaultLoadSwagger(url: string): Promise<SwaggerSpec> {
   }
   const json = await response.json();
   if (!json || typeof json !== 'object') {
-    throw new Error('Invalid swagger response');
+    throw new Error(ApiStrings.PAGE_MACHINE.INVALID_SWAGGER_RESPONSE);
   }
   return json as SwaggerSpec;
 }

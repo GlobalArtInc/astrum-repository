@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ENDPOINTS, restClient } from '../../../../../../../interface/api';
 
 import type { ApiPermissionsResponseDto } from '../types';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 
 export interface UseEndpointPermissionsResult {
   data: ApiPermissionsResponseDto | null;
@@ -34,7 +35,7 @@ export function useEndpointPermissions(): UseEndpointPermissionsResult {
         setData(response);
       }
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to load API permissions';
+      const message = e instanceof Error ? e.message : ApiStrings.ENDPOINT_PERMISSIONS.FAILED_LOAD_API_PERMISSIONS;
       if (mounted.current) {
         setError(message);
         setData(null);

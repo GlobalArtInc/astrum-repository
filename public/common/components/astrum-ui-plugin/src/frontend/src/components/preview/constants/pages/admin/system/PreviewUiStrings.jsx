@@ -1,7 +1,8 @@
 
 import { faEye } from '@fortawesome/free-solid-svg-icons';
+import localize from '../../../../../../interface/localize';
 
-export default {
+export default localize('react-ui', {
   PREVIEW_UI_SETTINGS: {
     title: 'Astrum One UI Settings',
     MENU: {
@@ -54,5 +55,15 @@ export default {
         property: 'preview.ui.legacy.disabled',
       },
     },
+    UNSAVED_DIALOG: {
+      title: 'Unsaved Changes',
+      description: 'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.',
+      stay: 'Stay',
+      leave: 'Leave',
+    },
+    MESSAGES: {
+      lockoutError: 'Cannot disable Classic UI when both Anonymous and Logged-in access to Astrum One UI are disabled. At least one UI access method must remain enabled to prevent lockout.',
+      saveFailed: 'Failed to save Astrum One UI settings',
+    },
   },
-};
+}, 'PREVIEW');

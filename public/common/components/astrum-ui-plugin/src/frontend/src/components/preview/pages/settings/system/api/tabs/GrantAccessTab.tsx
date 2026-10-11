@@ -6,6 +6,7 @@ import { Box, Text } from '@radix-ui/themes';
 import { GrantWizard } from '../grant/GrantWizard';
 import { canGrantAccess } from '../utils/endpointPermissions';
 import type { MergedApiEndpoint } from '../utils/mergeSwaggerPermissions';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 
 export interface GrantAccessTabProps {
   row: MergedApiEndpoint;
@@ -18,8 +19,7 @@ export function GrantAccessTab({ row, active }: GrantAccessTabProps) {
     return (
       <Box data-testid="api-grant-access-tab">
         <Text size="2" color="gray">
-          You need additional permissions to grant API access (roles read/update/create and users update). Contact an
-          administrator.
+          {ApiStrings.GRANT_ACCESS_TAB.YOU_NEED_ADDITIONAL_PERMISSIONS_GRANT}
         </Text>
       </Box>
     );

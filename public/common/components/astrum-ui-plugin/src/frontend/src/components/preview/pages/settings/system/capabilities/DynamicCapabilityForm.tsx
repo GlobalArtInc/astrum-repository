@@ -21,6 +21,8 @@ import { restClient } from '../../../../../../interface/api';
 import { Capability, CapabilityType, CapabilityFormData, FormField } from './types';
 
 import './DynamicCapabilityForm.scss';
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * Mapping from ExtDirect storeApi names to REST API endpoints.
@@ -299,7 +301,7 @@ export function DynamicCapabilityForm({
           return (
             <Flex key={field.id} align="center" gap="2" p="2">
               <Loader2 size={16} className="dynamic-capability-form__spinner" />
-              <Text size="2">Loading {field.label.toLowerCase()}...</Text>
+              <Text size="2">{CapabilitiesStrings.FORM.LOADING(field.label.toLowerCase())}</Text>
             </Flex>
           );
         }
@@ -321,8 +323,8 @@ export function DynamicCapabilityForm({
               }}
               getItemId={(item) => item.value}
               getItemLabel={(item) => item.label}
-              availableLabel="Available"
-              selectedLabel="Selected"
+              availableLabel={CapabilitiesStrings.FORM.AVAILABLE}
+              selectedLabel={CapabilitiesStrings.FORM.SELECTED}
               helpText={field.helpText}
               error={fieldError}
               required={field.required}
@@ -358,7 +360,7 @@ export function DynamicCapabilityForm({
               options={[]}
               helpText={field.helpText}
               disabled
-              placeholder="Loading..."
+              placeholder={CommonStrings.MESSAGES.LOADING}
             />
           );
         }
@@ -377,7 +379,7 @@ export function DynamicCapabilityForm({
               required={field.required}
               disabled={field.disabled || field.readOnly}
               allowCustom={field.allowAutocomplete}
-              placeholder={`Select ${field.label.toLowerCase()}...`}
+              placeholder={CapabilitiesStrings.FORM.SELECT(field.label.toLowerCase())}
             />
           );
         }
@@ -396,7 +398,7 @@ export function DynamicCapabilityForm({
               required={field.required}
               disabled={field.disabled || field.readOnly}
               allowCustom
-              placeholder="Select repository..."
+              placeholder={CapabilitiesStrings.FORM.SELECT_REPOSITORY_PLACEHOLDER}
             />
           );
         }
@@ -426,12 +428,12 @@ export function DynamicCapabilityForm({
             value={value}
             onChange={(val) => handleFieldChange(field.id, val)}
             options={storeOptions[field.id] || repoOptions}
-            helpText={field.helpText || 'Select a repository'}
+            helpText={field.helpText || CapabilitiesStrings.FORM.SELECT_REPOSITORY}
             error={fieldError}
             required={field.required}
             disabled={field.disabled || field.readOnly}
             allowCustom
-            placeholder="Select repository..."
+            placeholder={CapabilitiesStrings.FORM.SELECT_REPOSITORY_PLACEHOLDER}
           />
         );
       default:
@@ -447,7 +449,7 @@ export function DynamicCapabilityForm({
               options={[]}
               helpText={field.helpText}
               disabled
-              placeholder="Loading..."
+              placeholder={CommonStrings.MESSAGES.LOADING}
             />
           );
         }
@@ -466,7 +468,7 @@ export function DynamicCapabilityForm({
               required={field.required}
               disabled={field.disabled || field.readOnly}
               allowCustom={field.allowAutocomplete}
-              placeholder={`Select ${field.label.toLowerCase()}...`}
+              placeholder={CapabilitiesStrings.FORM.SELECT(field.label.toLowerCase())}
             />
           );
         }
@@ -505,7 +507,7 @@ export function DynamicCapabilityForm({
     return (
       <Flex align="center" justify="center" gap="2" p="4">
         <Loader2 size={24} className="dynamic-capability-form__spinner" />
-        <Text size="2">Loading form...</Text>
+        <Text size="2">{CommonStrings.MESSAGES.LOADING_FORM}</Text>
       </Flex>
     );
   }
@@ -513,7 +515,7 @@ export function DynamicCapabilityForm({
   const formContent = (
     <>
       {/* Capability Type Info */}
-      <SettingsFormSection title="Capability Type">
+      <SettingsFormSection title={CapabilitiesStrings.FORM.CAPABILITY_TYPE}>
         <Box className="dynamic-capability-form__type-info">
           <Text weight="medium">{capabilityType.name}</Text>
           {capabilityType.about && (
@@ -529,16 +531,16 @@ export function DynamicCapabilityForm({
       </SettingsFormSection>
 
       {/* Settings Section */}
-      <SettingsFormSection title="Settings">
+      <SettingsFormSection title={CommonStrings.LABELS.SETTINGS}>
         <SettingsCheckbox
           name="enabled"
-          label="Enable this capability"
+          label={CapabilitiesStrings.FORM.ENABLE_CAPABILITY}
           checked={isEnabledProp !== undefined ? isEnabledProp : (formData?.enabled ?? true)}
           onChange={(checked) => {
             form.send({ type: 'UPDATE', name: 'enabled', value: checked });
             onEnabledChange?.(checked);
           }}
-          helpText="When enabled, this capability will be active"
+          helpText={CapabilitiesStrings.FORM.WHEN_ENABLED_CAPABILITY_ACTIVE}
         />
 
         {/* Dynamic Form Fields */}
@@ -546,11 +548,11 @@ export function DynamicCapabilityForm({
       </SettingsFormSection>
 
       {/* Notes Section */}
-      <SettingsFormSection title="Notes">
+      <SettingsFormSection title={CapabilitiesStrings.FORM.NOTES}>
         <SettingsTextArea
           {...form.field('notes')}
-          label="Notes"
-          helpText="Optional notes about this capability"
+          label={CapabilitiesStrings.FORM.NOTES}
+          helpText={CapabilitiesStrings.FORM.OPTIONAL_NOTES_ABOUT_CAPABILITY}
           rows={3}
         />
       </SettingsFormSection>
@@ -580,9 +582,9 @@ export function DynamicCapabilityForm({
         loading={form.isSaving || loading}
         pristine={isCreate ? false : form.isPristine}
         error={error || form.saveError || undefined}
-        submitLabel={isCreate ? 'Create' : 'Save'}
+        submitLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
         submitAnalyticsId={isCreate ? 'as-capability-create' : 'as-capability-save'}
-        cancelLabel="Cancel"
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         showActions={isCreate || !form.isPristine}
         noDirtyTracking={true}
         confirmDiscard={false}
@@ -595,7 +597,7 @@ export function DynamicCapabilityForm({
               icon={Trash2}
               data-analytics-id="as-capability-delete"
             >
-              Delete
+              {CommonStrings.ACTIONS.DELETE}
             </SettingsButton>
           ) : undefined
         }

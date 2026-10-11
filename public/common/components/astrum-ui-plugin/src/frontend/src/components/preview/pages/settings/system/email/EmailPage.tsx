@@ -21,6 +21,8 @@ import { useEmailApi } from './useEmailApi';
 import { EmailConfiguration, EmailPageProps } from './types';
 
 import './EmailPage.scss';
+import EmailStrings from '../../../../constants/pages/settings/system/EmailStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -58,7 +60,7 @@ export function EmailPage({ className }: EmailPageProps) {
       <Box className={`email-page ${className || ''}`.trim()}>
         <Flex align="center" justify="center" className="email-page__loading">
           <Loader2 size={24} className="email-page__spinner" />
-          <Text size="2">Loading email server settings...</Text>
+          <Text size="2">{EmailStrings.PAGE.LOADING_EMAIL_SERVER_SETTINGS}</Text>
         </Flex>
       </Box>
     );
@@ -69,31 +71,31 @@ export function EmailPage({ className }: EmailPageProps) {
     return (
       <Box className={`email-page ${className || ''}`.trim()}>
         <PageHeader
-          title="Email Server"
-          description="Configure outgoing email server settings"
+          title={EmailStrings.PAGE.EMAIL_SERVER}
+          description={EmailStrings.PAGE.CONFIGURE_OUTGOING_EMAIL_SERVER_SETTINGS}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Email Server' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: EmailStrings.PAGE.EMAIL_SERVER },
           ]}
         />
 
-        <SettingsFormSection title="Current Settings">
+        <SettingsFormSection title={EmailStrings.PAGE.CURRENT_SETTINGS}>
           <Box className="email-page__readonly">
             <Flex className="email-page__row">
-              <Text size="2" weight="medium" className="email-page__label">Enabled</Text>
-              <Text size="2">{formData.enabled ? 'Yes' : 'No'}</Text>
+              <Text size="2" weight="medium" className="email-page__label">{EmailStrings.PAGE.ENABLED}</Text>
+              <Text size="2">{formData.enabled ? EmailStrings.PAGE.YES : EmailStrings.PAGE.NO}</Text>
             </Flex>
             <Flex className="email-page__row">
-              <Text size="2" weight="medium" className="email-page__label">SMTP Host</Text>
-              <Text size="2">{formData.host || 'Not configured'}</Text>
+              <Text size="2" weight="medium" className="email-page__label">{EmailStrings.PAGE.SMTP_HOST}</Text>
+              <Text size="2">{formData.host || EmailStrings.PAGE.NOT_CONFIGURED}</Text>
             </Flex>
             <Flex className="email-page__row">
-              <Text size="2" weight="medium" className="email-page__label">SMTP Port</Text>
+              <Text size="2" weight="medium" className="email-page__label">{EmailStrings.PAGE.SMTP_PORT}</Text>
               <Text size="2">{formData.port}</Text>
             </Flex>
             <Flex className="email-page__row">
-              <Text size="2" weight="medium" className="email-page__label">From Address</Text>
-              <Text size="2">{formData.fromAddress || 'Not configured'}</Text>
+              <Text size="2" weight="medium" className="email-page__label">{EmailStrings.PAGE.FROM_ADDRESS}</Text>
+              <Text size="2">{formData.fromAddress || EmailStrings.PAGE.NOT_CONFIGURED}</Text>
             </Flex>
           </Box>
         </SettingsFormSection>
@@ -108,11 +110,11 @@ export function EmailPage({ className }: EmailPageProps) {
       data-loading={form.isSaving ? 'true' : 'false'}
     >
       <PageHeader
-        title="Email Server"
-        description="Configure outgoing email server settings"
+        title={EmailStrings.PAGE.EMAIL_SERVER}
+        description={EmailStrings.PAGE.CONFIGURE_OUTGOING_EMAIL_SERVER_SETTINGS}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'Email Server' },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: EmailStrings.PAGE.EMAIL_SERVER },
         ]}
       />
 
@@ -128,24 +130,24 @@ export function EmailPage({ className }: EmailPageProps) {
           error={form.saveError || undefined}
           submitAnalyticsId="as-email-save"
         >
-          <SettingsFormSection title="SMTP Configuration">
+          <SettingsFormSection title={EmailStrings.PAGE.SMTP_CONFIGURATION}>
             <SettingsCheckbox
               {...form.checkbox('enabled')}
-              label="Enable email server"
-              description="Allow the system to send outgoing email notifications"
+              label={EmailStrings.PAGE.ENABLE_EMAIL_SERVER}
+              description={EmailStrings.PAGE.ALLOW_SYSTEM_SEND_OUTGOING_EMAIL}
             />
 
             <SettingsTextInput
               {...form.field('host')}
-              label="SMTP Host"
-              helpText="The hostname of your SMTP server"
+              label={EmailStrings.PAGE.SMTP_HOST}
+              helpText={EmailStrings.PAGE.HOSTNAME_SMTP_SERVER}
               placeholder="smtp.example.com"
               required
             />
 
             <SettingsTextInput
               name="port"
-              label="SMTP Port"
+              label={EmailStrings.PAGE.SMTP_PORT}
               type="number"
               value={formData.port != null ? String(formData.port) : ''}
               // Port needs a numeric value in context but UPDATE event types expect string;
@@ -154,7 +156,7 @@ export function EmailPage({ className }: EmailPageProps) {
               onChange={(value: string) => form.send({ type: 'UPDATE', name: 'port', value: value ? parseInt(value, 10) : 0 } as any)}
               onBlur={() => form.send({ type: 'BLUR', name: 'port' } as any)}
               error={form.touched?.port ? form.validationErrors?.port : undefined}
-              helpText="The port number of your SMTP server (typically 25, 465, or 587)"
+              helpText={EmailStrings.PAGE.PORT_NUMBER_SMTP_SERVER_TYPICALLY}
               min={1}
               max={65535}
               required
@@ -162,8 +164,8 @@ export function EmailPage({ className }: EmailPageProps) {
 
             <SettingsCheckbox
               {...form.checkbox('astrumTrustStoreEnabled')}
-              label="Use Astrum Trust Store"
-              description="Use certificates from the Astrum Repository trust store for SSL/TLS connections"
+              label={EmailStrings.PAGE.USE_ASTRUM_TRUST_STORE}
+              description={EmailStrings.PAGE.USE_CERTIFICATES_ASTRUM_REPOSITORY_TRUST}
             />
 
             <Box>
@@ -174,7 +176,7 @@ export function EmailPage({ className }: EmailPageProps) {
                 disabled={!remoteUrl || !canReadTruststore}
                 icon={ShieldCheck}
               >
-                View Certificate
+                {EmailStrings.PAGE.VIEW_CERTIFICATE}
               </SettingsButton>
             </Box>
 
@@ -186,78 +188,78 @@ export function EmailPage({ className }: EmailPageProps) {
             )}
           </SettingsFormSection>
 
-          <SettingsFormSection title="Authentication">
+          <SettingsFormSection title={EmailStrings.PAGE.AUTHENTICATION}>
             <SettingsCheckbox
               {...form.checkbox('useAuthentication')}
-              label="Enable authentication"
-              description="Provide credentials for SMTP server authentication"
+              label={EmailStrings.PAGE.ENABLE_AUTHENTICATION}
+              description={EmailStrings.PAGE.PROVIDE_CREDENTIALS_SMTP_SERVER_AUTHENTICATION}
             />
 
             {formData.useAuthentication && (
               <>
                 <SettingsTextInput
                   {...form.field('username')}
-                  label="Username"
-                  helpText="Username for SMTP authentication"
+                  label={EmailStrings.PAGE.USERNAME}
+                  helpText={EmailStrings.PAGE.USERNAME_SMTP_AUTHENTICATION}
                   autoComplete="username"
                   placeholder="astrum-smtp-user"
                 />
                 <SettingsPasswordInput
                   {...form.field('password')}
-                  label="Password"
-                  helpText="Password for SMTP authentication"
+                  label={EmailStrings.PAGE.PASSWORD}
+                  helpText={EmailStrings.PAGE.PASSWORD_SMTP_AUTHENTICATION}
                   autoComplete="new-password"
-                  placeholder={form.isPristine && !formData.password ? 'Saved — enter to change' : undefined}
+                  placeholder={form.isPristine && !formData.password ? EmailStrings.PAGE.SAVED_ENTER_CHANGE : undefined}
                 />
               </>
             )}
           </SettingsFormSection>
 
-          <SettingsFormSection title="Email Settings">
+          <SettingsFormSection title={EmailStrings.PAGE.EMAIL_SETTINGS}>
             <SettingsTextInput
               {...form.field('fromAddress')}
-              label="From Address"
+              label={EmailStrings.PAGE.FROM_ADDRESS}
               type="email"
-              helpText="The email address used as the sender for outgoing emails"
+              helpText={EmailStrings.PAGE.EMAIL_ADDRESS_USED_SENDER_OUTGOING}
               placeholder="astrum@example.com"
               required
             />
 
             <SettingsTextInput
               {...form.field('subjectPrefix')}
-              label="Subject Prefix"
-              helpText="Optional prefix added to all email subject lines"
+              label={EmailStrings.PAGE.SUBJECT_PREFIX}
+              helpText={EmailStrings.PAGE.OPTIONAL_PREFIX_ADDED_ALL_EMAIL}
               placeholder="[Astrum]"
             />
           </SettingsFormSection>
 
           <SettingsFormSection
-            title="SSL/TLS Options"
+            title={EmailStrings.PAGE.SSL_TLS_OPTIONS}
             collapsible
             defaultCollapsed={!(formData.startTlsEnabled || formData.startTlsRequired || formData.sslOnConnectEnabled || formData.sslCheckServerIdentityEnabled)}
           >
             <SettingsCheckbox
               {...form.checkbox('startTlsEnabled')}
-              label="Enable STARTTLS"
-              description="Enable STARTTLS support for secure connections"
+              label={EmailStrings.PAGE.ENABLE_STARTTLS}
+              description={EmailStrings.PAGE.ENABLE_STARTTLS_SUPPORT_SECURE_CONNECTIONS}
             />
 
             <SettingsCheckbox
               {...form.checkbox('startTlsRequired')}
-              label="Require STARTTLS"
-              description="Require STARTTLS for connections (connection will fail if not supported)"
+              label={EmailStrings.PAGE.REQUIRE_STARTTLS}
+              description={EmailStrings.PAGE.REQUIRE_STARTTLS_CONNECTIONS_CONNECTION_FAIL}
             />
 
             <SettingsCheckbox
               {...form.checkbox('sslOnConnectEnabled')}
-              label="Enable SSL/TLS on Connect"
-              description="Use SSL/TLS encryption immediately on connection (implicit TLS)"
+              label={EmailStrings.PAGE.ENABLE_SSL_TLS_CONNECT}
+              description={EmailStrings.PAGE.USE_SSL_TLS_ENCRYPTION_IMMEDIATELY}
             />
 
             <SettingsCheckbox
               {...form.checkbox('sslCheckServerIdentityEnabled')}
-              label="Server Identity Check"
-              description="Verify that the server certificate matches the hostname"
+              label={EmailStrings.PAGE.SERVER_IDENTITY_CHECK}
+              description={EmailStrings.PAGE.VERIFY_SERVER_CERTIFICATE_MATCHES_HOSTNAME}
             />
           </SettingsFormSection>
 
@@ -265,7 +267,7 @@ export function EmailPage({ className }: EmailPageProps) {
 
         {/* Test Email — outside form to prevent Enter-key from triggering SMTP save */}
         <Box className="email-page__form-aligned" data-testid="email-verify-section">
-          <SettingsFormSection title="Test Email">
+          <SettingsFormSection title={EmailStrings.PAGE.TEST_EMAIL}>
             <EmailVerify
               onSendTest={sendVerificationEmail}
               loading={verifying}
@@ -279,22 +281,21 @@ export function EmailPage({ className }: EmailPageProps) {
           <Box className="email-page__help">
             <Flex align="center" gap="2" className="email-page__help-header">
               <Info size={16} />
-              <Text size="2" weight="medium">About Email Server</Text>
+              <Text size="2" weight="medium">{EmailStrings.PAGE.ABOUT_EMAIL_SERVER}</Text>
             </Flex>
             <Text size="2" className="email-page__help-text">
-              The email server is used to send notifications about system events,
-              password reset emails, and other communications.{' '}
-              See our{' '}
-              <a
-                href="https://help.globalart.dev/en/email-server-configuration.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="email-page__help-link"
-              >
-                documentation
-                <ExternalLink size={12} />
-              </a>
-              {' '}for more information.
+              {EmailStrings.PAGE.ABOUT_TEXT}{' '}
+              {EmailStrings.PAGE.SEE_DOCUMENTATION(
+                <a
+                  href="https://help.globalart.dev/en/email-server-configuration.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="email-page__help-link"
+                >
+                  {EmailStrings.PAGE.DOCUMENTATION_LINK}
+                  <ExternalLink size={12} />
+                </a>
+              )}
             </Text>
           </Box>
         </Box>

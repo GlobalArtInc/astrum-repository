@@ -5,6 +5,7 @@ import { APIConstants } from '../../../../../../constants/APIConstants';
 import { restClient } from '../../../../../../interface/api';
 import { useForm, type FormContext } from '../../../../../../interface/form';
 import { clearDirtyState, useToast } from '../../../../shared';
+import PreviewUiStrings from '../../../../constants/pages/admin/system/PreviewUiStrings';
 import { PREVIEW_UI_SETTINGS_FORM_ID, createPreviewUiSettingsFormMachine, type PreviewUiSettings } from './previewUiSettingsFormMachine';
 
 export function usePreviewUiSettingsForm() {
@@ -19,7 +20,7 @@ export function usePreviewUiSettingsForm() {
           clearDirtyState(PREVIEW_UI_SETTINGS_FORM_ID);
           window.location.reload();
         } catch (err) {
-          const message = err instanceof Error ? err.message : 'Failed to save Astrum One UI settings';
+          const message = err instanceof Error ? err.message : PreviewUiStrings.PREVIEW_UI_SETTINGS.MESSAGES.saveFailed;
           toast.error(message);
           throw new Error(message);
         }

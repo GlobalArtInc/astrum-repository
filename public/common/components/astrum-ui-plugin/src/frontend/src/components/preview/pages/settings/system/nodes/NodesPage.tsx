@@ -11,6 +11,8 @@ import { NodesList } from './NodesList';
 import { NodesPageProps } from './types';
 
 import './NodesPage.scss';
+import NodesStrings from '../../../../constants/pages/settings/system/NodesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -30,11 +32,11 @@ export function NodesPage({ className }: NodesPageProps) {
     <Box className={`nodes-page ${className || ''}`.trim()} data-analytics-id="as-nodes-nav-detail">
       <PageHeader
         icon={Server}
-        title="Nodes"
-        description="View cluster nodes in this Astrum Repository instance"
+        title={NodesStrings.PAGE.NODES}
+        description={NodesStrings.PAGE.VIEW_CLUSTER_NODES_ASTRUM_REPOSITORY}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'Nodes' }
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: NodesStrings.PAGE.NODES }
         ]}
       />
 
@@ -44,24 +46,24 @@ export function NodesPage({ className }: NodesPageProps) {
         {!isClustered && (
           <Box className="nodes-page__banner">
             <SettingsAlert type="info" data-testid="single-node-banner">
-              This instance is running in single-node mode. High Availability cluster nodes are not expected. See the{' '}
-              <a
-                href={HA_DOCUMENTATION_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                high availability documentation
-                <ExternalLink size={12} aria-hidden="true" />
-              </a>
-              {' '}for more information.
+              {NodesStrings.PAGE.SINGLE_NODE_MODE(
+                <a
+                  href={HA_DOCUMENTATION_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {NodesStrings.PAGE.HIGH_AVAILABILITY_DOCUMENTATION}
+                  <ExternalLink size={12} aria-hidden="true" />
+                </a>
+              )}
             </SettingsAlert>
           </Box>
         )}
 
         {/* Nodes List Section */}
-        <SettingsFormSection title="Nodes">
+        <SettingsFormSection title={NodesStrings.PAGE.NODES}>
           <Text size="2" className="nodes-page__section-description">
-            Nodes participating in this Astrum Repository instance.
+            {NodesStrings.PAGE.NODES_PARTICIPATING_ASTRUM_REPOSITORY_INSTANCE}
           </Text>
           <Box className="nodes-page__nodes-list">
             <NodesList />

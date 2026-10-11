@@ -3,6 +3,7 @@
 import React from 'react';
 import { Box, Flex, IconButton } from '@radix-ui/themes';
 import { PanelLeftClose, PanelLeft } from 'lucide-react';
+import ApiStrings from '../../../../constants/pages/settings/system/ApiStrings';
 
 export interface ApiLayoutProps {
   leftPanel: React.ReactNode;
@@ -25,7 +26,7 @@ export function ApiLayout({ leftPanel, rightPanel, leftCollapsed, onToggleLeft }
           variant="soft"
           size="1"
           onClick={onToggleLeft}
-          aria-label={leftCollapsed ? 'Expand endpoint list' : 'Collapse endpoint list'}
+          aria-label={leftCollapsed ? ApiStrings.LAYOUT.EXPAND_ENDPOINT_LIST : ApiStrings.LAYOUT.COLLAPSE_ENDPOINT_LIST}
         >
           {leftCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
         </IconButton>

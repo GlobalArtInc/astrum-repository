@@ -20,6 +20,7 @@ import { pickPrivilegeIdsForRequirements } from '../utils/grantPrivilegePicker';
 import { rankRolesForGrantRecommendations } from '../utils/grantRoleRecommendations';
 
 import { createGrantWizardMachine, type GrantWizardContext } from './grantWizardMachine';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 
 export function userDirectoryKey(u: User): string {
   return `${u.userId}\0${u.source}`;
@@ -76,7 +77,7 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
       })
       .catch((e: unknown) => {
         if (!cancelled) {
-          setDirError(e instanceof Error ? e.message : 'Failed to load security data');
+          setDirError(e instanceof Error ? e.message : ApiStrings.GRANT_WIZARD_HOOK.FAILED_LOAD_SECURITY_DATA);
         }
       })
       .finally(() => {
@@ -117,15 +118,15 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
   const applyGrant = useCallback(
     async (ctx: GrantWizardContext) => {
       if (!row) {
-        throw new Error('No endpoint selected');
+        throw new Error(ApiStrings.GRANT_WIZARD_HOOK.NO_ENDPOINT_SELECTED);
       }
       const snap = getSecurityDirectoryCache();
       if (!snap) {
-        throw new Error('Security data not loaded');
+        throw new Error(ApiStrings.GRANT_WIZARD_HOOK.SECURITY_DATA_NOT_LOADED);
       }
       const reqs = row.permission?.permissions?.map((p) => p.permission).filter(Boolean) ?? [];
       if (reqs.length === 0) {
-        throw new Error('No mapped permissions for this endpoint');
+        throw new Error(ApiStrings.GRANT_WIZARD_HOOK.NO_MAPPED_PERMISSIONS_ENDPOINT);
       }
       const logical = row.permission?.permissions?.[0]?.logical === 'OR' ? 'OR' : 'AND';
 
@@ -134,7 +135,7 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
         const { ids, missing } = pickPrivilegeIdsForRequirements(reqs, logical, snap.privileges);
         if (missing.length > 0) {
           throw new Error(
-            `No privilege found in Astrum for: ${missing.join(', ')}. Create a matching privilege under Security first.`
+            ApiStrings.GRANT_WIZARD_HOOK.NO_PRIVILEGE_FOUND_ASTRUM_CREATE(missing.join(', '))
           );
         }
         const created = await createRole({
@@ -147,7 +148,7 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
         targetRoleId = created.id;
       } else {
         if (!ctx.existingRoleId) {
-          throw new Error('No role selected');
+          throw new Error(ApiStrings.GRANT_WIZARD_HOOK.NO_ROLE_SELECTED);
         }
         targetRoleId = ctx.existingRoleId;
       }
@@ -157,7 +158,7 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
         const [userId, source] = key.split('\0');
         const user = snap.users.find((u) => u.userId === userId && u.source === source);
         if (!user) {
-          results.push({ userKey: key, ok: false, message: 'User not found in directory' });
+          results.push({ userKey: key, ok: false, message: ApiStrings.GRANT_WIZARD_HOOK.USER_NOT_FOUND_DIRECTORY });
           continue;
         }
         try {

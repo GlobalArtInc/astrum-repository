@@ -19,6 +19,8 @@ import {
 } from '../../../../shared';
 
 import './CapabilitiesList.scss';
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface CapabilitiesListProps {
   onSelect: (capability: Capability) => void;
@@ -26,32 +28,32 @@ interface CapabilitiesListProps {
 }
 
 const CAPABILITY_CATEGORIES: Record<string, string> = {
-  audit: 'Audit',
-  baseurl: 'Core',
-  crowd: 'Security',
-  customs3regions: 'Core',
-  defaultrole: 'Security',
+  audit: CapabilitiesStrings.LIST.CATEGORY_AUDIT,
+  baseurl: CapabilitiesStrings.LIST.CORE,
+  crowd: CapabilitiesStrings.LIST.SECURITY,
+  customs3regions: CapabilitiesStrings.LIST.CORE,
+  defaultrole: CapabilitiesStrings.LIST.SECURITY,
   // 'firewall.audit' deliberately omitted: filtered out at fetchCapabilities() and not
   // advertised by /v1/capabilities/types post-migration. See useCapabilitiesApi.ts.
-  healthcheck: 'Health Check',
-  'license-expiration': 'Core',
-  LegacyUrlCapability: 'Core',
-  'node.identity': 'Core',
-  outreach: 'Core',
-  OutreachManagementCapability: 'Core',
-  'browse.trim': 'Repository',
-  rutauth: 'Security',
-  'scheduling.scheduler': 'Scheduling',
-  StorageSettings: 'Core',
+  healthcheck: CapabilitiesStrings.LIST.HEALTH_CHECK,
+  'license-expiration': CapabilitiesStrings.LIST.CORE,
+  LegacyUrlCapability: CapabilitiesStrings.LIST.CORE,
+  'node.identity': CapabilitiesStrings.LIST.CORE,
+  outreach: CapabilitiesStrings.LIST.CORE,
+  OutreachManagementCapability: CapabilitiesStrings.LIST.CORE,
+  'browse.trim': CapabilitiesStrings.LIST.REPOSITORY,
+  rutauth: CapabilitiesStrings.LIST.SECURITY,
+  'scheduling.scheduler': CapabilitiesStrings.LIST.SCHEDULING,
+  StorageSettings: CapabilitiesStrings.LIST.CORE,
   'rapture.branding': 'UI',
   'rapture.settings': 'UI',
-  migration: 'Core',
-  'webhook.global': 'Webhook',
-  'webhook.repository': 'Webhook',
+  migration: CapabilitiesStrings.LIST.CORE,
+  'webhook.global': CapabilitiesStrings.LIST.WEBHOOK,
+  'webhook.repository': CapabilitiesStrings.LIST.WEBHOOK,
 };
 
 function getCategoryForType(typeId: string): string {
-  return CAPABILITY_CATEGORIES[typeId] || 'Other';
+  return CAPABILITY_CATEGORIES[typeId] || CapabilitiesStrings.LIST.CATEGORY_OTHER;
 }
 
 function TypeIcon({ typeId }: { typeId: string }) {
@@ -78,10 +80,10 @@ function StateIcon({ state }: { state: string }) {
 }
 
 const STATE_LABELS: Record<string, string> = {
-  active: 'Active',
-  disabled: 'Disabled',
-  error: 'Error',
-  passive: 'Passive',
+  active: CapabilitiesStrings.LIST.ACTIVE,
+  disabled: CapabilitiesStrings.LIST.DISABLED,
+  error: CapabilitiesStrings.LIST.ERROR,
+  passive: CapabilitiesStrings.LIST.PASSIVE,
 };
 
 export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListProps) {
@@ -107,7 +109,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
       typeData.forEach((t) => { nameMap[t.id] = t.name; });
       setTypeNameMap(nameMap);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load capabilities');
+      setError(err instanceof Error ? err.message : CapabilitiesStrings.LIST.FAILED_LOAD_CAPABILITIES);
     } finally {
       setLoading(false);
     }
@@ -190,7 +192,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
   const filterSections = useMemo<FilterSection[]>(() => [
     {
       id: 'status',
-      label: 'State',
+      label: CapabilitiesStrings.LIST.STATE,
       type: 'checkbox',
       options: Array.from(statusCounts.entries())
         .sort(([a], [b]) => a.localeCompare(b))
@@ -200,7 +202,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
     },
     {
       id: 'category',
-      label: 'Category',
+      label: CapabilitiesStrings.LIST.CATEGORY,
       type: 'checkbox',
       options: Array.from(categoryCounts.entries())
         .sort(([a], [b]) => a.localeCompare(b))
@@ -214,7 +216,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
   const columns = useMemo<TableColumn<Capability>[]>(() => [
     {
       id: 'type',
-      header: 'Type',
+      header: CommonStrings.LABELS.TYPE,
       accessor: (capability) => {
         const displayName = capability.typeName || typeNameMap[capability.typeId] || capability.typeId;
         return (
@@ -229,7 +231,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
     },
     {
       id: 'state',
-      header: 'State',
+      header: CapabilitiesStrings.LIST.STATE,
       accessor: (capability) => (
         <Flex align="center" gap="2">
           <StateIcon state={capability.state} />
@@ -251,7 +253,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
     },
     {
       id: 'category',
-      header: 'Category',
+      header: CapabilitiesStrings.LIST.CATEGORY,
       accessor: (capability) => (
         <Badge variant="outline" size="1">{getCategoryForType(capability.typeId)}</Badge>
       ),
@@ -260,7 +262,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
     },
     {
       id: 'description',
-      header: 'Description',
+      header: CommonStrings.LABELS.DESCRIPTION,
       accessor: (capability) => {
         const description = capability.description || capability.stateDescription || '-';
         return (
@@ -274,7 +276,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
     },
     {
       id: 'notes',
-      header: 'Notes',
+      header: CapabilitiesStrings.LIST.NOTES,
       accessor: (capability) => {
         const notes = capability.notes || '-';
         return notes !== '-' ? (
@@ -306,22 +308,22 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
       return (
         <EmptyState
           icon={PuzzleIcon}
-          title="No Matching Capabilities"
-          description="No capabilities match your current filters. Try adjusting your filter criteria."
-          action={{ label: 'Clear Filters', onClick: handleClearFilters }}
+          title={CapabilitiesStrings.LIST.NO_MATCHING_CAPABILITIES}
+          description={CapabilitiesStrings.LIST.NO_CAPABILITIES_MATCH_CURRENT_FILTERS}
+          action={{ label: CommonStrings.ACTIONS.CLEAR_FILTERS, onClick: handleClearFilters }}
         />
       );
     }
     return (
       <EmptyState
         icon={PuzzleIcon}
-        title="No Capabilities"
-        description="Capabilities are optional features that can be enabled to extend Astrum Repository functionality."
+        title={CapabilitiesStrings.LIST.NO_CAPABILITIES}
+        description={CapabilitiesStrings.LIST.CAPABILITIES_OPTIONAL_FEATURES_CAN_ENABLED}
         secondaryAction={{
-          label: 'Learn more about capabilities',
+          label: CapabilitiesStrings.LIST.LEARN_MORE_ABOUT_CAPABILITIES,
           href: 'http://links.globalart.dev/products/astrum/docs/capabilities',
         }}
-        tip="Capabilities provide additional functionality like security integration, health checks, and custom configurations."
+        tip={CapabilitiesStrings.LIST.CAPABILITIES_PROVIDE_ADDITIONAL_FUNCTIONALITY_LIKE}
       />
     );
   }, [searchTerm, statusFilter, categoryFilter, handleClearFilters]);
@@ -330,7 +332,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
     return (
       <Flex align="center" justify="center" className="capabilities-list__loading">
         <Loader2 size={24} className="capabilities-list__spinner" />
-        <Text size="2">Loading capabilities...</Text>
+        <Text size="2">{CapabilitiesStrings.LIST.LOADING_CAPABILITIES}</Text>
       </Flex>
     );
   }
@@ -360,7 +362,7 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
             <Search size={16} className="capabilities-list__search-icon" />
             <input
               type="text"
-              placeholder="Search capabilities..."
+              placeholder={CapabilitiesStrings.LIST.SEARCH_CAPABILITIES_PLACEHOLDER}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="capabilities-list__search-input"
@@ -370,14 +372,14 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
                 type="button"
                 className="capabilities-list__search-clear"
                 onClick={() => setSearchTerm('')}
-                aria-label="Clear search"
+                aria-label={CapabilitiesStrings.LIST.CLEAR_SEARCH_ARIA}
               >
                 <ActionIcons.Cancel size={14} />
               </button>
             )}
           </Box>
           <Text size="2" className="capabilities-list__count">
-            Showing {filteredCapabilities.length} of {capabilities.length} capabilities
+            {CapabilitiesStrings.LIST.SHOWING_CAPABILITIES(filteredCapabilities.length, capabilities.length)}
           </Text>
         </Box>
 
@@ -387,21 +389,21 @@ export function CapabilitiesList({ onSelect, refreshKey = 0 }: CapabilitiesListP
           getRowKey={(capability) => capability.id}
           onRowClick={handleRowClick}
           loading={loading}
-          loadingMessage="Loading capabilities..."
+          loadingMessage={CapabilitiesStrings.LIST.LOADING_CAPABILITIES}
           error={error || undefined}
           onRetry={() => loadData()}
           emptyState={emptyState}
           showRowArrow={true}
           clickable={true}
-          ariaLabel="Capabilities list"
+          ariaLabel={CapabilitiesStrings.LIST.CAPABILITIES_LIST_ARIA}
           className="capabilities-list__table"
         />
 
         <HelpSection
-          title="About Capabilities"
-          content="Capabilities are optional features that extend Astrum Repository Manager functionality. They can be enabled or disabled based on your needs. Some capabilities may require additional configuration."
+          title={CapabilitiesStrings.LIST.ABOUT_CAPABILITIES}
+          content={CapabilitiesStrings.LIST.CAPABILITIES_OPTIONAL_FEATURES_EXTEND_ASTRUM}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'http://links.globalart.dev/products/astrum/docs/capabilities',
           }}
           className="capabilities-list__help"

@@ -3,6 +3,7 @@
 import { assign, createMachine } from 'xstate';
 import { fetchNodes } from './nodesApi';
 import { NodeInfo } from './types';
+import NodesStrings from '../../../../constants/pages/settings/system/NodesStrings';
 
 export interface NodesContext {
   nodes: NodeInfo[];
@@ -15,7 +16,7 @@ type NodesEvent =
   | { type: 'done.invoke.loadNodes'; data: NodeInfo[] }
   | { type: 'error.platform.loadNodes'; data: Error };
 
-const NODES_LOAD_ERROR = 'Failed to load nodes';
+const NODES_LOAD_ERROR = NodesStrings.MACHINE.FAILED_LOAD_NODES;
 
 /**
  * Read-only fetch machine for the cluster Nodes list.

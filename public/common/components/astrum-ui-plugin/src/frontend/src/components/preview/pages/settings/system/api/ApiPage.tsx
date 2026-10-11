@@ -31,6 +31,8 @@ import { readAstrumPermissionMap } from './utils/astrumPermissionMap';
 import { computeRoleLensAccessById } from './utils/roleLensAccess';
 
 import './ApiPage.scss';
+import ApiStrings from '../../../../constants/pages/settings/system/ApiStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 function isAdminUser(): boolean {
   try {
@@ -94,7 +96,7 @@ export function ApiPage({ className }: ApiPageProps) {
           return;
         }
         if (!target) {
-          setRoleLensError(`Role "${deepLink.roleLensId}" was not found.`);
+          setRoleLensError(ApiStrings.PAGE.ROLE_WAS_NOT_FOUND(deepLink.roleLensId));
           return;
         }
         setRoleLens({
@@ -104,7 +106,7 @@ export function ApiPage({ className }: ApiPageProps) {
         });
       } catch (e: unknown) {
         if (!cancelled) {
-          setRoleLensError(e instanceof Error ? e.message : 'Failed to load role lens data');
+          setRoleLensError(e instanceof Error ? e.message : ApiStrings.PAGE.FAILED_LOAD_ROLE_LENS_DATA);
         }
       }
     })();
@@ -173,14 +175,14 @@ export function ApiPage({ className }: ApiPageProps) {
       !isAdminUser()
     ) {
       w.push(
-        "Checking another user's access requires administrator privileges. Access dots may stay unknown until permissions allow the access-check API to succeed."
+        ApiStrings.PAGE.CHECKING_ANOTHER_USERS_ACCESS_REQUIRES
       );
     }
     if (deepLink.endpointParam && permissionFiltered.length > 0) {
       const f = findEndpointByDeepLink(permissionFiltered, deepLink.endpointParam);
       if (!f) {
         w.push(
-          'No endpoint matched the endpoint= deep link for the current filtered list (verify method, path, and permission filter).'
+          ApiStrings.PAGE.NO_ENDPOINT_MATCHED_ENDPOINT_DEEP
         );
       }
     }
@@ -226,10 +228,10 @@ export function ApiPage({ className }: ApiPageProps) {
       data-loading={initialLoading ? 'true' : 'false'}
     >
       <PageHeader
-        title="API"
-        description="Documentation, permissions, and access tools"
+        title={ApiStrings.PAGE.API}
+        description={ApiStrings.PAGE.DOCUMENTATION_PERMISSIONS_ACCESS_TOOLS}
         breadcrumbs={[
-          { label: 'Settings', onClick: navigateToSettings },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
           { label: 'API' },
         ]}
         className="api-page__header"
@@ -240,22 +242,22 @@ export function ApiPage({ className }: ApiPageProps) {
         <Box className="api-page__deep-link-info" mt="2">
           {deepLink.viewAsUserId && (
             <Text size="2" color="gray" as="div">
-              Viewing access for user: <Text weight="bold">{deepLink.viewAsUserId}</Text>
-              {currentUserId && deepLink.viewAsUserId === currentUserId ? ' (you)' : null}
+              {ApiStrings.PAGE.VIEWING_ACCESS_FOR_USER(<Text weight="bold">{deepLink.viewAsUserId}</Text>)}
+              {currentUserId && deepLink.viewAsUserId === currentUserId ? ` ${ApiStrings.PAGE.YOU}` : null}
             </Text>
           )}
           {deepLink.roleLensId && (
             <Text size="2" color="gray" as="div">
-              Role lens:{' '}
-              <Text weight="bold">
-                {roleLens?.target?.name ?? deepLink.roleLensId}
-              </Text>{' '}
-              (blue dot = role satisfies required permissions)
+              {ApiStrings.PAGE.ROLE_LENS(
+                <Text weight="bold">
+                  {roleLens?.target?.name ?? deepLink.roleLensId}
+                </Text>
+              )}
             </Text>
           )}
           {deepLink.permissionFilter && (
             <Text size="2" color="gray" as="div">
-              Filtered to permission containing: <Text weight="bold">{deepLink.permissionFilter}</Text>
+              {ApiStrings.PAGE.FILTERED_TO_PERMISSION(<Text weight="bold">{deepLink.permissionFilter}</Text>)}
             </Text>
           )}
         </Box>
@@ -279,11 +281,10 @@ export function ApiPage({ className }: ApiPageProps) {
         <Box className="api-page__alerts" mb="3">
           <SettingsAlert type="warning" onClose={() => setDismissPermBanner(true)}>
             <Text size="2" as="div" weight="medium">
-              Could not load the API permission map (Try It and the endpoint list from Swagger may still work).
+              {ApiStrings.PAGE.COULD_NOT_LOAD_API_PERMISSION}
             </Text>
             <Text size="2" as="div" mt="2" style={{ opacity: 0.95 }}>
-              Who Has Access and Grant Access need mapped permissions; they may be limited until this succeeds. Typical
-              causes: API not deployed in this build, missing <Text style={{ fontFamily: 'var(--font-mono)' }}>astrum:settings:read</Text>, or network/VPN issues.
+              {ApiStrings.PAGE.PERMISSION_MAP_HINT(<Text style={{ fontFamily: 'var(--font-mono)' }}>astrum:settings:read</Text>)}
             </Text>
             <Text size="2" as="div" mt="2" style={{ fontFamily: 'var(--font-mono)', wordBreak: 'break-word' }}>
               {permError}
@@ -295,7 +296,7 @@ export function ApiPage({ className }: ApiPageProps) {
       {swaggerError && !dismissSwaggerBanner && (
         <Box className="api-page__alerts" mb="3">
           <SettingsAlert type="warning" onClose={() => setDismissSwaggerBanner(true)}>
-            API documentation failed to load. Permission metadata from the registry is still shown where available.
+            {ApiStrings.PAGE.API_DOCUMENTATION_FAILED_LOAD_PERMISSION}
           </SettingsAlert>
         </Box>
       )}
@@ -322,25 +323,24 @@ export function ApiPage({ className }: ApiPageProps) {
         <Flex align="center" gap="2" className="api-page__help-header">
           <Info size={16} />
           <Text size="2" weight="medium">
-            About API Documentation
+            {ApiStrings.PAGE.ABOUT_API_DOCUMENTATION}
           </Text>
         </Flex>
         <Text size="2" className="api-page__help-text">
-          Explore the Astrum Repository REST API, inspect required permissions, and use Try It to call operations from
-          your browser.
+          {ApiStrings.PAGE.EXPLORE_ASTRUM_REPOSITORY_REST_API}
         </Text>
         <Text size="2" className="api-page__help-text">
-          See our{' '}
-          <a
-            href="https://help.globalart.dev/en/rest-and-integration-api.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="api-page__help-link"
-          >
-            documentation
-            <ExternalLink size={12} />
-          </a>{' '}
-          for more information.
+          {ApiStrings.PAGE.SEE_DOCUMENTATION(
+            <a
+              href="https://help.globalart.dev/en/rest-and-integration-api.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="api-page__help-link"
+            >
+              {ApiStrings.PAGE.DOCUMENTATION_LINK}
+              <ExternalLink size={12} />
+            </a>
+          )}
         </Text>
       </Box>
     </Box>

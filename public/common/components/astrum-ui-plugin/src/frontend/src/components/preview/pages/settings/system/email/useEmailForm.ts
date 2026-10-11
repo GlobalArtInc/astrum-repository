@@ -6,6 +6,7 @@ import { useForm, type FormContext } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createEmailFormMachine, emailConfigToRest } from './emailFormMachine';
 import { EmailConfiguration } from './types';
+import EmailStrings from '../../../../constants/pages/settings/system/EmailStrings';
 
 export interface UseEmailFormOptions {
   onCancel?: () => void;
@@ -33,9 +34,9 @@ export function useEmailForm(options: UseEmailFormOptions = {}) {
         try {
           const payload = emailConfigToRest(ctx.data);
           await restClient.put(ENDPOINTS.EMAIL, payload);
-          toast.success('Email server settings saved');
+          toast.success(EmailStrings.FORM_HOOK.EMAIL_SERVER_SETTINGS_SAVED);
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Failed to save email settings');
+          toast.error(err instanceof Error ? err.message : EmailStrings.FORM_HOOK.FAILED_SAVE_EMAIL_SETTINGS);
           throw err;
         }
       },

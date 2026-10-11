@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { restClient } from '../../../../../../interface/api';
 import { formatErrorMessage } from './iqServerUtils';
+import IqServerStrings from '../../../../constants/pages/settings/system/IqServerStrings';
 
 const REPOSITORY_DASHBOARD_API = '/service/rest/v1/repository-dashboard';
 const REPOSITORY_DASHBOARD_FORMATS_API = '/service/rest/v1/repository-dashboard/formats';
@@ -224,7 +225,7 @@ export function useHostedRepoEvaluation() {
       if (signal?.aborted || (err as { name?: string })?.name === 'CanceledError' || (err as { name?: string })?.name === 'AbortError') {
         return { rows: [], totalCount: 0, monitoredCount: 0, page: query.page, pageSize: query.pageSize, globalConfigAvailable: false };
       }
-      setError(formatErrorMessage(err, 'Failed to load repositories'));
+      setError(formatErrorMessage(err, IqServerStrings.EVALUATION_HOOK.FAILED_LOAD_REPOSITORIES));
       return { rows: [], totalCount: 0, monitoredCount: 0, page: query.page, pageSize: query.pageSize, globalConfigAvailable: false };
     } finally {
       setLoading(false);
@@ -244,9 +245,9 @@ export function useHostedRepoEvaluation() {
         autoEnrollNewRepos: settings.autoEnrollNewRepos,
       };
       const data = await restClient.patch<UnifiedSaveResponse>(EVALUATION_SETTINGS_API, payload);
-      return unifySaveResponse(data, 'Settings saved');
+      return unifySaveResponse(data, IqServerStrings.EVALUATION_HOOK.SETTINGS_SAVED);
     } catch (err) {
-      const message = formatErrorMessage(err, 'Failed to save settings');
+      const message = formatErrorMessage(err, IqServerStrings.EVALUATION_HOOK.FAILED_SAVE_SETTINGS);
       setError(message);
       return { ok: false, message };
     } finally {
@@ -259,9 +260,9 @@ export function useHostedRepoEvaluation() {
     setError(null);
     try {
       const data = await restClient.patch<UnifiedSaveResponse>(EVALUATION_REPOSITORIES_API, delta);
-      return unifySaveResponse(data, 'Selections updated');
+      return unifySaveResponse(data, IqServerStrings.EVALUATION_HOOK.SELECTIONS_UPDATED);
     } catch (err) {
-      const message = formatErrorMessage(err, 'Failed to update selections');
+      const message = formatErrorMessage(err, IqServerStrings.EVALUATION_HOOK.FAILED_UPDATE_SELECTIONS);
       setError(message);
       return { ok: false, message };
     } finally {
@@ -287,9 +288,9 @@ export function useHostedRepoEvaluation() {
         repositoryIds,
       };
       const data = await restClient.put<UnifiedSaveResponse>(EVALUATION_SETTINGS_WITH_REPOS_API, payload);
-      return unifySaveResponse(data, 'Settings saved');
+      return unifySaveResponse(data, IqServerStrings.EVALUATION_HOOK.SETTINGS_SAVED);
     } catch (err) {
-      const message = formatErrorMessage(err, 'Failed to save settings');
+      const message = formatErrorMessage(err, IqServerStrings.EVALUATION_HOOK.FAILED_SAVE_SETTINGS);
       setError(message);
       return { ok: false, message };
     } finally {

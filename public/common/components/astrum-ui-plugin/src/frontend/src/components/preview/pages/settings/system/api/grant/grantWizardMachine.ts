@@ -1,6 +1,7 @@
 
 
 import { assign, createMachine } from 'xstate';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 
 export interface GrantApplyResult {
   userKey: string;
@@ -160,7 +161,7 @@ export function createGrantWizardMachine() {
                   if (data instanceof Error) {
                     return data.message;
                   }
-                  return typeof data === 'string' ? data : 'Apply failed';
+                  return typeof data === 'string' ? data : ApiStrings.GRANT_WIZARD_MACHINE.APPLY_FAILED;
                 },
               }),
             },

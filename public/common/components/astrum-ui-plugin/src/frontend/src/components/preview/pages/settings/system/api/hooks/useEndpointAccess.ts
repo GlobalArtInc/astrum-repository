@@ -19,6 +19,7 @@ import {
   buildRoleByIdMap,
   roleSatisfiesRequiredPermissions,
 } from '../utils/rolePrivilegeCoverage';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 
 export type { SecurityDirectorySession } from './securityDirectoryCache';
 export { invalidateEndpointAccessCache };
@@ -136,7 +137,7 @@ export function useEndpointAccess(row: MergedApiEndpoint | null, enabled: boolea
       })
       .catch((e: unknown) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Failed to load security data');
+          setError(e instanceof Error ? e.message : ApiStrings.ENDPOINT_ACCESS.FAILED_LOAD_SECURITY_DATA);
         }
       })
       .finally(() => {

@@ -10,6 +10,9 @@ import { WizardForm } from '../../../../../shared/form/WizardForm';
 import { NEW_ROLE_ID_PATTERN } from './grantWizardMachine';
 import { useGrantWizard, userDirectoryKey } from './useGrantWizard';
 import type { MergedApiEndpoint } from '../utils/mergeSwaggerPermissions';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
+import CommonStrings from '../../../../../constants/CommonStrings';
+import plural from '../../../../../../../interface/plural';
 
 export interface GrantWizardProps {
   row: MergedApiEndpoint;
@@ -17,10 +20,10 @@ export interface GrantWizardProps {
 }
 
 const WIZARD_STEPS = [
-  { id: 'permissions', label: 'Permissions' },
-  { id: 'role', label: 'Choose Role' },
-  { id: 'users', label: 'Select Users' },
-  { id: 'confirm', label: 'Confirm' },
+  { id: 'permissions', label: ApiStrings.GRANT_WIZARD.PERMISSIONS },
+  { id: 'role', label: ApiStrings.GRANT_WIZARD.CHOOSE_ROLE },
+  { id: 'users', label: ApiStrings.GRANT_WIZARD.SELECT_USERS },
+  { id: 'confirm', label: CommonStrings.ACTIONS.CONFIRM },
 ];
 
 function stateToStep(state: { matches: (s: string) => boolean }): number {
@@ -61,13 +64,13 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
         : (session?.roles.find((r) => r.id === ctx.existingRoleId)?.name || ctx.existingRoleId || 'role');
       const userList = successNames.length <= 3
         ? successNames.join(', ')
-        : `${successNames.slice(0, 3).join(', ')} and ${successNames.length - 3} more`;
+        : ApiStrings.GRANT_WIZARD.AND_MORE(successNames.slice(0, 3).join(', '), successNames.length - 3);
       if (failCount === 0) {
-        toast.success(`Role "${roleName}" granted to ${userList}`);
+        toast.success(ApiStrings.GRANT_WIZARD.ROLE_GRANTED(roleName, userList));
       } else if (successCount > 0) {
-        toast.success(`Role "${roleName}" granted to ${userList} (${failCount} failed)`);
+        toast.success(ApiStrings.GRANT_WIZARD.ROLE_GRANTED_FAILED(roleName, userList, failCount));
       } else {
-        toast.error(`Failed to grant role "${roleName}" — see details below`);
+        toast.error(ApiStrings.GRANT_WIZARD.FAILED_GRANT_ROLE_SEE_DETAILS(roleName));
       }
     }
     prevDoneRef.current = isDone;
@@ -133,7 +136,7 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
     return (
       <Box data-testid="api-grant-wizard" className="api-grant-wizard">
         <Text size="2" color="gray">
-          Grant Access needs mapped permission strings for this operation. None are registered for this endpoint.
+          {ApiStrings.GRANT_WIZARD.GRANT_ACCESS_NEEDS_MAPPED_PERMISSION}
         </Text>
       </Box>
     );
@@ -143,7 +146,7 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
     return (
       <Flex align="center" gap="2" py="4" data-testid="api-grant-wizard">
         <Spinner />
-        <Text size="2">Loading roles and users…</Text>
+        <Text size="2">{ApiStrings.GRANT_WIZARD.LOADING_ROLES_USERS}</Text>
       </Flex>
     );
   }
@@ -164,20 +167,20 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
 
   const summaryRoleLabel =
     ctx.mode === 'create'
-      ? `${ctx.newRoleName.trim() || ctx.newRoleId.trim() || '(new role)'}`
+      ? `${ctx.newRoleName.trim() || ctx.newRoleId.trim() || ApiStrings.GRANT_WIZARD.NEW_ROLE}`
       : session.roles.find((r) => r.id === ctx.existingRoleId)?.name || ctx.existingRoleId || '';
 
   if (state.matches('done')) {
     return (
       <Box className="api-grant-wizard" data-testid="api-grant-wizard">
         <Heading as="h3" size="3" weight="medium" mb="2">
-          Result
+          {ApiStrings.GRANT_WIZARD.RESULT}
         </Heading>
         <Table.Root variant="surface" mb="3">
           <Table.Header>
             <Table.Row>
-              <Table.ColumnHeaderCell>User</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>{ApiStrings.GRANT_WIZARD.USER}</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>{CommonStrings.LABELS.STATUS}</Table.ColumnHeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -189,11 +192,11 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
                   <Table.Cell>
                     {r.ok ? (
                       <Text size="2" color="green">
-                        Assigned
+                        {ApiStrings.GRANT_WIZARD.ASSIGNED}
                       </Text>
                     ) : (
                       <Text size="2" color="red">
-                        {r.message || 'Failed'}
+                        {r.message || ApiStrings.GRANT_WIZARD.FAILED}
                       </Text>
                     )}
                   </Table.Cell>
@@ -204,9 +207,9 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
         </Table.Root>
         <Flex gap="2" wrap="wrap">
           <Button variant="soft" onClick={() => send({ type: 'DONE_ANOTHER' })}>
-            Grant to more users
+            {ApiStrings.GRANT_WIZARD.GRANT_MORE_USERS}
           </Button>
-          <Button onClick={() => send({ type: 'RESET' })}>Start over</Button>
+          <Button onClick={() => send({ type: 'RESET' })}>{ApiStrings.GRANT_WIZARD.START_OVER}</Button>
         </Flex>
       </Box>
     );
@@ -217,8 +220,7 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
       {anonymous && (
         <Box mb="3" p="2" className="api-who-has-access-tab__banner">
           <Text size="2">
-            This endpoint may allow anonymous access. Granting roles still limits access when authentication is required
-            elsewhere.
+            {ApiStrings.GRANT_WIZARD.ENDPOINT_MAY_ALLOW_ANONYMOUS_ACCESS}
           </Text>
         </Box>
       )}
@@ -229,7 +231,7 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
         onStepChange={handleStepChange}
         onComplete={handleComplete}
         onCancel={handleCancel}
-        completeLabel="Apply"
+        completeLabel={ApiStrings.GRANT_WIZARD.APPLY}
         canAdvance={canAdvance}
         loading={state.matches('applying')}
         error={ctx.applyError || undefined}
@@ -241,7 +243,7 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
         {wizardStep === 0 && (
           <Box>
             <Text size="2" color="gray" mb="2">
-              This operation requires {logical === 'OR' ? 'ANY' : 'ALL'} of:
+              {logical === 'OR' ? ApiStrings.GRANT_WIZARD.REQUIRES_ANY : ApiStrings.GRANT_WIZARD.REQUIRES_ALL}
             </Text>
             <Box mb="3">
               {permissionReqs.map((p) => (
@@ -258,14 +260,13 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
         {wizardStep === 1 && (
           <Box>
             <Text size="2" color="gray" mb="3">
-              Pick an existing role that already satisfies the permission{permissionReqs.length === 1 ? '' : 's'}, or
-              create a dedicated role with only the needed privileges.
+              {plural(ApiStrings.GRANT_WIZARD.PICK_EXISTING_ROLE, permissionReqs.length)}
             </Text>
 
             {recommendedRoles.length > 0 && (
               <Box mb="3">
                 <Text size="2" weight="medium" mb="2">
-                  Recommended
+                  {ApiStrings.GRANT_WIZARD.RECOMMENDED}
                 </Text>
                 <Flex direction="column" gap="2">
                   {recommendedRoles.map((r, idx) => (
@@ -279,11 +280,11 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
                       </Button>
                       {idx === 0 && (
                         <Badge color="green" size="1">
-                          Most specific
+                          {ApiStrings.GRANT_WIZARD.MOST_SPECIFIC}
                         </Badge>
                       )}
                       <Text size="1" color="gray">
-                        {userCountByRoleId.get(r.id) ?? 0} users · {r.id}
+                        {plural(ApiStrings.GRANT_WIZARD.ROLE_USER_COUNT, userCountByRoleId.get(r.id) ?? 0)} · {r.id}
                       </Text>
                     </Flex>
                   ))}
@@ -305,14 +306,14 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
                   }
                 }}
               >
-                Create new role
+                {ApiStrings.GRANT_WIZARD.CREATE_NEW_ROLE}
               </Button>
             </Box>
 
             {ctx.mode === 'create' && (
               <Box mb="3" style={{ maxWidth: 480 }}>
                 <Text size="2" mb="2" as="div">
-                  Role ID
+                  {ApiStrings.GRANT_WIZARD.ROLE_ID}
                 </Text>
                 <TextField.Root
                   mb="2"
@@ -320,15 +321,15 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
                   onChange={(e) =>
                     send({ type: 'SET_NEW_ROLE_FIELD', field: 'newRoleId', value: e.target.value })
                   }
-                  aria-label="New role id"
+                  aria-label={ApiStrings.GRANT_WIZARD.NEW_ROLE_ID_ARIA}
                 />
                 {!NEW_ROLE_ID_PATTERN.test(ctx.newRoleId.trim()) && ctx.newRoleId.trim() !== '' && (
                   <Text size="1" color="red" mb="2">
-                    Use letters, digits, periods, hyphens, and underscores only.
+                    {ApiStrings.GRANT_WIZARD.USE_LETTERS_DIGITS_PERIODS_HYPHENS}
                   </Text>
                 )}
                 <Text size="2" mb="2" as="div">
-                  Display name
+                  {ApiStrings.GRANT_WIZARD.DISPLAY_NAME}
                 </Text>
                 <TextField.Root
                   mb="2"
@@ -336,17 +337,17 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
                   onChange={(e) =>
                     send({ type: 'SET_NEW_ROLE_FIELD', field: 'newRoleName', value: e.target.value })
                   }
-                  aria-label="New role name"
+                  aria-label={ApiStrings.GRANT_WIZARD.NEW_ROLE_NAME_ARIA}
                 />
                 <Text size="2" mb="2" as="div">
-                  Description (optional)
+                  {ApiStrings.GRANT_WIZARD.DESCRIPTION_OPTIONAL}
                 </Text>
                 <TextField.Root
                   value={ctx.newRoleDescription}
                   onChange={(e) =>
                     send({ type: 'SET_NEW_ROLE_FIELD', field: 'newRoleDescription', value: e.target.value })
                   }
-                  aria-label="New role description"
+                  aria-label={ApiStrings.GRANT_WIZARD.NEW_ROLE_DESCRIPTION_ARIA}
                 />
               </Box>
             )}
@@ -356,22 +357,22 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
         {wizardStep === 2 && (
           <Box>
             <Text size="2" color="gray" mb="2">
-              Choose one or more users to receive the role.
+              {ApiStrings.GRANT_WIZARD.CHOOSE_ONE_MORE_USERS_RECEIVE}
             </Text>
             <Box mb="2" style={{ maxWidth: 360 }}>
               <TextField.Root
-                placeholder="Filter users…"
+                placeholder={ApiStrings.GRANT_WIZARD.FILTER_USERS_PLACEHOLDER}
                 value={userFilter}
                 onChange={(e) => setUserFilter(e.target.value)}
-                aria-label="Filter users for grant"
+                aria-label={ApiStrings.GRANT_WIZARD.FILTER_USERS_GRANT_ARIA}
               />
             </Box>
             <Table.Root variant="surface" mb="3">
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeaderCell style={{ width: 48 }}> </Table.ColumnHeaderCell>
-                  <Table.ColumnHeaderCell>User</Table.ColumnHeaderCell>
-                  <Table.ColumnHeaderCell>Source</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{ApiStrings.GRANT_WIZARD.USER}</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{ApiStrings.GRANT_WIZARD.SOURCE}</Table.ColumnHeaderCell>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -384,7 +385,7 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
                         <Checkbox
                           checked={checked}
                           onCheckedChange={() => send({ type: 'TOGGLE_USER', userKey: key })}
-                          aria-label={`Select user ${u.userId}`}
+                          aria-label={ApiStrings.GRANT_WIZARD.SELECT_USER(u.userId)}
                         />
                       </Table.Cell>
                       <Table.Cell>
@@ -409,12 +410,15 @@ export function GrantWizard({ row, active }: GrantWizardProps) {
             <Text size="2" mb="3">
               {ctx.mode === 'create' ? (
                 <>
-                  Create role <Text weight="bold">{ctx.newRoleId.trim()}</Text> ({summaryRoleLabel}) with the mapped
-                  privileges, then assign it to {ctx.selectedUserKeys.length} user(s).
+                  {ApiStrings.GRANT_WIZARD.CREATE_ROLE_SUMMARY(
+                    <Text weight="bold">{ctx.newRoleId.trim()}</Text>,
+                    summaryRoleLabel,
+                    ctx.selectedUserKeys.length
+                  )}
                 </>
               ) : (
                 <>
-                  Assign role <Text weight="bold">{summaryRoleLabel}</Text> to {ctx.selectedUserKeys.length} user(s).
+                  {ApiStrings.GRANT_WIZARD.ASSIGN_ROLE_SUMMARY(<Text weight="bold">{summaryRoleLabel}</Text>, ctx.selectedUserKeys.length)}
                 </>
               )}
             </Text>

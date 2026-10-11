@@ -10,6 +10,7 @@ import {
   CapabilityFormData,
   FormField,
 } from './types';
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
 
 // =============================================================================
 // VALIDATION
@@ -28,7 +29,7 @@ function validateCapability(
 
   // Capability type is required
   if (!data.typeId) {
-    errors.typeId = 'Capability type is required';
+    errors.typeId = CapabilitiesStrings.FORM_MACHINE.CAPABILITY_TYPE_REQUIRED;
   }
 
   // Dynamic field validation based on the selected capability type
@@ -38,7 +39,7 @@ function validateCapability(
 
       // Required validation
       if (field.required && (!value || value.trim() === '')) {
-        errors[`properties.${field.id}`] = `${field.label} is required`;
+        errors[`properties.${field.id}`] = CapabilitiesStrings.FORM_MACHINE.IS_REQUIRED(field.label);
         continue;
       }
 
@@ -49,7 +50,7 @@ function validateCapability(
       if (field.type === 'url') {
         const urlRegex = /^https?:\/\/[^\s"<>^`{|}][^"<>^`{|}]*$/i;
         if (!urlRegex.test(value)) {
-          errors[`properties.${field.id}`] = 'This field should be a URL in the format "http://www.example.com"';
+          errors[`properties.${field.id}`] = CapabilitiesStrings.FORM_MACHINE.FIELD_SHOULD_URL_FORMAT_HTTP;
           continue;
         }
       }
@@ -59,7 +60,7 @@ function validateCapability(
         try {
           const regex = new RegExp(field.regexValidation);
           if (!regex.test(value)) {
-            errors[`properties.${field.id}`] = `${field.label} is invalid`;
+            errors[`properties.${field.id}`] = CapabilitiesStrings.FORM_MACHINE.IS_INVALID(field.label);
           }
         } catch {
           // Invalid regex, skip validation
@@ -70,13 +71,13 @@ function validateCapability(
       if (field.type === 'number') {
         const numValue = parseFloat(value);
         if (Number.isNaN(numValue)) {
-          errors[`properties.${field.id}`] = `${field.label} must be a number`;
+          errors[`properties.${field.id}`] = CapabilitiesStrings.FORM_MACHINE.MUST_NUMBER(field.label);
         } else {
           if (field.minValue !== undefined && numValue < field.minValue) {
-            errors[`properties.${field.id}`] = `${field.label} must be at least ${field.minValue}`;
+            errors[`properties.${field.id}`] = CapabilitiesStrings.FORM_MACHINE.MUST_LEAST(field.label, field.minValue);
           }
           if (field.maxValue !== undefined && numValue > field.maxValue) {
-            errors[`properties.${field.id}`] = `${field.label} must be at most ${field.maxValue}`;
+            errors[`properties.${field.id}`] = CapabilitiesStrings.FORM_MACHINE.MUST_MOST(field.label, field.maxValue);
           }
         }
       }

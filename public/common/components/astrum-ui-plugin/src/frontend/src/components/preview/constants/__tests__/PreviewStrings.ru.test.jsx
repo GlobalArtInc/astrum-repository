@@ -38,14 +38,12 @@ function loadWith(translations) {
     require('../PreviewStrings');
   });
   return (key) => {
-    const owner = [...recorded].sort((a, b) => b.scope.length - a.scope.length)
-        .find(({scope}) => scope && key.startsWith(`${scope}.`));
-    if (!owner) {
-      return undefined;
-    }
-    const value = key.slice(owner.scope.length + 1).split('.')
-        .reduce((node, part) => (node == null ? undefined : node[part]), owner.strings);
-    return render(value);
+    const value = [...recorded].sort((a, b) => b.scope.length - a.scope.length)
+        .filter(({scope}) => scope && key.startsWith(`${scope}.`))
+        .map(({scope, strings}) => key.slice(scope.length + 1).split('.')
+            .reduce((node, part) => (node == null ? undefined : node[part]), strings))
+        .find((found) => found !== undefined);
+    return value === undefined ? undefined : render(value);
   };
 }
 

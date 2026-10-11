@@ -23,6 +23,8 @@ import {
 } from './types';
 
 import './CapabilitiesPage.scss';
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * CapabilitiesPage - Main Capabilities management page for Preview UI
@@ -178,15 +180,15 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
     try {
       if (viewMode === 'create') {
         const result = await createCapability(data);
-        toast.success(`Capability created: ${getCapabilityDescription(result)}`);
+        toast.success(CapabilitiesStrings.PAGE.CAPABILITY_CREATED(getCapabilityDescription(result)));
       } else if (selectedCapability) {
         const result = await updateCapability(data);
-        toast.success(`Capability updated: ${getCapabilityDescription(result)}`);
+        toast.success(CapabilitiesStrings.PAGE.CAPABILITY_UPDATED(getCapabilityDescription(result)));
       }
       setRefreshKey((k) => k + 1);
       handleBack();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save capability';
+      const message = err instanceof Error ? err.message : CapabilitiesStrings.PAGE.FAILED_SAVE_CAPABILITY;
       toast.error(message);
       throw err;
     }
@@ -197,11 +199,11 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
 
     try {
       await deleteCapability(selectedCapability.id);
-      toast.success(`Capability deleted: ${getCapabilityDescription(selectedCapability)}`);
+      toast.success(CapabilitiesStrings.PAGE.CAPABILITY_DELETED(getCapabilityDescription(selectedCapability)));
       setRefreshKey((k) => k + 1);
       handleBack();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete capability';
+      const message = err instanceof Error ? err.message : CapabilitiesStrings.PAGE.FAILED_DELETE_CAPABILITY;
       toast.error(message);
     }
   }, [selectedCapability, deleteCapability, handleBack, toast.error, toast.success]);
@@ -211,11 +213,11 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
 
     try {
       await enableCapability(selectedCapability);
-      toast.success(`Capability: ${selectedCapability.typeName} enabled`);
+      toast.success(CapabilitiesStrings.PAGE.CAPABILITY_ENABLED(selectedCapability.typeName));
       setRefreshKey((k) => k + 1);
       setSelectedCapability((prev) => prev ? { ...prev, enabled: true, state: 'active' } : null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to enable capability';
+      const message = err instanceof Error ? err.message : CapabilitiesStrings.PAGE.FAILED_ENABLE_CAPABILITY;
       toast.error(message);
     }
   }, [selectedCapability, enableCapability, toast.error, toast.success]);
@@ -225,12 +227,12 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
 
     try {
       await disableCapability(selectedCapability);
-      toast.success(`Capability: ${selectedCapability.typeName} disabled`);
+      toast.success(CapabilitiesStrings.PAGE.CAPABILITY_DISABLED(selectedCapability.typeName));
       setRefreshKey((k) => k + 1);
       // Refresh detail view
       setSelectedCapability((prev) => prev ? { ...prev, enabled: false, state: 'disabled' } : null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to disable capability';
+      const message = err instanceof Error ? err.message : CapabilitiesStrings.PAGE.FAILED_DISABLE_CAPABILITY;
       toast.error(message);
     }
   }, [selectedCapability, disableCapability, toast.error, toast.success]);
@@ -244,18 +246,18 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
   const renderHeader = () => {
     if (viewMode === 'list') {
       const breadcrumbs = [
-        { label: 'Settings', onClick: navigateToSettings },
-        { label: 'Capabilities' },
+        { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+        { label: CapabilitiesStrings.PAGE.CAPABILITIES },
       ];
       const actions = canCreate ? (
         <SettingsButton variant="primary" onClick={handleStartCreate} data-analytics-id="as-capability-create" icon={Plus}>
-          Create Capability
+          {CapabilitiesStrings.PAGE.CREATE_CAPABILITY}
         </SettingsButton>
       ) : undefined;
       return (
         <PageHeader
-          title="Capabilities"
-          description="Manage repository manager capabilities and plugins"
+          title={CapabilitiesStrings.PAGE.CAPABILITIES}
+          description={CapabilitiesStrings.PAGE.MANAGE_REPOSITORY_MANAGER_CAPABILITIES_PLUGINS}
           breadcrumbs={breadcrumbs}
           actions={actions}
           className="capabilities-page__header"
@@ -268,9 +270,9 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
       return (
         <PageHeader
           breadcrumbs={[
-            { label: 'Settings', onClick: navigateToSettings },
-            { label: 'Capabilities', onClick: handleBack },
-            { label: 'Create' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+            { label: CapabilitiesStrings.PAGE.CAPABILITIES, onClick: handleBack },
+            { label: CommonStrings.ACTIONS.CREATE },
           ]}
           className="capabilities-page__header"
         />
@@ -279,15 +281,15 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
 
     // Detail view
     const breadcrumbs = [
-      { label: 'Settings', onClick: navigateToSettings },
-      { label: 'Capabilities', onClick: handleBack },
-      { label: selectedCapability?.typeName || 'Capability' },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+      { label: CapabilitiesStrings.PAGE.CAPABILITIES, onClick: handleBack },
+      { label: selectedCapability?.typeName || CapabilitiesStrings.PAGE.CAPABILITY },
     ];
 
     return (
       <PageHeader
-        title={selectedCapability?.typeName || 'Capability'}
-        description={selectedCapability?.description || 'View and manage capability settings'}
+        title={selectedCapability?.typeName || CapabilitiesStrings.PAGE.CAPABILITY}
+        description={selectedCapability?.description || CapabilitiesStrings.PAGE.VIEW_MANAGE_CAPABILITY_SETTINGS}
         breadcrumbs={breadcrumbs}
         className="capabilities-page__header"
       />
@@ -318,14 +320,14 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
         {(viewMode === 'selectType' || viewMode === 'create') && (
           <WizardForm
             steps={[
-              { id: 'type', label: 'Select Type' },
-              { id: 'config', label: 'Configure' },
+              { id: 'type', label: CapabilitiesStrings.PAGE.SELECT_TYPE },
+              { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
             ]}
             currentStep={createStep}
             onStepChange={handleWizardStepChange}
             onComplete={handleWizardComplete}
             onCancel={handleWizardCancel}
-            completeLabel="Create"
+            completeLabel={CommonStrings.ACTIONS.CREATE}
             dirty={createStep > 0}
             canAdvance={createStep === 0 ? !!selectedType : formReady}
             loading={loading}
@@ -352,7 +354,7 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
             )}
             {createStep === 1 && !selectedType && params.typeId && (
               <Flex align="center" justify="center" p="6" gap="2">
-                <Text size="2">Loading...</Text>
+                <Text size="2">{CommonStrings.MESSAGES.LOADING}</Text>
               </Flex>
             )}
           </WizardForm>
@@ -360,7 +362,7 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
 
         {viewMode === 'detail' && !selectedCapability && params.capabilityId && (
           <Flex align="center" justify="center" p="6" gap="2">
-            <Text size="2">Loading...</Text>
+            <Text size="2">{CommonStrings.MESSAGES.LOADING}</Text>
           </Flex>
         )}
 

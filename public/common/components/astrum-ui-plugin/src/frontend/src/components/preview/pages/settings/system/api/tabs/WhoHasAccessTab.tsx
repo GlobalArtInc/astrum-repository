@@ -6,6 +6,8 @@ import { Box, Flex, Heading, Spinner, Table, Text, TextField } from '@radix-ui/t
 import { getSourceLabel } from '../../../security/users/types';
 import { useEndpointAccess } from '../hooks/useEndpointAccess';
 import type { MergedApiEndpoint } from '../utils/mergeSwaggerPermissions';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
+import plural from '../../../../../../../interface/plural';
 
 const ROLES_PROFILE_BASE = 'preview/admin/security/roles';
 const USERS_BASE = 'preview/admin/security/users';
@@ -57,15 +59,14 @@ export function WhoHasAccessTab({ row, active }: WhoHasAccessTabProps) {
       {anonymous && (
         <Box mb="3" p="2" className="api-who-has-access-tab__banner">
           <Text size="2">
-            This endpoint allows anonymous access when anonymous is enabled in Settings → Security → Anonymous Access.
+            {ApiStrings.WHO_HAS_ACCESS_TAB.ENDPOINT_ALLOWS_ANONYMOUS_ACCESS_WHEN}
           </Text>
         </Box>
       )}
 
       {noMappedPermissions && (
         <Text size="2" color="gray" mb="3" as="p">
-          No permission strings are mapped for this operation in the registry. Access may be enforced in code or
-          undocumented.
+          {ApiStrings.WHO_HAS_ACCESS_TAB.NO_PERMISSION_STRINGS_MAPPED_OPERATION}
         </Text>
       )}
 
@@ -78,31 +79,31 @@ export function WhoHasAccessTab({ row, active }: WhoHasAccessTabProps) {
       {loading && (
         <Flex align="center" gap="2" py="4">
           <Spinner />
-          <Text size="2">Loading roles and users…</Text>
+          <Text size="2">{ApiStrings.WHO_HAS_ACCESS_TAB.LOADING_ROLES_USERS}</Text>
         </Flex>
       )}
 
       {!((loading || error ) || noMappedPermissions ) && qualifyingRoles.length === 0 && (
         <Text size="2" color="gray" mb="3">
-          No roles contain the required privileges for this endpoint.
+          {ApiStrings.WHO_HAS_ACCESS_TAB.NO_ROLES_CONTAIN_REQUIRED_PRIVILEGES}
         </Text>
       )}
 
       {!(loading || noMappedPermissions ) && qualifyingRoles.length > 0 && (
         <>
           <Heading as="h3" size="3" weight="medium" mb="2">
-            Roles
+            {ApiStrings.WHO_HAS_ACCESS_TAB.ROLES}
           </Heading>
           <Text size="1" color="gray" mb="2">
-            Roles whose privileges satisfy the required permission{row.permission?.permissions?.length === 1 ? '' : 's'}{' '}
-            ({row.permission?.permissions?.[0]?.logical === 'OR' ? 'ANY' : 'ALL'}).
+            {plural(ApiStrings.WHO_HAS_ACCESS_TAB.ROLES_SATISFY, row.permission?.permissions?.length ?? 0)}{' '}
+            ({row.permission?.permissions?.[0]?.logical === 'OR' ? ApiStrings.WHO_HAS_ACCESS_TAB.LOGICAL_ANY : ApiStrings.WHO_HAS_ACCESS_TAB.LOGICAL_ALL}).
           </Text>
           <Table.Root variant="surface" mb="4">
             <Table.Header>
               <Table.Row>
-                <Table.ColumnHeaderCell>Role</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Users</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Notes</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{ApiStrings.WHO_HAS_ACCESS_TAB.ROLE}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{ApiStrings.WHO_HAS_ACCESS_TAB.USERS}</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell>{ApiStrings.WHO_HAS_ACCESS_TAB.NOTES}</Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -122,7 +123,7 @@ export function WhoHasAccessTab({ row, active }: WhoHasAccessTabProps) {
                   <Table.Cell>
                     {role.readOnly && (
                       <Text size="1" color="gray">
-                        Read-only role (e.g. external mapping). Change mappings in the source realm configuration.
+                        {ApiStrings.WHO_HAS_ACCESS_TAB.READ_ONLY_ROLE_E_G}
                       </Text>
                     )}
                   </Table.Cell>
@@ -133,29 +134,29 @@ export function WhoHasAccessTab({ row, active }: WhoHasAccessTabProps) {
 
           <Flex align="center" justify="between" mb="2" wrap="wrap" gap="2">
             <Heading as="h3" size="3" weight="medium">
-              Users
+              {ApiStrings.WHO_HAS_ACCESS_TAB.USERS}
             </Heading>
             <Box style={{ minWidth: 200, flex: '1 1 200px' }}>
               <TextField.Root
-                placeholder="Filter users…"
+                placeholder={ApiStrings.WHO_HAS_ACCESS_TAB.FILTER_USERS_PLACEHOLDER}
                 value={userFilter}
                 onChange={(e) => setUserFilter(e.target.value)}
-                aria-label="Filter users with access"
+                aria-label={ApiStrings.WHO_HAS_ACCESS_TAB.FILTER_USERS_ACCESS_ARIA}
               />
             </Box>
           </Flex>
 
           {filteredUsers.length === 0 ? (
             <Text size="2" color="gray">
-              No users currently have access to this endpoint.
+              {ApiStrings.WHO_HAS_ACCESS_TAB.NO_USERS_CURRENTLY_HAVE_ACCESS}
             </Text>
           ) : (
             <Table.Root variant="surface">
               <Table.Header>
                 <Table.Row>
-                  <Table.ColumnHeaderCell>User</Table.ColumnHeaderCell>
-                  <Table.ColumnHeaderCell>Source</Table.ColumnHeaderCell>
-                  <Table.ColumnHeaderCell>Granting roles</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{ApiStrings.WHO_HAS_ACCESS_TAB.USER}</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{ApiStrings.WHO_HAS_ACCESS_TAB.SOURCE}</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>{ApiStrings.WHO_HAS_ACCESS_TAB.GRANTING_ROLES}</Table.ColumnHeaderCell>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -173,7 +174,7 @@ export function WhoHasAccessTab({ row, active }: WhoHasAccessTabProps) {
                       <Text size="2">{getSourceLabel(user.source)}</Text>
                       {user.readOnly && (
                         <Text size="1" color="gray" as="div">
-                          External (read-only in Astrum)
+                          {ApiStrings.WHO_HAS_ACCESS_TAB.EXTERNAL_READ_ONLY_ASTRUM}
                         </Text>
                       )}
                     </Table.Cell>

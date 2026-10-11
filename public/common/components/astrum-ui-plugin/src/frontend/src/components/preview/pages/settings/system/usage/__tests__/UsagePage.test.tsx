@@ -4,7 +4,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Theme } from '@radix-ui/themes';
 import UsagePage from '../UsagePage';
-import { USAGE_STRINGS } from '../usageStrings';
+import { USAGE_LEARN_MORE_URL, USAGE_STRINGS } from '../usageStrings';
 import * as useUsageModule from '../useUsage';
 
 jest.mock('../UsageChart', () => ({ UsageChart: () => <div data-testid="usage-chart" /> }));
@@ -26,7 +26,7 @@ describe('UsagePage', () => {
   it('renders the docs link, chart, table, and update-frequency alert', () => {
     spy.mockReturnValue({ ...baseHook });
     renderWithTheme(<UsagePage />);
-    expect(screen.getByText(USAGE_STRINGS.LEARN_MORE)).toHaveAttribute('href', USAGE_STRINGS.LEARN_MORE_URL);
+    expect(screen.getByText(USAGE_STRINGS.LEARN_MORE)).toHaveAttribute('href', USAGE_LEARN_MORE_URL);
     expect(screen.getByTestId('usage-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-table')).toBeInTheDocument();
     expect(screen.getByText(USAGE_STRINGS.UPDATE_FREQUENCY)).toBeInTheDocument();

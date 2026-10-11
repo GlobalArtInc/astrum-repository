@@ -7,6 +7,7 @@ import {
   DEEP_LINK_ID_PATTERN,
   parseApiModuleHashParams,
 } from '../utils/apiModuleDeepLinkParams';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 
 export interface ApiModuleDeepLinkState {
   /** Raw parsed params from the hash query string */
@@ -37,7 +38,7 @@ function buildDeepLinkState(hash: string): ApiModuleDeepLinkState {
 
   if (raw.user) {
     if (!DEEP_LINK_ID_PATTERN.test(raw.user)) {
-      warnings.push('Ignoring invalid user query parameter (allowed: letters, digits, . _ -).');
+      warnings.push(ApiStrings.DEEP_LINK.IGNORING_INVALID_USER_QUERY_PARAMETER);
     } else {
       viewAsUserId = raw.user;
     }
@@ -45,9 +46,9 @@ function buildDeepLinkState(hash: string): ApiModuleDeepLinkState {
 
   if (raw.role) {
     if (!DEEP_LINK_ID_PATTERN.test(raw.role)) {
-      warnings.push('Ignoring invalid role query parameter (allowed: letters, digits, . _ -).');
+      warnings.push(ApiStrings.DEEP_LINK.IGNORING_INVALID_ROLE_QUERY_PARAMETER);
     } else if (!isAdmin()) {
-      warnings.push('Role lens (?role=) requires administrator privileges. Showing your own access instead.');
+      warnings.push(ApiStrings.DEEP_LINK.ROLE_LENS_ROLE_REQUIRES_ADMINISTRATOR);
     } else {
       roleLensId = raw.role;
     }

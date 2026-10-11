@@ -6,16 +6,17 @@ import { useForm, type FormContext } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createHttpFormMachine, httpConfigToRest } from './httpFormMachine';
 import { HttpConfiguration } from './types';
+import HttpStrings from '../../../../constants/pages/settings/system/HttpStrings';
 
 export interface UseHttpFormOptions {
   onCancel?: () => void;
 }
 
 const HTTP_SAVE_ERROR_MESSAGES: Record<number, string> = {
-  400: 'Invalid HTTP settings. Please check your proxy host and port values.',
-  403: 'You do not have permission to modify HTTP settings. Contact your administrator.',
-  405: 'Unable to save HTTP settings. The server rejected this request.',
-  500: 'Server error while saving HTTP settings. Please try again.',
+  400: HttpStrings.FORM_HOOK.INVALID_HTTP_SETTINGS_PLEASE_CHECK,
+  403: HttpStrings.FORM_HOOK.YOU_DO_NOT_HAVE_PERMISSION,
+  405: HttpStrings.FORM_HOOK.UNABLE_SAVE_HTTP_SETTINGS_SERVER,
+  500: HttpStrings.FORM_HOOK.SERVER_ERROR_WHILE_SAVING_HTTP,
 };
 
 export function humanizeHttpError(err: unknown): string {
@@ -27,7 +28,7 @@ export function humanizeHttpError(err: unknown): string {
   }
   const message = err instanceof Error ? err.message : String(err);
   if (message.includes('status code')) {
-    return 'Unable to save HTTP settings. Please try again or contact your administrator.';
+    return HttpStrings.FORM_HOOK.UNABLE_SAVE_HTTP_SETTINGS_PLEASE;
   }
   return message;
 }
@@ -54,7 +55,7 @@ export function useHttpForm(options: UseHttpFormOptions = {}) {
         try {
           const payload = httpConfigToRest(ctx.data);
           await restClient.put(ENDPOINTS.HTTP, payload);
-          toast.success('HTTP settings saved');
+          toast.success(HttpStrings.FORM_HOOK.HTTP_SETTINGS_SAVED);
         } catch (err) {
           const message = humanizeHttpError(err);
           toast.error(message);

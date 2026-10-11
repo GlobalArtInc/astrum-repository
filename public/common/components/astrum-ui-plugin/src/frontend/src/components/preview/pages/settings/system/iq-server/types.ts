@@ -1,3 +1,4 @@
+import IqServerStrings from '../../../../constants/pages/settings/system/IqServerStrings';
 
 
 /**
@@ -112,9 +113,9 @@ export interface IqServerFormData extends Omit<IqServerConfiguration, 'propertie
  * ------------------------------------------------------------------ */
 
 export const ACTIVITY_TIME_FRAME_OPTIONS = [
-  { value: 30, label: '30 Days' },
-  { value: 60, label: '60 Days' },
-  { value: 90, label: '90 Days' },
+  { value: 30, label: IqServerStrings.TYPES.DAYS_30 },
+  { value: 60, label: IqServerStrings.TYPES.DAYS_60 },
+  { value: 90, label: IqServerStrings.TYPES.DAYS_90 },
 ] as const;
 export type ActivityTimeFrame = typeof ACTIVITY_TIME_FRAME_OPTIONS[number]['value'];
 
@@ -127,9 +128,9 @@ export const POLICY_EVALUATION_STAGES = ['RELEASE', 'STAGE_RELEASE', 'BUILD', 'O
 export type PolicyEvaluationStage = typeof POLICY_EVALUATION_STAGES[number];
 
 export const MONITORING_FILTER_OPTIONS = [
-  { value: 'all', label: 'All monitoring' },
-  { value: 'enabled', label: 'Enabled' },
-  { value: 'disabled', label: 'Disabled' },
+  { value: 'all', label: IqServerStrings.TYPES.ALL_MONITORING },
+  { value: 'enabled', label: IqServerStrings.TYPES.ENABLED },
+  { value: 'disabled', label: IqServerStrings.TYPES.DISABLED },
 ] as const;
 export type MonitoringFilter = typeof MONITORING_FILTER_OPTIONS[number]['value'];
 

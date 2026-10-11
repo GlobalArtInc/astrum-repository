@@ -11,6 +11,7 @@ import {
 import DOMPurify from 'dompurify';
 import { CapabilityType } from './types';
 import { useCapabilitiesApi } from './useCapabilitiesApi';
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
 
 const MULTI_INSTANCE_TYPES = new Set(['webhook.global', 'webhook.repository']);
 
@@ -74,7 +75,7 @@ export function CapabilityTypeSelector({ onSelect, selectedTypeId }: CapabilityT
         setTypes(typeData);
         setExistingTypes(new Set(capData.map((c) => c.typeId)));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load capability types');
+        setError(err instanceof Error ? err.message : CapabilitiesStrings.TYPE_SELECTOR.FAILED_LOAD_CAPABILITY_TYPES);
       } finally {
         setLoading(false);
       }
@@ -110,7 +111,7 @@ export function CapabilityTypeSelector({ onSelect, selectedTypeId }: CapabilityT
     return (
       <Flex align="center" justify="center" className="capability-type-selector__loading">
         <Loader2 size={24} className="capability-type-selector__spinner" />
-        <Text size="2">Loading capability types...</Text>
+        <Text size="2">{CapabilitiesStrings.TYPE_SELECTOR.LOADING_CAPABILITY_TYPES}</Text>
       </Flex>
     );
   }
@@ -132,7 +133,7 @@ export function CapabilityTypeSelector({ onSelect, selectedTypeId }: CapabilityT
           <Search size={16} className="capability-type-selector__search-icon" />
           <input
             type="text"
-            placeholder="Filter capability types..."
+            placeholder={CapabilitiesStrings.TYPE_SELECTOR.FILTER_CAPABILITY_TYPES_PLACEHOLDER}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="capability-type-selector__search-input"
@@ -140,7 +141,7 @@ export function CapabilityTypeSelector({ onSelect, selectedTypeId }: CapabilityT
           />
         </Box>
         <Text size="2" className="capability-type-selector__count" data-testid="type-selector-count">
-          {filteredTypes.filter(isCreatable).length} of {filteredTypes.length} types available
+          {CapabilitiesStrings.TYPE_SELECTOR.TYPES_AVAILABLE(filteredTypes.filter(isCreatable).length, filteredTypes.length)}
         </Text>
       </Box>
 
@@ -148,7 +149,7 @@ export function CapabilityTypeSelector({ onSelect, selectedTypeId }: CapabilityT
       <Box className="capability-type-selector__grid-wrapper">
         {filteredTypes.length === 0 ? (
           <Box className="capability-type-selector__empty">
-            <Text size="2">No capability types match your filter</Text>
+            <Text size="2">{CapabilitiesStrings.TYPE_SELECTOR.NO_CAPABILITY_TYPES_MATCH_FILTER}</Text>
           </Box>
         ) : (
           <Box className="capability-type-selector__grid">
@@ -174,7 +175,7 @@ export function CapabilityTypeSelector({ onSelect, selectedTypeId }: CapabilityT
                           {type.name}
                         </Text>
                         {!canCreate && (
-                          <Badge size="1" color="gray" variant="soft">Already configured</Badge>
+                          <Badge size="1" color="gray" variant="soft">{CapabilitiesStrings.TYPE_SELECTOR.ALREADY_CONFIGURED}</Badge>
                         )}
                       </Flex>
                       {type.about && (

@@ -5,6 +5,7 @@ import { createFormMachine } from '../../../../../../interface/form';
 import { restClient } from '../../../../../../interface/api';
 import { APIConstants } from '../../../../../../constants/APIConstants';
 import type { FormContext, ValidationErrors } from '../../../../../../interface/form';
+import PreviewUiStrings from '../../../../constants/pages/admin/system/PreviewUiStrings';
 
 export interface PreviewUiSettings {
   anonymousEnabled: boolean;
@@ -24,9 +25,7 @@ export const DEFAULT_PREVIEW_UI_SETTINGS: PreviewUiSettings = {
   disableSwitchFeedback: false,
 };
 
-export const LOCKOUT_ERROR_MESSAGE =
-  'Cannot disable Classic UI when both Anonymous and Logged-in access to Astrum One UI are disabled. ' +
-  'At least one UI access method must remain enabled to prevent lockout.';
+export const LOCKOUT_ERROR_MESSAGE = PreviewUiStrings.PREVIEW_UI_SETTINGS.MESSAGES.lockoutError;
 
 function validatePreviewUiSettings(data: PreviewUiSettings): ValidationErrors {
   const errors: ValidationErrors = {};

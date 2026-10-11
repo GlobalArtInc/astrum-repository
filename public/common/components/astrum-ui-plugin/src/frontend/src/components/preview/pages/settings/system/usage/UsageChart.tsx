@@ -61,7 +61,7 @@ export function UsageChart({
       ) : loading ? (
         <Flex align="center" justify="center" gap="3" p="6">
           <Spinner size="3" />
-          <Text color="gray" size="2">Loading…</Text>
+          <Text color="gray" size="2">{USAGE_STRINGS.LOADING}</Text>
         </Flex>
       ) : data.length === 0 ? (
         <Flex justify="center" p="6"><Text color="gray" size="2">{USAGE_STRINGS.EMPTY}</Text></Flex>

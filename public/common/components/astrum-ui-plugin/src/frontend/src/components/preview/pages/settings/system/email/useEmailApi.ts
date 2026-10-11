@@ -14,6 +14,7 @@
 import { useState, useCallback } from 'react';
 import { restClient, parseApiError, urlBuilder } from '../../../../../../interface/api';
 import { EmailConfiguration, EmailVerificationResult } from './types';
+import EmailStrings from '../../../../constants/pages/settings/system/EmailStrings';
 
 // =============================================================================
 // REST API RESPONSE TYPES
@@ -112,7 +113,7 @@ export function useEmailApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       console.error('Failed to fetch email settings:', err);
-      throw new Error(apiError.message || 'Failed to load email server settings');
+      throw new Error(apiError.message || EmailStrings.API.FAILED_LOAD_EMAIL_SERVER_SETTINGS);
     }
   }, []);
 
@@ -133,7 +134,7 @@ export function useEmailApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to save email server settings');
+      throw new Error(apiError.message || EmailStrings.API.FAILED_SAVE_EMAIL_SERVER_SETTINGS);
     } finally {
       setLoading(false);
     }
@@ -160,7 +161,7 @@ export function useEmailApi() {
       // Verification failures are returned as success=false, not as errors
       return {
         success: false,
-        reason: apiError.message || 'Failed to send verification email',
+        reason: apiError.message || EmailStrings.API.FAILED_SEND_VERIFICATION_EMAIL,
       };
     } finally {
       setVerifying(false);

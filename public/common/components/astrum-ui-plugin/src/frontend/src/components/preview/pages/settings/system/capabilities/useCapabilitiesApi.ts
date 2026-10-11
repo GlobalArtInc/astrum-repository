@@ -16,6 +16,7 @@
 import { useState, useCallback } from 'react';
 import { restClient, parseApiError, urlBuilder } from '../../../../../../interface/api';
 import { Capability, CapabilityType, CapabilityFormData } from './types';
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
 
 /**
  * Capability type IDs that are deliberately hidden from the new UI even though the REST API
@@ -181,7 +182,7 @@ export function useCapabilitiesApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       console.error('Failed to fetch capabilities:', err);
-      throw new Error(apiError.message || 'Failed to load capabilities');
+      throw new Error(apiError.message || CapabilitiesStrings.API.FAILED_LOAD_CAPABILITIES);
     }
   }, []);
 
@@ -196,7 +197,7 @@ export function useCapabilitiesApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       console.error('Failed to fetch capability types:', err);
-      throw new Error(apiError.message || 'Failed to load capability types');
+      throw new Error(apiError.message || CapabilitiesStrings.API.FAILED_LOAD_CAPABILITY_TYPES);
     }
   }, []);
 
@@ -211,7 +212,7 @@ export function useCapabilitiesApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       console.error('Failed to fetch capability:', err);
-      throw new Error(apiError.message || 'Failed to load capability');
+      throw new Error(apiError.message || CapabilitiesStrings.API.FAILED_LOAD_CAPABILITY);
     }
   }, []);
 
@@ -228,8 +229,8 @@ export function useCapabilitiesApi() {
       return restToCapability(response);
     } catch (err: unknown) {
       const apiError = parseApiError(err);
-      setError(apiError.message || 'Failed to create capability');
-      throw new Error(apiError.message || 'Failed to create capability');
+      setError(apiError.message || CapabilitiesStrings.API.FAILED_CREATE_CAPABILITY);
+      throw new Error(apiError.message || CapabilitiesStrings.API.FAILED_CREATE_CAPABILITY);
     } finally {
       setLoading(false);
     }
@@ -243,7 +244,7 @@ export function useCapabilitiesApi() {
     setError(null);
     try {
       if (!data.id) {
-        throw new Error('Capability ID is required for update');
+        throw new Error(CapabilitiesStrings.API.CAPABILITY_ID_REQUIRED_UPDATE);
       }
       const url = urlBuilder.capabilities.update(data.id);
       const payload = formDataToRestPayload(data);
@@ -251,8 +252,8 @@ export function useCapabilitiesApi() {
       return restToCapability(response);
     } catch (err: unknown) {
       const apiError = parseApiError(err);
-      setError(apiError.message || 'Failed to update capability');
-      throw new Error(apiError.message || 'Failed to update capability');
+      setError(apiError.message || CapabilitiesStrings.API.FAILED_UPDATE_CAPABILITY);
+      throw new Error(apiError.message || CapabilitiesStrings.API.FAILED_UPDATE_CAPABILITY);
     } finally {
       setLoading(false);
     }
@@ -270,7 +271,7 @@ export function useCapabilitiesApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to delete capability');
+      throw new Error(apiError.message || CapabilitiesStrings.API.FAILED_DELETE_CAPABILITY);
     } finally {
       setLoading(false);
     }
@@ -295,7 +296,7 @@ export function useCapabilitiesApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to enable capability');
+      throw new Error(apiError.message || CapabilitiesStrings.API.FAILED_ENABLE_CAPABILITY);
     } finally {
       setLoading(false);
     }
@@ -320,7 +321,7 @@ export function useCapabilitiesApi() {
     } catch (err: unknown) {
       const apiError = parseApiError(err);
       setError(apiError.message);
-      throw new Error(apiError.message || 'Failed to disable capability');
+      throw new Error(apiError.message || CapabilitiesStrings.API.FAILED_DISABLE_CAPABILITY);
     } finally {
       setLoading(false);
     }

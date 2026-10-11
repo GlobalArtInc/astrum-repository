@@ -22,6 +22,9 @@ import {
 } from './types';
 
 import './HttpPage.scss';
+import HttpStrings from '../../../../constants/pages/settings/system/HttpStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -80,7 +83,7 @@ export function HttpPage({ className }: HttpPageProps) {
 
     if (invalidTokens.length > 0) {
       setNonProxyHostError(
-        `Skipped ${invalidTokens.length} invalid entr${invalidTokens.length === 1 ? 'y' : 'ies'} containing spaces: ${invalidTokens.map((t) => `"${t}"`).join(', ')}`
+        `${plural(HttpStrings.PAGE.SKIPPED_INVALID_ENTRIES, invalidTokens.length)} ${invalidTokens.map((t) => `"${t}"`).join(', ')}`
       );
     } else {
       setNonProxyHostError(null);
@@ -154,7 +157,7 @@ export function HttpPage({ className }: HttpPageProps) {
       >
         <Flex align="center" justify="center" gap="3" className="http-page__loading">
           <Loader2 size={24} className="http-page__spinner" />
-          <Text size="2">Loading HTTP settings...</Text>
+          <Text size="2">{HttpStrings.PAGE.LOADING_HTTP_SETTINGS}</Text>
         </Flex>
       </Box>
     );
@@ -169,57 +172,56 @@ export function HttpPage({ className }: HttpPageProps) {
     return (
       <Box className={`http-page ${className || ''}`.trim()}>
         <PageHeader
-          title="HTTP Settings"
-          description="Configure HTTP proxy and connection settings"
+          title={HttpStrings.PAGE.HTTP_SETTINGS}
+          description={HttpStrings.PAGE.CONFIGURE_HTTP_PROXY_CONNECTION_SETTINGS}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
             { label: 'HTTP' }
           ]}
         />
 
         <Box className="http-page__readonly-banner" mb="3">
           <SettingsAlert type="info">
-            You are viewing a read-only version of this page. Some fields are hidden when they
-            are at their default values or when authentication is disabled.
+            {HttpStrings.PAGE.YOU_VIEWING_READ_ONLY_VERSION}
           </SettingsAlert>
         </Box>
 
-        <SettingsFormSection title="Connection Settings">
-          {formData.userAgentSuffix && <Row label="User-Agent Suffix" value={formData.userAgentSuffix} />}
-          {formData.timeout != null && <Row label="Connection Timeout" value={formData.timeout} />}
-          {formData.retries != null && <Row label="Connection Retries" value={formData.retries} />}
+        <SettingsFormSection title={HttpStrings.PAGE.CONNECTION_SETTINGS}>
+          {formData.userAgentSuffix && <Row label={HttpStrings.PAGE.USER_AGENT_SUFFIX} value={formData.userAgentSuffix} />}
+          {formData.timeout != null && <Row label={HttpStrings.PAGE.CONNECTION_TIMEOUT} value={formData.timeout} />}
+          {formData.retries != null && <Row label={HttpStrings.PAGE.CONNECTION_RETRIES} value={formData.retries} />}
         </SettingsFormSection>
 
         {showHttpProxy && (
-          <SettingsFormSection title="HTTP Proxy">
-            <Row label="Host" value={formData.httpHost || '—'} />
-            <Row label="Port" value={formData.httpPort ?? '—'} />
+          <SettingsFormSection title={HttpStrings.PAGE.HTTP_PROXY}>
+            <Row label={HttpStrings.PAGE.HOST} value={formData.httpHost || '—'} />
+            <Row label={HttpStrings.PAGE.PORT} value={formData.httpPort ?? '—'} />
             {formData.httpAuthType === 'username' && (
               <>
-                <Row label="Auth Username" value={formData.httpAuthUsername || '—'} />
-                {formData.httpAuthNtlmHost && <Row label="NTLM Host" value={formData.httpAuthNtlmHost} />}
-                {formData.httpAuthNtlmDomain && <Row label="NTLM Domain" value={formData.httpAuthNtlmDomain} />}
+                <Row label={HttpStrings.PAGE.AUTH_USERNAME} value={formData.httpAuthUsername || '—'} />
+                {formData.httpAuthNtlmHost && <Row label={HttpStrings.PAGE.NTLM_HOST} value={formData.httpAuthNtlmHost} />}
+                {formData.httpAuthNtlmDomain && <Row label={HttpStrings.PAGE.NTLM_DOMAIN} value={formData.httpAuthNtlmDomain} />}
               </>
             )}
           </SettingsFormSection>
         )}
 
         {showHttpsProxy && (
-          <SettingsFormSection title="HTTPS Proxy">
-            <Row label="Host" value={formData.httpsHost || '—'} />
-            <Row label="Port" value={formData.httpsPort ?? '—'} />
+          <SettingsFormSection title={HttpStrings.PAGE.HTTPS_PROXY}>
+            <Row label={HttpStrings.PAGE.HOST} value={formData.httpsHost || '—'} />
+            <Row label={HttpStrings.PAGE.PORT} value={formData.httpsPort ?? '—'} />
             {formData.httpsAuthType === 'username' && (
               <>
-                <Row label="Auth Username" value={formData.httpsAuthUsername || '—'} />
-                {formData.httpsAuthNtlmHost && <Row label="NTLM Host" value={formData.httpsAuthNtlmHost} />}
-                {formData.httpsAuthNtlmDomain && <Row label="NTLM Domain" value={formData.httpsAuthNtlmDomain} />}
+                <Row label={HttpStrings.PAGE.AUTH_USERNAME} value={formData.httpsAuthUsername || '—'} />
+                {formData.httpsAuthNtlmHost && <Row label={HttpStrings.PAGE.NTLM_HOST} value={formData.httpsAuthNtlmHost} />}
+                {formData.httpsAuthNtlmDomain && <Row label={HttpStrings.PAGE.NTLM_DOMAIN} value={formData.httpsAuthNtlmDomain} />}
               </>
             )}
           </SettingsFormSection>
         )}
 
         {showNonProxyHosts && (
-          <SettingsFormSection title="Hosts to Exclude from Proxy">
+          <SettingsFormSection title={HttpStrings.PAGE.HOSTS_EXCLUDE_PROXY}>
             <Box className="http-page__host-list">
               {[...formData.nonProxyHosts]
                 .sort((a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
@@ -236,10 +238,10 @@ export function HttpPage({ className }: HttpPageProps) {
   return (
     <Box className={`http-page ${className || ''}`.trim()}>
       <PageHeader
-        title="HTTP Settings"
-        description="Configure HTTP proxy and connection settings"
+        title={HttpStrings.PAGE.HTTP_SETTINGS}
+        description={HttpStrings.PAGE.CONFIGURE_HTTP_PROXY_CONNECTION_SETTINGS}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
           { label: 'HTTP' }
         ]}
       />
@@ -255,67 +257,67 @@ export function HttpPage({ className }: HttpPageProps) {
           error={form.saveError || undefined}
           submitAnalyticsId="as-http-save"
         >
-        <SettingsFormSection title="Connection Settings">
+        <SettingsFormSection title={HttpStrings.PAGE.CONNECTION_SETTINGS}>
           <SettingsTextInput
             {...form.field('userAgentSuffix')}
-            label="User-Agent Suffix"
-            helpText="Custom suffix to append to HTTP User-Agent header"
-            placeholder="MyCompany/1.0"
+            label={HttpStrings.PAGE.USER_AGENT_SUFFIX}
+            helpText={HttpStrings.PAGE.CUSTOM_SUFFIX_APPEND_HTTP_USER}
+            placeholder={HttpStrings.PAGE.MYCOMPANY_1_0_PLACEHOLDER}
           />
 
           <SettingsTextInput
             name="timeout"
-            label="Connection Timeout"
+            label={HttpStrings.PAGE.CONNECTION_TIMEOUT}
             type="number"
             value={formData.timeout != null ? String(formData.timeout) : ''}
             onChange={(value: string) => form.send({ type: 'UPDATE', name: 'timeout', value: value ? parseInt(value, 10) : null } as any)}
             onBlur={() => form.send({ type: 'BLUR', name: 'timeout' } as any)}
             onKeyDown={handleNumberKeyDown}
             error={form.touched?.timeout ? form.validationErrors?.timeout : undefined}
-            helpText="Time in seconds to wait for a connection (1-3600). Leave blank for system default."
+            helpText={HttpStrings.PAGE.TIME_SECONDS_WAIT_CONNECTION_1}
             min={1}
             max={3600}
-            placeholder="System default"
+            placeholder={HttpStrings.PAGE.SYSTEM_DEFAULT_PLACEHOLDER}
           />
 
           <SettingsTextInput
             name="retries"
-            label="Connection Retries"
+            label={HttpStrings.PAGE.CONNECTION_RETRIES}
             type="number"
             value={formData.retries != null ? String(formData.retries) : ''}
             onChange={(value: string) => form.send({ type: 'UPDATE', name: 'retries', value: value ? parseInt(value, 10) : null } as any)}
             onBlur={() => form.send({ type: 'BLUR', name: 'retries' } as any)}
             onKeyDown={handleNumberKeyDown}
             error={form.touched?.retries ? form.validationErrors?.retries : undefined}
-            helpText="Number of retry attempts (0-10). Leave blank for system default."
+            helpText={HttpStrings.PAGE.NUMBER_RETRY_ATTEMPTS_0_10}
             min={0}
             max={10}
-            placeholder="System default"
+            placeholder={HttpStrings.PAGE.SYSTEM_DEFAULT_PLACEHOLDER}
           />
         </SettingsFormSection>
 
-        <SettingsFormSection title="HTTP Proxy">
+        <SettingsFormSection title={HttpStrings.PAGE.HTTP_PROXY}>
           <SettingsCheckbox
             name="httpEnabled"
-            label="Enable HTTP Proxy"
+            label={HttpStrings.PAGE.ENABLE_HTTP_PROXY}
             checked={formData.httpEnabled}
             onChange={handleToggleHttpProxy}
-            description="Route HTTP requests through a proxy server"
+            description={HttpStrings.PAGE.ROUTE_HTTP_REQUESTS_THROUGH_PROXY}
           />
 
           {formData.httpEnabled && (
             <>
               <SettingsTextInput
                 {...form.field('httpHost')}
-                label="HTTP Proxy Host"
-                helpText="Hostname or IP address of the HTTP proxy"
+                label={HttpStrings.PAGE.HTTP_PROXY_HOST}
+                helpText={HttpStrings.PAGE.HOSTNAME_IP_ADDRESS_HTTP_PROXY}
                 placeholder="proxy.example.com"
                 required
               />
 
               <SettingsTextInput
                 name="httpPort"
-                label="HTTP Proxy Port"
+                label={HttpStrings.PAGE.HTTP_PROXY_PORT}
                 type="number"
                 value={formData.httpPort != null ? String(formData.httpPort) : ''}
                 onChange={(value: string) => form.send({ type: 'UPDATE', name: 'httpPort', value: value ? parseInt(value, 10) : null } as any)}
@@ -330,51 +332,51 @@ export function HttpPage({ className }: HttpPageProps) {
 
               <SettingsFormSection
                 key={`http-auth-${formData.httpAuthType !== ''}`}
-                title="HTTP Proxy Authentication"
+                title={HttpStrings.PAGE.HTTP_PROXY_AUTHENTICATION}
                 collapsible
                 defaultCollapsed={formData.httpAuthType === ''}
               >
                 <SettingsSelect
                   name="httpAuthType"
-                  label="Authentication"
+                  label={HttpStrings.PAGE.AUTHENTICATION}
                   value={formData.httpAuthType}
                   onChange={(v: string) => form.send({ type: 'UPDATE', name: 'httpAuthType', value: v } as any)}
                   options={[
-                    { value: '', label: 'No authentication' },
-                    { value: 'username', label: 'Username' },
+                    { value: '', label: HttpStrings.PAGE.NO_AUTHENTICATION },
+                    { value: 'username', label: HttpStrings.PAGE.USERNAME },
                   ]}
-                  helpText="Type of authentication used to connect to the proxy"
+                  helpText={HttpStrings.PAGE.TYPE_AUTHENTICATION_USED_CONNECT_PROXY}
                 />
 
                 {formData.httpAuthType === 'username' && (
                   <>
                     <SettingsTextInput
                       {...form.field('httpAuthUsername')}
-                      label="Username"
-                      helpText="Username for HTTP proxy authentication"
+                      label={HttpStrings.PAGE.USERNAME}
+                      helpText={HttpStrings.PAGE.USERNAME_HTTP_PROXY_AUTHENTICATION}
                       required
                       placeholder="proxy-user"
                     />
 
                     <SettingsPasswordInput
                       {...form.field('httpAuthPassword')}
-                      label="Password"
-                      helpText="Password for HTTP proxy authentication"
+                      label={HttpStrings.PAGE.PASSWORD}
+                      helpText={HttpStrings.PAGE.PASSWORD_HTTP_PROXY_AUTHENTICATION}
                       autoComplete="new-password"
                     />
 
                     <SettingsTextInput
                       {...form.field('httpAuthNtlmHost')}
-                      label="NTLM Host"
-                      helpText="Windows host for NTLM authentication (optional)"
-                      placeholder="WORKSTATION01"
+                      label={HttpStrings.PAGE.NTLM_HOST}
+                      helpText={HttpStrings.PAGE.WINDOWS_HOST_NTLM_AUTHENTICATION_OPTIONAL}
+                      placeholder={HttpStrings.PAGE.WORKSTATION01_PLACEHOLDER}
                     />
 
                     <SettingsTextInput
                       {...form.field('httpAuthNtlmDomain')}
-                      label="NTLM Domain"
-                      helpText="Windows domain for NTLM authentication (optional)"
-                      placeholder="COMPANY"
+                      label={HttpStrings.PAGE.NTLM_DOMAIN}
+                      helpText={HttpStrings.PAGE.WINDOWS_DOMAIN_NTLM_AUTHENTICATION_OPTIONAL}
+                      placeholder={HttpStrings.PAGE.COMPANY_PLACEHOLDER}
                     />
                   </>
                 )}
@@ -383,28 +385,28 @@ export function HttpPage({ className }: HttpPageProps) {
           )}
         </SettingsFormSection>
 
-        <SettingsFormSection title="HTTPS Proxy">
+        <SettingsFormSection title={HttpStrings.PAGE.HTTPS_PROXY}>
           <SettingsCheckbox
             name="httpsEnabled"
-            label="Enable HTTPS Proxy"
+            label={HttpStrings.PAGE.ENABLE_HTTPS_PROXY}
             checked={formData.httpsEnabled}
             onChange={handleToggleHttpsProxy}
-            description="Route HTTPS requests through a proxy server"
+            description={HttpStrings.PAGE.ROUTE_HTTPS_REQUESTS_THROUGH_PROXY}
           />
 
           {formData.httpsEnabled && (
             <>
               <SettingsTextInput
                 {...form.field('httpsHost')}
-                label="HTTPS Proxy Host"
-                helpText="Hostname or IP address of the HTTPS proxy"
+                label={HttpStrings.PAGE.HTTPS_PROXY_HOST}
+                helpText={HttpStrings.PAGE.HOSTNAME_IP_ADDRESS_HTTPS_PROXY}
                 placeholder="proxy.example.com"
                 required
               />
 
               <SettingsTextInput
                 name="httpsPort"
-                label="HTTPS Proxy Port"
+                label={HttpStrings.PAGE.HTTPS_PROXY_PORT}
                 type="number"
                 value={formData.httpsPort != null ? String(formData.httpsPort) : ''}
                 onChange={(value: string) => form.send({ type: 'UPDATE', name: 'httpsPort', value: value ? parseInt(value, 10) : null } as any)}
@@ -419,49 +421,49 @@ export function HttpPage({ className }: HttpPageProps) {
 
               <SettingsFormSection
                 key={`https-auth-${formData.httpsAuthType !== ''}`}
-                title="HTTPS Proxy Authentication"
+                title={HttpStrings.PAGE.HTTPS_PROXY_AUTHENTICATION}
                 collapsible
                 defaultCollapsed={formData.httpsAuthType === ''}
               >
                 <SettingsSelect
                   name="httpsAuthType"
-                  label="Authentication"
+                  label={HttpStrings.PAGE.AUTHENTICATION}
                   value={formData.httpsAuthType}
                   onChange={(v: string) => form.send({ type: 'UPDATE', name: 'httpsAuthType', value: v } as any)}
                   options={[
-                    { value: '', label: 'No authentication' },
-                    { value: 'username', label: 'Username' },
+                    { value: '', label: HttpStrings.PAGE.NO_AUTHENTICATION },
+                    { value: 'username', label: HttpStrings.PAGE.USERNAME },
                   ]}
-                  helpText="Type of authentication used to connect to the proxy"
+                  helpText={HttpStrings.PAGE.TYPE_AUTHENTICATION_USED_CONNECT_PROXY}
                 />
 
                 {formData.httpsAuthType === 'username' && (
                   <>
                     <SettingsTextInput
                       {...form.field('httpsAuthUsername')}
-                      label="Username"
+                      label={HttpStrings.PAGE.USERNAME}
                       required
                       placeholder="proxy-user"
                     />
 
                     <SettingsPasswordInput
                       {...form.field('httpsAuthPassword')}
-                      label="Password"
+                      label={HttpStrings.PAGE.PASSWORD}
                       autoComplete="new-password"
                     />
 
                     <SettingsTextInput
                       {...form.field('httpsAuthNtlmHost')}
-                      label="NTLM Host"
-                      helpText="Windows host for NTLM authentication (optional)"
-                      placeholder="WORKSTATION01"
+                      label={HttpStrings.PAGE.NTLM_HOST}
+                      helpText={HttpStrings.PAGE.WINDOWS_HOST_NTLM_AUTHENTICATION_OPTIONAL}
+                      placeholder={HttpStrings.PAGE.WORKSTATION01_PLACEHOLDER}
                     />
 
                     <SettingsTextInput
                       {...form.field('httpsAuthNtlmDomain')}
-                      label="NTLM Domain"
-                      helpText="Windows domain for NTLM authentication (optional)"
-                      placeholder="COMPANY"
+                      label={HttpStrings.PAGE.NTLM_DOMAIN}
+                      helpText={HttpStrings.PAGE.WINDOWS_DOMAIN_NTLM_AUTHENTICATION_OPTIONAL}
+                      placeholder={HttpStrings.PAGE.COMPANY_PLACEHOLDER}
                     />
                   </>
                 )}
@@ -475,24 +477,24 @@ export function HttpPage({ className }: HttpPageProps) {
           <SettingsFormSection
             title={
               formData.nonProxyHosts.length > 0
-                ? `Hosts to Exclude from Proxy (${formData.nonProxyHosts.length})`
-                : 'Hosts to Exclude from Proxy'
+                ? HttpStrings.PAGE.HOSTS_EXCLUDE_PROXY_2(formData.nonProxyHosts.length)
+                : HttpStrings.PAGE.HOSTS_EXCLUDE_PROXY
             }
           >
             <Text size="2" className="http-page__section-description">
-              Specify hosts that should bypass the proxy. Use wildcards (*) for pattern matching.
+              {HttpStrings.PAGE.SPECIFY_HOSTS_SHOULD_BYPASS_PROXY}
             </Text>
 
             <Flex gap="2" align="end" className="http-page__add-host">
               <Box className="http-page__add-host-input">
                 <SettingsTextInput
                   name="newNonProxyHost"
-                  label="Host Pattern"
+                  label={HttpStrings.PAGE.HOST_PATTERN}
                   value={newNonProxyHost}
                   onChange={(v: string) => { setNewNonProxyHost(v); setNonProxyHostError(null); }}
                   onKeyDown={handleNonProxyHostKeyDown}
                   placeholder="*.example.com"
-                  helpText="Enter a hostname or pattern to exclude"
+                  helpText={HttpStrings.PAGE.ENTER_HOSTNAME_PATTERN_EXCLUDE}
                   error={nonProxyHostError || undefined}
                 />
               </Box>
@@ -504,7 +506,7 @@ export function HttpPage({ className }: HttpPageProps) {
                 className="http-page__add-button"
                 icon={Plus}
               >
-                Add
+                {HttpStrings.PAGE.ADD}
               </SettingsButton>
             </Flex>
 
@@ -519,7 +521,7 @@ export function HttpPage({ className }: HttpPageProps) {
                         type="button"
                         className="http-page__remove-button"
                         onClick={() => handleRemoveNonProxyHost(host)}
-                        aria-label={`Remove ${host}`}
+                        aria-label={HttpStrings.PAGE.REMOVE(host)}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -534,24 +536,23 @@ export function HttpPage({ className }: HttpPageProps) {
           <Box className="http-page__help">
             <Flex align="center" gap="2" className="http-page__help-header">
               <Info size={16} />
-              <Text size="2" weight="medium">About HTTP Settings</Text>
+              <Text size="2" weight="medium">{HttpStrings.PAGE.ABOUT_HTTP_SETTINGS}</Text>
             </Flex>
             <Text size="2" className="http-page__help-text">
-              HTTP settings control how Astrum Repository makes outbound HTTP connections,
-              including proxy configuration for accessing remote repositories.
+              {HttpStrings.PAGE.HTTP_SETTINGS_CONTROL_HOW_ASTRUM}
             </Text>
             <Text size="2" className="http-page__help-text">
-              {' '}See our{' '}
-              <a
-                href="http://links.globalart.dev/products/astrum/docs/http-request-and-proxy-settings"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="http-page__help-link"
-              >
-                documentation
-                <ExternalLink size={12} />
-              </a>
-              {' '}for more information.
+              {HttpStrings.PAGE.SEE_DOCUMENTATION(
+                <a
+                  href="http://links.globalart.dev/products/astrum/docs/http-request-and-proxy-settings"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="http-page__help-link"
+                >
+                  {HttpStrings.PAGE.DOCUMENTATION_LINK}
+                  <ExternalLink size={12} />
+                </a>
+              )}
             </Text>
           </Box>
         </SettingsForm>

@@ -5,6 +5,8 @@ import { useForm } from '../../../../../../interface/form';
 import { useToast, clearDirtyState } from '../../../../shared';
 import { createCapabilityFormMachine } from './capabilitiesFormMachine';
 import { Capability, CapabilityType, CapabilityFormData } from './types';
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface UseCapabilitiesFormOptions {
   capabilityId?: string;
@@ -68,20 +70,20 @@ export function useCapabilitiesForm({
 
           if (isCreate) {
             const created = await createCapability(ctx.data);
-            toast.success(`Capability "${created.typeName || ctx.data.typeId}" created successfully`);
+            toast.success(CapabilitiesStrings.FORM_HOOK.CAPABILITY_CREATED_SUCCESSFULLY(created.typeName || ctx.data.typeId));
           } else if (capabilityToUpdate) {
             const updateData = {
               ...ctx.data,
               id: capabilityToUpdate.id,
             };
             const updated = await updateCapability(updateData);
-            toast.success(`Capability "${updated.typeName || capabilityToUpdate.typeName || ctx.data.typeId}" updated successfully`);
+            toast.success(CapabilitiesStrings.FORM_HOOK.CAPABILITY_UPDATED_SUCCESSFULLY(updated.typeName || capabilityToUpdate.typeName || ctx.data.typeId));
           }
           // Don't call onCancel() here - let the machine transition to 'saved' state first
           // which will set isPristine=true and clear dirty tracking. Navigation happens
           // after the save completes via the onSaveComplete callback below.
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },
@@ -90,7 +92,7 @@ export function useCapabilitiesForm({
           const capToDelete = capability || ctx.capability;
           if (capToDelete) {
             await deleteCapability(capToDelete.id);
-            toast.success(`Capability "${capToDelete.typeName || capToDelete.typeId}" deleted successfully`);
+            toast.success(CapabilitiesStrings.FORM_HOOK.CAPABILITY_DELETED_SUCCESSFULLY(capToDelete.typeName || capToDelete.typeId));
             onCancel();
           }
         },

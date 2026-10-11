@@ -5,6 +5,7 @@ import { ENDPOINTS, restClient } from '../../../../../../interface/api';
 import { createFormMachine, type FormContext, type ValidationErrors } from '../../../../../../interface/form';
 
 import { HttpConfiguration, DEFAULT_HTTP_CONFIGURATION } from './types';
+import HttpStrings from '../../../../constants/pages/settings/system/HttpStrings';
 
 /**
  * Validates a proxy hostname or IP address.
@@ -23,48 +24,48 @@ function validateHttpConfig(data: HttpConfiguration): ValidationErrors {
   // Timeout: optional; if provided, integer in [1, 3600]
   if (data.timeout != null) {
     if (!Number.isInteger(Number(data.timeout)) || data.timeout < 1 || data.timeout > 3600) {
-      errors.timeout = 'Timeout must be between 1 and 3600 seconds';
+      errors.timeout = HttpStrings.FORM_MACHINE.TIMEOUT_MUST_BETWEEN_1_3600;
     }
   }
 
   // Retries: optional; if provided, integer in [0, 10]
   if (data.retries != null) {
     if (!Number.isInteger(Number(data.retries)) || data.retries < 0 || data.retries > 10) {
-      errors.retries = 'Retries must be between 0 and 10';
+      errors.retries = HttpStrings.FORM_MACHINE.RETRIES_MUST_BETWEEN_0_10;
     }
   }
 
   // HTTP proxy validation
   if (data.httpEnabled) {
     if (!data.httpHost?.trim()) {
-      errors.httpHost = 'HTTP proxy host is required';
+      errors.httpHost = HttpStrings.FORM_MACHINE.HTTP_PROXY_HOST_REQUIRED;
     } else if (!HOST_REGEX.test(data.httpHost.trim())) {
-      errors.httpHost = 'Provide a hostname or IP address (no scheme, no path)';
+      errors.httpHost = HttpStrings.FORM_MACHINE.PROVIDE_HOSTNAME_IP_ADDRESS_NO;
     }
     if (data.httpPort == null) {
-      errors.httpPort = 'HTTP proxy port is required';
+      errors.httpPort = HttpStrings.FORM_MACHINE.HTTP_PROXY_PORT_REQUIRED;
     } else if (!Number.isInteger(Number(data.httpPort)) || data.httpPort < 1 || data.httpPort > 65535) {
-      errors.httpPort = 'Port must be between 1 and 65535';
+      errors.httpPort = HttpStrings.FORM_MACHINE.PORT_MUST_BETWEEN_1_65535;
     }
     if (data.httpAuthType === 'username' && !data.httpAuthUsername?.trim()) {
-      errors.httpAuthUsername = 'Username is required when authentication is enabled';
+      errors.httpAuthUsername = HttpStrings.FORM_MACHINE.USERNAME_REQUIRED_WHEN_AUTHENTICATION_ENABLED;
     }
   }
 
   // HTTPS proxy validation
   if (data.httpsEnabled) {
     if (!data.httpsHost?.trim()) {
-      errors.httpsHost = 'HTTPS proxy host is required';
+      errors.httpsHost = HttpStrings.FORM_MACHINE.HTTPS_PROXY_HOST_REQUIRED;
     } else if (!HOST_REGEX.test(data.httpsHost.trim())) {
-      errors.httpsHost = 'Provide a hostname or IP address (no scheme, no path)';
+      errors.httpsHost = HttpStrings.FORM_MACHINE.PROVIDE_HOSTNAME_IP_ADDRESS_NO;
     }
     if (data.httpsPort == null) {
-      errors.httpsPort = 'HTTPS proxy port is required';
+      errors.httpsPort = HttpStrings.FORM_MACHINE.HTTPS_PROXY_PORT_REQUIRED;
     } else if (!Number.isInteger(Number(data.httpsPort)) || data.httpsPort < 1 || data.httpsPort > 65535) {
-      errors.httpsPort = 'Port must be between 1 and 65535';
+      errors.httpsPort = HttpStrings.FORM_MACHINE.PORT_MUST_BETWEEN_1_65535;
     }
     if (data.httpsAuthType === 'username' && !data.httpsAuthUsername?.trim()) {
-      errors.httpsAuthUsername = 'Username is required when authentication is enabled';
+      errors.httpsAuthUsername = HttpStrings.FORM_MACHINE.USERNAME_REQUIRED_WHEN_AUTHENTICATION_ENABLED;
     }
   }
 

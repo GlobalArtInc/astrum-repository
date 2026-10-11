@@ -32,6 +32,8 @@ import { DynamicCapabilityForm } from './DynamicCapabilityForm';
 import { useCapabilitiesApi } from './useCapabilitiesApi';
 
 import './CapabilityDetail.scss';
+import CapabilitiesStrings from '../../../../constants/pages/settings/system/CapabilitiesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 function TypeIcon({ typeId, size = 18 }: { typeId: string; size?: number }) {
   const Icon = TYPE_ICONS[typeId] || DEFAULT_TYPE_ICON;
@@ -195,7 +197,7 @@ export function CapabilityDetail({
               variant="outline"
               data-testid="capability-enabled-badge"
             >
-              {isEnabled ? 'Enabled' : 'Disabled'}
+              {isEnabled ? CapabilitiesStrings.DETAIL.ENABLED : CapabilitiesStrings.DETAIL.DISABLED}
             </Badge>
           </Flex>
         </Flex>
@@ -209,7 +211,7 @@ export function CapabilityDetail({
               icon={Power}
               data-analytics-id="as-capability-toggle-enable"
             >
-              Enable
+              {CapabilitiesStrings.DETAIL.ENABLE}
             </SettingsButton>
           )}
           {canUpdate && isEnabled && (
@@ -220,7 +222,7 @@ export function CapabilityDetail({
               icon={PowerOff}
               data-analytics-id="as-capability-toggle-disable"
             >
-              Disable
+              {CapabilitiesStrings.DETAIL.DISABLE}
             </SettingsButton>
           )}
           {!capability.isSystem && (
@@ -232,7 +234,7 @@ export function CapabilityDetail({
               testId="capability-delete-button"
               data-analytics-id="as-capability-delete"
             >
-              Delete
+              {CommonStrings.ACTIONS.DELETE}
             </SettingsButton>
           )}
         </Flex>
@@ -243,19 +245,19 @@ export function CapabilityDetail({
         <Tabs.List>
           <Tabs.Trigger value="summary">
             <Info size={16} />
-            Summary
+            {CapabilitiesStrings.DETAIL.SUMMARY}
           </Tabs.Trigger>
           <Tabs.Trigger value="settings">
             <Settings size={16} />
-            Settings
+            {CommonStrings.LABELS.SETTINGS}
           </Tabs.Trigger>
           <Tabs.Trigger value="status">
             <FileText size={16} />
-            Status
+            {CommonStrings.LABELS.STATUS}
           </Tabs.Trigger>
           <Tabs.Trigger value="about">
             <Info size={16} />
-            About
+            {CapabilitiesStrings.DETAIL.ABOUT}
           </Tabs.Trigger>
         </Tabs.List>
 
@@ -266,23 +268,23 @@ export function CapabilityDetail({
             <Box className="capability-detail__summary-grid">
               <SummaryItem
                 icon={<StateIcon state={capability.state} />}
-                label="State"
+                label={CapabilitiesStrings.DETAIL.STATE}
                 value={getStateName(capability.state as 'active' | 'disabled' | 'error' | 'passive')}
               />
               <SummaryItem
                 icon={<TypeIcon typeId={capability.typeId} size={16} />}
-                label="Type"
+                label={CommonStrings.LABELS.TYPE}
                 value={capability.typeName}
               />
               <SummaryItem
                 icon={<FileText size={16} />}
-                label="Description"
+                label={CommonStrings.LABELS.DESCRIPTION}
                 value={capability.description || '-'}
               />
               {capability.notes && (
                 <SummaryItem
                   icon={<Edit3 size={16} />}
-                  label="Notes"
+                  label={CapabilitiesStrings.DETAIL.NOTES}
                   value={capability.notes}
                 />
               )}
@@ -303,12 +305,12 @@ export function CapabilityDetail({
             {loadingType ? (
               <Flex align="center" justify="center" className="capability-detail__loading">
                 <Spinner size="3" />
-                <Text size="2">Loading settings...</Text>
+                <Text size="2">{CapabilitiesStrings.DETAIL.LOADING_SETTINGS}</Text>
               </Flex>
             ) : !capabilityType ? (
               <Box className="capability-detail__error">
                 <AlertCircle size={20} />
-                <Text size="2">Unable to load capability type configuration</Text>
+                <Text size="2">{CapabilitiesStrings.DETAIL.UNABLE_LOAD_CAPABILITY_TYPE_CONFIGURATION}</Text>
               </Box>
             ) : (
               <DynamicCapabilityForm
@@ -328,28 +330,28 @@ export function CapabilityDetail({
 
           {/* Status Tab */}
           <Tabs.Content value="status">
-            <SettingsFormSection title="Status">
+            <SettingsFormSection title={CommonStrings.LABELS.STATUS}>
               {capability.status ? (
                 <Box
                   className="capability-detail__status-content"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(capability.status) }}
                 />
               ) : (
-                <Text className="capability-detail__no-status">No status information available</Text>
+                <Text className="capability-detail__no-status">{CapabilitiesStrings.DETAIL.NO_STATUS_INFORMATION_AVAILABLE}</Text>
               )}
             </SettingsFormSection>
           </Tabs.Content>
 
           {/* About Tab */}
           <Tabs.Content value="about">
-            <SettingsFormSection title="About">
+            <SettingsFormSection title={CapabilitiesStrings.DETAIL.ABOUT}>
               {capabilityType?.about ? (
                 <Box
                   className="capability-detail__about-content"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(capabilityType.about) }}
                 />
               ) : (
-                <Text className="capability-detail__no-about">No information available</Text>
+                <Text className="capability-detail__no-about">{CapabilitiesStrings.DETAIL.NO_INFORMATION_AVAILABLE}</Text>
               )}
             </SettingsFormSection>
           </Tabs.Content>
@@ -361,11 +363,11 @@ export function CapabilityDetail({
         open={confirmAction === 'delete'}
         testId="capability-delete-dialog"
         onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
-        title="Delete Capability"
+        title={CapabilitiesStrings.DETAIL.DELETE_CAPABILITY}
         message={capability.deleteWarningMessage
-          ? `${capability.deleteWarningMessage}\n\nThis action can't be undone.`
-          : "This will permanently remove this capability and its configuration. This action can't be undone."}
-        confirmLabel="Delete"
+          ? CapabilitiesStrings.DETAIL.ACTION_CANT_UNDONE(capability.deleteWarningMessage)
+          : CapabilitiesStrings.DETAIL.PERMANENTLY_REMOVE_CAPABILITY_ITS_CONFIGURATION}
+        confirmLabel={CommonStrings.ACTIONS.DELETE}
         variant="danger"
         onConfirm={() => {
           setConfirmAction(null);
@@ -378,9 +380,9 @@ export function CapabilityDetail({
         open={confirmAction === 'disable'}
         testId="capability-disable-dialog"
         onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
-        title="Disable Capability"
-        message={capability.disableWarningMessage || `Disable "${capability.typeName}"?`}
-        confirmLabel="Disable"
+        title={CapabilitiesStrings.DETAIL.DISABLE_CAPABILITY}
+        message={capability.disableWarningMessage || CapabilitiesStrings.DETAIL.DISABLE_CONFIRM(capability.typeName)}
+        confirmLabel={CapabilitiesStrings.DETAIL.DISABLE}
         variant="warning"
         onConfirm={handleDisableConfirm}
       />

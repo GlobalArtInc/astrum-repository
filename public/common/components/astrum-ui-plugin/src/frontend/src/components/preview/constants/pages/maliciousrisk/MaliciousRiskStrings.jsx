@@ -2,8 +2,9 @@
 import {AsTextLink} from "@globalart/astrum-react-shared-components";
 import React from "react";
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import localize from '../../../../../interface/localize';
 
-export default {
+export default localize('react-ui', {
   MALICIOUS_RISK: {
     MENU: {
       text: 'Malware Risk',
@@ -228,4 +229,4 @@ export default {
       },
     },
   }
-}
+}, 'PREVIEW');

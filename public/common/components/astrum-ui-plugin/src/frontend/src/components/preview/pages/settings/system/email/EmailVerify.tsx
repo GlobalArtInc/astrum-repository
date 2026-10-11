@@ -8,6 +8,7 @@ import { SettingsTextInput, SettingsButton, SettingsAlert } from '../../../../sh
 import { EmailVerificationResult } from './types';
 
 import './EmailVerify.scss';
+import EmailStrings from '../../../../constants/pages/settings/system/EmailStrings';
 
 interface EmailVerifyProps {
   onSendTest: (email: string) => Promise<EmailVerificationResult>;
@@ -38,7 +39,7 @@ export function EmailVerify({ onSendTest, loading = false, disabled = false }: E
       const verificationResult = await onSendTest(email);
       setResult(verificationResult);
     } catch (err: any) {
-      setError(err?.message || 'Failed to send test email');
+      setError(err?.message || EmailStrings.VERIFY.FAILED_SEND_TEST_EMAIL);
     }
   }, [email, isValidEmail, onSendTest]);
 
@@ -59,21 +60,20 @@ export function EmailVerify({ onSendTest, loading = false, disabled = false }: E
   return (
     <Box className="email-verify">
       <Text size="2" className="email-verify__description">
-        Send a test email to verify your SMTP configuration is working correctly.
-        Make sure to save your settings before testing.
+        {EmailStrings.VERIFY.SEND_TEST_EMAIL_VERIFY_SMTP}
       </Text>
 
       <Flex gap="3" align="end" className="email-verify__form">
         <Box className="email-verify__input-wrapper">
           <SettingsTextInput
             name="testEmail"
-            label="Test Email Address"
+            label={EmailStrings.VERIFY.TEST_EMAIL_ADDRESS}
             type="email"
             value={email}
             onChange={handleEmailChange}
             onKeyDown={handleKeyDown}
             placeholder="test@example.com"
-            helpText="Enter an email address to receive the test email"
+            helpText={EmailStrings.VERIFY.ENTER_EMAIL_ADDRESS_RECEIVE_TEST}
             disabled={disabled}
           />
         </Box>
@@ -88,7 +88,7 @@ export function EmailVerify({ onSendTest, loading = false, disabled = false }: E
           icon={Send}
           data-analytics-id="as-email-test"
         >
-          Send Test
+          {EmailStrings.VERIFY.SEND_TEST}
         </SettingsButton>
       </Flex>
 
@@ -97,11 +97,11 @@ export function EmailVerify({ onSendTest, loading = false, disabled = false }: E
         <Box className="email-verify__result">
           {result.success ? (
             <SettingsAlert type="success">
-              <Text>Test email sent successfully! Check your inbox.</Text>
+              <Text>{EmailStrings.VERIFY.TEST_EMAIL_SENT_SUCCESSFULLY_CHECK}</Text>
             </SettingsAlert>
           ) : (
             <SettingsAlert type="error">
-              <Text>Failed to send test email: {result.reason || 'Unable to verify. Check email configuration and try again.'}</Text>
+              <Text>{EmailStrings.VERIFY.FAILED_SEND_TEST_EMAIL_REASON(result.reason || EmailStrings.VERIFY.UNABLE_VERIFY_CHECK_EMAIL_CONFIGURATION)}</Text>
             </SettingsAlert>
           )}
         </Box>

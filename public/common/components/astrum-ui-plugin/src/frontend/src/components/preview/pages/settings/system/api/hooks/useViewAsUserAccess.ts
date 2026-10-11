@@ -8,6 +8,7 @@ import type { ApiAccessCheckResponseDto } from '../types';
 import type { EndpointAccessDot } from '../utils/endpointAccess';
 import type { MergedApiEndpoint } from '../utils/mergeSwaggerPermissions';
 import { endpointRowId } from '../EndpointList';
+import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 
 const BATCH = 14;
 
@@ -88,7 +89,7 @@ export function useViewAsUserAccess(
     })()
       .catch((e: unknown) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Access check failed');
+          setError(e instanceof Error ? e.message : ApiStrings.VIEW_AS_USER.ACCESS_CHECK_FAILED);
         }
       })
       .finally(() => {

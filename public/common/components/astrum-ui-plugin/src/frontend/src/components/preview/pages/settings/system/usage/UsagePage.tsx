@@ -8,7 +8,8 @@ import { PageHeader } from '../../../../shared';
 import { useUsage } from './useUsage';
 import { UsageTable } from './UsageTable';
 import { UsageChart } from './UsageChart';
-import { USAGE_STRINGS } from './usageStrings';
+import { USAGE_LEARN_MORE_URL, USAGE_STRINGS } from './usageStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 import './UsagePage.scss';
 
@@ -46,7 +47,7 @@ export default function UsagePage(): JSX.Element {
           title={USAGE_STRINGS.TITLE}
           description={USAGE_STRINGS.MENU_DESCRIPTION}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
             { label: USAGE_STRINGS.TITLE },
           ]}
         />
@@ -71,7 +72,7 @@ export default function UsagePage(): JSX.Element {
         ) : loading ? (
           <Flex align="center" justify="center" gap="3" p="9">
             <Spinner size="3" />
-            <Text color="gray">Loading…</Text>
+            <Text color="gray">{USAGE_STRINGS.LOADING}</Text>
           </Flex>
         ) : (
           <Flex direction="column" gap="4">
@@ -79,7 +80,7 @@ export default function UsagePage(): JSX.Element {
               {USAGE_STRINGS.DESCRIPTION}{' '}
               <a
                 className="usage-page__learn-more"
-                href={USAGE_STRINGS.LEARN_MORE_URL}
+                href={USAGE_LEARN_MORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
               >

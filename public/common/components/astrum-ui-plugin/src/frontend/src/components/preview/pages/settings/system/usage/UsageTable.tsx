@@ -6,10 +6,11 @@ import { HelpCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import HumanReadableUtils from '../../../../../../interface/HumanReadableUtils';
 import { MonthlyMetric } from './types';
 import { USAGE_STRINGS } from './usageStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 function formatMonth(dateStr: string): string {
   try {
-    return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', timeZone: 'UTC' })
+    return new Intl.DateTimeFormat(pageLanguage(), { year: 'numeric', month: 'short', timeZone: 'UTC' })
       .format(new Date(dateStr));
   } catch {
     return '-';
