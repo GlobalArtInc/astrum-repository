@@ -113,6 +113,14 @@ const APIConstants = {
         RETRIEVE_FROM_HOST: 'retrieveFromHost'
       }
     },
+    SSL_TRUST_STORE: {
+      ACTION: 'ssl_TrustStore',
+      METHODS: {
+        READ: 'read',
+        CREATE: 'create',
+        REMOVE: 'remove'
+      }
+    },
     LDAP: {
       ACTION: 'ldap_LdapServer',
       METHODS: {

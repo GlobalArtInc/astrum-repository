@@ -10,7 +10,8 @@ import { SslCertificate } from '../types';
 jest.mock('axios');
 const mockedAxios = Axios as jest.Mocked<typeof Axios>;
 
-// The trust store is managed over REST; certificate inspection goes over ExtDirect.
+// The trust store and certificate inspection both go over ExtDirect: the server has no REST resource for the trust
+// store.
 const TRUSTSTORE_URL = 'service/rest/v1/security/ssl/truststore';
 const EXTDIRECT_URL = 'service/extdirect';
 
@@ -33,7 +34,7 @@ describe('useSslCertificatesApi', () => {
         },
       ];
 
-      mockedAxios.get.mockResolvedValue({ data: mockCertificates });
+      mockedAxios.post.mockResolvedValue(extDirectOk(mockCertificates));
 
       const { result } = renderHook(() => useSslCertificatesApi());
 
@@ -43,12 +44,16 @@ describe('useSslCertificatesApi', () => {
       });
 
       expect(certificates).toEqual(mockCertificates);
-      expect(mockedAxios.get).toHaveBeenCalledWith(TRUSTSTORE_URL);
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        EXTDIRECT_URL,
+        expect.objectContaining({ action: 'ssl_TrustStore', method: 'read' })
+      );
+      expect(mockedAxios.get).not.toHaveBeenCalledWith(TRUSTSTORE_URL);
     });
 
     it('handles error when fetching certificates fails', async () => {
-      mockedAxios.get.mockRejectedValue({
-        response: { data: { message: 'Access denied' } },
+      mockedAxios.post.mockResolvedValue({
+        data: { result: { success: false, message: 'Access denied' } },
       });
 
       const { result } = renderHook(() => useSslCertificatesApi());
@@ -200,7 +205,7 @@ describe('useSslCertificatesApi', () => {
         fingerprint: 'AA:BB:CC:DD:EE:FF',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockCertificate });
+      mockedAxios.post.mockResolvedValue(extDirectOk(mockCertificate));
 
       const { result } = renderHook(() => useSslCertificatesApi());
 
@@ -211,15 +216,18 @@ describe('useSslCertificatesApi', () => {
 
       expect(certificate).toEqual(mockCertificate);
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        TRUSTSTORE_URL,
-        '-----BEGIN CERTIFICATE-----',
-        { headers: { 'Content-Type': 'text/plain' } }
+        EXTDIRECT_URL,
+        expect.objectContaining({
+          action: 'ssl_TrustStore',
+          method: 'create',
+          data: ['-----BEGIN CERTIFICATE-----'],
+        })
       );
     });
 
     it('sets loading and error states', async () => {
-      mockedAxios.post.mockRejectedValue({
-        response: { data: { message: 'Certificate already exists' } },
+      mockedAxios.post.mockResolvedValue({
+        data: { result: { success: false, message: 'Certificate already exists' } },
       });
 
       const { result } = renderHook(() => useSslCertificatesApi());
@@ -242,7 +250,7 @@ describe('useSslCertificatesApi', () => {
 
   describe('deleteCertificate', () => {
     it('deletes certificate successfully', async () => {
-      mockedAxios.delete.mockResolvedValue({});
+      mockedAxios.post.mockResolvedValue(extDirectOk(null));
 
       const { result } = renderHook(() => useSslCertificatesApi());
 
@@ -250,14 +258,16 @@ describe('useSslCertificatesApi', () => {
         await result.current.deleteCertificate('cert1');
       });
 
-      expect(mockedAxios.delete).toHaveBeenCalledWith(
-        `${TRUSTSTORE_URL}/cert1`
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        EXTDIRECT_URL,
+        expect.objectContaining({ action: 'ssl_TrustStore', method: 'remove', data: ['cert1'] })
       );
+      expect(mockedAxios.delete).not.toHaveBeenCalled();
     });
 
     it('handles delete error', async () => {
-      mockedAxios.delete.mockRejectedValue({
-        response: { data: { message: 'Certificate not found' } },
+      mockedAxios.post.mockResolvedValue({
+        data: { result: { success: false, message: 'Certificate not found' } },
       });
 
       const { result } = renderHook(() => useSslCertificatesApi());

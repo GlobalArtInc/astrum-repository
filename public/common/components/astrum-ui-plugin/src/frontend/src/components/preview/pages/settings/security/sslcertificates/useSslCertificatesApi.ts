@@ -1,24 +1,20 @@
 
 
 import { useState, useCallback } from 'react';
-import Axios from 'axios';
 import { ExtAPIUtils } from '../../../../../../interface/ExtAPIUtils';
 import { APIConstants } from '../../../../../../constants/APIConstants';
 import { SslCertificate, CertificateSource, CERTIFICATE_SOURCES } from './types';
 import SslCertificatesStrings from '../../../../constants/pages/settings/security/SslCertificatesStrings';
 
-const { EXT, REST } = APIConstants;
+const { EXT } = APIConstants;
 
-// The trust store itself is managed over REST v1 (list / create / delete).
-const SSL_CERTIFICATES_URL = REST.PUBLIC.SSL_CERTIFICATES;
-
-// Inspecting a certificate BEFORE adding it goes over ExtDirect, matching Classic UI.
-// There is deliberately no REST equivalent: the only REST write path is POST
-// /v1/security/ssl/truststore, which imports the certificate as a side effect, so it
-// cannot be used to preview one. ssl_Certificate.details / .retrieveFromHost are
-// read-only (@RequiresPermissions astrum:ssl-truststore:read) and additionally return
-// `inTrustStore`, which the REST ApiCertificate DTO does not carry — that flag is what
-// drives duplicate detection in the add form (ASTRUM-54265).
+// The trust store is managed over ExtDirect (ssl_TrustStore.read / create / remove), as in Classic UI: the server
+// has no REST v1 resource for it, so /v1/security/ssl/truststore answers 404.
+//
+// Inspecting a certificate BEFORE adding it goes over ExtDirect too (ssl_Certificate.details / .retrieveFromHost).
+// Those are read-only (@RequiresPermissions astrum:ssl-truststore:read) and return `inTrustStore`, which drives
+// duplicate detection in the add form (ASTRUM-54265); ssl_TrustStore.create imports the certificate, so it must never
+// be used to preview one.
 
 /**
  * Parse remote host URL and extract hostname, port, and protocol
@@ -66,8 +62,10 @@ export function useSslCertificatesApi() {
    */
   const fetchCertificates = useCallback(async (): Promise<SslCertificate[]> => {
     try {
-      const response = await Axios.get(SSL_CERTIFICATES_URL);
-      return Array.isArray(response?.data) ? response.data : [];
+      const response = await ExtAPIUtils.extAPIRequest(EXT.SSL_TRUST_STORE.ACTION, EXT.SSL_TRUST_STORE.METHODS.READ);
+      ExtAPIUtils.checkForError(response);
+      const certificates = ExtAPIUtils.extractResult(response);
+      return Array.isArray(certificates) ? certificates : [];
     } catch (err: any) {
       console.error('Failed to fetch certificates:', err);
       throw new Error(messageOf(err, SslCertificatesStrings.API.FAILED_LOAD_CERTIFICATES));
@@ -124,12 +122,11 @@ export function useSslCertificatesApi() {
     setLoading(true);
     setError(null);
     try {
-      const response = await Axios.post(SSL_CERTIFICATES_URL, pemContent, {
-        headers: {
-          'Content-Type': 'text/plain',
-        },
+      const response = await ExtAPIUtils.extAPIRequest(EXT.SSL_TRUST_STORE.ACTION, EXT.SSL_TRUST_STORE.METHODS.CREATE, {
+        data: [pemContent],
       });
-      return response.data;
+      ExtAPIUtils.checkForError(response);
+      return ExtAPIUtils.extractResult(response);
     } catch (err: any) {
       const message = messageOf(err, SslCertificatesStrings.API.FAILED_ADD_CERTIFICATE);
       setError(message);
@@ -146,8 +143,10 @@ export function useSslCertificatesApi() {
     setLoading(true);
     setError(null);
     try {
-      const url = `${SSL_CERTIFICATES_URL}/${encodeURIComponent(certificateId)}`;
-      await Axios.delete(url);
+      const response = await ExtAPIUtils.extAPIRequest(EXT.SSL_TRUST_STORE.ACTION, EXT.SSL_TRUST_STORE.METHODS.REMOVE, {
+        data: [certificateId],
+      });
+      ExtAPIUtils.checkForError(response);
     } catch (err: any) {
       const message = messageOf(err, SslCertificatesStrings.API.FAILED_DELETE_CERTIFICATE);
       setError(message);
