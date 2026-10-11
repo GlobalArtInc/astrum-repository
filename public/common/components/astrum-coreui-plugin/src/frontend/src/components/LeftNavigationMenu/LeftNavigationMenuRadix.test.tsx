@@ -107,7 +107,6 @@ const menuResult = (overrides: Partial<UseLeftNavigationMenuResult> = {}): UseLe
   isProEdition: true,
   version: '3.96.4',
   logo: 'logo.svg',
-  canSwitchToClassic: true,
   isDrawer: false,
   isDrawerOpen: false,
   closeDrawer: jest.fn(),
@@ -302,25 +301,9 @@ describe('LeftNavigationMenuRadix footer', () => {
       expect(onDrawerClick).toHaveBeenCalled();
     });
 
-    it('asks the header to switch to the Classic UI and closes', () => {
-      const closeDrawer = jest.fn();
-      const onSwitch = jest.fn();
-      window.addEventListener('as-switch-to-classic', onSwitch);
+    it('does not offer the Classic UI in the drawer', () => {
       mockUseLeftNavigationMenu.mockReturnValue(
-        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true, closeDrawer })
-      );
-
-      render(<LeftNavigationMenuRadix />);
-      fireEvent.click(screen.getByTestId('left-nav-switch-classic'));
-
-      expect(closeDrawer).toHaveBeenCalled();
-      expect(onSwitch).toHaveBeenCalledTimes(1);
-      window.removeEventListener('as-switch-to-classic', onSwitch);
-    });
-
-    it('does not offer the Classic UI when the administrator turned it off', () => {
-      mockUseLeftNavigationMenu.mockReturnValue(
-        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true, canSwitchToClassic: false })
+        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true })
       );
 
       render(<LeftNavigationMenuRadix />);

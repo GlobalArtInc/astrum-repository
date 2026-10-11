@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Theme } from '@radix-ui/themes';
 import '@testing-library/jest-dom';
 
@@ -10,7 +10,7 @@ const mockStateValues = {
   'anonymousEnabled': true,
   'loggedInEnabled': true,
   'defaultToPreviewUi': true,
-  'disableLegacyUi': false,
+  'disableLegacyUi': true,
 };
 
 const mockUseUser = jest.fn(() => ({ authenticated: false }));
@@ -62,7 +62,7 @@ function renderHeader() {
   );
 }
 
-describe('GlobalHeaderRadix - Preview UI Redirect and Kill Switch', () => {
+describe('GlobalHeaderRadix - Classic URLs open Astrum One', () => {
   const originalHash = window.location.hash;
 
   beforeEach(() => {
@@ -77,7 +77,7 @@ describe('GlobalHeaderRadix - Preview UI Redirect and Kill Switch', () => {
     mockStateValues['anonymousEnabled'] = true;
     mockStateValues['loggedInEnabled'] = true;
     mockStateValues['defaultToPreviewUi'] = true;
-    mockStateValues['disableLegacyUi'] = false;
+    mockStateValues['disableLegacyUi'] = true;
     mockState.mockReturnValue({
       getValue: jest.fn((key, defaultVal) => mockStateValues[key] ?? defaultVal),
     });
@@ -87,89 +87,69 @@ describe('GlobalHeaderRadix - Preview UI Redirect and Kill Switch', () => {
     window.location.hash = originalHash;
   });
 
-  it('1. Redirects from empty hash to preview/browse/welcome (Soft Default)', async () => {
-    window.location.hash = '';
-    renderHeader();
-    await waitFor(() => {
-      expect(window.location.hash).toBe('#preview/browse/welcome');
+  const CLASSIC_URLS = [
+    ['', '#preview/browse/welcome'],
+    ['/', '#preview/browse/welcome'],
+    ['browse/welcome', '#preview/browse/welcome'],
+    ['admin/security/users', '#preview/admin/security/users'],
+    ['browse/browse:maven-releases', '#preview/browse/maven-releases/'],
+    ['browse/search/maven', '#preview/browse/search?format=maven'],
+    ['admin/repository/cleanuppolicies', '#preview/admin/repository/cleanup-policies'],
+    ['user/account', '#preview/user/account'],
+    ['admin/system/api', '#preview/browse/api'],
+    ['admin/system/blobstores', '#preview/browse/welcome'],
+  ];
+
+  describe.each([
+    ['anonymous visitor', { authenticated: false }],
+    ['signed-in user', { authenticated: true, userId: 'admin' }],
+  ])('for a %s', (_who, user) => {
+    it.each(CLASSIC_URLS)('opens %p as %p', async (classic, preview) => {
+      mockUseUser.mockReturnValue(user);
+      window.location.hash = classic;
+      renderHeader();
+      await waitFor(() => {
+        expect(window.location.hash).toBe(preview);
+      });
     });
   });
 
-  it('2. Redirects from / to preview/browse/welcome (Soft Default)', async () => {
-    window.location.hash = '/';
+  it('leaves Astrum One URLs alone', async () => {
+    window.location.hash = 'preview/admin/security/roles';
     renderHeader();
-    await waitFor(() => {
-      expect(window.location.hash).toBe('#preview/browse/welcome');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(window.location.hash).toBe('#preview/admin/security/roles');
+  });
+
+  it.each([['login'], ['login?returnTo=I2FkbWlu'], ['/login'], ['404']])(
+    'leaves the shared %p page alone so a visitor who must sign in is not sent in circles', async (path) => {
+      window.location.hash = path;
+      renderHeader();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(window.location.hash).toBe(`#${path}`);
     });
-  });
 
-  it('3. Redirects from browse/welcome to preview/browse/welcome (Soft Default)', async () => {
-    window.location.hash = 'browse/welcome';
-    renderHeader();
-    await waitFor(() => {
-      expect(window.location.hash).toBe('#preview/browse/welcome');
-    });
-  });
-
-  it('4. Does not redirect if defaultToPreviewUi is false', async () => {
-    mockStateValues['defaultToPreviewUi'] = false;
-    window.location.hash = 'browse/welcome';
-    renderHeader();
-    // Wait a bit to ensure no redirect happens
-    await new Promise(r => setTimeout(r, 100));
-    expect(window.location.hash).toBe('#browse/welcome');
-  });
-
-  it('5. Does not redirect if user lacks permission', async () => {
-    mockUseUser.mockReturnValue({ authenticated: true, userId: 'viewer' });
-    mockStateValues['loggedInEnabled'] = false;
-    window.location.hash = 'browse/welcome';
-    renderHeader();
-    await new Promise(r => setTimeout(r, 100));
-    expect(window.location.hash).toBe('#browse/welcome');
-  });
-
-  it('6. Does not redirect if already in Preview UI', async () => {
-    window.location.hash = 'preview/browse/welcome';
-    renderHeader();
-    await new Promise(r => setTimeout(r, 100));
-    expect(window.location.hash).toBe('#preview/browse/welcome');
-  });
-
-  it('7. Does not redirect deep links (e.g. admin/security/users) under Soft Default', async () => {
-    window.location.hash = 'admin/security/users';
-    renderHeader();
-    await new Promise(r => setTimeout(r, 100));
-    expect(window.location.hash).toBe('#admin/security/users');
-  });
-
-  it('8. Prevents redirect loops under Soft Default', async () => {
-    window.location.hash = 'browse/welcome';
+  it('ignores a Classic choice left in this browser by an earlier release', async () => {
     sessionStorage.setItem('user_requested_legacy', 'true');
+    localStorage.setItem('astrum-last-ui', 'classic');
+    window.location.hash = 'browse/welcome';
     renderHeader();
-    
-    // Should NOT redirect because session storage flag is set
-    await new Promise(r => setTimeout(r, 100));
-    expect(window.location.hash).toBe('#browse/welcome');
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#preview/browse/welcome');
+    });
   });
 
-  it('9. Manual toggle wins over default setting (sets session flag)', async () => {
-    window.location.hash = 'preview/browse/welcome';
-    renderHeader();
-
-    const toggleButton = screen.getByText('Switch to Classic UI');
-    fireEvent.click(toggleButton);
-
-    const useClassicBtn = await screen.findByText('Use Classic UI');
-    fireEvent.click(useClassicBtn);
-
-    expect(sessionStorage.getItem('user_requested_legacy')).toBe('true');
-    expect(localStorage.getItem('astrum-last-ui')).toBe('classic');
-    expect(window.location.hash).toBe('#browse/welcome');
-  });
-
-  it('9a. Remembers Astrum One as the interface used last once it is open', async () => {
+  it('redirects whatever defaultToPreviewUi and disableLegacyUi say', async () => {
     mockStateValues['defaultToPreviewUi'] = false;
+    mockStateValues['disableLegacyUi'] = false;
+    window.location.hash = 'admin/security/roles';
+    renderHeader();
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#preview/admin/security/roles');
+    });
+  });
+
+  it('remembers Astrum One as the interface used last once it is open', async () => {
     window.location.hash = 'preview/browse/welcome';
     renderHeader();
     await waitFor(() => {
@@ -177,85 +157,11 @@ describe('GlobalHeaderRadix - Preview UI Redirect and Kill Switch', () => {
     });
   });
 
-  it('9b. Opens Astrum One on the dashboard when it was used last, though defaultToPreviewUi is false', async () => {
-    mockStateValues['defaultToPreviewUi'] = false;
-    localStorage.setItem('astrum-last-ui', 'preview');
-    window.location.hash = '';
+  it('shows no interface switch on either side', () => {
+    window.location.hash = 'preview/browse/welcome';
     renderHeader();
-    await waitFor(() => {
-      expect(window.location.hash).toBe('#preview/browse/welcome');
-    });
-  });
-
-  it('9c. Keeps the Classic dashboard when Classic was used last, though defaultToPreviewUi is on', async () => {
-    localStorage.setItem('astrum-last-ui', 'classic');
-    window.location.hash = 'browse/welcome';
-    renderHeader();
-    await new Promise(r => setTimeout(r, 100));
-    expect(window.location.hash).toBe('#browse/welcome');
-  });
-
-  describe('Kill Switch (disableLegacyUi: true)', () => {
-    beforeEach(() => {
-      mockStateValues['disableLegacyUi'] = true;
-    });
-
-    it('10. Redirects even deep links to preview equivalents', async () => {
-      window.location.hash = 'admin/security/users';
-      renderHeader();
-      await waitFor(() => {
-        expect(window.location.hash).toBe('#preview/admin/security/users');
-      });
-    });
-
-    it('11. Redirects legacy user/account to standalone preview.user.account (not Settings layout)', async () => {
-      window.location.hash = 'user/account';
-      renderHeader();
-      await waitFor(() => {
-        expect(window.location.hash).toBe('#preview/user/account');
-      });
-    });
-
-    it('12. Redirects landing pages to preview welcome', async () => {
-      window.location.hash = 'browse/welcome';
-      renderHeader();
-      await waitFor(() => {
-        expect(window.location.hash).toBe('#preview/browse/welcome');
-      });
-    });
-
-    it('13. Hides the header toggle button completely', () => {
-      renderHeader();
-      expect(screen.queryByText('Switch to Astrum One UI')).not.toBeInTheDocument();
-      expect(screen.queryByText('Switch to Classic UI')).not.toBeInTheDocument();
-    });
-
-    it('14. Session flag user_requested_legacy is ignored', async () => {
-      window.location.hash = 'browse/welcome';
-      sessionStorage.setItem('user_requested_legacy', 'true');
-      renderHeader();
-      
-      // Kill switch should still force redirect
-      await waitFor(() => {
-        expect(window.location.hash).toBe('#preview/browse/welcome');
-      });
-    });
-
-    it('15. Direct URL entry to legacy route is forced to preview', async () => {
-      window.location.hash = 'admin/system/blobstores';
-      renderHeader();
-      await waitFor(() => {
-        expect(window.location.hash).toBe('#preview/admin/system/blobstores');
-      });
-    });
-
-    it('16. Kill switch overrides defaultToPreviewUi: false', async () => {
-      mockStateValues['defaultToPreviewUi'] = false;
-      window.location.hash = 'browse/welcome';
-      renderHeader();
-      await waitFor(() => {
-        expect(window.location.hash).toBe('#preview/browse/welcome');
-      });
-    });
+    expect(screen.queryByText('Switch to Astrum One UI')).not.toBeInTheDocument();
+    expect(screen.queryByText('Switch to Classic UI')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ui-toggle-button')).not.toBeInTheDocument();
   });
 });

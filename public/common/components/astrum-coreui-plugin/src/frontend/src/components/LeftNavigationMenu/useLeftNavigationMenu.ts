@@ -154,16 +154,6 @@ export interface UseLeftNavigationMenuResult extends NavigationDrawer {
   version: string | null;
   /** Logo shown at the top of the drawer, for the edition and theme. */
   logo: string;
-  /** Whether the drawer offers to switch to the Classic UI (not when the administrator turned it off). */
-  canSwitchToClassic: boolean;
-}
-
-function isLegacyUiDisabled(): boolean {
-  try {
-    return Boolean(ExtJS.state?.()?.getValue('disableLegacyUi', false));
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -197,7 +187,6 @@ export function useLeftNavigationMenu(): UseLeftNavigationMenuResult {
     isProEdition,
     version,
     logo: getHeaderLogo(status?.edition, effectiveTheme === 'dark'),
-    canSwitchToClassic: !isLegacyUiDisabled(),
     ...drawer,
   };
 }

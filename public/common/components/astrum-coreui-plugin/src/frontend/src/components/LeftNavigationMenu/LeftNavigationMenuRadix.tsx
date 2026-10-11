@@ -10,7 +10,6 @@ import {
   HardDriveUpload,
   LayoutDashboard,
   type LucideIcon,
-  Repeat,
   Search,
   Settings,
   ShieldAlert,
@@ -21,7 +20,6 @@ import { useIsActive, useSref } from '@uirouter/react';
 import { NavItemBox, PreviewUIContext, useContextAwareRouteName } from '@globalart/astrum-ui-plugin';
 import { ROUTE_NAMES } from '../../routerConfig/routeNames/routeNames';
 import { useLeftNavigationMenu, useSearchCollapsibleNav } from './useLeftNavigationMenu';
-import { requestSwitchToClassic } from './navigationDrawer';
 import LanguageMenuRadix from '../GlobalHeader/LanguageMenuRadix';
 import HelpMenuRadix from '../GlobalHeader/HelpMenuRadix';
 
@@ -196,34 +194,19 @@ export function SidebarFooter({ version }: SidebarFooterProps) {
 /** Props for {@link DrawerFooter}. */
 export interface DrawerFooterProps {
   version: string | null;
-  canSwitchToClassic: boolean;
-  onSwitchToClassic: () => void;
 }
 
 /**
- * Footer of the menu drawer on phones and tablets: what the narrow header has no room for (language, help, the
- * switch to the Classic UI) and the product version.
+ * Footer of the menu drawer on phones and tablets: what the narrow header has no room for (language and help)
+ * and the product version.
  */
-export function DrawerFooter({ version, canSwitchToClassic, onSwitchToClassic }: DrawerFooterProps) {
+export function DrawerFooter({ version }: DrawerFooterProps) {
   return (
     <Flex direction="column" gap="3" className="guide-sidebar__drawer-footer" data-testid="left-nav-drawer-footer">
       <Flex gap="2" className="guide-sidebar__drawer-tools">
         <LanguageMenuRadix />
         <HelpMenuRadix />
       </Flex>
-      {canSwitchToClassic && (
-        <Button
-          variant="outline"
-          color="gray"
-          size="3"
-          className="guide-sidebar__drawer-classic"
-          data-testid="left-nav-switch-classic"
-          onClick={onSwitchToClassic}
-        >
-          <Repeat size={16} aria-hidden />
-          {HEADER.SWITCH_TO_CLASSIC}
-        </Button>
-      )}
       {version && (
         <Text as="div" size="1" className="guide-sidebar__version">
           {NAVIGATION.PRODUCT_VERSION(version)}
@@ -253,7 +236,6 @@ export default function LeftNavigationMenuRadix() {
     isProEdition,
     version,
     logo,
-    canSwitchToClassic,
     isDrawer,
     isDrawerOpen,
     closeDrawer,
@@ -269,11 +251,6 @@ export default function LeftNavigationMenuRadix() {
   else if (isCollapsed) {
     className += ' guide-sidebar--collapsed';
   }
-
-  const switchToClassic = () => {
-    closeDrawer();
-    requestSwitchToClassic();
-  };
 
   return (
     <PreviewUIContext.Provider value={isPreviewUI}>
@@ -384,7 +361,7 @@ export default function LeftNavigationMenuRadix() {
           </Box>
         </ScrollArea>
         {isDrawer ? (
-          <DrawerFooter version={version} canSwitchToClassic={canSwitchToClassic} onSwitchToClassic={switchToClassic} />
+          <DrawerFooter version={version} />
         ) : (
           !isCollapsed && <SidebarFooter version={version} />
         )}

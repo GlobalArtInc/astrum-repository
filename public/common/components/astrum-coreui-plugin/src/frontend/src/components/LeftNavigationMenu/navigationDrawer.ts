@@ -30,16 +30,6 @@ export function useNavigationDrawerOpen(): boolean {
   return isOpen;
 }
 
-/**
- * Asks the header to leave Astrum One for the Classic UI, the way its own "Classic view" button does.
- * The drawer offers this on phones and tablets, where the header has no room for that button.
- */
-export const SWITCH_TO_CLASSIC_EVENT = 'as-switch-to-classic';
-
-export function requestSwitchToClassic(): void {
-  window.dispatchEvent(new CustomEvent(SWITCH_TO_CLASSIC_EVENT));
-}
-
 /** Return value of {@link useNavigationDrawer}. */
 export interface NavigationDrawer {
   /** Whether the menu is a drawer (Astrum One narrower than a desktop) instead of the side rail. */

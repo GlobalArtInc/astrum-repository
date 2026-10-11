@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import {render, screen, act} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import {TooltipProvider} from '@radix-ui/react-tooltip';
@@ -91,80 +91,15 @@ describe('GlobalHeaderRadix', () => {
     expect(screen.getByTestId('search-radix')).toBeInTheDocument();
   });
 
-  it('shows UI toggle when user has access', () => {
-    renderHeader();
-    expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-  });
+  it('keeps the user in Astrum One when the access flags flap', () => {
+    window.location.hash = 'preview/browse/welcome';
 
-  it('hides toggle for unauthenticated user with anonymous disabled', () => {
-    mockUser = {authenticated: false};
-    mockStateValues.anonymousEnabled = false;
+    const {rerender} = renderHeader();
 
-    renderHeader();
+    mockStateValues.loggedInEnabled = false;
+    rerender(<Theme><TooltipProvider><GlobalHeaderRadix /></TooltipProvider></Theme>);
 
-    expect(screen.queryByText('Switch to Astrum One UI')).not.toBeInTheDocument();
-  });
-
-  describe('race condition fix (bug gyca)', () => {
-    it('keeps toggle visible when loggedInEnabled flashes false during login', () => {
-      const {rerender} = renderHeader();
-      expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-
-      mockStateValues.loggedInEnabled = false;
-      mockUser = {authenticated: true, id: 'admin'};
-
-      rerender(<Theme><TooltipProvider><GlobalHeaderRadix /></TooltipProvider></Theme>);
-
-      expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-    });
-
-    it('keeps toggle visible during route transitions that reset ExtJS state', () => {
-      const {rerender} = renderHeader();
-      expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-
-      mockStateValues.loggedInEnabled = false;
-      rerender(<Theme><TooltipProvider><GlobalHeaderRadix /></TooltipProvider></Theme>);
-      expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-
-      mockStateValues.loggedInEnabled = true;
-      rerender(<Theme><TooltipProvider><GlobalHeaderRadix /></TooltipProvider></Theme>);
-      expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-    });
-
-    it('hides toggle on logout when anonymous access is disabled', () => {
-      const {rerender} = renderHeader();
-      expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-
-      mockUser = {authenticated: false};
-      mockStateValues.anonymousEnabled = false;
-
-      rerender(<Theme><TooltipProvider><GlobalHeaderRadix /></TooltipProvider></Theme>);
-
-      expect(screen.queryByText('Switch to Astrum One UI')).not.toBeInTheDocument();
-    });
-
-    it('keeps toggle visible on logout when anonymous access is enabled', () => {
-      const {rerender} = renderHeader();
-      expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-
-      mockUser = {authenticated: false};
-      mockStateValues.anonymousEnabled = true;
-
-      rerender(<Theme><TooltipProvider><GlobalHeaderRadix /></TooltipProvider></Theme>);
-
-      expect(screen.getByText('Switch to Astrum One UI')).toBeInTheDocument();
-    });
-
-    it('does not redirect out of preview during flag flaps', () => {
-      window.location.hash = 'preview/browse/welcome';
-
-      const {rerender} = renderHeader();
-
-      mockStateValues.loggedInEnabled = false;
-      rerender(<Theme><TooltipProvider><GlobalHeaderRadix /></TooltipProvider></Theme>);
-
-      expect(window.location.hash).toBe('#preview/browse/welcome');
-    });
+    expect(window.location.hash).toBe('#preview/browse/welcome');
   });
 
   describe('onRefreshClick — Preview UI (ASTRUM-53775)', () => {
@@ -231,14 +166,12 @@ describe('GlobalHeaderRadix', () => {
       expect(screen.getByTestId('theme-switcher')).toBeInTheDocument();
     });
 
-    it('promotes Astrum One with the brand accent and leaves it with a neutral button', () => {
-      const {unmount} = renderHeader();
-      expect(screen.getByRole('button', {name: 'Switch to Astrum One UI'})).toHaveAttribute('data-accent-color', 'blue');
-      unmount();
-
+    it('has no button to switch between interfaces', () => {
       window.location.hash = 'preview/browse/welcome';
       renderHeader();
-      expect(screen.getByRole('button', {name: 'Switch to Classic UI'})).toHaveAttribute('data-accent-color', 'gray');
+
+      expect(screen.queryByRole('button', {name: 'Switch to Classic UI'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Switch to Astrum One UI'})).not.toBeInTheDocument();
     });
 
     it('gives every header control the same square style', () => {

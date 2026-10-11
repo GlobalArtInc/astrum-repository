@@ -3,6 +3,7 @@ import {
   getHeritageEquivalent,
   heritageToPreviewPath,
   previewBrowsePathToHeritageBrowseParam,
+  PREVIEW_WELCOME_PATH,
 } from '../previewHeritageNavigation';
 
 describe('previewBrowsePathToHeritageBrowseParam', () => {
@@ -26,166 +27,203 @@ describe('previewBrowsePathToHeritageBrowseParam', () => {
 });
 
 describe('getHeritageEquivalent', () => {
-  it('returns null for non-preview paths', () => {
-    expect(getHeritageEquivalent('admin/repository/repositories')).toBeNull();
+  it.each([
+    ['preview/browse/welcome', 'browse/welcome'],
+    ['preview/admin/repository/repositories', 'admin/repository/repositories'],
+    ['preview/admin/repository/cleanup-policies', 'admin/repository/cleanuppolicies'],
+    ['preview/admin/security/privileges', 'admin/security/privileges'],
+    ['preview/admin/security/crowd', 'admin/security/atlassiancrowd'],
+    ['preview/admin/support/metrichealth', 'admin/support/status'],
+    ['preview/admin/support/recoverymode', 'admin/support/recovery'],
+    ['preview/admin/system/tasks', 'admin/system/tasks'],
+    ['preview/admin/repository/repositories/npm-proxy-central', 'admin/repository/repositories:npm-proxy-central'],
+    ['preview/admin/repository/repositories/Maven%20Central', 'admin/repository/repositories:Maven%20Central'],
+    ['preview/admin/repository/repositories/my-repo?tab=config', 'admin/repository/repositories:my-repo?tab=config'],
+    ['preview/browse/welcome?tab=overview', 'browse/welcome?tab=overview'],
+    ['preview/browse/my-repo/', 'browse/browse:my-repo'],
+    ['preview/browse/my-repo/?tab=info', 'browse/browse:my-repo?tab=info'],
+    ['preview/browse/my-repo/com/foo', 'browse/browse:my-repo:com%2Ffoo'],
+    ['preview/browse/welcome/', 'browse/welcome'],
+    ['/preview/admin/system/nodes', 'admin/system/nodes'],
+  ])('maps %s to %s', (preview, classic) => {
+    expect(getHeritageEquivalent(preview)).toBe(classic);
   });
 
-  it('returns null for empty input', () => {
-    expect(getHeritageEquivalent('')).toBeNull();
-    expect(getHeritageEquivalent(null)).toBeNull();
-  });
-
-  it('maps browse/welcome page route', () => {
-    expect(getHeritageEquivalent('preview/browse/welcome')).toBe('browse/welcome');
-  });
-
-  it('maps admin system tasks page route', () => {
-    expect(getHeritageEquivalent('preview/admin/system/tasks')).toBe('admin/system/tasks');
-  });
-
-  it('invokes function heritage for repositories entity', () => {
-    expect(getHeritageEquivalent('preview/admin/repository/repositories/my-repo'))
-      .toBe('admin/repository/repositories:my-repo');
-  });
-
-  it('invokes function heritage for repositories page (no entity)', () => {
-    expect(getHeritageEquivalent('preview/admin/repository/repositories'))
-      .toBe('admin/repository/repositories');
-  });
-
-  it('invokes function heritage (browse repo) with query string', () => {
-    expect(getHeritageEquivalent('preview/browse/my-repo/?tab=info'))
-      .toBe('browse/browse:my-repo?tab=info');
-  });
-
-  it('maps sub-path via startsWith — appends to heritage', () => {
-    expect(getHeritageEquivalent('preview/admin/repository/blobstores/default'))
-      .toBe('admin/repository/blobstores/default');
-  });
-
-  it('preserves query string on page-level route', () => {
-    expect(getHeritageEquivalent('preview/browse/welcome?tab=overview'))
-      .toBe('browse/welcome?tab=overview');
-  });
-
-  it('strips leading slash', () => {
-    expect(getHeritageEquivalent('/preview/admin/system/tasks')).toBe('admin/system/tasks');
-  });
-
-  it('maps recovery mode to the classic recovery route', () => {
-    expect(getHeritageEquivalent('preview/admin/support/recoverymode'))
-      .toBe('admin/support/recovery');
-  });
-
+  it.each([['admin/repository/repositories'], [''], [null], [undefined]])(
+    'returns null for %p', (path) => {
+      expect(getHeritageEquivalent(path)).toBeNull();
+    });
 });
 
 describe('heritageToPreviewPath', () => {
-  it('maps browse/welcome', () => {
-    expect(heritageToPreviewPath('browse/welcome')).toBe('preview/browse/welcome');
+  describe.each([
+    ['dashboard', [
+      ['', 'preview/browse/welcome'],
+      ['/', 'preview/browse/welcome'],
+      ['browse', 'preview/browse/welcome'],
+      ['browse/welcome', 'preview/browse/welcome'],
+      ['#browse/welcome', 'preview/browse/welcome'],
+      ['/browse/welcome', 'preview/browse/welcome'],
+      ['browse/welcome?tab=info', 'preview/browse/welcome?tab=info'],
+    ]],
+    ['browse', [
+      ['browse/browse', 'preview/browse'],
+      ['browse/browse:maven-releases', 'preview/browse/maven-releases/'],
+      ['browse/browse:my-repo:', 'preview/browse/my-repo/'],
+      ['browse/browse:my-repo:com%2Ffoo', 'preview/browse/my-repo/com/foo'],
+      ['browse/browse:my-repo:com/foo', 'preview/browse/my-repo/com/foo'],
+      ['browse/browse:my%20repo:org%2Fapache%2Fcommons%2F1.0', 'preview/browse/my%20repo/org/apache/commons/1.0'],
+      ['browse/browse:raw-hosted:docs%2Fmy%20file.txt', 'preview/browse/raw-hosted/docs/my%20file.txt'],
+      ['browse/browse:docker-hosted:v2%2Fsha256%3Aabc', 'preview/browse/docker-hosted/v2/sha256%3Aabc'],
+      ['browse/browse:my-repo?tab=info', 'preview/browse/my-repo/?tab=info'],
+    ]],
+    ['search', [
+      ['browse/search', 'preview/browse/search'],
+      ['browse/search=keyword%3Djunit', 'preview/browse/search?q=junit'],
+      ['browse/search/generic', 'preview/browse/search'],
+      ['browse/search/generic=keyword=hello', 'preview/browse/search?q=hello'],
+      ['browse/search/generic=keyword%3Dhello%20world', 'preview/browse/search?q=hello%20world'],
+      ['browse/search/generic=keyword%3Djunit%20AND%20repository_name%3Dmaven-central',
+        'preview/browse/search?q=junit&repository=maven-central'],
+      ['browse/search/maven', 'preview/browse/search?format=maven'],
+      ['browse/search/maven2', 'preview/browse/search?format=maven'],
+      ['browse/search/maven=attributes.maven2.artifactId%3Djunit', 'preview/browse/search?q=junit&format=maven'],
+      ['browse/search/maven=keyword%3Djunit%20AND%20attributes.maven2.groupId%3Dorg.junit',
+        'preview/browse/search?q=junit&format=maven'],
+      ['browse/search/maven/spring', 'preview/browse/search?q=spring&format=maven'],
+      ['browse/search/npm=name.raw%3Dreact%20AND%20version%3D18.0.0', 'preview/browse/search?q=react%2018.0.0&format=npm'],
+      ['browse/search/golang', 'preview/browse/search?format=go'],
+      ['browse/search/hugging_face', 'preview/browse/search?format=huggingface'],
+      ['browse/search/docker=attributes.docker.imageName%3Dnginx', 'preview/browse/search?q=nginx&format=docker'],
+      ['browse/search/keyword=keyword%3Dfoo', 'preview/browse/search?q=foo'],
+      ['browse/search/custom', 'preview/browse/search/custom'],
+      ['browse/search/custom=name.raw%3Dfoo', 'preview/browse/search/custom'],
+      ['browse/search/saved/my-search', 'preview/browse/search'],
+    ]],
+    ['upload and tags', [
+      ['browse/upload', 'preview/browse/upload'],
+      ['browse/upload/maven-releases', 'preview/browse/upload/maven-releases'],
+      ['browse/upload:raw%20hosted', 'preview/browse/upload/raw%20hosted'],
+      ['browse/tags', 'preview/browse/tags'],
+      ['browse/tags:release-1.0', 'preview/browse/tags/release-1.0'],
+    ]],
+    ['settings sections', [
+      ['admin', 'preview/settings'],
+      ['admin/', 'preview/settings'],
+      ['admin/hub', 'preview/settings'],
+      ['admin/repository', 'preview/admin/repository/repositories'],
+      ['admin/security', 'preview/admin/security/users'],
+      ['admin/support', 'preview/admin/support/systeminformation'],
+      ['admin/system', 'preview/admin/system/tasks'],
+    ]],
+    ['repository', [
+      ['admin/repository/repositories', 'preview/admin/repository/repositories'],
+      ['admin/repository/repositories:maven-central', 'preview/admin/repository/repositories/maven-central'],
+      ['admin/repository/repositories:Maven%20Central', 'preview/admin/repository/repositories/Maven%20Central'],
+      ['admin/repository/blobstores', 'preview/admin/repository/blobstores'],
+      ['admin/repository/blobstores/create', 'preview/admin/repository/blobstores/create'],
+      ['admin/repository/blobstores/edit/file/default', 'preview/admin/repository/blobstores/file/default'],
+      ['admin/repository/blobstores/edit/s3/my%20store', 'preview/admin/repository/blobstores/s3/my%20store'],
+      ['admin/repository/blobstores:default', 'preview/admin/repository/blobstores'],
+      ['admin/repository/selectors', 'preview/admin/repository/selectors'],
+      ['admin/repository/selectors/create', 'preview/admin/repository/selectors/create'],
+      ['admin/repository/selectors/edit/my-selector', 'preview/admin/repository/selectors/my-selector'],
+      ['admin/repository/selectors:my-selector', 'preview/admin/repository/selectors/my-selector'],
+      ['admin/repository/cleanuppolicies', 'preview/admin/repository/cleanup-policies'],
+      ['admin/repository/cleanuppolicies/create', 'preview/admin/repository/cleanup-policies/create'],
+      ['admin/repository/cleanuppolicies/edit/old-snapshots', 'preview/admin/repository/cleanup-policies/old-snapshots'],
+      ['admin/repository/routingrules', 'preview/admin/repository/routing-rules'],
+      ['admin/repository/routingrules/create', 'preview/admin/repository/routing-rules/create'],
+      ['admin/repository/routingrules/preview', 'preview/admin/repository/routing-rules/preview'],
+      ['admin/repository/routingrules/edit/block-internal', 'preview/admin/repository/routing-rules/block-internal'],
+      ['admin/repository/datastore', 'preview/admin/repository/datastore'],
+      ['admin/repository/proprietary', 'preview/admin/repository/proprietary'],
+    ]],
+    ['security', [
+      ['admin/security/privileges', 'preview/admin/security/privileges'],
+      ['admin/security/privileges/create', 'preview/admin/security/privileges/create'],
+      ['admin/security/privileges/edit/astrum-all', 'preview/admin/security/privileges/astrum-all'],
+      ['admin/security/roles', 'preview/admin/security/roles'],
+      ['admin/security/roles/create', 'preview/admin/security/roles/create'],
+      ['admin/security/roles/edit/astrum-admin', 'preview/admin/security/roles/astrum-admin'],
+      ['admin/security/users', 'preview/admin/security/users'],
+      ['admin/security/users:admin', 'preview/admin/security/users/admin/default'],
+      ['admin/security/users:default%2Fadmin', 'preview/admin/security/users/admin/default'],
+      ['admin/security/users:LDAP%2Fjane.doe', 'preview/admin/security/users/jane.doe/LDAP'],
+      ['admin/security/ldap', 'preview/admin/security/ldap'],
+      ['admin/security/ldap:corp', 'preview/admin/security/ldap/corp'],
+      ['admin/security/anonymous', 'preview/admin/security/anonymous'],
+      ['admin/security/realms', 'preview/admin/security/realms'],
+      ['admin/security/sslcertificates', 'preview/admin/security/sslcertificates'],
+      ['admin/security/sslcertificates/create', 'preview/admin/security/sslcertificates'],
+      ['admin/security/sslcertificates/edit/abc', 'preview/admin/security/sslcertificates'],
+      ['admin/security/oauth2', 'preview/admin/security/oauth2'],
+      ['admin/security/usertoken', 'preview/admin/security/user-tokens'],
+      ['admin/security/satokens', 'preview/admin/security/service-account-tokens'],
+      ['admin/security/atlassiancrowd', 'preview/admin/security/crowd'],
+      ['admin/security/saml', 'preview/admin/security/saml'],
+    ]],
+    ['support', [
+      ['admin/support/systeminformation', 'preview/admin/support/systeminformation'],
+      ['admin/support/status', 'preview/admin/support/metrichealth'],
+      ['admin/support/status:deadlocks', 'preview/admin/support/metrichealth'],
+      ['admin/support/supportzip', 'preview/admin/support/supportzip'],
+      ['admin/support/supportrequest', 'preview/admin/support/supportrequest'],
+      ['admin/support/logs', 'preview/admin/support/logs'],
+      ['admin/support/logs:astrum.log', 'preview/admin/support/logs/astrum.log'],
+      ['admin/support/logs:tasks%2Fcleanup.log', 'preview/admin/support/logs/tasks/cleanup.log'],
+      ['admin/support/recovery', 'preview/admin/support/recoverymode'],
+      ['admin/support/logging', 'preview/admin/support/logging'],
+      ['admin/support/logging/create', 'preview/admin/support/logging/create'],
+      ['admin/support/logging/edit/org.globalart', 'preview/admin/support/logging/org.globalart'],
+    ]],
+    ['system', [
+      ['admin/system/tasks', 'preview/admin/system/tasks'],
+      ['admin/system/tasks:3f1c', 'preview/admin/system/tasks/3f1c'],
+      ['admin/system/capabilities', 'preview/admin/system/capabilities'],
+      ['admin/system/capabilities/create', 'preview/admin/system/capabilities/create'],
+      ['admin/system/capabilities/edit/abc123', 'preview/admin/system/capabilities/abc123'],
+      ['admin/system/capabilities-extjs', 'preview/admin/system/capabilities'],
+      ['admin/system/capabilities-extjs:abc123', 'preview/admin/system/capabilities/abc123'],
+      ['admin/system/api', 'preview/browse/api'],
+      ['admin/system/emailserver', 'preview/admin/system/emailserver'],
+      ['admin/system/http', 'preview/admin/system/http'],
+      ['admin/system/nodes', 'preview/admin/system/nodes'],
+      ['admin/system/notifications', 'preview/admin/system/notifications'],
+      ['admin/system/previewui', 'preview/settings'],
+    ]],
+    ['user', [
+      ['user', 'preview/user/account'],
+      ['user/account', 'preview/user/account'],
+      ['user/account/settings', 'preview/user/account'],
+      ['user/accesstokens', 'preview/user/accesstokens'],
+      ['user/NuGetApiToken', 'preview/user/nugetapitoken'],
+      ['user/usertoken', 'preview/user/usertoken'],
+    ]],
+    ['unknown', [
+      ['user/other', PREVIEW_WELCOME_PATH],
+      ['some/other', PREVIEW_WELCOME_PATH],
+      ['admin/repository/unknown', PREVIEW_WELCOME_PATH],
+      ['admin/security/users-and-more', PREVIEW_WELCOME_PATH],
+      ['browse/unknown', PREVIEW_WELCOME_PATH],
+      ['404', PREVIEW_WELCOME_PATH],
+      ['login', PREVIEW_WELCOME_PATH],
+      [null, PREVIEW_WELCOME_PATH],
+      [undefined, PREVIEW_WELCOME_PATH],
+    ]],
+    ['Astrum One paths', [
+      ['preview/browse/welcome', 'preview/browse/welcome'],
+      ['preview/admin/security/users', 'preview/admin/security/users'],
+      ['/preview/browse/search?q=junit', 'preview/browse/search?q=junit'],
+    ]],
+  ])('%s', (_group, cases) => {
+    it.each(cases)('maps %p to %p', (classic, preview) => {
+      expect(heritageToPreviewPath(classic)).toBe(preview);
+    });
   });
 
-  it('maps browse/browse to preview/browse', () => {
-    expect(heritageToPreviewPath('browse/browse')).toBe('preview/browse');
-  });
-
-  it('maps browse repo-only path', () => {
-    expect(heritageToPreviewPath('browse/browse:my-repo')).toBe('preview/browse/my-repo/');
-  });
-
-  it('maps browse repo+node path', () => {
-    expect(heritageToPreviewPath('browse/browse:my-repo:com%2Ffoo')).toBe('preview/browse/my-repo/com/foo');
-  });
-
-  it('maps browse repo with empty node (trailing colon)', () => {
-    expect(heritageToPreviewPath('browse/browse:my-repo:')).toBe('preview/browse/my-repo');
-  });
-
-  it('maps browse/search/generic=keyword= to search with q param', () => {
-    expect(heritageToPreviewPath('browse/search/generic=keyword=test')).toBe('preview/browse/search?q=test');
-  });
-
-  it('maps browse/search/maven to preview search', () => {
-    expect(heritageToPreviewPath('browse/search/maven')).toBe('preview/browse/search');
-  });
-
-  it('maps browse/search/generic (exact) to preview search', () => {
-    expect(heritageToPreviewPath('browse/search/generic')).toBe('preview/browse/search');
-  });
-
-  // NOTE: This astrum-ui-plugin implementation maps 'browse/malwarerisk' to
-  // 'preview/browse/malicious-packages' (the renamed preview route). The
-  // astrum-coreui-plugin copy of this utility keeps the legacy 'malwarerisk'
-  // segment. Both mappings are intentionally correct for their own module.
-  it('maps admin/hub to preview/settings', () => {
-    expect(heritageToPreviewPath('admin/hub')).toBe('preview/settings');
-  });
-
-  it('maps admin (bare) to preview/settings', () => {
-    expect(heritageToPreviewPath('admin')).toBe('preview/settings');
-  });
-
-  it('maps admin/ (trailing slash) to preview/settings', () => {
-    expect(heritageToPreviewPath('admin/')).toBe('preview/settings');
-  });
-
-  it('maps admin/security/atlassiancrowd to preview crowd route', () => {
-    expect(heritageToPreviewPath('admin/security/atlassiancrowd')).toBe('preview/admin/security/crowd');
-  });
-
-  it('maps admin/security/atlassiancrowd sub-path', () => {
-    expect(heritageToPreviewPath('admin/security/atlassiancrowd/sub')).toBe('preview/admin/security/crowd');
-  });
-
-  it('maps user/account (exact)', () => {
-    expect(heritageToPreviewPath('user/account')).toBe('preview/user/account');
-  });
-
-  it('maps user/account sub-path', () => {
-    expect(heritageToPreviewPath('user/account/settings')).toBe('preview/user/account');
-  });
-
-  it('maps user/NuGetApiToken', () => {
-    expect(heritageToPreviewPath('user/NuGetApiToken')).toBe('preview/user/nugetapitoken');
-  });
-
-  it('maps user/usertoken', () => {
-    expect(heritageToPreviewPath('user/usertoken')).toBe('preview/user/usertoken');
-  });
-
-  it('maps other user/ paths via fallthrough', () => {
-    expect(heritageToPreviewPath('user/other')).toBe('preview/user/other');
-  });
-
-  it('maps admin/repository/cleanuppolicies sub-path', () => {
-    expect(heritageToPreviewPath('admin/repository/cleanuppolicies/my-policy'))
-      .toBe('preview/admin/repository/cleanup-policies/my-policy');
-  });
-
-  it('maps admin/repository/routingrules sub-path', () => {
-    expect(heritageToPreviewPath('admin/repository/routingrules/my-rule'))
-      .toBe('preview/admin/repository/routing-rules/my-rule');
-  });
-
-  it('maps admin/security/usertoken', () => {
-    expect(heritageToPreviewPath('admin/security/usertoken'))
-      .toBe('preview/admin/security/user-tokens');
-  });
-
-  it('maps admin/support/status sub-path', () => {
-    expect(heritageToPreviewPath('admin/support/status/metrics'))
-      .toBe('preview/admin/support/metrichealth/metrics');
-  });
-
-  it('maps the classic recovery route to the preview recovery mode page', () => {
-    expect(heritageToPreviewPath('admin/support/recovery'))
-      .toBe('preview/admin/support/recoverymode');
-  });
-
-  it('maps an unrecognised path via else branch', () => {
-    expect(heritageToPreviewPath('some/other')).toBe('preview/some/other');
-  });
-
-  it('preserves query string', () => {
-    expect(heritageToPreviewPath('browse/welcome?tab=info')).toBe('preview/browse/welcome?tab=info');
+  it('round-trips repository entity paths through the Classic UI', () => {
+    const original = 'preview/admin/repository/repositories/npm-proxy-central';
+    expect(heritageToPreviewPath(getHeritageEquivalent(original))).toBe(original);
   });
 });

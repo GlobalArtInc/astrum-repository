@@ -1,19 +1,16 @@
 
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import {Flex, Box, IconButton, Button, Dialog, Text, Popover, TextArea, Heading} from '@radix-ui/themes';
+import {Flex, Box, IconButton} from '@radix-ui/themes';
 import {Tooltip} from '@globalart/astrum-ui-plugin';
-import {RefreshCw, Repeat, Menu, Search} from 'lucide-react';
+import {RefreshCw, Menu, Search} from 'lucide-react';
 import {
   ExtJS,
   handleExtJsUnsavedChanges,
   hasUnsavedChanges,
-  restClient,
   useSideNavbarOpenState,
-  resolveDefaultLandingRoute,
+  heritageToPreviewPath,
   setLastUsedUi,
-  PREVIEW_WELCOME_ROUTE,
-  USER_REQUESTED_LEGACY_KEY,
   useIsCompactViewport,
   useIsPhone
 } from '@globalart/astrum-ui-plugin';
@@ -30,18 +27,18 @@ import HelpMenuRadix from './HelpMenuRadix';
 import LanguageMenuRadix from './LanguageMenuRadix';
 import LoginAndUserButtonRadix from './LoginAndUserButtonRadix';
 import {refreshReactPage} from '../../routerConfig/routerUtils';
-import {getHeritageEquivalent} from './previewHeritageNavigation';
-import {
-  setNavigationDrawerOpen,
-  useNavigationDrawerOpen,
-  SWITCH_TO_CLASSIC_EVENT
-} from '../LeftNavigationMenu/navigationDrawer';
+import {setNavigationDrawerOpen, useNavigationDrawerOpen} from '../LeftNavigationMenu/navigationDrawer';
 
 import './GlobalHeaderRadix.scss';
 import UIStrings from '../../constants/UIStrings';
 
 const {HEADER} = UIStrings.SHELL;
-const MAX_FEEDBACK_LENGTH = 500;
+
+/**
+ * Hash paths outside the Classic UI that the Classic redirect must leave alone: the sign-in page (an
+ * anonymous visitor sent there would otherwise bounce between it and the dashboard) and the 404 page.
+ */
+const SHARED_PATHS = ['login', '404'];
 
 export default function GlobalHeaderRadix() {
   const router = useRouter();
@@ -50,7 +47,6 @@ export default function GlobalHeaderRadix() {
   // Use useStatus().edition which is more reliable than state().getEdition()
   const status = ExtJS.useStatus();
   const edition = status?.edition;
-  const version = status?.version;
   
   // Use useUser for authentication state - this is a stable hook
   const user = ExtJS.useUser();
@@ -77,25 +73,10 @@ export default function GlobalHeaderRadix() {
   //   Logout→Anon: compute anonymous access in the SAME effect that
   //               handles logout so there's one setState, no flash.
   const [canAccessPreviewUi, setCanAccessPreviewUi] = useState(false);
-  const [isDefaultToPreviewUi, setDefaultToPreviewUi] = useState(false);
-  const [isDisableLegacyUi, setDisableLegacyUi] = useState(false);
-  const [isDisableSwitchFeedback, setDisableSwitchFeedback] = useState(false);
-  const [heritageUnavailableOpen, setHeritageUnavailableOpen] = useState(false);
-  const [uiSwitchPopoverOpen, setUiSwitchPopoverOpen] = useState(false);
-  const [classicUiFeedback, setClassicUiFeedback] = useState('');
-  const useClassicUiButtonRef = useRef(null);
-
-  const isFeedbackTooLong = classicUiFeedback.length > MAX_FEEDBACK_LENGTH;
-
   useEffect(() => {
     try {
       const state = ExtJS.state();
       if (!state) return;
-
-      const disableLegacyUi = state.getValue('disableLegacyUi', false) ?? false;
-      setDisableLegacyUi(disableLegacyUi);
-      setDefaultToPreviewUi(state.getValue('defaultToPreviewUi', false) ?? false);
-      setDisableSwitchFeedback(state.getValue('disableSwitchFeedback', false) ?? false);
 
       if (isLoggedIn) {
         // Logged-in path: only upgrade false→true, never downgrade.
@@ -153,57 +134,14 @@ export default function GlobalHeaderRadix() {
   const openSearchLayer = useCallback(() => setSearchLayerOpen(true), []);
   const closeSearchLayer = useCallback(() => setSearchLayerOpen(false), []);
   
-  // Redirect logic for rollout controls (Sprint 17)
+  // The Classic UI is retired: every Classic URL, including old bookmarks and links in emails, opens the
+  // matching Astrum One page, or the dashboard when Astrum One has no such page.
   useEffect(() => {
-    if (!canAccessPreviewUi) return;
-
+    if (!canAccessPreviewUi || isPreviewUI) return;
     const cleanPath = currentPath.replace(/^\//, '');
-    const landingPages = ['', '/', 'browse/welcome'];
-    const isLandingPage = landingPages.includes(cleanPath);
-
-    // 1. HARD KILL SWITCH: Check disableLegacyUi first
-    if (isDisableLegacyUi && !isPreviewUI) {
-      // Force redirect to preview equivalent or welcome
-      let newPath = 'preview/browse/welcome';
-
-      // Try to find equivalent mapping if it's not a landing page
-      if (!isLandingPage) {
-        if (cleanPath.startsWith('admin/')) {
-          newPath = 'preview/' + cleanPath;
-        } else if (cleanPath === 'user/account' || cleanPath.startsWith('user/account/')) {
-          // User Account is a standalone page — not inside the Settings layout
-          newPath = 'preview/user/account';
-        } else if (cleanPath === 'user/NuGetApiToken' || cleanPath.startsWith('user/NuGetApiToken')) {
-          newPath = 'preview/user/nugetapitoken';
-        } else if (cleanPath === 'user/usertoken' || cleanPath.startsWith('user/usertoken')) {
-          newPath = 'preview/user/usertoken';
-        } else if (cleanPath.startsWith('user/')) {
-          newPath = 'preview/user/' + cleanPath.replace('user/', '');
-        } else {
-          newPath = 'preview/' + cleanPath;
-        }
-      }
-
-      // Use hash-based navigation for Preview UI
-      const hashPath = `#${newPath}`;
-      window.location.hash = hashPath;
-      return;
-    }
-
-    // 2. SOFT DEFAULT: the dashboard opens the interface the user used last, else the admin default
-    if (!isPreviewUI && isLandingPage) {
-      const landingRoute = resolveDefaultLandingRoute({
-        defaultToPreviewUi: isDefaultToPreviewUi,
-        canAccessPreviewUi,
-        userRequestedLegacy: sessionStorage.getItem(USER_REQUESTED_LEGACY_KEY) === 'true'
-      });
-      if (landingRoute === PREVIEW_WELCOME_ROUTE) {
-        // Use hash-based navigation for Preview UI
-        const hashPath = '#preview/browse/welcome';
-        window.location.hash = hashPath;
-      }
-    }
-  }, [canAccessPreviewUi, isDisableLegacyUi, isDefaultToPreviewUi, isPreviewUI, currentPath]);
+    if (SHARED_PATHS.includes(cleanPath.split('?')[0])) return;
+    window.location.hash = `#${heritageToPreviewPath(cleanPath)}`;
+  }, [canAccessPreviewUi, isPreviewUI, currentPath]);
 
   useEffect(() => {
     if (isPreviewUI && canAccessPreviewUi) {
@@ -230,61 +168,6 @@ export default function GlobalHeaderRadix() {
     }
   }, [isPreviewUI, canAccessPreviewUi, currentPath, setTheme, isLoggedIn]);
   
-  const switchToClassicUI = useCallback(() => {
-    const heritagePath = getHeritageEquivalent(currentPath);
-    if (heritagePath === null) {
-      setHeritageUnavailableOpen(true);
-      setUiSwitchPopoverOpen(false);
-      return;
-    }
-
-    if (!isDisableSwitchFeedback) {
-      restClient.post('/service/rest/internal/ui/switch-feedback', {
-        edition: edition ?? 'Unknown',
-        version: version ?? 'Unknown',
-        feedback: classicUiFeedback.trim().slice(0, 500),
-      }).catch(() => {});
-    }
-
-    sessionStorage.setItem(USER_REQUESTED_LEGACY_KEY, 'true');
-    setLastUsedUi('classic');
-    setTheme('light');
-    setUiSwitchPopoverOpen(false);
-    setClassicUiFeedback('');
-    window.location.hash = heritagePath;
-  }, [currentPath, classicUiFeedback, isDisableSwitchFeedback, setTheme, edition, version]);
-
-  // Always land on the Preview dashboard rather than attempting to map the
-  // current Classic route to its Preview equivalent. heritageToPreviewPath has
-  // a generic fallback that prefixes "preview/" to unmapped paths, which can
-  // produce routes that don't exist in Preview UI and result in 404s.
-  const switchToAstrumOneUI = useCallback(() => {
-    window.location.hash = '#preview/browse/welcome';
-    sessionStorage.removeItem(USER_REQUESTED_LEGACY_KEY);
-    setLastUsedUi('preview');
-  }, []);
-
-  // The drawer has the "Classic view" button on phones and tablets
-  useEffect(() => {
-    window.addEventListener(SWITCH_TO_CLASSIC_EVENT, switchToClassicUI);
-    return () => window.removeEventListener(SWITCH_TO_CLASSIC_EVENT, switchToClassicUI);
-  }, [switchToClassicUI]);
-
-  const handleUiSwitchPopoverOpenChange = useCallback((open) => {
-    setUiSwitchPopoverOpen(open);
-    if (!open) {
-      setClassicUiFeedback('');
-    }
-  }, []);
-
-  const handlePopoverOpenAutoFocus = useCallback((e) => {
-    e.preventDefault();
-    // Use requestAnimationFrame so the button is mounted when we focus
-    requestAnimationFrame(() => {
-      useClassicUiButtonRef.current?.focus();
-    });
-  }, []);
-
   const onRefreshClick = () => {
     if (!ExtJS.isExtJsRendered()) {
       // Preview UI: ExtJS warnBeforeNavigate crashes when there is no backing ExtJS
@@ -386,121 +269,6 @@ export default function GlobalHeaderRadix() {
               </IconButton>
             )}
 
-            {!isCompact && canAccessPreviewUi && !isDisableLegacyUi && (
-              isPreviewUI ? (
-                isDisableSwitchFeedback ? (
-                  <Tooltip content={HEADER.SWITCH_TO_CLASSIC}>
-                    <Button
-                      variant="outline"
-                      color="gray"
-                      size="3"
-                      className="as-global-header-radix__clickable as-global-header-radix__switch"
-                      aria-label={HEADER.SWITCH_TO_CLASSIC}
-                      title={HEADER.SWITCH_TO_CLASSIC}
-                      data-testid="ui-toggle-button"
-                      data-analytics-id="as-global-switch-classic"
-                      onClick={switchToClassicUI}
-                    >
-                      <Flex align="center" gap="2">
-                        <Repeat size={16} aria-hidden />
-                        {HEADER.SWITCH_TO_CLASSIC}
-                      </Flex>
-                    </Button>
-                  </Tooltip>
-                ) : (
-                  <Popover.Root open={uiSwitchPopoverOpen} onOpenChange={handleUiSwitchPopoverOpenChange}>
-                    <Tooltip content={uiSwitchPopoverOpen ? undefined : HEADER.SWITCH_TO_CLASSIC}>
-                      <Popover.Trigger asChild>
-                        <Button
-                          variant="outline"
-                          color="gray"
-                          size="3"
-                          className="as-global-header-radix__clickable as-global-header-radix__switch"
-                          aria-label={HEADER.SWITCH_TO_CLASSIC}
-                          aria-haspopup="dialog"
-                          title={HEADER.SWITCH_TO_CLASSIC}
-                          data-testid="ui-toggle-button"
-                          data-analytics-id="as-global-switch-classic"
-                        >
-                          <Flex align="center" gap="2">
-                            <Repeat size={16} aria-hidden />
-                            {HEADER.SWITCH_TO_CLASSIC}
-                          </Flex>
-                        </Button>
-                      </Popover.Trigger>
-                    </Tooltip>
-                    <Popover.Content
-                      width="360px"
-                      aria-labelledby="ui-switch-popover-title"
-                      aria-describedby="ui-switch-popover-desc"
-                      onOpenAutoFocus={handlePopoverOpenAutoFocus}
-                    >
-                      <Flex direction="column" gap="4">
-                        <Box>
-                          <Heading id="ui-switch-popover-title" size="3" mb="2">{HEADER.SWITCH_FEEDBACK.TITLE}</Heading>
-                          <Text id="ui-switch-popover-desc" size="2" color="gray" as="p">
-                            {HEADER.SWITCH_FEEDBACK.DESCRIPTION}
-                          </Text>
-                        </Box>
-                        <Flex direction="column" gap="3">
-                          <Flex direction="column" gap="1">
-                            <TextArea
-                              id="ui-feedback-textarea"
-                              placeholder={HEADER.SWITCH_FEEDBACK.PLACEHOLDER}
-                              value={classicUiFeedback}
-                              onChange={(e) => setClassicUiFeedback(e.target.value)}
-                              rows={3}
-                              aria-label={HEADER.SWITCH_FEEDBACK.LABEL}
-                              maxLength={MAX_FEEDBACK_LENGTH + 1}
-                              color={isFeedbackTooLong ? 'red' : undefined}
-                            />
-                            {isFeedbackTooLong && (
-                              <Text size="1" color="red">
-                                {HEADER.SWITCH_FEEDBACK.TOO_LONG(MAX_FEEDBACK_LENGTH, classicUiFeedback.length - MAX_FEEDBACK_LENGTH)}
-                              </Text>
-                            )}
-                          </Flex>
-                          <Button
-                            ref={useClassicUiButtonRef}
-                            variant="solid"
-                            color="blue"
-                            size="2"
-                            className={isFeedbackTooLong ? 'as-global-header-radix__clickable--disabled' : 'as-global-header-radix__clickable'}
-                            onClick={switchToClassicUI}
-                            disabled={isFeedbackTooLong}
-                            aria-label={HEADER.SWITCH_FEEDBACK.USE_CLASSIC}
-                            title={HEADER.SWITCH_FEEDBACK.USE_CLASSIC}
-                            data-analytics-id="as-dialog-use-classic"
-                          >
-                            {HEADER.SWITCH_FEEDBACK.USE_CLASSIC}
-                          </Button>
-                        </Flex>
-                      </Flex>
-                    </Popover.Content>
-                  </Popover.Root>
-                )
-              ) : (
-                <Tooltip content={HEADER.SWITCH_TO_PREVIEW}>
-                  <Button
-                    variant="soft"
-                    color="blue"
-                    size="3"
-                    onClick={switchToAstrumOneUI}
-                    className="as-global-header-radix__clickable as-global-header-radix__switch"
-                    aria-label={HEADER.SWITCH_TO_PREVIEW}
-                    title={HEADER.SWITCH_TO_PREVIEW}
-                    data-testid="ui-toggle-button"
-                    data-analytics-id="as-global-switch-preview"
-                  >
-                    <Flex align="center" gap="2">
-                      <Repeat size={16} aria-hidden />
-                      {HEADER.SWITCH_TO_PREVIEW}
-                    </Flex>
-                  </Button>
-                </Tooltip>
-              )
-            )}
-
             {!isCompact && (
               <Tooltip content={HEADER.REFRESH}>
                 <IconButton
@@ -532,34 +300,6 @@ export default function GlobalHeaderRadix() {
 
       {isCompact && isSearchLayerOpen && <SearchLayer onClose={closeSearchLayer} />}
 
-      {/* Classic UI unavailable – shown when current Preview route has no Classic equivalent */}
-      <Dialog.Root open={heritageUnavailableOpen} onOpenChange={(open) => !open && setHeritageUnavailableOpen(false)}>
-        <Dialog.Content maxWidth="450px" aria-describedby={undefined}>
-          <Dialog.Title>{HEADER.CLASSIC_UNAVAILABLE.TITLE}</Dialog.Title>
-          <Text size="2" color="gray" as="p" mt="2">
-            {HEADER.CLASSIC_UNAVAILABLE.TEXT}
-          </Text>
-          <Flex gap="3" mt="4" justify="end">
-            <Dialog.Close>
-              <Button variant="soft" color="gray" size="2">{HEADER.CLASSIC_UNAVAILABLE.STAY}</Button>
-            </Dialog.Close>
-            <Button
-              variant="solid"
-              color="blue"
-              size="2"
-              onClick={() => {
-                setHeritageUnavailableOpen(false);
-                sessionStorage.setItem(USER_REQUESTED_LEGACY_KEY, 'true');
-                setLastUsedUi('classic');
-                setTheme('light');
-                window.location.hash = 'browse/welcome';
-              }}
-            >
-              {HEADER.CLASSIC_UNAVAILABLE.GO}
-            </Button>
-          </Flex>
-        </Dialog.Content>
-      </Dialog.Root>
     </div>
   );
 }
