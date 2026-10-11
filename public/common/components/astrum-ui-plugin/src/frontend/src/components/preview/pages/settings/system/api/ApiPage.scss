@@ -296,6 +296,11 @@
     .swagger-ui {
       filter: invert(88%) hue-rotate(180deg);
 
+      // Swagger leaves descriptions to inherit the page text colour, which in the
+      // dark theme is light and the invert above turns dark-on-dark. Restore
+      // swagger-ui's own base text colour so they invert to light text.
+      color: #3b4151;
+
       // Restore code blocks from double inversion
       .microlight {
         filter: invert(100%) hue-rotate(180deg);
