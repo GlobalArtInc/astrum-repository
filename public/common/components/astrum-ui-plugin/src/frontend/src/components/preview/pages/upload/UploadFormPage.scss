@@ -109,7 +109,7 @@
 
   // The fields of a format sit in a wrapper of their own, where their last section loses the space and the line
   // that separate it from the files below.
-  &__format-fields > * > .settings-section:last-child {
+  &__format-fields .settings-section:last-child {
     margin-bottom: var(--space-6);
 
     .settings-section__separator {
