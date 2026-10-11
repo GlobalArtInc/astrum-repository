@@ -1,0 +1,38 @@
+.settings-card {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--gray-a2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+
+  &--tile:hover {
+    box-shadow: inset 0 0 0 1px var(--accent-a7);
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background-color: var(--accent-a3);
+    color: var(--accent-11);
+  }
+
+  &__description {
+    margin: 4px 0 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}

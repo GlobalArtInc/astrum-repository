@@ -631,26 +631,11 @@ describe('SettingsHubPage', () => {
     });
   });
 
-  describe('Preview Mode Callout', () => {
-    it('renders callout explaining preview mode', () => {
+  describe('No preview callout', () => {
+    it('does not send users to the classic UI', () => {
       renderWithTheme(<SettingsHubPage />);
 
-      expect(screen.getByText(/Some settings pages are available in this preview/)).toBeInTheDocument();
-    });
-
-    it('renders Coming Soon badge inside callout text', () => {
-      renderWithTheme(<SettingsHubPage />);
-
-      // The callout contains a Coming Soon badge inline in the text
-      const calloutBadges = screen.getAllByText('Coming Soon');
-      expect(calloutBadges.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('renders callout before settings sections', () => {
-      const { container } = renderWithTheme(<SettingsHubPage />);
-
-      const callout = container.querySelector('[class*="rt-CalloutRoot"]');
-      expect(callout).toBeInTheDocument();
+      expect(screen.queryByText(/Some settings pages are available in this preview/)).not.toBeInTheDocument();
     });
   });
 

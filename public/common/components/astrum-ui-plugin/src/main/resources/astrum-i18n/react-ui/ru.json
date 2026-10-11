@@ -4580,7 +4580,6 @@
   "PREVIEW.SETTINGS.HUB.CLEAR_SEARCH_ARIA": "Очистить поиск",
   "PREVIEW.SETTINGS.HUB.CONFIGURE_SECURITY_REPOSITORIES_SYSTEM_SUPPORT": "Настройка безопасности, репозиториев, системы и поддержки",
   "PREVIEW.SETTINGS.HUB.NO_SETTINGS_FOUND_MATCHING": "Нет настроек по запросу «{0}»",
-  "PREVIEW.SETTINGS.HUB.PREVIEW_NOTICE": "В этой версии доступны не все страницы настроек. Страницы с пометкой {0} ещё готовятся для Astrum One UI — пока откройте их в панели администрирования классического интерфейса.",
   "PREVIEW.SETTINGS.HUB.SEARCH_SETTINGS_PLACEHOLDER": "Поиск настроек...",
   "PREVIEW.SETTINGS.HUB.TRY_DIFFERENT_SEARCH_TERM_BROWSE": "Попробуйте другой запрос или просмотрите все настройки",
   "PREVIEW.SETTINGS.NOT_AVAILABLE.BACK_SETTINGS": "К настройкам",

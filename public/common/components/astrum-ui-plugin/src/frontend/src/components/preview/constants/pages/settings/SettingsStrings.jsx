@@ -7,7 +7,6 @@ export default localize('react-ui', {
     VIEW: 'View',
   },
   HUB: {
-    PREVIEW_NOTICE: (badge) => <>Some settings pages are available in this preview. Pages marked {badge} are still being prepared for the Astrum One UI. Access them through the classic UI administration panel.</>,
     CONFIGURE_SECURITY_REPOSITORIES_SYSTEM_SUPPORT: 'Configure security, repositories, system, and support',
     SEARCH_SETTINGS_PLACEHOLDER: 'Search settings...',
     CLEAR_SEARCH_ARIA: 'Clear search',

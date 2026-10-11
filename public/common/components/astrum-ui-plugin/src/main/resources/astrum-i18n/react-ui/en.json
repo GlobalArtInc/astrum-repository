@@ -4580,7 +4580,6 @@
   "PREVIEW.SETTINGS.HUB.CLEAR_SEARCH_ARIA": "Clear search",
   "PREVIEW.SETTINGS.HUB.CONFIGURE_SECURITY_REPOSITORIES_SYSTEM_SUPPORT": "Configure security, repositories, system, and support",
   "PREVIEW.SETTINGS.HUB.NO_SETTINGS_FOUND_MATCHING": "No settings found matching \"{0}\"",
-  "PREVIEW.SETTINGS.HUB.PREVIEW_NOTICE": "Some settings pages are available in this preview. Pages marked {0} are still being prepared for the Astrum One UI. Access them through the classic UI administration panel.",
   "PREVIEW.SETTINGS.HUB.SEARCH_SETTINGS_PLACEHOLDER": "Search settings...",
   "PREVIEW.SETTINGS.HUB.TRY_DIFFERENT_SEARCH_TERM_BROWSE": "Try a different search term or browse all settings",
   "PREVIEW.SETTINGS.NOT_AVAILABLE.BACK_SETTINGS": "Back to Settings",

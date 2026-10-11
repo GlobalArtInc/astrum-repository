@@ -30,13 +30,15 @@ describe('SettingsCard', () => {
     expect(screen.getByText('Manage user accounts and access')).toBeInTheDocument();
   });
 
-  it('renders View button', () => {
-    renderWithTheme(<SettingsCard card={mockCard} />);
+  it('renders a tile with the icon of the page and no button on wider screens', () => {
+    const { container } = renderWithTheme(<SettingsCard card={mockCard} />);
 
-    expect(screen.getByRole('button', { name: 'View' })).toBeInTheDocument();
+    expect(container.querySelector('.settings-card--tile')).toBeInTheDocument();
+    expect(container.querySelector('.settings-card__icon svg')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View' })).not.toBeInTheDocument();
   });
 
-  it('shows a chevron instead of the View button on phones', () => {
+  it('shows a list row with a chevron instead of a tile on phones', () => {
     const originalMatchMedia = window.matchMedia;
     window.matchMedia = jest.fn((query: string) => ({
       matches: query.includes('639px'),
@@ -48,7 +50,7 @@ describe('SettingsCard', () => {
     try {
       renderWithTheme(<SettingsCard card={mockCard} />);
 
-      expect(screen.queryByRole('button', { name: 'View' })).not.toBeInTheDocument();
+      expect(document.querySelector('.settings-card--tile')).not.toBeInTheDocument();
       expect(screen.getByRole('link')).toHaveTextContent('Users');
     } finally {
       window.matchMedia = originalMatchMedia;
@@ -73,11 +75,10 @@ describe('SettingsCard', () => {
     expect(link).toHaveAttribute('href', '#browse/welcome');
   });
 
-  it('applies cursor pointer style', () => {
+  it('marks the card as the settings card link', () => {
     const { container } = renderWithTheme(<SettingsCard card={mockCard} />);
 
-    const card = container.querySelector('[class*="Card"]');
-    expect(card).toHaveStyle({ cursor: 'pointer' });
+    expect(container.querySelector('a.settings-card')).toBeInTheDocument();
   });
 
   it('does not truncate description text', () => {

@@ -2,9 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Badge,
   Box,
-  Callout,
   Container,
   Flex,
   Text,
@@ -12,7 +10,7 @@ import {
   IconButton,
   ScrollArea,
 } from '@radix-ui/themes';
-import { Search, X, Info } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 import { ExtJS } from '../../../../interface/ExtJS';
 import { isVisible } from '../../../../interface/NavigationUtils';
@@ -30,7 +28,7 @@ import SettingsStrings from '../../constants/pages/settings/SettingsStrings';
  * - Client-side search filtering by label, description, and search terms
  * - Empty sections automatically hidden when searching
  * - Cards navigate to individual settings pages
- * - Radix UI components only (no custom CSS)
+ * - Cards are a list on phones and tiles on wider screens
  *
  * URL: #preview/admin/settings
  */
@@ -153,7 +151,7 @@ export function SettingsHubPage() {
 
   return (
     <ScrollArea>
-      <Container size="3" py="4" px={{ initial: '4', md: '0' }}>
+      <Container size="4" py="4" px={{ initial: '4', md: '0' }}>
         <PageHeader
           title={CommonStrings.LABELS.SETTINGS}
           description={SettingsStrings.HUB.CONFIGURE_SECURITY_REPOSITORIES_SYSTEM_SUPPORT}
@@ -184,18 +182,6 @@ export function SettingsHubPage() {
             </TextField.Root>
           </Box>
         </PageHeader>
-
-        {/* Preview mode callout */}
-        <Callout.Root color="blue" mb="4" mt="4">
-          <Callout.Icon>
-            <Info size={16} />
-          </Callout.Icon>
-          <Callout.Text>
-            {SettingsStrings.HUB.PREVIEW_NOTICE(
-              <Badge color="blue" size="1" variant="soft">{SettingsStrings.CARD.COMING_SOON}</Badge>
-            )}
-          </Callout.Text>
-        </Callout.Root>
 
         {/* Settings sections */}
         <Box mt="6">
