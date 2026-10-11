@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { Theme } from '@radix-ui/themes';
 import { RolesPage } from '../RolesPage';
 import { useRolesApi } from '../useRolesApi';
@@ -292,6 +292,19 @@ describe('RolesPage', () => {
     expect(screen.queryByTestId('wizard-step-0')).not.toBeInTheDocument();
     // Description reflects the 3-step edit flow, not the 4-step create flow.
     expect(screen.getByText(/Step 1: Setup/)).toBeInTheDocument();
+  });
+
+  it('puts the edit wizard under a page header with breadcrumbs and no second way back', async () => {
+    window.location.hash = '#preview/admin/security/roles/test-role';
+    renderWithTheme(<RolesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('wizard-step-1')).toBeInTheDocument();
+    });
+    const header = screen.getByTestId('page-header');
+    expect(within(header).getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+    expect(within(header).getByRole('button', { name: 'Roles' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /back to list/i })).not.toBeInTheDocument();
   });
 
   it('should show error alert when there is an error', () => {

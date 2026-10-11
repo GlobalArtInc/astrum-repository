@@ -212,11 +212,6 @@ export function RolesPage() {
           icon: Shield,
           title: RolesStrings.PAGE.CREATE_ROLE,
           description: RolesStrings.PAGE.STEP(internalWizardStep + 1, createSteps[internalWizardStep]),
-          actions: (
-            <Button variant="soft" color="gray" onClick={handleBack}>
-              <ArrowLeft size={16} /> {CommonStrings.ACTIONS.BACK_TO_LIST}
-            </Button>
-          )
         };
       }
       case 'edit': {
@@ -229,11 +224,6 @@ export function RolesPage() {
           description: role
             ? RolesStrings.PAGE.STEP_SOURCE(internalWizardStep + 1, editSteps[internalWizardStep], formatRoleSourceDisplay(role.source))
             : CommonStrings.MESSAGES.LOADING,
-          actions: (
-            <Button variant="soft" color="gray" onClick={handleBack}>
-              <ArrowLeft size={16} /> {CommonStrings.ACTIONS.BACK_TO_LIST}
-            </Button>
-          )
         };
       }
       case 'profile': {
@@ -358,6 +348,16 @@ export function RolesPage() {
           const finalStepIndex = isCreateView ? 3 : 2;
           const logicalWizardStep = isCreateView ? internalWizardStep : internalWizardStep + 1;
           return (
+          <>
+          <PageHeader
+            title={headerProps.title}
+            description={headerProps.description}
+            breadcrumbs={[
+              { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+              { label: RolesStrings.PAGE.ROLES, onClick: handleBack },
+              { label: isCreateView ? CommonStrings.ACTIONS.CREATE : role?.id || routeState.roleId || '' },
+            ]}
+          />
           <WizardForm
             steps={steps}
             currentStep={internalWizardStep}
@@ -374,17 +374,12 @@ export function RolesPage() {
             }
             loading={loading && internalWizardStep === finalStepIndex}
             noDirtyTracking={true}
-            title={headerProps.title}
-            description={headerProps.description}
             footerExtra={
-              <Flex align="center" gap="3">
-                {headerProps.actions}
-                {routeState.viewMode === 'edit' && roleCanDelete && (
-                  <SettingsButton variant="danger" onClick={handleDelete} disabled={loading} icon={Trash2}>
-                    {RolesStrings.PAGE.DELETE_ROLE}
-                  </SettingsButton>
-                )}
-              </Flex>
+              routeState.viewMode === 'edit' && roleCanDelete ? (
+                <SettingsButton variant="danger" onClick={handleDelete} disabled={loading} icon={Trash2}>
+                  {RolesStrings.PAGE.DELETE_ROLE}
+                </SettingsButton>
+              ) : undefined
             }
           >
             <RoleForm
@@ -399,6 +394,7 @@ export function RolesPage() {
               hideActions
             />
           </WizardForm>
+          </>
           );
         })()}
       </Box>
