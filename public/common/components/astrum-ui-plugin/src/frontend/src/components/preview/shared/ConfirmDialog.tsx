@@ -2,7 +2,7 @@
 
 import React from 'react';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
-import { Flex, Text } from '@radix-ui/themes';
+import { Flex, Text, Theme } from '@radix-ui/themes';
 import { AlertTriangle } from 'lucide-react';
 
 import './ConfirmDialog.scss';
@@ -43,6 +43,9 @@ export function ConfirmDialog({
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
+        {/* The portal leaves the theme root for the body, where the spacing scale is undefined and every gap of the
+            dialog collapsed to nothing; a nested theme takes the appearance of the page and brings the scale back. */}
+        <Theme hasBackground={false}>
         <AlertDialog.Overlay className="confirm-dialog__overlay" />
         <AlertDialog.Content className="confirm-dialog__content">
           <Flex direction="column" gap="4">
@@ -85,6 +88,7 @@ export function ConfirmDialog({
             </Flex>
           </Flex>
         </AlertDialog.Content>
+        </Theme>
       </AlertDialog.Portal>
     </AlertDialog.Root>
   );
