@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Theme } from '@radix-ui/themes';
 import { ToastProvider } from '../../../shared';
@@ -65,17 +65,28 @@ describe('NuGetApiTokenPage', () => {
 
   it('shows usage instructions with {API_KEY} placeholder before reveal', () => {
     renderPage();
-    expect(screen.getByTestId('usage-instructions-card')).toBeInTheDocument();
-    const dotnetPreview = screen.getByTestId('dotnet-cmd-preview');
-    expect(dotnetPreview.textContent).toContain('{API_KEY}');
-    const nugetPreview = screen.getByTestId('nuget-cmd-preview');
-    expect(nugetPreview.textContent).toContain('{API_KEY}');
+    const card = screen.getByTestId('usage-instructions-card');
+    expect(within(card).getByRole('tabpanel').textContent).toContain('{API_KEY}');
+    fireEvent.click(within(card).getByRole('tab', { name: 'nuget.exe CLI' }));
+    expect(within(card).getByRole('tabpanel').textContent).toContain('nuget.exe setapikey {API_KEY}');
+  });
+
+  it('shows each command once, with one copy button', () => {
+    renderPage();
+    const card = screen.getByTestId('usage-instructions-card');
+    expect(within(card).getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'dotnet nuget CLI',
+      'nuget.exe CLI',
+      'Chocolatey CLI',
+    ]);
+    expect(within(card).getAllByText(/dotnet nuget add source/)).toHaveLength(1);
+    expect(within(card).getAllByRole('button', { name: /copy/i })).toHaveLength(1);
   });
 
   it('shows user ID in dotnet command preview', () => {
     renderPage();
-    const dotnetPreview = screen.getByTestId('dotnet-cmd-preview');
-    expect(dotnetPreview.textContent).toContain('testuser');
+    const card = screen.getByTestId('usage-instructions-card');
+    expect(within(card).getByRole('tabpanel').textContent).toContain('testuser');
   });
 
   it('Access API Key calls auth then GET and shows reveal modal', async () => {

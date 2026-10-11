@@ -19,6 +19,7 @@ import {
 import { Check, Copy, Package } from 'lucide-react';
 import { ExtJS } from '../../../../interface/ExtJS';
 import { ConfirmDialog } from '../../shared/form';
+import { UsageBlock } from '../../shared/Usage';
 import { useNuGetApiToken } from './useNuGetApiToken';
 import UserPagesStrings from '../../constants/pages/user/UserPagesStrings';
 import CommonStrings from '../../constants/CommonStrings';
@@ -88,26 +89,11 @@ function NuGetRevealDialog({ apiKey, userId, onClose }: NuGetRevealDialogProps) 
 
           <Separator size="4" />
 
-          <Box>
-            <Text size="2" weight="medium" mb="1" style={{ display: 'block' }}>
-              {UserPagesStrings.NUGET_API_KEY.DOTNET_NUGET_ADD_SOURCE_COMMAND}
-            </Text>
-            <Box
-              style={{
-                background: 'var(--gray-a3)',
-                border: '1px solid var(--gray-a5)',
-                borderRadius: 'var(--radius-2)',
-                padding: 'var(--space-3)',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: '13px',
-                whiteSpace: 'pre',
-                overflowX: 'auto',
-              }}
-              data-testid="dotnet-command"
-            >
-              {dotnetCmd}
-            </Box>
-            <CopyField label={UserPagesStrings.NUGET_API_KEY.COPY_COMMAND} value={dotnetCmd} />
+          <Box data-testid="dotnet-command">
+            <UsageBlock
+              title={UserPagesStrings.NUGET_API_KEY.DOTNET_NUGET_ADD_SOURCE_COMMAND}
+              snippets={[{ id: 'dotnet', label: 'dotnet', snippetText: dotnetCmd }]}
+            />
           </Box>
         </Flex>
 
@@ -193,84 +179,14 @@ export function NuGetApiTokenPage() {
       </Card>
 
       <Card data-testid="usage-instructions-card">
-        <Heading size="3" mb="3">{UserPagesStrings.NUGET_API_KEY.USAGE_INSTRUCTIONS}</Heading>
-
-        <Flex direction="column" gap="4">
-          <Box>
-            <Text size="2" weight="medium" mb="1" style={{ display: 'block' }}>
-              {UserPagesStrings.NUGET_API_KEY.DOTNET_NUGET_CLI}
-            </Text>
-            <Separator size="4" mb="2" />
-            <Box
-              style={{
-                background: 'var(--gray-a3)',
-                border: '1px solid var(--gray-a5)',
-                borderRadius: 'var(--radius-2)',
-                padding: 'var(--space-3)',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: '13px',
-                whiteSpace: 'pre',
-                overflowX: 'auto',
-              }}
-              data-testid="dotnet-cmd-preview"
-            >
-              {dotnetCmdPreview}
-            </Box>
-            <Flex justify="end" mt="1">
-              <CopyField label={UserPagesStrings.NUGET_API_KEY.DOTNET_COMMAND} value={dotnetCmdPreview} />
-            </Flex>
-          </Box>
-
-          <Box>
-            <Text size="2" weight="medium" mb="1" style={{ display: 'block' }}>
-              {UserPagesStrings.NUGET_API_KEY.NUGET_EXE_CLI}
-            </Text>
-            <Separator size="4" mb="2" />
-            <Box
-              style={{
-                background: 'var(--gray-a3)',
-                border: '1px solid var(--gray-a5)',
-                borderRadius: 'var(--radius-2)',
-                padding: 'var(--space-3)',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: '13px',
-                whiteSpace: 'pre',
-                overflowX: 'auto',
-              }}
-              data-testid="nuget-cmd-preview"
-            >
-              {nugetCmdPreview}
-            </Box>
-            <Flex justify="end" mt="1">
-              <CopyField label={UserPagesStrings.NUGET_API_KEY.NUGET_EXE_COMMAND} value={nugetCmdPreview} />
-            </Flex>
-          </Box>
-
-          <Box>
-            <Text size="2" weight="medium" mb="1" style={{ display: 'block' }}>
-              {UserPagesStrings.NUGET_API_KEY.CHOCOLATEY_CLI}
-            </Text>
-            <Separator size="4" mb="2" />
-            <Box
-              style={{
-                background: 'var(--gray-a3)',
-                border: '1px solid var(--gray-a5)',
-                borderRadius: 'var(--radius-2)',
-                padding: 'var(--space-3)',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: '13px',
-                whiteSpace: 'pre',
-                overflowX: 'auto',
-              }}
-              data-testid="choco-cmd-preview"
-            >
-              {chocoCmdPreview}
-            </Box>
-            <Flex justify="end" mt="1">
-              <CopyField label={UserPagesStrings.NUGET_API_KEY.CHOCO_COMMAND} value={chocoCmdPreview} />
-            </Flex>
-          </Box>
-        </Flex>
+        <UsageBlock
+          title={UserPagesStrings.NUGET_API_KEY.USAGE_INSTRUCTIONS}
+          snippets={[
+            { id: 'dotnet', label: UserPagesStrings.NUGET_API_KEY.DOTNET_NUGET_CLI, snippetText: dotnetCmdPreview },
+            { id: 'nuget', label: UserPagesStrings.NUGET_API_KEY.NUGET_EXE_CLI, snippetText: nugetCmdPreview },
+            { id: 'choco', label: UserPagesStrings.NUGET_API_KEY.CHOCOLATEY_CLI, snippetText: chocoCmdPreview },
+          ]}
+        />
       </Card>
 
       {showReveal && apiKey && (
