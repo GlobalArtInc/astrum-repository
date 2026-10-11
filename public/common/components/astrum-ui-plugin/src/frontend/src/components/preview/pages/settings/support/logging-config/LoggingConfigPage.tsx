@@ -75,7 +75,10 @@ export function LoggingConfigPage() {
       );
     }
 
-    const title = viewMode === 'create' ? LoggingStrings.PAGE.CREATE_LOGGER : LoggingStrings.PAGE.EDIT_LOGGER;
+    // A logger is titled by its name, which its form shows again in the Logger Name field
+    const title = viewMode === 'create'
+      ? LoggingStrings.PAGE.CREATE_LOGGER
+      : selectedLogger || LoggingStrings.PAGE.EDIT_LOGGER;
     const breadcrumbs = [
       { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
       { label: LoggingStrings.PAGE.LOGGING, onClick: handleBack },
@@ -85,7 +88,7 @@ export function LoggingConfigPage() {
     return (
       <PageHeader
         title={title}
-        description={selectedLogger && viewMode === 'detail' ? selectedLogger : undefined}
+        description={viewMode === 'detail' ? LoggingStrings.PAGE.EDIT_LOGGER : undefined}
         breadcrumbs={breadcrumbs}
         className="logging-config-page__header"
       />

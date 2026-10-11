@@ -365,6 +365,15 @@ describe('LoggingConfigPage', () => {
     });
   });
 
+  it('titles a logger by its name in detail view', () => {
+    mockedUseLoggingConfig.mockReturnValue(makeHook({ viewMode: 'detail', selectedLogger: 'org.eclipse.jetty' }));
+
+    render(<LoggingConfigPage />, { wrapper: TestWrapper });
+
+    expect(screen.getByRole('heading', { name: 'org.eclipse.jetty' })).toBeInTheDocument();
+    expect(screen.getByText('Edit Logger')).toBeInTheDocument();
+  });
+
   it('does not render LoggersList in detail view', () => {
     mockedUseLoggingConfig.mockReturnValue(makeHook({ viewMode: 'detail', selectedLogger: 'org.globalart' }));
 

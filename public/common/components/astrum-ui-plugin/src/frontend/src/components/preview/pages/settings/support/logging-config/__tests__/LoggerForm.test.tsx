@@ -160,13 +160,13 @@ describe('LoggerForm', () => {
   });
 
   describe('Common Behavior', () => {
-    it('calls onCancel when Cancel (Discard) button is clicked', () => {
+    it('calls onCancel when the Cancel button is clicked', () => {
       render(<LoggerForm isCreate={true} onSave={mockOnSave} onCancel={mockOnCancel} />, {
         wrapper: TestWrapper,
       });
 
-      // SettingsForm defaults cancelLabel to 'Discard'
-      fireEvent.click(screen.getByText('Discard'));
+      // The button leaves the form, so it says Cancel rather than SettingsForm's default Discard
+      fireEvent.click(screen.getByText('Cancel'));
 
       expect(mockOnCancel).toHaveBeenCalled();
     });

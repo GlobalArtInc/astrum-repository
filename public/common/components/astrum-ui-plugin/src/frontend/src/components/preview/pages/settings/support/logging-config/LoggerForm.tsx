@@ -75,6 +75,7 @@ export function LoggerForm({ loggerName, isCreate = false, onSave, onCancel, onD
         dirty={isDirty}
         loading={isSaving}
         submitLabel={isCreate ? LoggingStrings.FORM.CREATE_LOGGER : CommonStrings.ACTIONS.SAVE}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         footerExtra={
           !isCreate && onDelete ? (
             <SettingsButton type="button" variant="danger" onClick={onDelete} disabled={isSaving} testId="form-delete">
