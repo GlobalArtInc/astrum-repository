@@ -1,4 +1,4 @@
-
+import { parseApiError } from '../api/error-handler';
 
 /**
  * Check if validation errors object has any errors
@@ -13,6 +13,16 @@ export function hasValidationErrors(errors: Record<string, string | null>): bool
 export function extractErrorMessage(error: unknown): string {
   if (typeof error === 'string') {
     return error;
+  }
+
+  // A failed request: the server's message (validation errors, a server error's text) rather than Axios's
+  // "Request failed with status code …"
+  if (error instanceof Error && (error as Error & { isAxiosError?: boolean }).isAxiosError
+      && (error as Error & { response?: unknown }).response) {
+    const { message } = parseApiError(error);
+    if (message) {
+      return message;
+    }
   }
 
   if (error instanceof Error) {

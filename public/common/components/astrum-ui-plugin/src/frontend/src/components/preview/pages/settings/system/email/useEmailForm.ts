@@ -1,7 +1,7 @@
 
 
 import { useMemo } from 'react';
-import { ENDPOINTS, restClient } from '../../../../../../interface/api';
+import { ENDPOINTS, parseApiError, restClient } from '../../../../../../interface/api';
 import { useForm, type FormContext } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createEmailFormMachine, emailConfigToRest } from './emailFormMachine';
@@ -36,7 +36,7 @@ export function useEmailForm(options: UseEmailFormOptions = {}) {
           await restClient.put(ENDPOINTS.EMAIL, payload);
           toast.success(EmailStrings.FORM_HOOK.EMAIL_SERVER_SETTINGS_SAVED);
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : EmailStrings.FORM_HOOK.FAILED_SAVE_EMAIL_SETTINGS);
+          toast.error(parseApiError(err).message || EmailStrings.FORM_HOOK.FAILED_SAVE_EMAIL_SETTINGS);
           throw err;
         }
       },
