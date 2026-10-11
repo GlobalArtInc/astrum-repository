@@ -115,6 +115,7 @@ export default localize('react-ui', {
     NO_RESULTS_MATCH_FILTER: 'No results match your filter',
   },
   TYPES: {
+    ALL_FORMATS: 'All Formats',
     RELEASES_PRE_RELEASES_SNAPSHOTS: 'Releases & Pre-Releases/Snapshots',
     RELEASES: 'Releases',
     PRE_RELEASES_SNAPSHOTS: 'Pre-Releases/Snapshots',

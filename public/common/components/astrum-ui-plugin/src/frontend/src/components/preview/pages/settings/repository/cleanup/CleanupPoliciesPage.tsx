@@ -10,7 +10,7 @@ import { SettingsButton, SettingsAlert, ConfirmDialog } from '../../../../shared
 import { CleanupPoliciesList } from './CleanupPoliciesList';
 import { CleanupPolicyForm } from './CleanupPolicyForm';
 import { useCleanupPoliciesApi } from './useCleanupPoliciesApi';
-import { CleanupPolicy, CleanupPolicyFormData, FormatCriteria } from './types';
+import { CleanupPolicy, CleanupPolicyFormData, FormatCriteria, formatDisplayName } from './types';
 
 import './CleanupPoliciesPage.scss';
 import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
@@ -217,7 +217,7 @@ export function CleanupPoliciesPage() {
         : CleanupPoliciesStrings.PAGE.CLEANUP_POLICY_DETAILS;
 
     const description = policy && routeState.viewMode === 'detail'
-      ? CleanupPoliciesStrings.PAGE.FORMAT(policy.format)
+      ? CleanupPoliciesStrings.PAGE.FORMAT(formatDisplayName(policy.format))
       : undefined;
 
     const lastBreadcrumb = routeState.viewMode === 'create'

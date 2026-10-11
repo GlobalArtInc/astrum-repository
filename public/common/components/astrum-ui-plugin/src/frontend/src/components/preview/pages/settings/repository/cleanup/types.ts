@@ -1,4 +1,5 @@
 import CleanupPoliciesStrings from '../../../../constants/pages/settings/repository/CleanupPoliciesStrings';
+import { FORMAT_LABELS } from '../../../../shared/Badges/formatConstants';
 
 
 /**
@@ -248,4 +249,9 @@ export const hasCriteriaSelected = (data: CleanupPolicyFormData): boolean => {
   ));
 };
 
-
+/**
+ * The name of a format as people know it (Maven, not maven2); `*` is all formats. The server names formats by their
+ * ids, so its name is only the last resort.
+ */
+export const formatDisplayName = (format: string, serverName?: string): string =>
+  format === '*' ? CleanupPoliciesStrings.TYPES.ALL_FORMATS : FORMAT_LABELS[format] ?? serverName ?? format;

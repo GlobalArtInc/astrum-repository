@@ -11,7 +11,7 @@ import {
   type TableColumn,
 } from '../../../../shared';
 import { useCleanupPoliciesApi } from './useCleanupPoliciesApi';
-import { CleanupPolicy } from './types';
+import { CleanupPolicy, formatDisplayName } from './types';
 
 import './CleanupPoliciesList.scss';
 import CommonStrings from '../../../../constants/CommonStrings';
@@ -99,7 +99,7 @@ export function CleanupPoliciesList({ onSelect, onCreate }: CleanupPoliciesListP
     {
       id: 'format',
       header: CommonStrings.LABELS.FORMAT,
-      accessor: 'format',
+      accessor: (policy) => formatDisplayName(policy.format),
       sortable: true,
     },
     {

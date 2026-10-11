@@ -27,6 +27,7 @@ import {
   NOTES_MAX_LENGTH,
   isRetainSupportedFormat,
   isRepositoriesFieldSupportedFormat,
+  formatDisplayName,
 } from './types';
 
 import './CleanupPolicyForm.scss';
@@ -346,7 +347,7 @@ export function CleanupPolicyForm({
               placeholder={CleanupPoliciesStrings.FORM.SELECT_FORMAT_PLACEHOLDER}
               options={formatCriteria.map((fc) => ({
                 value: fc.id,
-                label: fc.name,
+                label: formatDisplayName(fc.id, fc.name),
               }))}
             />
 

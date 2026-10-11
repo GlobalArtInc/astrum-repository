@@ -97,16 +97,17 @@ describe('CleanupPoliciesList', () => {
     expect(screen.getByText('docker-cleanup')).toBeInTheDocument();
   });
 
-  it('displays policy formats', async () => {
+  it('displays policy formats by their names, not their ids', async () => {
     render(<CleanupPoliciesList onSelect={mockOnSelect} onCreate={mockOnCreate} />, {
       wrapper: TestWrapper,
     });
 
     await waitFor(() => {
-      expect(screen.getByText('maven2')).toBeInTheDocument();
+      expect(screen.getByText('Maven')).toBeInTheDocument();
     });
+    expect(screen.queryByText('maven2')).not.toBeInTheDocument();
     expect(screen.getByText('npm')).toBeInTheDocument();
-    expect(screen.getByText('docker')).toBeInTheDocument();
+    expect(screen.getByText('Docker')).toBeInTheDocument();
   });
 
   it('displays policy notes', async () => {
