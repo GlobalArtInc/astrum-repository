@@ -136,7 +136,7 @@ export default function LocalLogin({ primaryButton, onError }) {
       <Flex direction="column" gap="4" width="100%">
         {/* Username */}
       <Flex direction="column" gap="2">
-        <Text as="label" size="2" weight="bold" htmlFor="username" className="login-form-label">
+        <Text as="label" size="2" weight="medium" htmlFor="username" className="login-form-label">
           {USERNAME_LABEL}
         </Text>
         <TextField.Root
@@ -157,7 +157,7 @@ export default function LocalLogin({ primaryButton, onError }) {
 
       {/* Password */}
       <Flex direction="column" gap="2">
-        <Text as="label" size="2" weight="bold" htmlFor="password" className="login-form-label">
+        <Text as="label" size="2" weight="medium" htmlFor="password" className="login-form-label">
           {PASSWORD_LABEL}
         </Text>
         <TextField.Root

@@ -1,9 +1,5 @@
 
 
-// GlobalArt Astrum branding (see theme-variables.css --sona-green)
-$astrum-brand: var(--sona-green, #00a676);
-$astrum-brand-hover: #008f68;
-
 // Full-viewport overlay (native div — not Radix Box, so .rt-Box never overrides display)
 .as-login-page-radix {
   position: fixed;
@@ -20,7 +16,7 @@ $astrum-brand-hover: #008f68;
   display: grid;
   grid-template-rows: auto 1fr;
   isolation: isolate;
-  background-color: #ffffff;
+  background-color: var(--color-background);
 
   [data-theme='dark'] & {
     background-color: var(--color-background);
@@ -37,8 +33,8 @@ $astrum-brand-hover: #008f68;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #ffffff;
-  border-bottom: 1px solid var(--gray-5);
+  background-color: var(--astrum-chrome-bg);
+  border-bottom: 1px solid var(--gray-a5);
 
   [data-theme='dark'] & {
     background-color: var(--color-surface);
@@ -75,7 +71,7 @@ $astrum-brand-hover: #008f68;
   // Avoid width:100% alone stretching the grid item to full width (breaks horizontal centering)
   width: min(100%, 420px);
   max-width: 420px;
-  background-color: #ffffff !important;
+  background-color: var(--color-panel-solid) !important;
   border: 1px solid var(--gray-5);
   box-shadow: none !important;
 
@@ -103,7 +99,7 @@ $astrum-brand-hover: #008f68;
   &__title {
     text-align: center;
     margin: 0;
-    color: #0f172a !important;
+    color: var(--gray-12) !important;
 
     [data-theme='dark'] & {
       color: var(--gray-12) !important;
@@ -111,7 +107,7 @@ $astrum-brand-hover: #008f68;
   }
 
   &__label {
-    color: #0f172a !important;
+    color: var(--gray-12) !important;
 
     [data-theme='dark'] & {
       color: var(--gray-12) !important;
@@ -120,7 +116,7 @@ $astrum-brand-hover: #008f68;
 
   .as-login-card__content {
     // Override any inherited --color-surface variable that might cause gray background
-    --color-surface: #ffffff;
+    --color-surface: var(--color-panel-solid);
 
     [data-theme='dark'] & {
       --color-surface: var(--gray-2);
@@ -128,8 +124,8 @@ $astrum-brand-hover: #008f68;
 
     input[type='text'],
     input[type='password'] {
-      color: #0f172a !important;
-      background-color: #ffffff !important;
+      color: var(--gray-12) !important;
+      background-color: var(--color-panel-solid) !important;
 
       [data-theme='dark'] & {
         color: var(--gray-12) !important;
@@ -137,7 +133,7 @@ $astrum-brand-hover: #008f68;
       }
 
       &::placeholder {
-        color: #94a3b8 !important;
+        color: var(--gray-11) !important;
 
         [data-theme='dark'] & {
           color: var(--gray-9) !important;
@@ -150,7 +146,7 @@ $astrum-brand-hover: #008f68;
       &:-webkit-autofill:focus,
       &:-webkit-autofill:active {
         -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
-        -webkit-text-fill-color: #0f172a !important;
+        -webkit-text-fill-color: var(--gray-12) !important;
 
         [data-theme='dark'] & {
           -webkit-box-shadow: 0 0 0 30px var(--gray-3) inset !important;
@@ -160,7 +156,8 @@ $astrum-brand-hover: #008f68;
     }
 
     .rt-TextFieldRoot:focus-within {
-      box-shadow: 0 0 0 2px $astrum-brand;
+      outline: 2px solid var(--focus-8);
+      outline-offset: -1px;
     }
   }
 }
@@ -186,15 +183,10 @@ $astrum-brand-hover: #008f68;
 
 .as-login-error {
   padding: 12px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
+  background-color: var(--red-a2);
+  border: 1px solid var(--red-a5);
+  border-radius: 10px;
   text-align: center;
-
-  [data-theme='dark'] & {
-    background-color: #450a0a;
-    border-color: #7f1d1d;
-  }
 }
 
 .as-login-filepath {
@@ -204,7 +196,7 @@ $astrum-brand-hover: #008f68;
 
 .as-login-footer {
   &__lead {
-    color: var(--gray-9);
+    color: var(--gray-11);
   }
 }
 

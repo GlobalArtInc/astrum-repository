@@ -20,25 +20,31 @@
   background-color: var(--color-background, #ffffff);
 }
 
-// Simple header with logo only (no theme switcher)
-// Uses --color-surface for elevated elements like top bar
+// Simple header with the logo and the language menu (no theme switcher), sized like the shell header
 .as-login-header {
   flex-shrink: 0;
   box-sizing: border-box;
   width: 100%;
-  min-height: 56px;
-  padding: 12px 24px;
+  min-height: 60px;
+  padding: 10px 20px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  background-color: var(--color-surface, #ffffff);
-  border-bottom: 1px solid var(--gray-5, #e2e8f0);
+  background-color: var(--astrum-chrome-bg, #ffffff);
+  border-bottom: 1px solid var(--gray-a5, #e2e8f0);
 
   &__link {
     display: inline-flex;
     align-items: center;
+    min-height: 40px;
     line-height: 0;
     text-decoration: none;
+    border-radius: var(--radius-2);
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-8);
+      outline-offset: 2px;
+    }
   }
 
   &__actions {
@@ -49,7 +55,7 @@
   }
 
   &__logo {
-    height: 32px;
+    height: 28px;
     width: auto;
     max-width: min(280px, 55vw);
     object-fit: contain;

@@ -1,16 +1,15 @@
-
-
-// Color tokens - use CSS custom properties with fallbacks for light theme
-// These map to common design system colors
-$color-surface-light: var(--color-surface, #ffffff);
-$color-surface-raw: #ffffff; // Required for -webkit-box-shadow autofill workaround (needs literal value)
-$color-text-primary: var(--gray-12, #0f172a);
-$color-text-secondary: var(--gray-11, #64748b);
-$color-text-placeholder: var(--gray-9, #94a3b8);
-$color-border: var(--gray-5, #e2e8f0);
-$color-error: var(--red-9, #ef4444);
-$color-error-bg: var(--red-2, #fef2f2);
-$color-error-border: var(--red-6, #fecaca);
+// Colour tokens of the sign-in card. The page always renders in the light theme of the brand;
+// the fallbacks only matter when the brand stylesheet is not loaded (tests, embedding).
+$color-surface-light: var(--color-panel-solid, #ffffff);
+$color-surface-raw: #f7f7f8; // The light input background; the -webkit-box-shadow autofill workaround needs a literal value
+$color-input: var(--astrum-input-bg, #f7f7f8);
+$color-text-primary: var(--gray-12, #17171c);
+$color-text-secondary: var(--gray-11, #5f6170);
+$color-text-placeholder: var(--gray-11, #5f6170);
+$color-border: var(--gray-a5, #e2e2e8);
+$color-error: var(--red-11, #ce2c31);
+$color-error-bg: var(--red-a2, #fff7f7);
+$color-error-border: var(--red-a5, #fdbdbe);
 
 // Theme wrapper - transparent, no stretching
 .login-theme-wrapper {
@@ -27,17 +26,22 @@ $color-error-border: var(--red-6, #fecaca);
   }
 }
 
-// Login card (Radix Card)
+// Login card (Radix Card): brand card with a 14px radius, a hairline border and a soft shadow
 .login-card {
-  width: 420px;
+  width: 400px;
   max-width: 100%; // Responsive: shrink on small viewports
+  border-radius: 14px;
   background-color: $color-surface-light !important;
   border: 1px solid $color-border;
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px var(--black-a1), 0 12px 32px -16px var(--black-a3) !important;
 
   // Remove Radix Card ::before pseudo-element background (required to override Radix defaults)
   &.rt-Card:where(.rt-variant-surface)::before {
     background: none !important;
+  }
+
+  &.rt-Card:where(.rt-variant-surface)::after {
+    box-shadow: none !important;
   }
 
   &__content {
@@ -49,8 +53,8 @@ $color-error-border: var(--red-6, #fecaca);
   }
 
   &__mark {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     object-fit: contain;
     display: block;
   }
@@ -59,10 +63,16 @@ $color-error-border: var(--red-6, #fecaca);
     text-align: center;
     margin: 0;
     color: $color-text-primary;
+    letter-spacing: -0.02em;
+
+    &.rt-Heading {
+      font-weight: 650;
+    }
   }
 
   &__subtitle {
     text-align: center;
+    color: $color-text-secondary;
   }
 }
 
@@ -71,7 +81,7 @@ $color-error-border: var(--red-6, #fecaca);
   padding: 12px;
   background-color: $color-error-bg;
   border: 1px solid $color-error-border;
-  border-radius: 6px;
+  border-radius: 10px;
 
   &__close {
     background: none;
@@ -81,10 +91,15 @@ $color-error-border: var(--red-6, #fecaca);
     font-size: 18px;
     line-height: 1;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 6px;
 
     &:hover {
-      background-color: rgba(239, 68, 68, 0.1);
+      background-color: var(--red-a3);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-8);
+      outline-offset: 1px;
     }
   }
 }
@@ -104,25 +119,38 @@ $color-error-border: var(--red-6, #fecaca);
   color: $color-text-primary;
 }
 
-// Submit button styling
+// Submit buttons: 40px, 10px radius, the brand accent
 .login-submit {
   cursor: pointer;
+
+  &.rt-Button {
+    height: 40px;
+    border-radius: 10px;
+    font-weight: var(--font-weight-medium);
+  }
 
   &:disabled {
     cursor: not-allowed;
   }
 }
 
-// Input focus ring - uses Radix accent color (blue from Theme)
+// Inputs as in the shell: input background, hairline border, 10px radius; focus ring from the accent
 .login-card__content {
+  .rt-TextFieldRoot {
+    --text-field-border-radius: 10px;
+    border-radius: 10px;
+    background-color: $color-input;
+    box-shadow: inset 0 0 0 1px $color-border;
+  }
+
   .rt-TextFieldRoot:focus-within {
-    box-shadow: 0 0 0 2px var(--accent-9);
+    outline: 2px solid var(--focus-8);
+    outline-offset: -1px;
   }
 
   input[type='text'],
   input[type='password'] {
     color: $color-text-primary;
-    background-color: $color-surface-light;
 
     &::placeholder {
       color: $color-text-placeholder;
@@ -164,4 +192,5 @@ $color-error-border: var(--red-6, #fecaca);
 
 .login-continue {
   cursor: pointer;
+  font-weight: var(--font-weight-medium);
 }
