@@ -264,6 +264,24 @@ describe('TasksList', () => {
     });
   });
 
+  it('shows the Description column only when a task has a description', async () => {
+    const { unmount } = renderWithTheme(<TasksList {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByRole('columnheader', { name: 'Description' })).toBeInTheDocument();
+    });
+    unmount();
+
+    mockedUseTasksApi.mockReturnValue({
+      ...defaultMockApi,
+      fetchTasks: jest.fn().mockResolvedValue(mockTasks.map((t) => ({ ...t, statusDescription: '' }))),
+    });
+    renderWithTheme(<TasksList {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Cleanup Task')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('columnheader', { name: 'Description' })).not.toBeInTheDocument();
+  });
+
   it('shows Disabled badge for disabled tasks', async () => {
     renderWithTheme(<TasksList {...defaultProps} />);
 

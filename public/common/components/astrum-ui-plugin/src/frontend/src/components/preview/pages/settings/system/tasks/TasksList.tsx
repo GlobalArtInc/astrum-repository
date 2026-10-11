@@ -288,6 +288,8 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
     },
   ], [statusCounts, typeCounts, statusFilter, typeFilter]);
 
+  const hasDescriptions = useMemo(() => tasks.some((t) => !!t.statusDescription), [tasks]);
+
   const columns = useMemo<TableColumn<Task>[]>(() => [
     {
       id: 'name',
@@ -308,7 +310,8 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
       sortable: true,
       width: '130px',
     },
-    {
+    // The server reports a description only for some tasks while they run; without one the column stays empty
+    ...(hasDescriptions ? [{
       id: 'description',
       header: CommonStrings.LABELS.DESCRIPTION,
       accessor: (task) => (
@@ -318,7 +321,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
       ),
       sortable: true,
       width: '250px',
-    },
+    } as TableColumn<Task>] : []),
     {
       id: 'status',
       header: CommonStrings.LABELS.STATUS,
@@ -412,7 +415,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
       width: '90px',
       align: 'right',
     },
-  ], [canRun, canStop, canDelete, actionLoading, handleRun, handleStop, handleDeleteClick]);
+  ], [canRun, canStop, canDelete, actionLoading, handleRun, handleStop, handleDeleteClick, hasDescriptions]);
 
   const emptyState = useMemo(() => {
     const hasFilters = searchQuery || statusFilter.length > 0 || typeFilter.length > 0;
