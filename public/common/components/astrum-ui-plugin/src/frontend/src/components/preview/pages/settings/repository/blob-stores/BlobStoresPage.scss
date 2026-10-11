@@ -65,8 +65,9 @@
     }
   }
 
+  // The edit form spans the page like the other settings forms; SettingsForm keeps the fields at a readable width
   &__form-container {
-    max-width: 800px;
+    min-width: 0;
   }
 
   &__modal-overlay {
