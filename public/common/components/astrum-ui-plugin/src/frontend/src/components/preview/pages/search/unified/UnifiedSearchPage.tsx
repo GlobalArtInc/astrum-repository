@@ -177,6 +177,8 @@ export function UnifiedSearchPage(): JSX.Element {
     inputRef.current?.focus();
   }, [setQuery, runSearch, format, repository]);
 
+  // A select inside a form reports an empty value while its options are still loading and miss the current one.
+  // That is no choice of the user, and taking it would drop the format or the repository of the URL.
   const handleFormatChange = useCallback(
     (value: string) => {
       // Radix Select reports an empty value through its hidden native select while the format of the
@@ -194,6 +196,7 @@ export function UnifiedSearchPage(): JSX.Element {
 
   const handleRepositoryChange = useCallback(
     (value: string) => {
+      if (!value) return;
       const nextRepository = value === ALL_REPOSITORIES ? undefined : value;
       setFilter('repository', nextRepository ?? '');
       runSearch(input, format, nextRepository, false);

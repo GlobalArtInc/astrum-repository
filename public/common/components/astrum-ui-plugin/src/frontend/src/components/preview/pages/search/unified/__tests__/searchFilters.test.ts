@@ -429,6 +429,12 @@ describe('searchFilters', () => {
         expect(params.has('q')).toBe(false);
       });
 
+      it('excludes a query of wildcards only, which the server refuses', () => {
+        expect(buildQueryParams('npm', '*', {}).has('q')).toBe(false);
+        expect(buildQueryParams('npm', ' ** ', {}).has('q')).toBe(false);
+        expect(buildQueryParams('npm', 'left*', {}).get('q')).toBe('left*');
+      });
+
       it('excludes whitespace-only query', () => {
         const params = buildQueryParams('all', '   ', {});
         expect(params.has('q')).toBe(false);

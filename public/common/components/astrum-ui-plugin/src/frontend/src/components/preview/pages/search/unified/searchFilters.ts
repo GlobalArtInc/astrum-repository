@@ -779,6 +779,13 @@ export function getApiFormat(format: SearchFormat): string {
 }
 
 /**
+ * Whether a search term consists of wildcards only, such as `*`.
+ */
+export function isOnlyWildcards(query: string): boolean {
+  return /^\*+$/.test(query.trim());
+}
+
+/**
  * Build API query parameters from filter values.
  *
  * @param format - Current format (single) from machine state
@@ -798,8 +805,9 @@ export function buildQueryParams(
     params.set('format', apiFormat);
   }
 
-  // Add main search query (from top nav)
-  if (query.trim()) {
+  // Add main search query (from top nav). A lone wildcard matches everything, which the server refuses as a leading
+  // wildcard, so it is left out and the other criteria list everything they match.
+  if (query.trim() && !isOnlyWildcards(query)) {
     params.set('q', query.trim());
   }
 

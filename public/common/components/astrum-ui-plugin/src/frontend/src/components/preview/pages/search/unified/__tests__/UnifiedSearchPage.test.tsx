@@ -205,6 +205,29 @@ describe('UnifiedSearchPage', () => {
     expect(window.location.hash).toContain('format=maven');
   });
 
+  it('keeps the repository and the format of the URL while the choices load', async () => {
+    window.location.hash = '#preview/browse/search?q=herald&format=docker&repository=docker-hosted';
+    renderPage();
+
+    await screen.findByRole('table');
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(window.location.hash).toContain('repository=docker-hosted');
+    expect(window.location.hash).toContain('format=docker');
+    expect(searchCalls().every((url) => url.includes('repository=docker-hosted'))).toBe(true);
+  });
+
+  it('lists everything of a format for a lone wildcard instead of sending it to the server', async () => {
+    window.location.hash = '#preview/browse/search?q=*&format=docker';
+    renderPage();
+
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+    expect(searchCalls()[0]).toContain('format=docker');
+    expect(searchCalls()[0]).not.toContain('q=');
+  });
+
   it('clears the search', async () => {
     renderPage();
     const field = screen.getByRole('textbox', { name: 'Search components' });
