@@ -74,6 +74,14 @@
   }
 }
 
+// Phones: the form already has its gutter
+@media (max-width: 639px) {
+  .task-form__type-selector {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
 @keyframes task-form-spin {
   from {
     transform: rotate(0deg);

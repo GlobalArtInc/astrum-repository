@@ -99,6 +99,17 @@ describe('TaskTypeSelector', () => {
       expect(screen.getByText(/Creates a backup of the embedded database/)).toBeInTheDocument();
       expect(screen.getByText(/Removes components matching cleanup policy criteria/)).toBeInTheDocument();
     });
+
+    it('marks the description column so phones can leave it out', () => {
+      renderWithTheme(
+        <TaskTypeSelector taskTypes={mockTaskTypes} onSelect={mockOnSelect} />
+      );
+
+      expect(screen.getByRole('columnheader', { name: 'Description' })).toHaveClass('task-type-selector__description-column');
+      expect(screen.getByText(/Creates a backup of the embedded database/).closest('td')).toHaveClass(
+        'task-type-selector__description-column'
+      );
+    });
   });
 
   describe('filtering', () => {

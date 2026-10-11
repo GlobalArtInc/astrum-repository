@@ -168,7 +168,7 @@ export function TaskTypeSelector({
                   {renderSortIcon('category')}
                 </Flex>
               </Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell className="entity-table__header">
+              <Table.ColumnHeaderCell className="entity-table__header task-type-selector__description-column">
                 <Text size="2" weight="medium">{TASK_TYPE_SELECTOR.COLUMN_DESCRIPTION}</Text>
               </Table.ColumnHeaderCell>
               <Table.ColumnHeaderCell className="entity-table__header--arrow" />
@@ -204,7 +204,7 @@ export function TaskTypeSelector({
                     </Flex>
                   </Table.Cell>
                   <Table.Cell>{getTaskCategoryLabel(row.category)}</Table.Cell>
-                  <Table.Cell>
+                  <Table.Cell className="task-type-selector__description-column">
                     <Text size="2" color="gray" className="task-type-selector__description-cell">
                       {row.description}
                     </Text>
