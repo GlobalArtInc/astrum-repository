@@ -3,8 +3,11 @@
 import { assign, createMachine } from 'xstate';
 import { APIConstants } from '../../../../../../constants/APIConstants';
 import { restClient, parseApiError } from '../../../../../../interface/api';
+import { ExtJS } from '../../../../../../interface/ExtJS';
 import { SystemInformation, HASystemInformation, HANode } from './types';
 import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
+
+const CLUSTERED_ENABLED_KEY = 'astrum.datastore.clustered.enabled';
 
 const { REST } = APIConstants;
 
@@ -190,6 +193,10 @@ export const systemInfoMachine = createMachine<SystemInfoContext, SystemInfoEven
       fetchData: async (): Promise<SystemInfoFetchResult> => {
         try {
           const nodes = await (async () => {
+            // The active nodes are only served in clustered (HA) mode; a single node would only get a 404
+            if (!ExtJS.state?.().getValue?.(CLUSTERED_ENABLED_KEY)) {
+              return [];
+            }
             try {
               const data = await restClient.get<HANode[]>(REST.INTERNAL.GET_SUPPORT_ZIP_ACTIVE_NODES);
               return Array.isArray(data) ? data : [];
