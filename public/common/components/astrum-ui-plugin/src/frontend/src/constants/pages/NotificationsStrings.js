@@ -4,7 +4,7 @@ export default {
   NOTIFICATIONS: {
     MENU: {
       text: 'Notifications',
-      description: 'Send repository changes to Telegram and Slack',
+      description: 'Send repository changes to Telegram, Slack and webhooks',
     },
     TITLE: 'Notifications',
     DESCRIPTION: 'Tell your team in Telegram, Slack, Mattermost or Rocket.Chat when components are published, updated or deleted',

@@ -337,7 +337,7 @@
   "NOTIFICATIONS.LANGUAGES.RUSSIAN": "Russian",
   "NOTIFICATIONS.LOADING": "Loading notification channels…",
   "NOTIFICATIONS.LOAD_ERROR": "Could not load the notification channels",
-  "NOTIFICATIONS.MENU.description": "Send repository changes to Telegram and Slack",
+  "NOTIFICATIONS.MENU.description": "Send repository changes to Telegram, Slack and webhooks",
   "NOTIFICATIONS.MENU.text": "Notifications",
   "NOTIFICATIONS.MORE_REPOSITORIES": "+{0} more",
   "NOTIFICATIONS.PROXY_BADGE": "via proxy",

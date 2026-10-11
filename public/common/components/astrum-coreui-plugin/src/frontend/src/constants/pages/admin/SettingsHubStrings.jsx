@@ -34,7 +34,7 @@ export default {
       API: {TEXT: 'API', DESCRIPTION: 'Configure REST API settings'},
       CAPABILITIES: {TEXT: 'Capabilities', DESCRIPTION: 'Configure system capabilities and integrations'},
       NODES: {TEXT: 'Nodes', DESCRIPTION: 'View cluster nodes and status'},
-      NOTIFICATIONS: {TEXT: 'Notifications', DESCRIPTION: 'Send repository changes to Telegram and Slack'},
+      NOTIFICATIONS: {TEXT: 'Notifications', DESCRIPTION: 'Send repository changes to Telegram, Slack and webhooks'},
       ASTRUM_ONE_UI: {TEXT: 'Astrum One UI', DESCRIPTION: 'Configure Astrum One UI settings and features'}
     },
     SUPPORT: {

@@ -11,7 +11,7 @@ export default {
     },
     NOTIFICATIONS: {
       text: 'Notifications',
-      description: 'Send repository changes to Telegram and Slack'
+      description: 'Send repository changes to Telegram, Slack and webhooks'
     }
   }
 }
