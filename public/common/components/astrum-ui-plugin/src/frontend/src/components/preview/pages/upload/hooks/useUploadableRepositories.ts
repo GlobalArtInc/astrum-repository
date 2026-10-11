@@ -34,6 +34,12 @@ function isRepositoryOnline(repo: RepositoryReference): boolean {
 }
 
 /**
+ * The hosted Maven repositories with the snapshot version policy.
+ */
+const SNAPSHOT_REPOSITORIES_ENDPOINT =
+  '/service/rest/internal/ui/repositories?type=hosted&format=maven2&versionPolicies=SNAPSHOT';
+
+/**
  * Filters repositories to only include those that support UI upload.
  *
  * Criteria:
@@ -47,7 +53,8 @@ function isRepositoryOnline(repo: RepositoryReference): boolean {
  */
 function filterUploadableRepositories(
   repositories: RepositoryReference[],
-  uploadDefinitions: UploadDefinition[]
+  uploadDefinitions: UploadDefinition[],
+  snapshotRepositories: ReadonlySet<string> = new Set()
 ): UploadableRepository[] {
   // REST API doesn't return uiUpload field, so we assume all formats in upload-specs
   // support upload (they wouldn't be returned if they didn't).
@@ -65,7 +72,7 @@ function filterUploadableRepositories(
       // Must be online (handles both REST and ExtDirect formats)
       if (!isRepositoryOnline(repo)) return false;
       // Must not be Maven SNAPSHOT repo
-      if (repo.versionPolicy === 'SNAPSHOT') return false;
+      if (repo.versionPolicy === 'SNAPSHOT' || snapshotRepositories.has(repo.name)) return false;
       // Must have a UI-uploadable format
       if (!uiUploadableFormats.has(repo.format)) return false;
       return true;
@@ -183,12 +190,28 @@ export function useUploadableRepositories() {
         return definitions || [];
       };
 
-      const [repositories, uploadDefinitions] = await Promise.all([
+      // The details of repositories carry no version policy, and the server refuses uploads to snapshot
+      // repositories, so their names are asked for separately.
+      const fetchSnapshotRepositories = async (): Promise<Set<string>> => {
+        try {
+          const references = await restClient.get<Array<{ id: string }>>(SNAPSHOT_REPOSITORIES_ENDPOINT);
+          return new Set((references || []).map((reference) => reference.id));
+        } catch {
+          return new Set();
+        }
+      };
+
+      const [repositories, uploadDefinitions, snapshotRepositories] = await Promise.all([
         fetchAllHosted(),
         fetchUploadDefinitions(),
+        fetchSnapshotRepositories(),
       ]);
 
-      const uploadableRepos = filterUploadableRepositories(repositories || [], uploadDefinitions);
+      const uploadableRepos = filterUploadableRepositories(
+        repositories || [],
+        uploadDefinitions,
+        snapshotRepositories
+      );
 
       setAllRepositories(uploadableRepos);
     } catch (err) {

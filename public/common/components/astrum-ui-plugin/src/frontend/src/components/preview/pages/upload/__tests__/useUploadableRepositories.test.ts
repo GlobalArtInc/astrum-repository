@@ -22,9 +22,9 @@ import { restClient } from '../../../../../interface/api';
 // Get mock reference
 const mockGet = restClient.get as jest.MockedFunction<typeof restClient.get>;
 
-// The hook issues this many parallel REST calls per fetch (repositories + upload-specs).
+// The hook issues this many parallel REST calls per fetch (repositories + upload-specs + snapshot repositories).
 // Centralized so the count assertions don't hard-code an implementation detail.
-const CALLS_PER_FETCH = 2;
+const CALLS_PER_FETCH = 3;
 
 describe('useUploadableRepositories', () => {
   const mockRepositories = [
@@ -113,7 +113,7 @@ describe('useUploadableRepositories', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      // Two parallel REST calls
+      // Parallel REST calls
       expect(mockGet).toHaveBeenCalledTimes(CALLS_PER_FETCH);
     });
 
@@ -138,6 +138,31 @@ describe('useUploadableRepositories', () => {
 
       // Should not include maven-snapshots
       const repoNames = result.current.repositories.map((r) => r.name);
+      expect(repoNames).not.toContain('maven-snapshots');
+    });
+
+    it('filters out the snapshot repositories the server names, as their details carry no version policy', async () => {
+      mockGet.mockImplementation((url: string) => {
+        if (url.includes('/repositories/details')) {
+          return Promise.resolve(mockRepositories.map(({ versionPolicy: _ignored, ...repository }) => repository));
+        }
+        if (url === '/service/rest/v1/formats/upload-specs') {
+          return Promise.resolve(mockUploadDefinitions);
+        }
+        if (url.includes('versionPolicies=SNAPSHOT')) {
+          return Promise.resolve([{ id: 'maven-snapshots', name: 'maven-snapshots' }]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const { result } = renderHook(() => useUploadableRepositories());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      const repoNames = result.current.repositories.map((r) => r.name);
+      expect(repoNames).toContain('maven-releases');
       expect(repoNames).not.toContain('maven-snapshots');
     });
 
