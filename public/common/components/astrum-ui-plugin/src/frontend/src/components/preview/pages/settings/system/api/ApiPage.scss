@@ -347,3 +347,16 @@
     }
   }
 }
+
+// Phones: the endpoint list sits above the endpoint instead of beside it
+@media (max-width: 639px) {
+  .api-page .api-layout {
+    flex-direction: column;
+    align-items: stretch;
+
+    &__left {
+      width: auto;
+      min-width: 0;
+    }
+  }
+}
