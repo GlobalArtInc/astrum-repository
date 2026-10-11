@@ -81,8 +81,8 @@
     outline: none;
 
     &:focus {
-      border-color: var(--accent-8);
-      box-shadow: 0 0 0 1px var(--accent-8);
+      border-color: var(--focus-8);
+      box-shadow: 0 0 0 1px var(--focus-8);
     }
 
     &:disabled {
@@ -120,7 +120,7 @@
 
     &:focus {
       outline: none;
-      border-color: var(--accent-8);
+      border-color: var(--focus-8);
     }
 
     &--selected {
