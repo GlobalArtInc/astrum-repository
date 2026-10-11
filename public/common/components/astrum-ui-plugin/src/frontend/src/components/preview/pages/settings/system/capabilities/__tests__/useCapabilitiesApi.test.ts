@@ -74,6 +74,39 @@ describe('useCapabilitiesApi', () => {
       expect(mockRestClient.get).toHaveBeenCalledWith('/service/rest/v1/capabilities');
     });
 
+    it('keeps the system flag and the warnings the server sends', async () => {
+      mockRestClient.get.mockResolvedValue([{
+        ...mockRestCapability,
+        isSystem: true,
+        disableWarningMessage: 'Disabling stops scheduled tasks',
+        deleteWarningMessage: 'Deleting removes the schedule',
+      }]);
+
+      const { result } = renderHook(() => useCapabilitiesApi());
+
+      let capabilities: any;
+      await act(async () => {
+        capabilities = await result.current.fetchCapabilities();
+      });
+
+      expect(capabilities[0].isSystem).toBe(true);
+      expect(capabilities[0].disableWarningMessage).toBe('Disabling stops scheduled tasks');
+      expect(capabilities[0].deleteWarningMessage).toBe('Deleting removes the schedule');
+    });
+
+    it('treats a capability without the system flag as not a system one', async () => {
+      mockRestClient.get.mockResolvedValue([mockRestCapability]);
+
+      const { result } = renderHook(() => useCapabilitiesApi());
+
+      let capabilities: any;
+      await act(async () => {
+        capabilities = await result.current.fetchCapabilities();
+      });
+
+      expect(capabilities[0].isSystem).toBe(false);
+    });
+
     it('handles error when fetching capabilities fails', async () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const error = new Error('Network error');

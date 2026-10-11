@@ -50,6 +50,9 @@ interface RestCapability {
   status?: string;
   properties: Record<string, string>;
   tags?: Record<string, string>;
+  isSystem?: boolean;
+  disableWarningMessage?: string;
+  deleteWarningMessage?: string;
 }
 
 interface RestCapabilityType {
@@ -99,6 +102,9 @@ function restToCapability(rest: RestCapability): Capability {
     notes: rest.notes,
     properties: rest.properties || {},
     tags: rest.tags,
+    isSystem: rest.isSystem ?? false,
+    disableWarningMessage: rest.disableWarningMessage ?? undefined,
+    deleteWarningMessage: rest.deleteWarningMessage ?? undefined,
   };
 }
 
