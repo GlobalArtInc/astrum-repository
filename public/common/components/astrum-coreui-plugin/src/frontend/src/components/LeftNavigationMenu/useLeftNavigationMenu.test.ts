@@ -10,6 +10,7 @@ const mockIsGlobalArtDevMode = jest.fn(() => false);
 const mockIsProEdition = jest.fn(() => true);
 const mockUseDefaultAdminRouteName = jest.fn<string | null, []>(() => 'admin.system.api');
 const mockUseSideNavbarOpenState = jest.fn(() => [true, jest.fn()]);
+const mockUseStatus = jest.fn<{ version?: string } | undefined, []>(() => ({ version: '3.96.4' }));
 
 // Mock ExtJS global so the BrowseableFormats sync effect has a controller to call.
 beforeAll(() => {
@@ -32,7 +33,10 @@ jest.mock('@globalart/astrum-ui-plugin', () => ({
   useIsPreviewUI: (...args: unknown[]) => mockUseIsPreviewUI(...args),
   isGlobalArtDevMode: (...args: unknown[]) => mockIsGlobalArtDevMode(...args),
   useSideNavbarOpenState: (...args: unknown[]) => mockUseSideNavbarOpenState(...args),
-  ExtJS: { isProEdition: (...args: unknown[]) => mockIsProEdition(...args) },
+  ExtJS: {
+    isProEdition: (...args: unknown[]) => mockIsProEdition(...args),
+    useStatus: () => mockUseStatus(),
+  },
 }));
 
 jest.mock('@uirouter/react', () => ({
@@ -194,6 +198,27 @@ describe('useLeftNavigationMenu', () => {
     mockUseDefaultAdminRouteName.mockReturnValue('admin.system.api');
     // useSideNavbarOpenState returns [isOpen, toggle]; open (true) => not collapsed.
     mockUseSideNavbarOpenState.mockReturnValue([true, jest.fn()]);
+    mockUseStatus.mockReturnValue({ version: '3.96.4' });
+  });
+
+  it('opens the menu expanded until the user chose otherwise', () => {
+    renderHook(() => useLeftNavigationMenu());
+
+    expect(mockUseSideNavbarOpenState).toHaveBeenCalledWith(true);
+  });
+
+  it('reports the version from the server status', () => {
+    const { result } = renderHook(() => useLeftNavigationMenu());
+
+    expect(result.current.version).toBe('3.96.4');
+  });
+
+  it('reports no version while the status is not known', () => {
+    mockUseStatus.mockReturnValue(undefined);
+
+    const { result } = renderHook(() => useLeftNavigationMenu());
+
+    expect(result.current.version).toBeNull();
   });
 
   it('returns collapsed/preview state and a visible settings entry', () => {

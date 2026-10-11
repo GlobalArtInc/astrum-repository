@@ -147,17 +147,21 @@ export interface UseLeftNavigationMenuResult {
   showTestHub: boolean;
   /** Whether the instance runs the Pro edition (gates Pro-only entries like Tags). */
   isProEdition: boolean;
+  /** Version of the running Astrum Repository, or `null` while it is unknown. */
+  version: string | null;
 }
 
 /**
  * Integration hook for the top-level left navigation menu.
  *
  * Owns the derived state the presentation component needs: collapsed state,
- * Preview UI detection, the default admin route, and whether the Settings
- * entry should be visible.
+ * Preview UI detection, the default admin route, whether the Settings
+ * entry should be visible, and the version shown in the footer.
+ * The menu is expanded until the user collapses it; that choice is remembered.
  */
 export function useLeftNavigationMenu(): UseLeftNavigationMenuResult {
-  const [isOpen] = useSideNavbarOpenState(false);
+  const [isOpen] = useSideNavbarOpenState(true);
+  const version: string | null = ExtJS.useStatus?.()?.version || null;
   const isPreviewUI = useIsPreviewUI();
   const adminInitialRouteName = useDefaultAdminRouteName();
   const isSettingsVisible = !!adminInitialRouteName;
@@ -173,5 +177,6 @@ export function useLeftNavigationMenu(): UseLeftNavigationMenuResult {
     isSettingsVisible,
     showTestHub,
     isProEdition,
+    version,
   };
 }

@@ -61,7 +61,9 @@ export default {
       UPLOAD: 'Upload',
       TAGS: 'Tags',
       API: 'API',
-      SETTINGS: 'Settings'
+      SETTINGS: 'Settings',
+      MAIN_MENU: 'Main menu',
+      PRODUCT_VERSION: (version) => `Astrum Repository ${version}`
     },
     LOGIN: {
       HOME_LINK: 'GlobalArt Astrum Repository home'

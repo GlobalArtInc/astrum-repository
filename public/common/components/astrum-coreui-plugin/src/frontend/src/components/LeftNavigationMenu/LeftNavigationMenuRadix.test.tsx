@@ -55,6 +55,7 @@ jest.mock('../../routerConfig/routeNames/routeNames', () => ({
 }));
 
 jest.mock('@radix-ui/themes', () => ({
+  ...jest.requireActual('@radix-ui/themes'),
   Box: ({ children, ...props }: { children?: React.ReactNode }) => <div {...props}>{children}</div>,
   Flex: ({ children, ...props }: { children?: React.ReactNode }) => <div {...props}>{children}</div>,
   ScrollArea: ({ children, ...props }: { children?: React.ReactNode }) => <div {...props}>{children}</div>,
@@ -97,7 +98,9 @@ const menuResult = (overrides: Partial<UseLeftNavigationMenuResult> = {}): UseLe
   isPreviewUI: false,
   adminInitialRouteName: 'admin.system.api',
   isSettingsVisible: true,
+  showTestHub: false,
   isProEdition: true,
+  version: '3.96.4',
   ...overrides,
 });
 
@@ -197,5 +200,49 @@ describe('LeftNavigationMenuRadix', () => {
 
     expect(screen.getByTestId('nav-item-browse.tags')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
+  });
+});
+
+describe('LeftNavigationMenuRadix footer', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseSearchCollapsibleNav.mockReturnValue(collapsibleResult());
+  });
+
+  it('labels the menu', () => {
+    mockUseLeftNavigationMenu.mockReturnValue(menuResult());
+
+    render(<LeftNavigationMenuRadix />);
+
+    expect(screen.getByRole('navigation', { name: 'Main menu' })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['Astrum One', true],
+    ['the Classic UI', false],
+  ])('shows the version and no theme choice in %s', (_ui, isPreviewUI) => {
+    mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isPreviewUI }));
+
+    render(<LeftNavigationMenuRadix />);
+
+    expect(screen.getByTestId('left-nav-version')).toHaveTextContent('Astrum Repository 3.96.4');
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+  });
+
+  it('leaves the footer out of the collapsed menu', () => {
+    mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isPreviewUI: true, isCollapsed: true }));
+
+    render(<LeftNavigationMenuRadix />);
+
+    expect(screen.queryByTestId('left-nav-footer')).not.toBeInTheDocument();
+  });
+
+  it('renders no footer while the version is unknown', () => {
+    mockUseLeftNavigationMenu.mockReturnValue(menuResult({ version: null }));
+
+    render(<LeftNavigationMenuRadix />);
+
+    expect(screen.queryByTestId('left-nav-footer')).not.toBeInTheDocument();
   });
 });

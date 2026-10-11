@@ -18,19 +18,40 @@
     display: none;
   }
 
-  // Fix: Ensure selected/expanded section headers have readable text color
-  // The RSC library may set white text for selected state, but our light green 
-  // selection background requires dark text for proper contrast
+  // Selected section headers: the soft brand accent with dark text, as in the left menu
   .as-navigation-expandable-link__navigation-link {
     &.as-text-link.selected,
     &.selected {
-      color: var(--color-text, #171717) !important;
-      background-color: var(--color-selection, #dcfce7) !important;
-      
+      color: var(--gray-12) !important;
+      background-color: var(--accent-a3) !important;
+
       // Ensure icons and chevrons are also readable
       .as-icon {
-        color: var(--color-text, #171717) !important;
+        color: var(--gray-12) !important;
       }
+    }
+  }
+
+  // Pages of a section: menu text instead of link blue, the brand accent instead of green when selected
+  .as-navigation-expandable-link__expandable-list__navigation-link.as-text-link {
+    &,
+    &:visited {
+      color: var(--astrum-nav-text);
+      border-left-color: var(--gray-a5);
+      text-decoration: none;
+    }
+
+    &:hover {
+      color: var(--gray-12);
+      background-color: var(--gray-a3);
+    }
+
+    &.selected,
+    &.selected:hover {
+      color: var(--accent-11);
+      background-color: var(--accent-a3);
+      border-left-color: var(--accent-9);
+      font-weight: 600;
     }
   }
 

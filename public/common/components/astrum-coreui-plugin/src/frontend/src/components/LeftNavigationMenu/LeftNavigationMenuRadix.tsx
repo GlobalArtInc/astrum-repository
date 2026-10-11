@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Box, Flex, ScrollArea, Separator } from '@radix-ui/themes';
+import { Box, Flex, ScrollArea, Separator, Text } from '@radix-ui/themes';
 import {
   ChevronDown,
   ChevronUp,
@@ -166,6 +166,28 @@ export function SearchCollapsibleNav({ isCollapsed }: SearchCollapsibleNavProps)
   );
 }
 
+/** Props for {@link SidebarFooter}. */
+export interface SidebarFooterProps {
+  version: string | null;
+}
+
+/**
+ * Footer of the expanded menu: the product version, in both UIs. The theme is switched from the header.
+ */
+export function SidebarFooter({ version }: SidebarFooterProps) {
+  if (!version) {
+    return null;
+  }
+
+  return (
+    <Box className="guide-sidebar__footer" data-testid="left-nav-footer">
+      <Text as="div" size="1" className="guide-sidebar__version" data-testid="left-nav-version">
+        {NAVIGATION.PRODUCT_VERSION(version)}
+      </Text>
+    </Box>
+  );
+}
+
 /**
  * Modern Left Navigation Menu - SUPER UX with Radix UI.
  *
@@ -175,16 +197,27 @@ export function SearchCollapsibleNav({ isCollapsed }: SearchCollapsibleNavProps)
  */
 export default function LeftNavigationMenuRadix() {
   const { BROWSE, ADMIN } = ROUTE_NAMES;
-  const { isCollapsed, isPreviewUI, adminInitialRouteName, isSettingsVisible, showTestHub, isProEdition } =
-    useLeftNavigationMenu();
+  const {
+    isCollapsed,
+    isPreviewUI,
+    adminInitialRouteName,
+    isSettingsVisible,
+    showTestHub,
+    isProEdition,
+    version,
+  } = useLeftNavigationMenu();
 
 
   return (
     <PreviewUIContext.Provider value={isPreviewUI}>
-      <nav className={`guide-sidebar ${isCollapsed ? 'guide-sidebar--collapsed' : ''}`} data-testid="left-nav">
+      <nav
+        className={`guide-sidebar ${isCollapsed ? 'guide-sidebar--collapsed' : ''}`}
+        aria-label={NAVIGATION.MAIN_MENU}
+        data-testid="left-nav"
+      >
         <ScrollArea className="guide-sidebar__nav" scrollbars="vertical">
-          <Box {...(isCollapsed ? { pl: '1', pr: '2', py: '4' } : { p: '4' })} className="guide-sidebar__nav-content">
-            <Flex direction="column" gap="2">
+          <Box className="guide-sidebar__nav-content">
+            <Flex direction="column" gap="1">
               {/* Dashboard */}
               <NavItemBox name={BROWSE.WELCOME.ROOT} text={NAVIGATION.DASHBOARD} icon={LayoutDashboard} isCollapsed={isCollapsed} />
 
@@ -241,8 +274,8 @@ export default function LeftNavigationMenuRadix() {
               {/* Admin Section */}
               {isSettingsVisible && adminInitialRouteName && (
                 <>
-                  <Box>
-                    <Separator size="4" my="2" />
+                  <Box className="guide-sidebar__divider">
+                    <Separator size="4" />
                   </Box>
                   <NavItemBox
                     name={isPreviewUI ? 'preview.settings' : adminInitialRouteName}
@@ -261,6 +294,7 @@ export default function LeftNavigationMenuRadix() {
             </Flex>
           </Box>
         </ScrollArea>
+        {!isCollapsed && <SidebarFooter version={version} />}
       </nav>
     </PreviewUIContext.Provider>
   );

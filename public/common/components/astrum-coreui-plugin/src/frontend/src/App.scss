@@ -67,7 +67,6 @@ a.as-internal-link:hover {
     "global-sidebar old-sidebar content" 1fr
     "branding-footer branding-footer branding-footer" auto / auto auto 1fr;
 
-  // No separator line under header (removed per UX)
   .as-global-header-radix {
     position: relative;
   }
@@ -188,12 +187,13 @@ a.as-internal-link:hover {
   }
 
   .as-global-sidebar-2__navigation-link.as-text-link {
-    color: var(--color-text, #1a1a1a);
+    color: var(--astrum-nav-text);
 
     &.selected {
       background-image: none;
-      background-color: #00bb6c;
-      color: #ffffff;
+      background-color: var(--accent-a3);
+      color: var(--accent-11);
+      font-weight: 600;
     }
   }
 
