@@ -9,11 +9,11 @@
 
   &__empty {
     height: 200px;
-    color: var(--gray-10);
+    color: var(--gray-11);
   }
 
   &__empty-text {
-    color: var(--gray-10);
+    color: var(--gray-11);
   }
 
   &__header {
@@ -43,7 +43,7 @@
   }
 
   &__subtitle {
-    color: var(--gray-10);
+    color: var(--gray-11);
     font-family: var(--code-font-family);
   }
 
@@ -109,12 +109,12 @@
   }
 
   &__timestamp {
-    color: var(--gray-10);
+    color: var(--gray-11);
     font-size: var(--font-size-1);
   }
 
   &__no-details {
-    color: var(--gray-10);
+    color: var(--gray-11);
     font-style: italic;
   }
 }

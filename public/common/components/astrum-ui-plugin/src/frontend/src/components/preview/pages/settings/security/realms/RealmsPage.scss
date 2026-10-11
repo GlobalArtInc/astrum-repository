@@ -51,7 +51,7 @@
   }
 
   &__panel-count {
-    color: var(--gray-10);
+    color: var(--gray-11);
   }
 
   &__search {
@@ -158,7 +158,7 @@
 
   &__item-order {
     margin-left: auto;
-    color: var(--gray-10);
+    color: var(--gray-11);
     font-variant-numeric: tabular-nums;
     min-width: 20px;
     text-align: right;
@@ -169,7 +169,7 @@
     align-items: center;
     justify-content: center;
     padding: var(--space-4);
-    color: var(--gray-10);
+    color: var(--gray-11);
     font-size: var(--font-size-2);
     font-style: italic;
   }

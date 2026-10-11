@@ -68,7 +68,7 @@
   &__empty {
     padding: var(--space-8);
     text-align: center;
-    color: var(--gray-10);
+    color: var(--gray-11);
     background: var(--gray-2);
     border: 1px dashed var(--gray-6);
     border-radius: var(--radius-2);
@@ -166,7 +166,7 @@
   }
 
   &__node-message {
-    color: var(--gray-10);
+    color: var(--gray-11);
     margin-top: var(--space-1);
   }
 }
