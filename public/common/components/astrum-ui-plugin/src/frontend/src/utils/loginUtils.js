@@ -28,24 +28,67 @@ export const CLASSIC_WELCOME_ROUTE = 'browse.welcome';
 /** URL hash form of the Preview welcome route, as the SSO SAML/OIDC backends expect (Base64-decoded). */
 export const PREVIEW_WELCOME_HASH = '#preview/browse/welcome';
 
+/** localStorage key holding the interface the user used last in this browser: 'preview' or 'classic'. */
+export const LAST_USED_UI_KEY = 'astrum-last-ui';
+
+/**
+ * The interface the user used last in this browser ('preview' or 'classic'), or null when they have not
+ * used either yet or the browser keeps no storage.
+ *
+ * @return {?string}
+ */
+export function getLastUsedUi() {
+  try {
+    const value = localStorage.getItem(LAST_USED_UI_KEY);
+    return value === 'preview' || value === 'classic' ? value : null;
+  }
+  catch {
+    return null;
+  }
+}
+
+/**
+ * Remembers the interface the user is using so the next visit of the dashboard opens it again.
+ *
+ * @param {string} ui - 'preview' or 'classic'
+ */
+export function setLastUsedUi(ui) {
+  try {
+    localStorage.setItem(LAST_USED_UI_KEY, ui);
+  }
+  catch {
+    // No storage: the admin default decides.
+  }
+}
+
 /**
  * Resolves which welcome/dashboard route a user should land on when there is no
- * explicit returnTo target. Lands on the Preview dashboard only when the admin has
- * enabled "Default to Astrum One UI", the user is allowed into Preview, and the user
- * has not explicitly chosen the Classic UI in this browser session.
+ * explicit returnTo target. A user allowed into Preview who has not chosen the Classic UI
+ * in this browser session lands on the interface they used last in this browser; a user
+ * who has used neither yet lands on Preview when the admin has enabled "Default to
+ * Astrum One UI".
  *
  * @param {Object} opts
  * @param {boolean} opts.defaultToPreviewUi - the defaultToPreviewUi admin setting
  * @param {boolean} opts.canAccessPreviewUi - whether this user may use Preview
  *   (loggedInEnabled when authenticated, anonymousEnabled when anonymous)
  * @param {boolean} opts.userRequestedLegacy - user opted into Classic this session
+ * @param {?string} [opts.lastUsedUi] - 'preview' or 'classic', read from this browser when omitted
  * @return {string} a ui-router state name
  */
-export function resolveDefaultLandingRoute({ defaultToPreviewUi, canAccessPreviewUi, userRequestedLegacy }) {
-  if (defaultToPreviewUi && canAccessPreviewUi && !userRequestedLegacy) {
-    return PREVIEW_WELCOME_ROUTE;
+export function resolveDefaultLandingRoute({
+  defaultToPreviewUi,
+  canAccessPreviewUi,
+  userRequestedLegacy,
+  lastUsedUi = getLastUsedUi()
+}) {
+  if (!canAccessPreviewUi || userRequestedLegacy) {
+    return CLASSIC_WELCOME_ROUTE;
   }
-  return CLASSIC_WELCOME_ROUTE;
+  if (lastUsedUi) {
+    return lastUsedUi === 'preview' ? PREVIEW_WELCOME_ROUTE : CLASSIC_WELCOME_ROUTE;
+  }
+  return defaultToPreviewUi ? PREVIEW_WELCOME_ROUTE : CLASSIC_WELCOME_ROUTE;
 }
 
 /**

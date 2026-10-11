@@ -10,6 +10,9 @@ import {
   PREVIEW_WELCOME_ROUTE,
   CLASSIC_WELCOME_ROUTE,
   USER_REQUESTED_LEGACY_KEY,
+  LAST_USED_UI_KEY,
+  getLastUsedUi,
+  setLastUsedUi,
 } from './loginUtils';
 
 describe('parseRetryAfter', () => {
@@ -46,7 +49,66 @@ describe('parseRetryAfter', () => {
   });
 });
 
+describe('last used interface', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('is null until an interface is remembered', () => {
+    expect(getLastUsedUi()).toBeNull();
+  });
+
+  it('remembers preview and classic in localStorage', () => {
+    setLastUsedUi('preview');
+    expect(localStorage.getItem(LAST_USED_UI_KEY)).toBe('preview');
+    expect(getLastUsedUi()).toBe('preview');
+    setLastUsedUi('classic');
+    expect(getLastUsedUi()).toBe('classic');
+  });
+
+  it('ignores values it does not know', () => {
+    localStorage.setItem(LAST_USED_UI_KEY, 'other');
+    expect(getLastUsedUi()).toBeNull();
+  });
+});
+
 describe('resolveDefaultLandingRoute', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('opens preview when it was used last, though defaultToPreviewUi is off', () => {
+    expect(resolveDefaultLandingRoute({
+      defaultToPreviewUi: false,
+      canAccessPreviewUi: true,
+      userRequestedLegacy: false,
+      lastUsedUi: 'preview',
+    })).toBe(PREVIEW_WELCOME_ROUTE);
+  });
+
+  it('opens classic when it was used last, though defaultToPreviewUi is on', () => {
+    expect(resolveDefaultLandingRoute({
+      defaultToPreviewUi: true,
+      canAccessPreviewUi: true,
+      userRequestedLegacy: false,
+      lastUsedUi: 'classic',
+    })).toBe(CLASSIC_WELCOME_ROUTE);
+  });
+
+  it('reads the interface used last from this browser when it is not given', () => {
+    setLastUsedUi('preview');
+    expect(resolveDefaultLandingRoute({
+      defaultToPreviewUi: false,
+      canAccessPreviewUi: true,
+      userRequestedLegacy: false,
+    })).toBe(PREVIEW_WELCOME_ROUTE);
+  });
+
+  it('opens classic when preview was used last but the user may not use it any more', () => {
+    expect(resolveDefaultLandingRoute({
+      defaultToPreviewUi: true,
+      canAccessPreviewUi: false,
+      userRequestedLegacy: false,
+      lastUsedUi: 'preview',
+    })).toBe(CLASSIC_WELCOME_ROUTE);
+  });
+
   it('exposes the expected constant values', () => {
     expect(PREVIEW_WELCOME_ROUTE).toBe('preview.browse.welcome');
     expect(CLASSIC_WELCOME_ROUTE).toBe('browse.welcome');

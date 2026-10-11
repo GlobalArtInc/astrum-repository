@@ -69,6 +69,7 @@ describe('GlobalHeaderRadix - Preview UI Redirect and Kill Switch', () => {
     jest.clearAllMocks();
     window.location.hash = '';
     sessionStorage.clear();
+    localStorage.clear();
     mockUseUser.mockReturnValue({ authenticated: false });
     mockUseStatus.mockReturnValue({ edition: 'PRO' });
     mockCheckPermission.mockReturnValue(true);
@@ -163,6 +164,34 @@ describe('GlobalHeaderRadix - Preview UI Redirect and Kill Switch', () => {
     fireEvent.click(useClassicBtn);
 
     expect(sessionStorage.getItem('user_requested_legacy')).toBe('true');
+    expect(localStorage.getItem('astrum-last-ui')).toBe('classic');
+    expect(window.location.hash).toBe('#browse/welcome');
+  });
+
+  it('9a. Remembers Astrum One as the interface used last once it is open', async () => {
+    mockStateValues['defaultToPreviewUi'] = false;
+    window.location.hash = 'preview/browse/welcome';
+    renderHeader();
+    await waitFor(() => {
+      expect(localStorage.getItem('astrum-last-ui')).toBe('preview');
+    });
+  });
+
+  it('9b. Opens Astrum One on the dashboard when it was used last, though defaultToPreviewUi is false', async () => {
+    mockStateValues['defaultToPreviewUi'] = false;
+    localStorage.setItem('astrum-last-ui', 'preview');
+    window.location.hash = '';
+    renderHeader();
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#preview/browse/welcome');
+    });
+  });
+
+  it('9c. Keeps the Classic dashboard when Classic was used last, though defaultToPreviewUi is on', async () => {
+    localStorage.setItem('astrum-last-ui', 'classic');
+    window.location.hash = 'browse/welcome';
+    renderHeader();
+    await new Promise(r => setTimeout(r, 100));
     expect(window.location.hash).toBe('#browse/welcome');
   });
 

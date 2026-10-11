@@ -4,7 +4,17 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {Flex, Box, IconButton, Button, Dialog, Text, Popover, TextArea, Heading} from '@radix-ui/themes';
 import {Tooltip} from '@globalart/astrum-ui-plugin';
 import {RefreshCw, Repeat, Menu} from 'lucide-react';
-import {ExtJS, handleExtJsUnsavedChanges, hasUnsavedChanges, restClient, useSideNavbarOpenState} from '@globalart/astrum-ui-plugin';
+import {
+  ExtJS,
+  handleExtJsUnsavedChanges,
+  hasUnsavedChanges,
+  restClient,
+  useSideNavbarOpenState,
+  resolveDefaultLandingRoute,
+  setLastUsedUi,
+  PREVIEW_WELCOME_ROUTE,
+  USER_REQUESTED_LEGACY_KEY
+} from '@globalart/astrum-ui-plugin';
 import {useRouter} from '@uirouter/react';
 import {useTheme} from '../../contexts/ThemeContext';
 
@@ -168,16 +178,26 @@ export default function GlobalHeaderRadix() {
       return;
     }
 
-    // 2. SOFT DEFAULT: Check defaultToPreviewUi second
-    if (isDefaultToPreviewUi && !isPreviewUI && isLandingPage) {
-      const userRequestedLegacy = sessionStorage.getItem('user_requested_legacy') === 'true';
-      if (!userRequestedLegacy) {
+    // 2. SOFT DEFAULT: the dashboard opens the interface the user used last, else the admin default
+    if (!isPreviewUI && isLandingPage) {
+      const landingRoute = resolveDefaultLandingRoute({
+        defaultToPreviewUi: isDefaultToPreviewUi,
+        canAccessPreviewUi,
+        userRequestedLegacy: sessionStorage.getItem(USER_REQUESTED_LEGACY_KEY) === 'true'
+      });
+      if (landingRoute === PREVIEW_WELCOME_ROUTE) {
         // Use hash-based navigation for Preview UI
         const hashPath = '#preview/browse/welcome';
         window.location.hash = hashPath;
       }
     }
   }, [canAccessPreviewUi, isDisableLegacyUi, isDefaultToPreviewUi, isPreviewUI, currentPath]);
+
+  useEffect(() => {
+    if (isPreviewUI && canAccessPreviewUi) {
+      setLastUsedUi('preview');
+    }
+  }, [isPreviewUI, canAccessPreviewUi]);
 
   // Track whether access was ever granted so we don't redirect on
   // the very first render (before the grant effect has run).
@@ -214,7 +234,8 @@ export default function GlobalHeaderRadix() {
       }).catch(() => {});
     }
 
-    sessionStorage.setItem('user_requested_legacy', 'true');
+    sessionStorage.setItem(USER_REQUESTED_LEGACY_KEY, 'true');
+    setLastUsedUi('classic');
     setTheme('light');
     setUiSwitchPopoverOpen(false);
     setClassicUiFeedback('');
@@ -227,7 +248,8 @@ export default function GlobalHeaderRadix() {
   // produce routes that don't exist in Preview UI and result in 404s.
   const switchToAstrumOneUI = useCallback(() => {
     window.location.hash = '#preview/browse/welcome';
-    sessionStorage.removeItem('user_requested_legacy');
+    sessionStorage.removeItem(USER_REQUESTED_LEGACY_KEY);
+    setLastUsedUi('preview');
   }, []);
 
   const handleUiSwitchPopoverOpenChange = useCallback((open) => {
@@ -482,7 +504,8 @@ export default function GlobalHeaderRadix() {
               size="2"
               onClick={() => {
                 setHeritageUnavailableOpen(false);
-                sessionStorage.setItem('user_requested_legacy', 'true');
+                sessionStorage.setItem(USER_REQUESTED_LEGACY_KEY, 'true');
+                setLastUsedUi('classic');
                 setTheme('light');
                 window.location.hash = 'browse/welcome';
               }}
