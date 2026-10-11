@@ -113,6 +113,16 @@ describe('TablePagination component — windowed inline buttons', () => {
     }
   });
 
+  it('leaves the page tiles to wider screens, as on phones they ran past the right edge', () => {
+    renderWithTheme(<TablePagination {...baseProps} totalPages={34} totalItems={667} />);
+    const tiles = screen.getByTestId('pagination-page-tiles');
+    expect(tiles.className).toMatch(/\brt-r-display-none\b/);
+    expect(tiles.className).toMatch(/\bsm:rt-r-display-flex\b/);
+    const nav = screen.getByRole('navigation', { name: /pagination/i });
+    expect(within(nav).getByRole('button', { name: /next/i })).toBeInTheDocument();
+    expect(screen.getByText('of 34')).toBeInTheDocument();
+  });
+
   it('does not render an ellipsis when totalPages <= 10', () => {
     renderWithTheme(<TablePagination {...baseProps} totalPages={5} totalItems={100} />);
     expect(screen.queryByText('…')).not.toBeInTheDocument();

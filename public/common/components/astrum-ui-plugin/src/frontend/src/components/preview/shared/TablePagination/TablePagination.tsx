@@ -379,41 +379,43 @@ export function TablePagination({
             <ChevronLeft size={16} />
           </IconButton>
 
-          {/* Page number buttons — windowed */}
-          {getPageTokens(currentPage, totalPages).map((token) => {
-            if (token === 'ellipsis-left' || token === 'ellipsis-right') {
+          {/* Page number buttons — windowed; phones keep the arrows and the page field, as the tiles do not fit */}
+          <Flex align="center" gap="1" display={{ initial: 'none', sm: 'flex' }} data-testid="pagination-page-tiles">
+            {getPageTokens(currentPage, totalPages).map((token) => {
+              if (token === 'ellipsis-left' || token === 'ellipsis-right') {
+                return (
+                  <Text
+                    key={token}
+                    size="2"
+                    color="gray"
+                    aria-hidden="true"
+                    style={{ padding: '0 4px' }}
+                  >
+                    …
+                  </Text>
+                );
+              }
+              const page = token;
+              const isCurrent = currentPage === page;
               return (
-                <Text
-                  key={token}
-                  size="2"
+                <Button
+                  key={page}
+                  variant="outline"
                   color="gray"
-                  aria-hidden="true"
-                  style={{ padding: '0 4px' }}
+                  size="2"
+                  highContrast={isCurrent}
+                  aria-current={isCurrent ? 'page' : undefined}
+                  onClick={() => handlePageChange(page)}
+                  style={{
+                    backgroundColor: isCurrent ? 'var(--accent-9)' : undefined,
+                    color: isCurrent ? 'var(--accent-contrast)' : undefined,
+                  }}
                 >
-                  …
-                </Text>
+                  {page}
+                </Button>
               );
-            }
-            const page = token;
-            const isCurrent = currentPage === page;
-            return (
-              <Button
-                key={page}
-                variant="outline"
-                color="gray"
-                size="2"
-                highContrast={isCurrent}
-                aria-current={isCurrent ? 'page' : undefined}
-                onClick={() => handlePageChange(page)}
-                style={{
-                  backgroundColor: isCurrent ? 'var(--accent-9)' : undefined,
-                  color: isCurrent ? 'var(--accent-contrast)' : undefined,
-                }}
-              >
-                {page}
-              </Button>
-            );
-          })}
+            })}
+          </Flex>
 
           <IconButton
             variant="outline"
