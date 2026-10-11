@@ -472,7 +472,7 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
                   onValueChange={(value) => update('language', value as NotificationLanguage)}
                 >
                   <Select.Trigger aria-label={DIALOG.LANGUAGE_LABEL} data-testid="notification-language" />
-                  <Select.Content>
+                  <Select.Content position="popper">
                     <Select.Item value="ru">{LABELS.LANGUAGES.RUSSIAN}</Select.Item>
                     <Select.Item value="en">{LABELS.LANGUAGES.ENGLISH}</Select.Item>
                   </Select.Content>
