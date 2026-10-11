@@ -5474,7 +5474,6 @@
   "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.FILE_EXCEEDS_50_MB_MODULE": "Файл больше 50 МБ — путь модуля не удалось определить автоматически. Загрузка всё равно будет выполнена.",
   "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.GO_MODULE_PATH": "Модуль: {0}",
   "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.NO_GO_MODULE_PATH": "В ZIP-архиве не найден путь модуля Go. Убедитесь, что архив содержит корректный файл .mod с директивой {0}. Загрузка всё равно будет выполнена.",
-  "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.SPECIFY_ADDITIONAL_METADATA_ASSET_HOVER": "Укажите дополнительные метаданные файла. Подсказка к полю появляется при наведении или фокусе.",
   "PREVIEW.UPLOAD.FILTERS.ASCENDING": "По возрастанию",
   "PREVIEW.UPLOAD.FILTERS.CLEAR": "Очистить",
   "PREVIEW.UPLOAD.FILTERS.DESCENDING": "По убыванию",

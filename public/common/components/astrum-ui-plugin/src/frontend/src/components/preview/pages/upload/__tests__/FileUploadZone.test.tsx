@@ -72,6 +72,30 @@ describe('FileUploadZone', () => {
     expect(screen.queryByText('classifier')).not.toBeInTheDocument();
   });
 
+  it('introduces the file fields without promising hover hints, as their hints are always shown', () => {
+    render(
+      <Theme>
+        <FileUploadZone
+          assets={[{ file: null, classifier: '', extension: '' }]}
+          assetFields={[
+            { name: 'classifier', type: 'STRING', optional: true },
+            { name: 'extension', type: 'STRING', optional: false },
+          ]}
+          validationErrors={mockValidationErrors}
+          multipleUpload={false}
+          onFileChange={jest.fn()}
+          onAssetFieldChange={jest.fn()}
+          onAddAsset={jest.fn()}
+          onRemoveAsset={jest.fn()}
+        />
+      </Theme>
+    );
+
+    expect(screen.getByText('Describe this file with the fields below.')).toBeInTheDocument();
+    expect(screen.queryByText(/hover/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('asset-fields-0').children).toHaveLength(2);
+  });
+
   it('shows go module path callout when zip is selected with go format', async () => {
     const encoder = { encode: (s: string) => Buffer.from(s) };
     fflate.unzipSync.mockReturnValue({

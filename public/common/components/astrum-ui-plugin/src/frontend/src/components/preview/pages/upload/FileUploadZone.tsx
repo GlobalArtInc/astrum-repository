@@ -169,20 +169,22 @@ export function FileUploadZone({
           {assetFields.filter((f) => f.type !== 'FILE').length > 0 && (
             <Box mt="4">
               <Text as="p" size="1" color="gray" mb="3">
-                {UploadStrings.FILE_UPLOAD_ZONE.SPECIFY_ADDITIONAL_METADATA_ASSET_HOVER}
+                {UploadStrings.FILE_UPLOAD_ZONE.SPECIFY_ASSET_METADATA}
               </Text>
-              {assetFields
-                .filter((field) => field.type !== 'FILE')
-                .map((field) => (
-                  <UploadField
-                    key={field.name}
-                    field={field}
-                    value={asset[field.name] as string | boolean}
-                    onChange={(val) => onAssetFieldChange(assetIndex, field.name, val)}
-                    error={validationErrors.assets?.[assetIndex]?.[field.name]}
-                    onBlur={onBlurAssetField ? () => onBlurAssetField(assetIndex, field.name) : undefined}
-                  />
-                ))}
+              <Flex direction="column" gap="3" data-testid={`asset-fields-${assetIndex}`}>
+                {assetFields
+                  .filter((field) => field.type !== 'FILE')
+                  .map((field) => (
+                    <UploadField
+                      key={field.name}
+                      field={field}
+                      value={asset[field.name] as string | boolean}
+                      onChange={(val) => onAssetFieldChange(assetIndex, field.name, val)}
+                      error={validationErrors.assets?.[assetIndex]?.[field.name]}
+                      onBlur={onBlurAssetField ? () => onBlurAssetField(assetIndex, field.name) : undefined}
+                    />
+                  ))}
+              </Flex>
             </Box>
           )}
 

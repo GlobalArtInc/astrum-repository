@@ -5662,7 +5662,7 @@
   "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.FILE_EXCEEDS_50_MB_MODULE": "File exceeds 50 MB — module path could not be extracted automatically. Upload will still proceed normally.",
   "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.GO_MODULE_PATH": "Module: {0}",
   "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.NO_GO_MODULE_PATH": "No Go module path found in the zip. Ensure the archive contains a valid .mod file with a {0} directive. Upload will still be attempted.",
-  "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.SPECIFY_ADDITIONAL_METADATA_ASSET_HOVER": "Specify additional metadata for this asset. Hover over or focus each field for details.",
+  "PREVIEW.UPLOAD.FILE_UPLOAD_ZONE.SPECIFY_ASSET_METADATA": "Describe this file with the fields below.",
   "PREVIEW.UPLOAD.FILTERS.ASCENDING": "Ascending",
   "PREVIEW.UPLOAD.FILTERS.CLEAR": "Clear",
   "PREVIEW.UPLOAD.FILTERS.DESCENDING": "Descending",

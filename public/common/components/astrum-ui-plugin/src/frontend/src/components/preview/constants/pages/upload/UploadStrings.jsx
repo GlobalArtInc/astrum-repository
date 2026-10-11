@@ -66,7 +66,7 @@ export default localize('react-ui', {
     FILE: 'File',
     ARTIFACT_ASSET_FILE_UPLOAD_DRAG: 'The artifact or asset file to upload. Drag and drop or click to browse. Accepted types vary by repository format (e.g., .jar and .pom for Maven).',
     FILE_EXCEEDS_50_MB_MODULE: 'File exceeds 50 MB — module path could not be extracted automatically. Upload will still proceed normally.',
-    SPECIFY_ADDITIONAL_METADATA_ASSET_HOVER: 'Specify additional metadata for this asset. Hover over or focus each field for details.',
+    SPECIFY_ASSET_METADATA: 'Describe this file with the fields below.',
     ADD_ANOTHER_ASSET_ARIA: 'Add another asset',
     ADD_ANOTHER_ASSET: 'Add Another Asset',
   },
