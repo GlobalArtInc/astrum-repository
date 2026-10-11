@@ -10,12 +10,24 @@ const ENTITY_TYPES = AUDIT_EVENT_STRINGS.ENTITY_TYPES;
 const ACTIONS = AUDIT_EVENT_STRINGS.ACTIONS;
 
 /**
+ * Event types of signing in and out. Their domain is the realm that checked the credentials, such as
+ * AstrumAuthenticatingRealm or LdapRealm, and the user is the principal attribute.
+ */
+const SESSION_TYPES = new Set(['login', 'logout']);
+
+function isSessionEvent(event: AuditEvent): boolean {
+  return SESSION_TYPES.has(event.type) || event.domain.includes('login') || event.domain.includes('logout');
+}
+
+/**
  * Enhance audit event with computed display fields.
  */
 export function formatAuditEvent(event: AuditEvent): AuditEventDisplay {
-  const category = DOMAIN_CATEGORY_MAP[event.domain] || 'configuration';
+  const session = isSessionEvent(event);
+  const category = DOMAIN_CATEGORY_MAP[event.domain] || (session ? 'security' : 'configuration');
   const entityType = deriveEntityType(event.domain);
-  const entityName = event.context || event.attributes?.name || SUMMARIES.UNKNOWN;
+  const principal = session ? (event.attributes?.principal as string | undefined) : undefined;
+  const entityName = event.context || event.attributes?.name || principal || SUMMARIES.UNKNOWN;
 
   return {
     ...event,
@@ -49,7 +61,7 @@ function buildSummary(event: AuditEvent, entityType: string, entityName: string)
   const initiator = event.initiator || 'system';
 
   // Handle special cases
-  if (event.domain.includes('login') || event.domain.includes('logout')) {
+  if (isSessionEvent(event)) {
     const sessionEvents: Record<string, string> = {
       login: AUDIT_EVENT_STRINGS.SESSION_EVENTS.LOGIN_EVENT,
       logout: AUDIT_EVENT_STRINGS.SESSION_EVENTS.LOGOUT_EVENT,
@@ -99,6 +111,7 @@ function formatAction(type: string): string {
     passivated: ACTIONS.WAS_DEACTIVATED,
     purged: ACTIONS.WAS_PURGED,
     downloaded: ACTIONS.WAS_DOWNLOADED,
+    'updated-downloaded': ACTIONS.WAS_DOWNLOADED,
     uploaded: ACTIONS.WAS_UPLOADED,
     associated: ACTIONS.WAS_TAGGED,
     disassociated: ACTIONS.WAS_UNTAGGED,

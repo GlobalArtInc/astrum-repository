@@ -87,6 +87,48 @@ describe('auditEventFormatter', () => {
       });
     });
 
+    describe('Sign-in events', () => {
+      it('files a sign-in checked by a realm under security, named after the user', () => {
+        const event = {
+          id: 530,
+          domain: 'AstrumAuthenticatingRealm',
+          type: 'login',
+          context: null,
+          timestamp: '2026-10-11T17:16:54.290Z',
+          initiator: 'admin/127.0.0.1',
+          nodeId: 'node-1',
+          attributes: { principal: 'admin' },
+        };
+
+        const result = formatAuditEvent(event);
+
+        expect(result.category).toBe('security');
+        expect(result.entityName).toBe('admin');
+        expect(result.summary).toBe("User 'admin' signed in");
+        expect(result.summary).not.toContain('Unknown');
+      });
+    });
+
+    describe('Downloads', () => {
+      it('calls the update of the last download of an asset a download', () => {
+        const event = {
+          id: 7,
+          domain: 'repository.asset',
+          type: 'updated-downloaded',
+          context: '/docs/README.txt',
+          timestamp: '2026-10-11T16:55:00.000Z',
+          initiator: 'admin/127.0.0.1',
+          nodeId: 'node-1',
+          attributes: { 'repository.name': 'raw-hosted' },
+        };
+
+        const result = formatAuditEvent(event);
+
+        expect(result.eventLabel).toBe('Downloaded');
+        expect(result.summary).toContain("'/docs/README.txt' downloaded by admin/127.0.0.1");
+      });
+    });
+
     describe('Event Label Formatting', () => {
       it('should capitalize event type', () => {
         const event: AuditEvent = {

@@ -30,6 +30,7 @@ export const AUDIT_EVENT_STRINGS = localize('react-ui', {
     failed: 'Failed',
     login: 'Login',
     logout: 'Logout',
+    'updated-downloaded': 'Downloaded',
     'automatic-malware-removed': 'Automatic Malware Removed',
     changed: 'Changed',
     scheduled: 'Scheduled',
@@ -63,8 +64,8 @@ export const AUDIT_EVENT_STRINGS = localize('react-ui', {
     USER_SESSION_INVALIDATION: 'user session invalidation',
   },
   SESSION_EVENTS: {
-    LOGIN_EVENT: 'login',
-    LOGOUT_EVENT: 'logout',
+    LOGIN_EVENT: 'signed in',
+    LOGOUT_EVENT: 'signed out',
   },
   ENTITY_TYPES: {
     USER: 'User',
