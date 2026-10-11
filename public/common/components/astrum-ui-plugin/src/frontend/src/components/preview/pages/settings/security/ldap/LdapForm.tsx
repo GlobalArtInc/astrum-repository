@@ -37,6 +37,7 @@ import {
 } from './types';
 import type { UseLdapFormOptions } from './useLdapForm';
 
+import { readableLdapError } from './ldapErrors';
 import './LdapForm.scss';
 import LdapStrings from '../../../../constants/pages/settings/security/LdapStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
@@ -109,6 +110,16 @@ const USER_MAPPING_COLUMNS: TableColumn<LdapUser>[] = [
  * LdapForm - Multi-step wizard form for creating/editing LDAP servers.
  * Uses shared WizardForm component with step indicator and navigation.
  */
+function LdapErrorText({ message, fallback }: { message: string; fallback: string }) {
+  const { summary, detail } = readableLdapError(message, fallback);
+  return (
+    <Flex direction="column" gap="1" data-testid="ldap-verification-error">
+      <Text size="2" weight="medium">{summary}</Text>
+      {detail && <Text size="1">{detail}</Text>}
+    </Flex>
+  );
+}
+
 export function LdapForm({
   server,
   isCreate,
@@ -752,7 +763,7 @@ export function LdapForm({
                   setConnectionTimeoutRaw(val);
                   handleChange('connectionTimeout', val.trim() === '' ? undefined : Number(val));
                 }}
-                helpText="1-3600 seconds"
+                helpText={LdapStrings.FORM.CONNECTION_TIMEOUT_RANGE}
                 disabled={!canEditFields}
                 error={form.validationErrors.connectionTimeout ?? undefined}
               />
@@ -812,7 +823,7 @@ export function LdapForm({
 
             {verificationError && (
               <Box className="ldap-form__verification-error">
-                <SettingsAlert type="error">{verificationError}</SettingsAlert>
+                <SettingsAlert type="error"><LdapErrorText message={verificationError} fallback={LdapStrings.FORM.CONNECTION_VERIFICATION_FAILED} /></SettingsAlert>
               </Box>
             )}
           </Box>
@@ -1053,7 +1064,7 @@ export function LdapForm({
 
             {verificationError && currentStep === 1 && (
               <Box className="ldap-form__verification-error">
-                <SettingsAlert type="error">{verificationError}</SettingsAlert>
+                <SettingsAlert type="error"><LdapErrorText message={verificationError} fallback={LdapStrings.FORM.USER_MAPPING_VERIFICATION_FAILED} /></SettingsAlert>
               </Box>
             )}
 

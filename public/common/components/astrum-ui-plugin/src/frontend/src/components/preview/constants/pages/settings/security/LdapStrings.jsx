@@ -11,6 +11,8 @@ export default localize('react-ui', {
     FAILED_LOAD_TEMPLATES: 'Failed to load templates',
     CONNECTION_SUCCESSFUL: 'Connection successful',
     CONNECTION_VERIFICATION_FAILED: 'Connection verification failed',
+    COULD_NOT_CONNECT_TO: (url) => `Could not connect to ${url}`,
+    CONNECTION_TIMEOUT_RANGE: '1–3600 seconds',
     USER_MAPPING_VERIFICATION_FAILED: 'User mapping verification failed',
     LDAP_LOGIN_COMPLETED_SUCCESSFULLY: (toLowerCase, host, port) => `LDAP login completed successfully on: ${toLowerCase}://${host}:${port}`,
     LOGIN_VERIFICATION_FAILED: 'Login verification failed',
