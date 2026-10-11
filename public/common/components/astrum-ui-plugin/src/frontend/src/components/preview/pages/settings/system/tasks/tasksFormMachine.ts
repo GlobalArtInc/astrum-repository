@@ -338,7 +338,7 @@ async function fetchTask(taskId: string): Promise<Task | null> {
       enabled: rest.enabled,
       name: rest.name,
       typeId: rest.type,
-      typeName: rest.type,
+      typeName: rest.typeName || rest.type,
       status,
       statusDescription: rest.message || '',
       nextRun: rest.nextRun ? new Date(rest.nextRun) : null,
@@ -553,11 +553,9 @@ export function createTaskFormMachine(
           ? taskTypes.find((t) => t.id === task.typeId) ?? null
           : null;
 
-        // The REST GET response carries `type` (the type ID) but not the human-readable
-        // type label, so fetchTask sets typeName to the ID as a placeholder. Once the
-        // matching task type is resolved, swap in its `name` so the header and Summary
-        // tab show "Admin - Cleanup repositories" instead of "repository.cleanup",
-        // matching the classic UI's behaviour.
+        // Prefer the name of the resolved task type; tasks whose type is not offered for
+        // creation keep the typeName of the REST response, and the type ID only when an
+        // older server sends no typeName.
         const enrichedTask = task && selectedTaskType
           ? { ...task, typeName: selectedTaskType.name }
           : task;

@@ -1143,8 +1143,8 @@ describe('tasksFormMachine', () => {
 
     /**
      * ASTRUM-52435 — regression: GET /v1/tasks/{id} returns the type ID (e.g.
-     * "repository.cleanup") under `type`, not the human-readable label. fetchTask
-     * sets typeName to that ID as a placeholder; the load service must enrich it
+     * "repository.cleanup") under `type`, and older servers send no typeName. fetchTask
+     * then uses the ID as a placeholder; the load service must enrich it
      * with selectedTaskType.name once both task and task types resolve so the
      * header reads "Admin - Cleanup repositories ..." like the classic UI did.
      */
@@ -1179,6 +1179,34 @@ describe('tasksFormMachine', () => {
       expect(ctx.task.typeId).toBe('repository.cleanup');
       // Mocked task type for repository.cleanup carries the human-readable name.
       expect(ctx.task.typeName).toBe('Admin - Cleanup repositories using cleanup policies');
+
+      service.stop();
+    });
+
+    it('keeps the typeName of the response for a type that cannot be created', async () => {
+      restClient.get.mockImplementation((url: string) => {
+        if (url.includes('templates')) return Promise.resolve(MOCK_TASK_TYPES);
+        return Promise.resolve({
+          id: 'system-task',
+          enabled: true,
+          name: 'System task',
+          type: 'system.only',
+          typeName: 'Admin - System only task',
+          currentState: 'WAITING',
+          schedule: 'manual',
+          properties: {},
+          alertEmail: null,
+          notificationCondition: 'FAILURE',
+        });
+      });
+
+      const machine = createTaskFormMachine('system-task');
+      const service = interpret(machine).start();
+      await waitFor(service, (state) => state.matches('editing'));
+
+      const ctx = service.getSnapshot().context as any;
+      expect(ctx.task.typeId).toBe('system.only');
+      expect(ctx.task.typeName).toBe('Admin - System only task');
 
       service.stop();
     });
