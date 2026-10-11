@@ -350,29 +350,33 @@ public class FeatureFlags
   public static final String PRINCIPAL_PERMISSIONS_CACHE_ENABLED_NAMED_VALUE =
       "${astrum.security.principal.permissions.cache.enabled:true}";
 
-  /* Preview UI for anonymous users. Available values: true, false. Default value: false */
+  /* Preview UI for anonymous users. The UI state always reports true; the value only seeds the
+   * Preview UI settings REST resource. Available values: true, false. Default value: true */
   public static final String PREVIEW_UI_ANONYMOUS_ENABLED = "astrum.preview.ui.anonymous.enabled";
 
   public static final String PREVIEW_UI_ANONYMOUS_ENABLED_NAMED_VALUE =
-      "${astrum.preview.ui.anonymous.enabled:false}";
+      "${astrum.preview.ui.anonymous.enabled:true}";
 
-  /* Preview UI for logged-in users. Available values: true, false. Default value: true */
+  /* Preview UI for logged-in users. The UI state always reports true; the value only seeds the
+   * Preview UI settings REST resource. Available values: true, false. Default value: true */
   public static final String PREVIEW_UI_LOGGEDIN_ENABLED = "astrum.preview.ui.loggedin.enabled";
 
   public static final String PREVIEW_UI_LOGGEDIN_ENABLED_NAMED_VALUE =
       "${astrum.preview.ui.loggedin.enabled:true}";
 
-  /* Default to Preview UI for all users. Available values: true, false. Default value: true */
+  /* Default to Preview UI for all users. The UI state always reports true; the value only seeds the
+   * Preview UI settings REST resource. Available values: true, false. Default value: true */
   public static final String PREVIEW_UI_DEFAULT_ENABLED = "astrum.preview.ui.default.enabled";
 
   public static final String PREVIEW_UI_DEFAULT_ENABLED_NAMED_VALUE =
       "${astrum.preview.ui.default.enabled:true}";
 
-  /* Disable Legacy UI (ExtJS) for all users. Available values: true, false. Default value: false */
+  /* Disable Legacy UI (ExtJS) for all users. The UI state always reports true; the value only seeds
+   * the Preview UI settings REST resource. Available values: true, false. Default value: true */
   public static final String PREVIEW_UI_LEGACY_DISABLED = "astrum.preview.ui.legacy.disabled";
 
   public static final String PREVIEW_UI_LEGACY_DISABLED_NAMED_VALUE =
-      "${astrum.preview.ui.legacy.disabled:false}";
+      "${astrum.preview.ui.legacy.disabled:true}";
 
   /* Disable Classic UI switch feedback collection. Available values: true, false. Default value: false */
   public static final String PREVIEW_UI_SWITCH_FEEDBACK_DISABLED =
@@ -385,8 +389,9 @@ public class FeatureFlags
       "preview.ui.switch.feedback.disabled";
 
   /*
-   * Preview UI settings page visibility in the legacy UI.
-   * When true, Preview UI REST endpoints and the settings page are registered.
+   * Registers the Preview UI settings and Classic switch feedback REST endpoints.
+   * The endpoints Astrum One reads (browse, roles, API permissions, API access check, suggest) do
+   * not depend on it.
    * Available values: true, false. Default value: true
    */
   public static final String PREVIEW_UI_SETTINGS_ENABLED = "astrum.previewui.enabled";

@@ -32,10 +32,6 @@ class PreviewUiStateContributorTest
 
   @Test
   public void getStateIncludesDisableSwitchFeedback() {
-    when(keyValueStore.getBoolean("preview.ui.anonymous.enabled")).thenReturn(Optional.of(false));
-    when(keyValueStore.getBoolean("preview.ui.loggedin.enabled")).thenReturn(Optional.of(true));
-    when(keyValueStore.getBoolean("preview.ui.default.enabled")).thenReturn(Optional.of(false));
-    when(keyValueStore.getBoolean("preview.ui.legacy.disabled")).thenReturn(Optional.of(false));
     when(keyValueStore.getBoolean(PREVIEW_UI_SWITCH_FEEDBACK_DISABLED_KEY)).thenReturn(Optional.of(true));
 
     PreviewUiStateContributor underTest = contributor(false);
@@ -43,6 +39,31 @@ class PreviewUiStateContributorTest
     Map<String, Object> state = underTest.getState();
 
     assertThat(state.get("disableSwitchFeedback"), is(true));
+  }
+
+  @Test
+  public void interfaceFlagsAreFixedOnWithNothingStored() {
+    Map<String, Object> state = contributor(false).getState();
+
+    assertThat(state.get("anonymousEnabled"), is(true));
+    assertThat(state.get("loggedInEnabled"), is(true));
+    assertThat(state.get("defaultToPreviewUi"), is(true));
+    assertThat(state.get("disableLegacyUi"), is(true));
+  }
+
+  @Test
+  public void storedInterfaceFlagsCannotTurnTheClassicUiBackOn() {
+    lenient().when(keyValueStore.getBoolean("preview.ui.anonymous.enabled")).thenReturn(Optional.of(false));
+    lenient().when(keyValueStore.getBoolean("preview.ui.loggedin.enabled")).thenReturn(Optional.of(false));
+    lenient().when(keyValueStore.getBoolean("preview.ui.default.enabled")).thenReturn(Optional.of(false));
+    lenient().when(keyValueStore.getBoolean("preview.ui.legacy.disabled")).thenReturn(Optional.of(false));
+
+    Map<String, Object> state = contributor(false).getState();
+
+    assertThat(state.get("anonymousEnabled"), is(true));
+    assertThat(state.get("loggedInEnabled"), is(true));
+    assertThat(state.get("defaultToPreviewUi"), is(true));
+    assertThat(state.get("disableLegacyUi"), is(true));
   }
 
   @Test
@@ -73,6 +94,6 @@ class PreviewUiStateContributorTest
   }
 
   private PreviewUiStateContributor contributor(final boolean auditEnabled) {
-    return new PreviewUiStateContributor(keyValueStore, false, false, false, false, false, auditEnabled);
+    return new PreviewUiStateContributor(keyValueStore, false, auditEnabled);
   }
 }
