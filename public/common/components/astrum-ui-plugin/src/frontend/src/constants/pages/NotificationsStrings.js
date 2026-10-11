@@ -103,8 +103,8 @@ export default {
       },
       CONNECTION_HELP: {
         GLOBAL: 'The proxy, timeouts and user agent of System → HTTP apply.',
-        NONE: 'Messages go straight to the chat, past the proxy of the HTTP settings.',
-        CUSTOM: 'Telegram is often reachable only through a proxy. HTTP proxies are used with CONNECT for HTTPS; SOCKS5 resolves names on the proxy.',
+        NONE: 'Messages go straight to the service, past the proxy of the HTTP settings.',
+        CUSTOM: 'For a service reachable only through a proxy. HTTP proxies are used with CONNECT for HTTPS; SOCKS5 resolves names on the proxy.',
       },
       PROXY_TYPE_LABEL: 'Proxy type',
       PROXY_TYPES: {
