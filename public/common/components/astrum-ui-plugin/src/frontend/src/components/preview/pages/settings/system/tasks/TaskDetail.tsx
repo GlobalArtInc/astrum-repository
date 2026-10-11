@@ -1,7 +1,7 @@
 
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Box, Flex, Text, Heading, Badge, Tabs, Skeleton } from '@radix-ui/themes';
+import { Box, Flex, Text, Badge, Tabs, Skeleton } from '@radix-ui/themes';
 import {
   Trash2, Play, Square, FileText, Settings, Calendar, History, Edit3,
   CheckCircle, XCircle, AlertCircle, Clock, Mail, Info, Puzzle, RefreshCw,
@@ -17,10 +17,18 @@ import {
   ConfirmDialog,
 } from '../../../../shared/form';
 import { DeleteConfirmationModal } from '../../../../shared/modals/DeleteConfirmationModal';
+import { PageHeader } from '../../../../shared';
 import { TaskScheduler } from './TaskScheduler';
 import { DynamicFormFields } from './TaskTypeSelector';
 import { TaskHistory } from './TaskHistory';
 import { isManualOnlyTaskType } from './taskFieldMetadata';
+import { humanizePropertyKey } from './taskTransformers';
+import {
+  getEffectiveTaskStatus,
+  getTaskScheduleLabel,
+  getTaskStatusBadgeColor,
+  getTaskStatusLabel,
+} from './taskLabels';
 import { useTasksForm } from './useTasksForm';
 import { useTasksApi } from './useTasksApi';
 import {
@@ -29,6 +37,7 @@ import {
   TaskDetailProps,
   ScheduleData,
   ScheduleType,
+  FormField,
   formatDate,
   NOTIFICATION_CONDITIONS,
 } from './types';
@@ -37,24 +46,31 @@ import './TaskDetail.scss';
 import CommonStrings from '../../../../constants/CommonStrings';
 import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 
-function getStatusBadgeColor(status: string): 'blue' | 'green' | 'gray' | 'yellow' | 'red' {
+function getStatusIcon(status: string) {
   switch (status) {
-    case 'RUNNING': return 'blue';
-    case 'OK': return 'green';
-    case 'WAITING': return 'gray';
-    case 'BLOCKED': return 'yellow';
-    default: return 'red';
+    case 'RUNNING': return <RefreshCw size={12} className="task-detail__status-icon task-detail__status-icon--running" />;
+    case 'OK': return <CheckCircle size={12} className="task-detail__status-icon" />;
+    case 'WAITING': return <Clock size={12} className="task-detail__status-icon" />;
+    case 'DISABLED': return null;
+    case 'BLOCKED': return <AlertCircle size={12} className="task-detail__status-icon" />;
+    default: return <XCircle size={12} className="task-detail__status-icon" />;
   }
 }
 
-function getStatusIcon(status: string) {
-  switch (status) {
-    case 'RUNNING': return <RefreshCw size={16} className="task-detail__status-icon task-detail__status-icon--running" />;
-    case 'OK': return <CheckCircle size={16} className="task-detail__status-icon task-detail__status-icon--ok" />;
-    case 'WAITING': return <Clock size={16} className="task-detail__status-icon task-detail__status-icon--waiting" />;
-    case 'BLOCKED': return <AlertCircle size={16} className="task-detail__status-icon task-detail__status-icon--blocked" />;
-    default: return <XCircle size={16} className="task-detail__status-icon task-detail__status-icon--error" />;
+/**
+ * The label of a task property: the label of its form field, else its key in words.
+ */
+function propertyLabel(key: string, formFields?: FormField[]): string {
+  const field = formFields?.find((f) => f.id === key);
+  return field?.label ? field.label.replace(/\s*\*$/, '') : humanizePropertyKey(key);
+}
+
+function propertyValue(key: string, value: string, formFields?: FormField[]): string {
+  const field = formFields?.find((f) => f.id === key);
+  if (field?.type === 'checkbox') {
+    return value === 'true' ? TasksStrings.DETAIL.YES : TasksStrings.DETAIL.NO;
   }
+  return value || '-';
 }
 
 // Summary item icon mapping
@@ -82,6 +98,7 @@ export function TaskDetail({
   onRun,
   onStop,
   onCancel,
+  breadcrumbs,
   error: externalError,
 }: TaskDetailProps) {
   const { createTask, updateTask, deleteTask } = useTasksApi();
@@ -202,6 +219,7 @@ export function TaskDetail({
   if (initialLoading || !displayTask) {
     return (
       <Box className="task-detail task-detail--loading" data-testid="task-detail-skeleton">
+        <PageHeader title={TasksStrings.PAGE.TASK_DETAILS} breadcrumbs={breadcrumbs} className="task-detail__page-header" />
         <Flex direction="column" gap="3" p="4">
           <Skeleton width="40%" height="28px" />
           <Skeleton width="60%" height="18px" />
@@ -264,8 +282,27 @@ export function TaskDetail({
     </Flex>
   );
 
+  const effectiveStatus = getEffectiveTaskStatus(displayTask);
+
   return (
     <Box className="task-detail" data-testid="task-detail">
+      <PageHeader
+        title={displayTask.name}
+        titleSuffix={
+          <Badge
+            color={getTaskStatusBadgeColor(effectiveStatus)}
+            variant="soft"
+            className={displayTask.status === 'RUNNING' && displayTask.enabled ? 'task-detail__status-badge--running' : undefined}
+            data-testid="task-status-badge"
+          >
+            {getStatusIcon(effectiveStatus)}
+            {getTaskStatusLabel(effectiveStatus)}
+          </Badge>
+        }
+        description={displayTask.typeName}
+        breadcrumbs={breadcrumbs}
+        className="task-detail__page-header"
+      />
       <SettingsForm
         onSubmit={() => form.send('SUBMIT')}
         onCancel={onCancel}
@@ -281,35 +318,6 @@ export function TaskDetail({
         footerExtra={footerActions}
         testId="task-detail-form"
       >
-        {/* Task Header */}
-        <Box className="task-detail__header">
-          <Flex justify="between" align="start">
-            <Box>
-              <Heading size="5" weight="bold">{displayTask.name}</Heading>
-              <Text size="2" color="gray">{displayTask.typeName}</Text>
-            </Box>
-            <Flex gap="2" align="center">
-              <Flex align="center" gap="2" className={`task-detail__status-badge ${displayTask.status === 'RUNNING' ? 'task-detail__status-badge--running' : ''}`}>
-                {getStatusIcon(displayTask.status)}
-                <Badge
-                  color={getStatusBadgeColor(displayTask.status)}
-                  variant="soft"
-                  data-testid="task-status-badge"
-                >
-                  {displayTask.status}
-                </Badge>
-              </Flex>
-              <Badge
-                color={displayTask.enabled ? 'green' : 'gray'}
-                variant="outline"
-                data-testid="task-enabled-badge"
-              >
-                {displayTask.enabled ? TasksStrings.DETAIL.ENABLED : TasksStrings.DETAIL.DISABLED}
-              </Badge>
-            </Flex>
-          </Flex>
-        </Box>
-
         {/* 4 Tabs */}
         <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="task-detail__tabs">
           <Tabs.List>
@@ -338,11 +346,7 @@ export function TaskDetail({
                   label={TasksStrings.DETAIL.ID}
                   value={displayTask.id}
                 />
-                <SummaryItem
-                  icon={<CheckCircle size={16} />}
-                  label={CommonStrings.LABELS.STATUS}
-                  value={displayTask.status}
-                />
+
                 <SummaryItem
                   icon={<FileText size={16} />}
                   label={TasksStrings.DETAIL.LAST_RESULT}
@@ -351,7 +355,7 @@ export function TaskDetail({
                 <SummaryItem
                   icon={<Calendar size={16} />}
                   label={TasksStrings.DETAIL.SCHEDULE}
-                  value={displayTask.schedule || '-'}
+                  value={getTaskScheduleLabel(displayTask.schedule)}
                   onClick={canEdit && !isManualOnly ? () => setActiveTab('schedule') : undefined}
                 />
                 <SummaryItem
@@ -381,8 +385,8 @@ export function TaskDetail({
                   <SummaryItem
                     key={k}
                     icon={<Puzzle size={16} />}
-                    label={k}
-                    value={v || '-'}
+                    label={propertyLabel(k, selectedTaskType?.formFields)}
+                    value={propertyValue(k, v, selectedTaskType?.formFields)}
                     onClick={canEdit ? () => setActiveTab('settings') : undefined}
                   />
                 ))}

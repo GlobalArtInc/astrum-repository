@@ -1,5 +1,6 @@
 import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
 import { pageLanguage } from '../../../../../../interface/plural';
+import type { BreadcrumbItem } from '../../../../shared';
 
 
 /**
@@ -246,6 +247,8 @@ export interface TaskDetailProps {
   onRun: () => void;
   onStop: () => void;
   onCancel: () => void;
+  /** Breadcrumbs of the page header, which the detail view renders with the task's name, type and state */
+  breadcrumbs?: BreadcrumbItem[];
   error?: string;
 }
 

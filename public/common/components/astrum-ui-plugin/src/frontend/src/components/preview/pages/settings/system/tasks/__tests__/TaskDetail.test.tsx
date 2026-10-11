@@ -111,20 +111,67 @@ describe('TaskDetail', () => {
   it('shows status badge with status word not description', () => {
     renderWithTheme(<TaskDetail {...defaultProps} />);
     const badge = screen.getByTestId('task-status-badge');
-    expect(badge).toHaveTextContent('WAITING');
+    expect(badge).toHaveTextContent('Waiting');
     expect(badge).not.toHaveTextContent('Waiting for next scheduled run');
   });
 
-  it('shows enabled badge', () => {
+  it('names the task once, with its type, in the page header', () => {
     renderWithTheme(<TaskDetail {...defaultProps} />);
-    const badge = screen.getByTestId('task-enabled-badge');
-    expect(badge).toHaveTextContent('Enabled');
+    expect(screen.getAllByRole('heading', { name: 'Cleanup Task' })).toHaveLength(1);
+    expect(screen.getByTestId('page-header')).toHaveTextContent('Cleanup repositories');
+    expect(screen.queryByText('repository.cleanup')).not.toBeInTheDocument();
   });
 
-  it('shows disabled badge when task is disabled', () => {
+  it('shows one state badge, Disabled for a disabled task', () => {
     renderWithTheme(<TaskDetail {...defaultProps} task={{ ...mockTask, enabled: false }} />);
-    const badge = screen.getByTestId('task-enabled-badge');
-    expect(badge).toHaveTextContent('Disabled');
+    expect(screen.getAllByTestId('task-status-badge')).toHaveLength(1);
+    expect(screen.getByTestId('task-status-badge')).toHaveTextContent('Disabled');
+    expect(screen.queryByTestId('task-enabled-badge')).not.toBeInTheDocument();
+  });
+
+  it('shows the schedule by its name in the summary', () => {
+    renderWithTheme(<TaskDetail {...defaultProps} />);
+    expect(screen.getByText('Daily')).toBeInTheDocument();
+    expect(screen.queryByText('daily')).not.toBeInTheDocument();
+  });
+
+  it('labels the properties in the summary with the form fields of the task type', async () => {
+    mockInternalApi.restClient.get.mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/templates')) {
+        return Promise.resolve([{
+          type: 'repository.cleanup',
+          name: 'Cleanup repositories',
+          enabled: true,
+          properties: { repositoryName: '', dryRun: 'false' },
+          formFields: [
+            { id: 'repositoryName', type: 'combobox', label: 'Repository', required: true },
+            { id: 'dryRun', type: 'checkbox', label: 'Dry run', required: false },
+          ],
+        }]);
+      }
+      return Promise.resolve({
+        ...mockTask, type: 'repository.cleanup', currentState: 'WAITING',
+        properties: { repositoryName: 'maven-central', dryRun: 'true' },
+      });
+    });
+
+    renderWithTheme(
+      <TaskDetail {...defaultProps} task={{ ...mockTask, properties: { repositoryName: 'maven-central', dryRun: 'true' } }} />,
+    );
+
+    expect(await screen.findByText('Repository:')).toBeInTheDocument();
+    expect(screen.getByText('Dry run:')).toBeInTheDocument();
+    expect(screen.getByText('Yes')).toBeInTheDocument();
+    expect(screen.queryByText('repositoryName:')).not.toBeInTheDocument();
+  });
+
+  it('renders the breadcrumbs it is given', () => {
+    const onTasks = jest.fn();
+    renderWithTheme(
+      <TaskDetail {...defaultProps} breadcrumbs={[{ label: 'Tasks', onClick: onTasks }, { label: 'Cleanup Task' }]} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Tasks' }));
+    expect(onTasks).toHaveBeenCalled();
   });
 
   it('renders 4 tabs: Summary, Settings, Schedule, History', () => {
@@ -211,7 +258,7 @@ describe('TaskDetail', () => {
       const runningLive: Task = { ...mockTask, status: 'RUNNING', stoppable: true, runnable: false };
       // Seed task is WAITING; the polled snapshot is RUNNING.
       renderWithTheme(<TaskDetail {...defaultProps} task={mockTask} liveTask={runningLive} />);
-      expect(screen.getByTestId('task-status-badge')).toHaveTextContent('RUNNING');
+      expect(screen.getByTestId('task-status-badge')).toHaveTextContent('Running');
     });
 
     it('shows the Stop button while live status is RUNNING and hides it once terminal', () => {
@@ -259,7 +306,7 @@ describe('TaskDetail', () => {
       // The unsaved edit is preserved (form not clobbered)...
       expect(await screen.findByLabelText(/notification email/i)).toHaveValue('changed@example.com');
       // ...while the live status still flows through to the badge.
-      expect(screen.getByTestId('task-status-badge')).toHaveTextContent('RUNNING');
+      expect(screen.getByTestId('task-status-badge')).toHaveTextContent('Running');
     });
 
     // Regression (refresh while running): the seed task already carries RUNNING,
@@ -267,7 +314,7 @@ describe('TaskDetail', () => {
     it('renders RUNNING and the Stop button immediately from the seed on initial load', () => {
       const runningSeed: Task = { ...mockTask, status: 'RUNNING', stoppable: true, runnable: false };
       renderWithTheme(<TaskDetail {...defaultProps} task={runningSeed} />);
-      expect(screen.getByTestId('task-status-badge')).toHaveTextContent('RUNNING');
+      expect(screen.getByTestId('task-status-badge')).toHaveTextContent('Running');
       expect(screen.getByTestId('task-stop')).toBeInTheDocument();
       expect(screen.queryByTestId('task-run')).not.toBeInTheDocument();
     });
@@ -300,7 +347,7 @@ describe('TaskDetail', () => {
       // progress suffix was normalized (a raw "RUNNING: 7 of 9…" would hide it).
       expect(await screen.findByTestId('task-stop')).toBeInTheDocument();
       const badge = screen.getByTestId('task-status-badge');
-      expect(badge).toHaveTextContent('RUNNING');
+      expect(badge).toHaveTextContent('Running');
       expect(badge).not.toHaveTextContent('7 of 9');
     });
   });

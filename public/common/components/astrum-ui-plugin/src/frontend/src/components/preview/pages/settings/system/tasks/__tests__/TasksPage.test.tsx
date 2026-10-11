@@ -33,12 +33,14 @@ const mockCheckPermission = ExtJS.checkPermission as jest.MockedFunction<typeof 
 // and exposes onRun/onStop so polling-orchestration tests can drive Run/Stop without
 // the real component's form machinery.
 jest.mock('../TaskDetail', () => ({
-  TaskDetail: ({ task, liveTask, onBack, onRun, onStop }: any) => {
+  TaskDetail: ({ task, liveTask, onBack, onRun, onStop, breadcrumbs }: any) => {
     const React = require('react');
+    // The real detail view renders the page header with these breadcrumbs
+    const { PageHeader } = jest.requireActual('../../../../../shared/PageHeader');
     const [activeTab, setActiveTab] = React.useState('details');
     if (!task) return React.createElement('div', { 'data-testid': 'task-detail-loading' }, 'Loading...');
     return React.createElement('div', { 'data-testid': 'task-detail' },
-      React.createElement('h1', null, task.name),
+      React.createElement(PageHeader, { title: task.name, breadcrumbs }),
       React.createElement('span', { 'data-testid': 'detail-seed-status' }, task.status),
       React.createElement('span', { 'data-testid': 'detail-live-status' }, liveTask ? liveTask.status : ''),
       React.createElement('div', { role: 'tablist' },

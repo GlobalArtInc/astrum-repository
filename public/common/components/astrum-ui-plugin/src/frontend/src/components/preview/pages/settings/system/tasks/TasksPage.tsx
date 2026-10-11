@@ -313,6 +313,18 @@ export function TasksPage({ className }: TasksPageProps) {
     window.location.hash = '#preview/admin/settings';
   };
 
+  const createBreadcrumbs = [
+    { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+    { label: TasksStrings.PAGE.TASKS, onClick: handleBack },
+    { label: CommonStrings.ACTIONS.CREATE },
+  ];
+
+  const detailBreadcrumbs = [
+    { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+    { label: TasksStrings.PAGE.TASKS, onClick: handleBack },
+    { label: task?.name || TasksStrings.PAGE.TASK },
+  ];
+
   // Render header based on view mode
   const renderHeader = () => {
     if (viewMode === 'list') {
@@ -336,23 +348,15 @@ export function TasksPage({ className }: TasksPageProps) {
       );
     }
 
-    const title = viewMode === 'create'
-      ? TasksStrings.PAGE.CREATE_TASK
-      : task
-        ? task.name
-        : TasksStrings.PAGE.TASK_DETAILS;
-
-    const breadcrumbs = [
-      { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
-      { label: TasksStrings.PAGE.TASKS, onClick: handleBack },
-      { label: viewMode === 'create' ? CommonStrings.ACTIONS.CREATE : (task?.name || TasksStrings.PAGE.TASK) },
-    ];
+    // The detail view renders the header with the task's name, type and state
+    if (viewMode === 'detail' && !taskNotFound) {
+      return null;
+    }
 
     return (
       <PageHeader
-        title={title}
-        description={task && viewMode === 'detail' ? task.typeName : undefined}
-        breadcrumbs={breadcrumbs}
+        title={viewMode === 'create' ? TasksStrings.PAGE.CREATE_TASK : TasksStrings.PAGE.TASK_DETAILS}
+        breadcrumbs={viewMode === 'create' ? createBreadcrumbs : detailBreadcrumbs}
         className="tasks-page__header"
       />
     );
@@ -438,6 +442,7 @@ export function TasksPage({ className }: TasksPageProps) {
             onRun={handleRun}
             onStop={handleStop}
             onCancel={handleBack}
+            breadcrumbs={detailBreadcrumbs}
             error={error || undefined}
           />
         )}

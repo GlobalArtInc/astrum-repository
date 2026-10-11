@@ -19,6 +19,7 @@ import {
 import { DeleteConfirmationModal } from '../../../../shared/modals/DeleteConfirmationModal';
 import { useTasksApi } from './useTasksApi';
 import { getTaskCategoryLabel } from './taskTypeDescriptions';
+import { getTaskScheduleLabel, getTaskStatusBadgeColor, getTaskStatusLabel } from './taskLabels';
 import { usePolling, POLL_INTERVAL_MS, POST_ACTION_POLL_COUNT } from './usePolling';
 import {
   Task,
@@ -33,41 +34,6 @@ import TasksStrings from '../../../../constants/pages/settings/system/TasksStrin
 import CommonStrings from '../../../../constants/CommonStrings';
 
 type SortField = 'name' | 'typeName' | 'status' | 'schedule' | 'nextRun' | 'lastRun';
-
-const STATUS_LABELS: Record<string, string> = {
-  WAITING: TasksStrings.LIST.WAITING,
-  RUNNING: TasksStrings.LIST.RUNNING,
-  OK: 'OK',
-  ERROR: TasksStrings.LIST.ERROR,
-  BLOCKED: TasksStrings.LIST.BLOCKED,
-  CANCELED: TasksStrings.LIST.CANCELED,
-  FAILED: TasksStrings.LIST.FAILED,
-};
-
-const SCHEDULE_LABELS: Record<string, string> = {
-  manual: TasksStrings.LIST.MANUAL,
-  once: TasksStrings.LIST.ONCE,
-  hourly: TasksStrings.LIST.HOURLY,
-  daily: TasksStrings.LIST.DAILY,
-  weekly: TasksStrings.LIST.WEEKLY,
-  monthly: TasksStrings.LIST.MONTHLY,
-  cron: 'Cron',
-  advanced: TasksStrings.LIST.CRON,
-};
-
-function getStatusBadgeColor(status: TaskStatus): 'blue' | 'green' | 'gray' | 'yellow' | 'red' {
-  switch (status) {
-    case 'RUNNING': return 'blue';
-    case 'OK': return 'green';
-    case 'WAITING': return 'gray';
-    case 'BLOCKED': return 'yellow';
-    case 'CANCELED':
-    case 'FAILED':
-    case 'INTERRUPTED':
-      return 'red';
-    default: return 'gray';
-  }
-}
 
 function getStatusIcon(status: TaskStatus) {
   switch (status) {
@@ -306,7 +272,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
       type: 'checkbox',
       options: Array.from(statusCounts.entries())
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([value, count]) => ({ value, label: STATUS_LABELS[value] || value, count })),
+        .map(([value, count]) => ({ value, label: getTaskStatusLabel(value), count })),
       value: statusFilter,
       defaultExpanded: true,
     },
@@ -361,11 +327,11 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
           {getStatusIcon(task.status)}
           <Badge
             size="1"
-            color={getStatusBadgeColor(task.status)}
+            color={getTaskStatusBadgeColor(task.status)}
             variant={task.status === 'BLOCKED' ? 'solid' : 'soft'}
             className={task.status === 'RUNNING' ? 'tasks-list__status-badge--running' : ''}
           >
-            {STATUS_LABELS[task.status] || task.status}
+            {getTaskStatusLabel(task.status)}
           </Badge>
         </Flex>
       ),
@@ -376,7 +342,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
       id: 'schedule',
       header: TasksStrings.LIST.SCHEDULE,
       accessor: (task) => (
-        <Text size="2">{SCHEDULE_LABELS[task.schedule] || task.schedule || '-'}</Text>
+        <Text size="2">{getTaskScheduleLabel(task.schedule)}</Text>
       ),
       sortable: true,
       width: '90px',
@@ -600,7 +566,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
             </Flex>
             <Flex gap="2">
               <Text size="2" color="gray">{TasksStrings.LIST.SCHEDULE_LABEL}</Text>
-              <Text size="2">{SCHEDULE_LABELS[taskToDelete.schedule] || taskToDelete.schedule || TasksStrings.LIST.NONE}</Text>
+              <Text size="2">{taskToDelete.schedule ? getTaskScheduleLabel(taskToDelete.schedule) : TasksStrings.LIST.NONE}</Text>
             </Flex>
             {taskToDelete.lastRun && (
               <Flex gap="2">
