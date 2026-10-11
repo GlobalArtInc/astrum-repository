@@ -26,7 +26,8 @@ export interface SupportZipParams {
 export interface SupportZipResponse {
   file: string;
   name: string;
-  size: string;
+  /** In bytes */
+  size: number | string;
   truncated: boolean;
 }
 

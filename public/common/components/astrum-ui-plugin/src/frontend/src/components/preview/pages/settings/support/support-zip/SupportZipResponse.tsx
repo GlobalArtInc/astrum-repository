@@ -4,6 +4,7 @@ import React from 'react';
 import { Box, Flex, Text, Heading } from '@radix-ui/themes';
 import { CheckCircle2, Download, AlertTriangle } from 'lucide-react';
 import { ExtJS } from '../../../../../../interface/ExtJS';
+import { HumanReadableUtils } from '../../../../../../interface/HumanReadableUtils';
 
 import { SettingsButton, SettingsAlert } from '../../../../shared/form';
 import { SupportZipResponse as SupportZipResponseType } from './types';
@@ -16,6 +17,14 @@ import CommonStrings from '../../../../constants/CommonStrings';
 interface SupportZipResponseProps {
   response: SupportZipResponseType;
   nodeId?: string;
+}
+
+/**
+ * The server sends the size of the ZIP in bytes
+ */
+function formatSize(size: number | string): string {
+  const bytes = typeof size === 'number' ? size : /^\d+$/.test(String(size).trim()) ? Number(size) : NaN;
+  return Number.isNaN(bytes) ? String(size) : HumanReadableUtils.bytesToString(bytes);
 }
 
 /**
@@ -78,7 +87,7 @@ export function SupportZipResponse({ response, nodeId }: SupportZipResponseProps
               {SupportZipStrings.RESPONSE.SIZE_LABEL}
             </Text>
             <Text size="2" className="support-zip-response__value" data-testid="support-zip-response-size">
-              {response.size}
+              {formatSize(response.size)}
             </Text>
           </Flex>
           <Flex className="support-zip-response__row">

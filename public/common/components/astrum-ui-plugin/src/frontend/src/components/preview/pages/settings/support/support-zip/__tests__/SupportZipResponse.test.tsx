@@ -57,6 +57,12 @@ describe('SupportZipResponse', () => {
     expect(screen.getByText('15 MB')).toBeInTheDocument();
   });
 
+  it('formats the size the server sends in bytes', () => {
+    render(<SupportZipResponse response={{ ...mockResponse, size: 272904 }} />, { wrapper: TestWrapper });
+
+    expect(screen.getByTestId('support-zip-response-size')).toHaveTextContent('272.90 kB');
+  });
+
   it('shows download button', () => {
     render(<SupportZipResponse response={mockResponse} />, { wrapper: TestWrapper });
 
