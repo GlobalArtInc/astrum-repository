@@ -3,6 +3,7 @@
 import { createMachine, assign } from 'xstate';
 import { equals } from 'ramda';
 import { UserTokenSettings, DEFAULT_USER_TOKEN_SETTINGS, RESET_CONFIRMATION_STRING } from './types';
+import UserTokensStrings from '../../../../constants/pages/settings/security/UserTokensStrings';
 
 export interface UserTokensMachineContext {
   data: UserTokenSettings;
@@ -33,9 +34,9 @@ export type UserTokensEvent =
  */
 export function validateExpirationDays(data: UserTokenSettings): string | null {
   if (!data.expirationEnabled) return null;
-  if (!data.expirationDays) return 'Expiration days is required';
-  if (data.expirationDays < 1 || data.expirationDays > 999) return 'Must be between 1 and 999 days';
-  if (!Number.isInteger(Number(data.expirationDays))) return 'Must be a whole number';
+  if (!data.expirationDays) return UserTokensStrings.VALIDATION.EXPIRATION_DAYS_REQUIRED;
+  if (data.expirationDays < 1 || data.expirationDays > 999) return UserTokensStrings.VALIDATION.MUST_BETWEEN_1_999_DAYS;
+  if (!Number.isInteger(Number(data.expirationDays))) return UserTokensStrings.VALIDATION.MUST_WHOLE_NUMBER;
   return null;
 }
 
@@ -175,7 +176,7 @@ export function createUserTokensMachine() {
           return { resetConfirmationInput: event.value, resetConfirmationError: null };
         }),
         setResetConfirmationError: assign({
-          resetConfirmationError: `Please type "${RESET_CONFIRMATION_STRING}" to confirm`,
+          resetConfirmationError: UserTokensStrings.VALIDATION.PLEASE_TYPE_CONFIRM(RESET_CONFIRMATION_STRING),
         }),
         clearResetConfirmation: assign({ resetConfirmationInput: '', resetConfirmationError: null }),
         setResetError: assign((_, event: any) => ({ resetError: extractMessage(event.data) })),

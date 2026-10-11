@@ -10,6 +10,8 @@ import {
   LdapSchemaTemplate,
   DEFAULT_LDAP_SERVER,
 } from './types';
+import CommonStrings from '../../../../constants/CommonStrings';
+import LdapStrings from '../../../../constants/pages/settings/security/LdapStrings';
 
 /**
  * Validate LDAP connection fields.
@@ -33,36 +35,36 @@ export function validateConnection(data: LdapFormData, isCreate = true, existing
   const errors: ValidationErrors = {};
 
   if (!data.name?.trim()) {
-    errors.name = 'Name is required';
+    errors.name = CommonStrings.MESSAGES.NAME_REQUIRED;
   } else if (existingNames.includes(data.name.trim())) {
-    errors.name = 'This name is already in use';
+    errors.name = LdapStrings.VALIDATION.NAME_ALREADY_USE;
   }
 
   if (!(data.protocol && ['ldap', 'ldaps'].includes(data.protocol))) {
-    errors.protocol = 'Protocol is required';
+    errors.protocol = LdapStrings.VALIDATION.PROTOCOL_REQUIRED;
   }
 
   if (!data.host?.trim()) {
-    errors.host = 'Hostname is required';
+    errors.host = LdapStrings.VALIDATION.HOSTNAME_REQUIRED;
   } else if (!ValidationUtils.isHost(data.host)) {
-    errors.host = 'Not a valid hostname or IP address';
+    errors.host = LdapStrings.VALIDATION.NOT_VALID_HOSTNAME_IP_ADDRESS;
   }
 
   if (!data.port || data.port < 1 || data.port > 65535) {
-    errors.port = 'Port must be between 1 and 65535';
+    errors.port = LdapStrings.VALIDATION.PORT_MUST_BETWEEN_1_65535;
   }
 
   if (!data.searchBase?.trim()) {
-    errors.searchBase = 'Search base DN is required';
+    errors.searchBase = LdapStrings.VALIDATION.SEARCH_BASE_DN_REQUIRED;
   }
 
   // Auth credentials required when scheme is not anonymous
   if (data.authScheme !== 'none') {
     if (!data.authUsername?.trim()) {
-      errors.authUsername = 'Username is required for authenticated connection';
+      errors.authUsername = LdapStrings.VALIDATION.USERNAME_REQUIRED_AUTHENTICATED_CONNECTION;
     }
     if (isCreate && !data.authPassword) {
-      errors.authPassword = 'Password is required for authenticated connection';
+      errors.authPassword = LdapStrings.VALIDATION.PASSWORD_REQUIRED_AUTHENTICATED_CONNECTION;
     }
   }
 
@@ -73,21 +75,21 @@ export function validateConnection(data: LdapFormData, isCreate = true, existing
   // range message so users get actionable feedback regardless of how the value
   // is invalid (ASTRUM-54076).
   if (data.connectionTimeout == null) {
-    errors.connectionTimeout = 'This field is required';
+    errors.connectionTimeout = LdapStrings.VALIDATION.FIELD_REQUIRED;
   } else if (Number.isNaN(data.connectionTimeout) || !Number.isInteger(data.connectionTimeout) || data.connectionTimeout < 1 || data.connectionTimeout > 3600) {
-    errors.connectionTimeout = 'Must be a number between 1 and 3600';
+    errors.connectionTimeout = LdapStrings.VALIDATION.MUST_NUMBER_BETWEEN_1_3600;
   }
 
   if (data.connectionRetryDelay == null) {
-    errors.connectionRetryDelay = 'This field is required';
+    errors.connectionRetryDelay = LdapStrings.VALIDATION.FIELD_REQUIRED;
   } else if (Number.isNaN(data.connectionRetryDelay) || !Number.isInteger(data.connectionRetryDelay) || data.connectionRetryDelay < 0) {
-    errors.connectionRetryDelay = 'Must be a number 0 or greater';
+    errors.connectionRetryDelay = LdapStrings.VALIDATION.MUST_NUMBER_0_GREATER;
   }
 
   if (data.maxIncidentsCount == null) {
-    errors.maxIncidentsCount = 'This field is required';
+    errors.maxIncidentsCount = LdapStrings.VALIDATION.FIELD_REQUIRED;
   } else if (Number.isNaN(data.maxIncidentsCount) || !Number.isInteger(data.maxIncidentsCount) || data.maxIncidentsCount < 0) {
-    errors.maxIncidentsCount = 'Must be a number 0 or greater';
+    errors.maxIncidentsCount = LdapStrings.VALIDATION.MUST_NUMBER_0_GREATER;
   }
 
   return errors;
@@ -102,38 +104,38 @@ export function validateUserGroup(data: LdapFormData): ValidationErrors {
   const errors: ValidationErrors = {};
 
   if (!data.userObjectClass?.trim()) {
-    errors.userObjectClass = 'User object class is required';
+    errors.userObjectClass = LdapStrings.VALIDATION.USER_OBJECT_CLASS_REQUIRED;
   }
 
   if (!data.userIdAttribute?.trim()) {
-    errors.userIdAttribute = 'User ID attribute is required';
+    errors.userIdAttribute = LdapStrings.VALIDATION.USER_ID_ATTRIBUTE_REQUIRED;
   }
 
   if (!data.userRealNameAttribute?.trim()) {
-    errors.userRealNameAttribute = 'Real name attribute is required';
+    errors.userRealNameAttribute = LdapStrings.VALIDATION.REAL_NAME_ATTRIBUTE_REQUIRED;
   }
 
   if (!data.userEmailAddressAttribute?.trim()) {
-    errors.userEmailAddressAttribute = 'Email attribute is required';
+    errors.userEmailAddressAttribute = LdapStrings.VALIDATION.EMAIL_ATTRIBUTE_REQUIRED;
   }
 
   if (data.ldapGroupsAsRoles) {
     if (data.groupType === 'static') {
       if (!data.groupObjectClass?.trim()) {
-        errors.groupObjectClass = 'Group object class is required';
+        errors.groupObjectClass = LdapStrings.VALIDATION.GROUP_OBJECT_CLASS_REQUIRED;
       }
       if (!data.groupIdAttribute?.trim()) {
-        errors.groupIdAttribute = 'Group ID attribute is required';
+        errors.groupIdAttribute = LdapStrings.VALIDATION.GROUP_ID_ATTRIBUTE_REQUIRED;
       }
       if (!data.groupMemberAttribute?.trim()) {
-        errors.groupMemberAttribute = 'Group member attribute is required';
+        errors.groupMemberAttribute = LdapStrings.VALIDATION.GROUP_MEMBER_ATTRIBUTE_REQUIRED;
       }
       if (!data.groupMemberFormat?.trim()) {
-        errors.groupMemberFormat = 'Group member format is required';
+        errors.groupMemberFormat = LdapStrings.VALIDATION.GROUP_MEMBER_FORMAT_REQUIRED;
       }
     } else if (data.groupType === 'dynamic') {
       if (!data.userMemberOfAttribute?.trim()) {
-        errors.userMemberOfAttribute = 'User member of attribute is required';
+        errors.userMemberOfAttribute = LdapStrings.VALIDATION.USER_MEMBER_ATTRIBUTE_REQUIRED;
       }
     }
   }

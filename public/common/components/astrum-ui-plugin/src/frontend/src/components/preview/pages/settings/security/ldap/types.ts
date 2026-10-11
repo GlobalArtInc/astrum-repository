@@ -1,3 +1,4 @@
+import LdapStrings from '../../../../constants/pages/settings/security/LdapStrings';
 
 
 /**
@@ -172,8 +173,8 @@ export type LdapFormStep = 'connection' | 'userGroup';
  * Authentication scheme options
  */
 export const AUTH_SCHEMES: Array<{ value: string; label: string }> = [
-  { value: 'none', label: 'Anonymous Authentication' },
-  { value: 'simple', label: 'Simple Authentication' },
+  { value: 'none', label: LdapStrings.TYPES.ANONYMOUS_AUTHENTICATION },
+  { value: 'simple', label: LdapStrings.TYPES.SIMPLE_AUTHENTICATION },
   { value: 'DIGEST-MD5', label: 'DIGEST-MD5' },
   { value: 'CRAM-MD5', label: 'CRAM-MD5' },
 ];

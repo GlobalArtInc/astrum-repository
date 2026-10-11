@@ -19,6 +19,9 @@ import { useUserTokensForm } from './useUserTokensForm';
 import { RESET_CONFIRMATION_STRING } from './types';
 
 import './UserTokensPage.scss';
+import UserTokensStrings from '../../../../constants/pages/settings/security/UserTokensStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import { formatDuration } from '../../../../shared/utils/formatLocale';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -64,7 +67,7 @@ export function UserTokensPage() {
       <Box className="user-tokens-page" data-testid="user-tokens-page" data-loading="true">
         <Flex align="center" justify="center" className="user-tokens-page__loading">
           <Loader2 size={24} className="user-tokens-page__spinner" />
-          <Text size="2">Loading user token settings...</Text>
+          <Text size="2">{UserTokensStrings.PAGE.LOADING_USER_TOKEN_SETTINGS}</Text>
         </Flex>
       </Box>
     );
@@ -82,32 +85,32 @@ export function UserTokensPage() {
       >
         <Box mb="4">
           <PageHeader
-            title="User Tokens"
-            description="Configure user token settings"
+            title={UserTokensStrings.PAGE.USER_TOKENS}
+            description={UserTokensStrings.PAGE.CONFIGURE_USER_TOKEN_SETTINGS}
           
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'User Tokens' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: UserTokensStrings.PAGE.USER_TOKENS }
           ]}
 />
         </Box>
 
-        <SettingsFormSection title="Current Settings" defaultOpen>
+        <SettingsFormSection title={UserTokensStrings.PAGE.CURRENT_SETTINGS} defaultOpen>
           <Box className="user-tokens-page__readonly">
             <Flex className="user-tokens-page__row">
-              <Text size="2" weight="medium" className="user-tokens-page__label">User Tokens</Text>
-              <Text size="2">{data.enabled ? 'Enabled' : 'Disabled'}</Text>
+              <Text size="2" weight="medium" className="user-tokens-page__label">{UserTokensStrings.PAGE.USER_TOKENS}</Text>
+              <Text size="2">{data.enabled ? UserTokensStrings.PAGE.ENABLED : UserTokensStrings.PAGE.DISABLED}</Text>
             </Flex>
             <Flex className="user-tokens-page__row">
-              <Text size="2" weight="medium" className="user-tokens-page__label">Repository Authentication</Text>
-              <Text size="2">{data.protectContent ? 'Required' : 'Not Required'}</Text>
+              <Text size="2" weight="medium" className="user-tokens-page__label">{UserTokensStrings.PAGE.REPOSITORY_AUTHENTICATION}</Text>
+              <Text size="2">{data.protectContent ? UserTokensStrings.PAGE.REQUIRED : UserTokensStrings.PAGE.NOT_REQUIRED}</Text>
             </Flex>
             <Flex className="user-tokens-page__row">
-              <Text size="2" weight="medium" className="user-tokens-page__label">Token Expiration</Text>
+              <Text size="2" weight="medium" className="user-tokens-page__label">{UserTokensStrings.PAGE.TOKEN_EXPIRATION}</Text>
               <Text size="2">
                 {data.expirationEnabled
-                  ? `${data.expirationDays} days`
-                  : 'Never expires'}
+                  ? formatDuration(data.expirationDays, 'day')
+                  : UserTokensStrings.PAGE.NEVER_EXPIRES}
               </Text>
             </Flex>
           </Box>
@@ -128,11 +131,11 @@ export function UserTokensPage() {
       {/* Header */}
       <Box mb="4">
         <PageHeader
-          title="User Tokens"
-          description="Configure user token settings for repository authentication"
+          title={UserTokensStrings.PAGE.USER_TOKENS}
+          description={UserTokensStrings.PAGE.CONFIGURE_USER_TOKEN_SETTINGS_REPOSITORY}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'User Tokens' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: UserTokensStrings.PAGE.USER_TOKENS }
           ]}
         />
       </Box>
@@ -160,52 +163,52 @@ export function UserTokensPage() {
         data-valid={!expirationDaysError ? 'true' : 'false'}
       >
         {/* User Tokens Enable/Disable */}
-        <SettingsFormSection title="User Token Configuration" defaultOpen>
+        <SettingsFormSection title={UserTokensStrings.PAGE.USER_TOKEN_CONFIGURATION} defaultOpen>
           <Text size="2" className="user-tokens-page__help-text">
-            User tokens allow users to authenticate securely without typical user credentials such as those used by LDAP or Crowd.
+            {UserTokensStrings.PAGE.USER_TOKENS_ALLOW_USERS_AUTHENTICATE}
           </Text>
 
           <SettingsCheckbox
             name="enabled"
-            label="Enable user tokens"
+            label={UserTokensStrings.PAGE.ENABLE_USER_TOKENS}
             checked={data.enabled}
             onChange={(checked) => handleChange('enabled', checked)}
-            description="Allow users to generate and use authentication tokens"
+            description={UserTokensStrings.PAGE.ALLOW_USERS_GENERATE_USE_AUTHENTICATION}
           />
         </SettingsFormSection>
 
         {/* Repository Authentication */}
-        <SettingsFormSection title="Repository Authentication" defaultOpen={data.enabled}>
+        <SettingsFormSection title={UserTokensStrings.PAGE.REPOSITORY_AUTHENTICATION} defaultOpen={data.enabled}>
           <SettingsCheckbox
             name="protectContent"
-            label="Require user tokens for repository authentication"
+            label={UserTokensStrings.PAGE.REQUIRE_USER_TOKENS_REPOSITORY_AUTHENTICATION}
             checked={data.protectContent}
             onChange={(checked) => handleChange('protectContent', checked)}
-            description="When enabled, users must use tokens instead of passwords to access repository content"
+            description={UserTokensStrings.PAGE.WHEN_ENABLED_USERS_MUST_USE}
             disabled={!data.enabled}
           />
         </SettingsFormSection>
 
         {/* Token Expiration */}
-        <SettingsFormSection title="Token Expiration" defaultOpen={data.enabled}>
+        <SettingsFormSection title={UserTokensStrings.PAGE.TOKEN_EXPIRATION} defaultOpen={data.enabled}>
           <SettingsCheckbox
             name="expirationEnabled"
-            label="Enable token expiration"
+            label={UserTokensStrings.PAGE.ENABLE_TOKEN_EXPIRATION}
             checked={data.expirationEnabled}
             onChange={(checked) => handleChange('expirationEnabled', checked)}
-            description="Automatically expire tokens after a specified number of days"
+            description={UserTokensStrings.PAGE.AUTOMATICALLY_EXPIRE_TOKENS_AFTER_SPECIFIED}
             disabled={!data.enabled}
           />
 
           {data.expirationEnabled && (
             <SettingsTextInput
               name="expirationDays"
-              label="Token expiration (days)"
+              label={UserTokensStrings.PAGE.TOKEN_EXPIRATION_DAYS}
               type="number"
               value={data.expirationDays}
               onChange={(value) => handleChange('expirationDays', parseInt(value, 10) || 0)}
               error={expirationDaysError}
-              helpText="Number of days before tokens expire (1-999)"
+              helpText={UserTokensStrings.PAGE.NUMBER_DAYS_BEFORE_TOKENS_EXPIRE}
               min={1}
               max={999}
               disabled={!data.enabled}
@@ -216,10 +219,10 @@ export function UserTokensPage() {
 
         {/* Reset All Tokens */}
         {canDelete && data.enabled && pristineData.enabled && (
-          <SettingsFormSection title="Reset All Tokens">
+          <SettingsFormSection title={UserTokensStrings.PAGE.RESET_ALL_TOKENS}>
             <Text size="2" className="user-tokens-page__warning-text">
               <AlertTriangle size={16} className="user-tokens-page__warning-icon" />
-              Resetting all tokens will invalidate every user's current token. Users will need to generate new tokens.
+              {UserTokensStrings.PAGE.RESETTING_ALL_TOKENS_INVALIDATE_EVERY}
             </Text>
             <SettingsButton
               variant="danger"
@@ -227,7 +230,7 @@ export function UserTokensPage() {
               disabled={isBusy}
               icon={RefreshCw}
             >
-              Reset All User Tokens
+              {UserTokensStrings.PAGE.RESET_ALL_USER_TOKENS}
             </SettingsButton>
           </SettingsFormSection>
         )}
@@ -239,10 +242,10 @@ export function UserTokensPage() {
           open with an inline error rather than disabling the button. */}
       <AlertDialog.Root open={showResetModal} onOpenChange={(open) => !open && cancelReset()}>
         <AlertDialog.Content maxWidth="450px" data-testid="user-tokens-reset-modal">
-          <AlertDialog.Title size="5">Reset all user tokens?</AlertDialog.Title>
+          <AlertDialog.Title size="5">{UserTokensStrings.PAGE.RESET_ALL_CONFIRM_TITLE}</AlertDialog.Title>
 
           <AlertDialog.Description size="2" mb="4">
-            This action will invalidate all existing user tokens. Users will need to generate new tokens to authenticate.
+            {UserTokensStrings.PAGE.ACTION_INVALIDATE_ALL_EXISTING_USER}
           </AlertDialog.Description>
 
           {/* Highlighted warning box showing the exact phrase the user must type.
@@ -261,7 +264,7 @@ export function UserTokensPage() {
               {RESET_CONFIRMATION_STRING}
             </Text>
             <Text size="1" color="gray">
-              Type this to confirm reset
+              {UserTokensStrings.PAGE.TYPE_CONFIRM_RESET}
             </Text>
           </Box>
 
@@ -269,7 +272,7 @@ export function UserTokensPage() {
           <Box mb="4">
             <Flex align="center" gap="1" mb="2">
               <Text size="2" weight="bold">
-                Acknowledgement
+                {UserTokensStrings.PAGE.ACKNOWLEDGEMENT}
               </Text>
               <Text size="2" style={{ color: 'var(--red-11)' }}>
                 *
@@ -287,10 +290,10 @@ export function UserTokensPage() {
                   confirmReset();
                 }
               }}
-              placeholder={`Type "${RESET_CONFIRMATION_STRING}" to confirm`}
+              placeholder={UserTokensStrings.PAGE.TYPE_CONFIRM(RESET_CONFIRMATION_STRING)}
               disabled={isResetting}
               color={resetConfirmationError ? 'red' : undefined}
-              aria-label="Acknowledgement"
+              aria-label={UserTokensStrings.PAGE.ACKNOWLEDGEMENT_ARIA}
               data-testid="user-tokens-reset-confirmation-input"
               autoFocus
             />
@@ -311,7 +314,7 @@ export function UserTokensPage() {
                 size="2"
                 data-testid="user-tokens-reset-cancel"
               >
-                Cancel
+                {CommonStrings.ACTIONS.CANCEL}
               </Button>
             </AlertDialog.Cancel>
             <Button
@@ -322,7 +325,7 @@ export function UserTokensPage() {
               disabled={isResetting}
               data-testid="user-tokens-reset-confirm"
             >
-              {isResetting ? 'Resetting…' : 'Reset All Tokens'}
+              {isResetting ? UserTokensStrings.PAGE.RESETTING : UserTokensStrings.PAGE.RESET_ALL_TOKENS}
             </Button>
           </Flex>
         </AlertDialog.Content>
@@ -337,7 +340,7 @@ export function UserTokensPage() {
               <AlertTriangle size={24} className="user-tokens-page__modal-icon" />
               <Dialog.Title asChild>
                 <Heading as="h2" size="4" weight="medium" className="user-tokens-page__modal-title">
-                  Token Expiration Change
+                  {UserTokensStrings.PAGE.TOKEN_EXPIRATION_CHANGE}
                 </Heading>
               </Dialog.Title>
             </Flex>
@@ -345,8 +348,8 @@ export function UserTokensPage() {
               <Box className="user-tokens-page__modal-description">
                 <Text size="2" className="user-tokens-page__modal-text">
                   {data.expirationEnabled
-                    ? 'Enabling token expiration will cause existing tokens to expire based on their creation date. Some users may need to generate new tokens. Do you want to continue?'
-                    : 'Disabling token expiration will allow all existing tokens to remain valid indefinitely. Do you want to continue?'}
+                    ? UserTokensStrings.PAGE.ENABLING_TOKEN_EXPIRATION_CAUSE_EXISTING
+                    : UserTokensStrings.PAGE.DISABLING_TOKEN_EXPIRATION_ALLOW_ALL}
                 </Text>
               </Box>
             </Dialog.Description>
@@ -357,7 +360,7 @@ export function UserTokensPage() {
                   disabled={isSaving}
                   data-testid="user-tokens-expiration-cancel"
                 >
-                  Cancel
+                  {CommonStrings.ACTIONS.CANCEL}
                 </SettingsButton>
               </Dialog.Close>
               <SettingsButton
@@ -366,7 +369,7 @@ export function UserTokensPage() {
                 loading={isSaving}
                 data-testid="user-tokens-expiration-confirm"
               >
-                Continue
+                {UserTokensStrings.PAGE.CONTINUE}
               </SettingsButton>
             </Flex>
           </Dialog.Content>

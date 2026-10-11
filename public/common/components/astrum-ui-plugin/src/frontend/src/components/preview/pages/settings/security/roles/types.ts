@@ -1,3 +1,4 @@
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
 
 
 /**
@@ -167,19 +168,19 @@ export const ROLES_PAGE_SIZE = 25;
  * Labels for privilege groups in the combobox
  */
 export const PRIVILEGE_GROUP_LABELS: Record<string, string> = {
-  'as-repository-view': 'Repository View',
-  'as-repository-admin': 'Repository Admin',
-  'as-repository-content-selector': 'Content Selector',
-  'as-application': 'Application',
-  'as-script': 'Script',
-  'as-healthcheck': 'Health Check',
-  'as-blobstore': 'Blob Store',
+  'as-repository-view': RolesStrings.TYPES.REPOSITORY_VIEW,
+  'as-repository-admin': RolesStrings.TYPES.REPOSITORY_ADMIN,
+  'as-repository-content-selector': RolesStrings.TYPES.CONTENT_SELECTOR,
+  'as-application': RolesStrings.TYPES.APPLICATION,
+  'as-script': RolesStrings.TYPES.SCRIPT,
+  'as-healthcheck': RolesStrings.TYPES.HEALTH_CHECK,
+  'as-blobstore': RolesStrings.TYPES.BLOB_STORE,
 };
 
 /**
  * Message shown when LDAP search returns no results
  */
-export const LDAP_EMPTY_SEARCH_MESSAGE = 'If no results are found, you can still save this mapping and create an LDAP role with an identical name later. Mapping will not apply until an identically named LDAP role exists.';
+export const LDAP_EMPTY_SEARCH_MESSAGE = RolesStrings.TYPES.IF_NO_RESULTS_FOUND_YOU;
 
 /**
  * Extended form context for roles form machine

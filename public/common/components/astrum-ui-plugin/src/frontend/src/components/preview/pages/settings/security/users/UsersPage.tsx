@@ -22,6 +22,8 @@ import {
 } from './types';
 
 import './UsersPage.scss';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const BASE_PATH = 'preview/admin/security/users';
 
@@ -119,7 +121,7 @@ export function UsersPage() {
           if (userData) {
             setUser(userData);
           } else {
-            setError('User not found');
+            setError(UsersStrings.PAGE.USER_NOT_FOUND);
             navigateTo(BASE_PATH);
           }
         })
@@ -180,7 +182,7 @@ export function UsersPage() {
     setIsDeleting(true);
     try {
       await deleteUser(user.userId);
-      toast.success(`User "${getFullName(user) || user.userId}" deleted successfully`);
+      toast.success(UsersStrings.PAGE.USER_DELETED_SUCCESSFULLY(getFullName(user) || user.userId));
       bumpRefresh();
       setDeleteDialogOpen(false);
       handleBack();
@@ -197,16 +199,16 @@ export function UsersPage() {
 
   const listHeaderProps = useMemo(() => ({
     icon: Users,
-    title: 'Users',
-    description: 'Manage users and their role assignments',
+    title: UsersStrings.PAGE.USERS,
+    description: UsersStrings.PAGE.MANAGE_USERS_THEIR_ROLE_ASSIGNMENTS,
     actions: canCreate ? (
       isCloud ? (
         <SettingsButton testId="invite-user-button" variant="primary" onClick={handleInvite} icon={UserPlus}>
-          Invite User
+          {UsersStrings.PAGE.INVITE_USER}
         </SettingsButton>
       ) : (
         <SettingsButton testId="create-user-button" variant="primary" onClick={handleCreate} icon={Plus}>
-          Create Local User
+          {UsersStrings.PAGE.CREATE_LOCAL_USER}
         </SettingsButton>
       )
     ) : undefined,
@@ -227,8 +229,8 @@ export function UsersPage() {
           description={listHeaderProps.description}
           actions={listHeaderProps.actions}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Users' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: UsersStrings.PAGE.USERS },
           ]}
         />
       )}
@@ -236,12 +238,12 @@ export function UsersPage() {
       {routeState.viewMode === 'invite' && (
         <PageHeader
           icon={Users}
-          title="Invite User"
-          description="Send an invitation to a new user"
+          title={UsersStrings.PAGE.INVITE_USER}
+          description={UsersStrings.PAGE.SEND_INVITATION_NEW_USER}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Users', onClick: handleBack },
-            { label: 'Invite' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: UsersStrings.PAGE.USERS, onClick: handleBack },
+            { label: UsersStrings.PAGE.INVITE },
           ]}
         />
       )}
@@ -249,12 +251,12 @@ export function UsersPage() {
       {routeState.viewMode === 'detail' && !canUpdate && (
         <PageHeader
           icon={Users}
-          title={user ? getFullName(user) || user.userId : 'User Details'}
-          description="Read-only view."
+          title={user ? getFullName(user) || user.userId : UsersStrings.PAGE.USER_DETAILS}
+          description={UsersStrings.PAGE.READ_ONLY_VIEW}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Users', onClick: handleBack },
-            { label: user?.userId || 'Loading...' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: UsersStrings.PAGE.USERS, onClick: handleBack },
+            { label: user?.userId || CommonStrings.MESSAGES.LOADING },
           ]}
         />
       )}
@@ -272,7 +274,7 @@ export function UsersPage() {
           <UsersList
             key={refreshKey}
             onSelect={handleRowClick}
-            getRowAriaLabel={(u) => `${canUpdate ? 'Edit' : 'View'} ${getFullName(u) || u.userId}`}
+            getRowAriaLabel={(u) => `${canUpdate ? CommonStrings.ACTIONS.EDIT : UsersStrings.PAGE.VIEW} ${getFullName(u) || u.userId}`}
             onCreate={isCloud ? handleInvite : handleCreate}
             isCloud={isCloud}
           />
@@ -321,8 +323,8 @@ export function UsersPage() {
           <InviteUserForm
             onSuccess={(email) => {
               toast.success(
-                'Invitation email sent',
-                `An invitation email has been sent to ${email}. New users will appear in the user list once they log in for the first time.`,
+                UsersStrings.PAGE.INVITATION_EMAIL_SENT,
+                UsersStrings.PAGE.INVITATION_EMAIL_HAS_BEEN_SENT(email),
               );
               handleBack();
               bumpRefresh();

@@ -2,6 +2,7 @@
 
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { CrowdConfig, DEFAULT_CROWD_CONFIG } from './types';
+import CrowdStrings from '../../../../constants/pages/settings/security/CrowdStrings';
 
 const CROWD_API_URL = '/service/rest/v1/security/atlassian-crowd';
 
@@ -19,7 +20,7 @@ export async function fetchCrowdConfig(): Promise<CrowdConfig> {
     };
   } catch (err: unknown) {
     const apiError = parseApiError(err);
-    throw new Error(apiError.message || 'Failed to load Crowd configuration');
+    throw new Error(apiError.message || CrowdStrings.API.FAILED_LOAD_CROWD_CONFIGURATION);
   }
 }
 
@@ -29,7 +30,7 @@ export async function saveCrowdConfig(config: CrowdConfig): Promise<void> {
     await restClient.put(CROWD_API_URL, config);
   } catch (err: unknown) {
     const apiError = parseApiError(err);
-    throw new Error(apiError.message || 'Failed to save Crowd configuration');
+    throw new Error(apiError.message || CrowdStrings.API.FAILED_SAVE_CROWD_CONFIGURATION);
   }
 }
 
@@ -39,7 +40,7 @@ export async function verifyCrowdConnection(config: CrowdConfig): Promise<void> 
     await restClient.post(`${CROWD_API_URL}/verify-connection`, config);
   } catch (err: unknown) {
     const apiError = parseApiError(err);
-    throw new Error(apiError.message || 'Failed to verify Crowd connection');
+    throw new Error(apiError.message || CrowdStrings.API.FAILED_VERIFY_CROWD_CONNECTION);
   }
 }
 
@@ -49,6 +50,6 @@ export async function clearCrowdCache(): Promise<void> {
     await restClient.post(`${CROWD_API_URL}/clear-cache`);
   } catch (err: unknown) {
     const apiError = parseApiError(err);
-    throw new Error(apiError.message || 'Failed to clear Crowd cache');
+    throw new Error(apiError.message || CrowdStrings.API.FAILED_CLEAR_CROWD_CACHE);
   }
 }

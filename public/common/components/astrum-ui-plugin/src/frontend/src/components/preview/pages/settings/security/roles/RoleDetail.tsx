@@ -18,6 +18,8 @@ import {
 } from './types';
 
 import './RoleDetail.scss';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * RoleDetail - Detailed view and edit form for a single role
@@ -42,7 +44,7 @@ export function RoleDetail({
     return (
       <Flex align="center" justify="center" className="role-detail__loading">
         <Loader2 size={24} className="role-detail__spinner" />
-        <Text size="2">Loading role details...</Text>
+        <Text size="2">{RolesStrings.DETAIL.LOADING_ROLE_DETAILS}</Text>
       </Flex>
     );
   }
@@ -52,7 +54,7 @@ export function RoleDetail({
     return (
       <Box className="role-detail__not-found">
         <AlertTriangle size={24} />
-        <Text size="2">Role not found</Text>
+        <Text size="2">{RolesStrings.DETAIL.ROLE_NOT_FOUND}</Text>
       </Box>
     );
   }
@@ -71,23 +73,23 @@ export function RoleDetail({
         {isReadOnly && (
           <Box className="role-detail__readonly-banner">
             <SettingsAlert type="info">
-              This role is read-only and cannot be modified.
+              {RolesStrings.DETAIL.ROLE_READ_ONLY_CANNOT_MODIFIED}
             </SettingsAlert>
           </Box>
         )}
 
-        <SettingsFormSection title="Role Information" defaultOpen>
+        <SettingsFormSection title={RolesStrings.DETAIL.ROLE_INFORMATION} defaultOpen>
           <MetadataGrid
             items={[
               { label: 'ID', value: role.id },
-              { label: 'Name', value: role.name },
-              { label: 'Description', value: role.description || '—' },
-              { label: 'Source', value: formatRoleSourceDisplay(role.source) },
+              { label: CommonStrings.LABELS.NAME, value: role.name },
+              { label: CommonStrings.LABELS.DESCRIPTION, value: role.description || '—' },
+              { label: RolesStrings.DETAIL.SOURCE, value: formatRoleSourceDisplay(role.source) },
             ]}
           />
         </SettingsFormSection>
 
-        <SettingsFormSection title="Privileges">
+        <SettingsFormSection title={RolesStrings.DETAIL.PRIVILEGES}>
           <Flex direction="column" gap="2">
             {role.privileges && role.privileges.length > 0 ? (
               role.privileges.map((priv) => (
@@ -106,13 +108,13 @@ export function RoleDetail({
               ))
             ) : (
               <Text size="2" color="gray" style={{ fontStyle: 'italic' }}>
-                No privileges assigned
+                {RolesStrings.DETAIL.NO_PRIVILEGES_ASSIGNED}
               </Text>
             )}
           </Flex>
         </SettingsFormSection>
 
-        <SettingsFormSection title="Contained Roles">
+        <SettingsFormSection title={RolesStrings.DETAIL.CONTAINED_ROLES}>
           <Flex direction="column" gap="2">
             {role.roles && role.roles.length > 0 ? (
               role.roles.map((r) => (
@@ -131,7 +133,7 @@ export function RoleDetail({
               ))
             ) : (
               <Text size="2" color="gray" style={{ fontStyle: 'italic' }}>
-                No contained roles
+                {RolesStrings.DETAIL.NO_CONTAINED_ROLES}
               </Text>
             )}
           </Flex>

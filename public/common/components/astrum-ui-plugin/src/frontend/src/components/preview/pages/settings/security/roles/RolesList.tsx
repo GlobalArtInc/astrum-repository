@@ -24,6 +24,8 @@ import {
 } from './types';
 
 import './RolesList.scss';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 type ManagementType = 'user' | 'system';
 
@@ -71,8 +73,8 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
     });
 
     return [
-      { value: 'user', label: 'User-Managed', count: managementCounts.user },
-      { value: 'system', label: 'System-Managed', count: managementCounts.system },
+      { value: 'user', label: RolesStrings.LIST.USER_MANAGED, count: managementCounts.user },
+      { value: 'system', label: RolesStrings.LIST.SYSTEM_MANAGED, count: managementCounts.system },
     ].filter(opt => opt.count > 0) as Array<{ value: ManagementType; label: string; count: number }>;
   }, [roles]);
 
@@ -200,7 +202,7 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
   const filterSections: FilterSection[] = useMemo(() => [
     {
       id: 'management',
-      label: 'Management',
+      label: RolesStrings.LIST.MANAGEMENT,
       type: 'checkbox',
       options: managementOptions,
       value: managementFilter,
@@ -212,12 +214,12 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
   const columns: TableColumn<Role>[] = useMemo(() => [
     {
       id: 'name',
-      header: 'Name',
+      header: CommonStrings.LABELS.NAME,
       accessor: (role) => (
         <Flex align="center" gap="2">
           <Text weight="medium">{role.name}</Text>
           {isReadOnlyRole(role) && (
-            <Lock size={12} className="roles-list__readonly-icon" title="Read Only" />
+            <Lock size={12} className="roles-list__readonly-icon" title={RolesStrings.LIST.READ_ONLY} />
           )}
         </Flex>
       ),
@@ -233,7 +235,7 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
     },
     {
       id: 'description',
-      header: 'Description',
+      header: CommonStrings.LABELS.DESCRIPTION,
       accessor: (role) => role.description || '—',
       sortable: true,
       width: '300px',
@@ -244,12 +246,12 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
       accessor: (role) => (
         <Flex gap="2" justify="end">
           {/* View button for all roles */}
-          <Tooltip content="View Role">
+          <Tooltip content={RolesStrings.LIST.VIEW_ROLE}>
             <IconButton
               variant="ghost"
               size="1"
               onClick={(e) => { e.stopPropagation(); onSelect(role.id, 'profile'); }}
-              aria-label={`View ${role.name}`}
+              aria-label={RolesStrings.LIST.VIEW_NAMED(role.name)}
             >
               <Eye size={14} />
             </IconButton>
@@ -258,24 +260,24 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
           {!isReadOnlyRole(role) && (
             <>
               {canUpdate && (
-                <Tooltip content="Edit Role">
+                <Tooltip content={RolesStrings.LIST.EDIT_ROLE}>
                   <IconButton
                     variant="ghost"
                     size="1"
                     onClick={(e) => { e.stopPropagation(); onSelect(role.id, 'edit'); }}
-                    aria-label={`Edit ${role.name}`}
+                    aria-label={RolesStrings.LIST.EDIT_NAMED(role.name)}
                   >
                     <Pencil size={14} />
                   </IconButton>
                 </Tooltip>
               )}
               {canDelete && onDelete && (
-                <Tooltip content="Delete Role">
+                <Tooltip content={RolesStrings.LIST.DELETE_ROLE}>
                   <IconButton
                     variant="ghost"
                     size="1"
                     onClick={(e) => { e.stopPropagation(); onDelete(role.id, role.name); }}
-                    aria-label={`Delete ${role.name}`}
+                    aria-label={RolesStrings.LIST.DELETE_NAMED(role.name)}
                   >
                     <Trash2 size={14} />
                   </IconButton>
@@ -297,10 +299,10 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
       return (
         <EmptyState
           icon={Shield}
-          title="No Matching Roles"
-          description="No roles match your current filters. Try adjusting your filter criteria."
+          title={RolesStrings.LIST.NO_MATCHING_ROLES}
+          description={RolesStrings.LIST.NO_ROLES_MATCH_CURRENT_FILTERS}
           action={{
-            label: 'Clear Filters',
+            label: CommonStrings.ACTIONS.CLEAR_FILTERS,
             onClick: handleClearFilters,
           }}
         />
@@ -310,18 +312,18 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
     return (
       <EmptyState
         icon={Shield}
-        title="No Roles"
-        description="Create your first role to group privileges together."
+        title={RolesStrings.LIST.NO_ROLES}
+        description={RolesStrings.LIST.CREATE_FIRST_ROLE_GROUP_PRIVILEGES}
         action={onCreate ? {
-          label: 'Create Role',
+          label: RolesStrings.LIST.CREATE_ROLE,
           onClick: onCreate,
           icon: Plus,
         } : undefined}
         secondaryAction={{
-          label: 'Learn more about roles',
+          label: RolesStrings.LIST.LEARN_MORE_ABOUT_ROLES,
           href: 'http://links.globalart.dev/products/astrum/docs/roles',
         }}
-        tip="Roles combine multiple privileges and can be assigned to users."
+        tip={RolesStrings.LIST.ROLES_COMBINE_MULTIPLE_PRIVILEGES_CAN}
       />
     );
   }, [filter, managementFilter, handleClearFilters, onCreate]);
@@ -342,7 +344,7 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
         {/* Search Bar */}
         <Box className="roles-list__search-container">
           <TextField.Root
-            placeholder="Search roles by name, ID, or description..."
+            placeholder={RolesStrings.LIST.SEARCH_ROLES_NAME_ID_DESCRIPTION_PLACEHOLDER}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="roles-list__search-input"
@@ -361,7 +363,7 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
           getRowKey={(role) => role.id}
           onRowClick={handleRowClick}
           loading={loadingRoles}
-          loadingMessage="Loading roles..."
+          loadingMessage={RolesStrings.LIST.LOADING_ROLES}
           error={error || undefined}
           onRetry={handleRetry}
           emptyState={emptyState}
@@ -370,7 +372,7 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
           onSort={handleSort}
           showRowArrow={false}
           clickable={true}
-          ariaLabel="Roles list"
+          ariaLabel={RolesStrings.LIST.ROLES_LIST_ARIA}
           className="roles-list__table"
         />
 
@@ -378,7 +380,7 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
         {!(loadingRoles || error ) && sortedRoles.length > 0 && (
           <Flex justify="between" align="center" className="roles-list__footer">
             <Text size="2" color="gray">
-              Showing {startIndex + 1}-{Math.min(endIndex, sortedRoles.length)} of {sortedRoles.length} roles
+              {RolesStrings.LIST.SHOWING_ROLES(startIndex + 1, Math.min(endIndex, sortedRoles.length), sortedRoles.length)}
             </Text>
             {totalPages > 1 && (
               <Flex gap="2" align="center">
@@ -387,19 +389,19 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
                   size="1"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
-                  aria-label="Previous page"
+                  aria-label={RolesStrings.LIST.PREVIOUS_PAGE_ARIA}
                 >
                   ←
                 </IconButton>
                 <Text size="2" color="gray">
-                  Page {currentPage} of {totalPages}
+                  {RolesStrings.LIST.PAGE_OF(currentPage, totalPages)}
                 </Text>
                 <IconButton
                   variant="soft"
                   size="1"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(currentPage + 1)}
-                  aria-label="Next page"
+                  aria-label={RolesStrings.LIST.NEXT_PAGE_ARIA}
                 >
                   →
                 </IconButton>
@@ -410,10 +412,10 @@ export function RolesList({ onSelect, onDelete, onCreate, canUpdate = true, canD
 
         {/* Help Section */}
         <HelpSection
-          title="About Roles"
-          content="Roles are collections of privileges that define a set of permissions. By assigning roles to users, you can control what actions they can perform in Astrum Repository. Roles can also contain other roles to create hierarchical permission structures."
+          title={RolesStrings.LIST.ABOUT_ROLES}
+          content={RolesStrings.LIST.ROLES_COLLECTIONS_PRIVILEGES_DEFINE_SET}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'http://links.globalart.dev/products/astrum/docs/roles',
           }}
           className="roles-list__help"

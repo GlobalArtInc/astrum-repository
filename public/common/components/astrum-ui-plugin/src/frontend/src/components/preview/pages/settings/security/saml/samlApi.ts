@@ -3,6 +3,7 @@
 import { APIConstants } from '../../../../../../constants/APIConstants';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { SamlConfiguration } from './types';
+import SamlStrings from '../../../../constants/pages/settings/security/SamlStrings';
 
 const SAML_URL = APIConstants.REST.PUBLIC.SAML;
 
@@ -21,7 +22,7 @@ export async function fetchSamlConfiguration(): Promise<SamlConfiguration | null
       return null;
     }
     const apiError = parseApiError(err);
-    throw new Error(apiError.message || 'Failed to load SAML configuration');
+    throw new Error(apiError.message || SamlStrings.API.FAILED_LOAD_SAML_CONFIGURATION);
   }
 }
 
@@ -31,7 +32,7 @@ export async function saveSamlConfiguration(config: SamlConfiguration): Promise<
     await restClient.put(SAML_URL, config);
   } catch (err: unknown) {
     const apiError = parseApiError(err);
-    throw new Error(apiError.message || 'Failed to save SAML configuration');
+    throw new Error(apiError.message || SamlStrings.API.FAILED_SAVE_SAML_CONFIGURATION);
   }
 }
 
@@ -41,7 +42,7 @@ export async function deleteSamlConfiguration(): Promise<void> {
     await restClient.delete(SAML_URL);
   } catch (err: unknown) {
     const apiError = parseApiError(err);
-    throw new Error(apiError.message || 'Failed to delete SAML configuration');
+    throw new Error(apiError.message || SamlStrings.API.FAILED_DELETE_SAML_CONFIGURATION);
   }
 }
 

@@ -1,3 +1,4 @@
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
 
 
 /**
@@ -141,8 +142,8 @@ export const DEFAULT_SOURCE = 'default';
  * User status options
  */
 export const USER_STATUSES = {
-  active: { id: 'active', label: 'Active' },
-  disabled: { id: 'disabled', label: 'Disabled' },
+  active: { id: 'active', label: UsersStrings.TYPES.ACTIVE },
+  disabled: { id: 'disabled', label: UsersStrings.TYPES.DISABLED },
 } as const;
 
 /**
@@ -160,7 +161,7 @@ export const getFullName = (user: Pick<User, 'firstName' | 'lastName'>): string 
  * Get source label (Local vs external source name)
  */
 export const getSourceLabel = (source: string): string =>
-  isExternalUser(source) ? source : 'Local';
+  isExternalUser(source) ? source : UsersStrings.TYPES.LOCAL;
 
 /**
  * Context for evaluating whether a user is protected from deletion.
@@ -180,13 +181,13 @@ export const getUserProtectionReason = (
   ctx: ProtectionContext,
 ): string | null => {
   if (isExternalUser(user.source)) {
-    return 'External users cannot be deleted from Astrum.';
+    return UsersStrings.TYPES.EXTERNAL_USERS_CANNOT_DELETED_ASTRUM;
   }
   if (ctx.anonymousUsername && user.userId === ctx.anonymousUsername) {
-    return 'The anonymous user is a system account and cannot be deleted.';
+    return UsersStrings.TYPES.ANONYMOUS_USER_SYSTEM_ACCOUNT_CANNOT;
   }
   if (ctx.currentUserId && user.userId === ctx.currentUserId) {
-    return 'You cannot delete your own account.';
+    return UsersStrings.TYPES.YOU_CANNOT_DELETE_OWN_ACCOUNT;
   }
   return null;
 };

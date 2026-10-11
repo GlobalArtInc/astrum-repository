@@ -6,6 +6,7 @@ import { Shield, Eye, Filter, Asterisk, AppWindow, Code } from 'lucide-react';
 import { PRIVILEGE_TYPES, PRIVILEGE_TYPE_LABELS } from './types';
 
 import './PrivilegeTypeSelector.scss';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
 
 interface PrivilegeTypeSelectorProps {
   onSelect: (typeId: string) => void;
@@ -13,12 +14,12 @@ interface PrivilegeTypeSelectorProps {
 }
 
 const PRIVILEGE_TYPE_DESCRIPTIONS: Record<string, string> = {
-  [PRIVILEGE_TYPES.REPOSITORY_ADMIN]: 'Full control of a repository',
-  [PRIVILEGE_TYPES.REPOSITORY_VIEW]: 'Browse/read/edit access to repository content',
-  [PRIVILEGE_TYPES.REPOSITORY_CONTENT_SELECTOR]: 'Access filtered by content selector expression',
-  [PRIVILEGE_TYPES.WILDCARD]: 'Pattern-based privilege',
-  [PRIVILEGE_TYPES.APPLICATION]: 'Application-level permission',
-  [PRIVILEGE_TYPES.SCRIPT]: 'Script execution permission',
+  [PRIVILEGE_TYPES.REPOSITORY_ADMIN]: PrivilegesStrings.TYPE_SELECTOR.FULL_CONTROL_REPOSITORY,
+  [PRIVILEGE_TYPES.REPOSITORY_VIEW]: PrivilegesStrings.TYPE_SELECTOR.BROWSE_READ_EDIT_ACCESS_REPOSITORY,
+  [PRIVILEGE_TYPES.REPOSITORY_CONTENT_SELECTOR]: PrivilegesStrings.TYPE_SELECTOR.ACCESS_FILTERED_CONTENT_SELECTOR_EXPRESSION,
+  [PRIVILEGE_TYPES.WILDCARD]: PrivilegesStrings.TYPE_SELECTOR.PATTERN_BASED_PRIVILEGE,
+  [PRIVILEGE_TYPES.APPLICATION]: PrivilegesStrings.TYPE_SELECTOR.APPLICATION_LEVEL_PERMISSION,
+  [PRIVILEGE_TYPES.SCRIPT]: PrivilegesStrings.TYPE_SELECTOR.SCRIPT_EXECUTION_PERMISSION,
 };
 
 const PRIVILEGE_TYPE_ICONS: Record<string, React.ElementType> = {

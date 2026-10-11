@@ -9,6 +9,7 @@ import { Realm } from './types';
 import {
   clearDirtyState,
 } from '../../../../shared/hooks/useUnsavedChangesWarning';
+import RealmsStrings from '../../../../constants/pages/settings/security/RealmsStrings';
 
 const FORM_ID = 'realms-form';
 
@@ -77,9 +78,9 @@ export function useRealmsForm(): UseRealmsFormReturn {
         try {
           const realmIds = ctx.activeRealms.map((r) => r.id);
           await api.updateActiveRealms(realmIds);
-          toast.success('Realms configuration saved');
+          toast.success(RealmsStrings.MESSAGES.REALMS_CONFIGURATION_SAVED);
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Failed to save realms');
+          toast.error(err instanceof Error ? err.message : RealmsStrings.MESSAGES.FAILED_SAVE_REALMS);
           throw err;
         }
       },

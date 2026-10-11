@@ -20,6 +20,8 @@ import { useAnonymousForm } from './useAnonymousForm';
 import { AnonymousPageProps } from './types';
 
 import './AnonymousPage.scss';
+import AnonymousStrings from '../../../../constants/pages/settings/security/AnonymousStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -51,7 +53,7 @@ export function AnonymousPage({ className }: AnonymousPageProps) {
       <Box className={`anonymous-page ${className || ''}`.trim()} data-testid="anonymous-page">
         <Flex align="center" justify="center" className="anonymous-page__loading">
           <Loader2 size={24} className="anonymous-page__spinner" />
-          <Text size="2">Loading anonymous access settings...</Text>
+          <Text size="2">{AnonymousStrings.PAGE.LOADING_ANONYMOUS_ACCESS_SETTINGS}</Text>
         </Flex>
       </Box>
     );
@@ -69,28 +71,28 @@ export function AnonymousPage({ className }: AnonymousPageProps) {
       >
         <Box mb="4">
           <PageHeader
-            title="Anonymous Access"
-            description="Configure anonymous user access settings"
+            title={AnonymousStrings.PAGE.ANONYMOUS_ACCESS}
+            description={AnonymousStrings.PAGE.CONFIGURE_ANONYMOUS_USER_ACCESS_SETTINGS}
           
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Anonymous' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: AnonymousStrings.PAGE.ANONYMOUS }
           ]}
 />
         </Box>
 
-        <SettingsFormSection title="Current Settings" defaultOpen>
+        <SettingsFormSection title={AnonymousStrings.PAGE.CURRENT_SETTINGS} defaultOpen>
           <Box className="anonymous-page__readonly">
             <Flex className="anonymous-page__row">
-              <Text size="2" weight="medium" className="anonymous-page__label">Anonymous Access</Text>
-              <Text size="2">{anonForm.formData.enabled ? 'Enabled' : 'Disabled'}</Text>
+              <Text size="2" weight="medium" className="anonymous-page__label">{AnonymousStrings.PAGE.ANONYMOUS_ACCESS}</Text>
+              <Text size="2">{anonForm.formData.enabled ? AnonymousStrings.PAGE.ENABLED : AnonymousStrings.PAGE.DISABLED}</Text>
             </Flex>
             <Flex className="anonymous-page__row">
-              <Text size="2" weight="medium" className="anonymous-page__label">Username</Text>
+              <Text size="2" weight="medium" className="anonymous-page__label">{AnonymousStrings.PAGE.USERNAME}</Text>
               <Text size="2">{anonForm.formData.userId}</Text>
             </Flex>
             <Flex className="anonymous-page__row">
-              <Text size="2" weight="medium" className="anonymous-page__label">Realm</Text>
+              <Text size="2" weight="medium" className="anonymous-page__label">{AnonymousStrings.PAGE.REALM}</Text>
               <Text size="2">
                 {anonForm.realmTypes.find((r) => r.id === anonForm.formData.realmName)?.name || anonForm.formData.realmName}
               </Text>
@@ -111,11 +113,11 @@ export function AnonymousPage({ className }: AnonymousPageProps) {
     >
       <Box mb="4">
         <PageHeader
-          title="Anonymous Access"
-          description="Configure anonymous user access settings"
+          title={AnonymousStrings.PAGE.ANONYMOUS_ACCESS}
+          description={AnonymousStrings.PAGE.CONFIGURE_ANONYMOUS_USER_ACCESS_SETTINGS}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Anonymous Access' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: AnonymousStrings.PAGE.ANONYMOUS_ACCESS }
           ]}
         />
       </Box>
@@ -142,44 +144,43 @@ export function AnonymousPage({ className }: AnonymousPageProps) {
         data-submitting={anonForm.isSaving ? 'true' : 'false'}
         data-valid={!anonForm.hasValidationErrors ? 'true' : 'false'}
       >
-        <SettingsFormSection title="Anonymous Access Configuration" defaultOpen>
+        <SettingsFormSection title={AnonymousStrings.PAGE.ANONYMOUS_ACCESS_CONFIGURATION} defaultOpen>
           <Text size="2" className="anonymous-page__section-description">
-            When enabled, anonymous users can access content without authentication based on the
-            permissions granted to the anonymous user account.
+            {AnonymousStrings.PAGE.WHEN_ENABLED_ANONYMOUS_USERS_CAN}
           </Text>
 
           <SettingsCheckbox
             {...anonForm.checkbox('enabled')}
-            label="Allow anonymous users to access the server"
-            description="Enable anonymous access to repository content"
+            label={AnonymousStrings.PAGE.ALLOW_ANONYMOUS_USERS_ACCESS_SERVER}
+            description={AnonymousStrings.PAGE.ENABLE_ANONYMOUS_ACCESS_REPOSITORY_CONTENT}
             analyticsId="as-anonymous-toggle"
           />
 
           <SettingsTextInput
             {...anonForm.field('userId')}
-            label="Username"
-            helpText="The username that will be used for anonymous access"
+            label={AnonymousStrings.PAGE.USERNAME}
+            helpText={AnonymousStrings.PAGE.USERNAME_USED_ANONYMOUS_ACCESS}
             required
             placeholder="anonymous"
           />
 
           <SettingsSelect
             name="realmName"
-            label="Realm"
+            label={AnonymousStrings.PAGE.REALM}
             value={anonForm.formData.realmName}
             onChange={(value: string) => anonForm.handleChange('realmName', value)}
             options={realmOptions}
-            helpText="The security realm to use for anonymous authentication"
+            helpText={AnonymousStrings.PAGE.SECURITY_REALM_USE_ANONYMOUS_AUTHENTICATION}
             required
           />
         </SettingsFormSection>
 
         {/* Help Section */}
         <HelpSection
-          title="About Anonymous Access"
-          content="Anonymous access allows users to browse and access repository content without authenticating. The permissions granted to the anonymous user determine what content is accessible."
+          title={AnonymousStrings.PAGE.ABOUT_ANONYMOUS_ACCESS}
+          content={AnonymousStrings.PAGE.ANONYMOUS_ACCESS_ALLOWS_USERS_BROWSE}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'https://help.globalart.dev/en/anonymous-access.html',
           }}
         />
@@ -193,13 +194,11 @@ export function AnonymousPage({ className }: AnonymousPageProps) {
             <Dialog.Title className="anonymous-page__modal-title">
               <Flex align="center" gap="2">
                 <AlertTriangle size={20} className="anonymous-page__modal-icon" />
-                Disable Anonymous Access
+                {AnonymousStrings.PAGE.DISABLE_ANONYMOUS_ACCESS}
               </Flex>
             </Dialog.Title>
             <Dialog.Description className="anonymous-page__modal-description">
-              Disabling anonymous access will require authentication for all requests.
-              Users will need to log in to access the repository.
-              Are you sure you want to continue?
+              {AnonymousStrings.PAGE.DISABLING_ANONYMOUS_ACCESS_REQUIRE_AUTHENTICATION}
             </Dialog.Description>
             <Flex gap="3" justify="end" className="anonymous-page__modal-actions">
               <SettingsButton
@@ -207,21 +206,21 @@ export function AnonymousPage({ className }: AnonymousPageProps) {
                 onClick={anonForm.handleCancelDisable}
                 testId="anonymous-disable-cancel"
               >
-                Cancel
+                {CommonStrings.ACTIONS.CANCEL}
               </SettingsButton>
               <SettingsButton
                 variant="danger"
                 onClick={anonForm.handleConfirmDisable}
                 testId="anonymous-disable-confirm"
               >
-                Disable Anonymous Access
+                {AnonymousStrings.PAGE.DISABLE_ANONYMOUS_ACCESS}
               </SettingsButton>
             </Flex>
             <Dialog.Close asChild>
               <button
                 type="button"
                 className="anonymous-page__modal-close"
-                aria-label="Close"
+                aria-label={CommonStrings.ACTIONS.CLOSE}
                 onClick={anonForm.handleCancelDisable}
               >
                 <X size={16} />

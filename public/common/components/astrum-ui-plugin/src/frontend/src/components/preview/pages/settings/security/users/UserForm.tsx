@@ -17,6 +17,9 @@ import { useUserTreePreview } from './useUserTreePreview';
 import { getSourceLabel } from './types';
 
 import './UserForm.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
+import plural from '../../../../../../interface/plural';
 
 export interface UserFormProps {
   vm: UseUsersFormResult;
@@ -84,7 +87,7 @@ export function UserForm({ vm }: UserFormProps) {
         aria-busy="true"
       >
         <Loader2 size={24} className="user-form__spinner" aria-hidden="true" />
-        <Text size="2">Loading form...</Text>
+        <Text size="2">{CommonStrings.MESSAGES.LOADING_FORM}</Text>
       </Flex>
     );
   }
@@ -104,46 +107,46 @@ export function UserForm({ vm }: UserFormProps) {
           <Info size={16} aria-hidden="true" />
           <Text size="2">
             {externalLabel
-              ? `This user is externally managed via ${externalLabel}. Profile fields are read-only.`
-              : 'This user is externally managed. Profile fields are read-only.'}
+              ? UsersStrings.FORM.USER_EXTERNALLY_MANAGED_VIA_PROFILE(externalLabel)
+              : UsersStrings.FORM.USER_EXTERNALLY_MANAGED_PROFILE_FIELDS}
           </Text>
         </Box>
       )}
 
-      <SettingsFormSection title="Details" defaultOpen>
+      <SettingsFormSection title={UsersStrings.FORM.DETAILS} defaultOpen>
         <SettingsTextInput
           {...form.field('userId')}
-          label="ID"
+          label={UsersStrings.FORM.ID}
           placeholder="jsmith"
-          helpText="This will be used as the username"
+          helpText={UsersStrings.FORM.USED_USERNAME}
           required
           disabled={!isCreate || isExternal}
         />
 
         <SettingsTextInput
           {...form.field('firstName')}
-          label="First Name"
-          placeholder="John"
-          helpText="User's first name for display purposes"
+          label={UsersStrings.FORM.FIRST_NAME}
+          placeholder={UsersStrings.FORM.JOHN_PLACEHOLDER}
+          helpText={UsersStrings.FORM.USERS_FIRST_NAME_DISPLAY_PURPOSES}
           required={!isExternal}
           disabled={isExternal}
         />
 
         <SettingsTextInput
           {...form.field('lastName')}
-          label="Last Name"
-          placeholder="Smith"
-          helpText="User's last name for display purposes"
+          label={UsersStrings.FORM.LAST_NAME}
+          placeholder={UsersStrings.FORM.SMITH_PLACEHOLDER}
+          helpText={UsersStrings.FORM.USERS_LAST_NAME_DISPLAY_PURPOSES}
           required={!isExternal}
           disabled={isExternal}
         />
 
         <SettingsTextInput
           {...form.field('emailAddress')}
-          label="Email"
+          label={UsersStrings.FORM.EMAIL}
           placeholder="jsmith@example.com"
           type="email"
-          helpText="Used for notifications"
+          helpText={UsersStrings.FORM.USED_NOTIFICATIONS}
           required={!isExternal}
           disabled={isExternal}
         />
@@ -152,15 +155,15 @@ export function UserForm({ vm }: UserFormProps) {
           <>
             <SettingsPasswordInput
               {...form.field('password')}
-              label="Password"
-              helpText="Set the initial password. User can change it later."
+              label={UsersStrings.FORM.PASSWORD}
+              helpText={UsersStrings.FORM.SET_INITIAL_PASSWORD_USER_CAN}
               required
               autoComplete="new-password"
             />
             <SettingsPasswordInput
               {...form.field('passwordConfirm')}
-              label="Confirm Password"
-              helpText="Re-enter the password to confirm"
+              label={UsersStrings.FORM.CONFIRM_PASSWORD}
+              helpText={UsersStrings.FORM.RE_ENTER_PASSWORD_CONFIRM}
               required
               autoComplete="new-password"
             />
@@ -177,31 +180,31 @@ export function UserForm({ vm }: UserFormProps) {
                 testId="change-password-btn"
                 data-analytics-id="as-user-change-password"
               >
-                Change Password
+                {UsersStrings.FORM.CHANGE_PASSWORD}
               </SettingsButton>
             ) : (
               <Box className="user-form__password-change">
                 <Flex align="center" justify="between" mb="2">
                   <Text size="2" weight="medium">
-                    Change Password
+                    {UsersStrings.FORM.CHANGE_PASSWORD}
                   </Text>
                   <SettingsButton
                     variant="ghost"
                     size="small"
                     onClick={resetPasswordFields}
                   >
-                    Cancel
+                    {CommonStrings.ACTIONS.CANCEL}
                   </SettingsButton>
                 </Flex>
                 <SettingsPasswordInput
                   {...form.field('password')}
-                  label="New Password"
+                  label={UsersStrings.FORM.NEW_PASSWORD}
                   required
                   autoComplete="new-password"
                 />
                 <SettingsPasswordInput
                   {...form.field('passwordConfirm')}
-                  label="Confirm New Password"
+                  label={UsersStrings.FORM.CONFIRM_NEW_PASSWORD}
                   required
                   autoComplete="new-password"
                 />
@@ -211,20 +214,20 @@ export function UserForm({ vm }: UserFormProps) {
         )}
       </SettingsFormSection>
 
-      <SettingsFormSection title="Roles" defaultOpen>
+      <SettingsFormSection title={UsersStrings.FORM.ROLES} defaultOpen>
         <SettingsTransferList
           name="roles"
           testId="user-form-roles"
           availableItems={availableRoles}
           selectedItems={selectedRoles}
           onChange={handleRolesChange}
-          availableLabel="Available"
-          selectedLabel="Granted"
+          availableLabel={UsersStrings.FORM.AVAILABLE}
+          selectedLabel={UsersStrings.FORM.GRANTED}
           getItemId={(item) => item.id}
           getItemLabel={(item) => item.name}
           helpText={
             (formData.roles ?? []).length > 0
-              ? `${(formData.roles ?? []).length} role${(formData.roles ?? []).length === 1 ? '' : 's'} granted`
+              ? plural(UsersStrings.FORM.ROLES_GRANTED, (formData.roles ?? []).length)
               : undefined
           }
         />
@@ -242,7 +245,7 @@ export function UserForm({ vm }: UserFormProps) {
               mb="2"
               style={{ display: 'block' }}
             >
-              Externally Assigned Roles
+              {UsersStrings.FORM.EXTERNALLY_ASSIGNED_ROLES}
             </Text>
             <Box className="user-form__external-roles">
               <Flex wrap="wrap" gap="1">
@@ -266,7 +269,7 @@ export function UserForm({ vm }: UserFormProps) {
       </SettingsFormSection>
 
       <SettingsFormSection
-        title="Privileges / Security Tree"
+        title={UsersStrings.FORM.PRIVILEGES_SECURITY_TREE}
         defaultOpen
       >
         {rolesDirty && (
@@ -275,7 +278,7 @@ export function UserForm({ vm }: UserFormProps) {
             data-testid="tree-preview-unsaved"
           >
             <Text size="1" color="gray">
-              Preview reflects unsaved role changes. Save to persist.
+              {UsersStrings.FORM.PREVIEW_REFLECTS_UNSAVED_ROLE_CHANGES}
             </Text>
           </Box>
         )}
@@ -293,7 +296,7 @@ export function UserForm({ vm }: UserFormProps) {
         ) : (
           <Box className="user-form__preview-placeholder">
             <Text size="2" color="gray">
-              Grant at least one role to preview effective permissions.
+              {UsersStrings.FORM.GRANT_LEAST_ONE_ROLE_PREVIEW}
             </Text>
           </Box>
         )}

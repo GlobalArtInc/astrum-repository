@@ -36,6 +36,8 @@ import { Role } from '../roles/types';
 import { apiHubHref } from '../apiHubLinks';
 
 import './UserProfilePage.scss';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface UserProfilePageProps {
   userId: string;
@@ -100,7 +102,7 @@ export function UserProfilePage({
         const data = await fetchUser(userId, userSource || DEFAULT_SOURCE);
         setUser(data);
       } catch (err: unknown) {
-        setUserError(err instanceof Error ? err.message : 'Failed to load user');
+        setUserError(err instanceof Error ? err.message : UsersStrings.PROFILE.FAILED_LOAD_USER);
       } finally {
         setUserLoading(false);
       }
@@ -122,7 +124,7 @@ export function UserProfilePage({
     () => [
       {
         id: 'name',
-        header: 'Name',
+        header: CommonStrings.LABELS.NAME,
         accessor: (role) =>
           embedMode ? (
             <Text size="2" as="span">{role.name}</Text>
@@ -142,7 +144,7 @@ export function UserProfilePage({
                 textDecoration: 'underline',
                 cursor: 'pointer',
               }}
-              aria-label={`Open role profile: ${role.name}`}
+              aria-label={UsersStrings.PROFILE.OPEN_ROLE_PROFILE(role.name)}
             >
               <Text size="2" as="span">{role.name}</Text>
             </button>
@@ -157,17 +159,17 @@ export function UserProfilePage({
       },
       {
         id: 'source',
-        header: 'Source',
+        header: UsersStrings.PROFILE.SOURCE,
         accessor: (role) => (
           <Badge color="blue" variant="soft">
-            {role.source || 'Default'}
+            {role.source || UsersStrings.PROFILE.DEFAULT}
           </Badge>
         ),
         sortable: true,
       },
       {
         id: 'description',
-        header: 'Description',
+        header: CommonStrings.LABELS.DESCRIPTION,
         accessor: (role) => <Text size="2">{role.description || '—'}</Text>,
         sortable: false,
       },
@@ -179,7 +181,7 @@ export function UserProfilePage({
     () => [
       {
         id: 'name',
-        header: 'Name',
+        header: CommonStrings.LABELS.NAME,
         accessor: (p) => (
           <Flex align="center" gap="2">
             <Key size={14} color="var(--amber-9)" aria-hidden="true" />
@@ -201,7 +203,7 @@ export function UserProfilePage({
                   textDecoration: 'underline',
                   cursor: 'pointer',
                 }}
-                aria-label={`Open privilege profile: ${p.name}`}
+                aria-label={UsersStrings.PROFILE.OPEN_PRIVILEGE_PROFILE(p.name)}
               >
                 <Text size="2" weight="medium" as="span">{p.name}</Text>
               </button>
@@ -212,7 +214,7 @@ export function UserProfilePage({
       },
       {
         id: 'permission',
-        header: 'Permission',
+        header: UsersStrings.PROFILE.PERMISSION,
         accessor: (p) => (
           <Text size="1" color="gray" style={{ fontFamily: 'var(--font-mono)' }}>
             {p.permission}
@@ -222,13 +224,13 @@ export function UserProfilePage({
       },
       {
         id: 'type',
-        header: 'Type',
+        header: CommonStrings.LABELS.TYPE,
         accessor: (p) => <Text size="2">{p.type || '—'}</Text>,
         sortable: true,
       },
       {
         id: 'repository',
-        header: 'Repository',
+        header: UsersStrings.PROFILE.REPOSITORY,
         accessor: (p) => (
           <Text size="2">{p.properties?.repository || '—'}</Text>
         ),
@@ -236,7 +238,7 @@ export function UserProfilePage({
       },
       {
         id: 'actions',
-        header: 'Actions',
+        header: CommonStrings.LABELS.ACTIONS,
         accessor: (p) => (
           <Text size="2">{p.properties?.actions || '—'}</Text>
         ),
@@ -244,7 +246,7 @@ export function UserProfilePage({
       },
       {
         id: 'grantedBy',
-        header: 'Granted by',
+        header: UsersStrings.PROFILE.GRANTED_BY,
         accessor: (p) => (
           <Flex wrap="wrap" gap="1">
             {(p.grantedByRoleIds || []).map((roleId, idx) => {
@@ -272,7 +274,7 @@ export function UserProfilePage({
                         fontSize: 'var(--font-size-1)',
                         cursor: 'pointer',
                       }}
-                      aria-label={`Open role profile: ${label}`}
+                      aria-label={UsersStrings.PROFILE.OPEN_ROLE_PROFILE(label)}
                     >
                       {label}
                     </button>
@@ -289,13 +291,13 @@ export function UserProfilePage({
     [embedMode, openEntity, roleMap]
   );
 
-  if (userLoading) return <LoadingState message="Loading user profile..." />;
+  if (userLoading) return <LoadingState message={UsersStrings.PROFILE.LOADING_USER_PROFILE} />;
   if (userError) return <ErrorState message={userError} onRetry={() => window.location.reload()} />;
-  if (!user) return <ErrorState message="User not found" />;
+  if (!user) return <ErrorState message={UsersStrings.PROFILE.USER_NOT_FOUND} />;
 
   const sourceLabel = getSourceLabel(user.source || DEFAULT_SOURCE);
   const isActive = user.status === 'active';
-  const statusLabel = isActive ? 'Active' : 'Disabled';
+  const statusLabel = isActive ? UsersStrings.PROFILE.ACTIVE : UsersStrings.PROFILE.DISABLED;
 
   return (
     <Box className="user-profile-page" data-testid="user-profile-page">
@@ -303,15 +305,15 @@ export function UserProfilePage({
         title={user.userId}
         headingAs={embedMode ? 'h2' : 'h1'}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
-          { label: 'Users', onClick: onBack },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+          { label: UsersStrings.PROFILE.USERS, onClick: onBack },
           { label: user.userId }
         ]}
         actions={!embedMode ? (
           <Flex gap="2">
             {canEdit && onEdit && (
               <SettingsButton variant="primary" onClick={onEdit} icon={Pencil}>
-                Edit User
+                {UsersStrings.PROFILE.EDIT_USER}
               </SettingsButton>
             )}
           </Flex>
@@ -330,7 +332,7 @@ export function UserProfilePage({
               <StatusBadge
                 status={isActive ? 'online' : 'offline'}
                 size="small"
-                label={isActive ? 'Active' : 'Disabled'}
+                label={isActive ? UsersStrings.PROFILE.ACTIVE : UsersStrings.PROFILE.DISABLED}
               />
               <Badge color="blue" variant="soft">
                 {sourceLabel}
@@ -345,48 +347,48 @@ export function UserProfilePage({
           <Tabs.Trigger value="overview">
             <Flex align="center" gap="1">
               <Info size={14} aria-hidden="true" />
-              <Text size="2">Overview</Text>
+              <Text size="2">{UsersStrings.PROFILE.OVERVIEW}</Text>
             </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="roles">
             <Flex align="center" gap="1">
               <Shield size={14} aria-hidden="true" />
-              <Text size="2">Roles</Text>
+              <Text size="2">{UsersStrings.PROFILE.ROLES}</Text>
             </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="privileges">
             <Flex align="center" gap="1">
               <Key size={14} aria-hidden="true" />
-              <Text size="2">Privileges</Text>
+              <Text size="2">{UsersStrings.PROFILE.PRIVILEGES}</Text>
             </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="tree">
             <Flex align="center" gap="1">
               <Shield size={14} aria-hidden="true" />
-              <Text size="2">Security Tree</Text>
+              <Text size="2">{UsersStrings.PROFILE.SECURITY_TREE}</Text>
             </Flex>
           </Tabs.Trigger>
         </Tabs.List>
 
         <Box pt="4" className="user-profile-page__content">
           <Tabs.Content value="overview">
-            <SettingsFormSection title="User Metadata" defaultOpen>
+            <SettingsFormSection title={UsersStrings.PROFILE.USER_METADATA} defaultOpen>
               <MetadataGrid
                 items={[
                   {
-                    label: 'User ID',
+                    label: UsersStrings.PROFILE.USER_ID,
                     value: (
                       <Text size="2" style={{ fontFamily: 'var(--font-mono)' }}>
                         {user.userId}
                       </Text>
                     ),
                   },
-                  { label: 'First Name', value: user.firstName },
-                  { label: 'Last Name', value: user.lastName },
-                  { label: 'Email', value: user.emailAddress || user.email },
-                  { label: 'Status', value: statusLabel },
+                  { label: UsersStrings.PROFILE.FIRST_NAME, value: user.firstName },
+                  { label: UsersStrings.PROFILE.LAST_NAME, value: user.lastName },
+                  { label: UsersStrings.PROFILE.EMAIL, value: user.emailAddress || user.email },
+                  { label: CommonStrings.LABELS.STATUS, value: statusLabel },
                   {
-                    label: 'Source',
+                    label: UsersStrings.PROFILE.SOURCE,
                     value: (
                       <Badge color="blue" variant="soft">
                         {sourceLabel}
@@ -405,12 +407,12 @@ export function UserProfilePage({
                 columns={roleColumns}
                 getRowKey={(r) => r.id}
                 loading={privilegesLoading && user.roles!.length > 0}
-                loadingMessage="Loading roles..."
-                ariaLabel="Roles assigned to user"
+                loadingMessage={UsersStrings.PROFILE.LOADING_ROLES}
+                ariaLabel={UsersStrings.PROFILE.ROLES_ASSIGNED_USER_ARIA}
                 emptyState={
                   <EmptyState
-                    title="No roles assigned"
-                    description="This user has no roles."
+                    title={UsersStrings.PROFILE.NO_ROLES_ASSIGNED}
+                    description={UsersStrings.PROFILE.USER_HAS_NO_ROLES}
                     icon={Shield}
                   />
                 }
@@ -424,11 +426,10 @@ export function UserProfilePage({
                 <Box mb="3">
                   <Text size="2">
                     <a href={apiHubHref({ user: userId })} className="user-profile-page__api-hub-link">
-                      View API access for this user
+                      {UsersStrings.PROFILE.VIEW_API_ACCESS_USER}
                     </a>{' '}
                     <Text size="1" color="gray" as="span">
-                      (opens API hub with <Text as="span" style={{ fontFamily: 'var(--font-mono)' }}>?user=</Text> deep
-                      link)
+                      {UsersStrings.PROFILE.OPENS_API_HUB(<Text as="span" style={{ fontFamily: 'var(--font-mono)' }}>?user=</Text>)}
                     </Text>
                   </Text>
                 </Box>
@@ -438,12 +439,12 @@ export function UserProfilePage({
                 columns={privilegeColumns}
                 getRowKey={(p) => p.id}
                 loading={privilegesLoading}
-                loadingMessage="Calculating effective privileges..."
-                ariaLabel="Effective privileges"
+                loadingMessage={UsersStrings.PROFILE.CALCULATING_EFFECTIVE_PRIVILEGES}
+                ariaLabel={UsersStrings.PROFILE.EFFECTIVE_PRIVILEGES_ARIA}
                 emptyState={
                   <EmptyState
-                    title="No privileges"
-                    description="This user has no effective privileges."
+                    title={UsersStrings.PROFILE.NO_PRIVILEGES}
+                    description={UsersStrings.PROFILE.USER_HAS_NO_EFFECTIVE_PRIVILEGES}
                     icon={Key}
                   />
                 }
@@ -465,8 +466,7 @@ export function UserProfilePage({
               ) : (
                 <Box className="user-profile-page__empty-tree">
                   <Text size="2" color="gray">
-                    This user has no roles assigned. Assign roles in the Edit
-                    form to see the security tree.
+                    {UsersStrings.PROFILE.USER_HAS_NO_ROLES_ASSIGNED}
                   </Text>
                 </Box>
               )}

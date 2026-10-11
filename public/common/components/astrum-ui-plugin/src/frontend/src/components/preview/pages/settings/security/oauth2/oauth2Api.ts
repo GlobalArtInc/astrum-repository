@@ -3,6 +3,7 @@
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { APIConstants } from '../../../../../../constants/APIConstants';
 import { OAuth2Config, DEFAULT_OAUTH2_CONFIG } from './types';
+import OAuth2Strings from '../../../../constants/pages/settings/security/OAuth2Strings';
 
 const OAUTH2_API_URL = APIConstants.REST.INTERNAL.OAUTH2;
 
@@ -36,7 +37,7 @@ function parseString(fieldLabel: string, val: string): Record<string, string> {
     return {};
   }
 
-  const invalid = () => new Error(`${fieldLabel} must be a valid JSON object with string values`);
+  const invalid = () => new Error(OAuth2Strings.API.MUST_VALID_JSON_OBJECT_STRING(fieldLabel));
 
   let parsed: unknown;
   try {
@@ -110,12 +111,12 @@ export async function saveOAuth2Config(config: OAuth2Config): Promise<void> {
       // to false, so omitting it here would reset the admin's truststore choice
       // on every save (ASTRUM-54266).
       useTrustStore: config.useTrustStore ?? false,
-      exactMatchClaims: parseString('Exact Match Claims', config.exactMatchClaims || ''),
+      exactMatchClaims: parseString(OAuth2Strings.API.EXACT_MATCH_CLAIMS, config.exactMatchClaims || ''),
       authorizationCustomParams: parseString(
-        'Authorization Custom Parameters',
+        OAuth2Strings.API.AUTHORIZATION_CUSTOM_PARAMETERS,
         config.authorizationCustomParams || ''),
       tokenRequestCustomParams: parseString(
-        'Token Request Custom Parameters',
+        OAuth2Strings.API.TOKEN_REQUEST_CUSTOM_PARAMETERS,
         config.tokenRequestCustomParams || ''),
     };
 

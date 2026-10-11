@@ -12,6 +12,7 @@ import {
   getSamlMetadataUrl,
 } from './samlApi';
 import { SamlConfiguration } from './types';
+import SamlStrings from '../../../../constants/pages/settings/security/SamlStrings';
 
 /**
  * Returns the default SAML configuration with a computed default Entity ID
@@ -73,11 +74,11 @@ export function useSamlForm(): UseSamlFormResult {
       },
       save: async (ctx) => {
         await saveSamlConfiguration(toSamlPayload(ctx.data));
-        toast.success('SAML configuration saved successfully');
+        toast.success(SamlStrings.MESSAGES.SAML_CONFIGURATION_SAVED_SUCCESSFULLY);
       },
       delete: async () => {
         await deleteSamlConfiguration();
-        toast.success('SAML configuration deleted successfully');
+        toast.success(SamlStrings.MESSAGES.SAML_CONFIGURATION_DELETED_SUCCESSFULLY);
         return getDefaultConfigWithEntityId();
       },
     },
@@ -113,7 +114,7 @@ export function useSamlForm(): UseSamlFormResult {
     getAbsoluteMetadataUrl,
     copyMetadataUrl: () => {
       navigator.clipboard.writeText(getAbsoluteMetadataUrl());
-      toast.success('Metadata URL copied to clipboard');
+      toast.success(SamlStrings.MESSAGES.METADATA_URL_COPIED_CLIPBOARD);
     },
   };
 }

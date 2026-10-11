@@ -6,6 +6,7 @@ import { useToast } from '../../../../shared';
 import { useUserTokensApi } from './useUserTokensApi';
 import { createUserTokensMachine, UserTokensMachineContext } from './userTokensMachine';
 import { UserTokenSettings } from './types';
+import UserTokensStrings from '../../../../constants/pages/settings/security/UserTokensStrings';
 
 export interface UseUserTokensFormResult {
   data: UserTokenSettings;
@@ -46,11 +47,11 @@ export function useUserTokensForm(): UseUserTokensFormResult {
       load: () => api.fetchSettings(),
       save: async (ctx: UserTokensMachineContext) => {
         await api.saveSettings(ctx.data);
-        toast.success('User token settings saved successfully');
+        toast.success(UserTokensStrings.MESSAGES.USER_TOKEN_SETTINGS_SAVED_SUCCESSFULLY);
       },
       resetAllTokens: async () => {
         await api.resetAllTokens();
-        toast.success('All user tokens have been reset');
+        toast.success(UserTokensStrings.MESSAGES.ALL_USER_TOKENS_HAVE_BEEN);
       },
     },
   });

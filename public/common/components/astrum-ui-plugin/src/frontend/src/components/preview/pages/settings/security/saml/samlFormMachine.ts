@@ -4,6 +4,7 @@ import { createMachine, assign, type StateMachine } from 'xstate';
 import { equals } from 'ramda';
 import { type FormContext, type FormEvent, type ValidationErrors, extractErrorMessage } from '../../../../../../interface/form';
 import { SamlConfiguration } from './types';
+import SamlStrings from '../../../../constants/pages/settings/security/SamlStrings';
 
 /**
  * Form context extended with whether a SAML configuration currently exists on
@@ -46,18 +47,18 @@ export function validateSaml(data: SamlConfiguration): ValidationErrors {
   const errors: ValidationErrors = {};
 
   if (!data.idpMetadata || data.idpMetadata.trim() === '') {
-    errors.idpMetadata = 'Identity Provider Metadata is required';
+    errors.idpMetadata = SamlStrings.VALIDATION.IDENTITY_PROVIDER_METADATA_REQUIRED;
   }
 
   if (data.entityId && data.entityId.trim() !== '') {
     const URI_REGEX = /^[a-zA-Z][a-zA-Z0-9+\-.]*:.+$/;
     if (!URI_REGEX.test(data.entityId.trim())) {
-      errors.entityId = 'Entity ID must be a URI';
+      errors.entityId = SamlStrings.VALIDATION.ENTITY_ID_MUST_URI;
     }
   }
 
   if (!data.usernameAttribute || data.usernameAttribute.trim() === '') {
-    errors.usernameAttribute = 'Username Attribute is required';
+    errors.usernameAttribute = SamlStrings.VALIDATION.USERNAME_ATTRIBUTE_REQUIRED;
   }
 
   return errors;

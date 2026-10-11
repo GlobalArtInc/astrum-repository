@@ -18,6 +18,8 @@ import {
 } from './types';
 
 import './SslCertificatesDetail.scss';
+import SslCertificatesStrings from '../../../../constants/pages/settings/security/SslCertificatesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * SslCertificatesDetail - Detailed view of a single SSL certificate
@@ -36,7 +38,7 @@ export function SslCertificatesDetail({
     return (
       <Flex align="center" justify="center" className="ssl-certificates-detail__loading">
         <Loader2 size={24} className="ssl-certificates-detail__spinner" />
-        <Text size="2">Loading certificate details...</Text>
+        <Text size="2">{SslCertificatesStrings.DETAIL.LOADING_CERTIFICATE_DETAILS}</Text>
       </Flex>
     );
   }
@@ -46,7 +48,7 @@ export function SslCertificatesDetail({
     return (
       <Box className="ssl-certificates-detail__not-found">
         <AlertTriangle size={24} />
-        <Text size="2">Certificate not found</Text>
+        <Text size="2">{SslCertificatesStrings.DETAIL.CERTIFICATE_NOT_FOUND}</Text>
       </Box>
     );
   }
@@ -58,7 +60,7 @@ export function SslCertificatesDetail({
 
   const deleteButton = canDelete ? (
     <SettingsButton variant="danger" onClick={onDelete} icon={Trash2}>
-      Delete Certificate
+      {SslCertificatesStrings.DETAIL.DELETE_CERTIFICATE}
     </SettingsButton>
   ) : undefined;
 
@@ -68,7 +70,7 @@ export function SslCertificatesDetail({
         showHeader={false}
         showActions={true}
         onCancel={onCancel}
-        cancelLabel="Back to List"
+        cancelLabel={CommonStrings.ACTIONS.BACK_TO_LIST}
         footerExtra={deleteButton}
         noDirtyTracking
       >
@@ -87,7 +89,7 @@ export function SslCertificatesDetail({
             <SettingsAlert type="error">
               <Flex align="center" gap="2">
                 <AlertTriangle size={16} />
-                <Text size="2">This certificate has expired</Text>
+                <Text size="2">{SslCertificatesStrings.DETAIL.CERTIFICATE_HAS_EXPIRED}</Text>
               </Flex>
             </SettingsAlert>
           </Box>
@@ -97,44 +99,44 @@ export function SslCertificatesDetail({
             <SettingsAlert type="warning">
               <Flex align="center" gap="2">
                 <AlertTriangle size={16} />
-                <Text size="2">This certificate is expiring soon</Text>
+                <Text size="2">{SslCertificatesStrings.DETAIL.CERTIFICATE_EXPIRING_SOON}</Text>
               </Flex>
             </SettingsAlert>
           </Box>
         )}
 
         {/* Certificate Information */}
-        <SettingsFormSection title="Certificate Information" defaultOpen>
+        <SettingsFormSection title={SslCertificatesStrings.DETAIL.CERTIFICATE_INFORMATION} defaultOpen>
           <Box className="ssl-certificates-detail__info">
             <Flex className="ssl-certificates-detail__row">
-              <Text size="2" weight="medium" className="ssl-certificates-detail__label">Fingerprint</Text>
+              <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.FINGERPRINT}</Text>
               <Text size="1" className="ssl-certificates-detail__fingerprint">{certificate.fingerprint}</Text>
             </Flex>
             <Flex className="ssl-certificates-detail__row">
-              <Text size="2" weight="medium" className="ssl-certificates-detail__label">Valid Until</Text>
+              <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.VALID_UNTIL}</Text>
               <Text size="2">{expiresDate || 'N/A'}</Text>
             </Flex>
             <Flex className="ssl-certificates-detail__row">
-              <Text size="2" weight="medium" className="ssl-certificates-detail__label">Issued On</Text>
+              <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.ISSUED_ON}</Text>
               <Text size="2">{issuedDate || 'N/A'}</Text>
             </Flex>
           </Box>
         </SettingsFormSection>
 
         {/* Subject Information */}
-        <SettingsFormSection title="Subject" defaultOpen>
+        <SettingsFormSection title={SslCertificatesStrings.DETAIL.SUBJECT} defaultOpen>
           <Box className="ssl-certificates-detail__info">
             <Flex className="ssl-certificates-detail__row">
-              <Text size="2" weight="medium" className="ssl-certificates-detail__label">Common Name</Text>
+              <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.COMMON_NAME}</Text>
               <Text size="2">{certificate.subjectCommonName || 'N/A'}</Text>
             </Flex>
             <Flex className="ssl-certificates-detail__row">
-              <Text size="2" weight="medium" className="ssl-certificates-detail__label">Organization</Text>
+              <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.ORGANIZATION}</Text>
               <Text size="2">{certificate.subjectOrganization || 'N/A'}</Text>
             </Flex>
             {certificate.subjectOrganizationalUnit && (
               <Flex className="ssl-certificates-detail__row">
-                <Text size="2" weight="medium" className="ssl-certificates-detail__label">Organizational Unit</Text>
+                <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.ORGANIZATIONAL_UNIT}</Text>
                 <Text size="2">{certificate.subjectOrganizationalUnit}</Text>
               </Flex>
             )}
@@ -142,19 +144,19 @@ export function SslCertificatesDetail({
         </SettingsFormSection>
 
         {/* Issuer Information */}
-        <SettingsFormSection title="Issuer" defaultOpen>
+        <SettingsFormSection title={SslCertificatesStrings.DETAIL.ISSUER} defaultOpen>
           <Box className="ssl-certificates-detail__info">
             <Flex className="ssl-certificates-detail__row">
-              <Text size="2" weight="medium" className="ssl-certificates-detail__label">Common Name</Text>
+              <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.COMMON_NAME}</Text>
               <Text size="2">{certificate.issuerCommonName || 'N/A'}</Text>
             </Flex>
             <Flex className="ssl-certificates-detail__row">
-              <Text size="2" weight="medium" className="ssl-certificates-detail__label">Organization</Text>
+              <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.ORGANIZATION}</Text>
               <Text size="2">{certificate.issuerOrganization || 'N/A'}</Text>
             </Flex>
             {certificate.issuerOrganizationalUnit && (
               <Flex className="ssl-certificates-detail__row">
-                <Text size="2" weight="medium" className="ssl-certificates-detail__label">Organizational Unit</Text>
+                <Text size="2" weight="medium" className="ssl-certificates-detail__label">{SslCertificatesStrings.DETAIL.ORGANIZATIONAL_UNIT}</Text>
                 <Text size="2">{certificate.issuerOrganizationalUnit}</Text>
               </Flex>
             )}
@@ -166,8 +168,7 @@ export function SslCertificatesDetail({
           <Box className="ssl-certificates-detail__warning">
             <SettingsAlert type="warning">
               <Text size="2">
-                Warning: Adding a certificate to the trust store means you trust the certificate authority (CA) that issued it.
-                Only add certificates from trusted sources.
+                {SslCertificatesStrings.DETAIL.WARNING_ADDING_CERTIFICATE_TRUST_STORE}
               </Text>
             </SettingsAlert>
           </Box>

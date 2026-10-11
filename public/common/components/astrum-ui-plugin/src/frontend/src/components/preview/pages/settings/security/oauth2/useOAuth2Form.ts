@@ -6,6 +6,7 @@ import { useToast } from '../../../../shared';
 import { createOAuth2FormMachine } from './oauth2FormMachine';
 import { saveOAuth2Config } from './oauth2Api';
 import { OAuth2Config } from './types';
+import OAuth2Strings from '../../../../constants/pages/settings/security/OAuth2Strings';
 
 /**
  * Presentation-facing API for the OAuth2 settings page.
@@ -49,7 +50,7 @@ export function useOAuth2Form(): UseOAuth2FormResult {
     services: {
       save: async (ctx) => {
         await saveOAuth2Config(ctx.data);
-        toast.success('OAuth2 configuration saved successfully');
+        toast.success(OAuth2Strings.MESSAGES.OAUTH2_CONFIGURATION_SAVED_SUCCESSFULLY);
       },
     },
   });

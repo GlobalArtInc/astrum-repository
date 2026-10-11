@@ -23,6 +23,8 @@ import {
 } from './types';
 
 import './UsersList.scss';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * UsersList - Displays users using SUPER UI/UX standard
@@ -106,7 +108,7 @@ export function UsersList({
       })
       .map(([value, count]) => ({
         value,
-        label: value === DEFAULT_SOURCE ? 'Local' : value,
+        label: value === DEFAULT_SOURCE ? UsersStrings.LIST.LOCAL : value,
         count,
       }));
   }, [users]);
@@ -123,12 +125,12 @@ export function UsersList({
     return [
       {
         value: 'active',
-        label: 'Active',
+        label: UsersStrings.LIST.ACTIVE,
         count: statusCounts.get('active') || 0,
       },
       {
         value: 'inactive',
-        label: 'Inactive',
+        label: UsersStrings.LIST.INACTIVE,
         count: statusCounts.get('inactive') || 0,
       },
     ];
@@ -253,7 +255,7 @@ export function UsersList({
   const filterSections: FilterSection[] = useMemo(() => [
     ...(!isCloud ? [{
       id: 'source',
-      label: 'Source',
+      label: UsersStrings.LIST.SOURCE,
       type: 'checkbox' as const,
       options: sourceOptions,
       value: sourceFilter,
@@ -261,7 +263,7 @@ export function UsersList({
     }] : []),
     {
       id: 'status',
-      label: 'Status',
+      label: CommonStrings.LABELS.STATUS,
       type: 'checkbox' as const,
       options: statusOptions,
       value: statusFilter,
@@ -273,50 +275,50 @@ export function UsersList({
   const columns: TableColumn<User>[] = useMemo(() => [
     {
       id: 'userId',
-      header: 'User ID',
+      header: UsersStrings.LIST.USER_ID,
       accessor: (user) => user.userId,
       sortable: true,
       width: '150px',
     },
     {
       id: 'firstName',
-      header: 'First Name',
+      header: UsersStrings.LIST.FIRST_NAME,
       accessor: (user) => user.firstName || '—',
       sortable: true,
       width: '150px',
     },
     {
       id: 'lastName',
-      header: 'Last Name',
+      header: UsersStrings.LIST.LAST_NAME,
       accessor: (user) => user.lastName || '—',
       sortable: true,
       width: '150px',
     },
     {
       id: 'email',
-      header: 'Email',
+      header: UsersStrings.LIST.EMAIL,
       accessor: (user) => user.emailAddress || user.email || '—',
       sortable: true,
       width: '200px',
     },
     {
       id: 'source',
-      header: 'Source',
+      header: UsersStrings.LIST.SOURCE,
       accessor: (user) => {
         const source = user.source || DEFAULT_SOURCE;
-        return source === DEFAULT_SOURCE ? 'Local' : source;
+        return source === DEFAULT_SOURCE ? UsersStrings.LIST.LOCAL : source;
       },
       sortable: true,
       width: '120px',
     },
     {
       id: 'status',
-      header: 'Status',
+      header: CommonStrings.LABELS.STATUS,
       accessor: (user) => {
         const isActive = user.status === 'active';
         return (
           <Badge variant="soft" color={isActive ? 'green' : 'gray'} size="1">
-            {isActive ? 'Active' : 'Inactive'}
+            {isActive ? UsersStrings.LIST.ACTIVE : UsersStrings.LIST.INACTIVE}
           </Badge>
         );
       },
@@ -333,10 +335,10 @@ export function UsersList({
       return (
         <EmptyState
           icon={Users}
-          title="No Matching Users"
-          description="No users match your current filters. Try adjusting your filter criteria."
+          title={UsersStrings.LIST.NO_MATCHING_USERS}
+          description={UsersStrings.LIST.NO_USERS_MATCH_CURRENT_FILTERS}
           action={{
-            label: 'Clear Filters',
+            label: CommonStrings.ACTIONS.CLEAR_FILTERS,
             onClick: handleClearFilters,
           }}
         />
@@ -346,18 +348,18 @@ export function UsersList({
     return (
       <EmptyState
         icon={Users}
-        title="No Users"
-        description={isCloud ? 'Invite users to start managing access.' : 'Create your first local user to start managing access.'}
+        title={UsersStrings.LIST.NO_USERS}
+        description={isCloud ? UsersStrings.LIST.INVITE_USERS_START_MANAGING_ACCESS : UsersStrings.LIST.CREATE_FIRST_LOCAL_USER_START}
         action={onCreate ? {
-          label: isCloud ? 'Invite User' : 'Create Local User',
+          label: isCloud ? UsersStrings.LIST.INVITE_USER : UsersStrings.LIST.CREATE_LOCAL_USER,
           onClick: onCreate,
           icon: isCloud ? UserPlus : Plus,
         } : undefined}
         secondaryAction={{
-          label: 'Learn more about users',
+          label: UsersStrings.LIST.LEARN_MORE_ABOUT_USERS,
           href: 'http://links.globalart.dev/products/astrum/docs/users',
         }}
-        tip="Users are assigned roles which grant them access to Astrum Repository features."
+        tip={UsersStrings.LIST.USERS_ASSIGNED_ROLES_WHICH_GRANT}
       />
     );
   }, [filter, sourceFilter, statusFilter, handleClearFilters, onCreate, isCloud]);
@@ -378,13 +380,13 @@ export function UsersList({
         {/* Search Bar */}
         <Box className="users-list__search-container">
           <TextField.Root
-            placeholder="Search by user ID..."
+            placeholder={UsersStrings.LIST.SEARCH_USER_ID_PLACEHOLDER}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="users-list__search-input"
             data-testid="users-search"
             data-analytics-id="as-user-filter"
-            aria-label="Search users by user ID"
+            aria-label={UsersStrings.LIST.SEARCH_USERS_USER_ID_ARIA}
           >
             <TextField.Slot>
               <Search size={16} />
@@ -400,7 +402,7 @@ export function UsersList({
           onRowClick={handleRowClick}
           getRowAriaLabel={getRowAriaLabel}
           loading={loadingUsers}
-          loadingMessage="Loading users..."
+          loadingMessage={UsersStrings.LIST.LOADING_USERS}
           error={error || undefined}
           onRetry={handleRetry}
           emptyState={emptyState}
@@ -409,7 +411,7 @@ export function UsersList({
           onSort={handleSort}
           showRowArrow={false}
           clickable={true}
-          ariaLabel="Users list"
+          ariaLabel={UsersStrings.LIST.USERS_LIST_ARIA}
           className="users-list__table"
         />
 
@@ -417,17 +419,17 @@ export function UsersList({
         {!loadingUsers && !error && sortedUsers.length > 0 && (
           <Box className="users-list__summary">
             <Text size="2" color="gray">
-              Showing {sortedUsers.length} users
+              {UsersStrings.LIST.SHOWING_USERS(sortedUsers.length)}
             </Text>
           </Box>
         )}
 
         {/* Help Section */}
         <HelpSection
-          title="About Users"
-          content="Users represent individuals or systems that access Astrum Repository. Each user is assigned roles which grant them specific permissions. Local users are created and managed within Astrum, while external users are authenticated through LDAP, SAML, or other configured authentication sources."
+          title={UsersStrings.LIST.ABOUT_USERS}
+          content={UsersStrings.LIST.USERS_REPRESENT_INDIVIDUALS_SYSTEMS_ACCESS}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'http://links.globalart.dev/products/astrum/docs/users',
           }}
           className="users-list__help"

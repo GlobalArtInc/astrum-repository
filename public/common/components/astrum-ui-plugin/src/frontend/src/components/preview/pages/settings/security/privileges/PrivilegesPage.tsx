@@ -17,6 +17,8 @@ import { usePrivilegesApi } from './usePrivilegesApi';
 import { Privilege, isReadOnlyPrivilege, getPrivilegeTypeLabel } from './types';
 
 import './PrivilegesPage.scss';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 // Base path for privilege URLs
 const BASE_PATH = 'preview/admin/security/privileges';
@@ -173,7 +175,7 @@ export function PrivilegesPage() {
           if (privilegeData) {
             setPrivilege(privilegeData);
           } else {
-            setError('Privilege not found');
+            setError(PrivilegesStrings.PAGE.PRIVILEGE_NOT_FOUND);
             navigateTo(BASE_PATH);
           }
         })
@@ -292,7 +294,7 @@ export function PrivilegesPage() {
     setListDeletePrivilegeId(null);
     try {
       await deletePrivilege(privilegeIdToDelete);
-      toast.success(`Privilege "${privilegeIdToDelete}" deleted successfully`);
+      toast.success(PrivilegesStrings.PAGE.PRIVILEGE_DELETED_SUCCESSFULLY(privilegeIdToDelete));
       setRefreshKey((k) => k + 1);
       if (privilege && privilege.name === privilegeIdToDelete) handleBack();
     } catch (_err) {
@@ -315,22 +317,22 @@ export function PrivilegesPage() {
       case 'list':
         return {
           icon: Key,
-          title: 'Privileges',
-          description: 'Manage privileges and their permissions',
+          title: PrivilegesStrings.PAGE.PRIVILEGES,
+          description: PrivilegesStrings.PAGE.MANAGE_PRIVILEGES_THEIR_PERMISSIONS,
           actions: canCreate ? (
             <Button variant="solid" onClick={handleCreate} data-analytics-id="as-privilege-create">
-              <Plus size={16} /> Create Privilege
+              <Plus size={16} /> {PrivilegesStrings.PAGE.CREATE_PRIVILEGE}
             </Button>
           ) : undefined
         };
       case 'select-type':
         return {
           icon: Key,
-          title: 'Create Privilege',
-          description: 'Step 1: Select the type of privilege to create',
+          title: PrivilegesStrings.PAGE.CREATE_PRIVILEGE,
+          description: PrivilegesStrings.PAGE.STEP_1_SELECT_TYPE_PRIVILEGE,
           actions: (
             <Button variant="ghost" onClick={handleBack}>
-              <ArrowLeft size={16} /> Back to List
+              <ArrowLeft size={16} /> {CommonStrings.ACTIONS.BACK_TO_LIST}
             </Button>
           )
         };
@@ -338,13 +340,13 @@ export function PrivilegesPage() {
         const isSetupStep = internalWizardStep === 1;
         return {
           icon: Key,
-          title: `Create ${getPrivilegeTypeLabel(routeState.typeId || '')} Privilege`,
+          title: PrivilegesStrings.PAGE.CREATE_TYPED_PRIVILEGE(getPrivilegeTypeLabel(routeState.typeId || '')),
           description: isSetupStep
-            ? 'Step 2: Basic setup'
-            : 'Step 3: Configure privilege settings',
+            ? PrivilegesStrings.PAGE.STEP_2_BASIC_SETUP
+            : PrivilegesStrings.PAGE.STEP_3_CONFIGURE_PRIVILEGE_SETTINGS,
           actions: (
             <Button variant="ghost" onClick={handleBackToTypeSelect}>
-              <ArrowLeft size={16} /> Back to Selection
+              <ArrowLeft size={16} /> {PrivilegesStrings.PAGE.BACK_SELECTION}
             </Button>
           )
         };
@@ -352,21 +354,21 @@ export function PrivilegesPage() {
       case 'edit':
         return {
           icon: Key,
-          title: privilege ? `Edit ${privilege.name}` : 'Privilege Details',
+          title: privilege ? PrivilegesStrings.PAGE.EDIT(privilege.name) : PrivilegesStrings.PAGE.PRIVILEGE_DETAILS,
           description: privilege 
-            ? `Type: ${getPrivilegeTypeLabel(privilege.type)}${isReadOnlyPrivilege(privilege) ? ' (Read Only)' : ''}`
-            : 'Loading...',
+            ? PrivilegesStrings.PAGE.TYPE_DESCRIPTION(`${getPrivilegeTypeLabel(privilege.type)}${isReadOnlyPrivilege(privilege) ? PrivilegesStrings.PAGE.READ_ONLY_SUFFIX : ''}`)
+            : CommonStrings.MESSAGES.LOADING,
           actions: (
             <Button variant="ghost" onClick={handleBack}>
-              <ArrowLeft size={16} /> Back to List
+              <ArrowLeft size={16} /> {CommonStrings.ACTIONS.BACK_TO_LIST}
             </Button>
           )
         };
       default:
         return {
           icon: Key,
-          title: 'Privileges',
-          description: 'Manage privileges'
+          title: PrivilegesStrings.PAGE.PRIVILEGES,
+          description: PrivilegesStrings.PAGE.MANAGE_PRIVILEGES
         };
     }
   }, [routeState.viewMode, routeState.typeId, privilege, canCreate, handleCreate, handleBack, handleBackToTypeSelect, internalWizardStep]);
@@ -394,15 +396,15 @@ export function PrivilegesPage() {
             actions={routeState.viewMode === 'list' ? headerProps.actions : undefined}
             breadcrumbs={routeState.viewMode === 'list'
               ? [
-                  { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-                  { label: 'Privileges' }
+                  { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+                  { label: PrivilegesStrings.PAGE.PRIVILEGES }
                 ]
               : [
-                  { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-                  { label: 'Privileges', onClick: handleBack },
+                  { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+                  { label: PrivilegesStrings.PAGE.PRIVILEGES, onClick: handleBack },
                   { label: routeState.viewMode === 'create' || routeState.viewMode === 'select-type'
-                    ? 'Create'
-                    : privilege?.name || 'Loading...' }
+                    ? CommonStrings.ACTIONS.CREATE
+                    : privilege?.name || CommonStrings.MESSAGES.LOADING }
                 ]
             }
           />
@@ -437,15 +439,15 @@ export function PrivilegesPage() {
             steps={
               routeState.typeId === 'repository-content-selector'
                 ? [
-                    { id: 'type', label: 'Select Type' },
-                    { id: 'setup', label: 'Setup' },
-                    { id: 'config', label: 'Configure' },
-                    { id: 'preview', label: 'Preview' },
+                    { id: 'type', label: PrivilegesStrings.PAGE.SELECT_TYPE },
+                    { id: 'setup', label: PrivilegesStrings.PAGE.SETUP },
+                    { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+                    { id: 'preview', label: PrivilegesStrings.PAGE.PREVIEW },
                   ]
                 : [
-                    { id: 'type', label: 'Select Type' },
-                    { id: 'setup', label: 'Setup' },
-                    { id: 'config', label: 'Configure' },
+                    { id: 'type', label: PrivilegesStrings.PAGE.SELECT_TYPE },
+                    { id: 'setup', label: PrivilegesStrings.PAGE.SETUP },
+                    { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
                   ]
             }
             currentStep={wizardStep}
@@ -453,7 +455,7 @@ export function PrivilegesPage() {
             className=""
             onComplete={handleFinalSubmit}
             onCancel={handleBack}
-            completeLabel="Create Privilege"
+            completeLabel={PrivilegesStrings.PAGE.CREATE_PRIVILEGE}
             submitAnalyticsId="as-privilege-create"
             dirty={false}
             canAdvance={wizardStep === 0 ? !!pendingTypeId : wizardStep === 1 ? isPrivilegeFormValid : true}
@@ -521,11 +523,11 @@ export function PrivilegesPage() {
           setDeleteDialogOpen(open);
           if (!open) setListDeletePrivilegeId(null);
         }}
-        title="Delete Privilege?"
+        title={PrivilegesStrings.PAGE.DELETE_PRIVILEGE_CONFIRM}
         message={
           <>
-            <Text as="p" size="2">This action cannot be undone.</Text>
-            <Text as="p" size="2" mt="1">Roles using this privilege will lose this access.</Text>
+            <Text as="p" size="2">{PrivilegesStrings.PAGE.ACTION_CANNOT_UNDONE}</Text>
+            <Text as="p" size="2" mt="1">{PrivilegesStrings.PAGE.ROLES_USING_PRIVILEGE_LOSE_ACCESS}</Text>
           </>
         }
         entityName={
@@ -544,8 +546,8 @@ export function PrivilegesPage() {
             </>
           ) : listDeletePrivilegeId
         }
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        confirmLabel={CommonStrings.ACTIONS.DELETE}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="danger"
         onConfirm={handleDeleteConfirm}
       />

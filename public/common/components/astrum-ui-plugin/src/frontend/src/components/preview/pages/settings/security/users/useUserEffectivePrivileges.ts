@@ -6,6 +6,7 @@ import { usePrivilegesApi } from '../privileges/usePrivilegesApi';
 import { User } from './types';
 import { Privilege } from '../privileges/types';
 import { Role } from '../roles/types';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
 
 /**
  * Effective privilege with granted-by role information for User Profile Privileges tab
@@ -81,7 +82,7 @@ export function useUserEffectivePrivileges(user: User | null): UseUserEffectiveP
       setAllRoles(roles);
       setAllPrivileges(privResponse.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load security data');
+      setError(err instanceof Error ? err.message : UsersStrings.EFFECTIVE_PRIVILEGES.FAILED_LOAD_SECURITY_DATA);
     } finally {
       setLoading(false);
     }

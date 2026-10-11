@@ -15,6 +15,9 @@ import { useRolesApi } from './useRolesApi';
 import { Role, isReadOnlyRole, formatRoleSourceDisplay } from './types';
 
 import './RolesPage.scss';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 // Base path for role URLs
 const BASE_PATH = 'preview/admin/security/roles';
@@ -118,7 +121,7 @@ export function RolesPage() {
           if (roleData) {
             setRole(roleData);
           } else {
-            setError('Role not found');
+            setError(RolesStrings.PAGE.ROLE_NOT_FOUND);
             navigateTo(BASE_PATH);
           }
         })
@@ -171,7 +174,7 @@ export function RolesPage() {
     setListDeleteRoleName(null);
     try {
       await deleteRole(roleIdToDelete);
-      toast.success(`Role "${listDeleteRoleName || roleIdToDelete}" deleted successfully`);
+      toast.success(RolesStrings.PAGE.ROLE_DELETED_SUCCESSFULLY(listDeleteRoleName || roleIdToDelete));
       setRefreshKey((k) => k + 1);
       if (role && role.id === roleIdToDelete) handleBack();
     } catch (_err) {
@@ -195,23 +198,23 @@ export function RolesPage() {
       case 'list':
         return {
           icon: Shield,
-          title: 'Roles',
-          description: 'Manage roles and their privilege assignments',
+          title: RolesStrings.PAGE.ROLES,
+          description: RolesStrings.PAGE.MANAGE_ROLES_THEIR_PRIVILEGE_ASSIGNMENTS,
           actions: (
             <Button variant="solid" color="blue" onClick={handleCreate} disabled={!canCreate} data-testid="create-role-button" data-analytics-id="as-role-create">
-              <Plus size={16} /> Create Role
+              <Plus size={16} /> {RolesStrings.PAGE.CREATE_ROLE}
             </Button>
           )
         };
       case 'create': {
-        const createSteps = ['Type', 'Setup', 'Privileges', 'Contained Roles'];
+        const createSteps = [CommonStrings.LABELS.TYPE, RolesStrings.PAGE.SETUP, RolesStrings.PAGE.PRIVILEGES, RolesStrings.PAGE.CONTAINED_ROLES];
         return {
           icon: Shield,
-          title: 'Create Role',
-          description: `Step ${internalWizardStep + 1}: ${createSteps[internalWizardStep]}`,
+          title: RolesStrings.PAGE.CREATE_ROLE,
+          description: RolesStrings.PAGE.STEP(internalWizardStep + 1, createSteps[internalWizardStep]),
           actions: (
             <Button variant="soft" color="gray" onClick={handleBack}>
-              <ArrowLeft size={16} /> Back to List
+              <ArrowLeft size={16} /> {CommonStrings.ACTIONS.BACK_TO_LIST}
             </Button>
           )
         };
@@ -219,16 +222,16 @@ export function RolesPage() {
       case 'edit': {
         // Type step is skipped in edit mode (role type is immutable once persisted),
         // so the edit wizard runs Setup → Privileges → Contained Roles.
-        const editSteps = ['Setup', 'Privileges', 'Contained Roles'];
+        const editSteps = [RolesStrings.PAGE.SETUP, RolesStrings.PAGE.PRIVILEGES, RolesStrings.PAGE.CONTAINED_ROLES];
         return {
           icon: Shield,
-          title: role ? `Edit ${role.name}` : 'Role Details',
+          title: role ? RolesStrings.PAGE.EDIT_NAMED(role.name) : RolesStrings.PAGE.ROLE_DETAILS,
           description: role
-            ? `Step ${internalWizardStep + 1}: ${editSteps[internalWizardStep]} (Source: ${formatRoleSourceDisplay(role.source)})`
-            : 'Loading...',
+            ? RolesStrings.PAGE.STEP_SOURCE(internalWizardStep + 1, editSteps[internalWizardStep], formatRoleSourceDisplay(role.source))
+            : CommonStrings.MESSAGES.LOADING,
           actions: (
             <Button variant="soft" color="gray" onClick={handleBack}>
-              <ArrowLeft size={16} /> Back to List
+              <ArrowLeft size={16} /> {CommonStrings.ACTIONS.BACK_TO_LIST}
             </Button>
           )
         };
@@ -237,8 +240,8 @@ export function RolesPage() {
         const canEditThisRole = canUpdate && role && !isReadOnlyRole(role);
         return {
           icon: Shield,
-          title: routeState.roleId || 'Role Profile',
-          description: 'Role operational dashboard and impact analysis',
+          title: routeState.roleId || RolesStrings.PAGE.ROLE_PROFILE,
+          description: RolesStrings.PAGE.ROLE_OPERATIONAL_DASHBOARD_IMPACT_ANALYSIS,
           actions: (
             <Flex gap="2">
               {canEditThisRole && (
@@ -247,11 +250,11 @@ export function RolesPage() {
                   color="blue"
                   onClick={() => navigateTo(`${BASE_PATH}/${encodeURIComponent(routeState.roleId!)}`)}
                 >
-                  <Pencil size={16} /> Edit Role
+                  <Pencil size={16} /> {RolesStrings.PAGE.EDIT_ROLE}
                 </Button>
               )}
               <Button variant="soft" color="gray" onClick={handleBack}>
-                <ArrowLeft size={16} /> Back to List
+                <ArrowLeft size={16} /> {CommonStrings.ACTIONS.BACK_TO_LIST}
               </Button>
             </Flex>
           )
@@ -260,8 +263,8 @@ export function RolesPage() {
       default:
         return {
           icon: Shield,
-          title: 'Roles',
-          description: 'Manage roles'
+          title: RolesStrings.PAGE.ROLES,
+          description: RolesStrings.PAGE.MANAGE_ROLES
         };
     }
   }, [routeState.viewMode, role, canCreate, handleCreate, handleBack, internalWizardStep, canUpdate, routeState.roleId]);
@@ -293,8 +296,8 @@ export function RolesPage() {
               actions={headerProps.actions} 
             
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Roles' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: RolesStrings.PAGE.ROLES }
           ]}
 />
             <RolesList
@@ -320,9 +323,9 @@ export function RolesPage() {
               title={headerProps.title}
               description={headerProps.description}
               breadcrumbs={[
-                { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-                { label: 'Roles', onClick: handleBack },
-                { label: routeState.roleId || 'Role Profile' },
+                { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+                { label: RolesStrings.PAGE.ROLES, onClick: handleBack },
+                { label: routeState.roleId || RolesStrings.PAGE.ROLE_PROFILE },
               ]}
               actions={headerProps.actions}
             />
@@ -341,15 +344,15 @@ export function RolesPage() {
           const isCreateView = routeState.viewMode === 'create';
           const steps = isCreateView
             ? [
-                { id: 'type', label: 'Type' },
-                { id: 'setup', label: 'Setup' },
-                { id: 'privileges', label: 'Privileges' },
-                { id: 'roles', label: 'Contained Roles' },
+                { id: 'type', label: CommonStrings.LABELS.TYPE },
+                { id: 'setup', label: RolesStrings.PAGE.SETUP },
+                { id: 'privileges', label: RolesStrings.PAGE.PRIVILEGES },
+                { id: 'roles', label: RolesStrings.PAGE.CONTAINED_ROLES },
               ]
             : [
-                { id: 'setup', label: 'Setup' },
-                { id: 'privileges', label: 'Privileges' },
-                { id: 'roles', label: 'Contained Roles' },
+                { id: 'setup', label: RolesStrings.PAGE.SETUP },
+                { id: 'privileges', label: RolesStrings.PAGE.PRIVILEGES },
+                { id: 'roles', label: RolesStrings.PAGE.CONTAINED_ROLES },
               ];
           const setupStepIndex = isCreateView ? 1 : 0;
           const finalStepIndex = isCreateView ? 3 : 2;
@@ -361,7 +364,7 @@ export function RolesPage() {
             onStepChange={handleWizardStepChange}
             onComplete={handleFinalSubmit}
             onCancel={handleBack}
-            completeLabel={isCreateView ? 'Create Role' : 'Save'}
+            completeLabel={isCreateView ? RolesStrings.PAGE.CREATE_ROLE : CommonStrings.ACTIONS.SAVE}
             submitAnalyticsId={isCreateView ? 'as-role-create' : 'as-role-save'}
             dirty={false}
             canAdvance={
@@ -378,7 +381,7 @@ export function RolesPage() {
                 {headerProps.actions}
                 {routeState.viewMode === 'edit' && roleCanDelete && (
                   <SettingsButton variant="danger" onClick={handleDelete} disabled={loading} icon={Trash2}>
-                    Delete Role
+                    {RolesStrings.PAGE.DELETE_ROLE}
                   </SettingsButton>
                 )}
               </Flex>
@@ -410,25 +413,25 @@ export function RolesPage() {
             setDeleteDialogOpen(open);
             if (!open) setListDeleteRoleId(null);
           }}
-          title="Delete Role?"
-          message="This action cannot be undone."
+          title={RolesStrings.PAGE.DELETE_ROLE_CONFIRM}
+          message={RolesStrings.PAGE.ACTION_CANNOT_UNDONE}
           entityName={listDeleteRoleName || listDeleteRoleId || role?.name}
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
+          confirmLabel={CommonStrings.ACTIONS.DELETE}
+          cancelLabel={CommonStrings.ACTIONS.CANCEL}
           variant="danger"
           onConfirm={handleDeleteConfirm}
         >
           {role && (
             <Box mt="3">
               <Flex gap="2">
-                <Text size="2" color="gray">Privileges:</Text>
-                <Text size="2">{role.privileges.length === 0 ? 'None' : role.privileges.length === 1 ? '1 privilege' : `${role.privileges.length} privileges`}</Text>
+                <Text size="2" color="gray">{RolesStrings.PAGE.PRIVILEGES_LABEL}</Text>
+                <Text size="2">{role.privileges.length === 0 ? RolesStrings.PAGE.NONE : plural(RolesStrings.PAGE.PRIVILEGE_COUNT, role.privileges.length)}</Text>
               </Flex>
             </Box>
           )}
           <Box mt="3">
             <Text as="p" size="2" color="gray">
-              Users assigned to this role will lose access to its privileges.
+              {RolesStrings.PAGE.USERS_ASSIGNED_ROLE_LOSE_ACCESS}
             </Text>
           </Box>
         </ConfirmDialog>

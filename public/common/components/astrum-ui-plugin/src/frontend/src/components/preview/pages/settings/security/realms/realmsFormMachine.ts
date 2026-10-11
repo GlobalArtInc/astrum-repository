@@ -4,6 +4,7 @@ import { createMachine, assign } from 'xstate';
 import { equals } from 'ramda';
 
 import { Realm } from './types';
+import RealmsStrings from '../../../../constants/pages/settings/security/RealmsStrings';
 
 /**
  * Context for the realms form machine.
@@ -47,7 +48,7 @@ export type RealmsFormEvent =
  */
 function validateRealms(activeRealms: Realm[]): string | null {
   if (activeRealms.length === 0) {
-    return 'At least one active realm is required';
+    return RealmsStrings.FORM_MACHINE.LEAST_ONE_ACTIVE_REALM_REQUIRED;
   }
   return null;
 }
@@ -158,11 +159,11 @@ export function createRealmsFormMachine() {
         }),
 
         setLoadError: assign((_, event: any) => ({
-          loadError: event.data?.message || 'Failed to load realms',
+          loadError: event.data?.message || RealmsStrings.FORM_MACHINE.FAILED_LOAD_REALMS,
         })),
 
         setSaveError: assign((_, event: any) => ({
-          saveError: event.data?.message || 'Failed to save realms',
+          saveError: event.data?.message || RealmsStrings.FORM_MACHINE.FAILED_SAVE_REALMS,
         })),
 
         clearSaveError: assign({ saveError: null }),
@@ -240,8 +241,8 @@ export function createRealmsFormMachine() {
 
       services: {
         // load and save are overridden via useMachine/useRealmsForm
-        load: () => Promise.reject(new Error('Load service not configured')),
-        save: () => Promise.reject(new Error('Save service not configured')),
+        load: () => Promise.reject(new Error(RealmsStrings.FORM_MACHINE.LOAD_SERVICE_NOT_CONFIGURED)),
+        save: () => Promise.reject(new Error(RealmsStrings.FORM_MACHINE.SAVE_SERVICE_NOT_CONFIGURED)),
       },
     }
   );

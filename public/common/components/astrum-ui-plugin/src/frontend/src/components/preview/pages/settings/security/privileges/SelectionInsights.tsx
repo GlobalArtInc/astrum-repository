@@ -23,6 +23,8 @@ import { useContentSelectorsApi } from '../../repository/selectors/useContentSel
 import { fetchBrowseNodes } from '../../../browse/browse.api';
 
 import './SelectionInsights.scss';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
+import plural from '../../../../../../interface/plural';
 
 interface SelectionInsightsProps {
   repository?: {
@@ -83,7 +85,7 @@ const ContentTreeNode = ({
         <Text size="1" className="selection-insights__file-node-name">
           {node.text}
         </Text>
-        {isMatched && <Badge color="green" size="1">Match</Badge>}
+        {isMatched && <Badge color="green" size="1">{PrivilegesStrings.INSIGHTS.MATCH}</Badge>}
         <Box className="selection-insights__file-node-chevron-wrapper">
           {hasChildren && (isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />)}
         </Box>
@@ -139,11 +141,11 @@ function FullscreenMatchTable({
         justify="between"
       >
         <TextField.Root
-          placeholder="Filter paths…"
+          placeholder={PrivilegesStrings.INSIGHTS.FILTER_PATHS_PLACEHOLDER}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="selection-insights__fullscreen-search"
-          aria-label="Filter matching paths"
+          aria-label={PrivilegesStrings.INSIGHTS.FILTER_MATCHING_PATHS_ARIA}
           data-testid="match-filter-input"
         >
           <TextField.Slot>
@@ -152,7 +154,7 @@ function FullscreenMatchTable({
         </TextField.Root>
         {filter && (
           <Text size="1" color="gray">
-            {filtered.length} of {paths.size} shown
+            {PrivilegesStrings.INSIGHTS.OF_SHOWN(filtered.length, paths.size)}
           </Text>
         )}
       </Flex>
@@ -166,7 +168,7 @@ function FullscreenMatchTable({
         >
           <Table.Header>
             <Table.Row>
-              <Table.ColumnHeaderCell>Path</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>{PrivilegesStrings.INSIGHTS.PATH}</Table.ColumnHeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -177,8 +179,8 @@ function FullscreenMatchTable({
                     <SearchIcon size={24} color="var(--gray-8)" aria-hidden="true" />
                     <Text size="2" color="gray" data-testid="match-empty-state">
                       {filter
-                        ? `No paths match "${filter}"`
-                        : 'No matching items'}
+                        ? PrivilegesStrings.INSIGHTS.NO_PATHS_MATCH(filter)
+                        : PrivilegesStrings.INSIGHTS.NO_MATCHING_ITEMS}
                     </Text>
                   </Flex>
                 </Table.Cell>
@@ -325,7 +327,7 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
     <Box className="selection-insights__sidecar">
       <Flex align="center" gap="2" mb="4">
         <Eye size={18} color="var(--accent-9)" />
-        <Heading size="3">Selection Insights</Heading>
+        <Heading size="3">{PrivilegesStrings.INSIGHTS.SELECTION_INSIGHTS}</Heading>
       </Flex>
       
       <Flex direction="column" gap="4">
@@ -342,17 +344,17 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
               )}
               <Box style={{ flex: 1 }}>
                 <Text size="2" weight="bold" style={{ display: 'block' }}>
-                  {allRepositories ? 'All Repositories' : repository?.name}
+                  {allRepositories ? PrivilegesStrings.INSIGHTS.ALL_REPOSITORIES : repository?.name}
                 </Text>
                 <Flex align="center" gap="2">
                   <Text size="1" color="gray">
                     {selectedFormat && selectedFormat !== '*' 
-                      ? `${selectedFormat.toUpperCase()} Format` 
-                      : 'Global Scope'}
+                      ? PrivilegesStrings.INSIGHTS.FORMAT(selectedFormat.toUpperCase()) 
+                      : PrivilegesStrings.INSIGHTS.GLOBAL_SCOPE}
                   </Text>
                   {!allRepositories && (
                     <Badge color={isOnline ? 'green' : 'red'} size="1">
-                      {isOnline ? 'Online' : 'Offline'}
+                      {isOnline ? PrivilegesStrings.INSIGHTS.ONLINE : PrivilegesStrings.INSIGHTS.OFFLINE}
                     </Badge>
                   )}
                 </Flex>
@@ -365,7 +367,7 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
                 <Box className="selection-insights__content-tree-header">
                   <Flex align="center" gap="2">
                     <SearchIcon size={12} color="var(--gray-9)" />
-                    <Text size="1" weight="bold" color="gray">LIVE CONTENT BROWSER</Text>
+                    <Text size="1" weight="bold" color="gray">{PrivilegesStrings.INSIGHTS.LIVE_CONTENT_BROWSER}</Text>
                   </Flex>
                 </Box>
                 <ScrollArea scrollbars="vertical" className="selection-insights__content-tree-scroll">
@@ -375,7 +377,7 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
                     </Flex>
                   ) : fileTree.length === 0 ? (
                     <Box p="4" style={{ textAlign: 'center' }}>
-                      <Text size="1" color="gray">Repository is empty or inaccessible.</Text>
+                      <Text size="1" color="gray">{PrivilegesStrings.INSIGHTS.REPOSITORY_EMPTY_INACCESSIBLE}</Text>
                     </Box>
                   ) : (
                     <Box py="1">
@@ -397,7 +399,7 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
           </Card>
         ) : (
           <Box className="selection-insights__placeholder">
-            <Text size="2">Select Format and Repository to preview content.</Text>
+            <Text size="2">{PrivilegesStrings.INSIGHTS.SELECT_FORMAT_REPOSITORY_PREVIEW_CONTENT}</Text>
           </Box>
         )}
 
@@ -405,7 +407,7 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
         {contentSelector && (
           <Card size="2">
             <Text size="1" weight="bold" color="gray" mb="2" style={{ display: 'block', textTransform: 'uppercase' }}>
-              Selector Logic
+              {PrivilegesStrings.INSIGHTS.SELECTOR_LOGIC}
             </Text>
             <Box mb="3">
               <Text size="2" weight="bold" mb="1" style={{ display: 'block' }}>{contentSelector.name}</Text>
@@ -426,18 +428,18 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
         {repoName && contentSelector && (
           <Card size="2" style={{ border: '1px solid var(--accent-6)', background: 'var(--accent-2)' }}>
             <Text size="1" weight="bold" color="blue" mb="2" style={{ display: 'block', textTransform: 'uppercase' }}>
-              Live Impact Analysis
+              {PrivilegesStrings.INSIGHTS.LIVE_IMPACT_ANALYSIS}
             </Text>
             <Flex align="center" gap="3">
               <Activity size={20} color="var(--accent-9)" />
               <Box>
                 {loadingMetrics ? (
-                  <Text size="2" color="gray">Calculating matches...</Text>
+                  <Text size="2" color="gray">{PrivilegesStrings.INSIGHTS.CALCULATING_MATCHES}</Text>
                 ) : (
                   <>
-                    <Text size="3" weight="bold">{matchCount ?? 0} matches</Text>
+                    <Text size="3" weight="bold">{PrivilegesStrings.INSIGHTS.MATCHES(matchCount ?? 0)}</Text>
                     <Text size="1" color="gray" style={{ display: 'block' }}>
-                      Items matching in <strong>{allRepositories ? 'all repositories' : repository?.name}</strong>.
+                      {PrivilegesStrings.INSIGHTS.ITEMS_MATCHING_IN(<strong>{allRepositories ? PrivilegesStrings.INSIGHTS.ALL_REPOSITORIES_LOWER : repository?.name}</strong>)}
                     </Text>
                   </>
                 )}
@@ -457,7 +459,7 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
                 >
                   <ExternalLink size={14} />
                   {' '}
-                  Full Match List
+                  {PrivilegesStrings.INSIGHTS.FULL_MATCH_LIST}
                 </Button>
                 {showFlyout && createPortal(
                   <div
@@ -478,25 +480,26 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
                           <Box>
                             <Flex align="center" gap="2">
                               <Heading id="selection-insights-fullscreen-title" size="4">
-                                Matching Items
+                                {PrivilegesStrings.INSIGHTS.MATCHING_ITEMS}
                               </Heading>
                               <Badge color="blue" variant="soft" size="2" data-testid="match-count-badge">
-                                {matchingPaths.size} {matchingPaths.size === 1 ? 'item' : 'items'}
+                                {plural(PrivilegesStrings.INSIGHTS.ITEM_COUNT, matchingPaths.size)}
                               </Badge>
                             </Flex>
                             <Text size="2" color="gray" mt="1" as="p">
-                              Items in{' '}
-                              {allRepositories ? 'all repositories' : <strong>{repository?.name}</strong>}{' '}
-                              matching <code className="selection-insights__inline-code">{contentSelector.expression}</code>
+                              {PrivilegesStrings.INSIGHTS.ITEMS_IN_MATCHING(
+                                allRepositories ? PrivilegesStrings.INSIGHTS.ALL_REPOSITORIES_LOWER : <strong>{repository?.name}</strong>,
+                                <code className="selection-insights__inline-code">{contentSelector.expression}</code>
+                              )}
                             </Text>
                           </Box>
                         </Flex>
-                        <Tooltip content="Exit fullscreen">
+                        <Tooltip content={PrivilegesStrings.INSIGHTS.EXIT_FULLSCREEN}>
                           <IconButton
                             variant="ghost"
                             size="2"
                             onClick={() => setShowFlyout(false)}
-                            aria-label="Close matching items"
+                            aria-label={PrivilegesStrings.INSIGHTS.CLOSE_MATCHING_ITEMS_ARIA}
                             className="selection-insights__fullscreen-close"
                           >
                             <Minimize2 size={16} aria-hidden="true" />

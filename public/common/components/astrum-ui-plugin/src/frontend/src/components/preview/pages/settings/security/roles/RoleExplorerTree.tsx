@@ -17,6 +17,7 @@ import {
 import { SecurityTreeNode } from './useRoleTree';
 
 import './RoleExplorerTree.scss';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
 
 interface RoleExplorerTreeProps {
   tree: SecurityTreeNode[];
@@ -46,7 +47,7 @@ export function RoleExplorerTree({
     return (
       <Flex align="center" justify="center" className="role-explorer-tree__loading">
         <Loader2 className="role-explorer-tree__spinner" size={24} />
-        <Text size="2">Building security tree...</Text>
+        <Text size="2">{RolesStrings.TREE.BUILDING_SECURITY_TREE}</Text>
       </Flex>
     );
   }
@@ -56,7 +57,7 @@ export function RoleExplorerTree({
       <Flex className="role-explorer-tree__toolbar" align="center" gap="3">
         <Box style={{ flex: 1 }}>
           <TextField.Root 
-            placeholder="Search tree (Name, Permission, Repo...)" 
+            placeholder={RolesStrings.TREE.SEARCH_TREE_NAME_PERMISSION_REPO_PLACEHOLDER} 
             size="2"
             value={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
@@ -70,12 +71,12 @@ export function RoleExplorerTree({
         <Separator orientation="vertical" size="1" />
 
         <Flex gap="2" align="center">
-          <Tooltip content="Expand All">
+          <Tooltip content={RolesStrings.TREE.EXPAND_ALL}>
             <IconButton type="button" variant="ghost" size="2" onClick={onExpandAll}>
               <ChevronsDown size={16} />
             </IconButton>
           </Tooltip>
-          <Tooltip content="Collapse All">
+          <Tooltip content={RolesStrings.TREE.COLLAPSE_ALL}>
             <IconButton type="button" variant="ghost" size="2" onClick={onCollapseAll}>
               <ChevronsUp size={16} />
             </IconButton>
@@ -86,20 +87,20 @@ export function RoleExplorerTree({
 
       <Box className="role-explorer-tree__header">
         <Flex gap="4" p="2" className="role-explorer-tree__header-row">
-          <Text size="1" weight="bold" className="role-explorer-tree__col-name">NAME</Text>
-          <Text size="1" weight="bold" className="role-explorer-tree__col-permissions">PERMISSIONS</Text>
-          <Text size="1" weight="bold" className="role-explorer-tree__col-resource">RESOURCE</Text>
-          <Text size="1" weight="bold" className="role-explorer-tree__col-description">DESCRIPTION</Text>
+          <Text size="1" weight="bold" className="role-explorer-tree__col-name">{RolesStrings.TREE.NAME}</Text>
+          <Text size="1" weight="bold" className="role-explorer-tree__col-permissions">{RolesStrings.TREE.PERMISSIONS}</Text>
+          <Text size="1" weight="bold" className="role-explorer-tree__col-resource">{RolesStrings.TREE.RESOURCE}</Text>
+          <Text size="1" weight="bold" className="role-explorer-tree__col-description">{RolesStrings.TREE.DESCRIPTION}</Text>
         </Flex>
       </Box>
 
       <ScrollArea scrollbars="vertical" className="role-explorer-tree__scroll">
         {tree.length === 0 ? (
           <Box className="role-explorer-tree__empty">
-            <Text size="2" color="gray">No matching security nodes found.</Text>
+            <Text size="2" color="gray">{RolesStrings.TREE.NO_MATCHING_SECURITY_NODES_FOUND}</Text>
           </Box>
         ) : (
-          <Box role="tree" aria-label="Role Security Explorer">
+          <Box role="tree" aria-label={RolesStrings.TREE.ROLE_SECURITY_EXPLORER_ARIA}>
             {tree.map((node) => (
               <TreeNode 
                 key={node.id} 
@@ -175,7 +176,7 @@ function TreeNode({ node, onToggleExpand, depth = 0, searchTerm }: TreeNodeProps
                 variant="ghost" 
                 size="1" 
                 onClick={(e) => { e.stopPropagation(); onToggleExpand(node.id); }}
-                aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                aria-label={isExpanded ? RolesStrings.TREE.COLLAPSE : RolesStrings.TREE.EXPAND}
               >
                 {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </IconButton>
@@ -192,11 +193,11 @@ function TreeNode({ node, onToggleExpand, depth = 0, searchTerm }: TreeNodeProps
             </Text>
             {node.inherited && (
               <Text size="1" color="gray" className="role-explorer-tree__inherited-label">
-                (inherited)
+                {RolesStrings.TREE.INHERITED}
               </Text>
             )}
             {node.isCircular && (
-              <Tooltip content="Circular role reference detected. Inheritance stops here.">
+              <Tooltip content={RolesStrings.TREE.CIRCULAR_ROLE_REFERENCE_DETECTED_INHERITANCE}>
                 <AlertTriangle size={14} className="role-explorer-tree__icon--warning" />
               </Tooltip>
             )}

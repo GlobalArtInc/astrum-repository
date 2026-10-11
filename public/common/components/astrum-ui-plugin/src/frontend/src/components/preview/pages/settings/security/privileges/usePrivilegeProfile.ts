@@ -7,6 +7,7 @@ import { usePrivilegesApi } from './usePrivilegesApi';
 import { Role } from '../roles/types';
 import { User } from '../users/types';
 import { Privilege } from './types';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
 
 /**
  * Get effective privilege IDs for a role (including from nested roles).
@@ -80,7 +81,7 @@ export function usePrivilegeProfile(privilegeId: string | null): UsePrivilegePro
         if (cancelled) return;
 
         if (!privData) {
-          setError('Privilege not found');
+          setError(PrivilegesStrings.PROFILE.PRIVILEGE_NOT_FOUND);
           setPrivilege(null);
           setRolesUsing([]);
           setUsersWithAccess([]);
@@ -116,7 +117,7 @@ export function usePrivilegeProfile(privilegeId: string | null): UsePrivilegePro
         setUsersWithAccess(usersWithRole);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load privilege profile');
+          setError(err instanceof Error ? err.message : PrivilegesStrings.PROFILE.FAILED_LOAD_PRIVILEGE_PROFILE);
           setPrivilege(null);
           setRolesUsing([]);
           setUsersWithAccess([]);

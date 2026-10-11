@@ -22,6 +22,8 @@ import {
 } from './types';
 
 import './PrivilegesList.scss';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * PrivilegesList - Displays privileges using SUPER UI/UX standard
@@ -83,8 +85,8 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
   // Read-only filter options (Locked = system/read-only, Unlocked = editable)
   const readOnlyOptions = useMemo(
     () => [
-      { value: 'locked', label: 'Locked', count: readOnlyCounts.locked },
-      { value: 'unlocked', label: 'Unlocked', count: readOnlyCounts.unlocked },
+      { value: 'locked', label: PrivilegesStrings.LIST.LOCKED, count: readOnlyCounts.locked },
+      { value: 'unlocked', label: PrivilegesStrings.LIST.UNLOCKED, count: readOnlyCounts.unlocked },
     ],
     [readOnlyCounts]
   );
@@ -94,14 +96,14 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
     return [
       {
         id: 'readOnly',
-        label: 'Status',
+        label: CommonStrings.LABELS.STATUS,
         type: 'checkbox',
         options: readOnlyOptions,
         value: filters.readOnlyFilter ?? [],
       },
       {
         id: 'type',
-        label: 'Type',
+        label: CommonStrings.LABELS.TYPE,
         type: 'checkbox',
         options: typeOptions,
         value: filters.typeFilter,
@@ -113,7 +115,7 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
   const columns = useMemo<TableColumn<Privilege>[]>(() => [
     {
       id: 'name',
-      header: 'Name',
+      header: CommonStrings.LABELS.NAME,
       accessor: (priv) => (
         <Flex align="center" gap="2">
           {priv.readOnly && (
@@ -127,21 +129,21 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
     },
     {
       id: 'description',
-      header: 'Description',
+      header: CommonStrings.LABELS.DESCRIPTION,
       accessor: (priv) => priv.description || '—',
       sortable: true,
       width: '300px',
     },
     {
       id: 'type',
-      header: 'Type',
+      header: CommonStrings.LABELS.TYPE,
       accessor: (priv) => getPrivilegeTypeLabel(priv.type),
       sortable: true,
       width: '150px',
     },
     {
       id: 'permission',
-      header: 'Permission',
+      header: PrivilegesStrings.LIST.PERMISSION,
       accessor: (priv) => (
         <code className="privileges-list__permission-code">{priv.permission}</code>
       ),
@@ -153,18 +155,18 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
       header: '',
       accessor: (priv) => (
         <Flex gap="2" justify="end">
-          <Tooltip content="View Profile">
+          <Tooltip content={PrivilegesStrings.LIST.VIEW_PROFILE}>
             <IconButton
               variant="ghost"
               size="1"
               onClick={(e) => { e.stopPropagation(); onSelect(priv.name); }}
-              aria-label={`View profile: ${priv.name}`}
+              aria-label={PrivilegesStrings.LIST.VIEW_PROFILE_NAMED(priv.name)}
             >
               <Eye size={14} />
             </IconButton>
           </Tooltip>
           {canEdit && !isReadOnlyPrivilege(priv) && (
-            <Tooltip content="Edit">
+            <Tooltip content={CommonStrings.ACTIONS.EDIT}>
               <IconButton
                 variant="ghost"
                 size="1"
@@ -172,19 +174,19 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
                   e.stopPropagation();
                   (onEdit || onSelect)(priv.name);
                 }}
-                aria-label={`Edit ${priv.name}`}
+                aria-label={PrivilegesStrings.LIST.EDIT_NAMED(priv.name)}
               >
                 <Pencil size={14} />
               </IconButton>
             </Tooltip>
           )}
           {canDelete && onDelete && !isReadOnlyPrivilege(priv) && (
-            <Tooltip content="Delete">
+            <Tooltip content={CommonStrings.ACTIONS.DELETE}>
               <IconButton
                 variant="ghost"
                 size="1"
                 onClick={(e) => { e.stopPropagation(); onDelete(priv.name, priv.name); }}
-                aria-label={`Delete ${priv.name}`}
+                aria-label={PrivilegesStrings.LIST.DELETE_NAMED(priv.name)}
               >
                 <Trash2 size={14} />
               </IconButton>
@@ -205,10 +207,10 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
       return (
         <EmptyState
           icon={Key}
-          title="No Matching Privileges"
-          description="No privileges match your current filters. Try adjusting your filter criteria."
+          title={PrivilegesStrings.LIST.NO_MATCHING_PRIVILEGES}
+          description={PrivilegesStrings.LIST.NO_PRIVILEGES_MATCH_CURRENT_FILTERS}
           action={{
-            label: 'Clear Filters',
+            label: CommonStrings.ACTIONS.CLEAR_FILTERS,
             onClick: handleClearFilters,
           }}
         />
@@ -218,18 +220,18 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
     return (
       <EmptyState
         icon={Key}
-        title="No Privileges"
-        description="Create your first privilege to start defining access controls."
+        title={PrivilegesStrings.LIST.NO_PRIVILEGES}
+        description={PrivilegesStrings.LIST.CREATE_FIRST_PRIVILEGE_START_DEFINING}
         action={onCreate ? {
-          label: 'Create Privilege',
+          label: PrivilegesStrings.LIST.CREATE_PRIVILEGE,
           onClick: handleCreate,
           icon: Plus,
         } : undefined}
         secondaryAction={{
-          label: 'Learn more about privileges',
+          label: PrivilegesStrings.LIST.LEARN_MORE_ABOUT_PRIVILEGES,
           href: 'http://links.globalart.dev/products/astrum/docs/privileges',
         }}
-        tip="Privileges define granular permissions that can be assigned to roles."
+        tip={PrivilegesStrings.LIST.PRIVILEGES_DEFINE_GRANULAR_PERMISSIONS_CAN}
       />
     );
   }, [filters, handleClearFilters, onCreate, handleCreate]);
@@ -250,7 +252,7 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
         {/* Search Bar */}
         <Box className="privileges-list__search-container">
           <TextField.Root
-            placeholder="Search privileges by name, description, or permission..."
+            placeholder={PrivilegesStrings.LIST.SEARCH_PRIVILEGES_NAME_DESCRIPTION_PERMISSION_PLACEHOLDER}
             value={filters.filter}
             onChange={(e) => setFilters({ filter: e.target.value })}
             className="privileges-list__search-input"
@@ -270,7 +272,7 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
           getRowKey={(priv) => priv.id || priv.name}
           onRowClick={handleRowClick}
           loading={loading}
-          loadingMessage="Loading privileges..."
+          loadingMessage={PrivilegesStrings.LIST.LOADING_PRIVILEGES}
           error={error || undefined}
           onRetry={() => window.location.reload()}
           emptyState={emptyState}
@@ -279,7 +281,7 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
           onSort={setSort}
           showRowArrow={false}
           clickable={true}
-          ariaLabel="Privileges list"
+          ariaLabel={PrivilegesStrings.LIST.PRIVILEGES_LIST_ARIA}
           className="privileges-list__table"
         />
 
@@ -287,7 +289,7 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
         {!(loading || error ) && privileges.length > 0 && (
           <Flex justify="between" align="center" className="privileges-list__footer">
             <Text size="2" color="gray">
-              Showing {startIndex + 1}-{Math.min(endIndex, privileges.length)} of {privileges.length} privileges
+              {PrivilegesStrings.LIST.SHOWING_PRIVILEGES(startIndex + 1, Math.min(endIndex, privileges.length), privileges.length)}
             </Text>
             {totalPages > 1 && (
               <Flex gap="2" align="center">
@@ -296,19 +298,19 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
                   size="1"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
-                  aria-label="Previous page"
+                  aria-label={PrivilegesStrings.LIST.PREVIOUS_PAGE_ARIA}
                 >
                   ←
                 </IconButton>
                 <Text size="2" color="gray">
-                  Page {currentPage} of {totalPages}
+                  {PrivilegesStrings.LIST.PAGE_OF(currentPage, totalPages)}
                 </Text>
                 <IconButton
                   variant="soft"
                   size="1"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(currentPage + 1)}
-                  aria-label="Next page"
+                  aria-label={PrivilegesStrings.LIST.NEXT_PAGE_ARIA}
                 >
                   →
                 </IconButton>
@@ -319,10 +321,10 @@ export function PrivilegesList({ onSelect, onEdit, onDelete, onCreate, canEdit =
 
         {/* Help Section */}
         <HelpSection
-          title="What is a Privilege?"
-          content="A privilege is a granular permission that controls access to a specific operation or resource in Astrum Repository. Privileges are assigned to roles, which are then assigned to users to define what actions they can perform."
+          title={PrivilegesStrings.LIST.WHAT_PRIVILEGE}
+          content={PrivilegesStrings.LIST.PRIVILEGE_GRANULAR_PERMISSION_CONTROLS_ACCESS}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'http://links.globalart.dev/products/astrum/docs/privileges',
           }}
           className="privileges-list__help"

@@ -27,12 +27,14 @@ import { PageHeader } from '../../../../shared';
 import { SamlPageProps } from './types';
 import { useSamlForm } from './useSamlForm';
 import './SamlPage.scss';
+import SamlStrings from '../../../../constants/pages/settings/security/SamlStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 // Shared options for tri-state signature validation selects
 const SIGNATURE_VALIDATION_OPTIONS = [
-  { value: 'default', label: 'Default' },
-  { value: 'true', label: 'True' },
-  { value: 'false', label: 'False' },
+  { value: 'default', label: SamlStrings.PAGE.DEFAULT },
+  { value: 'true', label: SamlStrings.PAGE.TRUE },
+  { value: 'false', label: SamlStrings.PAGE.FALSE },
 ];
 
 export function SamlPage({ className }: SamlPageProps) {
@@ -72,7 +74,7 @@ export function SamlPage({ className }: SamlPageProps) {
       >
         <Flex align="center" justify="center" py="9" gap="3">
           <Spinner size="3" />
-          <Text size="3" color="gray">Loading SAML configuration...</Text>
+          <Text size="3" color="gray">{SamlStrings.PAGE.LOADING_SAML_CONFIGURATION}</Text>
         </Flex>
       </Box>
     );
@@ -90,22 +92,22 @@ export function SamlPage({ className }: SamlPageProps) {
       {/* Header */}
       <Box mb="4">
         <PageHeader
-          title="SAML"
-          description="Configure SAML authentication with your Identity Provider"
+          title={SamlStrings.PAGE.SAML}
+          description={SamlStrings.PAGE.CONFIGURE_SAML_AUTHENTICATION_IDENTITY_PROVIDER}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
             { label: 'SAML' }
           ]}
           actions={
             isConfigured ? (
               <Badge color="green" variant="soft" data-testid="saml-badge-configured">
                 <CheckCircle2 size={12} />
-                Configured
+                {SamlStrings.PAGE.CONFIGURED}
               </Badge>
             ) : (
               <Badge color="gray" variant="soft" data-testid="saml-badge-not-configured">
                 <Circle size={12} />
-                Not Configured
+                {SamlStrings.PAGE.NOT_CONFIGURED}
               </Badge>
             )
           }
@@ -127,8 +129,7 @@ export function SamlPage({ className }: SamlPageProps) {
             <Info size={16} />
           </Callout.Icon>
           <Callout.Text>
-            SAML is not yet configured. Fill in the form below to enable SAML authentication.
-            You'll need the metadata XML from your Identity Provider.
+            {SamlStrings.PAGE.SAML_NOT_YET_CONFIGURED_FILL}
           </Callout.Text>
         </Callout.Root>
       )}
@@ -140,7 +141,7 @@ export function SamlPage({ className }: SamlPageProps) {
             <AlertCircle size={16} />
           </Callout.Icon>
           <Callout.Text>
-            You do not have permission to modify SAML settings. Contact an administrator to make changes.
+            {SamlStrings.PAGE.YOU_DO_NOT_HAVE_PERMISSION}
           </Callout.Text>
         </Callout.Root>
       )}
@@ -155,7 +156,7 @@ export function SamlPage({ className }: SamlPageProps) {
         dirty={!isPristine}
         pristine={isPristine}
         externalDirtyTracking
-        submitLabel="Save"
+        submitLabel={CommonStrings.ACTIONS.SAVE}
         submitAnalyticsId="as-saml-save"
         cancelAnalyticsId={undefined}
         data-testid="saml-form"
@@ -170,7 +171,7 @@ export function SamlPage({ className }: SamlPageProps) {
               icon={Trash2}
               testId="saml-delete-button"
             >
-              Delete Configuration
+              {SamlStrings.PAGE.DELETE_CONFIGURATION}
             </SettingsButton>
           ) : undefined
         }
@@ -178,8 +179,8 @@ export function SamlPage({ className }: SamlPageProps) {
         {/* Service Provider Metadata Section */}
         {isConfigured && (
           <SettingsFormSection
-            title="Service Provider Metadata"
-            description="Share this metadata URL with your Identity Provider"
+            title={SamlStrings.PAGE.SERVICE_PROVIDER_METADATA}
+            description={SamlStrings.PAGE.SHARE_METADATA_URL_IDENTITY_PROVIDER}
           >
             <Flex align="center" gap="3" className="metadata-url-container">
               <Text size="2" className="metadata-url" data-testid="saml-metadata-url">
@@ -192,7 +193,7 @@ export function SamlPage({ className }: SamlPageProps) {
                 data-testid="saml-metadata-copy"
               >
                 <Copy size={14} />
-                Copy
+                {SamlStrings.PAGE.COPY}
               </Button>
               <Button
                 variant="soft"
@@ -201,7 +202,7 @@ export function SamlPage({ className }: SamlPageProps) {
                 data-testid="saml-metadata-open"
               >
                 <ExternalLink size={14} />
-                Open
+                {SamlStrings.PAGE.OPEN}
               </Button>
             </Flex>
           </SettingsFormSection>
@@ -209,19 +210,19 @@ export function SamlPage({ className }: SamlPageProps) {
 
         {/* Identity Provider Configuration */}
         <SettingsFormSection
-          title="Identity Provider Configuration"
-          description="Configure your SAML Identity Provider settings"
+          title={SamlStrings.PAGE.IDENTITY_PROVIDER_CONFIGURATION}
+          description={SamlStrings.PAGE.CONFIGURE_SAML_IDENTITY_PROVIDER_SETTINGS}
         >
           <SettingsTextArea
             name="idpMetadata"
-            label="Identity Provider Metadata XML"
+            label={SamlStrings.PAGE.IDENTITY_PROVIDER_METADATA_XML}
             value={config.idpMetadata || ''}
             onChange={(value) => handleFieldChange('idpMetadata', value)}
-            placeholder="Paste your Identity Provider metadata XML here..."
+            placeholder={SamlStrings.PAGE.PASTE_IDENTITY_PROVIDER_METADATA_XML_PLACEHOLDER}
             rows={10}
             required
             error={fieldError('idpMetadata')}
-            helpText="The SAML metadata XML provided by your Identity Provider"
+            helpText={SamlStrings.PAGE.SAML_METADATA_XML_PROVIDED_IDENTITY}
             disabled={!canUpdate}
             className="saml-idp-metadata-textarea"
             data-testid="saml-input-idpMetadata"
@@ -229,12 +230,12 @@ export function SamlPage({ className }: SamlPageProps) {
 
           <SettingsTextInput
             name="entityId"
-            label="Entity ID"
+            label={SamlStrings.PAGE.ENTITY_ID}
             value={config.entityId || ''}
             onChange={(value) => handleFieldChange('entityId', value)}
             placeholder="https://your-idp.example.com"
             error={fieldError('entityId')}
-            helpText="SAML Service Provider's unique identifying URI (optional - will be auto-generated if not specified)"
+            helpText={SamlStrings.PAGE.SAML_SERVICE_PROVIDERS_UNIQUE_IDENTIFYING}
             disabled={!canUpdate}
             data-testid="saml-input-entityId"
           />
@@ -242,27 +243,27 @@ export function SamlPage({ className }: SamlPageProps) {
 
         {/* Signature Validation */}
         <SettingsFormSection
-          title="Signature Validation"
-          description="Configure signature validation settings"
+          title={SamlStrings.PAGE.SIGNATURE_VALIDATION}
+          description={SamlStrings.PAGE.CONFIGURE_SIGNATURE_VALIDATION_SETTINGS}
         >
           <SettingsSelect
             name="validateResponseSignature"
-            label="Validate Response Signature"
+            label={SamlStrings.PAGE.VALIDATE_RESPONSE_SIGNATURE}
             value={config.validateResponseSignature === null || config.validateResponseSignature === undefined ? 'default' : String(config.validateResponseSignature)}
             onChange={(value) => handleFieldChange('validateResponseSignature', value === 'default' ? null : value === 'true')}
             options={SIGNATURE_VALIDATION_OPTIONS}
-            helpText="Require a valid signature on SAML responses. 'Default' uses the IdP's signing key presence."
+            helpText={SamlStrings.PAGE.REQUIRE_VALID_SIGNATURE_SAML_RESPONSES}
             disabled={!canUpdate}
             data-testid="saml-select-validateResponseSignature"
           />
 
           <SettingsSelect
             name="validateAssertionSignature"
-            label="Validate Assertion Signature"
+            label={SamlStrings.PAGE.VALIDATE_ASSERTION_SIGNATURE}
             value={config.validateAssertionSignature === null || config.validateAssertionSignature === undefined ? 'default' : String(config.validateAssertionSignature)}
             onChange={(value) => handleFieldChange('validateAssertionSignature', value === 'default' ? null : value === 'true')}
             options={SIGNATURE_VALIDATION_OPTIONS}
-            helpText="Require a valid signature on SAML assertions. 'Default' uses the IdP's signing key presence."
+            helpText={SamlStrings.PAGE.REQUIRE_VALID_SIGNATURE_SAML_ASSERTIONS}
             disabled={!canUpdate}
             data-testid="saml-select-validateAssertionSignature"
           />
@@ -270,62 +271,62 @@ export function SamlPage({ className }: SamlPageProps) {
 
         {/* Attribute Mapping */}
         <SettingsFormSection
-          title="Attribute Mapping"
-          description="Map SAML attributes to user properties"
+          title={SamlStrings.PAGE.ATTRIBUTE_MAPPING}
+          description={SamlStrings.PAGE.MAP_SAML_ATTRIBUTES_USER_PROPERTIES}
         >
           <SettingsTextInput
             name="usernameAttribute"
-            label="Username Attribute"
+            label={SamlStrings.PAGE.USERNAME_ATTRIBUTE}
             value={config.usernameAttribute || ''}
             onChange={(value) => handleFieldChange('usernameAttribute', value)}
             placeholder="e.g., NameID, uid, email"
             required
             error={fieldError('usernameAttribute')}
-            helpText="SAML attribute name containing the username"
+            helpText={SamlStrings.PAGE.SAML_ATTRIBUTE_NAME_CONTAINING_USERNAME}
             disabled={!canUpdate}
             data-testid="saml-input-usernameAttribute"
           />
 
           <SettingsTextInput
             name="firstNameAttribute"
-            label="First Name Attribute"
+            label={SamlStrings.PAGE.FIRST_NAME_ATTRIBUTE}
             value={config.firstNameAttribute || ''}
             onChange={(value) => handleFieldChange('firstNameAttribute', value)}
             placeholder="e.g., firstName, givenName"
-            helpText="SAML attribute name containing the user's first name (optional)"
+            helpText={SamlStrings.PAGE.FIRST_NAME_ATTRIBUTE_HELP}
             disabled={!canUpdate}
             data-testid="saml-input-firstNameAttribute"
           />
 
           <SettingsTextInput
             name="lastNameAttribute"
-            label="Last Name Attribute"
+            label={SamlStrings.PAGE.LAST_NAME_ATTRIBUTE}
             value={config.lastNameAttribute || ''}
             onChange={(value) => handleFieldChange('lastNameAttribute', value)}
             placeholder="e.g., lastName, sn, surname"
-            helpText="SAML attribute name containing the user's last name (optional)"
+            helpText={SamlStrings.PAGE.LAST_NAME_ATTRIBUTE_HELP}
             disabled={!canUpdate}
             data-testid="saml-input-lastNameAttribute"
           />
 
           <SettingsTextInput
             name="emailAttribute"
-            label="Email Attribute"
+            label={SamlStrings.PAGE.EMAIL_ATTRIBUTE}
             value={config.emailAttribute || ''}
             onChange={(value) => handleFieldChange('emailAttribute', value)}
             placeholder="e.g., email, mail"
-            helpText="SAML attribute name containing the user's email address (optional)"
+            helpText={SamlStrings.PAGE.EMAIL_ATTRIBUTE_HELP}
             disabled={!canUpdate}
             data-testid="saml-input-emailAttribute"
           />
 
           <SettingsTextInput
             name="groupsAttribute"
-            label="Roles/Groups"
+            label={SamlStrings.PAGE.ROLES_GROUPS}
             value={config.groupsAttribute || ''}
             onChange={(value) => handleFieldChange('groupsAttribute', value)}
             placeholder="e.g., groups, memberOf"
-            helpText="Map Identity Provider roles or groups to Astrum Repository Manager roles"
+            helpText={SamlStrings.PAGE.MAP_IDENTITY_PROVIDER_ROLES_GROUPS}
             disabled={!canUpdate}
             data-testid="saml-input-groupsAttribute"
           />
@@ -339,10 +340,10 @@ export function SamlPage({ className }: SamlPageProps) {
         open={isConfirmingDelete}
         testId="delete-saml-config-dialog"
         onOpenChange={(open) => { if (!open) cancelDelete(); }}
-        title="Delete SAML Configuration"
-        message="Are you sure you want to delete the SAML configuration? This will disable SAML authentication and users will no longer be able to log in via SAML."
-        confirmLabel="Delete Configuration"
-        cancelLabel="Cancel"
+        title={SamlStrings.PAGE.DELETE_SAML_CONFIGURATION}
+        message={SamlStrings.PAGE.DELETE_CONFIRM}
+        confirmLabel={SamlStrings.PAGE.DELETE_CONFIGURATION}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="danger"
         onConfirm={confirmDelete}
       >

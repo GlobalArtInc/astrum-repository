@@ -5,6 +5,8 @@ import { useForm } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createPrivilegeFormMachine } from './privilegeFormMachine';
 import { Privilege, PrivilegeFormData } from './types';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface UsePrivilegeFormOptions {
   privilegeId?: string;
@@ -62,7 +64,7 @@ export function usePrivilegeForm({
 
           if (isCreate) {
             await createPrivilege(ctx.data);
-            toast.success(`Privilege "${ctx.data.name}" created successfully`);
+            toast.success(PrivilegesStrings.MESSAGES.PRIVILEGE_CREATED_SUCCESSFULLY(ctx.data.name));
           } else if (privilegeToUpdate) {
             const updateData = {
               ...ctx.data,
@@ -70,7 +72,7 @@ export function usePrivilegeForm({
               version: privilegeToUpdate.version,
             };
             await updatePrivilege(updateData);
-            toast.success(`Privilege "${ctx.data.name}" updated successfully`);
+            toast.success(PrivilegesStrings.MESSAGES.PRIVILEGE_UPDATED_SUCCESSFULLY(ctx.data.name));
           }
           // Call the provided onSave callback if needed
           if (onSave) {
@@ -80,7 +82,7 @@ export function usePrivilegeForm({
           onCancel();
         } catch (err) {
           // Raw API functions throw errors, form machine will handle them
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },

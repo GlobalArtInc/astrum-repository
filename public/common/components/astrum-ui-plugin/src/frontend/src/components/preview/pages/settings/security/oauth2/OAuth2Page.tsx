@@ -22,6 +22,8 @@ import { useOAuth2Form } from './useOAuth2Form';
 import { OAuth2PageProps } from './types';
 
 import './OAuth2Page.scss';
+import OAuth2Strings from '../../../../constants/pages/settings/security/OAuth2Strings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -46,7 +48,7 @@ export function OAuth2Page({ className }: OAuth2PageProps) {
       <Box className={`oauth2-page ${className || ''}`.trim()}>
         <Flex align="center" justify="center" className="oauth2-page__loading">
           <Loader2 size={24} className="oauth2-page__spinner" />
-          <Text size="2">Loading OAuth2 configuration...</Text>
+          <Text size="2">{OAuth2Strings.PAGE.LOADING_OAUTH2_CONFIGURATION}</Text>
         </Flex>
       </Box>
     );
@@ -61,10 +63,10 @@ export function OAuth2Page({ className }: OAuth2PageProps) {
     >
       <Box mb="4">
         <PageHeader
-          title="OAuth2"
-          description="Configure OpenID Connect (OIDC) authentication settings"
+          title={OAuth2Strings.PAGE.OAUTH2}
+          description={OAuth2Strings.PAGE.CONFIGURE_OPENID_CONNECT_OIDC_AUTHENTICATION}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
             { label: 'OAuth2' }
           ]}
         />
@@ -79,60 +81,60 @@ export function OAuth2Page({ className }: OAuth2PageProps) {
         externalDirtyTracking
         testId="oauth2-settings-form"
       >
-        <SettingsFormSection title="OIDC Settings">
+        <SettingsFormSection title={OAuth2Strings.PAGE.OIDC_SETTINGS}>
           {data.redirectUri && (
             <Box>
-              <Text as="div" size="2" weight="medium">Redirect URI</Text>
+              <Text as="div" size="2" weight="medium">{OAuth2Strings.PAGE.REDIRECT_URI}</Text>
               <Text as="div" size="2" className="oauth2-page__redirect-uri" data-testid="oauth2-redirect-uri">
                 {data.redirectUri}
               </Text>
               <Text as="div" size="1" color="gray">
-                Register this redirect URI for the client in your identity provider.
+                {OAuth2Strings.PAGE.REGISTER_REDIRECT_URI_CLIENT_IDENTITY}
               </Text>
             </Box>
           )}
           <SettingsTextInput
             {...field('issuerUrl')}
-            label="Issuer URL"
-            helpText="For example https://sso.example.com. Endpoints and keys are read from its .well-known/openid-configuration; the endpoint fields below override them."
+            label={OAuth2Strings.PAGE.ISSUER_URL}
+            helpText={OAuth2Strings.PAGE.EXAMPLE_HTTPS_SSO_EXAMPLE_COM}
             disabled={!canUpdate}
           />
           <SettingsPasswordInput
             {...field('clientId')}
-            label="Client ID"
-            helpText="The client ID registered with your identity provider"
+            label={OAuth2Strings.PAGE.CLIENT_ID}
+            helpText={OAuth2Strings.PAGE.CLIENT_ID_REGISTERED_IDENTITY_PROVIDER}
             required
             disabled={!canUpdate}
           />
           <SettingsPasswordInput
             {...field('clientSecret')}
-            label="Client Secret"
-            helpText="The client secret for authentication. Leave empty for a public client that uses PKCE only."
+            label={OAuth2Strings.PAGE.CLIENT_SECRET}
+            helpText={OAuth2Strings.PAGE.CLIENT_SECRET_AUTHENTICATION_LEAVE_EMPTY}
             disabled={!canUpdate}
             autoComplete="new-password"
           />
           <SettingsTextInput
             {...field('idpAuthorizationUrl')}
-            label="IDP Authorization URL"
-            helpText="The authorization endpoint of your identity provider"
+            label={OAuth2Strings.PAGE.IDP_AUTHORIZATION_URL}
+            helpText={OAuth2Strings.PAGE.AUTHORIZATION_ENDPOINT_IDENTITY_PROVIDER}
             disabled={!canUpdate}
           />
           <SettingsTextInput
             {...field('idpLogoutUrl')}
-            label="IDP Logout URL"
-            helpText="The logout endpoint of your identity provider"
+            label={OAuth2Strings.PAGE.IDP_LOGOUT_URL}
+            helpText={OAuth2Strings.PAGE.LOGOUT_ENDPOINT_IDENTITY_PROVIDER}
             disabled={!canUpdate}
           />
           <SettingsTextInput
             {...field('idpTokenUrl')}
-            label="IDP Token URL"
-            helpText="The token endpoint of your identity provider"
+            label={OAuth2Strings.PAGE.IDP_TOKEN_URL}
+            helpText={OAuth2Strings.PAGE.TOKEN_ENDPOINT_IDENTITY_PROVIDER}
             disabled={!canUpdate}
           />
           <SettingsTextInput
             {...field('idpJwksUrl')}
-            label="IDP JWKS URL"
-            helpText="The JWKS endpoint for token verification"
+            label={OAuth2Strings.PAGE.IDP_JWKS_URL}
+            helpText={OAuth2Strings.PAGE.JWKS_ENDPOINT_TOKEN_VERIFICATION}
             disabled={!canUpdate}
           />
 
@@ -167,74 +169,74 @@ export function OAuth2Page({ className }: OAuth2PageProps) {
           </Box>
         </SettingsFormSection>
 
-        <SettingsFormSection title="Claim Mappings">
+        <SettingsFormSection title={OAuth2Strings.PAGE.CLAIM_MAPPINGS}>
           <SettingsTextInput
             {...field('usernameClaim')}
-            label="Username Claim"
-            helpText="The claim that contains the username"
+            label={OAuth2Strings.PAGE.USERNAME_CLAIM}
+            helpText={OAuth2Strings.PAGE.CLAIM_CONTAINS_USERNAME}
             disabled={!canUpdate}
           />
           <SettingsTextInput
             {...field('firstNameClaim')}
-            label="First Name Claim"
-            helpText="The claim that contains the first name"
+            label={OAuth2Strings.PAGE.FIRST_NAME_CLAIM}
+            helpText={OAuth2Strings.PAGE.CLAIM_CONTAINS_FIRST_NAME}
             disabled={!canUpdate}
           />
           <SettingsTextInput
             {...field('lastNameClaim')}
-            label="Last Name Claim"
-            helpText="The claim that contains the last name"
+            label={OAuth2Strings.PAGE.LAST_NAME_CLAIM}
+            helpText={OAuth2Strings.PAGE.CLAIM_CONTAINS_LAST_NAME}
             disabled={!canUpdate}
           />
           <SettingsTextInput
             {...field('emailClaim')}
-            label="Email Claim"
-            helpText="The claim that contains the email address"
+            label={OAuth2Strings.PAGE.EMAIL_CLAIM}
+            helpText={OAuth2Strings.PAGE.CLAIM_CONTAINS_EMAIL_ADDRESS}
             disabled={!canUpdate}
           />
           <SettingsTextInput
             {...field('groupsClaim')}
-            label="Groups Claim"
-            helpText="The claim that contains the group memberships"
+            label={OAuth2Strings.PAGE.GROUPS_CLAIM}
+            helpText={OAuth2Strings.PAGE.CLAIM_CONTAINS_GROUP_MEMBERSHIPS}
             disabled={!canUpdate}
           />
         </SettingsFormSection>
 
-        <SettingsFormSection title="JWT Settings">
+        <SettingsFormSection title={OAuth2Strings.PAGE.JWT_SETTINGS}>
           <SettingsTextInput
             {...field('idpJwsAlgorithm')}
-            label="JWS Algorithm"
-            helpText="The signing algorithm used by the IDP (e.g., RS256)"
+            label={OAuth2Strings.PAGE.JWS_ALGORITHM}
+            helpText={OAuth2Strings.PAGE.SIGNING_ALGORITHM_USED_IDP_E}
             disabled={!canUpdate}
           />
           <SettingsTextArea
             {...field('idpJwks')}
-            label="JWKS (Optional)"
-            helpText="Optional JSON Web Key Set for offline verification"
+            label={OAuth2Strings.PAGE.JWKS_OPTIONAL}
+            helpText={OAuth2Strings.PAGE.OPTIONAL_JSON_WEB_KEY_SET}
             disabled={!canUpdate}
             rows={4}
           />
         </SettingsFormSection>
 
-        <SettingsFormSection title="Advanced Settings">
+        <SettingsFormSection title={OAuth2Strings.PAGE.ADVANCED_SETTINGS}>
           <SettingsTextArea
             {...field('authorizationCustomParams')}
-            label="Authorization Custom Parameters"
-            helpText="Custom parameters for authorization requests (JSON format)"
+            label={OAuth2Strings.PAGE.AUTHORIZATION_CUSTOM_PARAMETERS}
+            helpText={OAuth2Strings.PAGE.CUSTOM_PARAMETERS_AUTHORIZATION_REQUESTS_JSON}
             disabled={!canUpdate}
             rows={3}
           />
           <SettingsTextArea
             {...field('tokenRequestCustomParams')}
-            label="Token Request Custom Parameters"
-            helpText="Custom parameters for token requests (JSON format)"
+            label={OAuth2Strings.PAGE.TOKEN_REQUEST_CUSTOM_PARAMETERS}
+            helpText={OAuth2Strings.PAGE.CUSTOM_PARAMETERS_TOKEN_REQUESTS_JSON}
             disabled={!canUpdate}
             rows={3}
           />
           <SettingsTextArea
             {...field('exactMatchClaims')}
-            label="Exact Match Claims"
-            helpText="Claims that must match exactly (JSON format)"
+            label={OAuth2Strings.PAGE.EXACT_MATCH_CLAIMS}
+            helpText={OAuth2Strings.PAGE.CLAIMS_MUST_MATCH_EXACTLY_JSON}
             disabled={!canUpdate}
             rows={3}
           />

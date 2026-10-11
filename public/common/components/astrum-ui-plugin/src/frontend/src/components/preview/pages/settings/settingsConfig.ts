@@ -11,6 +11,7 @@
  */
 
 import UIStrings from '../../../../constants/UIStrings';
+import SettingsStrings from '../../constants/pages/settings/SettingsStrings';
 
 export interface VisibilityRequirements {
   permissions?: string[];
@@ -84,13 +85,13 @@ export interface SettingsSection {
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     id: 'repository',
-    label: 'Repository',
+    label: SettingsStrings.CARDS.REPOSITORY,
     cards: [
       {
         id: 'repositories',
         path: 'repository/repositories',
-        label: 'Repositories',
-        description: 'Manage Maven, npm, Docker, and other repositories',
+        label: SettingsStrings.CARDS.REPOSITORIES,
+        description: SettingsStrings.CARDS.MANAGE_MAVEN_NPM_DOCKER_OTHER,
         searchTerms: ['maven', 'npm', 'docker', 'pypi', 'nuget'],
         featureKey: 'repository.repositories',
         // ASTRUM-54048: match Classic/Default UI (adminRoutes.js REPOSITORIES.ROOT), which uses a
@@ -100,8 +101,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'blob-stores',
         path: 'repository/blobstores',
-        label: 'Blob Stores',
-        description: 'Configure local and cloud blob storage',
+        label: SettingsStrings.CARDS.BLOB_STORES,
+        description: SettingsStrings.CARDS.CONFIGURE_LOCAL_CLOUD_BLOB_STORAGE,
         searchTerms: ['storage', 's3', 'azure', 'google cloud'],
         cloudExcluded: true,
         featureKey: 'repository.blobstores',
@@ -110,8 +111,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'cleanup-policies',
         path: 'repository/cleanup-policies',
-        label: 'Cleanup Policies',
-        description: 'Configure automated component cleanup',
+        label: SettingsStrings.CARDS.CLEANUP_POLICIES,
+        description: SettingsStrings.CARDS.CONFIGURE_AUTOMATED_COMPONENT_CLEANUP,
         searchTerms: ['retention', 'delete', 'purge'],
         featureKey: 'repository.cleanuppolicies',
         // ASTRUM-54048: match Classic/Default UI (adminRoutes.js CLEANUPPOLICIES.ROOT), which gates
@@ -122,8 +123,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'routing-rules',
         path: 'repository/routing-rules',
-        label: 'Routing Rules',
-        description: 'Control component access by path patterns',
+        label: SettingsStrings.CARDS.ROUTING_RULES,
+        description: SettingsStrings.CARDS.CONTROL_COMPONENT_ACCESS_PATH_PATTERNS,
         searchTerms: ['block', 'allow', 'filter'],
         featureKey: 'repository.routingrules',
         // ASTRUM-54048: match Classic/Default UI (adminRoutes.js ROUTINGRULES.ROOT). RoutingRulesResource
@@ -134,8 +135,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'content-selectors',
         path: 'repository/selectors',
-        label: 'Content Selectors',
-        description: 'Define content filtering expressions',
+        label: SettingsStrings.CARDS.CONTENT_SELECTORS,
+        description: SettingsStrings.CARDS.DEFINE_CONTENT_FILTERING_EXPRESSIONS,
         searchTerms: ['csel', 'filter', 'query'],
         featureKey: 'repository.selectors',
         visibilityRequirements: { requiresPermission: 'astrum:selectors:read' },
@@ -143,8 +144,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'data-store',
         path: 'repository/datastore',
-        label: 'Data Store',
-        description: 'Configure repository metadata database',
+        label: SettingsStrings.CARDS.DATA_STORE,
+        description: SettingsStrings.CARDS.CONFIGURE_REPOSITORY_METADATA_DATABASE,
         searchTerms: ['database', 'postgresql', 'h2', 'jdbc'],
         cloudExcluded: true,
         featureKey: 'repository.datastore',
@@ -160,8 +161,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'proprietary',
         path: 'repository/proprietary',
-        label: 'Proprietary',
-        description: 'Manage proprietary component settings',
+        label: SettingsStrings.CARDS.PROPRIETARY,
+        description: SettingsStrings.CARDS.MANAGE_PROPRIETARY_COMPONENT_SETTINGS,
         featureKey: 'repository.proprietary',
         visibilityRequirements: { requiresPermission: 'astrum:settings:read' },
       },
@@ -169,13 +170,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   },
   {
     id: 'security',
-    label: 'Security',
+    label: SettingsStrings.CARDS.SECURITY,
     cards: [
       {
         id: 'users',
         path: 'security/users',
-        label: 'Users',
-        description: 'Manage user accounts and access',
+        label: SettingsStrings.CARDS.USERS,
+        description: SettingsStrings.CARDS.MANAGE_USER_ACCOUNTS_ACCESS,
         featureKey: 'security.users',
         // ASTRUM-54048: match Classic/Default UI (adminRoutes.js USERS.ROOT), which requires BOTH
         // users:read and roles:read (permissions[] is AND).
@@ -184,8 +185,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'roles',
         path: 'security/roles',
-        label: 'Roles',
-        description: 'Define user permissions and access control',
+        label: SettingsStrings.CARDS.ROLES,
+        description: SettingsStrings.CARDS.DEFINE_USER_PERMISSIONS_ACCESS_CONTROL,
         featureKey: 'security.roles',
         // ASTRUM-54048: match Classic/Default UI (adminRoutes.js ROLES.ROOT), which requires BOTH
         // roles:read and privileges:read (permissions[] is AND).
@@ -194,16 +195,16 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'privileges',
         path: 'security/privileges',
-        label: 'Privileges',
-        description: 'Configure granular permission settings',
+        label: SettingsStrings.CARDS.PRIVILEGES,
+        description: SettingsStrings.CARDS.CONFIGURE_GRANULAR_PERMISSION_SETTINGS,
         featureKey: 'security.privileges',
         visibilityRequirements: { requiresPermission: 'astrum:privileges:read' },
       },
       {
         id: 'realms',
         path: 'security/realms',
-        label: 'Realms',
-        description: 'Configure authentication sources and order',
+        label: SettingsStrings.CARDS.REALMS,
+        description: SettingsStrings.CARDS.CONFIGURE_AUTHENTICATION_SOURCES_ORDER,
         cloudExcluded: true,
         featureKey: 'security.realms',
         visibilityRequirements: { requiresPermission: 'astrum:settings:read' },
@@ -212,7 +213,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         id: 'ldap',
         path: 'security/ldap',
         label: 'LDAP',
-        description: 'Configure LDAP integration',
+        description: SettingsStrings.CARDS.CONFIGURE_LDAP_INTEGRATION,
         searchTerms: ['active directory', 'ad', 'directory service'],
         cloudExcluded: true,
         featureKey: 'security.ldap',
@@ -222,7 +223,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         id: 'saml',
         path: 'security/saml',
         label: 'SAML',
-        description: 'Configure SAML single sign-on',
+        description: SettingsStrings.CARDS.CONFIGURE_SAML_SINGLE_SIGN,
         searchTerms: ['sso', 'single sign-on'],
         cloudExcluded: true,
         featureKey: 'security.saml',
@@ -238,8 +239,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'oauth2',
         path: 'security/oauth2',
-        label: 'OpenID Connect',
-        description: 'Sign in with any OpenID Connect provider',
+        label: SettingsStrings.CARDS.OPENID_CONNECT,
+        description: SettingsStrings.CARDS.SIGN_ANY_OPENID_CONNECT_PROVIDER,
         cloudExcluded: true,
         featureKey: 'security.oauth2',
         visibilityRequirements: {
@@ -250,8 +251,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'crowd',
         path: 'security/crowd',
-        label: 'Crowd',
-        description: 'Configure Atlassian Crowd integration',
+        label: SettingsStrings.CARDS.CROWD,
+        description: SettingsStrings.CARDS.CONFIGURE_ATLASSIAN_CROWD_INTEGRATION,
         cloudExcluded: true,
         featureKey: 'security.crowd',
         // ASTRUM-54019: match Classic/Default UI (adminRoutes.js CROWD.ROOT) — crowd:read AND the
@@ -266,8 +267,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'anonymous',
         path: 'security/anonymous',
-        label: 'Anonymous',
-        description: 'Configure anonymous access settings',
+        label: SettingsStrings.CARDS.ANONYMOUS,
+        description: SettingsStrings.CARDS.CONFIGURE_ANONYMOUS_ACCESS_SETTINGS,
         cloudExcluded: true,
         featureKey: 'security.anonymous',
         visibilityRequirements: { requiresPermission: 'astrum:settings:read' },
@@ -275,8 +276,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'ssl-certificates',
         path: 'security/sslcertificates',
-        label: 'SSL Certificates',
-        description: 'Manage trusted SSL certificates',
+        label: SettingsStrings.CARDS.SSL_CERTIFICATES,
+        description: SettingsStrings.CARDS.MANAGE_TRUSTED_SSL_CERTIFICATES,
         searchTerms: ['tls', 'https', 'certificate'],
         cloudExcluded: true,
         featureKey: 'security.sslcertificates',
@@ -285,8 +286,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'user-tokens',
         path: 'security/user-tokens',
-        label: 'User Tokens',
-        description: 'Manage API access tokens',
+        label: SettingsStrings.CARDS.USER_TOKENS,
+        description: SettingsStrings.CARDS.MANAGE_API_ACCESS_TOKENS,
         searchTerms: ['api', 'token', 'authentication'],
         featureKey: 'security.usertokens',
         // ASTRUM-54019: match Classic/Default UI (adminRoutes.js USERTOKEN.ROOT) — usertoken-settings:read
@@ -301,8 +302,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'service-account-tokens',
         path: 'security/service-account-tokens',
-        label: 'Service Account Tokens',
-        description: 'Manage tokens for automated service access',
+        label: SettingsStrings.CARDS.SERVICE_ACCOUNT_TOKENS,
+        description: SettingsStrings.CARDS.MANAGE_TOKENS_AUTOMATED_SERVICE_ACCESS,
         searchTerms: ['service account', 'sat', 'ci', 'cd', 'automation', 'token', 'bearer'],
         proOnly: true,
         // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SERVICEACCOUNTTOKENS.ROOT) —
@@ -317,14 +318,14 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   },
   {
     id: 'support',
-    label: 'Support',
+    label: SettingsStrings.CARDS.SUPPORT,
     cloudExcluded: true,
     cards: [
       {
         id: 'system-info',
         path: 'support/systeminformation',
-        label: 'System Info',
-        description: 'View system information and diagnostics',
+        label: SettingsStrings.CARDS.SYSTEM_INFO,
+        description: SettingsStrings.CARDS.VIEW_SYSTEM_INFORMATION_DIAGNOSTICS,
         searchTerms: ['information', 'version', 'diagnostics'],
         featureKey: 'support.systeminfo',
         visibilityRequirements: { requiresPermission: 'astrum:atlas:read' },
@@ -332,8 +333,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'logs',
         path: 'support/logs',
-        label: 'Logs',
-        description: 'View application logs',
+        label: SettingsStrings.CARDS.LOGS,
+        description: SettingsStrings.CARDS.VIEW_APPLICATION_LOGS,
         searchTerms: ['log', 'error', 'debug'],
         featureKey: 'support.logs',
         visibilityRequirements: { requiresPermission: 'astrum:logging:read' },
@@ -341,8 +342,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'logging-config',
         path: 'support/logging',
-        label: 'Logging Config',
-        description: 'Configure log levels and output',
+        label: SettingsStrings.CARDS.LOGGING_CONFIG,
+        description: SettingsStrings.CARDS.CONFIGURE_LOG_LEVELS_OUTPUT,
         searchTerms: ['logger', 'log level', 'debug'],
         featureKey: 'support.logging',
         visibilityRequirements: { requiresPermission: 'astrum:logging:read' },
@@ -350,8 +351,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'metric-health',
         path: 'support/metrichealth',
-        label: 'Metric Health',
-        description: 'View system metrics and health checks',
+        label: SettingsStrings.CARDS.METRIC_HEALTH,
+        description: SettingsStrings.CARDS.VIEW_SYSTEM_METRICS_HEALTH_CHECKS,
         searchTerms: ['status', 'health', 'metrics', 'monitoring'],
         featureKey: 'support.metrics',
         visibilityRequirements: { requiresPermission: 'astrum:metrics:read' },
@@ -359,8 +360,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'recovery-mode',
         path: 'support/recoverymode',
-        label: 'Recovery Mode',
-        description: 'View status and toggle recovery mode for system maintenance and data repairs',
+        label: SettingsStrings.CARDS.RECOVERY_MODE,
+        description: SettingsStrings.CARDS.VIEW_STATUS_TOGGLE_RECOVERY_MODE,
         searchTerms: ['recovery', 'repair', 'reconcile', 'maintenance'],
         adminOnly: true,
         // 'astrum:*' === Permissions.ADMIN — array form mirrors the route's visibilityRequirements shape.
@@ -369,8 +370,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'support-zip',
         path: 'support/supportzip',
-        label: 'Support Zip',
-        description: 'Generate support diagnostics bundle',
+        label: SettingsStrings.CARDS.SUPPORT_ZIP,
+        description: SettingsStrings.CARDS.GENERATE_SUPPORT_DIAGNOSTICS_BUNDLE,
         searchTerms: ['diagnostic', 'troubleshoot', 'bundle'],
         featureKey: 'support.supportzip',
         // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SUPPORTZIP.ROOT) — atlas:read.
@@ -380,8 +381,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'support-request',
         path: 'support/supportrequest',
-        label: 'Support Request',
-        description: 'Submit a support request',
+        label: SettingsStrings.CARDS.SUPPORT_REQUEST,
+        description: SettingsStrings.CARDS.SUBMIT_SUPPORT_REQUEST,
         searchTerms: ['help', 'ticket', 'contact'],
         featureKey: 'support.supportrequest',
         // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SUPPORTREQUEST.ROOT) — atlas:create
@@ -393,13 +394,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   },
   {
     id: 'system',
-    label: 'System',
+    label: SettingsStrings.CARDS.SYSTEM,
     cards: [
       {
         id: 'tasks',
         path: 'system/tasks',
-        label: 'Tasks',
-        description: 'Schedule and monitor system tasks',
+        label: SettingsStrings.CARDS.TASKS,
+        description: SettingsStrings.CARDS.SCHEDULE_MONITOR_SYSTEM_TASKS,
         searchTerms: ['cron', 'schedule', 'job'],
         featureKey: 'system.tasks',
         visibilityRequirements: { requiresPermission: 'astrum:tasks:read' },
@@ -407,8 +408,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'email',
         path: 'system/emailserver',
-        label: 'Email',
-        description: 'Configure email server and notifications',
+        label: SettingsStrings.CARDS.EMAIL,
+        description: SettingsStrings.CARDS.CONFIGURE_EMAIL_SERVER_NOTIFICATIONS,
         searchTerms: ['smtp', 'mail', 'notification'],
         featureKey: 'system.emailserver',
         cloudExcluded: true,
@@ -418,7 +419,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         id: 'http',
         path: 'system/http',
         label: 'HTTP',
-        description: 'Configure HTTP and HTTPS settings',
+        description: SettingsStrings.CARDS.CONFIGURE_HTTP_HTTPS_SETTINGS,
         searchTerms: ['proxy', 'timeout', 'connection'],
         featureKey: 'system.http',
         cloudExcluded: true,
@@ -429,7 +430,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         path: 'system/api',
         fullHash: '#preview/browse/api',
         label: 'API',
-        description: 'Configure REST API settings',
+        description: SettingsStrings.CARDS.CONFIGURE_REST_API_SETTINGS,
         searchTerms: ['rest', 'endpoint'],
         featureKey: 'system.api',
         // ASTRUM-54048: API has no dedicated privilege; the Default UI and Classic UI
@@ -439,8 +440,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'capabilities',
         path: 'system/capabilities',
-        label: 'Capabilities',
-        description: 'Configure system capabilities and integrations',
+        label: SettingsStrings.CARDS.CAPABILITIES,
+        description: SettingsStrings.CARDS.CONFIGURE_SYSTEM_CAPABILITIES_INTEGRATIONS,
         featureKey: 'system.capabilities',
         visibilityRequirements: { requiresPermission: 'astrum:capabilities:read' },
       },
@@ -456,8 +457,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'nodes',
         path: 'system/nodes',
-        label: 'Nodes',
-        description: 'View cluster nodes and status',
+        label: SettingsStrings.CARDS.NODES,
+        description: SettingsStrings.CARDS.VIEW_CLUSTER_NODES_STATUS,
         searchTerms: ['cluster', 'ha', 'high availability'],
         cloudExcluded: true,
         featureKey: 'system.nodes',
@@ -469,8 +470,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'usage',
         path: 'system/usage',
-        label: 'Usage',
-        description: 'Monitor historical usage metrics and trends',
+        label: SettingsStrings.CARDS.USAGE,
+        description: SettingsStrings.CARDS.MONITOR_HISTORICAL_USAGE_METRICS_TRENDS,
         searchTerms: ['metrics', 'egress', 'storage', 'usage insights'],
         cloudOnly: true,
         // ASTRUM-54048: match cloud Classic (cloud adminRoutes.js HISTORICAL_USAGE), gated on settings:read.
@@ -479,8 +480,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
       {
         id: 'preview-ui',
         path: 'system/previewui',
-        label: 'Astrum One UI',
-        description: 'Configure Astrum One UI settings and features',
+        label: SettingsStrings.CARDS.ASTRUM_ONE_UI,
+        description: SettingsStrings.CARDS.CONFIGURE_ASTRUM_ONE_UI_SETTINGS,
         searchTerms: ['interface', 'ui', 'theme'],
         // No featureKey — always available
         visibilityRequirements: { requiresPermission: 'astrum:settings:read' },

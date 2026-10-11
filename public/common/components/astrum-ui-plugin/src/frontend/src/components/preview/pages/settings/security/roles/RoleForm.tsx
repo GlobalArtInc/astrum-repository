@@ -28,6 +28,9 @@ import {
 } from './types';
 
 import './RoleForm.scss';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 /**
  * RoleForm - Form for creating and editing roles
@@ -152,7 +155,7 @@ export function RoleForm({
     for (const prefix of prefixes) {
       if (option.value.startsWith(prefix)) return PRIVILEGE_GROUP_LABELS[prefix];
     }
-    return 'Other';
+    return RolesStrings.FORM.OTHER;
   }, []);
 
   const showPrivilegeWarning = submitDisabled && hasAttemptedAdvance && wizardStep === 3;
@@ -194,7 +197,7 @@ export function RoleForm({
 
     if (query.length < 3) {
       setLdapRoleOptions([]);
-      setLdapEmptyMessage('Enter 3 or more characters to search.');
+      setLdapEmptyMessage(RolesStrings.FORM.ENTER_3_MORE_CHARACTERS_SEARCH);
       return;
     }
 
@@ -218,7 +221,7 @@ export function RoleForm({
       } catch (err) {
         console.error('Failed to search LDAP roles:', err);
         setLdapRoleOptions([]);
-        setLdapEmptyMessage('Failed to search LDAP roles.');
+        setLdapEmptyMessage(RolesStrings.FORM.FAILED_SEARCH_LDAP_ROLES);
       } finally {
         setLdapSearchLoading(false);
       }
@@ -230,14 +233,14 @@ export function RoleForm({
     return (
       <Flex align="center" justify="center" className="role-form__loading">
         <Loader2 size={24} className="role-form__spinner" />
-        <Text size="2">Loading form...</Text>
+        <Text size="2">{CommonStrings.MESSAGES.LOADING_FORM}</Text>
       </Flex>
     );
   }
 
   const roleTypeOptions = [
-    { value: 'astrum', label: 'Astrum Role', description: 'Standard role managed by Astrum' },
-    { value: 'external', label: 'External Role Mapping', description: 'Map to roles from LDAP, SAML, or Crowd' },
+    { value: 'astrum', label: RolesStrings.FORM.ASTRUM_ROLE, description: RolesStrings.FORM.STANDARD_ROLE_MANAGED_ASTRUM },
+    { value: 'external', label: RolesStrings.FORM.EXTERNAL_ROLE_MAPPING, description: RolesStrings.FORM.MAP_ROLES_LDAP_SAML_CROWD },
   ];
 
   const formContent = (
@@ -248,16 +251,16 @@ export function RoleForm({
           adds no value. Props are passed individually (not via form.field spread)
           so the explicit value={... ?? 'astrum'} default is unambiguous. */}
       {wizardStep === 0 && isCreate && (
-        <SettingsFormSection title="Role Type" defaultOpen>
+        <SettingsFormSection title={RolesStrings.FORM.ROLE_TYPE} defaultOpen>
           <Text size="2" className="role-form__section-help">
-            Choose the type of role to create.
+            {RolesStrings.FORM.CHOOSE_TYPE_ROLE_CREATE}
           </Text>
           <SettingsSelect
             name="roleType"
             onChange={(value) => form.send({ type: 'UPDATE', name: 'roleType', value })}
-            label="Type"
+            label={CommonStrings.LABELS.TYPE}
             options={roleTypeOptions}
-            helpText="Select whether this is a standard Astrum role or maps to an external authentication source"
+            helpText={RolesStrings.FORM.SELECT_WHETHER_STANDARD_ASTRUM_ROLE}
             value={formData.roleType ?? 'astrum'}
           />
         </SettingsFormSection>
@@ -265,19 +268,19 @@ export function RoleForm({
 
       {/* Step 1: Role Setup Section */}
       {wizardStep === 1 && (
-        <SettingsFormSection title="Role Setup" defaultOpen>
+        <SettingsFormSection title={RolesStrings.FORM.ROLE_SETUP} defaultOpen>
           {/* External Source is FIRST for external roles */}
           {formData.roleType === 'external' && (
             <>
               <SettingsSelect
                 {...form.field('externalSource')}
-                label="External Source"
+                label={RolesStrings.FORM.EXTERNAL_SOURCE}
                 options={[
                   { value: 'LDAP', label: 'LDAP' },
                   { value: 'SAML', label: 'SAML' },
                   { value: 'Crowd', label: 'Crowd' },
                 ]}
-                helpText="Select the external authentication source (LDAP, SAML, or Crowd)"
+                helpText={RolesStrings.FORM.SELECT_EXTERNAL_AUTHENTICATION_SOURCE_LDAP}
                 disabled={!isCreate || isReadOnly}
                 required
               />
@@ -291,11 +294,11 @@ export function RoleForm({
                   }}
                   onInputChange={handleLdapSearch}
                   options={ldapRoleOptions}
-                  placeholder={formData.externalSource === 'LDAP' ? 'Search LDAP roles...' : `Enter ${formData.externalSource} role name`}
-                  label="Mapped Role"
+                  placeholder={formData.externalSource === 'LDAP' ? RolesStrings.FORM.SEARCH_LDAP_ROLES : RolesStrings.FORM.ENTER_ROLE_NAME(formData.externalSource)}
+                  label={RolesStrings.FORM.MAPPED_ROLE}
                   helpText={formData.externalSource === 'LDAP'
-                    ? 'Enter or search for a role from LDAP. Type 3+ characters to search.'
-                    : `Enter the exact role name from ${formData.externalSource}.`}
+                    ? RolesStrings.FORM.ENTER_SEARCH_ROLE_LDAP_TYPE
+                    : RolesStrings.FORM.ENTER_EXACT_ROLE_NAME(formData.externalSource)}
                   allowCustomValue
                   loading={ldapSearchLoading}
                   disabled={isReadOnly}
@@ -308,27 +311,27 @@ export function RoleForm({
 
           <SettingsTextInput
             {...form.field('id')}
-            label="ID"
+            label={RolesStrings.FORM.ID}
             placeholder="as-custom-role"
-            helpText="Unique identifier for this role"
+            helpText={RolesStrings.FORM.UNIQUE_IDENTIFIER_ROLE}
             required
             disabled={!isCreate || isExternal}
           />
 
           <SettingsTextInput
             {...form.field('name')}
-            label="Name"
-            placeholder="My Custom Role"
-            helpText="Human-readable name for this role"
+            label={CommonStrings.LABELS.NAME}
+            placeholder={RolesStrings.FORM.MY_CUSTOM_ROLE_PLACEHOLDER}
+            helpText={RolesStrings.FORM.HUMAN_READABLE_NAME_ROLE}
             required
             disabled={isReadOnly}
           />
 
           <SettingsTextArea
             {...form.field('description')}
-            label="Description"
-            placeholder="Grants read access to all Maven repositories"
-            helpText="Optional description of this role's purpose"
+            label={CommonStrings.LABELS.DESCRIPTION}
+            placeholder={RolesStrings.FORM.GRANTS_READ_ACCESS_ALL_MAVEN_PLACEHOLDER}
+            helpText={RolesStrings.FORM.OPTIONAL_DESCRIPTION_ROLES_PURPOSE}
             rows={3}
             disabled={isReadOnly}
           />
@@ -337,9 +340,9 @@ export function RoleForm({
 
       {/* Step 2: Privileges Section */}
       {wizardStep === 2 && (
-        <SettingsFormSection title="Privileges" defaultOpen>
+        <SettingsFormSection title={RolesStrings.FORM.PRIVILEGES} defaultOpen>
           <Text size="2" className="role-form__section-help">
-            Search and select privileges to grant. Results are grouped by type.
+            {RolesStrings.FORM.SEARCH_SELECT_PRIVILEGES_GRANT_RESULTS}
           </Text>
           <SettingsCombobox
             name="privileges"
@@ -348,8 +351,8 @@ export function RoleForm({
             onMultiChange={handlePrivilegesChange}
             options={privilegeOptions}
             groupBy={groupPrivilege}
-            placeholder="Search privileges by name..."
-            helpText={`${formData.privileges?.length || 0} privilege${(formData.privileges?.length || 0) === 1 ? '' : 's'} granted`}
+            placeholder={RolesStrings.FORM.SEARCH_PRIVILEGES_NAME_PLACEHOLDER}
+            helpText={plural(RolesStrings.FORM.PRIVILEGES_GRANTED, formData.privileges?.length || 0)}
             disabled={isReadOnly}
           />
           {hasAttemptedAdvance && form.validationErrors?.privileges && (
@@ -361,9 +364,9 @@ export function RoleForm({
       {/* Step 3: Contained Roles Section */}
       {wizardStep === 3 && (
         <>
-          <SettingsFormSection title="Contained Roles" defaultOpen>
+          <SettingsFormSection title={RolesStrings.FORM.CONTAINED_ROLES} defaultOpen>
             <Text size="2" className="role-form__section-help">
-              Select other roles to include. Their privileges will be inherited by this role.
+              {RolesStrings.FORM.SELECT_OTHER_ROLES_INCLUDE_THEIR}
             </Text>
             <SettingsTransferList
               name="roles"
@@ -371,8 +374,8 @@ export function RoleForm({
               availableItems={availableRoles}
               selectedItems={selectedRoles}
               onChange={handleRolesChange}
-              availableLabel="Available"
-              selectedLabel="Contained"
+              availableLabel={RolesStrings.FORM.AVAILABLE}
+              selectedLabel={RolesStrings.FORM.CONTAINED}
               getItemId={(item) => item.id}
               getItemLabel={(item) => item.name}
               disabled={isReadOnly}
@@ -384,7 +387,7 @@ export function RoleForm({
             <Flex align="center" gap="2" className="role-form__privilege-warning" data-testid="privilege-warning" role="alert">
               <AlertCircle size={14} />
               <Text size="2" weight="medium">
-                {form.validationErrors?.privileges ?? 'Select at least one privilege or contained role'}
+                {form.validationErrors?.privileges ?? RolesStrings.FORM.SELECT_LEAST_ONE_PRIVILEGE_CONTAINED}
               </Text>
             </Flex>
           )}
@@ -407,11 +410,11 @@ export function RoleForm({
           form.submit();
         }}
         onCancel={onCancel}
-        cancelLabel="Cancel"
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         loading={form.isSaving || loading}
         pristine={form.isPristine}
         error={error || form.saveError || undefined}
-        submitLabel={isCreate ? 'Create' : 'Save'}
+        submitLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
         submitDisabled={submitDisabled}
         footerExtra={
           !isCreate && onDelete && !isReadOnly ? (
@@ -422,7 +425,7 @@ export function RoleForm({
               disabled={form.isSaving || loading}
               icon={Trash2}
             >
-              Delete Role
+              {RolesStrings.FORM.DELETE_ROLE}
             </SettingsButton>
           ) : undefined
         }

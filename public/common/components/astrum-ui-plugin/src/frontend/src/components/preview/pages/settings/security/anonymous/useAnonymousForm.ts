@@ -7,6 +7,8 @@ import { APIConstants } from '../../../../../../constants/APIConstants';
 import { useToast } from '../../../../shared';
 import { createAnonymousFormMachine, AnonymousFormData } from './anonymousFormMachine';
 import type { RealmType, AnonymousSettings } from './types';
+import AnonymousStrings from '../../../../constants/pages/settings/security/AnonymousStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const { REST } = APIConstants;
 
@@ -59,15 +61,15 @@ export function useAnonymousForm(options: UseAnonymousFormOptions = {}) {
           const message = messages?.saveSuccess
             ? messages.saveSuccess(ctx.data.enabled)
             : ctx.data.enabled
-              ? 'Anonymous access settings saved successfully'
-              : 'Anonymous access disabled';
+              ? AnonymousStrings.MESSAGES.ANONYMOUS_ACCESS_SETTINGS_SAVED_SUCCESSFULLY
+              : AnonymousStrings.MESSAGES.ANONYMOUS_ACCESS_DISABLED;
           toast.success(message);
 
           if (onSave) {
             await onSave(ctx.data);
           }
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },

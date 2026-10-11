@@ -6,6 +6,7 @@ import { clearDirtyState, useToast } from '../../../../shared';
 import { createCrowdSettingsMachine, CrowdMachineContext, CrowdValidationErrors } from './crowdSettingsMachine';
 import { CrowdConfig } from './types';
 import { fetchCrowdConfig, saveCrowdConfig, verifyCrowdConnection, clearCrowdCache } from './crowdApi';
+import CrowdStrings from '../../../../constants/pages/settings/security/CrowdStrings';
 
 export interface UseCrowdSettingsResult {
   config: CrowdConfig;
@@ -45,15 +46,15 @@ export function useCrowdSettings(): UseCrowdSettingsResult {
       save: async (ctx: CrowdMachineContext) => {
         await saveCrowdConfig(ctx.data);
         clearDirtyState('crowd-form');
-        toast.success('Atlassian Crowd settings updated');
+        toast.success(CrowdStrings.MESSAGES.ATLASSIAN_CROWD_SETTINGS_UPDATED);
       },
       verifyConnection: async (ctx: CrowdMachineContext) => {
         await verifyCrowdConnection(ctx.data);
-        toast.success('Connection to Crowd server verified');
+        toast.success(CrowdStrings.MESSAGES.CONNECTION_CROWD_SERVER_VERIFIED);
       },
       clearCache: async () => {
         await clearCrowdCache();
-        toast.success('Crowd cache has been cleared');
+        toast.success(CrowdStrings.MESSAGES.CROWD_CACHE_HAS_BEEN_CLEARED);
       },
     },
   });

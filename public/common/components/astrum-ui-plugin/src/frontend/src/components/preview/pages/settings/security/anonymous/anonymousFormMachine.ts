@@ -5,6 +5,7 @@ import { APIConstants } from '../../../../../../constants/APIConstants';
 import { createFormMachine, type FormContext, type ValidationErrors } from '../../../../../../interface/form';
 import { restClient } from '../../../../../../interface/api';
 import { AnonymousSettings, RealmType, DEFAULT_ANONYMOUS_SETTINGS } from './types';
+import AnonymousStrings from '../../../../constants/pages/settings/security/AnonymousStrings';
 
 const { REST } = APIConstants;
 
@@ -28,11 +29,11 @@ function validateAnonymous(data: AnonymousFormData): ValidationErrors {
   const errors: ValidationErrors = {};
 
   if (!data.userId?.trim()) {
-    errors.userId = 'Username is required';
+    errors.userId = AnonymousStrings.VALIDATION.USERNAME_REQUIRED;
   }
 
   if (!data.realmName?.trim()) {
-    errors.realmName = 'Realm is required';
+    errors.realmName = AnonymousStrings.VALIDATION.REALM_REQUIRED;
   }
 
   return errors;

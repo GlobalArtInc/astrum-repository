@@ -15,6 +15,7 @@ import React from 'react';
 import { Badge, Box, Flex, Text, Button, Card } from '@radix-ui/themes';
 import { isFeatureEnabled } from '../../config/featureFlags';
 import type { SettingCard } from './types';
+import SettingsStrings from '../../constants/pages/settings/SettingsStrings';
 
 export interface SettingsCardProps {
   card: SettingCard;
@@ -34,7 +35,7 @@ export default function SettingsCard({ card }: SettingsCardProps) {
                 <Text size="2" weight="medium">{card.label}</Text>
                 {isComingSoon && (
                   <Badge color="blue" size="1" variant="soft">
-                    Coming Soon
+                    {SettingsStrings.CARD.COMING_SOON}
                   </Badge>
                 )}
               </Flex>
@@ -42,7 +43,7 @@ export default function SettingsCard({ card }: SettingsCardProps) {
                 {card.description}
               </Text>
             </Box>
-            <Button variant="surface" size="1">View</Button>
+            <Button variant="surface" size="1">{SettingsStrings.CARD.VIEW}</Button>
           </Flex>
         </Box>
       </a>

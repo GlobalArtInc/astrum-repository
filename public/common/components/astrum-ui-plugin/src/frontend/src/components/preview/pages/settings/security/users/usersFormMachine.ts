@@ -12,6 +12,7 @@ import {
   RestUser,
   restToUser,
 } from './types';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
 
 /**
  * Guard: check if event value represents a local source
@@ -52,9 +53,9 @@ async function findUser(userId: string, source: string): Promise<User | null> {
  * Validate email format
  */
 function validateEmail(email: string): string | undefined {
-  if (!email) return 'Email is required';
+  if (!email) return UsersStrings.FORM_MACHINE.EMAIL_REQUIRED;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) return 'Invalid email format';
+  if (!emailRegex.test(email)) return UsersStrings.FORM_MACHINE.INVALID_EMAIL_FORMAT;
   return undefined;
 }
 
@@ -73,14 +74,14 @@ function validatePassword(
 
   if (required || password || passwordConfirm) {
     if (!password) {
-      errors.password = 'Password is required';
+      errors.password = UsersStrings.FORM_MACHINE.PASSWORD_REQUIRED;
     } else if (password.length < MIN_PASSWORD_LENGTH) {
-      errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+      errors.password = UsersStrings.FORM_MACHINE.PASSWORD_MUST_LEAST_CHARACTERS(MIN_PASSWORD_LENGTH);
     }
     if (!passwordConfirm) {
-      errors.passwordConfirm = 'Please confirm your password';
+      errors.passwordConfirm = UsersStrings.FORM_MACHINE.PLEASE_CONFIRM_PASSWORD;
     } else if (password && password !== passwordConfirm) {
-      errors.passwordConfirm = 'Passwords do not match';
+      errors.passwordConfirm = UsersStrings.FORM_MACHINE.PASSWORDS_DO_NOT_MATCH;
     }
   }
 
@@ -100,18 +101,18 @@ function validateUser(
   const errors: ValidationErrors = {};
 
   if (!data.userId?.trim()) {
-    errors.userId = 'User ID is required';
+    errors.userId = UsersStrings.FORM_MACHINE.USER_ID_REQUIRED;
   }
 
   if (!isExternal) {
     if (!data.firstName?.trim()) {
-      errors.firstName = 'First name is required';
+      errors.firstName = UsersStrings.FORM_MACHINE.FIRST_NAME_REQUIRED;
     }
     if (!data.lastName?.trim()) {
-      errors.lastName = 'Last name is required';
+      errors.lastName = UsersStrings.FORM_MACHINE.LAST_NAME_REQUIRED;
     }
     if (!data.emailAddress?.trim()) {
-      errors.emailAddress = 'Email is required';
+      errors.emailAddress = UsersStrings.FORM_MACHINE.EMAIL_REQUIRED;
     } else {
       const emailError = validateEmail(data.emailAddress);
       if (emailError && emailError !== 'Email is required') {
@@ -130,7 +131,7 @@ function validateUser(
   }
 
   if (data.roles.length === 0) {
-    errors.roles = 'At least one role must be assigned';
+    errors.roles = UsersStrings.FORM_MACHINE.LEAST_ONE_ROLE_MUST_ASSIGNED;
   }
 
   return errors;
@@ -360,7 +361,7 @@ export function createUsersFormMachine(
       states: {
         local: {
           meta: {
-            typeLabel: 'Local',
+            typeLabel: UsersStrings.FORM_MACHINE.LOCAL,
             fields: [
               'userId',
               'firstName',
@@ -381,44 +382,44 @@ export function createUsersFormMachine(
               userId: {
                 label: 'ID',
                 type: 'text',
-                helpText: 'This will be used as the username',
+                helpText: UsersStrings.FORM_MACHINE.USED_USERNAME,
               },
-              firstName: { label: 'First Name', type: 'text' },
-              lastName: { label: 'Last Name', type: 'text' },
+              firstName: { label: UsersStrings.FORM_MACHINE.FIRST_NAME, type: 'text' },
+              lastName: { label: UsersStrings.FORM_MACHINE.LAST_NAME, type: 'text' },
               emailAddress: {
-                label: 'Email',
+                label: UsersStrings.FORM_MACHINE.EMAIL,
                 type: 'email',
-                helpText: 'Used for notifications',
+                helpText: UsersStrings.FORM_MACHINE.USED_NOTIFICATIONS,
               },
-              password: { label: 'Password', type: 'password' },
-              passwordConfirm: { label: 'Confirm Password', type: 'password' },
+              password: { label: UsersStrings.FORM_MACHINE.PASSWORD, type: 'password' },
+              passwordConfirm: { label: UsersStrings.FORM_MACHINE.CONFIRM_PASSWORD, type: 'password' },
               status: {
-                label: 'Active',
+                label: UsersStrings.FORM_MACHINE.ACTIVE,
                 type: 'checkbox',
-                description: 'User account is enabled',
+                description: UsersStrings.FORM_MACHINE.USER_ACCOUNT_ENABLED,
               },
-              roles: { label: 'Roles', type: 'transferList' },
+              roles: { label: UsersStrings.FORM_MACHINE.ROLES, type: 'transferList' },
             },
           },
         },
         external: {
           meta: {
-            typeLabel: 'External',
+            typeLabel: UsersStrings.FORM_MACHINE.EXTERNAL,
             fields: ['userId', 'status', 'roles'],
             requiredFields: ['userId'],
             fieldConfig: {
               userId: {
                 label: 'ID',
                 type: 'text',
-                helpText: 'External user identifier',
+                helpText: UsersStrings.FORM_MACHINE.EXTERNAL_USER_IDENTIFIER,
                 disabled: true,
               },
               status: {
-                label: 'Active',
+                label: UsersStrings.FORM_MACHINE.ACTIVE,
                 type: 'checkbox',
-                description: 'User account is enabled',
+                description: UsersStrings.FORM_MACHINE.USER_ACCOUNT_ENABLED,
               },
-              roles: { label: 'Roles', type: 'transferList' },
+              roles: { label: UsersStrings.FORM_MACHINE.ROLES, type: 'transferList' },
             },
           },
         },

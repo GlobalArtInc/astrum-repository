@@ -7,6 +7,8 @@ import { LoadingState, ErrorState, EntityTable, TableColumn } from '../../../../
 import { useUsersApi } from '../../security/users/useUsersApi';
 import { User } from '../../security/users/types';
 import { fetchAllUsersAcrossSources } from '../../system/api/hooks/securityDirectoryCache';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface RoleAssignedUsersProps {
   roleId: string;
@@ -33,7 +35,7 @@ export function RoleAssignedUsers({ roleId }: RoleAssignedUsersProps) {
       );
       setUsers(assignedUsers);
     } catch (err: any) {
-      setError(err.message || 'Failed to load assigned users');
+      setError(err.message || RolesStrings.ASSIGNED_USERS.FAILED_LOAD_ASSIGNED_USERS);
     } finally {
       setLoading(false);
     }
@@ -46,7 +48,7 @@ export function RoleAssignedUsers({ roleId }: RoleAssignedUsersProps) {
   const columns: TableColumn<User>[] = useMemo(() => [
     {
       id: 'userId',
-      header: 'User ID',
+      header: RolesStrings.ASSIGNED_USERS.USER_ID,
       accessor: (user) => (
         <Flex align="center" gap="2">
           <UserIcon size={16} color="var(--blue-9)" />
@@ -57,25 +59,25 @@ export function RoleAssignedUsers({ roleId }: RoleAssignedUsersProps) {
     },
     {
       id: 'name',
-      header: 'Name',
+      header: CommonStrings.LABELS.NAME,
       accessor: (user) => `${user.firstName} ${user.lastName}`,
       sortable: true,
     },
     {
       id: 'email',
-      header: 'Email',
+      header: RolesStrings.ASSIGNED_USERS.EMAIL,
       accessor: (user) => user.emailAddress || '—',
       sortable: true,
     },
     {
       id: 'source',
-      header: 'Source',
+      header: RolesStrings.ASSIGNED_USERS.SOURCE,
       accessor: (user) => user.source,
       sortable: true,
     }
   ], []);
 
-  if (loading) return <LoadingState message="Checking assigned users..." />;
+  if (loading) return <LoadingState message={RolesStrings.ASSIGNED_USERS.CHECKING_ASSIGNED_USERS} />;
   if (error) return <ErrorState message={error} onRetry={loadUsers} />;
 
   return (
@@ -85,7 +87,7 @@ export function RoleAssignedUsers({ roleId }: RoleAssignedUsersProps) {
           <Info size={16} />
         </Callout.Icon>
         <Callout.Text>
-          Showing users who are directly assigned the role <strong>{roleId}</strong>.
+          {RolesStrings.ASSIGNED_USERS.SHOWING_DIRECT_USERS(<strong>{roleId}</strong>)}
         </Callout.Text>
       </Callout.Root>
 
@@ -94,7 +96,7 @@ export function RoleAssignedUsers({ roleId }: RoleAssignedUsersProps) {
           data={users}
           columns={columns}
           getRowKey={(user) => user.userId}
-          ariaLabel="Assigned users list"
+          ariaLabel={RolesStrings.ASSIGNED_USERS.ASSIGNED_USERS_LIST_ARIA}
         />
       ) : (
         <Flex 
@@ -104,7 +106,7 @@ export function RoleAssignedUsers({ roleId }: RoleAssignedUsersProps) {
           p="6" 
           style={{ background: 'var(--gray-2)', borderRadius: 'var(--radius-3)' }}
         >
-          <Text color="gray" size="2">No users are currently assigned this role.</Text>
+          <Text color="gray" size="2">{RolesStrings.ASSIGNED_USERS.NO_USERS_CURRENTLY_ASSIGNED_ROLE}</Text>
         </Flex>
       )}
     </Box>

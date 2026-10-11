@@ -6,6 +6,8 @@ import { useToast } from '../../../../shared';
 import { createSslFormMachine, SslFormData } from './sslFormMachine';
 import { CertificateSource, SslCertificate, CERTIFICATE_SOURCES } from './types';
 import { useSslCertificatesApi } from './useSslCertificatesApi';
+import SslCertificatesStrings from '../../../../constants/pages/settings/security/SslCertificatesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * Options for useSslForm hook
@@ -60,21 +62,21 @@ export function useSslForm({ onSave, onCancel }: UseSslFormOptions) {
             : certDetails?.pem || '';
 
           if (!pemContent) {
-            throw new Error('Certificate PEM content is required');
+            throw new Error(SslCertificatesStrings.MESSAGES.CERTIFICATE_PEM_CONTENT_REQUIRED);
           }
 
           if (certDetails?.inTrustStore) {
-            throw new Error('This certificate already exists in the trust store');
+            throw new Error(SslCertificatesStrings.MESSAGES.CERTIFICATE_ALREADY_EXISTS_TRUST_STORE);
           }
 
           await addCertificate(pemContent);
-          toast.success('Certificate added to trust store successfully');
+          toast.success(SslCertificatesStrings.MESSAGES.CERTIFICATE_ADDED_TRUST_STORE_SUCCESSFULLY);
 
           if (onSave) {
             onSave();
           }
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },

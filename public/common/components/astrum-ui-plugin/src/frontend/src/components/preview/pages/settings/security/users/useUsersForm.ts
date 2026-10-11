@@ -18,6 +18,8 @@ import {
   isExternalUser,
   getFullName,
 } from './types';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface UseUsersFormOptions {
   userId?: string;
@@ -136,24 +138,24 @@ export function useUsersForm(
 
           if (isCreate) {
             await createUser(ctx.data);
-            toast.success(`User "${ctx.data.userId}" created successfully`);
+            toast.success(UsersStrings.MESSAGES.USER_CREATED_SUCCESSFULLY(ctx.data.userId));
           } else if (userToUpdate) {
             const source = userToUpdate.source || userSource;
             await updateUser(userToUpdate.userId, ctx.data, source);
             if (ctx.data.password) {
               await changePassword(userToUpdate.userId, ctx.data.password);
             }
-            toast.success(`User "${ctx.data.userId}" updated successfully`);
+            toast.success(UsersStrings.MESSAGES.USER_UPDATED_SUCCESSFULLY(ctx.data.userId));
           } else if (ctx.data?.userId) {
             const source = ctx.data.source || userSource;
             await updateUser(ctx.data.userId, ctx.data, source);
             if (ctx.data.password) {
               await changePassword(ctx.data.userId, ctx.data.password);
             }
-            toast.success(`User "${ctx.data.userId}" updated successfully`);
+            toast.success(UsersStrings.MESSAGES.USER_UPDATED_SUCCESSFULLY(ctx.data.userId));
           } else {
             throw new Error(
-              'User data not loaded. Please go back and try again.',
+              UsersStrings.MESSAGES.USER_DATA_NOT_LOADED_PLEASE,
             );
           }
 
@@ -162,7 +164,7 @@ export function useUsersForm(
           }
           onCancel();
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },
@@ -280,13 +282,13 @@ export function useUsersForm(
         } as any);
         toast.success(
           active
-            ? `User "${currentUser.userId}" activated`
-            : `User "${currentUser.userId}" deactivated`,
+            ? UsersStrings.MESSAGES.USER_ACTIVATED(currentUser.userId)
+            : UsersStrings.MESSAGES.USER_DEACTIVATED(currentUser.userId),
         );
         onStatusChanged?.(active);
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : 'Status update failed',
+          err instanceof Error ? err.message : UsersStrings.MESSAGES.STATUS_UPDATE_FAILED,
         );
       } finally {
         togglingRef.current = false;
@@ -306,10 +308,10 @@ export function useUsersForm(
         currentUser.realm || currentUser.source,
       );
       toast.success(
-        `User token has been reset for ${getFullName(currentUser)}`,
+        UsersStrings.MESSAGES.USER_TOKEN_HAS_BEEN_RESET(getFullName(currentUser)),
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'User token reset failed');
+      toast.error(err instanceof Error ? err.message : UsersStrings.MESSAGES.USER_TOKEN_RESET_FAILED);
     } finally {
       setIsResettingToken(false);
     }

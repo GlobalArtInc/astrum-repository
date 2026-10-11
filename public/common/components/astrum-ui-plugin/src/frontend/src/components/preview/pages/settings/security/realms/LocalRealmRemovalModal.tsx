@@ -7,8 +7,10 @@ import { AlertTriangle, X, ExternalLink } from 'lucide-react';
 import { SettingsButton } from '../../../../shared/form';
 
 import './LocalRealmRemovalModal.scss';
+import RealmsStrings from '../../../../constants/pages/settings/security/RealmsStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
-const ACKNOWLEDGEMENT_STRING = 'I acknowledge';
+const ACKNOWLEDGEMENT_STRING = RealmsStrings.LOCAL_REALM_REMOVAL.I_ACKNOWLEDGE;
 
 export interface LocalRealmRemovalModalProps {
   open: boolean;
@@ -61,7 +63,7 @@ export function LocalRealmRemovalModal({ open, onClose, onConfirm }: LocalRealmR
             <Flex align="center" gap="2" className="local-realm-removal-modal__header">
               <AlertTriangle size={20} className="local-realm-removal-modal__icon" />
               <Heading as="h2" size="4" weight="medium">
-                Confirm Removal of Local Realms
+                {RealmsStrings.LOCAL_REALM_REMOVAL.CONFIRM_REMOVAL_LOCAL_REALMS}
               </Heading>
             </Flex>
           </Dialog.Title>
@@ -69,7 +71,7 @@ export function LocalRealmRemovalModal({ open, onClose, onConfirm }: LocalRealmR
           <Dialog.Close asChild>
             <button
               className="local-realm-removal-modal__close"
-              aria-label="Close"
+              aria-label={CommonStrings.ACTIONS.CLOSE}
               type="button"
             >
               <X size={16} />
@@ -80,28 +82,27 @@ export function LocalRealmRemovalModal({ open, onClose, onConfirm }: LocalRealmR
             <Box className="local-realm-removal-modal__warning" id="modal-description">
               <AlertTriangle size={16} />
               <Text size="2">
-                Warning! Removing local realms will prevent local admin access.
-                This can make system recovery more difficult should there be issues with
-                other authentication realms. For more information, see the{' '}
-                <a
-                  href="http://links.globalart.dev/products/astrum/docs/realms"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="local-realm-removal-modal__link"
-                >
-                  Realms help documentation
-                  <ExternalLink size={12} />
-                </a>
+                {RealmsStrings.LOCAL_REALM_REMOVAL.WARNING(
+                  <a
+                    href="http://links.globalart.dev/products/astrum/docs/realms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="local-realm-removal-modal__link"
+                  >
+                    {RealmsStrings.LOCAL_REALM_REMOVAL.HELP_LINK}
+                    <ExternalLink size={12} />
+                  </a>
+                )}
               </Text>
             </Box>
 
             <Box className="local-realm-removal-modal__form-group">
               <label htmlFor="acknowledgement-input" className="local-realm-removal-modal__label">
-                <Text size="2" weight="medium">Acknowledgement</Text>
+                <Text size="2" weight="medium">{RealmsStrings.LOCAL_REALM_REMOVAL.ACKNOWLEDGEMENT}</Text>
                 <Text size="1" className="local-realm-removal-modal__required">*</Text>
               </label>
               <Text size="1" className="local-realm-removal-modal__sublabel">
-                Type "{ACKNOWLEDGEMENT_STRING}" in order to proceed with this action
+                {RealmsStrings.LOCAL_REALM_REMOVAL.TYPE_ORDER_PROCEED_ACTION(ACKNOWLEDGEMENT_STRING)}
               </Text>
               <input
                 ref={inputRef}
@@ -110,13 +111,13 @@ export function LocalRealmRemovalModal({ open, onClose, onConfirm }: LocalRealmR
                 value={acknowledgement}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Provide acknowledgement"
+                placeholder={RealmsStrings.LOCAL_REALM_REMOVAL.PROVIDE_ACKNOWLEDGEMENT_PLACEHOLDER}
                 className={`local-realm-removal-modal__input ${acknowledgement && !isValid ? 'local-realm-removal-modal__input--invalid' : ''}`}
                 data-testid="acknowledgement-input"
               />
               {acknowledgement && !isValid && (
                 <Text size="1" className="local-realm-removal-modal__error">
-                  Invalid acknowledgement
+                  {RealmsStrings.LOCAL_REALM_REMOVAL.INVALID_ACKNOWLEDGEMENT}
                 </Text>
               )}
             </Box>
@@ -124,7 +125,7 @@ export function LocalRealmRemovalModal({ open, onClose, onConfirm }: LocalRealmR
 
           <Flex gap="2" justify="end" className="local-realm-removal-modal__footer">
             <SettingsButton variant="secondary" onClick={onClose} data-testid="cancel-button">
-              Cancel
+              {CommonStrings.ACTIONS.CANCEL}
             </SettingsButton>
             <SettingsButton
               variant="danger"
@@ -132,7 +133,7 @@ export function LocalRealmRemovalModal({ open, onClose, onConfirm }: LocalRealmR
               disabled={!isValid}
               data-testid="confirm-button"
             >
-              Confirm
+              {CommonStrings.ACTIONS.CONFIRM}
             </SettingsButton>
           </Flex>
         </Dialog.Content>

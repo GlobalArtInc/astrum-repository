@@ -9,6 +9,8 @@ import { SettingsButton, SettingsTransferList } from '../../../../shared/form';
 import { RolesSelectionModalProps } from './types';
 
 import './RolesSelectionModal.scss';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * RolesSelectionModal - Modal for selecting roles to nest within another role
@@ -68,10 +70,10 @@ export function RolesSelectionModal({
         <Dialog.Content className="roles-modal__content">
           <Flex justify="between" align="center" className="roles-modal__header">
             <Dialog.Title asChild>
-              <Heading size="5">Select Contained Roles</Heading>
+              <Heading size="5">{RolesStrings.ROLES_MODAL.SELECT_CONTAINED_ROLES}</Heading>
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button type="button" className="roles-modal__close" aria-label="Close">
+              <button type="button" className="roles-modal__close" aria-label={CommonStrings.ACTIONS.CLOSE}>
                 <X size={18} />
               </button>
             </Dialog.Close>
@@ -79,7 +81,7 @@ export function RolesSelectionModal({
 
           <Dialog.Description className="roles-modal__description">
             <Text size="2">
-              Select roles to contain within this role. Their privileges will be inherited.
+              {RolesStrings.ROLES_MODAL.SELECT_ROLES_CONTAIN_WITHIN_ROLE}
             </Text>
           </Dialog.Description>
 
@@ -87,7 +89,7 @@ export function RolesSelectionModal({
             {loading ? (
               <Flex align="center" justify="center" className="roles-modal__loading">
                 <Loader2 size={24} className="roles-modal__spinner" />
-                <Text size="2">Loading roles...</Text>
+                <Text size="2">{RolesStrings.ROLES_MODAL.LOADING_ROLES}</Text>
               </Flex>
             ) : (
               <SettingsTransferList
@@ -95,8 +97,8 @@ export function RolesSelectionModal({
                 availableItems={availableItems}
                 selectedItems={selectedItems}
                 onChange={handleChange}
-                availableLabel="Available Roles"
-                selectedLabel="Contained Roles"
+                availableLabel={RolesStrings.ROLES_MODAL.AVAILABLE_ROLES}
+                selectedLabel={RolesStrings.ROLES_MODAL.CONTAINED_ROLES}
                 getItemId={(item) => item.id}
                 getItemLabel={(item) => item.name}
               />
@@ -105,10 +107,10 @@ export function RolesSelectionModal({
 
           <Flex justify="end" gap="3" className="roles-modal__footer">
             <SettingsButton variant="secondary" onClick={handleCancel}>
-              Cancel
+              {CommonStrings.ACTIONS.CANCEL}
             </SettingsButton>
             <SettingsButton variant="primary" onClick={handleSave} disabled={loading}>
-              Apply Selection
+              {RolesStrings.ROLES_MODAL.APPLY_SELECTION}
             </SettingsButton>
           </Flex>
         </Dialog.Content>

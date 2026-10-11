@@ -1,3 +1,4 @@
+import UserTokensStrings from '../../../../constants/pages/settings/security/UserTokensStrings';
 
 
 /**
@@ -24,4 +25,4 @@ export const DEFAULT_USER_TOKEN_SETTINGS: UserTokenSettings = {
  * Confirmation string required for reset all tokens
  * Must be typed exactly to confirm the reset action
  */
-export const RESET_CONFIRMATION_STRING = 'Reset all tokens';
+export const RESET_CONFIRMATION_STRING = UserTokensStrings.TYPES.RESET_ALL_TOKENS;

@@ -17,6 +17,8 @@ import {
 } from './types';
 
 import './PrivilegeDetail.scss';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * PrivilegeDetail - Detailed view and edit form for a single privilege
@@ -41,7 +43,7 @@ export function PrivilegeDetail({
     return (
       <Flex align="center" justify="center" className="privilege-detail__loading">
         <Loader2 size={24} className="privilege-detail__spinner" />
-        <Text size="2">Loading privilege details...</Text>
+        <Text size="2">{PrivilegesStrings.DETAIL.LOADING_PRIVILEGE_DETAILS}</Text>
       </Flex>
     );
   }
@@ -51,7 +53,7 @@ export function PrivilegeDetail({
     return (
       <Box className="privilege-detail__not-found">
         <AlertTriangle size={24} />
-        <Text size="2">Privilege not found</Text>
+        <Text size="2">{PrivilegesStrings.DETAIL.PRIVILEGE_NOT_FOUND}</Text>
       </Box>
     );
   }
@@ -63,30 +65,30 @@ export function PrivilegeDetail({
         {isReadOnly && (
           <Box className="privilege-detail__readonly-banner">
             <SettingsAlert type="info">
-              This privilege is read-only and cannot be modified.
+              {PrivilegesStrings.DETAIL.PRIVILEGE_READ_ONLY_CANNOT_MODIFIED}
             </SettingsAlert>
           </Box>
         )}
 
-        <SettingsFormSection title="Privilege Information" defaultOpen>
+        <SettingsFormSection title={PrivilegesStrings.DETAIL.PRIVILEGE_INFORMATION} defaultOpen>
           <Box className="privilege-detail__info">
             <Flex className="privilege-detail__row">
-              <Text size="2" weight="medium" className="privilege-detail__label">Name</Text>
+              <Text size="2" weight="medium" className="privilege-detail__label">{CommonStrings.LABELS.NAME}</Text>
               <Text size="2">{privilege.name}</Text>
             </Flex>
             <Flex className="privilege-detail__row">
-              <Text size="2" weight="medium" className="privilege-detail__label">Description</Text>
+              <Text size="2" weight="medium" className="privilege-detail__label">{CommonStrings.LABELS.DESCRIPTION}</Text>
               <Text size="2">{privilege.description || '-'}</Text>
             </Flex>
             <Flex className="privilege-detail__row">
-              <Text size="2" weight="medium" className="privilege-detail__label">Permission</Text>
+              <Text size="2" weight="medium" className="privilege-detail__label">{PrivilegesStrings.DETAIL.PERMISSION}</Text>
               <code className="privilege-detail__permission">{privilege.permission}</code>
             </Flex>
           </Box>
         </SettingsFormSection>
 
         {privilege.properties && Object.keys(privilege.properties).length > 0 && (
-          <SettingsFormSection title="Properties">
+          <SettingsFormSection title={PrivilegesStrings.DETAIL.PROPERTIES}>
             <Box className="privilege-detail__properties">
               {Object.entries(privilege.properties).map(([key, value]) => (
                 <Flex key={key} className="privilege-detail__row">
@@ -102,7 +104,7 @@ export function PrivilegeDetail({
 
         <Flex gap="3" className="privilege-detail__actions">
           <SettingsButton variant="secondary" onClick={onCancel}>
-            Back to List
+            {CommonStrings.ACTIONS.BACK_TO_LIST}
           </SettingsButton>
         </Flex>
       </Box>

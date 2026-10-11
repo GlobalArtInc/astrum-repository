@@ -25,6 +25,8 @@ import {
 } from './types';
 
 import './SslCertificatesList.scss';
+import SslCertificatesStrings from '../../../../constants/pages/settings/security/SslCertificatesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * SslCertificatesList - Displays SSL certificates in a searchable, sortable table
@@ -139,7 +141,7 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
           <Search size={16} className="ssl-certificates-list__search-icon" />
           <input
             type="text"
-            placeholder="Filter by name, organization, or fingerprint"
+            placeholder={SslCertificatesStrings.LIST.FILTER_NAME_ORGANIZATION_FINGERPRINT_PLACEHOLDER}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="ssl-certificates-list__search-input"
@@ -159,14 +161,14 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
       {loading && (
         <Flex role="status" align="center" justify="center" className="ssl-certificates-list__loading">
           <Loader2 size={24} className="ssl-certificates-list__spinner" />
-          <Text size="2">Loading certificates...</Text>
+          <Text size="2">{SslCertificatesStrings.LIST.LOADING_CERTIFICATES}</Text>
         </Flex>
       )}
 
       {/* Empty State */}
       {!(loading || error ) && sortedCertificates.length === 0 && (
         <Box className="ssl-certificates-list__empty">
-          <Text size="2">There are no SSL Certificates available</Text>
+          <Text size="2">{SslCertificatesStrings.LIST.THERE_NO_SSL_CERTIFICATES_AVAILABLE}</Text>
         </Box>
       )}
 
@@ -179,7 +181,7 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
                 <th aria-sort={ariaSortFor('subjectCommonName')} className="ssl-certificates-list__th ssl-certificates-list__th--sortable">
                   <button type="button" onClick={() => handleSort('subjectCommonName')} className="ssl-certificates-list__sort-button">
                     <Flex align="center" gap="1">
-                      Name
+                      {CommonStrings.LABELS.NAME}
                       {renderSortIcon('subjectCommonName')}
                     </Flex>
                   </button>
@@ -187,7 +189,7 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
                 <th aria-sort={ariaSortFor('subjectOrganization')} className="ssl-certificates-list__th ssl-certificates-list__th--sortable">
                   <button type="button" onClick={() => handleSort('subjectOrganization')} className="ssl-certificates-list__sort-button">
                     <Flex align="center" gap="1">
-                      Issued To
+                      {SslCertificatesStrings.LIST.ISSUED_TO}
                       {renderSortIcon('subjectOrganization')}
                     </Flex>
                   </button>
@@ -195,7 +197,7 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
                 <th aria-sort={ariaSortFor('issuerOrganization')} className="ssl-certificates-list__th ssl-certificates-list__th--sortable">
                   <button type="button" onClick={() => handleSort('issuerOrganization')} className="ssl-certificates-list__sort-button">
                     <Flex align="center" gap="1">
-                      Issued By
+                      {SslCertificatesStrings.LIST.ISSUED_BY}
                       {renderSortIcon('issuerOrganization')}
                     </Flex>
                   </button>
@@ -203,7 +205,7 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
                 <th aria-sort={ariaSortFor('fingerprint')} className="ssl-certificates-list__th ssl-certificates-list__th--sortable">
                   <button type="button" onClick={() => handleSort('fingerprint')} className="ssl-certificates-list__sort-button">
                     <Flex align="center" gap="1">
-                      Fingerprint
+                      {SslCertificatesStrings.LIST.FINGERPRINT}
                       {renderSortIcon('fingerprint')}
                     </Flex>
                   </button>
@@ -242,7 +244,7 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
                       <button
                         type="button"
                         className="ssl-certificates-list__row-edit-button"
-                        aria-label={`View certificate ${certificate.subjectCommonName}`}
+                        aria-label={SslCertificatesStrings.LIST.VIEW_CERTIFICATE(certificate.subjectCommonName)}
                         onClick={(event) => {
                           event.stopPropagation();
                           handleRowClick(certificate);
@@ -263,24 +265,20 @@ export function SslCertificatesList({ onSelect, onCreate }: SslCertificatesListP
       <Box className="ssl-certificates-list__help">
         <Flex align="center" gap="2" className="ssl-certificates-list__help-header">
           <Info size={16} />
-          <Text size="2" weight="medium">What is SSL?</Text>
+          <Text size="2" weight="medium">{SslCertificatesStrings.LIST.WHAT_SSL}</Text>
         </Flex>
         <Text size="2" className="ssl-certificates-list__help-text">
-          Using Secure Socket Layer (SSL) communication with the repository manager is an important security feature
-          and a recommended best practice. Secure communication can be inbound or outbound. Outbound client
-          communication may include integration with: proxy repository, email servers, LDAPS servers. Inbound client
-          communication includes: web browser HTTPS access, tool access to repository content, usage of REST APIs.
-          See our{' '}
-          <a 
-            href="http://links.globalart.dev/products/astrum/docs/ssl-certificate" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="ssl-certificates-list__help-link"
-          >
-            documentation
-            <ExternalLink size={12} />
-          </a>
-          {' '}for more information.
+          {SslCertificatesStrings.LIST.HELP_TEXT(
+            <a
+              href="http://links.globalart.dev/products/astrum/docs/ssl-certificate"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ssl-certificates-list__help-link"
+            >
+              {SslCertificatesStrings.LIST.DOCUMENTATION_LINK}
+              <ExternalLink size={12} />
+            </a>
+          )}
         </Text>
       </Box>
     </Box>

@@ -23,6 +23,8 @@ import { useRolesApi } from './useRolesApi';
 import { Role } from './types';
 
 import './RoleProfilePage.scss';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface RoleProfilePageProps {
   roleName: string;
@@ -61,7 +63,7 @@ export function RoleProfilePage({ roleName, onBack, embedMode = false }: RolePro
         const data = await findRole(roleName);
         setRole(data);
       } catch (err: any) {
-        setRoleError(err.message || 'Failed to load role');
+        setRoleError(err.message || RolesStrings.PROFILE.FAILED_LOAD_ROLE);
       } finally {
         setRoleLoading(false);
       }
@@ -70,9 +72,9 @@ export function RoleProfilePage({ roleName, onBack, embedMode = false }: RolePro
     loadRole();
   }, [roleName, findRole]);
 
-  if (roleLoading) return <LoadingState message="Loading role profile..." />;
+  if (roleLoading) return <LoadingState message={RolesStrings.PROFILE.LOADING_ROLE_PROFILE} />;
   if (roleError) return <ErrorState message={roleError} onRetry={() => window.location.reload()} />;
-  if (!role) return <ErrorState message="Role not found" />;
+  if (!role) return <ErrorState message={RolesStrings.PROFILE.ROLE_NOT_FOUND} />;
 
   return (
     <Box className="role-profile-page">
@@ -81,32 +83,32 @@ export function RoleProfilePage({ roleName, onBack, embedMode = false }: RolePro
           <Tabs.Trigger value="overview">
             <Flex align="center" gap="1">
               <Info size={14} />
-              <Text size="2">Overview</Text>
+              <Text size="2">{RolesStrings.PROFILE.OVERVIEW}</Text>
             </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="explorer">
             <Flex align="center" gap="1">
               <Shield size={14} />
-              <Text size="2">Security Tree</Text>
+              <Text size="2">{RolesStrings.PROFILE.SECURITY_TREE}</Text>
             </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="effective">
             <Flex align="center" gap="1">
               <Key size={14} />
-              <Text size="2">Effective Permissions</Text>
+              <Text size="2">{RolesStrings.PROFILE.EFFECTIVE_PERMISSIONS}</Text>
             </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="users">
             <Flex align="center" gap="1">
               <Users size={14} />
-              <Text size="2">Assigned Users</Text>
+              <Text size="2">{RolesStrings.PROFILE.ASSIGNED_USERS}</Text>
             </Flex>
           </Tabs.Trigger>
         </Tabs.List>
 
         <Box pt="4" className="role-profile-page__content">
           <Tabs.Content value="overview">
-            <SettingsFormSection title="Role Metadata" defaultOpen>
+            <SettingsFormSection title={RolesStrings.PROFILE.ROLE_METADATA} defaultOpen>
               <MetadataGrid
                 items={[
                   {
@@ -117,8 +119,8 @@ export function RoleProfilePage({ roleName, onBack, embedMode = false }: RolePro
                       </Text>
                     ),
                   },
-                  { label: 'Name', value: role.name },
-                  { label: 'Description', value: role.description },
+                  { label: CommonStrings.LABELS.NAME, value: role.name },
+                  { label: CommonStrings.LABELS.DESCRIPTION, value: role.description },
                 ]}
               />
             </SettingsFormSection>

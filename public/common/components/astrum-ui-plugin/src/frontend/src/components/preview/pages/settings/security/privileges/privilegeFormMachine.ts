@@ -3,6 +3,8 @@
 import { assign } from 'xstate';
 import { API_INTERNAL_UI, ENDPOINTS, restClient } from '../../../../../../interface/api';
 import { createFormMachine, type FormContext, type ValidationErrors } from '../../../../../../interface/form';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * Guard factory: creates a guard that checks if a TYPE_CHANGE event targets a specific type,
@@ -35,28 +37,28 @@ function validatePrivilege(data: PrivilegeFormData): ValidationErrors {
   const errors: ValidationErrors = {};
 
   if (!data.name?.trim()) {
-    errors.name = 'Privilege name is required';
+    errors.name = PrivilegesStrings.FORM_MACHINE.PRIVILEGE_NAME_REQUIRED;
   } else if (!/^[a-zA-Z0-9_-]+$/.test(data.name)) {
-    errors.name = 'Name can only contain letters, numbers, underscores, and hyphens';
+    errors.name = PrivilegesStrings.FORM_MACHINE.NAME_CAN_ONLY_CONTAIN_LETTERS;
   }
 
   if (!data.type) {
-    errors.type = 'Privilege type is required';
+    errors.type = PrivilegesStrings.FORM_MACHINE.PRIVILEGE_TYPE_REQUIRED;
   }
 
   // Type-specific validation using nested property paths
   if (data.type === PRIVILEGE_TYPES.WILDCARD) {
     if (!data.properties?.pattern?.trim()) {
-      errors['properties.pattern'] = 'Pattern is required for wildcard privileges';
+      errors['properties.pattern'] = PrivilegesStrings.FORM_MACHINE.PATTERN_REQUIRED_WILDCARD_PRIVILEGES;
     }
   }
 
   if (data.type === PRIVILEGE_TYPES.APPLICATION) {
     if (!data.properties?.domain?.trim()) {
-      errors['properties.domain'] = 'Domain is required';
+      errors['properties.domain'] = PrivilegesStrings.FORM_MACHINE.DOMAIN_REQUIRED;
     }
     if (!data.properties?.actions?.trim()) {
-      errors['properties.actions'] = 'Actions are required';
+      errors['properties.actions'] = PrivilegesStrings.FORM_MACHINE.ACTIONS_REQUIRED;
     }
   }
 
@@ -65,34 +67,34 @@ function validatePrivilege(data: PrivilegeFormData): ValidationErrors {
     data.type === PRIVILEGE_TYPES.REPOSITORY_ADMIN
   ) {
     if (!data.properties?.format?.trim()) {
-      errors['properties.format'] = 'Repository format is required';
+      errors['properties.format'] = PrivilegesStrings.FORM_MACHINE.REPOSITORY_FORMAT_REQUIRED;
     }
     if (!data.properties?.repository?.trim()) {
-      errors['properties.repository'] = 'Repository is required';
+      errors['properties.repository'] = PrivilegesStrings.FORM_MACHINE.REPOSITORY_REQUIRED;
     }
     if (!data.properties?.actions?.trim()) {
-      errors['properties.actions'] = 'Actions are required';
+      errors['properties.actions'] = PrivilegesStrings.FORM_MACHINE.ACTIONS_REQUIRED;
     }
   }
 
   if (data.type === PRIVILEGE_TYPES.REPOSITORY_CONTENT_SELECTOR) {
     if (!data.properties?.repository?.trim()) {
-      errors['properties.repository'] = 'Repository is required';
+      errors['properties.repository'] = PrivilegesStrings.FORM_MACHINE.REPOSITORY_REQUIRED;
     }
     if (!data.properties?.contentSelector?.trim()) {
-      errors['properties.contentSelector'] = 'Content selector is required';
+      errors['properties.contentSelector'] = PrivilegesStrings.FORM_MACHINE.CONTENT_SELECTOR_REQUIRED;
     }
     if (!data.properties?.actions?.trim()) {
-      errors['properties.actions'] = 'Actions are required';
+      errors['properties.actions'] = PrivilegesStrings.FORM_MACHINE.ACTIONS_REQUIRED;
     }
   }
 
   if (data.type === PRIVILEGE_TYPES.SCRIPT) {
     if (!data.properties?.name?.trim()) {
-      errors['properties.name'] = 'Script name is required';
+      errors['properties.name'] = PrivilegesStrings.FORM_MACHINE.SCRIPT_NAME_REQUIRED;
     }
     if (!data.properties?.actions?.trim()) {
-      errors['properties.actions'] = 'Actions are required';
+      errors['properties.actions'] = PrivilegesStrings.FORM_MACHINE.ACTIONS_REQUIRED;
     }
   }
 
@@ -362,70 +364,70 @@ export function createPrivilegeFormMachine(
             { target: PRIVILEGE_TYPES.SCRIPT, cond: 'isTypeScript' },
           ],
           meta: {
-            typeLabel: 'Application',
+            typeLabel: PrivilegesStrings.FORM_MACHINE.APPLICATION,
             fields: ['properties.domain', 'properties.actions'],
             requiredFields: ['properties.domain', 'properties.actions'],
             fieldConfig: {
-              'properties.domain': { label: 'Domain', type: 'combobox', allowCustom: true },
-              'properties.actions': { label: 'Actions', type: 'checkboxGroup' },
+              'properties.domain': { label: PrivilegesStrings.FORM_MACHINE.DOMAIN, type: 'combobox', allowCustom: true },
+              'properties.actions': { label: CommonStrings.LABELS.ACTIONS, type: 'checkboxGroup' },
             },
           },
         },
         [PRIVILEGE_TYPES.WILDCARD]: {
           meta: {
-            typeLabel: 'Wildcard',
+            typeLabel: PrivilegesStrings.FORM_MACHINE.WILDCARD,
             fields: ['properties.pattern'],
             requiredFields: ['properties.pattern'],
             fieldConfig: {
-              'properties.pattern': { label: 'Pattern', type: 'text', helpText: 'Wildcard pattern (e.g., astrum:*)' },
+              'properties.pattern': { label: PrivilegesStrings.FORM_MACHINE.PATTERN, type: 'text', helpText: PrivilegesStrings.FORM_MACHINE.WILDCARD_PATTERN_E_G_ASTRUM },
             },
           },
         },
         [PRIVILEGE_TYPES.REPOSITORY_VIEW]: {
           meta: {
-            typeLabel: 'Repository View',
+            typeLabel: PrivilegesStrings.FORM_MACHINE.REPOSITORY_VIEW,
             fields: ['properties.format', 'properties.repository', 'properties.actions'],
             requiredFields: ['properties.format', 'properties.repository', 'properties.actions'],
             fieldConfig: {
-              'properties.format': { label: 'Repository Format', type: 'combobox', allowCustom: true },
-              'properties.repository': { label: 'Repository', type: 'combobox', allowCustom: true },
-              'properties.actions': { label: 'Actions', type: 'checkboxGroup' },
+              'properties.format': { label: PrivilegesStrings.FORM_MACHINE.REPOSITORY_FORMAT, type: 'combobox', allowCustom: true },
+              'properties.repository': { label: PrivilegesStrings.FORM_MACHINE.REPOSITORY, type: 'combobox', allowCustom: true },
+              'properties.actions': { label: CommonStrings.LABELS.ACTIONS, type: 'checkboxGroup' },
             },
           },
         },
         [PRIVILEGE_TYPES.REPOSITORY_ADMIN]: {
           meta: {
-            typeLabel: 'Repository Admin',
+            typeLabel: PrivilegesStrings.FORM_MACHINE.REPOSITORY_ADMIN,
             fields: ['properties.format', 'properties.repository', 'properties.actions'],
             requiredFields: ['properties.format', 'properties.repository', 'properties.actions'],
             fieldConfig: {
-              'properties.format': { label: 'Repository Format', type: 'combobox', allowCustom: true },
-              'properties.repository': { label: 'Repository', type: 'combobox', allowCustom: true },
-              'properties.actions': { label: 'Actions', type: 'checkboxGroup' },
+              'properties.format': { label: PrivilegesStrings.FORM_MACHINE.REPOSITORY_FORMAT, type: 'combobox', allowCustom: true },
+              'properties.repository': { label: PrivilegesStrings.FORM_MACHINE.REPOSITORY, type: 'combobox', allowCustom: true },
+              'properties.actions': { label: CommonStrings.LABELS.ACTIONS, type: 'checkboxGroup' },
             },
           },
         },
         [PRIVILEGE_TYPES.REPOSITORY_CONTENT_SELECTOR]: {
           meta: {
-            typeLabel: 'Repository Content Selector',
+            typeLabel: PrivilegesStrings.FORM_MACHINE.REPOSITORY_CONTENT_SELECTOR,
             fields: ['properties.format', 'properties.repository', 'properties.contentSelector', 'properties.actions'],
             requiredFields: ['properties.format', 'properties.repository', 'properties.contentSelector', 'properties.actions'],
             fieldConfig: {
-              'properties.format': { label: 'Repository Format', type: 'combobox', allowCustom: true },
-              'properties.repository': { label: 'Repository', type: 'combobox', allowCustom: true },
-              'properties.contentSelector': { label: 'Content Selector', type: 'combobox' },
-              'properties.actions': { label: 'Actions', type: 'checkboxGroup' },
+              'properties.format': { label: PrivilegesStrings.FORM_MACHINE.REPOSITORY_FORMAT, type: 'combobox', allowCustom: true },
+              'properties.repository': { label: PrivilegesStrings.FORM_MACHINE.REPOSITORY, type: 'combobox', allowCustom: true },
+              'properties.contentSelector': { label: PrivilegesStrings.FORM_MACHINE.CONTENT_SELECTOR, type: 'combobox' },
+              'properties.actions': { label: CommonStrings.LABELS.ACTIONS, type: 'checkboxGroup' },
             },
           },
         },
         [PRIVILEGE_TYPES.SCRIPT]: {
           meta: {
-            typeLabel: 'Script',
+            typeLabel: PrivilegesStrings.FORM_MACHINE.SCRIPT,
             fields: ['properties.name', 'properties.actions'],
             requiredFields: ['properties.name', 'properties.actions'],
             fieldConfig: {
-              'properties.name': { label: 'Script Name', type: 'combobox', allowCustom: true },
-              'properties.actions': { label: 'Actions', type: 'checkboxGroup' },
+              'properties.name': { label: PrivilegesStrings.FORM_MACHINE.SCRIPT_NAME, type: 'combobox', allowCustom: true },
+              'properties.actions': { label: CommonStrings.LABELS.ACTIONS, type: 'checkboxGroup' },
             },
           },
         },

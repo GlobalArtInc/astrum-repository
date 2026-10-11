@@ -15,6 +15,8 @@ import { useUsersForm } from './useUsersForm';
 import { User, DEFAULT_SOURCE, getFullName } from './types';
 
 import './EditUserView.scss';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface EditUserViewProps {
   /** True for Create route, false for Edit route. */
@@ -70,16 +72,16 @@ export function EditUserView({
     !currentUser || isExternal || vm.isSaving || vm.isTogglingStatus;
 
   const title = isCreate
-    ? 'Create User'
+    ? UsersStrings.EDIT.CREATE_USER
     : currentUser
-      ? `Edit ${getFullName(currentUser) || currentUser.userId}`
-      : 'Edit User';
+      ? UsersStrings.EDIT.EDIT(getFullName(currentUser) || currentUser.userId)
+      : UsersStrings.EDIT.EDIT_USER;
 
   const description = isCreate
-    ? 'Add a new local user account.'
-    : 'Update the user profile, roles, and effective permissions.';
+    ? UsersStrings.EDIT.ADD_NEW_LOCAL_USER_ACCOUNT
+    : UsersStrings.EDIT.UPDATE_USER_PROFILE_ROLES_EFFECTIVE;
 
-  const statusLabel = formData.status ? 'Active' : 'Inactive';
+  const statusLabel = formData.status ? UsersStrings.EDIT.ACTIVE : UsersStrings.EDIT.INACTIVE;
   const isProtectedForDelete = protectionReason !== null;
 
   const headerActions = !isCreate ? (
@@ -89,7 +91,7 @@ export function EditUserView({
           checked={!!formData.status}
           onCheckedChange={vm.toggleStatus}
           disabled={statusToggleDisabled}
-          aria-label={`Toggle user status (currently ${statusLabel})`}
+          aria-label={UsersStrings.EDIT.TOGGLE_USER_STATUS_CURRENTLY(statusLabel)}
           data-testid="user-status-toggle"
           data-analytics-id="as-user-toggle-status"
         />
@@ -107,7 +109,7 @@ export function EditUserView({
           testId="reset-user-token-button"
           data-analytics-id="as-user-reset-token"
         >
-          Reset User Token
+          {UsersStrings.EDIT.RESET_USER_TOKEN}
         </SettingsButton>
       )}
     </Flex>
@@ -125,13 +127,13 @@ export function EditUserView({
         title={protectionReason ?? undefined}
         aria-label={
           isProtectedForDelete
-            ? `Delete User (${protectionReason})`
-            : 'Delete User'
+            ? UsersStrings.EDIT.DELETE_USER(protectionReason)
+            : UsersStrings.EDIT.DELETE_USER_TITLE
         }
         data-analytics-id="as-user-delete"
       >
         <Trash2 size={16} />
-        Delete User
+        {UsersStrings.EDIT.DELETE_USER_TITLE}
       </Button>
     ) : undefined;
 
@@ -144,12 +146,12 @@ export function EditUserView({
     <Box className="edit-user-view">
       <PageHeader
         breadcrumbs={[
-          { label: 'Settings', onClick: navigateToSettings },
-          { label: 'Users', onClick: onCancel },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+          { label: UsersStrings.EDIT.USERS, onClick: onCancel },
           {
             label: isCreate
-              ? 'Create'
-              : currentUser?.userId || userId || 'Loading...',
+              ? CommonStrings.ACTIONS.CREATE
+              : currentUser?.userId || userId || CommonStrings.MESSAGES.LOADING,
           },
         ]}
       />
@@ -163,7 +165,7 @@ export function EditUserView({
         pristine={form.isPristine}
         loading={vm.isSaving}
         error={vm.saveError || undefined}
-        submitLabel={isCreate ? 'Create' : 'Save'}
+        submitLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
         externalDirtyTracking={true}
         onDiscardConfirm={handleDiscardConfirm}
         headerActions={headerActions}
@@ -178,12 +180,10 @@ export function EditUserView({
         onOpenChange={(open) => {
           if (!open) vm.closeResetTokenDialog();
         }}
-        title="Reset User Token"
-        message={`Are you sure you want to reset the token for "${
-          currentUser ? getFullName(currentUser) || currentUser.userId : ''
-        }"? This will invalidate their current token.`}
-        confirmLabel="Reset"
-        cancelLabel="Cancel"
+        title={UsersStrings.EDIT.RESET_USER_TOKEN}
+        message={UsersStrings.EDIT.RESET_TOKEN_CONFIRM(currentUser ? getFullName(currentUser) || currentUser.userId : '')}
+        confirmLabel={UsersStrings.EDIT.RESET}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="danger"
         onConfirm={vm.confirmResetToken}
       />

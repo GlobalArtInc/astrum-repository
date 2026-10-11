@@ -5,6 +5,8 @@ import { useForm } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createRolesFormMachine } from './rolesFormMachine';
 import { Role, RoleFormData } from './types';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 export interface UseRolesFormOptions {
   roleId?: string;
@@ -58,22 +60,22 @@ export function useRolesForm({
           const hasPrivilegeOrRole =
             (ctx.data.privileges?.length ?? 0) > 0 || (ctx.data.roles?.length ?? 0) > 0;
           if (!hasPrivilegeOrRole) {
-            throw new Error('Select at least one privilege or contained role');
+            throw new Error(RolesStrings.MESSAGES.SELECT_LEAST_ONE_PRIVILEGE_CONTAINED);
           }
 
           if (isCreate) {
             await createRole(ctx.data);
-            toast.success(`Role "${ctx.data.name}" created successfully`);
+            toast.success(RolesStrings.MESSAGES.ROLE_CREATED_SUCCESSFULLY(ctx.data.name));
           } else if (roleToUpdate) {
             await updateRole(ctx.data);
-            toast.success(`Role "${ctx.data.name}" updated successfully`);
+            toast.success(RolesStrings.MESSAGES.ROLE_UPDATED_SUCCESSFULLY(ctx.data.name));
           }
           if (onComplete) {
             onComplete();
           }
           onCancel();
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Operation failed');
+          toast.error(err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED);
           throw err;
         }
       },

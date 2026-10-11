@@ -9,6 +9,8 @@ import { SettingsButton, SettingsTransferList } from '../../../../shared/form';
 import { PrivilegesSelectionModalProps } from './types';
 
 import './PrivilegesSelectionModal.scss';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * PrivilegesSelectionModal - Modal for selecting privileges to assign to a role
@@ -62,10 +64,10 @@ export function PrivilegesSelectionModal({
         <Dialog.Content className="privileges-modal__content">
           <Flex justify="between" align="center" className="privileges-modal__header">
             <Dialog.Title asChild>
-              <Heading size="5">Select Privileges</Heading>
+              <Heading size="5">{RolesStrings.PRIVILEGES_MODAL.SELECT_PRIVILEGES}</Heading>
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button type="button" className="privileges-modal__close" aria-label="Close">
+              <button type="button" className="privileges-modal__close" aria-label={CommonStrings.ACTIONS.CLOSE}>
                 <X size={18} />
               </button>
             </Dialog.Close>
@@ -73,7 +75,7 @@ export function PrivilegesSelectionModal({
 
           <Dialog.Description className="privileges-modal__description">
             <Text size="2">
-              Select privileges to grant to this role. Double-click or use arrows to move items.
+              {RolesStrings.PRIVILEGES_MODAL.SELECT_PRIVILEGES_GRANT_ROLE_DOUBLE}
             </Text>
           </Dialog.Description>
 
@@ -81,7 +83,7 @@ export function PrivilegesSelectionModal({
             {loading ? (
               <Flex align="center" justify="center" className="privileges-modal__loading">
                 <Loader2 size={24} className="privileges-modal__spinner" />
-                <Text size="2">Loading privileges...</Text>
+                <Text size="2">{RolesStrings.PRIVILEGES_MODAL.LOADING_PRIVILEGES}</Text>
               </Flex>
             ) : (
               <SettingsTransferList
@@ -89,8 +91,8 @@ export function PrivilegesSelectionModal({
                 availableItems={availableItems}
                 selectedItems={selectedItems}
                 onChange={handleChange}
-                availableLabel="Available Privileges"
-                selectedLabel="Selected Privileges"
+                availableLabel={RolesStrings.PRIVILEGES_MODAL.AVAILABLE_PRIVILEGES}
+                selectedLabel={RolesStrings.PRIVILEGES_MODAL.SELECTED_PRIVILEGES}
                 getItemId={(item) => item.id}
                 getItemLabel={(item) => item.name}
               />
@@ -99,10 +101,10 @@ export function PrivilegesSelectionModal({
 
           <Flex justify="end" gap="3" className="privileges-modal__footer">
             <SettingsButton variant="secondary" onClick={handleCancel}>
-              Cancel
+              {CommonStrings.ACTIONS.CANCEL}
             </SettingsButton>
             <SettingsButton variant="primary" onClick={handleSave} disabled={loading}>
-              Apply Selection
+              {RolesStrings.PRIVILEGES_MODAL.APPLY_SELECTION}
             </SettingsButton>
           </Flex>
         </Dialog.Content>

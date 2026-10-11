@@ -23,6 +23,8 @@ import { User, DEFAULT_SOURCE, getSourceLabel, getFullName } from '../users/type
 import { apiHubHref } from '../apiHubLinks';
 
 import './PrivilegeProfilePage.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
 
 const ROLES_BASE_PATH = 'preview/admin/security/roles';
 const USERS_BASE_PATH = 'preview/admin/security/users';
@@ -91,7 +93,7 @@ export function PrivilegeProfilePage({
     () => [
       {
         id: 'name',
-        header: 'Name',
+        header: CommonStrings.LABELS.NAME,
         accessor: (role) =>
           embedMode ? (
             <Text size="2" weight="medium" as="span">{role.name}</Text>
@@ -100,7 +102,7 @@ export function PrivilegeProfilePage({
               href={roleProfileHash(role.id)}
               className="privilege-profile-page__entity-link"
               onClick={(e) => e.stopPropagation()}
-              aria-label={`Open role profile: ${role.name}`}
+              aria-label={PrivilegesStrings.PROFILE.OPEN_ROLE_PROFILE(role.name)}
             >
               <Text size="2" weight="medium" as="span">{role.name}</Text>
             </a>
@@ -115,7 +117,7 @@ export function PrivilegeProfilePage({
       },
       {
         id: 'source',
-        header: 'Source',
+        header: PrivilegesStrings.PROFILE.SOURCE,
         accessor: (role) => (
           <Badge color="blue" variant="soft">
             {formatRoleSourceDisplay(role.source)}
@@ -125,7 +127,7 @@ export function PrivilegeProfilePage({
       },
       {
         id: 'description',
-        header: 'Description',
+        header: CommonStrings.LABELS.DESCRIPTION,
         accessor: (role) => <Text size="2">{role.description || '—'}</Text>,
         sortable: false,
       },
@@ -137,7 +139,7 @@ export function PrivilegeProfilePage({
     () => [
       {
         id: 'userId',
-        header: 'User ID',
+        header: PrivilegesStrings.PROFILE.USER_ID,
         accessor: (user) =>
           embedMode ? (
             <Text size="2" weight="medium" as="span">{user.userId}</Text>
@@ -146,7 +148,7 @@ export function PrivilegeProfilePage({
               href={userProfileHash(user.userId, user.source || DEFAULT_SOURCE)}
               className="privilege-profile-page__entity-link"
               onClick={(e) => e.stopPropagation()}
-              aria-label={`Open user profile: ${user.userId}`}
+              aria-label={PrivilegesStrings.PROFILE.OPEN_USER_PROFILE(user.userId)}
             >
               <Text size="2" weight="medium" as="span">{user.userId}</Text>
             </a>
@@ -155,14 +157,14 @@ export function PrivilegeProfilePage({
       },
       {
         id: 'name',
-        header: 'Name',
+        header: CommonStrings.LABELS.NAME,
         // ASTRUM-52167: plain text — User ID is the only navigation affordance.
         accessor: (user) => <Text size="2">{getFullName(user)}</Text>,
         sortable: true,
       },
       {
         id: 'status',
-        header: 'Status',
+        header: CommonStrings.LABELS.STATUS,
         accessor: (user) => (
           <StatusBadge
             status={user.status === 'active' ? 'online' : 'offline'}
@@ -173,7 +175,7 @@ export function PrivilegeProfilePage({
       },
       {
         id: 'source',
-        header: 'Source',
+        header: PrivilegesStrings.PROFILE.SOURCE,
         accessor: (user) => (
           <Text size="2">{getSourceLabel(user.source || DEFAULT_SOURCE)}</Text>
         ),
@@ -183,9 +185,9 @@ export function PrivilegeProfilePage({
     [embedMode]
   );
 
-  if (loading && !privilege) return <LoadingState message="Loading privilege profile..." />;
+  if (loading && !privilege) return <LoadingState message={PrivilegesStrings.PROFILE.LOADING_PRIVILEGE_PROFILE} />;
   if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
-  if (!privilege) return <ErrorState message="Privilege not found" />;
+  if (!privilege) return <ErrorState message={PrivilegesStrings.PROFILE.PRIVILEGE_NOT_FOUND} />;
 
   const canLinkApiHub = ExtJS.checkPermission('astrum:settings:read');
 
@@ -194,9 +196,9 @@ export function PrivilegeProfilePage({
       <PageHeader
         icon={Key}
         title={privilege.name}
-        description={`${getPrivilegeTypeLabel(privilege.type)}${privilege.readOnly ? ' (Read Only)' : ''}`}
+        description={`${getPrivilegeTypeLabel(privilege.type)}${privilege.readOnly ? PrivilegesStrings.PROFILE.READ_ONLY_SUFFIX : ''}`}
         breadcrumbs={[
-          { label: 'Privileges', onClick: onBack },
+          { label: PrivilegesStrings.PROFILE.PRIVILEGES, onClick: onBack },
           { label: privilege.name },
         ]}
         actions={
@@ -204,11 +206,11 @@ export function PrivilegeProfilePage({
             <Flex gap="2">
               {canEdit && onEdit && (
                 <SettingsButton variant="primary" onClick={onEdit} icon={Pencil}>
-                  Edit Privilege
+                  {PrivilegesStrings.PROFILE.EDIT_PRIVILEGE}
                 </SettingsButton>
               )}
               <SettingsButton variant="ghost" onClick={onBack} icon={ArrowLeft}>
-                Back to List
+                {CommonStrings.ACTIONS.BACK_TO_LIST}
               </SettingsButton>
             </Flex>
           ) : undefined
@@ -220,38 +222,38 @@ export function PrivilegeProfilePage({
           <Tabs.Trigger value="overview">
             <Flex align="center" gap="1">
               <Info size={14} />
-              <Text size="2">Overview</Text>
+              <Text size="2">{PrivilegesStrings.PROFILE.OVERVIEW}</Text>
             </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="roles">
             <Flex align="center" gap="1">
               <Shield size={14} />
-              <Text size="2">Roles Using This</Text>
+              <Text size="2">{PrivilegesStrings.PROFILE.ROLES_USING}</Text>
             </Flex>
           </Tabs.Trigger>
           <Tabs.Trigger value="users">
             <Flex align="center" gap="1">
               <Users size={14} />
-              <Text size="2">Users With Access</Text>
+              <Text size="2">{PrivilegesStrings.PROFILE.USERS_ACCESS}</Text>
             </Flex>
           </Tabs.Trigger>
         </Tabs.List>
 
         <Box pt="4" className="privilege-profile-page__content">
           <Tabs.Content value="overview">
-            <SettingsFormSection title="Privilege Metadata" defaultOpen>
+            <SettingsFormSection title={PrivilegesStrings.PROFILE.PRIVILEGE_METADATA} defaultOpen>
               <MetadataGrid
                 items={[
-                  { label: 'Name', value: privilege.name },
-                  { label: 'Type', value: getPrivilegeTypeLabel(privilege.type) },
-                  { label: 'Description', value: privilege.description || '—' },
+                  { label: CommonStrings.LABELS.NAME, value: privilege.name },
+                  { label: CommonStrings.LABELS.TYPE, value: getPrivilegeTypeLabel(privilege.type) },
+                  { label: CommonStrings.LABELS.DESCRIPTION, value: privilege.description || '—' },
                   ...(privilege.readOnly
                     ? [
                         {
-                          label: 'Read Only',
+                          label: PrivilegesStrings.PROFILE.READ_ONLY_LABEL,
                           value: (
                             <Badge color="gray" variant="soft">
-                              Read Only (system)
+                              {PrivilegesStrings.PROFILE.READ_ONLY_SYSTEM}
                             </Badge>
                           ),
                         },
@@ -260,14 +262,14 @@ export function PrivilegeProfilePage({
                 ]}
               />
             </SettingsFormSection>
-            <SettingsFormSection title="Configuration" defaultOpen>
+            <SettingsFormSection title={PrivilegesStrings.PROFILE.CONFIGURATION} defaultOpen>
               <MetadataGrid
                 items={[
                   // Type-specific fields
                   ...(privilege.type === PRIVILEGE_TYPES.WILDCARD
                     ? [
                         {
-                          label: 'Privilege String',
+                          label: PrivilegesStrings.PROFILE.PRIVILEGE_STRING,
                           value: (
                             <Text size="2" style={{ fontFamily: 'var(--font-mono)' }}>
                               {privilege.properties?.pattern || '—'}
@@ -278,32 +280,32 @@ export function PrivilegeProfilePage({
                     : []),
                   ...(privilege.type === PRIVILEGE_TYPES.APPLICATION
                     ? [
-                        { label: 'Domain', value: privilege.properties?.domain || '—' },
+                        { label: PrivilegesStrings.PROFILE.DOMAIN, value: privilege.properties?.domain || '—' },
                       ]
                     : []),
                   ...(privilege.type === PRIVILEGE_TYPES.REPOSITORY_VIEW ||
                   privilege.type === PRIVILEGE_TYPES.REPOSITORY_ADMIN
                     ? [
-                        { label: 'Format', value: privilege.properties?.format || '—' },
-                        { label: 'Repository', value: privilege.properties?.repository || '—' },
+                        { label: CommonStrings.LABELS.FORMAT, value: privilege.properties?.format || '—' },
+                        { label: PrivilegesStrings.PROFILE.REPOSITORY, value: privilege.properties?.repository || '—' },
                       ]
                     : []),
                   ...(privilege.type === PRIVILEGE_TYPES.REPOSITORY_CONTENT_SELECTOR
                     ? [
-                        { label: 'Content Selector', value: privilege.properties?.contentSelector || '—' },
-                        { label: 'Repository', value: privilege.properties?.repository || '—' },
+                        { label: PrivilegesStrings.PROFILE.CONTENT_SELECTOR, value: privilege.properties?.contentSelector || '—' },
+                        { label: PrivilegesStrings.PROFILE.REPOSITORY, value: privilege.properties?.repository || '—' },
                       ]
                     : []),
                   ...(privilege.type === PRIVILEGE_TYPES.SCRIPT
                     ? [
-                        { label: 'Script Name', value: privilege.properties?.name || '—' },
+                        { label: PrivilegesStrings.PROFILE.SCRIPT_NAME, value: privilege.properties?.name || '—' },
                       ]
                     : []),
                   // Actions (if applicable)
                   ...(privilege.properties?.actions
                     ? [
                         {
-                          label: 'Actions',
+                          label: CommonStrings.LABELS.ACTIONS,
                           value: (() => {
                             const actions = privilege.properties.actions.split(',').map((a) => a.trim());
                             const availableActions = getActionsForPrivilegeType(privilege.type);
@@ -359,10 +361,10 @@ export function PrivilegeProfilePage({
                     href={apiHubHref({ permission: privilege.permission })}
                     className="privilege-profile-page__api-hub-link"
                   >
-                    View API endpoints requiring this permission
+                    {PrivilegesStrings.PROFILE.VIEW_API_ENDPOINTS_REQUIRING_PERMISSION}
                   </a>{' '}
                   <Text size="1" color="gray" as="span">
-                    (opens API hub filtered by <Text as="span" style={{ fontFamily: 'var(--font-mono)' }}>?permission=</Text>)
+                    {PrivilegesStrings.PROFILE.OPENS_API_HUB(<Text as="span" style={{ fontFamily: 'var(--font-mono)' }}>?permission=</Text>)}
                   </Text>
                 </Text>
               </Box>
@@ -376,12 +378,12 @@ export function PrivilegeProfilePage({
                 columns={roleColumns}
                 getRowKey={(r) => r.id}
                 loading={loading}
-                loadingMessage="Computing roles..."
-                ariaLabel="Roles that grant this privilege"
+                loadingMessage={PrivilegesStrings.PROFILE.COMPUTING_ROLES}
+                ariaLabel={PrivilegesStrings.PROFILE.ROLES_GRANT_PRIVILEGE_ARIA}
                 emptyState={
                   <EmptyState
-                    title="No roles use this privilege"
-                    description="No roles currently grant this privilege."
+                    title={PrivilegesStrings.PROFILE.NO_ROLES_USE_PRIVILEGE}
+                    description={PrivilegesStrings.PROFILE.NO_ROLES_CURRENTLY_GRANT_PRIVILEGE}
                     icon={Shield}
                   />
                 }
@@ -396,12 +398,12 @@ export function PrivilegeProfilePage({
                 columns={userColumns}
                 getRowKey={(u) => u.userId}
                 loading={loading}
-                loadingMessage="Computing users..."
-                ariaLabel="Users who have this privilege"
+                loadingMessage={PrivilegesStrings.PROFILE.COMPUTING_USERS}
+                ariaLabel={PrivilegesStrings.PROFILE.USERS_WHO_HAVE_PRIVILEGE_ARIA}
                 emptyState={
                   <EmptyState
-                    title="No users have this privilege"
-                    description="No users have this privilege through their assigned roles."
+                    title={PrivilegesStrings.PROFILE.NO_USERS_HAVE_PRIVILEGE}
+                    description={PrivilegesStrings.PROFILE.NO_USERS_HAVE_PRIVILEGE_THROUGH}
                     icon={Users}
                   />
                 }

@@ -3,6 +3,7 @@
 import { assign } from 'xstate';
 import { createFormMachine, type FormContext, type ValidationErrors } from '../../../../../../interface/form';
 import { CertificateSource, SslCertificate, CERTIFICATE_SOURCES } from './types';
+import SslCertificatesStrings from '../../../../constants/pages/settings/security/SslCertificatesStrings';
 
 /**
  * Form data shape for SSL certificate add form
@@ -45,11 +46,11 @@ function validateSslForm(data: SslFormData): ValidationErrors {
 
   if (data.source === CERTIFICATE_SOURCES.REMOTE_HOST) {
     if (!data.remoteHostUrl?.trim()) {
-      errors.remoteHostUrl = 'Hostname or URL is required';
+      errors.remoteHostUrl = SslCertificatesStrings.FORM_MACHINE.HOSTNAME_URL_REQUIRED;
     }
   } else if (data.source === CERTIFICATE_SOURCES.PEM) {
     if (!data.pemContent?.trim()) {
-      errors.pemContent = 'PEM content is required';
+      errors.pemContent = SslCertificatesStrings.FORM_MACHINE.PEM_CONTENT_REQUIRED;
     }
   }
 
@@ -121,30 +122,30 @@ export function createSslFormMachine() {
       states: {
         [CERTIFICATE_SOURCES.REMOTE_HOST]: {
           meta: {
-            typeLabel: 'Load from Server',
+            typeLabel: SslCertificatesStrings.FORM_MACHINE.LOAD_SERVER,
             fields: ['remoteHostUrl'],
             requiredFields: ['remoteHostUrl'],
             fieldConfig: {
               remoteHostUrl: {
-                label: 'Hostname or URL',
+                label: SslCertificatesStrings.FORM_MACHINE.HOSTNAME_URL,
                 type: 'text',
-                placeholder: 'example.com or example.com:443 or https://example.com',
-                helpText: 'Enter a hostname, hostname:port, or URL to fetch an SSL certificate from',
+                placeholder: SslCertificatesStrings.FORM_MACHINE.EXAMPLE_COM_EXAMPLE_COM_443,
+                helpText: SslCertificatesStrings.FORM_MACHINE.ENTER_HOSTNAME_HOSTNAME_PORT_URL,
               },
             },
           },
         },
         [CERTIFICATE_SOURCES.PEM]: {
           meta: {
-            typeLabel: 'Paste PEM',
+            typeLabel: SslCertificatesStrings.FORM_MACHINE.PASTE_PEM,
             fields: ['pemContent'],
             requiredFields: ['pemContent'],
             fieldConfig: {
               pemContent: {
-                label: 'Paste Certificate as PEM',
+                label: SslCertificatesStrings.FORM_MACHINE.PASTE_CERTIFICATE_PEM,
                 type: 'textarea',
                 placeholder: '-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----',
-                helpText: 'Paste certificate content in PEM format',
+                helpText: SslCertificatesStrings.FORM_MACHINE.PASTE_CERTIFICATE_CONTENT_PEM_FORMAT,
               },
             },
           },

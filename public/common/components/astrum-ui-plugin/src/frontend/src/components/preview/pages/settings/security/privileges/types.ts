@@ -1,3 +1,5 @@
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 
 /**
@@ -145,12 +147,12 @@ export const PRIVILEGE_TYPES = {
  * Display names for privilege types
  */
 export const PRIVILEGE_TYPE_LABELS: Record<string, string> = {
-  [PRIVILEGE_TYPES.APPLICATION]: 'Application',
-  [PRIVILEGE_TYPES.REPOSITORY_ADMIN]: 'Repository Admin',
-  [PRIVILEGE_TYPES.REPOSITORY_CONTENT_SELECTOR]: 'Repository Content Selector',
-  [PRIVILEGE_TYPES.REPOSITORY_VIEW]: 'Repository View',
-  [PRIVILEGE_TYPES.SCRIPT]: 'Script',
-  [PRIVILEGE_TYPES.WILDCARD]: 'Wildcard',
+  [PRIVILEGE_TYPES.APPLICATION]: PrivilegesStrings.TYPES.APPLICATION,
+  [PRIVILEGE_TYPES.REPOSITORY_ADMIN]: PrivilegesStrings.TYPES.REPOSITORY_ADMIN,
+  [PRIVILEGE_TYPES.REPOSITORY_CONTENT_SELECTOR]: PrivilegesStrings.TYPES.REPOSITORY_CONTENT_SELECTOR,
+  [PRIVILEGE_TYPES.REPOSITORY_VIEW]: PrivilegesStrings.TYPES.REPOSITORY_VIEW,
+  [PRIVILEGE_TYPES.SCRIPT]: PrivilegesStrings.TYPES.SCRIPT,
+  [PRIVILEGE_TYPES.WILDCARD]: PrivilegesStrings.TYPES.WILDCARD,
 };
 
 /**
@@ -177,14 +179,14 @@ export interface FieldOption {
  * These are application-specific operations beyond standard CRUD
  */
 export const APPLICATION_ACTIONS: FieldOption[] = [
-  { value: 'create', label: 'Create' },
-  { value: 'read', label: 'Read' },
-  { value: 'update', label: 'Update' },
-  { value: 'delete', label: 'Delete' },
-  { value: 'start', label: 'Start' },
-  { value: 'stop', label: 'Stop' },
-  { value: 'associate', label: 'Associate' },
-  { value: 'disassociate', label: 'Disassociate' },
+  { value: 'create', label: CommonStrings.ACTIONS.CREATE },
+  { value: 'read', label: PrivilegesStrings.TYPES.READ },
+  { value: 'update', label: PrivilegesStrings.TYPES.UPDATE },
+  { value: 'delete', label: CommonStrings.ACTIONS.DELETE },
+  { value: 'start', label: PrivilegesStrings.TYPES.START },
+  { value: 'stop', label: PrivilegesStrings.TYPES.STOP },
+  { value: 'associate', label: PrivilegesStrings.TYPES.ASSOCIATE },
+  { value: 'disassociate', label: PrivilegesStrings.TYPES.DISASSOCIATE },
 ];
 
 /**
@@ -192,11 +194,11 @@ export const APPLICATION_ACTIONS: FieldOption[] = [
  * Standard repository operations
  */
 export const REPOSITORY_ACTIONS: FieldOption[] = [
-  { value: 'browse', label: 'Browse' },
-  { value: 'read', label: 'Read' },
-  { value: 'update', label: 'Edit' },
-  { value: 'create', label: 'Add' },
-  { value: 'delete', label: 'Delete' },
+  { value: 'browse', label: PrivilegesStrings.TYPES.BROWSE },
+  { value: 'read', label: PrivilegesStrings.TYPES.READ },
+  { value: 'update', label: CommonStrings.ACTIONS.EDIT },
+  { value: 'create', label: PrivilegesStrings.TYPES.ADD },
+  { value: 'delete', label: CommonStrings.ACTIONS.DELETE },
 ];
 
 /**
@@ -204,11 +206,11 @@ export const REPOSITORY_ACTIONS: FieldOption[] = [
  * Same as repository actions
  */
 export const CONTENT_SELECTOR_ACTIONS: FieldOption[] = [
-  { value: 'browse', label: 'Browse' },
-  { value: 'read', label: 'Read' },
-  { value: 'update', label: 'Edit' },
-  { value: 'create', label: 'Add' },
-  { value: 'delete', label: 'Delete' },
+  { value: 'browse', label: PrivilegesStrings.TYPES.BROWSE },
+  { value: 'read', label: PrivilegesStrings.TYPES.READ },
+  { value: 'update', label: CommonStrings.ACTIONS.EDIT },
+  { value: 'create', label: PrivilegesStrings.TYPES.ADD },
+  { value: 'delete', label: CommonStrings.ACTIONS.DELETE },
 ];
 
 /**
@@ -216,12 +218,12 @@ export const CONTENT_SELECTOR_ACTIONS: FieldOption[] = [
  * Operations related to script execution
  */
 export const SCRIPT_ACTIONS: FieldOption[] = [
-  { value: 'browse', label: 'Browse' },
-  { value: 'read', label: 'Read' },
-  { value: 'update', label: 'Edit' },
-  { value: 'create', label: 'Add' },
-  { value: 'delete', label: 'Delete' },
-  { value: 'run', label: 'Run' },
+  { value: 'browse', label: PrivilegesStrings.TYPES.BROWSE },
+  { value: 'read', label: PrivilegesStrings.TYPES.READ },
+  { value: 'update', label: CommonStrings.ACTIONS.EDIT },
+  { value: 'create', label: PrivilegesStrings.TYPES.ADD },
+  { value: 'delete', label: CommonStrings.ACTIONS.DELETE },
+  { value: 'run', label: PrivilegesStrings.TYPES.RUN },
 ];
 
 /**

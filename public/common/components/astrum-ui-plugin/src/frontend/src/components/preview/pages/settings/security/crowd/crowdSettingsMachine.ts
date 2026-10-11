@@ -4,6 +4,7 @@ import { createMachine, assign } from 'xstate';
 import { equals } from 'ramda';
 import { extractErrorMessage } from '../../../../../../interface/form';
 import { CrowdConfig, DEFAULT_CROWD_CONFIG } from './types';
+import CrowdStrings from '../../../../constants/pages/settings/security/CrowdStrings';
 
 /**
  * Crowd validation errors keyed by field name.
@@ -12,8 +13,8 @@ export type CrowdValidationErrors = Record<string, string>;
 
 /** URL required/format error, or undefined when valid. */
 function getUrlError(url: string): string | undefined {
-  if (!url?.trim()) return 'Crowd server URL is required';
-  if (!/^https?:\/\/.+/.test(url)) return 'URL is not valid';
+  if (!url?.trim()) return CrowdStrings.VALIDATION.CROWD_SERVER_URL_REQUIRED;
+  if (!/^https?:\/\/.+/.test(url)) return CrowdStrings.VALIDATION.URL_NOT_VALID;
   return undefined;
 }
 
@@ -30,18 +31,18 @@ export function validateCrowd(cfg: CrowdConfig): CrowdValidationErrors {
   }
 
   if (!cfg.applicationName?.trim()) {
-    errors.applicationName = 'Application name is required';
+    errors.applicationName = CrowdStrings.VALIDATION.APPLICATION_NAME_REQUIRED;
   }
   if (!cfg.applicationPassword?.trim()) {
-    errors.applicationPassword = 'Application password is required';
+    errors.applicationPassword = CrowdStrings.VALIDATION.APPLICATION_PASSWORD_REQUIRED;
   }
 
   if (cfg.timeout !== undefined && cfg.timeout !== null) {
     const timeout = Number(cfg.timeout);
     if (Number.isNaN(timeout)) {
-      errors.timeout = 'Timeout must be a number';
+      errors.timeout = CrowdStrings.VALIDATION.TIMEOUT_MUST_NUMBER;
     } else if (timeout < 1 || timeout > 3600) {
-      errors.timeout = 'Timeout must be between 1 and 3600 seconds';
+      errors.timeout = CrowdStrings.VALIDATION.TIMEOUT_MUST_BETWEEN_1_3600;
     }
   }
 
@@ -173,9 +174,9 @@ export function createCrowdSettingsMachine() {
       // invariant: they only surface if a consumer forgets to wire a service.
       services: {
         load: () => Promise.resolve({ ...DEFAULT_CROWD_CONFIG }),
-        save: () => Promise.reject(new Error('Save service not configured')),
-        verifyConnection: () => Promise.reject(new Error('Verify service not configured')),
-        clearCache: () => Promise.reject(new Error('Clear cache service not configured')),
+        save: () => Promise.reject(new Error(CrowdStrings.VALIDATION.SAVE_SERVICE_NOT_CONFIGURED)),
+        verifyConnection: () => Promise.reject(new Error(CrowdStrings.VALIDATION.VERIFY_SERVICE_NOT_CONFIGURED)),
+        clearCache: () => Promise.reject(new Error(CrowdStrings.VALIDATION.CLEAR_CACHE_SERVICE_NOT_CONFIGURED)),
       },
     }
   );

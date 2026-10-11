@@ -13,6 +13,8 @@ import { useSslCertificatesApi } from './useSslCertificatesApi';
 import { SslCertificate, AddCertificateFormData } from './types';
 
 import './SslCertificatesPage.scss';
+import SslCertificatesStrings from '../../../../constants/pages/settings/security/SslCertificatesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -81,7 +83,7 @@ export function SslCertificatesPage() {
           if (found) {
             setCertificate(found);
           } else {
-            setError('Certificate not found');
+            setError(SslCertificatesStrings.PAGE.CERTIFICATE_NOT_FOUND);
             setViewMode('list');
           }
         })
@@ -116,13 +118,13 @@ export function SslCertificatesPage() {
   const handleSave = useCallback(async (data: AddCertificateFormData) => {
     try {
       const result = await addCertificate(data.pemContent);
-      toast.success(`SSL certificate "${result.subjectCommonName}" added to trust store`);
+      toast.success(SslCertificatesStrings.PAGE.SSL_CERTIFICATE_ADDED_TRUST_STORE(result.subjectCommonName));
       setRefreshKey((k) => k + 1);
       handleBack();
     } catch (err: any) {
       // Check if it's a conflict (certificate already exists)
       if (err?.response?.status === 409 || err?.message?.includes('already exists')) {
-        setError('This certificate already exists in the trust store and cannot be added again.');
+        setError(SslCertificatesStrings.PAGE.CERTIFICATE_ALREADY_EXISTS_TRUST_STORE);
       }
       // Other errors are set by the API hook
     }
@@ -138,12 +140,12 @@ export function SslCertificatesPage() {
     
     try {
       await deleteCertificate(certificate.id);
-      toast.success(`SSL certificate "${certificate.subjectCommonName}" removed from trust store`);
+      toast.success(SslCertificatesStrings.PAGE.SSL_CERTIFICATE_REMOVED_TRUST_STORE(certificate.subjectCommonName));
       setRefreshKey((k) => k + 1);
       setDeleteDialogOpen(false);
       handleBack();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Operation failed";
+      const message = err instanceof Error ? err.message : CommonStrings.MESSAGES.OPERATION_FAILED;
       toast.error(message);
       setDeleteDialogOpen(false);
     }
@@ -154,15 +156,15 @@ export function SslCertificatesPage() {
     if (viewMode === 'list') {
       return (
         <PageHeader
-          title="SSL Certificates"
-          description="Manage trusted SSL certificates for use with the Astrum truststore"
+          title={SslCertificatesStrings.PAGE.SSL_CERTIFICATES}
+          description={SslCertificatesStrings.PAGE.MANAGE_TRUSTED_SSL_CERTIFICATES_USE}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'SSL Certificates' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: SslCertificatesStrings.PAGE.SSL_CERTIFICATES }
           ]}
           actions={canCreate && (
             <SettingsButton variant="primary" onClick={handleCreate} icon={Plus}>
-              Add Certificate
+              {SslCertificatesStrings.PAGE.ADD_CERTIFICATE}
             </SettingsButton>
           )}
         />
@@ -170,21 +172,21 @@ export function SslCertificatesPage() {
     }
 
     const title = viewMode === 'create'
-      ? 'Add SSL Certificate'
+      ? SslCertificatesStrings.PAGE.ADD_SSL_CERTIFICATE
       : certificate
-        ? `Certificate ${certificate.subjectCommonName}`
-        : 'Certificate Details';
+        ? SslCertificatesStrings.PAGE.CERTIFICATE(certificate.subjectCommonName)
+        : SslCertificatesStrings.PAGE.CERTIFICATE_DETAILS;
 
     const lastBreadcrumb = viewMode === 'create'
-      ? 'Add'
-      : certificate?.subjectCommonName || 'Loading...';
+      ? SslCertificatesStrings.PAGE.ADD
+      : certificate?.subjectCommonName || CommonStrings.MESSAGES.LOADING;
 
     return (
       <PageHeader
         title={title}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-          { label: 'SSL Certificates', onClick: handleBack },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: SslCertificatesStrings.PAGE.SSL_CERTIFICATES, onClick: handleBack },
           { label: lastBreadcrumb }
         ]}
       />
@@ -249,9 +251,9 @@ export function SslCertificatesPage() {
         open={deleteDialogOpen}
         testId="delete-certificate-dialog"
         onOpenChange={setDeleteDialogOpen}
-        title="Delete Certificate?"
-        message={`Are you sure you want to delete the certificate "${certificate?.subjectCommonName}"? This action cannot be undone. Any services relying on this certificate may fail to connect.`}
-        confirmLabel={loading ? 'Deleting...' : 'Delete Certificate'}
+        title={SslCertificatesStrings.PAGE.DELETE_CERTIFICATE_CONFIRM_TITLE}
+        message={SslCertificatesStrings.PAGE.DELETE_CERTIFICATE_CONFIRM(certificate?.subjectCommonName)}
+        confirmLabel={loading ? SslCertificatesStrings.PAGE.DELETING : SslCertificatesStrings.PAGE.DELETE_CERTIFICATE}
         variant="danger"
         onConfirm={handleDeleteConfirm}
         loading={loading}

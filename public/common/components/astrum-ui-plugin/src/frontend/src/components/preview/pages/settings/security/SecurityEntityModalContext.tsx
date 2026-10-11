@@ -10,6 +10,8 @@ import { UserProfilePage } from './users/UserProfilePage';
 import { PrivilegeProfilePage } from './privileges/PrivilegeProfilePage';
 
 import './SecurityEntityModal.scss';
+import SecurityStrings from '../../../constants/pages/settings/security/SecurityStrings';
+import CommonStrings from '../../../constants/CommonStrings';
 
 export type SecurityEntityType = 'role' | 'user' | 'privilege';
 
@@ -73,10 +75,10 @@ export function SecurityEntityModalProvider({ children }: { children: React.Reac
     if (!(state.entityType && state.entityId)) return '';
     const typeLabel =
       state.entityType === 'role'
-        ? 'Role'
+        ? SecurityStrings.ENTITY_MODAL.ROLE
         : state.entityType === 'user'
-          ? 'User'
-          : 'Privilege';
+          ? SecurityStrings.ENTITY_MODAL.USER
+          : SecurityStrings.ENTITY_MODAL.PRIVILEGE;
     const source =
       state.entityType === 'user' && state.entitySource
         ? ` (${state.entitySource})`
@@ -90,12 +92,12 @@ export function SecurityEntityModalProvider({ children }: { children: React.Reac
         <Text as="h2" size="4" weight="bold" className="security-entity-modal__title">
           {modalTitle}
         </Text>
-        <Tooltip content="Close">
+        <Tooltip content={CommonStrings.ACTIONS.CLOSE}>
           <IconButton
             variant="ghost"
             size="2"
             onClick={closeModal}
-            aria-label="Close"
+            aria-label={CommonStrings.ACTIONS.CLOSE}
             data-testid="security-entity-modal-close"
           >
             <X size={16} />

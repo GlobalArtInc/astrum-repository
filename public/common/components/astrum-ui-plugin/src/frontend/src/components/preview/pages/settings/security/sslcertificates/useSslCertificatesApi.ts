@@ -5,6 +5,7 @@ import Axios from 'axios';
 import { ExtAPIUtils } from '../../../../../../interface/ExtAPIUtils';
 import { APIConstants } from '../../../../../../constants/APIConstants';
 import { SslCertificate, CertificateSource, CERTIFICATE_SOURCES } from './types';
+import SslCertificatesStrings from '../../../../constants/pages/settings/security/SslCertificatesStrings';
 
 const { EXT, REST } = APIConstants;
 
@@ -54,7 +55,7 @@ export function useSslCertificatesApi() {
       return Array.isArray(response?.data) ? response.data : [];
     } catch (err: any) {
       console.error('Failed to fetch certificates:', err);
-      throw new Error(err?.response?.data?.message || err?.message || 'Failed to load certificates');
+      throw new Error(err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_LOAD_CERTIFICATES);
     }
   }, []);
 
@@ -75,7 +76,7 @@ export function useSslCertificatesApi() {
       return ExtAPIUtils.extractResult(response);
     } catch (err: any) {
       console.error('Failed to fetch certificate from host:', err);
-      throw new Error(err?.response?.data?.message || err?.message || 'Failed to retrieve certificate from host');
+      throw new Error(err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_RETRIEVE_CERTIFICATE_HOST);
     }
   }, []);
 
@@ -97,7 +98,7 @@ export function useSslCertificatesApi() {
       return ExtAPIUtils.extractResult(response);
     } catch (err: any) {
       console.error('Failed to get certificate details:', err);
-      throw new Error(err?.response?.data?.message || err?.message || 'Failed to parse certificate');
+      throw new Error(err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_PARSE_CERTIFICATE);
     }
   }, []);
 
@@ -115,7 +116,7 @@ export function useSslCertificatesApi() {
       });
       return response.data;
     } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message || 'Failed to add certificate';
+      const message = err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_ADD_CERTIFICATE;
       setError(message);
       throw new Error(message);
     } finally {
@@ -133,7 +134,7 @@ export function useSslCertificatesApi() {
       const url = `${SSL_CERTIFICATES_URL}/${encodeURIComponent(certificateId)}`;
       await Axios.delete(url);
     } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message || 'Failed to delete certificate';
+      const message = err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_DELETE_CERTIFICATE;
       setError(message);
       throw new Error(message);
     } finally {
@@ -158,10 +159,10 @@ export function useSslCertificatesApi() {
       } else if (source === CERTIFICATE_SOURCES.PEM && pemContent) {
         return await getCertificateDetails(pemContent);
       } else {
-        throw new Error('Invalid source or missing data');
+        throw new Error(SslCertificatesStrings.API.INVALID_SOURCE_MISSING_DATA);
       }
     } catch (err: any) {
-      const message = err instanceof Error ? err.message : 'Failed to load certificate details';
+      const message = err instanceof Error ? err.message : SslCertificatesStrings.API.FAILED_LOAD_CERTIFICATE_DETAILS;
       setError(message);
       throw new Error(message);
     } finally {

@@ -7,6 +7,7 @@ import { useContentSelectorsApi } from '../../repository/selectors/useContentSel
 import { Role } from './types';
 import { Privilege } from '../../security/privileges/types';
 import { ContentSelector } from '../../repository/selectors/types';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
 
 export type NodeType = 'role' | 'privilege' | 'content-selector';
 
@@ -77,7 +78,7 @@ export function useRoleTree(rootRoleId: string, options: UseRoleTreeOptions = {}
       setAllPrivileges(privilegesData.data);
       setAllSelectors(selectors);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load security data');
+      setError(err instanceof Error ? err.message : RolesStrings.TREE.FAILED_LOAD_SECURITY_DATA);
     } finally {
       setLoading(false);
     }
@@ -377,7 +378,7 @@ export function useCombinedRoleTree(
       setAllPrivileges(privilegesData.data);
       setAllSelectors(selectors);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load security data');
+      setError(err instanceof Error ? err.message : RolesStrings.TREE.FAILED_LOAD_SECURITY_DATA);
     } finally {
       setLoading(false);
     }

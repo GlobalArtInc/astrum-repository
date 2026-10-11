@@ -5,6 +5,8 @@ import { Box, Flex, Text, TextField } from '@radix-ui/themes';
 import { Search, Key } from 'lucide-react';
 import { Privilege } from '../../security/privileges/types';
 import { EntityTable, TableColumn, EmptyState } from '../../../../shared';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const PRIVILEGES_BASE_PATH = 'preview/admin/security/privileges';
 
@@ -50,8 +52,8 @@ export function CalculatedPermissions({ privileges, loading, linksDisabled = fal
 
   const emptyState = useMemo(() => (
     <EmptyState
-      title="No permissions found"
-      description={filter ? `No permissions matching "${filter}"` : "This role has no granted permissions."}
+      title={RolesStrings.CALCULATED_PERMISSIONS.NO_PERMISSIONS_FOUND}
+      description={filter ? RolesStrings.CALCULATED_PERMISSIONS.NO_PERMISSIONS_MATCHING(filter) : RolesStrings.CALCULATED_PERMISSIONS.ROLE_HAS_NO_GRANTED_PERMISSIONS}
       icon={Key}
     />
   ), [filter]);
@@ -63,7 +65,7 @@ export function CalculatedPermissions({ privileges, loading, linksDisabled = fal
   const columns: TableColumn<Privilege>[] = useMemo(() => [
     {
       id: 'name',
-      header: 'Name',
+      header: CommonStrings.LABELS.NAME,
       accessor: (p) => (
         <Flex align="center" gap="2">
           <Key size={14} color="var(--amber-9)" />
@@ -85,7 +87,7 @@ export function CalculatedPermissions({ privileges, loading, linksDisabled = fal
                 textDecoration: 'underline',
                 cursor: 'pointer',
               }}
-              aria-label={`View privilege: ${p.name}`}
+              aria-label={RolesStrings.CALCULATED_PERMISSIONS.VIEW_PRIVILEGE(p.name)}
             >
               <Text size="2" weight="medium" as="span">{p.name}</Text>
             </button>
@@ -97,7 +99,7 @@ export function CalculatedPermissions({ privileges, loading, linksDisabled = fal
     },
     {
       id: 'permission',
-      header: 'Permission',
+      header: RolesStrings.CALCULATED_PERMISSIONS.PERMISSION,
       accessor: (p) => (
         <Text size="1" color="gray" style={{ fontFamily: 'var(--font-mono)' }}>
           {p.permission}
@@ -111,14 +113,14 @@ export function CalculatedPermissions({ privileges, loading, linksDisabled = fal
   return (
     <Flex direction="column" gap="3" className="calculated-permissions" style={{ height: '100%' }}>
       <Box className="calculated-permissions__header" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        <Text size="3" weight="bold">Calculated Permissions</Text>
+        <Text size="3" weight="bold">{RolesStrings.CALCULATED_PERMISSIONS.CALCULATED_PERMISSIONS}</Text>
         <Text size="1" color="gray">
-          Flattened list of all privileges granted by this role and its descendants.
+          {RolesStrings.CALCULATED_PERMISSIONS.FLATTENED_LIST_ALL_PRIVILEGES_GRANTED}
         </Text>
       </Box>
 
       <TextField.Root 
-        placeholder="Search permissions..." 
+        placeholder={RolesStrings.CALCULATED_PERMISSIONS.SEARCH_PERMISSIONS_PLACEHOLDER} 
         value={filter} 
         onChange={(e) => setFilter(e.target.value)}
       >
@@ -133,8 +135,8 @@ export function CalculatedPermissions({ privileges, loading, linksDisabled = fal
           columns={columns}
           getRowKey={(p) => p.id}
           loading={loading}
-          loadingMessage="Calculating effective permissions..."
-          ariaLabel="Calculated permissions list"
+          loadingMessage={RolesStrings.CALCULATED_PERMISSIONS.CALCULATING_EFFECTIVE_PERMISSIONS}
+          ariaLabel={RolesStrings.CALCULATED_PERMISSIONS.CALCULATED_PERMISSIONS_LIST_ARIA}
           sortBy={sortField}
           sortDirection={sortDirection}
           onSort={handleSort}

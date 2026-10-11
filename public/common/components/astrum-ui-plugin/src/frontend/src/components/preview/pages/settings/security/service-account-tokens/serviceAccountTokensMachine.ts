@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { assign, createMachine } from 'xstate';
 import type { CreateTokenForm, RoleOption, ServiceAccountToken } from './types';
+import { SERVICE_ACCOUNT_TOKENS_STRINGS } from './strings';
 
 export interface CreatedTokenResult {
   token: ServiceAccountToken;
@@ -162,7 +163,7 @@ export function createServiceAccountTokensMachine(services: ServiceAccountTokens
             const invoke = event as unknown as { data: unknown };
             if (invoke.data instanceof Error) return invoke.data.message;
             if (typeof invoke.data === 'string') return invoke.data;
-            return 'Failed to load service-account tokens.';
+            return SERVICE_ACCOUNT_TOKENS_STRINGS.MESSAGES.LOAD_FAILED;
           },
         }),
         clearLoadError: assign({ loadError: (_ctx) => null }),
@@ -189,7 +190,7 @@ export function createServiceAccountTokensMachine(services: ServiceAccountTokens
             const invoke = event as unknown as { data: unknown };
             if (invoke.data instanceof Error) return invoke.data.message;
             if (typeof invoke.data === 'string') return invoke.data;
-            return 'Failed to create service-account token.';
+            return SERVICE_ACCOUNT_TOKENS_STRINGS.MESSAGES.CREATE_FAILED;
           },
           pendingCreate: (_ctx) => null,
         }),
@@ -207,7 +208,7 @@ export function createServiceAccountTokensMachine(services: ServiceAccountTokens
             const invoke = event as unknown as { data: unknown };
             if (invoke.data instanceof Error) return invoke.data.message;
             if (typeof invoke.data === 'string') return invoke.data;
-            return 'Failed to revoke service-account token.';
+            return SERVICE_ACCOUNT_TOKENS_STRINGS.MESSAGES.REVOKE_FAILED;
           },
           pendingRevokeId: (_ctx) => null,
         }),

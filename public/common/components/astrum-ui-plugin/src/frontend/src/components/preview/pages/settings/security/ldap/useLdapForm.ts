@@ -5,6 +5,7 @@ import { useForm } from '../../../../../../interface/form';
 import { useToast } from '../../../../shared';
 import { createLdapFormMachine } from './ldapFormMachine';
 import { LdapServer, LdapFormData, LdapSchemaTemplate } from './types';
+import LdapStrings from '../../../../constants/pages/settings/security/LdapStrings';
 
 export interface UseLdapFormOptions {
   serverId?: string;
@@ -74,10 +75,10 @@ export function useLdapForm({
         // LdapForm → WizardForm. Re-throwing here keeps the XState machine in the error state.
         if (isCreate) {
           await createServer(ctx.data);
-          toast.success(`LDAP server "${ctx.data.name}" created successfully`);
+          toast.success(LdapStrings.MESSAGES.LDAP_SERVER_CREATED_SUCCESSFULLY(ctx.data.name));
         } else {
           await updateServer(ctx.data);
-          toast.success(`LDAP server "${ctx.data.name}" updated successfully`);
+          toast.success(LdapStrings.MESSAGES.LDAP_SERVER_UPDATED_SUCCESSFULLY(ctx.data.name));
         }
         if (onSave) {
           await onSave(ctx.data);

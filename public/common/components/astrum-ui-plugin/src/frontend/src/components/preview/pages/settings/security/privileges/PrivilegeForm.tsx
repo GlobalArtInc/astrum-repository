@@ -27,6 +27,8 @@ import {
 import { SelectionInsights } from './SelectionInsights';
 
 import './PrivilegeForm.scss';
+import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * PrivilegeForm - Form for creating and editing privileges
@@ -114,7 +116,7 @@ export function PrivilegeForm({
 
     // Show "(All Repositories)" option with value "*"
     // When format is specified, "*" means "all repositories of that format"
-    options.push({ value: '*', label: '(All Repositories)' });
+    options.push({ value: '*', label: PrivilegesStrings.FORM.ALL_REPOSITORIES });
 
     // Add individual repositories (filtered by selected format if applicable)
     const filteredRepos = selectedFormat && selectedFormat !== '*'
@@ -134,7 +136,7 @@ export function PrivilegeForm({
 
     // Only show "* (All Repositories)" if format is "*" or not selected
     if (!selectedFormat || selectedFormat === '*') {
-      options.push({ value: '*', label: '(All Repositories)' });
+      options.push({ value: '*', label: PrivilegesStrings.FORM.ALL_REPOSITORIES });
     }
 
     // Add "All {format} Repositories" options - filtered by selected format
@@ -146,7 +148,7 @@ export function PrivilegeForm({
         if (!selectedFormat || selectedFormat === '*' || selectedFormat === format) {
           options.push({
             value: `*-${format}`,
-            label: `(All ${format} Repositories)`
+            label: PrivilegesStrings.FORM.ALL_FORMAT_REPOSITORIES(format)
           });
         }
       }
@@ -208,26 +210,26 @@ export function PrivilegeForm({
           <Box>
             <SettingsTextInput
               {...form.field('properties.pattern')}
-              label="Privilege String"
+              label={PrivilegesStrings.FORM.PRIVILEGE_STRING}
               required
               disabled={isReadOnly}
             />
             <Text as="p" size="1" mt="2" style={{ color: 'var(--gray-11)' }}>
-              The internal segment matching algorithm uses Apache Shiro wildcard permissions; see our{' '}
-              <a
-                href="https://help.globalart.dev/en/privileges.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'var(--accent-11)', textDecoration: 'underline' }}
-                onMouseDown={(e) => {
-                  // Open link before blur event fires to prevent validation from blocking navigation
-                  e.preventDefault();
-                  window.open('https://help.globalart.dev/en/privileges.html', '_blank', 'noopener,noreferrer');
-                }}
-              >
-                documentation
-              </a>
-              {' '}for more details.
+              {PrivilegesStrings.FORM.SHIRO_NOTE(
+                <a
+                  href="https://help.globalart.dev/en/privileges.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--accent-11)', textDecoration: 'underline' }}
+                  onMouseDown={(e) => {
+                    // Open link before blur event fires to prevent validation from blocking navigation
+                    e.preventDefault();
+                    window.open('https://help.globalart.dev/en/privileges.html', '_blank', 'noopener,noreferrer');
+                  }}
+                >
+                  {PrivilegesStrings.FORM.DOCUMENTATION_LINK}
+                </a>
+              )}
             </Text>
           </Box>
         );
@@ -236,19 +238,19 @@ export function PrivilegeForm({
           <Box>
             <SettingsCombobox
               {...form.field('properties.domain')}
-              label="Domain"
+              label={PrivilegesStrings.FORM.DOMAIN}
               options={APPLICATION_DOMAINS}
-              helpText="The application domain this privilege applies to. Select from suggestions or enter a custom domain (e.g., tasks)"
-              placeholder="Select or type a domain..."
+              helpText={PrivilegesStrings.FORM.APPLICATION_DOMAIN_PRIVILEGE_APPLIES_SELECT}
+              placeholder={PrivilegesStrings.FORM.SELECT_TYPE_DOMAIN_PLACEHOLDER}
               required
               disabled={isReadOnly}
               allowCustom
             />
             <SettingsCheckboxGroup
               {...form.checkboxGroup('properties.actions')}
-              label="Actions"
+              label={CommonStrings.LABELS.ACTIONS}
               options={getActionsForPrivilegeType(type)}
-              helpText="The specific actions allowed within this domain. Format: comma-separated list (e.g., read,edit)"
+              helpText={PrivilegesStrings.FORM.SPECIFIC_ACTIONS_ALLOWED_WITHIN_DOMAIN}
               required
               disabled={isReadOnly}
               layout="horizontal"
@@ -261,29 +263,29 @@ export function PrivilegeForm({
           <Box>
             <SettingsCombobox
               {...form.field('properties.format')}
-              label="Repository Format"
+              label={PrivilegesStrings.FORM.REPOSITORY_FORMAT}
               options={formatOptions}
-              helpText="The repository format this privilege applies to. Use * for all formats (e.g., maven2)"
+              helpText={PrivilegesStrings.FORM.REPOSITORY_FORMAT_PRIVILEGE_APPLIES_USE}
               required
               disabled={isReadOnly}
               allowCustom
-              placeholder="Select format..."
+              placeholder={PrivilegesStrings.FORM.SELECT_FORMAT_PLACEHOLDER}
             />
             <SettingsCombobox
               {...form.field('properties.repository')}
-              label="Repository"
+              label={PrivilegesStrings.FORM.REPOSITORY}
               options={repositoryOptions}
-              helpText="The specific repository this privilege applies to. Use * for all repositories (e.g., maven-releases)"
+              helpText={PrivilegesStrings.FORM.SPECIFIC_REPOSITORY_PRIVILEGE_APPLIES_USE}
               required
               disabled={isReadOnly}
               allowCustom
-              placeholder="Select repository..."
+              placeholder={PrivilegesStrings.FORM.SELECT_REPOSITORY_PLACEHOLDER}
             />
             <SettingsCheckboxGroup
               {...form.checkboxGroup('properties.actions')}
-              label="Actions"
+              label={CommonStrings.LABELS.ACTIONS}
               options={getActionsForPrivilegeType(type)}
-              helpText="The specific administrative or view actions allowed. Format: comma-separated list (e.g., browse,read)"
+              helpText={PrivilegesStrings.FORM.SPECIFIC_ADMINISTRATIVE_VIEW_ACTIONS_ALLOWED}
               required
               disabled={isReadOnly}
               layout="horizontal"
@@ -297,19 +299,19 @@ export function PrivilegeForm({
           <Box>
             <SettingsCombobox
               {...form.field('properties.name')}
-              label="Script Name"
+              label={PrivilegesStrings.FORM.SCRIPT_NAME}
               options={scriptOptions}
-              helpText="The name of the script this privilege applies to. Select from existing scripts or type a custom name (e.g., security-setup)"
+              helpText={PrivilegesStrings.FORM.NAME_SCRIPT_PRIVILEGE_APPLIES_SELECT}
               required
               disabled={isReadOnly}
               allowCustom
-              placeholder="Select or type script name..."
+              placeholder={PrivilegesStrings.FORM.SELECT_TYPE_SCRIPT_NAME_PLACEHOLDER}
             />
             <SettingsCheckboxGroup
               {...form.checkboxGroup('properties.actions')}
-              label="Actions"
+              label={CommonStrings.LABELS.ACTIONS}
               options={getActionsForPrivilegeType(type)}
-              helpText="The specific script actions allowed. Format: comma-separated list (e.g., add,edit)"
+              helpText={PrivilegesStrings.FORM.SPECIFIC_SCRIPT_ACTIONS_ALLOWED_FORMAT}
               required
               disabled={isReadOnly}
               layout="horizontal"
@@ -325,7 +327,7 @@ export function PrivilegeForm({
     return (
       <Flex align="center" justify="center" className="privilege-form__loading">
         <Loader2 size={24} className="privilege-form__spinner" />
-        <Text size="2">Loading form...</Text>
+        <Text size="2">{CommonStrings.MESSAGES.LOADING_FORM}</Text>
       </Flex>
     );
   }
@@ -341,32 +343,32 @@ export function PrivilegeForm({
   const renderFormFields = () => (
     <Box>
       {showSetupSection && (
-        <SettingsFormSection title="Privilege Setup" defaultOpen>
+        <SettingsFormSection title={PrivilegesStrings.FORM.PRIVILEGE_SETUP} defaultOpen>
           <SettingsTextInput
             {...form.field('name')}
-            label="Name"
-            helpText="Unique name used to identify this privilege. Use letters, numbers, and underscores (e.g., repository-view-maven)"
+            label={CommonStrings.LABELS.NAME}
+            helpText={PrivilegesStrings.FORM.UNIQUE_NAME_USED_IDENTIFY_PRIVILEGE}
             required
             disabled={!isCreate || isReadOnly}
           />
           <SettingsTextArea
             {...form.field('description')}
-            label="Description"
-            helpText="A brief explanation of what this privilege allows (e.g., Allows viewing of all Maven repositories)"
+            label={CommonStrings.LABELS.DESCRIPTION}
+            helpText={PrivilegesStrings.FORM.BRIEF_EXPLANATION_WHAT_PRIVILEGE_ALLOWS}
             rows={2}
             disabled={isReadOnly}
           />
           {!typeId && (
             <SettingsSelect
               name="type"
-              label="Type"
+              label={CommonStrings.LABELS.TYPE}
               value={formData?.type || ''}
               onChange={handleTypeChange}
               options={context.privilegeTypes?.map((t: any) => ({
                 value: t.id,
                 label: t.name || getPrivilegeTypeLabel(t.id),
               })) || []}
-              helpText="The fundamental category of this privilege which determines its configuration options"
+              helpText={PrivilegesStrings.FORM.FUNDAMENTAL_CATEGORY_PRIVILEGE_WHICH_DETERMINES}
               required
               disabled={!isCreate || isReadOnly}
             />
@@ -376,39 +378,39 @@ export function PrivilegeForm({
       {showConfigSection && isContentSelector ? (
         <>
           {showScopeSection && (
-            <SettingsFormSection title="Content" defaultOpen>
+            <SettingsFormSection title={PrivilegesStrings.FORM.CONTENT} defaultOpen>
               <SettingsCombobox
                 {...form.field('properties.contentSelector')}
-                label="Content Selector"
+                label={PrivilegesStrings.FORM.CONTENT_SELECTOR}
                 options={contentSelectorOptions}
-                helpText="CSEL expression limits which paths this privilege covers."
+                helpText={PrivilegesStrings.FORM.CSEL_EXPRESSION_LIMITS_WHICH_PATHS}
                 required
                 disabled={isReadOnly}
-                placeholder="Select content selector..."
+                placeholder={PrivilegesStrings.FORM.SELECT_CONTENT_SELECTOR_PLACEHOLDER}
               />
             </SettingsFormSection>
           )}
           {showScopeSection && (
-            <SettingsFormSection title="Repository" defaultOpen>
+            <SettingsFormSection title={PrivilegesStrings.FORM.REPOSITORY} defaultOpen>
               <SettingsCombobox
                 {...form.field('properties.repository')}
-                label="Repository"
+                label={PrivilegesStrings.FORM.REPOSITORY}
                 options={contentSelectorRepositoryOptions}
-                helpText="The specific repository this privilege applies to. Use * for all repositories (e.g., npm-all)"
+                helpText={PrivilegesStrings.FORM.CONTENT_REPOSITORY_HELP}
                 required
                 disabled={isReadOnly}
                 allowCustom
-                placeholder="Select repository..."
+                placeholder={PrivilegesStrings.FORM.SELECT_REPOSITORY_PLACEHOLDER}
               />
             </SettingsFormSection>
           )}
           {showActionsSection && (
-            <SettingsFormSection title="Actions" defaultOpen>
+            <SettingsFormSection title={CommonStrings.LABELS.ACTIONS} defaultOpen>
               <SettingsCheckboxGroup
                 {...form.checkboxGroup('properties.actions')}
-                label="Actions"
+                label={CommonStrings.LABELS.ACTIONS}
                 options={getActionsForPrivilegeType(PRIVILEGE_TYPES.REPOSITORY_CONTENT_SELECTOR)}
-                helpText="The specific content actions allowed. Format: comma-separated list (e.g., read,browse)"
+                helpText={PrivilegesStrings.FORM.SPECIFIC_CONTENT_ACTIONS_ALLOWED_FORMAT}
                 required
                 disabled={isReadOnly}
                 layout="horizontal"
@@ -417,7 +419,7 @@ export function PrivilegeForm({
           )}
         </>
       ) : showConfigSection ? (
-        <SettingsFormSection title="Configuration" defaultOpen>
+        <SettingsFormSection title={PrivilegesStrings.FORM.CONFIGURATION} defaultOpen>
           {renderTypeSpecificFields()}
         </SettingsFormSection>
       ) : null}
@@ -455,7 +457,7 @@ export function PrivilegeForm({
         loading={isSaving || loading}
         pristine={form.isPristine}
         error={error || (form.state.matches('error') ? form.state.context.error : undefined)}
-        submitLabel={isCreate ? 'Create' : 'Save'}
+        submitLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
         submitAnalyticsId={isCreate ? 'as-privilege-create' : 'as-privilege-save'}
         footerExtra={
           !isCreate && onDelete && !isReadOnly ? (
@@ -467,7 +469,7 @@ export function PrivilegeForm({
               icon={Trash2}
               data-analytics-id="as-privilege-delete"
             >
-              Delete
+              {CommonStrings.ACTIONS.DELETE}
             </SettingsButton>
           ) : undefined
         }

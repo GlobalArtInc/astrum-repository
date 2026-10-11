@@ -10,6 +10,7 @@
 import React from 'react';
 import { Flex, Heading, Text, Button } from '@radix-ui/themes';
 import { Construction, ArrowLeft } from 'lucide-react';
+import SettingsStrings from '../../constants/pages/settings/SettingsStrings';
 
 export interface SettingsNotAvailablePageProps {
   featureName: string;
@@ -34,16 +35,15 @@ export default function SettingsNotAvailablePage({ featureName }: SettingsNotAva
           strokeWidth={1.5}
           style={{ color: 'var(--gray-8)', marginBottom: 'var(--space-2)' }}
         />
-        <Heading size="7">Not available in preview</Heading>
+        <Heading size="7">{SettingsStrings.NOT_AVAILABLE.NOT_AVAILABLE_PREVIEW}</Heading>
         <div style={{ width: '60px', height: '3px', background: 'var(--accent-9)', borderRadius: 'var(--radius-1)', margin: 'var(--space-1) 0' }} />
         <Text size="3" color="gray">
-          {featureName} is still being prepared for the Astrum One UI.
-          Access it through the classic UI administration panel for now.
+          {SettingsStrings.NOT_AVAILABLE.STILL_BEING_PREPARED_ASTRUM_ONE(featureName)}
         </Text>
         <Button variant="solid" size="3" mt="2" asChild>
           <a href="#preview/admin/settings" style={{ color: 'var(--accent-contrast)', textDecoration: 'none' }}>
             <ArrowLeft size={16} />
-            Back to Settings
+            {SettingsStrings.NOT_AVAILABLE.BACK_SETTINGS}
           </a>
         </Button>
       </Flex>

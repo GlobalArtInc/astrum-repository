@@ -8,6 +8,7 @@ import {
   SettingsTextInput,
 } from '../../../../shared/form';
 import { useUsersApi, UserInviteData } from './useUsersApi';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
 
 interface InviteUserFormProps {
   onSuccess: (email: string) => void;
@@ -32,12 +33,12 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validate(data: InviteFormState): InviteFormErrors {
   const errors: InviteFormErrors = {};
-  if (!data.firstName.trim()) errors.firstName = 'First name is required';
-  if (!data.lastName.trim()) errors.lastName = 'Last name is required';
+  if (!data.firstName.trim()) errors.firstName = UsersStrings.FORM.FIRST_NAME_REQUIRED;
+  if (!data.lastName.trim()) errors.lastName = UsersStrings.FORM.LAST_NAME_REQUIRED;
   if (!data.email.trim()) {
-    errors.email = 'Email is required';
+    errors.email = UsersStrings.FORM.EMAIL_REQUIRED;
   } else if (!EMAIL_REGEX.test(data.email)) {
-    errors.email = 'Enter a valid email address';
+    errors.email = UsersStrings.FORM.ENTER_VALID_EMAIL_ADDRESS;
   }
   return errors;
 }
@@ -104,14 +105,14 @@ export function InviteUserForm({ onSuccess, onCancel, loading: externalLoading =
       confirmDiscard={true}
       noDirtyTracking={!isDirty}
       error={error}
-      submitLabel="Invite User"
+      submitLabel={UsersStrings.FORM.INVITE_USER}
     >
-      <SettingsFormSection title="User Details" defaultOpen>
+      <SettingsFormSection title={UsersStrings.FORM.USER_DETAILS} defaultOpen>
         <SettingsTextInput
           name="firstName"
-          label="First Name"
-          placeholder="John"
-          helpText="User's first name"
+          label={UsersStrings.FORM.FIRST_NAME}
+          placeholder={UsersStrings.FORM.JOHN_PLACEHOLDER}
+          helpText={UsersStrings.FORM.USERS_FIRST_NAME}
           required
           value={formData.firstName}
           onChange={handleChange('firstName')}
@@ -120,9 +121,9 @@ export function InviteUserForm({ onSuccess, onCancel, loading: externalLoading =
 
         <SettingsTextInput
           name="lastName"
-          label="Last Name"
-          placeholder="Smith"
-          helpText="User's last name"
+          label={UsersStrings.FORM.LAST_NAME}
+          placeholder={UsersStrings.FORM.SMITH_PLACEHOLDER}
+          helpText={UsersStrings.FORM.USERS_LAST_NAME}
           required
           value={formData.lastName}
           onChange={handleChange('lastName')}
@@ -131,10 +132,10 @@ export function InviteUserForm({ onSuccess, onCancel, loading: externalLoading =
 
         <SettingsTextInput
           name="email"
-          label="Email"
+          label={UsersStrings.FORM.EMAIL}
           placeholder="jsmith@example.com"
           type="email"
-          helpText="Invitation will be sent to this address"
+          helpText={UsersStrings.FORM.INVITATION_SENT_ADDRESS}
           required
           value={formData.email}
           onChange={handleChange('email')}

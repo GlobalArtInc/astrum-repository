@@ -13,6 +13,8 @@ import { useLdapApi } from './useLdapApi';
 import { LdapServer, LdapPageProps, LdapViewMode } from './types';
 
 import './LdapPage.scss';
+import LdapStrings from '../../../../constants/pages/settings/security/LdapStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 // Base paths for LDAP URLs (must match UIRouter route definitions in previewAdminRoutes.js)
 
@@ -149,7 +151,7 @@ export function LdapPage({ className }: LdapPageProps) {
       setError(null);
     } else if (isCreateRoute(hash)) {
       if (!canCreate) {
-        redirectToListWithError('You do not have permission to create LDAP servers');
+        redirectToListWithError(LdapStrings.PAGE.YOU_DO_NOT_HAVE_PERMISSION);
         return;
       }
       setViewMode('create');
@@ -182,7 +184,7 @@ export function LdapPage({ className }: LdapPageProps) {
             setSelectedServer(server);
             setServers(freshServers);
           } else {
-            redirectToListWithError(`LDAP server "${serverName}" not found`);
+            redirectToListWithError(LdapStrings.PAGE.LDAP_SERVER_NOT_FOUND(serverName));
           }
         }).catch(() => {
           if (cancelled) return;
@@ -193,7 +195,7 @@ export function LdapPage({ className }: LdapPageProps) {
           // forever, and the render-gating below would show an infinite
           // "Loading LDAP server..." spinner with no way out except the
           // breadcrumb. Bounce back to the list, where the error is visible.
-          redirectToListWithError(`Failed to load LDAP server "${serverName}"`);
+          redirectToListWithError(LdapStrings.PAGE.FAILED_LOAD_LDAP_SERVER(serverName));
         });
         // If the user navigates away (e.g. back to the list) while this
         // re-fetch is in flight, the promise still resolves/rejects after
@@ -251,7 +253,7 @@ export function LdapPage({ className }: LdapPageProps) {
   const handleDelete = useCallback(async (server: LdapServer, navigateAfter = false) => {
     try {
       await deleteServer(server.name);
-      toast.success(`LDAP server "${server.name}" deleted successfully`);
+      toast.success(LdapStrings.PAGE.LDAP_SERVER_DELETED_SUCCESSFULLY(server.name));
       setRefreshKey((k) => k + 1);
       if (navigateAfter) {
         handleBack();
@@ -265,7 +267,7 @@ export function LdapPage({ className }: LdapPageProps) {
     // Let changeOrder reject so LdapList can roll back optimistic UI state.
     // Error is set on the hook's `error` state and shown in the page banner.
     await changeOrder(serverNames);
-    toast.success('Server order updated');
+    toast.success(LdapStrings.PAGE.SERVER_ORDER_UPDATED);
     // Re-fetch directly (rather than bumping refreshKey) so the Order
     // column reflects the new positions without remounting LdapList and
     // flashing the full-page loading spinner — reorder fires far more
@@ -285,7 +287,7 @@ export function LdapPage({ className }: LdapPageProps) {
   const handleClearCache = useCallback(async () => {
     try {
       await clearCache();
-      toast.success('LDAP cache cleared successfully');
+      toast.success(LdapStrings.PAGE.LDAP_CACHE_CLEARED_SUCCESSFULLY);
     } catch (_err) {
       // Error is set by the hook
     }
@@ -296,15 +298,15 @@ export function LdapPage({ className }: LdapPageProps) {
     if (viewMode === 'list') {
       return (
         <PageHeader
-          title="LDAP"
-          description="Manage LDAP server connections for user authentication"
+          title={LdapStrings.PAGE.LDAP}
+          description={LdapStrings.PAGE.MANAGE_LDAP_SERVER_CONNECTIONS_USER}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
             { label: 'LDAP' }
           ]}
           actions={canCreate && (
             <SettingsButton variant="primary" onClick={handleCreate} icon={Plus} data-analytics-id="as-ldap-create">
-              Create LDAP Server
+              {LdapStrings.PAGE.CREATE_LDAP_SERVER}
             </SettingsButton>
           )}
         />
@@ -312,24 +314,24 @@ export function LdapPage({ className }: LdapPageProps) {
     }
 
     const title = viewMode === 'create'
-      ? 'Create LDAP Server'
+      ? LdapStrings.PAGE.CREATE_LDAP_SERVER
       : selectedServer
-        ? `Edit ${selectedServer.name}`
-        : 'Edit LDAP Server';
+        ? LdapStrings.PAGE.EDIT_NAMED(selectedServer.name)
+        : LdapStrings.PAGE.EDIT_LDAP_SERVER;
 
     const lastBreadcrumb = viewMode === 'create'
-      ? 'Create'
-      : selectedServer?.name || 'Loading...';
+      ? CommonStrings.ACTIONS.CREATE
+      : selectedServer?.name || CommonStrings.MESSAGES.LOADING;
 
     return (
       <PageHeader
         title={title}
         description={viewMode === 'create'
-          ? 'Configure connection and user mapping settings'
-          : 'Modify LDAP server configuration'
+          ? LdapStrings.PAGE.CONFIGURE_CONNECTION_USER_MAPPING_SETTINGS
+          : LdapStrings.PAGE.MODIFY_LDAP_SERVER_CONFIGURATION
         }
         breadcrumbs={[
-          { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
           { label: 'LDAP', onClick: handleBack },
           { label: lastBreadcrumb }
         ]}
@@ -346,7 +348,7 @@ export function LdapPage({ className }: LdapPageProps) {
         data-view="list"
         data-loading="true"
       >
-        <LdapPageLoading text="Loading LDAP servers..." />
+        <LdapPageLoading text={LdapStrings.PAGE.LOADING_LDAP_SERVERS} />
       </Box>
     );
   }
@@ -391,10 +393,10 @@ export function LdapPage({ className }: LdapPageProps) {
             </div>
             <aside className="ldap-page__sidebar">
               <HelpSection
-                title="About LDAP"
-                content="LDAP (Lightweight Directory Access Protocol) allows you to integrate Astrum Repository with external user directories for authentication. You can configure multiple LDAP servers and they will be queried in order until a user is found."
+                title={LdapStrings.PAGE.ABOUT_LDAP}
+                content={LdapStrings.PAGE.LDAP_LIGHTWEIGHT_DIRECTORY_ACCESS_PROTOCOL}
                 docLink={{
-                  label: 'View Documentation',
+                  label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
                   href: 'https://help.globalart.dev/en/ldap.html',
                 }}
               />
@@ -449,7 +451,7 @@ export function LdapPage({ className }: LdapPageProps) {
               verifyLogin={verifyLogin}
             />
           ) : (
-            <LdapPageLoading text="Loading LDAP server..." />
+            <LdapPageLoading text={LdapStrings.PAGE.LOADING_LDAP_SERVER} />
           )
         )}
       </Box>

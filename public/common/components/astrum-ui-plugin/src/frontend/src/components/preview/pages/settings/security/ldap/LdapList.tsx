@@ -23,6 +23,8 @@ import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { LdapServer, LdapListProps } from './types';
 
 import './LdapList.scss';
+import LdapStrings from '../../../../constants/pages/settings/security/LdapStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * LdapList - Displays LDAP servers in a reorderable list
@@ -186,8 +188,8 @@ export function LdapList({
           <Search size={16} className="ldap-list__search-icon" aria-hidden="true" />
           <input
             type="text"
-            placeholder="Filter by name or URL..."
-            aria-label="Filter servers"
+            placeholder={LdapStrings.LIST.FILTER_NAME_URL_PLACEHOLDER}
+            aria-label={LdapStrings.LIST.FILTER_SERVERS_ARIA}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="ldap-list__search-input"
@@ -201,11 +203,11 @@ export function LdapList({
               variant="secondary"
               onClick={handleOpenOrderModal}
               disabled={loading || isReordering || servers.length <= 1}
-              title="Change server order"
+              title={LdapStrings.LIST.CHANGE_SERVER_ORDER}
               data-testid="ldap-change-order-button"
               icon={ArrowUpDown}
             >
-              Change Order
+              {LdapStrings.LIST.CHANGE_ORDER}
             </SettingsButton>
           )}
           {canDelete && (
@@ -213,12 +215,12 @@ export function LdapList({
               variant="secondary"
               onClick={onClearCache}
               disabled={loading || servers.length === 0}
-              title="Clear LDAP cache"
+              title={LdapStrings.LIST.CLEAR_LDAP_CACHE}
               data-testid="ldap-clear-cache-button"
               data-analytics-id="as-ldap-list-clear-cache"
               icon={RefreshCw}
             >
-              Clear Cache
+              {LdapStrings.LIST.CLEAR_CACHE}
             </SettingsButton>
           )}
         </Flex>
@@ -228,17 +230,17 @@ export function LdapList({
       {loading && servers.length === 0 && (
         <Flex role="status" aria-live="polite" align="center" justify="center" className="ldap-list__loading">
           <Loader2 size={24} className="ldap-list__spinner" aria-hidden="true" />
-          <Text size="2">Loading LDAP servers...</Text>
+          <Text size="2">{LdapStrings.LIST.LOADING_LDAP_SERVERS}</Text>
         </Flex>
       )}
 
       {/* Empty State */}
       {!loading && servers.length === 0 && (
         <Box className="ldap-list__empty">
-          <Text size="2">No LDAP servers configured</Text>
+          <Text size="2">{LdapStrings.LIST.NO_LDAP_SERVERS_CONFIGURED}</Text>
           {canCreate && (
             <Text size="2" className="ldap-list__empty-hint">
-              Click "Create LDAP Server" to add one
+              {LdapStrings.LIST.CLICK_CREATE_LDAP_SERVER_ADD}
             </Text>
           )}
         </Box>
@@ -250,9 +252,9 @@ export function LdapList({
           <table className="ldap-list__table">
             <thead>
               <tr>
-                <th className="ldap-list__th ldap-list__th--order">Order</th>
-                <th className="ldap-list__th">Name</th>
-                <th className="ldap-list__th">URL</th>
+                <th className="ldap-list__th ldap-list__th--order">{LdapStrings.LIST.ORDER}</th>
+                <th className="ldap-list__th">{CommonStrings.LABELS.NAME}</th>
+                <th className="ldap-list__th">{LdapStrings.LIST.URL}</th>
                 <th className="ldap-list__th ldap-list__th--actions"></th>
               </tr>
             </thead>
@@ -297,8 +299,8 @@ export function LdapList({
                           handleRowClick(server);
                         }}
                         className="ldap-list__action-button ldap-list__action-button--edit"
-                        title="Edit server"
-                        aria-label={`Edit LDAP server ${server.name}`}
+                        title={LdapStrings.LIST.EDIT_SERVER}
+                        aria-label={LdapStrings.LIST.EDIT_LDAP_SERVER(server.name)}
                         data-analytics-id="as-ldap-list-edit-server"
                       >
                         <Pencil size={16} aria-hidden="true" />
@@ -308,8 +310,8 @@ export function LdapList({
                           type="button"
                           onClick={(e) => handleDeleteClick(e, server)}
                           className="ldap-list__action-button ldap-list__action-button--delete"
-                          title="Delete server"
-                          aria-label={`Delete ${server.name}`}
+                          title={LdapStrings.LIST.DELETE_SERVER}
+                          aria-label={LdapStrings.LIST.DELETE_NAMED(server.name)}
                           data-analytics-id="as-ldap-list-delete-server"
                         >
                           <Trash2 size={16} aria-hidden="true" />
@@ -328,7 +330,7 @@ export function LdapList({
       {/* No matches */}
       {servers.length > 0 && filteredServers.length === 0 && (
         <Box className="ldap-list__no-matches">
-          <Text size="2">No servers match your filter</Text>
+          <Text size="2">{LdapStrings.LIST.NO_SERVERS_MATCH_FILTER}</Text>
         </Box>
       )}
 
@@ -336,24 +338,23 @@ export function LdapList({
       <Box className="ldap-list__help">
         <Flex align="center" gap="2" className="ldap-list__help-header">
           <Info size={16} aria-hidden="true" />
-          <Text size="2" weight="medium">About LDAP Servers</Text>
+          <Text size="2" weight="medium">{LdapStrings.LIST.ABOUT_LDAP_SERVERS}</Text>
         </Flex>
         <Text size="2" className="ldap-list__help-text">
-          LDAP servers are used for user authentication and authorization. The order determines
-          which server is tried first. Drag servers to reorder them.
+          {LdapStrings.LIST.LDAP_SERVERS_USED_USER_AUTHENTICATION}
         </Text>
         <Text size="2" className="ldap-list__help-text">
-          See our{' '}
-          <a
-            href="http://links.globalart.dev/products/astrum/docs/ldap"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ldap-list__help-link"
-          >
-            documentation
-            <ExternalLink size={12} aria-hidden="true" />
-          </a>
-          {' '}for more information.
+          {LdapStrings.LIST.SEE_DOCUMENTATION(
+            <a
+              href="http://links.globalart.dev/products/astrum/docs/ldap"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ldap-list__help-link"
+            >
+              {LdapStrings.LIST.DOCUMENTATION_LINK}
+              <ExternalLink size={12} aria-hidden="true" />
+            </a>
+          )}
         </Text>
       </Box>
 
@@ -362,10 +363,10 @@ export function LdapList({
         open={showDeleteModal}
         testId="delete-ldap-server-dialog"
         onOpenChange={setShowDeleteModal}
-        title="Delete LDAP Server"
-        message={`Are you sure you want to delete the LDAP server "${serverToDelete?.name}"? Users authenticated through this server will no longer be able to log in.`}
-        confirmLabel="Delete Server"
-        cancelLabel="Cancel"
+        title={LdapStrings.LIST.DELETE_LDAP_SERVER}
+        message={LdapStrings.LIST.DELETE_SERVER_CONFIRM(serverToDelete?.name)}
+        confirmLabel={LdapStrings.LIST.DELETE_SERVER_BUTTON}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="danger"
         onConfirm={handleDeleteConfirm}
         analyticsId="as-ldap-list-delete-confirm"
@@ -379,11 +380,11 @@ export function LdapList({
             <Dialog.Title className="ldap-list__modal-title">
               <Flex align="center" gap="2">
                 <ArrowUpDown size={20} aria-hidden="true" />
-                Change Server Order
+                {LdapStrings.LIST.CHANGE_SERVER_ORDER_TITLE}
               </Flex>
             </Dialog.Title>
             <Dialog.Description className="ldap-list__modal-description">
-              LDAP servers are queried in order during authentication. Drag servers to reorder them.
+              {LdapStrings.LIST.LDAP_SERVERS_QUERIED_ORDER_DURING}
             </Dialog.Description>
             <Box className="ldap-list__order-list">
               {orderServers.map((server, index) => (
@@ -403,7 +404,7 @@ export function LdapList({
                       <button
                         type="button"
                         className="ldap-list__order-move-button"
-                        aria-label={`Move ${server.name} up`}
+                        aria-label={LdapStrings.LIST.MOVE_UP(server.name)}
                         disabled={index === 0}
                         onClick={() => moveOrderItem(index, index - 1)}
                       >
@@ -412,7 +413,7 @@ export function LdapList({
                       <button
                         type="button"
                         className="ldap-list__order-move-button"
-                        aria-label={`Move ${server.name} down`}
+                        aria-label={LdapStrings.LIST.MOVE_DOWN(server.name)}
                         disabled={index === orderServers.length - 1}
                         onClick={() => moveOrderItem(index, index + 1)}
                       >
@@ -430,7 +431,7 @@ export function LdapList({
                 data-testid="ldap-order-cancel"
                 data-analytics-id="as-ldap-order-cancel"
               >
-                Cancel
+                {CommonStrings.ACTIONS.CANCEL}
               </SettingsButton>
               <SettingsButton
                 variant="primary"
@@ -439,7 +440,7 @@ export function LdapList({
                 data-testid="ldap-order-save"
                 data-analytics-id="as-ldap-order-save"
               >
-                Save Order
+                {LdapStrings.LIST.SAVE_ORDER}
               </SettingsButton>
             </Flex>
           </Dialog.Content>

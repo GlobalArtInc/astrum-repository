@@ -24,6 +24,9 @@ import { useRealmsForm } from './useRealmsForm';
 import { Realm, RealmsPageProps } from './types';
 
 import './RealmsPage.scss';
+import RealmsStrings from '../../../../constants/pages/settings/security/RealmsStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -177,7 +180,7 @@ export function RealmsPage({ className }: RealmsPageProps) {
       >
         <Flex align="center" justify="center" className="realms-page__loading">
           <Loader2 size={24} className="realms-page__spinner" />
-          <Text size="2">Loading realm configuration...</Text>
+          <Text size="2">{RealmsStrings.PAGE.LOADING_REALM_CONFIGURATION}</Text>
         </Flex>
       </Box>
     );
@@ -194,12 +197,12 @@ export function RealmsPage({ className }: RealmsPageProps) {
       {/* Header */}
       <Box mb="4">
         <PageHeader
-          title="Realms"
-          description="Configure the active security realms and their order"
+          title={RealmsStrings.PAGE.REALMS}
+          description={RealmsStrings.PAGE.CONFIGURE_ACTIVE_SECURITY_REALMS_THEIR}
         
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Realms' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: RealmsStrings.PAGE.REALMS }
           ]}
 />
       </Box>
@@ -227,30 +230,30 @@ export function RealmsPage({ className }: RealmsPageProps) {
         data-valid="true"
       >
         {/* Section heading */}
-        <Heading as="h2" size="3" mb="3">Active Realms</Heading>
+        <Heading as="h2" size="3" mb="3">{RealmsStrings.PAGE.ACTIVE_REALMS}</Heading>
 
         {/* Transfer List */}
         <Box className="realms-page__transfer-container">
           {/* Available (Inactive) Panel */}
           <Box className="realms-page__panel">
             <Box className="realms-page__panel-header">
-              <Text size="2" weight="medium">Available</Text>
+              <Text size="2" weight="medium">{RealmsStrings.PAGE.AVAILABLE}</Text>
               <Text size="1" className="realms-page__panel-count">
-                {filteredInactive.length} realms
+                {plural(RealmsStrings.PAGE.REALM_COUNT, filteredInactive.length)}
               </Text>
             </Box>
             <Box className="realms-page__search">
               <Search size={14} className="realms-page__search-icon" />
               <input
                 type="text"
-                placeholder="Filter..."
+                placeholder={RealmsStrings.PAGE.FILTER_PLACEHOLDER}
                 value={availableSearch}
                 onChange={(e) => setAvailableSearch(e.target.value)}
                 disabled={!canUpdate}
                 className="realms-page__search-input"
               />
             </Box>
-            <Box className="realms-page__items" role="listbox" aria-label="Available realms">
+            <Box className="realms-page__items" role="listbox" aria-label={RealmsStrings.PAGE.AVAILABLE_REALMS_ARIA}>
               {filteredInactive.map((realm) => (
                 <Box
                   key={realm.id}
@@ -269,7 +272,7 @@ export function RealmsPage({ className }: RealmsPageProps) {
               ))}
               {filteredInactive.length === 0 && (
                 <Box className="realms-page__empty">
-                  {availableSearch ? 'No matches' : 'No available realms'}
+                  {availableSearch ? RealmsStrings.PAGE.NO_MATCHES : RealmsStrings.PAGE.NO_AVAILABLE_REALMS}
                 </Box>
               )}
             </Box>
@@ -282,8 +285,8 @@ export function RealmsPage({ className }: RealmsPageProps) {
               onClick={moveAllToActive}
               disabled={!canUpdate || realmsForm.inactiveRealms.length === 0}
               className="realms-page__control-button"
-              aria-label="Add all realms"
-              title="Add all"
+              aria-label={RealmsStrings.PAGE.ADD_ALL_REALMS_ARIA}
+              title={RealmsStrings.PAGE.ADD_ALL}
             >
               <ChevronsRight size={16} />
             </button>
@@ -292,8 +295,8 @@ export function RealmsPage({ className }: RealmsPageProps) {
               onClick={moveToActive}
               disabled={!canUpdate || availableSelection.length === 0}
               className="realms-page__control-button"
-              aria-label="Add selected realms"
-              title="Add selected"
+              aria-label={RealmsStrings.PAGE.ADD_SELECTED_REALMS_ARIA}
+              title={RealmsStrings.PAGE.ADD_SELECTED}
             >
               <ChevronRight size={16} />
             </button>
@@ -302,8 +305,8 @@ export function RealmsPage({ className }: RealmsPageProps) {
               onClick={moveToInactive}
               disabled={!canUpdate || activeSelection.length === 0}
               className="realms-page__control-button"
-              aria-label="Remove selected realms"
-              title="Remove selected"
+              aria-label={RealmsStrings.PAGE.REMOVE_SELECTED_REALMS_ARIA}
+              title={RealmsStrings.PAGE.REMOVE_SELECTED}
             >
               <ChevronLeft size={16} />
             </button>
@@ -312,8 +315,8 @@ export function RealmsPage({ className }: RealmsPageProps) {
               onClick={moveAllToInactive}
               disabled={!canUpdate || realmsForm.activeRealms.length === 0}
               className="realms-page__control-button"
-              aria-label="Remove all realms"
-              title="Remove all"
+              aria-label={RealmsStrings.PAGE.REMOVE_ALL_REALMS_ARIA}
+              title={RealmsStrings.PAGE.REMOVE_ALL}
             >
               <ChevronsLeft size={16} />
             </button>
@@ -322,23 +325,23 @@ export function RealmsPage({ className }: RealmsPageProps) {
           {/* Active Panel */}
           <Box className="realms-page__panel realms-page__panel--active">
             <Box className="realms-page__panel-header">
-              <Text size="2" weight="medium">Active</Text>
+              <Text size="2" weight="medium">{RealmsStrings.PAGE.ACTIVE}</Text>
               <Text size="1" className="realms-page__panel-count">
-                {realmsForm.activeRealms.length} realms
+                {plural(RealmsStrings.PAGE.REALM_COUNT, realmsForm.activeRealms.length)}
               </Text>
             </Box>
             <Box className="realms-page__search">
               <Search size={14} className="realms-page__search-icon" />
               <input
                 type="text"
-                placeholder="Filter..."
+                placeholder={RealmsStrings.PAGE.FILTER_PLACEHOLDER}
                 value={activeSearch}
                 onChange={(e) => setActiveSearch(e.target.value)}
                 disabled={!canUpdate}
                 className="realms-page__search-input"
               />
             </Box>
-            <Box className="realms-page__items realms-page__items--sortable" role="listbox" aria-label="Active realms">
+            <Box className="realms-page__items realms-page__items--sortable" role="listbox" aria-label={RealmsStrings.PAGE.ACTIVE_REALMS_ARIA}>
               {filteredActive.map((realm) => {
                 const actualIndex = realmsForm.activeRealms.findIndex((r) => r.id === realm.id);
                 return (
@@ -371,7 +374,7 @@ export function RealmsPage({ className }: RealmsPageProps) {
               })}
               {filteredActive.length === 0 && (
                 <Box className="realms-page__empty">
-                  {activeSearch ? 'No matches' : 'No active realms'}
+                  {activeSearch ? RealmsStrings.PAGE.NO_MATCHES : RealmsStrings.PAGE.NO_ACTIVE_REALMS}
                 </Box>
               )}
             </Box>
@@ -385,8 +388,8 @@ export function RealmsPage({ className }: RealmsPageProps) {
                 onClick={handleMoveUp}
                 disabled={activeSelection.length !== 1 || realmsForm.activeRealms.findIndex((r) => r.id === activeSelection[0]) <= 0}
                 className="realms-page__control-button"
-                aria-label="Move up"
-                title="Move up"
+                aria-label={RealmsStrings.PAGE.MOVE_UP_ARIA}
+                title={RealmsStrings.PAGE.MOVE_UP}
               >
                 <ArrowUp size={16} />
               </button>
@@ -395,8 +398,8 @@ export function RealmsPage({ className }: RealmsPageProps) {
                 onClick={handleMoveDown}
                 disabled={activeSelection.length !== 1 || realmsForm.activeRealms.findIndex((r) => r.id === activeSelection[0]) >= realmsForm.activeRealms.length - 1}
                 className="realms-page__control-button"
-                aria-label="Move down"
-                title="Move down"
+                aria-label={RealmsStrings.PAGE.MOVE_DOWN_ARIA}
+                title={RealmsStrings.PAGE.MOVE_DOWN}
               >
                 <ArrowDown size={16} />
               </button>
@@ -406,10 +409,10 @@ export function RealmsPage({ className }: RealmsPageProps) {
 
         {/* Help Section */}
         <HelpSection
-          title="About Realms"
-          content="Security realms are used to authenticate users. The order of active realms determines the authentication sequence. Move realms between Available and Active lists, and drag to reorder active realms."
+          title={RealmsStrings.PAGE.ABOUT_REALMS}
+          content={RealmsStrings.PAGE.SECURITY_REALMS_USED_AUTHENTICATE_USERS}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'https://help.globalart.dev/en/realms.html',
           }}
         />

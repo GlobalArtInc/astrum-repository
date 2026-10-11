@@ -23,6 +23,8 @@ import {
 } from './types';
 
 import './UserDetail.scss';
+import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface UserDetailProps {
   user: User | null;
@@ -73,7 +75,7 @@ export function UserDetail({
         aria-busy="true"
       >
         <Loader2 size={24} className="user-detail__spinner" aria-hidden="true" />
-        <Text size="2">Loading user details...</Text>
+        <Text size="2">{UsersStrings.DETAIL.LOADING_USER_DETAILS}</Text>
       </Flex>
     );
   }
@@ -87,7 +89,7 @@ export function UserDetail({
         aria-live="assertive"
       >
         <AlertTriangle size={24} aria-hidden="true" />
-        <Text size="2">User not found</Text>
+        <Text size="2">{UsersStrings.DETAIL.USER_NOT_FOUND}</Text>
       </Box>
     );
   }
@@ -96,17 +98,17 @@ export function UserDetail({
     setPasswordError(null);
 
     if (!newPassword) {
-      setPasswordError('New password is required');
+      setPasswordError(UsersStrings.DETAIL.NEW_PASSWORD_REQUIRED);
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setPasswordError(UsersStrings.DETAIL.PASSWORDS_DO_NOT_MATCH);
       return;
     }
 
     try {
       await changePassword(user.userId, newPassword);
-      toast.success(`Password changed successfully for ${getFullName(user)}`);
+      toast.success(UsersStrings.DETAIL.PASSWORD_CHANGED_SUCCESSFULLY(getFullName(user)));
       setShowChangePassword(false);
       setNewPassword('');
       setConfirmPassword('');
@@ -123,7 +125,7 @@ export function UserDetail({
     setResetTokenDialogOpen(false);
     try {
       await resetUserToken(user.userId, user.realm || user.source);
-      toast.success(`User token has been reset for ${getFullName(user)}`);
+      toast.success(UsersStrings.DETAIL.USER_TOKEN_HAS_BEEN_RESET(getFullName(user)));
     } catch (_err) {
       // Error is set by the API hook
     }
@@ -140,18 +142,18 @@ export function UserDetail({
 
     return (
       <Box className="user-detail">
-        <SettingsFormSection title="User Information" defaultOpen>
+        <SettingsFormSection title={UsersStrings.DETAIL.USER_INFORMATION} defaultOpen>
           <MetadataGrid items={[
             { label: 'ID', value: user.userId },
-            { label: 'First Name', value: user.firstName },
-            { label: 'Last Name', value: user.lastName },
-            { label: 'Email', value: user.emailAddress || user.email },
-            { label: 'Status', value: <StatusBadge status={statusType} label={statusLabel} size="small" /> },
-            { label: 'Source', value: isExternal ? user.source : 'Local' },
+            { label: UsersStrings.DETAIL.FIRST_NAME, value: user.firstName },
+            { label: UsersStrings.DETAIL.LAST_NAME, value: user.lastName },
+            { label: UsersStrings.DETAIL.EMAIL, value: user.emailAddress || user.email },
+            { label: CommonStrings.LABELS.STATUS, value: <StatusBadge status={statusType} label={statusLabel} size="small" /> },
+            { label: UsersStrings.DETAIL.SOURCE, value: isExternal ? user.source : UsersStrings.DETAIL.LOCAL },
           ]} />
         </SettingsFormSection>
 
-        <SettingsFormSection title="Assigned Roles">
+        <SettingsFormSection title={UsersStrings.DETAIL.ASSIGNED_ROLES}>
           <Box className="user-detail__roles">
             {user.roles && user.roles.length > 0 ? (
               user.roles.map((role) => (
@@ -161,7 +163,7 @@ export function UserDetail({
               ))
             ) : (
               <Text size="2" className="user-detail__no-roles">
-                No roles assigned
+                {UsersStrings.DETAIL.NO_ROLES_ASSIGNED}
               </Text>
             )}
           </Box>
@@ -169,7 +171,7 @@ export function UserDetail({
 
         <Flex gap="3" className="user-detail__actions">
           <SettingsButton variant="secondary" onClick={onCancel}>
-            Back to List
+            {CommonStrings.ACTIONS.BACK_TO_LIST}
           </SettingsButton>
         </Flex>
       </Box>
@@ -188,18 +190,18 @@ export function UserDetail({
 
       {/* Account Actions -- grouped in one section */}
       {(showChangePasswordButton || showResetTokenButton) && (
-        <SettingsFormSection title="Account Actions">
+        <SettingsFormSection title={UsersStrings.DETAIL.ACCOUNT_ACTIONS}>
           <Flex direction="column" gap="3">
             {showChangePasswordButton && (
               <>
                 <Flex align="center" justify="between" className="user-detail__action-row">
                   <Box>
-                    <Text size="2" weight="medium">Change Password</Text>
-                    <Text as="p" size="1" color="gray">Set a new password for this user</Text>
+                    <Text size="2" weight="medium">{UsersStrings.DETAIL.CHANGE_PASSWORD}</Text>
+                    <Text as="p" size="1" color="gray">{UsersStrings.DETAIL.SET_NEW_PASSWORD_USER}</Text>
                   </Box>
                   {!showChangePassword && (
                     <SettingsButton variant="secondary" icon={Key} onClick={() => setShowChangePassword(true)}>
-                      Change Password
+                      {UsersStrings.DETAIL.CHANGE_PASSWORD}
                     </SettingsButton>
                   )}
                 </Flex>
@@ -213,7 +215,7 @@ export function UserDetail({
                     )}
                     <SettingsPasswordInput
                       name="newPassword"
-                      label="New Password"
+                      label={UsersStrings.DETAIL.NEW_PASSWORD}
                       value={newPassword}
                       onChange={setNewPassword}
                       required
@@ -221,7 +223,7 @@ export function UserDetail({
                     />
                     <SettingsPasswordInput
                       name="confirmPassword"
-                      label="Confirm New Password"
+                      label={UsersStrings.DETAIL.CONFIRM_NEW_PASSWORD}
                       value={confirmPassword}
                       onChange={setConfirmPassword}
                       required
@@ -233,7 +235,7 @@ export function UserDetail({
                         onClick={handleChangePassword}
                         loading={apiLoading}
                       >
-                        Change Password
+                        {UsersStrings.DETAIL.CHANGE_PASSWORD}
                       </SettingsButton>
                       <SettingsButton
                         variant="secondary"
@@ -244,7 +246,7 @@ export function UserDetail({
                           setPasswordError(null);
                         }}
                       >
-                        Cancel
+                        {CommonStrings.ACTIONS.CANCEL}
                       </SettingsButton>
                     </Flex>
                   </Box>
@@ -257,8 +259,8 @@ export function UserDetail({
             {showResetTokenButton && (
               <Flex align="center" justify="between" className="user-detail__action-row">
                 <Box>
-                  <Text size="2" weight="medium">Reset User Token</Text>
-                  <Text as="p" size="1" color="gray">Invalidate current token and force regeneration</Text>
+                  <Text size="2" weight="medium">{UsersStrings.DETAIL.RESET_USER_TOKEN}</Text>
+                  <Text as="p" size="1" color="gray">{UsersStrings.DETAIL.INVALIDATE_CURRENT_TOKEN_FORCE_REGENERATION}</Text>
                 </Box>
                 <SettingsButton
                   variant="secondary"
@@ -266,7 +268,7 @@ export function UserDetail({
                   onClick={handleResetTokenClick}
                   loading={apiLoading}
                 >
-                  Reset Token
+                  {UsersStrings.DETAIL.RESET_TOKEN}
                 </SettingsButton>
               </Flex>
             )}
@@ -279,10 +281,10 @@ export function UserDetail({
         open={resetTokenDialogOpen}
         testId="reset-user-token-dialog"
         onOpenChange={setResetTokenDialogOpen}
-        title="Reset User Token"
-        message={`Are you sure you want to reset the token for "${user ? getFullName(user) : ''}"? This will invalidate their current token.`}
-        confirmLabel="Reset"
-        cancelLabel="Cancel"
+        title={UsersStrings.DETAIL.RESET_USER_TOKEN}
+        message={UsersStrings.DETAIL.RESET_TOKEN_CONFIRM(user ? getFullName(user) : '')}
+        confirmLabel={UsersStrings.DETAIL.RESET}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="danger"
         onConfirm={handleResetTokenConfirm}
       />

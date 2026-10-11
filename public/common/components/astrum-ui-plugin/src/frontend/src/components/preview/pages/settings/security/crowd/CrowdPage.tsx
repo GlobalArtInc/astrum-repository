@@ -19,6 +19,9 @@ import { useCrowdSettings } from './useCrowdSettings';
 import { CrowdConfig, CrowdPageProps } from './types';
 
 import './CrowdPage.scss';
+import CrowdStrings from '../../../../constants/pages/settings/security/CrowdStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
+import plural from '../../../../../../interface/plural';
 
 const navigateTo = (path: string) => {
   window.location.hash = path;
@@ -29,7 +32,7 @@ const navigateTo = (path: string) => {
 // text error of their own, only a side effect of revealing these fields'.
 const VALIDATED_FIELDS = ['url', 'applicationName', 'applicationPassword', 'timeout'] as const;
 
-const LOADING_MESSAGE = 'Loading Crowd configuration...';
+const LOADING_MESSAGE = CrowdStrings.PAGE.LOADING_CROWD_CONFIGURATION;
 
 /**
  * CrowdPage - Atlassian Crowd configuration page for Preview UI
@@ -129,15 +132,15 @@ export function CrowdPage({ className }: CrowdPageProps) {
   // sighted users.
   useEffect(() => {
     if (isSaving) {
-      announceActive('Saving Crowd settings...');
+      announceActive(CrowdStrings.PAGE.SAVING_CROWD_SETTINGS);
     } else if (isVerifyingConnection) {
-      announceActive('Verifying connection...');
+      announceActive(CrowdStrings.PAGE.VERIFYING_CONNECTION);
     } else if (isClearingCache) {
-      announceActive('Clearing cache...');
+      announceActive(CrowdStrings.PAGE.CLEARING_CACHE);
     } else {
-      clearIfActive('Saving Crowd settings...');
-      clearIfActive('Verifying connection...');
-      clearIfActive('Clearing cache...');
+      clearIfActive(CrowdStrings.PAGE.SAVING_CROWD_SETTINGS);
+      clearIfActive(CrowdStrings.PAGE.VERIFYING_CONNECTION);
+      clearIfActive(CrowdStrings.PAGE.CLEARING_CACHE);
     }
   }, [isSaving, isVerifyingConnection, isClearingCache, announceActive, clearIfActive]);
 
@@ -301,11 +304,11 @@ export function CrowdPage({ className }: CrowdPageProps) {
       {/* Header */}
       <Box mb="4">
         <PageHeader
-          title="Atlassian Crowd"
-          description="Manage Atlassian Crowd configuration for user authentication"
+          title={CrowdStrings.PAGE.ATLASSIAN_CROWD}
+          description={CrowdStrings.PAGE.MANAGE_ATLASSIAN_CROWD_CONFIGURATION_USER}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => navigateTo('#preview/admin/settings') },
-            { label: 'Crowd' }
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CrowdStrings.PAGE.CROWD }
           ]}
         />
       </Box>
@@ -322,7 +325,7 @@ export function CrowdPage({ className }: CrowdPageProps) {
       {showValidationSummary && (
         <Box className="crowd-page__alerts">
           <SettingsAlert type="error">
-            {`Please fix ${validationErrorCount} validation error${validationErrorCount !== 1 ? 's' : ''} to continue.`}
+            {plural(CrowdStrings.PAGE.FIX_VALIDATION_ERRORS, validationErrorCount)}
           </SettingsAlert>
         </Box>
       )}
@@ -353,7 +356,7 @@ export function CrowdPage({ className }: CrowdPageProps) {
                 icon={CheckCircle}
                 data-analytics-id="as-crowd-verify-connection"
               >
-                Verify connection
+                {CrowdStrings.PAGE.VERIFY_CONNECTION}
               </SettingsButton>
               {canUpdate && (
                 <SettingsButton
@@ -364,7 +367,7 @@ export function CrowdPage({ className }: CrowdPageProps) {
                   icon={Trash2}
                   data-analytics-id="as-crowd-clear-cache"
                 >
-                  Clear cache
+                  {CrowdStrings.PAGE.CLEAR_CACHE}
                 </SettingsButton>
               )}
             </Flex>
@@ -372,36 +375,36 @@ export function CrowdPage({ className }: CrowdPageProps) {
         }
       >
         {/* Basic Settings */}
-        <SettingsFormSection title="Settings">
+        <SettingsFormSection title={CommonStrings.LABELS.SETTINGS}>
           <SettingsCheckbox
             name="enabled"
-            label="Enable Crowd"
+            label={CrowdStrings.PAGE.ENABLE_CROWD}
             checked={config.enabled}
             onChange={changeEnabled}
-            description="Enable Crowd Capability"
+            description={CrowdStrings.PAGE.ENABLE_CROWD_CAPABILITY}
             disabled={!canUpdate}
             analyticsId="as-crowd-toggle-enabled"
           />
           <SettingsCheckbox
             name="realmActive"
-            label="Enable Crowd Realm for authentication"
+            label={CrowdStrings.PAGE.ENABLE_CROWD_REALM_AUTHENTICATION}
             checked={config.realmActive}
             onChange={changeRealmActive}
-            description={<>To control ordering, go to the <a href="#preview/admin/security/realms">Realms</a> page.</>}
+            description={CrowdStrings.PAGE.REALM_ORDER_HINT}
             disabled={!canUpdate}
             analyticsId="as-crowd-toggle-realm-active"
           />
         </SettingsFormSection>
 
         {/* Connection Settings */}
-        <SettingsFormSection title="Connection">
+        <SettingsFormSection title={CrowdStrings.PAGE.CONNECTION}>
           <SettingsTextInput
             name="url"
-            label="Crowd server URL"
+            label={CrowdStrings.PAGE.CROWD_SERVER_URL}
             value={config.url}
             onChange={(val) => changeField('url', val)}
             onBlur={() => markTouched('url')}
-            helpText="For example: http://localhost:8095/crowd"
+            helpText={CrowdStrings.PAGE.EXAMPLE_HTTP_LOCALHOST_8095_CROWD}
             error={visibleErrors.url}
             disabled={!canUpdate}
             type="url"
@@ -412,10 +415,10 @@ export function CrowdPage({ className }: CrowdPageProps) {
           {showTrustStore && (
             <SettingsCheckbox
               name="useTrustStoreForUrl"
-              label="Use the Astrum truststore"
+              label={CrowdStrings.PAGE.USE_ASTRUM_TRUSTSTORE}
               checked={config.useTrustStoreForUrl}
               onChange={(checked) => changeField('useTrustStoreForUrl', checked)}
-              description={<>Use certificates stored in the Astrum truststore to connect to external systems. <a href="#preview/admin/security/sslcertificates">Configure the Astrum truststore</a></>}
+              description={CrowdStrings.PAGE.TRUSTSTORE_HINT}
               disabled={!canUpdate}
               analyticsId="as-crowd-toggle-truststore"
             />
@@ -423,7 +426,7 @@ export function CrowdPage({ className }: CrowdPageProps) {
 
           <SettingsTextInput
             name="applicationName"
-            label="Crowd application name"
+            label={CrowdStrings.PAGE.CROWD_APPLICATION_NAME}
             value={config.applicationName}
             onChange={(val) => changeField('applicationName', val)}
             onBlur={() => markTouched('applicationName')}
@@ -435,7 +438,7 @@ export function CrowdPage({ className }: CrowdPageProps) {
 
           <SettingsPasswordInput
             name="applicationPassword"
-            label="Crowd application password"
+            label={CrowdStrings.PAGE.CROWD_APPLICATION_PASSWORD}
             value={config.applicationPassword}
             onChange={(val) => changeField('applicationPassword', val)}
             onBlur={() => markTouched('applicationPassword')}
@@ -447,11 +450,11 @@ export function CrowdPage({ className }: CrowdPageProps) {
 
           <SettingsTextInput
             name="timeout"
-            label="Connection timeout"
+            label={CrowdStrings.PAGE.CONNECTION_TIMEOUT}
             value={timeoutRaw}
             onChange={changeTimeout}
             onBlur={() => markTouched('timeout')}
-            helpText="Seconds to wait for activity before stopping and retrying the connection. Leave blank to use the globally defined HTTP timeout."
+            helpText={CrowdStrings.PAGE.SECONDS_WAIT_ACTIVITY_BEFORE_STOPPING}
             error={visibleErrors.timeout}
             disabled={!canUpdate}
             type="text"
@@ -460,10 +463,10 @@ export function CrowdPage({ className }: CrowdPageProps) {
 
         {/* Help Section */}
         <HelpSection
-          title="About Atlassian Crowd"
-          content="Atlassian Crowd is a centralized identity management application that allows you to manage users from multiple directories (Active Directory, LDAP, Crowd, etc.) and control application authentication permissions in one place. When configured, Astrum Repository can authenticate users against your Crowd server."
+          title={CrowdStrings.PAGE.ABOUT_ATLASSIAN_CROWD}
+          content={CrowdStrings.PAGE.ATLASSIAN_CROWD_CENTRALIZED_IDENTITY_MANAGEMENT}
           docLink={{
-            label: 'View Crowd Documentation',
+            label: CrowdStrings.PAGE.VIEW_CROWD_DOCUMENTATION,
             href: 'http://links.globalart.dev/products/astrum/docs/crowd',
           }}
         />

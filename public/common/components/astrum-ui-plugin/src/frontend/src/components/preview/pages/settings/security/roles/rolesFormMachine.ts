@@ -13,6 +13,7 @@ import {
   DEFAULT_SOURCE,
   isExternalRole,
 } from './types';
+import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
 
 /**
  * REST API role shape (from REST API response)
@@ -68,19 +69,19 @@ function validateRole(
   const errors: ValidationErrors = {};
 
   if (!data.id?.trim()) {
-    errors.id = 'Role ID is required';
+    errors.id = RolesStrings.VALIDATION.ROLE_ID_REQUIRED;
   } else if (!/^[a-zA-Z0-9_-]+$/.test(data.id)) {
-    errors.id = 'Role ID can only contain letters, numbers, underscores, and hyphens';
+    errors.id = RolesStrings.VALIDATION.ROLE_ID_CAN_ONLY_CONTAIN;
   }
 
   if (!data.name?.trim()) {
-    errors.name = 'Role name is required';
+    errors.name = RolesStrings.VALIDATION.ROLE_NAME_REQUIRED;
   } else {
     const duplicate = existingRoles.find(
       (r) => r.name.toLowerCase() === data.name.trim().toLowerCase() && r.id !== currentRoleId
     );
     if (duplicate) {
-      errors.name = `A role named "${duplicate.name}" already exists (ID: ${duplicate.id})`;
+      errors.name = RolesStrings.VALIDATION.ROLE_NAMED_ALREADY_EXISTS_ID(duplicate.name, duplicate.id);
     }
   }
 
@@ -88,7 +89,7 @@ function validateRole(
     (!data.privileges || data.privileges.length === 0) &&
     (!data.roles || data.roles.length === 0)
   ) {
-    errors.privileges = 'Select at least one privilege or contained role';
+    errors.privileges = RolesStrings.VALIDATION.SELECT_LEAST_ONE_PRIVILEGE_CONTAINED;
   }
 
   return errors;

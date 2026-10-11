@@ -19,6 +19,8 @@ import { isVisible } from '../../../../interface/NavigationUtils';
 import { PageHeader } from '../../shared';
 import { SETTINGS_SECTIONS } from './settingsConfig';
 import SettingsSection from './SettingsSection';
+import CommonStrings from '../../constants/CommonStrings';
+import SettingsStrings from '../../constants/pages/settings/SettingsStrings';
 
 /**
  * SettingsHubPage - Searchable hub for all admin settings
@@ -153,14 +155,14 @@ export function SettingsHubPage() {
     <ScrollArea>
       <Container size="3" py="4">
         <PageHeader
-          title="Settings"
-          description="Configure security, repositories, system, and support"
+          title={CommonStrings.LABELS.SETTINGS}
+          description={SettingsStrings.HUB.CONFIGURE_SECURITY_REPOSITORIES_SYSTEM_SUPPORT}
         >
           {/* Search bar */}
           <Box mt="4">
             <TextField.Root
               size="3"
-              placeholder="Search settings..."
+              placeholder={SettingsStrings.HUB.SEARCH_SETTINGS_PLACEHOLDER}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             >
@@ -173,7 +175,7 @@ export function SettingsHubPage() {
                     variant="ghost"
                     size="1"
                     onClick={() => setSearchQuery('')}
-                    aria-label="Clear search"
+                    aria-label={SettingsStrings.HUB.CLEAR_SEARCH_ARIA}
                   >
                     <X size={14} />
                   </IconButton>
@@ -189,10 +191,9 @@ export function SettingsHubPage() {
             <Info size={16} />
           </Callout.Icon>
           <Callout.Text>
-            Some settings pages are available in this preview. Pages marked{' '}
-            <Badge color="blue" size="1" variant="soft">Coming Soon</Badge>
-            {' '}are still being prepared for the Astrum One UI. Access them through
-            the classic UI administration panel.
+            {SettingsStrings.HUB.PREVIEW_NOTICE(
+              <Badge color="blue" size="1" variant="soft">{SettingsStrings.CARD.COMING_SOON}</Badge>
+            )}
           </Callout.Text>
         </Callout.Root>
 
@@ -225,10 +226,10 @@ function EmptyState({ searchQuery }: EmptyStateProps) {
     <Box py="8" style={{ textAlign: 'center' }}>
       <Flex direction="column" align="center" gap="2">
         <Text size="3" weight="medium" color="gray">
-          No settings found matching "{searchQuery}"
+          {SettingsStrings.HUB.NO_SETTINGS_FOUND_MATCHING(searchQuery)}
         </Text>
         <Text size="2" color="gray">
-          Try a different search term or browse all settings
+          {SettingsStrings.HUB.TRY_DIFFERENT_SEARCH_TERM_BROWSE}
         </Text>
       </Flex>
     </Box>

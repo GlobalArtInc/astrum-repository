@@ -1,8 +1,9 @@
 
 
 import React from 'react';
+import localize from '../../../../../../interface/localize';
 
-export const SERVICE_ACCOUNT_TOKENS_STRINGS = {
+export const SERVICE_ACCOUNT_TOKENS_STRINGS = localize('react-ui', {
   PAGE: {
     TITLE: 'Service Account Tokens',
     DESCRIPTION: 'Manage tokens for automated service access',
@@ -116,7 +117,10 @@ export const SERVICE_ACCOUNT_TOKENS_STRINGS = {
     REVOKE_ERROR_FORBIDDEN: 'You do not have permission to revoke this service account token.',
     REVOKE_ERROR_GENERIC: 'Failed to revoke the service account token.',
     LOAD_ERROR: 'Failed to load service account tokens.',
+    LOAD_FAILED: 'Failed to load service-account tokens.',
+    CREATE_FAILED: 'Failed to create service-account token.',
+    REVOKE_FAILED: 'Failed to revoke service-account token.',
     OPERATION_IN_PROGRESS:
       'Another token operation is already in progress. Please wait for it to complete before starting another.',
   },
-};
+}, 'PREVIEW.SERVICE_ACCOUNT_TOKENS');

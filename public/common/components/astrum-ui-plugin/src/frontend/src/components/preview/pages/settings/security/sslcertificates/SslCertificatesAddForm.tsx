@@ -21,6 +21,7 @@ import {
 import { SslCertificatesDetail } from './SslCertificatesDetail';
 
 import './SslCertificatesAddForm.scss';
+import SslCertificatesStrings from '../../../../constants/pages/settings/security/SslCertificatesStrings';
 
 /**
  * SslCertificatesAddForm - Form for adding SSL certificates
@@ -83,7 +84,7 @@ export function SslCertificatesAddForm({
     // the backend would reject with a 409.
     if (certificateDetails.inTrustStore) {
       setDuplicateDialogOpen(true);
-      setError('This certificate already exists in the trust store and cannot be added again.');
+      setError(SslCertificatesStrings.ADD_FORM.CERTIFICATE_ALREADY_EXISTS_TRUST_STORE);
       return;
     }
 
@@ -93,7 +94,7 @@ export function SslCertificatesAddForm({
       : certificateDetails.pem || '';
 
     if (!pemContent) {
-      setError('Certificate PEM content is required');
+      setError(SslCertificatesStrings.ADD_FORM.CERTIFICATE_PEM_CONTENT_REQUIRED);
       return;
     }
 
@@ -139,19 +140,19 @@ export function SslCertificatesAddForm({
     <Box className="ssl-certificates-add-form">
       <SettingsForm
         testId="ssl-add-form"
-        title="Add SSL Certificate"
-        description="Add a certificate to the trust store by loading from a server or pasting PEM content"
+        title={SslCertificatesStrings.ADD_FORM.ADD_SSL_CERTIFICATE}
+        description={SslCertificatesStrings.ADD_FORM.ADD_CERTIFICATE_TRUST_STORE_LOADING}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         loading={loading}
         pristine={sslForm.isPristine}
         error={error}
-        submitLabel={showPreview ? 'Add Certificate' : 'Load Certificate'}
+        submitLabel={showPreview ? SslCertificatesStrings.ADD_FORM.ADD_CERTIFICATE : SslCertificatesStrings.ADD_FORM.LOAD_CERTIFICATE}
       >
         {!showPreview ? (
           <>
             {/* Source Selection */}
-            <SettingsFormSection title="Certificate Source" defaultOpen>
+            <SettingsFormSection title={SslCertificatesStrings.ADD_FORM.CERTIFICATE_SOURCE} defaultOpen>
               <Box className="ssl-certificates-add-form__source-options">
                 <Box className="ssl-certificates-add-form__radio-group">
                   <label className="ssl-certificates-add-form__radio-label">
@@ -164,9 +165,9 @@ export function SslCertificatesAddForm({
                       className="ssl-certificates-add-form__radio-input"
                     />
                     <Box className="ssl-certificates-add-form__radio-content">
-                      <Text size="2" weight="medium">Load from server</Text>
+                      <Text size="2" weight="medium">{SslCertificatesStrings.ADD_FORM.LOAD_SERVER}</Text>
                       <Text size="1" className="ssl-certificates-add-form__radio-description">
-                        Enter a hostname, hostname:port, or URL to fetch an SSL certificate from
+                        {SslCertificatesStrings.ADD_FORM.ENTER_HOSTNAME_HOSTNAME_PORT_URL}
                       </Text>
                     </Box>
                   </label>
@@ -175,13 +176,13 @@ export function SslCertificatesAddForm({
                     <Box className="ssl-certificates-add-form__field">
                       <SettingsTextInput
                         name="remoteHostUrl"
-                        label="Hostname or URL"
+                        label={SslCertificatesStrings.ADD_FORM.HOSTNAME_URL}
                         value={sslForm.formData.remoteHostUrl}
                         onChange={(value: string) => handleFieldChange('remoteHostUrl', value)}
                         onBlur={() => sslForm.handleBlur('remoteHostUrl')}
                         error={sslForm.touched?.remoteHostUrl ? sslForm.errors?.remoteHostUrl : undefined}
-                        placeholder="example.com or example.com:443 or https://example.com"
-                        helpText="Remote server hostname to retrieve certificate from (e.g., repo.maven.apache.org)"
+                        placeholder={SslCertificatesStrings.ADD_FORM.EXAMPLE_COM_EXAMPLE_COM_443_PLACEHOLDER}
+                        helpText={SslCertificatesStrings.ADD_FORM.REMOTE_SERVER_HOSTNAME_RETRIEVE_CERTIFICATE}
                         required
                       />
                     </Box>
@@ -199,9 +200,9 @@ export function SslCertificatesAddForm({
                       className="ssl-certificates-add-form__radio-input"
                     />
                     <Box className="ssl-certificates-add-form__radio-content">
-                      <Text size="2" weight="medium">Paste PEM</Text>
+                      <Text size="2" weight="medium">{SslCertificatesStrings.ADD_FORM.PASTE_PEM}</Text>
                       <Text size="1" className="ssl-certificates-add-form__radio-description">
-                        Paste certificate content in PEM format
+                        {SslCertificatesStrings.ADD_FORM.PASTE_CERTIFICATE_CONTENT_PEM_FORMAT}
                       </Text>
                     </Box>
                   </label>
@@ -210,13 +211,13 @@ export function SslCertificatesAddForm({
                     <Box className="ssl-certificates-add-form__field">
                       <SettingsTextArea
                         name="pemContent"
-                        label="Paste Certificate as PEM"
+                        label={SslCertificatesStrings.ADD_FORM.PASTE_CERTIFICATE_PEM}
                         value={sslForm.formData.pemContent}
                         onChange={(value: string) => handleFieldChange('pemContent', value)}
                         onBlur={() => sslForm.handleBlur('pemContent')}
                         error={sslForm.touched?.pemContent ? sslForm.errors?.pemContent : undefined}
                         placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
-                        helpText="Paste PEM-encoded certificate content (starts with -----BEGIN CERTIFICATE-----)"
+                        helpText={SslCertificatesStrings.ADD_FORM.PASTE_PEM_ENCODED_CERTIFICATE_CONTENT}
                         rows={8}
                         required
                       />
@@ -234,7 +235,7 @@ export function SslCertificatesAddForm({
                 {certificateDetails.inTrustStore && (
                   <Box className="ssl-certificates-add-form__alerts">
                     <SettingsAlert type="error">
-                      This certificate already exists in the trust store and cannot be added again.
+                      {SslCertificatesStrings.ADD_FORM.CERTIFICATE_ALREADY_EXISTS_TRUST_STORE}
                     </SettingsAlert>
                   </Box>
                 )}
@@ -262,9 +263,9 @@ export function SslCertificatesAddForm({
         open={duplicateDialogOpen}
         testId="certificate-already-exists-dialog"
         onOpenChange={setDuplicateDialogOpen}
-        title="Certificate Already Exists"
-        message="This certificate already exists and cannot be added again. Would you like to view the existing certificate?"
-        confirmLabel="View Certificate"
+        title={SslCertificatesStrings.ADD_FORM.CERTIFICATE_ALREADY_EXISTS}
+        message={SslCertificatesStrings.ADD_FORM.CERTIFICATE_ALREADY_EXISTS_CANNOT_ADDED}
+        confirmLabel={SslCertificatesStrings.ADD_FORM.VIEW_CERTIFICATE}
         variant="warning"
         onConfirm={handleViewExisting}
       />

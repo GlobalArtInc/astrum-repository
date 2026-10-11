@@ -38,6 +38,8 @@ import {
 import type { UseLdapFormOptions } from './useLdapForm';
 
 import './LdapForm.scss';
+import LdapStrings from '../../../../constants/pages/settings/security/LdapStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface LdapFormProps {
   server?: LdapServer | null;
@@ -58,8 +60,8 @@ interface LdapFormProps {
 }
 
 const WIZARD_STEPS = [
-  { id: 'connection', label: 'Connection' },
-  { id: 'userGroup', label: 'User & Group' },
+  { id: 'connection', label: LdapStrings.FORM.CONNECTION },
+  { id: 'userGroup', label: LdapStrings.FORM.USER_GROUP },
 ];
 
 /**
@@ -94,11 +96,11 @@ const CONNECTION_IDENTITY_FIELDS = new Set<keyof LdapFormData>([
  */
 const USER_MAPPING_COLUMNS: TableColumn<LdapUser>[] = [
   { id: 'username', header: 'ID', accessor: 'username' },
-  { id: 'realName', header: 'Name', accessor: (u) => u.realName || '' },
-  { id: 'email', header: 'Email', accessor: (u) => u.email || '' },
+  { id: 'realName', header: CommonStrings.LABELS.NAME, accessor: (u) => u.realName || '' },
+  { id: 'email', header: LdapStrings.FORM.EMAIL, accessor: (u) => u.email || '' },
   {
     id: 'membership',
-    header: 'Roles',
+    header: LdapStrings.FORM.ROLES,
     accessor: (u) => (u.membership?.length ? u.membership.join(', ') : ''),
   },
 ];
@@ -248,7 +250,7 @@ export function LdapForm({
     setTemplateError(null);
     fetchTemplates()
       .then((t) => { if (!cancelled) setTemplates(t); })
-      .catch((err: any) => { if (!cancelled) setTemplateError(err.message || 'Failed to load templates'); });
+      .catch((err: any) => { if (!cancelled) setTemplateError(err.message || LdapStrings.FORM.FAILED_LOAD_TEMPLATES); });
     return () => { cancelled = true; };
   }, [fetchTemplates]);
 
@@ -319,9 +321,9 @@ export function LdapForm({
     try {
       await verifyConnection(data, isCreate ? undefined : server?.name);
       setConnectionVerified(true);
-      announceStatus('Connection successful');
+      announceStatus(LdapStrings.FORM.CONNECTION_SUCCESSFUL);
     } catch (err: any) {
-      const message = err.message || 'Connection verification failed';
+      const message = err.message || LdapStrings.FORM.CONNECTION_VERIFICATION_FAILED;
       setVerificationError(message);
       announceStatus(message);
     } finally {
@@ -342,7 +344,7 @@ export function LdapForm({
       setShowUserResults(true);
       announceStatus(`Found ${users.length} user(s)`);
     } catch (err: any) {
-      const message = err.message || 'User mapping verification failed';
+      const message = err.message || LdapStrings.FORM.USER_MAPPING_VERIFICATION_FAILED;
       setVerificationError(message);
       announceStatus(message);
     } finally {
@@ -403,10 +405,10 @@ export function LdapForm({
     setLoginResult(null);
     try {
       await verifyLogin(formData, loginUsername, loginPassword, isCreate ? undefined : server?.name);
-      setLoginResult({ success: true, message: `LDAP login completed successfully on: ${(formData.protocol || 'ldap').toLowerCase()}://${formData.host}:${formData.port}` });
+      setLoginResult({ success: true, message: LdapStrings.FORM.LDAP_LOGIN_COMPLETED_SUCCESSFULLY((formData.protocol || 'ldap').toLowerCase(), formData.host, formData.port) });
       setLoginAnnounceKey((k) => k + 1);
     } catch (err: any) {
-      setLoginResult({ success: false, message: err.message || 'Login verification failed' });
+      setLoginResult({ success: false, message: err.message || LdapStrings.FORM.LOGIN_VERIFICATION_FAILED });
       setLoginAnnounceKey((k) => k + 1);
     } finally {
       setLoginVerifying(false);
@@ -427,7 +429,7 @@ export function LdapForm({
   // opened from a verify button) or to the save flow (when opened from Save).
   const handlePasswordReentry = useCallback(async () => {
     if (!reenteredPassword) {
-      setPasswordError('Password is required');
+      setPasswordError(LdapStrings.FORM.PASSWORD_REQUIRED);
       return;
     }
 
@@ -460,7 +462,7 @@ export function LdapForm({
           server?.name
         );
       } catch (err: any) {
-        setPasswordError(err?.message || 'Connection verification failed');
+        setPasswordError(err?.message || LdapStrings.FORM.CONNECTION_VERIFICATION_FAILED);
         setPasswordVerifying(false);
         return;
       }
@@ -529,7 +531,7 @@ export function LdapForm({
     return (
       <Flex align="center" justify="center" gap="2" p="4">
         <Loader2 size={24} aria-hidden="true" />
-        <Text size="2">Loading form...</Text>
+        <Text size="2">{CommonStrings.MESSAGES.LOADING_FORM}</Text>
       </Flex>
     );
   }
@@ -550,8 +552,8 @@ export function LdapForm({
         <Box className="ldap-form__permission-warning" mb="3">
           <SettingsAlert type="warning">
             {isCreate
-              ? "You don't have permission to create LDAP servers. Contact your administrator to request access."
-              : "You don't have permission to edit this LDAP server. Contact your administrator to request access."}
+              ? LdapStrings.FORM.YOU_DONT_HAVE_PERMISSION_CREATE
+              : LdapStrings.FORM.YOU_DONT_HAVE_PERMISSION_EDIT}
           </SettingsAlert>
         </Box>
       )}
@@ -584,7 +586,7 @@ export function LdapForm({
         onStepChange={handleStepChange}
         onComplete={handleSave}
         onCancel={onCancel}
-        completeLabel={isCreate ? 'Create' : 'Save'}
+        completeLabel={isCreate ? CommonStrings.ACTIONS.CREATE : CommonStrings.ACTIONS.SAVE}
         canAdvance={isStep1 ? connectionValid : (connectionValid && userGroupValid && canEditFields)}
         dirty={!form.isPristine}
         loading={form.isSaving || loading}
@@ -604,18 +606,18 @@ export function LdapForm({
               testId="form-delete"
               data-analytics-id="as-ldap-form-delete"
             >
-              Delete
+              {CommonStrings.ACTIONS.DELETE}
             </SettingsButton>
           ) : undefined
         }
       >
         {/* Step 1: Connection */}
         {isStep1 && (<>
-          <SettingsFormSection title="Server Configuration" defaultOpen>
+          <SettingsFormSection title={LdapStrings.FORM.SERVER_CONFIGURATION} defaultOpen>
             <SettingsTextInput
               {...form.field('name')}
-              label="Name"
-              helpText="A unique name for this LDAP server"
+              label={CommonStrings.LABELS.NAME}
+              helpText={LdapStrings.FORM.UNIQUE_NAME_LDAP_SERVER}
               required
               disabled={!canEditFields}
             />
@@ -624,10 +626,10 @@ export function LdapForm({
               <Box className="ldap-form__field-col ldap-form__field-col--protocol">
                 <SettingsSelect
                   name="protocol"
-                  label="Protocol"
+                  label={LdapStrings.FORM.PROTOCOL}
                   value={(formData.protocol || 'ldap').toLowerCase()}
                   onChange={(value) => handleChange('protocol', value as 'ldap' | 'ldaps')}
-                  helpText="Connection protocol. Use ldaps for encrypted connections."
+                  helpText={LdapStrings.FORM.CONNECTION_PROTOCOL_USE_LDAPS_ENCRYPTED}
                   required
                   disabled={!canEditFields}
                   options={[
@@ -640,9 +642,9 @@ export function LdapForm({
                 <SettingsTextInput
                   {...form.field('host')}
                   onChange={(value) => handleChange('host', value as string)}
-                  label="Hostname"
+                  label={LdapStrings.FORM.HOSTNAME}
                   placeholder="ldap.example.com"
-                  helpText="LDAP server hostname or IP address"
+                  helpText={LdapStrings.FORM.LDAP_SERVER_HOSTNAME_IP_ADDRESS}
                   required
                   disabled={!canEditFields}
                 />
@@ -650,7 +652,7 @@ export function LdapForm({
               <Box className="ldap-form__field-col ldap-form__field-col--port">
                 <SettingsTextInput
                   name="port"
-                  label="Port"
+                  label={LdapStrings.FORM.PORT}
                   type="number"
                   value={formData.port ?? 389}
                   onChange={(value) => {
@@ -660,7 +662,7 @@ export function LdapForm({
                     // meaningful intermediate state and the backend rejects a missing port.
                     handleChange('port', Number.isNaN(parsed) ? 389 : parsed);
                   }}
-                  helpText="Default: 389 (ldap) or 636 (ldaps)"
+                  helpText={LdapStrings.FORM.DEFAULT_389_LDAP_636_LDAPS}
                   error={form.validationErrors.port ?? undefined}
                   required
                   disabled={!canEditFields}
@@ -671,10 +673,10 @@ export function LdapForm({
             {formData.protocol === 'ldaps' && (
               <SettingsCheckbox
                 name="useTrustStore"
-                label="Use Astrum SSL Trust Store"
+                label={LdapStrings.FORM.USE_ASTRUM_SSL_TRUST_STORE}
                 checked={formData.useTrustStore}
                 onChange={(checked) => handleChange('useTrustStore', checked)}
-                description="Use the Astrum trust store for SSL certificate validation"
+                description={LdapStrings.FORM.USE_ASTRUM_TRUST_STORE_SSL}
                 disabled={!canEditFields}
               />
             )}
@@ -682,18 +684,18 @@ export function LdapForm({
             <SettingsTextInput
               {...form.field('searchBase')}
               onChange={(value) => handleChange('searchBase', value as string)}
-              label="Search Base DN"
+              label={LdapStrings.FORM.SEARCH_BASE_DN}
               placeholder="dc=example,dc=com"
-              helpText="The base DN to search for users"
+              helpText={LdapStrings.FORM.BASE_DN_SEARCH_USERS}
               required
               disabled={!canEditFields}
             />
           </SettingsFormSection>
 
-          <SettingsFormSection title="Authentication" defaultOpen>
+          <SettingsFormSection title={LdapStrings.FORM.AUTHENTICATION} defaultOpen>
             <SettingsSelect
               name="authScheme"
-              label="Authentication Method"
+              label={LdapStrings.FORM.AUTHENTICATION_METHOD}
               value={formData.authScheme || 'simple'}
               onChange={(value) => handleChange('authScheme', value)}
               required
@@ -709,9 +711,9 @@ export function LdapForm({
                 <SettingsTextInput
                   {...form.field('authUsername')}
                   onChange={(value) => handleChange('authUsername', value as string)}
-                  label="Username"
+                  label={LdapStrings.FORM.USERNAME}
                   placeholder="cn=admin,dc=example,dc=com"
-                  helpText="The DN of the user to bind with for searches"
+                  helpText={LdapStrings.FORM.DN_USER_BIND_SEARCHES}
                   required
                   disabled={!canEditFields}
                 />
@@ -719,8 +721,8 @@ export function LdapForm({
                 <SettingsPasswordInput
                   {...form.field('authPassword')}
                   onChange={(value) => handleChange('authPassword', value as string)}
-                  label="Password"
-                  helpText={isCreate ? 'Password for the bind user' : 'Leave blank to keep the existing password'}
+                  label={LdapStrings.FORM.PASSWORD}
+                  helpText={isCreate ? LdapStrings.FORM.PASSWORD_BIND_USER : LdapStrings.FORM.LEAVE_BLANK_KEEP_EXISTING_PASSWORD}
                   required={isCreate}
                   disabled={!canEditFields}
                 />
@@ -729,8 +731,8 @@ export function LdapForm({
                   <SettingsTextInput
                     {...form.field('authRealm')}
                     onChange={(value) => handleChange('authRealm', value as string)}
-                    label="SASL Realm"
-                    helpText="The SASL realm for DIGEST-MD5/CRAM-MD5 authentication"
+                    label={LdapStrings.FORM.SASL_REALM}
+                    helpText={LdapStrings.FORM.SASL_REALM_DIGEST_MD5_CRAM}
                     disabled={!canEditFields}
                   />
                 )}
@@ -738,11 +740,11 @@ export function LdapForm({
             )}
           </SettingsFormSection>
 
-          <SettingsFormSection title="Connection Settings">
+          <SettingsFormSection title={LdapStrings.FORM.CONNECTION_SETTINGS}>
             <Flex gap="3" className="ldap-form__field-row">
               <SettingsTextInput
                 name="connectionTimeout"
-                label="Connection Timeout (seconds)"
+                label={LdapStrings.FORM.CONNECTION_TIMEOUT_SECONDS}
                 type="text"
                 value={connectionTimeoutRaw}
                 onChange={(value) => {
@@ -757,7 +759,7 @@ export function LdapForm({
 
               <SettingsTextInput
                 name="connectionRetryDelay"
-                label="Retry Delay (seconds)"
+                label={LdapStrings.FORM.RETRY_DELAY_SECONDS}
                 type="text"
                 value={connectionRetryDelayRaw}
                 onChange={(value) => {
@@ -765,14 +767,14 @@ export function LdapForm({
                   setConnectionRetryDelayRaw(val);
                   handleChange('connectionRetryDelay', val.trim() === '' ? undefined : Number(val));
                 }}
-                helpText="Delay between connection retries"
+                helpText={LdapStrings.FORM.DELAY_BETWEEN_CONNECTION_RETRIES}
                 disabled={!canEditFields}
                 error={form.validationErrors.connectionRetryDelay ?? undefined}
               />
 
               <SettingsTextInput
                 name="maxIncidentsCount"
-                label="Max Incidents"
+                label={LdapStrings.FORM.MAX_INCIDENTS}
                 type="text"
                 value={maxIncidentsCountRaw}
                 onChange={(value) => {
@@ -780,7 +782,7 @@ export function LdapForm({
                   setMaxIncidentsCountRaw(val);
                   handleChange('maxIncidentsCount', val.trim() === '' ? undefined : Number(val));
                 }}
-                helpText="Max failures before blacklisting"
+                helpText={LdapStrings.FORM.MAX_FAILURES_BEFORE_BLACKLISTING}
                 disabled={!canEditFields}
                 error={form.validationErrors.maxIncidentsCount ?? undefined}
               />
@@ -797,13 +799,13 @@ export function LdapForm({
                 icon={Play}
                 data-analytics-id="as-ldap-form-verify-connection"
               >
-                Verify Connection
+                {LdapStrings.FORM.VERIFY_CONNECTION}
               </SettingsButton>
 
               {connectionVerified && (
                 <Flex align="center" gap="2" className="ldap-form__success">
                   <CheckCircle2 size={16} aria-hidden="true" />
-                  <Text size="2">Connection successful</Text>
+                  <Text size="2">{LdapStrings.FORM.CONNECTION_SUCCESSFUL}</Text>
                 </Flex>
               )}
             </Flex>
@@ -830,10 +832,10 @@ export function LdapForm({
             <Box className="ldap-form__template">
               <SettingsSelect
                 name="template"
-                label="Load Template"
+                label={LdapStrings.FORM.LOAD_TEMPLATE}
                 value={selectedTemplate}
                 onChange={handleApplyTemplate}
-                helpText="Select a template to pre-fill common LDAP configurations"
+                helpText={LdapStrings.FORM.SELECT_TEMPLATE_PRE_FILL_COMMON}
                 placeholder="-- Select a template --"
                 disabled={!canEditFields}
                 options={templates.map((template) => ({
@@ -844,56 +846,56 @@ export function LdapForm({
             </Box>
           )}
 
-          <SettingsFormSection title="User Mapping" defaultOpen>
+          <SettingsFormSection title={LdapStrings.FORM.USER_MAPPING} defaultOpen>
             <SettingsTextInput
               {...form.field('userBaseDn')}
-              label="User relative DN"
+              label={LdapStrings.FORM.USER_RELATIVE_DN}
               placeholder="ou=users"
-              helpText="The relative DN where user objects are found (e.g. ou=people). This value will have the Search base DN value appended to form the full User search base DN"
+              helpText={LdapStrings.FORM.RELATIVE_DN_WHERE_USER_OBJECTS}
               disabled={!canEditFields}
             />
 
             <SettingsCheckbox
               name="userSubtree"
-              label="Search Subtree"
+              label={LdapStrings.FORM.SEARCH_SUBTREE}
               checked={formData.userSubtree}
               onChange={(checked) => handleChange('userSubtree', checked)}
-              description="Search the entire subtree for users"
+              description={LdapStrings.FORM.SEARCH_ENTIRE_SUBTREE_USERS}
               disabled={!canEditFields}
             />
 
             <SettingsTextInput
               {...form.field('userObjectClass')}
-              label="Object Class"
+              label={LdapStrings.FORM.OBJECT_CLASS}
               placeholder="inetOrgPerson"
-              helpText="LDAP object class for users (e.g., inetOrgPerson, person)"
+              helpText={LdapStrings.FORM.LDAP_OBJECT_CLASS_USERS_E}
               required
               disabled={!canEditFields}
             />
 
             <SettingsTextInput
               {...form.field('userLdapFilter')}
-              label="LDAP Filter"
+              label={LdapStrings.FORM.LDAP_FILTER}
               placeholder="(memberOf=cn=users,dc=example,dc=com)"
-              helpText="Optional additional filter for users"
+              helpText={LdapStrings.FORM.OPTIONAL_ADDITIONAL_FILTER_USERS}
               disabled={!canEditFields}
             />
 
             <Flex gap="3" className="ldap-form__field-row">
               <SettingsTextInput
                 {...form.field('userIdAttribute')}
-                label="User ID Attribute"
+                label={LdapStrings.FORM.USER_ID_ATTRIBUTE}
                 placeholder="uid"
-                helpText="Attribute containing the username (e.g., uid, sAMAccountName)"
+                helpText={LdapStrings.FORM.ATTRIBUTE_CONTAINING_USERNAME_E_G}
                 required
                 disabled={!canEditFields}
               />
 
               <SettingsTextInput
                 {...form.field('userRealNameAttribute')}
-                label="Real Name Attribute"
+                label={LdapStrings.FORM.REAL_NAME_ATTRIBUTE}
                 placeholder="cn"
-                helpText="Attribute containing the display name (e.g., cn, displayName)"
+                helpText={LdapStrings.FORM.ATTRIBUTE_CONTAINING_DISPLAY_NAME_E}
                 required
                 disabled={!canEditFields}
               />
@@ -902,7 +904,7 @@ export function LdapForm({
             <Flex gap="3" className="ldap-form__field-row">
               <SettingsTextInput
                 {...form.field('userEmailAddressAttribute')}
-                label="Email Attribute"
+                label={LdapStrings.FORM.EMAIL_ATTRIBUTE}
                 placeholder="mail"
                 required
                 disabled={!canEditFields}
@@ -910,21 +912,21 @@ export function LdapForm({
 
               <SettingsTextInput
                 {...form.field('userPasswordAttribute')}
-                label="Password attribute"
+                label={LdapStrings.FORM.PASSWORD_ATTRIBUTE}
                 placeholder="userPassword"
-                helpText="If this field is left blank the user will be authenticated against a bind with the LDAP server"
+                helpText={LdapStrings.FORM.IF_FIELD_LEFT_BLANK_USER}
                 disabled={!canEditFields}
               />
             </Flex>
           </SettingsFormSection>
 
-          <SettingsFormSection title="Group Mapping" defaultOpen>
+          <SettingsFormSection title={LdapStrings.FORM.GROUP_MAPPING} defaultOpen>
             <SettingsCheckbox
               name="ldapGroupsAsRoles"
-              label="Map LDAP Groups as Roles"
+              label={LdapStrings.FORM.MAP_LDAP_GROUPS_ROLES}
               checked={formData.ldapGroupsAsRoles}
               onChange={(checked) => handleChange('ldapGroupsAsRoles', checked)}
-              description="Enable to map LDAP groups to Astrum roles"
+              description={LdapStrings.FORM.ENABLE_MAP_LDAP_GROUPS_ASTRUM}
               disabled={!canEditFields}
             />
 
@@ -932,14 +934,14 @@ export function LdapForm({
               <>
                 <SettingsSelect
                   name="groupType"
-                  label="Group Type"
+                  label={LdapStrings.FORM.GROUP_TYPE}
                   value={formData.groupType || 'dynamic'}
                   onChange={(value) => handleChange('groupType', value as 'static' | 'dynamic')}
                   required
                   disabled={!canEditFields}
                   options={[
-                    { value: 'static', label: 'Static Groups' },
-                    { value: 'dynamic', label: 'Dynamic Groups' },
+                    { value: 'static', label: LdapStrings.FORM.STATIC_GROUPS },
+                    { value: 'dynamic', label: LdapStrings.FORM.DYNAMIC_GROUPS },
                   ]}
                 />
 
@@ -947,25 +949,25 @@ export function LdapForm({
                   <>
                     <SettingsTextInput
                       {...form.field('groupBaseDn')}
-                      label="Group relative DN"
+                      label={LdapStrings.FORM.GROUP_RELATIVE_DN}
                       placeholder="ou=groups"
-                      helpText="The relative DN where group objects are found (e.g. ou=Group). This value will have the Search base DN value appended to form the full group search base DN"
+                      helpText={LdapStrings.FORM.RELATIVE_DN_WHERE_GROUP_OBJECTS}
                       disabled={!canEditFields}
                     />
 
                     <SettingsCheckbox
                       name="groupSubtree"
-                      label="Search Group Subtree"
+                      label={LdapStrings.FORM.SEARCH_GROUP_SUBTREE}
                       checked={formData.groupSubtree}
                       onChange={(checked) => handleChange('groupSubtree', checked)}
-                      description="Search the entire subtree for groups"
+                      description={LdapStrings.FORM.SEARCH_ENTIRE_SUBTREE_GROUPS}
                       disabled={!canEditFields}
                     />
 
                     <Flex gap="3" className="ldap-form__field-row">
                       <SettingsTextInput
                         {...form.field('groupObjectClass')}
-                        label="Group Object Class"
+                        label={LdapStrings.FORM.GROUP_OBJECT_CLASS}
                         placeholder="groupOfUniqueNames"
                         required
                         disabled={!canEditFields}
@@ -973,7 +975,7 @@ export function LdapForm({
 
                       <SettingsTextInput
                         {...form.field('groupIdAttribute')}
-                        label="Group ID Attribute"
+                        label={LdapStrings.FORM.GROUP_ID_ATTRIBUTE}
                         placeholder="cn"
                         required
                         disabled={!canEditFields}
@@ -982,7 +984,7 @@ export function LdapForm({
 
                     <SettingsTextInput
                       {...form.field('groupMemberAttribute')}
-                      label="Group Member Attribute"
+                      label={LdapStrings.FORM.GROUP_MEMBER_ATTRIBUTE}
                       placeholder="uniqueMember"
                       required
                       disabled={!canEditFields}
@@ -990,9 +992,9 @@ export function LdapForm({
 
                     <SettingsTextInput
                       {...form.field('groupMemberFormat')}
-                      label="Group Member Format"
+                      label={LdapStrings.FORM.GROUP_MEMBER_FORMAT}
                       placeholder="uid=${username},ou=people,dc=example,dc=com"
-                      helpText="Use ${username} as placeholder"
+                      helpText={LdapStrings.FORM.USE_PLACEHOLDER}
                       required
                       disabled={!canEditFields}
                     />
@@ -1002,9 +1004,9 @@ export function LdapForm({
                 {formData.groupType === 'dynamic' && (
                   <SettingsTextInput
                     {...form.field('userMemberOfAttribute')}
-                    label="Group member of attribute"
+                    label={LdapStrings.FORM.GROUP_MEMBER_OF_ATTRIBUTE}
                     placeholder="memberOf"
-                    helpText="Set this to the attribute used to store the attribute which holds groups DN in the user object"
+                    helpText={LdapStrings.FORM.SET_ATTRIBUTE_USED_STORE_ATTRIBUTE}
                     required
                     disabled={!canEditFields}
                   />
@@ -1025,7 +1027,7 @@ export function LdapForm({
                 data-analytics-id="as-ldap-form-verify-user-mapping"
                 icon={Play}
               >
-                Verify User Mapping
+                {LdapStrings.FORM.VERIFY_USER_MAPPING}
               </SettingsButton>
               <SettingsButton
                 variant="secondary"
@@ -1035,7 +1037,7 @@ export function LdapForm({
                 data-analytics-id="as-ldap-form-verify-login"
                 icon={KeyRound}
               >
-                Verify Login
+                {LdapStrings.FORM.VERIFY_LOGIN}
               </SettingsButton>
               {showUserResults && (
                 <Badge
@@ -1044,7 +1046,7 @@ export function LdapForm({
                   size="2"
                   data-testid="ldap-user-mapping-badge"
                 >
-                  {verifiedUsers.length > 0 ? `${verifiedUsers.length} user(s)` : 'No matches found'}
+                  {verifiedUsers.length > 0 ? `${verifiedUsers.length} user(s)` : LdapStrings.FORM.NO_MATCHES_FOUND}
                 </Badge>
               )}
             </Flex>
@@ -1058,7 +1060,7 @@ export function LdapForm({
             {showUserResults && (
               <Box ref={userResultsRef} className="ldap-form__user-results">
                 <Text size="2" weight="medium" className="ldap-form__user-results-title">
-                  Found {verifiedUsers.length} user(s):
+                  {LdapStrings.FORM.FOUND_USER_S(verifiedUsers.length)}
                 </Text>
                 <EntityTable<LdapUser>
                   data={verifiedUsers}
@@ -1066,7 +1068,7 @@ export function LdapForm({
                   getRowKey={(u) => u.username}
                   clickable={false}
                   showRowArrow={false}
-                  ariaLabel="Verified LDAP users"
+                  ariaLabel={LdapStrings.FORM.VERIFIED_LDAP_USERS_ARIA}
                 />
               </Box>
             )}
@@ -1082,24 +1084,24 @@ export function LdapForm({
           <Dialog.Title>
             <Flex align="center" gap="2">
               <KeyRound size={20} aria-hidden="true" />
-              Test LDAP Login
+              {LdapStrings.FORM.TEST_LDAP_LOGIN}
             </Flex>
           </Dialog.Title>
           <Dialog.Description size="2">
-            Enter credentials to verify that a user can authenticate with this LDAP server.
+            {LdapStrings.FORM.ENTER_CREDENTIALS_VERIFY_USER_CAN}
           </Dialog.Description>
 
           <Flex direction="column" gap="3" mt="4">
             <Box>
               <Text as="label" htmlFor="ldap-login-username" size="2" weight="medium" mb="1" className="ldap-form__modal-label">
                 <User size={14} aria-hidden="true" />
-                Username
+                {LdapStrings.FORM.USERNAME}
               </Text>
               <TextField.Root
                 id="ldap-login-username"
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
-                placeholder="Enter LDAP username"
+                placeholder={LdapStrings.FORM.ENTER_LDAP_USERNAME_PLACEHOLDER}
                 data-testid="ldap-login-username"
                 autoComplete="off"
               />
@@ -1108,14 +1110,14 @@ export function LdapForm({
             <Box>
               <Text as="label" htmlFor="ldap-login-password" size="2" weight="medium" mb="1" className="ldap-form__modal-label">
                 <Lock size={14} aria-hidden="true" />
-                Password
+                {LdapStrings.FORM.PASSWORD}
               </Text>
               <TextField.Root
                 id="ldap-login-password"
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="Enter password"
+                placeholder={LdapStrings.FORM.ENTER_PASSWORD_PLACEHOLDER}
                 data-testid="ldap-login-password"
                 autoComplete="new-password"
               />
@@ -1148,7 +1150,7 @@ export function LdapForm({
           <Flex gap="3" mt="4" justify="end">
             <Dialog.Close>
               <SettingsButton variant="secondary">
-                Close
+                {CommonStrings.ACTIONS.CLOSE}
               </SettingsButton>
             </Dialog.Close>
             <SettingsButton
@@ -1159,7 +1161,7 @@ export function LdapForm({
               loading={loginVerifying}
               data-testid="ldap-login-submit"
             >
-              Test Login
+              {LdapStrings.FORM.TEST_LOGIN}
             </SettingsButton>
           </Flex>
         </Dialog.Content>
@@ -1183,29 +1185,29 @@ export function LdapForm({
           <Dialog.Title>
             <Flex align="center" gap="2">
               <Lock size={20} aria-hidden="true" />
-              Enter LDAP Password
+              {LdapStrings.FORM.ENTER_LDAP_PASSWORD}
             </Flex>
           </Dialog.Title>
           <Dialog.Description size="2">
             {pendingVerifyAction === 'userMapping'
-              ? 'A password is required to verify the LDAP user mapping. Enter the password for the service account used to connect to LDAP.'
+              ? LdapStrings.FORM.PASSWORD_REQUIRED_VERIFY_LDAP_USER
               : pendingVerifyAction === 'connection'
-              ? 'A password is required to verify the LDAP server connection. Enter the password for the service account used to connect to LDAP.'
-              : 'For security reasons, the password must be re-entered when updating an LDAP server. Enter the password for the service account used to connect to LDAP.'}
+              ? LdapStrings.FORM.PASSWORD_REQUIRED_VERIFY_LDAP_SERVER
+              : LdapStrings.FORM.SECURITY_REASONS_PASSWORD_MUST_RE}
           </Dialog.Description>
 
           <Flex direction="column" gap="3" mt="4">
             <Box>
               <Text as="label" htmlFor="ldap-password-input" size="2" weight="medium" mb="1" className="ldap-form__modal-label">
                 <Lock size={14} aria-hidden="true" />
-                Password
+                {LdapStrings.FORM.PASSWORD}
               </Text>
               <TextField.Root
                 id="ldap-password-input"
                 type="password"
                 value={reenteredPassword}
                 onChange={(e) => setReenteredPassword(e.target.value)}
-                placeholder="Enter LDAP password"
+                placeholder={LdapStrings.FORM.ENTER_LDAP_PASSWORD_PLACEHOLDER}
                 data-testid="ldap-password-input"
                 autoComplete="new-password"
               />
@@ -1218,7 +1220,7 @@ export function LdapForm({
           <Flex gap="3" mt="4" justify="end">
             <Dialog.Close>
               <SettingsButton variant="secondary">
-                Cancel
+                {CommonStrings.ACTIONS.CANCEL}
               </SettingsButton>
             </Dialog.Close>
             <SettingsButton
@@ -1229,7 +1231,7 @@ export function LdapForm({
               data-testid="ldap-password-submit"
               data-analytics-id="as-ldap-form-password-submit"
             >
-              {pendingVerifyAction ? 'Verify' : 'Save'}
+              {pendingVerifyAction ? LdapStrings.FORM.VERIFY : CommonStrings.ACTIONS.SAVE}
             </SettingsButton>
           </Flex>
         </Dialog.Content>
@@ -1240,10 +1242,10 @@ export function LdapForm({
         open={showDeleteConfirm}
         testId="delete-ldap-server-dialog"
         onOpenChange={setShowDeleteConfirm}
-        title="Delete LDAP Server"
-        message={`Are you sure you want to delete the LDAP server "${formData.name}"? Users authenticated through this server will no longer be able to log in.`}
-        confirmLabel="Delete Server"
-        cancelLabel="Cancel"
+        title={LdapStrings.FORM.DELETE_LDAP_SERVER}
+        message={LdapStrings.FORM.DELETE_SERVER_CONFIRM(formData.name)}
+        confirmLabel={LdapStrings.FORM.DELETE_SERVER}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="danger"
         onConfirm={handleDeleteConfirm}
         analyticsId="as-ldap-form-delete-confirm"
