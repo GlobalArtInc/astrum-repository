@@ -1,13 +1,12 @@
 
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Box, Flex, Text, Tabs, Button, Separator, Heading, Spinner, ScrollArea, Grid, Badge, Callout, Tooltip } from '@radix-ui/themes';
+import { Box, Flex, Text, Tabs, Button, Heading, Spinner, ScrollArea, Grid, Callout } from '@radix-ui/themes';
 import { useRouter, useCurrentStateAndParams } from '@uirouter/react';
 import {
   RefreshCw,
   FolderTree,
   Package,
-  Circle,
   RotateCcw,
   Database,
   Power,
@@ -19,7 +18,7 @@ import {
 } from '../../../../shared';
 import { useRepositoriesApi } from '../repositories/useRepositoriesApi';
 import { ensureTrailingSlash } from '../../../../../../utils/url';
-import { FORMAT_LABELS, TYPE_LABELS } from '../repositories/types';
+import { RepositoryChips } from '../repositories/RepositoryChips';
 import { Breadcrumbs } from '../../../search/details/Breadcrumbs';
 import { RepositoryStructureTree } from '../repositories/RepositoryStructureTree';
 import { RepositoryGroupUsageTab } from '../repositories/RepositoryGroupUsageTab';
@@ -266,45 +265,8 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                 <Heading size="6">
                   {repository.name}
                 </Heading>
-                <Flex align="center" gap="3" wrap="wrap">
-                  {/* Status Badge */}
-                  <Tooltip content={isOnline ? RepositoryProfileStrings.PAGE.REPOSITORY_ONLINE : RepositoryProfileStrings.PAGE.REPOSITORY_OFFLINE}>
-                    <Badge variant="soft" color="gray" size="2">
-                      <Flex align="center" gap="1">
-                        <Circle
-                          size={8}
-                          fill={isOnline ? 'var(--green-9)' : 'var(--gray-9)'}
-                          color={isOnline ? 'var(--green-9)' : 'var(--gray-9)'}
-                        />
-                        {isOnline ? RepositoryProfileStrings.PAGE.ONLINE : RepositoryProfileStrings.PAGE.OFFLINE}
-                      </Flex>
-                    </Badge>
-                  </Tooltip>
-
-                  {/* Type Badge */}
-                  <Tooltip content={RepositoryProfileStrings.PAGE.REPOSITORY_TYPE(TYPE_LABELS[repository.type] || repository.type)}>
-                    <Badge variant="soft" color="gray" size="2">
-                      {TYPE_LABELS[repository.type] || repository.type}
-                    </Badge>
-                  </Tooltip>
-
-                  {/* Format Badge */}
-                  <Tooltip content={RepositoryProfileStrings.PAGE.FORMAT(FORMAT_LABELS[repository.format] || repository.format)}>
-                    <Badge variant="soft" color="gray" size="2">
-                      {FORMAT_LABELS[repository.format] || repository.format}
-                    </Badge>
-                  </Tooltip>
-
-                  <Separator orientation="vertical" />
-                  <Text size="2" color="gray">
-                    {RepositoryProfileStrings.PAGE.URL_LABEL} <code style={{
-                      fontFamily: 'var(--font-mono, monospace)',
-                      fontSize: '12px',
-                      padding: '2px 6px',
-                      background: 'var(--gray-a3)',
-                      borderRadius: '4px'
-                    }}>{ensureTrailingSlash(repository.url)}</code>
-                  </Text>
+                <Flex align="center" gap="2" wrap="wrap" data-testid="repository-profile-chips">
+                  <RepositoryChips format={repository.format} type={repository.type} online={isOnline} />
                 </Flex>
               </Flex>
               <Flex gap="2" align="center" wrap="wrap">
@@ -342,11 +304,10 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                     size="2"
                     onClick={handleToggleOnline}
                     disabled={isExecuting || isDeleting}
-                    color={isOnline ? 'green' : 'red'}
-                    title={isOnline ? RepositoryProfileStrings.PAGE.TAKE_OFFLINE : RepositoryProfileStrings.PAGE.BRING_ONLINE}
+                    data-testid="repository-profile-toggle-online"
                   >
                     <Power size={16} />
-                    {isOnline ? RepositoryProfileStrings.PAGE.ONLINE : RepositoryProfileStrings.PAGE.OFFLINE}
+                    {isOnline ? RepositoryProfileStrings.PAGE.TAKE_OFFLINE : RepositoryProfileStrings.PAGE.BRING_ONLINE}
                   </Button>
                 )}
                 <Button
@@ -366,6 +327,16 @@ export function RepositoryProfilePage({ repositoryName, context = 'settings' }: 
                 </Button>
               </Flex>
             </Grid>
+            <Text as="p" size="2" color="gray" mt="3" data-testid="repository-profile-url">
+              {RepositoryProfileStrings.PAGE.URL_LABEL} <code style={{
+                fontFamily: 'var(--font-mono, monospace)',
+                fontSize: '12px',
+                padding: '2px 6px',
+                background: 'var(--gray-a3)',
+                borderRadius: '4px',
+                wordBreak: 'break-all',
+              }}>{ensureTrailingSlash(repository.url)}</code>
+            </Text>
           </Box>
 
           {/* Interactive Cards (Focus Section) - Only for Proxy repositories */}

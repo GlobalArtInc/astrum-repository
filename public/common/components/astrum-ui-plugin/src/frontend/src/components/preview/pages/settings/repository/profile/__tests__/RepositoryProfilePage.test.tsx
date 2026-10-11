@@ -138,3 +138,22 @@ describe('RepositoryProfilePage permission gating (ASTRUM-54212)', () => {
     expect(screen.queryByRole('button', { name: /rebuild index/i })).not.toBeInTheDocument();
   });
 });
+
+describe('RepositoryProfilePage header', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('shows status, type and format as chips and the URL on its own line', () => {
+    renderPage([Permissions.REPOSITORY_ADMIN.EDIT]);
+    expect(screen.getByTestId('repository-chip-status')).toHaveTextContent('Online');
+    expect(screen.getByTestId('repository-chip-type')).toHaveTextContent('Hosted');
+    expect(screen.getByTestId('repository-chip-format')).toHaveTextContent('Maven');
+    expect(screen.getByTestId('repository-profile-url')).toHaveTextContent('http://localhost/repository/maven-releases/');
+  });
+
+  it('names the online toggle after what it does, not after the current status', () => {
+    renderPage([Permissions.REPOSITORY_ADMIN.EDIT]);
+    expect(screen.getByTestId('repository-profile-toggle-online')).toHaveTextContent('Take Offline');
+  });
+});
