@@ -48,8 +48,8 @@ export function StatusBadge({
   size = 'medium',
   className = '',
 }: StatusBadgeProps): JSX.Element {
-  // Default label to capitalized status
-  const displayLabel = label ?? status.charAt(0).toUpperCase() + status.slice(1);
+  // Default label to the name of the status in the page language
+  const displayLabel = label ?? SharedStrings.STATUS_BADGE[status.toUpperCase() as Uppercase<StatusType>] ?? status;
 
   // Map status to CSS class
   const statusClass = `status-badge--${status}`;

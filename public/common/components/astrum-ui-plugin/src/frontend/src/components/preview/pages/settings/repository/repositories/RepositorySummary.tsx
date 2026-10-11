@@ -35,8 +35,14 @@ export function RepositorySummary({ repository, formData, onNavigateToTab, isClo
           label={CommonStrings.LABELS.STATUS} 
           value={
             <Flex align="center" gap="2">
-              <StatusBadge status={isOnline ? 'online' : 'offline'} size="small" />
-              <Text size="2">{repository.status?.description || (isOnline ? RepositoriesPageStrings.SUMMARY.ONLINE : RepositoriesPageStrings.SUMMARY.OFFLINE)}</Text>
+              <StatusBadge
+                status={isOnline ? 'online' : 'offline'}
+                label={isOnline ? RepositoriesPageStrings.SUMMARY.ONLINE : RepositoriesPageStrings.SUMMARY.OFFLINE}
+                size="small"
+              />
+              {repository.status?.description && (
+                <Text size="2" color="gray">{repository.status.description}</Text>
+              )}
             </Flex>
           }
         />

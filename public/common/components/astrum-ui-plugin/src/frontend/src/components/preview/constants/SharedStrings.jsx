@@ -64,6 +64,13 @@ export default localize('react-ui', {
   },
   STATUS_BADGE: {
     STATUS: (displayLabel) => `Status: ${displayLabel}`,
+    ONLINE: 'Online',
+    OFFLINE: 'Offline',
+    WARNING: 'Warning',
+    UNKNOWN: 'Unknown',
+    SUCCESS: 'Success',
+    ERROR: 'Error',
+    INFO: 'Info',
   },
   STICKY_ACTION_BAR: {
     DISCARD: 'Discard',
