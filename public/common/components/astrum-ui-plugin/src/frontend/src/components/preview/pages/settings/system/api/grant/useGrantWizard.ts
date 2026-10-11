@@ -13,6 +13,7 @@ import {
   ensureSecurityDirectoryLoaded,
   getSecurityDirectoryCache,
   invalidateEndpointAccessCache,
+  type SecurityDirectorySession,
 } from '../hooks/securityDirectoryCache';
 import { computeEndpointAccessSummaries } from '../hooks/useEndpointAccess';
 import type { MergedApiEndpoint } from '../utils/mergeSwaggerPermissions';
@@ -45,7 +46,7 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
   const { fetchSources, fetchUsers, updateUser } = useUsersApi();
   const { fetchPrivileges } = usePrivilegesApi();
 
-  const [_cacheGen, setCacheGen] = useState(0);
+  const [session, setSession] = useState<SecurityDirectorySession | null>(getSecurityDirectoryCache);
   const [dirError, setDirError] = useState<string | null>(null);
   const [loadingDir, setLoadingDir] = useState(false);
 
@@ -55,10 +56,12 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
   }, [fetchPrivileges]);
 
   useEffect(() => {
-    if (!(active && row)) {
+    if (!(active && row) || session) {
       return undefined;
     }
-    if (getSecurityDirectoryCache()) {
+    const cached = getSecurityDirectoryCache();
+    if (cached) {
+      setSession(cached);
       return undefined;
     }
     let cancelled = false;
@@ -70,9 +73,9 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
       fetchSources,
       fetchUsers,
     })
-      .then(() => {
+      .then((loaded) => {
         if (!cancelled) {
-          setCacheGen((g) => g + 1);
+          setSession(loaded);
         }
       })
       .catch((e: unknown) => {
@@ -88,9 +91,7 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [active, row, fetchRoles, fetchAllPrivileges, fetchSources, fetchUsers]);
-
-  const session = useMemo(() => getSecurityDirectoryCache(), []);
+  }, [active, row, session, fetchRoles, fetchAllPrivileges, fetchSources, fetchUsers]);
 
   const { qualifyingRoles, noMappedPermissions } = useMemo(() => {
     if (!(row && session)) {
@@ -183,7 +184,7 @@ export function useGrantWizard(row: MergedApiEndpoint | null, active: boolean) {
       }
 
       invalidateEndpointAccessCache();
-      setCacheGen((g) => g + 1);
+      setSession(null);
       return { results };
     },
     [row, createRole, updateUser]
