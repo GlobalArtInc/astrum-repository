@@ -20,6 +20,17 @@ import './PrivilegeDetail.scss';
 import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
 
+// Names of the properties of a privilege, which the server sends by their ids
+const PROPERTY_LABELS: Record<string, () => string> = {
+  pattern: () => PrivilegesStrings.FORM_MACHINE.PATTERN,
+  domain: () => PrivilegesStrings.FORM_MACHINE.DOMAIN,
+  actions: () => CommonStrings.LABELS.ACTIONS,
+  format: () => PrivilegesStrings.FORM_MACHINE.REPOSITORY_FORMAT,
+  repository: () => PrivilegesStrings.FORM_MACHINE.REPOSITORY,
+  contentSelector: () => PrivilegesStrings.FORM_MACHINE.CONTENT_SELECTOR,
+  name: () => PrivilegesStrings.FORM_MACHINE.SCRIPT_NAME,
+};
+
 /**
  * PrivilegeDetail - Detailed view and edit form for a single privilege
  */
@@ -60,6 +71,10 @@ export function PrivilegeDetail({
 
   // Read-only view for users without edit permission or for read-only privileges
   if (!canEdit || isReadOnly) {
+    // The pattern of a wildcard privilege is its permission, which the section above already shows
+    const properties = Object.entries(privilege.properties ?? {}).filter(
+      ([key, value]) => !(key === 'pattern' && value === privilege.permission)
+    );
     return (
       <Box className="privilege-detail">
         {isReadOnly && (
@@ -87,13 +102,13 @@ export function PrivilegeDetail({
           </Box>
         </SettingsFormSection>
 
-        {privilege.properties && Object.keys(privilege.properties).length > 0 && (
+        {properties.length > 0 && (
           <SettingsFormSection title={PrivilegesStrings.DETAIL.PROPERTIES}>
             <Box className="privilege-detail__properties">
-              {Object.entries(privilege.properties).map(([key, value]) => (
+              {properties.map(([key, value]) => (
                 <Flex key={key} className="privilege-detail__row">
                   <Text size="2" weight="medium" className="privilege-detail__label">
-                    {key}
+                    {PROPERTY_LABELS[key]?.() ?? key}
                   </Text>
                   <Text size="2">{value || '-'}</Text>
                 </Flex>

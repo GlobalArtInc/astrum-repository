@@ -98,6 +98,27 @@ describe('PrivilegeDetail', () => {
     expect(permissionElements.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('shows the pattern of a wildcard privilege once, as its permission', () => {
+    renderWithTheme(<PrivilegeDetail {...defaultProps} canEdit={false} />);
+
+    expect(screen.getAllByText('test:*')).toHaveLength(1);
+    expect(screen.queryByText('pattern')).not.toBeInTheDocument();
+  });
+
+  it('names the properties of a privilege instead of showing their ids', () => {
+    const application = {
+      ...mockPrivilege,
+      type: PRIVILEGE_TYPES.APPLICATION,
+      permission: 'astrum:blobstores:read',
+      properties: { domain: 'blobstores', actions: 'read' },
+    };
+    renderWithTheme(<PrivilegeDetail {...defaultProps} privilege={application} canEdit={false} />);
+
+    expect(screen.getByText('Domain')).toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.queryByText('domain')).not.toBeInTheDocument();
+  });
+
   it('should show Back button and call onCancel when clicked', () => {
     // Read-only mode shows Back button
     renderWithTheme(<PrivilegeDetail {...defaultProps} canEdit={false} />);

@@ -354,7 +354,10 @@ export function PrivilegesPage() {
       case 'edit':
         return {
           icon: Key,
-          title: privilege ? PrivilegesStrings.PAGE.EDIT(privilege.name) : PrivilegesStrings.PAGE.PRIVILEGE_DETAILS,
+          // A read-only privilege cannot be edited, so its page is not called "Edit"
+          title: privilege
+            ? isReadOnlyPrivilege(privilege) ? privilege.name : PrivilegesStrings.PAGE.EDIT(privilege.name)
+            : PrivilegesStrings.PAGE.PRIVILEGE_DETAILS,
           description: privilege 
             ? PrivilegesStrings.PAGE.TYPE_DESCRIPTION(`${getPrivilegeTypeLabel(privilege.type)}${isReadOnlyPrivilege(privilege) ? PrivilegesStrings.PAGE.READ_ONLY_SUFFIX : ''}`)
             : CommonStrings.MESSAGES.LOADING,
