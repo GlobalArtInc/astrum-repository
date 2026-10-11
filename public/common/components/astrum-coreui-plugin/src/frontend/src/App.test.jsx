@@ -624,9 +624,13 @@ describe('App', () => {
   }
 
   async function assertRendersPageContents() {
-    const mains = await screen.findAllByRole('main');
-    expect(mains.length).toBeGreaterThanOrEqual(1);
-    expect(mains[0]).toBeVisible();
+    // The application opens on the Astrum One dashboard; a route the user may not open falls back to
+    // the Classic one, which the header then sends on to Astrum One.
+    await waitFor(() => {
+      const pages = [...screen.queryAllByTestId('welcome-page'), ...screen.queryAllByRole('main')];
+      expect(pages.length).toBeGreaterThanOrEqual(1);
+      expect(pages[0]).toBeVisible();
+    });
   }
 
   async function assertRendersGlobalHeader() {
@@ -704,8 +708,6 @@ describe('App', () => {
   }
 
   async function assertMissingRoutePageRendered() {
-    const mains = await screen.findAllByRole('main');
-    expect(mains.length).toBeGreaterThanOrEqual(1);
-    expect(mains[0]).toBeVisible();
+    expect(await screen.findByText('404')).toBeVisible();
   }
 });

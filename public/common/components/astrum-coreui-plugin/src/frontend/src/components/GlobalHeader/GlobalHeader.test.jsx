@@ -115,8 +115,9 @@ describe('GlobalHeader', () => {
     global.AS.Security.signOut = jest.fn();
 
     // make sure this gets reset between tests, it was not happening automatically which can result
-    // in an unexpected initial state for some tests
-    window.location.hash = '';
+    // in an unexpected initial state for some tests. The legacy header belongs to the Classic pages, so
+    // start on the Classic dashboard rather than the Astrum One one the router now opens by default.
+    window.location.hash = '#browse/welcome';
   });
 
   it('correctly renders the global page header for the community edition', async () => {
