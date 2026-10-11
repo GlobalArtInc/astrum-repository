@@ -489,7 +489,7 @@ export function TagDetailPage(): JSX.Element {
                   {/* Show an explicit "unknown" indicator when the count could not be
                       resolved, rather than falling back to the loaded page size — that
                       fallback misrepresents a 500-component tag as its first-page count. */}
-                  <Badge size="1" variant="soft" color="violet">
+                  <Badge size="1" variant="soft" color="blue">
                     {totalComponentCount !== null ? totalComponentCount : '—'}
                   </Badge>
                 </Flex>

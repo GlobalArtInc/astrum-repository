@@ -42,8 +42,8 @@
     width: 56px;
     height: 56px;
     border-radius: var(--radius-3);
-    background: linear-gradient(135deg, var(--violet-a4), var(--violet-a3));
-    color: var(--violet-11);
+    background: linear-gradient(135deg, var(--accent-a4), var(--accent-a3));
+    color: var(--accent-11);
   }
 
   &__meta-icon {
@@ -70,7 +70,7 @@
       }
 
       &:focus {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--focus-8);
         outline-offset: -2px;
       }
 
@@ -79,7 +79,7 @@
       }
 
       &:focus-visible {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--focus-8);
         outline-offset: -2px;
       }
     }
@@ -90,7 +90,7 @@
 :root[class~="dark"] {
   .tag-detail-page {
     &__icon-wrapper {
-      background: linear-gradient(135deg, var(--violet-a5), var(--violet-a4));
+      background: linear-gradient(135deg, var(--accent-a5), var(--accent-a4));
     }
   }
 }

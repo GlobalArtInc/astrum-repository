@@ -16,7 +16,7 @@
   }
 
   &__required {
-    color: var(--red-9);
+    color: var(--red-11);
     margin-left: 2px;
   }
 
@@ -58,7 +58,7 @@
     }
 
     &:focus {
-      outline: 2px solid var(--blue-8);
+      outline: 2px solid var(--focus-8);
       outline-offset: 2px;
     }
 
@@ -67,7 +67,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--blue-8);
+      outline: 2px solid var(--focus-8);
       outline-offset: 2px;
     }
   }
@@ -187,7 +187,7 @@
 
   // Error message
   &__error {
-    color: var(--red-9);
+    color: var(--red-11);
     padding: var(--space-1) 0;
   }
 }

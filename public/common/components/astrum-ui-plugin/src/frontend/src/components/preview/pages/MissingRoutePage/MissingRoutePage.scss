@@ -32,7 +32,7 @@
 
   &__title {
     margin-bottom: var(--space-4);
-    color: var(--gray-11);
+    color: var(--gray-12);
   }
 
   &__divider {
@@ -45,7 +45,7 @@
 
   &__message {
     margin-bottom: var(--space-6);
-    color: var(--gray-10);
+    color: var(--gray-11);
   }
 
   &__actions {
@@ -56,7 +56,7 @@
   }
 
   &__actions-message {
-    color: var(--gray-9);
+    color: var(--gray-11);
   }
 
   &__buttons {
@@ -64,18 +64,5 @@
     gap: var(--space-3);
     flex-wrap: wrap;
     justify-content: center;
-  }
-}
-
-// Dark mode adjustments
-.dark, .dark-theme, [data-theme="dark"] {
-  .as-missing-route-page {
-    &__code {
-      color: var(--gray-8);
-    }
-
-    &__ghost-icon {
-      color: var(--gray-7);
-    }
   }
 }

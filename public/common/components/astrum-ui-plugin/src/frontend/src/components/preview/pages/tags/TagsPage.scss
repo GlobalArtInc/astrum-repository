@@ -24,10 +24,10 @@
     justify-content: center;
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, var(--violet-9) 0%, var(--violet-10) 100%);
+    background: linear-gradient(135deg, var(--accent-9) 0%, var(--accent-10) 100%);
     border-radius: 16px;
-    color: white;
-    box-shadow: 0 8px 24px var(--violet-a4);
+    color: var(--accent-contrast);
+    box-shadow: var(--shadow-4);
     flex-shrink: 0;
   }
 
@@ -127,9 +127,9 @@
     }
 
     &[data-state='active'] {
-      color: var(--violet-9);
-      background: var(--violet-a3);
-      border-color: var(--violet-a5);
+      color: var(--accent-11);
+      background: var(--accent-a3);
+      border-color: var(--accent-a5);
     }
 
     svg {
@@ -176,7 +176,7 @@
     color: var(--gray-12);
 
     svg {
-      color: var(--violet-9);
+      color: var(--accent-9);
     }
   }
 
@@ -186,7 +186,7 @@
   }
 
   &__tip-icon {
-    color: var(--amber-9);
+    color: var(--amber-11);
   }
 
   &__usecase {
@@ -215,15 +215,15 @@
   }
 
   &__action-icon {
-    color: var(--green-9);
+    color: var(--accent-11);
     flex-shrink: 0;
     margin-top: 2px;
   }
 
   // Pro feature card
   &__pro-card {
-    background: linear-gradient(135deg, var(--violet-2) 0%, var(--violet-1) 100%);
-    border-color: var(--violet-a4);
+    background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent-1) 100%);
+    border-color: var(--accent-a4);
     padding: var(--space-4);
   }
 
@@ -233,8 +233,8 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, var(--violet-9) 0%, var(--violet-10) 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--accent-9) 0%, var(--accent-10) 100%);
+    color: var(--accent-contrast);
     border-radius: 10px;
     flex-shrink: 0;
   }
@@ -297,12 +297,12 @@
     }
 
     &:focus {
-      outline: 2px solid var(--violet-8);
+      outline: 2px solid var(--focus-8);
       outline-offset: -2px;
     }
 
     &:focus-visible {
-      outline: 2px solid var(--violet-8);
+      outline: 2px solid var(--focus-8);
       outline-offset: -2px;
     }
   }
@@ -317,7 +317,7 @@
   }
 
   &--active {
-    color: var(--violet-9);
+    color: var(--accent-9);
   }
 }
 
@@ -364,14 +364,14 @@
 
     &__tab {
       &[data-state='active'] {
-        background: var(--violet-a4);
-        border-color: var(--violet-a6);
+        background: var(--accent-a4);
+        border-color: var(--accent-a6);
       }
     }
 
     &__pro-card {
-      background: linear-gradient(135deg, var(--violet-3) 0%, var(--violet-2) 100%);
-      border-color: var(--violet-a5);
+      background: linear-gradient(135deg, var(--accent-3) 0%, var(--accent-2) 100%);
+      border-color: var(--accent-a5);
     }
   }
 }

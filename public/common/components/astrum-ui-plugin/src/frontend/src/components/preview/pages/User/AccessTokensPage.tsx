@@ -136,7 +136,8 @@ function CodeBlock({ code, testId }: { code: string; testId?: string }) {
       <Box
         style={{
           flex: 1,
-          background: 'var(--gray-2)',
+          background: 'var(--gray-a3)',
+          border: '1px solid var(--gray-a5)',
           borderRadius: 'var(--radius-2)',
           padding: 'var(--space-3)',
           fontFamily: 'var(--code-font-family, monospace)',

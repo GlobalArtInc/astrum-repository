@@ -92,7 +92,8 @@ function NuGetRevealDialog({ apiKey, userId, onClose }: NuGetRevealDialogProps) 
             </Text>
             <Box
               style={{
-                background: 'var(--gray-2)',
+                background: 'var(--gray-a3)',
+                border: '1px solid var(--gray-a5)',
                 borderRadius: 'var(--radius-2)',
                 padding: 'var(--space-3)',
                 fontFamily: 'var(--font-mono, monospace)',
@@ -201,7 +202,8 @@ export function NuGetApiTokenPage() {
             <Separator size="4" mb="2" />
             <Box
               style={{
-                background: 'var(--gray-2)',
+                background: 'var(--gray-a3)',
+                border: '1px solid var(--gray-a5)',
                 borderRadius: 'var(--radius-2)',
                 padding: 'var(--space-3)',
                 fontFamily: 'var(--font-mono, monospace)',
@@ -225,7 +227,8 @@ export function NuGetApiTokenPage() {
             <Separator size="4" mb="2" />
             <Box
               style={{
-                background: 'var(--gray-2)',
+                background: 'var(--gray-a3)',
+                border: '1px solid var(--gray-a5)',
                 borderRadius: 'var(--radius-2)',
                 padding: 'var(--space-3)',
                 fontFamily: 'var(--font-mono, monospace)',
@@ -249,7 +252,8 @@ export function NuGetApiTokenPage() {
             <Separator size="4" mb="2" />
             <Box
               style={{
-                background: 'var(--gray-2)',
+                background: 'var(--gray-a3)',
+                border: '1px solid var(--gray-a5)',
                 borderRadius: 'var(--radius-2)',
                 padding: 'var(--space-3)',
                 fontFamily: 'var(--font-mono, monospace)',

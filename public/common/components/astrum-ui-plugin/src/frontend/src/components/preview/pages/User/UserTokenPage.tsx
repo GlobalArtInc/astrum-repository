@@ -115,7 +115,8 @@ function TokenRevealDialog({ nameCode, passCode, onClose }: TokenRevealDialogPro
             </Text>
             <Box
               style={{
-                background: 'var(--gray-2)',
+                background: 'var(--gray-a3)',
+                border: '1px solid var(--gray-a5)',
                 borderRadius: 'var(--radius-2)',
                 padding: 'var(--space-3)',
                 fontFamily: 'var(--font-mono, monospace)',
@@ -277,7 +278,7 @@ export function UserTokenPage() {
                 <Flex gap="2" mt="1">
                   <Button
                     variant="soft"
-                    color="green"
+                    color="blue"
                     onClick={handleAccess}
                     disabled={actionLoading}
                     data-testid="access-token-btn"
