@@ -10,6 +10,7 @@ import org.globalart.astrum.kv.GlobalKeyValueStore;
 import org.globalart.astrum.kv.KeyValueEvent;
 import org.globalart.astrum.notifications.internal.NotificationChannelStore.Channels;
 import org.globalart.astrum.notifications.internal.NotificationChannelStore.SecretChange;
+import org.globalart.astrum.notifications.internal.NotificationChannelStore.SecretChanges;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
@@ -36,6 +37,8 @@ import static org.mockito.Mockito.when;
 
 public class NotificationChannelStoreTest
 {
+  private static final NotificationSecrets TOKEN_AND_PASSWORD = new NotificationSecrets("1:token", "pass", null, null);
+
   private GlobalKeyValueStore keyValueStore;
 
   private SecretsService secretsService;
@@ -65,6 +68,10 @@ public class NotificationChannelStoreTest
     return secret;
   }
 
+  private static SecretChanges change(final SecretChange secret, final SecretChange proxyPassword) {
+    return new SecretChanges(secret, proxyPassword, SecretChange.keep(), SecretChange.keep());
+  }
+
   private static NotificationChannel channel(final String name) {
     NotificationChannel channel = new NotificationChannel();
     channel.setName(name);
@@ -76,7 +83,7 @@ public class NotificationChannelStoreTest
 
   @Test
   public void createKeepsTheTokenInTheSecretsStore() {
-    NotificationChannel created = store.create(channel("releases"), "1:token", null, "admin");
+    NotificationChannel created = store.create(channel("releases"), NotificationSecrets.of("1:token"), "admin");
 
     assertThat(created.getId(), is(notNullValue()));
     assertThat(created.getSecretId(), is("_1"));
@@ -92,12 +99,12 @@ public class NotificationChannelStoreTest
 
   @Test
   public void updateWithThePlaceholderKeepsTheSecret() {
-    NotificationChannel created = store.create(channel("releases"), "1:token", null, "admin");
+    NotificationChannel created = store.create(channel("releases"), NotificationSecrets.of("1:token"), "admin");
     NotificationChannel changed = created.copy();
     changed.setName("builds");
     changed.setSecretId(null);
 
-    NotificationChannel updated = store.update(changed, SecretChange.keep(), SecretChange.keep(), "admin");
+    NotificationChannel updated = store.update(changed, SecretChanges.keepAll(), "admin");
 
     assertThat(updated.getName(), is("builds"));
     assertThat(updated.getSecretId(), is("_1"));
@@ -107,10 +114,11 @@ public class NotificationChannelStoreTest
 
   @Test
   public void updateWithANewSecretReplacesAndRemovesTheOldOne() {
-    NotificationChannel created = store.create(channel("releases"), "1:token", null, "admin");
+    NotificationChannel created = store.create(channel("releases"), NotificationSecrets.of("1:token"), "admin");
     Secret old = secretsService.from("_1");
 
-    NotificationChannel updated = store.update(created, SecretChange.set("2:other"), SecretChange.keep(), "admin");
+    NotificationChannel updated = store.update(created, change(SecretChange.set("2:other"), SecretChange.keep()),
+        "admin");
 
     assertThat(updated.getSecretId(), is("_2"));
     assertThat(store.secret(updated), is("2:other"));
@@ -119,7 +127,7 @@ public class NotificationChannelStoreTest
 
   @Test
   public void deleteRemovesTheChannelAndItsSecret() {
-    NotificationChannel created = store.create(channel("releases"), "1:token", null, "admin");
+    NotificationChannel created = store.create(channel("releases"), NotificationSecrets.of("1:token"), "admin");
     Secret secret = secretsService.from("_1");
 
     assertThat(store.delete(created.getId()), is(true));
@@ -132,7 +140,7 @@ public class NotificationChannelStoreTest
 
   @Test
   public void listReturnsCopies() {
-    NotificationChannel created = store.create(channel("releases"), "1:token", null, "admin");
+    NotificationChannel created = store.create(channel("releases"), NotificationSecrets.of("1:token"), "admin");
 
     store.list().get(0).setName("changed");
     store.find(created.getId()).get().getEvents().add("deleted");
@@ -146,8 +154,8 @@ public class NotificationChannelStoreTest
     NotificationChannel first = channel("first");
     NotificationChannel second = channel("second");
     second.setEnabled(false);
-    store.create(first, "1:a", null, "admin");
-    store.create(second, "1:b", null, "admin");
+    store.create(first, NotificationSecrets.of("1:a"), "admin");
+    store.create(second, NotificationSecrets.of("1:b"), "admin");
 
     assertThat(store.enabled(), hasSize(1));
     assertThat(store.enabled().get(0).getName(), is("first"));
@@ -177,7 +185,7 @@ public class NotificationChannelStoreTest
 
   @Test
   public void createKeepsTheProxyPasswordInTheSecretsStore() {
-    NotificationChannel created = store.create(proxied("releases"), "1:token", "pass", "admin");
+    NotificationChannel created = store.create(proxied("releases"), TOKEN_AND_PASSWORD, "admin");
 
     assertThat(created.getProxyPasswordSecretId(), is("_2"));
     assertThat(store.proxyPassword(created), is("pass"));
@@ -189,7 +197,7 @@ public class NotificationChannelStoreTest
 
   @Test
   public void channelsWithoutAProxyPasswordHaveNone() {
-    NotificationChannel created = store.create(proxied("releases"), "1:token", null, "admin");
+    NotificationChannel created = store.create(proxied("releases"), NotificationSecrets.of("1:token"), "admin");
 
     assertThat(created.getProxyPasswordSecretId(), is(nullValue()));
     assertThat(store.secrets(created).proxyPassword(), is(nullValue()));
@@ -198,12 +206,12 @@ public class NotificationChannelStoreTest
 
   @Test
   public void keepingTheProxyPasswordLeavesItAlone() {
-    NotificationChannel created = store.create(proxied("releases"), "1:token", "pass", "admin");
+    NotificationChannel created = store.create(proxied("releases"), TOKEN_AND_PASSWORD, "admin");
     NotificationChannel changed = created.copy();
     changed.setProxyPasswordSecretId(null);
     changed.setProxyPort(8080);
 
-    NotificationChannel updated = store.update(changed, SecretChange.keep(), SecretChange.keep(), "admin");
+    NotificationChannel updated = store.update(changed, SecretChanges.keepAll(), "admin");
 
     assertThat(updated.getProxyPasswordSecretId(), is("_2"));
     assertThat(store.proxyPassword(updated), is("pass"));
@@ -212,10 +220,11 @@ public class NotificationChannelStoreTest
 
   @Test
   public void aNewProxyPasswordReplacesAndRemovesTheOldOne() {
-    NotificationChannel created = store.create(proxied("releases"), "1:token", "pass", "admin");
+    NotificationChannel created = store.create(proxied("releases"), TOKEN_AND_PASSWORD, "admin");
     Secret old = secretsService.from("_2");
 
-    NotificationChannel updated = store.update(created, SecretChange.keep(), SecretChange.set("other"), "admin");
+    NotificationChannel updated =
+        store.update(created, change(SecretChange.keep(), SecretChange.set("other")), "admin");
 
     assertThat(store.proxyPassword(updated), is("other"));
     assertThat(updated.getSecretId(), is("_1"));
@@ -225,12 +234,12 @@ public class NotificationChannelStoreTest
 
   @Test
   public void clearingTheProxyPasswordRemovesIt() {
-    NotificationChannel created = store.create(proxied("releases"), "1:token", "pass", "admin");
+    NotificationChannel created = store.create(proxied("releases"), TOKEN_AND_PASSWORD, "admin");
     Secret old = secretsService.from("_2");
     NotificationChannel direct = created.copy();
     direct.setProxyMode(NotificationChannel.PROXY_NONE);
 
-    NotificationChannel updated = store.update(direct, SecretChange.keep(), SecretChange.clear(), "admin");
+    NotificationChannel updated = store.update(direct, change(SecretChange.keep(), SecretChange.clear()), "admin");
 
     assertThat(updated.getProxyPasswordSecretId(), is(nullValue()));
     assertThat(store.proxyPassword(updated), is(nullValue()));
@@ -239,7 +248,7 @@ public class NotificationChannelStoreTest
 
   @Test
   public void deleteRemovesTheProxyPasswordToo() {
-    NotificationChannel created = store.create(proxied("releases"), "1:token", "pass", "admin");
+    NotificationChannel created = store.create(proxied("releases"), TOKEN_AND_PASSWORD, "admin");
     Secret token = secretsService.from("_1");
     Secret password = secretsService.from("_2");
 
@@ -280,5 +289,58 @@ public class NotificationChannelStoreTest
     NotificationChannel read = new ObjectMapper().readValue(json, NotificationChannel.class);
     assertThat(read.isSocksProxy(), is(true));
     assertThat(read.copy().getProxyUsername(), is("robot"));
+  }
+
+  private static NotificationChannel webhook(final String name) {
+    NotificationChannel channel = channel(name);
+    channel.setType(NotificationChannel.WEBHOOK);
+    channel.setChatId(null);
+    channel.setTargetHost("hooks.internal");
+    return channel;
+  }
+
+  @Test
+  public void webhookSecretsLiveInTheSecretsStore() {
+    NotificationChannel created = store.create(webhook("ci"),
+        new NotificationSecrets("https://hooks.internal/x", null, "signing", "Bearer abc"), "admin");
+
+    assertThat(created.getSigningSecretId(), is("_2"));
+    assertThat(created.getAuthorizationSecretId(), is("_3"));
+    NotificationSecrets secrets = store.secrets(created);
+    assertThat(secrets.secret(), is("https://hooks.internal/x"));
+    assertThat(secrets.signingSecret(), is("signing"));
+    assertThat(secrets.authorization(), is("Bearer abc"));
+    assertThat(secrets.proxyPassword(), is(nullValue()));
+  }
+
+  @Test
+  public void webhookSecretsAreKeptReplacedRemovedAndDeleted() {
+    NotificationChannel created = store.create(webhook("ci"),
+        new NotificationSecrets("https://hooks.internal/x", null, "signing", "Bearer abc"), "admin");
+    Secret signing = secretsService.from("_2");
+    Secret authorization = secretsService.from("_3");
+
+    NotificationChannel kept = store.update(created, SecretChanges.keepAll(), "admin");
+    assertThat(store.secrets(kept).signingSecret(), is("signing"));
+    verify(secretsService, never()).remove(any());
+
+    NotificationChannel changed = store.update(created, new SecretChanges(SecretChange.keep(), SecretChange.keep(),
+        SecretChange.set("other"), SecretChange.clear()), "admin");
+    assertThat(store.secrets(changed).signingSecret(), is("other"));
+    assertThat(changed.getAuthorizationSecretId(), is(nullValue()));
+    assertThat(store.secrets(changed).authorization(), is(nullValue()));
+    verify(secretsService).remove(signing);
+    verify(secretsService).remove(authorization);
+
+    Secret newSigning = secretsService.from(changed.getSigningSecretId());
+    store.delete(changed.getId());
+    verify(secretsService).remove(newSigning);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void theBotTokenOrWebhookUrlCannotBeRemoved() {
+    NotificationChannel created = store.create(channel("releases"), NotificationSecrets.of("1:token"), "admin");
+
+    store.update(created, change(SecretChange.clear(), SecretChange.keep()), "admin");
   }
 }

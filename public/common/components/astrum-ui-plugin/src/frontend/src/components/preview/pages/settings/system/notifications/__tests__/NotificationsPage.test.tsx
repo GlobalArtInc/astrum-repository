@@ -77,6 +77,21 @@ const PROXIED: NotificationChannel = {
   proxyPassword: PLACEHOLDER,
 };
 
+const WEBHOOK: NotificationChannel = {
+  id: 'c7',
+  name: 'CI',
+  type: 'webhook',
+  enabled: true,
+  secret: PLACEHOLDER,
+  target: 'ci.example.com',
+  repositories: [],
+  events: ['published'],
+  language: 'en',
+  proxyMode: 'global',
+  signingSecret: PLACEHOLDER,
+  authorization: PLACEHOLDER,
+};
+
 function renderPage() {
   return render(
     <Theme>
@@ -183,6 +198,8 @@ describe('NotificationsPage', () => {
       proxyPort: null,
       proxyUsername: null,
       proxyPassword: '',
+      signingSecret: '',
+      authorization: '',
     });
     await waitFor(() => expect(screen.queryByTestId('notification-channel-dialog')).not.toBeInTheDocument());
     expect(await screen.findByText(LABELS.SAVE_SUCCESS('Docker images'))).toBeInTheDocument();
@@ -514,6 +531,150 @@ describe('NotificationsPage', () => {
 
       expect(await within(dialog).findByTestId('notification-proxy-password-error'))
         .toHaveTextContent('Enter the proxy password again: the proxy has changed');
+    });
+  });
+
+  describe('JSON webhooks', () => {
+    const DIALOG = LABELS.DIALOG;
+
+    it('creates a JSON webhook with a signing secret and an Authorization header', async () => {
+      mocked.createChannel.mockResolvedValue({ ...WEBHOOK, id: 'c8' });
+      renderPage();
+      await screen.findByTestId('notification-row-c1');
+
+      fireEvent.click(screen.getByTestId('notification-create-button'));
+      const dialog = await screen.findByTestId('notification-channel-dialog');
+      fireEvent.click(within(dialog).getByRole('radio', { name: LABELS.TYPES.WEBHOOK }));
+
+      expect(await within(dialog).findByText(DIALOG.JSON_WEBHOOK_HELP.TITLE)).toBeInTheDocument();
+      expect(within(dialog).getByTestId('notification-webhook-example')).toHaveTextContent('X-Astrum-Signature');
+      expect(within(dialog).queryByLabelText(DIALOG.CHAT_ID_LABEL)).not.toBeInTheDocument();
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.NAME_LABEL), { target: { value: 'CI' } });
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.JSON_WEBHOOK_LABEL), {
+        target: { value: 'https://ci.example.com/hooks/astrum' },
+      });
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.SIGNING_SECRET_LABEL), { target: { value: 'key' } });
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.AUTHORIZATION_LABEL), {
+        target: { value: ' Bearer abc ' },
+      });
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.createChannel).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'CI',
+        type: 'webhook',
+        chatId: null,
+        messageThreadId: null,
+        secret: 'https://ci.example.com/hooks/astrum',
+        signingSecret: 'key',
+        authorization: 'Bearer abc',
+        proxyMode: 'global',
+      })));
+    });
+
+    it('rejects an Authorization header that is not plain ASCII', async () => {
+      renderPage();
+      await screen.findByTestId('notification-row-c1');
+
+      fireEvent.click(screen.getByTestId('notification-create-button'));
+      const dialog = await screen.findByTestId('notification-channel-dialog');
+      fireEvent.click(within(dialog).getByRole('radio', { name: LABELS.TYPES.WEBHOOK }));
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.AUTHORIZATION_LABEL), {
+        target: { value: 'Bearer токен' },
+      });
+      fireEvent.click(within(dialog).getByTestId('notification-test-button'));
+
+      expect(await within(dialog).findByText(DIALOG.ERRORS.AUTHORIZATION)).toBeInTheDocument();
+      expect(within(dialog).getByText(DIALOG.ERRORS.WEBHOOK)).toBeInTheDocument();
+      expect(mocked.testUnsavedChannel).not.toHaveBeenCalled();
+    });
+
+    it('keeps the saved webhook secrets when their fields are left empty', async () => {
+      mocked.listChannels.mockResolvedValue([WEBHOOK]);
+      mocked.updateChannel.mockResolvedValue(WEBHOOK);
+      renderPage();
+
+      const dialog = await editChannel('c7');
+      expect(within(dialog).getByText(DIALOG.JSON_WEBHOOK_HELP.TITLE)).toBeInTheDocument();
+      expect(within(dialog).getByTestId('notification-signing-secret-remove')).toBeInTheDocument();
+      expect(within(dialog).getByTestId('notification-authorization-remove')).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.updateChannel).toHaveBeenCalledWith('c7', expect.objectContaining({
+        type: 'webhook',
+        secret: PLACEHOLDER,
+        signingSecret: PLACEHOLDER,
+        authorization: PLACEHOLDER,
+      })));
+    });
+
+    it('asks for the Authorization header again for another host and can remove the signing secret', async () => {
+      mocked.listChannels.mockResolvedValue([WEBHOOK]);
+      mocked.updateChannel.mockResolvedValue(WEBHOOK);
+      renderPage();
+
+      const dialog = await editChannel('c7');
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.JSON_WEBHOOK_LABEL), {
+        target: { value: 'https://other.example.com/hook' },
+      });
+      expect(within(dialog).getByText(DIALOG.AUTHORIZATION_AGAIN)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByTestId('notification-signing-secret-remove'));
+      expect(within(dialog).getByText(DIALOG.SAVED_SECRET_REMOVED)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.updateChannel).toHaveBeenCalledWith('c7', expect.objectContaining({
+        secret: 'https://other.example.com/hook',
+        signingSecret: '',
+        authorization: '',
+      })));
+    });
+
+    it('keeps the saved Authorization header for a new URL on the same host', async () => {
+      mocked.listChannels.mockResolvedValue([WEBHOOK]);
+      mocked.updateChannel.mockResolvedValue(WEBHOOK);
+      renderPage();
+
+      const dialog = await editChannel('c7');
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.JSON_WEBHOOK_LABEL), {
+        target: { value: 'https://CI.example.com/new-hook' },
+      });
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.updateChannel).toHaveBeenCalledWith('c7', expect.objectContaining({
+        secret: 'https://CI.example.com/new-hook',
+        authorization: PLACEHOLDER,
+      })));
+    });
+
+    it('lists JSON webhooks with their host', async () => {
+      mocked.listChannels.mockResolvedValue([WEBHOOK]);
+      renderPage();
+
+      const row = await screen.findByTestId('notification-row-c7');
+      expect(within(row).getByTestId('notification-type-c7')).toHaveTextContent(LABELS.TYPES.WEBHOOK);
+      expect(within(row).getByText('ci.example.com')).toBeInTheDocument();
+    });
+
+    it('drops the webhook secrets of other messengers', async () => {
+      mocked.createChannel.mockResolvedValue(SLACK);
+      renderPage();
+      await screen.findByTestId('notification-row-c1');
+
+      fireEvent.click(screen.getByTestId('notification-create-button'));
+      const dialog = await screen.findByTestId('notification-channel-dialog');
+      fireEvent.click(within(dialog).getByRole('radio', { name: LABELS.TYPES.WEBHOOK }));
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.SIGNING_SECRET_LABEL), { target: { value: 'key' } });
+      fireEvent.click(within(dialog).getByRole('radio', { name: LABELS.TYPES.SLACK }));
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.NAME_LABEL), { target: { value: 'Builds' } });
+      fireEvent.change(within(dialog).getByLabelText(DIALOG.WEBHOOK_LABEL), {
+        target: { value: 'https://hooks.slack.com/services/x' },
+      });
+      fireEvent.click(within(dialog).getByTestId('notification-save-button'));
+
+      await waitFor(() => expect(mocked.createChannel).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'slack',
+        signingSecret: '',
+        authorization: '',
+      })));
     });
   });
 });

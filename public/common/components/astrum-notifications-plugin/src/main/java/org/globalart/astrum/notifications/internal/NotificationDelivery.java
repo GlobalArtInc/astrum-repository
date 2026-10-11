@@ -14,7 +14,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 /**
  * Sends messages in the background. A message the chat could not take for the moment (rate limit, server error,
  * network failure) is sent again after the delay the chat asked for, or after an exponential backoff, until it has
- * been tried {@code maxAttempts} times.
+ * been tried {@code maxAttempts} times. A message sent again keeps its delivery id.
  */
 public class NotificationDelivery
 {
@@ -46,9 +46,9 @@ public class NotificationDelivery
     this.maxAttempts = maxAttempts;
   }
 
-  public void submit(final String channelId, final String text) {
+  public void submit(final String channelId, final NotificationMessage message) {
     try {
-      executor.execute(() -> attempt(channelId, text, 1));
+      executor.execute(() -> attempt(channelId, message, 1));
     }
     catch (RejectedExecutionException e) {
       log.warn("Dropped a notification for channel {}: delivery is stopped", channelId);
@@ -68,7 +68,7 @@ public class NotificationDelivery
     return backoffMillis << Math.min(attempt - 1, 20);
   }
 
-  private void attempt(final String channelId, final String text, final int attempt) {
+  private void attempt(final String channelId, final NotificationMessage message, final int attempt) {
     Optional<NotificationChannel> found = store.find(channelId).filter(NotificationChannel::isEnabled);
     if (found.isEmpty()) {
       return;
@@ -80,7 +80,7 @@ public class NotificationDelivery
         log.warn("Notification channel {} has no bot token or webhook URL", channel.getName());
         return;
       }
-      transport.send(channel, secrets, text);
+      transport.send(channel, secrets, message);
       log.debug("Sent a notification to channel {}", channel.getName());
     }
     catch (NotificationDeliveryException e) {
@@ -93,7 +93,7 @@ public class NotificationDelivery
       log.info("Could not send a notification to channel {} (attempt {}), retrying in {} ms: {}", channel.getName(),
           attempt, delay, e.getMessage());
       try {
-        executor.schedule(() -> attempt(channelId, text, attempt + 1), delay, MILLISECONDS);
+        executor.schedule(() -> attempt(channelId, message, attempt + 1), delay, MILLISECONDS);
       }
       catch (RejectedExecutionException rejected) {
         log.warn("Dropped a notification for channel {}: delivery is stopped", channel.getName());

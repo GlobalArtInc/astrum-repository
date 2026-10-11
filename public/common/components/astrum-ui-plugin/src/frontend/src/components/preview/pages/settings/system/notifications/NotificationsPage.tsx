@@ -15,7 +15,7 @@ import {
   Tooltip,
   VisuallyHidden,
 } from '@radix-ui/themes';
-import { Bell, BellRing, Hash, Network, Pencil, Plus, Send, Trash2, XCircle } from 'lucide-react';
+import { Bell, BellRing, Hash, Network, Pencil, Plus, Send, Trash2, Webhook, XCircle } from 'lucide-react';
 
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
@@ -54,12 +54,18 @@ const openSettingsHub = () => {
   window.location.hash = '#preview/admin/settings';
 };
 
+const TYPE_BADGES = {
+  telegram: { color: 'sky', icon: Send, label: LABELS.TYPES.TELEGRAM },
+  slack: { color: 'violet', icon: Hash, label: LABELS.TYPES.SLACK },
+  webhook: { color: 'orange', icon: Webhook, label: LABELS.TYPES.WEBHOOK },
+} as const;
+
 function TypeBadge({ channel }: { channel: NotificationChannel }) {
-  const telegram = channel.type === 'telegram';
+  const { color, icon: Icon, label } = TYPE_BADGES[channel.type] ?? TYPE_BADGES.slack;
   return (
-    <Badge color={telegram ? 'sky' : 'violet'} variant="soft" data-testid={`notification-type-${channel.id}`}>
-      {telegram ? <Send size={12} /> : <Hash size={12} />}
-      {telegram ? LABELS.TYPES.TELEGRAM : LABELS.TYPES.SLACK}
+    <Badge color={color} variant="soft" data-testid={`notification-type-${channel.id}`}>
+      <Icon size={12} />
+      {label}
     </Badge>
   );
 }

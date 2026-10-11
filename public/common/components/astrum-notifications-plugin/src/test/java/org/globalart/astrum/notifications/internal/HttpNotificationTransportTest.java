@@ -3,9 +3,13 @@ package org.globalart.astrum.notifications.internal;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import jakarta.validation.ValidationException;
 
@@ -15,6 +19,7 @@ import org.globalart.astrum.validation.ssrf.AntiSsrfService;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.apache.http.impl.client.HttpClients;
@@ -44,6 +49,10 @@ public class HttpNotificationTransportTest
   private final ObjectMapper mapper = new ObjectMapper();
 
   private final List<Map.Entry<String, String>> requests = new CopyOnWriteArrayList<>();
+
+  private final List<Headers> headers = new CopyOnWriteArrayList<>();
+
+  private final List<byte[]> bodies = new CopyOnWriteArrayList<>();
 
   private HttpServer server;
 
@@ -85,8 +94,11 @@ public class HttpNotificationTransportTest
   }
 
   private void handle(final HttpExchange exchange) throws IOException {
-    String body = new String(exchange.getRequestBody().readAllBytes(), UTF_8);
+    byte[] raw = exchange.getRequestBody().readAllBytes();
+    String body = new String(raw, UTF_8);
     requests.add(Map.entry(exchange.getRequestURI().getPath(), body));
+    headers.add(exchange.getRequestHeaders());
+    bodies.add(raw);
     byte[] bytes = response.getBytes(UTF_8);
     if (retryAfter != null) {
       exchange.getResponseHeaders().add("Retry-After", retryAfter);
@@ -100,6 +112,10 @@ public class HttpNotificationTransportTest
 
   private static NotificationSecrets secrets() {
     return NotificationSecrets.of(TOKEN);
+  }
+
+  private static NotificationMessage text(final String text) {
+    return NotificationMessage.test(text);
   }
 
   private static NotificationChannel telegram() {
@@ -120,7 +136,7 @@ public class HttpNotificationTransportTest
 
   @Test
   public void postsTelegramMessagesToTheBotApi() throws Exception {
-    transport.send(telegram(), NotificationSecrets.of(TOKEN), "<b>hi</b>");
+    transport.send(telegram(), NotificationSecrets.of(TOKEN), text("<b>hi</b>"));
 
     assertThat(requests, hasSize(1));
     assertThat(requests.get(0).getKey(), is("/telegram/bot" + TOKEN + "/sendMessage"));
@@ -134,7 +150,7 @@ public class HttpNotificationTransportTest
 
   @Test
   public void keepsRequestPathsOutOfTheOutboundLog() throws Exception {
-    transport.send(telegram(), NotificationSecrets.of(TOKEN), "hi");
+    transport.send(telegram(), NotificationSecrets.of(TOKEN), text("hi"));
 
     assertThat(planAttributes.get(HttpClientManager.REDACT_REQUEST_PATH), is(true));
   }
@@ -144,7 +160,7 @@ public class HttpNotificationTransportTest
     NotificationChannel channel = telegram();
     channel.setMessageThreadId(null);
 
-    transport.send(channel, NotificationSecrets.of(TOKEN), "hi");
+    transport.send(channel, NotificationSecrets.of(TOKEN), text("hi"));
 
     assertThat(mapper.readTree(requests.get(0).getValue()).has("message_thread_id"), is(false));
   }
@@ -156,7 +172,7 @@ public class HttpNotificationTransportTest
         + "\"parameters\":{\"retry_after\":7}}";
 
     NotificationDeliveryException e =
-        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), "hi"));
+        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), text("hi")));
 
     assertThat(e.isRetryable(), is(true));
     assertThat(e.getRetryAfterMillis(), is(7000L));
@@ -170,7 +186,7 @@ public class HttpNotificationTransportTest
     response = "{\"ok\":false,\"error_code\":400,\"description\":\"Bad Request: chat not found\"}";
 
     NotificationDeliveryException e =
-        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), "hi"));
+        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), text("hi")));
 
     assertThat(e.isRetryable(), is(false));
     assertThat(e.getMessage(), is("Telegram answered 400: Bad Request: chat not found"));
@@ -179,7 +195,7 @@ public class HttpNotificationTransportTest
   @Test
   public void malformedBotTokenIsNeverPutIntoTheUrl() {
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
-        () -> transport.send(telegram(), NotificationSecrets.of("123:abc/../../admin?x="), "hi"));
+        () -> transport.send(telegram(), NotificationSecrets.of("123:abc/../../admin?x="), text("hi")));
 
     assertThat(e.isRetryable(), is(false));
     assertThat(requests, is(empty()));
@@ -190,7 +206,7 @@ public class HttpNotificationTransportTest
     server.stop(0);
 
     NotificationDeliveryException e =
-        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), "hi"));
+        assertThrows(NotificationDeliveryException.class, () -> transport.send(telegram(), secrets(), text("hi")));
 
     assertThat(e.isRetryable(), is(true));
     assertThat(e.getMessage(), not(containsString(TOKEN)));
@@ -200,7 +216,7 @@ public class HttpNotificationTransportTest
   public void postsSlackMessagesToTheWebhook() throws Exception {
     response = "ok";
 
-    transport.send(slack(), NotificationSecrets.of(baseUrl() + "/services/T000/B000/XXXX"), "*hi*");
+    transport.send(slack(), NotificationSecrets.of(baseUrl() + "/services/T000/B000/XXXX"), text("*hi*"));
 
     assertThat(requests.get(0).getKey(), is("/services/T000/B000/XXXX"));
     assertThat(mapper.readTree(requests.get(0).getValue()).get("text").asText(), is("*hi*"));
@@ -214,7 +230,7 @@ public class HttpNotificationTransportTest
     retryAfter = "3";
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
-        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/secret-path"), "hi"));
+        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/secret-path"), text("hi")));
 
     assertThat(e.isRetryable(), is(true));
     assertThat(e.getRetryAfterMillis(), is(3000L));
@@ -227,7 +243,7 @@ public class HttpNotificationTransportTest
     response = "no_team";
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
-        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/x"), "hi"));
+        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/x"), text("hi")));
 
     assertThat(e.isRetryable(), is(false));
     assertThat(e.getMessage(), is("The webhook answered 404: no_team"));
@@ -239,7 +255,7 @@ public class HttpNotificationTransportTest
         .when(antiSsrfService).validateHost(anyString());
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
-        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/x"), "hi"));
+        () -> transport.send(slack(), NotificationSecrets.of(baseUrl() + "/hooks/x"), text("hi")));
 
     assertThat(e.isRetryable(), is(false));
     assertThat(e.getMessage(), containsString("SSRF"));
@@ -254,5 +270,106 @@ public class HttpNotificationTransportTest
     assertThat(HttpNotificationTransport.webhookUri("https://user:pass@example.com/x"), is((Object) null));
     assertThat(HttpNotificationTransport.webhookUri("not a url"), is((Object) null));
     assertThat(HttpNotificationTransport.webhookUri(""), is((Object) null));
+  }
+
+  private static NotificationChannel webhook() {
+    NotificationChannel channel = new NotificationChannel();
+    channel.setType(NotificationChannel.WEBHOOK);
+    channel.setName("ci");
+    channel.setLanguage(NotificationChannel.ENGLISH);
+    return channel;
+  }
+
+  private static NotificationMessage componentMessage() {
+    ComponentNotice notice = new ComponentNotice("maven-releases", "maven2", "org.example", "demo", "1.0.0",
+        NoticeAction.PUBLISHED, "admin", null, null, null, "hosted", null);
+    return NotificationMessage.of(notice, "📦 *Component published*");
+  }
+
+  private static String hmac(final String key, final byte[] body) throws Exception {
+    Mac mac = Mac.getInstance("HmacSHA256");
+    mac.init(new SecretKeySpec(key.getBytes(UTF_8), "HmacSHA256"));
+    return "sha256=" + HexFormat.of().formatHex(mac.doFinal(body));
+  }
+
+  @Test
+  public void postsSignedJsonToWebhooks() throws Exception {
+    NotificationMessage message = componentMessage();
+
+    transport.send(webhook(),
+        new NotificationSecrets(baseUrl() + "/hooks/ci?key=1", null, "signing-key", "Bearer abc123"), message);
+
+    assertThat(requests.get(0).getKey(), is("/hooks/ci"));
+    Headers received = headers.get(0);
+    assertThat(received.getFirst("Content-Type"), is("application/json; charset=UTF-8"));
+    assertThat(received.getFirst("X-Astrum-Event"), is("component.published"));
+    assertThat(received.getFirst("X-Astrum-Delivery"), is(message.deliveryId()));
+    assertThat(received.getFirst("X-Astrum-Signature"), is(hmac("signing-key", bodies.get(0))));
+    assertThat(received.getFirst("Authorization"), is("Bearer abc123"));
+    assertThat(bodies.get(0), is(WebhookPayload.body(message)));
+    JsonNode body = mapper.readTree(bodies.get(0));
+    assertThat(body.get("component").get("coordinates").asText(), is("org.example:demo:1.0.0"));
+    assertThat(body.get("text").asText(), is("📦 *Component published*"));
+    verify(antiSsrfService).validateHost("127.0.0.1");
+  }
+
+  @Test
+  public void webhooksWithoutSecretsGetNeitherSignatureNorAuthorization() throws Exception {
+    transport.send(webhook(), NotificationSecrets.of(baseUrl() + "/hooks/ci"), text("✅ Test"));
+
+    Headers received = headers.get(0);
+    assertThat(received.getFirst("X-Astrum-Event"), is("test"));
+    assertThat(received.containsKey("X-Astrum-Signature"), is(false));
+    assertThat(received.containsKey("Authorization"), is(false));
+    assertThat(mapper.readTree(bodies.get(0)).get("component").isNull(), is(true));
+  }
+
+  @Test
+  public void aMessageSentAgainKeepsItsDeliveryIdAndBody() throws Exception {
+    NotificationMessage message = componentMessage();
+    NotificationSecrets secrets = new NotificationSecrets(baseUrl() + "/hooks/ci", null, "key", null);
+
+    transport.send(webhook(), secrets, message);
+    transport.send(webhook(), secrets, message);
+
+    assertThat(headers.get(1).getFirst("X-Astrum-Delivery"), is(headers.get(0).getFirst("X-Astrum-Delivery")));
+    assertThat(bodies.get(1), is(bodies.get(0)));
+    assertThat(headers.get(1).getFirst("X-Astrum-Signature"), is(headers.get(0).getFirst("X-Astrum-Signature")));
+  }
+
+  @Test
+  public void webhookFailuresAreRetriedLikeSlackAndHideTheSecrets() {
+    status = 503;
+    response = "busy";
+    retryAfter = "4";
+    NotificationSecrets secrets =
+        new NotificationSecrets(baseUrl() + "/hooks/ci", null, "signing-key", "Bearer abc123");
+
+    NotificationDeliveryException busy = assertThrows(NotificationDeliveryException.class,
+        () -> transport.send(webhook(), secrets, componentMessage()));
+
+    assertThat(busy.isRetryable(), is(true));
+    assertThat(busy.getRetryAfterMillis(), is(4000L));
+
+    status = 401;
+    response = "token Bearer abc123 is not valid";
+    retryAfter = null;
+    NotificationDeliveryException denied = assertThrows(NotificationDeliveryException.class,
+        () -> transport.send(webhook(), secrets, componentMessage()));
+
+    assertThat(denied.isRetryable(), is(false));
+    assertThat(denied.getMessage(), is("The webhook answered 401: token *** is not valid"));
+  }
+
+  @Test
+  public void webhookHostsAreCheckedAgainstTheSsrfProtection() {
+    doThrow(new ValidationException("Host resolves to private/local IP address(es)"))
+        .when(antiSsrfService).validateHost(anyString());
+
+    NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
+        () -> transport.send(webhook(), NotificationSecrets.of(baseUrl() + "/hooks/ci"), componentMessage()));
+
+    assertThat(e.getMessage(), containsString("SSRF"));
+    assertThat(requests, is(empty()));
   }
 }

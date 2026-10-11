@@ -33,7 +33,9 @@ import org.globalart.astrum.repository.content.event.component.ComponentCreatedE
 import org.globalart.astrum.repository.content.event.component.ComponentDeletedEvent;
 import org.globalart.astrum.repository.content.event.component.ComponentsPurgedAuditEvent;
 import org.globalart.astrum.repository.content.store.ContentStoreEvent;
+import org.globalart.astrum.repository.content.store.InternalIds;
 import org.globalart.astrum.repository.rest.api.AssetXODescriptor;
+import org.globalart.astrum.repository.rest.api.RepositoryItemIDXO;
 import org.globalart.astrum.repository.types.HostedType;
 import org.globalart.astrum.security.UserIdHelper;
 import org.globalart.astrum.thread.AstrumThreadFactory;
@@ -262,7 +264,9 @@ public class NotificationDispatcher
           initiator.get(),
           browsePath(format, asset),
           registry(repository, format, action),
-          baseUrl());
+          baseUrl(),
+          repository.getType().getValue(),
+          componentId(repository, component));
       long now = clock.getAsLong();
       for (NotificationChannel channel : matching) {
         buffer.add(channel.getId(), notice, now);
@@ -296,10 +300,28 @@ public class NotificationDispatcher
       if (wanted.isEmpty()) {
         return;
       }
-      for (String text : NotificationMessages.render(channel.get(), wanted, batch.overflow())) {
-        current.submit(channelId, text);
+      if (channel.get().isWebhook() && batch.overflow() > 0) {
+        log.warn("Dropped {} component changes for channel {}: more than {} in one window", batch.overflow(),
+            channel.get().getName(), BUFFER_CAPACITY);
+      }
+      for (NotificationMessage message : NotificationMessages.render(channel.get(), wanted, batch.overflow())) {
+        current.submit(channelId, message);
       }
     });
+  }
+
+  /**
+   * @return the component's id in the REST API, or {@code null} when the component has no id
+   */
+  @Nullable
+  private static String componentId(final Repository repository, final Component component) {
+    try {
+      String id = InternalIds.toExternalId(InternalIds.internalComponentId(component)).getValue();
+      return new RepositoryItemIDXO(repository.getName(), id).getValue();
+    }
+    catch (RuntimeException e) {
+      return null;
+    }
   }
 
   /**

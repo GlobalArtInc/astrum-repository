@@ -11,8 +11,8 @@ import com.google.common.eventbus.Subscribe;
 import org.springframework.stereotype.Component;
 
 /**
- * Records notification channel changes in the audit log. Bot tokens, webhook URLs and proxy passwords are never
- * recorded.
+ * Records notification channel changes in the audit log. Bot tokens, webhook URLs, proxy passwords, signing secrets
+ * and Authorization headers are never recorded.
  */
 @Component
 public class NotificationsAuditor

@@ -7,9 +7,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * A chat that receives repository notifications: a Telegram chat reached through a bot, or an incoming webhook of
- * Slack, Mattermost or Rocket.Chat. The bot token or the webhook URL lives in the secrets store under
- * {@link #getSecretId()}.
+ * A chat or a service that receives repository notifications: a Telegram chat reached through a bot, an incoming
+ * webhook of Slack, Mattermost or Rocket.Chat, or a JSON webhook of the user's own service (see
+ * {@link WebhookPayload}). The bot token or the webhook URL lives in the secrets store under {@link #getSecretId()};
+ * a JSON webhook may also have a signing secret and an Authorization header value there.
  *
  * <p>
  * Messages go out with the global HTTP settings ({@link #PROXY_GLOBAL}, also the mode of channels stored before the
@@ -23,6 +24,8 @@ public class NotificationChannel
   public static final String TELEGRAM = "telegram";
 
   public static final String SLACK = "slack";
+
+  public static final String WEBHOOK = "webhook";
 
   public static final String RUSSIAN = "ru";
 
@@ -72,6 +75,10 @@ public class NotificationChannel
 
   private String proxyPasswordSecretId;
 
+  private String signingSecretId;
+
+  private String authorizationSecretId;
+
   public NotificationChannel copy() {
     NotificationChannel copy = new NotificationChannel();
     copy.id = id;
@@ -91,12 +98,19 @@ public class NotificationChannel
     copy.proxyPort = proxyPort;
     copy.proxyUsername = proxyUsername;
     copy.proxyPasswordSecretId = proxyPasswordSecretId;
+    copy.signingSecretId = signingSecretId;
+    copy.authorizationSecretId = authorizationSecretId;
     return copy;
   }
 
   @JsonIgnore
   public boolean isTelegram() {
     return TELEGRAM.equals(type);
+  }
+
+  @JsonIgnore
+  public boolean isWebhook() {
+    return WEBHOOK.equals(type);
   }
 
   @JsonIgnore
@@ -263,6 +277,22 @@ public class NotificationChannel
 
   public void setProxyPasswordSecretId(final String proxyPasswordSecretId) {
     this.proxyPasswordSecretId = proxyPasswordSecretId;
+  }
+
+  public String getSigningSecretId() {
+    return signingSecretId;
+  }
+
+  public void setSigningSecretId(final String signingSecretId) {
+    this.signingSecretId = signingSecretId;
+  }
+
+  public String getAuthorizationSecretId() {
+    return authorizationSecretId;
+  }
+
+  public void setAuthorizationSecretId(final String authorizationSecretId) {
+    this.authorizationSecretId = authorizationSecretId;
   }
 
   @Override

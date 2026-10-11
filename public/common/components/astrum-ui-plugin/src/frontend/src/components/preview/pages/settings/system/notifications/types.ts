@@ -1,4 +1,5 @@
-export type NotificationChannelType = 'telegram' | 'slack';
+/** telegram: a chat through a bot; slack: a Slack-compatible incoming webhook; webhook: JSON for the user's service. */
+export type NotificationChannelType = 'telegram' | 'slack' | 'webhook';
 
 export type NotificationEvent = 'published' | 'updated' | 'deleted';
 
@@ -30,6 +31,10 @@ export interface NotificationChannel {
   proxyUsername?: string | null;
   /** The server only ever returns a placeholder for a saved one; an empty value removes it. */
   proxyPassword?: string;
+  /** JSON webhooks: the key of the X-Astrum-Signature HMAC; a placeholder or empty like proxyPassword. */
+  signingSecret?: string;
+  /** JSON webhooks: the Authorization header; a placeholder or empty like proxyPassword. */
+  authorization?: string;
 }
 
 export interface NotificationTestResult {

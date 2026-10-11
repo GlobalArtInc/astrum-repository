@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.GenericEntity;
 
 import org.globalart.astrum.common.app.BaseUrlManager;
 import org.globalart.astrum.notifications.internal.NotificationChannelStore.SecretChange;
+import org.globalart.astrum.notifications.internal.NotificationChannelStore.SecretChanges;
 import org.globalart.astrum.rapture.PasswordPlaceholder;
 import org.globalart.astrum.repository.Repository;
 import org.globalart.astrum.repository.manager.RepositoryManager;
@@ -76,14 +77,17 @@ public class NotificationChannelsResourceTest
         .filter(channel -> channel.getId().equals(invocation.getArgument(0)))
         .findFirst()
         .map(NotificationChannel::copy));
-    when(store.create(any(), anyString(), any(), any())).thenAnswer(invocation -> {
+    when(store.create(any(), any(), any())).thenAnswer(invocation -> {
       NotificationChannel channel = ((NotificationChannel) invocation.getArgument(0)).copy();
+      NotificationSecrets secrets = invocation.getArgument(1);
       channel.setId("new");
       channel.setSecretId("_secret");
-      channel.setProxyPasswordSecretId(invocation.getArgument(2) != null ? "_proxy" : null);
+      channel.setProxyPasswordSecretId(secrets.proxyPassword() != null ? "_proxy" : null);
+      channel.setSigningSecretId(secrets.signingSecret() != null ? "_signing" : null);
+      channel.setAuthorizationSecretId(secrets.authorization() != null ? "_authorization" : null);
       return channel;
     });
-    when(store.update(any(), any(), any(), any())).thenAnswer(invocation -> {
+    when(store.update(any(), any(), any())).thenAnswer(invocation -> {
       NotificationChannel channel = ((NotificationChannel) invocation.getArgument(0)).copy();
       channel.setSecretId("_secret");
       return channel;
@@ -154,10 +158,14 @@ public class NotificationChannelsResourceTest
   }
 
   private SecretChange updatedProxyPassword(final String id, final NotificationChannelXO xo) {
+    return updatedSecrets(id, xo).proxyPassword();
+  }
+
+  private SecretChanges updatedSecrets(final String id, final NotificationChannelXO xo) {
     resource.update(id, xo);
-    ArgumentCaptor<SecretChange> change = ArgumentCaptor.forClass(SecretChange.class);
-    verify(store).update(any(), any(), change.capture(), any());
-    return change.getValue();
+    ArgumentCaptor<SecretChanges> changes = ArgumentCaptor.forClass(SecretChanges.class);
+    verify(store).update(any(), changes.capture(), any());
+    return changes.getValue();
   }
 
   private static NotificationSecrets withSecret(final String secret) {
@@ -179,7 +187,7 @@ public class NotificationChannelsResourceTest
     NotificationChannelXO created = resource.create(telegramXO());
 
     ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
-    verify(store).create(channel.capture(), eq(TOKEN), any(), any());
+    verify(store).create(channel.capture(), withSecret(TOKEN), any());
     assertThat(channel.getValue().getEvents(), contains("published", "deleted"));
     assertThat(channel.getValue().getLanguage(), is("en"));
     assertThat(created.getSecret(), is(PasswordPlaceholder.get()));
@@ -217,7 +225,7 @@ public class NotificationChannelsResourceTest
 
     NotificationChannelXO badType = telegramXO();
     badType.setType("email");
-    assertBadRequest(() -> resource.create(badType), "type", "telegram or slack");
+    assertBadRequest(() -> resource.create(badType), "type", "telegram, slack or webhook");
 
     NotificationChannelXO noChat = telegramXO();
     noChat.setChatId(null);
@@ -259,7 +267,7 @@ public class NotificationChannelsResourceTest
     badLanguage.setLanguage("de");
     assertBadRequest(() -> resource.create(badLanguage), "language", "ru or en");
 
-    verify(store, never()).create(any(), any(), any(), any());
+    verify(store, never()).create(any(), any(), any());
   }
 
   @Test
@@ -279,9 +287,9 @@ public class NotificationChannelsResourceTest
 
     resource.update("a", xo);
 
-    ArgumentCaptor<SecretChange> change = ArgumentCaptor.forClass(SecretChange.class);
-    verify(store).update(any(), change.capture(), any(), any());
-    assertThat(change.getValue().replace(), is(false));
+    ArgumentCaptor<SecretChanges> change = ArgumentCaptor.forClass(SecretChanges.class);
+    verify(store).update(any(), change.capture(), any());
+    assertThat(change.getValue().secret().replace(), is(false));
   }
 
   @Test
@@ -290,10 +298,10 @@ public class NotificationChannelsResourceTest
 
     resource.update("a", telegramXO());
 
-    ArgumentCaptor<SecretChange> change = ArgumentCaptor.forClass(SecretChange.class);
-    verify(store).update(any(), change.capture(), any(), any());
-    assertThat(change.getValue().replace(), is(true));
-    assertThat(change.getValue().value(), is(TOKEN));
+    ArgumentCaptor<SecretChanges> change = ArgumentCaptor.forClass(SecretChanges.class);
+    verify(store).update(any(), change.capture(), any());
+    assertThat(change.getValue().secret().replace(), is(true));
+    assertThat(change.getValue().secret().value(), is(TOKEN));
   }
 
   @Test
@@ -316,23 +324,24 @@ public class NotificationChannelsResourceTest
   @Test
   public void testSendsATestMessageWithTheSavedSecret() throws Exception {
     NotificationChannel channel = saved("a", "telegram");
-    when(store.secret(any())).thenReturn(TOKEN);
+    when(store.secrets(any())).thenReturn(NotificationSecrets.of(TOKEN));
 
     NotificationTestResultXO result = resource.test("a");
 
     assertThat(result.isSuccess(), is(true));
-    ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
-    verify(transport).send(any(), argThat(secrets -> secrets.secret().equals(TOKEN)), text.capture());
-    assertThat(text.getValue(), containsString(channel.getName()));
-    assertThat(text.getValue(), containsString("https://repo.example.com"));
+    ArgumentCaptor<NotificationMessage> message = ArgumentCaptor.forClass(NotificationMessage.class);
+    verify(transport).send(any(), argThat(secrets -> secrets.secret().equals(TOKEN)), message.capture());
+    assertThat(message.getValue().event(), is("test"));
+    assertThat(message.getValue().text(), containsString(channel.getName()));
+    assertThat(message.getValue().text(), containsString("https://repo.example.com"));
   }
 
   @Test
   public void testReportsWhatTheChatAnswered() throws Exception {
     saved("a", "telegram");
-    when(store.secret(any())).thenReturn(TOKEN);
+    when(store.secrets(any())).thenReturn(NotificationSecrets.of(TOKEN));
     doThrow(new NotificationDeliveryException("Telegram answered 400: Bad Request: chat not found", 400, false, 0))
-        .when(transport).send(any(), any(), anyString());
+        .when(transport).send(any(), any(), any());
 
     NotificationTestResultXO result = resource.test("a");
 
@@ -345,15 +354,15 @@ public class NotificationChannelsResourceTest
     NotificationChannelXO unsaved = slackXO();
     unsaved.setName(null);
     assertThat(resource.testUnsaved(unsaved).isSuccess(), is(true));
-    verify(transport).send(any(), withSecret("https://hooks.slack.com/services/T000/B000/XXXX"), anyString());
+    verify(transport).send(any(), withSecret("https://hooks.slack.com/services/T000/B000/XXXX"), any());
 
     saved("a", "slack");
-    when(store.secret(any())).thenReturn("https://chat.example.com/hooks/abc");
+    when(store.secrets(any())).thenReturn(NotificationSecrets.of("https://chat.example.com/hooks/abc"));
     NotificationChannelXO edited = slackXO();
     edited.setId("a");
     edited.setSecret(PasswordPlaceholder.get());
     assertThat(resource.testUnsaved(edited).isSuccess(), is(true));
-    verify(transport).send(any(), withSecret("https://chat.example.com/hooks/abc"), anyString());
+    verify(transport).send(any(), withSecret("https://chat.example.com/hooks/abc"), any());
 
     NotificationChannelXO withoutSecret = telegramXO();
     withoutSecret.setSecret(PasswordPlaceholder.get());
@@ -406,7 +415,8 @@ public class NotificationChannelsResourceTest
     NotificationChannelXO created = resource.create(proxyXO());
 
     ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
-    verify(store).create(channel.capture(), eq(TOKEN), eq(" pass word "), any());
+    verify(store).create(channel.capture(),
+        argThat(secrets -> TOKEN.equals(secrets.secret()) && " pass word ".equals(secrets.proxyPassword())), any());
     assertThat(channel.getValue().getProxyMode(), is("custom"));
     assertThat(channel.getValue().getProxyType(), is("socks5"));
     assertThat(channel.getValue().getProxyHost(), is("proxy.internal"));
@@ -427,7 +437,7 @@ public class NotificationChannelsResourceTest
     NotificationChannelXO created = resource.create(direct);
 
     ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
-    verify(store, times(2)).create(channel.capture(), eq(TOKEN), eq(null), any());
+    verify(store, times(2)).create(channel.capture(), argThat(secrets -> secrets.proxyPassword() == null), any());
     assertThat(channel.getValue().getProxyMode(), is("none"));
     assertThat(channel.getValue().getProxyHost(), is(nullValue()));
     assertThat(channel.getValue().getProxyUsername(), is(nullValue()));
@@ -480,7 +490,7 @@ public class NotificationChannelsResourceTest
     passwordWithoutUser.setProxyUsername(null);
     assertBadRequest(() -> resource.create(passwordWithoutUser), "proxyUsername", "username that goes with");
 
-    verify(store, never()).create(any(), any(), any(), any());
+    verify(store, never()).create(any(), any(), any());
   }
 
   @Test
@@ -545,9 +555,9 @@ public class NotificationChannelsResourceTest
     anonymous.setProxyUsername("");
     anonymous.setProxyPassword(PasswordPlaceholder.get());
     resource.update("b", anonymous);
-    ArgumentCaptor<SecretChange> change = ArgumentCaptor.forClass(SecretChange.class);
-    verify(store, times(2)).update(any(), any(), change.capture(), any());
-    assertThat(change.getValue(), is(SecretChange.clear()));
+    ArgumentCaptor<SecretChanges> change = ArgumentCaptor.forClass(SecretChanges.class);
+    verify(store, times(2)).update(any(), change.capture(), any());
+    assertThat(change.getValue().proxyPassword(), is(SecretChange.clear()));
   }
 
   @Test
@@ -585,16 +595,15 @@ public class NotificationChannelsResourceTest
   @Test
   public void testMessagesUseTheProxyPasswordOfTheFormOrTheSavedOne() throws Exception {
     savedWithProxy("a");
-    when(store.secret(any())).thenReturn(TOKEN);
-    when(store.proxyPassword(any())).thenReturn("stored");
+    when(store.secrets(any())).thenReturn(new NotificationSecrets(TOKEN, "stored", null, null));
 
     assertThat(resource.test("a").isSuccess(), is(true));
-    verify(transport).send(any(), argThat(secrets -> "stored".equals(secrets.proxyPassword())), anyString());
+    verify(transport).send(any(), argThat(secrets -> "stored".equals(secrets.proxyPassword())), any());
 
     NotificationChannelXO typed = proxyXO();
     typed.setId("a");
     resource.testUnsaved(typed);
-    verify(transport).send(any(), argThat(secrets -> " pass word ".equals(secrets.proxyPassword())), anyString());
+    verify(transport).send(any(), argThat(secrets -> " pass word ".equals(secrets.proxyPassword())), any());
 
     NotificationChannelXO kept = proxyXO();
     kept.setId("a");
@@ -603,7 +612,7 @@ public class NotificationChannelsResourceTest
     resource.testUnsaved(kept);
     ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
     verify(transport, times(2))
-        .send(channel.capture(), argThat(secrets -> "stored".equals(secrets.proxyPassword())), anyString());
+        .send(channel.capture(), argThat(secrets -> "stored".equals(secrets.proxyPassword())), any());
     assertThat(channel.getValue().getProxyHost(), is("proxy.internal"));
     assertThat(channel.getValue().isSocksProxy(), is(true));
 
@@ -612,6 +621,171 @@ public class NotificationChannelsResourceTest
     cleared.setProxyPassword("");
     resource.testUnsaved(cleared);
     verify(transport).send(any(), argThat(secrets -> TOKEN.equals(secrets.secret()) && secrets.proxyPassword() == null),
-        anyString());
+        any());
+  }
+
+  private static NotificationChannelXO webhookXO() {
+    NotificationChannelXO xo = new NotificationChannelXO();
+    xo.setName("CI");
+    xo.setType("webhook");
+    xo.setSecret("https://ci.example.com/hooks/astrum?token=x");
+    xo.setSigningSecret("signing key");
+    xo.setAuthorization("  Bearer abc123 ");
+    xo.setEvents(List.of("published"));
+    return xo;
+  }
+
+  private NotificationChannel savedWebhook(final String id) {
+    NotificationChannel channel = saved(id, "webhook");
+    channel.setName("CI");
+    channel.setTargetHost("ci.example.com");
+    channel.setSigningSecretId("_signing");
+    channel.setAuthorizationSecretId("_authorization");
+    return channel;
+  }
+
+  @Test
+  public void createsAJsonWebhookWithItsSecrets() {
+    NotificationChannelXO created = resource.create(webhookXO());
+
+    ArgumentCaptor<NotificationChannel> channel = ArgumentCaptor.forClass(NotificationChannel.class);
+    ArgumentCaptor<NotificationSecrets> secrets = ArgumentCaptor.forClass(NotificationSecrets.class);
+    verify(store).create(channel.capture(), secrets.capture(), any());
+    assertThat(channel.getValue().isWebhook(), is(true));
+    assertThat(channel.getValue().getTargetHost(), is("ci.example.com"));
+    assertThat(secrets.getValue().secret(), is("https://ci.example.com/hooks/astrum?token=x"));
+    assertThat(secrets.getValue().signingSecret(), is("signing key"));
+    assertThat(secrets.getValue().authorization(), is("Bearer abc123"));
+    assertThat(created.getTarget(), is("ci.example.com"));
+    assertThat(created.getSecret(), is(PasswordPlaceholder.get()));
+    assertThat(created.getSigningSecret(), is(PasswordPlaceholder.get()));
+    assertThat(created.getAuthorization(), is(PasswordPlaceholder.get()));
+  }
+
+  @Test
+  public void signingSecretAndAuthorizationAreOptional() {
+    NotificationChannelXO plain = webhookXO();
+    plain.setSigningSecret(null);
+    plain.setAuthorization("");
+
+    NotificationChannelXO created = resource.create(plain);
+
+    verify(store).create(any(), argThat(secrets -> secrets.signingSecret() == null
+        && secrets.authorization() == null), any());
+    assertThat(created.getSigningSecret(), is(""));
+    assertThat(created.getAuthorization(), is(""));
+  }
+
+  @Test
+  public void rejectsInvalidWebhooks() {
+    NotificationChannelXO badUrl = webhookXO();
+    badUrl.setSecret("ftp://ci.example.com/x");
+    assertBadRequest(() -> resource.create(badUrl), "secret", "http or https URL");
+
+    NotificationChannelXO noUrl = webhookXO();
+    noUrl.setSecret(" ");
+    assertBadRequest(() -> resource.create(noUrl), "secret", "Webhook URL is required");
+
+    NotificationChannelXO twoLines = webhookXO();
+    twoLines.setAuthorization("Bearer abc\r\nX-Injected: 1");
+    assertBadRequest(() -> resource.create(twoLines), "authorization", "one line of printable ASCII");
+
+    NotificationChannelXO longAuthorization = webhookXO();
+    longAuthorization.setAuthorization("Bearer " + "a".repeat(4096));
+    assertBadRequest(() -> resource.create(longAuthorization), "authorization", "4096 characters");
+
+    NotificationChannelXO longSecret = webhookXO();
+    longSecret.setSigningSecret("s".repeat(256));
+    assertBadRequest(() -> resource.create(longSecret), "signingSecret", "255 characters");
+
+    verify(store, never()).create(any(), any(), any());
+  }
+
+  @Test
+  public void placeholdersKeepTheWebhookSecretsAndEmptyValuesRemoveThem() {
+    savedWebhook("a");
+    NotificationChannelXO kept = webhookXO();
+    kept.setSecret(PasswordPlaceholder.get());
+    kept.setSigningSecret(PasswordPlaceholder.get());
+    kept.setAuthorization(PasswordPlaceholder.get());
+
+    SecretChanges keep = updatedSecrets("a", kept);
+
+    assertThat(keep, is(SecretChanges.keepAll()));
+
+    savedWebhook("b").setName("CI b");
+    NotificationChannelXO removed = webhookXO();
+    removed.setName("CI b");
+    removed.setSecret(PasswordPlaceholder.get());
+    removed.setSigningSecret("");
+    removed.setAuthorization("");
+    resource.update("b", removed);
+    ArgumentCaptor<SecretChanges> changes = ArgumentCaptor.forClass(SecretChanges.class);
+    verify(store, times(2)).update(any(), changes.capture(), any());
+    assertThat(changes.getValue().signingSecret(), is(SecretChange.clear()));
+    assertThat(changes.getValue().authorization(), is(SecretChange.clear()));
+  }
+
+  @Test
+  public void theStoredAuthorizationIsNeverSentToAnotherHost() {
+    savedWebhook("a");
+    NotificationChannelXO sameHost = webhookXO();
+    sameHost.setSecret("https://CI.example.com/other-hook");
+    sameHost.setAuthorization(PasswordPlaceholder.get());
+    assertThat(updatedSecrets("a", sameHost).authorization(), is(SecretChange.keep()));
+
+    NotificationChannelXO otherHost = webhookXO();
+    otherHost.setSecret("https://attacker.example/hook");
+    otherHost.setAuthorization(null);
+    assertBadRequest(() -> resource.update("a", otherHost), "authorization", "Enter the Authorization header again");
+  }
+
+  @Test
+  public void otherTypesDropTheWebhookSecrets() {
+    savedWebhook("a");
+    NotificationChannelXO slack = slackXO();
+    slack.setSigningSecret(PasswordPlaceholder.get());
+    slack.setAuthorization(PasswordPlaceholder.get());
+
+    SecretChanges changes = updatedSecrets("a", slack);
+
+    assertThat(changes.secret().replace(), is(true));
+    assertThat(changes.signingSecret(), is(SecretChange.clear()));
+    assertThat(changes.authorization(), is(SecretChange.clear()));
+  }
+
+  @Test
+  public void testMessagesOfWebhooksUseTheSavedSecrets() throws Exception {
+    savedWebhook("a");
+    when(store.secrets(any())).thenReturn(
+        new NotificationSecrets("https://ci.example.com/hooks/astrum", null, "saved key", "Bearer saved"));
+    NotificationChannelXO form = webhookXO();
+    form.setId("a");
+    form.setSecret(PasswordPlaceholder.get());
+    form.setSigningSecret(PasswordPlaceholder.get());
+    form.setAuthorization("Bearer typed");
+
+    assertThat(resource.testUnsaved(form).isSuccess(), is(true));
+
+    ArgumentCaptor<NotificationSecrets> secrets = ArgumentCaptor.forClass(NotificationSecrets.class);
+    ArgumentCaptor<NotificationMessage> message = ArgumentCaptor.forClass(NotificationMessage.class);
+    verify(transport).send(any(), secrets.capture(), message.capture());
+    assertThat(secrets.getValue().secret(), is("https://ci.example.com/hooks/astrum"));
+    assertThat(secrets.getValue().signingSecret(), is("saved key"));
+    assertThat(secrets.getValue().authorization(), is("Bearer typed"));
+    assertThat(message.getValue().event(), is("test"));
+    assertThat(message.getValue().notice(), is(nullValue()));
+  }
+
+  @Test
+  public void unsavedWebhooksAreTestedWithTheirDefaultName() throws Exception {
+    NotificationChannelXO form = webhookXO();
+    form.setName(null);
+
+    resource.testUnsaved(form);
+
+    ArgumentCaptor<NotificationMessage> message = ArgumentCaptor.forClass(NotificationMessage.class);
+    verify(transport).send(any(), any(), message.capture());
+    assertThat(message.getValue().text(), containsString("Webhook"));
   }
 }

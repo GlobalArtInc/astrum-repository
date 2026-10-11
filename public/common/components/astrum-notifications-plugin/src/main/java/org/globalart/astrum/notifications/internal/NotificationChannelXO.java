@@ -6,9 +6,9 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * A notification channel as the user interface sees it. The secret (bot token or webhook URL) and the proxy password
- * are never returned, only a placeholder that keeps the stored value when it comes back. An empty proxy password
- * removes the stored one.
+ * A notification channel as the user interface sees it. The secrets (bot token or webhook URL, proxy password, signing
+ * secret, Authorization header) are never returned, only a placeholder that keeps the stored value when it comes back.
+ * An empty proxy password, signing secret or Authorization header removes the stored one.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class NotificationChannelXO
@@ -46,6 +46,10 @@ public class NotificationChannelXO
   private String proxyUsername;
 
   private String proxyPassword;
+
+  private String signingSecret;
+
+  private String authorization;
 
   public String getId() {
     return id;
@@ -191,5 +195,27 @@ public class NotificationChannelXO
 
   public void setProxyPassword(final String proxyPassword) {
     this.proxyPassword = proxyPassword;
+  }
+
+  /**
+   * @return the key the bodies of a JSON webhook are signed with
+   */
+  public String getSigningSecret() {
+    return signingSecret;
+  }
+
+  public void setSigningSecret(final String signingSecret) {
+    this.signingSecret = signingSecret;
+  }
+
+  /**
+   * @return the Authorization header of the requests to a JSON webhook, e.g. {@code Bearer …}
+   */
+  public String getAuthorization() {
+    return authorization;
+  }
+
+  public void setAuthorization(final String authorization) {
+    this.authorization = authorization;
   }
 }

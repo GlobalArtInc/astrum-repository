@@ -105,7 +105,9 @@ public class HttpNotificationTransportProxyTest
     received.add(Map.of(
         "path", exchange.getRequestURI().getPath(),
         "body", new String(exchange.getRequestBody().readAllBytes(), UTF_8),
-        "userAgent", String.valueOf(exchange.getRequestHeaders().getFirst("User-Agent"))));
+        "userAgent", String.valueOf(exchange.getRequestHeaders().getFirst("User-Agent")),
+        "signature", String.valueOf(exchange.getRequestHeaders().getFirst("X-Astrum-Signature")),
+        "event", String.valueOf(exchange.getRequestHeaders().getFirst("X-Astrum-Event"))));
     byte[] bytes = "{\"ok\":true}".getBytes(UTF_8);
     exchange.getResponseHeaders().add("Content-Type", "application/json");
     exchange.sendResponseHeaders(200, bytes.length);
@@ -121,6 +123,10 @@ public class HttpNotificationTransportProxyTest
 
   private HttpNotificationTransport transport() {
     return transport("telegram.test");
+  }
+
+  private static NotificationMessage text(final String text) {
+    return NotificationMessage.test(text);
   }
 
   private static NotificationChannel telegram(final String mode) {
@@ -166,13 +172,13 @@ public class HttpNotificationTransportProxyTest
 
   private NotificationDeliveryException failure(final NotificationChannel channel, final String password) {
     return assertThrows(NotificationDeliveryException.class,
-        () -> transport().send(channel, new NotificationSecrets(TOKEN, password), "hi"));
+        () -> transport().send(channel, new NotificationSecrets(TOKEN, password, null, null), text("hi")));
   }
 
   @Test
   public void sendsThroughAnHttpProxyThatResolvesTheTelegramHost() throws Exception {
     transport().send(throughProxy(NotificationChannel.PROXY_HTTP, httpProxy.port(), null),
-        NotificationSecrets.of(TOKEN), "hi");
+        NotificationSecrets.of(TOKEN), text("hi"));
 
     assertThat(httpProxy.requestLines, contains(
         "POST http://telegram.test:" + telegram.getAddress().getPort() + "/bot" + TOKEN + "/sendMessage HTTP/1.1"));
@@ -185,7 +191,7 @@ public class HttpNotificationTransportProxyTest
     httpProxy.credentials = "robot:" + PASSWORD;
 
     transport().send(throughProxy(NotificationChannel.PROXY_HTTP, httpProxy.port(), "robot"),
-        new NotificationSecrets(TOKEN, PASSWORD), "hi");
+        new NotificationSecrets(TOKEN, PASSWORD, null, null), text("hi"));
 
     assertThat(httpProxy.authorizations, hasSize(2));
     assertThat(httpProxy.authorizations.get(0), is(""));
@@ -222,7 +228,7 @@ public class HttpNotificationTransportProxyTest
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
         () -> https.send(throughProxy(NotificationChannel.PROXY_HTTP, httpProxy.port(), null),
-            NotificationSecrets.of(TOKEN), "hi"));
+            NotificationSecrets.of(TOKEN), text("hi")));
 
     assertThat(httpProxy.requestLines, contains("CONNECT telegram.test:443 HTTP/1.1"));
     assertThat(e.getMessage(), is("The proxy refused the connection to telegram.test: 403 Forbidden"));
@@ -237,7 +243,7 @@ public class HttpNotificationTransportProxyTest
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
         () -> https.send(throughProxy(NotificationChannel.PROXY_HTTP, httpProxy.port(), "robot"),
-            new NotificationSecrets(TOKEN, "wrong"), "hi"));
+            new NotificationSecrets(TOKEN, "wrong", null, null), text("hi")));
 
     assertThat(httpProxy.requestLines, everyItem(startsWith("CONNECT telegram.test:443 ")));
     assertThat(httpProxy.authorizations.get(httpProxy.authorizations.size() - 1), startsWith("Basic "));
@@ -257,7 +263,7 @@ public class HttpNotificationTransportProxyTest
   @Test
   public void sendsThroughASocksProxyThatResolvesTheTelegramHost() throws Exception {
     transport().send(throughProxy(NotificationChannel.PROXY_SOCKS5, socksProxy.port(), null),
-        NotificationSecrets.of(TOKEN), "hi");
+        NotificationSecrets.of(TOKEN), text("hi"));
 
     assertThat(socksProxy.requests, contains("domain telegram.test:" + telegram.getAddress().getPort()));
     assertDelivered();
@@ -269,7 +275,7 @@ public class HttpNotificationTransportProxyTest
     socksProxy.password = PASSWORD;
 
     transport().send(throughProxy(NotificationChannel.PROXY_SOCKS5, socksProxy.port(), "robot"),
-        new NotificationSecrets(TOKEN, PASSWORD), "hi");
+        new NotificationSecrets(TOKEN, PASSWORD, null, null), text("hi"));
 
     assertThat(socksProxy.logins, contains("robot:" + PASSWORD));
     assertDelivered();
@@ -278,7 +284,7 @@ public class HttpNotificationTransportProxyTest
   @Test
   public void addressesAreSentToTheSocksProxyAsTheyAre() throws Exception {
     transport("127.0.0.1").send(throughProxy(NotificationChannel.PROXY_SOCKS5, socksProxy.port(), null),
-        NotificationSecrets.of(TOKEN), "hi");
+        NotificationSecrets.of(TOKEN), text("hi"));
 
     assertThat(socksProxy.requests, contains("ipv4 127.0.0.1:" + telegram.getAddress().getPort()));
     assertDelivered();
@@ -365,7 +371,7 @@ public class HttpNotificationTransportProxyTest
   public void directChannelsBypassTheGlobalProxy() throws Exception {
     globalProxy(deadPort());
 
-    transport("127.0.0.1").send(telegram(NotificationChannel.PROXY_NONE), NotificationSecrets.of(TOKEN), "hi");
+    transport("127.0.0.1").send(telegram(NotificationChannel.PROXY_NONE), NotificationSecrets.of(TOKEN), text("hi"));
 
     assertDelivered();
   }
@@ -377,7 +383,7 @@ public class HttpNotificationTransportProxyTest
 
     NotificationDeliveryException e = assertThrows(NotificationDeliveryException.class,
         () -> transport("127.0.0.1").send(telegram(NotificationChannel.PROXY_GLOBAL), NotificationSecrets.of(TOKEN),
-            "hi"));
+            text("hi")));
 
     assertThat(e.getMessage(), startsWith("Could not reach Telegram: Connect to 127.0.0.1:" + port));
     assertThat(e.getMessage(), not(containsString(TOKEN)));
@@ -389,9 +395,9 @@ public class HttpNotificationTransportProxyTest
     globalProxy(deadPort());
 
     transport().send(throughProxy(NotificationChannel.PROXY_HTTP, httpProxy.port(), null),
-        NotificationSecrets.of(TOKEN), "hi");
+        NotificationSecrets.of(TOKEN), text("hi"));
     transport().send(throughProxy(NotificationChannel.PROXY_SOCKS5, socksProxy.port(), null),
-        NotificationSecrets.of(TOKEN), "hi");
+        NotificationSecrets.of(TOKEN), text("hi"));
 
     assertThat(httpProxy.requestLines, hasSize(1));
     assertThat(socksProxy.requests, hasSize(1));
@@ -404,7 +410,7 @@ public class HttpNotificationTransportProxyTest
     channel.setType(NotificationChannel.SLACK);
 
     transport().send(channel, NotificationSecrets.of("http://hooks.test:" + telegram.getAddress().getPort() + "/x"),
-        "hi");
+        text("hi"));
 
     verify(antiSsrfService).validateHost("hooks.test");
     assertThat(socksProxy.requests, contains("domain hooks.test:" + telegram.getAddress().getPort()));
@@ -423,5 +429,21 @@ public class HttpNotificationTransportProxyTest
     HttpClientPlan plan = new HttpClientPlan();
     new NotificationConnection(channel, PASSWORD, new AstrumSSLConnectionSocketFactory(List.of())).customize(plan);
     assertThat(plan.getAttributes().get(HttpClientManager.REDACT_REQUEST_PATH), is(true));
+  }
+
+  @Test
+  public void jsonWebhooksGoThroughTheChannelsProxyWithTheirHeaders() throws Exception {
+    NotificationChannel channel = throughProxy(NotificationChannel.PROXY_HTTP, httpProxy.port(), null);
+    channel.setType(NotificationChannel.WEBHOOK);
+    NotificationMessage message = text("✅ Test");
+
+    transport().send(channel, new NotificationSecrets(
+        "http://hooks.test:" + telegram.getAddress().getPort() + "/ci", null, "key", null), message);
+
+    assertThat(httpProxy.requestLines, contains("POST http://hooks.test:" + telegram.getAddress().getPort()
+        + "/ci HTTP/1.1"));
+    assertThat(received.get(0).get("event"), is("test"));
+    assertThat(received.get(0).get("signature"), is(WebhookPayload.signature("key", WebhookPayload.body(message))));
+    verify(antiSsrfService).validateHost("hooks.test");
   }
 }

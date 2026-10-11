@@ -27,7 +27,7 @@ public class NotificationMessagesTest
 
   private static ComponentNotice maven(final NoticeAction action) {
     return new ComponentNotice("maven-releases", "maven2", "org.example", "demo", "1.0.0", action, "roman",
-        "org/example/demo/1.0.0", null, "https://repo.example.com/");
+        "org/example/demo/1.0.0", null, "https://repo.example.com/", "hosted", null);
   }
 
   @Test
@@ -65,7 +65,7 @@ public class NotificationMessagesTest
   @Test
   public void escapesHtmlInNamesAndUsers() {
     ComponentNotice notice = new ComponentNotice("raw-hosted", "raw", "/docs", "docs/<script>&\"x\".txt", "",
-        NoticeAction.PUBLISHED, "eve<b>", null, null, null);
+        NoticeAction.PUBLISHED, "eve<b>", null, null, null, "hosted", null);
 
     String text = NotificationMessages.single(channel("telegram", "en"), notice);
 
@@ -77,7 +77,7 @@ public class NotificationMessagesTest
   @Test
   public void escapesMrkdwnControlCharacters() {
     ComponentNotice notice = new ComponentNotice("raw-hosted", "raw", "", "a<b>&`c`", "", NoticeAction.PUBLISHED,
-        null, null, null, null);
+        null, null, null, null, "hosted", null);
 
     String text = NotificationMessages.single(channel("slack", "en"), notice);
 
@@ -87,7 +87,7 @@ public class NotificationMessagesTest
   @Test
   public void dockerImageIsWrittenWithTagAndPullCommand() {
     ComponentNotice notice = new ComponentNotice("docker-hosted", "docker", "", "team/app", "1.4", NoticeAction.PUBLISHED,
-        "ci", "v2/team/app/tags/1.4", "repo.example.com:8085", "https://repo.example.com");
+        "ci", "v2/team/app/tags/1.4", "repo.example.com:8085", "https://repo.example.com", "hosted", null);
 
     String text = NotificationMessages.single(channel("telegram", "en"), notice);
 
@@ -99,36 +99,36 @@ public class NotificationMessagesTest
   public void coordinatesFollowTheFormat() {
     assertThat(NotificationMessages.coordinates(maven(NoticeAction.PUBLISHED)), is("org.example:demo:1.0.0"));
     assertThat(NotificationMessages.coordinates(
-        new ComponentNotice("npm", "npm", "scope", "pkg", "2.0.1", NoticeAction.PUBLISHED, null, null, null, null)),
+        new ComponentNotice("npm", "npm", "scope", "pkg", "2.0.1", NoticeAction.PUBLISHED, null, null, null, null, "hosted", null)),
         is("@scope/pkg@2.0.1"));
     assertThat(NotificationMessages.coordinates(
-        new ComponentNotice("npm", "npm", "", "left-pad", "1.3.0", NoticeAction.PUBLISHED, null, null, null, null)),
+        new ComponentNotice("npm", "npm", "", "left-pad", "1.3.0", NoticeAction.PUBLISHED, null, null, null, null, "hosted", null)),
         is("left-pad@1.3.0"));
     assertThat(NotificationMessages.coordinates(
-        new ComponentNotice("raw", "raw", "/dir", "dir/file.txt", "", NoticeAction.PUBLISHED, null, null, null, null)),
+        new ComponentNotice("raw", "raw", "/dir", "dir/file.txt", "", NoticeAction.PUBLISHED, null, null, null, null, "hosted", null)),
         is("dir/file.txt"));
     assertThat(NotificationMessages.coordinates(
-        new ComponentNotice("pypi", "pypi", "", "requests", "2.31.0", NoticeAction.PUBLISHED, null, null, null, null)),
+        new ComponentNotice("pypi", "pypi", "", "requests", "2.31.0", NoticeAction.PUBLISHED, null, null, null, null, "hosted", null)),
         is("requests:2.31.0"));
   }
 
   @Test
   public void linkPointsToTheRepositoryWhenTheNodeIsUnknown() {
     ComponentNotice notice = new ComponentNotice("my repo", "raw", "", "a", "", NoticeAction.UPDATED, null, null, null,
-        "http://host:8081/");
+        "http://host:8081/", "hosted", null);
 
     assertThat(NotificationMessages.link(notice), is("http://host:8081/#browse/browse:my%20repo"));
     assertThat(NotificationMessages.link(notice.withAction(NoticeAction.DELETED)), is(nullValue()));
     assertThat(NotificationMessages.link(new ComponentNotice("r", "raw", "", "a", "", NoticeAction.UPDATED, null, null,
-        null, null)), is(nullValue()));
+        null, null, "hosted", null)), is(nullValue()));
   }
 
   @Test
   public void systemUserIsNamedAndUnknownUserIsLeftOut() {
     ComponentNotice purged = new ComponentNotice("maven-releases", "maven2", "g", "a", "1", NoticeAction.DELETED,
-        "*SYSTEM", null, null, null);
+        "*SYSTEM", null, null, null, "hosted", null);
     ComponentNotice unknown = new ComponentNotice("maven-releases", "maven2", "g", "a", "1", NoticeAction.DELETED,
-        "*UNKNOWN", null, null, null);
+        "*UNKNOWN", null, null, null, "hosted", null);
 
     assertThat(NotificationMessages.single(channel("telegram", "ru"), purged), containsString("Автор: система"));
     assertThat(NotificationMessages.single(channel("telegram", "ru"), unknown), not(containsString("Автор")));
@@ -138,7 +138,7 @@ public class NotificationMessagesTest
   public void upToFiveChangesAreSentOneByOne() {
     List<ComponentNotice> notices = notices(5);
 
-    List<String> messages = NotificationMessages.render(channel("telegram", "en"), notices, 0);
+    List<String> messages = texts(NotificationMessages.render(channel("telegram", "en"), notices, 0));
 
     assertThat(messages, hasSize(5));
     assertThat(messages.get(4), containsString("<b>org.example:lib-4:1.0</b>"));
@@ -146,7 +146,7 @@ public class NotificationMessagesTest
 
   @Test
   public void moreThanFiveChangesBecomeOneSummary() {
-    List<String> messages = NotificationMessages.render(channel("telegram", "ru"), notices(6), 0);
+    List<String> messages = texts(NotificationMessages.render(channel("telegram", "ru"), notices(6), 0));
 
     assertThat(messages, hasSize(1));
     String summary = messages.get(0);
@@ -158,7 +158,7 @@ public class NotificationMessagesTest
 
   @Test
   public void longSummaryIsTruncatedAndCountsTheRest() {
-    List<String> messages = NotificationMessages.render(channel("slack", "en"), notices(30), 7);
+    List<String> messages = texts(NotificationMessages.render(channel("slack", "en"), notices(30), 7));
 
     String summary = messages.get(0);
     assertThat(summary, startsWith("📋 *Component changes: 37*\n"));
@@ -172,9 +172,9 @@ public class NotificationMessagesTest
   public void summaryOmitsTheUserWhenSeveralUsersChanged() {
     List<ComponentNotice> notices = notices(6);
     notices.set(3, new ComponentNotice("maven-releases", "maven2", "org.example", "other", "1.0",
-        NoticeAction.DELETED, "alice", null, null, null));
+        NoticeAction.DELETED, "alice", null, null, null, "hosted", null));
 
-    String summary = NotificationMessages.render(channel("telegram", "en"), notices, 0).get(0);
+    String summary = NotificationMessages.render(channel("telegram", "en"), notices, 0).get(0).text();
 
     assertThat(summary, containsString("🗑️ <b>org.example:other:1.0</b>"));
     assertThat(summary, not(containsString("By:")));
@@ -194,8 +194,35 @@ public class NotificationMessagesTest
     List<ComponentNotice> notices = new ArrayList<>();
     for (int i = 0; i < count; i++) {
       notices.add(new ComponentNotice("maven-releases", "maven2", "org.example", "lib-" + i, "1.0",
-          NoticeAction.PUBLISHED, "roman", null, null, "https://repo.example.com"));
+          NoticeAction.PUBLISHED, "roman", null, null, "https://repo.example.com", "hosted", null));
     }
     return notices;
+  }
+
+  private static List<String> texts(final List<NotificationMessage> messages) {
+    return messages.stream().map(NotificationMessage::text).toList();
+  }
+
+  @Test
+  public void jsonWebhooksGetOneMessagePerChangeAndNeverASummary() {
+    NotificationChannel webhook = channel("webhook", "en");
+    List<NotificationMessage> messages = NotificationMessages.render(webhook, notices(7), 3);
+
+    assertThat(messages, hasSize(7));
+    assertThat(messages.get(6).event(), is("component.published"));
+    assertThat(messages.get(6).notice().name(), is("lib-6"));
+    assertThat(messages.get(6).text(), startsWith("📦 *Component published*\n`org.example:lib-6:1.0`"));
+    assertThat(messages.get(0).deliveryId(), not(messages.get(1).deliveryId()));
+  }
+
+  @Test
+  public void chatMessagesNameTheirEvent() {
+    List<NotificationMessage> single = NotificationMessages.render(channel("slack", "en"),
+        List.of(maven(NoticeAction.DELETED)), 0);
+    List<NotificationMessage> summary = NotificationMessages.render(channel("telegram", "en"), notices(6), 0);
+
+    assertThat(single.get(0).event(), is("component.deleted"));
+    assertThat(summary.get(0).event(), is(NotificationMessage.SUMMARY));
+    assertThat(summary.get(0).notice(), is(nullValue()));
   }
 }

@@ -45,7 +45,7 @@ public class NotificationDeliveryTest
     when(store.find("c1")).thenAnswer(invocation -> Optional.of(channel.copy()));
     when(store.secrets(any())).thenReturn(NotificationSecrets.of("1:token"));
     NotificationTransport transport = (target, secret, text) -> {
-      attempts.add(text);
+      attempts.add(text.text());
       attemptTimes.add(System.nanoTime());
       if (!failures.isEmpty()) {
         throw failures.remove(0);
@@ -69,7 +69,7 @@ public class NotificationDeliveryTest
 
   @Test
   public void sendsOnce() throws Exception {
-    delivery.submit("c1", "hello");
+    delivery.submit("c1", NotificationMessage.test("hello"));
 
     awaitAttempts(1);
     assertThat(attempts, contains("hello"));
@@ -79,7 +79,7 @@ public class NotificationDeliveryTest
   public void retriesRateLimitedMessagesAfterTheRequestedDelay() throws Exception {
     failures.add(new NotificationDeliveryException("Telegram answered 429", 429, true, 300));
 
-    delivery.submit("c1", "hello");
+    delivery.submit("c1", NotificationMessage.test("hello"));
 
     awaitAttempts(2);
     assertThat(attempts, contains("hello", "hello"));
@@ -93,7 +93,7 @@ public class NotificationDeliveryTest
       failures.add(new NotificationDeliveryException("Telegram answered 502", 502, true, 0));
     }
 
-    delivery.submit("c1", "hello");
+    delivery.submit("c1", NotificationMessage.test("hello"));
 
     awaitAttempts(NotificationDispatcher.MAX_ATTEMPTS);
     Thread.sleep(300);
@@ -104,7 +104,7 @@ public class NotificationDeliveryTest
   public void doesNotRetryRejectedMessages() throws Exception {
     failures.add(new NotificationDeliveryException("Telegram answered 400", 400, false, 0));
 
-    delivery.submit("c1", "hello");
+    delivery.submit("c1", NotificationMessage.test("hello"));
 
     awaitAttempts(1);
     Thread.sleep(200);
@@ -128,9 +128,9 @@ public class NotificationDeliveryTest
   @Test
   public void skipsChannelsThatWereDisabledOrDeleted() throws Exception {
     channel.setEnabled(false);
-    delivery.submit("c1", "hello");
+    delivery.submit("c1", NotificationMessage.test("hello"));
     when(store.find(anyString())).thenReturn(Optional.empty());
-    delivery.submit("c2", "hello");
+    delivery.submit("c2", NotificationMessage.test("hello"));
 
     Thread.sleep(300);
     assertThat(attempts, is(empty()));

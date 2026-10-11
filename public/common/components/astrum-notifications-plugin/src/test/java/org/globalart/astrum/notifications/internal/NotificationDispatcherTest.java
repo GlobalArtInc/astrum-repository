@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -43,6 +44,8 @@ public class NotificationDispatcherTest
   private final AtomicLong clock = new AtomicLong(1_000_000);
 
   private final List<String> sent = new CopyOnWriteArrayList<>();
+
+  private final List<NotificationMessage> messages = new CopyOnWriteArrayList<>();
 
   private final List<NotificationChannel> channels = new ArrayList<>();
 
@@ -80,7 +83,10 @@ public class NotificationDispatcherTest
     AssetXODescriptor dockerDescriptor = mock(AssetXODescriptor.class, "docker");
     when(dockerDescriptor.computeRegistryUrl(any())).thenReturn("repo.example.com:8085");
 
-    NotificationTransport transport = (channel, secret, text) -> sent.add(channel.getName() + "|" + text);
+    NotificationTransport transport = (channel, secret, message) -> {
+      messages.add(message);
+      sent.add(channel.getName() + "|" + message.text());
+    };
 
     dispatcher = new NotificationDispatcher(store, transport, baseUrlManager, List.of(maven), List.of(dockerDescriptor),
         new NotificationBuffer(10_000, 60_000, NotificationDispatcher.BUFFER_CAPACITY), clock::get, () -> "roman", 10);
@@ -282,5 +288,32 @@ public class NotificationDispatcherTest
 
     assertThat(sent, hasSize(1));
     dispatcher.start();
+  }
+
+  @Test
+  public void jsonWebhooksGetEveryComponentChangeOnItsOwn() throws Exception {
+    NotificationChannel webhook = channel("ci");
+    webhook.setType(NotificationChannel.WEBHOOK);
+    webhook.setChatId(null);
+    Component demo = component("org.example", "demo", "1.0.0");
+
+    created(releases, demo);
+    uploaded(releases, demo);
+    for (int i = 0; i < 6; i++) {
+      created(releases, component("org.example", "lib-" + i, "1.0"));
+    }
+    advance(10_000);
+
+    assertThat(awaitSent(7), hasSize(7));
+    assertThat(messages.stream().map(NotificationMessage::event).distinct().toList(),
+        contains("component.published"));
+    NotificationMessage demoMessage = messages.stream()
+        .filter(message -> message.notice().name().equals("demo"))
+        .findFirst()
+        .orElseThrow();
+    assertThat(demoMessage.notice().repository(), is("maven-releases"));
+    assertThat(demoMessage.notice().repositoryType(), is("hosted"));
+    assertThat(demoMessage.notice().initiator(), is("roman"));
+    assertThat(demoMessage.text(), startsWith("📦 *Component published*\n`org.example:demo:1.0.0`"));
   }
 }

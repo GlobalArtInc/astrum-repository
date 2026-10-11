@@ -19,6 +19,8 @@ import static com.google.common.base.Strings.nullToEmpty;
  *          ids, if known
  * @param registry the Docker registry address that serves the repository, if known
  * @param baseUrl the base URL of the user interface, if known
+ * @param repositoryType the repository type: {@code hosted}, {@code proxy} or {@code group}
+ * @param componentId the component's id in the REST API, if known
  */
 public record ComponentNotice(
     String repository,
@@ -30,7 +32,9 @@ public record ComponentNotice(
     @Nullable String initiator,
     @Nullable String browsePath,
     @Nullable String registry,
-    @Nullable String baseUrl)
+    @Nullable String baseUrl,
+    String repositoryType,
+    @Nullable String componentId)
 {
   public ComponentNotice {
     checkNotNull(repository);
@@ -39,6 +43,7 @@ public record ComponentNotice(
     format = nullToEmpty(format);
     namespace = nullToEmpty(namespace);
     version = nullToEmpty(version);
+    repositoryType = nullToEmpty(repositoryType);
   }
 
   /**
@@ -50,7 +55,7 @@ public record ComponentNotice(
 
   public ComponentNotice withAction(final NoticeAction newAction) {
     return new ComponentNotice(repository, format, namespace, name, version, newAction, initiator, browsePath, registry,
-        baseUrl);
+        baseUrl, repositoryType, componentId);
   }
 
   /**
@@ -80,6 +85,8 @@ public record ComponentNotice(
         later.initiator != null ? later.initiator : initiator,
         later.browsePath != null ? later.browsePath : browsePath,
         later.registry != null ? later.registry : registry,
-        later.baseUrl != null ? later.baseUrl : baseUrl);
+        later.baseUrl != null ? later.baseUrl : baseUrl,
+        later.repositoryType.isEmpty() ? repositoryType : later.repositoryType,
+        later.componentId != null ? later.componentId : componentId);
   }
 }

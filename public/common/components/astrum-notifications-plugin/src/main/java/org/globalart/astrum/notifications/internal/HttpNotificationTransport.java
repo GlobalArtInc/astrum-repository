@@ -3,7 +3,9 @@ package org.globalart.astrum.notifications.internal;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -24,6 +26,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.socket.LayeredConnectionSocketFactory;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -36,10 +39,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Sends messages through the Telegram Bot API and through Slack-compatible incoming webhooks, using the global HTTP
- * settings (proxy, timeouts, user agent) or the connection chosen for the channel (see
- * {@link NotificationConnection}). Webhook hosts are checked against the SSRF protection settings; the Telegram API
- * address is set by the operator with {@code astrum.notifications.telegram.apiUrl}.
+ * Sends messages through the Telegram Bot API, through Slack-compatible incoming webhooks and to JSON webhooks (see
+ * {@link WebhookPayload}), using the global HTTP settings (proxy, timeouts, user agent) or the connection chosen for
+ * the channel (see {@link NotificationConnection}). Webhook hosts are checked against the SSRF protection settings; the
+ * Telegram API address is set by the operator with {@code astrum.notifications.telegram.apiUrl}.
  */
 @Component
 public class HttpNotificationTransport
@@ -50,6 +53,8 @@ public class HttpNotificationTransport
   static final Pattern BOT_TOKEN = Pattern.compile("\\d+:[A-Za-z0-9_-]+");
 
   private static final int MAX_ERROR_LENGTH = 300;
+
+  private static final int MIN_HIDDEN_LENGTH = 4;
 
   private static final long MAX_RETRY_AFTER_SECONDS = 3600;
 
@@ -77,17 +82,35 @@ public class HttpNotificationTransport
   }
 
   @Override
-  public void send(final NotificationChannel channel, final NotificationSecrets secrets, final String text)
+  public void send(
+      final NotificationChannel channel,
+      final NotificationSecrets secrets,
+      final NotificationMessage message)
       throws NotificationDeliveryException
   {
     checkNotNull(secrets);
-    checkNotNull(text);
+    checkNotNull(message);
     NotificationConnection connection = new NotificationConnection(channel, secrets.proxyPassword(), tls);
     if (channel.isTelegram()) {
-      sendTelegram(channel, connection, secrets.secret(), text);
+      sendTelegram(channel, connection, secrets.secret(), message.text());
+    }
+    else if (channel.isWebhook()) {
+      byte[] body = WebhookPayload.body(message);
+      Map<String, String> headers = new LinkedHashMap<>();
+      headers.put(WebhookPayload.EVENT_HEADER, message.event());
+      headers.put(WebhookPayload.DELIVERY_HEADER, message.deliveryId());
+      if (secrets.signingSecret() != null) {
+        headers.put(WebhookPayload.SIGNATURE_HEADER, WebhookPayload.signature(secrets.signingSecret(), body));
+      }
+      if (secrets.authorization() != null) {
+        headers.put("Authorization", secrets.authorization());
+      }
+      sendWebhook(connection, secrets, body, headers);
     }
     else {
-      sendWebhook(connection, secrets.secret(), text);
+      ObjectNode body = mapper.createObjectNode();
+      body.put("text", message.text());
+      sendWebhook(connection, secrets, body.toString().getBytes(UTF_8), Map.of());
     }
   }
 
@@ -139,9 +162,14 @@ public class HttpNotificationTransport
     }
   }
 
-  private void sendWebhook(final NotificationConnection connection, final String url, final String text)
+  private void sendWebhook(
+      final NotificationConnection connection,
+      final NotificationSecrets secrets,
+      final byte[] body,
+      final Map<String, String> headers)
       throws NotificationDeliveryException
   {
+    String url = secrets.secret();
     URI uri = webhookUri(url);
     if (uri == null) {
       throw NotificationDeliveryException.permanent("The webhook URL is not a valid http or https URL");
@@ -153,15 +181,15 @@ public class HttpNotificationTransport
       throw NotificationDeliveryException.permanent(
           "The webhook host is blocked by the SSRF protection: " + sanitize(e.getMessage(), url));
     }
-    ObjectNode body = mapper.createObjectNode();
-    body.put("text", text);
     HttpPost post = new HttpPost(uri);
-    post.setEntity(new StringEntity(body.toString(), ContentType.APPLICATION_JSON));
+    post.setEntity(new ByteArrayEntity(body, ContentType.APPLICATION_JSON));
+    headers.forEach(post::setHeader);
     HttpClientContext context = connection.context();
+    String[] hidden = {url, secrets.authorization(), secrets.signingSecret(), secrets.proxyPassword()};
 
     try (CloseableHttpClient client = httpClientManager.create(connection);
         CloseableHttpResponse response = client.execute(post, context)) {
-      refuseProxyAnswer(connection, response, context, post, url);
+      refuseProxyAnswer(connection, response, context, post, hidden);
       int status = response.getStatusLine().getStatusCode();
       String content = content(response.getEntity());
       if (status >= 200 && status < 300) {
@@ -171,13 +199,14 @@ public class HttpNotificationTransport
           ? content.strip()
           : response.getStatusLine().getReasonPhrase();
       throw new NotificationDeliveryException(
-          sanitize("The webhook answered " + status + (reason != null && !reason.isBlank() ? ": " + reason : ""), url),
+          sanitize("The webhook answered " + status + (reason != null && !reason.isBlank() ? ": " + reason : ""),
+              hidden),
           status,
           isRetryable(status),
           Math.min(retryAfterHeader(response), MAX_RETRY_AFTER_SECONDS) * 1000);
     }
     catch (IOException e) {
-      throw sanitize(connection.unreachable("the webhook", e), url);
+      throw sanitize(connection.unreachable("the webhook", e), hidden);
     }
   }
 
@@ -186,13 +215,13 @@ public class HttpNotificationTransport
       final CloseableHttpResponse response,
       final HttpClientContext context,
       final HttpPost post,
-      final String secret) throws NotificationDeliveryException
+      final String... secrets) throws NotificationDeliveryException
   {
     String target = post.getURI().getHost() + (post.getURI().getPort() > 0 ? ":" + post.getURI().getPort() : "");
     NotificationDeliveryException refusal = connection.refusal(response, context, target);
     if (refusal != null) {
       EntityUtils.consumeQuietly(response.getEntity());
-      throw sanitize(refusal, secret);
+      throw sanitize(refusal, secrets);
     }
   }
 
@@ -262,15 +291,23 @@ public class HttpNotificationTransport
     }
   }
 
-  private static NotificationDeliveryException sanitize(final NotificationDeliveryException e, final String secret) {
-    return new NotificationDeliveryException(sanitize(e.getMessage(), secret), e.getStatus(), e.isRetryable(),
+  private static NotificationDeliveryException sanitize(
+      final NotificationDeliveryException e,
+      final String... secrets)
+  {
+    return new NotificationDeliveryException(sanitize(e.getMessage(), secrets), e.getStatus(), e.isRetryable(),
         e.getRetryAfterMillis());
   }
 
-  private static String sanitize(@Nullable final String message, final String secret) {
+  /**
+   * Hides the secrets in a message, whatever the chat or the network said, and shortens it.
+   */
+  private static String sanitize(@Nullable final String message, final String... secrets) {
     String text = message == null ? "" : message;
-    if (!secret.isEmpty()) {
-      text = text.replace(secret, "***");
+    for (String secret : secrets) {
+      if (secret != null && secret.length() >= MIN_HIDDEN_LENGTH) {
+        text = text.replace(secret, "***");
+      }
     }
     return text.length() > MAX_ERROR_LENGTH ? text.substring(0, MAX_ERROR_LENGTH) + "…" : text;
   }

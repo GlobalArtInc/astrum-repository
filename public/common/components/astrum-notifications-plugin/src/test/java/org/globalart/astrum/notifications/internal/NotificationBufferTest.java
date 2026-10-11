@@ -19,7 +19,7 @@ public class NotificationBufferTest
 
   private static ComponentNotice notice(final String name, final NoticeAction action) {
     return new ComponentNotice("maven-releases", "maven2", "org.example", name, "1.0", action, "roman", null, null,
-        null);
+        null, "hosted", null);
   }
 
   @Test
@@ -73,7 +73,7 @@ public class NotificationBufferTest
   public void keepsTheLatestKnownDetails() {
     buffer.add("c1", notice("demo", NoticeAction.PUBLISHED), 0);
     buffer.add("c1", new ComponentNotice("maven-releases", "maven2", "org.example", "demo", "1.0",
-        NoticeAction.UPDATED, null, "org/example/demo/1.0", null, "http://host"), 0);
+        NoticeAction.UPDATED, null, "org/example/demo/1.0", null, "http://host", "hosted", null), 0);
 
     ComponentNotice merged = buffer.drainReady(10_000).get("c1").notices().get(0);
     assertThat(merged.action(), is(NoticeAction.PUBLISHED));

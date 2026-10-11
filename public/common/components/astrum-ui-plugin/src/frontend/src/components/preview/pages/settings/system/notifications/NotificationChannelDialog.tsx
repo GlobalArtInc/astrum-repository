@@ -17,7 +17,7 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { CheckCircle2, Hash, Info, Send, XCircle } from 'lucide-react';
+import { CheckCircle2, Hash, Info, Send, Webhook, XCircle } from 'lucide-react';
 
 import UIStrings from '../../../../../../constants/UIStrings';
 import { createChannel, serverError, testUnsavedChannel, updateChannel } from './notificationsApi';
@@ -54,7 +54,30 @@ const CONNECTION_MODES: Array<{ value: NotificationProxyMode; label: string; hel
 ];
 
 const FIELDS = new Set(['name', 'chatId', 'messageThreadId', 'secret', 'events', 'repositories', 'type', 'language',
-  'proxyMode', 'proxyType', 'proxyHost', 'proxyPort', 'proxyUsername', 'proxyPassword']);
+  'proxyMode', 'proxyType', 'proxyHost', 'proxyPort', 'proxyUsername', 'proxyPassword', 'signingSecret',
+  'authorization']);
+
+const HEADER_VALUE = /^[\x20-\x7E\t]*$/;
+
+const WEBHOOK_EXAMPLE = `POST /hooks/astrum
+Content-Type: application/json
+X-Astrum-Event: component.published
+X-Astrum-Delivery: 0b4f7c9e-3d61-4a8e-9c1e-6f2d1a7b5e40
+X-Astrum-Signature: sha256=5bdcc146bf60754e…
+
+{
+  "event": "component.published",
+  "deliveryId": "0b4f7c9e-3d61-4a8e-9c1e-6f2d1a7b5e40",
+  "timestamp": "2026-10-11T08:15:30.123Z",
+  "repository": { "name": "maven-releases", "format": "maven2", "type": "hosted" },
+  "component": { "id": "bWF2ZW4tcmVsZWFzZXM6MTM0NTg2Mzc", "group": "org.example",
+    "name": "demo", "version": "1.0.0", "format": "maven2",
+    "coordinates": "org.example:demo:1.0.0" },
+  "initiator": "admin",
+  "url": "https://repo.example.com/#browse/browse:maven-releases:…",
+  "dockerPull": null,
+  "text": "📦 *Component published* …"
+}`;
 
 interface FormState {
   name: string;
@@ -73,10 +96,15 @@ interface FormState {
   proxyUsername: string;
   proxyPassword: string;
   removeProxyPassword: boolean;
+  signingSecret: string;
+  removeSigningSecret: boolean;
+  authorization: string;
+  removeAuthorization: boolean;
 }
 
 type Errors = Partial<Record<'name' | 'chatId' | 'messageThreadId' | 'secret' | 'events' | 'repositories' | 'type'
-  | 'language' | 'proxyMode' | 'proxyType' | 'proxyHost' | 'proxyPort' | 'proxyUsername' | 'proxyPassword', string>>;
+  | 'language' | 'proxyMode' | 'proxyType' | 'proxyHost' | 'proxyPort' | 'proxyUsername' | 'proxyPassword'
+  | 'signingSecret' | 'authorization', string>>;
 
 type TestState = { status: 'idle' } | { status: 'running' } | { status: 'done'; success: boolean; message?: string };
 
@@ -98,7 +126,38 @@ function initialState(channel?: NotificationChannel | null): FormState {
     proxyUsername: channel?.proxyUsername ?? '',
     proxyPassword: '',
     removeProxyPassword: false,
+    signingSecret: '',
+    removeSigningSecret: false,
+    authorization: '',
+    removeAuthorization: false,
   };
+}
+
+function urlHost(value: string): string | null {
+  try {
+    return new URL(value.trim()).hostname.toLowerCase();
+  }
+  catch {
+    return null;
+  }
+}
+
+function SavedSecretHelp({ onRemove, testId }: { onRemove: () => void; testId: string }) {
+  return (
+    <>
+      {DIALOG.SECRET_SAVED}{' '}
+      <Link
+        href="#"
+        onClick={(event) => {
+          event.preventDefault();
+          onRemove();
+        }}
+        data-testid={testId}
+      >
+        {DIALOG.SAVED_SECRET_REMOVE}
+      </Link>
+    </>
+  );
 }
 
 function proxyHost(value: string): string {
@@ -140,27 +199,42 @@ function Field({
   );
 }
 
+const HELP: Record<NotificationChannelType, { title: string; steps: Array<[string, React.ReactNode]> }> = {
+  telegram: {
+    title: DIALOG.TELEGRAM_HELP.TITLE,
+    steps: [
+      ['bot', DIALOG.TELEGRAM_HELP.STEP_BOT],
+      ['chat', DIALOG.TELEGRAM_HELP.STEP_CHAT],
+      ['id', DIALOG.TELEGRAM_HELP.STEP_ID],
+    ],
+  },
+  slack: {
+    title: DIALOG.SLACK_HELP.TITLE,
+    steps: [
+      ['webhook', DIALOG.SLACK_HELP.STEP_WEBHOOK],
+      ['url', DIALOG.SLACK_HELP.STEP_URL],
+    ],
+  },
+  webhook: {
+    title: DIALOG.JSON_WEBHOOK_HELP.TITLE,
+    steps: [
+      ['endpoint', DIALOG.JSON_WEBHOOK_HELP.STEP_ENDPOINT],
+      ['headers', DIALOG.JSON_WEBHOOK_HELP.STEP_HEADERS],
+      ['signature', DIALOG.JSON_WEBHOOK_HELP.STEP_SIGNATURE],
+    ],
+  },
+};
+
 function ConnectionHelp({ type }: { type: NotificationChannelType }) {
-  const help = type === 'telegram' ? DIALOG.TELEGRAM_HELP : DIALOG.SLACK_HELP;
-  const steps: Array<[string, React.ReactNode]> =
-    type === 'telegram'
-      ? [
-          ['bot', DIALOG.TELEGRAM_HELP.STEP_BOT],
-          ['chat', DIALOG.TELEGRAM_HELP.STEP_CHAT],
-          ['id', DIALOG.TELEGRAM_HELP.STEP_ID],
-        ]
-      : [
-          ['webhook', DIALOG.SLACK_HELP.STEP_WEBHOOK],
-          ['url', DIALOG.SLACK_HELP.STEP_URL],
-        ];
+  const { title, steps } = HELP[type];
   return (
     <Callout.Root color="gray" variant="surface" size="1" data-testid="notification-help">
       <Callout.Icon>
         <Info size={16} />
       </Callout.Icon>
-      <Box>
+      <Box style={{ minWidth: 0 }}>
         <Text as="div" size="2" weight="medium" mb="1">
-          {help.TITLE}
+          {title}
         </Text>
         <ol
           style={{
@@ -168,6 +242,7 @@ function ConnectionHelp({ type }: { type: NotificationChannelType }) {
             paddingLeft: 'var(--space-4)',
             fontSize: 'var(--font-size-1)',
             lineHeight: 'var(--line-height-1)',
+            overflowWrap: 'anywhere',
           }}
         >
           {steps.map(([key, step]) => (
@@ -176,6 +251,27 @@ function ConnectionHelp({ type }: { type: NotificationChannelType }) {
             </li>
           ))}
         </ol>
+        {type === 'webhook' && (
+          <details data-testid="notification-webhook-example">
+            <summary style={{ cursor: 'pointer', fontSize: 'var(--font-size-1)' }}>
+              {DIALOG.JSON_WEBHOOK_HELP.EXAMPLE}
+            </summary>
+            <pre
+              style={{
+                margin: 'var(--space-2) 0 0',
+                padding: 'var(--space-2)',
+                whiteSpace: 'pre-wrap',
+                overflowWrap: 'anywhere',
+                fontSize: '11px',
+                lineHeight: 1.45,
+                background: 'var(--gray-a3)',
+                borderRadius: 'var(--radius-2)',
+              }}
+            >
+              {WEBHOOK_EXAMPLE}
+            </pre>
+          </details>
+        )}
       </Box>
     </Callout.Root>
   );
@@ -206,6 +302,12 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
 
   const keepsSecret = Boolean(channel?.secret) && channel?.type === form.type;
   const isTelegram = form.type === 'telegram';
+  const isJsonWebhook = form.type === 'webhook';
+  const savedWebhook = channel?.type === 'webhook' && isJsonWebhook;
+  const keepsSigningSecret = savedWebhook && Boolean(channel?.signingSecret) && !form.removeSigningSecret;
+  const sameWebhookHost = !form.secret.trim() || urlHost(form.secret) === (channel?.target ?? '').toLowerCase();
+  const savedAuthorization = savedWebhook && Boolean(channel?.authorization);
+  const keepsAuthorization = savedAuthorization && sameWebhookHost && !form.removeAuthorization;
   const isCustomProxy = form.proxyMode === 'custom';
   const savedProxyPassword = Boolean(channel?.proxyPassword) && channel?.proxyMode === 'custom';
   const sameProxy = savedProxyPassword
@@ -247,6 +349,9 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
     }
     if (!form.secret.trim() && !keepsSecret) {
       found.secret = isTelegram ? DIALOG.ERRORS.BOT_TOKEN : DIALOG.ERRORS.WEBHOOK;
+    }
+    if (isJsonWebhook && !HEADER_VALUE.test(form.authorization)) {
+      found.authorization = DIALOG.ERRORS.AUTHORIZATION;
     }
     if (isCustomProxy) {
       if (!form.proxyHost.trim()) {
@@ -294,24 +399,46 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
     proxyPort: isCustomProxy ? Number(form.proxyPort.trim()) : null,
     proxyUsername: isCustomProxy ? form.proxyUsername.trim() || null : null,
     proxyPassword: isCustomProxy ? form.proxyPassword || (keepsProxyPassword ? channel?.proxyPassword : '') : '',
+    signingSecret: isJsonWebhook ? form.signingSecret || (keepsSigningSecret ? channel?.signingSecret : '') : '',
+    authorization: isJsonWebhook ? form.authorization.trim() || (keepsAuthorization ? channel?.authorization : '') : '',
   });
+
+  let signingSecretHelp: React.ReactNode = DIALOG.SIGNING_SECRET_HELP;
+  if (keepsSigningSecret) {
+    signingSecretHelp = (
+      <SavedSecretHelp
+        onRemove={() => update('removeSigningSecret', true)}
+        testId="notification-signing-secret-remove"
+      />
+    );
+  }
+  else if (savedWebhook && channel?.signingSecret && form.removeSigningSecret) {
+    signingSecretHelp = DIALOG.SAVED_SECRET_REMOVED;
+  }
+
+  let authorizationHelp: React.ReactNode = DIALOG.AUTHORIZATION_HELP;
+  if (keepsAuthorization) {
+    authorizationHelp = (
+      <SavedSecretHelp
+        onRemove={() => update('removeAuthorization', true)}
+        testId="notification-authorization-remove"
+      />
+    );
+  }
+  else if (savedAuthorization && !sameWebhookHost) {
+    authorizationHelp = DIALOG.AUTHORIZATION_AGAIN;
+  }
+  else if (savedAuthorization && form.removeAuthorization) {
+    authorizationHelp = DIALOG.SAVED_SECRET_REMOVED;
+  }
 
   let proxyPasswordHelp: React.ReactNode = DIALOG.PROXY_CREDENTIALS_HELP;
   if (keepsProxyPassword) {
     proxyPasswordHelp = (
-      <>
-        {DIALOG.SECRET_SAVED}{' '}
-        <Link
-          href="#"
-          onClick={(event) => {
-            event.preventDefault();
-            update('removeProxyPassword', true);
-          }}
-          data-testid="notification-proxy-password-remove"
-        >
-          {DIALOG.PROXY_PASSWORD_REMOVE}
-        </Link>
-      </>
+      <SavedSecretHelp
+        onRemove={() => update('removeProxyPassword', true)}
+        testId="notification-proxy-password-remove"
+      />
     );
   }
   else if (savedProxyPassword && form.removeProxyPassword && sameProxy) {
@@ -401,7 +528,7 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
           <Field label={DIALOG.TYPE_LABEL} error={errors.type}>
             <RadioCards.Root
               size="1"
-              columns={{ initial: '1', sm: '2' }}
+              columns={{ initial: '1', sm: '3' }}
               value={form.type}
               onValueChange={(value) => update('type', value as NotificationChannelType)}
               aria-label={DIALOG.TYPE_LABEL}
@@ -417,6 +544,12 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
                 <Flex gap="2" align="center">
                   <Hash size={16} />
                   <Text>{LABELS.TYPES.SLACK}</Text>
+                </Flex>
+              </RadioCards.Item>
+              <RadioCards.Item value="webhook" data-testid="notification-type-webhook">
+                <Flex gap="2" align="center">
+                  <Webhook size={16} />
+                  <Text>{LABELS.TYPES.WEBHOOK}</Text>
                 </Flex>
               </RadioCards.Item>
             </RadioCards.Root>
@@ -476,7 +609,7 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
             </>
           ) : (
             <Field
-              label={DIALOG.WEBHOOK_LABEL}
+              label={isJsonWebhook ? DIALOG.JSON_WEBHOOK_LABEL : DIALOG.WEBHOOK_LABEL}
               htmlFor="notification-secret"
               help={keepsSecret ? DIALOG.SECRET_SAVED : DIALOG.WEBHOOK_HELP}
               error={errors.secret}
@@ -486,10 +619,53 @@ export function NotificationChannelDialog({ channel, repositories, onClose, onSa
                 type="password"
                 autoComplete="new-password"
                 value={form.secret}
-                placeholder={keepsSecret ? '••••••••' : 'https://hooks.slack.com/services/…'}
+                placeholder={keepsSecret
+                  ? '••••••••'
+                  : isJsonWebhook ? 'https://ci.example.com/hooks/astrum' : 'https://hooks.slack.com/services/…'}
                 onChange={(event) => update('secret', event.target.value)}
               />
             </Field>
+          )}
+
+          {isJsonWebhook && (
+            <Flex gap="3" direction={{ initial: 'column', sm: 'row' }}>
+              <Box flexGrow="1" flexBasis="0">
+                <Field
+                  label={DIALOG.SIGNING_SECRET_LABEL}
+                  htmlFor="notification-signing-secret"
+                  help={signingSecretHelp}
+                  error={errors.signingSecret}
+                >
+                  <TextField.Root
+                    id="notification-signing-secret"
+                    type="password"
+                    autoComplete="new-password"
+                    value={form.signingSecret}
+                    placeholder={keepsSigningSecret ? '••••••••' : undefined}
+                    maxLength={255}
+                    onChange={(event) => update('signingSecret', event.target.value)}
+                  />
+                </Field>
+              </Box>
+              <Box flexGrow="1" flexBasis="0">
+                <Field
+                  label={DIALOG.AUTHORIZATION_LABEL}
+                  htmlFor="notification-authorization"
+                  help={authorizationHelp}
+                  error={errors.authorization}
+                >
+                  <TextField.Root
+                    id="notification-authorization"
+                    type="password"
+                    autoComplete="new-password"
+                    value={form.authorization}
+                    placeholder={keepsAuthorization ? '••••••••' : 'Bearer …'}
+                    maxLength={4096}
+                    onChange={(event) => update('authorization', event.target.value)}
+                  />
+                </Field>
+              </Box>
+            </Flex>
           )}
 
           <Field

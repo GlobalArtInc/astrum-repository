@@ -22,6 +22,7 @@ import jakarta.ws.rs.core.Response.Status;
 
 import org.globalart.astrum.common.app.BaseUrlManager;
 import org.globalart.astrum.notifications.internal.NotificationChannelStore.SecretChange;
+import org.globalart.astrum.notifications.internal.NotificationChannelStore.SecretChanges;
 import org.globalart.astrum.rapture.PasswordPlaceholder;
 import org.globalart.astrum.repository.manager.RepositoryManager;
 import org.globalart.astrum.rest.Resource;
@@ -57,6 +58,12 @@ public class NotificationChannelsResource
   static final int MAX_PROXY_HOST_LENGTH = 255;
 
   static final int MAX_PROXY_CREDENTIAL_BYTES = 255;
+
+  static final int MAX_SIGNING_SECRET_LENGTH = 255;
+
+  static final int MAX_AUTHORIZATION_LENGTH = 4096;
+
+  private static final Pattern HEADER_VALUE = Pattern.compile("[\\x20-\\x7E\\t]+");
 
   private static final Pattern CHAT_ID = Pattern.compile("-?\\d{1,20}|@[A-Za-z][A-Za-z0-9_]{3,31}");
 
@@ -96,10 +103,10 @@ public class NotificationChannelsResource
   @RequiresPermissions("astrum:settings:update")
   public NotificationChannelXO create(final NotificationChannelXO xo) {
     NotificationChannel channel = toChannel(require(xo), null, false);
-    Secret secret = secret(xo, channel, null);
-    channel.setTargetHost(secret.targetHost());
-    SecretChange proxyPassword = proxyPassword(xo, channel, null);
-    return toXO(store.create(channel, secret.change().value(), proxyPassword.value(), UserIdHelper.get()));
+    SecretChanges changes = changes(xo, channel, null);
+    NotificationSecrets secrets = new NotificationSecrets(changes.secret().value(), changes.proxyPassword().value(),
+        changes.signingSecret().value(), changes.authorization().value());
+    return toXO(store.create(channel, secrets, UserIdHelper.get()));
   }
 
   @PUT
@@ -110,10 +117,7 @@ public class NotificationChannelsResource
     NotificationChannel existing = find(id);
     NotificationChannel channel = toChannel(require(xo), existing, false);
     channel.setId(existing.getId());
-    Secret secret = secret(xo, channel, existing);
-    channel.setTargetHost(secret.targetHost());
-    SecretChange proxyPassword = proxyPassword(xo, channel, existing);
-    return toXO(store.update(channel, secret.change(), proxyPassword, UserIdHelper.get()));
+    return toXO(store.update(channel, changes(xo, channel, existing), UserIdHelper.get()));
   }
 
   @DELETE
@@ -135,12 +139,12 @@ public class NotificationChannelsResource
   @RequiresPermissions("astrum:settings:update")
   public NotificationTestResultXO test(@PathParam("id") final String id) {
     NotificationChannel channel = find(id);
-    return sendTest(channel, store.secret(channel), store.proxyPassword(channel));
+    return sendTest(channel, store.secrets(channel));
   }
 
   /**
-   * Sends a test message with the settings of the form, which may not be saved yet. A secret or proxy password
-   * placeholder stands for the secret or proxy password of the saved channel with the id of the form.
+   * Sends a test message with the settings of the form, which may not be saved yet. A placeholder stands for the
+   * secret of the saved channel with the id of the form.
    */
   @POST
   @Path("test")
@@ -150,25 +154,34 @@ public class NotificationChannelsResource
     require(xo);
     NotificationChannel existing = isNullOrEmpty(xo.getId()) ? null : store.find(xo.getId()).orElse(null);
     NotificationChannel channel = toChannel(xo, existing, true);
-    Secret secret = secret(xo, channel, existing);
-    String value = secret.change().replace() ? secret.change().value() : store.secret(existing);
-    SecretChange proxyPassword = proxyPassword(xo, channel, existing);
-    String password =
-        proxyPassword.replace() || existing == null ? proxyPassword.value() : store.proxyPassword(existing);
-    return sendTest(channel, value, password);
+    SecretChanges changes = changes(xo, channel, existing);
+    NotificationSecrets saved = existing != null ? store.secrets(existing) : null;
+    String secret = changes.secret().replace() ? changes.secret().value() : saved != null ? saved.secret() : null;
+    if (secret == null) {
+      throw badRequest("secret", secretRequired(channel));
+    }
+    return sendTest(channel, new NotificationSecrets(
+        secret,
+        changed(changes.proxyPassword(), saved != null ? saved.proxyPassword() : null),
+        changed(changes.signingSecret(), saved != null ? saved.signingSecret() : null),
+        changed(changes.authorization(), saved != null ? saved.authorization() : null)));
+  }
+
+  @Nullable
+  private static String changed(final SecretChange change, @Nullable final String saved) {
+    return change.replace() ? change.value() : saved;
   }
 
   private NotificationTestResultXO sendTest(
       final NotificationChannel channel,
-      @Nullable final String secret,
-      @Nullable final String proxyPassword)
+      @Nullable final NotificationSecrets secrets)
   {
-    if (secret == null) {
+    if (secrets == null) {
       throw badRequest("secret", secretRequired(channel));
     }
     try {
-      transport.send(channel, new NotificationSecrets(secret, proxyPassword),
-          NotificationMessages.test(channel, baseUrlManager.getOrDetect()));
+      transport.send(channel, secrets,
+          NotificationMessage.test(NotificationMessages.test(channel, baseUrlManager.getOrDetect())));
       return new NotificationTestResultXO(true, null);
     }
     catch (NotificationDeliveryException e) {
@@ -194,13 +207,14 @@ public class NotificationChannelsResource
   {
     NotificationChannel channel = new NotificationChannel();
     String type = trim(xo.getType());
-    if (!NotificationChannel.TELEGRAM.equals(type) && !NotificationChannel.SLACK.equals(type)) {
-      throw badRequest("type", "Type must be telegram or slack");
+    if (!List.of(NotificationChannel.TELEGRAM, NotificationChannel.SLACK, NotificationChannel.WEBHOOK)
+        .contains(type)) {
+      throw badRequest("type", "Type must be telegram, slack or webhook");
     }
     channel.setType(type);
 
     String given = trim(xo.getName());
-    String name = given == null && forTest ? (channel.isTelegram() ? "Telegram" : "Slack") : given;
+    String name = given == null && forTest ? defaultName(channel) : given;
     if (name == null) {
       throw badRequest("name", "Name is required");
     }
@@ -343,6 +357,83 @@ public class NotificationChannelsResource
         && Objects.equals(existing.getProxyPort(), channel.getProxyPort());
   }
 
+  private static String defaultName(final NotificationChannel channel) {
+    return switch (channel.getType()) {
+      case NotificationChannel.TELEGRAM -> "Telegram";
+      case NotificationChannel.WEBHOOK -> "Webhook";
+      default -> "Slack";
+    };
+  }
+
+  private static SecretChanges changes(
+      final NotificationChannelXO xo,
+      final NotificationChannel channel,
+      @Nullable final NotificationChannel existing)
+  {
+    Secret secret = secret(xo, channel, existing);
+    channel.setTargetHost(secret.targetHost());
+    return new SecretChanges(
+        secret.change(),
+        proxyPassword(xo, channel, existing),
+        signingSecret(xo, channel, existing),
+        authorization(xo, channel, existing));
+  }
+
+  /**
+   * The signing secret of a JSON webhook: a new one, the stored one (placeholder or no value), or none (empty).
+   */
+  private static SecretChange signingSecret(
+      final NotificationChannelXO xo,
+      final NotificationChannel channel,
+      @Nullable final NotificationChannel existing)
+  {
+    String value = xo.getSigningSecret();
+    boolean stored = existing != null && existing.getSigningSecretId() != null;
+    if (!channel.isWebhook() || (value != null && value.isEmpty())) {
+      return stored ? SecretChange.clear() : SecretChange.keep();
+    }
+    if (value == null || PasswordPlaceholder.is(value)) {
+      return SecretChange.keep();
+    }
+    if (value.length() > MAX_SIGNING_SECRET_LENGTH) {
+      throw badRequest("signingSecret",
+          "Signing secret must not be longer than " + MAX_SIGNING_SECRET_LENGTH + " characters");
+    }
+    return SecretChange.set(value);
+  }
+
+  /**
+   * The Authorization header of a JSON webhook: a new one, the stored one (placeholder or no value), or none (empty).
+   * The stored header is kept only for the webhook host it was entered for, so that it cannot be sent to another host.
+   */
+  private static SecretChange authorization(
+      final NotificationChannelXO xo,
+      final NotificationChannel channel,
+      @Nullable final NotificationChannel existing)
+  {
+    String value = xo.getAuthorization();
+    boolean stored = existing != null && existing.getAuthorizationSecretId() != null;
+    if (!channel.isWebhook() || (value != null && value.isBlank())) {
+      return stored ? SecretChange.clear() : SecretChange.keep();
+    }
+    if (value == null || PasswordPlaceholder.is(value)) {
+      if (stored && (existing.getTargetHost() == null
+          || !existing.getTargetHost().equalsIgnoreCase(channel.getTargetHost()))) {
+        throw badRequest("authorization", "Enter the Authorization header again: the webhook host has changed");
+      }
+      return SecretChange.keep();
+    }
+    String header = value.strip();
+    if (header.length() > MAX_AUTHORIZATION_LENGTH) {
+      throw badRequest("authorization",
+          "The Authorization header must not be longer than " + MAX_AUTHORIZATION_LENGTH + " characters");
+    }
+    if (!HEADER_VALUE.matcher(header).matches()) {
+      throw badRequest("authorization", "The Authorization header must be one line of printable ASCII characters");
+    }
+    return SecretChange.set(header);
+  }
+
   private static List<String> events(@Nullable final List<String> events) {
     Set<NoticeAction> actions = new LinkedHashSet<>();
     if (events != null) {
@@ -436,6 +527,8 @@ public class NotificationChannelsResource
       xo.setProxyUsername(channel.getProxyUsername());
     }
     xo.setProxyPassword(channel.getProxyPasswordSecretId() != null ? PasswordPlaceholder.get() : "");
+    xo.setSigningSecret(channel.getSigningSecretId() != null ? PasswordPlaceholder.get() : "");
+    xo.setAuthorization(channel.getAuthorizationSecretId() != null ? PasswordPlaceholder.get() : "");
     return xo;
   }
 

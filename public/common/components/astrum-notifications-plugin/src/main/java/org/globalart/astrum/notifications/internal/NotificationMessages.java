@@ -11,7 +11,8 @@ import javax.annotation.Nullable;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Writes notification messages: HTML for Telegram, mrkdwn for Slack-compatible webhooks, in Russian or English.
+ * Writes notification messages: HTML for Telegram, mrkdwn for Slack-compatible webhooks and the text of JSON
+ * webhooks, in Russian or English.
  */
 public final class NotificationMessages
 {
@@ -72,21 +73,22 @@ public final class NotificationMessages
 
   /**
    * The messages for the changes collected in one window of a channel: one message per change, or one summary when
-   * there are more than {@link #SUMMARY_THRESHOLD} of them.
+   * there are more than {@link #SUMMARY_THRESHOLD} of them. JSON webhooks get one message per change however many
+   * there are, and nothing for the changes beyond the window's capacity.
    */
-  public static List<String> render(
+  public static List<NotificationMessage> render(
       final NotificationChannel channel,
       final List<ComponentNotice> notices,
       final int overflow)
   {
     Markup markup = Markup.of(channel);
     Texts texts = texts(channel);
-    if (notices.size() + overflow > SUMMARY_THRESHOLD) {
-      return List.of(summary(markup, texts, notices, overflow));
+    if (!channel.isWebhook() && notices.size() + overflow > SUMMARY_THRESHOLD) {
+      return List.of(NotificationMessage.summary(summary(markup, texts, notices, overflow)));
     }
-    List<String> messages = new ArrayList<>();
+    List<NotificationMessage> messages = new ArrayList<>();
     for (ComponentNotice notice : notices) {
-      messages.add(single(markup, texts, notice));
+      messages.add(NotificationMessage.of(notice, single(markup, texts, notice)));
     }
     return messages;
   }
@@ -210,8 +212,11 @@ public final class NotificationMessages
     return text.toString();
   }
 
+  /**
+   * The command that pulls a published or updated Docker image, when the address of its registry is known.
+   */
   @Nullable
-  private static String pullCommand(final ComponentNotice notice) {
+  static String pullCommand(final ComponentNotice notice) {
     if (!"docker".equals(notice.format()) || notice.registry() == null || notice.action() == NoticeAction.DELETED) {
       return null;
     }
