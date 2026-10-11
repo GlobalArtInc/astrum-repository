@@ -358,7 +358,7 @@ export function TasksList({ onSelect, onCreate }: TasksListProps) {
           <Badge
             size="1"
             color={getStatusBadgeColor(task.status)}
-            variant={task.status === 'BLOCKED' || task.status === 'WAITING' ? 'solid' : 'soft'}
+            variant={task.status === 'BLOCKED' ? 'solid' : 'soft'}
             className={task.status === 'RUNNING' ? 'tasks-list__status-badge--running' : ''}
           >
             {STATUS_LABELS[task.status] || task.status}

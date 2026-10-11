@@ -404,8 +404,8 @@ export function TablePagination({
                 aria-current={isCurrent ? 'page' : undefined}
                 onClick={() => handlePageChange(page)}
                 style={{
-                  backgroundColor: isCurrent ? 'var(--gray-12)' : undefined,
-                  color: isCurrent ? 'var(--gray-1)' : undefined,
+                  backgroundColor: isCurrent ? 'var(--accent-9)' : undefined,
+                  color: isCurrent ? 'var(--accent-contrast)' : undefined,
                 }}
               >
                 {page}

@@ -249,7 +249,6 @@ export function UserTokenPage() {
                 <Button
                   variant="solid"
                   color="blue"
-                  highContrast
                   onClick={handleGenerate}
                   disabled={actionLoading}
                   data-testid="generate-token-btn"
@@ -310,7 +309,6 @@ export function UserTokenPage() {
                   <Button
                     variant="solid"
                     color="blue"
-                    highContrast
                     onClick={handleGenerate}
                     disabled={actionLoading}
                     data-testid="generate-token-btn"

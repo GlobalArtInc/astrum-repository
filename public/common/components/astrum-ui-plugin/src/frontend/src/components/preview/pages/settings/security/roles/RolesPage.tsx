@@ -198,7 +198,7 @@ export function RolesPage() {
           title: 'Roles',
           description: 'Manage roles and their privilege assignments',
           actions: (
-            <Button variant="solid" color="blue" highContrast onClick={handleCreate} disabled={!canCreate} data-testid="create-role-button" data-analytics-id="as-role-create">
+            <Button variant="solid" color="blue" onClick={handleCreate} disabled={!canCreate} data-testid="create-role-button" data-analytics-id="as-role-create">
               <Plus size={16} /> Create Role
             </Button>
           )
@@ -245,7 +245,6 @@ export function RolesPage() {
                 <Button
                   variant="solid"
                   color="blue"
-                  highContrast
                   onClick={() => navigateTo(`${BASE_PATH}/${encodeURIComponent(routeState.roleId!)}`)}
                 >
                   <Pencil size={16} /> Edit Role
