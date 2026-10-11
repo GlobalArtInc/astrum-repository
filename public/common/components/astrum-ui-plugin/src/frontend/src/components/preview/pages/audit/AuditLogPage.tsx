@@ -348,7 +348,7 @@ export function AuditLogPage() {
                                     <ChevronDown size={16} />
                                   )}
                                 </Table.Cell>
-                                <Table.Cell>
+                                <Table.Cell style={{ whiteSpace: 'nowrap' }}>
                                   <Text size="2">{formatTimestamp(event.timestamp)}</Text>
                                 </Table.Cell>
                                 <Table.Cell>
