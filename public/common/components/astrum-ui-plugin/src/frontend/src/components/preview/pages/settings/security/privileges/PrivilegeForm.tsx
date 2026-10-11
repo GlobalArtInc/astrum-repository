@@ -218,7 +218,7 @@ export function PrivilegeForm({
                 href="https://help.globalart.dev/en/privileges.html"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: 'var(--accent-9)', textDecoration: 'underline' }}
+                style={{ color: 'var(--accent-11)', textDecoration: 'underline' }}
                 onMouseDown={(e) => {
                   // Open link before blur event fires to prevent validation from blocking navigation
                   e.preventDefault();

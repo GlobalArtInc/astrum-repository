@@ -196,7 +196,7 @@ export function TaskTypeSelector({
                     <Flex align="center" gap="2">
                       <Text weight="medium" size="2">{row.name}</Text>
                       {row.exposed === false && (
-                        <Badge size="1" color="purple" variant="soft">PRO</Badge>
+                        <Badge size="1" color="blue" variant="soft">PRO</Badge>
                       )}
                     </Flex>
                   </Table.Cell>

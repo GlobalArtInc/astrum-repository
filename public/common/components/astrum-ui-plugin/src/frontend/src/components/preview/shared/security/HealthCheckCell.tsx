@@ -288,7 +288,7 @@ export function HealthCheckCell({
       <Button
         size="1"
         variant="soft"
-        color="green"
+        color="blue"
         onClick={(e) => {
           e.stopPropagation();
           onAnalyze(repository.name);

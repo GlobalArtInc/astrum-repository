@@ -345,7 +345,7 @@ export function TaskForm({
                   <Flex align="center" gap="2">
                     <Text weight="bold" size="4">{selectedTaskType.name}</Text>
                     {selectedTaskType.exposed === false && (
-                      <Badge size="1" color="purple" variant="soft">PRO</Badge>
+                      <Badge size="1" color="blue" variant="soft">PRO</Badge>
                     )}
                   </Flex>
                   <Text size="2" color="gray" className="task-form__description-text">

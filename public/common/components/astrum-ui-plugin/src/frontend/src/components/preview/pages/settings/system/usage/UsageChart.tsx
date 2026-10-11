@@ -9,7 +9,7 @@ import { ChartDataPoint, MonthOption } from './types';
 import { USAGE_STRINGS } from './usageStrings';
 
 const EGRESS_COLOR = 'var(--accent-9)';
-const STORAGE_COLOR = 'var(--purple-9)';
+const STORAGE_COLOR = 'var(--cyan-9)';
 const CHART_HEIGHT = 320;
 // Number of Y-axis gridline ticks, matching the Classic UI Usage Insights chart.
 const Y_AXIS_TICKS = 10;

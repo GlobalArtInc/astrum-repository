@@ -122,7 +122,7 @@ export function DangerousEditConfirmDialog({
             <Text size="2" weight="bold">
               Acknowledgement
             </Text>
-            <Text size="2" style={{ color: 'var(--amber-9)' }}>
+            <Text size="2" style={{ color: 'var(--amber-11)' }}>
               *
             </Text>
           </Flex>

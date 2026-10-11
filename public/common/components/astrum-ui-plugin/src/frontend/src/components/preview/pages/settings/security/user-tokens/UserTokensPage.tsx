@@ -271,7 +271,7 @@ export function UserTokensPage() {
               <Text size="2" weight="bold">
                 Acknowledgement
               </Text>
-              <Text size="2" style={{ color: 'var(--red-9)' }}>
+              <Text size="2" style={{ color: 'var(--red-11)' }}>
                 *
               </Text>
             </Flex>

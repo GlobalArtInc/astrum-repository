@@ -144,7 +144,7 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
             <Box>
               <Text size="1" color="gray">
                 Showing 5 of {totalEvents.toLocaleString()} events.{' '}
-                <a href={auditUrl} style={{ color: 'var(--accent-9)' }}>
+                <a href={auditUrl} style={{ color: 'var(--accent-11)' }}>
                   View all in Audit Log
                 </a>
               </Text>
