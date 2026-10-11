@@ -104,13 +104,13 @@
     transition: background-color 0.15s, color 0.15s;
 
     &:hover:not(:disabled) {
-      background: var(--gray-4);
+      background: var(--gray-a4);
     }
 
     &[data-state="active"] {
-      background: var(--color-background);
+      background: var(--color-panel-solid);
       color: var(--gray-12);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-2);
     }
 
     &:disabled {
@@ -120,7 +120,7 @@
   }
 
   &__tab-check {
-    color: var(--green-9);
+    color: var(--green-11);
   }
 
   &__content {
@@ -130,16 +130,16 @@
   &__template {
     margin-bottom: var(--space-4);
     padding: var(--space-4);
-    background: var(--accent-2);
-    border: 1px solid var(--accent-5);
+    background: var(--accent-a2);
+    border: 1px solid var(--accent-a5);
     border-radius: var(--radius-2);
   }
 
   &__verification {
     margin-top: var(--space-4);
     padding: var(--space-4);
-    background: var(--gray-2);
-    border: 1px solid var(--gray-5);
+    background: var(--gray-a2);
+    border: 1px solid var(--gray-a5);
     border-radius: var(--radius-2);
   }
 
@@ -151,7 +151,7 @@
     color: var(--green-11);
 
     svg {
-      color: var(--green-9);
+      color: var(--green-11);
     }
   }
 
@@ -179,22 +179,22 @@
     margin-bottom: var(--space-4);
 
     &--success {
-      background: var(--green-3);
+      background: var(--green-a3);
       color: var(--green-11);
 
       svg {
-        color: var(--green-9);
+        color: var(--green-11);
         flex-shrink: 0;
         margin-top: 2px;
       }
     }
 
     &--error {
-      background: var(--red-3);
+      background: var(--red-a3);
       color: var(--red-11);
 
       svg {
-        color: var(--red-9);
+        color: var(--red-11);
         flex-shrink: 0;
         margin-top: 2px;
       }
@@ -240,41 +240,24 @@
   &__step-line {
     width: 24px;
     height: 2px;
-    background-color: var(--gray-6, #e4e4e7);
+    background-color: var(--gray-a6);
     border-radius: 1px;
 
     &--complete {
-      background-color: var(--green-9, #30a46c);
-    }
-
-    [data-theme='dark'] & {
-      background-color: var(--gray-6, #3d3d43);
-
-      &--complete {
-        background-color: var(--green-9, #30a46c);
-      }
+      background-color: var(--accent-9);
     }
   }
 
   &__step {
-    color: var(--gray-9, #8d8d95);
+    color: var(--gray-11);
     white-space: nowrap;
 
     &--current {
-      color: var(--accent-11, #0969da);
+      color: var(--accent-11);
     }
 
     &--complete {
-      color: var(--green-11, #18794e);
-    }
-
-    [data-theme='dark'] & {
-      &--current {
-        color: var(--accent-11, #6eb4f7);
-      }
-      &--complete {
-        color: var(--green-11, #4cc38a);
-      }
+      color: var(--accent-11);
     }
   }
 
@@ -287,23 +270,18 @@
     border-radius: 50%;
     font-size: 11px;
     font-weight: 600;
-    background-color: var(--gray-4, #e8e8eb);
-    color: var(--gray-11, #6f6f78);
+    background-color: var(--gray-a4);
+    color: var(--gray-11);
 
     .ldap-form__step--current & {
-      background-color: var(--accent-9, #0969da);
-      color: white;
+      background-color: var(--accent-9);
+      color: var(--accent-contrast);
     }
 
     .ldap-form__step--complete & {
-      background-color: var(--green-9, #30a46c);
-      color: white;
+      background-color: var(--accent-9);
+      color: var(--accent-contrast);
       font-size: 10px;
-    }
-
-    [data-theme='dark'] & {
-      background-color: var(--gray-4, #27272b);
-      color: var(--gray-11, #9898a1);
     }
   }
 }

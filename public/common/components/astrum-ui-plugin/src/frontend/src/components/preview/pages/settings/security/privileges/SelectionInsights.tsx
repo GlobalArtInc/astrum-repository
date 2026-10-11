@@ -425,7 +425,7 @@ export function SelectionInsights({ repository, allRepositories, selectedFormat,
         {/* 3. Live Impact Analysis */}
         {repoName && contentSelector && (
           <Card size="2" style={{ border: '1px solid var(--accent-6)', background: 'var(--accent-2)' }}>
-            <Text size="1" weight="bold" color="indigo" mb="2" style={{ display: 'block', textTransform: 'uppercase' }}>
+            <Text size="1" weight="bold" color="blue" mb="2" style={{ display: 'block', textTransform: 'uppercase' }}>
               Live Impact Analysis
             </Text>
             <Flex align="center" gap="3">

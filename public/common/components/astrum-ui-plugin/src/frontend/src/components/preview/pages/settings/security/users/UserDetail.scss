@@ -10,7 +10,7 @@
 
   &__spinner {
     animation: spin 1s linear infinite;
-    color: var(--accent-9, #0091ff);
+    color: var(--accent-9);
   }
 
   &__not-found {
@@ -20,11 +20,7 @@
     justify-content: center;
     padding: var(--space-6, 24px);
     gap: var(--space-3, 12px);
-    color: var(--gray-11, #6f6f78);
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
+    color: var(--gray-11);
   }
 
   &__roles {
@@ -35,27 +31,27 @@
 
   &__role {
     padding: var(--space-1, 4px) var(--space-2, 8px);
-    background: var(--gray-3, #f1f1f3);
+    background: var(--gray-3);
     border-radius: var(--radius-1, 4px);
     font-size: var(--font-size-1, 12px);
 
     [data-theme='dark'] & {
-      background: var(--gray-4, #27272b);
+      background: var(--gray-4);
     }
   }
 
   &__no-roles {
-    color: var(--gray-9, #8d8d95);
+    color: var(--gray-9);
     font-style: italic;
   }
 
   &__actions {
     margin-top: var(--space-4, 16px);
     padding-top: var(--space-4, 16px);
-    border-top: 1px solid var(--gray-6, #e4e4e7);
+    border-top: 1px solid var(--gray-6);
 
     [data-theme='dark'] & {
-      border-top-color: var(--gray-6, #3d3d43);
+      border-top-color: var(--gray-6);
     }
   }
 

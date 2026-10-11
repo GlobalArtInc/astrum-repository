@@ -1,13 +1,8 @@
 
 
 .user-tokens-page {
-  background: var(--color-background, #fff);
-  color: var(--color-text-primary, #1a1a1a);
-
-  [data-theme='dark'] & {
-    background: var(--gray-1, #111113);
-    color: var(--gray-12, #edeef0);
-  }
+  background: var(--color-background);
+  color: var(--gray-12);
 
   &__alerts {
     margin-bottom: var(--space-4, 16px);
@@ -20,30 +15,22 @@
 
   &__spinner {
     animation: spin 1s linear infinite;
-    color: var(--accent-9, #0091ff);
+    color: var(--accent-9);
   }
 
   &__help-text {
-    color: var(--gray-11, #6f6f78);
+    color: var(--gray-11);
     margin-bottom: var(--space-3, 12px);
     line-height: 1.5;
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
   }
 
   &__warning-text {
     display: flex;
     align-items: flex-start;
     gap: var(--space-2, 8px);
-    color: var(--amber-11, #ad5700);
+    color: var(--amber-11);
     margin-bottom: var(--space-3, 12px);
     line-height: 1.5;
-
-    [data-theme='dark'] & {
-      color: var(--amber-11, #f1a10d);
-    }
   }
 
   &__warning-icon {
@@ -61,31 +48,27 @@
     display: flex;
     gap: var(--space-4, 16px);
     padding: var(--space-2, 8px) 0;
-    border-bottom: 1px solid var(--gray-4, #e8e8eb);
+    border-bottom: 1px solid var(--gray-4);
 
     &:last-child {
       border-bottom: none;
     }
 
     [data-theme='dark'] & {
-      border-bottom-color: var(--gray-4, #27272b);
+      border-bottom-color: var(--gray-4);
     }
   }
 
   &__label {
     min-width: 200px;
-    color: var(--gray-11, #6f6f78);
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
+    color: var(--gray-11);
   }
 
   // Modal styles
   &__modal-overlay {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--color-overlay);
     z-index: 1000;
     animation: fadeIn 150ms ease-out;
   }
@@ -95,10 +78,9 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: var(--color-background, #fff);
+    background-color: var(--color-panel-solid);
     border-radius: var(--radius-3, 8px);
-    box-shadow: 0 10px 38px -10px rgba(22, 23, 24, 0.35),
-                0 10px 20px -15px rgba(22, 23, 24, 0.2);
+    box-shadow: var(--shadow-6);
     padding: var(--space-5, 24px);
     width: 90vw;
     max-width: 480px;
@@ -108,10 +90,6 @@
 
     &:focus {
       outline: none;
-    }
-
-    [data-theme='dark'] & {
-      background-color: var(--gray-2, #1a1a1d);
     }
   }
 
@@ -131,13 +109,9 @@
   }
 
   &__modal-text {
-    color: var(--gray-11, #6f6f78);
+    color: var(--gray-11);
     margin-bottom: var(--space-3, 12px);
     line-height: 1.5;
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
 
     &:last-child {
       margin-bottom: 0;
@@ -150,10 +124,10 @@
     gap: var(--space-4, 16px);
     margin-top: var(--space-4, 16px);
     padding-top: var(--space-4, 16px);
-    border-top: 1px solid var(--gray-6, #e4e4e7);
+    border-top: 1px solid var(--gray-6);
 
     [data-theme='dark'] & {
-      border-top-color: var(--gray-6, #3d3d43);
+      border-top-color: var(--gray-6);
     }
 
     // Give the action buttons a shared minimum width so short labels (e.g.

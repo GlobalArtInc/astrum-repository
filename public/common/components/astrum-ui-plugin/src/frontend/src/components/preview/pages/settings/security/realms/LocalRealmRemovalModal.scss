@@ -5,7 +5,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--color-background);
+  background: var(--color-panel-solid);
   border-radius: var(--radius-3);
   box-shadow: var(--shadow-5);
   width: 90%;
@@ -16,7 +16,7 @@
   &__overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     z-index: 999;
   }
 
@@ -25,7 +25,7 @@
   }
 
   &__icon {
-    color: var(--orange-9);
+    color: var(--orange-11);
     flex-shrink: 0;
   }
 
@@ -52,7 +52,7 @@
     }
 
     &:focus {
-      outline: 2px solid var(--accent-8);
+      outline: 2px solid var(--focus-8);
       outline-offset: 2px;
     }
   }
@@ -71,7 +71,7 @@
     margin-bottom: var(--space-4);
 
     svg {
-      color: var(--orange-9);
+      color: var(--orange-11);
       flex-shrink: 0;
       margin-top: 2px;
     }
@@ -108,7 +108,7 @@
   }
 
   &__required {
-    color: var(--red-9);
+    color: var(--red-11);
   }
 
   &__sublabel {
@@ -145,7 +145,7 @@
   }
 
   &__error {
-    color: var(--red-9);
+    color: var(--red-11);
     margin-top: var(--space-1);
   }
 

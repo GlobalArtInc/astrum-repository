@@ -27,18 +27,18 @@
     transition: background-color 0.15s;
 
     &:hover {
-      background: var(--gray-2, #fafafa);
+      background: var(--gray-2);
     }
 
     [data-theme='dark'] &:hover {
-      background: var(--gray-3, #27272b);
+      background: var(--gray-3);
     }
   }
 
   &__radio-input {
     margin-top: 4px;
     cursor: pointer;
-    accent-color: var(--accent-9, #0091ff);
+    accent-color: var(--accent-9);
   }
 
   &__radio-content {
@@ -49,11 +49,7 @@
   }
 
   &__radio-description {
-    color: var(--gray-11, #6f6f78);
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
+    color: var(--gray-11);
   }
 
   &__field {

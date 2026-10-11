@@ -7,7 +7,7 @@
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-background);
+  background-color: var(--color-panel-solid);
   overflow: hidden;
 
   // Header bar: entity title + close, matches Repository Structure Tree fullscreen

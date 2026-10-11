@@ -32,11 +32,7 @@
   &__loading {
     padding: var(--space-6, 24px);
     gap: var(--space-2, 8px);
-    color: var(--gray-11, #6f6f78);
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
+    color: var(--gray-11);
   }
 
   &__spinner {
@@ -51,10 +47,10 @@
   &__actions {
     margin-top: var(--space-4, 16px);
     padding-top: var(--space-4, 16px);
-    border-top: 1px solid var(--gray-6, #e4e4e7);
+    border-top: 1px solid var(--gray-6);
 
     [data-theme='dark'] & {
-      border-top-color: var(--gray-6, #3d3d43);
+      border-top-color: var(--gray-6);
     }
   }
 

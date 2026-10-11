@@ -4,11 +4,7 @@
   &__loading {
     padding: var(--space-6, 24px);
     gap: var(--space-2, 8px);
-    color: var(--gray-11, #6f6f78);
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
+    color: var(--gray-11);
   }
 
   &__spinner {
@@ -27,11 +23,7 @@
     justify-content: center;
     gap: var(--space-3, 12px);
     padding: var(--space-6, 24px);
-    color: var(--gray-11, #6f6f78);
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
+    color: var(--gray-11);
   }
 
   &__readonly-banner {
@@ -52,11 +44,7 @@
   &__label {
     flex-shrink: 0;
     width: 120px;
-    color: var(--gray-11, #6f6f78);
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
+    color: var(--gray-11);
   }
 
   &__list {
@@ -69,31 +57,27 @@
 
   &__list-item {
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    background: var(--gray-2, #f9f9fb);
+    background: var(--gray-2);
     border-radius: var(--radius-2, 6px);
     font-family: var(--font-family-mono);
 
     [data-theme='dark'] & {
-      background: var(--gray-3, #222225);
+      background: var(--gray-3);
     }
   }
 
   &__empty {
-    color: var(--gray-11, #6f6f78);
+    color: var(--gray-11);
     font-style: italic;
-
-    [data-theme='dark'] & {
-      color: var(--gray-11, #9898a1);
-    }
   }
 
   &__actions {
     margin-top: var(--space-4, 16px);
     padding-top: var(--space-4, 16px);
-    border-top: 1px solid var(--gray-6, #e4e4e7);
+    border-top: 1px solid var(--gray-6);
 
     [data-theme='dark'] & {
-      border-top-color: var(--gray-6, #3d3d43);
+      border-top-color: var(--gray-6);
     }
   }
 }

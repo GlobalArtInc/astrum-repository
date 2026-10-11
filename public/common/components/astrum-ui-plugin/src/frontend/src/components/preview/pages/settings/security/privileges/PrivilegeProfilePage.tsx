@@ -337,7 +337,7 @@ export function PrivilegeProfilePage({
                                           justifyContent: 'center',
                                         }}
                                       >
-                                        {isChecked && <Check size={12} color="white" />}
+                                        {isChecked && <Check size={12} color="var(--accent-contrast)" />}
                                       </Box>
                                       <Text size="2">{option.label}</Text>
                                     </Flex>
