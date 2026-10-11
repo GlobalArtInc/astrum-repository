@@ -2,8 +2,6 @@ import React from 'react';
 import {AsPageMain} from '@globalart/astrum-react-shared-components';
 import {ExtJS, Permissions, UsageDashboard} from '@globalart/astrum-ui-plugin';
 
-import OutreachActions from './OutreachActions';
-
 import './Welcome.scss';
 
 export default function Welcome() {
@@ -18,7 +16,6 @@ export default function Welcome() {
             <div className="as-welcome__usage">
               <UsageDashboard variant="classic" canSearch={canSearch} canConfigureCleanup={canConfigureCleanup}/>
             </div>
-            <OutreachActions/>
           </div>
         </div>
       </AsPageMain>

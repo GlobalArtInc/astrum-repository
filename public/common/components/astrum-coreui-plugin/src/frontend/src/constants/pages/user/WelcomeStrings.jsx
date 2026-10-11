@@ -8,45 +8,6 @@ export default {
       text: 'Dashboard',
       icon: faHome
     },
-    ACTIONS: {
-      SYSTEM_HEALTH: {
-        title: 'System Health Check',
-        subTitle: 'View system status checks',
-      },
-      CLEANUP_POLICIES: {
-        title: 'Cleanup Policies',
-        subTitle: 'Review component removal policies',
-      },
-      BROWSE: {
-        title: 'Browse',
-        subTitle: 'Browse my repositories',
-      },
-      SEARCH: {
-        title: 'Search',
-        subTitle: 'Search for new components',
-      },
-      RELEASE_NOTES: {
-        title: 'Release Notes',
-        subTitle: 'See what\'s new',
-      },
-      DOCUMENTATION: {
-        title: 'Documentation',
-        subTitle: 'Visit our help site',
-      },
-      COMMUNITY: {
-        title: 'Community',
-        subTitle: 'Ask and answer questions',
-      },
-      CONNECT: {
-        title: 'Connect',
-        subTitle: 'Connect to a repository',
-      },
-    },
-    CONNECT_MODAL: {
-      TITLE: 'Obtaining a Repository URL',
-      FIRST_STEP_TEXT: <>In the <em>Repositories</em> table, select the <em>Copy</em> button for the repository you wish to connect.</>,
-      SECOND_STEP_TEXT: 'A modal with the repository\'s direct URL will appear; copy this URL to use as needed. The modal also contains a link to our help documentation to get more information on how to connect to your repository.'
-    },
     USAGE: {
       BANNERS: {
         NEAR_LIMITS: 'This instance of Astrum Repository Community Edition is trending toward its usage limit. Once limits are reached, new components cannot be added.',
