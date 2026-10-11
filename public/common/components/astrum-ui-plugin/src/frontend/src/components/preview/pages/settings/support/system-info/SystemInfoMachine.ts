@@ -4,6 +4,7 @@ import { assign, createMachine } from 'xstate';
 import { APIConstants } from '../../../../../../constants/APIConstants';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { SystemInformation, HASystemInformation, HANode } from './types';
+import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
 
 const { REST } = APIConstants;
 
@@ -145,10 +146,10 @@ export const systemInfoMachine = createMachine<SystemInfoContext, SystemInfoEven
         error: (_) => null,
       }),
       setError: assign({
-        error: (_, event) => (event as FetchErrorEvent).data?.message ?? 'Failed to load system information',
+        error: (_, event) => (event as FetchErrorEvent).data?.message ?? SystemInfoStrings.MACHINE.FAILED_LOAD_SYSTEM_INFORMATION,
       }),
       setErrorMessage: assign({
-        error: (_, event) => (event as SetErrorEvent).message ?? 'An error occurred',
+        error: (_, event) => (event as SetErrorEvent).message ?? SystemInfoStrings.MACHINE.ERROR_OCCURRED,
       }),
       selectNode: assign((context, event) => {
         const { nodeId } = event as SelectNodeEvent;
@@ -218,7 +219,7 @@ export const systemInfoMachine = createMachine<SystemInfoContext, SystemInfoEven
           }
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to load system information');
+          throw new Error(apiError.message || SystemInfoStrings.MACHINE.FAILED_LOAD_SYSTEM_INFORMATION);
         }
       },
       refreshData: async (context): Promise<SystemInfoFetchResult> => {
@@ -243,7 +244,7 @@ export const systemInfoMachine = createMachine<SystemInfoContext, SystemInfoEven
           }
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to refresh system information');
+          throw new Error(apiError.message || SystemInfoStrings.MACHINE.FAILED_REFRESH_SYSTEM_INFORMATION);
         }
       },
     },

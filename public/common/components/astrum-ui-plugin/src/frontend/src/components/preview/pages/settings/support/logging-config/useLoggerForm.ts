@@ -5,6 +5,7 @@ import { useMachine } from '@xstate/react';
 import { useToast } from '../../../../shared';
 import { loggerFormMachine } from './LoggerFormMachine';
 import { LogLevel } from './types';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 interface UseLoggerFormOptions {
   loggerName?: string | null;
@@ -70,8 +71,8 @@ export function useLoggerForm({
     if (state.matches('success')) {
       const { name: ctxName, level: ctxLevel } = state.context;
       const successMessage = isCreateRef.current
-        ? `Logger "${ctxName}" created successfully`
-        : `Logger "${ctxName}" updated to ${ctxLevel}`;
+        ? LoggingStrings.FORM_HOOK.LOGGER_CREATED_SUCCESSFULLY(ctxName)
+        : LoggingStrings.FORM_HOOK.LOGGER_UPDATED(ctxName, ctxLevel);
       toastRef.current.success(successMessage);
       onSaveRef.current();
     }

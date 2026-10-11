@@ -3,6 +3,7 @@
 import { assign, createMachine } from 'xstate';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { Logger, LogLevel, LOGGING_CONFIG_API } from './types';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 export interface LoggerFormContext {
   name: string;
@@ -119,10 +120,10 @@ export const loggerFormMachine = createMachine<LoggerFormContext, LoggerFormEven
         level: (_, event) => (event as SetLevelEvent).value,
       }),
       setError: assign({
-        error: (_, event) => (event as FetchErrorEvent).data?.message ?? 'Failed to load logger',
+        error: (_, event) => (event as FetchErrorEvent).data?.message ?? LoggingStrings.FORM_MACHINE.FAILED_LOAD_LOGGER,
       }),
       setSaveError: assign({
-        error: (_, event) => (event as SaveErrorEvent).data?.message ?? 'Failed to save logger',
+        error: (_, event) => (event as SaveErrorEvent).data?.message ?? LoggingStrings.FORM_MACHINE.FAILED_SAVE_LOGGER,
       }),
       clearError: assign({
         error: null,
@@ -135,7 +136,7 @@ export const loggerFormMachine = createMachine<LoggerFormContext, LoggerFormEven
           return data;
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to load logger');
+          throw new Error(apiError.message || LoggingStrings.FORM_MACHINE.FAILED_LOAD_LOGGER);
         }
       },
       saveLogger: async (context) => {
@@ -143,7 +144,7 @@ export const loggerFormMachine = createMachine<LoggerFormContext, LoggerFormEven
           await restClient.put(LOGGING_CONFIG_API.UPDATE(context.name), { level: context.level });
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to save logger');
+          throw new Error(apiError.message || LoggingStrings.FORM_MACHINE.FAILED_SAVE_LOGGER);
         }
       },
     },

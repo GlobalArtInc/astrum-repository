@@ -10,6 +10,8 @@ import { SupportZipResponse as SupportZipResponseType } from './types';
 import { useSupportZipApi } from './useSupportZipApi';
 
 import './SupportZipResponse.scss';
+import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface SupportZipResponseProps {
   response: SupportZipResponseType;
@@ -32,7 +34,7 @@ export function SupportZipResponse({ response, nodeId }: SupportZipResponseProps
       <Flex align="center" gap="3" mb="4">
         <CheckCircle2 size={24} className="support-zip-response__icon" />
         <Heading as="h3" size="4" weight="medium">
-          Support ZIP Created
+          {SupportZipStrings.RESPONSE.SUPPORT_ZIP_CREATED}
         </Heading>
       </Flex>
 
@@ -41,7 +43,7 @@ export function SupportZipResponse({ response, nodeId }: SupportZipResponseProps
           <SettingsAlert type="warning" data-testid="support-zip-truncated-warning">
             <Flex align="center" gap="2">
               <AlertTriangle size={16} />
-              <Text>The support ZIP was truncated due to size limits.</Text>
+              <Text>{SupportZipStrings.RESPONSE.SUPPORT_ZIP_WAS_TRUNCATED_DUE}</Text>
             </Flex>
           </SettingsAlert>
         </Box>
@@ -49,15 +51,14 @@ export function SupportZipResponse({ response, nodeId }: SupportZipResponseProps
 
       <Box className="support-zip-response__details">
         <Text size="2" color="gray" mb="2">
-          Support ZIP has been created. You can reference this file on the filesystem or download it
-          from your browser.
+          {SupportZipStrings.RESPONSE.SUPPORT_ZIP_HAS_BEEN_CREATED}
         </Text>
 
         <Box className="support-zip-response__info" mt="4">
           {nodeId && (
             <Flex className="support-zip-response__row">
               <Text size="2" weight="medium" className="support-zip-response__label">
-                Node:
+                {SupportZipStrings.RESPONSE.NODE_LABEL}
               </Text>
               <Text size="2" className="support-zip-response__value" data-testid="support-zip-response-node">
                 {nodeId}
@@ -66,7 +67,7 @@ export function SupportZipResponse({ response, nodeId }: SupportZipResponseProps
           )}
           <Flex className="support-zip-response__row">
             <Text size="2" weight="medium" className="support-zip-response__label">
-              Name:
+              {SupportZipStrings.RESPONSE.NAME_LABEL}
             </Text>
             <Text size="2" className="support-zip-response__value" data-testid="support-zip-response-name">
               {response.name}
@@ -74,7 +75,7 @@ export function SupportZipResponse({ response, nodeId }: SupportZipResponseProps
           </Flex>
           <Flex className="support-zip-response__row">
             <Text size="2" weight="medium" className="support-zip-response__label">
-              Size:
+              {SupportZipStrings.RESPONSE.SIZE_LABEL}
             </Text>
             <Text size="2" className="support-zip-response__value" data-testid="support-zip-response-size">
               {response.size}
@@ -82,7 +83,7 @@ export function SupportZipResponse({ response, nodeId }: SupportZipResponseProps
           </Flex>
           <Flex className="support-zip-response__row">
             <Text size="2" weight="medium" className="support-zip-response__label">
-              Path:
+              {SupportZipStrings.RESPONSE.PATH_LABEL}
             </Text>
             <Text size="2" className="support-zip-response__value support-zip-response__value--path" data-testid="support-zip-response-path">
               {response.file}
@@ -97,7 +98,7 @@ export function SupportZipResponse({ response, nodeId }: SupportZipResponseProps
             icon={Download}
             data-testid="support-zip-download-button"
           >
-            Download
+            {CommonStrings.ACTIONS.DOWNLOAD}
           </SettingsButton>
         </Box>
       </Box>

@@ -11,27 +11,29 @@ import { useRecoveryModeApi } from './useRecoveryModeApi';
 import { RecoveryModeData } from './types';
 
 import './RecoveryModePage.scss';
+import RecoveryModeStrings from '../../../../constants/pages/settings/support/RecoveryModeStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 const LEARN_MORE_URL = 'https://links.globalart.dev/products/astrum/docs/recovery-mode';
 /** UI-Router state name for the Settings hub (breadcrumb target). */
 const SETTINGS_STATE = 'preview.admin.settings';
 
 const STRINGS = {
-  TITLE: 'Recovery Mode',
+  TITLE: RecoveryModeStrings.PAGE.RECOVERY_MODE,
   DESCRIPTION:
-    'While recovery mode is enabled, the system blocks task types that conflict with data repair checks or execution.',
-  ENABLE: 'Enable',
-  DISABLE: 'Disable',
-  ENABLED: 'Enabled',
-  DISABLED: 'Disabled',
+    RecoveryModeStrings.PAGE.WHILE_RECOVERY_MODE_ENABLED_SYSTEM,
+  ENABLE: RecoveryModeStrings.PAGE.ENABLE,
+  DISABLE: RecoveryModeStrings.PAGE.DISABLE,
+  ENABLED: RecoveryModeStrings.PAGE.ENABLED,
+  DISABLED: RecoveryModeStrings.PAGE.DISABLED,
   DISABLE_RUNNING_TOOLTIP:
-    'Reconciliation tasks are still running. Wait for them to finish before disabling.',
+    RecoveryModeStrings.PAGE.RECONCILIATION_TASKS_STILL_RUNNING_WAIT,
   CONFIRM: {
-    TITLE: 'Disable recovery mode with unexecuted plans?',
+    TITLE: RecoveryModeStrings.PAGE.DISABLE_RECOVERY_MODE_UNEXECUTED_PLANS,
     MESSAGE:
-      'One or more data repair plans have not been executed. If Recovery Mode is disabled now, unexecuted plans may become outdated.',
-    CONFIRM_LABEL: 'Disable Mode',
-    CANCEL_LABEL: 'Cancel',
+      RecoveryModeStrings.PAGE.ONE_MORE_DATA_REPAIR_PLANS,
+    CONFIRM_LABEL: RecoveryModeStrings.PAGE.DISABLE_MODE,
+    CANCEL_LABEL: CommonStrings.ACTIONS.CANCEL,
   },
 };
 
@@ -83,9 +85,9 @@ export function RecoveryModePage({ className }: RecoveryModePageProps) {
     try {
       await enableRecoveryMode();
       await loadData();
-      toast.success('Recovery mode enabled');
+      toast.success(RecoveryModeStrings.PAGE.RECOVERY_MODE_ENABLED);
     } catch {
-      toast.error('Failed to enable recovery mode');
+      toast.error(RecoveryModeStrings.PAGE.FAILED_ENABLE_RECOVERY_MODE);
     } finally {
       setBusy(false);
     }
@@ -96,9 +98,9 @@ export function RecoveryModePage({ className }: RecoveryModePageProps) {
     try {
       await disableRecoveryMode();
       await loadData();
-      toast.success('Recovery mode disabled');
+      toast.success(RecoveryModeStrings.PAGE.RECOVERY_MODE_DISABLED);
     } catch {
-      toast.error('Failed to disable recovery mode');
+      toast.error(RecoveryModeStrings.PAGE.FAILED_DISABLE_RECOVERY_MODE);
     } finally {
       setBusy(false);
     }
@@ -119,7 +121,7 @@ export function RecoveryModePage({ className }: RecoveryModePageProps) {
       <Box className={`recovery-mode-page ${className || ''}`.trim()} data-testid="recovery-mode-page">
         <Flex align="center" justify="center" gap="2" className="recovery-mode-page__loading">
           <Loader2 size={20} className="recovery-mode-page__spinner" />
-          <Text size="2">Loading recovery mode…</Text>
+          <Text size="2">{RecoveryModeStrings.PAGE.LOADING_RECOVERY_MODE}</Text>
         </Flex>
       </Box>
     );
@@ -175,7 +177,7 @@ export function RecoveryModePage({ className }: RecoveryModePageProps) {
           color="blue"
           onClick={() => router.stateService.go(SETTINGS_STATE)}
         >
-          Settings
+          {CommonStrings.LABELS.SETTINGS}
         </Button>
         <ChevronRight size={14} />
         <Text size="2" color="gray">{STRINGS.TITLE}</Text>
@@ -205,7 +207,7 @@ export function RecoveryModePage({ className }: RecoveryModePageProps) {
               color="blue"
               className="recovery-mode-page__learn-more"
             >
-              Learn more<ExternalLink size={12} />
+              {CommonStrings.ACTIONS.LEARN_MORE}<ExternalLink size={12} />
             </Link>
           </Box>
         </Box>

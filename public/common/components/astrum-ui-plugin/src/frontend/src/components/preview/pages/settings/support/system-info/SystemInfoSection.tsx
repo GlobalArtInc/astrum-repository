@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { SystemInfoSectionProps, formatValue } from './types';
 
 import './SystemInfoSection.scss';
+import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
 
 /**
  * SystemInfoSection - Collapsible section displaying key-value pairs
@@ -98,7 +99,7 @@ export const SystemInfoSection = forwardRef<HTMLDivElement, SystemInfoSectionPro
                 <input
                   type="text"
                   className="system-info-section__filter-input"
-                  placeholder="Filter properties..."
+                  placeholder={SystemInfoStrings.SECTION.FILTER_PROPERTIES_PLACEHOLDER}
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
@@ -111,7 +112,7 @@ export const SystemInfoSection = forwardRef<HTMLDivElement, SystemInfoSectionPro
           <Box className="system-info-section__table">
             {entries.length === 0 ? (
               <Text size="2" className="system-info-section__empty">
-                {filter ? 'No matching properties found' : 'No properties available'}
+                {filter ? SystemInfoStrings.SECTION.NO_MATCHING_PROPERTIES_FOUND : SystemInfoStrings.SECTION.NO_PROPERTIES_AVAILABLE}
               </Text>
             ) : (
               entries.map(([key, value]) => (

@@ -5,6 +5,7 @@ import { APIConstants } from '../../../../../../constants/APIConstants';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 
 import { MetricHealthData, HealthCheck, NodeInfo } from './types';
+import MetricHealthStrings from '../../../../constants/pages/settings/support/MetricHealthStrings';
 
 // API endpoints - matches Default UI implementation
 const STATUS_CHECK_BASE_URL = 'service/rest/beta/status/check';
@@ -44,7 +45,7 @@ export function useMetricHealthApi() {
       return checks;
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to load metric health data';
+      const message = apiError.message || MetricHealthStrings.API.FAILED_LOAD_METRIC_HEALTH_DATA;
       setError(message);
       throw err;
     } finally {
@@ -88,7 +89,7 @@ export function useMetricHealthApi() {
       return checks;
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to load node metric health data';
+      const message = apiError.message || MetricHealthStrings.API.FAILED_LOAD_NODE_METRIC_HEALTH;
       setError(message);
       throw err;
     } finally {

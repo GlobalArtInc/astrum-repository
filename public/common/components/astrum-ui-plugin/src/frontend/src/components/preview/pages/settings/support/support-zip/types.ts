@@ -1,3 +1,4 @@
+import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
 
 
 /**
@@ -71,10 +72,10 @@ export const DEFAULT_SUPPORT_ZIP_PARAMS: SupportZipParams = {
  * Archived log options
  */
 export const ARCHIVED_LOG_OPTIONS = [
-  { value: 0, label: 'None' },
-  { value: 1, label: '1 Day' },
-  { value: 2, label: '2 Days' },
-  { value: 3, label: '3 Days' },
+  { value: 0, label: SupportZipStrings.TYPES.NONE },
+  { value: 1, label: SupportZipStrings.TYPES.ONE_DAY },
+  { value: 2, label: SupportZipStrings.TYPES.TWO_DAYS },
+  { value: 3, label: SupportZipStrings.TYPES.THREE_DAYS },
 ] as const;
 
 /**

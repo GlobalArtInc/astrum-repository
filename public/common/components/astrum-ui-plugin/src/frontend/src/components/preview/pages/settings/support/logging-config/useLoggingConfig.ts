@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useMachine } from '@xstate/react';
 import { useToast } from '../../../../shared';
 import { loggingConfigMachine } from './LoggingConfigMachine';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 export type ViewMode = 'list' | 'create' | 'detail';
 
@@ -45,11 +46,11 @@ export function useLoggingConfig(): UseLoggingConfigReturn {
       // Read selectedLogger from prevState.context — by the time we reach 'list', the machine's
       // clearSelectedLogger action has already set it to null in the current state.
       const loggerName = prevState.context.selectedLogger;
-      toast.success(`Logger override removed for "${loggerName}"`);
+      toast.success(LoggingStrings.HOOK.LOGGER_OVERRIDE_REMOVED(loggerName));
     }
 
     if (prevState.matches('resettingAll') && state.matches('list')) {
-      toast.success('All loggers reset to default levels');
+      toast.success(LoggingStrings.HOOK.ALL_LOGGERS_RESET_DEFAULT_LEVELS);
     }
 
     prevStateRef.current = state;

@@ -5,6 +5,7 @@ import { useMachine } from '@xstate/react';
 import { systemInfoMachine, SECTION_ORDER } from './SystemInfoMachine';
 import { useToast } from '../../../../shared';
 import { SystemInformation, HANode } from './types';
+import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
 
 function sortSections(sections: [string, any][]): [string, any][] {
   return [...sections].sort(([keyA], [keyB]) => {
@@ -57,7 +58,7 @@ export function useSystemInfo(): UseSystemInfoReturn {
   useEffect(() => {
     const prevState = prevStateRef.current;
     if (prevState.matches('refreshing') && state.matches('loaded') && !state.context.error) {
-      toast.success('System information refreshed');
+      toast.success(SystemInfoStrings.HOOK.SYSTEM_INFORMATION_REFRESHED);
     }
     prevStateRef.current = state;
   }, [state, toast]);
@@ -100,16 +101,16 @@ export function useSystemInfo(): UseSystemInfoReturn {
     // Defer revocation to the next tick: Chromium reads the object URL asynchronously,
     // and revoking synchronously after click() can abort the download.
     setTimeout(() => URL.revokeObjectURL(url), 0);
-    toast.success('System information downloaded');
+    toast.success(SystemInfoStrings.HOOK.SYSTEM_INFORMATION_DOWNLOADED);
   }, [systemInfo, isHAMode, selectedNode, toast]);
 
   const handleCopy = useCallback(async () => {
     if (!systemInfo) return;
     try {
       await navigator.clipboard.writeText(JSON.stringify(systemInfo, null, 2));
-      toast.success('Copied to clipboard');
+      toast.success(SystemInfoStrings.HOOK.COPIED_CLIPBOARD);
     } catch {
-      send({ type: 'SET_ERROR', message: 'Failed to copy to clipboard' });
+      send({ type: 'SET_ERROR', message: SystemInfoStrings.HOOK.FAILED_COPY_CLIPBOARD });
     }
   }, [systemInfo, toast, send]);
 

@@ -13,6 +13,7 @@ import { useSupportZipApi } from './useSupportZipApi';
 import { NodeInfo, SupportZipParams } from './types';
 
 import './SupportZipHA.scss';
+import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
 
 const { REST } = APIConstants;
 const POLL_INTERVAL_MS = 2000;
@@ -91,7 +92,7 @@ export function SupportZipHA({
         });
       } catch (err) {
         if (cancelled) return;
-        setLoadError(parseApiError(err).message || 'Failed to load HA support ZIP data');
+        setLoadError(parseApiError(err).message || SupportZipStrings.HA.FAILED_LOAD_HA_SUPPORT_ZIP);
       } finally {
         if (!cancelled) setInitialLoading(false);
       }
@@ -169,7 +170,7 @@ export function SupportZipHA({
       >
         <Flex align="center" justify="center" gap="3" py="9">
           <Loader2 size={24} className="support-zip-ha__spinner" aria-hidden="true" />
-          <Text size="3">Loading HA nodes...</Text>
+          <Text size="3">{SupportZipStrings.HA.LOADING_HA_NODES}</Text>
         </Flex>
       </Box>
     );
@@ -190,20 +191,18 @@ export function SupportZipHA({
       <Flex align="center" gap="2" mb="4" className="support-zip-ha__header">
         <Server size={20} className="support-zip-ha__icon" aria-hidden="true" />
         <Heading as="h3" size="4" weight="medium">
-          High Availability Mode
+          {SupportZipStrings.HA.HIGH_AVAILABILITY_MODE}
         </Heading>
       </Flex>
 
       <Text as="p" size="2" color="gray" mb="4">
-        You are running in a clustered environment. Generate a support ZIP for any node, or for
-        all nodes at once.
+        {SupportZipStrings.HA.YOU_RUNNING_CLUSTERED_ENVIRONMENT_GENERATE}
       </Text>
 
       {!isBlobStoreConfigured && (
         <Box mb="4">
           <SettingsAlert type="warning" data-testid="support-zip-ha-no-blob-store">
-            No blob store configured for this cluster. Configure a blob store before generating
-            support ZIPs.
+            {SupportZipStrings.HA.NO_BLOB_STORE_CONFIGURED_CLUSTER}
           </SettingsAlert>
         </Box>
       )}
@@ -218,17 +217,17 @@ export function SupportZipHA({
           data-analytics-id="as-support-zip-create-all"
         >
           <Server size={16} aria-hidden="true" />
-          Create support ZIP (all nodes)
+          {SupportZipStrings.HA.CREATE_SUPPORT_ZIP_ALL_NODES}
         </Button>
       </Flex>
 
       <Heading as="h4" size="3" weight="medium" mb="3">
-        Available nodes
+        {SupportZipStrings.HA.AVAILABLE_NODES}
       </Heading>
 
       {nodes.length === 0 ? (
         <Text size="2" color="gray" data-testid="support-zip-ha-no-nodes">
-          No nodes available.
+          {SupportZipStrings.HA.NO_NODES_AVAILABLE}
         </Text>
       ) : (
         <Grid columns={{ initial: '1', sm: '2' }} gap="3" data-testid="support-zip-ha-node-grid">

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { APIConstants } from '../../../../../../constants/APIConstants';
 import { SupportZipParams, SupportZipResponse, NodeInfo, SUPPORT_ZIP_API } from './types';
+import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
 
 const { REST } = APIConstants;
 
@@ -42,7 +43,7 @@ export function useSupportZipApi() {
     (params: SupportZipParams) =>
       wrap(
         () => restClient.post<SupportZipResponse>(SUPPORT_ZIP_API.CREATE, params),
-        'Failed to create support ZIP'
+        SupportZipStrings.API.FAILED_CREATE_SUPPORT_ZIP
       ),
     [wrap]
   );
@@ -51,7 +52,7 @@ export function useSupportZipApi() {
     () =>
       wrap(
         () => restClient.get<NodeInfo[]>(REST.INTERNAL.GET_SUPPORT_ZIP_ACTIVE_NODES),
-        'Failed to fetch active nodes'
+        SupportZipStrings.API.FAILED_FETCH_ACTIVE_NODES
       ),
     [wrap]
   );
@@ -73,7 +74,7 @@ export function useSupportZipApi() {
       const body: SupportZipNodeRequest = { ...params, hostname };
       return wrap(
         () => restClient.post<NodeInfo>(`${REST.INTERNAL.SUPPORT_ZIP}${nodeId}`, body),
-        'Failed to generate support ZIP for node'
+        SupportZipStrings.API.FAILED_GENERATE_SUPPORT_ZIP_NODE
       );
     },
     [wrap]

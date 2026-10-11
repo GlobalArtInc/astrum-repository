@@ -3,6 +3,7 @@
 import { assign, createMachine } from 'xstate';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { Logger, LoggerSortField, SortDirection, LOGGING_CONFIG_API } from './types';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 export interface LoggersListContext {
   loggers: Logger[];
@@ -78,7 +79,7 @@ export const loggersListMachine = createMachine<LoggersListContext, LoggersListE
         error: null,
       }),
       setError: assign({
-        error: (_, event) => (event as FetchErrorEvent).data?.message ?? 'Failed to load loggers',
+        error: (_, event) => (event as FetchErrorEvent).data?.message ?? LoggingStrings.LIST_MACHINE.FAILED_LOAD_LOGGERS,
       }),
       setFilter: assign({
         filter: (_, event) => (event as SetFilterEvent).value,
@@ -104,7 +105,7 @@ export const loggersListMachine = createMachine<LoggersListContext, LoggersListE
           return Array.isArray(data) ? data : [];
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to load loggers');
+          throw new Error(apiError.message || LoggingStrings.LIST_MACHINE.FAILED_LOAD_LOGGERS);
         }
       },
     },

@@ -7,6 +7,7 @@ import { Search, CheckCircle, XCircle, HelpCircle } from 'lucide-react';
 import { MetricHealthListProps, formatCheckName, getHealthStatus, sortHealthChecks } from './types';
 
 import './MetricHealthList.scss';
+import MetricHealthStrings from '../../../../constants/pages/settings/support/MetricHealthStrings';
 
 /**
  * MetricHealthList - List of health checks with status indicators
@@ -65,16 +66,16 @@ export function MetricHealthList({
       <Flex className="metric-health-list__summary" gap="4">
         <Flex align="center" gap="1">
           <CheckCircle size={14} className="metric-health-list__icon--healthy" />
-          <Text size="1">{statusCounts.healthy} healthy</Text>
+          <Text size="1">{MetricHealthStrings.LIST.HEALTHY_COUNT(statusCounts.healthy)}</Text>
         </Flex>
         <Flex align="center" gap="1">
           <XCircle size={14} className="metric-health-list__icon--unhealthy" />
-          <Text size="1">{statusCounts.unhealthy} unhealthy</Text>
+          <Text size="1">{MetricHealthStrings.LIST.UNHEALTHY_COUNT(statusCounts.unhealthy)}</Text>
         </Flex>
         {statusCounts.unknown > 0 && (
           <Flex align="center" gap="1">
             <HelpCircle size={14} className="metric-health-list__icon--unknown" />
-            <Text size="1">{statusCounts.unknown} unknown</Text>
+            <Text size="1">{MetricHealthStrings.LIST.UNKNOWN_COUNT(statusCounts.unknown)}</Text>
           </Flex>
         )}
       </Flex>
@@ -86,7 +87,7 @@ export function MetricHealthList({
           <input
             type="text"
             className="metric-health-list__filter-input"
-            placeholder="Filter health checks..."
+            placeholder={MetricHealthStrings.LIST.FILTER_HEALTH_CHECKS_PLACEHOLDER}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
@@ -97,7 +98,7 @@ export function MetricHealthList({
       <Box className="metric-health-list__items">
         {filteredChecks.length === 0 ? (
           <Text size="2" className="metric-health-list__empty">
-            {filter ? 'No matching health checks found' : 'No health checks available'}
+            {filter ? MetricHealthStrings.LIST.NO_MATCHING_HEALTH_CHECKS_FOUND : MetricHealthStrings.LIST.NO_HEALTH_CHECKS_AVAILABLE}
           </Text>
         ) : (
           filteredChecks.map((check) => (

@@ -11,6 +11,8 @@ import { LoggerForm } from './LoggerForm';
 import { useLoggingConfig } from './useLoggingConfig';
 
 import './LoggingConfigPage.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 /**
  * LoggingConfigPage - Main Logging Configuration page for Preview UI
@@ -49,23 +51,23 @@ export function LoggingConfigPage() {
   const renderHeader = () => {
     if (viewMode === 'list') {
       const breadcrumbs = [
-        { label: 'Settings', onClick: navigateToSettings },
-        { label: 'Logging' },
+        { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+        { label: LoggingStrings.PAGE.LOGGING },
       ];
       const actions = canUpdate ? (
         <Flex gap="2">
           <SettingsButton variant="secondary" onClick={handleResetAll} disabled={isResettingAll} icon={RotateCcw}>
-            Reset to Default Levels
+            {LoggingStrings.PAGE.RESET_DEFAULT_LEVELS}
           </SettingsButton>
           <SettingsButton variant="primary" onClick={handleCreate} icon={Plus}>
-            Create Logger
+            {LoggingStrings.PAGE.CREATE_LOGGER}
           </SettingsButton>
         </Flex>
       ) : undefined;
       return (
         <PageHeader
-          title="Logging"
-          description="Control logging levels"
+          title={LoggingStrings.PAGE.LOGGING}
+          description={LoggingStrings.PAGE.CONTROL_LOGGING_LEVELS}
           breadcrumbs={breadcrumbs}
           actions={actions}
           className="logging-config-page__header"
@@ -73,11 +75,11 @@ export function LoggingConfigPage() {
       );
     }
 
-    const title = viewMode === 'create' ? 'Create Logger' : 'Edit Logger';
+    const title = viewMode === 'create' ? LoggingStrings.PAGE.CREATE_LOGGER : LoggingStrings.PAGE.EDIT_LOGGER;
     const breadcrumbs = [
-      { label: 'Settings', onClick: navigateToSettings },
-      { label: 'Logging', onClick: handleBack },
-      { label: viewMode === 'create' ? 'Create' : selectedLogger || 'Logger' },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+      { label: LoggingStrings.PAGE.LOGGING, onClick: handleBack },
+      { label: viewMode === 'create' ? CommonStrings.ACTIONS.CREATE : selectedLogger || LoggingStrings.PAGE.LOGGER },
     ];
 
     return (
@@ -124,10 +126,10 @@ export function LoggingConfigPage() {
       {/* Help Section - only shown in list view */}
       {viewMode === 'list' && (
         <HelpSection
-          title="About Logging Configuration"
-          content="Configure logging levels for different packages and classes in Astrum Repository. Increasing the logging level can help diagnose issues but may impact performance. Reset to defaults will restore all loggers to their original levels."
+          title={LoggingStrings.PAGE.ABOUT_LOGGING_CONFIGURATION}
+          content={LoggingStrings.PAGE.CONFIGURE_LOGGING_LEVELS_DIFFERENT_PACKAGES}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'https://help.globalart.dev/en/logging-configuration.html',
           }}
         />
@@ -138,10 +140,10 @@ export function LoggingConfigPage() {
         open={deleteDialogOpen}
         testId="delete-logger-override-dialog"
         onOpenChange={(open) => !open && handleCancelDelete()}
-        title="Delete Logger Override"
-        message={`Remove the custom log level for "${selectedLogger}"? The logger will inherit its level from the parent logger configuration. This effectively removes it from the custom loggers list.`}
-        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
-        cancelLabel="Cancel"
+        title={LoggingStrings.PAGE.DELETE_LOGGER_OVERRIDE}
+        message={LoggingStrings.PAGE.REMOVE_CUSTOM_LOG_LEVEL_LOGGER(selectedLogger)}
+        confirmLabel={isDeleting ? LoggingStrings.PAGE.DELETING : CommonStrings.ACTIONS.DELETE}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="danger"
         onConfirm={handleDeleteConfirm}
       />
@@ -151,10 +153,10 @@ export function LoggingConfigPage() {
         open={resetAllDialogOpen}
         testId="reset-all-loggers-dialog"
         onOpenChange={(open) => !open && handleCancelResetAll()}
-        title="Reset All Loggers"
-        message="Are you sure you want to reset all loggers to their default levels? This action cannot be undone."
-        confirmLabel="Reset All"
-        cancelLabel="Cancel"
+        title={LoggingStrings.PAGE.RESET_ALL_LOGGERS}
+        message={LoggingStrings.PAGE.YOU_SURE_YOU_WANT_RESET}
+        confirmLabel={LoggingStrings.PAGE.RESET_ALL}
+        cancelLabel={CommonStrings.ACTIONS.CANCEL}
         variant="warning"
         onConfirm={handleResetAllConfirm}
       />

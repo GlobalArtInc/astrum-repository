@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { Logger, LogLevel, LOGGING_CONFIG_API } from './types';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 /**
  * Custom hook for Logging Configuration API operations
@@ -22,7 +23,7 @@ export function useLoggingConfigApi() {
       return Array.isArray(data) ? data : [];
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to load loggers';
+      const message = apiError.message || LoggingStrings.API.FAILED_LOAD_LOGGERS;
       setError(message);
       throw err;
     } finally {
@@ -39,7 +40,7 @@ export function useLoggingConfigApi() {
       return data || null;
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to load logger';
+      const message = apiError.message || LoggingStrings.API.FAILED_LOAD_LOGGER;
       throw new Error(message);
     }
   }, []);
@@ -54,7 +55,7 @@ export function useLoggingConfigApi() {
       await restClient.put(LOGGING_CONFIG_API.UPDATE(name), { level });
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to update logger';
+      const message = apiError.message || LoggingStrings.API.FAILED_UPDATE_LOGGER;
       setError(message);
       throw err;
     } finally {
@@ -72,7 +73,7 @@ export function useLoggingConfigApi() {
       await restClient.post(LOGGING_CONFIG_API.RESET(name));
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to reset logger';
+      const message = apiError.message || LoggingStrings.API.FAILED_RESET_LOGGER;
       setError(message);
       throw err;
     } finally {
@@ -90,7 +91,7 @@ export function useLoggingConfigApi() {
       await restClient.post(LOGGING_CONFIG_API.RESET_ALL);
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to reset all loggers';
+      const message = apiError.message || LoggingStrings.API.FAILED_RESET_ALL_LOGGERS;
       setError(message);
       throw err;
     } finally {

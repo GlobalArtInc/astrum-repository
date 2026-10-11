@@ -6,6 +6,8 @@ import { Server, Loader2, AlertCircle, CheckCircle, Archive } from 'lucide-react
 import { ExtJS } from '../../../../../../interface/ExtJS';
 
 import { NodeInfo, SUPPORT_ZIP_API } from './types';
+import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface SupportZipNodeCardProps {
   node: NodeInfo;
@@ -52,14 +54,14 @@ export function SupportZipNodeCard({
     if (!isNodeActive) {
       return (
         <Text size="2" color="gray">
-          Node is unavailable. Cannot create ZIP.
+          {SupportZipStrings.NODE_CARD.NODE_UNAVAILABLE_CANNOT_CREATE_ZIP}
         </Text>
       );
     }
     if (!isBlobStoreConfigured) {
       return (
         <Text size="2" color="gray">
-          No blob store configured for this cluster. Configure a blob store to generate support ZIPs.
+          {SupportZipStrings.NODE_CARD.NO_BLOB_STORE_CONFIGURED_CLUSTER}
         </Text>
       );
     }
@@ -68,7 +70,7 @@ export function SupportZipNodeCard({
         return (
           <Flex align="center" gap="2" aria-live="polite" aria-busy="true">
             <Loader2 size={16} aria-hidden="true" />
-            <Text size="2">Creating ZIP...</Text>
+            <Text size="2">{SupportZipStrings.NODE_CARD.CREATING_ZIP}</Text>
           </Flex>
         );
       case 'COMPLETED':
@@ -77,14 +79,14 @@ export function SupportZipNodeCard({
             <a
               href={ExtJS.urlOf(SUPPORT_ZIP_API.DOWNLOAD(node.blobRef ?? ''))}
               download
-              aria-label={`Download ZIP for ${node.hostname || node.nodeId}`}
+              aria-label={SupportZipStrings.NODE_CARD.DOWNLOAD_ZIP(node.hostname || node.nodeId)}
               data-testid={`support-zip-node-card-download-${node.nodeId}`}
             >
-              Download ZIP
+              {SupportZipStrings.NODE_CARD.DOWNLOAD_ZIP_2}
             </a>
             {lastUpdated && (
               <Text size="1" color="gray">
-                Generated: {lastUpdated}
+                {SupportZipStrings.NODE_CARD.GENERATED(lastUpdated)}
               </Text>
             )}
           </Flex>
@@ -94,20 +96,20 @@ export function SupportZipNodeCard({
           <Flex align="center" gap="2">
             <AlertCircle size={16} aria-hidden="true" style={{ color: 'var(--red-9)' }} />
             <Text size="2" color="red">
-              Generation failed.
+              {SupportZipStrings.NODE_CARD.GENERATION_FAILED}
             </Text>
           </Flex>
         );
       default:
         return (
           <Text size="2" color="gray">
-            No ZIP created yet.
+            {SupportZipStrings.NODE_CARD.NO_ZIP_CREATED_YET}
           </Text>
         );
     }
   };
 
-  const buttonLabel = node.status === 'FAILED' ? 'Retry' : 'Generate new ZIP';
+  const buttonLabel = node.status === 'FAILED' ? CommonStrings.ACTIONS.RETRY : SupportZipStrings.NODE_CARD.GENERATE_NEW_ZIP;
 
   return (
     <Card data-testid={`support-zip-node-card-${node.nodeId}`}>

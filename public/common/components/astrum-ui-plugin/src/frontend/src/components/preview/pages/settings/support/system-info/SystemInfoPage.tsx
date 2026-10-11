@@ -13,6 +13,8 @@ import { useSystemInfo } from './useSystemInfo';
 import { SystemInfoPageProps, formatSectionTitle } from './types';
 
 import './SystemInfoPage.scss';
+import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * SystemInfoPage - System Information page for Preview UI
@@ -51,7 +53,7 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
       <Box className={`system-info-page ${className || ''}`.trim()}>
         <Flex align="center" justify="center" className="system-info-page__loading">
           <Loader2 size={24} className="system-info-page__spinner" />
-          <Text size="2">Loading system information...</Text>
+          <Text size="2">{SystemInfoStrings.PAGE.LOADING_SYSTEM_INFORMATION}</Text>
         </Flex>
       </Box>
     );
@@ -62,16 +64,16 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
     return (
       <Box className={`system-info-page ${className || ''}`.trim()}>
         <PageHeader
-          title="System Information"
-          description="View detailed system and server information"
+          title={SystemInfoStrings.PAGE.SYSTEM_INFORMATION}
+          description={SystemInfoStrings.PAGE.VIEW_DETAILED_SYSTEM_SERVER_INFORMATION}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
-            { label: 'System Information' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: SystemInfoStrings.PAGE.SYSTEM_INFORMATION },
           ]}
         />
 
         <SettingsAlert type="warning">
-          You do not have permission to view system information.
+          {SystemInfoStrings.PAGE.YOU_DO_NOT_HAVE_PERMISSION}
         </SettingsAlert>
       </Box>
     );
@@ -81,11 +83,11 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
     <Box className={`system-info-page ${className || ''}`.trim()}>
       {/* Header */}
       <PageHeader
-        title="System Information"
-        description="View detailed system and server information"
+        title={SystemInfoStrings.PAGE.SYSTEM_INFORMATION}
+        description={SystemInfoStrings.PAGE.VIEW_DETAILED_SYSTEM_SERVER_INFORMATION}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
-          { label: 'System Information' },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+          { label: SystemInfoStrings.PAGE.SYSTEM_INFORMATION },
         ]}
         actions={
           <Flex gap="2" className="system-info-page__actions">
@@ -93,32 +95,32 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
               variant="ghost"
               onClick={handleRefresh}
               disabled={isRefreshing || isLoading}
-              aria-label="Refresh"
+              aria-label={CommonStrings.ACTIONS.REFRESH}
               icon={RefreshCw}
               className={isRefreshing ? 'system-info-page__spinning' : ''}
               data-analytics-id="as-system-info-refresh"
             >
-              Refresh
+              {CommonStrings.ACTIONS.REFRESH}
             </SettingsButton>
             <SettingsButton
               variant="ghost"
               onClick={handleCopy}
               disabled={!systemInfo || isLoading}
-              aria-label="Copy to clipboard"
+              aria-label={SystemInfoStrings.PAGE.COPY_CLIPBOARD_ARIA}
               icon={Copy}
               data-analytics-id="as-system-info-copy"
             >
-              Copy
+              {SystemInfoStrings.PAGE.COPY}
             </SettingsButton>
             <SettingsButton
               variant="ghost"
               onClick={handleDownload}
               disabled={!systemInfo || isLoading}
-              aria-label="Download"
+              aria-label={CommonStrings.ACTIONS.DOWNLOAD}
               icon={Download}
               data-analytics-id="as-system-info-download"
             >
-              Download
+              {CommonStrings.ACTIONS.DOWNLOAD}
             </SettingsButton>
           </Flex>
         }
@@ -152,18 +154,18 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
         >
           {/* Jump to Section Dropdown */}
           <Flex align="center" gap="2">
-            <Text size="2" weight="medium">Jump to:</Text>
+            <Text size="2" weight="medium">{SystemInfoStrings.PAGE.JUMP_TO}</Text>
             <Select.Root
               value=""
               onValueChange={handleJumpToSection}
             >
               <Select.Trigger
-                placeholder="Select section..."
+                placeholder={SystemInfoStrings.PAGE.SELECT_SECTION_PLACEHOLDER}
                 data-testid="system-info-jump-to"
               >
                 <Flex align="center" gap="2">
                   <ChevronsUpDown size={14} />
-                  <span>Select section...</span>
+                  <span>{SystemInfoStrings.PAGE.SELECT_SECTION}</span>
                 </Flex>
               </Select.Trigger>
               <Select.Content>
@@ -181,20 +183,20 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
             <SettingsButton
               variant="ghost"
               onClick={handleExpandAll}
-              aria-label="Expand all sections"
+              aria-label={SystemInfoStrings.PAGE.EXPAND_ALL_SECTIONS_ARIA}
               icon={ChevronsDownUp}
               data-testid="system-info-expand-all"
             >
-              Expand All
+              {SystemInfoStrings.PAGE.EXPAND_ALL}
             </SettingsButton>
             <SettingsButton
               variant="ghost"
               onClick={handleCollapseAll}
-              aria-label="Collapse all sections"
+              aria-label={SystemInfoStrings.PAGE.COLLAPSE_ALL_SECTIONS_ARIA}
               icon={ChevronsUpDown}
               data-testid="system-info-collapse-all"
             >
-              Collapse All
+              {SystemInfoStrings.PAGE.COLLAPSE_ALL}
             </SettingsButton>
           </Flex>
         </Flex>
@@ -204,7 +206,7 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
       <Box className="system-info-page__content">
         {sections.length === 0 ? (
           <Text size="2" className="system-info-page__empty">
-            No system information available
+            {SystemInfoStrings.PAGE.NO_SYSTEM_INFORMATION_AVAILABLE}
           </Text>
         ) : (
           sections.map(([key, data]) => (
@@ -224,25 +226,23 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
       <Box className="system-info-page__help">
         <Flex align="center" gap="2" className="system-info-page__help-header">
           <Info size={16} />
-          <Text size="2" weight="medium">About System Information</Text>
+          <Text size="2" weight="medium">{SystemInfoStrings.PAGE.ABOUT_SYSTEM_INFORMATION}</Text>
         </Flex>
         <Text size="2" className="system-info-page__help-text">
-          This page displays detailed information about your Astrum Repository instance,
-          including version information, system properties, and runtime configuration.
-          Use the Download button to save this information for support requests.
+          {SystemInfoStrings.PAGE.PAGE_DISPLAYS_DETAILED_INFORMATION_ABOUT}
         </Text>
         <Text size="2" className="system-info-page__help-text">
-          See our{' '}
-          <a
-            href="https://help.globalart.dev/en/system-information.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="system-info-page__help-link"
-          >
-            documentation
-            <ExternalLink size={12} aria-hidden="true" />
-          </a>
-          {' '}for more information.
+          {SystemInfoStrings.PAGE.SEE_DOCUMENTATION(
+            <a
+              href="https://help.globalart.dev/en/system-information.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="system-info-page__help-link"
+            >
+              {SystemInfoStrings.PAGE.DOCUMENTATION_LINK}
+              <ExternalLink size={12} aria-hidden="true" />
+            </a>
+          )}
         </Text>
       </Box>
     </Box>

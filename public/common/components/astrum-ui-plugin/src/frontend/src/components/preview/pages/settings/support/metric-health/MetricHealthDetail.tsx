@@ -7,6 +7,7 @@ import { CheckCircle, XCircle, HelpCircle, Clock } from 'lucide-react';
 import { MetricHealthDetailProps, formatCheckName, getHealthStatus } from './types';
 
 import './MetricHealthDetail.scss';
+import MetricHealthStrings from '../../../../constants/pages/settings/support/MetricHealthStrings';
 
 /**
  * MetricHealthDetail - Detailed view of a single health check
@@ -20,7 +21,7 @@ export function MetricHealthDetail({
       <Box className={`metric-health-detail ${className}`.trim()}>
         <Flex align="center" justify="center" className="metric-health-detail__empty">
           <Text size="2" className="metric-health-detail__empty-text">
-            Select a health check to view details
+            {MetricHealthStrings.DETAIL.SELECT_HEALTH_CHECK_VIEW_DETAILS}
           </Text>
         </Flex>
       </Box>
@@ -44,11 +45,11 @@ export function MetricHealthDetail({
   const getStatusBadge = () => {
     switch (status) {
       case 'healthy':
-        return <Badge color="green" size="2">Healthy</Badge>;
+        return <Badge color="green" size="2">{MetricHealthStrings.DETAIL.HEALTHY}</Badge>;
       case 'unhealthy':
-        return <Badge color="red" size="2">Unhealthy</Badge>;
+        return <Badge color="red" size="2">{MetricHealthStrings.DETAIL.UNHEALTHY}</Badge>;
       default:
-        return <Badge color="gray" size="2">Unknown</Badge>;
+        return <Badge color="gray" size="2">{MetricHealthStrings.DETAIL.UNKNOWN}</Badge>;
     }
   };
 
@@ -76,7 +77,7 @@ export function MetricHealthDetail({
         {result.message && (
           <Box className="metric-health-detail__section">
             <Text size="2" weight="medium" className="metric-health-detail__label">
-              Message
+              {MetricHealthStrings.DETAIL.MESSAGE}
             </Text>
             <Box className="metric-health-detail__message">
               <Text size="2">{result.message}</Text>
@@ -88,7 +89,7 @@ export function MetricHealthDetail({
         {result.error && (
           <Box className="metric-health-detail__section">
             <Text size="2" weight="medium" className="metric-health-detail__label metric-health-detail__label--error">
-              Error
+              {MetricHealthStrings.DETAIL.ERROR}
             </Text>
             <Box className="metric-health-detail__error">
               {result.error.message && (
@@ -111,7 +112,7 @@ export function MetricHealthDetail({
             <Flex align="center" gap="2">
               <Clock size={14} className="metric-health-detail__duration-icon" />
               <Text size="2" className="metric-health-detail__duration">
-                Duration: {result.duration}ms
+                {MetricHealthStrings.DETAIL.DURATION_MS(result.duration)}
               </Text>
             </Flex>
           </Box>
@@ -121,7 +122,7 @@ export function MetricHealthDetail({
         {result.timestamp && (
           <Box className="metric-health-detail__section">
             <Text size="2" className="metric-health-detail__timestamp">
-              Last checked: {new Date(result.timestamp).toLocaleString()}
+              {MetricHealthStrings.DETAIL.LAST_CHECKED(new Date(result.timestamp).toLocaleString())}
             </Text>
           </Box>
         )}
@@ -129,7 +130,7 @@ export function MetricHealthDetail({
         {/* No additional details */}
         {!((result.message || result.error ) || result.duration ) && (
           <Text size="2" className="metric-health-detail__no-details">
-            No additional details available for this health check.
+            {MetricHealthStrings.DETAIL.NO_ADDITIONAL_DETAILS_AVAILABLE_HEALTH}
           </Text>
         )}
       </Box>

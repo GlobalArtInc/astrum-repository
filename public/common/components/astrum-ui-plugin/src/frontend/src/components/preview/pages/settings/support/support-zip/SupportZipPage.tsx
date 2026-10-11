@@ -18,6 +18,8 @@ import {
 } from './types';
 
 import './SupportZipPage.scss';
+import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * SupportZipPage - Main Support ZIP generation page for Preview UI
@@ -72,16 +74,16 @@ export function SupportZipPage() {
         data-permission="denied"
       >
         <PageHeader
-          title="Support ZIP"
-          description="Creates a ZIP file containing useful support information about your server"
+          title={SupportZipStrings.PAGE.SUPPORT_ZIP}
+          description={SupportZipStrings.PAGE.CREATES_ZIP_FILE_CONTAINING_USEFUL}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
-            { label: 'Support ZIP' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: SupportZipStrings.PAGE.SUPPORT_ZIP },
           ]}
         />
 
         <SettingsAlert type="warning" data-testid="support-zip-permission-warning">
-          You do not have permission to view Support ZIP. Contact an administrator.
+          {SupportZipStrings.PAGE.YOU_DO_NOT_HAVE_PERMISSION}
         </SettingsAlert>
       </Box>
     );
@@ -90,11 +92,11 @@ export function SupportZipPage() {
   // Render header
   const renderHeader = () => (
     <PageHeader
-      title="Support ZIP"
-      description="Creates a ZIP file containing useful support information about your server"
+      title={SupportZipStrings.PAGE.SUPPORT_ZIP}
+      description={SupportZipStrings.PAGE.CREATES_ZIP_FILE_CONTAINING_USEFUL}
       breadcrumbs={[
-        { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
-        { label: 'Support ZIP' },
+        { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+        { label: SupportZipStrings.PAGE.SUPPORT_ZIP },
       ]}
     />
   );
@@ -107,10 +109,10 @@ export function SupportZipPage() {
         <Box className="support-zip-page__loading" data-testid="support-zip-loading" aria-live="polite" aria-busy="true">
           <Flex align="center" justify="center" gap="3" py="9">
             <Loader2 size={24} className="support-zip-page__spinner" aria-hidden="true" />
-            <Text size="3">Creating support ZIP...</Text>
+            <Text size="3">{SupportZipStrings.PAGE.CREATING_SUPPORT_ZIP}</Text>
           </Flex>
           <Text size="2" color="gray" align="center">
-            This may take a few minutes to complete.
+            {SupportZipStrings.PAGE.MAY_TAKE_FEW_MINUTES_COMPLETE}
           </Text>
         </Box>
       );
@@ -157,7 +159,7 @@ export function SupportZipPage() {
       {!canCreate && (
         <Box className="support-zip-page__alerts">
           <SettingsAlert type="warning" data-testid="support-zip-create-permission-warning">
-            You do not have permission to create Support ZIPs. You can view settings but not generate ZIPs.
+            {SupportZipStrings.PAGE.YOU_DO_NOT_HAVE_PERMISSION_2}
           </SettingsAlert>
         </Box>
       )}

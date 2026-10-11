@@ -1,3 +1,4 @@
+import LogsStrings from '../../../../constants/pages/settings/support/LogsStrings';
 
 
 /**
@@ -13,20 +14,20 @@ export interface LogFile {
  * Refresh rate options for log viewer (in seconds)
  */
 export const REFRESH_RATES = [
-  { value: 0, label: 'Manual' },
-  { value: 20, label: 'Every 20 seconds' },
-  { value: 60, label: 'Every minute' },
-  { value: 120, label: 'Every 2 minutes' },
-  { value: 300, label: 'Every 5 minutes' },
+  { value: 0, label: LogsStrings.TYPES.MANUAL },
+  { value: 20, label: LogsStrings.TYPES.EVERY_20_SECONDS },
+  { value: 60, label: LogsStrings.TYPES.EVERY_MINUTE },
+  { value: 120, label: LogsStrings.TYPES.EVERY_2_MINUTES },
+  { value: 300, label: LogsStrings.TYPES.EVERY_5_MINUTES },
 ] as const;
 
 /**
  * Log view size options (in KB)
  */
 export const LOG_SIZES = [
-  { value: 25, label: 'Last 25KB' },
-  { value: 50, label: 'Last 50KB' },
-  { value: 100, label: 'Last 100KB' },
+  { value: 25, label: LogsStrings.TYPES.LAST_25KB },
+  { value: 50, label: LogsStrings.TYPES.LAST_50KB },
+  { value: 100, label: LogsStrings.TYPES.LAST_100KB },
 ] as const;
 
 /**

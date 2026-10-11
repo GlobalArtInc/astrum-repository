@@ -5,6 +5,8 @@ import { Dialog, Flex, Button } from '@radix-ui/themes';
 
 import { SupportZipForm } from './SupportZipForm';
 import { NodeInfo, SupportZipParams } from './types';
+import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface SupportZipHaModalProps {
   open: boolean;
@@ -28,8 +30,8 @@ export function SupportZipHaModal({
   disabled = false,
 }: SupportZipHaModalProps): React.ReactElement {
   const title = allNodes
-    ? 'Generate Support ZIP for all nodes'
-    : `Generate Support ZIP for ${targetNode?.hostname || targetNode?.nodeId || 'node'}`;
+    ? SupportZipStrings.HA_MODAL.GENERATE_SUPPORT_ZIP_ALL_NODES
+    : SupportZipStrings.HA_MODAL.GENERATE_FOR_NODE(targetNode?.hostname || targetNode?.nodeId || SupportZipStrings.HA_MODAL.NODE_FALLBACK);
 
   const handleCancel = useCallback(() => {
     onOpenChange(false);
@@ -66,7 +68,7 @@ export function SupportZipHaModal({
             data-testid="support-zip-ha-modal-cancel"
             data-analytics-id="as-support-zip-modal-cancel"
           >
-            Cancel
+            {CommonStrings.ACTIONS.CANCEL}
           </Button>
           <Button
             variant="solid"
@@ -75,7 +77,7 @@ export function SupportZipHaModal({
             data-testid="support-zip-ha-modal-confirm"
             data-analytics-id="as-support-zip-modal-confirm"
           >
-            Generate
+            {SupportZipStrings.HA_MODAL.GENERATE}
           </Button>
         </Flex>
       </Dialog.Content>

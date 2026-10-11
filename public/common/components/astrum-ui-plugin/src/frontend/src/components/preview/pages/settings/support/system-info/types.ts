@@ -1,3 +1,4 @@
+import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
 
 
 /**
@@ -77,7 +78,7 @@ export function formatValue(value: string | number | boolean | null | undefined)
     return '-';
   }
   if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No';
+    return value ? SystemInfoStrings.TYPES.YES : SystemInfoStrings.TYPES.NO;
   }
   return String(value);
 }

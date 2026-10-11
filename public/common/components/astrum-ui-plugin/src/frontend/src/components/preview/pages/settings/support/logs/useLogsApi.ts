@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { LogFile, LOGS_API } from './types';
+import LogsStrings from '../../../../constants/pages/settings/support/LogsStrings';
 
 /**
  * Custom hook for Logs API operations
@@ -22,7 +23,7 @@ export function useLogsApi() {
       return Array.isArray(data) ? data : [];
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to load log files';
+      const message = apiError.message || LogsStrings.API.FAILED_LOAD_LOG_FILES;
       setError(message);
       throw err;
     } finally {
@@ -52,7 +53,7 @@ export function useLogsApi() {
       return data || '';
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to load log content';
+      const message = apiError.message || LogsStrings.API.FAILED_LOAD_LOG_CONTENT;
       throw new Error(message);
     }
   }, []);
@@ -70,7 +71,7 @@ export function useLogsApi() {
       });
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to insert mark';
+      const message = apiError.message || LogsStrings.API.FAILED_INSERT_MARK;
       setError(message);
       throw err;
     } finally {

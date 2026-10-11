@@ -5,6 +5,7 @@ import { useMachine } from '@xstate/react';
 import { loggersListMachine } from './LoggersListMachine';
 import { Logger, LoggerSortField, LogLevel } from './types';
 import type { FilterSection } from '../../../../shared';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 const LOG_LEVELS: LogLevel[] = ['OFF', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'];
 
@@ -62,7 +63,7 @@ export function useLoggersList(): UseLoggersListReturn {
     return [
       {
         id: 'level',
-        label: 'Log Level',
+        label: LoggingStrings.LIST_HOOK.LOG_LEVEL,
         type: 'checkbox' as const,
         options: LOG_LEVELS.map((level) => ({
           value: level,

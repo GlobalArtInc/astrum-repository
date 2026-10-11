@@ -12,6 +12,8 @@ import { useMetricHealthApi } from './useMetricHealthApi';
 import { MetricHealthPageProps, HealthCheck, NodeInfo } from './types';
 
 import './MetricHealthPage.scss';
+import MetricHealthStrings from '../../../../constants/pages/settings/support/MetricHealthStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 /**
  * MetricHealthPage - Metric Health page for Preview UI
@@ -130,7 +132,7 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
         const healthChecks = await fetchMetricHealth();
         setChecks(healthChecks);
       }
-      toast.success('Health checks refreshed');
+      toast.success(MetricHealthStrings.PAGE.HEALTH_CHECKS_REFRESHED);
     } catch (_err) {
       // Error is set by the hook
     } finally {
@@ -143,7 +145,7 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
     if (checks.length === 0) return;
     const filename = selectedNode ? `metric-health-${selectedNode}.json` : 'metric-health.json';
     downloadMetricHealth(checks, filename);
-    toast.success('Health check data downloaded');
+    toast.success(MetricHealthStrings.PAGE.HEALTH_CHECK_DATA_DOWNLOADED);
   }, [checks, downloadMetricHealth, selectedNode, toast.success]);
 
   // Get selected check
@@ -157,7 +159,7 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
       <Box className={`metric-health-page ${className || ''}`.trim()} data-testid="metric-health-page">
         <Flex align="center" justify="center" className="metric-health-page__loading">
           <Loader2 size={24} className="metric-health-page__spinner" />
-          <Text size="2">Loading health checks...</Text>
+          <Text size="2">{MetricHealthStrings.PAGE.LOADING_HEALTH_CHECKS}</Text>
         </Flex>
       </Box>
     );
@@ -171,20 +173,20 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
   // No permission state
   if (!canRead) {
     const breadcrumbs = [
-      { label: 'Settings', onClick: navigateToSettings },
-      { label: 'Metric Health' },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+      { label: MetricHealthStrings.PAGE.METRIC_HEALTH },
     ];
     return (
       <Box className={`metric-health-page ${className || ''}`.trim()} data-testid="metric-health-page">
         <PageHeader
-          title="Status"
-          description="View system health checks and diagnostics"
+          title={CommonStrings.LABELS.STATUS}
+          description={MetricHealthStrings.PAGE.VIEW_SYSTEM_HEALTH_CHECKS_DIAGNOSTICS}
           breadcrumbs={breadcrumbs}
           className="metric-health-page__header"
         />
 
         <SettingsAlert type="warning">
-          You do not have permission to view metric health.
+          {MetricHealthStrings.PAGE.YOU_DO_NOT_HAVE_PERMISSION}
         </SettingsAlert>
       </Box>
     );
@@ -194,12 +196,12 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
   const renderNodeList = () => (
     <Box className="metric-health-page__nodes">
       <Text size="2" weight="medium" className="metric-health-page__nodes-title">
-        Select a node to view health checks
+        {MetricHealthStrings.PAGE.SELECT_NODE_VIEW_HEALTH_CHECKS}
       </Text>
       <Box className="metric-health-page__nodes-list">
         {nodes.length === 0 ? (
           <Text size="2" className="metric-health-page__empty">
-            No cluster nodes available
+            {MetricHealthStrings.PAGE.NO_CLUSTER_NODES_AVAILABLE}
           </Text>
         ) : (
           nodes.map((node) => (
@@ -243,18 +245,18 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
         const description = selectedCheck
           ? selectedCheck
           : (isClusteredMode && selectedNode
-            ? `Health checks for ${nodes.find(n => n.nodeId === selectedNode)?.hostname || selectedNode}`
-            : 'View system health checks and diagnostics');
+            ? MetricHealthStrings.PAGE.HEALTH_CHECKS(nodes.find(n => n.nodeId === selectedNode)?.hostname || selectedNode)
+            : MetricHealthStrings.PAGE.VIEW_SYSTEM_HEALTH_CHECKS_DIAGNOSTICS);
 
         const breadcrumbs = selectedCheck
           ? [
-              { label: 'Settings', onClick: navigateToSettings },
-              { label: 'Metric Health', onClick: isClusteredMode && selectedNode ? handleBackToNodes : undefined },
+              { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+              { label: MetricHealthStrings.PAGE.METRIC_HEALTH, onClick: isClusteredMode && selectedNode ? handleBackToNodes : undefined },
               { label: selectedCheck },
             ]
           : [
-              { label: 'Settings', onClick: navigateToSettings },
-              { label: 'Metric Health' },
+              { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+              { label: MetricHealthStrings.PAGE.METRIC_HEALTH },
             ];
 
         const actions = (
@@ -263,23 +265,23 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
               variant="ghost"
               onClick={handleRefresh}
               disabled={refreshing || loading}
-              aria-label="Refresh"
+              aria-label={CommonStrings.ACTIONS.REFRESH}
               icon={RefreshCw}
               className={refreshing ? 'metric-health-page__spinning' : ''}
               data-testid="refresh-button"
             >
-              Refresh
+              {CommonStrings.ACTIONS.REFRESH}
             </SettingsButton>
             {(!isClusteredMode || selectedNode) && (
               <SettingsButton
                 variant="ghost"
                 onClick={handleDownload}
                 disabled={checks.length === 0 || loading}
-                aria-label="Download"
+                aria-label={CommonStrings.ACTIONS.DOWNLOAD}
                 icon={Download}
                 data-testid="download-button"
               >
-                Download
+                {CommonStrings.ACTIONS.DOWNLOAD}
               </SettingsButton>
             )}
           </Flex>
@@ -287,7 +289,7 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
 
         return (
           <PageHeader
-            title="Status"
+            title={CommonStrings.LABELS.STATUS}
             description={description}
             breadcrumbs={breadcrumbs}
             actions={actions}
@@ -311,7 +313,7 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
         renderNodeList()
       ) : checks.length === 0 ? (
         <Text size="2" className="metric-health-page__empty">
-          No health checks available
+          {MetricHealthStrings.PAGE.NO_HEALTH_CHECKS_AVAILABLE}
         </Text>
       ) : (
         // Single node or node selected: show health checks
@@ -329,25 +331,23 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
       <Box className="metric-health-page__help">
         <Flex align="center" gap="2" className="metric-health-page__help-header">
           <Info size={16} />
-          <Text size="2" weight="medium">About Status</Text>
+          <Text size="2" weight="medium">{MetricHealthStrings.PAGE.ABOUT_STATUS}</Text>
         </Flex>
         <Text size="2" className="metric-health-page__help-text">
-          This page displays the status of various health checks that monitor
-          critical system components. Red indicators show components that may
-          require attention.
+          {MetricHealthStrings.PAGE.PAGE_DISPLAYS_STATUS_VARIOUS_HEALTH}
         </Text>
         <Text size="2" className="metric-health-page__help-text">
-          See our{' '}
-          <a
-            href="http://links.globalart.dev/products/astrum/docs/metrics"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="metric-health-page__help-link"
-          >
-            documentation
-            <ExternalLink size={12} />
-          </a>
-          {' '}for more information.
+          {MetricHealthStrings.PAGE.SEE_DOCUMENTATION(
+            <a
+              href="http://links.globalart.dev/products/astrum/docs/metrics"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="metric-health-page__help-link"
+            >
+              {MetricHealthStrings.PAGE.DOCUMENTATION_LINK}
+              <ExternalLink size={12} />
+            </a>
+          )}
         </Text>
       </Box>
     </Box>

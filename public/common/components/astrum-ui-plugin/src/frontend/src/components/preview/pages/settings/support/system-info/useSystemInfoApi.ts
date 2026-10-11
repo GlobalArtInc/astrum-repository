@@ -5,6 +5,7 @@ import { APIConstants } from '../../../../../../constants/APIConstants';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 
 import { SystemInformation, HASystemInformation, HANode } from './types';
+import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
 
 const { REST } = APIConstants;
 
@@ -48,7 +49,7 @@ export function useSystemInfoApi() {
       return data || {};
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to load system information';
+      const message = apiError.message || SystemInfoStrings.API.FAILED_LOAD_SYSTEM_INFORMATION;
       setError(message);
       throw err;
     } finally {
@@ -67,7 +68,7 @@ export function useSystemInfoApi() {
       return transposeHASystemInfo(data || {});
     } catch (err: any) {
       const apiError = parseApiError(err);
-      const message = apiError.message || 'Failed to load HA system information';
+      const message = apiError.message || SystemInfoStrings.API.FAILED_LOAD_HA_SYSTEM_INFORMATION;
       setError(message);
       throw err;
     } finally {

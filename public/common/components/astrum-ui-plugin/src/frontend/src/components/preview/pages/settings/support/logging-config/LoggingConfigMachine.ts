@@ -3,6 +3,7 @@
 import { assign, createMachine } from 'xstate';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { LOGGING_CONFIG_API } from './types';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 export interface LoggingConfigContext {
   selectedLogger: string | null;
@@ -135,7 +136,7 @@ export const loggingConfigMachine = createMachine<LoggingConfigContext, LoggingC
         refreshKey: (context) => context.refreshKey + 1,
       }),
       setError: assign({
-        error: (_, event) => (event as ServiceErrorEvent).data?.message ?? 'An error occurred',
+        error: (_, event) => (event as ServiceErrorEvent).data?.message ?? LoggingStrings.MACHINE.ERROR_OCCURRED,
       }),
       clearError: assign({
         error: null,
@@ -148,7 +149,7 @@ export const loggingConfigMachine = createMachine<LoggingConfigContext, LoggingC
         // selectedLogger is set), but a future direct transition to `deleting` would otherwise
         // pass null to the API silently.
         if (!context.selectedLogger) {
-          throw new Error('No logger selected for deletion');
+          throw new Error(LoggingStrings.MACHINE.NO_LOGGER_SELECTED_DELETION);
         }
         try {
           // Astrum represents "delete logger override" as POST to /reset — there is no DELETE endpoint.
@@ -156,7 +157,7 @@ export const loggingConfigMachine = createMachine<LoggingConfigContext, LoggingC
           await restClient.post(LOGGING_CONFIG_API.RESET(context.selectedLogger));
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to delete logger override');
+          throw new Error(apiError.message || LoggingStrings.MACHINE.FAILED_DELETE_LOGGER_OVERRIDE);
         }
       },
       resetAll: async () => {
@@ -164,7 +165,7 @@ export const loggingConfigMachine = createMachine<LoggingConfigContext, LoggingC
           await restClient.post(LOGGING_CONFIG_API.RESET_ALL);
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to reset all loggers');
+          throw new Error(apiError.message || LoggingStrings.MACHINE.FAILED_RESET_ALL_LOGGERS);
         }
       },
     },

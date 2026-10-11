@@ -9,6 +9,8 @@ import { SortableTableHeader, type SortDirection, EmptyState } from '../../../..
 import { ReconcileTask } from './types';
 
 import './RecoveryModeTasksTable.scss';
+import RecoveryModeStrings from '../../../../constants/pages/settings/support/RecoveryModeStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 type SortKey = 'name' | 'type' | 'status' | 'lastRun' | 'lastRunResult';
 
@@ -142,10 +144,10 @@ export function RecoveryModeTasksTable({ tasks }: RecoveryModeTasksTableProps): 
     <Box className="recovery-mode-tasks">
       <Box mb="3" maxWidth="360px">
         <TextField.Root
-          placeholder="Search tasks…"
+          placeholder={RecoveryModeStrings.TASKS_TABLE.SEARCH_TASKS_PLACEHOLDER}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          aria-label="Search tasks"
+          aria-label={RecoveryModeStrings.TASKS_TABLE.SEARCH_TASKS_ARIA}
           data-testid="recovery-tasks-search"
         >
           <TextField.Slot>
@@ -158,19 +160,19 @@ export function RecoveryModeTasksTable({ tasks }: RecoveryModeTasksTableProps): 
         <Table.Header>
           <Table.Row>
             <SortableTableHeader sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDir} onSort={handleSort}>
-              Name
+              {CommonStrings.LABELS.NAME}
             </SortableTableHeader>
             <SortableTableHeader sortKey="type" currentSortKey={sortKey} currentSortDirection={sortDir} onSort={handleSort}>
-              Type
+              {CommonStrings.LABELS.TYPE}
             </SortableTableHeader>
             <SortableTableHeader sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDir} onSort={handleSort}>
-              Status
+              {CommonStrings.LABELS.STATUS}
             </SortableTableHeader>
             <SortableTableHeader sortKey="lastRun" currentSortKey={sortKey} currentSortDirection={sortDir} onSort={handleSort}>
-              Last run
+              {RecoveryModeStrings.TASKS_TABLE.LAST_RUN}
             </SortableTableHeader>
             <SortableTableHeader sortKey="lastRunResult" currentSortKey={sortKey} currentSortDirection={sortDir} onSort={handleSort}>
-              Last result
+              {RecoveryModeStrings.TASKS_TABLE.LAST_RESULT}
             </SortableTableHeader>
           </Table.Row>
         </Table.Header>
@@ -180,8 +182,8 @@ export function RecoveryModeTasksTable({ tasks }: RecoveryModeTasksTableProps): 
               <Table.Cell colSpan={5}>
                 <EmptyState
                   icon={Package}
-                  title="No data repair tasks"
-                  description="Data repair tasks appear here when recovery mode creates reconciliation work."
+                  title={RecoveryModeStrings.TASKS_TABLE.NO_DATA_REPAIR_TASKS}
+                  description={RecoveryModeStrings.TASKS_TABLE.DATA_REPAIR_TASKS_APPEAR_HERE}
                   className="recovery-mode-tasks__empty-state"
                 />
               </Table.Cell>
@@ -198,13 +200,13 @@ export function RecoveryModeTasksTable({ tasks }: RecoveryModeTasksTableProps): 
                   className="recovery-mode-tasks__empty"
                   data-testid="recovery-tasks-no-results"
                 >
-                  <Text size="4" weight="bold">No tasks found</Text>
+                  <Text size="4" weight="bold">{RecoveryModeStrings.TASKS_TABLE.NO_TASKS_FOUND}</Text>
                   <Text size="2" color="gray">
-                    No tasks match &quot;{query.trim()}&quot;. Try a different search term.
+                    {RecoveryModeStrings.TASKS_TABLE.NO_TASKS_MATCH_TRY_DIFFERENT(query.trim())}
                   </Text>
                   <Button variant="solid" onClick={() => setQuery('')}>
                     <RefreshCw size={16} />
-                    Clear Search
+                    {RecoveryModeStrings.TASKS_TABLE.CLEAR_SEARCH}
                   </Button>
                 </Flex>
               </Table.Cell>
@@ -224,7 +226,7 @@ export function RecoveryModeTasksTable({ tasks }: RecoveryModeTasksTableProps): 
                 }}
                 tabIndex={0}
                 role="button"
-                aria-label={`Open task ${task.name}`}
+                aria-label={RecoveryModeStrings.TASKS_TABLE.OPEN_TASK(task.name)}
               >
                 <Table.Cell>{task.name}</Table.Cell>
                 <Table.Cell>{typeLabel(task.type)}</Table.Cell>

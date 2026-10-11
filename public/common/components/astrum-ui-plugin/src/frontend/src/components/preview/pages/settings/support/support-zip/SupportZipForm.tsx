@@ -14,6 +14,7 @@ import {
 import { SupportZipParams, ARCHIVED_LOG_OPTIONS } from './types';
 
 import './SupportZipForm.scss';
+import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
 
 interface SupportZipFormProps {
   params: SupportZipParams;
@@ -47,20 +48,20 @@ export function SupportZipForm({
       {/* Description */}
       <Box className="support-zip-form__description" mb="4">
         <Text size="2" color="gray">
-          No information will be sent to GlobalArt when creating the support ZIP file.
+          {SupportZipStrings.FORM.NO_INFORMATION_SENT_GLOBALART_WHEN}
         </Text>
         <Text size="2" color="gray" mt="2">
-          Support ZIP creation may take a few minutes to complete.
+          {SupportZipStrings.FORM.SUPPORT_ZIP_CREATION_MAY_TAKE}
         </Text>
       </Box>
 
       <SettingsForm testId="support-zip-form" onSubmit={handleSubmit} showActions={false} pristine={false} noDirtyTracking>
         {/* Contents Section */}
-        <SettingsFormSection title="Contents">
+        <SettingsFormSection title={SupportZipStrings.FORM.CONTENTS}>
           <Box className="support-zip-form__checkboxes">
             <SettingsCheckbox
               name="systemInformation"
-              label="System information report"
+              label={SupportZipStrings.FORM.SYSTEM_INFORMATION_REPORT}
               checked={params.systemInformation}
               onChange={(checked) => onParamChange('systemInformation', checked)}
               disabled={disabled}
@@ -68,7 +69,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="threadDump"
-              label="JVM thread-dump"
+              label={SupportZipStrings.FORM.JVM_THREAD_DUMP}
               checked={params.threadDump}
               onChange={(checked) => onParamChange('threadDump', checked)}
               disabled={disabled}
@@ -76,7 +77,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="configuration"
-              label="Configuration files"
+              label={SupportZipStrings.FORM.CONFIGURATION_FILES}
               checked={params.configuration}
               onChange={(checked) => onParamChange('configuration', checked)}
               disabled={disabled}
@@ -84,7 +85,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="security"
-              label="Security configuration files"
+              label={SupportZipStrings.FORM.SECURITY_CONFIGURATION_FILES}
               checked={params.security}
               onChange={(checked) => onParamChange('security', checked)}
               disabled={disabled}
@@ -92,7 +93,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="log"
-              label="Log files"
+              label={SupportZipStrings.FORM.LOG_FILES}
               checked={params.log}
               onChange={(checked) => onParamChange('log', checked)}
               disabled={disabled}
@@ -100,7 +101,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="taskLog"
-              label="Task log files"
+              label={SupportZipStrings.FORM.TASK_LOG_FILES}
               checked={params.taskLog}
               onChange={(checked) => onParamChange('taskLog', checked)}
               disabled={disabled}
@@ -108,7 +109,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="replication"
-              label="Replication log files"
+              label={SupportZipStrings.FORM.REPLICATION_LOG_FILES}
               checked={params.replication}
               onChange={(checked) => onParamChange('replication', checked)}
               disabled={disabled}
@@ -116,7 +117,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="auditLog"
-              label="Audit log files"
+              label={SupportZipStrings.FORM.AUDIT_LOG_FILES}
               checked={params.auditLog}
               onChange={(checked) => onParamChange('auditLog', checked)}
               disabled={disabled}
@@ -124,7 +125,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="metrics"
-              label="System and component metrics"
+              label={SupportZipStrings.FORM.SYSTEM_COMPONENT_METRICS}
               checked={params.metrics}
               onChange={(checked) => onParamChange('metrics', checked)}
               disabled={disabled}
@@ -132,7 +133,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="jmx"
-              label="JMX information"
+              label={SupportZipStrings.FORM.JMX_INFORMATION}
               checked={params.jmx}
               onChange={(checked) => onParamChange('jmx', checked)}
               disabled={disabled}
@@ -143,7 +144,7 @@ export function SupportZipForm({
             <Box mt="3">
               <SettingsSelect
                 name="archivedLog"
-                label="Include logs from previous days"
+                label={SupportZipStrings.FORM.INCLUDE_LOGS_PREVIOUS_DAYS}
                 value={String(params.archivedLog)}
                 onChange={(value) => onParamChange('archivedLog', Number(value))}
                 options={ARCHIVED_LOG_OPTIONS.map((opt) => ({
@@ -158,11 +159,11 @@ export function SupportZipForm({
         </SettingsFormSection>
 
         {/* Options Section */}
-        <SettingsFormSection title="Options">
+        <SettingsFormSection title={SupportZipStrings.FORM.OPTIONS}>
           <Box className="support-zip-form__checkboxes">
             <SettingsCheckbox
               name="limitFileSizes"
-              label="Limit files in the ZIP archive to 30 MB apiece"
+              label={SupportZipStrings.FORM.LIMIT_FILES_ZIP_ARCHIVE_30}
               checked={params.limitFileSizes}
               onChange={(checked) => onParamChange('limitFileSizes', checked)}
               disabled={disabled}
@@ -170,7 +171,7 @@ export function SupportZipForm({
             />
             <SettingsCheckbox
               name="limitZipSize"
-              label="Limit the ZIP archive to 50 MB"
+              label={SupportZipStrings.FORM.LIMIT_ZIP_ARCHIVE_50_MB}
               checked={params.limitZipSize}
               onChange={(checked) => onParamChange('limitZipSize', checked)}
               disabled={disabled}
@@ -190,7 +191,7 @@ export function SupportZipForm({
               data-testid="support-zip-create-button"
               data-analytics-id="as-support-zip-create"
             >
-              Create support ZIP
+              {SupportZipStrings.FORM.CREATE_SUPPORT_ZIP}
             </SettingsButton>
             {isHa && onSubmitAll && (
               <SettingsButton
@@ -202,7 +203,7 @@ export function SupportZipForm({
                 data-testid="support-zip-create-all-button"
                 data-analytics-id="as-support-zip-create-all"
               >
-                Create support ZIP (all nodes)
+                {SupportZipStrings.FORM.CREATE_SUPPORT_ZIP_ALL_NODES}
               </SettingsButton>
             )}
           </Flex>

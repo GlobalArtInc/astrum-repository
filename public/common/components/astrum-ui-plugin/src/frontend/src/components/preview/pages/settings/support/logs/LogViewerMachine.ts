@@ -3,6 +3,7 @@
 import { assign, createMachine } from 'xstate';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { LOGS_API } from './types';
+import LogsStrings from '../../../../constants/pages/settings/support/LogsStrings';
 
 export interface LogViewerContext {
   filename: string;
@@ -155,7 +156,7 @@ export const logViewerMachine = createMachine<LogViewerContext, LogViewerEvent>(
         error: null,
       }),
       setError: assign({
-        error: (_, event) => (event as ContentErrorEvent).data?.message ?? 'Failed to load log content',
+        error: (_, event) => (event as ContentErrorEvent).data?.message ?? LogsStrings.VIEWER_MACHINE.FAILED_LOAD_LOG_CONTENT,
       }),
       setRefreshPeriod: assign({
         refreshPeriod: (_, event) => (event as SetRefreshPeriodEvent).value,
@@ -182,7 +183,7 @@ export const logViewerMachine = createMachine<LogViewerContext, LogViewerEvent>(
           return data || '';
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to load log content');
+          throw new Error(apiError.message || LogsStrings.VIEWER_MACHINE.FAILED_LOAD_LOG_CONTENT);
         }
       },
       insertMark: async (context) => {
@@ -192,7 +193,7 @@ export const logViewerMachine = createMachine<LogViewerContext, LogViewerEvent>(
           });
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to insert mark');
+          throw new Error(apiError.message || LogsStrings.VIEWER_MACHINE.FAILED_INSERT_MARK);
         }
       },
     },

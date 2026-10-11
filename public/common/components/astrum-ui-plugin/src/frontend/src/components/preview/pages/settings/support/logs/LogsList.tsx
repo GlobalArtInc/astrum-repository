@@ -11,6 +11,7 @@ import { useLogsList } from './useLogsList';
 import { LogSortField } from './types';
 
 import './LogsList.scss';
+import LogsStrings from '../../../../constants/pages/settings/support/LogsStrings';
 
 interface LogsListProps {
   onSelect: (filename: string) => void;
@@ -53,7 +54,7 @@ export function LogsList({ onSelect }: LogsListProps) {
       <Box className="logs-list logs-list--loading">
         <Flex align="center" justify="center" gap="2" py="9">
           <Loader2 size={20} className="logs-list__spinner" />
-          <Text size="2">Loading log files...</Text>
+          <Text size="2">{LogsStrings.LIST.LOADING_LOG_FILES}</Text>
         </Flex>
       </Box>
     );
@@ -66,7 +67,7 @@ export function LogsList({ onSelect }: LogsListProps) {
         <SettingsTextInput
           value={filter}
           onChange={setFilter}
-          placeholder="Filter by file name"
+          placeholder={LogsStrings.LIST.FILTER_FILE_NAME_PLACEHOLDER}
           className="logs-list__filter"
           icon={<Search size={16} />}
         />
@@ -90,7 +91,7 @@ export function LogsList({ onSelect }: LogsListProps) {
               onClick={() => handleSort('fileName')}
             >
               <Flex align="center" gap="1">
-                File Name
+                {LogsStrings.LIST.FILE_NAME}
                 {renderSortIcon('fileName')}
               </Flex>
             </Table.ColumnHeaderCell>
@@ -99,7 +100,7 @@ export function LogsList({ onSelect }: LogsListProps) {
               onClick={() => handleSort('size')}
             >
               <Flex align="center" gap="1">
-                Size
+                {LogsStrings.LIST.SIZE}
                 {renderSortIcon('size')}
               </Flex>
             </Table.ColumnHeaderCell>
@@ -108,7 +109,7 @@ export function LogsList({ onSelect }: LogsListProps) {
               onClick={() => handleSort('lastModified')}
             >
               <Flex align="center" gap="1">
-                Last Modified
+                {LogsStrings.LIST.LAST_MODIFIED}
                 {renderSortIcon('lastModified')}
               </Flex>
             </Table.ColumnHeaderCell>
@@ -121,7 +122,7 @@ export function LogsList({ onSelect }: LogsListProps) {
               <Table.Cell colSpan={4} className="logs-list__empty-cell">
                 <Flex align="center" justify="center" py="6">
                   <Text size="2" color="gray">
-                    {filter ? 'No log files match your filter' : 'No log files found'}
+                    {filter ? LogsStrings.LIST.NO_LOG_FILES_MATCH_FILTER : LogsStrings.LIST.NO_LOG_FILES_FOUND}
                   </Text>
                 </Flex>
               </Table.Cell>

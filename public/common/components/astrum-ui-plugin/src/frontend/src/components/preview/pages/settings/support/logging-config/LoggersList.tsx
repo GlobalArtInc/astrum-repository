@@ -10,6 +10,7 @@ import { useLoggersList } from './useLoggersList';
 import { LoggerSortField, LogLevel } from './types';
 
 import './LoggersList.scss';
+import LoggingStrings from '../../../../constants/pages/settings/support/LoggingStrings';
 
 interface LoggersListProps {
   onSelect: (name: string) => void;
@@ -67,7 +68,7 @@ export function LoggersList({ onSelect }: LoggersListProps) {
       <Box className="loggers-list loggers-list--loading">
         <Flex align="center" justify="center" gap="2" py="9">
           <Loader2 size={20} className="loggers-list__spinner" />
-          <Text size="2">Loading loggers...</Text>
+          <Text size="2">{LoggingStrings.LIST.LOADING_LOGGERS}</Text>
         </Flex>
       </Box>
     );
@@ -93,7 +94,7 @@ export function LoggersList({ onSelect }: LoggersListProps) {
           <SettingsTextInput
             value={filter}
             onChange={setFilter}
-            placeholder="Filter by logger name"
+            placeholder={LoggingStrings.LIST.FILTER_LOGGER_NAME_PLACEHOLDER}
             className="loggers-list__filter"
             icon={<Search size={16} />}
           />
@@ -102,7 +103,7 @@ export function LoggersList({ onSelect }: LoggersListProps) {
         {/* Counter */}
         {(hasActiveFilters || loggers.length > 0) && (
           <Text size="1" color="gray" className="loggers-list__counter" data-testid="loggers-counter">
-            Showing {filteredLoggers.length} of {loggers.length} loggers
+            {LoggingStrings.LIST.SHOWING_LOGGERS(filteredLoggers.length, loggers.length)}
           </Text>
         )}
 
@@ -122,7 +123,7 @@ export function LoggersList({ onSelect }: LoggersListProps) {
                 onClick={() => handleSort('name')}
               >
                 <Flex align="center" gap="1">
-                  Logger Name
+                  {LoggingStrings.LIST.LOGGER_NAME}
                   {renderSortIcon('name')}
                 </Flex>
               </Table.ColumnHeaderCell>
@@ -131,7 +132,7 @@ export function LoggersList({ onSelect }: LoggersListProps) {
                 onClick={() => handleSort('level')}
               >
                 <Flex align="center" gap="1">
-                  Logger Level
+                  {LoggingStrings.LIST.LOGGER_LEVEL}
                   {renderSortIcon('level')}
                 </Flex>
               </Table.ColumnHeaderCell>
@@ -144,7 +145,7 @@ export function LoggersList({ onSelect }: LoggersListProps) {
                 <Table.Cell colSpan={3} className="loggers-list__empty-cell">
                   <Flex align="center" justify="center" py="6">
                     <Text size="2" color="gray">
-                      {hasActiveFilters ? 'No loggers match your filters' : 'No loggers found'}
+                      {hasActiveFilters ? LoggingStrings.LIST.NO_LOGGERS_MATCH_FILTERS : LoggingStrings.LIST.NO_LOGGERS_FOUND}
                     </Text>
                   </Flex>
                 </Table.Cell>

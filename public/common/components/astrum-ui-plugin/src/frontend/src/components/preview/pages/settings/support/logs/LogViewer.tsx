@@ -15,6 +15,8 @@ import { useLogViewer } from './useLogViewer';
 import { REFRESH_RATES, LOG_SIZES } from './types';
 
 import './LogViewer.scss';
+import LogsStrings from '../../../../constants/pages/settings/support/LogsStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface LogViewerProps {
   filename: string;
@@ -59,10 +61,10 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
       {/* Header with title and download button */}
       <Flex justify="between" align="center" className="log-viewer__header">
         <Text weight="medium" size="3" className="log-viewer__title">
-          Viewing {filename}
+          {LogsStrings.VIEWER.VIEWING(filename)}
         </Text>
         <SettingsButton variant="primary" onClick={handleDownload} icon={Download}>
-          Download
+          {CommonStrings.ACTIONS.DOWNLOAD}
         </SettingsButton>
       </Flex>
 
@@ -73,12 +75,12 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
           {isAstrumLog && canUpdate && (
             <Flex align="center" gap="2" className="log-viewer__mark-section">
               <Text size="2" className="log-viewer__label">
-                Marker to insert:
+                {LogsStrings.VIEWER.MARKER_INSERT}
               </Text>
               <SettingsTextInput
                 value={mark}
                 onChange={setMark}
-                placeholder="MARK"
+                placeholder={LogsStrings.VIEWER.MARK_PLACEHOLDER}
                 className="log-viewer__mark-input"
                 onKeyDown={handleMarkKeyDown}
               />
@@ -88,7 +90,7 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
                 disabled={isLoading}
                 icon={Stamp}
               >
-                Insert
+                {LogsStrings.VIEWER.INSERT}
               </SettingsButton>
             </Flex>
           )}
@@ -97,7 +99,7 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
             {/* Refresh rate */}
             <Flex align="center" gap="2">
               <Text size="2" className="log-viewer__label">
-                Refresh Rate:
+                {LogsStrings.VIEWER.REFRESH_RATE}
               </Text>
               <SettingsSelect
                 value={String(refreshPeriod)}
@@ -113,7 +115,7 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
             {/* Log size */}
             <Flex align="center" gap="2">
               <Text size="2" className="log-viewer__label">
-                Size:
+                {LogsStrings.VIEWER.SIZE}
               </Text>
               <SettingsSelect
                 value={String(logSize)}
@@ -144,7 +146,7 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
           <Flex align="center" justify="center" className="log-viewer__loading">
             <Loader2 size={20} className="log-viewer__spinner" />
             <Text size="2" ml="2">
-              Loading log content...
+              {LogsStrings.VIEWER.LOADING_LOG_CONTENT}
             </Text>
           </Flex>
         ) : (
@@ -153,7 +155,7 @@ export function LogViewer({ filename, onBack }: LogViewerProps) {
             className="log-viewer__textarea"
             value={logContent}
             readOnly
-            aria-label={`Log content for ${filename}`}
+            aria-label={LogsStrings.VIEWER.LOG_CONTENT(filename)}
           />
         )}
       </Box>

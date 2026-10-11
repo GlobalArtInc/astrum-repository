@@ -7,6 +7,7 @@ import { Server, Check } from 'lucide-react';
 import { NodeSelectorProps } from './types';
 
 import './NodeSelector.scss';
+import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
 
 /**
  * NodeSelector - HA node selection component for multi-node clusters
@@ -25,7 +26,7 @@ export function NodeSelector({
     <Box className={`node-selector ${className}`.trim()}>
       <Flex align="center" gap="2" className="node-selector__header">
         <Server size={16} className="node-selector__icon" />
-        <Text size="2" weight="medium">Select Node</Text>
+        <Text size="2" weight="medium">{SystemInfoStrings.NODE_SELECTOR.SELECT_NODE}</Text>
       </Flex>
       
       <Flex gap="2" wrap="wrap" className="node-selector__nodes">
@@ -46,7 +47,7 @@ export function NodeSelector({
                 <Text size="2">{displayName}</Text>
                 {node.local && (
                   <Text size="1" className="node-selector__local-badge">
-                    local
+                    {SystemInfoStrings.NODE_SELECTOR.LOCAL_BADGE}
                   </Text>
                 )}
               </Flex>

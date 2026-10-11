@@ -3,6 +3,7 @@
 import { assign, createMachine } from 'xstate';
 import { restClient, parseApiError } from '../../../../../../interface/api';
 import { LogFile, LogSortField, SortDirection, LOGS_API } from './types';
+import LogsStrings from '../../../../constants/pages/settings/support/LogsStrings';
 
 export interface LogsListContext {
   logs: LogFile[];
@@ -73,7 +74,7 @@ export const logsListMachine = createMachine<LogsListContext, LogsListEvent>(
         error: null,
       }),
       setError: assign({
-        error: (_, event) => (event as FetchErrorEvent).data?.message ?? 'Failed to load log files',
+        error: (_, event) => (event as FetchErrorEvent).data?.message ?? LogsStrings.LIST_MACHINE.FAILED_LOAD_LOG_FILES,
       }),
       setFilter: assign({
         filter: (_, event) => (event as SetFilterEvent).value,
@@ -93,7 +94,7 @@ export const logsListMachine = createMachine<LogsListContext, LogsListEvent>(
           return Array.isArray(data) ? data : [];
         } catch (err: any) {
           const apiError = parseApiError(err);
-          throw new Error(apiError.message || 'Failed to load log files');
+          throw new Error(apiError.message || LogsStrings.LIST_MACHINE.FAILED_LOAD_LOG_FILES);
         }
       },
     },

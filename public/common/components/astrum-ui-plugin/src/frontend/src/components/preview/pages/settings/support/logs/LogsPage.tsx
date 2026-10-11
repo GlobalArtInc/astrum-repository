@@ -11,6 +11,8 @@ import { LogsList } from './LogsList';
 import { LogViewer } from './LogViewer';
 
 import './LogsPage.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
+import LogsStrings from '../../../../constants/pages/settings/support/LogsStrings';
 
 const ROUTE_LIST = 'preview.admin.support.logs.list';
 const ROUTE_DETAIL = 'preview.admin.support.logs.detail';
@@ -58,13 +60,13 @@ export function LogsPage() {
   const renderHeader = () => {
     if (viewMode === 'list') {
       const breadcrumbs = [
-        { label: 'Settings', onClick: navigateToSettings },
-        { label: 'Logs' },
+        { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+        { label: LogsStrings.PAGE.LOGS },
       ];
       return (
         <PageHeader
-          title="Logs"
-          description="View the current log contents"
+          title={LogsStrings.PAGE.LOGS}
+          description={LogsStrings.PAGE.VIEW_CURRENT_LOG_CONTENTS}
           breadcrumbs={breadcrumbs}
           className="logs-page__header"
         />
@@ -73,14 +75,14 @@ export function LogsPage() {
 
     const decodedLog = selectedLog ?? '';
     const breadcrumbs = [
-      { label: 'Settings', onClick: navigateToSettings },
-      { label: 'Logs', onClick: handleBack },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+      { label: LogsStrings.PAGE.LOGS, onClick: handleBack },
       { label: decodedLog },
     ];
 
     return (
       <PageHeader
-        title="Log Viewer"
+        title={LogsStrings.PAGE.LOG_VIEWER}
         description={decodedLog}
         breadcrumbs={breadcrumbs}
         className="logs-page__header"
@@ -91,20 +93,20 @@ export function LogsPage() {
   // No permission state
   if (!canRead) {
     const breadcrumbs = [
-      { label: 'Settings', onClick: navigateToSettings },
-      { label: 'Logs' },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: navigateToSettings },
+      { label: LogsStrings.PAGE.LOGS },
     ];
     return (
       <Box className="logs-page" data-testid="logs-page">
         <PageHeader
-          title="Logs"
-          description="View the current log contents"
+          title={LogsStrings.PAGE.LOGS}
+          description={LogsStrings.PAGE.VIEW_CURRENT_LOG_CONTENTS}
           breadcrumbs={breadcrumbs}
           className="logs-page__header"
         />
 
         <SettingsAlert type="warning">
-          You do not have permission to view logs.
+          {LogsStrings.PAGE.YOU_DO_NOT_HAVE_PERMISSION}
         </SettingsAlert>
       </Box>
     );
@@ -121,8 +123,7 @@ export function LogsPage() {
             <Flex align="center" gap="2">
               <AlertTriangle size={16} />
               <Text>
-                Logs are not available via the UI in a clustered environment.
-                Please access log files directly from the file system on each node.
+                {LogsStrings.PAGE.LOGS_NOT_AVAILABLE_VIA_UI}
               </Text>
             </Flex>
           </SettingsAlert>
@@ -143,10 +144,10 @@ export function LogsPage() {
       {/* Help Section - only shown in list view */}
       {viewMode === 'list' && (
         <HelpSection
-          title="About Logs"
-          content="View and download log files from the Astrum Repository server. The main log file is astrum.log which contains application logs. You can insert markers into the log to help identify specific events."
+          title={LogsStrings.PAGE.ABOUT_LOGS}
+          content={LogsStrings.PAGE.VIEW_DOWNLOAD_LOG_FILES_ASTRUM}
           docLink={{
-            label: 'View Documentation',
+            label: CommonStrings.ACTIONS.VIEW_DOCUMENTATION,
             href: 'https://help.globalart.dev/en/logging-configuration.html',
           }}
         />

@@ -11,6 +11,8 @@ import { SettingsFormSection, SettingsButton, SettingsAlert } from '../../../../
 import { PageHeader } from '../../../../shared';
 
 import './SupportRequestPage.scss';
+import SupportRequestStrings from '../../../../constants/pages/settings/support/SupportRequestStrings';
+import CommonStrings from '../../../../constants/CommonStrings';
 
 interface SupportRequestPageProps {
   className?: string;
@@ -58,16 +60,16 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
       >
         {/* Header */}
         <PageHeader
-          title="Support Request"
-          description="Submit a support request to GlobalArt"
+          title={SupportRequestStrings.PAGE.SUPPORT_REQUEST}
+          description={SupportRequestStrings.PAGE.SUBMIT_SUPPORT_REQUEST_GLOBALART}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
-            { label: 'Support Request' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: SupportRequestStrings.PAGE.SUPPORT_REQUEST },
           ]}
         />
 
         <SettingsAlert type="warning" data-testid="support-request-pro-only-warning">
-          Support Request is only available in Astrum Repository Pro Edition.
+          {SupportRequestStrings.PAGE.SUPPORT_REQUEST_ONLY_AVAILABLE_ASTRUM}
         </SettingsAlert>
       </Box>
     );
@@ -83,16 +85,16 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
       >
         {/* Header */}
         <PageHeader
-          title="Support Request"
-          description="Submit a support request to GlobalArt"
+          title={SupportRequestStrings.PAGE.SUPPORT_REQUEST}
+          description={SupportRequestStrings.PAGE.SUBMIT_SUPPORT_REQUEST_GLOBALART}
           breadcrumbs={[
-            { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
-            { label: 'Support Request' },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: SupportRequestStrings.PAGE.SUPPORT_REQUEST },
           ]}
         />
 
         <SettingsAlert type="warning" data-testid="support-request-permission-warning">
-          You do not have permission to submit support requests. Contact an administrator.
+          {SupportRequestStrings.PAGE.YOU_DO_NOT_HAVE_PERMISSION}
         </SettingsAlert>
       </Box>
     );
@@ -106,24 +108,23 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
     >
       {/* Header */}
       <PageHeader
-        title="Support Request"
-        description="Submit a support request to GlobalArt"
+        title={SupportRequestStrings.PAGE.SUPPORT_REQUEST}
+        description={SupportRequestStrings.PAGE.SUBMIT_SUPPORT_REQUEST_GLOBALART}
         breadcrumbs={[
-          { label: 'Settings', onClick: () => { window.location.hash = '#preview/admin/settings'; } },
-          { label: 'Support Request' },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+          { label: SupportRequestStrings.PAGE.SUPPORT_REQUEST },
         ]}
       />
 
       {/* Main Content Section */}
       <SettingsFormSection
-        title="Submit a Support Request"
-        description="Get help from GlobalArt's expert support team"
+        title={SupportRequestStrings.PAGE.SUBMIT_SUPPORT_REQUEST}
+        description={SupportRequestStrings.PAGE.GET_HELP_GLOBALARTS_EXPERT_SUPPORT}
       >
         {/* Instructions */}
         <Box className="support-request-page__content">
           <Text as="p" size="2" className="support-request-page__text">
-            Please include a complete description of your problem and steps to allow us to reproduce
-            the problem (if available).
+            {SupportRequestStrings.PAGE.PLEASE_INCLUDE_COMPLETE_DESCRIPTION_PROBLEM}
           </Text>
 
           {/* Support ZIP recommendation */}
@@ -133,7 +134,7 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
                 <Info size={16} />
               </Callout.Icon>
               <Callout.Text>
-                Attaching a support ZIP to your request will help our engineers give you a faster response.
+                {SupportRequestStrings.PAGE.ATTACHING_SUPPORT_ZIP_REQUEST_HELP}
               </Callout.Text>
             </Callout.Root>
             <Box mt="2">
@@ -147,7 +148,7 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
                 className="support-request-page__link"
               >
                 <FileArchive size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                Generate a Support ZIP
+                {SupportRequestStrings.PAGE.GENERATE_SUPPORT_ZIP}
               </Link>
             </Box>
           </Box>
@@ -160,7 +161,7 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
               icon={ExternalLink}
               data-testid="support-request-submit-button"
             >
-              Submit Support Request
+              {SupportRequestStrings.PAGE.SUBMIT_SUPPORT_REQUEST_2}
             </SettingsButton>
           </Box>
         </Box>
