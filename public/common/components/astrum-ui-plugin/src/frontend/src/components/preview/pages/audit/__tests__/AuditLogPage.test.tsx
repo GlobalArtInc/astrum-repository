@@ -128,6 +128,12 @@ describe('AuditLogPage', () => {
       expect(screen.getByRole('columnheader', { name: 'Initiator' })).toBeInTheDocument();
     });
 
+    it('keeps the columns of the table readable on narrow screens and scrolls it sideways instead', () => {
+      renderWithTheme(<AuditLogPage />);
+
+      expect(screen.getByTestId('audit-log-table')).toHaveStyle({ minWidth: '760px' });
+    });
+
     it('should render all audit events in the table', () => {
       renderWithTheme(<AuditLogPage />);
 

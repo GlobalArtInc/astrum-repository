@@ -318,7 +318,7 @@ export function AuditLogPage() {
               <Card>
                 <Inset>
                   <Box style={{ overflowX: 'auto' }}>
-                    <Table.Root size="2">
+                    <Table.Root size="2" style={{ minWidth: 760 }} data-testid="audit-log-table">
                       <Table.Header>
                         <Table.Row>
                           <Table.ColumnHeaderCell style={{ width: '40px' }}></Table.ColumnHeaderCell>
