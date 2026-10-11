@@ -126,6 +126,15 @@ describe('UploadRepositoryListPage', () => {
 
       expect(screen.getByTestId('upload-page')).toBeInTheDocument();
     });
+
+    it('offers the filter button and the sort above the table only where the sidebar is hidden', () => {
+      renderWithTheme(<UploadRepositoryListPage />);
+
+      const controls = screen.getByTestId('upload-list-mobile-controls');
+      expect(controls).toHaveClass('rt-r-display-flex', 'sm:rt-r-display-none');
+      expect(within(controls).getByRole('button', { name: /filters/i })).toBeInTheDocument();
+      expect(within(controls).getByRole('combobox')).toBeInTheDocument();
+    });
   });
 
   describe('Loading State', () => {

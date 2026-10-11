@@ -204,18 +204,25 @@ export function UploadRepositoryListPage(): JSX.Element {
                     )}
                   </TextField.Root>
                 </Box>
-                <Button
-                  variant="outline"
-                  size="2"
-                  color="gray"
-                  onClick={() => setShowMobileFilters(true)}
-                  aria-label={UploadStrings.LIST_PAGE.OPEN_FILTERS_ARIA}
+                {/* The sidebar holds the filters and the sort from the width it shows at */}
+                <Flex
+                  gap="3"
+                  align="center"
                   display={{ initial: 'flex', sm: 'none' }}
+                  data-testid="upload-list-mobile-controls"
                 >
-                  <Filter size={14} />
-                  {CommonStrings.ACTIONS.FILTER}
-                </Button>
-                {renderSortDropdown()}
+                  <Button
+                    variant="outline"
+                    size="2"
+                    color="gray"
+                    onClick={() => setShowMobileFilters(true)}
+                    aria-label={UploadStrings.LIST_PAGE.OPEN_FILTERS_ARIA}
+                  >
+                    <Filter size={14} />
+                    {CommonStrings.ACTIONS.FILTER}
+                  </Button>
+                  {renderSortDropdown()}
+                </Flex>
               </Flex>
             </Box>
 
