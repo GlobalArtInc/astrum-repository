@@ -148,7 +148,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
         )}
 
         {profileLoaded && !isExternal && (
-          <Box mt="5" data-testid="account-details-form">
+          <Flex direction="column" gap="3" mt="5" data-testid="account-details-form">
             <Box className="user-account-page__details">
               <SettingsTextInput
                 {...details.field('firstName')}
@@ -170,7 +170,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               autoComplete="email"
               required
             />
-            <Flex gap="2" mt="4">
+            <Flex gap="2" mt="2">
               <Button
                 type="button"
                 variant="solid"
@@ -192,7 +192,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
                 {UserPagesStrings.ACCOUNT.DISCARD}
               </Button>
             </Flex>
-          </Box>
+          </Flex>
         )}
       </SettingsFormSection>
 
@@ -202,32 +202,34 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
             {UserPagesStrings.ACCOUNT.UPDATE_ACCOUNT_PASSWORD_PASSWORD_MUST}
           </Text>
 
-          <SettingsPasswordInput
-            name="currentPassword"
-            label={UserPagesStrings.ACCOUNT.CURRENT_PASSWORD}
-            value={data.currentPassword}
-            onChange={(value) => form.send({ type: 'UPDATE', name: 'currentPassword', value })}
-            required
-          />
+          <Flex direction="column" gap="3" data-testid="change-password-fields">
+            <SettingsPasswordInput
+              name="currentPassword"
+              label={UserPagesStrings.ACCOUNT.CURRENT_PASSWORD}
+              value={data.currentPassword}
+              onChange={(value) => form.send({ type: 'UPDATE', name: 'currentPassword', value })}
+              required
+            />
 
-          <SettingsPasswordInput
-            name="newPassword"
-            label={UserPagesStrings.ACCOUNT.NEW_PASSWORD}
-            value={data.newPassword}
-            onChange={(value) => form.send({ type: 'UPDATE', name: 'newPassword', value })}
-            error={touched.newPassword ? validationErrors.newPassword ?? undefined : undefined}
-            helpText={UserPagesStrings.ACCOUNT.MINIMUM_8_CHARACTERS}
-            required
-          />
+            <SettingsPasswordInput
+              name="newPassword"
+              label={UserPagesStrings.ACCOUNT.NEW_PASSWORD}
+              value={data.newPassword}
+              onChange={(value) => form.send({ type: 'UPDATE', name: 'newPassword', value })}
+              error={touched.newPassword ? validationErrors.newPassword ?? undefined : undefined}
+              helpText={UserPagesStrings.ACCOUNT.MINIMUM_8_CHARACTERS}
+              required
+            />
 
-          <SettingsPasswordInput
-            name="confirmPassword"
-            label={UserPagesStrings.ACCOUNT.CONFIRM_NEW_PASSWORD}
-            value={data.confirmPassword}
-            onChange={(value) => form.send({ type: 'UPDATE', name: 'confirmPassword', value })}
-            error={touched.confirmPassword ? validationErrors.confirmPassword ?? undefined : undefined}
-            required
-          />
+            <SettingsPasswordInput
+              name="confirmPassword"
+              label={UserPagesStrings.ACCOUNT.CONFIRM_NEW_PASSWORD}
+              value={data.confirmPassword}
+              onChange={(value) => form.send({ type: 'UPDATE', name: 'confirmPassword', value })}
+              error={touched.confirmPassword ? validationErrors.confirmPassword ?? undefined : undefined}
+              required
+            />
+          </Flex>
 
           <Flex gap="2" mt="4">
             <Button
@@ -244,6 +246,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               type="button"
               variant="outline"
               size="2"
+              disabled={form.isPristine || form.isSaving}
               onClick={() => form.reset()}
               data-testid="change-password-cancel"
             >

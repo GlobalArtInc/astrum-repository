@@ -227,13 +227,17 @@ describe('UserAccountPage', () => {
       expect(screen.getByLabelText(/Current Password/)).toBeInTheDocument();
     });
 
+    const discardButton = screen.getByTestId('change-password-cancel');
+    expect(discardButton).toBeDisabled();
+
     const currentPasswordInput = screen.getByLabelText(/Current Password/);
     fireEvent.change(currentPasswordInput, { target: { value: 'oldpassword' } });
 
-    const discardButton = screen.getByTestId('change-password-cancel');
+    expect(discardButton).toBeEnabled();
     fireEvent.click(discardButton);
 
     expect(currentPasswordInput).toHaveValue('');
+    expect(discardButton).toBeDisabled();
   });
 
   describe('Security section (spec xhpg)', () => {

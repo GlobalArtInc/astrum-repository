@@ -68,7 +68,7 @@
   &__details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0 var(--space-4);
+    gap: var(--space-3) var(--space-4);
   }
 
   &__section-description {
