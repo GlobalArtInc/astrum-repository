@@ -53,7 +53,7 @@ describe('ThemeContext', () => {
       );
 
       expect(screen.getByTestId('theme')).toHaveTextContent(THEMES.DARK);
-      expect(screen.getByTestId('effective-theme')).toHaveTextContent(THEMES.LIGHT);
+      expect(screen.getByTestId('effective-theme')).toHaveTextContent(THEMES.DARK);
     });
   });
 
@@ -89,13 +89,13 @@ describe('ThemeContext', () => {
   });
 
   describe('Theme state management', () => {
-    it('should prefer the dark theme by default and keep the Classic UI light', () => {
+    it('should prefer the dark theme by default on every page', () => {
       const { result } = renderHook(() => useTheme(), {
         wrapper: ThemeProvider,
       });
 
       expect(result.current.theme).toBe(THEMES.DARK);
-      expect(result.current.effectiveTheme).toBe(THEMES.LIGHT);
+      expect(result.current.effectiveTheme).toBe(THEMES.DARK);
     });
 
     it('should set light theme', () => {
@@ -181,14 +181,14 @@ describe('ThemeContext', () => {
       expect(localStorage.getItem('astrum-theme-preference')).toBe(THEMES.DARK);
     });
 
-    it('should load theme preference from localStorage on mount but keep effectiveTheme light outside Preview UI', () => {
-      localStorage.setItem('astrum-theme-preference', THEMES.DARK);
+    it('should load theme preference from localStorage on mount', () => {
+      localStorage.setItem('astrum-theme-preference', THEMES.LIGHT);
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ThemeProvider,
       });
 
-      expect(result.current.theme).toBe(THEMES.DARK);
+      expect(result.current.theme).toBe(THEMES.LIGHT);
       expect(result.current.effectiveTheme).toBe(THEMES.LIGHT);
     });
 
@@ -216,12 +216,55 @@ describe('ThemeContext', () => {
     });
   });
 
-  describe('Classic UI / Preview UI transition (ASTRUM-52210)', () => {
+  describe('Pages at the root of the hash and the sign-in page', () => {
     afterEach(() => {
       window.location.hash = '';
     });
 
-    it('should initialize effectiveTheme as light when not in Preview UI, even if localStorage has dark', () => {
+    it.each([
+      ['#browse/welcome'],
+      ['#admin/security/users'],
+      ['#settings'],
+      ['#preview/browse/welcome'],
+      ['#404'],
+    ])('should follow the dark preference on %s', (hash) => {
+      localStorage.setItem('astrum-theme-preference', THEMES.DARK);
+      window.location.hash = hash;
+
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      expect(result.current.effectiveTheme).toBe(THEMES.DARK);
+      expect(document.documentElement.getAttribute('data-theme')).toBe(THEMES.DARK);
+    });
+
+    it.each([['#/login'], ['#login'], ['#/login?returnTo=I2FkbWlu']])(
+      'should render the sign-in page %s light, even if localStorage has dark', (hash) => {
+        localStorage.setItem('astrum-theme-preference', THEMES.DARK);
+        window.location.hash = hash;
+
+        const { result } = renderHook(() => useTheme(), {
+          wrapper: ThemeProvider,
+        });
+
+        expect(result.current.theme).toBe(THEMES.DARK);
+        expect(result.current.effectiveTheme).toBe(THEMES.LIGHT);
+        expect(document.documentElement.getAttribute('data-theme')).toBe(THEMES.LIGHT);
+      });
+
+    it('should not take a page that only mentions login for the sign-in page', () => {
+      localStorage.setItem('astrum-theme-preference', THEMES.DARK);
+      window.location.hash = '#browse/search?q=login';
+
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: ThemeProvider,
+      });
+
+      expect(result.current.effectiveTheme).toBe(THEMES.DARK);
+    });
+
+    it('should switch to light on the sign-in page and restore dark when leaving it', () => {
       localStorage.setItem('astrum-theme-preference', THEMES.DARK);
       window.location.hash = '#browse/welcome';
 
@@ -229,49 +272,38 @@ describe('ThemeContext', () => {
         wrapper: ThemeProvider,
       });
 
-      expect(result.current.theme).toBe(THEMES.DARK);
-      expect(result.current.effectiveTheme).toBe(THEMES.LIGHT);
-    });
-
-    it('should reset effectiveTheme to light when navigating from Preview UI to Classic UI', () => {
-      localStorage.setItem('astrum-theme-preference', THEMES.DARK);
-      window.location.hash = '#preview/browse/welcome';
-
-      const { result } = renderHook(() => useTheme(), {
-        wrapper: ThemeProvider,
-      });
-
       expect(result.current.effectiveTheme).toBe(THEMES.DARK);
 
       act(() => {
-        window.location.hash = '#browse/welcome';
+        window.location.hash = '#/login';
         window.dispatchEvent(new HashChangeEvent('hashchange'));
       });
 
       expect(result.current.effectiveTheme).toBe(THEMES.LIGHT);
+
+      act(() => {
+        window.location.hash = '#admin/security/users';
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+      });
+
+      expect(result.current.effectiveTheme).toBe(THEMES.DARK);
     });
 
-    it('should restore dark effectiveTheme when navigating back to Preview UI after Classic UI visit', () => {
+    it('should keep dark when navigating between pages', () => {
       localStorage.setItem('astrum-theme-preference', THEMES.DARK);
-      window.location.hash = '#preview/browse/welcome';
+      window.location.hash = '#browse/welcome';
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ThemeProvider,
       });
 
       act(() => {
-        window.location.hash = '#browse/welcome';
-        window.dispatchEvent(new HashChangeEvent('hashchange'));
-      });
-
-      expect(result.current.effectiveTheme).toBe(THEMES.LIGHT);
-
-      act(() => {
-        window.location.hash = '#preview/browse/welcome';
+        window.location.hash = '#settings';
         window.dispatchEvent(new HashChangeEvent('hashchange'));
       });
 
       expect(result.current.effectiveTheme).toBe(THEMES.DARK);
+      expect(document.documentElement.getAttribute('data-theme')).toBe(THEMES.DARK);
     });
   });
 
@@ -288,9 +320,8 @@ describe('ThemeContext', () => {
       expect(document.documentElement.getAttribute('data-theme')).toBe(THEMES.LIGHT);
     });
 
-    it('should apply dark theme to document root when on Preview UI', () => {
-      // Dark mode only applies on Preview UI routes
-      window.location.hash = '#preview/browse/welcome';
+    it('should apply dark theme to document root', () => {
+      window.location.hash = '#browse/welcome';
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ThemeProvider,

@@ -66,7 +66,7 @@ function Highlighted({text, query}) {
  * - Classic UI: the search route `#browse/search/generic=keyword=<query>`, repositories and components in its
  *   browse route
  */
-export default function SearchRadix({ isPreviewUI = false }) {
+export default function SearchRadix({ isPreviewUI = true }) {
   const [searchValue, setSearchValue] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);

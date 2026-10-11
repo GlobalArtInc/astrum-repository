@@ -58,7 +58,7 @@ function getStoredTheme() {
   } catch (error) {
     console.warn('Failed to read theme preference from localStorage:', error);
   }
-  // Dark by default; the Classic UI still renders light, see the effect in ThemeProvider
+  // Dark by default; the sign-in page still renders light, see the effect in ThemeProvider
   return THEMES.DARK;
 }
 
@@ -124,42 +124,42 @@ function resolveEffectiveTheme(theme) {
   return theme;
 }
 
+/**
+ * Whether a URL hash opens the sign-in page, which always renders light.
+ * @param {string} hash
+ * @returns {boolean}
+ */
+function isLoginHash(hash) {
+  return /^#\/?login(?:[/?]|$)/.test(hash || '');
+}
+
+function currentHash() {
+  return typeof window !== 'undefined' ? window.location.hash : '';
+}
+
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => getStoredTheme());
   const [effectiveTheme, setEffectiveTheme] = useState(() => {
-    const stored = getStoredTheme();
-    const resolved = resolveEffectiveTheme(stored);
-    const hash = typeof window !== 'undefined' ? window.location.hash : '';
-    return hash.includes('preview/') ? resolved : THEMES.LIGHT;
+    const resolved = resolveEffectiveTheme(getStoredTheme());
+    return isLoginHash(currentHash()) ? THEMES.LIGHT : resolved;
   });
 
   // Apply theme to document root whenever effectiveTheme changes.
-  // Dark mode only applies on Preview UI routes -- Default UI (ExtJS/RSC)
-  // does not support dark mode and must always render in light mode.
-  // Login route always uses light since Heritage login doesn't support dark.
+  // Every page follows the preference except the sign-in page, which always uses light.
   useEffect(() => {
-    const hash = typeof window !== 'undefined' ? window.location.hash : '';
-    const isPreviewUI = hash.includes('preview/');
-    const isLoginRoute = hash.includes('login');
-    const appliedTheme = isPreviewUI && !isLoginRoute ? effectiveTheme : THEMES.LIGHT;
-    applyTheme(appliedTheme);
+    applyTheme(isLoginHash(currentHash()) ? THEMES.LIGHT : effectiveTheme);
 
-    // Re-check on hash changes (user toggles between Default/Preview)
-    // When switching to Preview UI, restore the persisted theme preference.
-    // Login and Heritage routes always use light.
+    // Re-check on hash changes: leaving the sign-in page restores the persisted preference.
     function onHashChange() {
-      const hash = window.location.hash;
-      const preview = hash.includes('preview/');
-      const login = hash.includes('login');
-      if (preview && !login) {
+      if (isLoginHash(window.location.hash)) {
+        setEffectiveTheme(THEMES.LIGHT);
+        applyTheme(THEMES.LIGHT);
+      } else {
         const stored = getStoredTheme();
         const resolved = resolveEffectiveTheme(stored);
         setThemeState(stored);
         setEffectiveTheme(resolved);
         applyTheme(resolved);
-      } else {
-        setEffectiveTheme(THEMES.LIGHT);
-        applyTheme(THEMES.LIGHT);
       }
     }
     window.addEventListener('hashchange', onHashChange);

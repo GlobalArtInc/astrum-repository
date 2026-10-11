@@ -48,8 +48,6 @@ const EVENT_COLORS: Record<NotificationEvent, 'green' | 'blue' | 'red'> = {
   deleted: 'red',
 };
 
-const isPreview = () => /^#\/?preview/.test(window.location.hash);
-
 const openSettingsHub = () => {
   window.location.hash = '#preview/admin/settings';
 };
@@ -228,14 +226,10 @@ export function NotificationsPage() {
           title={LABELS.TITLE}
           description={LABELS.DESCRIPTION}
           actions={channels.length > 0 ? createButton : undefined}
-          breadcrumbs={
-            isPreview()
-              ? [
-                  { label: LABELS.BREADCRUMB_SETTINGS, onClick: openSettingsHub },
-                  { label: LABELS.TITLE },
-                ]
-              : undefined
-          }
+          breadcrumbs={[
+            { label: LABELS.BREADCRUMB_SETTINGS, onClick: openSettingsHub },
+            { label: LABELS.TITLE },
+          ]}
         />
       </Box>
 

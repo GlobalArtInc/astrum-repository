@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {renderHook} from '@testing-library/react';
 import {useContextAwareRouteName} from '../useContextAwareRouteName';
@@ -10,16 +9,21 @@ function wrapper(isPreview: boolean) {
 }
 
 describe('useContextAwareRouteName', () => {
-  it('returns the name unchanged when not in preview mode', () => {
-    const {result} = renderHook(() => useContextAwareRouteName('browse.search'), {
-      wrapper: wrapper(false),
-    });
-    expect(result.current).toBe('browse.search');
+  it('prefixes with preview. outside a provider', () => {
+    const {result} = renderHook(() => useContextAwareRouteName('browse.search'));
+    expect(result.current).toBe('preview.browse.search');
   });
 
   it('prefixes with preview. when in preview mode', () => {
     const {result} = renderHook(() => useContextAwareRouteName('browse.search'), {
       wrapper: wrapper(true),
+    });
+    expect(result.current).toBe('preview.browse.search');
+  });
+
+  it('prefixes with preview. even under a provider that says otherwise, since only Astrum One states exist', () => {
+    const {result} = renderHook(() => useContextAwareRouteName('browse.search'), {
+      wrapper: wrapper(false),
     });
     expect(result.current).toBe('preview.browse.search');
   });
@@ -31,17 +35,10 @@ describe('useContextAwareRouteName', () => {
     expect(result.current).toBeUndefined();
   });
 
-  it('keeps already-prefixed preview. name in preview mode', () => {
-    const {result} = renderHook(() => useContextAwareRouteName('preview.browse.search'), {
-      wrapper: wrapper(true),
-    });
-    expect(result.current).toBe('preview.browse.search');
-  });
-
-  it('strips preview. prefix when not in preview mode', () => {
+  it('keeps an already-prefixed preview. name', () => {
     const {result} = renderHook(() => useContextAwareRouteName('preview.browse.search'), {
       wrapper: wrapper(false),
     });
-    expect(result.current).toBe('browse.search');
+    expect(result.current).toBe('preview.browse.search');
   });
 });

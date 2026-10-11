@@ -36,8 +36,7 @@ export function SessionExpiryModal({
 
     // Don't return to test hub or other internal routes after login
     // These routes require debug mode and special localStorage flags
-    const isInternalRoute = currentUrl?.includes('/test') ||
-                            currentUrl?.includes('preview.test');
+    const isInternalRoute = /^#\/?(?:preview\/)?test(?:[-/?]|$)/.test(currentUrl || '');
 
     // Store URL for redirect after login (but not for internal routes)
     if (currentUrl && !isInternalRoute) {

@@ -59,13 +59,13 @@ function getDisplayName(suggestion) {
  * - Default UI: Navigate to #browse/search/generic=keyword=<query>
  *
  * @param {Object} props
- * @param {boolean} [props.isPreviewUI=false] - Whether we're in Preview UI mode
+ * @param {boolean} [props.isPreviewUI=true] - Whether we're in Preview UI mode, the only UI there is
  * @param {Object} props.routes - Route configuration for navigation
  * @param {string} props.routes.searchGeneric - Route name for generic search (e.g., 'browse.search.generic')
  * @param {string} props.routes.previewSearchUnified - Route name for unified search (e.g., 'preview.browse.search.unified')
  * @param {string} props.routes.previewSearchComponent - Route name for component detail (e.g., 'preview.browse.search.component')
  */
-export default function SearchRadix({ isPreviewUI = false, routes }) {
+export default function SearchRadix({ isPreviewUI = true, routes }) {
   const [searchValue, setSearchValue] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);

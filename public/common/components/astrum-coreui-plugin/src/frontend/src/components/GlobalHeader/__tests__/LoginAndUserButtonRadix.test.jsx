@@ -83,7 +83,7 @@ describe('LoginAndUserButtonRadix', () => {
     jest.clearAllMocks();
     mockHasUser = true;
     mockUser = {id: 'admin', authenticated: true};
-    window.location.hash = '#preview/browse/welcome';
+    window.location.hash = '#browse/welcome';
   });
 
   it('shows the signed-in user as a round avatar with initials', () => {
@@ -112,6 +112,16 @@ describe('LoginAndUserButtonRadix', () => {
     expect(screen.getByRole('menuitem', {name: /My Account/})).toHaveAttribute('href', '#preview.user.account');
     expect(screen.getByTestId('user-menu-access-tokens')).toHaveAttribute('href', '#preview.user.accesstokens');
     expect(screen.getByRole('menuitem', {name: /Log Out/})).toBeInTheDocument();
+  });
+
+  it('links the menu to the Astrum One pages of the account on every page', async () => {
+    window.location.hash = '#admin/security/users';
+    renderButton();
+
+    openMenu();
+
+    expect(await screen.findByRole('menuitem', {name: /My Account/})).toHaveAttribute('href', '#preview.user.account');
+    expect(screen.getByTestId('user-menu-access-tokens')).toHaveAttribute('href', '#preview.user.accesstokens');
   });
 
   it('signs out and returns to the light theme', async () => {

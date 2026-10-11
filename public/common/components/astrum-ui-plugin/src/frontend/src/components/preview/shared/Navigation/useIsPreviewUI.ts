@@ -1,24 +1,12 @@
 
-
-import { useState, useEffect } from 'react';
-
 /**
- * Hook to detect if we're in Preview UI mode.
- * Checks if the URL hash starts with '#preview'.
+ * Hook to detect if we're in Preview UI (Astrum One) mode.
  *
- * @returns {boolean} True if the current route is in Preview UI mode
+ * The Classic UI is retired and Astrum One owns every URL, so the answer is always yes. The hook stays so the
+ * components that ask keep working until their Classic branches are removed.
+ *
+ * @returns {boolean} Always true
  */
 export function useIsPreviewUI(): boolean {
-  const [isPreview, setIsPreview] = useState(() => window.location.hash.startsWith('#preview'));
-
-  useEffect(() => {
-    function checkPreview() {
-      setIsPreview(window.location.hash.startsWith('#preview'));
-    }
-
-    window.addEventListener('hashchange', checkPreview);
-    return () => window.removeEventListener('hashchange', checkPreview);
-  }, []);
-
-  return isPreview;
+  return true;
 }

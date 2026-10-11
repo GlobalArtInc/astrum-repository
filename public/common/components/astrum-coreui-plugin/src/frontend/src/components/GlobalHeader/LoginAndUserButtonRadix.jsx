@@ -64,36 +64,10 @@ export default function LoginAndUserButtonRadix() {
   const userNugetApiTokenState = router.stateRegistry.get(userNugetApiTokenName);
   const isUserNugetApiTokenEnabled = useIsVisible(userNugetApiTokenState?.data?.visibilityRequirements);
 
-  // Match GlobalHeaderRadix: Preview vs Classic is determined by the URL hash, not only
-  // whether preview states are registered (fixes user menu linking to #user/... in Preview UI).
-  const [hashPath, setHashPath] = useState(() => {
-    if (typeof window === 'undefined') {
-      return '';
-    }
-    return window.location.hash.replace(/^#/, '').split('?')[0] || '';
-  });
-  useEffect(() => {
-    const syncFromLocation = () => {
-      setHashPath(window.location.hash.replace(/^#/, '').split('?')[0] || '');
-    };
-    syncFromLocation();
-    window.addEventListener('hashchange', syncFromLocation);
-    window.addEventListener('popstate', syncFromLocation);
-    return () => {
-      window.removeEventListener('hashchange', syncFromLocation);
-      window.removeEventListener('popstate', syncFromLocation);
-    };
-  }, []);
-  const isPreviewUI = hashPath === 'preview' || hashPath.startsWith('preview/');
-
-  const userAccountState = isPreviewUI ? 'preview.user.account' : USER.ACCOUNT;
-  const accessTokensState = isPreviewUI ? 'preview.user.accesstokens' : USER.ACCESS_TOKENS;
-  const nugetApiTokenState = isPreviewUI ? 'preview.user.nugetapitoken' : USER.NUGETAPITOKEN;
-  const userTokenState = isPreviewUI ? 'preview.user.usertoken' : userTokenRouteName;
-  const {href: userAccountHref} = useSref(userAccountState);
-  const {href: accessTokensHref} = useSref(accessTokensState);
-  const {href: userNugetApiTokenHref} = useSref(nugetApiTokenState);
-  const {href: userTokenHref} = useSref(userTokenState);
+  const {href: userAccountHref} = useSref('preview.user.account');
+  const {href: accessTokensHref} = useSref('preview.user.accesstokens');
+  const {href: userNugetApiTokenHref} = useSref('preview.user.nugetapitoken');
+  const {href: userTokenHref} = useSref('preview.user.usertoken');
 
   const onSignInClick = () => {
     const url = router.urlService.url();
