@@ -23,6 +23,7 @@ import type {
 } from '../types';
 import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 import CommonStrings from '../../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../../interface/plural';
 
 export interface UsageTabProps {
   repository: RepositoryProfileData;
@@ -46,7 +47,7 @@ function formatTimestamp(epoch: number | undefined): string | null {
   if (!epoch) return null;
   try {
     const ms = epoch < 1e12 ? epoch * 1000 : epoch;
-    return new Date(ms).toLocaleString(undefined, {
+    return new Date(ms).toLocaleString(pageLanguage(), {
       month: 'short', day: 'numeric', year: 'numeric',
       hour: 'numeric', minute: '2-digit',
     });
@@ -64,7 +65,7 @@ function deriveProtectionLabel(fw: FirewallData): { label: string; color: 'green
 }
 
 function StatValue({ value, fallback = '\u2014' }: { value: number | undefined | null; fallback?: string }) {
-  const display = value != null && value >= 0 ? value.toLocaleString() : fallback;
+  const display = value != null && value >= 0 ? value.toLocaleString(pageLanguage()) : fallback;
   return <Text size="5" weight="bold">{display}</Text>;
 }
 
@@ -254,13 +255,13 @@ export function UsageTab({
                     <Box>
                       <Flex gap="1" align="baseline">
                         <StatValue value={firewall.criticalComponentCount} />
-                        <Text size="1" color="red">{RepositoryProfileStrings.USAGE_TAB.CRITICAL}</Text>
+                        <Text size="1" color="red">{RepositoryProfileStrings.USAGE_TAB.CRITICAL_LABEL}</Text>
                       </Flex>
                     </Box>
                     <Box>
                       <Flex gap="1" align="baseline">
                         <StatValue value={firewall.severeComponentCount} />
-                        <Text size="1" color="orange">{RepositoryProfileStrings.USAGE_TAB.SEVERE}</Text>
+                        <Text size="1" color="orange">{RepositoryProfileStrings.USAGE_TAB.SEVERE_LABEL}</Text>
                       </Flex>
                     </Box>
                   </Grid>

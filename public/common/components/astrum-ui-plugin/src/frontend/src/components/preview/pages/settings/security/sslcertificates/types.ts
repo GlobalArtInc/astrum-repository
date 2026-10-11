@@ -1,3 +1,4 @@
+import { pageLanguage } from '../../../../../../interface/plural';
 
 
 /**
@@ -112,7 +113,7 @@ export const CERTIFICATE_SOURCES = {
  */
 export const formatDate = (timestamp?: number): string => {
   if (!timestamp) return '';
-  return new Date(timestamp).toLocaleString();
+  return new Date(timestamp).toLocaleString(pageLanguage());
 };
 
 /**

@@ -7,6 +7,7 @@ import { useBlobStoreInfo } from '../../../../shared';
 import './BlobStoreStorageCard.scss';
 import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 interface BlobStoreStorageCardProps {
   blobStoreName: string;
@@ -96,7 +97,7 @@ export function BlobStoreStorageCard({ blobStoreName }: BlobStoreStorageCardProp
         {data.blobCount !== undefined && (
           <Box className="blob-store-card__item">
             <Text className="blob-store-card__label">{RepositoriesPageStrings.BLOB_STORE_CARD.BLOB_COUNT}</Text>
-            <Text className="blob-store-card__value">{data.blobCount.toLocaleString()}</Text>
+            <Text className="blob-store-card__value">{data.blobCount.toLocaleString(pageLanguage())}</Text>
           </Box>
         )}
 

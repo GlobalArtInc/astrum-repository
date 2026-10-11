@@ -11,6 +11,7 @@ import { ReconcileTask } from './types';
 import './RecoveryModeTasksTable.scss';
 import RecoveryModeStrings from '../../../../constants/pages/settings/support/RecoveryModeStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 type SortKey = 'name' | 'type' | 'status' | 'lastRun' | 'lastRunResult';
 
@@ -37,7 +38,7 @@ function formatLastRun(lastRun?: string | null): string {
   if (Number.isNaN(date.getTime())) {
     return PLACEHOLDER;
   }
-  return date.toLocaleString();
+  return date.toLocaleString(pageLanguage());
 }
 
 /** Radix Badge color for a task's current state. */

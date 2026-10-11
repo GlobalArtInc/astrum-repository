@@ -4,6 +4,7 @@ import React from 'react';
 import { Box, Text } from '@radix-ui/themes';
 import type { HealthCheckData, RepositoryMetrics } from './types';
 import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 // =============================================================================
 // Types
@@ -75,14 +76,14 @@ export function HealthScoreCard({
         <Box className="health-score-card__stat">
           <Text className="health-score-card__stat-label">{RepositoryProfileStrings.HEALTH_SCORE.COMPONENTS}</Text>
           <Text className="health-score-card__stat-value">
-            {metrics?.componentCount?.toLocaleString() ?? '—'}
+            {metrics?.componentCount?.toLocaleString(pageLanguage()) ?? '—'}
           </Text>
         </Box>
 
         <Box className="health-score-card__stat">
           <Text className="health-score-card__stat-label">{RepositoryProfileStrings.HEALTH_SCORE.ASSETS}</Text>
           <Text className="health-score-card__stat-value">
-            {metrics?.assetCount?.toLocaleString() ?? '—'}
+            {metrics?.assetCount?.toLocaleString(pageLanguage()) ?? '—'}
           </Text>
         </Box>
 

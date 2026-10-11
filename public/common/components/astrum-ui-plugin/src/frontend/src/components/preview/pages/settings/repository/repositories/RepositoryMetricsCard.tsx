@@ -6,6 +6,7 @@ import { Package, FileBox, AlertCircle } from 'lucide-react';
 import { useRepositoryMetrics } from '../../../../shared';
 import './RepositoryMetricsCard.scss';
 import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 interface RepositoryMetricsCardProps {
   repositoryName: string;
@@ -63,7 +64,7 @@ export function RepositoryMetricsCard({ repositoryName }: RepositoryMetricsCardP
             </Flex>
           </Text>
           <Text className="metrics-card__value">
-            {data.componentCount.toLocaleString()}
+            {data.componentCount.toLocaleString(pageLanguage())}
           </Text>
         </Box>
 
@@ -75,7 +76,7 @@ export function RepositoryMetricsCard({ repositoryName }: RepositoryMetricsCardP
             </Flex>
           </Text>
           <Text className="metrics-card__value">
-            {data.assetCount.toLocaleString()}
+            {data.assetCount.toLocaleString(pageLanguage())}
           </Text>
         </Box>
       </Box>

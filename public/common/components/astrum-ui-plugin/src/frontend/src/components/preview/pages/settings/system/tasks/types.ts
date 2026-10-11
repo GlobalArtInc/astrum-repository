@@ -1,4 +1,5 @@
 import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 
 /**
@@ -410,7 +411,7 @@ export const getTimezoneOffset = (): string => {
 export const formatDate = (date: Date | string | null | undefined): string => {
   if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleString();
+  return d.toLocaleString(pageLanguage());
 };
 
 /**

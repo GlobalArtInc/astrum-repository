@@ -32,6 +32,7 @@ import { ensureTrailingSlash } from '../../../../../../../utils/url';
 import CommonStrings from '../../../../../constants/CommonStrings';
 import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 import { formatDuration } from '../../../../../shared/utils/formatLocale';
+import { pageLanguage } from '../../../../../../../interface/plural';
 
 // =============================================================================
 // Types
@@ -320,7 +321,7 @@ export function RepositoryTab({
             <ConfigRow label={CommonStrings.LABELS.STATUS} value={blobStore.unavailable ? <Badge color="red">{RepositoryProfileStrings.REPOSITORY_TAB.UNAVAILABLE}</Badge> : <Badge color="green">{RepositoryProfileStrings.REPOSITORY_TAB.AVAILABLE}</Badge>} />
             <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.TOTAL_SIZE} value={formatBytes(blobStore.totalSizeInBytes ?? 0)} />
             <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.AVAILABLE_SPACE} value={formatBytes(blobStore.availableSpaceInBytes ?? 0)} />
-            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.BLOB_COUNT} value={(blobStore.blobCount ?? 0).toLocaleString()} />
+            <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.BLOB_COUNT} value={(blobStore.blobCount ?? 0).toLocaleString(pageLanguage())} />
             {blobStore.path && <ConfigRow label={RepositoryProfileStrings.REPOSITORY_TAB.LOCATION} value={blobStore.path} fullWidth />}
           </Grid>
         ) : (
@@ -345,7 +346,7 @@ export function RepositoryTab({
                   <Flex align="center" gap="2">
                     <Clock size={12} color="var(--gray-8)" />
                     <Text size="1" color="gray">
-                      {policy.lastRun ? RepositoryProfileStrings.REPOSITORY_TAB.LAST_RUN(new Date(policy.lastRun).toLocaleDateString()) : RepositoryProfileStrings.REPOSITORY_TAB.NEVER_RUN}
+                      {policy.lastRun ? RepositoryProfileStrings.REPOSITORY_TAB.LAST_RUN(new Date(policy.lastRun).toLocaleDateString(pageLanguage())) : RepositoryProfileStrings.REPOSITORY_TAB.NEVER_RUN}
                     </Text>
                   </Flex>
                 </Flex>

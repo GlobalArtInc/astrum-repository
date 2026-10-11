@@ -8,6 +8,7 @@ import { ExtJS } from '../../../../../../interface/ExtJS';
 import { NodeInfo, SUPPORT_ZIP_API } from './types';
 import SupportZipStrings from '../../../../constants/pages/settings/support/SupportZipStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 interface SupportZipNodeCardProps {
   node: NodeInfo;
@@ -19,7 +20,7 @@ interface SupportZipNodeCardProps {
 function formatTimestamp(value?: number): string | null {
   if (!value) return null;
   try {
-    return new Date(value).toLocaleString();
+    return new Date(value).toLocaleString(pageLanguage());
   } catch {
     return null;
   }

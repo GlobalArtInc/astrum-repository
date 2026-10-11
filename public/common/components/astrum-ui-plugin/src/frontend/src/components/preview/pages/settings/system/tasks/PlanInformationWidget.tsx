@@ -6,6 +6,7 @@ import { Box, Flex, Text } from '@radix-ui/themes';
 import { Loader2, AlertCircle, AlertTriangle } from 'lucide-react';
 import { planInformationMachine } from './planInformationMachine';
 import TasksStrings from '../../../../constants/pages/settings/system/TasksStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 const EMPTY = 'N/A';
 
@@ -16,7 +17,7 @@ function formatLongDateTime(value: string | null): string {
   if (Number.isNaN(d.getTime())) return EMPTY;
   // Intentional improvement over Classic (which used a fixed US-locale format): delegate to the
   // user's browser locale so dates render naturally in their local format.
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(pageLanguage(), {
     year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 }

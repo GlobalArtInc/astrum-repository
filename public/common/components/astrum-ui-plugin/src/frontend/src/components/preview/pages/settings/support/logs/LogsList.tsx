@@ -5,6 +5,7 @@ import { Box, Flex, Text, Table } from '@radix-ui/themes';
 import { Search, Pencil, ArrowUp, ArrowDown, FileText, Loader2 } from 'lucide-react';
 import { HumanReadableUtils } from '../../../../../../interface/HumanReadableUtils';
 import { DateTime } from 'luxon';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 import { SettingsTextInput, SettingsAlert } from '../../../../shared/form';
 import { useLogsList } from './useLogsList';
@@ -46,7 +47,7 @@ export function LogsList({ onSelect }: LogsListProps) {
   };
 
   const formatDate = (timestamp: number): string => {
-    return DateTime.fromMillis(timestamp).toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS);
+    return DateTime.fromMillis(timestamp).toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS, { locale: pageLanguage() });
   };
 
   if (isLoading) {

@@ -14,6 +14,7 @@ import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
 import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 export interface FirewallCardProps {
   repositoryName: string;
@@ -257,22 +258,22 @@ export function FirewallCard({
         <Grid columns="3" gap="2">
           <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--red-2)', borderRadius: '4px' }}>
             <Text size="1" color="red">{RepositoryProfileStrings.FIREWALL_CARD.CRITICAL}</Text>
-            <Text size="4" weight="bold" color="red">{critical.toLocaleString()}</Text>
+            <Text size="4" weight="bold" color="red">{critical.toLocaleString(pageLanguage())}</Text>
           </Flex>
           <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--orange-2)', borderRadius: '4px' }}>
             <Text size="1" color="orange">{RepositoryProfileStrings.FIREWALL_CARD.SEVERE}</Text>
-            <Text size="4" weight="bold" color="orange">{severe.toLocaleString()}</Text>
+            <Text size="4" weight="bold" color="orange">{severe.toLocaleString(pageLanguage())}</Text>
           </Flex>
           <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--yellow-2)', borderRadius: '4px' }}>
             <Text size="1" color="yellow">{RepositoryProfileStrings.FIREWALL_CARD.MODERATE}</Text>
-            <Text size="4" weight="bold" color="yellow">{moderate.toLocaleString()}</Text>
+            <Text size="4" weight="bold" color="yellow">{moderate.toLocaleString(pageLanguage())}</Text>
           </Flex>
         </Grid>
 
         {/* ---- Components + quarantine summary ---- */}
         <Text size="1" color="gray">
-          {RepositoryProfileStrings.FIREWALL_CARD.VIOLATIONS_SUMMARY(totalViolations.toLocaleString(), affected.toLocaleString())}
-          {quarantined > 0 && ` · ${RepositoryProfileStrings.FIREWALL_CARD.QUARANTINED_COUNT(quarantined.toLocaleString())}`}
+          {RepositoryProfileStrings.FIREWALL_CARD.VIOLATIONS_SUMMARY(totalViolations.toLocaleString(pageLanguage()), affected.toLocaleString(pageLanguage()))}
+          {quarantined > 0 && ` · ${RepositoryProfileStrings.FIREWALL_CARD.QUARANTINED_COUNT(quarantined.toLocaleString(pageLanguage()))}`}
         </Text>
 
         {firewall?.errorMessage && (

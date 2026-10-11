@@ -29,6 +29,7 @@ import type { BlobStore } from './types';
 import './BlobStoresList.scss';
 import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 const STRINGS = {
   TITLE: BlobStoresStrings.LIST.BLOB_STORES,
@@ -189,7 +190,7 @@ export default function BlobStoresList() {
       accessor: (row) => {
         if (row.unavailable) return STRINGS.UNKNOWN;
         if (isCalculating) return STRINGS.CALCULATING;
-        return row.blobCount.toLocaleString();
+        return row.blobCount.toLocaleString(pageLanguage());
       },
       sortable: true,
       align: 'right'

@@ -11,6 +11,7 @@ import { SettingsButton, SettingsAlert } from '../../../../../shared/form';
 import UIStrings from '../../../../../../../constants/pages/admin/repository/RepositoriesStrings';
 
 import './CertificateViewDialog.scss';
+import { pageLanguage } from '../../../../../../../interface/plural';
 
 interface CertificateDetails {
   id?: string;
@@ -36,7 +37,7 @@ const SSL_TRUSTSTORE_URL = '/service/rest/v1/security/ssl/truststore';
 
 function formatDate(timestamp?: number): string {
   if (!timestamp) return '';
-  return new Date(timestamp).toLocaleDateString(undefined, {
+  return new Date(timestamp).toLocaleDateString(pageLanguage(), {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 }

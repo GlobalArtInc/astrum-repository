@@ -18,7 +18,7 @@ import { formatAuditEvent, formatTimestamp } from '../../../../../../utils/audit
 import { CATEGORY_COLORS, CATEGORY_LABELS } from '../../../../../../utils/audit/audit.constants';
 import type { AuditFilters } from '../../../../../../utils/audit/audit.types';
 import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
-import plural from '../../../../../../interface/plural';
+import plural, { pageLanguage } from '../../../../../../interface/plural';
 
 interface RepositoryAuditTabProps {
   repositoryName: string;
@@ -88,7 +88,7 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
               <ScrollText size={18} color="var(--accent-9)" />
               <Text size="3" weight="bold">{RepositoriesPageStrings.AUDIT.RECENT_ACTIVITY}</Text>
               <Badge variant="soft" color="gray" size="1">
-                {plural(RepositoriesPageStrings.AUDIT.EVENTS_30_DAYS, totalEvents, totalEvents.toLocaleString())}
+                {plural(RepositoriesPageStrings.AUDIT.EVENTS_30_DAYS, totalEvents, totalEvents.toLocaleString(pageLanguage()))}
               </Badge>
             </Flex>
             <Button variant="solid" size="2" asChild>
@@ -146,7 +146,7 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
             <Box>
               <Text size="1" color="gray">
                 {RepositoriesPageStrings.AUDIT.SHOWING_LATEST(
-                  totalEvents.toLocaleString(),
+                  totalEvents.toLocaleString(pageLanguage()),
                   <a href={auditUrl} style={{ color: 'var(--accent-11)' }}>
                     {RepositoriesPageStrings.AUDIT.VIEW_ALL_AUDIT_LOG}
                   </a>

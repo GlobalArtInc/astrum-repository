@@ -8,7 +8,7 @@ import { SecurityStatusData } from './security.types';
 import './SecurityReportModal.scss';
 import SecurityReportStrings from '../../constants/SecurityReportStrings';
 import CommonStrings from '../../constants/CommonStrings';
-import plural from '../../../../interface/plural';
+import plural, { pageLanguage } from '../../../../interface/plural';
 
 export interface SecurityReportModalProps {
   /** Repository name */
@@ -185,7 +185,7 @@ function SummaryCard({ label, value, color, description }: { label: string; valu
           {label}
         </Text>
         <Heading size="8" style={{ color: `var(--${color}-9)` }}>
-          {value.toLocaleString()}
+          {value.toLocaleString(pageLanguage())}
         </Heading>
         <Text size="1" color="gray" align="center">
           {description}

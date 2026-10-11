@@ -19,6 +19,7 @@ import type {
 import { ensureTrailingSlash } from '../../../../../../../utils/url';
 import RepositoryProfileStrings from '../../../../../constants/pages/settings/repository/RepositoryProfileStrings';
 import CommonStrings from '../../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../../interface/plural';
 
 // =============================================================================
 // Types
@@ -149,7 +150,7 @@ export function OverviewTab({
               {RepositoryProfileStrings.OVERVIEW.COMPONENTS}
             </Text>
             <Text className="profile-section__value">
-              {metrics?.componentCount?.toLocaleString() ?? '—'}
+              {metrics?.componentCount?.toLocaleString(pageLanguage()) ?? '—'}
             </Text>
           </Box>
 
@@ -159,7 +160,7 @@ export function OverviewTab({
               {RepositoryProfileStrings.OVERVIEW.ASSETS}
             </Text>
             <Text className="profile-section__value">
-              {metrics?.assetCount?.toLocaleString() ?? '—'}
+              {metrics?.assetCount?.toLocaleString(pageLanguage()) ?? '—'}
             </Text>
           </Box>
 

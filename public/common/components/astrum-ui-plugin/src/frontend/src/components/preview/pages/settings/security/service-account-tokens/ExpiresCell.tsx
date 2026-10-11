@@ -6,6 +6,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { AlertTriangle } from 'lucide-react';
 
 import { SERVICE_ACCOUNT_TOKENS_STRINGS } from './strings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 const LABELS = SERVICE_ACCOUNT_TOKENS_STRINGS.EXPIRES_CELL;
 
@@ -14,7 +15,7 @@ interface ExpiresCellProps {
 }
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString(undefined, {
+  return new Date(dateString).toLocaleDateString(pageLanguage(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

@@ -56,6 +56,7 @@ import type { BlobStore, BlobStoreFormData, SoftQuota } from './types';
 import './BlobStoresPage.scss';
 import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 // Base path for blob stores URLs
 const BASE_PATH = 'preview/admin/repository/blobstores';
@@ -755,7 +756,7 @@ export default function BlobStoresPage() {
         accessor: (row) => {
           if (row.unavailable) return STRINGS.UNKNOWN;
           if (isCalculating) return STRINGS.CALCULATING;
-          return row.blobCount.toLocaleString();
+          return row.blobCount.toLocaleString(pageLanguage());
         },
         sortable: true,
         align: 'right',

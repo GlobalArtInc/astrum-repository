@@ -20,6 +20,7 @@ import { ExpiresCell } from './ExpiresCell';
 import { SERVICE_ACCOUNT_TOKENS_STRINGS } from './strings';
 
 import './ServiceAccountTokensPage.scss';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 const LABELS = SERVICE_ACCOUNT_TOKENS_STRINGS.PAGE;
 const MESSAGES = SERVICE_ACCOUNT_TOKENS_STRINGS.MESSAGES;
@@ -41,7 +42,7 @@ const getRevokeTrigger = (id: string): HTMLElement | null =>
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return '—';
-  return new Date(dateString).toLocaleDateString(undefined, {
+  return new Date(dateString).toLocaleDateString(pageLanguage(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

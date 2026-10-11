@@ -13,6 +13,7 @@ import type { SecurityStatusData } from './security.types';
 import './SecurityReportPage.scss';
 import SecurityReportStrings from '../../constants/SecurityReportStrings';
 import CommonStrings from '../../constants/CommonStrings';
+import { pageLanguage } from '../../../../interface/plural';
 
 export type SecurityReportType = 'health-check' | 'firewall';
 
@@ -274,7 +275,7 @@ function SummaryCard({
           {label}
         </Text>
         <Text size="6" weight="bold" style={colorStyle}>
-          {value.toLocaleString()}
+          {value.toLocaleString(pageLanguage())}
         </Text>
       </Flex>
     </Box>

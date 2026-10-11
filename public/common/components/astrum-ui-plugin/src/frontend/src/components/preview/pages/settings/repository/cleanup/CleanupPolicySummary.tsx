@@ -9,6 +9,7 @@ import { useCleanupPoliciesApi } from './useCleanupPoliciesApi';
 import { CleanupPolicyFormData, CleanupPreviewSummary } from './types';
 
 import './CleanupPolicySummary.scss';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 const { SUMMARY, PREVIEW } = UIStrings.CLEANUP_POLICIES;
 
@@ -139,11 +140,11 @@ function SummaryResult({ summary }: { summary: CleanupPreviewSummary }) {
       <dl className="cleanup-policy-summary__figures">
         <div>
           <dt>{SUMMARY.COMPONENTS}</dt>
-          <dd>{componentCount.toLocaleString()}</dd>
+          <dd>{componentCount.toLocaleString(pageLanguage())}</dd>
         </div>
         <div>
           <dt>{SUMMARY.FILES}</dt>
-          <dd>{assetCount.toLocaleString()}</dd>
+          <dd>{assetCount.toLocaleString(pageLanguage())}</dd>
         </div>
         <div>
           <dt>{SUMMARY.SIZE}</dt>

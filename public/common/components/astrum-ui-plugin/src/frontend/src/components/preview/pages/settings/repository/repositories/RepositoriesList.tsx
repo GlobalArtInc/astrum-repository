@@ -55,6 +55,7 @@ import { FirewallCell } from '../../../../shared/security/FirewallCell';
 import './RepositoriesList.scss';
 import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 interface FirewallStatusData {
   repositoryName: string;
@@ -605,7 +606,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     );
   }, [filter, typeFilter, formatFilter, handleClearFilters, onCreate]);
 
-  const displayTotal = sortedRepositories.length.toLocaleString();
+  const displayTotal = sortedRepositories.length.toLocaleString(pageLanguage());
 
   const filterBarContent = (
     <BrowseFilterSidebar

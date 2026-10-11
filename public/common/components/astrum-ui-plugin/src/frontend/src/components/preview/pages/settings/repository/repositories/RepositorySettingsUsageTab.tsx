@@ -13,6 +13,7 @@ import type { RepositoryUsageKind } from './repositoryUsageMachine';
 import './RepositorySettingsUsageTab.scss';
 import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 export interface RepositorySettingsUsageTabProps {
   repositoryName: string;
@@ -26,7 +27,7 @@ function formatBytes(bytes: number | undefined | null): string {
 
 function formatNumber(value: number | undefined | null): string {
   if (value === undefined || value === null || Number.isNaN(value)) return UIStrings.UNAVAILABLE;
-  return value.toLocaleString();
+  return value.toLocaleString(pageLanguage());
 }
 
 interface MembershipSectionProps {

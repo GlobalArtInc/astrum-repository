@@ -14,6 +14,7 @@ import { ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-r
 
 import './TablePagination.scss';
 import SharedStrings from '../../constants/SharedStrings';
+import { pageLanguage } from '../../../../interface/plural';
 
 export const PAGE_SIZE_OPTIONS = [20, 40, 50, 100, 250] as const;
 
@@ -341,7 +342,7 @@ export function TablePagination({
           ) : (
             <Text size="2">{showingCount}</Text>
           )}
-          <Text size="2">{SharedStrings.TABLE_PAGINATION.OF_ITEMS(totalItems.toLocaleString(), totalItemsSuffix ?? '')}</Text>
+          <Text size="2">{SharedStrings.TABLE_PAGINATION.OF_ITEMS(totalItems.toLocaleString(pageLanguage()), totalItemsSuffix ?? '')}</Text>
         </Flex>
         <Flex align="center" gap="2" style={{ whiteSpace: 'nowrap' }}>
           <Text size="2">{SharedStrings.TABLE_PAGINATION.PAGE}</Text>

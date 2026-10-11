@@ -8,6 +8,7 @@ import { MetricHealthDetailProps, formatCheckName, getHealthStatus } from './typ
 
 import './MetricHealthDetail.scss';
 import MetricHealthStrings from '../../../../constants/pages/settings/support/MetricHealthStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 /**
  * MetricHealthDetail - Detailed view of a single health check
@@ -122,7 +123,7 @@ export function MetricHealthDetail({
         {result.timestamp && (
           <Box className="metric-health-detail__section">
             <Text size="2" className="metric-health-detail__timestamp">
-              {MetricHealthStrings.DETAIL.LAST_CHECKED(new Date(result.timestamp).toLocaleString())}
+              {MetricHealthStrings.DETAIL.LAST_CHECKED(new Date(result.timestamp).toLocaleString(pageLanguage()))}
             </Text>
           </Box>
         )}

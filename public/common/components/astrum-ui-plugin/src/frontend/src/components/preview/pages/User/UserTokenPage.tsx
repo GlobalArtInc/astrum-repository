@@ -28,6 +28,7 @@ import { ConfirmDialog } from '../../shared/form';
 import { useUserToken } from './useUserToken';
 import UserPagesStrings from '../../constants/pages/user/UserPagesStrings';
 import CommonStrings from '../../constants/CommonStrings';
+import { pageLanguage } from '../../../../interface/plural';
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
@@ -171,7 +172,7 @@ export function UserTokenPage() {
 
   const formatEpochMs = (epochMs: string) => {
     try {
-      return new Date(Number(epochMs)).toLocaleDateString(undefined, {
+      return new Date(Number(epochMs)).toLocaleDateString(pageLanguage(), {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

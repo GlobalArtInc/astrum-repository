@@ -9,6 +9,7 @@ import { restClient } from '../../../../interface/api';
 import './SecuritySummaryModal.scss';
 import SecurityReportStrings from '../../constants/SecurityReportStrings';
 import CommonStrings from '../../constants/CommonStrings';
+import { pageLanguage } from '../../../../interface/plural';
 
 interface MalwareCleanupSummary {
   repositoryName: string;
@@ -312,21 +313,21 @@ export function SecuritySummaryModal({
                   {isFirewall ? (
                     <Flex gap="5" align="start">
                       <Box style={{ textAlign: 'center' }}>
-                        <Text size="4" weight="bold" as="div">{componentsId.toLocaleString()}</Text>
+                        <Text size="4" weight="bold" as="div">{componentsId.toLocaleString(pageLanguage())}</Text>
                         <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.COMPONENTS}</Text>
                         <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.AFFECTED_POLICY_VIOLATIONS}</Text>
                       </Box>
                       <Box style={{ textAlign: 'center' }}>
-                        <Text size="4" weight="bold" as="div">{(quarantinedComponentCount ?? 0).toLocaleString()}</Text>
+                        <Text size="4" weight="bold" as="div">{(quarantinedComponentCount ?? 0).toLocaleString(pageLanguage())}</Text>
                         <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.QUARANTINED}</Text>
                         <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.COMPONENTS_LOWER}</Text>
                       </Box>
                     </Flex>
                   ) : (componentsId > 0 || componentsTot > 0) ? (
                     <Box className="security-summary-modal__components-block">
-                      <Text size="4" weight="bold" as="div">{componentsId.toLocaleString()}</Text>
+                      <Text size="4" weight="bold" as="div">{componentsId.toLocaleString(pageLanguage())}</Text>
                       <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.COMPONENTS_IDENTIFIED}</Text>
-                      <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.OF_TOTAL(pct, componentsTot.toLocaleString())}</Text>
+                      <Text size="1" color="gray" as="div">{SecurityReportStrings.SUMMARY_MODAL.OF_TOTAL(pct, componentsTot.toLocaleString(pageLanguage()))}</Text>
                     </Box>
                   ) : null}
                 </Flex>
@@ -461,7 +462,7 @@ function SeverityRow({
       <Text size="2">{label}</Text>
       {value > 0 && (
         <span className={`security-summary-modal__badge security-summary-modal__badge--${color}`} data-value={value}>
-          {value.toLocaleString()}
+          {value.toLocaleString(pageLanguage())}
         </span>
       )}
     </Flex>
@@ -483,7 +484,7 @@ function LicenseBadge({
     <Flex justify="between" align="center" gap="2">
       <Text size="2">{label}</Text>
       <span className={`security-summary-modal__badge security-summary-modal__badge--${color}`} data-value={count}>
-        {count.toLocaleString()}
+        {count.toLocaleString(pageLanguage())}
       </span>
     </Flex>
   );

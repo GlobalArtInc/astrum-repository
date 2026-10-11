@@ -7,6 +7,7 @@ import type { HealthCheckData, CapabilityInfo } from './types';
 import { ExtJS } from '../../../../../../interface/ExtJS';
 import Permissions from '../../../../../../constants/Permissions';
 import RepositoryProfileStrings from '../../../../constants/pages/settings/repository/RepositoryProfileStrings';
+import { pageLanguage } from '../../../../../../interface/plural';
 
 const REPORT_NOT_AVAILABLE =
   RepositoryProfileStrings.HEALTH_CHECK_CARD.HEALTH_CHECK_REPORT_NOT_YET;
@@ -34,7 +35,7 @@ function parseLastAnalyzed(healthCheck: HealthCheckData | null): string | null {
 
   // Try the direct lastAnalyzedDate field first
   if (healthCheck.lastAnalyzedDate && healthCheck.lastAnalyzedDate > 0) {
-    return new Date(healthCheck.lastAnalyzedDate).toLocaleString(undefined, {
+    return new Date(healthCheck.lastAnalyzedDate).toLocaleString(pageLanguage(), {
       month: 'short', day: 'numeric', year: 'numeric',
       hour: 'numeric', minute: '2-digit',
     });
@@ -47,7 +48,7 @@ function parseLastAnalyzed(healthCheck: HealthCheckData | null): string | null {
       try {
         const ts = parseInt(match[1], 16);
         if (ts > 1000000000000) {
-          return new Date(ts).toLocaleString(undefined, {
+          return new Date(ts).toLocaleString(pageLanguage(), {
             month: 'short', day: 'numeric', year: 'numeric',
             hour: 'numeric', minute: '2-digit',
           });
@@ -216,11 +217,11 @@ export function HealthCheckCard({
                 <Grid columns="2" gap="2">
                   <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--red-2)', borderRadius: '4px' }}>
                     <Text size="1" color="red">{RepositoryProfileStrings.HEALTH_CHECK_CARD.SECURITY_VULNERABILITIES}</Text>
-                    <Text size="4" weight="bold" color="red">{hcSecurity.toLocaleString()}</Text>
+                    <Text size="4" weight="bold" color="red">{hcSecurity.toLocaleString(pageLanguage())}</Text>
                   </Flex>
                   <Flex direction="column" align="center" p="2" style={{ backgroundColor: 'var(--amber-2)', borderRadius: '4px' }}>
                     <Text size="1" color="amber">{RepositoryProfileStrings.HEALTH_CHECK_CARD.LICENSE_ISSUES}</Text>
-                    <Text size="4" weight="bold" color="amber">{hcLicense.toLocaleString()}</Text>
+                    <Text size="4" weight="bold" color="amber">{hcLicense.toLocaleString(pageLanguage())}</Text>
                   </Flex>
                 </Grid>
 
@@ -246,7 +247,7 @@ export function HealthCheckCard({
                       </Text>
                     </Flex>
                     <Badge color={malwareCount > 0 ? 'red' : 'green'} size="2" variant="soft">
-                      {malwareCount.toLocaleString()}
+                      {malwareCount.toLocaleString(pageLanguage())}
                     </Badge>
                   </Flex>
                 ) : null}
