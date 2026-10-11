@@ -18,9 +18,12 @@ function mavenAttributes(attributes: Readonly<Record<string, unknown>> | null | 
     return undefined;
   }
   const classifier = typeof maven2.classifier === 'string' && maven2.classifier ? maven2.classifier : undefined;
-  const extension = typeof maven2.extension === 'string' && maven2.extension ? maven2.extension : undefined;
-  // The pom of a component is not a dependency of its own; describe the component instead.
-  if (extension === 'pom' && !classifier) {
+  const raw = typeof maven2.extension === 'string' && maven2.extension ? maven2.extension : undefined;
+  // A jar is what a dependency resolves to anyway, and naming it (`@jar` in Gradle) would turn off the
+  // transitive dependencies; the pom of a component is not a dependency of its own. Both describe the
+  // component itself.
+  const extension = raw === 'jar' || raw === 'pom' ? undefined : raw;
+  if (!classifier && !extension) {
     return undefined;
   }
   return { attributes: { maven2: { classifier, extension } } };

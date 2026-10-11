@@ -128,10 +128,10 @@ describe('usage snippets', () => {
       );
       expect(s['gradle-kotlin']).toBe(
         'repositories {\n    maven {\n        url = uri("https://astrum.example.com/repository/maven-releases/")\n    }\n}\n\n' +
-          'dependencies {\n    implementation("dev.globalart.herald:herald-core:1.3.0@jar")\n}',
+          'dependencies {\n    implementation("dev.globalart.herald:herald-core:1.3.0")\n}',
       );
       expect(s['gradle-groovy']).toContain("url 'https://astrum.example.com/repository/maven-releases/'");
-      expect(s['gradle-groovy']).toContain("implementation 'dev.globalart.herald:herald-core:1.3.0@jar'");
+      expect(s['gradle-groovy']).toContain("implementation 'dev.globalart.herald:herald-core:1.3.0'");
     });
 
     it('adds a hosted repository as a profile and deploys releases to it', () => {
@@ -161,9 +161,15 @@ describe('usage snippets', () => {
     });
 
     it('keeps a classifier', () => {
-      expect(texts({ ...jar, attributes: { maven2: { extension: 'jar', classifier: 'sources' } } }).maven).toContain(
-        '<classifier>sources</classifier>',
-      );
+      const s = texts({ ...jar, attributes: { maven2: { extension: 'jar', classifier: 'sources' } } });
+      expect(s.maven).toContain('<classifier>sources</classifier>');
+      expect(s['gradle-kotlin']).toContain('implementation("dev.globalart.herald:herald-core:1.3.0:sources")');
+    });
+
+    it('names an extension other than jar, which Gradle would not resolve otherwise', () => {
+      const s = texts({ ...jar, attributes: { maven2: { extension: 'zip' } } });
+      expect(s.maven).toContain('<type>zip</type>');
+      expect(s['gradle-kotlin']).toContain('implementation("dev.globalart.herald:herald-core:1.3.0@zip")');
     });
 
     it('needs full coordinates', () => {

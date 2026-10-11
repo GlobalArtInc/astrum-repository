@@ -855,7 +855,7 @@ describe('DetailPanel', () => {
       await userEvent.click(screen.getByRole('tab', { name: 'Gradle Kotlin' }));
 
       expect(screen.getByRole('tabpanel')).toHaveTextContent('url = uri("https://astrum.example.com/repository/maven-releases/")');
-      expect(screen.getByRole('tabpanel')).toHaveTextContent('implementation("org.apache.commons:commons-lang3:3.14.0@jar")');
+      expect(screen.getByRole('tabpanel')).toHaveTextContent('implementation("org.apache.commons:commons-lang3:3.14.0")');
     });
 
     it('reports a copied snippet to the snippet analytics', async () => {
