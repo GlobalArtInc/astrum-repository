@@ -1,11 +1,15 @@
 package org.globalart.astrum.coreui.internal.capability;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringJoiner;
+
+import javax.annotation.Nullable;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -28,7 +32,9 @@ import org.globalart.astrum.capability.CapabilityDescriptorRegistry;
 import org.globalart.astrum.capability.CapabilityReference;
 import org.globalart.astrum.capability.CapabilityRegistry;
 import org.globalart.astrum.common.text.Strings2;
+import org.globalart.astrum.formfields.FormField;
 import org.globalart.astrum.rest.Resource;
+import org.globalart.astrum.rest.ValidationErrorXO;
 import org.globalart.astrum.rest.ValidationErrorsException;
 
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
@@ -59,6 +65,12 @@ public class CapabilitiesApiResource
     implements Resource, CapabilitiesApiResourceDoc
 {
   public static final String RESOURCE_URI = V1_API_PREFIX + "/capabilities";
+
+  private static final String PROPERTIES = "properties.";
+
+  private static final String URL_FIELD = "url";
+
+  private static final String INVALID = "Invalid capability";
 
   private final CapabilityDescriptorRegistry capabilityDescriptorRegistry;
 
@@ -121,6 +133,7 @@ public class CapabilitiesApiResource
       throw new ValidationErrorsException("type", "Unknown capability type: " + typeId);
     }
 
+    validateFields(descriptor, capability.getProperties());
     boolean enabled = capability.getEnabled() == null || capability.getEnabled();
     try {
       CapabilityReference created = capabilityRegistry.add(descriptor.type(), enabled, capability.getNotes(),
@@ -129,6 +142,9 @@ public class CapabilitiesApiResource
     }
     catch (ValidationException e) {
       throw asValidationErrors(e);
+    }
+    catch (IllegalArgumentException e) {
+      throw new ValidationErrorsException(e.getMessage() != null ? e.getMessage() : INVALID, e);
     }
   }
 
@@ -157,11 +173,15 @@ public class CapabilitiesApiResource
     Map<String, String> properties = capability.getProperties() != null
         ? unfilterProperties(capability.getProperties(), storedProperties)
         : storedProperties;
+    validateFields(reference.context().descriptor(), properties);
     try {
       return asCapability(capabilityRegistry.update(reference.context().id(), enabled, notes, properties));
     }
     catch (ValidationException e) {
       throw asValidationErrors(e);
+    }
+    catch (IllegalArgumentException e) {
+      throw new ValidationErrorsException(e.getMessage() != null ? e.getMessage() : INVALID, e);
     }
   }
 
@@ -177,6 +197,45 @@ public class CapabilitiesApiResource
           "Cannot delete system capability: " + reference.context().descriptor().name());
     }
     capabilityRegistry.remove(reference.context().id());
+  }
+
+  /**
+   * Checks the properties against the form fields of the capability type, as the UI does, so that a missing value or a
+   * malformed URL is answered as a validation error instead of failing inside the capability configuration.
+   */
+  private static void validateFields(
+      final CapabilityDescriptor descriptor,
+      @Nullable final Map<String, String> properties)
+  {
+    List<FormField> fields = descriptor.formFields();
+    if (fields == null) {
+      return;
+    }
+    ValidationErrorsException errors = new ValidationErrorsException();
+    for (FormField<?> field : fields) {
+      String value = properties != null ? properties.get(field.getId()) : null;
+      if (Strings2.isBlank(value)) {
+        if (field.isRequired()) {
+          errors.withError(PROPERTIES + field.getId(), field.getLabel() + " is required");
+        }
+      }
+      else if (URL_FIELD.equals(field.getType()) && !isHttpUrl(value)) {
+        errors.withError(PROPERTIES + field.getId(), field.getLabel() + " must be an http or https URL");
+      }
+    }
+    if (errors.hasValidationErrors()) {
+      throw errors;
+    }
+  }
+
+  private static boolean isHttpUrl(final String value) {
+    try {
+      String scheme = new URI(value.trim()).getScheme();
+      return "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+    }
+    catch (URISyntaxException e) {
+      return false;
+    }
   }
 
   private CapabilityReference getExposedCapability(final String id) {
@@ -196,11 +255,11 @@ public class CapabilitiesApiResource
     if (e instanceof ConstraintViolationException cve && cve.getConstraintViolations() != null) {
       for (ConstraintViolation<?> violation : cve.getConstraintViolations()) {
         String path = propertyPath(violation);
-        errors.withError(path.isEmpty() ? "*" : "properties." + path, violation.getMessage());
+        errors.withError(path.isEmpty() ? ValidationErrorXO.GENERIC : PROPERTIES + path, violation.getMessage());
       }
     }
     if (!errors.hasValidationErrors()) {
-      errors.withError(e.getMessage() != null ? e.getMessage() : "Invalid capability");
+      errors.withError(e.getMessage() != null ? e.getMessage() : INVALID);
     }
     return errors;
   }

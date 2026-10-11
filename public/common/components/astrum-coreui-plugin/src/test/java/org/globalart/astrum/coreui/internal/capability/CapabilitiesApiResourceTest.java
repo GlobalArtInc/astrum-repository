@@ -27,6 +27,7 @@ import org.globalart.astrum.formfields.ComboboxFormField;
 import org.globalart.astrum.formfields.FormField;
 import org.globalart.astrum.formfields.PasswordFormField;
 import org.globalart.astrum.formfields.StringTextFormField;
+import org.globalart.astrum.formfields.UrlFormField;
 import org.globalart.astrum.internal.scheduling.SchedulerCapabilityDescriptor;
 import org.globalart.astrum.rapture.PasswordPlaceholder;
 import org.globalart.astrum.rest.ValidationErrorXO;
@@ -260,6 +261,37 @@ class CapabilitiesApiResourceTest
     assertThat(e.getValidationErrors(), hasSize(1));
     assertThat(e.getValidationErrors().get(0).getId(), is("properties.url"));
     assertThat(e.getValidationErrors().get(0).getMessage(), is("URL is not valid"));
+  }
+
+  @Test
+  void reportsMissingRequiredAndMalformedUrlFieldsPerProperty() {
+    when(capabilityDescriptorRegistry.get(WEBHOOK)).thenReturn(descriptor);
+    when(descriptor.formFields()).thenReturn(List.of(
+        new StringTextFormField("names", "Event Types", null, true),
+        new UrlFormField("url", "URL", null, true),
+        new PasswordFormField("secret", "Secret Key", null, false)));
+
+    ValidationErrorsException e = assertThrows(ValidationErrorsException.class,
+        () -> underTest.createCapability(request("webhook.global", true, null, Map.of("url", "not a url"))));
+
+    assertThat(e.getValidationErrors(), hasSize(2));
+    assertThat(e.getValidationErrors().get(0).getId(), is("properties.names"));
+    assertThat(e.getValidationErrors().get(0).getMessage(), is("Event Types is required"));
+    assertThat(e.getValidationErrors().get(1).getId(), is("properties.url"));
+    assertThat(e.getValidationErrors().get(1).getMessage(), is("URL must be an http or https URL"));
+    verify(capabilityRegistry, never()).add(any(), anyBoolean(), any(), any());
+  }
+
+  @Test
+  void reportsAnInvalidConfigurationValueAsAValidationError() {
+    when(capabilityRegistry.update(any(), anyBoolean(), any(), any()))
+        .thenThrow(new IllegalArgumentException("retentionDays must be between 1 and 3650, got -5"));
+
+    ValidationErrorsException e = assertThrows(ValidationErrorsException.class,
+        () -> underTest.updateCapability(ID, request(null, true, null, Map.of("retentionDays", "-5"))));
+
+    assertThat(e.getValidationErrors().get(0).getId(), is(ValidationErrorXO.GENERIC));
+    assertThat(e.getValidationErrors().get(0).getMessage(), is("retentionDays must be between 1 and 3650, got -5"));
   }
 
   @Test
