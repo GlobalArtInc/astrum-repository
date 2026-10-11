@@ -11,6 +11,8 @@ import { getFormatLabel } from './dependencySnippets/formatLabel';
 import { trackSnippetCopy } from './dependencySnippets/trackSnippetCopy';
 import type { SnippetComponentModel } from './dependencySnippets/types';
 
+import { pageLanguage } from '../../../../../interface/plural';
+import S from '../../../constants/pages/search/ComponentDetailStrings';
 import '../../../shared/Usage/Usage.scss';
 
 interface GAOverviewTabProps {
@@ -34,7 +36,7 @@ function formatDate(dateString: string | null | undefined): string {
   try {
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(pageLanguage(), { year: 'numeric', month: 'short', day: 'numeric' });
   } catch {
     return '—';
   }
@@ -124,12 +126,12 @@ export function GAOverviewTab({
   );
 
   const detailRows: Array<{ label: string; value: string; mono?: boolean }> = [
-    { label: 'Last Updated', value: formatDate(lastUpdated) },
-    { label: 'Format', value: formatLabel },
-    ...(group ? [{ label: 'Group', value: group }] : []),
-    ...(name ? [{ label: 'Name', value: name }] : []),
-    ...(ver ? [{ label: 'Version', value: ver }] : []),
-    ...(repositoryNames ? [{ label: 'Repository', value: repositoryNames, mono: true }] : []),
+    { label: S.OVERVIEW.ROWS.LAST_UPDATED, value: formatDate(lastUpdated) },
+    { label: S.OVERVIEW.ROWS.FORMAT, value: formatLabel },
+    ...(group ? [{ label: S.OVERVIEW.ROWS.GROUP, value: group }] : []),
+    ...(name ? [{ label: S.OVERVIEW.ROWS.NAME, value: name }] : []),
+    ...(ver ? [{ label: S.OVERVIEW.ROWS.VERSION, value: ver }] : []),
+    ...(repositoryNames ? [{ label: S.OVERVIEW.ROWS.REPOSITORY, value: repositoryNames, mono: true }] : []),
   ];
 
   return (
@@ -139,7 +141,7 @@ export function GAOverviewTab({
           <Card size="1">
             <Box p="4">
               <Heading size="4" mb="4">
-                Dependencies
+                {S.OVERVIEW.DEPENDENCIES}
               </Heading>
               <Flex align="center" gap="2" mb="3">
                 {/* Deliberately shows one snippet at a time behind this picker rather than stacking
@@ -147,7 +149,7 @@ export function GAOverviewTab({
                     force the user to scroll past a long wall of code to reach the details below.
                     Radix Select keeps this consistent with every other dropdown in the Preview UI. */}
                 <Select.Root value={selectedSnippet.displayName} onValueChange={handleSelect} size="2">
-                  <Select.Trigger aria-label="Select dependency snippet" style={{ flex: 1 }} />
+                  <Select.Trigger aria-label={S.OVERVIEW.SELECT_SNIPPET} style={{ flex: 1 }} />
                   <Select.Content>
                     {snippets.map((snippet) => (
                       <Select.Item key={snippet.displayName} value={snippet.displayName}>
@@ -156,12 +158,12 @@ export function GAOverviewTab({
                     ))}
                   </Select.Content>
                 </Select.Root>
-                <Tooltip content={copied ? 'Copied!' : 'Copy'}>
+                <Tooltip content={copied ? S.OVERVIEW.COPIED : S.OVERVIEW.COPY}>
                   <Button
                     variant="soft"
                     color="blue"
                     size="2"
-                    aria-label={`Copy ${selectedSnippet.displayName} snippet`}
+                    aria-label={S.OVERVIEW.COPY_SNIPPET(selectedSnippet.displayName)}
                     onClick={() => handleCopy(selectedSnippet.displayName, selectedSnippet.snippetText)}
                   >
                     <Copy size={14} />
@@ -187,7 +189,7 @@ export function GAOverviewTab({
         <Card size="1">
           <Box p="4">
             <Heading size="4" mb="3">
-              Component Details
+              {S.OVERVIEW.COMPONENT_DETAILS}
             </Heading>
             <Table.Root variant="ghost" size="1">
               <Table.Body>

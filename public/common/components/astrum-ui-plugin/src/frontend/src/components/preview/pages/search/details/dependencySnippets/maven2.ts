@@ -1,6 +1,7 @@
 
 
 import type { SnippetGenerator } from './types';
+import S from '../../../../constants/pages/search/ComponentDetailStrings';
 
 /**
  * Encode special characters for safe interpolation into XML content.
@@ -47,7 +48,7 @@ export const generate: SnippetGenerator = (component, asset) => {
   return [
     {
       displayName: 'Apache Maven',
-      description: 'Insert this snippet into your pom.xml',
+      description: S.SNIPPETS.INSERT_INTO_POM,
       snippetText:
         '<dependency>\n' +
         `  <groupId>${encGroup}</groupId>\n` +

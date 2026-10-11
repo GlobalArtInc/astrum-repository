@@ -38,6 +38,8 @@ import {
 } from '../../../shared';
 import { MobileFilterDrawer } from '../../../shared/MobileFilterDrawer/MobileFilterDrawer';
 import { exportToCsv } from '../../../shared';
+import { pageLanguage } from '../../../../../interface/plural';
+import S from '../../../constants/pages/search/ComponentDetailStrings';
 
 interface GAFilesTabProps {
   assets: readonly GAAsset[];
@@ -175,12 +177,12 @@ export function GAFilesTab({
         onClick={clearAllFilters}
       >
         <RefreshCw size={12} />
-        Reset filters
+        {S.FILTERS.RESET}
       </Button>
       <Flex direction="column" gap="4">
         <Box>
           <Text size="2" weight="bold" mb="2" style={{ display: 'block' }}>
-            Sort
+            {S.FILTERS.SORT}
           </Text>
           <Flex direction="column" gap="2">
             <Select.Root
@@ -193,10 +195,10 @@ export function GAFilesTab({
             >
               <Select.Trigger />
               <Select.Content>
-                <Select.Item value="path">File</Select.Item>
-                <Select.Item value="extension">Type</Select.Item>
-                <Select.Item value="size">Size</Select.Item>
-                <Select.Item value="lastModified">Last Modified</Select.Item>
+                <Select.Item value="path">{S.FILES.COLUMNS.FILE}</Select.Item>
+                <Select.Item value="extension">{S.FILES.COLUMNS.TYPE}</Select.Item>
+                <Select.Item value="size">{S.FILES.COLUMNS.SIZE}</Select.Item>
+                <Select.Item value="lastModified">{S.FILES.COLUMNS.LAST_MODIFIED}</Select.Item>
               </Select.Content>
             </Select.Root>
             <Select.Root
@@ -209,8 +211,8 @@ export function GAFilesTab({
             >
               <Select.Trigger />
               <Select.Content>
-                <Select.Item value="asc">Ascending</Select.Item>
-                <Select.Item value="desc">Descending</Select.Item>
+                <Select.Item value="asc">{S.FILTERS.ASCENDING}</Select.Item>
+                <Select.Item value="desc">{S.FILTERS.DESCENDING}</Select.Item>
               </Select.Content>
             </Select.Root>
           </Flex>
@@ -218,7 +220,7 @@ export function GAFilesTab({
         {extensionOptions.length > 0 && (
           <Box>
             <Text size="2" weight="bold" mb="2" style={{ display: 'block' }}>
-              Type
+              {S.FILTERS.TYPE}
             </Text>
             {extensionOptions.map((ext) => (
               <Flex key={ext} align="center" gap="2" mb="1">
@@ -249,8 +251,7 @@ export function GAFilesTab({
           <AlertCircle size={16} />
         </Callout.Icon>
         <Callout.Text>
-          Select a version from the <strong>Versions</strong> tab to view
-          files.
+          {S.FILES.SELECT_VERSION}
         </Callout.Text>
       </Callout.Root>
     );
@@ -262,7 +263,7 @@ export function GAFilesTab({
         <Flex direction="column" align="center" gap="2">
           <Spinner size="2" />
           <Text size="2" color="gray">
-            Loading files...
+            {S.FILES.LOADING}
           </Text>
         </Flex>
       </Flex>
@@ -282,10 +283,10 @@ export function GAFilesTab({
           style={{ minHeight: '160px' }}
         >
           <Text size="3" weight="medium">
-            No Files Found
+            {S.FILES.EMPTY_TITLE}
           </Text>
           <Text size="1" color="gray" align="center">
-            No files for version {selectedVersion}.
+            {S.FILES.EMPTY_DETAIL(selectedVersion)}
           </Text>
         </Flex>
       </Card>
@@ -301,7 +302,7 @@ export function GAFilesTab({
           <Flex direction="column" gap="3">
             <Flex justify="between" align="center" gap="2">
               <TextField.Root
-                placeholder="Filter"
+                placeholder={S.FILTERS.FILTER_PLACEHOLDER}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ width: '100%', minWidth: 0 }}
@@ -316,7 +317,7 @@ export function GAFilesTab({
                       color="gray"
                       size="1"
                       onClick={() => setSearchQuery('')}
-                      aria-label="Clear search"
+                      aria-label={S.FILTERS.CLEAR_SEARCH}
                     >
                       <X size={14} />
                     </IconButton>
@@ -332,14 +333,14 @@ export function GAFilesTab({
                     onClick={() => setShowMobileFilters(true)}
                   >
                     <Filter size={14} />
-                    Filter
+                    {S.FILTERS.FILTER}
                   </Button>
                 </Box>
                 <Button asChild size="2" variant="outline" color="gray">
                   <button
                     type="button"
                     disabled={sortedAssets.length === 0}
-                    aria-label="Export all filtered results as CSV"
+                    aria-label={S.FILES.EXPORT_CSV_LABEL}
                     onClick={() =>
                       // `repository` replaces `classifier`: the real API never populates the
                       // latter (componentVersionDetailApi.toAsset hardcodes it undefined), so the
@@ -364,7 +365,7 @@ export function GAFilesTab({
                       display={{ initial: 'none', sm: 'inline' }}
                       style={{ marginLeft: 6 }}
                     >
-                      <span>Export CSV</span>
+                      <span>{S.FILES.EXPORT_CSV}</span>
                     </Box>
                   </button>
                 </Button>
@@ -383,10 +384,10 @@ export function GAFilesTab({
                   style={{ minHeight: '160px' }}
                 >
                   <Text size="3" weight="medium">
-                    No Files Found
+                    {S.FILES.NO_MATCHES_TITLE}
                   </Text>
                   <Text size="1" color="gray" align="center">
-                    Try Adjusting Your Search Terms Or Filters.
+                    {S.FILTERS.NO_MATCHES_DETAIL}
                   </Text>
                   <Button
                     size="1"
@@ -395,7 +396,7 @@ export function GAFilesTab({
                     onClick={clearAllFilters}
                   >
                     <RefreshCw size={12} />
-                    Reset Filters
+                    {S.FILTERS.RESET}
                   </Button>
                 </Flex>
               </Card>
@@ -414,7 +415,7 @@ export function GAFilesTab({
                               onSort={handleSort}
                               align="left"
                             >
-                              File
+                              {S.FILES.COLUMNS.FILE}
                             </SortableTableHeader>
                             <SortableTableHeader
                               sortKey="extension"
@@ -423,7 +424,7 @@ export function GAFilesTab({
                               onSort={handleSort}
                               align="center"
                             >
-                              Type
+                              {S.FILES.COLUMNS.TYPE}
                             </SortableTableHeader>
                             <SortableTableHeader
                               sortKey="size"
@@ -432,7 +433,7 @@ export function GAFilesTab({
                               onSort={handleSort}
                               align="center"
                             >
-                              Size
+                              {S.FILES.COLUMNS.SIZE}
                             </SortableTableHeader>
                             <SortableTableHeader
                               sortKey="lastModified"
@@ -441,11 +442,11 @@ export function GAFilesTab({
                               onSort={handleSort}
                               align="left"
                             >
-                              Last Modified
+                              {S.FILES.COLUMNS.LAST_MODIFIED}
                             </SortableTableHeader>
                             <Table.ColumnHeaderCell
                               justify="end"
-                              aria-label="Row actions"
+                              aria-label={S.FILES.ROW_ACTIONS}
                               pr="5"
                             />
                           </Table.Row>
@@ -484,7 +485,7 @@ export function GAFilesTab({
       <MobileFilterDrawer
         isOpen={showMobileFilters}
         onClose={() => setShowMobileFilters(false)}
-        title="Filter"
+        title={S.FILTERS.FILTER}
         onClearAll={clearAllFilters}
       >
         {filterBarContent}
@@ -519,7 +520,7 @@ function AssetRow({ asset }: { asset: GAAsset }) {
               still needs the hidden label — without it a screen reader announces the File cell as
               two bare strings. */}
           <Badge color="gray" variant="solid" radius="full" size="1">
-            <VisuallyHidden>Repository: </VisuallyHidden>
+            <VisuallyHidden>{S.FILES.REPOSITORY}</VisuallyHidden>
             {asset.repository}
           </Badge>
         </Flex>
@@ -550,17 +551,17 @@ function AssetRow({ asset }: { asset: GAAsset }) {
               variant="ghost"
               color="gray"
               size="1"
-              aria-label="Row actions"
+              aria-label={S.FILES.ROW_ACTIONS}
             >
               <MoreHorizontal size={16} />
             </IconButton>
           </DropdownMenu.Trigger>
           <DropdownMenu.Content align="end">
             <DropdownMenu.Item onClick={handleDownload}>
-              Download
+              {S.FILES.DOWNLOAD}
             </DropdownMenu.Item>
             <DropdownMenu.Item onClick={handleBrowse}>
-              Browse
+              {S.FILES.BROWSE}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
@@ -588,7 +589,7 @@ function formatDate(dateString: string | null): string {
   if (!dateString) return NO_DATE;
   const parsed = new Date(dateString);
   if (Number.isNaN(parsed.getTime())) return NO_DATE;
-  return parsed.toLocaleDateString(undefined, {
+  return parsed.toLocaleDateString(pageLanguage(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

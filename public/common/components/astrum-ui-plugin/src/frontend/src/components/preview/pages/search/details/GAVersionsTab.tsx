@@ -27,6 +27,8 @@ import {
 } from '../../../shared';
 import { MobileFilterDrawer } from '../../../shared/MobileFilterDrawer/MobileFilterDrawer';
 import { exportToCsv } from '../../../shared';
+import plural, { pageLanguage } from '../../../../../interface/plural';
+import S from '../../../constants/pages/search/ComponentDetailStrings';
 
 interface GAVersionsTabProps {
   /** The current page's versions, already ordered and filtered server-side. */
@@ -115,12 +117,12 @@ export function GAVersionsTab({
         onClick={clearAllFilters}
       >
         <RefreshCw size={12} />
-        Reset filters
+        {S.FILTERS.RESET}
       </Button>
       <Flex direction="column" gap="4">
         <Box>
           <Text size="2" weight="bold" mb="2" style={{ display: 'block' }}>
-            Sort
+            {S.FILTERS.SORT}
           </Text>
           <Flex direction="column" gap="2">
             <Select.Root
@@ -130,9 +132,9 @@ export function GAVersionsTab({
             >
               <Select.Trigger />
               <Select.Content>
-                <Select.Item value="version">Version</Select.Item>
-                <Select.Item value="repositories">Repositories</Select.Item>
-                <Select.Item value="lastUpdated">Last Updated</Select.Item>
+                <Select.Item value="version">{S.VERSIONS.COLUMNS.VERSION}</Select.Item>
+                <Select.Item value="repositories">{S.VERSIONS.COLUMNS.REPOSITORIES}</Select.Item>
+                <Select.Item value="lastUpdated">{S.VERSIONS.COLUMNS.LAST_UPDATED}</Select.Item>
               </Select.Content>
             </Select.Root>
             <Select.Root
@@ -142,8 +144,8 @@ export function GAVersionsTab({
             >
               <Select.Trigger />
               <Select.Content>
-                <Select.Item value="asc">Ascending</Select.Item>
-                <Select.Item value="desc">Descending</Select.Item>
+                <Select.Item value="asc">{S.FILTERS.ASCENDING}</Select.Item>
+                <Select.Item value="desc">{S.FILTERS.DESCENDING}</Select.Item>
               </Select.Content>
             </Select.Root>
           </Flex>
@@ -176,7 +178,7 @@ export function GAVersionsTab({
             data-testid="versions-retry-button"
           >
             <RefreshCw size={14} />
-            Retry
+            {S.VERSIONS.RETRY}
           </Button>
         </Flex>
       </Card>
@@ -189,7 +191,7 @@ export function GAVersionsTab({
         <Flex direction="column" align="center" gap="2">
           <Spinner size="2" />
           <Text size="2" color="gray">
-            Loading versions...
+            {S.VERSIONS.LOADING}
           </Text>
         </Flex>
       </Flex>
@@ -211,23 +213,23 @@ export function GAVersionsTab({
           {searchQuery ? (
             <>
               <Text size="3" weight="medium">
-                No Versions Found
+                {S.VERSIONS.NO_MATCHES_TITLE}
               </Text>
               <Text size="1" color="gray" align="center">
-                Try Adjusting Your Search Terms Or Filters.
+                {S.FILTERS.NO_MATCHES_DETAIL}
               </Text>
               <Button size="1" variant="solid" mt="1" onClick={clearAllFilters}>
                 <RefreshCw size={12} />
-                Reset Filters
+                {S.FILTERS.RESET}
               </Button>
             </>
           ) : (
             <>
               <Text size="3" weight="medium">
-                No versions found
+                {S.VERSIONS.EMPTY_TITLE}
               </Text>
               <Text size="1" color="gray">
-                No versions are available for this component.
+                {S.VERSIONS.EMPTY_DETAIL}
               </Text>
             </>
           )}
@@ -238,7 +240,7 @@ export function GAVersionsTab({
 
   const totalPagesDisplay = Math.max(totalPages, 1);
   const exportFilename = `versions-page-${currentPage}-of-${totalPagesDisplay}.csv`;
-  const exportAriaLabel = `Export this page of versions as CSV (page ${currentPage} of ${totalPagesDisplay})`;
+  const exportAriaLabel = S.VERSIONS.EXPORT_PAGE_LABEL(currentPage, totalPagesDisplay);
 
   return (
     <>
@@ -249,7 +251,7 @@ export function GAVersionsTab({
           <Flex direction="column" gap="3">
             <Flex justify="between" align="center" gap="2">
               <TextField.Root
-                placeholder="Filter by version"
+                placeholder={S.VERSIONS.FILTER_PLACEHOLDER}
                 value={searchInput}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 style={{ width: '100%', minWidth: 0 }}
@@ -264,7 +266,7 @@ export function GAVersionsTab({
                       color="gray"
                       size="1"
                       onClick={() => handleSearchChange('')}
-                      aria-label="Clear search"
+                      aria-label={S.FILTERS.CLEAR_SEARCH}
                     >
                       <X size={14} />
                     </IconButton>
@@ -281,7 +283,7 @@ export function GAVersionsTab({
                     onClick={() => setShowMobileFilters(true)}
                   >
                     <Filter size={14} />
-                    Filter
+                    {S.FILTERS.FILTER}
                   </Button>
                 </Box>
                 <Button asChild size="2" variant="outline" color="gray">
@@ -307,7 +309,7 @@ export function GAVersionsTab({
                       display={{ initial: 'none', sm: 'inline' }}
                       style={{ marginLeft: 6 }}
                     >
-                      <span>Export page</span>
+                      <span>{S.VERSIONS.EXPORT_PAGE}</span>
                     </Box>
                   </button>
                 </Button>
@@ -328,7 +330,7 @@ export function GAVersionsTab({
                             onSort={handleSort}
                             align="left"
                           >
-                            Version
+                            {S.VERSIONS.COLUMNS.VERSION}
                           </SortableTableHeader>
                           <SortableTableHeader
                             sortKey="repositories"
@@ -337,7 +339,7 @@ export function GAVersionsTab({
                             onSort={handleSort}
                             align="center"
                           >
-                            Repositories
+                            {S.VERSIONS.COLUMNS.REPOSITORIES}
                           </SortableTableHeader>
                           <SortableTableHeader
                             sortKey="lastUpdated"
@@ -346,7 +348,7 @@ export function GAVersionsTab({
                             onSort={handleSort}
                             align="left"
                           >
-                            Last Updated
+                            {S.VERSIONS.COLUMNS.LAST_UPDATED}
                           </SortableTableHeader>
                         </Table.Row>
                       </Table.Header>
@@ -397,8 +399,7 @@ export function GAVersionsTab({
                                 radius="full"
                                 size="1"
                               >
-                                {version.repositories.length} repo
-                                {version.repositories.length !== 1 ? 's' : ''}
+                                {plural(S.VERSIONS.REPOSITORY_COUNT, version.repositories.length)}
                               </Badge>
                             </Table.Cell>
 
@@ -432,7 +433,7 @@ export function GAVersionsTab({
       <MobileFilterDrawer
         isOpen={showMobileFilters}
         onClose={() => setShowMobileFilters(false)}
-        title="Filter"
+        title={S.FILTERS.FILTER}
         onClearAll={clearAllFilters}
       >
         {filterBarContent}
@@ -443,7 +444,7 @@ export function GAVersionsTab({
 
 function formatDate(dateString: string): string {
   try {
-    return new Date(dateString).toLocaleDateString(undefined, {
+    return new Date(dateString).toLocaleDateString(pageLanguage(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

@@ -13,6 +13,7 @@
 import { assign, createMachine } from 'xstate';
 
 import type { ComponentVersionSort, ComponentVersionsPage, GAVersion } from '../core/search.types';
+import S from '../../../constants/pages/search/ComponentDetailStrings';
 
 // =============================================================================
 // CONTEXT & EVENT TYPES
@@ -204,7 +205,7 @@ export function createComponentVersionsMachine(gaId: string) {
           };
         }),
         setError: assign((_ctx, event) => ({
-          error: (event as { data?: Error }).data?.message ?? 'Failed to load versions',
+          error: (event as { data?: Error }).data?.message ?? S.VERSIONS.LOAD_FAILED,
         })),
       },
       services: {

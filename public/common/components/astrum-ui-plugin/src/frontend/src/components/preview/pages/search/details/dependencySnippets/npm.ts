@@ -1,6 +1,7 @@
 
 
 import type { SnippetGenerator } from './types';
+import S from '../../../../constants/pages/search/ComponentDetailStrings';
 
 /**
  * npm dependency snippet generator.
@@ -15,17 +16,17 @@ export const generate: SnippetGenerator = (component) => {
   return [
     {
       displayName: 'npm',
-      description: 'Install runtime dependency',
+      description: S.SNIPPETS.NPM_INSTALL,
       snippetText: `npm install ${dependencyName}@${version}`,
     },
     {
       displayName: 'Yarn',
-      description: 'Install runtime dependency',
+      description: S.SNIPPETS.NPM_INSTALL,
       snippetText: `yarn add ${dependencyName}@${version}`,
     },
     {
       displayName: 'package.json',
-      description: 'Install runtime dependency to the package.json\'s "dependencies" section',
+      description: S.SNIPPETS.NPM_PACKAGE_JSON,
       snippetText: `"${dependencyName}": "${version}"`,
     },
   ];

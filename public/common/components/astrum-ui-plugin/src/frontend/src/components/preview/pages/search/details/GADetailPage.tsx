@@ -32,6 +32,7 @@ import GARepositoriesTab from './GARepositoriesTab';
 import GAFilesTab from './GAFilesTab';
 import GASecurityTab from './GASecurityTab';
 import { useGARepositoriesForVersion } from './useGARepositoriesForVersion';
+import S from '../../../constants/pages/search/ComponentDetailStrings';
 
 interface GADetailPageProps {
   /**
@@ -267,13 +268,13 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
       <Box p="6">
         <Button variant="ghost" onClick={handleBackClick} mb="4">
           <ArrowLeft size={16} />
-          Back to Search
+          {S.PAGE.BACK_TO_SEARCH}
         </Button>
         <Callout.Root color="red">
           <Callout.Icon>
             <Package size={16} />
           </Callout.Icon>
-          <Callout.Text>Component not found</Callout.Text>
+          <Callout.Text>{S.PAGE.NOT_FOUND}</Callout.Text>
         </Callout.Root>
       </Box>
     );
@@ -293,7 +294,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
           <Breadcrumbs
             items={[
               {
-                label: 'Search',
+                label: S.PAGE.BREADCRUMB_SEARCH,
                 onClick: handleBreadcrumbSearchClick,
               },
               {
@@ -314,7 +315,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
                 </Heading>
                 <Flex align="end" gap="4" wrap="wrap">
                   {componentPath && (
-                    <Tooltip content={copiedPath ? 'Copied!' : 'Copy path'}>
+                    <Tooltip content={copiedPath ? S.PAGE.COPIED : S.PAGE.COPY_PATH}>
                       <Button
                         variant="soft"
                         size="2"
@@ -322,7 +323,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
                         onClick={handleCopyPath}
                       >
                         <Copy size={14} />
-                        Path
+                        {S.PAGE.PATH}
                       </Button>
                     </Tooltip>
                   )}
@@ -335,7 +336,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
                     >
                       <a href={mavenCentralUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink size={14} />
-                        Registry
+                        {S.PAGE.REGISTRY}
                       </a>
                     </Button>
                   )}
@@ -357,7 +358,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
                       }}
                     >
                       <ExternalLink size={14} />
-                      Research in Guide
+                      {S.PAGE.RESEARCH_GUIDE}
                     </Button>
                   )}
                 </Flex>
@@ -369,10 +370,10 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
           <Tabs.Root value={currentTab} onValueChange={handleTabChange}>
               <Box px="4" pt="0" pb="2">
                 <Tabs.List size="2" style={{ borderBottom: 'none' }}>
-                  <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+                  <Tabs.Trigger value="overview">{S.PAGE.TABS.OVERVIEW}</Tabs.Trigger>
                   <Tabs.Trigger value="versions">
                     <Flex align="center" gap="2">
-                      Versions
+                      {S.PAGE.TABS.VERSIONS}
                       {/* totalVersions, not total: the badge counts the component's versions, so
                           it must not drop to the match count while a filter is active in the tab. */}
                       <Badge color="gray" variant="soft" size="1" radius="full">
@@ -382,13 +383,13 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
                   </Tabs.Trigger>
                   <Tabs.Trigger value="repositories">
                     <Flex align="center" gap="2">
-                      Repositories
+                      {S.PAGE.TABS.REPOSITORIES}
                       <Badge color="gray" variant="soft" size="1" radius="full">{repoCount}</Badge>
                     </Flex>
                   </Tabs.Trigger>
                   <Tabs.Trigger value="files">
                     <Flex align="center" gap="2">
-                      Files
+                      {S.PAGE.TABS.FILES}
                       {/* !== null, not truthiness: '' is the valid selected version for
                           versionless formats (raw), and is falsy. */}
                       <Badge color="gray" variant="soft" size="1" radius="full">
@@ -398,7 +399,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
                   </Tabs.Trigger>
                   <Tabs.Trigger value="security">
                     <Flex align="center" gap="2">
-                      Security
+                      {S.PAGE.TABS.SECURITY}
                       {typeof securityCount === 'number' && (
                         <Badge color="gray" variant="soft" size="1" radius="full">
                           {securityCount}

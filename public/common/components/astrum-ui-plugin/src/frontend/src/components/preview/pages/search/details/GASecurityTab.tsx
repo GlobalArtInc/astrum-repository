@@ -24,6 +24,7 @@ import {
   type ComponentSecurityStatus,
   type PolicyViolation,
 } from './useComponentSecurity';
+import S from '../../../constants/pages/search/ComponentDetailStrings';
 
 interface GASecurityTabProps {
   gaId: string;
@@ -84,7 +85,7 @@ function threatLevelColor(level: number): 'red' | 'orange' | 'amber' | 'gray' {
 const SEVERITY_CONFIG = [
   {
     key: 'critical',
-    label: 'Critical',
+    label: S.SECURITY.SEVERITIES.CRITICAL,
     countKey: 'criticalCount' as const,
     activeBg: 'var(--red-3)',
     activeBorder: 'var(--red-6)',
@@ -92,7 +93,7 @@ const SEVERITY_CONFIG = [
   },
   {
     key: 'high',
-    label: 'High',
+    label: S.SECURITY.SEVERITIES.HIGH,
     countKey: 'severeCount' as const,
     activeBg: 'var(--orange-3)',
     activeBorder: 'var(--orange-6)',
@@ -100,7 +101,7 @@ const SEVERITY_CONFIG = [
   },
   {
     key: 'medium',
-    label: 'Medium',
+    label: S.SECURITY.SEVERITIES.MEDIUM,
     countKey: 'moderateCount' as const,
     activeBg: 'var(--yellow-3)',
     activeBorder: 'var(--yellow-6)',
@@ -108,7 +109,7 @@ const SEVERITY_CONFIG = [
   },
   {
     key: 'low',
-    label: 'Low',
+    label: S.SECURITY.SEVERITIES.LOW,
     countKey: 'lowCount' as const,
     activeBg: 'var(--blue-3)',
     activeBorder: 'var(--blue-6)',
@@ -122,13 +123,13 @@ function ViolationsTable({ violations }: { violations: PolicyViolation[] }) {
   const hiddenCount = violations.length - MAX_VIOLATIONS_SHOWN;
 
   return (
-    <SettingsFormSection title="Policy Violations" collapsible defaultCollapsed>
+    <SettingsFormSection title={S.SECURITY.POLICY_VIOLATIONS} collapsible defaultCollapsed>
       <Table.Root variant="surface" size="1">
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeaderCell>Policy Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Threat Level</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Details</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{S.SECURITY.COLUMNS.POLICY}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{S.SECURITY.COLUMNS.THREAT_LEVEL}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{S.SECURITY.COLUMNS.DETAILS}</Table.ColumnHeaderCell>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -174,7 +175,7 @@ function ViolationsTable({ violations }: { violations: PolicyViolation[] }) {
       {!showAll && hiddenCount > 0 && (
         <Box mt="2">
           <Button variant="ghost" size="1" onClick={() => setShowAll(true)}>
-            + {hiddenCount} more violations
+            {S.SECURITY.MORE_VIOLATIONS(hiddenCount)}
           </Button>
         </Box>
       )}
@@ -197,10 +198,10 @@ function ViolationSummaryCard({ data }: { data: ComponentSecurityData }) {
     <Card size="1">
       <Box p="2">
         <Flex align="center" justify="between" mb="3">
-          <Heading size="4">Vulnerabilities</Heading>
+          <Heading size="4">{S.SECURITY.VULNERABILITIES}</Heading>
           {total > 0 && highestThreat != null && (
             <Text size="2" color="gray">
-              Highest Threat: <strong>{highestThreat}</strong>
+              {S.SECURITY.HIGHEST_THREAT(highestThreat)}
             </Text>
           )}
         </Flex>
@@ -253,7 +254,7 @@ function ViolationSummaryCard({ data }: { data: ComponentSecurityData }) {
             onClick={() => openReportUrl(data.reportUrl)}
           >
             <ExternalLink size={14} />
-            View Full Report in Lifecycle
+            {S.SECURITY.VIEW_FULL_REPORT}
           </Button>
         )}
       </Box>
@@ -335,8 +336,7 @@ function GASecurityTabContent({
           <AlertCircle size={16} />
         </Callout.Icon>
         <Callout.Text>
-          Select a version from the <strong>Versions</strong> tab to view
-          security information.
+          {S.SECURITY.SELECT_VERSION}
         </Callout.Text>
       </Callout.Root>
     );
@@ -356,7 +356,7 @@ function GASecurityTabContent({
           <Shield size={16} />
         </Callout.Icon>
         <Callout.Text>
-          Security evaluation is not available for components without a version.
+          {S.SECURITY.NO_VERSION}
         </Callout.Text>
       </Callout.Root>
     );
@@ -377,7 +377,7 @@ function GASecurityTabContent({
       >
         <Spinner size="3" />
         <Text size="2" color="gray">
-          Evaluating component security...
+          {S.SECURITY.EVALUATING}
         </Text>
       </Flex>
     );
@@ -399,7 +399,7 @@ function GASecurityTabContent({
             <Text>{error}</Text>
             <Box>
               <Button variant="ghost" size="1" onClick={refetch}>
-                Try again
+                {S.SECURITY.TRY_AGAIN}
               </Button>
             </Box>
           </Flex>
@@ -416,8 +416,8 @@ function GASecurityTabContent({
     return (
       <SecurityEmptyState
         testId="security-unsupported"
-        heading="Security Analysis Not Available"
-        body="This deployment does not include IQ Server integration, so policy violation data cannot be shown for this component."
+        heading={S.SECURITY.NOT_AVAILABLE}
+        body={S.SECURITY.UNSUPPORTED}
       />
     );
   }
@@ -429,8 +429,8 @@ function GASecurityTabContent({
     return (
       <SecurityEmptyState
         testId="security-forbidden"
-        heading="Security Analysis Not Available"
-        body="Your account does not have permission to view the IQ Server connection status. Contact your administrator if you need security analysis for this component."
+        heading={S.SECURITY.NOT_AVAILABLE}
+        body={S.SECURITY.FORBIDDEN}
       />
     );
   }
@@ -441,11 +441,11 @@ function GASecurityTabContent({
     return (
       <SecurityEmptyState
         testId="security-not-connected"
-        heading="IQ Server Not Connected"
-        body="Connect IQ Server to see policy violations and security analysis for this component."
+        heading={S.SECURITY.NOT_CONNECTED_TITLE}
+        body={S.SECURITY.NOT_CONNECTED}
         action={
           <Button variant="soft" size="2" onClick={goToIqSettings}>
-            Connect IQ Server
+            {S.SECURITY.CONNECT}
           </Button>
         }
       />
@@ -458,11 +458,11 @@ function GASecurityTabContent({
     return (
       <SecurityEmptyState
         testId="security-not-entitled"
-        heading="Security Analysis Not Available"
-        body="The connected IQ Server does not include GlobalArt Lifecycle or GlobalArt Repository Firewall, which provide policy violation data for components."
+        heading={S.SECURITY.NOT_AVAILABLE}
+        body={S.SECURITY.NOT_ENTITLED}
         action={
           <Button variant="soft" size="2" onClick={goToIqSettings}>
-            Connect IQ Server
+            {S.SECURITY.CONNECT}
           </Button>
         }
       />
@@ -499,8 +499,8 @@ function GASecurityTabContent({
     return (
       <SecurityEmptyState
         testId="security-no-evaluation-data"
-        heading="Evaluation Data Not Available"
-        body="IQ Server is connected, but policy evaluation results for this component version could not be retrieved. View this component in IQ Server for its full security report."
+        heading={S.SECURITY.NO_DATA_TITLE}
+        body={S.SECURITY.NO_DATA}
       />
     );
   }
@@ -513,13 +513,13 @@ function GASecurityTabContent({
       </Callout.Icon>
       <Box className="rt-CalloutText">
         <Flex direction="column" gap="2">
-          <Text>No policy violations found.</Text>
+          <Text>{S.SECURITY.CLEAN_TITLE}</Text>
           <Text size="2" color="gray">
-            This version passed all active policies in IQ Server.
+            {S.SECURITY.CLEAN}
           </Text>
           {data?.evaluationDate && (
             <Text size="1" color="gray">
-              Evaluated: {data.evaluationDate}
+              {S.SECURITY.EVALUATED(data.evaluationDate)}
             </Text>
           )}
           {data?.reportUrl && (
@@ -530,7 +530,7 @@ function GASecurityTabContent({
                 onClick={() => openReportUrl(data.reportUrl)}
               >
                 <ExternalLink size={12} />
-                View in Lifecycle
+                {S.SECURITY.VIEW_IN_LIFECYCLE}
               </Button>
             </Box>
           )}

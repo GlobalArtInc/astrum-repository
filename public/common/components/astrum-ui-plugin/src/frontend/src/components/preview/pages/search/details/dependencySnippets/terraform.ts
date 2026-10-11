@@ -1,6 +1,7 @@
 
 
 import type { SnippetGenerator } from './types';
+import S from '../../../../constants/pages/search/ComponentDetailStrings';
 
 /**
  * Terraform dependency snippet generator.
@@ -17,12 +18,12 @@ export const generate: SnippetGenerator = (component) => {
   return [
     {
       displayName: 'terraform',
-      description: 'Run the following command in your project directory:',
+      description: S.SNIPPETS.RUN_IN_PROJECT,
       snippetText: `terraform add ${name}@${version}`,
     },
     {
       displayName: 'manual',
-      description: 'Add the following line to your Terraform.toml:',
+      description: S.SNIPPETS.ADD_LINE_TO('Terraform.toml'),
       snippetText: `${name} = "${version}"`,
     },
   ];

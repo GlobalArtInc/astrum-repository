@@ -12,6 +12,8 @@ export { AUDIT_EVENT_STRINGS } from '../../../utils/audit/auditStrings';
 export { API_ERROR_STRINGS } from '../../../interface/api/errorStrings';
 export { default as TagsStrings } from './pages/tags/TagsStrings';
 export { default as UploadStrings } from './pages/upload/UploadStrings';
+export { default as ComponentDetailStrings } from './pages/search/ComponentDetailStrings';
+export { GA_REPOSITORIES_STRINGS } from '../pages/search/details/GARepositoriesStrings';
 export { default as UserPagesStrings } from './pages/user/UserPagesStrings';
 export { default as ApiStrings } from './pages/settings/system/ApiStrings';
 export { default as CapabilitiesStrings } from './pages/settings/system/CapabilitiesStrings';

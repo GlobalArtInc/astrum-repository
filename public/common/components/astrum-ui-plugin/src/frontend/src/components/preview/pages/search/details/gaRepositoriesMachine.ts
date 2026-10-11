@@ -7,6 +7,7 @@
  */
 
 import { createMachine, assign } from 'xstate';
+import S from '../../../constants/pages/search/ComponentDetailStrings';
 
 export interface RepoRow {
   readonly repositoryName: string;
@@ -115,7 +116,7 @@ export function createGaRepositoriesMachine(gaId: string) {
           onError: {
             target: 'error',
             actions: assign({
-              error: (_c, e) => (e.data as Error)?.message ?? 'Failed to load repositories',
+              error: (_c, e) => (e.data as Error)?.message ?? S.REPOSITORIES.LOAD_FAILED,
             }),
           },
         },

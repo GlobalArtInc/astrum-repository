@@ -1,6 +1,7 @@
 
 
 import type { SnippetGenerator } from './types';
+import S from '../../../../constants/pages/search/ComponentDetailStrings';
 
 /**
  * Composer (PHP) dependency snippet generator.
@@ -20,12 +21,12 @@ export const generate: SnippetGenerator = (component) => {
   return [
     {
       displayName: 'composer',
-      description: 'Run the following command in your project directory:',
+      description: S.SNIPPETS.RUN_IN_PROJECT,
       snippetText: `composer require ${dependencyName}:${version}`,
     },
     {
       displayName: 'manual',
-      description: 'Add the following line to your Composer.json:',
+      description: S.SNIPPETS.ADD_LINE_TO('Composer.json'),
       snippetText: `${dependencyName}: "${version}"`,
     },
   ];

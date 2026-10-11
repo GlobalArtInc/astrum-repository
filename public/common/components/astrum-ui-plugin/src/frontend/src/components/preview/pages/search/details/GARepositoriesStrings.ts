@@ -1,6 +1,8 @@
 
 
-export const GA_REPOSITORIES_STRINGS = {
+import localize from '../../../../../interface/localize';
+
+export const GA_REPOSITORIES_STRINGS = localize('react-ui', {
   FILTER_PLACEHOLDER: 'Filter',
   CLEAR_SEARCH_ARIA: 'Clear search',
   FILTER_BUTTON: 'Filter',
@@ -35,5 +37,10 @@ export const GA_REPOSITORIES_STRINGS = {
     NO_RESULTS_TITLE: 'No repositories found',
     NO_RESULTS_DETAIL: 'Try adjusting your search terms or filters.',
   },
-  VERSIONS_BADGE: (count: number) => `${count} version${count !== 1 ? 's' : ''}`,
-} as const;
+  VERSIONS_BADGE: {
+    ONE: (count: number) => `${count} version`,
+    FEW: (count: number) => `${count} versions`,
+    MANY: (count: number) => `${count} versions`,
+    OTHER: (count: number) => `${count} versions`,
+  },
+}, 'PREVIEW.COMPONENT_DETAIL.REPOSITORIES');

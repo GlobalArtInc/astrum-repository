@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { restClient, ENDPOINTS } from '../../../../../interface/api';
 import { isMockMode } from '../../../config/featureFlags';
+import S from '../../../constants/pages/search/ComponentDetailStrings';
 
 export interface ConstraintViolation {
   constraintName: string;
@@ -100,8 +101,7 @@ export interface UseComponentSecurityResult {
  * may carry an IQ Server URL, a stack trace, or an HTML error page, none of which belong in
  * the UI.
  */
-const CAPABILITIES_ERROR_MESSAGE =
-  'Unable to determine the IQ Server connection status. Check your connection and try again.';
+const CAPABILITIES_ERROR_MESSAGE = S.SECURITY.CONNECTION_UNKNOWN;
 
 /**
  * HTTP status of a failed request, or undefined when the request never got a response

@@ -1,6 +1,7 @@
 
 
 import type { DependencySnippet, SnippetGenerator } from './types';
+import S from '../../../../constants/pages/search/ComponentDetailStrings';
 
 /**
  * Split the fully-qualified component name into {authority, repo, imageName}.
@@ -64,22 +65,22 @@ export const generate: SnippetGenerator = (component, asset): DependencySnippet[
   return [
     {
       displayName: 'OCI Pull (ORAS)',
-      description: 'Download artifact using ORAS CLI',
+      description: S.SNIPPETS.ORAS_PULL,
       snippetText: `oras pull ${imageRef}${plainHttpFlag}`,
     },
     {
       displayName: 'ORAS Push',
-      description: 'Push a local file as an OCI artifact',
+      description: S.SNIPPETS.ORAS_PUSH,
       snippetText: `oras push ${hostPort}${repoPath}/${parts.imageName}:${version} ./file.tar${plainHttpFlag}`,
     },
     {
       displayName: 'Docker Pull',
-      description: 'Pull OCI image using Docker CLI',
+      description: S.SNIPPETS.DOCKER_PULL,
       snippetText: `docker pull ${imageRef}`,
     },
     {
       displayName: 'Podman Pull',
-      description: 'Pull OCI image using Podman',
+      description: S.SNIPPETS.PODMAN_PULL,
       snippetText: `podman pull ${hostPort}${repoPath}/${parts.imageName}:${version}`,
     },
     {
@@ -87,37 +88,37 @@ export const generate: SnippetGenerator = (component, asset): DependencySnippet[
       // would target a different path than every other tool pulls from (Podman Pull, Cosign Sign).
       // Classic's form is a bug — do not "correct" this back to match it. TODO: file a Classic ticket.
       displayName: 'Docker Buildx Push',
-      description: 'Build a multi-platform image and push to this registry',
+      description: S.SNIPPETS.BUILDX_PUSH,
       snippetText: `docker buildx build --push --tag ${hostPort}${repoPath}/${parts.imageName}:${version} .`,
     },
     {
       displayName: 'Dockerfile',
-      description: 'Use as base image in Dockerfile',
+      description: S.SNIPPETS.DOCKERFILE,
       snippetText: `FROM ${imageRef}`,
     },
     {
       displayName: 'Helm Push (OCI)',
-      description: 'Push a packaged Helm chart to this OCI registry',
+      description: S.SNIPPETS.HELM_PUSH,
       snippetText: `helm push mychart-1.0.0.tgz oci://${hostPort}${repoPath}`,
     },
     {
       displayName: 'Helm Install (OCI)',
-      description: 'Install a Helm chart served from this OCI registry',
+      description: S.SNIPPETS.HELM_INSTALL,
       snippetText: `helm install myrel oci://${hostPort}${repoPath}/${parts.imageName} --version ${version}`,
     },
     {
       displayName: 'Helm Install (Bitnami charts)',
-      description: 'Install a Bitnami chart proxied through this OCI repository',
+      description: S.SNIPPETS.HELM_INSTALL_BITNAMI,
       snippetText: `helm install myrel oci://${hostPort}/bitnamicharts/postgresql`,
     },
     {
       displayName: 'Skopeo Copy',
-      description: 'Mirror an image from this registry to a local OCI layout',
+      description: S.SNIPPETS.SKOPEO_COPY,
       snippetText: `skopeo copy docker://${imageRef} oci:./${parts.imageName}:${version}`,
     },
     {
       displayName: 'Cosign Sign',
-      description: 'Sign the image by digest with cosign',
+      description: S.SNIPPETS.COSIGN_SIGN,
       snippetText:
         'cosign sign ' +
         (digest
@@ -126,7 +127,7 @@ export const generate: SnippetGenerator = (component, asset): DependencySnippet[
     },
     {
       displayName: 'Cosign Verify (keyless)',
-      description: 'Verify a keyless cosign signature by OIDC identity',
+      description: S.SNIPPETS.COSIGN_VERIFY,
       snippetText:
         `cosign verify ${imageRef} \\\n` +
         `${yamlIndent}--certificate-identity-regexp '.*' \\\n` +
@@ -134,7 +135,7 @@ export const generate: SnippetGenerator = (component, asset): DependencySnippet[
     },
     {
       displayName: 'OpenTofu (tofu init)',
-      description: 'Point OpenTofu at this OCI registry for provider/module mirroring',
+      description: S.SNIPPETS.OPENTOFU,
       snippetText:
         'tofu init\n' +
         '# configure in your .tofurc / CLI config:\n' +
@@ -145,7 +146,7 @@ export const generate: SnippetGenerator = (component, asset): DependencySnippet[
     },
     {
       displayName: 'Kubernetes',
-      description: 'Use image in Kubernetes pod specification',
+      description: S.SNIPPETS.KUBERNETES,
       snippetText:
         'spec:\n' +
         `${yamlIndent}containers:\n` +

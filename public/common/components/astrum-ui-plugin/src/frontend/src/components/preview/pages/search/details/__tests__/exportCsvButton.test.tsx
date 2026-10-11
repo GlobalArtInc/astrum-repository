@@ -104,7 +104,7 @@ describe('Export CSV button', () => {
     it('Export page button is disabled when the current page has no rows', () => {
       renderWithTheme(<GAVersionsTab {...defaultProps} versions={[]} total={0} searchQuery="zzznomatch" />);
       // total===0 renders the no-results card instead of the button; assert the card, not the button.
-      expect(screen.getByText('No Versions Found')).toBeInTheDocument();
+      expect(screen.getByText('No versions found')).toBeInTheDocument();
     });
 
     it('calls exportToCsv with a filename stating the page scope', async () => {
@@ -146,7 +146,8 @@ describe('Export CSV button', () => {
       renderWithTheme(
         <GAVersionsTab {...defaultProps} versions={[]} total={0} searchQuery="zzznomatch" />,
       );
-      expect(screen.getByText('No Versions Found')).toBeInTheDocument();
+      expect(screen.getByText('No versions found')).toBeInTheDocument();
+      expect(screen.getByText('Try other search terms or filters.')).toBeInTheDocument();
     });
 
     it('reset filters button clears the local input and calls onSearchQueryChange', async () => {
@@ -160,13 +161,13 @@ describe('Export CSV button', () => {
           onSearchQueryChange={onSearchQueryChange}
         />,
       );
-      await userEvent.click(screen.getByRole('button', { name: 'Reset Filters' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
       expect(onSearchQueryChange).toHaveBeenCalledWith('');
     });
 
     it('shows a loading spinner when loading and no rows are cached yet', () => {
       renderWithTheme(<GAVersionsTab {...defaultProps} versions={[]} loading={true} />);
-      expect(screen.getByText('Loading versions...')).toBeInTheDocument();
+      expect(screen.getByText('Loading versions…')).toBeInTheDocument();
     });
 
     it('keeps the current rows visible with an inline spinner when loading a new page', () => {
@@ -404,24 +405,25 @@ describe('Export CSV button', () => {
 
     it('shows loading spinner while loading', () => {
       renderWithTheme(<GAFilesTab assets={[]} selectedVersion="1.0" loading={true} />);
-      expect(screen.getByText('Loading files...')).toBeInTheDocument();
+      expect(screen.getByText('Loading files…')).toBeInTheDocument();
     });
 
     it('shows empty state when assets array is empty and not loading', () => {
       renderWithTheme(<GAFilesTab assets={[]} selectedVersion="1.0" loading={false} />);
-      expect(screen.getByText('No Files Found')).toBeInTheDocument();
+      expect(screen.getByText('No files found')).toBeInTheDocument();
     });
 
     it('shows no-results card when search filters all out', async () => {
       renderWithTheme(<GAFilesTab {...defaultProps} />);
       await userEvent.type(screen.getByPlaceholderText('Filter'), 'zzznomatch');
-      expect(screen.getByText('No Files Found')).toBeInTheDocument();
+      expect(screen.getByText('No files found')).toBeInTheDocument();
     });
 
     it('reset filters button clears search and re-shows rows', async () => {
       renderWithTheme(<GAFilesTab {...defaultProps} />);
       await userEvent.type(screen.getByPlaceholderText('Filter'), 'zzznomatch');
-      await userEvent.click(screen.getByRole('button', { name: 'Reset Filters' }));
+      const resets = screen.getAllByRole('button', { name: 'Reset filters' });
+      await userEvent.click(resets[resets.length - 1]);
       expect(screen.getByText('lib-1.0.jar')).toBeInTheDocument();
     });
 

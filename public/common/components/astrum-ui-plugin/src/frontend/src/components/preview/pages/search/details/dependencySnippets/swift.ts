@@ -1,6 +1,7 @@
 
 
 import type { SnippetGenerator } from './types';
+import S from '../../../../constants/pages/search/ComponentDetailStrings';
 
 /**
  * Swift dependency snippet generator.
@@ -13,7 +14,7 @@ export const generate: SnippetGenerator = (component) => {
   return [
     {
       displayName: 'Package.swift',
-      description: 'Add the following dependency to your Package.swift:',
+      description: S.SNIPPETS.ADD_DEPENDENCY_TO('Package.swift'),
       snippetText: `.package(id: "${name}", from: "${version}")`,
     },
   ];

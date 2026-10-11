@@ -24,6 +24,7 @@ import { SortableTableHeader, TablePagination, exportToCsv } from '../../../shar
 import { MobileFilterDrawer } from '../../../shared/MobileFilterDrawer/MobileFilterDrawer';
 import type { RepoRow } from './gaRepositoriesMachine';
 import { GA_REPOSITORIES_STRINGS as UI } from './GARepositoriesStrings';
+import plural from '../../../../../interface/plural';
 import { useGARepositoriesTab } from './useGARepositoriesTab';
 
 interface GARepositoriesTabProps {
@@ -253,7 +254,7 @@ export function GARepositoriesTab({
                               </Table.Cell>
                               <Table.Cell justify="center">
                                 <Badge color="gray" variant="solid" radius="full" size="1">
-                                  {UI.VERSIONS_BADGE(r.versionCount)}
+                                  {plural(UI.VERSIONS_BADGE, r.versionCount)}
                                 </Badge>
                               </Table.Cell>
                             </Table.Row>
