@@ -1,5 +1,3 @@
-
-
 const mockGetValue = jest.fn();
 // Controls what the mocked ExtJS.state() returns; each test sets it (an object, null, or undefined).
 let mockState;
@@ -10,8 +8,7 @@ jest.mock('@globalart/astrum-ui-plugin', () => {
   );
   return {
     ExtJS: { state: () => mockState },
-    resolveDefaultLandingRoute: actual.resolveDefaultLandingRoute,
-    USER_REQUESTED_LEGACY_KEY: actual.USER_REQUESTED_LEGACY_KEY,
+    PREVIEW_WELCOME_ROUTE: actual.PREVIEW_WELCOME_ROUTE,
   };
 });
 
@@ -29,19 +26,27 @@ describe('getInitialRoute', () => {
     mockGetValue.mockReset();
     mockState = { getValue: mockGetValue };
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   const stateWith = (values) => (key, def) => (key in values ? values[key] : def);
 
   describe('when ExtJS.state is not available', () => {
-    it('returns classic welcome when ExtJS.state() returns null', () => {
+    it('returns the Astrum One dashboard when ExtJS.state() returns null', () => {
       mockState = null;
-      expect(getInitialRoute()).toBe('browse.welcome');
+      expect(getInitialRoute()).toBe('preview.browse.welcome');
     });
 
-    it('returns classic welcome when ExtJS.state() returns undefined', () => {
+    it('returns the Astrum One dashboard when ExtJS.state() returns undefined', () => {
       mockState = undefined;
-      expect(getInitialRoute()).toBe('browse.welcome');
+      expect(getInitialRoute()).toBe('preview.browse.welcome');
+    });
+
+    it('returns the Astrum One dashboard when ExtJS.state() throws', () => {
+      mockGetValue.mockImplementation(() => {
+        throw new Error('not ready');
+      });
+      expect(getInitialRoute()).toBe('preview.browse.welcome');
     });
   });
 
@@ -50,45 +55,24 @@ describe('getInitialRoute', () => {
     expect(getInitialRoute()).toBe('login');
   });
 
-  it('falls back to classic welcome when state is not seeded (anonUser null)', () => {
+  it('returns the Astrum One dashboard when state is not seeded (anonUser null)', () => {
     mockGetValue.mockImplementation(stateWith({ anonymousUsername: null }));
-    expect(getInitialRoute()).toBe('browse.welcome');
-  });
-
-  it('returns classic welcome for anonymous when defaultToPreviewUi is off', () => {
-    mockGetValue.mockImplementation(stateWith({
-      anonymousUsername: 'anonymous',
-      defaultToPreviewUi: false,
-      anonymousEnabled: true,
-    }));
-    expect(getInitialRoute()).toBe('browse.welcome');
-  });
-
-  it('returns preview welcome for anonymous when defaultToPreviewUi and anonymousEnabled are on', () => {
-    mockGetValue.mockImplementation(stateWith({
-      anonymousUsername: 'anonymous',
-      defaultToPreviewUi: true,
-      anonymousEnabled: true,
-    }));
     expect(getInitialRoute()).toBe('preview.browse.welcome');
   });
 
-  it('returns classic welcome for anonymous when defaultToPreviewUi is on but anonymousEnabled is off', () => {
-    mockGetValue.mockImplementation(stateWith({
-      anonymousUsername: 'anonymous',
-      defaultToPreviewUi: true,
-      anonymousEnabled: false,
-    }));
-    expect(getInitialRoute()).toBe('browse.welcome');
+  it.each([
+    ['all Preview flags on', { defaultToPreviewUi: true, anonymousEnabled: true }],
+    ['defaultToPreviewUi off', { defaultToPreviewUi: false, anonymousEnabled: true }],
+    ['anonymousEnabled off', { defaultToPreviewUi: true, anonymousEnabled: false }],
+  ])('sends an anonymous visitor to the Astrum One dashboard with %s', (_flags, values) => {
+    mockGetValue.mockImplementation(stateWith({ anonymousUsername: 'anonymous', ...values }));
+    expect(getInitialRoute()).toBe('preview.browse.welcome');
   });
 
-  it('respects user_requested_legacy for anonymous users', () => {
+  it('ignores a Classic choice saved in this browser by an earlier release', () => {
     sessionStorage.setItem('user_requested_legacy', 'true');
-    mockGetValue.mockImplementation(stateWith({
-      anonymousUsername: 'anonymous',
-      defaultToPreviewUi: true,
-      anonymousEnabled: true,
-    }));
-    expect(getInitialRoute()).toBe('browse.welcome');
+    localStorage.setItem('astrum-last-ui', 'classic');
+    mockGetValue.mockImplementation(stateWith({ anonymousUsername: 'anonymous' }));
+    expect(getInitialRoute()).toBe('preview.browse.welcome');
   });
 });

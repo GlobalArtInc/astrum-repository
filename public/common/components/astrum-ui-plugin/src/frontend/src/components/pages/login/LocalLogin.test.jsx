@@ -400,7 +400,7 @@ describe('LocalLogin', () => {
     });
 
     it('redirects to returnTo URL after successful login', async () => {
-      const returnToUrl = '#admin/repository/repositories';
+      const returnToUrl = '#preview/admin/repository/repositories';
       mockRouter.globals.params.returnTo = btoa(returnToUrl);
       renderComponent();
       await fillCredentials('admin', 'admin123');
@@ -525,7 +525,7 @@ describe('LocalLogin', () => {
       expect(sessionStorage.getItem('user_requested_legacy')).toBeNull();
     });
 
-    it('overrides a Classic landing returnTo with the preview dashboard when defaultToPreviewUi is on', async () => {
+    it('opens a Classic dashboard returnTo as the Astrum One dashboard', async () => {
       mockRouter.globals.params.returnTo = btoa('#browse/welcome');
       mockState.mockImplementation(() => ({
         getValue: (key, def) => ({ defaultToPreviewUi: true, loggedInEnabled: true }[key] ?? def)
@@ -540,12 +540,12 @@ describe('LocalLogin', () => {
       });
 
       await waitFor(() => {
-        expect(mockRouter.stateService.go).toHaveBeenCalledWith('preview.browse.welcome');
+        expect(mockRouter.urlService.url).toHaveBeenCalledWith('#preview/browse/welcome');
       });
-      expect(mockRouter.urlService.url).not.toHaveBeenCalled();
+      expect(mockRouter.stateService.go).not.toHaveBeenCalled();
     });
 
-    it('preserves a Classic deep-link returnTo even when defaultToPreviewUi is on', async () => {
+    it('opens a Classic deep-link returnTo as the matching Astrum One page', async () => {
       const deepLink = '#admin/security/users';
       mockRouter.globals.params.returnTo = btoa(deepLink);
       mockState.mockImplementation(() => ({
@@ -561,7 +561,7 @@ describe('LocalLogin', () => {
       });
 
       await waitFor(() => {
-        expect(mockRouter.urlService.url).toHaveBeenCalledWith(deepLink);
+        expect(mockRouter.urlService.url).toHaveBeenCalledWith('#preview/admin/security/users');
       });
       expect(mockRouter.stateService.go).not.toHaveBeenCalled();
     });
@@ -587,8 +587,13 @@ describe('LocalLogin', () => {
       expect(mockRouter.stateService.go).not.toHaveBeenCalled();
     });
 
-    it('honors a Classic returnTo when defaultToPreviewUi is off', async () => {
-      const classicReturnTo = '#admin/repository/repositories';
+    it.each([
+      ['#admin/repository/repositories', '#preview/admin/repository/repositories'],
+      ['#/browse/browse:maven-releases', '#/preview/browse/maven-releases/'],
+      ['#browse/search/maven', '#preview/browse/search?format=maven'],
+      ['/admin/repository/cleanuppolicies', '/preview/admin/repository/cleanup-policies'],
+      ['#browse/unknown', '#preview/browse/welcome'],
+    ])('maps the Classic returnTo %p to %p whatever defaultToPreviewUi says', async (classicReturnTo, previewReturnTo) => {
       mockRouter.globals.params.returnTo = btoa(classicReturnTo);
       mockState.mockImplementation(() => ({
         getValue: (key, def) => ({ defaultToPreviewUi: false, loggedInEnabled: true }[key] ?? def)
@@ -603,8 +608,28 @@ describe('LocalLogin', () => {
       });
 
       await waitFor(() => {
-        expect(mockRouter.urlService.url).toHaveBeenCalledWith(classicReturnTo);
+        expect(mockRouter.urlService.url).toHaveBeenCalledWith(previewReturnTo);
       });
+    });
+
+    it('ignores a Classic interface remembered in this browser by an earlier release', async () => {
+      localStorage.setItem('astrum-last-ui', 'classic');
+      mockState.mockImplementation(() => ({
+        getValue: (key, def) => ({ loggedInEnabled: true }[key] ?? def)
+      }));
+      renderComponent();
+      await fillCredentials('admin', 'admin123');
+
+      mockRequestSession.mockResolvedValue({ response: { status: 204 } });
+
+      await act(async () => {
+        await userEvent.click(selectors.loginButton());
+      });
+
+      await waitFor(() => {
+        expect(mockRouter.stateService.go).toHaveBeenCalledWith('preview.browse.welcome');
+      });
+      localStorage.removeItem('astrum-last-ui');
     });
 
     it('does not redirect to preview after clearing legacy flag when loggedInEnabled is off', async () => {

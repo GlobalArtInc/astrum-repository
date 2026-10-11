@@ -1,18 +1,16 @@
-
-import {ExtJS, resolveDefaultLandingRoute, USER_REQUESTED_LEGACY_KEY} from '@globalart/astrum-ui-plugin';
+import {ExtJS, PREVIEW_WELCOME_ROUTE} from '@globalart/astrum-ui-plugin';
 import {ROUTE_NAMES} from './routeNames/routeNames';
 
 /**
- * Determines the initial route based on anonymous access and Preview UI settings.
+ * Determines the initial route based on anonymous access.
  *
  * bootstrapFromREST() seeds window.AS.State before this runs, so
  * ExtJS.state().getValue() returns real data. The try/catch is a safety net in
  * case REST bootstrap failed.
  *
- * When anonymous access is enabled, honors the "Default to Astrum One UI" setting
- * (gated by anonymous Preview access and the user_requested_legacy session flag)
- * so anonymous users land directly on the Preview dashboard instead of flashing
- * Classic first.
+ * The Classic UI is retired, so everyone starts on the Astrum One dashboard, anonymous
+ * visitors included; only when anonymous access is disabled does the sign-in page come
+ * first. A Classic choice saved in this browser by an earlier release no longer counts.
  */
 export function getInitialRoute() {
   try {
@@ -20,20 +18,13 @@ export function getInitialRoute() {
     if (state && typeof state.getValue === 'function') {
       const anonUser = state.getValue('anonymousUsername');
       // Only use ExtJS state if it returned a real value (not the fallback null)
-      if (anonUser !== null && anonUser !== undefined) {
-        if (!anonUser) {
-          return ROUTE_NAMES.LOGIN;
-        }
-        return resolveDefaultLandingRoute({
-          defaultToPreviewUi: state.getValue('defaultToPreviewUi', false) ?? false,
-          canAccessPreviewUi: state.getValue('anonymousEnabled', false) ?? false,
-          userRequestedLegacy: sessionStorage.getItem(USER_REQUESTED_LEGACY_KEY) === 'true'
-        });
+      if (anonUser !== null && anonUser !== undefined && !anonUser) {
+        return ROUTE_NAMES.LOGIN;
       }
     }
   }
   catch {
     // ExtJS not ready
   }
-  return ROUTE_NAMES.BROWSE.WELCOME.ROOT;
+  return PREVIEW_WELCOME_ROUTE;
 }

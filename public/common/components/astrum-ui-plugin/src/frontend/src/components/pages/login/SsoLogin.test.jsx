@@ -148,7 +148,7 @@ describe('SsoLogin', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith('/saml?hash=%23admin%2Frepository%2Frepositories');
+        expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
       });
     });
 
@@ -184,7 +184,7 @@ describe('SsoLogin', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith('/astrum/saml?hash=%23admin%2Frepository%2Frepositories');
+        expect(window.location.assign).toHaveBeenCalledWith(`/astrum/saml?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
       });
     });
   });
@@ -222,7 +222,7 @@ describe('SsoLogin', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith('/oidc/login?hash=%23admin%2Frepository%2Frepositories');
+        expect(window.location.assign).toHaveBeenCalledWith(`/oidc/login?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
       });
     });
 
@@ -258,7 +258,7 @@ describe('SsoLogin', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith('/astrum/oidc/login?hash=%23admin%2Frepository%2Frepositories');
+        expect(window.location.assign).toHaveBeenCalledWith(`/astrum/oidc/login?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
       });
     });
   });
@@ -283,8 +283,8 @@ describe('SsoLogin', () => {
     });
   });
 
-  describe('default-to-preview return target', () => {
-    it('injects preview hash when defaultToPreviewUi and loggedInEnabled are enabled and no returnTo', async () => {
+  describe('Astrum One return target', () => {
+    it('sends no hash when there is no returnTo, since the application root opens Astrum One', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
@@ -298,13 +298,12 @@ describe('SsoLogin', () => {
       render(<SsoLogin />);
       fireEvent.click(screen.getByRole('button'));
 
-      const expectedHash = encodeURIComponent(btoa('#preview/browse/welcome'));
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${expectedHash}`);
+        expect(window.location.assign).toHaveBeenCalledWith('/saml?');
       });
     });
 
-    it('clears a stale user_requested_legacy flag and injects preview hash', async () => {
+    it('clears a stale user_requested_legacy flag', async () => {
       sessionStorage.setItem('user_requested_legacy', 'true');
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
@@ -319,14 +318,13 @@ describe('SsoLogin', () => {
       render(<SsoLogin />);
       fireEvent.click(screen.getByRole('button'));
 
-      const expectedHash = encodeURIComponent(btoa('#preview/browse/welcome'));
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${expectedHash}`);
+        expect(window.location.assign).toHaveBeenCalledWith('/saml?');
       });
       expect(sessionStorage.getItem('user_requested_legacy')).toBeNull();
     });
 
-    it('overrides a Classic landing returnTo with the preview hash when defaultToPreviewUi is on', async () => {
+    it('opens a Classic dashboard returnTo as the Astrum One dashboard', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
@@ -346,7 +344,7 @@ describe('SsoLogin', () => {
       });
     });
 
-    it('preserves a Classic deep-link returnTo even when defaultToPreviewUi is on', async () => {
+    it('opens a Classic deep-link returnTo as the matching Astrum One page', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
@@ -361,7 +359,7 @@ describe('SsoLogin', () => {
       render(<SsoLogin />);
       fireEvent.click(screen.getByRole('button'));
 
-      const expectedHash = encodeURIComponent(deepLink);
+      const expectedHash = encodeURIComponent(btoa('#preview/admin/security/users'));
       await waitFor(() => {
         expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${expectedHash}`);
       });
@@ -388,7 +386,7 @@ describe('SsoLogin', () => {
       });
     });
 
-    it('does NOT inject preview hash when loggedInEnabled is off', async () => {
+    it('sends no hash without a returnTo when loggedInEnabled is off', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
@@ -407,7 +405,7 @@ describe('SsoLogin', () => {
       });
     });
 
-    it('preserves an explicit returnTo when defaultToPreviewUi is off', async () => {
+    it('maps a raw Classic returnTo whatever defaultToPreviewUi says', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
@@ -422,7 +420,7 @@ describe('SsoLogin', () => {
       fireEvent.click(screen.getByRole('button'));
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith('/saml?hash=%23admin%2Frepository%2Frepositories');
+        expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
       });
     });
 

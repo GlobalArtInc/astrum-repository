@@ -13,6 +13,8 @@ import {
   LAST_USED_UI_KEY,
   getLastUsedUi,
   setLastUsedUi,
+  toPreviewReturnTo,
+  toPreviewReturnToParam,
 } from './loginUtils';
 
 describe('parseRetryAfter', () => {
@@ -73,40 +75,21 @@ describe('last used interface', () => {
 describe('resolveDefaultLandingRoute', () => {
   beforeEach(() => localStorage.clear());
 
-  it('opens preview when it was used last, though defaultToPreviewUi is off', () => {
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: false,
-      canAccessPreviewUi: true,
-      userRequestedLegacy: false,
-      lastUsedUi: 'preview',
-    })).toBe(PREVIEW_WELCOME_ROUTE);
+  it('opens the Astrum One dashboard for a user allowed into it', () => {
+    expect(resolveDefaultLandingRoute({ canAccessPreviewUi: true })).toBe(PREVIEW_WELCOME_ROUTE);
   });
 
-  it('opens classic when it was used last, though defaultToPreviewUi is on', () => {
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: true,
-      canAccessPreviewUi: true,
-      userRequestedLegacy: false,
-      lastUsedUi: 'classic',
-    })).toBe(CLASSIC_WELCOME_ROUTE);
+  it.each([
+    ['Classic used last in this browser', { lastUsedUi: 'classic' }],
+    ['the Classic UI requested in this session', { userRequestedLegacy: true }],
+    ['defaultToPreviewUi off', { defaultToPreviewUi: false }],
+  ])('ignores %s, saved by an earlier release', (_what, options) => {
+    setLastUsedUi('classic');
+    expect(resolveDefaultLandingRoute({ canAccessPreviewUi: true, ...options })).toBe(PREVIEW_WELCOME_ROUTE);
   });
 
-  it('reads the interface used last from this browser when it is not given', () => {
-    setLastUsedUi('preview');
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: false,
-      canAccessPreviewUi: true,
-      userRequestedLegacy: false,
-    })).toBe(PREVIEW_WELCOME_ROUTE);
-  });
-
-  it('opens classic when preview was used last but the user may not use it any more', () => {
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: true,
-      canAccessPreviewUi: false,
-      userRequestedLegacy: false,
-      lastUsedUi: 'preview',
-    })).toBe(CLASSIC_WELCOME_ROUTE);
+  it('opens the Classic dashboard only when the server does not report Astrum One access', () => {
+    expect(resolveDefaultLandingRoute({ canAccessPreviewUi: false })).toBe(CLASSIC_WELCOME_ROUTE);
   });
 
   it('exposes the expected constant values', () => {
@@ -114,46 +97,45 @@ describe('resolveDefaultLandingRoute', () => {
     expect(CLASSIC_WELCOME_ROUTE).toBe('browse.welcome');
     expect(USER_REQUESTED_LEGACY_KEY).toBe('user_requested_legacy');
   });
+});
 
-  it('returns preview when default+access and legacy not requested', () => {
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: true,
-      canAccessPreviewUi: true,
-      userRequestedLegacy: false,
-    })).toBe(PREVIEW_WELCOME_ROUTE);
-  });
-
-  it('returns classic when defaultToPreviewUi is off', () => {
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: false,
-      canAccessPreviewUi: true,
-      userRequestedLegacy: false,
-    })).toBe(CLASSIC_WELCOME_ROUTE);
-  });
-
-  it('returns classic when the user cannot access preview', () => {
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: true,
-      canAccessPreviewUi: false,
-      userRequestedLegacy: false,
-    })).toBe(CLASSIC_WELCOME_ROUTE);
-  });
-
-  it('returns classic when the user explicitly requested legacy', () => {
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: true,
-      canAccessPreviewUi: true,
-      userRequestedLegacy: true,
-    })).toBe(CLASSIC_WELCOME_ROUTE);
-  });
-
-  it('returns preview when userRequestedLegacy is omitted (treated as false)', () => {
-    expect(resolveDefaultLandingRoute({
-      defaultToPreviewUi: true,
-      canAccessPreviewUi: true,
-    })).toBe(PREVIEW_WELCOME_ROUTE);
+describe('toPreviewReturnTo', () => {
+  it.each([
+    ['#admin/security/users', '#preview/admin/security/users'],
+    ['#/admin/security/users', '#/preview/admin/security/users'],
+    ['/admin/repository/cleanuppolicies', '/preview/admin/repository/cleanup-policies'],
+    ['#browse/browse:maven-releases', '#preview/browse/maven-releases/'],
+    ['#browse/search/maven', '#preview/browse/search?format=maven'],
+    ['#', '#preview/browse/welcome'],
+    ['#preview/admin/security/roles', '#preview/admin/security/roles'],
+    ['#/preview/browse/welcome?tab=overview', '#/preview/browse/welcome?tab=overview'],
+  ])('maps %p to %p', (classic, preview) => {
+    expect(toPreviewReturnTo(classic)).toBe(preview);
   });
 });
+
+describe('toPreviewReturnToParam', () => {
+  it('maps a Base64 Classic returnTo and encodes it again', () => {
+    expect(atob(toPreviewReturnToParam(btoa('#admin/security/users')))).toBe('#preview/admin/security/users');
+  });
+
+  it('maps a raw Classic returnTo and Base64-encodes it', () => {
+    expect(atob(toPreviewReturnToParam('#admin/system/tasks'))).toBe('#preview/admin/system/tasks');
+  });
+
+  it('keeps an Astrum One returnTo', () => {
+    expect(atob(toPreviewReturnToParam(btoa('#preview/browse/welcome')))).toBe('#preview/browse/welcome');
+  });
+
+  it.each([[undefined], [null], ['']])('leaves a missing returnTo %p missing', (value) => {
+    expect(toPreviewReturnToParam(value)).toBe(value);
+  });
+
+  it('returns a value that is neither a hash nor a path unchanged', () => {
+    expect(toPreviewReturnToParam('%23browse%2Fsearch')).toBe('%23browse%2Fsearch');
+  });
+});
+
 
 describe('isPreviewHash', () => {
   it('returns true for preview hashes', () => {
