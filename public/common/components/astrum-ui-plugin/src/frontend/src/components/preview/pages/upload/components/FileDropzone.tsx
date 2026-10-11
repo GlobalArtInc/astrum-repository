@@ -6,6 +6,7 @@ import { Upload, File, X, Plus, AlertCircle } from 'lucide-react';
 
 import './FileDropzone.scss';
 import UploadStrings from '../../../constants/pages/upload/UploadStrings';
+import { formatBytes } from '../../Welcome/usage/usageFormat';
 
 /**
  * Props for the FileDropzone component.
@@ -40,14 +41,10 @@ export interface FileDropzoneProps {
 }
 
 /**
- * Format file size for display (e.g., "2.3 MB", "150 KB").
+ * Format file size for display in the page's language (e.g., "2.3 MB", "150 KB").
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const size = bytes / Math.pow(1024, i);
-  return `${size.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
+  return formatBytes(bytes);
 }
 
 /**

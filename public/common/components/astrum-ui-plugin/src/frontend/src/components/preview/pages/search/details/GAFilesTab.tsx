@@ -39,6 +39,7 @@ import {
 import { MobileFilterDrawer } from '../../../shared/MobileFilterDrawer/MobileFilterDrawer';
 import { exportToCsv } from '../../../shared';
 import { pageLanguage } from '../../../../../interface/plural';
+import { formatBytes } from '../../Welcome/usage/usageFormat';
 import S from '../../../constants/pages/search/ComponentDetailStrings';
 
 interface GAFilesTabProps {
@@ -534,7 +535,7 @@ function AssetRow({ asset }: { asset: GAAsset }) {
 
       <Table.Cell justify="center">
         <Text size="2" color="gray">
-          {formatFileSize(asset.size)}
+          {formatBytes(asset.size)}
         </Text>
       </Table.Cell>
 
@@ -568,14 +569,6 @@ function AssetRow({ asset }: { asset: GAAsset }) {
       </Table.Cell>
     </Table.Row>
   );
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 /**

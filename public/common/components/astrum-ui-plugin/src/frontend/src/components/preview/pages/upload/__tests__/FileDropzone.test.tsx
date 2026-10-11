@@ -73,17 +73,17 @@ describe('FileDropzone', () => {
     });
 
     it('formats kilobytes', () => {
-      expect(formatFileSize(1024)).toBe('1.0 KB');
+      expect(formatFileSize(1024)).toBe('1 KB');
       expect(formatFileSize(1536)).toBe('1.5 KB');
     });
 
     it('formats megabytes', () => {
-      expect(formatFileSize(1024 * 1024)).toBe('1.0 MB');
+      expect(formatFileSize(1024 * 1024)).toBe('1 MB');
       expect(formatFileSize(2.5 * 1024 * 1024)).toBe('2.5 MB');
     });
 
     it('formats gigabytes', () => {
-      expect(formatFileSize(1024 * 1024 * 1024)).toBe('1.0 GB');
+      expect(formatFileSize(1024 * 1024 * 1024)).toBe('1 GB');
     });
   });
 
@@ -172,9 +172,9 @@ describe('FileDropzone', () => {
       );
 
       expect(screen.getByText('artifact.jar')).toBeInTheDocument();
-      expect(screen.getByText('(1.0 MB)')).toBeInTheDocument();
+      expect(screen.getByText('(1 MB)')).toBeInTheDocument();
       expect(screen.getByText('artifact.pom')).toBeInTheDocument();
-      expect(screen.getByText('(1.0 KB)')).toBeInTheDocument();
+      expect(screen.getByText('(1 KB)')).toBeInTheDocument();
     });
 
     it('renders remove buttons for each file', () => {

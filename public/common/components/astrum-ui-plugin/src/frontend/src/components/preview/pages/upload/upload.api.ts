@@ -5,6 +5,7 @@ import { APIConstants } from '@globalart/astrum-ui-plugin';
 import UploadStrings from '../../constants/pages/upload/UploadStrings';
 import CommonStrings from '../../constants/CommonStrings';
 import { formatDuration } from '../../shared/utils/formatLocale';
+import { formatBytes as formatSize } from '../Welcome/usage/usageFormat';
 
 /**
  * Upload progress information.
@@ -242,17 +243,10 @@ export function calculateFormDataSize(formData: FormData): number {
 }
 
 /**
- * Format bytes as human-readable string.
+ * Format bytes as human-readable string in the page's language.
  */
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-
-  const units = ['B', 'KB', 'MB', 'GB'];
-  const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  const size = bytes / Math.pow(k, i);
-
-  return `${size.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
+  return formatSize(bytes);
 }
 
 /**
