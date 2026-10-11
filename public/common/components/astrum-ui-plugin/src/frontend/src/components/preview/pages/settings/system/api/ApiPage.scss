@@ -24,6 +24,10 @@
   }
 
   .api-endpoint-list {
+    &__scroll .rt-ScrollAreaViewport > * {
+      width: 100%;
+    }
+
     &__row {
       width: 100%;
       border: 1px solid transparent;

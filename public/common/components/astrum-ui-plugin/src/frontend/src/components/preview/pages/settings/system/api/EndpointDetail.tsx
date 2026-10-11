@@ -90,11 +90,11 @@ export function EndpointDetail({ row, fullSwagger, access }: EndpointDetailProps
                 {row.fullPath}
               </Text>
             </Flex>
-            <Text size="2" color="gray" mb="1">
+            <Text size="2" color="gray" as="p" data-testid="api-endpoint-detail-required">
               {ApiStrings.ENDPOINT_DETAIL.REQUIRED(formatPermissions(row))}
             </Text>
             {row.summary && (
-              <Text size="2" mt="2">
+              <Text size="2" as="p" mt="2" data-testid="api-endpoint-detail-summary">
                 {row.summary}
               </Text>
             )}

@@ -105,6 +105,12 @@ describe('EndpointDetail', () => {
       expect(screen.getByText('Check application health')).toBeInTheDocument();
     });
 
+    it('puts the required permissions and the summary on lines of their own', () => {
+      renderWithTheme(<EndpointDetail row={row} fullSwagger={null} access="granted" />);
+      expect(screen.getByTestId('api-endpoint-detail-required').tagName).toBe('P');
+      expect(screen.getByTestId('api-endpoint-detail-summary').tagName).toBe('P');
+    });
+
     it('shows "None (may allow anonymous)" for unauthenticated endpoints without permissions', () => {
       renderWithTheme(<EndpointDetail row={row} fullSwagger={null} access="granted" />);
       expect(screen.getByText(/None \(may allow anonymous\)/)).toBeInTheDocument();
