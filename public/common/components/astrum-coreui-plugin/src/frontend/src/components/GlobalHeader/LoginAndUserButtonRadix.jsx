@@ -9,7 +9,6 @@ import {useRouter, useSref} from '@uirouter/react';
 import useHasUser from '../../hooks/useHasUser';
 import {ROUTE_NAMES} from '../../routerConfig/routeNames/routeNames';
 import UIStrings from '../../constants/UIStrings';
-import {useTheme} from '../../contexts/ThemeContext';
 import {restClient} from '../../utils/api';
 
 import './LoginAndUserButtonRadix.scss';
@@ -58,7 +57,6 @@ export default function LoginAndUserButtonRadix() {
   const hasUser = useHasUser();
   const user = ExtJS.useUser();
   const router = useRouter();
-  const {setTheme} = useTheme();
 
   const [stateUserId, setStateUserId] = useState(null);
 
@@ -95,21 +93,7 @@ export default function LoginAndUserButtonRadix() {
   };
 
   function onSignOutClick() {
-    // Reset to light mode on logout - Classic UI doesn't support dark mode.
-    // Apply synchronously to DOM and localStorage BEFORE redirect so we never
-    // flash dark theme on login/Classic UI pages.
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.body.classList.remove('dark');
-      document.body.classList.add('light');
-    }
-    try {
-      localStorage.setItem('astrum-theme-preference', 'light');
-    } catch (e) {
-      /* ignore */
-    }
-    setTheme('light');
-
+    // The theme stays as the user chose it: every page supports both, and the sign-in page renders light anyway
     ExtJS.signOut();
   }
 

@@ -124,14 +124,16 @@ describe('LoginAndUserButtonRadix', () => {
     expect(screen.getByTestId('user-menu-access-tokens')).toHaveAttribute('href', '#preview.user.accesstokens');
   });
 
-  it('signs out and returns to the light theme', async () => {
+  it('signs out and keeps the theme the user chose', async () => {
+    localStorage.setItem('astrum-theme-preference', 'dark');
     renderButton();
 
     openMenu();
     fireEvent.click(await screen.findByRole('menuitem', {name: /Log Out/}));
 
-    expect(mockSetTheme).toHaveBeenCalledWith('light');
     expect(mockSignOut).toHaveBeenCalled();
+    expect(mockSetTheme).not.toHaveBeenCalled();
+    expect(localStorage.getItem('astrum-theme-preference')).toBe('dark');
   });
 
   it('offers to sign in when nobody is signed in', () => {
