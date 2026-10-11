@@ -62,7 +62,9 @@
     margin: 0;
   }
 
-  &__content {
+  // Descendant selector (0,2,0) so the column layout beats Radix's `.rt-Box { display: block }`, which otherwise wins on
+  // stylesheet order and leaves the fields of a section without any space between them
+  & &__content {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
