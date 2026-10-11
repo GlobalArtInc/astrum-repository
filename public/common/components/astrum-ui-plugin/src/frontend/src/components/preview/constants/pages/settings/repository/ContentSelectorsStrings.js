@@ -71,7 +71,6 @@ export default localize('react-ui', {
     DEFINE_NEW_CONTENT_SELECTOR_USING: 'Define a new content selector using CSEL expressions',
     EDIT: (name) => `Edit: ${name}`,
     CONTENT_SELECTOR_DETAILS: 'Content Selector Details',
-    TYPE: (upperCase) => `Type: ${upperCase}`,
     LOADING_CONTENT_SELECTOR_DETAILS: 'Loading content selector details...',
     CREATE_SELECTOR: 'Create Selector',
   },

@@ -1669,7 +1669,6 @@
   "PREVIEW.CONTENT_SELECTORS.PAGE.DEFINE_NEW_CONTENT_SELECTOR_USING": "Определите новый селектор содержимого с помощью выражений CSEL",
   "PREVIEW.CONTENT_SELECTORS.PAGE.EDIT": "Изменение: {0}",
   "PREVIEW.CONTENT_SELECTORS.PAGE.LOADING_CONTENT_SELECTOR_DETAILS": "Загрузка сведений о селекторе содержимого...",
-  "PREVIEW.CONTENT_SELECTORS.PAGE.TYPE": "Тип: {0}",
   "PREVIEW.CONTENT_SELECTORS.PREVIEW.FILTER_RESULTS_PLACEHOLDER": "Фильтр результатов...",
   "PREVIEW.CONTENT_SELECTORS.PREVIEW.LOADING_PREVIEW": "Загрузка предпросмотра...",
   "PREVIEW.CONTENT_SELECTORS.PREVIEW.NO_CONTENT_REPOSITORIES_MATCHED_EXPRESSION": "В репозиториях нет содержимого, соответствующего выражению",

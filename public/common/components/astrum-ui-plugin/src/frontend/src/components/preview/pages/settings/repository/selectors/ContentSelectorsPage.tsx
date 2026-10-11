@@ -184,10 +184,10 @@ export function ContentSelectorsPage() {
       };
     }
 
-    // detail mode
+    // detail mode: no description, the form right below shows the type
     return {
       title: selector ? ContentSelectorsStrings.PAGE.EDIT(selector.name) : ContentSelectorsStrings.PAGE.CONTENT_SELECTOR_DETAILS,
-      description: selector ? ContentSelectorsStrings.PAGE.TYPE(selector.type?.toUpperCase()) : undefined,
+      description: undefined,
     };
   };
 
