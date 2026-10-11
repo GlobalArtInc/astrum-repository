@@ -31,10 +31,12 @@ function renderTab(props: Partial<React.ComponentProps<typeof GARepositoriesTab>
 describe('GARepositoriesTab', () => {
   it('renders one row per repository with correct name, type, and version count', () => {
     renderTab();
+    const typeNames: Record<string, string> = { hosted: 'Hosted', proxy: 'Proxy', group: 'Group' };
     ROWS.forEach((r) => {
       const nameCell = screen.getByText(r.repositoryName);
       const row = nameCell.closest('tr') as HTMLTableRowElement;
-      expect(within(row).getByText(r.type)).toBeInTheDocument();
+      expect(within(row).getByText(typeNames[r.type])).toBeInTheDocument();
+      expect(within(row).queryByText(r.type)).toBeNull();
       expect(within(row).getByText(new RegExp(`${r.versionCount}\\s+version`))).toBeInTheDocument();
     });
   });

@@ -27,6 +27,11 @@ import { GA_REPOSITORIES_STRINGS as UI } from './GARepositoriesStrings';
 import plural from '../../../../../interface/plural';
 import { useGARepositoriesTab } from './useGARepositoriesTab';
 
+/** Names a repository type as the type filter does, keeping types it does not know as they are. */
+function typeLabel(type: string): string {
+  return UI.TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type;
+}
+
 interface GARepositoriesTabProps {
   rows: readonly RepoRow[];
   loading: boolean;
@@ -250,7 +255,7 @@ export function GARepositoriesTab({
                                 <Text size="2" weight="medium">{r.repositoryName}</Text>
                               </Table.Cell>
                               <Table.Cell justify="center">
-                                <Text size="2" color="gray">{r.type}</Text>
+                                <Text size="2" color="gray">{typeLabel(r.type)}</Text>
                               </Table.Cell>
                               <Table.Cell justify="center">
                                 <Badge color="gray" variant="solid" radius="full" size="1">
