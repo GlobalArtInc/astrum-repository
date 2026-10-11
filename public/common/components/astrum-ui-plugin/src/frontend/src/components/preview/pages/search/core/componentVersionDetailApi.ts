@@ -31,6 +31,7 @@ interface RawAsset {
   lastModified?: string | null;
   fileSize?: number | null;
   checksum?: Record<string, string> | null;
+  registryUrl?: string | null;
 }
 
 interface RawSearchItem {
@@ -60,6 +61,7 @@ function toAsset(raw: RawAsset, itemRepository: string): GAAsset {
     // empty-string sentinel renders as the literal "Invalid Date" and sorts as NaN.
     lastModified: raw.lastModified ?? null,
     checksums: raw.checksum || {},
+    ...(raw.registryUrl ? { registryUrl: raw.registryUrl } : {}),
   };
 }
 

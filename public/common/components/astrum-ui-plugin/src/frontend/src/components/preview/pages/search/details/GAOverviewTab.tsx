@@ -27,6 +27,8 @@ interface GAOverviewTabProps {
    * uses, so the "Repository" row and the snippet's registry URL agree with that tab.
    */
   repositories?: readonly string[];
+  /** Registry of the first of those repositories, for formats whose commands name it (Docker). */
+  registryUrl?: string;
   /** The selected version's most recent asset timestamp, or null if none carries one. */
   lastUpdated?: string | null;
 }
@@ -53,6 +55,7 @@ export function GAOverviewTab({
   detail,
   selectedVersion,
   repositories = [],
+  registryUrl,
   lastUpdated = null,
 }: GAOverviewTabProps) {
   const { gaId, format } = detail;
@@ -95,8 +98,8 @@ export function GAOverviewTab({
     // The Overview is component-level, so there is no specific asset — matching Classic, which
     // emits no extension here. Synthesizing a jar extension for Maven would wrongly append @jar
     // to Gradle/PURL/Leiningen coordinates and break transitive resolution.
-    return getDependencySnippets(format, component, undefined);
-  }, [format, group, name, ver, repositoryName]);
+    return getDependencySnippets(format, component, registryUrl ? { registryUrl } : undefined);
+  }, [format, group, name, ver, repositoryName, registryUrl]);
 
   // Require a resolvable version: several generators (npm, pypi, maven, …) don't guard on an empty
   // version, so without this gate a version-less component would emit a truncated coordinate.

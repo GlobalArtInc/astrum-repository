@@ -244,6 +244,11 @@ export interface GAAsset {
     readonly sha512?: string;
     readonly md5?: string;
   };
+
+  /**
+   * Registry host and path that clients pull from (Docker), e.g. "repo.example.com:8082/docker-hosted".
+   */
+  readonly registryUrl?: string;
 }
 
 // =============================================================================

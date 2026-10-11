@@ -133,6 +133,11 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
     [repoRows],
   );
 
+  const overviewRegistryUrl = useMemo(() => {
+    const repository = overviewRepositories[0];
+    return assets.find((asset) => asset.repository === repository && asset.registryUrl)?.registryUrl;
+  }, [assets, overviewRepositories]);
+
   const securityCount =
     securityResult.data &&
     (securityResult.data.criticalCount +
@@ -423,6 +428,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
                     detail={detail}
                     selectedVersion={selectedVersion ?? newestVersion ?? null}
                     repositories={overviewRepositories}
+                    registryUrl={overviewRegistryUrl}
                     lastUpdated={versionLastUpdated}
                   />
                 </Tabs.Content>

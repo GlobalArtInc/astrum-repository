@@ -78,6 +78,23 @@ describe('fetchComponentVersionDetail', () => {
     expect(result.repositories).toEqual(['maven-hosted-1', 'maven-hosted-3']);
   });
 
+  it('keeps the registry an asset is pulled from', async () => {
+    mockedAxios.get.mockResolvedValue({
+      data: {
+        items: [
+          row('docker-hosted', '1.1.0', [
+            { ...asset('v2/acme/web/manifests/1.1.0'), registryUrl: 'repo.example.com:8082/docker-hosted' },
+          ]),
+        ],
+        continuationToken: null,
+      },
+    });
+
+    const result = await fetchComponentVersionDetail(REQ);
+
+    expect(result.assets[0].registryUrl).toBe('repo.example.com:8082/docker-hosted');
+  });
+
   it('reports the most recent asset timestamp, not the first', async () => {
     mockedAxios.get.mockResolvedValue({
       data: {

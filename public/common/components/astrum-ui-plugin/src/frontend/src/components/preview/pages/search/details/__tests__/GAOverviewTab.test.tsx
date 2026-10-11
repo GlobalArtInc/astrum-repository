@@ -70,6 +70,21 @@ describe('GAOverviewTab', () => {
     writeText.mockResolvedValue(undefined);
   });
 
+  it('pulls Docker images from the registry of the repository shown', () => {
+    render(
+      <Theme>
+        <GAOverviewTab
+          detail={detail({ gaId: 'docker:acme/web', format: 'docker', name: 'acme/web' } as any)}
+          selectedVersion="1.1.0"
+          repositories={['docker-hosted']}
+          registryUrl="repo.example.com:8082/docker-hosted"
+        />
+      </Theme>,
+    );
+
+    expect(screen.getByText('docker pull repo.example.com:8082/docker-hosted/acme/web:1.1.0')).toBeInTheDocument();
+  });
+
   it('renders a snippet-type dropdown listing the maven snippet options', async () => {
     renderTab(detail({ gaId: 'maven:org.apache.commons:commons-lang3', format: 'maven' }));
     await userEvent.click(screen.getByRole('combobox', { name: /dependency snippet/i }));
