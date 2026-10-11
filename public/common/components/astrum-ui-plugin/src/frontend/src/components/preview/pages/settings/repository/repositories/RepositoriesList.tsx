@@ -6,7 +6,6 @@ import {
   DropdownMenu,
   Flex,
   Grid,
-  Heading,
   Spinner,
   Table,
   Text,
@@ -55,7 +54,6 @@ import { FirewallCell } from '../../../../shared/security/FirewallCell';
 import './RepositoriesList.scss';
 import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
-import { pageLanguage } from '../../../../../../interface/plural';
 
 interface FirewallStatusData {
   repositoryName: string;
@@ -103,8 +101,11 @@ function shouldShowHealthCheckColumn(): boolean {
 /**
  * Format file size in bytes to human-readable format
  */
-function formatFileSize(bytes?: number): string {
-  if (bytes == null || bytes === 0) {
+function formatFileSize(bytes?: number | null): string {
+  if (bytes == null) {
+    return '—';
+  }
+  if (bytes === 0) {
     return '0 B';
   }
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -606,7 +607,6 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
     );
   }, [filter, typeFilter, formatFilter, handleClearFilters, onCreate]);
 
-  const displayTotal = sortedRepositories.length.toLocaleString(pageLanguage());
 
   const filterBarContent = (
     <BrowseFilterSidebar
@@ -681,11 +681,6 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
             {/* Main Content */}
             <Box className="repositories-list__main" minWidth="0" width="100%" role="main">
               <Box className="repositories-list__content">
-                <Flex align="baseline" gap="2" mb="4">
-                  <Heading as="h1" size="6" weight="bold">{RepositoriesPageStrings.LIST.REPOSITORIES}</Heading>
-                  <Text size="2" color="gray">{displayTotal}</Text>
-                </Flex>
-
                 {/* Actions Bar */}
                 <Box mb="4" role="toolbar">
                   <Flex
@@ -844,7 +839,7 @@ export function RepositoriesList({ onSelect, onCreate, onDelete }: RepositoriesL
                               </Text>
                             </Table.Cell>
                             <Table.Cell>
-                              <Text size="2">{repo.type}</Text>
+                              <Text size="2">{TYPE_LABELS[repo.type as keyof typeof TYPE_LABELS] || repo.type}</Text>
                             </Table.Cell>
                             <Table.Cell>
                               <Text size="2">{FORMAT_LABELS[repo.format] || repo.format}</Text>

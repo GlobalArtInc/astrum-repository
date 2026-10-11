@@ -177,6 +177,27 @@ describe('RepositoriesList', () => {
     });
   });
 
+  it('names the type in the rows and shows an unknown size as a dash, not as 0 B', async () => {
+    renderWithTheme(
+      <RepositoriesList onSelect={mockOnSelect} onCreate={mockOnCreate} />
+    );
+
+    const row = (await screen.findByText('maven-releases')).closest('tr') as HTMLElement;
+    expect(within(row).getByText('Hosted')).toBeInTheDocument();
+    expect(within(row).queryByText('hosted')).not.toBeInTheDocument();
+    expect(within(row).getAllByText('—').length).toBeGreaterThan(0);
+    expect(within(row).queryByText('0 B')).not.toBeInTheDocument();
+  });
+
+  it('shows the page title only once', async () => {
+    renderWithTheme(
+      <RepositoriesList onSelect={mockOnSelect} onCreate={mockOnCreate} />
+    );
+
+    await screen.findByText('maven-releases');
+    expect(screen.queryByRole('heading', { name: 'Repositories' })).not.toBeInTheDocument();
+  });
+
   it('displays repository formats correctly', async () => {
     renderWithTheme(
       <RepositoriesList onSelect={mockOnSelect} onCreate={mockOnCreate} />
