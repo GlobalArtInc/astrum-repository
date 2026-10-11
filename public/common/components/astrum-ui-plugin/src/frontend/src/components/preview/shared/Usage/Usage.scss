@@ -90,6 +90,43 @@
   }
 }
 
+// Phones: the client tabs scroll in one row, a command keeps its lines and scrolls sideways inside the box,
+// and Copy sits under it, always in view
+@media (max-width: 639px) {
+  .usage-block {
+    &__tabs {
+      flex-wrap: nowrap;
+      align-self: stretch;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    &__tab {
+      flex: none;
+      min-height: 36px;
+    }
+
+    &__code {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      padding: 0;
+    }
+
+    &__pre {
+      padding: var(--space-3) 14px;
+      white-space: pre;
+      overflow-wrap: normal;
+    }
+
+    &__code > .rt-Button {
+      align-self: flex-end;
+      min-height: 40px;
+      margin: 0 var(--space-2) var(--space-2);
+    }
+  }
+}
+
 .dark .usage-block,
 :root[data-theme='dark'] .usage-block {
   --usage-tab-active-bg: var(--gray-6);

@@ -81,8 +81,6 @@ export default {
       SEARCH_CLEAR: 'Clear search',
       SEARCH_RESULTS: 'Search results',
       SEARCH_EMPTY: (query) => `No results found for "${query}"`,
-      SHOW_TREE: 'Show contents',
-      TREE_DRAWER_TITLE: 'Repository contents',
       RESIZE_HANDLE: 'Drag to resize, double-click to reset',
     },
     TREE: {

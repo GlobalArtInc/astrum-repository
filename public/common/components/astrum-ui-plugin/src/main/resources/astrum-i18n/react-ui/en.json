@@ -183,8 +183,6 @@
   "BROWSE.REPOSITORY.SEARCH_PLACEHOLDER": "Search in {0}…",
   "BROWSE.REPOSITORY.SEARCH_RESULTS": "Search results",
   "BROWSE.REPOSITORY.SETTINGS": "Repository settings",
-  "BROWSE.REPOSITORY.SHOW_TREE": "Show contents",
-  "BROWSE.REPOSITORY.TREE_DRAWER_TITLE": "Repository contents",
   "BROWSE.REPOSITORY.URL_COPIED": "Repository URL copied",
   "BROWSE.STATUS.OFFLINE": "Offline",
   "BROWSE.STATUS.ONLINE": "Online",

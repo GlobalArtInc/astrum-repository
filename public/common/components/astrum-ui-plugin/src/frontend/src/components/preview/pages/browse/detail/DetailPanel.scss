@@ -125,3 +125,11 @@
     }
   }
 }
+
+// Phones: cards of the details keep 16px of padding
+@media (max-width: 639px) {
+  .detail-panel .detail-panel__card.rt-Card,
+  .detail-panel.rt-Card {
+    --card-padding: var(--space-4);
+  }
+}

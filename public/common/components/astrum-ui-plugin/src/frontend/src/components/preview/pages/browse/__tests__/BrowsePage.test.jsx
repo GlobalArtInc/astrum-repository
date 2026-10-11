@@ -248,6 +248,28 @@ describe('BrowsePage', () => {
       expect(screen.queryByTestId('mock-repository-list')).not.toBeInTheDocument();
     });
 
+    it('stacks the tree above the details on phones and tablets', () => {
+      const originalMatchMedia = window.matchMedia;
+      window.matchMedia = jest.fn((query) => ({
+        matches: true,
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      }));
+      mockParams = { repoName: 'maven-central' };
+
+      try {
+        renderWithProviders(<BrowsePage />);
+
+        const stack = screen.getByTestId('browse-page-stack');
+        expect(stack).toContainElement(screen.getByTestId('mock-browse-tree'));
+        expect(stack).toContainElement(screen.getByTestId('mock-detail-panel'));
+        expect(screen.getAllByTestId('mock-browse-tree')).toHaveLength(1);
+      } finally {
+        window.matchMedia = originalMatchMedia;
+      }
+    });
+
     it('renders page header with title and count', () => {
       renderWithProviders(<BrowsePage />);
 

@@ -131,6 +131,23 @@
     letter-spacing: -0.02em;
   }
 
+  // Phones and tablets: the tree in a card of its own height above the details; the page scrolls
+  &__stack {
+    min-width: 0;
+    padding-bottom: var(--space-6);
+  }
+
+  &__stack-tree {
+    display: flex;
+    flex-direction: column;
+    height: clamp(240px, 45vh, 420px);
+    min-width: 0;
+
+    .browse-page__tree-card {
+      flex: 1;
+    }
+  }
+
   // =========================================================================
   // Tree card
   // =========================================================================

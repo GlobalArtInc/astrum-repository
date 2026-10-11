@@ -182,8 +182,6 @@
   "BROWSE.REPOSITORY.SEARCH_PLACEHOLDER": "Поиск в {0}…",
   "BROWSE.REPOSITORY.SEARCH_RESULTS": "Результаты поиска",
   "BROWSE.REPOSITORY.SETTINGS": "Настройки репозитория",
-  "BROWSE.REPOSITORY.SHOW_TREE": "Показать содержимое",
-  "BROWSE.REPOSITORY.TREE_DRAWER_TITLE": "Содержимое репозитория",
   "BROWSE.REPOSITORY.URL_COPIED": "URL репозитория скопирован",
   "BROWSE.STATUS.OFFLINE": "Не в сети",
   "BROWSE.STATUS.ONLINE": "В сети",

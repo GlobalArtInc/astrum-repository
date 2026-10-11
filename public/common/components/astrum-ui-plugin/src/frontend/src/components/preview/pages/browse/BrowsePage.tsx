@@ -12,7 +12,7 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { FolderTree, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useCurrentStateAndParams, useRouter } from '@uirouter/react';
 
 import { RepositoryListTable } from './repository-list/RepositoryListTable';
@@ -46,6 +46,7 @@ import { RepositoryHeader } from './RepositoryHeader';
 import { useRepositoryInfo } from './useRepositoryInfo';
 import UIStrings from '../../constants/UIStrings';
 import { formatNumber } from '../Welcome/usage/usageFormat';
+import { useIsCompactViewport } from '../../../../hooks/useMediaQuery';
 
 import './BrowsePage.scss';
 
@@ -667,7 +668,9 @@ export function BrowsePage(): JSX.Element {
 
   const { repository: repositoryInfo, loading: repositoryLoading } = useRepositoryInfo(selectedRepository);
 
-  // Size the tree and the details to the rest of the window, below the header of the page.
+  // Size the tree and the details to the rest of the window, below the header of the page. Narrower than a desktop
+  // they are stacked instead, the tree in a card of its own height above the details, and the page scrolls.
+  const isCompact = useIsCompactViewport();
   const panelsRef = useRef<HTMLDivElement>(null);
   const [panelsHeight, setPanelsHeight] = useState<number | null>(null);
   useEffect(() => {
@@ -685,7 +688,7 @@ export function BrowsePage(): JSX.Element {
       observer.disconnect();
       window.removeEventListener('resize', update);
     };
-  }, [selectedRepository]);
+  }, [selectedRepository, isCompact]);
 
   const [treeFilter, setTreeFilter] = useState('');
   const [treeMatches, setTreeMatches] = useState<number | null>(null);
@@ -1058,6 +1061,22 @@ export function BrowsePage(): JSX.Element {
     </Box>
   );
 
+  const detailPanel = (
+    <DetailPanel
+      node={selectedNode}
+      repositoryName={selectedRepository}
+      repository={repositoryInfo}
+      assetData={assetData}
+      componentData={componentData}
+      loading={detailLoading}
+      error={detailError}
+      onDeleted={handleDeleted}
+      canDelete={canDelete}
+      activeTab={params.tab || 'summary'}
+      onTabChange={handleTabChange}
+    />
+  );
+
   return (
     <div className="browse-page browse-page--tree" data-testid="browse-page">
       <Box
@@ -1080,60 +1099,29 @@ export function BrowsePage(): JSX.Element {
             />
           </RepositoryHeader>
 
-          <Box display={{ initial: 'block', sm: 'none' }}>
-            <Button size="2" variant="soft" color="gray" onClick={() => setShowMobileFilters(true)}>
-              <FolderTree size={14} aria-hidden />
-              {UIStrings.BROWSE.REPOSITORY.SHOW_TREE}
-            </Button>
-          </Box>
-
-          <Box
-            ref={panelsRef}
-            className="browse-page__panels"
-            style={{ height: panelsHeight ? `${panelsHeight}px` : 'calc(100vh - 260px)' }}
-          >
-            <ResizablePanel
-              leftPanel={treeCard}
-              rightPanel={
-                <DetailPanel
-                  node={selectedNode}
-                  repositoryName={selectedRepository}
-                  repository={repositoryInfo}
-                  assetData={assetData}
-                  componentData={componentData}
-                  loading={detailLoading}
-                  error={detailError}
-                  onDeleted={handleDeleted}
-                  canDelete={canDelete}
-                  activeTab={params.tab || 'summary'}
-                  onTabChange={handleTabChange}
-                />
-              }
-              defaultLeftWidth={340}
-              minLeftWidth={240}
-              maxLeftWidth={640}
-              storageKey="browse-tree-width"
-            />
-          </Box>
+          {isCompact ? (
+            <Flex direction="column" gap="4" className="browse-page__stack" data-testid="browse-page-stack">
+              <Box className="browse-page__stack-tree">{treeCard}</Box>
+              {detailPanel}
+            </Flex>
+          ) : (
+            <Box
+              ref={panelsRef}
+              className="browse-page__panels"
+              style={{ height: panelsHeight ? `${panelsHeight}px` : 'calc(100vh - 260px)' }}
+            >
+              <ResizablePanel
+                leftPanel={treeCard}
+                rightPanel={detailPanel}
+                defaultLeftWidth={340}
+                minLeftWidth={240}
+                maxLeftWidth={640}
+                storageKey="browse-tree-width"
+              />
+            </Box>
+          )}
         </Flex>
       </Box>
-
-      {/* Mobile tree drawer */}
-      <MobileFilterDrawer
-        isOpen={showMobileFilters}
-        onClose={() => setShowMobileFilters(false)}
-        title={UIStrings.BROWSE.REPOSITORY.TREE_DRAWER_TITLE}
-      >
-        {!repositoryLoading && (
-          <BrowseTree
-            repositoryName={selectedRepository}
-            initialPath={initialPath}
-            onSelect={handleSelectNode}
-            baseUrl="preview/browse"
-            format={repositoryFormat}
-          />
-        )}
-      </MobileFilterDrawer>
     </div>
   );
 }
