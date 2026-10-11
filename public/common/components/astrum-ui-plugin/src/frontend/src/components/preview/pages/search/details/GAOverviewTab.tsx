@@ -1,7 +1,7 @@
 
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Card, Code, Flex, Grid, Heading, Select, Table, Text, Tooltip } from '@radix-ui/themes';
+import { Box, Button, Card, Flex, Grid, Heading, Select, Table, Text, Theme, Tooltip } from '@radix-ui/themes';
 import { Copy } from 'lucide-react';
 
 import type { GADetail } from '../core';
@@ -10,6 +10,8 @@ import { getDependencySnippets } from './dependencySnippets/registry';
 import { getFormatLabel } from './dependencySnippets/formatLabel';
 import { trackSnippetCopy } from './dependencySnippets/trackSnippetCopy';
 import type { SnippetComponentModel } from './dependencySnippets/types';
+
+import '../../../shared/Usage/Usage.scss';
 
 interface GAOverviewTabProps {
   detail: GADetail;
@@ -171,16 +173,13 @@ export function GAOverviewTab({
                   {selectedSnippet.description}
                 </Text>
               )}
-              <Box p="4" style={{ backgroundColor: 'var(--gray-2)', borderRadius: '6px' }}>
-                <Code
-                  size="2"
-                  color="gray"
-                  variant="ghost"
-                  style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: 'block', overflowX: 'auto' }}
-                >
-                  {selectedSnippet.snippetText}
-                </Code>
-              </Box>
+              <Theme appearance="dark" hasBackground={false}>
+                <div className="usage-block__code">
+                  <pre className="usage-block__pre">
+                    <code>{selectedSnippet.snippetText}</code>
+                  </pre>
+                </div>
+              </Theme>
             </Box>
           </Card>
         )}

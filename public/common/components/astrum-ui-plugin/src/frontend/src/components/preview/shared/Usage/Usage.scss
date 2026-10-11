@@ -1,0 +1,97 @@
+.usage-block {
+  --usage-tab-active-bg: var(--color-panel-solid);
+  --usage-tab-active-shadow: 0 1px 2px var(--gray-a5);
+
+  min-width: 0;
+
+  &__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-self: flex-start;
+    gap: var(--space-1);
+    max-width: 100%;
+    padding: var(--space-1);
+    border-radius: var(--radius-4);
+    background-color: var(--gray-3);
+  }
+
+  &__tab {
+    min-height: 34px;
+    padding: 0 var(--space-3);
+    border: none;
+    border-radius: calc(var(--radius-4) - 3px);
+    background: transparent;
+    color: var(--gray-11);
+    font-family: inherit;
+    font-size: var(--font-size-2);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      color: var(--gray-12);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-8);
+      outline-offset: 1px;
+    }
+
+    &[aria-selected='true'] {
+      background-color: var(--usage-tab-active-bg);
+      box-shadow: var(--usage-tab-active-shadow);
+      color: var(--gray-12);
+    }
+  }
+
+  &__hint {
+    margin: 0;
+  }
+
+  &__theme {
+    min-width: 0;
+  }
+
+  &__code {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    min-width: 0;
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+    border: 1px solid var(--gray-a5);
+    border-radius: var(--radius-4);
+    background-color: var(--gray-1);
+  }
+
+  &__pre {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: var(--space-1) 0;
+    overflow-x: auto;
+    color: var(--gray-12);
+    font-family: var(--code-font-family);
+    font-size: 13.5px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-8);
+      outline-offset: 2px;
+      border-radius: var(--radius-1);
+    }
+
+    code {
+      font-family: inherit;
+    }
+  }
+}
+
+.dark .usage-block,
+:root[data-theme='dark'] .usage-block {
+  --usage-tab-active-bg: var(--gray-6);
+  --usage-tab-active-shadow: none;
+}
