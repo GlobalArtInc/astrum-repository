@@ -48,7 +48,7 @@
     }
 
     &--ok {
-      color: var(--green-9);
+      color: var(--green-11);
     }
 
     &--waiting {
@@ -60,7 +60,7 @@
     }
 
     &--error {
-      color: var(--red-9);
+      color: var(--red-11);
     }
   }
 
@@ -229,11 +229,11 @@
 @keyframes task-status-pulse {
   0%, 100% {
     opacity: 1;
-    box-shadow: 0 0 0 0 rgba(var(--blue-9-rgb), 0.4);
+    box-shadow: 0 0 0 0 var(--accent-a8);
   }
   50% {
     opacity: 0.9;
-    box-shadow: 0 0 0 4px rgba(var(--blue-9-rgb), 0);
+    box-shadow: 0 0 0 4px transparent;
   }
 }
 

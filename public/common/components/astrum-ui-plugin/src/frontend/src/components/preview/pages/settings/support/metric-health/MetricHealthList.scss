@@ -17,11 +17,11 @@
     flex-shrink: 0;
 
     &--healthy {
-      color: var(--green-9);
+      color: var(--green-11);
     }
 
     &--unhealthy {
-      color: var(--red-9);
+      color: var(--red-11);
     }
 
     &--unknown {
@@ -55,8 +55,8 @@
 
     &:focus {
       outline: none;
-      border-color: var(--accent-8);
-      box-shadow: 0 0 0 1px var(--accent-8);
+      border-color: var(--focus-8);
+      box-shadow: 0 0 0 1px var(--focus-8);
     }
   }
 
@@ -85,7 +85,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--accent-8);
+      outline: 2px solid var(--focus-8);
       outline-offset: -2px;
     }
 

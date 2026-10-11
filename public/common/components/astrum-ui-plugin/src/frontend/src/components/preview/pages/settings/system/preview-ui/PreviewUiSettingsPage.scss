@@ -35,7 +35,7 @@
   }
 
   &__action-bar-error {
-    color: var(--red-11, #cd2b31);
+    color: var(--red-11);
     font-size: 13px;
     max-width: 600px;
     white-space: normal;
@@ -43,12 +43,12 @@
 
     svg {
       flex-shrink: 0;
-      color: var(--red-9, #e5484d);
+      color: var(--red-11);
     }
   }
 
   &__unsaved {
-    color: var(--amber-9, #d97706);
+    color: var(--amber-11);
     font-style: italic;
     font-size: 13px;
   }

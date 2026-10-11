@@ -94,13 +94,13 @@
   text-transform: uppercase;
 
   &[data-status='WAITING'] {
-    background-color: var(--blue-3);
-    color: var(--blue-11);
+    background-color: var(--gray-a3);
+    color: var(--gray-11);
   }
 
   &[data-status='RUNNING'] {
-    background-color: var(--green-3);
-    color: var(--green-11);
+    background-color: var(--accent-a3);
+    color: var(--accent-11);
   }
 
   &[data-status='OK'] {
@@ -250,7 +250,7 @@
 
   &[data-selected='true'] {
     background-color: var(--accent-9);
-    color: white;
+    color: var(--accent-contrast);
     border-color: var(--accent-9);
   }
 
@@ -288,7 +288,7 @@
 
   &[data-selected='true'] {
     background-color: var(--accent-9);
-    color: white;
+    color: var(--accent-contrast);
     border-color: var(--accent-9);
   }
 

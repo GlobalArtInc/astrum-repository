@@ -161,8 +161,8 @@
     }
 
     &--run:hover {
-      background: var(--green-3);
-      color: var(--green-11);
+      background: var(--accent-a3);
+      color: var(--accent-11);
     }
 
     &--stop:hover {
@@ -186,7 +186,7 @@
     }
 
     &--ok {
-      color: var(--green-9);
+      color: var(--green-11);
     }
 
     &--waiting {
@@ -198,7 +198,7 @@
     }
 
     &--error {
-      color: var(--red-9);
+      color: var(--red-11);
     }
   }
 
