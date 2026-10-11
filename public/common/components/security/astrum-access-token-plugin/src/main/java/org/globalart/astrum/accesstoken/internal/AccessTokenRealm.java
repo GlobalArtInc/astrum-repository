@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.globalart.astrum.common.Description;
 import org.globalart.astrum.security.UserPrincipalsHelper;
+import org.globalart.astrum.security.authc.ExclusiveRealm;
 import org.globalart.astrum.security.user.UserNotFoundException;
 
 import org.apache.shiro.authc.AuthenticationInfo;
@@ -28,13 +29,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Signs in clients that send an access token as their password, with their username as the user name.
  *
  * Tokens are for clients only: signing in to the UI with one is refused, because the UI session would not keep the
- * token's scope.
+ * token's scope. The realm is exclusive, so a password shaped like a token is never tried against other realms.
  */
 @Component
 @Qualifier(AccessTokenRealm.NAME)
 @Description("Access Token Realm")
 public class AccessTokenRealm
     extends AuthenticatingRealm
+    implements ExclusiveRealm
 {
   public static final String NAME = "AccessTokenRealm";
 

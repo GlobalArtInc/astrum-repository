@@ -19,6 +19,7 @@ import org.globalart.astrum.kv.GlobalKeyValueStore;
 import org.globalart.astrum.kv.KeyValueEvent;
 import org.globalart.astrum.security.UserPrincipalsExpired;
 import org.globalart.astrum.security.UserPrincipalsHelper;
+import org.globalart.astrum.security.accesstoken.AccessTokenPrincipal;
 import org.globalart.astrum.security.authc.apikey.ApiKeyFactory;
 import org.globalart.astrum.security.user.UserNotFoundException;
 import org.globalart.astrum.testdb.DataSessionRule;
@@ -35,6 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -675,6 +677,31 @@ public class ApiKeyServiceImplTest
     catch (UserNotFoundException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Test
+  public void scopedKeysAreRefusedUntilTheMigrationIsComplete() {
+    SimplePrincipalCollection scoped = new SimplePrincipalCollection(PRINCIPALS);
+    scoped.add(new AccessTokenPrincipal("id", "ci", "read"), "ldap");
+    setMigrationInProgress();
+
+    assertThrows(IllegalStateException.class, () -> underTest.createApiKey(NUGET, scoped));
+    assertThat(underTest.getApiKey(NUGET, scoped), is(Optional.empty()));
+    assertThat(underTest.deleteApiKeys(scoped), is(0));
+    assertThat(underTest.deleteApiKey(NUGET, scoped), is(0));
+    verifyNoInteractions(v1, v2);
+  }
+
+  @Test
+  public void scopedKeysUseTheMigratedStore() {
+    SimplePrincipalCollection scoped = new SimplePrincipalCollection(PRINCIPALS);
+    scoped.add(new AccessTokenPrincipal("id", "ci", "read"), "ldap");
+    setMigrationComplete();
+
+    underTest.createApiKey(NUGET, scoped);
+
+    verify(v2).persistApiKey(eq(NUGET), eq(scoped), any());
+    verifyNoInteractions(v1);
   }
 
   private void setMigrationComplete() {

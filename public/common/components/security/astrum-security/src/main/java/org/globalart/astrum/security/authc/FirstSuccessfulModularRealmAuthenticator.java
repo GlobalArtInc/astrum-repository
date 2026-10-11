@@ -3,6 +3,7 @@ package org.globalart.astrum.security.authc;
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.shiro.SecurityUtils;
@@ -39,12 +40,16 @@ public class FirstSuccessfulModularRealmAuthenticator
       final Collection<Realm> realms,
       final AuthenticationToken token)
   {
-    log.trace("Iterating through [{}] realms for PAM authentication", realms.size());
+    List<Realm> exclusive = realms.stream()
+        .filter(realm -> realm instanceof ExclusiveRealm && realm.supports(token))
+        .toList();
+    Collection<Realm> candidates = exclusive.isEmpty() ? realms : exclusive;
+    log.trace("Iterating through [{}] realms for PAM authentication", candidates.size());
 
     Set<AuthenticationFailureReason> authenticationFailureReasons = EnumSet.noneOf(AuthenticationFailureReason.class);
     Subject subject = SecurityUtils.getSubject();
 
-    for (Realm realm : realms) {
+    for (Realm realm : candidates) {
       // check if the realm supports this token
       if (realm.supports(token)) {
         log.trace("Attempting to authenticate token [{}] using realm of type [{}]", token, realm);

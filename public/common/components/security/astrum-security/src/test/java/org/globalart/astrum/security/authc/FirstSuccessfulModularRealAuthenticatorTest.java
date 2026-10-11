@@ -2,6 +2,7 @@
 package org.globalart.astrum.security.authc;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.globalart.astrum.datastore.api.DataAccessException;
@@ -29,6 +30,8 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
@@ -199,6 +202,58 @@ public class FirstSuccessfulModularRealAuthenticatorTest
         // Verify the exception message
         assertThat(e.getMessage(), containsString("Database unavailable"));
       }
+    }
+  }
+
+  private interface MockExclusiveRealm
+      extends ExclusiveRealm
+  {
+  }
+
+  @Test
+  public void exclusiveRealmAloneDecidesOnTokensItSupports() {
+    UsernamePasswordToken token = new UsernamePasswordToken("username", "astrum_token");
+    Realm directory = mock(Realm.class);
+    Realm exclusive = mock(MockExclusiveRealm.class);
+    when(directory.supports(token)).thenReturn(true);
+    when(exclusive.supports(token)).thenReturn(true);
+    when(exclusive.getAuthenticationInfo(token)).thenThrow(new IncorrectCredentialsException());
+
+    PrincipalCollection principals = mock(PrincipalCollection.class);
+    when(principals.getRealmNames()).thenReturn(Collections.emptySet());
+    Subject subject = mock(Subject.class);
+    when(subject.getPrincipals()).thenReturn(principals);
+
+    try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+      securityUtils.when(SecurityUtils::getSubject).thenReturn(subject);
+      firstSuccessfulModularRealmAuthenticator.doMultiRealmAuthentication(List.of(directory, exclusive), token);
+      fail("expected the exclusive realm's refusal");
+    }
+    catch (AstrumAuthenticationException e) {
+      assertThat(e.getAuthenticationFailureReasons(), contains(AuthenticationFailureReason.INCORRECT_CREDENTIALS));
+    }
+    verify(directory, never()).getAuthenticationInfo(token);
+  }
+
+  @Test
+  public void otherRealmsAreAskedWhenNoExclusiveRealmSupportsTheToken() {
+    UsernamePasswordToken token = new UsernamePasswordToken("username", "password");
+    Realm directory = mock(Realm.class);
+    Realm exclusive = mock(MockExclusiveRealm.class);
+    when(directory.supports(token)).thenReturn(true);
+    when(exclusive.supports(token)).thenReturn(false);
+    AuthenticationInfo info = new SimpleAccount("username", "password", "directory");
+    when(directory.getAuthenticationInfo(token)).thenReturn(info);
+
+    PrincipalCollection principals = mock(PrincipalCollection.class);
+    when(principals.getRealmNames()).thenReturn(Collections.emptySet());
+    Subject subject = mock(Subject.class);
+    when(subject.getPrincipals()).thenReturn(principals);
+
+    try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+      securityUtils.when(SecurityUtils::getSubject).thenReturn(subject);
+      assertThat(firstSuccessfulModularRealmAuthenticator.doMultiRealmAuthentication(List.of(exclusive, directory),
+          token), org.hamcrest.Matchers.is(info));
     }
   }
 }

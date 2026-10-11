@@ -26,6 +26,7 @@ import org.globalart.astrum.security.UserPrincipalsExpired;
 import org.globalart.astrum.security.UserPrincipalsHelper;
 import org.globalart.astrum.security.authc.apikey.ApiKey;
 import org.globalart.astrum.security.authc.apikey.ApiKeyFactory;
+import org.globalart.astrum.security.authz.ScopedPrincipal;
 import org.globalart.astrum.security.user.UserNotFoundException;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -148,6 +149,7 @@ public class ApiKeyServiceImpl
 
   @Override
   public char[] createApiKey(final String domain, final PrincipalCollection principals) {
+    checkScopeSupported(principals);
     char[] apiKey = makeApiKey(domain);
     try {
       modify(store -> store.persistApiKey(domain, principals, apiKey));
@@ -201,6 +203,9 @@ public class ApiKeyServiceImpl
 
   @Override
   public int deleteApiKey(final String domain, final PrincipalCollection principals) {
+    if (scopeUnsupported(principals)) {
+      return 0;
+    }
     return callModify(store -> store.deleteApiKey(domain, principals));
   }
 
@@ -217,6 +222,9 @@ public class ApiKeyServiceImpl
   @Override
   public int deleteApiKeys(final PrincipalCollection principals) {
     checkCancellation();
+    if (scopeUnsupported(principals)) {
+      return 0;
+    }
     return callModify(store -> store.deleteApiKeys(principals));
   }
 
@@ -227,6 +235,9 @@ public class ApiKeyServiceImpl
 
   @Override
   public Optional<ApiKey> getApiKey(final String domain, final PrincipalCollection principals) {
+    if (scopeUnsupported(principals)) {
+      return Optional.empty();
+    }
     return find(store -> store.getApiKey(domain, principals)
         .map(ApiKey.class::cast));
   }
@@ -244,6 +255,7 @@ public class ApiKeyServiceImpl
       final char[] apiKey,
       final OffsetDateTime created)
   {
+    checkScopeSupported(principals);
     modify(store -> store.persistApiKey(domain, principals, apiKey, created));
   }
 
@@ -256,6 +268,7 @@ public class ApiKeyServiceImpl
       final String creatorUserId,
       final String creatorRealm)
   {
+    checkScopeSupported(principals);
     modify(store -> store.persistApiKey(domain, principals, apiKey, created, creatorUserId, creatorRealm));
   }
 
@@ -373,6 +386,21 @@ public class ApiKeyServiceImpl
     }
 
     return fn.apply(apiKeyStore);
+  }
+
+  /**
+   * Keys of a scoped sign-in (an access token) must keep the scope. Only the migrated store matches keys by all of
+   * their principals; the old one matches by user and realm and would hand out the user's unscoped keys.
+   */
+  private boolean scopeUnsupported(final PrincipalCollection principals) {
+    return !isMigrationComplete() && principals != null && !principals.byType(ScopedPrincipal.class).isEmpty();
+  }
+
+  private void checkScopeSupported(final PrincipalCollection principals) {
+    if (scopeUnsupported(principals)) {
+      throw new IllegalStateException(
+          "Keys cannot be issued to a scoped sign-in until the API key secrets migration is complete");
+    }
   }
 
   private boolean isOnDBVersion() {
