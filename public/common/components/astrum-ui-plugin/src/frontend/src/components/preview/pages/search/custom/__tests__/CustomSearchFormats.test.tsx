@@ -8,7 +8,8 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { FILTER_FIELD_OPTIONS, FILTER_OPERATOR_OPTIONS } from '../custom.types';
+import { FILTER_FIELD_OPTIONS, FILTER_OPERATOR_OPTIONS, filterFieldOptions } from '../custom.types';
+import { buildSearchValue } from '../useCustomSearch';
 
 /**
  * Map filter field to API parameter name (copied from useCustomSearch.ts for testing).
@@ -31,24 +32,6 @@ function getApiParamName(field: string): string {
       return 'tag';
     default:
       return field;
-  }
-}
-
-/**
- * Build search value based on operator (copied from useCustomSearch.ts for testing).
- */
-function buildSearchValue(operator: string, value: string): string {
-  switch (operator) {
-    case 'equals':
-      return value;
-    case 'contains':
-      return `*${value}*`;
-    case 'startsWith':
-      return `${value}*`;
-    case 'endsWith':
-      return `*${value}`;
-    default:
-      return value;
   }
 }
 
@@ -110,10 +93,7 @@ describe('Custom Search - Filter Operators', () => {
     it('should have all required operators', () => {
       const operatorIds = FILTER_OPERATOR_OPTIONS.map((o) => o.value);
 
-      expect(operatorIds).toContain('equals');
-      expect(operatorIds).toContain('contains');
-      expect(operatorIds).toContain('startsWith');
-      expect(operatorIds).toContain('endsWith');
+      expect(operatorIds).toEqual(['equals', 'startsWith']);
     });
 
     it('should have labels for all operators', () => {
@@ -128,16 +108,15 @@ describe('Custom Search - Filter Operators', () => {
       expect(buildSearchValue('equals', 'test')).toBe('test');
     });
 
-    it('should build contains value correctly', () => {
-      expect(buildSearchValue('contains', 'test')).toBe('*test*');
-    });
-
     it('should build startsWith value correctly', () => {
       expect(buildSearchValue('startsWith', 'test')).toBe('test*');
+      expect(buildSearchValue('startsWith', 'test*')).toBe('test*');
     });
 
-    it('should build endsWith value correctly', () => {
-      expect(buildSearchValue('endsWith', 'test')).toBe('*test');
+    it('never builds a leading wildcard, which the search refuses', () => {
+      FILTER_OPERATOR_OPTIONS.forEach(({ value }) => {
+        expect(buildSearchValue(value, 'test').startsWith('*')).toBe(false);
+      });
     });
   });
 });
@@ -198,9 +177,9 @@ describe('Custom Search - Filter Combinations', () => {
       expect(hasVersion).toBe(true);
     });
 
-    it('should support tag filter', () => {
-      const hasTag = FILTER_FIELD_OPTIONS.some((f) => f.value === 'tag');
-      expect(hasTag).toBe(true);
+    it('should support tag filter in the PRO edition only', () => {
+      expect(filterFieldOptions(true).some((f) => f.value === 'tag')).toBe(true);
+      expect(filterFieldOptions(false).some((f) => f.value === 'tag')).toBe(false);
     });
 
     it('should support group filter (for Maven, npm scope, etc.)', () => {

@@ -29,9 +29,9 @@ describe('CustomSearchBuilder', () => {
   it('renders header and description', () => {
     renderWithTheme(<CustomSearchBuilder {...defaultProps} />);
 
-    expect(screen.getByText('Search Criteria')).toBeInTheDocument();
+    expect(screen.getByText('Search criteria')).toBeInTheDocument();
     expect(
-      screen.getByText(/Build your search query by adding filter criteria/)
+      screen.getByText(/Components must match every criterion/)
     ).toBeInTheDocument();
   });
 
@@ -39,14 +39,14 @@ describe('CustomSearchBuilder', () => {
     const filters = [createEmptyFilter(), createEmptyFilter()];
     renderWithTheme(<CustomSearchBuilder {...defaultProps} filters={filters} />);
 
-    const removeButtons = screen.getAllByLabelText('Remove filter');
+    const removeButtons = screen.getAllByLabelText('Remove criterion');
     expect(removeButtons.length).toBe(2);
   });
 
   it('calls onAddFilter when Add Filter is clicked', () => {
     renderWithTheme(<CustomSearchBuilder {...defaultProps} />);
 
-    const addButton = screen.getByText('Add Filter');
+    const addButton = screen.getByText('Add criterion');
     fireEvent.click(addButton);
 
     expect(defaultProps.onAddFilter).toHaveBeenCalledTimes(1);
@@ -74,19 +74,19 @@ describe('CustomSearchBuilder', () => {
   it('shows Clear All button when hasFilters is true', () => {
     renderWithTheme(<CustomSearchBuilder {...defaultProps} hasFilters={true} />);
 
-    expect(screen.getByText('Clear All')).toBeInTheDocument();
+    expect(screen.getByText('Clear all')).toBeInTheDocument();
   });
 
   it('hides Clear All button when hasFilters is false', () => {
     renderWithTheme(<CustomSearchBuilder {...defaultProps} hasFilters={false} />);
 
-    expect(screen.queryByText('Clear All')).not.toBeInTheDocument();
+    expect(screen.queryByText('Clear all')).not.toBeInTheDocument();
   });
 
   it('calls onClear when Clear All is clicked', () => {
     renderWithTheme(<CustomSearchBuilder {...defaultProps} hasFilters={true} />);
 
-    const clearButton = screen.getByText('Clear All');
+    const clearButton = screen.getByText('Clear all');
     fireEvent.click(clearButton);
 
     expect(defaultProps.onClear).toHaveBeenCalledTimes(1);
@@ -95,14 +95,14 @@ describe('CustomSearchBuilder', () => {
   it('disables buttons when loading', () => {
     renderWithTheme(<CustomSearchBuilder {...defaultProps} loading={true} />);
 
-    expect(screen.getByText('Add Filter')).toBeDisabled();
-    expect(screen.getByText('Searching...')).toBeDisabled();
+    expect(screen.getByText('Add criterion')).toBeDisabled();
+    expect(screen.getByText('Searching…')).toBeDisabled();
   });
 
   it('shows loading state on search button', () => {
     renderWithTheme(<CustomSearchBuilder {...defaultProps} loading={true} />);
 
-    expect(screen.getByText('Searching...')).toBeInTheDocument();
+    expect(screen.getByText('Searching…')).toBeInTheDocument();
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
   });
 });

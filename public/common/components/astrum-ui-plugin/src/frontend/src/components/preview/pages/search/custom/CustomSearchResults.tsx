@@ -1,9 +1,12 @@
 
 
 import React from 'react';
-import { Box, Flex, Text, Table, Badge, Spinner, Callout, Code } from '@radix-ui/themes';
+import { Box, Flex, Text, Table, Spinner, Callout, Code } from '@radix-ui/themes';
 import { Search, AlertCircle } from 'lucide-react';
 import type { CustomSearchResult } from './custom.types';
+import { FormatBadge } from '../../browse/shared/FormatBadge';
+import plural, { pageLanguage } from '../../../../../interface/plural';
+import S from '../../../constants/pages/search/CustomSearchStrings';
 
 export interface CustomSearchResultsProps {
   results: readonly CustomSearchResult[];
@@ -13,24 +16,37 @@ export interface CustomSearchResultsProps {
   isInitial?: boolean;
 }
 
-const FORMAT_COLORS: Record<string, 'orange' | 'red' | 'blue' | 'purple' | 'gray'> = {
-  maven2: 'orange',
-  npm: 'red',
-  docker: 'blue',
-  nuget: 'purple',
-};
-
-function getFormatColor(format: string): 'orange' | 'red' | 'blue' | 'purple' | 'gray' {
-  return FORMAT_COLORS[format] || 'gray';
-}
-
-function formatDate(isoDate: string): string {
+function formatDate(isoDate: string | undefined): string {
+  if (!isoDate) {
+    return '—';
+  }
   const date = new Date(isoDate);
-  return date.toLocaleDateString('en-US', {
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+  return date.toLocaleDateString(pageLanguage(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
+}
+
+function displayName(result: CustomSearchResult): string {
+  if (result.format === 'npm' && result.group) {
+    return `@${result.group.replace(/^@/, '')}/${result.name}`;
+  }
+  return result.name;
+}
+
+/**
+ * Opens a result at its first file in the browse tree of its repository, as the search page does.
+ */
+function openInRepository(result: CustomSearchResult): void {
+  const path = result.path ? result.path.replace(/^\/+/, '') : '';
+  const repository = encodeURIComponent(result.repository);
+  window.location.hash = path
+    ? `#preview/browse/${repository}/${path}?tab=summary`
+    : `#preview/browse/${repository}/`;
 }
 
 export function CustomSearchResults({
@@ -46,8 +62,8 @@ export function CustomSearchResults({
       <Flex justify="center" align="center" p="6">
         <Flex direction="column" align="center" gap="2">
           <Search size={48} color="var(--gray-8)" />
-          <Text size="3" color="gray">Build Your Search</Text>
-          <Text size="2" color="gray">Add filter criteria above and click Search to find components.</Text>
+          <Text size="3" color="gray">{S.START_TITLE}</Text>
+          <Text size="2" color="gray" align="center">{S.START_DESCRIPTION}</Text>
         </Flex>
       </Flex>
     );
@@ -59,7 +75,7 @@ export function CustomSearchResults({
       <Flex justify="center" align="center" p="6">
         <Flex direction="column" align="center" gap="3">
           <Spinner size="3" />
-          <Text color="gray">Searching...</Text>
+          <Text color="gray">{S.SEARCHING}</Text>
         </Flex>
       </Flex>
     );
@@ -80,9 +96,9 @@ export function CustomSearchResults({
     return (
       <Flex justify="center" align="center" p="6">
         <Flex direction="column" align="center" gap="2">
-          <Search size={32} />
-          <Text color="gray">No components found</Text>
-          <Text size="1" color="gray">Try adjusting your search criteria</Text>
+          <Search size={32} color="var(--gray-8)" />
+          <Text color="gray">{S.EMPTY_TITLE}</Text>
+          <Text size="1" color="gray">{S.EMPTY_DESCRIPTION}</Text>
         </Flex>
       </Flex>
     );
@@ -92,52 +108,65 @@ export function CustomSearchResults({
     <Box>
       <Flex justify="between" align="center" mb="3">
         <Text size="2" color="gray">
-          {totalCount} component{totalCount !== 1 ? 's' : ''} found
+          {plural(S.FOUND, totalCount)}
         </Text>
       </Flex>
 
-      <Table.Root>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Format</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Group</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Version</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Repository</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Last Modified</Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {results.map((result) => (
-            <Table.Row key={result.id}>
-              <Table.Cell>
-                <Badge color={getFormatColor(result.format)} variant="soft">
-                  {result.format}
-                </Badge>
-              </Table.Cell>
-              <Table.Cell>
-                <Text weight="medium">{result.name}</Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Text size="2" color="gray">{result.group || '—'}</Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Code size="2">{result.version}</Code>
-              </Table.Cell>
-              <Table.Cell>
-                <Text size="2" color="gray">{result.repository}</Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Text size="2" color="gray">{formatDate(result.lastModified)}</Text>
-              </Table.Cell>
+      <Box style={{ overflowX: 'auto' }}>
+        <Table.Root variant="surface">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeaderCell>{S.COLUMNS.FORMAT}</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>{S.COLUMNS.NAME}</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>{S.COLUMNS.GROUP}</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>{S.COLUMNS.VERSION}</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>{S.COLUMNS.REPOSITORY}</Table.ColumnHeaderCell>
+              <Table.ColumnHeaderCell>{S.COLUMNS.LAST_MODIFIED}</Table.ColumnHeaderCell>
             </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+          </Table.Header>
+          <Table.Body>
+            {results.map((result) => (
+              <Table.Row
+                key={`${result.repository}:${result.id}`}
+                tabIndex={0}
+                role="button"
+                aria-label={S.OPEN(displayName(result))}
+                style={{ cursor: 'pointer' }}
+                onClick={() => openInRepository(result)}
+                onKeyDown={(event) => {
+                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    openInRepository(result);
+                  }
+                }}
+              >
+                <Table.Cell>
+                  <FormatBadge format={result.format} radius="full" />
+                </Table.Cell>
+                <Table.Cell>
+                  <Text weight="medium">{displayName(result)}</Text>
+                </Table.Cell>
+                <Table.Cell>
+                  <Text size="2" color="gray">{(result.format !== 'npm' && result.group) || '—'}</Text>
+                </Table.Cell>
+                <Table.Cell>
+                  {result.version ? <Code size="2">{result.version}</Code> : <Text size="2" color="gray">—</Text>}
+                </Table.Cell>
+                <Table.Cell>
+                  <Text size="2" color="gray">{result.repository}</Text>
+                </Table.Cell>
+                <Table.Cell>
+                  <Text size="2" color="gray" style={{ whiteSpace: 'nowrap' }}>{formatDate(result.lastModified)}</Text>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      </Box>
 
       {loading && results.length > 0 && (
         <Flex justify="center" p="3">
-          <Text size="2" color="gray">Loading more results...</Text>
+          <Text size="2" color="gray">{S.LOADING_MORE}</Text>
         </Flex>
       )}
     </Box>

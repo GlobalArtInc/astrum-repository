@@ -53,13 +53,11 @@ describe('custom.types', () => {
       const operatorValues = FILTER_OPERATOR_OPTIONS.map((opt) => opt.value);
 
       expect(operatorValues).toContain('equals');
-      expect(operatorValues).toContain('contains');
       expect(operatorValues).toContain('startsWith');
-      expect(operatorValues).toContain('endsWith');
     });
 
-    it('has exactly 4 operator options', () => {
-      expect(FILTER_OPERATOR_OPTIONS).toHaveLength(4);
+    it('offers no operator that needs a leading wildcard', () => {
+      expect(FILTER_OPERATOR_OPTIONS).toHaveLength(2);
     });
 
     it('each option has required properties', () => {
@@ -75,16 +73,10 @@ describe('custom.types', () => {
 
     it('has human-readable labels', () => {
       const equalsOption = FILTER_OPERATOR_OPTIONS.find((o) => o.value === 'equals');
-      expect(equalsOption?.label).toBe('Equals');
-
-      const containsOption = FILTER_OPERATOR_OPTIONS.find((o) => o.value === 'contains');
-      expect(containsOption?.label).toBe('Contains');
+      expect(equalsOption?.label).toBe('Is');
 
       const startsWithOption = FILTER_OPERATOR_OPTIONS.find((o) => o.value === 'startsWith');
       expect(startsWithOption?.label).toBe('Starts with');
-
-      const endsWithOption = FILTER_OPERATOR_OPTIONS.find((o) => o.value === 'endsWith');
-      expect(endsWithOption?.label).toBe('Ends with');
     });
   });
 
@@ -109,10 +101,10 @@ describe('custom.types', () => {
       expect(filter.field).toBe('keyword');
     });
 
-    it('sets default operator to contains', () => {
+    it('sets default operator to equals', () => {
       const filter = createEmptyFilter();
 
-      expect(filter.operator).toBe('contains');
+      expect(filter.operator).toBe('equals');
     });
 
     it('sets default value to empty string', () => {

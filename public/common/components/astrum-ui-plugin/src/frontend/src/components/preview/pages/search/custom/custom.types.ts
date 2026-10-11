@@ -5,6 +5,7 @@
  *
  * Types for building dynamic search queries with user-defined filters.
  */
+import S from '../../../constants/pages/search/CustomSearchStrings';
 
 /**
  * Available filter fields for custom search.
@@ -19,13 +20,12 @@ export type FilterField =
   | 'keyword';
 
 /**
- * Available filter operators for custom search.
+ * Available filter operators for custom search. The search refuses a leading wildcard, so a value can only be matched
+ * whole or by its start.
  */
 export type FilterOperator =
   | 'equals'
-  | 'contains'
-  | 'startsWith'
-  | 'endsWith';
+  | 'startsWith';
 
 /**
  * A single filter criterion in the custom search builder.
@@ -80,8 +80,10 @@ export interface CustomSearchResult {
   readonly name: string;
   /** Version */
   readonly version: string;
-  /** ISO 8601 timestamp */
-  readonly lastModified: string;
+  /** ISO 8601 timestamp of the first file, when known */
+  readonly lastModified?: string;
+  /** Path of the first file of the component in its repository */
+  readonly path?: string;
   /** Tags if applicable */
   readonly tags?: readonly string[];
 }
@@ -120,23 +122,28 @@ export interface CustomSearchState {
  * Available filter field options.
  */
 export const FILTER_FIELD_OPTIONS: readonly FilterFieldOption[] = [
-  { value: 'keyword', label: 'Keyword', placeholder: 'e.g., spring-boot' },
-  { value: 'format', label: 'Format', placeholder: 'e.g., maven2, npm, docker' },
-  { value: 'repository', label: 'Repository', placeholder: 'e.g., maven-central' },
-  { value: 'group', label: 'Group', placeholder: 'e.g., org.apache.commons' },
-  { value: 'name', label: 'Name', placeholder: 'e.g., commons-lang3' },
-  { value: 'version', label: 'Version', placeholder: 'e.g., 3.14.0' },
-  { value: 'tag', label: 'Tag', placeholder: 'e.g., latest' },
+  { value: 'keyword', label: S.FIELDS.KEYWORD, placeholder: S.EXAMPLE('spring-boot') },
+  { value: 'format', label: S.FIELDS.FORMAT, placeholder: S.EXAMPLE('maven2, npm, docker') },
+  { value: 'repository', label: S.FIELDS.REPOSITORY, placeholder: S.EXAMPLE('maven-central') },
+  { value: 'group', label: S.FIELDS.GROUP, placeholder: S.EXAMPLE('org.apache.commons') },
+  { value: 'name', label: S.FIELDS.NAME, placeholder: S.EXAMPLE('commons-lang3') },
+  { value: 'version', label: S.FIELDS.VERSION, placeholder: S.EXAMPLE('3.14.0') },
+  { value: 'tag', label: S.FIELDS.TAG, placeholder: S.EXAMPLE('latest') },
 ];
+
+/**
+ * The fields offered by an edition: tags exist in the PRO edition only.
+ */
+export function filterFieldOptions(proEdition: boolean): readonly FilterFieldOption[] {
+  return proEdition ? FILTER_FIELD_OPTIONS : FILTER_FIELD_OPTIONS.filter((option) => option.value !== 'tag');
+}
 
 /**
  * Available filter operator options.
  */
 export const FILTER_OPERATOR_OPTIONS: readonly FilterOperatorOption[] = [
-  { value: 'equals', label: 'Equals' },
-  { value: 'contains', label: 'Contains' },
-  { value: 'startsWith', label: 'Starts with' },
-  { value: 'endsWith', label: 'Ends with' },
+  { value: 'equals', label: S.OPERATORS.EQUALS },
+  { value: 'startsWith', label: S.OPERATORS.STARTS_WITH },
 ];
 
 /**
@@ -146,7 +153,7 @@ export function createEmptyFilter(): CustomFilter {
   return {
     id: `filter-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     field: 'keyword',
-    operator: 'contains',
+    operator: 'equals',
     value: '',
   };
 }

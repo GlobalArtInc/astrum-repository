@@ -155,12 +155,8 @@ function matchesFilter(result: CustomSearchResult, filter: CustomFilter): boolea
         switch (filter.operator) {
           case 'equals':
             return tagLower === value;
-          case 'contains':
-            return tagLower.includes(value);
           case 'startsWith':
             return tagLower.startsWith(value);
-          case 'endsWith':
-            return tagLower.endsWith(value);
           default:
             return false;
         }
@@ -179,18 +175,7 @@ function matchesFilter(result: CustomSearchResult, filter: CustomFilter): boolea
         .join(' ')
         .toLowerCase();
 
-      switch (filter.operator) {
-        case 'equals':
-          return searchText.includes(value);
-        case 'contains':
-          return searchText.includes(value);
-        case 'startsWith':
-          return searchText.includes(value);
-        case 'endsWith':
-          return searchText.includes(value);
-        default:
-          return false;
-      }
+      return searchText.includes(value);
     }
     default:
       return false;
@@ -202,12 +187,8 @@ function matchesFilter(result: CustomSearchResult, filter: CustomFilter): boolea
   switch (filter.operator) {
     case 'equals':
       return fieldValue === value;
-    case 'contains':
-      return fieldValue.includes(value);
     case 'startsWith':
       return fieldValue.startsWith(value);
-    case 'endsWith':
-      return fieldValue.endsWith(value);
     default:
       return false;
   }

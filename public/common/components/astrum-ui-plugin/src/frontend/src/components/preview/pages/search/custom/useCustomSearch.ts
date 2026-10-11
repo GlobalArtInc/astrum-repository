@@ -11,6 +11,7 @@ import type {
 } from './custom.types';
 import { createEmptyFilter } from './custom.types';
 import { mockCustomSearchApi } from './mockData';
+import S from '../../../constants/pages/search/CustomSearchStrings';
 
 // Feature flag to switch between real API and mock data
 const USE_REAL_API = true;
@@ -29,6 +30,7 @@ interface RawSearchItem {
     id: string;
     path: string;
     downloadUrl: string;
+    lastModified?: string;
   }>;
 }
 
@@ -66,21 +68,13 @@ function getApiParamName(field: FilterField): string {
 
 /**
  * Build search value based on operator.
- * The Astrum search API supports wildcards (*) for partial matching.
+ * The Astrum search API supports a trailing wildcard (*) for matching the start of a value; it refuses a leading one.
  */
-function buildSearchValue(operator: FilterOperator, value: string): string {
-  switch (operator) {
-    case 'equals':
-      return value;
-    case 'contains':
-      return `*${value}*`;
-    case 'startsWith':
-      return `${value}*`;
-    case 'endsWith':
-      return `*${value}`;
-    default:
-      return value;
+export function buildSearchValue(operator: FilterOperator, value: string): string {
+  if (operator === 'startsWith' && !value.endsWith('*')) {
+    return `${value}*`;
   }
+  return value;
 }
 
 /**
@@ -120,6 +114,7 @@ async function searchCustomApi(
     name: item.name,
     version: item.version,
     path: item.assets[0]?.path,
+    lastModified: item.assets[0]?.lastModified,
   }));
 
   return {
@@ -258,7 +253,7 @@ export function useCustomSearch(): UseCustomSearchReturn {
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Search failed',
+        error: error instanceof Error ? error.message : S.SEARCH_FAILED,
       }));
     }
   }, [state.filters]);
@@ -298,7 +293,7 @@ export function useCustomSearch(): UseCustomSearchReturn {
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load more',
+        error: error instanceof Error ? error.message : S.LOAD_MORE_FAILED,
       }));
     }
   }, [state.continuationToken, state.loading]);

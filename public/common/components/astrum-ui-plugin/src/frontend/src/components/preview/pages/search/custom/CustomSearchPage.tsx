@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import {
   Box,
@@ -13,6 +11,7 @@ import {
 import { useCustomSearch } from './useCustomSearch';
 import { CustomSearchBuilder } from './CustomSearchBuilder';
 import { CustomSearchResults } from './CustomSearchResults';
+import S from '../../../constants/pages/search/CustomSearchStrings';
 
 export interface CustomSearchPageProps {
   /** Optional callback when navigating to component detail */
@@ -27,13 +26,13 @@ export interface CustomSearchPageProps {
  *
  * Features:
  * - Dynamic filter builder (add/remove filter rows)
- * - Multiple field types (format, repository, group, name, version, tag, keyword)
- * - Multiple operators (equals, contains, startsWith, endsWith)
- * - Results display across all formats
+ * - Multiple field types (format, repository, group, name, version, keyword, and tag in the PRO edition)
+ * - A value matched whole or by its start
+ * - Results display across all formats, each opening in its repository
  * - Pagination support
  */
 export function CustomSearchPage({
-  onNavigateToDetail,
+  onNavigateToDetail: _onNavigateToDetail,
 }: CustomSearchPageProps): JSX.Element {
   // Track whether a search has been performed
   const [hasSearched, setHasSearched] = useState(false);
@@ -68,13 +67,13 @@ export function CustomSearchPage({
 
   return (
     <ScrollArea scrollbars="vertical" style={{ height: '100%' }}>
-      <Box p="6">
-        <Flex direction="column" gap="4">
+      <Box px={{ initial: '4', md: '6' }} py={{ initial: '4', md: '5' }}>
+        <Flex direction="column" gap="5">
           {/* Header */}
-          <Box>
-            <Heading size="6" mb="1">Custom Search</Heading>
-            <Text color="gray">Build custom search queries with multiple filter criteria</Text>
-          </Box>
+          <Flex direction="column" gap="1">
+            <Heading as="h1" size="7" weight="bold">{S.TITLE}</Heading>
+            <Text size="2" color="gray">{S.SUBTITLE}</Text>
+          </Flex>
 
           {/* Search Builder */}
           <CustomSearchBuilder
@@ -101,7 +100,7 @@ export function CustomSearchPage({
           {hasMore && !state.loading && (
             <Flex justify="center">
               <Button variant="soft" onClick={loadMore}>
-                Load More
+                {S.LOAD_MORE}
               </Button>
             </Flex>
           )}

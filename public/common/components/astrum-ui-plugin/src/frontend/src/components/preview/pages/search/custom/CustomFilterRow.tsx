@@ -7,7 +7,9 @@ import type { CustomFilter, FilterField, FilterOperator } from './custom.types';
 import {
   FILTER_FIELD_OPTIONS,
   FILTER_OPERATOR_OPTIONS,
+  filterFieldOptions,
 } from './custom.types';
+import S from '../../../constants/pages/search/CustomSearchStrings';
 
 export interface CustomFilterRowProps {
   filter: CustomFilter;
@@ -15,6 +17,8 @@ export interface CustomFilterRowProps {
   onRemove: (id: string) => void;
   isOnlyFilter?: boolean;
   disabled?: boolean;
+  /** Whether the edition offers tags as a field */
+  proEdition?: boolean;
 }
 
 export function CustomFilterRow({
@@ -23,6 +27,7 @@ export function CustomFilterRow({
   onRemove,
   isOnlyFilter = false,
   disabled = false,
+  proEdition = false,
 }: CustomFilterRowProps): JSX.Element {
   const handleFieldChange = (value: string): void => {
     onUpdate(filter.id, { field: value as FilterField });
@@ -43,14 +48,15 @@ export function CustomFilterRow({
   const currentFieldOption = FILTER_FIELD_OPTIONS.find(
     (opt) => opt.value === filter.field
   );
-  const placeholder = currentFieldOption?.placeholder || 'Enter value...';
+  const placeholder = currentFieldOption?.placeholder || S.VALUE_PLACEHOLDER;
+  const fieldOptions = filterFieldOptions(proEdition);
 
   return (
-    <Flex gap="2" align="center">
+    <Flex gap="2" align="center" wrap="wrap">
       <Select.Root value={filter.field} onValueChange={handleFieldChange} disabled={disabled}>
-        <Select.Trigger style={{ minWidth: '140px' }} />
+        <Select.Trigger style={{ minWidth: '140px' }} aria-label={S.FIELD_LABEL} />
         <Select.Content>
-          {FILTER_FIELD_OPTIONS.map((opt) => (
+          {fieldOptions.map((opt) => (
             <Select.Item key={opt.value} value={opt.value}>
               {opt.label}
             </Select.Item>
@@ -59,7 +65,7 @@ export function CustomFilterRow({
       </Select.Root>
 
       <Select.Root value={filter.operator} onValueChange={handleOperatorChange} disabled={disabled}>
-        <Select.Trigger style={{ minWidth: '120px' }} />
+        <Select.Trigger style={{ minWidth: '120px' }} aria-label={S.OPERATOR_LABEL} />
         <Select.Content>
           {FILTER_OPERATOR_OPTIONS.map((opt) => (
             <Select.Item key={opt.value} value={opt.value}>
@@ -70,20 +76,21 @@ export function CustomFilterRow({
       </Select.Root>
 
       <TextField.Root
-        style={{ flex: 1 }}
+        style={{ flex: '1 1 200px' }}
         value={filter.value}
         onChange={handleValueChange}
         placeholder={placeholder}
+        aria-label={S.VALUE_LABEL}
         disabled={disabled}
       />
 
-      <Tooltip content={isOnlyFilter ? 'At least one filter is required' : 'Remove filter'}>
+      <Tooltip content={isOnlyFilter ? S.ONLY_FILTER : S.REMOVE_FILTER}>
         <IconButton
           variant="ghost"
           color="gray"
           onClick={handleRemove}
           disabled={disabled || isOnlyFilter}
-          aria-label="Remove filter"
+          aria-label={S.REMOVE_FILTER}
         >
           <X size={16} />
         </IconButton>

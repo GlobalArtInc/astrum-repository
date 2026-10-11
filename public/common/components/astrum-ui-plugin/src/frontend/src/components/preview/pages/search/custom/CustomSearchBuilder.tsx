@@ -1,10 +1,12 @@
 
 
 import React from 'react';
-import { Box, Flex, Text, Button } from '@radix-ui/themes';
+import { Card, Flex, Text, Button } from '@radix-ui/themes';
 import { Plus, Search, X } from 'lucide-react';
 import type { CustomFilter } from './custom.types';
 import { CustomFilterRow } from './CustomFilterRow';
+import { ExtJS } from '../../../../../interface/ExtJS';
+import S from '../../../constants/pages/search/CustomSearchStrings';
 
 export interface CustomSearchBuilderProps {
   filters: readonly CustomFilter[];
@@ -27,6 +29,8 @@ export function CustomSearchBuilder({
   loading = false,
   hasFilters = false,
 }: CustomSearchBuilderProps): JSX.Element {
+  const proEdition = ExtJS.isProEdition();
+
   const handleKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === 'Enter' && !loading) {
       onSearch();
@@ -34,14 +38,14 @@ export function CustomSearchBuilder({
   };
 
   return (
-    <Box p="4" style={{ backgroundColor: 'var(--gray-2)', borderRadius: 'var(--radius-3)' }} onKeyDown={handleKeyDown}>
+    <Card size="3" onKeyDown={handleKeyDown}>
       <Flex direction="column" gap="4">
-        <Box>
-          <Text size="3" weight="medium" mb="1">Search Criteria</Text>
-          <Text size="2" color="gray">
-            Build your search query by adding filter criteria. All filters are combined with AND logic.
+        <Flex direction="column" gap="1">
+          <Text as="div" size="3" weight="bold">{S.CRITERIA}</Text>
+          <Text as="div" size="2" color="gray">
+            {S.CRITERIA_DESCRIPTION}
           </Text>
-        </Box>
+        </Flex>
 
         <Flex direction="column" gap="2">
           {filters.map((filter) => (
@@ -52,6 +56,7 @@ export function CustomSearchBuilder({
               onRemove={onRemoveFilter}
               isOnlyFilter={filters.length === 1}
               disabled={loading}
+              proEdition={proEdition}
             />
           ))}
         </Flex>
@@ -59,7 +64,7 @@ export function CustomSearchBuilder({
         <Flex justify="start">
           <Button variant="ghost" onClick={onAddFilter} disabled={loading}>
             <Plus size={16} />
-            Add Filter
+            {S.ADD_FILTER}
           </Button>
         </Flex>
 
@@ -67,16 +72,16 @@ export function CustomSearchBuilder({
           {hasFilters && (
             <Button variant="ghost" onClick={onClear} disabled={loading}>
               <X size={14} />
-              Clear All
+              {S.CLEAR_ALL}
             </Button>
           )}
           <Button onClick={onSearch} disabled={loading}>
             <Search size={16} />
-            {loading ? 'Searching...' : 'Search'}
+            {loading ? S.SEARCHING : S.SEARCH}
           </Button>
         </Flex>
       </Flex>
-    </Box>
+    </Card>
   );
 }
 
