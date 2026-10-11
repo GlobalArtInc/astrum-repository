@@ -243,7 +243,7 @@ function CreateTokenForm({ onCreate }: { onCreate: (name: string, scope: AccessT
         <Heading size="3" mb="3">
           {strings.CREATE.TITLE}
         </Heading>
-        <Flex gap="3" wrap="wrap" align="end">
+        <Flex gap="3" wrap="wrap" align="start">
           <Box style={{ flex: '2 1 220px' }}>
             <Text as="label" size="2" weight="medium" htmlFor="access-token-name">
               {strings.CREATE.NAME_LABEL}
@@ -269,6 +269,9 @@ function CreateTokenForm({ onCreate }: { onCreate: (name: string, scope: AccessT
                 <Select.Item value="write">{strings.SCOPES.write}</Select.Item>
               </Select.Content>
             </Select.Root>
+            <Text size="1" color="gray" as="p" mt="1" data-testid="access-token-scope-description">
+              {scope === 'read' ? strings.SCOPES.READ_DESCRIPTION : strings.SCOPES.WRITE_DESCRIPTION}
+            </Text>
           </Box>
           <Box style={{ flex: '1 1 140px' }}>
             <Text as="div" size="2" weight="medium" mb="1">
@@ -285,14 +288,13 @@ function CreateTokenForm({ onCreate }: { onCreate: (name: string, scope: AccessT
               </Select.Content>
             </Select.Root>
           </Box>
-          <Button type="submit" disabled={saving} data-testid="access-token-create-button">
-            {saving && <Spinner size="1" />}
-            {strings.CREATE.BUTTON}
-          </Button>
+          <Box pt="5">
+            <Button type="submit" disabled={saving} data-testid="access-token-create-button">
+              {saving && <Spinner size="1" />}
+              {strings.CREATE.BUTTON}
+            </Button>
+          </Box>
         </Flex>
-        <Text size="1" color="gray" as="p" mt="2">
-          {scope === 'read' ? strings.SCOPES.READ_DESCRIPTION : strings.SCOPES.WRITE_DESCRIPTION}
-        </Text>
         {error && (
           <Callout.Root color="red" mt="3" data-testid="access-token-create-error">
             <Callout.Text>{error}</Callout.Text>
@@ -408,7 +410,7 @@ export function AccessTokensPage() {
   };
 
   return (
-    <Box style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--space-5)' }} data-testid="access-tokens-page">
+    <Box style={{ maxWidth: 1100, width: '100%', padding: 'var(--space-6)' }} data-testid="access-tokens-page">
       <Flex align="center" gap="3" mb="2">
         <KeyRound size={24} color="var(--accent-9)" />
         <Heading size="6">{strings.TITLE}</Heading>

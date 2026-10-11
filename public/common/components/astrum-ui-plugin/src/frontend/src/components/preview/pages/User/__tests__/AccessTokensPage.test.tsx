@@ -73,6 +73,16 @@ describe('AccessTokensPage', () => {
     expect(screen.queryByTestId('access-token-view')).not.toBeInTheDocument();
   });
 
+  it('describes the chosen access under its own field', async () => {
+    mockGet.mockResolvedValue([]);
+    renderPage();
+    await screen.findByTestId('access-token-empty');
+
+    const description = screen.getByTestId('access-token-scope-description');
+    expect(description).toHaveTextContent('Download packages and pull images');
+    expect(description.parentElement).toContainElement(screen.getByTestId('access-token-scope'));
+  });
+
   it('lists tokens without their secrets', async () => {
     mockGet.mockResolvedValue([token, { ...token, id: 't2', name: 'old', scope: 'write', expired: true }]);
     renderPage();

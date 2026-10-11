@@ -140,7 +140,7 @@ export function NuGetApiTokenPage() {
   };
 
   return (
-    <Box style={{ maxWidth: 640, margin: '0 auto', padding: 'var(--space-5)' }} data-testid="nuget-api-token-page">
+    <Box style={{ maxWidth: 640, width: '100%', padding: 'var(--space-6)' }} data-testid="nuget-api-token-page">
       <Flex align="center" gap="3" mb="4">
         <Package size={24} color="var(--accent-9)" />
         <Box>
