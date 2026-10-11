@@ -115,6 +115,9 @@ export function RepositoriesPage() {
 
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [isExecutingAction, setIsExecutingAction] = useState(false);
+  // Bumped after the repository changes behind the form's back (taken offline / brought online), so the form
+  // starts over from the saved repository: its machine only reads the repository it was created with.
+  const [formRevision, setFormRevision] = useState(0);
 
   const toast = useToast();
   const router = useRouter();
@@ -461,6 +464,7 @@ export function RepositoriesPage() {
         const refreshed = await fetchRepository(repoName);
         if (refreshed) {
           setRepository(refreshed);
+          setFormRevision((revision) => revision + 1);
         }
       }
       setPendingAction(null);
@@ -678,6 +682,7 @@ export function RepositoriesPage() {
         )}
         {routeState.viewMode === 'edit' && editRecipe && (
           <RepositoryForm
+            key={`${repository?.name}-${formRevision}`}
             repository={repository}
             recipe={editRecipe}
             isCreate={false}

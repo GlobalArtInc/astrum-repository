@@ -216,6 +216,34 @@ describe('RepositoriesPage', () => {
     });
   });
 
+  describe('repository edit view online toggle', () => {
+    beforeEach(() => {
+      window.location.hash = '#preview/admin/repository/repositories/maven-central';
+    });
+
+    it('starts the form over from the saved repository after taking it offline', async () => {
+      const offline = { ...mockRepositories[0], online: false, status: { online: false } };
+      const setRepositoryOnline = jest.fn().mockResolvedValue(undefined);
+      const fetchRepository = jest.fn()
+        .mockResolvedValueOnce(mockRepositories[0])
+        .mockResolvedValue(offline);
+      mockUseRepositoriesApi.mockReturnValue({ ...mockApiHook, fetchRepository, setRepositoryOnline });
+
+      renderWithTheme(<RepositoriesPage />);
+
+      await userEvent.click(await screen.findByTestId('form-toggle-online'));
+      await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /take offline/i }));
+
+      await waitFor(() => {
+        expect(setRepositoryOnline).toHaveBeenCalledWith('maven-central', 'maven2', 'proxy', false);
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('form-toggle-online')).toHaveTextContent('Bring Online');
+      });
+      expect(within(screen.getByTestId('page-header')).getByTestId('repository-chip-status')).toHaveTextContent('Offline');
+    });
+  });
+
   describe('repository edit view deletion', () => {
     beforeEach(() => {
       // Set URL hash to edit view for a specific repository
