@@ -25,7 +25,7 @@ import {
   enableFirewallQuarantine,
 } from '../../../../shared/security/useFirewallEnable';
 import { useRepositoriesApi } from './useRepositoriesApi';
-import { Repository, Recipe, RepositoryFormData, RepositoryType, TYPE_LABELS } from './types';
+import { Repository, Recipe, RepositoryFormData, RepositoryType, FORMAT_LABELS, TYPE_LABELS } from './types';
 
 import './RepositoriesPage.scss';
 import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
@@ -522,7 +522,8 @@ export function RepositoriesPage() {
     switch (routeState.viewMode) {
       case 'list': return { icon: Database, title: RepositoriesPageStrings.PAGE.REPOSITORIES, description: RepositoriesPageStrings.PAGE.MANAGE_HOSTED_PROXY_GROUP_REPOSITORIES, actions: canCreate ? <Button variant="solid" onClick={handleCreate}><Plus size={16} /> {RepositoriesPageStrings.PAGE.CREATE_REPOSITORY}</Button> : undefined };
       case 'select-type': return { icon: Database, title: RepositoriesPageStrings.PAGE.CREATE_REPOSITORY, description: RepositoriesPageStrings.PAGE.CONFIGURE_NEW_REPOSITORY_SETTINGS };
-      case 'create': return { icon: selectedRecipe ? <FormatIcon format={selectedRecipe.format} type={selectedRecipe.type} size={24} /> : Database, title: RepositoriesPageStrings.PAGE.CREATE_TYPED_REPOSITORY((selectedRecipe?.format || '').replace(/2$/, ''), TYPE_LABELS[selectedRecipe?.type as RepositoryType] || selectedRecipe?.type || ''), description: RepositoriesPageStrings.PAGE.CONFIGURE_SETTINGS };
+      // No description: the wizard names the step right below ("Configure")
+      case 'create': return { icon: selectedRecipe ? <FormatIcon format={selectedRecipe.format} type={selectedRecipe.type} size={24} /> : Database, title: RepositoriesPageStrings.PAGE.CREATE_TYPED_REPOSITORY(FORMAT_LABELS[selectedRecipe?.format || ''] || selectedRecipe?.format || '', TYPE_LABELS[selectedRecipe?.type as RepositoryType] || selectedRecipe?.type || '') };
       case 'edit': return {
         icon: repository ? <FormatIcon format={repository.format} type={repository.type} size={24} /> : Database,
         title: repository ? repository.name : RepositoriesPageStrings.PAGE.DETAILS,

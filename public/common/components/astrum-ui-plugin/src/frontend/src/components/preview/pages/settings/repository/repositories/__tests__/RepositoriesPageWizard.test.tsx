@@ -253,3 +253,18 @@ describe('RepositoriesPage wizard HC disabled-by-default', () => {
     expect(mockApiHook.enableHealthCheck).not.toHaveBeenCalled();
   });
 });
+
+describe('RepositoriesPage wizard title', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockDirty = undefined;
+    window.location.hash = '#preview/admin/repository/repositories/create/maven2/hosted';
+    mockUseRepositoriesApi.mockReturnValue(mockApiHook);
+  });
+
+  it('names the format and the type of the new repository', async () => {
+    renderWithTheme(<RepositoriesPage />);
+
+    expect(await screen.findByRole('heading', { name: 'Create Maven (Hosted) Repository' })).toBeInTheDocument();
+  });
+});

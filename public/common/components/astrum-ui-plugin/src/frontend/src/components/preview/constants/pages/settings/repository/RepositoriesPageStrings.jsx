@@ -108,7 +108,6 @@ export default localize('react-ui', {
     MANAGE_HOSTED_PROXY_GROUP_REPOSITORIES: 'Manage hosted, proxy, and group repositories',
     CREATE_REPOSITORY: 'Create Repository',
     CONFIGURE_NEW_REPOSITORY_SETTINGS: 'Configure your new repository settings',
-    CONFIGURE_SETTINGS: 'Configure settings',
     EDIT: (name) => `Edit ${name}`,
     DETAILS: 'Details',
     ONLINE: 'Online',
