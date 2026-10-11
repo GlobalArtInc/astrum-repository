@@ -9,8 +9,9 @@ describe('preview ROUTE_NAMES', () => {
     expect(ROUTE_NAMES.ADMIN).toEqual(BaseRouteNames.ADMIN);
   });
 
-  it('defines BROWSE.WELCOME with the shared classic welcome state name', () => {
-    expect(ROUTE_NAMES.BROWSE.WELCOME.ROOT).toBe('browse.welcome');
+  it('defines BROWSE.WELCOME with the Astrum One welcome state name', () => {
+    expect(ROUTE_NAMES.BROWSE.WELCOME.ROOT).toBe('preview.browse.welcome');
+    expect(BaseRouteNames.WELCOME).toBe('preview.browse.welcome');
     expect(ROUTE_NAMES.BROWSE.WELCOME.TITLE).toBe('Dashboard');
   });
 

@@ -12,7 +12,7 @@ import PreviewRouteTitles from './previewRouteTitles';
 export const previewUserRoutes = [
   {
     name: 'preview.user',
-    url: '/user',
+    url: 'user',
     abstract: true,
     component: UIView,
   },

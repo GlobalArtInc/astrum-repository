@@ -1,9 +1,6 @@
 
 import {createRouter, isGlobalArtDevMode, MissingRoutePage} from '@globalart/astrum-ui-plugin';
 import {ROUTE_NAMES} from './routeNames/routeNames';
-import {browseRoutes} from './routes/browseRoutes';
-import {adminRoutes} from './routes/adminRoutes';
-import {userRoutes} from './routes/userRoutes';
 import {loginRoutes} from "./routes/loginRoutes";
 import {previewAdminRoutes, globalartInternalTestRoutes} from './routes/previewAdminRoutes';
 import {previewBrowseRoutes} from './routes/previewBrowseRoutes';
@@ -13,14 +10,10 @@ import {getInitialRoute} from './getInitialRoute';
 export function getRouter() {
   const initialRoute = getInitialRoute();
 
+  // The Classic UI is retired: its routes are no longer registered, and Astrum One owns the root of the hash.
+  // Classic URLs are mapped to their Astrum One pages by the URL rules of createRouter.
   const menuRoutes = [
-    // DEFAULT UI (current - unchanged)
-    ...browseRoutes,
-    ...adminRoutes,
-    ...userRoutes,
     ...loginRoutes,
-
-    // PREVIEW UI (new - Phase 4.0)
     ...previewBrowseRoutes,
     ...previewAdminRoutes,
     ...previewUserRoutes,

@@ -22,7 +22,7 @@ function navigateTo(path: string) {
   window.location.hash = path;
 }
 
-const BASE_PATH = 'preview/admin/security/ldap';
+const BASE_PATH = 'admin/security/ldap';
 const CREATE_PATH = `${BASE_PATH}/create`;
 const DETAIL_PATH_PREFIX = `${BASE_PATH}/`;
 
@@ -44,7 +44,7 @@ function isCreateRoute(hash: string): boolean {
 
 /**
  * Get server name from detail route hash.
- * Matches UIRouter pattern: preview/admin/security/ldap/:serverId
+ * Matches UIRouter pattern: admin/security/ldap/:serverId
  */
 function getDetailServerName(hash: string): string | null {
   const cleanHash = hash.replace(/^#/, '').replace(/\?.*$/, '');

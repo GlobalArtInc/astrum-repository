@@ -4,7 +4,7 @@ import ExtJS from '../interface/ExtJS';
 import {isVisible} from '../interface/NavigationUtils';
 import {showUnsavedChangesModal} from './unsavedChangesDialog';
 import {RouteNames} from "../constants/RouteNames";
-import {heritageToPreviewPath} from '../utils/previewHeritageNavigation';
+import {heritageToPreviewPath, isClassicPath, isClassicSearchPath} from '../utils/previewHeritageNavigation';
 
 /**
  * Checks visibility for a state AND all its ancestor states.
@@ -75,6 +75,67 @@ const PERMISSIONS_RECOVERY_TIMEOUT_MS = 30000;
  * actually breaks never reaches this branch (ASTRUM-54422).
  */
 const PERMISSIONS_SETTLE_MS = 500;
+
+/** A hash path under the `preview/` prefix Astrum One pages had before they moved to the root. */
+const PREVIEW_PREFIX_PATH = /^\/*preview(?:\/|$)/;
+
+/** A hash path with a leading slash, such as `#/admin/system/tasks` from a server path turned into a hash. */
+const LEADING_SLASH_PATH = /^\/+/;
+
+/**
+ * The hash path of a URL with its query string, as it was in the address bar: ui-router hands the rules the
+ * raw, still encoded values of the query.
+ */
+function pathWithSearch(path, search = {}) {
+  const query = Object.keys(search)
+      .flatMap((key) => [].concat(search[key]).map((value) => (value ? `${key}=${value}` : key)))
+      .join('&');
+  return query ? `${path}?${query}` : path;
+}
+
+/**
+ * Opens another hash path in place of the current one. The current history entry is replaced, so Back does
+ * not return to a URL that would only redirect again; the hash location of ui-router always adds an entry.
+ */
+function replaceHashPath(path) {
+  window.location.replace(`#${path}`);
+}
+
+/**
+ * Registers the URL rules that keep old URLs working now that Astrum One owns the root of the hash:
+ *
+ *  - `#preview/<path>` opens `#<path>`: Astrum One pages lived under `preview/`, and bookmarks, links in
+ *    emails and links in the code still point there;
+ *  - a Classic search URL opens the Astrum One search, before the states: `#browse/search/maven` would
+ *    otherwise open the path `maven` of a repository named `search`;
+ *  - after the states, `#/<path>` opens `#<path>`, so a server path turned into a hash finds its page;
+ *  - after the states, a Classic URL opens its Astrum One page (see heritageToPreviewPath). A Classic URL
+ *    whose page has the same path in Astrum One never gets here, since that page's state matches first.
+ *
+ * Paths that none of these rules or states match are left to the 404 page.
+ */
+function registerAstrumOneUrlRules(router, missingRoute) {
+  const rules = router.urlService.rules;
+  rules.when(PREVIEW_PREFIX_PATH, (match, url) => {
+    replaceHashPath(heritageToPreviewPath(pathWithSearch(url.path, url.search)));
+  });
+  rules.when((url) => isClassicSearchPath(url.path), (match, url) => {
+    replaceHashPath(heritageToPreviewPath(pathWithSearch(url.path, url.search)));
+  });
+  rules.when(LEADING_SLASH_PATH, (match, url) => {
+    replaceHashPath(pathWithSearch(url.path.replace(LEADING_SLASH_PATH, ''), url.search));
+  }, {priority: -1});
+  rules.when((url) => isClassicPath(url.path), (match, url) => {
+    const path = pathWithSearch(url.path, url.search);
+    const astrumOnePath = heritageToPreviewPath(path);
+    if (astrumOnePath === path) {
+      // The Astrum One page this URL names is not registered, such as a page of a missing plugin
+      return {state: missingRoute.name, params: {}, options: {location: false}};
+    }
+    replaceHashPath(astrumOnePath);
+    return undefined;
+  }, {priority: -2});
+}
 
 /**
  * Navigates to a returnTo target, or to the welcome page when there is none.
@@ -347,17 +408,9 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
         // out to grant this route after all (ASTRUM-54422).
         const originalHash = window.location.hash;
         transition.abort();
-        if (stateTo.name !== missingRoute.name && !isPreviewUIRouteName(stateTo.name)) {
-          // The Classic UI is retired: a Classic page the user may not open, such as an old bookmark
-          // with stricter Classic requirements, opens its Astrum One page, which checks its own.
-          const classicPath = (router.stateService.href(stateTo, transition.params()) || '').replace(/^#/, '');
-          router.urlService.url(`#${heritageToPreviewPath(classicPath)}`);
-          return;
-        }
-        const welcomeRoute = isPreviewUIRouteName(stateTo.name) ? 'preview.browse.welcome' : RouteNames.WELCOME;
         // Arm before navigating: permissions can land during the redirect itself.
-        recoverWhenPermissionsArrive(stateTo, originalHash, welcomeRoute);
-        router.stateService.go(welcomeRoute);
+        recoverWhenPermissionsArrive(stateTo, originalHash, RouteNames.WELCOME);
+        router.stateService.go(RouteNames.WELCOME);
       }
     }
   });
@@ -403,6 +456,7 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
 
   // explicitely register the missing route
   router.stateRegistry.register(missingRoute);
+  registerAstrumOneUrlRules(router, missingRoute);
   // send any unrecognized routes to the 404 page, but first try to salvage SPA paths without a hash
   router.urlService.rules.otherwise((matchValue, urlParts, router) => {
     // If the browser URL has a path but no hash (e.g., /admin/system/tasks), rewrite to a hash URL once.
@@ -414,13 +468,7 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
       return;
     }
 
-    // ExtJS compatibility: URLs with = in the first path segment (e.g., browse/search=format%3Dnpm:repo:id)
-    // are ExtJS bookmark URLs that React Router can't match. Let ExtJS handle them instead of showing 404.
     const hash = window.location?.hash?.replace(/^#\/?/, '') || '';
-    if (hash.includes('=') && !hash.startsWith('preview/')) {
-      console.debug('Unrecognized URL appears to be an ExtJS bookmark, deferring to ExtJS:', hash);
-      return;
-    }
 
     // Unrecognized URL in a protected area: if user is NOT authenticated,
     // redirect to login so they can sign in and be routed back.
@@ -429,7 +477,7 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
     // AS.Security is not yet available (very early page load).
     const rawPath = (typeof matchValue === 'object' && matchValue?.path) || hash;
     const path = (rawPath || '').replace(/^\//, '');
-    const isProtectedPath = path && (path.startsWith('admin') || path.startsWith('preview/') || path.startsWith('user/'));
+    const isProtectedPath = /^(?:admin|settings|user)(?:[/?:]|$)/.test(path);
     const isAuthenticated = (typeof window.AS?.Security?.hasUser === 'function')
         ? window.AS.Security.hasUser()
         : (window.__asRestBootstrap?.user?.authenticated === true);

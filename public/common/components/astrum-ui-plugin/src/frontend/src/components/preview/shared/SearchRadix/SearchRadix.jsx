@@ -55,7 +55,7 @@ function getDisplayName(suggestion) {
  * - Format badges on suggestions
  *
  * Routing behavior:
- * - Preview UI: Navigate to #preview/browse/search?q=<query>
+ * - Preview UI: Navigate to #browse/search?q=<query>
  * - Default UI: Navigate to #browse/search/generic=keyword=<query>
  *
  * @param {Object} props

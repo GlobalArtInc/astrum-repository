@@ -129,7 +129,7 @@ export function getHeritageEquivalent(previewPath) {
 }
 
 /** Hash path (no leading #) of the Astrum One dashboard; also the target of every unknown Classic URL. */
-export const PREVIEW_WELCOME_PATH = 'preview/browse/welcome';
+export const PREVIEW_WELCOME_PATH = 'browse/welcome';
 
 /**
  * Classic search ids (ExtJS search features and Classic React routes) to Astrum One search formats.
@@ -215,7 +215,7 @@ function searchPath({ q, format, repository }) {
   if (q) params.push(`q=${encodeURIComponent(q)}`);
   if (format) params.push(`format=${encodeURIComponent(format)}`);
   if (repository) params.push(`repository=${encodeURIComponent(repository)}`);
-  return params.length ? `preview/browse/search?${params.join('&')}` : 'preview/browse/search';
+  return params.length ? `browse/search?${params.join('&')}` : 'browse/search';
 }
 
 /**
@@ -235,10 +235,10 @@ function formatSearchPath(searchId, criteria, keyword) {
 function browsePath(rawRepo, rawNodePath) {
   const repo = safeDecodeURIComponent(rawRepo);
   if (!repo) {
-    return 'preview/browse';
+    return 'browse';
   }
   const nodePath = encodePath(safeDecodeURIComponent(rawNodePath || ''));
-  return `preview/browse/${encodeURIComponent(repo)}/${nodePath}`;
+  return `browse/${encodeURIComponent(repo)}/${nodePath}`;
 }
 
 /**
@@ -251,9 +251,9 @@ function userPath(itemId) {
   const source = separator === -1 ? 'default' : decoded.slice(0, separator);
   const userId = separator === -1 ? decoded : decoded.slice(separator + 1);
   if (!userId) {
-    return 'preview/admin/security/users';
+    return 'admin/security/users';
   }
-  return `preview/admin/security/users/${encodeSegment(userId)}/${encodeSegment(source || 'default')}`;
+  return `admin/security/users/${encodeSegment(userId)}/${encodeSegment(source || 'default')}`;
 }
 
 function escapeRegExp(text) {
@@ -291,83 +291,138 @@ function listCreateEdit(classicPath, previewPath) {
  */
 const CLASSIC_TO_PREVIEW_ROUTES = [
   [/^(?:browse(?:\/welcome)?)?$/, () => PREVIEW_WELCOME_PATH],
-  [/^browse\/browse$/, () => 'preview/browse'],
+  [/^browse\/browse$/, () => 'browse'],
   [/^browse\/browse:([^:]*)(?::(.*))?$/, (m) => browsePath(m[1], m[2])],
   [/^browse\/search(?:=(.*))?$/, (m) => searchPath(parseSearchCriteria(m[1]))],
-  [/^browse\/search\/custom(?:[=/:].*)?$/, () => 'preview/browse/search/custom'],
-  [/^browse\/search\/saved(?:\/.*)?$/, () => 'preview/browse/search'],
+  [/^browse\/search\/custom(?:[=/:].*)?$/, () => 'browse/search/custom'],
+  [/^browse\/search\/saved(?:\/.*)?$/, () => 'browse/search'],
   [/^browse\/search\/([A-Za-z0-9_-]+)(?:[=:](.*)|\/(.*))?$/, (m) => formatSearchPath(m[1], m[2], m[3])],
-  [/^browse\/upload$/, () => 'preview/browse/upload'],
-  [/^browse\/upload[/:](.+)$/, (m) => `preview/browse/upload/${encodeSegment(m[1])}`],
-  ...masterDetail('browse/tags', 'preview/browse/tags'),
+  [/^browse\/upload$/, () => 'browse/upload'],
+  [/^browse\/upload[/:](.+)$/, (m) => `browse/upload/${encodeSegment(m[1])}`],
+  ...masterDetail('browse/tags', 'browse/tags'),
 
-  [/^admin(?:\/hub)?$/, () => 'preview/settings'],
-  [/^admin\/repository$/, () => 'preview/admin/repository/repositories'],
-  [/^admin\/security$/, () => 'preview/admin/security/users'],
-  [/^admin\/support$/, () => 'preview/admin/support/systeminformation'],
-  [/^admin\/system$/, () => 'preview/admin/system/tasks'],
+  [/^admin(?:\/hub)?$/, () => 'settings'],
+  [/^admin\/repository$/, () => 'admin/repository/repositories'],
+  [/^admin\/security$/, () => 'admin/security/users'],
+  [/^admin\/support$/, () => 'admin/support/systeminformation'],
+  [/^admin\/system$/, () => 'admin/system/tasks'],
 
-  ...masterDetail('admin/repository/repositories', 'preview/admin/repository/repositories'),
-  [/^admin\/repository\/blobstores$/, () => 'preview/admin/repository/blobstores'],
-  [/^admin\/repository\/blobstores\/create$/, () => 'preview/admin/repository/blobstores/create'],
+  ...masterDetail('admin/repository/repositories', 'admin/repository/repositories'),
+  [/^admin\/repository\/blobstores$/, () => 'admin/repository/blobstores'],
+  [/^admin\/repository\/blobstores\/create$/, () => 'admin/repository/blobstores/create'],
   [/^admin\/repository\/blobstores\/edit\/([^/]+)\/(.+)$/,
-    (m) => `preview/admin/repository/blobstores/${encodeSegment(m[1])}/${encodeSegment(m[2])}`],
-  page('admin/repository/blobstores', 'preview/admin/repository/blobstores'),
-  ...listCreateEdit('admin/repository/selectors', 'preview/admin/repository/selectors'),
-  ...listCreateEdit('admin/repository/cleanuppolicies', 'preview/admin/repository/cleanup-policies'),
-  [/^admin\/repository\/routingrules\/preview$/, () => 'preview/admin/repository/routing-rules/preview'],
-  ...listCreateEdit('admin/repository/routingrules', 'preview/admin/repository/routing-rules'),
-  page('admin/repository/datastore', 'preview/admin/repository/datastore'),
-  page('admin/repository/proprietary', 'preview/admin/repository/proprietary'),
+    (m) => `admin/repository/blobstores/${encodeSegment(m[1])}/${encodeSegment(m[2])}`],
+  page('admin/repository/blobstores', 'admin/repository/blobstores'),
+  ...listCreateEdit('admin/repository/selectors', 'admin/repository/selectors'),
+  ...listCreateEdit('admin/repository/cleanuppolicies', 'admin/repository/cleanup-policies'),
+  [/^admin\/repository\/routingrules\/preview$/, () => 'admin/repository/routing-rules/preview'],
+  ...listCreateEdit('admin/repository/routingrules', 'admin/repository/routing-rules'),
+  page('admin/repository/datastore', 'admin/repository/datastore'),
+  page('admin/repository/proprietary', 'admin/repository/proprietary'),
 
-  ...listCreateEdit('admin/security/privileges', 'preview/admin/security/privileges'),
-  ...listCreateEdit('admin/security/roles', 'preview/admin/security/roles'),
-  ...masterDetail('admin/security/users', 'preview/admin/security/users'),
-  ...masterDetail('admin/security/ldap', 'preview/admin/security/ldap'),
-  page('admin/security/anonymous', 'preview/admin/security/anonymous'),
-  page('admin/security/realms', 'preview/admin/security/realms'),
-  page('admin/security/sslcertificates', 'preview/admin/security/sslcertificates'),
-  page('admin/security/oauth2', 'preview/admin/security/oauth2'),
-  page('admin/security/usertoken', 'preview/admin/security/user-tokens'),
-  page('admin/security/satokens', 'preview/admin/security/service-account-tokens'),
-  page('admin/security/atlassiancrowd', 'preview/admin/security/crowd'),
-  page('admin/security/saml', 'preview/admin/security/saml'),
+  ...listCreateEdit('admin/security/privileges', 'admin/security/privileges'),
+  ...listCreateEdit('admin/security/roles', 'admin/security/roles'),
+  ...masterDetail('admin/security/users', 'admin/security/users'),
+  ...masterDetail('admin/security/ldap', 'admin/security/ldap'),
+  page('admin/security/anonymous', 'admin/security/anonymous'),
+  page('admin/security/realms', 'admin/security/realms'),
+  page('admin/security/sslcertificates', 'admin/security/sslcertificates'),
+  page('admin/security/oauth2', 'admin/security/oauth2'),
+  page('admin/security/usertoken', 'admin/security/user-tokens'),
+  page('admin/security/satokens', 'admin/security/service-account-tokens'),
+  page('admin/security/atlassiancrowd', 'admin/security/crowd'),
+  page('admin/security/saml', 'admin/security/saml'),
 
-  page('admin/support/systeminformation', 'preview/admin/support/systeminformation'),
-  page('admin/support/status', 'preview/admin/support/metrichealth'),
-  page('admin/support/supportzip', 'preview/admin/support/supportzip'),
-  page('admin/support/supportrequest', 'preview/admin/support/supportrequest'),
-  ...masterDetail('admin/support/logs', 'preview/admin/support/logs',
+  page('admin/support/systeminformation', 'admin/support/systeminformation'),
+  page('admin/support/status', 'admin/support/metrichealth'),
+  page('admin/support/supportzip', 'admin/support/supportzip'),
+  page('admin/support/supportrequest', 'admin/support/supportrequest'),
+  ...masterDetail('admin/support/logs', 'admin/support/logs',
     (file) => encodePath(safeDecodeURIComponent(file))),
-  page('admin/support/recovery', 'preview/admin/support/recoverymode'),
-  ...listCreateEdit('admin/support/logging', 'preview/admin/support/logging'),
+  page('admin/support/recovery', 'admin/support/recoverymode'),
+  ...listCreateEdit('admin/support/logging', 'admin/support/logging'),
 
-  ...masterDetail('admin/system/tasks', 'preview/admin/system/tasks'),
-  ...masterDetail('admin/system/capabilities-extjs', 'preview/admin/system/capabilities'),
-  ...listCreateEdit('admin/system/capabilities', 'preview/admin/system/capabilities'),
-  page('admin/system/api', 'preview/browse/api'),
-  page('admin/system/emailserver', 'preview/admin/system/emailserver'),
-  page('admin/system/http', 'preview/admin/system/http'),
-  page('admin/system/nodes', 'preview/admin/system/nodes'),
-  page('admin/system/notifications', 'preview/admin/system/notifications'),
-  page('admin/system/previewui', 'preview/settings'),
+  ...masterDetail('admin/system/tasks', 'admin/system/tasks'),
+  ...masterDetail('admin/system/capabilities-extjs', 'admin/system/capabilities'),
+  ...listCreateEdit('admin/system/capabilities', 'admin/system/capabilities'),
+  page('admin/system/api', 'browse/api'),
+  page('admin/system/emailserver', 'admin/system/emailserver'),
+  page('admin/system/http', 'admin/system/http'),
+  page('admin/system/nodes', 'admin/system/nodes'),
+  page('admin/system/notifications', 'admin/system/notifications'),
+  page('admin/system/previewui', 'settings'),
 
-  [/^user$/, () => 'preview/user/account'],
-  page('user/account', 'preview/user/account'),
-  page('user/accesstokens', 'preview/user/accesstokens'),
-  page('user/NuGetApiToken', 'preview/user/nugetapitoken'),
-  page('user/usertoken', 'preview/user/usertoken'),
+  [/^user$/, () => 'user/account'],
+  page('user/account', 'user/account'),
+  page('user/accesstokens', 'user/accesstokens'),
+  page('user/NuGetApiToken', 'user/nugetapitoken'),
+  page('user/usertoken', 'user/usertoken'),
 ];
 
 const USERS_DETAIL = /^admin\/security\/users:(.+)$/;
 
+/** Astrum One used to live under `#preview/`; old bookmarks and links in the code still point there. */
+const PREVIEW_PREFIX = /^\/*preview(?:\/+([\s\S]*))?$/;
+
+/**
+ * Hash paths of the Classic UI: the application root and everything under `browse`, `admin` and `user`, which
+ * Astrum One now shares. Only paths no Astrum One page claims are mapped; anything else is a missing page.
+ */
+const CLASSIC_PATH = /^\/*(?:(?:browse|admin|user)(?:[/:=?][\s\S]*)?)?$/;
+
+/**
+ * Classic search URLs: `browse/search=<criteria>` and `browse/search/<id>...`, but not the Astrum One search pages
+ * `browse/search/custom` and `browse/search/component/...`.
+ */
+const CLASSIC_SEARCH_PATH = /^\/*browse\/search(?:=[\s\S]*|\/(?!custom$|component\/)[^/][\s\S]*)$/;
+
+/**
+ * True for a Classic search URL, with or without a leading '#' or '/'. Astrum One opens a repository at
+ * `browse/<name>/<path>`, so these URLs would otherwise open a repository named `search`: the router must map
+ * them before it tries its states.
+ *
+ * @param {string} currentPath e.g. `browse/search/maven`
+ * @returns {boolean}
+ */
+export function isClassicSearchPath(currentPath) {
+  return CLASSIC_SEARCH_PATH.test(String(currentPath ?? '').replace(/^#/, '').split('?')[0]);
+}
+
+/**
+ * True for a hash path in a part of the URL space the Classic UI used, with or without a leading '#' or '/'.
+ *
+ * @param {string} currentPath e.g. `admin/repository/cleanuppolicies`
+ * @returns {boolean}
+ */
+export function isClassicPath(currentPath) {
+  return CLASSIC_PATH.test(String(currentPath ?? '').replace(/^#/, ''));
+}
+
+/**
+ * The hash path without the `preview/` prefix Astrum One pages used to have, or null when it has none.
+ *
+ * @param {string} currentPath e.g. `preview/admin/security/users?tab=roles`
+ * @returns {?string} e.g. `admin/security/users?tab=roles`; `preview` alone gives an empty path
+ */
+export function withoutPreviewPrefix(currentPath) {
+  const raw = String(currentPath ?? '').replace(/^#/, '');
+  const queryIndex = raw.indexOf('?');
+  const path = queryIndex === -1 ? raw : raw.slice(0, queryIndex);
+  const queryString = queryIndex === -1 ? '' : raw.slice(queryIndex);
+  const match = PREVIEW_PREFIX.exec(path);
+  return match ? `${match[1] || ''}${queryString}` : null;
+}
+
 /**
  * Astrum One hash path (no leading #) that replaces a Classic UI hash path, so old bookmarks and links
- * in emails keep working now that the Classic UI is retired. Astrum One paths are returned unchanged;
- * a Classic path that Astrum One has no page for opens the dashboard.
+ * in emails keep working now that the Classic UI is retired. A path under the old `preview/` prefix
+ * loses the prefix; a Classic path that Astrum One has no page for opens the dashboard.
  *
- * @param {string} currentPath a hash path with or without a leading '#' or '/', e.g. `admin/security/users`
- * @returns {string} e.g. `preview/admin/security/users`
+ * Astrum One shares the root of the URL space with the Classic UI, so this must only see paths that no
+ * Astrum One page matches: the router applies it after its states.
+ *
+ * @param {string} currentPath a hash path with or without a leading '#' or '/', e.g. `admin/repository/cleanuppolicies`
+ * @returns {string} e.g. `admin/repository/cleanup-policies`
  */
 export function heritageToPreviewPath(currentPath) {
   const raw = String(currentPath ?? '').replace(/^#/, '').replace(/^\/+/, '');
@@ -375,8 +430,9 @@ export function heritageToPreviewPath(currentPath) {
   const path = (queryIndex === -1 ? raw : raw.slice(0, queryIndex)).replace(/\/+$/, '');
   const queryString = queryIndex === -1 ? '' : raw.slice(queryIndex + 1);
 
-  if (path === 'preview' || path.startsWith('preview/')) {
-    return raw;
+  const astrumOnePath = withoutPreviewPrefix(raw);
+  if (astrumOnePath !== null) {
+    return astrumOnePath.split('?')[0] ? astrumOnePath : PREVIEW_WELCOME_PATH;
   }
 
   const usersDetail = USERS_DETAIL.exec(path);

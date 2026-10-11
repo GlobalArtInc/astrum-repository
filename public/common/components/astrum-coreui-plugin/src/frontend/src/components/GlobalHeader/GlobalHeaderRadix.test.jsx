@@ -156,12 +156,13 @@ describe('GlobalHeaderRadix', () => {
       expect(screen.getByRole('button', {name: 'Expand Sidebar'})).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('puts the theme toggle into Astrum One only', () => {
+    it('offers the theme toggle on every page', () => {
+      window.location.hash = 'browse/welcome';
       const {unmount} = renderHeader();
-      expect(screen.queryByTestId('theme-switcher')).not.toBeInTheDocument();
+      expect(screen.getByTestId('theme-switcher')).toBeInTheDocument();
       unmount();
 
-      window.location.hash = 'preview/browse/welcome';
+      window.location.hash = 'admin/security/users';
       renderHeader();
       expect(screen.getByTestId('theme-switcher')).toBeInTheDocument();
     });

@@ -28,7 +28,7 @@ export default function AnonymousAccess() {
           router.stateService.go(RouteNames.MISSING_ROUTE);
         }
       } else {
-        router.stateService.go('browse.welcome');
+        router.stateService.go(RouteNames.WELCOME);
       }
     } catch (ex) {
       console.warn('redirection unsuccessful: ', ex);

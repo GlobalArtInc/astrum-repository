@@ -10,6 +10,7 @@ import { runLinkNotVisibleTest, runLinkVisiblityTest, runDirectoryPage404Test } 
 import { ROUTE_NAMES } from '../../../routerConfig/routeNames/routeNames';
 import {screen} from "@testing-library/react";
 import {renderComponentRoute} from "../../../testUtils/renderUtils";
+import {getClassicRouter} from "../../../testUtils/classicRouter";
 
 describe('AdminSystemDirectoryPage', () => {
   beforeEach(() => {
@@ -55,7 +56,7 @@ describe('AdminSystemDirectoryPage', () => {
     it('renders both extjs and react links given sufficient permissions and feature flags enabled', async () => {
       givenPermissions({ 'astrum:capabilities:read': true });
 
-      await renderComponentRoute(ROUTE_NAMES.ADMIN.SYSTEM.DIRECTORY);
+      await renderComponentRoute(ROUTE_NAMES.ADMIN.SYSTEM.DIRECTORY, getClassicRouter);
 
       const extJsLink = screen.getAllByRole('link', { name: /^Capabilities\b/ })[0];
       expect(extJsLink).toBeVisible();
@@ -82,7 +83,7 @@ describe('AdminSystemDirectoryPage', () => {
         'astrum.react.capabilities.enabled': false
       })
 
-      await renderComponentRoute(ROUTE_NAMES.ADMIN.SYSTEM.DIRECTORY);
+      await renderComponentRoute(ROUTE_NAMES.ADMIN.SYSTEM.DIRECTORY, getClassicRouter);
 
       const links = screen.getAllByRole('link', { name: /^Capabilities\b/ });
       // Expect nav sidebar link + content list link (both extjs since react is disabled)
@@ -101,7 +102,7 @@ describe('AdminSystemDirectoryPage', () => {
         'astrum.extjs.capabilities.enabled': false
       });
 
-      await renderComponentRoute(ROUTE_NAMES.ADMIN.SYSTEM.DIRECTORY);
+      await renderComponentRoute(ROUTE_NAMES.ADMIN.SYSTEM.DIRECTORY, getClassicRouter);
 
       const links = screen.getAllByRole('link', { name: /^Capabilities\b/ });
       // Expect nav sidebar link + content list link (both react since extjs is disabled)

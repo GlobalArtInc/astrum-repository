@@ -51,13 +51,13 @@ describe('AnonymousAccess', () => {
   });
 
   describe('link interaction', () => {
-    it('navigates to browse.welcome when clicked and no returnTo param', () => {
+    it('navigates to the Astrum One dashboard when clicked and no returnTo param', () => {
       render(<AnonymousAccess />);
       const link = screen.getByTestId('continue-without-login-button');
 
       fireEvent.click(link);
 
-      expect(mockRouter.stateService.go).toHaveBeenCalledWith('browse.welcome');
+      expect(mockRouter.stateService.go).toHaveBeenCalledWith('preview.browse.welcome');
       expect(mockRouter.urlService.url).not.toHaveBeenCalled();
     });
 

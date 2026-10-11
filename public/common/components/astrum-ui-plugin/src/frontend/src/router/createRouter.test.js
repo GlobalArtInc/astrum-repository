@@ -35,21 +35,21 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
 
     expect(goSpy).toHaveBeenCalledTimes(2);
     expect(goSpy).toHaveBeenNthCalledWith(1, 'login');
-    expect(goSpy).toHaveBeenNthCalledWith(2, 'browse.welcome');
+    expect(goSpy).toHaveBeenNthCalledWith(2, 'preview.browse.welcome');
   });
 
   it('go to visible pages, should be allowed', async () => {
-    await router.stateService.go('browse.welcome');
-    expect(router.stateService.current.name).toBe('browse.welcome');
+    await router.stateService.go('preview.browse.welcome');
+    expect(router.stateService.current.name).toBe('preview.browse.welcome');
 
     await router.stateService.go('login');
     expect(router.stateService.current.name).toBe('login');
   });
 
-  it('authenticated user goes to an unauthorized Classic page without an Astrum One page, should open the Astrum One dashboard', async () => {
+  it('authenticated user goes to an unauthorized page, should open the Astrum One dashboard', async () => {
     ExtJS.hasUser.mockReturnValue(true);
     // Navigate to a known state first to clear any residual state
-    await router.stateService.go('browse.welcome');
+    await router.stateService.go('preview.browse.welcome');
 
     const protectedRoute = {
       name: 'protected',
@@ -61,12 +61,11 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
     await router.urlService.sync();
 
     const goSpy = jest.spyOn(router.stateService, 'go');
-    const urlSpy = jest.spyOn(router.urlService, 'url');
     await router.stateService.go('protected').catch(() => {});
 
-    expect(goSpy).toHaveBeenCalledTimes(1);
+    expect(goSpy).toHaveBeenCalledTimes(2);
     expect(goSpy).toHaveBeenNthCalledWith(1, 'protected');
-    expect(urlSpy).toHaveBeenCalledWith('#preview/browse/welcome');
+    expect(goSpy).toHaveBeenNthCalledWith(2, 'preview.browse.welcome');
   });
 
   it('from login user goes to unauthorized page, should stay on login (transition aborted)', async () => {
@@ -157,13 +156,8 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
   it('unauthenticated user accessing child route with parent visibilityRequirements should redirect to login', async () => {
 
     router.stateRegistry.register({
-      name: 'preview',
-      url: '/preview',
-      component: UIView,
-    });
-    router.stateRegistry.register({
       name: 'preview.admin',
-      url: '/admin',
+      url: 'admin',
       abstract: true,
       component: UIView,
     });
@@ -184,34 +178,18 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
     await router.urlService.sync();
 
     const goSpy = jest.spyOn(router.stateService, 'go');
-    jest.spyOn(router.urlService, 'url').mockReturnValue('/preview/admin/security/roles');
+    jest.spyOn(router.urlService, 'url').mockReturnValue('admin/security/roles');
     await router.stateService.go('preview.admin.security.roles').catch(() => {});
 
-    expect(goSpy).toHaveBeenCalledWith('login', { returnTo: btoa('#/preview/admin/security/roles') });
+    expect(goSpy).toHaveBeenCalledWith('login', { returnTo: btoa('#admin/security/roles') });
   });
 
   it('authenticated user accessing child route with parent visibilityRequirements should redirect to preview welcome', async () => {
     ExtJS.hasUser.mockReturnValue(true);
 
     router.stateRegistry.register({
-      name: 'preview',
-      url: '/preview',
-      component: UIView,
-    });
-    router.stateRegistry.register({
-      name: 'preview.browse',
-      url: '/browse',
-      component: UIView,
-    });
-    router.stateRegistry.register({
-      name: 'preview.browse.welcome',
-      url: '/welcome',
-      component: () => null,
-      data: { visibilityRequirements: {} },
-    });
-    router.stateRegistry.register({
       name: 'preview.admin',
-      url: '/admin',
+      url: 'admin',
       abstract: true,
       component: UIView,
     });
@@ -239,13 +217,8 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
 
   it('unauthenticated user accessing preview child route with parent visibilityRequirements should redirect to login with returnTo', async () => {
     router.stateRegistry.register({
-      name: 'preview',
-      url: '/preview',
-      component: UIView,
-    });
-    router.stateRegistry.register({
       name: 'preview.admin',
-      url: '/admin',
+      url: 'admin',
       abstract: true,
       component: UIView,
     });
@@ -272,36 +245,20 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
     await router.urlService.sync();
 
     const goSpy = jest.spyOn(router.stateService, 'go');
-    const urlSpy = jest.spyOn(router.urlService, 'url').mockReturnValue('/preview/admin/security/roles/asd/profile');
+    const urlSpy = jest.spyOn(router.urlService, 'url').mockReturnValue('admin/security/roles/asd/profile');
     await router.stateService.go('preview.admin.security.roles.profile', { roleId: 'asd' }).catch(() => {});
 
-    const expectedReturnTo = btoa('#/preview/admin/security/roles/asd/profile');
+    const expectedReturnTo = btoa('#admin/security/roles/asd/profile');
     expect(goSpy).toHaveBeenCalledWith('login', { returnTo: expectedReturnTo });
     expect(urlSpy).toHaveBeenCalled();
   });
 
-  it('authenticated user accessing preview protected route should redirect to preview.browse.welcome (not classic welcome)', async () => {
+  it('authenticated user accessing preview protected route should redirect to preview.browse.welcome', async () => {
     ExtJS.hasUser.mockReturnValue(true);
 
     router.stateRegistry.register({
-      name: 'preview',
-      url: '/preview',
-      component: UIView,
-    });
-    router.stateRegistry.register({
-      name: 'preview.browse',
-      url: '/browse',
-      component: UIView,
-    });
-    router.stateRegistry.register({
-      name: 'preview.browse.welcome',
-      url: '/welcome',
-      component: () => null,
-      data: { visibilityRequirements: {} },
-    });
-    router.stateRegistry.register({
       name: 'preview.admin',
-      url: '/admin',
+      url: 'admin',
       abstract: true,
       component: UIView,
     });
@@ -321,21 +278,9 @@ describe('createRouter - onBefore - validate permissions and configuration on ea
     expect(goSpy).toHaveBeenCalledWith('preview.browse.welcome');
   });
 
-  it('authenticated user accessing a classic protected route should open its Astrum One page, not browse.welcome', async () => {
-    ExtJS.hasUser.mockReturnValue(true);
-    await router.stateService.go('browse.welcome');
-
-    const goSpy = jest.spyOn(router.stateService, 'go');
-    const urlSpy = jest.spyOn(router.urlService, 'url');
-    await router.stateService.go('browse.search.generic').catch(() => {});
-
-    expect(goSpy).not.toHaveBeenCalledWith('browse.welcome');
-    expect(urlSpy).toHaveBeenCalledWith(expect.stringMatching(/^#preview\/browse\/search/));
-  });
-
   it('unauthenticated user can navigate to public routes without redirect', async () => {
-    await router.stateService.go('browse.welcome');
-    expect(router.stateService.current.name).toBe('browse.welcome');
+    await router.stateService.go('preview.browse.welcome');
+    expect(router.stateService.current.name).toBe('preview.browse.welcome');
 
     await router.stateService.go('login');
     expect(router.stateService.current.name).toBe('login');
@@ -383,37 +328,27 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
     router = getTestRouter();
   });
 
-  it('unauthenticated user navigating to unrecognized admin URL should redirect to login with returnTo', async () => {
+  afterEach(() => {
+    window.location.hash = '';
+  });
+
+  it('unauthenticated user navigating to an unrecognized settings URL should redirect to login with returnTo', async () => {
     global.AS.Security.hasUser.mockReturnValue(false);
-    window.location.hash = '#admin/security/roles/asd/profile';
+    window.location.hash = '#settings/unknown/page';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
-    jest.spyOn(router.urlService, 'url').mockReturnValue('/admin/security/roles/asd/profile');
+    jest.spyOn(router.urlService, 'url').mockReturnValue('settings/unknown/page');
 
     await router.urlService.sync();
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    const expectedReturnTo = btoa('#/admin/security/roles/asd/profile');
+    const expectedReturnTo = btoa('#settings/unknown/page');
     expect(goSpy).toHaveBeenCalledWith('login', { returnTo: expectedReturnTo });
   });
 
-  it('unauthenticated user navigating to unrecognized preview URL should redirect to login with returnTo', async () => {
-    global.AS.Security.hasUser.mockReturnValue(false);
-    window.location.hash = '#preview/admin/security/roles/asd/profile';
-
-    const goSpy = jest.spyOn(router.stateService, 'go');
-    jest.spyOn(router.urlService, 'url').mockReturnValue('/preview/admin/security/roles/asd/profile');
-
-    await router.urlService.sync();
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    const expectedReturnTo = btoa('#/preview/admin/security/roles/asd/profile');
-    expect(goSpy).toHaveBeenCalledWith('login', { returnTo: expectedReturnTo });
-  });
-
-  it('authenticated user navigating to unrecognized admin URL should go to 404', async () => {
+  it('authenticated user navigating to an unrecognized settings URL should go to 404', async () => {
     global.AS.Security.hasUser.mockReturnValue(true);
-    window.location.hash = '#admin/nonexistent/page';
+    window.location.hash = '#settings/nonexistent/page';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
 
@@ -423,9 +358,9 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
     expect(goSpy).toHaveBeenCalledWith('missing.route', {}, { location: false });
   });
 
-  it('unauthenticated user navigating to unrecognized non-protected URL should go to 404', async () => {
+  it('unauthenticated user navigating to an unrecognized non-protected URL should go to 404', async () => {
     global.AS.Security.hasUser.mockReturnValue(false);
-    window.location.hash = '#browse/nonexistent/page';
+    window.location.hash = '#nonexistent/page';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
 
@@ -438,21 +373,21 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
   it('falls back to bootstrap data when AS.Security is not available', async () => {
     delete global.AS.Security;
     window.__asRestBootstrap = { user: { authenticated: false } };
-    window.location.hash = '#admin/some/path';
+    window.location.hash = '#settings/some/path';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
-    jest.spyOn(router.urlService, 'url').mockReturnValue('/admin/some/path');
+    jest.spyOn(router.urlService, 'url').mockReturnValue('settings/some/path');
 
     await router.urlService.sync();
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    const expectedReturnTo = btoa('#/admin/some/path');
+    const expectedReturnTo = btoa('#settings/some/path');
     expect(goSpy).toHaveBeenCalledWith('login', { returnTo: expectedReturnTo });
   });
 
   it('redirects to login without returnTo when url is empty for protected path', async () => {
-    global.AS.Security.hasUser.mockReturnValue(false);
-    window.location.hash = '#admin/some/path';
+    global.AS.Security = { hasUser: jest.fn().mockReturnValue(false) };
+    window.location.hash = '#settings/some/path';
 
     const goSpy = jest.spyOn(router.stateService, 'go');
     jest.spyOn(router.urlService, 'url').mockReturnValue('');
@@ -462,18 +397,127 @@ describe('createRouter - otherwise handler - unrecognized URLs', () => {
 
     expect(goSpy).toHaveBeenCalledWith('login');
   });
+});
 
-  it('defers to ExtJS for bookmark URLs containing = in hash outside preview routes', async () => {
-    global.AS.Security.hasUser.mockReturnValue(false);
-    window.location.hash = '#browse/search=format%3Dnpm:repository-id:path';
+describe('createRouter - URL rules - Astrum One at the root of the hash', () => {
+  let router;
 
+  /** Sets the hash, lets the router follow it, and waits for the redirects to settle. */
+  async function open(hash) {
+    window.location.hash = hash;
+    await router.urlService.sync();
+    for (let i = 0; i < 5; i++) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    global.AS.Permissions.check.mockReturnValue(true);
+    global.AS.Security = { hasUser: jest.fn().mockReturnValue(true) };
+    ExtJS.hasUser = jest.fn().mockReturnValue(true);
+    ExtJS.state = jest.fn().mockReturnValue({ getValue: jest.fn().mockReturnValue(false) });
+    ExtJS.isAuthStateResolved = jest.fn().mockReturnValue(true);
+    ExtJS.whenAuthStateResolved = jest.fn().mockResolvedValue(undefined);
+    ExtJS.onStateChange = jest.fn(() => () => {});
+    router = getTestRouter();
+    router.stateRegistry.register({ name: 'preview.admin', url: 'admin', abstract: true, component: UIView });
+    router.stateRegistry.register({ name: 'preview.admin.repository', url: '/repository', abstract: true, component: UIView });
+    router.stateRegistry.register({
+      name: 'preview.admin.repository.cleanuppolicies',
+      url: '/cleanup-policies',
+      component: () => null,
+    });
+    router.stateRegistry.register({ name: 'preview.settings', url: 'settings', component: () => null });
+    router.urlService.listen();
+  });
+
+  afterEach(() => {
+    router.urlService.listen(false);
+    window.location.hash = '';
+  });
+
+  it.each([
+    ['#preview/browse/welcome', '#browse/welcome', 'preview.browse.welcome'],
+    ['#/preview/browse/welcome', '#browse/welcome', 'preview.browse.welcome'],
+    ['#preview/settings', '#settings', 'preview.settings'],
+    ['#preview', '#browse/welcome', 'preview.browse.welcome'],
+  ])('opens %s at %s, without the old preview/ prefix', async (hash, expectedHash, expectedState) => {
+    await open(hash);
+
+    expect(window.location.hash).toBe(expectedHash);
+    expect(router.stateService.current.name).toBe(expectedState);
+  });
+
+  it('keeps the query string when it drops the preview/ prefix', async () => {
+    await open('#preview/browse/welcome?tab=usage-metrics&debug');
+
+    expect(window.location.hash).toBe('#browse/welcome?tab=usage-metrics&debug');
+    expect(router.stateService.current.name).toBe('preview.browse.welcome');
+  });
+
+  it('maps a Classic search URL before a state takes it for a repository named search', async () => {
+    router.stateRegistry.register({ name: 'preview.browse.repo', url: '/{repoName:[^/]+}/*path', component: () => null });
+    const replaced = [];
+    const onHashChange = () => replaced.push(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    try {
+      await open('#browse/search/maven=keyword%3Djunit');
+    } finally {
+      window.removeEventListener('hashchange', onHashChange);
+    }
+
+    expect(replaced).toContain('#browse/search?q=junit&format=maven');
+    expect(router.stateService.current.name).not.toBe('preview.browse.repo');
+  });
+
+  it('drops the leading slash of a path no state matches', async () => {
+    await open('#/browse/welcome');
+
+    expect(window.location.hash).toBe('#browse/welcome');
+    expect(router.stateService.current.name).toBe('preview.browse.welcome');
+  });
+
+  it.each([
+    ['#admin/repository/cleanuppolicies', '#admin/repository/cleanup-policies', 'preview.admin.repository.cleanuppolicies'],
+    ['#admin', '#settings', 'preview.settings'],
+    ['#browse/unknown', '#browse/welcome', 'preview.browse.welcome'],
+    ['#user/NuGetApiToken', '#browse/welcome', 'preview.browse.welcome'],
+  ])('opens the Classic URL %s at %s', async (hash, expectedHash, expectedState) => {
+    await open(hash);
+
+    expect(window.location.hash).toBe(expectedHash);
+    expect(router.stateService.current.name).toBe(expectedState);
+  });
+
+  it.each([
+    ['browse/welcome', 'preview.browse.welcome'],
+    ['admin/repository/cleanup-policies', 'preview.admin.repository.cleanuppolicies'],
+    ['/login', 'login'],
+  ])('lets the state of %s match before the rules for old URLs', (path, expectedState) => {
+    const match = router.urlService.match({ path, search: {}, hash: '' });
+
+    expect(match.rule.state.name).toBe(expectedState);
+  });
+
+  it('opens the 404 page for a Classic URL whose Astrum One page is not registered', async () => {
     const goSpy = jest.spyOn(router.stateService, 'go');
 
-    await router.urlService.sync();
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await open('#admin/system/capabilities');
 
-    expect(goSpy).not.toHaveBeenCalledWith('login', expect.anything());
-    expect(goSpy).not.toHaveBeenCalledWith('missing.route', expect.anything(), expect.anything());
+    expect(window.location.hash).toBe('#admin/system/capabilities');
+    expect(goSpy).toHaveBeenCalledWith('missing.route', {}, { location: false });
+  });
+
+  it('keeps the sign-in page and the 404 page', async () => {
+    ExtJS.hasUser.mockReturnValue(false);
+
+    await open('#/login');
+    expect(router.stateService.current.name).toBe('login');
+
+    const goSpy = jest.spyOn(router.stateService, 'go');
+    await open('#404');
+    expect(goSpy).not.toHaveBeenCalledWith('preview.browse.welcome');
   });
 });
 
@@ -498,8 +542,8 @@ describe('createRouter - preserve URL hash on browser refresh', () => {
   });
 
   it('honors the URL hash for a registered route on browser refresh, not overriding with initialRoute', async () => {
-    // Uses #/login (not the initialRoute browse.welcome) — if the initial rule fired
-    // it would override to browse.welcome; with the fix the hash wins and router lands on login.
+    // Uses #/login (not the initialRoute preview.browse.welcome) — if the initial rule fired
+    // it would override to the welcome page; with the fix the hash wins and router lands on login.
     ExtJS.hasUser = jest.fn().mockReturnValue(false);
     window.location.hash = '#/login';
     router = getTestRouter();
@@ -511,12 +555,11 @@ describe('createRouter - preserve URL hash on browser refresh', () => {
   });
 
   it('does not redirect to initialRoute when URL has an unrecognized settings hash', async () => {
-    // Settings pages such as #admin/repository/repositories are ExtJS routes not
-    // registered in the React router. Without the fix the initial rule fires for
-    // unrecognized URLs and redirects to browse.welcome. With the fix the otherwise
-    // handler runs instead, routing authenticated users to missing.route (404).
+    // Without the fix the initial rule fires for unrecognized URLs and redirects to the
+    // welcome page. With the fix the otherwise handler runs instead, routing authenticated
+    // users to missing.route (404).
     global.AS.Security.hasUser.mockReturnValue(true);
-    window.location.hash = '#admin/system/capabilities';
+    window.location.hash = '#settings/unknown';
     router = getTestRouter();
 
     const goSpy = jest.spyOn(router.stateService, 'go');
@@ -525,7 +568,7 @@ describe('createRouter - preserve URL hash on browser refresh', () => {
     await new Promise(resolve => setTimeout(resolve, 0));
 
     expect(goSpy).toHaveBeenCalledWith('missing.route', {}, { location: false });
-    expect(goSpy).not.toHaveBeenCalledWith('browse.welcome');
+    expect(goSpy).not.toHaveBeenCalledWith('preview.browse.welcome');
   });
 
   it('applies initial route rule when URL has only #/', async () => {
@@ -707,7 +750,7 @@ describe('createRouter - onBefore - unresolved auth state (ASTRUM-54290)', () =>
     global.AS.Security.hasUser.mockReturnValue(true);
     onUserChanged();
 
-    expect(goSpy).toHaveBeenCalledWith('browse.welcome');
+    expect(goSpy).toHaveBeenCalledWith('preview.browse.welcome');
   });
 
   it('stays on login when the state change brings no user', async () => {
@@ -768,17 +811,6 @@ describe('createRouter - onBefore - unresolved permissions state (ASTRUM-54422)'
     global.AS.Permissions.check.mockReturnValue(false);
 
     router = getTestRouter();
-    // 'preview.browse.welcome' must exist so the isPreviewUIRouteName redirect target
-    // resolves, and 'preview'/'preview.browse' must exist as ancestors before a dotted
-    // state name can be registered at all.
-    router.stateRegistry.register({ name: 'preview', url: '/preview', component: UIView });
-    router.stateRegistry.register({ name: 'preview.browse', url: '/browse', component: UIView });
-    router.stateRegistry.register({
-      name: 'preview.browse.welcome',
-      url: '/welcome',
-      component: () => null,
-      data: { visibilityRequirements: {} },
-    });
     router.stateRegistry.register(GATED_ROUTE);
   });
 
@@ -863,7 +895,7 @@ describe('createRouter - onBefore - permissions arriving after the redirect (AST
     data: { visibilityRequirements: { permissions: ['astrum:search:read'] } }
   };
 
-  const SEARCH_HASH = '#/preview/gated?format=maven&nameOrVersion=commons';
+  const SEARCH_HASH = '#gated?format=maven&nameOrVersion=commons';
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -885,14 +917,6 @@ describe('createRouter - onBefore - permissions arriving after the redirect (AST
     window.location.hash = SEARCH_HASH;
 
     router = getTestRouter();
-    router.stateRegistry.register({ name: 'preview', url: '/preview', component: UIView });
-    router.stateRegistry.register({ name: 'preview.browse', url: '/browse', component: UIView });
-    router.stateRegistry.register({
-      name: 'preview.browse.welcome',
-      url: '/welcome',
-      component: () => null,
-      data: { visibilityRequirements: {} },
-    });
     router.stateRegistry.register(GATED_ROUTE);
   });
 
@@ -944,7 +968,13 @@ describe('createRouter - onBefore - permissions arriving after the redirect (AST
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     // User navigates somewhere else before permissions land.
-    await router.stateService.go('browse.welcome').catch(() => {});
+    router.stateRegistry.register({
+      name: 'preview.browse.elsewhere',
+      url: '/elsewhere',
+      component: () => null,
+      data: { visibilityRequirements: {} },
+    });
+    await router.stateService.go('preview.browse.elsewhere').catch(() => {});
     const hashAfterUserNavigation = window.location.hash;
 
     global.AS.Permissions.check.mockReturnValue(true);
@@ -960,14 +990,6 @@ describe('createRouter - onBefore - permissions arriving after the redirect (AST
       ExtJS.onPermissionsChange = jest.fn(() => unsubscribe);
 
       router = getTestRouter();
-      router.stateRegistry.register({ name: 'preview', url: '/preview', component: UIView });
-      router.stateRegistry.register({ name: 'preview.browse', url: '/browse', component: UIView });
-      router.stateRegistry.register({
-        name: 'preview.browse.welcome',
-        url: '/welcome',
-        component: () => null,
-        data: { visibilityRequirements: {} },
-      });
       router.stateRegistry.register(GATED_ROUTE);
 
       router.stateService.go('preview.gated').catch(() => {});

@@ -238,7 +238,7 @@ describe('useSearchNavigation', () => {
     });
 
     it('stores the current search hash before navigating (AT-015)', () => {
-      window.location.hash = '#preview/browse/search?q=spring&format=maven';
+      window.location.hash = '#browse/search?q=spring&format=maven';
       const { result } = renderHook(() => useSearchNavigation());
 
       act(() => {
@@ -246,12 +246,12 @@ describe('useSearchNavigation', () => {
       });
 
       expect(sessionStorage.getItem(SEARCH_RETURN_URL_KEY)).toBe(
-        '#preview/browse/search?q=spring&format=maven',
+        '#browse/search?q=spring&format=maven',
       );
     });
 
     it('stores nothing when navigating from a non-search page (AT-015)', () => {
-      window.location.hash = '#preview/browse/welcome?tab=overview';
+      window.location.hash = '#browse/welcome?tab=overview';
       const { result } = renderHook(() => useSearchNavigation());
 
       act(() => {
@@ -262,15 +262,15 @@ describe('useSearchNavigation', () => {
     });
 
     it('consumeSearchReturnUrl returns and clears a search hash (AT-015)', () => {
-      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#preview/browse/search?q=a');
+      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#browse/search?q=a');
 
-      expect(consumeSearchReturnUrl()).toBe('#preview/browse/search?q=a');
+      expect(consumeSearchReturnUrl()).toBe('#browse/search?q=a');
       expect(sessionStorage.getItem(SEARCH_RETURN_URL_KEY)).toBeNull();
     });
 
     it('consumeSearchReturnUrl rejects and clears a foreign value (AT-015)', () => {
       // A tampered value must not be able to send the breadcrumb elsewhere.
-      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#preview/browse/welcome');
+      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#browse/welcome');
 
       expect(consumeSearchReturnUrl()).toBeUndefined();
       expect(sessionStorage.getItem(SEARCH_RETURN_URL_KEY)).toBeNull();
@@ -281,12 +281,12 @@ describe('useSearchNavigation', () => {
     });
 
     it('stores nothing when navigating from a component-detail page (AT-015)', () => {
-      // '#preview/browse/search' also prefixes every detail hash. Accepting the
+      // '#browse/search' also prefixes every detail hash. Accepting the
       // bare prefix let a detail -> detail hop overwrite the stored search URL
       // with a detail URL, after which the breadcrumb assigned the hash it was
       // already on and did nothing.
       window.location.hash =
-        '#preview/browse/search/maven/commons-lang3/ga/maven2%3Aorg.apache.commons%3Acommons-lang3';
+        '#browse/search/component/maven2%3Aorg.apache.commons%3Acommons-lang3';
       const { result } = renderHook(() => useSearchNavigation());
 
       act(() => {
@@ -299,17 +299,23 @@ describe('useSearchNavigation', () => {
     it('consumeSearchReturnUrl rejects and clears a component-detail hash (AT-015)', () => {
       sessionStorage.setItem(
         SEARCH_RETURN_URL_KEY,
-        '#preview/browse/search/maven/lodash/ga/npm%3Alodash',
+        '#browse/search/component/npm%3Alodash',
       );
 
       expect(consumeSearchReturnUrl()).toBeUndefined();
       expect(sessionStorage.getItem(SEARCH_RETURN_URL_KEY)).toBeNull();
     });
 
-    it('accepts the bare search hash with no query string (AT-015)', () => {
-      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#preview/browse/search');
+    it('consumeSearchReturnUrl rejects a search hash stored under the old preview/ prefix (AT-015)', () => {
+      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#preview/browse/search?q=a');
 
-      expect(consumeSearchReturnUrl()).toBe('#preview/browse/search');
+      expect(consumeSearchReturnUrl()).toBeUndefined();
+    });
+
+    it('accepts the bare search hash with no query string (AT-015)', () => {
+      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#browse/search');
+
+      expect(consumeSearchReturnUrl()).toBe('#browse/search');
     });
   });
 
@@ -342,7 +348,7 @@ describe('useSearchNavigation', () => {
 
     it('still navigates when setItem throws (AT-015)', () => {
       breakStorage();
-      window.location.hash = '#preview/browse/search?q=spring';
+      window.location.hash = '#browse/search?q=spring';
       const { result } = renderHook(() => useSearchNavigation());
 
       act(() => {

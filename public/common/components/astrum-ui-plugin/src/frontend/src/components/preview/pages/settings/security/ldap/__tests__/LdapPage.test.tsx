@@ -109,7 +109,7 @@ describe('LdapPage', () => {
     Object.defineProperty(window, 'location', {
       value: {
         ...originalLocation,
-        hash: '#preview/admin/security/ldap',
+        hash: '#admin/security/ldap',
       },
       writable: true,
     });
@@ -164,7 +164,7 @@ describe('LdapPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset hash to base path before each test
-    (window as any).location.hash = '#preview/admin/security/ldap';
+    (window as any).location.hash = '#admin/security/ldap';
     getMockCheckPermission().mockReturnValue(true);
     mockedUseLdapApi.mockReturnValue({
       loading: false,
@@ -234,7 +234,7 @@ describe('LdapPage', () => {
     const createButtons = screen.getAllByText('Create LDAP Server');
     fireEvent.click(createButtons[0]);
 
-    simulateHashChange('#preview/admin/security/ldap/create');
+    simulateHashChange('#admin/security/ldap/create');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
@@ -250,7 +250,7 @@ describe('LdapPage', () => {
 
     const createButtons = screen.getAllByText('Create LDAP Server');
     fireEvent.click(createButtons[0]);
-    simulateHashChange('#preview/admin/security/ldap/create');
+    simulateHashChange('#admin/security/ldap/create');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
@@ -269,7 +269,7 @@ describe('LdapPage', () => {
     });
 
     fireEvent.click(screen.getByText('LDAP Server 1'));
-    simulateHashChange('#preview/admin/security/ldap/LDAP%20Server%201');
+    simulateHashChange('#admin/security/ldap/LDAP%20Server%201');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
@@ -287,7 +287,7 @@ describe('LdapPage', () => {
     global.AS.Permissions.check.mockImplementation(
       (permission: string) => permission !== 'astrum:ldap:create'
     );
-    (window as any).location.hash = '#preview/admin/security/ldap/create';
+    (window as any).location.hash = '#admin/security/ldap/create';
 
     render(<LdapPage />, { wrapper: TestWrapper });
 
@@ -310,7 +310,7 @@ describe('LdapPage', () => {
 
     fireEvent.click(screen.getByText('LDAP Server 1'));
 
-    simulateHashChange('#preview/admin/security/ldap/LDAP%20Server%201');
+    simulateHashChange('#admin/security/ldap/LDAP%20Server%201');
 
     // Assert synchronously, immediately after the click + hashchange (both of
     // which are wrapped in synchronous `act()` calls above) and BEFORE any
@@ -348,7 +348,7 @@ describe('LdapPage', () => {
     });
 
     fireEvent.click(screen.getByText('LDAP Server 1'));
-    simulateHashChange('#preview/admin/security/ldap/LDAP%20Server%201');
+    simulateHashChange('#admin/security/ldap/LDAP%20Server%201');
 
     expect(screen.getByTestId('form-delete')).toBeInTheDocument();
   });
@@ -365,7 +365,7 @@ describe('LdapPage', () => {
     });
 
     fireEvent.click(screen.getByText('LDAP Server 1'));
-    simulateHashChange('#preview/admin/security/ldap/LDAP%20Server%201');
+    simulateHashChange('#admin/security/ldap/LDAP%20Server%201');
 
     expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
     expect(screen.queryByTestId('form-delete')).not.toBeInTheDocument();
@@ -378,7 +378,7 @@ describe('LdapPage', () => {
     // the hash changes). In this path, `viewMode` flips to 'edit' via the
     // mount-time syncViewWithHash effect while `selectedServer` is still
     // null; it's only populated later by an async re-fetch effect.
-    (window as any).location.hash = '#preview/admin/security/ldap/LDAP%20Server%201';
+    (window as any).location.hash = '#admin/security/ldap/LDAP%20Server%201';
 
     render(<LdapPage />, { wrapper: TestWrapper });
 
@@ -411,7 +411,7 @@ describe('LdapPage', () => {
     // former and let the latter succeed with real data, masking the bug this
     // test targets.
     mockFetchServers.mockRejectedValue(new Error('network error'));
-    (window as any).location.hash = '#preview/admin/security/ldap/LDAP%20Server%201';
+    (window as any).location.hash = '#admin/security/ldap/LDAP%20Server%201';
 
     render(<LdapPage />, { wrapper: TestWrapper });
 
@@ -449,14 +449,14 @@ describe('LdapPage', () => {
     });
     mockFetchServers.mockResolvedValueOnce(mockServers); // initial list-load fetch
     mockFetchServers.mockImplementationOnce(() => pendingFetch); // edit-mode re-fetch
-    (window as any).location.hash = '#preview/admin/security/ldap/LDAP%20Server%201';
+    (window as any).location.hash = '#admin/security/ldap/LDAP%20Server%201';
 
     render(<LdapPage />, { wrapper: TestWrapper });
 
     expect(screen.getByText('Loading LDAP server...')).toBeInTheDocument();
 
     // Navigate back to the list while the edit-mode re-fetch is still pending.
-    simulateHashChange('#preview/admin/security/ldap');
+    simulateHashChange('#admin/security/ldap');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-list')).toBeInTheDocument();
@@ -484,7 +484,7 @@ describe('LdapPage', () => {
     // Go to create form
     const createButtons = screen.getAllByText('Create LDAP Server');
     fireEvent.click(createButtons[0]);
-    simulateHashChange('#preview/admin/security/ldap/create');
+    simulateHashChange('#admin/security/ldap/create');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
@@ -494,7 +494,7 @@ describe('LdapPage', () => {
     fireEvent.click(screen.getByText('Cancel'));
 
     // Simulate the hashchange event that the browser would fire
-    simulateHashChange('#preview/admin/security/ldap');
+    simulateHashChange('#admin/security/ldap');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-list')).toBeInTheDocument();
@@ -511,7 +511,7 @@ describe('LdapPage', () => {
     // Go to create form
     const createButtons = screen.getAllByText('Create LDAP Server');
     fireEvent.click(createButtons[0]);
-    simulateHashChange('#preview/admin/security/ldap/create');
+    simulateHashChange('#admin/security/ldap/create');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
@@ -522,7 +522,7 @@ describe('LdapPage', () => {
     fireEvent.click(screen.getByText('Save'));
 
     // Simulate the hashchange event that the browser would fire
-    simulateHashChange('#preview/admin/security/ldap');
+    simulateHashChange('#admin/security/ldap');
 
     // Should return to list view
     await waitFor(() => {
@@ -539,7 +539,7 @@ describe('LdapPage', () => {
 
     // Select server for editing
     fireEvent.click(screen.getByText('LDAP Server 1'));
-    simulateHashChange('#preview/admin/security/ldap/LDAP%20Server%201');
+    simulateHashChange('#admin/security/ldap/LDAP%20Server%201');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
@@ -547,7 +547,7 @@ describe('LdapPage', () => {
 
     // Click save
     fireEvent.click(screen.getByText('Save'));
-    simulateHashChange('#preview/admin/security/ldap');
+    simulateHashChange('#admin/security/ldap');
 
     // Should return to list view
     await waitFor(() => {
@@ -611,7 +611,7 @@ describe('LdapPage', () => {
     // Go to create form
     const createButtons = screen.getAllByText('Create LDAP Server');
     fireEvent.click(createButtons[0]);
-    simulateHashChange('#preview/admin/security/ldap/create');
+    simulateHashChange('#admin/security/ldap/create');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
@@ -622,7 +622,7 @@ describe('LdapPage', () => {
     fireEvent.click(screen.getByText('Save'));
 
     // Simulate the hashchange event that the browser would fire when handleBack sets the hash
-    simulateHashChange('#preview/admin/security/ldap');
+    simulateHashChange('#admin/security/ldap');
 
     // Wait for list refresh triggered by hashchange
     await waitFor(() => {
@@ -649,7 +649,7 @@ describe('LdapPage', () => {
 
     // Select server for editing
     fireEvent.click(screen.getByText('LDAP Server 1'));
-    simulateHashChange('#preview/admin/security/ldap/LDAP%20Server%201');
+    simulateHashChange('#admin/security/ldap/LDAP%20Server%201');
 
     await waitFor(() => {
       expect(screen.getByTestId('ldap-form')).toBeInTheDocument();
@@ -661,7 +661,7 @@ describe('LdapPage', () => {
     // Click save to update the server
     fireEvent.click(screen.getByText('Save'));
 
-    simulateHashChange('#preview/admin/security/ldap');
+    simulateHashChange('#admin/security/ldap');
 
     // Save triggers refreshKey increment which causes loadServers to re-fetch
     await waitFor(() => {
@@ -686,7 +686,7 @@ describe('LdapPage', () => {
     expect(mockFetchServers).toHaveBeenCalledTimes(1);
 
     // Simulate hash change to same route (e.g., clicking sidebar link while already on page)
-    simulateHashChange('#preview/admin/security/ldap');
+    simulateHashChange('#admin/security/ldap');
 
     // List should remain visible and functional
     expect(screen.getByTestId('ldap-list')).toBeInTheDocument();

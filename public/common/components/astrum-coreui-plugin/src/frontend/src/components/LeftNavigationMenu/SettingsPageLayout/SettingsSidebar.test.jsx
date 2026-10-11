@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { UIRouter, UIView } from '@uirouter/react';
 import SettingsSidebar from './SettingsSidebar';
-import { getRouter } from '../../../routerConfig/routerConfig';
+import { getClassicRouter as getRouter } from '../../../testUtils/classicRouter';
 import userEvent from '@testing-library/user-event';
 import givenExtJSState from '../../../testUtils/givenExtJSState';
 

@@ -8,7 +8,7 @@ import { ExtJS } from '@globalart/astrum-ui-plugin';
 import { UIRouter, UIView, useCurrentStateAndParams } from '@uirouter/react';
 import userEvent from '@testing-library/user-event';
 import { UpgradeAlertFunctions } from '../widgets/SystemStatusAlerts/UpgradeAlert/UpgradeAlertHelper';
-import { getRouter } from '../../routerConfig/routerConfig';
+import { getClassicRouter as getRouter } from '../../testUtils/classicRouter';
 import givenBundleActiveStates from '../../testUtils/givenBundleActiveStates';
 import givenExtJSState from '../../testUtils/givenExtJSState';
 
@@ -567,16 +567,11 @@ describe('GlobalHeader', () => {
       await userEvent.type(searchInput, 'my-search-input');
       await userEvent.type(searchInput, '{enter}');
 
-      // navigates to search when not on search page
-      expect(
-        await screen.findByRole('heading', { name: 'Search Mock -- =keyword=my-search-input' })
-      ).toBeInTheDocument();
-
-      // if already on the search page simply updates the existing ExtJs Search Component
-      await userEvent.type(searchInput, 'more-text');
-      await userEvent.type(searchInput, '{enter}');
-
-      expect(extSearch).toHaveBeenCalled();
+      // The Classic search URL it navigates to now opens the Astrum One search page
+      await waitFor(() => {
+        expect(window.location.hash).toBe('#browse/search?q=my-search-input');
+      });
+      expect(extSearch).not.toHaveBeenCalled();
     });
 
     it('does not render when the user to does not have permissions', async () => {
@@ -649,9 +644,10 @@ describe('GlobalHeader', () => {
       await userEvent.type(searchInput, 'aaaa/bbbb');
       await userEvent.type(searchInput, '{enter}');
 
-      expect(
-        await screen.findByRole('heading', { name: 'Search Mock -- =keyword=aaaa/bbbb' })
-      ).toBeInTheDocument();
+      // The Classic search URL it navigates to now opens the Astrum One search page
+      await waitFor(() => {
+        expect(window.location.hash).toBe('#browse/search?q=aaaa%2Fbbbb');
+      });
     });
   });
 

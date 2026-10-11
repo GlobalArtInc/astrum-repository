@@ -32,10 +32,7 @@ export default function LocalLogin({ primaryButton, onError }) {
       // A fresh login starts a new session: drop the "use Classic UI" flag an earlier release may
       // have left in this session (ASTRUM-53957).
       sessionStorage.removeItem(USER_REQUESTED_LEGACY_KEY);
-      const state = ExtJS.state();
-      const landingRoute = resolveDefaultLandingRoute({
-        canAccessPreviewUi: state?.getValue('loggedInEnabled', false) ?? false
-      });
+      const landingRoute = resolveDefaultLandingRoute();
       const returnTo = router.globals.params.returnTo;
       if (returnTo) {
         const decodedReturnTo = atob(returnTo);

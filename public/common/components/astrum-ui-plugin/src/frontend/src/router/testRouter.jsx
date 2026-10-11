@@ -1,11 +1,13 @@
-
-
 import {UIView} from "@uirouter/react";
 import {createRouter} from "./createRouter";
 import React from "react";
 
+/**
+ * A router with a few states shaped like the Astrum One ones: the 'preview' root owns the root of the hash, so
+ * 'preview.browse.welcome' opens at #browse/welcome.
+ */
 export function getTestRouter() {
-  const initialRoute = 'browse.welcome';
+  const initialRoute = 'preview.browse.welcome';
   const menuRoutes = [
     {
       name: 'login',
@@ -14,7 +16,13 @@ export function getTestRouter() {
       data: { visibilityRequirements: {} }
     },
     {
-      name: 'browse',
+      name: 'preview',
+      url: '',
+      abstract: true,
+      component: UIView,
+    },
+    {
+      name: 'preview.browse',
       url: 'browse',
       component: UIView,
       data: {
@@ -25,7 +33,7 @@ export function getTestRouter() {
       }
     },
     {
-      name: 'browse.welcome',
+      name: 'preview.browse.welcome',
       url: '/welcome',
       component: () => <div>Welcome</div>,
       data: {
@@ -34,7 +42,7 @@ export function getTestRouter() {
       }
     },
     {
-      name: 'browse.search',
+      name: 'preview.browse.search',
       url: '/search',
       component: UIView,
       abstract: true,
@@ -45,7 +53,7 @@ export function getTestRouter() {
       }
     },
     {
-      name: 'browse.search.generic',
+      name: 'preview.browse.search.generic',
       url: '/generic:keyword',
       component: () => <div>Generic Search</div>,
       params: {

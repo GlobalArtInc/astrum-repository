@@ -25,7 +25,7 @@ describe('useNavigationLinkState', () => {
   });
 
   it('returns correct values when route exists', () => {
-    const { result } = renderHook(() => useNavigationLinkState('browse.welcome'), {
+    const { result } = renderHook(() => useNavigationLinkState('preview.browse.welcome'), {
       wrapper: ({ children }) => (
         <UIRouter router={router}>
           {children}

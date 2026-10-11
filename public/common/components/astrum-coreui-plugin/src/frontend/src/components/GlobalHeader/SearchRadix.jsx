@@ -23,6 +23,7 @@ import {
 
 const DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 2;
+const SEARCH = 'preview.browse.search';
 const UNIFIED_SEARCH = 'preview.browse.search.unified';
 const {HEADER} = UIStrings.SHELL;
 const PANEL = HEADER.SEARCH_PANEL;
@@ -62,7 +63,7 @@ function Highlighted({text, query}) {
  * components found.
  *
  * Routing behavior:
- * - Astrum One: the search page `#preview/browse/search?q=<query>`, repositories and components in its browse page
+ * - Astrum One: the search page `#browse/search?q=<query>`, repositories and components in its browse page
  * - Classic UI: the search route `#browse/search/generic=keyword=<query>`, repositories and components in its
  *   browse route
  */
@@ -84,8 +85,8 @@ export default function SearchRadix({ isPreviewUI = true }) {
   const {state, params} = useCurrentStateAndParams();
   const currentRepository = currentRepositoryOf(state?.name, params || {});
 
-  // Check visibility for Default UI search route
-  const searchRoute = router.stateRegistry.get(ROUTE_NAMES.BROWSE.SEARCH.GENERIC);
+  // The search is offered to whoever may open the Astrum One search page
+  const searchRoute = router.stateRegistry.get(SEARCH);
   const defaultUIVisible = useIsVisible(searchRoute?.data?.visibilityRequirements);
 
   const query = searchValue.trim();

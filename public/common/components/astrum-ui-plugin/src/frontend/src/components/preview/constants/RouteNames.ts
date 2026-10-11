@@ -22,7 +22,7 @@ import { RouteNames as BaseRouteNames } from '../../../constants/RouteNames';
 export const ROUTE_NAMES = mergeDeepRight(BaseRouteNames, {
   BROWSE: {
     WELCOME: {
-      ROOT: 'browse.welcome',
+      ROOT: 'preview.browse.welcome',
       TITLE: 'Dashboard',
     },
   },

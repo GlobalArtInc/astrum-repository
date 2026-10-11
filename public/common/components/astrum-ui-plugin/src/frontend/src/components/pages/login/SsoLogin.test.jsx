@@ -148,7 +148,7 @@ describe('SsoLogin', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
+        expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${encodeURIComponent(btoa('#admin/repository/repositories'))}`);
       });
     });
 
@@ -184,7 +184,7 @@ describe('SsoLogin', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(`/astrum/saml?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
+        expect(window.location.assign).toHaveBeenCalledWith(`/astrum/saml?hash=${encodeURIComponent(btoa('#admin/repository/repositories'))}`);
       });
     });
   });
@@ -222,7 +222,7 @@ describe('SsoLogin', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(`/oidc/login?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
+        expect(window.location.assign).toHaveBeenCalledWith(`/oidc/login?hash=${encodeURIComponent(btoa('#admin/repository/repositories'))}`);
       });
     });
 
@@ -258,7 +258,7 @@ describe('SsoLogin', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(`/astrum/oidc/login?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
+        expect(window.location.assign).toHaveBeenCalledWith(`/astrum/oidc/login?hash=${encodeURIComponent(btoa('#admin/repository/repositories'))}`);
       });
     });
   });
@@ -324,7 +324,7 @@ describe('SsoLogin', () => {
       expect(sessionStorage.getItem('user_requested_legacy')).toBeNull();
     });
 
-    it('opens a Classic dashboard returnTo as the Astrum One dashboard', async () => {
+    it('keeps a dashboard returnTo, which Astrum One shares with the Classic UI', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
@@ -338,13 +338,13 @@ describe('SsoLogin', () => {
       render(<SsoLogin />);
       fireEvent.click(screen.getByRole('button'));
 
-      const expectedHash = encodeURIComponent(btoa('#preview/browse/welcome'));
+      const expectedHash = encodeURIComponent(btoa('#browse/welcome'));
       await waitFor(() => {
         expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${expectedHash}`);
       });
     });
 
-    it('opens a Classic deep-link returnTo as the matching Astrum One page', async () => {
+    it('keeps a Classic deep-link returnTo for the router to map after the sign-in', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
@@ -359,20 +359,19 @@ describe('SsoLogin', () => {
       render(<SsoLogin />);
       fireEvent.click(screen.getByRole('button'));
 
-      const expectedHash = encodeURIComponent(btoa('#preview/admin/security/users'));
+      const expectedHash = encodeURIComponent(btoa('#admin/security/users'));
       await waitFor(() => {
         expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${expectedHash}`);
       });
     });
 
-    it('honors a preview returnTo instead of overriding it', async () => {
+    it('drops the old preview/ prefix of a returnTo', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
         .mockReturnValueOnce('/')    // contextPath
         .mockReturnValueOnce(false); // isCloud
-      const previewReturnTo = btoa('#preview/admin/repository/repositories');
-      mockRouterParams.returnTo = previewReturnTo;
+      mockRouterParams.returnTo = btoa('#preview/admin/repository/repositories');
       mockState.mockReturnValue({
         getValue: (key, def) => ({ defaultToPreviewUi: true, loggedInEnabled: true }[key] ?? def)
       });
@@ -380,7 +379,7 @@ describe('SsoLogin', () => {
       render(<SsoLogin />);
       fireEvent.click(screen.getByRole('button'));
 
-      const expectedHash = encodeURIComponent(previewReturnTo);
+      const expectedHash = encodeURIComponent(btoa('#admin/repository/repositories'));
       await waitFor(() => {
         expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${expectedHash}`);
       });
@@ -405,7 +404,7 @@ describe('SsoLogin', () => {
       });
     });
 
-    it('maps a raw Classic returnTo whatever defaultToPreviewUi says', async () => {
+    it('encodes a raw returnTo whatever defaultToPreviewUi says', async () => {
       mockUseState
         .mockReturnValueOnce(true)   // samlEnabled
         .mockReturnValueOnce(false)  // oauth2Enabled
@@ -420,7 +419,7 @@ describe('SsoLogin', () => {
       fireEvent.click(screen.getByRole('button'));
 
       await waitFor(() => {
-        expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${encodeURIComponent(btoa('#preview/admin/repository/repositories'))}`);
+        expect(window.location.assign).toHaveBeenCalledWith(`/saml?hash=${encodeURIComponent(btoa('#admin/repository/repositories'))}`);
       });
     });
 

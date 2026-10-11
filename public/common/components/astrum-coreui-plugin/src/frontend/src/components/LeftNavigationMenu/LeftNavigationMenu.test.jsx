@@ -4,7 +4,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import LeftNavigationMenu from './LeftNavigationMenu';
 import { UIRouter, UIView } from '@uirouter/react';
-import { getRouter } from '../../routerConfig/routerConfig';
+import { getClassicRouter as getRouter } from '../../testUtils/classicRouter';
 import userEvent from '@testing-library/user-event';
 
 // This is used by the API view, it's not really something we need to

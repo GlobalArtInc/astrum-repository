@@ -400,7 +400,7 @@ describe('LocalLogin', () => {
     });
 
     it('redirects to returnTo URL after successful login', async () => {
-      const returnToUrl = '#preview/admin/repository/repositories';
+      const returnToUrl = '#admin/repository/repositories';
       mockRouter.globals.params.returnTo = btoa(returnToUrl);
       renderComponent();
       await fillCredentials('admin', 'admin123');
@@ -430,7 +430,7 @@ describe('LocalLogin', () => {
 
       await waitFor(() => {
         expect(mockWaitForNextPermissionChange).toHaveBeenCalled();
-        expect(mockRouter.stateService.go).toHaveBeenCalledWith('browse.welcome');
+        expect(mockRouter.stateService.go).toHaveBeenCalledWith('preview.browse.welcome');
         expect(mockRouter.urlService.url).not.toHaveBeenCalled();
       });
     });
@@ -487,7 +487,7 @@ describe('LocalLogin', () => {
       });
     });
 
-    it('redirects to classic welcome when defaultToPreviewUi is on but loggedInEnabled is off', async () => {
+    it('redirects to the Astrum One welcome page whatever loggedInEnabled says', async () => {
       mockState.mockImplementation(() => ({
         getValue: (key, def) => ({ defaultToPreviewUi: true, loggedInEnabled: false }[key] ?? def)
       }));
@@ -501,7 +501,7 @@ describe('LocalLogin', () => {
       });
 
       await waitFor(() => {
-        expect(mockRouter.stateService.go).toHaveBeenCalledWith('browse.welcome');
+        expect(mockRouter.stateService.go).toHaveBeenCalledWith('preview.browse.welcome');
       });
     });
 
@@ -525,7 +525,7 @@ describe('LocalLogin', () => {
       expect(sessionStorage.getItem('user_requested_legacy')).toBeNull();
     });
 
-    it('opens a Classic dashboard returnTo as the Astrum One dashboard', async () => {
+    it('opens a dashboard returnTo, which Astrum One shares with the Classic UI', async () => {
       mockRouter.globals.params.returnTo = btoa('#browse/welcome');
       mockState.mockImplementation(() => ({
         getValue: (key, def) => ({ defaultToPreviewUi: true, loggedInEnabled: true }[key] ?? def)
@@ -540,12 +540,12 @@ describe('LocalLogin', () => {
       });
 
       await waitFor(() => {
-        expect(mockRouter.urlService.url).toHaveBeenCalledWith('#preview/browse/welcome');
+        expect(mockRouter.urlService.url).toHaveBeenCalledWith('#browse/welcome');
       });
       expect(mockRouter.stateService.go).not.toHaveBeenCalled();
     });
 
-    it('opens a Classic deep-link returnTo as the matching Astrum One page', async () => {
+    it('hands a Classic deep-link returnTo to the router, which opens the matching Astrum One page', async () => {
       const deepLink = '#admin/security/users';
       mockRouter.globals.params.returnTo = btoa(deepLink);
       mockState.mockImplementation(() => ({
@@ -561,13 +561,13 @@ describe('LocalLogin', () => {
       });
 
       await waitFor(() => {
-        expect(mockRouter.urlService.url).toHaveBeenCalledWith('#preview/admin/security/users');
+        expect(mockRouter.urlService.url).toHaveBeenCalledWith('#admin/security/users');
       });
       expect(mockRouter.stateService.go).not.toHaveBeenCalled();
     });
 
-    it('honors a preview returnTo instead of overriding it', async () => {
-      const previewReturnTo = '#preview/admin/repository/repositories';
+    it('honors an Astrum One returnTo instead of overriding it', async () => {
+      const previewReturnTo = '#admin/repository/repositories/maven-central';
       mockRouter.globals.params.returnTo = btoa(previewReturnTo);
       mockState.mockImplementation(() => ({
         getValue: (key, def) => ({ defaultToPreviewUi: true, loggedInEnabled: true }[key] ?? def)
@@ -588,12 +588,12 @@ describe('LocalLogin', () => {
     });
 
     it.each([
-      ['#admin/repository/repositories', '#preview/admin/repository/repositories'],
-      ['#/browse/browse:maven-releases', '#/preview/browse/maven-releases/'],
-      ['#browse/search/maven', '#preview/browse/search?format=maven'],
-      ['/admin/repository/cleanuppolicies', '/preview/admin/repository/cleanup-policies'],
-      ['#browse/unknown', '#preview/browse/welcome'],
-    ])('maps the Classic returnTo %p to %p whatever defaultToPreviewUi says', async (classicReturnTo, previewReturnTo) => {
+      ['#preview/admin/repository/repositories', '#admin/repository/repositories'],
+      ['#/preview/browse/maven-releases/', '#/browse/maven-releases/'],
+      ['#preview/browse/search?format=maven', '#browse/search?format=maven'],
+      ['/preview/admin/repository/cleanup-policies', '/admin/repository/cleanup-policies'],
+      ['#browse/browse:maven-releases', '#browse/browse:maven-releases'],
+    ])('opens the returnTo %p at %p whatever defaultToPreviewUi says', async (classicReturnTo, previewReturnTo) => {
       mockRouter.globals.params.returnTo = btoa(classicReturnTo);
       mockState.mockImplementation(() => ({
         getValue: (key, def) => ({ defaultToPreviewUi: false, loggedInEnabled: true }[key] ?? def)
@@ -632,7 +632,7 @@ describe('LocalLogin', () => {
       localStorage.removeItem('astrum-last-ui');
     });
 
-    it('does not redirect to preview after clearing legacy flag when loggedInEnabled is off', async () => {
+    it('redirects to the Astrum One welcome page after clearing the legacy flag when loggedInEnabled is off', async () => {
       sessionStorage.setItem('user_requested_legacy', 'true');
       mockState.mockImplementation(() => ({
         getValue: (key, def) => ({ defaultToPreviewUi: true, loggedInEnabled: false }[key] ?? def)
@@ -647,7 +647,7 @@ describe('LocalLogin', () => {
       });
 
       await waitFor(() => {
-        expect(mockRouter.stateService.go).toHaveBeenCalledWith('browse.welcome');
+        expect(mockRouter.stateService.go).toHaveBeenCalledWith('preview.browse.welcome');
       });
     });
   });

@@ -436,7 +436,7 @@ describe('GADetailPage', () => {
       });
       sessionStorage.setItem(
         SEARCH_RETURN_URL_KEY,
-        '#preview/browse/search?q=spring&nameOrVersion=commons',
+        '#browse/search?q=spring&nameOrVersion=commons',
       );
 
       renderWithProviders(<GADetailPage gaId={testGaId} />);
@@ -444,7 +444,7 @@ describe('GADetailPage', () => {
       mockGo.mockClear();
       await userEvent.click(screen.getByText('Search'));
 
-      expect(window.location.hash).toBe('#preview/browse/search?q=spring&nameOrVersion=commons');
+      expect(window.location.hash).toBe('#browse/search?q=spring&nameOrVersion=commons');
       // Single-use: the breadcrumb is the sole consumer and clears it.
       expect(sessionStorage.getItem(SEARCH_RETURN_URL_KEY)).toBeNull();
       expect(mockGo).not.toHaveBeenCalled();
@@ -458,7 +458,7 @@ describe('GADetailPage', () => {
         assetsLoading: false,
         selectVersion: jest.fn(),
       });
-      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#preview/browse/welcome');
+      sessionStorage.setItem(SEARCH_RETURN_URL_KEY, '#browse/welcome');
 
       renderWithProviders(<GADetailPage gaId={testGaId} />);
       await userEvent.click(screen.getByText('Search'));

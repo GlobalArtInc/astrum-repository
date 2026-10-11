@@ -21,13 +21,13 @@ import type { SearchResult } from './unified.types';
 export const SEARCH_RETURN_URL_KEY = 'astrum-search-return-url';
 
 /** Hash of the unified-search page, without its query string. */
-const SEARCH_HASH_PREFIX = '#preview/browse/search';
+const SEARCH_HASH_PREFIX = '#browse/search';
 
 /**
  * True only for the unified-search page's own hash.
  *
- * A plain `startsWith` is not enough: `#preview/browse/search` also prefixes
- * every component-detail hash (`#preview/browse/search/maven/{keyword}/ga/{gaId}`),
+ * A plain `startsWith` is not enough: `#browse/search` also prefixes
+ * every component-detail hash (`#browse/search/component/{gaId}`),
  * so `navigateToDetail` would store a detail URL on a detail -> detail hop and
  * `consumeSearchReturnUrl` would accept it — the breadcrumb would then assign
  * the hash it is already on and silently do nothing. The prefix therefore only

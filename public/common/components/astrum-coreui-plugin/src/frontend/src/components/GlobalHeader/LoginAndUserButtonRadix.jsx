@@ -30,6 +30,26 @@ export function getInitials(name) {
 }
 
 /**
+ * When the user menu offers the NuGet API key: the user may hold one and the NuGet API key realm is active.
+ */
+const NUGET_API_TOKEN_VISIBILITY = {
+  requiresUser: true,
+  permissions: ['astrum:apikey:*'],
+  statesEnabled: [{key: 'nugetApiKeyRealmEnabled', defaultValue: false}],
+};
+
+/**
+ * When the user menu offers the user token: the user token feature is installed, licensed and active, and the
+ * user may read their own token.
+ */
+const USER_TOKEN_VISIBILITY = {
+  bundle: 'astrum-usertoken-plugin',
+  statesEnabled: [{key: 'userTokenRealmEnabled', defaultValue: false}],
+  permissions: ['astrum:usertoken-current:read'],
+  editions: ['PRO'],
+};
+
+/**
  * Single component with all hooks at top - no conditional component switching.
  * Fixes "Rendered fewer hooks" when hasUser changes during logout.
  */
@@ -38,11 +58,8 @@ export default function LoginAndUserButtonRadix() {
   const hasUser = useHasUser();
   const user = ExtJS.useUser();
   const router = useRouter();
-  const {USER} = ROUTE_NAMES;
   const {setTheme} = useTheme();
 
-  const userTokenRouteName = USER.USER_TOKEN;
-  const userNugetApiTokenName = USER.NUGETAPITOKEN;
   const [stateUserId, setStateUserId] = useState(null);
 
   useEffect(() => {
@@ -59,10 +76,8 @@ export default function LoginAndUserButtonRadix() {
   const userId = user?.id || stateUserId;
   const initials = getInitials(userId);
 
-  const userTokenRouteState = router.stateRegistry.get(userTokenRouteName);
-  const isUserTokenEnabled = useIsVisible(userTokenRouteState?.data?.visibilityRequirements);
-  const userNugetApiTokenState = router.stateRegistry.get(userNugetApiTokenName);
-  const isUserNugetApiTokenEnabled = useIsVisible(userNugetApiTokenState?.data?.visibilityRequirements);
+  const isUserTokenEnabled = useIsVisible(USER_TOKEN_VISIBILITY);
+  const isUserNugetApiTokenEnabled = useIsVisible(NUGET_API_TOKEN_VISIBILITY);
 
   const {href: userAccountHref} = useSref('preview.user.account');
   const {href: accessTokensHref} = useSref('preview.user.accesstokens');

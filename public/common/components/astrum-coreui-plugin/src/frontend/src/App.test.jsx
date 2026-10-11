@@ -456,7 +456,7 @@ describe('App', () => {
         // re-checking visiblity we'll find the user still does not have permissions
         let errorOnTransition = null;
         try {
-          await router.stateService.go('admin.security.users')
+          await router.stateService.go('preview.admin.security.users.list')
         } catch (ex) {
           errorOnTransition = ex.message
         }
@@ -475,7 +475,7 @@ describe('App', () => {
         // they get redirected to the welcome page (dashboard) instead of seeing login or 404
         let errorOnTransition = null;
         try {
-          await router.stateService.go('admin.security.users')
+          await router.stateService.go('preview.admin.security.users.list')
         } catch (ex) {
           errorOnTransition = ex.message
         }

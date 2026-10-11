@@ -26,7 +26,7 @@ describe('LeftNavigationMenuCollapsibleItem', () => {
   });
 
   it('renders link using default optional props', () => {
-    renderComponent({ name: 'browse.welcome', text: 'Dashboard', icon: { faLink } });
+    renderComponent({ name: 'preview.browse.welcome', text: 'Dashboard', icon: { faLink } });
     const allLinks = screen.getAllByRole('link');
     expect(allLinks.length).toEqual(1);
 
@@ -34,30 +34,30 @@ describe('LeftNavigationMenuCollapsibleItem', () => {
   });
 
   it('renders link as selected when current router state is the same as provided name prop', async () => {
-    await router.stateService.go('browse.welcome');
-    renderComponent({ name: 'browse.welcome', text: 'Dashboard', icon: { faLink } });
+    await router.stateService.go('preview.browse.welcome');
+    renderComponent({ name: 'preview.browse.welcome', text: 'Dashboard', icon: { faLink } });
     assertLinkVisible('Dashboard', 'http://localhost/#browse/welcome', true);
   });
 
   it('renders link as selected when router state is not the same but matches selectedState prop', async () => {
     givenPermissions({ 'astrum:search:read': true });
-    await router.stateService.go('browse.search.generic');
-    renderComponent({ name: 'browse.welcome', selectedState: 'browse', text: 'Dashboard', icon: { faLink } });
+    await router.stateService.go('preview.browse.search.generic');
+    renderComponent({ name: 'preview.browse.welcome', selectedState: 'preview.browse', text: 'Dashboard', icon: { faLink } });
     assertLinkVisible('Dashboard', 'http://localhost/#browse/welcome', true);
   });
 
   it('renders link as not selected when router state does not match and selectedState prop is not provided', async () => {
     givenPermissions({ 'astrum:search:read': true });
-    await router.stateService.go('browse.search.generic');
-    renderComponent({ name: 'browse.welcome', text: 'Dashboard', icon: { faLink } });
+    await router.stateService.go('preview.browse.search.generic');
+    renderComponent({ name: 'preview.browse.welcome', text: 'Dashboard', icon: { faLink } });
     assertLinkVisible('Dashboard', 'http://localhost/#browse/welcome');
   });
 
   it('renders link as selected with provided router params', async () => {
     givenPermissions({ 'astrum:search:read': true });
-    await router.stateService.go('browse.search.generic');
+    await router.stateService.go('preview.browse.search.generic');
     renderComponent({
-      name: 'browse.search.generic',
+      name: 'preview.browse.search.generic',
       params: { keyword: ':foo' },
       text: 'Search',
       icon: { faLink }
@@ -66,7 +66,7 @@ describe('LeftNavigationMenuCollapsibleItem', () => {
   });
 
   it('does not render link if visibility requirements are not met', () => {
-    renderComponent({ name: 'browse.search.generic' });
+    renderComponent({ name: 'preview.browse.search.generic' });
     assertLinkNotVisible();
   });
 

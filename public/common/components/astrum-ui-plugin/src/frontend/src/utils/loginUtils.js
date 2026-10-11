@@ -1,6 +1,6 @@
 
 
-import { heritageToPreviewPath } from './previewHeritageNavigation';
+import { withoutPreviewPrefix } from './previewHeritageNavigation';
 
 /**
  * Parses a Retry-After header value (RFC 9110 §10.2.3).
@@ -24,92 +24,19 @@ export const USER_REQUESTED_LEGACY_KEY = 'user_requested_legacy';
 /** ui-router state name for the Astrum One (Preview) UI dashboard. */
 export const PREVIEW_WELCOME_ROUTE = 'preview.browse.welcome';
 
-/** ui-router state name for the Classic UI dashboard. */
-export const CLASSIC_WELCOME_ROUTE = 'browse.welcome';
-
 /** URL hash form of the Preview welcome route, as the SSO SAML/OIDC backends expect (Base64-decoded). */
-export const PREVIEW_WELCOME_HASH = '#preview/browse/welcome';
-
-/** localStorage key holding the interface the user used last in this browser: 'preview' or 'classic'. */
-export const LAST_USED_UI_KEY = 'astrum-last-ui';
-
-/**
- * The interface the user used last in this browser ('preview' or 'classic'), or null when they have not
- * used either yet or the browser keeps no storage.
- *
- * @return {?string}
- */
-export function getLastUsedUi() {
-  try {
-    const value = localStorage.getItem(LAST_USED_UI_KEY);
-    return value === 'preview' || value === 'classic' ? value : null;
-  }
-  catch {
-    return null;
-  }
-}
-
-/**
- * Remembers the interface the user is using so the next visit of the dashboard opens it again.
- *
- * @param {string} ui - 'preview' or 'classic'
- */
-export function setLastUsedUi(ui) {
-  try {
-    localStorage.setItem(LAST_USED_UI_KEY, ui);
-  }
-  catch {
-    // No storage: the admin default decides.
-  }
-}
+export const PREVIEW_WELCOME_HASH = '#browse/welcome';
 
 /**
  * Resolves which welcome/dashboard route a user should land on when there is no
- * explicit returnTo target. The Classic UI is retired, so everyone allowed into Astrum One
- * lands on its dashboard; a Classic choice saved in this browser by an earlier release
- * (the session flag or the interface used last) no longer counts.
+ * explicit returnTo target. The Classic UI is retired, so everyone lands on the Astrum One
+ * dashboard; a Classic choice saved in this browser by an earlier release (the session flag
+ * or the interface used last) no longer counts.
  *
- * @param {Object} opts
- * @param {boolean} opts.canAccessPreviewUi - whether this user may use Preview
- *   (loggedInEnabled when authenticated, anonymousEnabled when anonymous), which the
- *   server always reports as true
  * @return {string} a ui-router state name
  */
-export function resolveDefaultLandingRoute({ canAccessPreviewUi }) {
-  return canAccessPreviewUi ? PREVIEW_WELCOME_ROUTE : CLASSIC_WELCOME_ROUTE;
-}
-
-/**
- * True when a decoded returnTo hash/path targets the Preview UI
- * (e.g. '#preview/browse/welcome' or '#/preview/...').
- *
- * @param {string} hash - a URL hash or path (with or without a leading '#'/'/')
- * @return {boolean}
- */
-export function isPreviewHash(hash) {
-  if (!hash) {
-    return false;
-  }
-  const path = String(hash).replace(/^#/, '').replace(/^\//, '');
-  return path === 'preview' || path.startsWith('preview/');
-}
-
-/**
- * True when a decoded returnTo hash/path targets a Classic landing page (the dashboard or
- * app root) — the only Classic destinations the "Default to Astrum One UI" soft default
- * overrides. Classic deep links are preserved. A missing hash counts as a landing page (no
- * explicit destination → the default applies). Mirrors the isLandingPage gate in
- * GlobalHeaderRadix so login and the header share one soft-default contract (ASTRUM-53957).
- *
- * @param {string} hash - a URL hash or path (with or without a leading '#'/'/')
- * @return {boolean}
- */
-export function isClassicLandingHash(hash) {
-  if (!hash) {
-    return true;
-  }
-  const path = String(hash).replace(/^#/, '').replace(/^\//, '');
-  return path === '' || path === 'browse/welcome';
+export function resolveDefaultLandingRoute() {
+  return PREVIEW_WELCOME_ROUTE;
 }
 
 /**
@@ -134,34 +61,18 @@ function decodeReturnTo(returnToParam) {
 }
 
 /**
- * True when a returnTo param targets the Preview UI. Accepts Base64-encoded or raw values.
- */
-export function returnToTargetsPreview(returnToParam) {
-  return isPreviewHash(decodeReturnTo(returnToParam));
-}
-
-/**
- * True when a returnTo param is missing or targets a Classic landing page. Accepts
- * Base64-encoded or raw values. Used to decide whether a fresh login should override the
- * returnTo with the Preview dashboard (landing pages only) while preserving Classic deep
- * links (ASTRUM-53957).
- */
-export function returnToTargetsClassicLanding(returnToParam) {
-  return isClassicLandingHash(decodeReturnTo(returnToParam));
-}
-
-/**
- * The Astrum One form of a decoded returnTo hash/path ('#...' or '/...'). Classic destinations, such as
- * a bookmark or a link in an email that sent the user to the sign-in page, go through the same mapper as
- * the Classic redirect in the header; Astrum One destinations are kept. The leading '#', '/' or '#/' is
- * preserved.
+ * The Astrum One form of a decoded returnTo hash/path ('#...' or '/...'). A destination under the
+ * `preview/` prefix Astrum One pages used to have loses the prefix; any other destination is kept, and
+ * the router opens the Astrum One page of a Classic one, such as a bookmark or a link in an email that
+ * sent the user to the sign-in page. The leading '#', '/' or '#/' is preserved.
  *
  * @param {string} hash - a decoded returnTo value
  * @return {string}
  */
 export function toPreviewReturnTo(hash) {
   const [, prefix, path] = /^(#?\/?)([\s\S]*)$/.exec(String(hash ?? ''));
-  return `${prefix}${heritageToPreviewPath(path)}`;
+  const astrumOnePath = withoutPreviewPrefix(path);
+  return `${prefix}${astrumOnePath ?? path}`;
 }
 
 /**

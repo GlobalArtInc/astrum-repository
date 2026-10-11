@@ -35,7 +35,7 @@ describe('previewAdminRoutes', () => {
     const route = previewAdminRoutes.find((r) => r.name === 'preview.settings');
 
     expect(route).toBeDefined();
-    expect(route.url).toBe('/settings');
+    expect(route.url).toBe('settings');
     expect(route.component).toBeDefined();
   });
 
@@ -278,9 +278,9 @@ describe('previewAdminRoutes', () => {
    */
   describe('privilege profile tab is a matchable query param (ASTRUM-52167)', () => {
     const PROFILE_STATE = 'preview.admin.security.privileges.profile';
-    // No leading slash: the root `preview` state declares `url: 'preview'` without
-    // one, so the joined path the matcher sees does not start with `/`.
-    const PROFILE_URL = 'preview/admin/security/privileges/test-priv/profile';
+    // No leading slash: the root `preview` state owns the root of the hash and its
+    // children declare their URLs without one, so the joined path does not start with `/`.
+    const PROFILE_URL = 'admin/security/privileges/test-priv/profile';
 
     const profileRoute = () => previewAdminRoutes.find((r) => r.name === PROFILE_STATE);
 

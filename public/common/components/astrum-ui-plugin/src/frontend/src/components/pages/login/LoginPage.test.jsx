@@ -386,7 +386,7 @@ describe('LoginPage', () => {
       const button = screen.getByTestId('continue-without-login-button');
       button.click();
 
-      expect(mockRouterGo).toHaveBeenCalledWith('browse.welcome');
+      expect(mockRouterGo).toHaveBeenCalledWith('preview.browse.welcome');
       expect(mockRouterUrl).not.toHaveBeenCalled();
     });
   });

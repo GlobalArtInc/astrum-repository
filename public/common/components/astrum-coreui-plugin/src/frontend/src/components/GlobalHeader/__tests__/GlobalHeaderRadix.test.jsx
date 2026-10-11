@@ -133,15 +133,14 @@ describe('GlobalHeaderRadix', () => {
       window.matchMedia = originalMatchMedia;
     });
 
-    it('keeps the desktop header in the Classic UI at any width', () => {
+    it('uses the phone header on every page, now that Astrum One owns the root of the hash', () => {
       viewport(390);
-      window.location.hash = 'browse/welcome';
+      window.location.hash = 'admin/security/users';
 
       const { container } = renderHeader();
 
-      expect(container.querySelector('.as-global-header-radix--compact')).toBeNull();
-      expect(screen.getByTestId('search-radix')).toBeInTheDocument();
-      expect(screen.getByLabelText('Refresh')).toBeInTheDocument();
+      expect(container.querySelector('.as-global-header-radix--phone')).not.toBeNull();
+      expect(screen.queryByTestId('search-radix')).not.toBeInTheDocument();
     });
 
     it('shows the icons of the phone header and moves the rest into the drawer', () => {

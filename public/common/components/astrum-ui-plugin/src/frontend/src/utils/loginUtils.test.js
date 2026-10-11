@@ -3,16 +3,9 @@
 import {
   parseRetryAfter,
   resolveDefaultLandingRoute,
-  isPreviewHash,
-  isClassicLandingHash,
-  returnToTargetsPreview,
-  returnToTargetsClassicLanding,
+  PREVIEW_WELCOME_HASH,
   PREVIEW_WELCOME_ROUTE,
-  CLASSIC_WELCOME_ROUTE,
   USER_REQUESTED_LEGACY_KEY,
-  LAST_USED_UI_KEY,
-  getLastUsedUi,
-  setLastUsedUi,
   toPreviewReturnTo,
   toPreviewReturnToParam,
 } from './loginUtils';
@@ -51,80 +44,57 @@ describe('parseRetryAfter', () => {
   });
 });
 
-describe('last used interface', () => {
-  beforeEach(() => localStorage.clear());
-
-  it('is null until an interface is remembered', () => {
-    expect(getLastUsedUi()).toBeNull();
-  });
-
-  it('remembers preview and classic in localStorage', () => {
-    setLastUsedUi('preview');
-    expect(localStorage.getItem(LAST_USED_UI_KEY)).toBe('preview');
-    expect(getLastUsedUi()).toBe('preview');
-    setLastUsedUi('classic');
-    expect(getLastUsedUi()).toBe('classic');
-  });
-
-  it('ignores values it does not know', () => {
-    localStorage.setItem(LAST_USED_UI_KEY, 'other');
-    expect(getLastUsedUi()).toBeNull();
-  });
-});
-
 describe('resolveDefaultLandingRoute', () => {
-  beforeEach(() => localStorage.clear());
-
-  it('opens the Astrum One dashboard for a user allowed into it', () => {
-    expect(resolveDefaultLandingRoute({ canAccessPreviewUi: true })).toBe(PREVIEW_WELCOME_ROUTE);
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
   });
 
-  it.each([
-    ['Classic used last in this browser', { lastUsedUi: 'classic' }],
-    ['the Classic UI requested in this session', { userRequestedLegacy: true }],
-    ['defaultToPreviewUi off', { defaultToPreviewUi: false }],
-  ])('ignores %s, saved by an earlier release', (_what, options) => {
-    setLastUsedUi('classic');
-    expect(resolveDefaultLandingRoute({ canAccessPreviewUi: true, ...options })).toBe(PREVIEW_WELCOME_ROUTE);
+  it('opens the Astrum One dashboard', () => {
+    expect(resolveDefaultLandingRoute()).toBe(PREVIEW_WELCOME_ROUTE);
   });
 
-  it('opens the Classic dashboard only when the server does not report Astrum One access', () => {
-    expect(resolveDefaultLandingRoute({ canAccessPreviewUi: false })).toBe(CLASSIC_WELCOME_ROUTE);
+  it('ignores a Classic choice saved in this browser by an earlier release', () => {
+    localStorage.setItem('astrum-last-ui', 'classic');
+    sessionStorage.setItem(USER_REQUESTED_LEGACY_KEY, 'true');
+    expect(resolveDefaultLandingRoute()).toBe(PREVIEW_WELCOME_ROUTE);
   });
 
   it('exposes the expected constant values', () => {
     expect(PREVIEW_WELCOME_ROUTE).toBe('preview.browse.welcome');
-    expect(CLASSIC_WELCOME_ROUTE).toBe('browse.welcome');
+    expect(PREVIEW_WELCOME_HASH).toBe('#browse/welcome');
     expect(USER_REQUESTED_LEGACY_KEY).toBe('user_requested_legacy');
   });
 });
 
 describe('toPreviewReturnTo', () => {
   it.each([
-    ['#admin/security/users', '#preview/admin/security/users'],
-    ['#/admin/security/users', '#/preview/admin/security/users'],
-    ['/admin/repository/cleanuppolicies', '/preview/admin/repository/cleanup-policies'],
-    ['#browse/browse:maven-releases', '#preview/browse/maven-releases/'],
-    ['#browse/search/maven', '#preview/browse/search?format=maven'],
-    ['#', '#preview/browse/welcome'],
-    ['#preview/admin/security/roles', '#preview/admin/security/roles'],
-    ['#/preview/browse/welcome?tab=overview', '#/preview/browse/welcome?tab=overview'],
-  ])('maps %p to %p', (classic, preview) => {
-    expect(toPreviewReturnTo(classic)).toBe(preview);
+    ['#preview/admin/security/roles', '#admin/security/roles'],
+    ['#/preview/browse/welcome?tab=overview', '#/browse/welcome?tab=overview'],
+    ['/preview/admin/system/tasks', '/admin/system/tasks'],
+    ['#preview', '#'],
+    ['#admin/security/users/jdoe/default', '#admin/security/users/jdoe/default'],
+    ['#browse/maven-releases/com/foo', '#browse/maven-releases/com/foo'],
+    ['#admin/repository/cleanuppolicies', '#admin/repository/cleanuppolicies'],
+    ['#', '#'],
+  ])('maps %p to %p', (returnTo, expected) => {
+    expect(toPreviewReturnTo(returnTo)).toBe(expected);
   });
 });
 
 describe('toPreviewReturnToParam', () => {
-  it('maps a Base64 Classic returnTo and encodes it again', () => {
-    expect(atob(toPreviewReturnToParam(btoa('#admin/security/users')))).toBe('#preview/admin/security/users');
+  it('drops the preview/ prefix of a Base64 returnTo and encodes it again', () => {
+    expect(atob(toPreviewReturnToParam(btoa('#preview/admin/security/users')))).toBe('#admin/security/users');
   });
 
-  it('maps a raw Classic returnTo and Base64-encodes it', () => {
-    expect(atob(toPreviewReturnToParam('#admin/system/tasks'))).toBe('#preview/admin/system/tasks');
+  it('drops the preview/ prefix of a raw returnTo and Base64-encodes it', () => {
+    expect(atob(toPreviewReturnToParam('#preview/admin/system/tasks'))).toBe('#admin/system/tasks');
   });
 
-  it('keeps an Astrum One returnTo', () => {
-    expect(atob(toPreviewReturnToParam(btoa('#preview/browse/welcome')))).toBe('#preview/browse/welcome');
+  it('keeps an Astrum One returnTo, which the router also opens for a Classic one', () => {
+    expect(atob(toPreviewReturnToParam(btoa('#browse/welcome')))).toBe('#browse/welcome');
+    expect(atob(toPreviewReturnToParam(btoa('#admin/repository/cleanuppolicies'))))
+      .toBe('#admin/repository/cleanuppolicies');
   });
 
   it.each([[undefined], [null], ['']])('leaves a missing returnTo %p missing', (value) => {
@@ -133,87 +103,5 @@ describe('toPreviewReturnToParam', () => {
 
   it('returns a value that is neither a hash nor a path unchanged', () => {
     expect(toPreviewReturnToParam('%23browse%2Fsearch')).toBe('%23browse%2Fsearch');
-  });
-});
-
-
-describe('isPreviewHash', () => {
-  it('returns true for preview hashes', () => {
-    expect(isPreviewHash('#preview/browse/welcome')).toBe(true);
-    expect(isPreviewHash('#/preview/browse/welcome')).toBe(true);
-    expect(isPreviewHash('#preview')).toBe(true);
-    expect(isPreviewHash('preview/browse/welcome')).toBe(true);
-  });
-
-  it('returns false for classic hashes and empty values', () => {
-    expect(isPreviewHash('#browse/welcome')).toBe(false);
-    expect(isPreviewHash('#/browse/welcome')).toBe(false);
-    expect(isPreviewHash('#admin/repository/repositories')).toBe(false);
-    expect(isPreviewHash('')).toBe(false);
-    expect(isPreviewHash(null)).toBe(false);
-    expect(isPreviewHash(undefined)).toBe(false);
-  });
-});
-
-describe('returnToTargetsPreview', () => {
-  it('returns true for a Base64-encoded preview returnTo', () => {
-    expect(returnToTargetsPreview(btoa('#preview/browse/welcome'))).toBe(true);
-    expect(returnToTargetsPreview(btoa('#/preview/browse/welcome'))).toBe(true);
-  });
-
-  it('returns false for a Base64-encoded classic returnTo', () => {
-    expect(returnToTargetsPreview(btoa('#browse/welcome'))).toBe(false);
-    expect(returnToTargetsPreview(btoa('#admin/repository/repositories'))).toBe(false);
-  });
-
-  it('handles raw (non-Base64) hash values', () => {
-    expect(returnToTargetsPreview('#preview/browse/welcome')).toBe(true);
-    expect(returnToTargetsPreview('#admin/repository/repositories')).toBe(false);
-  });
-
-  it('returns false for empty values', () => {
-    expect(returnToTargetsPreview('')).toBe(false);
-    expect(returnToTargetsPreview(null)).toBe(false);
-    expect(returnToTargetsPreview(undefined)).toBe(false);
-  });
-});
-
-describe('isClassicLandingHash', () => {
-  it('returns true for Classic landing pages and empty values', () => {
-    expect(isClassicLandingHash('#browse/welcome')).toBe(true);
-    expect(isClassicLandingHash('#/browse/welcome')).toBe(true);
-    expect(isClassicLandingHash('#')).toBe(true);
-    expect(isClassicLandingHash('#/')).toBe(true);
-    expect(isClassicLandingHash('')).toBe(true);
-    expect(isClassicLandingHash(null)).toBe(true);
-    expect(isClassicLandingHash(undefined)).toBe(true);
-  });
-
-  it('returns false for Classic deep links and Preview hashes', () => {
-    expect(isClassicLandingHash('#admin/security/users')).toBe(false);
-    expect(isClassicLandingHash('#browse/browse')).toBe(false);
-    expect(isClassicLandingHash('#preview/browse/welcome')).toBe(false);
-  });
-});
-
-describe('returnToTargetsClassicLanding', () => {
-  it('returns true for a missing returnTo (default applies)', () => {
-    expect(returnToTargetsClassicLanding('')).toBe(true);
-    expect(returnToTargetsClassicLanding(null)).toBe(true);
-    expect(returnToTargetsClassicLanding(undefined)).toBe(true);
-  });
-
-  it('returns true for a Base64-encoded Classic landing returnTo', () => {
-    expect(returnToTargetsClassicLanding(btoa('#browse/welcome'))).toBe(true);
-    expect(returnToTargetsClassicLanding(btoa('#/'))).toBe(true);
-  });
-
-  it('returns false for a Classic deep link (preserved)', () => {
-    expect(returnToTargetsClassicLanding(btoa('#admin/security/users'))).toBe(false);
-    expect(returnToTargetsClassicLanding('#admin/security/users')).toBe(false);
-  });
-
-  it('returns false for a Preview returnTo (preserved)', () => {
-    expect(returnToTargetsClassicLanding(btoa('#preview/browse/welcome'))).toBe(false);
   });
 });

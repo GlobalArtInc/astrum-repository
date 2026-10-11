@@ -9,9 +9,10 @@
  * IMPORTANT: Route names must match the default admin route names (with preview. prefix)
  * so that useDefaultAdminRouteName() works correctly.
  * 
- * URL Structure (path-based routing):
- * - /preview/admin/repositories → preview.admin.repository.repositories
- * - /preview/admin/blobstores   → preview.admin.repository.blobstores
+ * URL Structure (hash-based routing at the root):
+ * - #settings                           → preview.settings
+ * - #admin/repository/repositories      → preview.admin.repository.repositories
+ * - #admin/repository/blobstores        → preview.admin.repository.blobstores
  * - etc.
  */
 
@@ -82,14 +83,14 @@ const globalartInternalRoutes = [
   // Hub — index of all test pages
   {
     name: 'preview.test',
-    url: '/test',
+    url: 'test',
     component: GlobalArtTestHub,
     data: { title: '[Internal] Test Hub' },
   },
   // Dashboard / MalwareStatusCard
   {
     name: 'preview.test-dashboard',
-    url: '/test-dashboard',
+    url: 'test-dashboard',
     component: GlobalArtInternalTestDashboard,
     data: { title: '[Internal] Test — Dashboard' },
   },
@@ -102,7 +103,7 @@ const globalartInternalRoutes = [
   // Health Check cell permutations
   {
     name: 'preview.test-search-hc',
-    url: '/test-search-hc',
+    url: 'test-search-hc',
     component: GlobalArtInternalTestSearchHc,
     data: { title: '[Internal] Test — Health Check Cell' },
   },
@@ -182,7 +183,7 @@ export const previewAdminRoutes = [
   // =============================================================================
   {
     name: 'preview.settings',
-    url: '/settings',
+    url: 'settings',
     component: SettingsHubPage,
     data: {
       title: PreviewRouteTitles.SETTINGS,
@@ -214,7 +215,7 @@ export const previewAdminRoutes = [
   // =============================================================================
   {
     name: 'preview.admin',
-    url: '/admin',
+    url: 'admin',
     abstract: true,
     component: UIView,
   },
@@ -234,6 +235,8 @@ export const previewAdminRoutes = [
   {
     name: 'preview.admin.pages',
     url: '',
+    // #admin alone, as the Classic settings link was, opens the settings hub
+    redirectTo: 'preview.settings',
     component: SettingsPageLayoutRadix,
     data: {
       visibilityRequirements: {

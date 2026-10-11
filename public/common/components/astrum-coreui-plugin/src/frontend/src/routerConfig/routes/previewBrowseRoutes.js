@@ -27,15 +27,17 @@ export const previewBrowseRoutes = [
   // =============================================================================
   // ROOT ROUTES
   // =============================================================================
+  // Astrum One owns the root of the hash: its first-level URLs have no leading slash, as in #browse/welcome.
+  // The 'preview' state name stays; the URL rules of createRouter send the old #preview/... URLs here.
   {
     name: 'preview',
-    url: 'preview',
+    url: '',
     abstract: true,
     component: UIView,
   },
   {
     name: 'preview.browse',
-    url: '/browse', // Nested under preview: #/preview/browse
+    url: 'browse', // #browse
     abstract: true,
     component: UIView,
     data: {title: PreviewRouteTitles.BROWSE},
@@ -46,7 +48,7 @@ export const previewBrowseRoutes = [
   // =============================================================================
   {
     name: 'preview.browse.welcome',
-    url: '/welcome?tab', // Nested: #/preview/browse/welcome
+    url: '/welcome?tab', // #browse/welcome
     component: WelcomeSuper,
     params: {
       tab: { type: 'string', dynamic: true, value: 'overview' },
