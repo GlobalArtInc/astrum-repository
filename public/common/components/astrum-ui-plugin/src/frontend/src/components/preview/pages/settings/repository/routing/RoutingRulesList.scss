@@ -11,6 +11,17 @@
     max-width: 400px;
   }
 
+  // Phones: the field, its padding included, fits the width there is
+  @media (max-width: 639px) {
+    &__search {
+      min-width: 0;
+    }
+
+    &__search-input {
+      box-sizing: border-box;
+    }
+  }
+
   &__search-icon {
     position: absolute;
     left: 12px;

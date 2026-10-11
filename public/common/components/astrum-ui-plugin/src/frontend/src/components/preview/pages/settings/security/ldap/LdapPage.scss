@@ -54,3 +54,16 @@
   }
 }
 
+
+// Phones: the help goes under the servers instead of beside them
+@media (max-width: 639px) {
+  .ldap-page {
+    &__content {
+      flex-direction: column;
+    }
+
+    &__sidebar {
+      width: auto;
+    }
+  }
+}

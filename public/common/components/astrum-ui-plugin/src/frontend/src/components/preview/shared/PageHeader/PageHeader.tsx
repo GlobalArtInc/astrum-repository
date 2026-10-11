@@ -5,6 +5,8 @@ import { Box, Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { ChevronRight } from 'lucide-react';
 import SharedStrings from '../../constants/SharedStrings';
 
+import './PageHeader.scss';
+
 export interface BreadcrumbItem {
   /** Display label */
   label: string;
@@ -129,8 +131,8 @@ export function PageHeader({
 
       {/* Main Header — omitted when title is absent (breadcrumbs-only mode) */}
       {(title || actions) && (
-        <Flex align="center" justify="between" gap="4">
-          <Flex direction="column" gap="1">
+        <Flex align="center" justify="between" gap="4" wrap={{ initial: 'wrap', sm: 'nowrap' }}>
+          <Flex direction="column" gap="1" minWidth="0">
             {title && (
               // Title + optional inline count, baseline-aligned (see Repositories header).
               <Flex align="baseline" gap="2">
@@ -162,7 +164,12 @@ export function PageHeader({
 
           {/* Actions */}
           {actions && (
-            <Flex gap="2" style={{ flexShrink: 0 }}>
+            <Flex
+              gap="2"
+              wrap={{ initial: 'wrap', sm: 'nowrap' }}
+              className="page-header__actions"
+              style={{ flexShrink: 0, maxWidth: '100%' }}
+            >
               {actions}
             </Flex>
           )}

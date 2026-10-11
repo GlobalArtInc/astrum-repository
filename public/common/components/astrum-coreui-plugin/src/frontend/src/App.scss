@@ -210,6 +210,16 @@ a.as-internal-link:hover {
     flex-direction: row !important;
   }
 
+  // Phones: their filter sidebar turns into a button above the list (see FilterSidebar), so they stack
+  @media (max-width: 639px) {
+    .repositories-list,
+    .users-list,
+    .roles-list,
+    .privileges-list {
+      flex-direction: column !important;
+    }
+  }
+
   .as-branding-header {
     grid-area: branding-header;
   }

@@ -24,3 +24,10 @@
     min-height: 300px;
   }
 }
+
+// Phones: the steps get the width there is
+@media (max-width: 639px) {
+  .wizard-form__progress-indicator {
+    min-width: 0;
+  }
+}

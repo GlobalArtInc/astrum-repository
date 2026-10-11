@@ -1,11 +1,13 @@
 
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Filter, RotateCcw } from 'lucide-react';
-import { Checkbox, Text, TextField } from '@radix-ui/themes';
+import { ChevronDown, ChevronRight, Filter, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Badge, Button, Checkbox, Text, TextField } from '@radix-ui/themes';
 
 import './FilterSidebar.scss';
 import SharedStrings from '../../constants/SharedStrings';
+import { MobileFilterDrawer } from '../MobileFilterDrawer/MobileFilterDrawer';
+import { useIsPhone } from '../../../../hooks/useMediaQuery';
 
 /**
  * Filter option representing a selectable item.
@@ -212,6 +214,10 @@ export function FilterSidebar({
   footerText = SharedStrings.FILTER_SIDEBAR.FILTERS_APPLY_AUTOMATICALLY,
   className = '',
 }: FilterSidebarProps): JSX.Element {
+  // Phones have no room beside the list: the filters open in a sheet from a button above it
+  const isPhone = useIsPhone();
+  const [isSheetOpen, setSheetOpen] = useState(false);
+
   // Track expanded state for each section
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -247,6 +253,78 @@ export function FilterSidebar({
     return undefined;
   };
 
+  const renderSections = () => (
+    <div className="filter-sidebar__content">
+      {sections.map((section) => {
+        const isExpanded = expandedSections[section.id] ?? true;
+        const activeCount = getSectionActiveCount(section);
+
+        return (
+          <div key={section.id} className="filter-section">
+            <FilterSectionHeader
+              title={section.label}
+              expanded={isExpanded}
+              activeCount={activeCount}
+              onClick={() => toggleSection(section.id)}
+            />
+            {isExpanded && (
+              <div className="filter-section__content">
+                {section.type === 'checkbox' && section.options && (
+                  <CheckboxFilterList
+                    options={section.options}
+                    selected={Array.isArray(section.value) ? section.value : []}
+                    onChange={(values) => onFilterChange(section.id, values)}
+                    disabled={disabled}
+                  />
+                )}
+                {section.type === 'text' && (
+                  <TextFilter
+                    value={typeof section.value === 'string' ? section.value : ''}
+                    onChange={(value) => onFilterChange(section.id, value)}
+                    disabled={disabled}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  if (isPhone) {
+    return (
+      <>
+        <Button
+          type="button"
+          variant="surface"
+          color="gray"
+          size="3"
+          className="filter-sidebar-toggle"
+          data-testid="filter-sidebar-toggle"
+          onClick={() => setSheetOpen(true)}
+        >
+          <SlidersHorizontal size={16} aria-hidden="true" />
+          {title}
+          {activeFilterCount > 0 && (
+            <Badge size="1" radius="full">{activeFilterCount}</Badge>
+          )}
+        </Button>
+        <MobileFilterDrawer
+          isOpen={isSheetOpen}
+          onClose={() => setSheetOpen(false)}
+          title={title}
+          onClearAll={activeFilterCount > 0 ? onClear : undefined}
+          clearAllLabel={SharedStrings.FILTER_SIDEBAR.CLEAR_ALL}
+        >
+          <div className="filter-sidebar filter-sidebar--sheet" data-testid="filter-sidebar">
+            {renderSections()}
+          </div>
+        </MobileFilterDrawer>
+      </>
+    );
+  }
+
   return (
     <aside className={`filter-sidebar ${className}`} data-testid="filter-sidebar">
       {/* Header */}
@@ -272,43 +350,7 @@ export function FilterSidebar({
         )}
       </div>
 
-      {/* Filter Sections */}
-      <div className="filter-sidebar__content">
-        {sections.map((section) => {
-          const isExpanded = expandedSections[section.id] ?? true;
-          const activeCount = getSectionActiveCount(section);
-
-          return (
-            <div key={section.id} className="filter-section">
-              <FilterSectionHeader
-                title={section.label}
-                expanded={isExpanded}
-                activeCount={activeCount}
-                onClick={() => toggleSection(section.id)}
-              />
-              {isExpanded && (
-                <div className="filter-section__content">
-                  {section.type === 'checkbox' && section.options && (
-                    <CheckboxFilterList
-                      options={section.options}
-                      selected={Array.isArray(section.value) ? section.value : []}
-                      onChange={(values) => onFilterChange(section.id, values)}
-                      disabled={disabled}
-                    />
-                  )}
-                  {section.type === 'text' && (
-                    <TextFilter
-                      value={typeof section.value === 'string' ? section.value : ''}
-                      onChange={(value) => onFilterChange(section.id, value)}
-                      disabled={disabled}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {renderSections()}
 
       {/* Footer */}
       {footerText && (

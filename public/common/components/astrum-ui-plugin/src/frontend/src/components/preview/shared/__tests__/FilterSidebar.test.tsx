@@ -234,6 +234,51 @@ describe('FilterSidebar', () => {
 
     expect(screen.getByText('Custom footer')).toBeInTheDocument();
   });
-});
 
+  describe('on phones', () => {
+    const originalMatchMedia = window.matchMedia;
+
+    beforeEach(() => {
+      window.matchMedia = jest.fn((query: string) => ({
+        matches: query.includes('639px'),
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      })) as unknown as typeof window.matchMedia;
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    const selected: FilterSection[] = [
+      { ...mockSections[0], value: ['maven'] },
+      mockSections[1],
+    ];
+
+    it('shows a button with the number of active filters instead of the sidebar', () => {
+      renderWithTheme(
+        <FilterSidebar sections={selected} onFilterChange={mockOnFilterChange} onClear={mockOnClear} />
+      );
+
+      expect(screen.queryByTestId('filter-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByTestId('filter-sidebar-toggle')).toHaveTextContent('Filters1');
+    });
+
+    it('opens the filters in a sheet that changes them and clears them', () => {
+      renderWithTheme(
+        <FilterSidebar sections={selected} onFilterChange={mockOnFilterChange} onClear={mockOnClear} />
+      );
+
+      fireEvent.click(screen.getByTestId('filter-sidebar-toggle'));
+      expect(screen.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('NPM'));
+      expect(mockOnFilterChange).toHaveBeenCalledWith('format', ['maven', 'npm']);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+      expect(mockOnClear).toHaveBeenCalled();
+    });
+  });
+});
 

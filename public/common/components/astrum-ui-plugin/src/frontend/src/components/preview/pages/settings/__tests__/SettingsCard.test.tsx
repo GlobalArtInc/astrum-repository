@@ -36,6 +36,25 @@ describe('SettingsCard', () => {
     expect(screen.getByRole('button', { name: 'View' })).toBeInTheDocument();
   });
 
+  it('shows a chevron instead of the View button on phones', () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = jest.fn((query: string) => ({
+      matches: query.includes('639px'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    })) as unknown as typeof window.matchMedia;
+
+    try {
+      renderWithTheme(<SettingsCard card={mockCard} />);
+
+      expect(screen.queryByRole('button', { name: 'View' })).not.toBeInTheDocument();
+      expect(screen.getByRole('link')).toHaveTextContent('Users');
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
   it('renders as a link with correct href', () => {
     renderWithTheme(<SettingsCard card={mockCard} />);
 

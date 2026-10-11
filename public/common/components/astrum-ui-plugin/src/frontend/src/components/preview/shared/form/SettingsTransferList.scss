@@ -114,3 +114,26 @@
   }
 }
 
+// Phones: the available and the selected items stack, each the full width
+@media (max-width: 639px) {
+  .settings-transfer-list {
+    &__container {
+      flex-direction: column;
+    }
+
+    &__panel {
+      min-width: 0;
+      max-width: none;
+      min-height: 220px;
+    }
+
+    // The arrows between the lists turn a quarter: they move items down into the selection and back up
+    &__controls.rt-Flex {
+      flex-direction: row;
+
+      svg {
+        transform: rotate(90deg);
+      }
+    }
+  }
+}

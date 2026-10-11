@@ -400,3 +400,23 @@
 
 
 
+
+// Phones: the filter takes a row of its own and the buttons wrap under it
+@media (max-width: 639px) {
+  .ldap-list {
+    &__toolbar,
+    &__toolbar > .rt-Flex {
+      flex-wrap: wrap;
+    }
+
+    &__search {
+      flex-basis: 100%;
+      min-width: 0;
+      max-width: none;
+    }
+
+    &__search-input {
+      box-sizing: border-box;
+    }
+  }
+}

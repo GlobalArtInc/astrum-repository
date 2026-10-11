@@ -153,7 +153,7 @@ export function SettingsHubPage() {
 
   return (
     <ScrollArea>
-      <Container size="3" py="4">
+      <Container size="3" py="4" px={{ initial: '4', md: '0' }}>
         <PageHeader
           title={CommonStrings.LABELS.SETTINGS}
           description={SettingsStrings.HUB.CONFIGURE_SECURITY_REPOSITORIES_SYSTEM_SUPPORT}

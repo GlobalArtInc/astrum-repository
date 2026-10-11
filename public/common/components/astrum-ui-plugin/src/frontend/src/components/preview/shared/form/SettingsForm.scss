@@ -117,3 +117,37 @@
     }
   }
 }
+
+// Phones: 16px gutters, and the action bar wraps its buttons instead of pushing them off the screen; the unsaved
+// changes note only takes room once there is something unsaved
+@media (max-width: 639px) {
+  .settings-form {
+    &__header,
+    &__progress-bar {
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+
+    &__alerts {
+      padding: var(--space-4) var(--space-4) 0;
+    }
+
+    &__inner {
+      padding: var(--space-4);
+    }
+
+    &__action-bar {
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+
+      > .rt-Flex {
+        flex-wrap: wrap;
+      }
+    }
+
+    &__unsaved[data-pristine='true'] {
+      display: none;
+    }
+  }
+}

@@ -274,3 +274,33 @@
 
 
 
+
+// Phones: the available and the active realms stack, each the full width, with the move and order buttons in a row
+// between and under them; the arrows turn a quarter to point down into the active list and back up
+@media (max-width: 639px) {
+  .realms-page {
+    &__transfer-container {
+      flex-direction: column;
+    }
+
+    &__panel {
+      min-height: 220px;
+      max-height: 320px;
+    }
+
+    &__controls,
+    &__reorder-controls {
+      flex-direction: row;
+      justify-content: center;
+    }
+
+    &__controls svg {
+      transform: rotate(90deg);
+    }
+
+    &__control-button {
+      width: 44px;
+      height: 44px;
+    }
+  }
+}

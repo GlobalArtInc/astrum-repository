@@ -1,0 +1,17 @@
+// Phones: the actions wrap under the title, and so do the buttons of a group of actions; a button too long for the
+// screen breaks its label over two lines
+@media (max-width: 639px) {
+  .page-header__actions,
+  .page-header__actions > .rt-Flex {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .page-header__actions .settings-button {
+    max-width: 100%;
+    height: auto;
+    min-height: 36px;
+    white-space: normal;
+    text-align: left;
+  }
+}
