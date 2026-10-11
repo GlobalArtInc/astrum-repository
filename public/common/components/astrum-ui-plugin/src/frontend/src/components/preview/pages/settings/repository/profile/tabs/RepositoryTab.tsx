@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { FormatBadge } from '../../../../../shared';
 import { TypeBadge } from '../../repositories/TypeBadge';
-import { ClassicSettingsLink } from './classicSettingsLink';
+import { SettingsLink } from './settingsLink';
 import type {
   RepositoryProfileData,
   BlobStoreInfo,
@@ -46,6 +46,24 @@ interface RepositoryTabProps {
 }
 
 // =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * The Astrum One page of the repository's blob store: its edit page when the type is known, the list
+ * otherwise, or nothing when the repository has no blob store.
+ */
+export function blobStorePath(blobStoreName: string | undefined, blobStore: BlobStoreInfo | null): string | undefined {
+  if (!blobStoreName) {
+    return undefined;
+  }
+  if (blobStore?.typeId) {
+    return `preview/admin/repository/blobstores/${encodeURIComponent(blobStore.typeId)}/${encodeURIComponent(blobStoreName)}`;
+  }
+  return 'preview/admin/repository/blobstores';
+}
+
+// =============================================================================
 // Helper Components
 // =============================================================================
 
@@ -66,7 +84,7 @@ function ProfileSection({ title, icon: Icon, editPath, children }: ProfileSectio
             <Heading size="3" style={{ fontSize: 'var(--font-size-4)' }}>{title}</Heading>
           </Flex>
           {editPath && (
-            <ClassicSettingsLink previewPath={editPath} label={CommonStrings.ACTIONS.CONFIGURE} />
+            <SettingsLink previewPath={editPath} label={CommonStrings.ACTIONS.CONFIGURE} />
           )}
         </Flex>
         <Separator size="4" />
@@ -312,7 +330,7 @@ export function RepositoryTab({
       <ProfileSection
         title={RepositoryProfileStrings.REPOSITORY_TAB.BLOB_STORE_2(storage?.blobStoreName || '—')}
         icon={HardDrive}
-        editPath={storage?.blobStoreName ? `preview/admin/repository/blobstores/${encodeURIComponent(storage.blobStoreName)}` : undefined}
+        editPath={blobStorePath(storage?.blobStoreName, blobStore)}
       >
         {blobStore ? (
           <Grid columns="3" gap="4">

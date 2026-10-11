@@ -223,6 +223,7 @@ export interface RepositoryMetrics {
 export interface BlobStoreInfo {
   name: string;
   type: string;
+  typeId?: string;
   path?: string;
   unavailable: boolean;
   totalSizeInBytes?: number;

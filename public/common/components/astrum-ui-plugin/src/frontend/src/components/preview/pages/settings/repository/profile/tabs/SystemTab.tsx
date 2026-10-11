@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   Loader2,
 } from 'lucide-react';
-import { ClassicSettingsLink } from './classicSettingsLink';
+import { SettingsLink } from './settingsLink';
 import type {
   RepositoryProfileData,
   TaskInfo,
@@ -55,7 +55,7 @@ function ProfileSection({ title, icon: Icon, editPath, children }: ProfileSectio
           <Text weight="bold">{title}</Text>
         </Flex>
         {editPath && (
-          <ClassicSettingsLink previewPath={editPath} label={RepositoryProfileStrings.SYSTEM_TAB.VIEW} />
+          <SettingsLink previewPath={editPath} label={RepositoryProfileStrings.SYSTEM_TAB.VIEW} />
         )}
       </Flex>
       {children}

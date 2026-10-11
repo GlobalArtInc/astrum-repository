@@ -12,7 +12,7 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
-import { ClassicSettingsLink } from './classicSettingsLink';
+import { SettingsLink } from './settingsLink';
 import type {
   IqCapabilities,
   CapabilityInfo,
@@ -82,7 +82,6 @@ export function InstanceConfigTab({
                 <Shield size={18} color="var(--accent-9)" />
                 <Text weight="bold">{RepositoryProfileStrings.INSTANCE_CONFIG.IQ_SERVER_CONNECTION}</Text>
               </Flex>
-              <ClassicSettingsLink previewPath="preview/admin/iq" label={CommonStrings.ACTIONS.CONFIGURE} />
             </Flex>
             <Separator size="4" />
             
@@ -200,7 +199,7 @@ export function InstanceConfigTab({
                 <Zap size={18} color="var(--yellow-9)" />
                 <Text weight="bold">{RepositoryProfileStrings.INSTANCE_CONFIG.GLOBAL_CAPABILITIES}</Text>
               </Flex>
-              <ClassicSettingsLink previewPath="preview/admin/system/capabilities" label={RepositoryProfileStrings.INSTANCE_CONFIG.MANAGE} />
+              <SettingsLink previewPath="preview/admin/system/capabilities" label={RepositoryProfileStrings.INSTANCE_CONFIG.MANAGE} />
             </Flex>
             <Separator size="4" />
 

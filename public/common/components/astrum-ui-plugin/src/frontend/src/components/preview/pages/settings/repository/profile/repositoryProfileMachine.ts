@@ -158,6 +158,7 @@ async function fetchBlobStore(blobStoreName: string): Promise<BlobStoreInfo | nu
     return {
       name: String(bs.name),
       type: String(bs.typeName ?? bs.typeId ?? RepositoryProfileStrings.MACHINE.UNKNOWN),
+      typeId: bs.typeId ? String(bs.typeId) : undefined,
       path: bs.path ? String(bs.path) : undefined,
       unavailable: Boolean(bs.unavailable),
       totalSizeInBytes: bs.totalSizeInBytes ? Number(bs.totalSizeInBytes) : undefined,
