@@ -111,3 +111,74 @@
     display: none;
   }
 }
+
+// Phones: a list of results instead of the table; a result opens in its repository, the button beside it lists
+// its versions
+.unified-search__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0 var(--space-4);
+  list-style: none;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-5);
+  background-color: var(--color-panel-solid);
+}
+
+.unified-search__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) 0;
+
+  & + & {
+    border-top: 1px solid var(--gray-a4);
+  }
+}
+
+.unified-search__open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-2);
+  background: none;
+  color: var(--gray-12);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+
+  .unified-search__name,
+  .unified-search__ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.unified-search__versions.rt-IconButton {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}
+
+// Phones: the format, repository and sort pickers each take the full width, as a form in one column
+@media (max-width: 639px) {
+  .unified-search__select {
+    flex: 1 1 100%;
+
+    .rt-SelectTrigger {
+      width: 100%;
+    }
+  }
+}

@@ -102,6 +102,33 @@ describe('UnifiedSearchPage', () => {
     expect(screen.getByText('Shown: 2')).toBeInTheDocument();
   });
 
+  it('lists the components without a table on phones', async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = jest.fn((query: string) => ({
+      matches: query.includes('639px'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    })) as unknown as typeof window.matchMedia;
+
+    try {
+      renderPage();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Search components' }), { target: { value: 'herald' } });
+
+      const list = await screen.findByTestId('unified-search-list');
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      const results = within(list).getAllByRole('button', { name: /in its repository/ });
+      expect(results).toHaveLength(2);
+      expect(within(results[0]).getByText('herald-api')).toBeInTheDocument();
+      expect(within(results[0]).getByTestId('format-badge')).toHaveTextContent('docker');
+
+      fireEvent.click(results[0]);
+      expect(mockGo).toHaveBeenCalled();
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
   it('does not search for a single character', async () => {
     renderPage();
 

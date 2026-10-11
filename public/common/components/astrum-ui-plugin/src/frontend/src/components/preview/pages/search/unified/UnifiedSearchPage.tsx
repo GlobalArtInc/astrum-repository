@@ -25,6 +25,7 @@ import { useSearchUrlState } from './useSearchUrlState';
 import { useUnifiedSearch } from './useUnifiedSearch';
 import { SORT_OPTIONS } from './sortOptions';
 import { formatDateTime } from '../../browse/detail/detail.utils';
+import { useIsPhone } from '../../../../../hooks/useMediaQuery';
 import type { SearchFormat, SearchResult, SortDirection, SortField } from './unified.types';
 
 import './UnifiedSearchPage.scss';
@@ -73,6 +74,7 @@ function browsePath(result: SearchResult): string | null {
  */
 export function UnifiedSearchPage(): JSX.Element {
   const strings = UIStrings.SEARCH_PAGE;
+  const isPhone = useIsPhone();
   const router = useRouter();
   const { state, setFormat, setQuery, setFilter, setSort, search, loadMore, hasMore } = useUnifiedSearch();
   const { readFromUrl, syncToUrl } = useSearchUrlState();
@@ -274,6 +276,40 @@ export function UnifiedSearchPage(): JSX.Element {
           <Text size="2" color="gray" aria-live="polite">{strings.SHOWN(results.length)}</Text>
           {state.loading && <Spinner size="1" />}
         </Flex>
+        {isPhone ? (
+          <ul className="unified-search__list" data-testid="unified-search-list">
+            {results.map((result) => (
+              <li key={`${result.repository}:${result.id}`} className="unified-search__item">
+                <button
+                  type="button"
+                  className="unified-search__open"
+                  aria-label={strings.OPEN(displayName(result))}
+                  onClick={() => showInRepository(result)}
+                >
+                  <Text size="2" weight="medium" className="unified-search__name">{displayName(result)}</Text>
+                  <Text size="1" color="gray" className="unified-search__mono unified-search__ellipsis">
+                    {result.group && result.format !== 'npm' ? `${result.group} · ` : ''}
+                    {result.version || '—'}
+                  </Text>
+                  <Flex align="center" gap="2" wrap="wrap">
+                    <FormatBadge format={result.format} size="1" radius="full" />
+                    <Text size="1" color="gray">{result.repository}</Text>
+                  </Flex>
+                </button>
+                <IconButton
+                  variant="ghost"
+                  color="gray"
+                  size="3"
+                  className="unified-search__versions"
+                  aria-label={strings.VERSIONS_OF(displayName(result))}
+                  onClick={() => navigateToDetail(result)}
+                >
+                  <History size={18} />
+                </IconButton>
+              </li>
+            ))}
+          </ul>
+        ) : (
         <Table.Root variant="surface" size="2" className="unified-search__table">
           <Table.Header>
             <Table.Row>
@@ -341,6 +377,7 @@ export function UnifiedSearchPage(): JSX.Element {
             ))}
           </Table.Body>
         </Table.Root>
+        )}
         {hasMore && (
           <Flex justify="center">
             <Button variant="surface" color="gray" highContrast disabled={state.loading} onClick={() => loadMore()}>
