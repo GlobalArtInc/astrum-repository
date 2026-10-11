@@ -486,7 +486,7 @@ export function useRepositoriesApi() {
  * Build repository configuration object for REST API calls
  * REST API expects a different format than ExtDirect
  */
-function buildRepositoryConfig(data: RepositoryFormData): Record<string, unknown> {
+export function buildRepositoryConfig(data: RepositoryFormData): Record<string, unknown> {
   const config: Record<string, unknown> = {
     name: data.name,
     online: data.online ?? true,
@@ -689,6 +689,59 @@ function buildRepositoryConfig(data: RepositoryFormData): Record<string, unknown
             // `value: true` seed and the backend NugetAttributes.allowAnonymousSymbolAccess
             // default.
             allowAnonymousSymbolAccess: data.nugetProxy?.allowAnonymousSymbolAccess ?? true,
+          }
+        : {}),
+    };
+  }
+
+  if (data.format === 'cargo') {
+    config.cargo = {
+      requireAuthentication: data.cargo?.requireAuthentication ?? false,
+    };
+  }
+
+  if (data.format === 'conan' && data.type === 'proxy') {
+    // Always sent: the server treats a missing version as V2, which would silently turn an edited
+    // Conan 1 proxy into a Conan 2 one.
+    config.conanProxy = {
+      conanVersion: data.conanProxy?.conanVersion ?? 'V2',
+    };
+  }
+
+  if (data.format === 'terraform' && data.type === 'hosted') {
+    // The passphrase is write-only: it is only sent when the admin typed one.
+    const keypair = data.terraformSigning?.keypair?.trim();
+    const passphrase = data.terraformSigning?.passphrase;
+    if (keypair) {
+      config.terraformSigning = {
+        keypair,
+        ...(passphrase ? { passphrase } : {}),
+      };
+    }
+  }
+
+  if (data.format === 'oci') {
+    const oci = data.oci ?? {};
+    const keyless = oci.cosign?.enforcement === 'KEYLESS';
+    config.oci = {
+      pathEnabled: oci.pathEnabled ?? true,
+      forceBasicAuth: oci.forceBasicAuth ?? false,
+      httpPort: oci.httpPort || null,
+      httpsPort: oci.httpsPort || null,
+      subdomain: oci.subdomain || null,
+      cosign: {
+        enforcement: keyless ? 'KEYLESS' : 'NONE',
+        ...(keyless ? { identityRegex: oci.cosign?.identityRegex, issuerRegex: oci.cosign?.issuerRegex } : {}),
+      },
+      ...(data.type === 'proxy'
+        ? {
+            ociProxy: {
+              indexType: oci.ociProxy?.indexType ?? 'REGISTRY',
+              indexUrl: oci.ociProxy?.indexType === 'CUSTOM' ? oci.ociProxy?.indexUrl || null : null,
+              useTrustStoreForIndexAccess: oci.ociProxy?.useTrustStoreForIndexAccess ?? false,
+              cacheForeignLayers: oci.ociProxy?.cacheForeignLayers ?? false,
+              foreignLayerUrlWhitelist: (oci.ociProxy?.foreignLayerUrlWhitelist ?? []).filter((url) => url.trim()),
+            },
           }
         : {}),
     };

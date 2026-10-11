@@ -253,11 +253,59 @@ export interface RawConfig {
 }
 
 /**
- * Terraform signing configuration
+ * Terraform signing configuration. The passphrase is write-only: it is sent when the admin types one
+ * and never read back into the form.
  */
 export interface TerraformSigningConfig {
   keypair: string;
   passphrase?: string;
+}
+
+/**
+ * Cargo configuration (hosted, proxy and group)
+ */
+export interface CargoConfig {
+  requireAuthentication?: boolean;
+}
+
+/**
+ * Conan proxy configuration
+ */
+export interface ConanProxyConfig {
+  conanVersion?: 'V1' | 'V2';
+}
+
+/**
+ * OCI cosign keyless policy
+ */
+export interface OciCosignAttributes {
+  enforcement?: 'NONE' | 'KEYLESS';
+  identityRegex?: string;
+  issuerRegex?: string;
+}
+
+/**
+ * OCI proxy index and foreign-layer settings
+ */
+export interface OciProxyAttributes {
+  indexType?: 'REGISTRY' | 'CUSTOM';
+  indexUrl?: string | null;
+  useTrustStoreForIndexAccess?: boolean;
+  cacheForeignLayers?: boolean;
+  foreignLayerUrlWhitelist?: string[];
+}
+
+/**
+ * OCI registry configuration: connectors, authentication, cosign and, for proxies, the index
+ */
+export interface OciConfig {
+  pathEnabled?: boolean;
+  httpPort?: number | null;
+  httpsPort?: number | null;
+  subdomain?: string | null;
+  forceBasicAuth?: boolean;
+  cosign?: OciCosignAttributes;
+  ociProxy?: OciProxyAttributes;
 }
 
 // =============================================================================
@@ -288,6 +336,9 @@ export interface RepositoryAttributes {
   raw?: RawConfig;
   pypi?: PypiConfig;
   terraformSigning?: TerraformSigningConfig | null;
+  cargo?: CargoConfig;
+  conanProxy?: ConanProxyConfig;
+  oci?: OciConfig;
 }
 
 /**
@@ -337,6 +388,9 @@ export interface RepositoryFormData {
   raw?: RawConfig;
   pypi?: PypiConfig;
   terraformSigning?: TerraformSigningConfig | null;
+  cargo?: CargoConfig;
+  conanProxy?: ConanProxyConfig;
+  oci?: OciConfig;
 }
 
 /**
@@ -522,6 +576,18 @@ export interface RepositoryFormErrors {
   };
   terraformSigning?: {
     keypair?: string;
+  };
+  oci?: {
+    httpPort?: string;
+    httpsPort?: string;
+    subdomain?: string;
+    cosign?: {
+      identityRegex?: string;
+      issuerRegex?: string;
+    };
+    ociProxy?: {
+      indexUrl?: string;
+    };
   };
 }
 

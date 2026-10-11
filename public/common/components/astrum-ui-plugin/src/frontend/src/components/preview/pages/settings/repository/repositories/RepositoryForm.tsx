@@ -49,6 +49,10 @@ import { YumFacet } from './facets/YumFacet';
 import { NugetFacet } from './facets/NugetFacet';
 import { PyPiFacet } from './facets/PyPiFacet';
 import { RawFacet } from './facets/RawFacet';
+import { CargoFacet } from './facets/CargoFacet';
+import { ConanFacet } from './facets/ConanFacet';
+import { TerraformFacet } from './facets/TerraformFacet';
+import { OciFacet } from './facets/OciFacet';
 import { RoutingRuleFacet } from './facets/RoutingRuleFacet';
 import { RepositoryFirewallConfigTab } from './RepositoryFirewallConfigTab';
 import { RepositoryAuditTab } from './RepositoryAuditTab';
@@ -291,6 +295,39 @@ export function RepositoryForm({
           <RawFacet
             formData={formData}
             onNestedChange={handleNestedChange}
+          />
+        )}
+
+        {recipe.format === 'cargo' && (
+          <CargoFacet
+            formData={formData}
+            onNestedChange={handleNestedChange}
+          />
+        )}
+
+        {recipe.format === 'conan' && recipe.type === 'proxy' && (
+          <ConanFacet
+            formData={formData}
+            onNestedChange={handleNestedChange}
+            isEdit={!isCreate}
+          />
+        )}
+
+        {recipe.format === 'terraform' && recipe.type === 'hosted' && (
+          <TerraformFacet
+            formData={formData}
+            onNestedChange={handleNestedChange}
+            errors={errors}
+            isEdit={!isCreate}
+          />
+        )}
+
+        {recipe.format === 'oci' && (
+          <OciFacet
+            formData={formData}
+            onNestedChange={handleNestedChange}
+            errors={errors}
+            repoType={recipe.type}
           />
         )}
 

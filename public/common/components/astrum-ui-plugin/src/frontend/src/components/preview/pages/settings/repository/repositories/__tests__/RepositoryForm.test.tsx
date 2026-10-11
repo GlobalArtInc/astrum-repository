@@ -1418,4 +1418,61 @@ describe('RepositoryForm', () => {
       });
     });
   });
+
+  describe('format settings that only the Classic UI had', () => {
+    function renderRecipe(format: string, type: 'hosted' | 'proxy' | 'group', isCreate = true) {
+      const formData = {
+        name: `${format}-${type}`, type, format, recipe: `${format}-${type}`, online: true,
+        storage: { blobStoreName: 'default', strictContentTypeValidation: true },
+      };
+      mockUseRepositoryForm.mockReturnValue(createMockHookReturn({ formData } as any));
+      renderWithTheme(
+        <RepositoryForm
+          recipe={{ format, type, name: `${format}-${type}` }}
+          isCreate={isCreate}
+          onSave={mockOnSave}
+          onCancel={mockOnCancel}
+          hideActions
+        />
+      );
+    }
+
+    it.each(['hosted', 'proxy', 'group'] as const)('shows the Cargo authentication setting for cargo %s', (type) => {
+      renderRecipe('cargo', type);
+      expect(screen.getByText('Cargo Settings')).toBeInTheDocument();
+    });
+
+    it('shows the Conan protocol version for conan proxies only', () => {
+      renderRecipe('conan', 'proxy');
+      expect(screen.getByText('Protocol version')).toBeInTheDocument();
+    });
+
+    it('shows no Conan section for conan hosted repositories', () => {
+      renderRecipe('conan', 'hosted');
+      expect(screen.queryByText('Protocol version')).not.toBeInTheDocument();
+    });
+
+    it('shows Terraform signing for terraform hosted repositories only', () => {
+      renderRecipe('terraform', 'hosted');
+      expect(screen.getByText('Terraform Settings')).toBeInTheDocument();
+    });
+
+    it('shows no Terraform signing for terraform proxies', () => {
+      renderRecipe('terraform', 'proxy');
+      expect(screen.queryByText('Terraform Settings')).not.toBeInTheDocument();
+    });
+
+    it.each(['hosted', 'proxy', 'group'] as const)('shows the OCI connectors for oci %s', (type) => {
+      renderRecipe('oci', type);
+      expect(screen.getByText('OCI Registry Connectors')).toBeInTheDocument();
+      expect(screen.getByText('HTTP Connector')).toBeInTheDocument();
+      expect(screen.getByText('HTTPS Connector')).toBeInTheDocument();
+      expect(screen.getByText('Subdomain')).toBeInTheDocument();
+    });
+
+    it('shows the OCI index settings for oci proxies', () => {
+      renderRecipe('oci', 'proxy');
+      expect(screen.getByText('OCI Registry Index')).toBeInTheDocument();
+    });
+  });
 });

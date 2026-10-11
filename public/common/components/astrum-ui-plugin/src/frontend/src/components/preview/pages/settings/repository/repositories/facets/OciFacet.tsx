@@ -26,8 +26,14 @@ interface OciFacetProps {
     key: K,
     updates: Partial<RepositoryFormData[K]>
   ) => void;
-  errors?: RepositoryFormErrors;
+  errors?: RepositoryFormErrors & Record<string, unknown>;
   repoType: 'hosted' | 'proxy' | 'group';
+}
+
+/** The form machine reports errors under dotted keys such as `oci.httpPort`. */
+function flatError(errors: OciFacetProps['errors'], key: string): string | undefined {
+  const value = errors?.[key];
+  return typeof value === 'string' ? value : undefined;
 }
 
 const COSIGN_ENFORCEMENT_OPTIONS = [
@@ -98,6 +104,7 @@ export function OciFacet({
           helpText={UIStrings.OCI.CREATE_HTTP_CONNECTOR_SPECIFIED_PORT}
           placeholder={CommonStrings.MESSAGES.EXAMPLE('8082')}
           type="number"
+          error={flatError(errors, 'oci.httpPort')}
         />
 
         <SettingsTextInput
@@ -110,6 +117,7 @@ export function OciFacet({
           helpText={UIStrings.OCI.CREATE_HTTPS_CONNECTOR_SPECIFIED_PORT}
           placeholder={CommonStrings.MESSAGES.EXAMPLE('8083')}
           type="number"
+          error={flatError(errors, 'oci.httpsPort')}
         />
 
         <SettingsTextInput

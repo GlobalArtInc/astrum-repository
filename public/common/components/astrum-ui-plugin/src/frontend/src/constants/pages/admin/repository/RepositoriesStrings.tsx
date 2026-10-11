@@ -557,6 +557,55 @@ export default localize('react-ui', {
       },
     },
   },
+  // ---------------------------------------------------------------------------
+  // CargoFacet
+  // ---------------------------------------------------------------------------
+  CARGO: {
+    SECTION: {
+      title: 'Cargo Settings',
+      description: 'Who may read the content of this Cargo repository',
+    },
+    REQUIRE_AUTHENTICATION: {
+      label: 'Restrict repository content to authenticated users',
+      description: 'Leaving this box unchecked only allows anonymous access to this repository if anonymous access is also enabled in your instance',
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // ConanFacet
+  // ---------------------------------------------------------------------------
+  CONAN: {
+    SECTION: {
+      title: 'Conan',
+      description: 'Conan protocol of the proxied remote',
+    },
+    PROTOCOL_VERSION: {
+      label: 'Protocol version',
+      helpText: 'Automatic migration from Conan 1 to Conan 2 is not available, so the version cannot be changed once the repository is created.',
+      V1: 'Conan V1',
+      V2: 'Conan V2',
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // TerraformFacet
+  // ---------------------------------------------------------------------------
+  TERRAFORM: {
+    SIGNING: {
+      title: 'Terraform Settings',
+      description: 'PGP key that signs the providers of this repository',
+      KEYPAIR: {
+        label: 'Signing Key',
+        helpText: 'PGP signing key pair (armored private key e.g. gpg --export-secret-key --armor)',
+      },
+      PASSPHRASE: {
+        label: 'Passphrase',
+        helpText: 'Passphrase for the PGP signing key (leave empty if the key has no passphrase). It is never shown again once saved.',
+        EDIT_HELP_TEXT: 'The saved passphrase is never shown. Leave the field empty to keep it while the signing key stays the same, or type a new one.',
+      },
+    },
+  },
+
   OCI: {
     OFF_NO_COSIGN_ENFORCEMENT: 'Off (no cosign enforcement)',
     KEYLESS_REQUIRE_COSIGN_SIGNATURE: 'Keyless (require cosign signature)',

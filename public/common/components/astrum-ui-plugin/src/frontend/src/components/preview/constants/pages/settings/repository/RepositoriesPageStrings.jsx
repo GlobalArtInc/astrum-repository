@@ -427,6 +427,7 @@ export default localize('react-ui', {
     LEAST_ONE_MEMBER_REPOSITORY_REQUIRED: 'At least one member repository is required',
     GPG_SIGNING_KEY_REQUIRED_APT: 'GPG signing key is required for APT hosted repositories',
     RSA_SIGNING_KEY_REQUIRED_ALPINE: 'RSA signing key is required for Alpine group repositories',
+    SIGNING_KEY_REQUIRED_WITH_PASSPHRASE: 'A signing key is required when a passphrase is set',
     PORT_MUST_BETWEEN_1_65535: 'Port must be between 1 and 65535',
     INVALID_URL_FORMAT_2: (entry) => `Invalid URL format: "${entry}"`,
     INDEX_URL_REQUIRED: 'Index URL is required',
