@@ -74,7 +74,7 @@ export function EmailPage({ className }: EmailPageProps) {
           title={EmailStrings.PAGE.EMAIL_SERVER}
           description={EmailStrings.PAGE.CONFIGURE_OUTGOING_EMAIL_SERVER_SETTINGS}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: EmailStrings.PAGE.EMAIL_SERVER },
           ]}
         />
@@ -113,7 +113,7 @@ export function EmailPage({ className }: EmailPageProps) {
         title={EmailStrings.PAGE.EMAIL_SERVER}
         description={EmailStrings.PAGE.CONFIGURE_OUTGOING_EMAIL_SERVER_SETTINGS}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: EmailStrings.PAGE.EMAIL_SERVER },
         ]}
       />

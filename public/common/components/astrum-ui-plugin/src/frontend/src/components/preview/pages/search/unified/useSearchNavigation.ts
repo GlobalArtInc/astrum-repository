@@ -125,7 +125,7 @@ function buildComponentDetailUrl(result: SearchResult): string {
   const keyword = encodeURIComponent(result.name);
 
   // Full URL with keyword segment: /maven/{keyword}/ga/{gaId}
-  let url = `preview/browse/search/maven/${keyword}/ga/${encodeURIComponent(gaId)}`;
+  let url = `browse/search/maven/${keyword}/ga/${encodeURIComponent(gaId)}`;
   if (result.version) {
     url += `?version=${encodeURIComponent(result.version)}`;
   }

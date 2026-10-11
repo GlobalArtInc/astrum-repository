@@ -218,7 +218,7 @@ export function ApiPage({ className }: ApiPageProps) {
 
   // Navigation helper for Settings breadcrumb
   const navigateToSettings = () => {
-    window.location.hash = '#preview/admin/settings';
+    window.location.hash = '#admin/settings';
   };
 
   return (

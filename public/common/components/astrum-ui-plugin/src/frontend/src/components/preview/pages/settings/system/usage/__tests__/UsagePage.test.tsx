@@ -63,6 +63,6 @@ describe('UsagePage', () => {
     spy.mockReturnValue({ ...baseHook });
     renderWithTheme(<UsagePage />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    expect(window.location.hash).toBe('#preview/admin/settings');
+    expect(window.location.hash).toBe('#admin/settings');
   });
 });

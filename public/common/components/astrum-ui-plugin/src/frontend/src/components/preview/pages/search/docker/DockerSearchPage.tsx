@@ -109,7 +109,7 @@ export function DockerSearchPage({
       onNavigateToDetail(id);
     } else {
       // Default: navigate using hash
-      window.location.hash = `#preview/browse/search/docker/${encodeURIComponent(id)}`;
+      window.location.hash = `#browse/search/docker/${encodeURIComponent(id)}`;
     }
   }, [onNavigateToDetail]);
 

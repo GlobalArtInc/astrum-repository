@@ -34,7 +34,7 @@ export function RepositoryGroupUsageTab({ repositoryName }: RepositoryGroupUsage
             <IconButton 
               variant="ghost" 
               size="1" 
-              onClick={() => window.location.hash = `preview/admin/repository/repositories/${encodeURIComponent(name)}/profile?tab=structure`}
+              onClick={() => window.location.hash = `admin/repository/repositories/${encodeURIComponent(name)}/profile?tab=structure`}
             >
               <ExternalLink size={14} />
             </IconButton>

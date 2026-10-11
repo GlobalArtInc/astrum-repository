@@ -53,7 +53,7 @@ export function LogsPage() {
 
   // Navigation helper for Settings breadcrumb
   const navigateToSettings = () => {
-    window.location.hash = '#preview/admin/settings';
+    window.location.hash = '#admin/settings';
   };
 
   // Render header based on view mode

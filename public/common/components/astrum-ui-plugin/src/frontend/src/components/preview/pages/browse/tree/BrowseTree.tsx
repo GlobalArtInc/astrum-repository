@@ -29,7 +29,7 @@ export const BrowseTree = forwardRef<BrowseTreeRef, BrowseTreeProps>(function Br
     repositoryName,
     initialPath,
     onSelect,
-    baseUrl = 'preview/browse',
+    baseUrl = 'browse',
     className = '',
     format,
     filter = '',

@@ -64,7 +64,7 @@ describe('useNavigationDrawer', () => {
     const { result } = renderHook(() => useNavigationDrawer(true));
     open();
     const link = document.createElement('a');
-    link.href = '#preview/browse/browse';
+    link.href = '#browse/browse';
     const label = document.createElement('span');
     link.appendChild(label);
 

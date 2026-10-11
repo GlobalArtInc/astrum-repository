@@ -26,7 +26,7 @@ describe('SettingsNotAvailablePage', () => {
     renderWithTheme(<SettingsNotAvailablePage featureName="Users" />);
 
     const backLink = screen.getByRole('link', { name: /Back to Settings/ });
-    expect(backLink).toHaveAttribute('href', '#preview/admin/settings');
+    expect(backLink).toHaveAttribute('href', '#admin/settings');
   });
 
   it('renders with different featureName', () => {

@@ -282,7 +282,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               <Button
                 variant="ghost"
                 size="2"
-                onClick={() => { window.location.hash = '#preview/user/usertoken'; }}
+                onClick={() => { window.location.hash = '#user/usertoken'; }}
                 aria-label={UserPagesStrings.ACCOUNT.MANAGE_USER_TOKEN_ARIA}
                 data-testid="manage-user-token-btn"
               >
@@ -308,7 +308,7 @@ export function UserAccountPage({ className }: UserAccountPageProps) {
               <Button
                 variant="ghost"
                 size="2"
-                onClick={() => { window.location.hash = '#preview/user/nugetapitoken'; }}
+                onClick={() => { window.location.hash = '#user/nugetapitoken'; }}
                 aria-label={UserPagesStrings.ACCOUNT.MANAGE_NUGET_API_KEY_ARIA}
                 data-testid="manage-nuget-key-btn"
               >

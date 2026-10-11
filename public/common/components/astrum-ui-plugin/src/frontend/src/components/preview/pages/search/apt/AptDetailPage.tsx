@@ -55,7 +55,7 @@ export function AptDetailPage({ packageId, onBack }: AptDetailPageProps): JSX.El
     if (onBack) {
       onBack();
     } else {
-      window.location.hash = '#preview/browse/search/apt';
+      window.location.hash = '#browse/search/apt';
     }
   };
 

@@ -63,7 +63,7 @@ export function NuGetDetailPage({ packageId, onBack }: NuGetDetailPageProps): JS
     if (onBack) {
       onBack();
     } else {
-      window.location.hash = '#preview/browse/search/nuget';
+      window.location.hash = '#browse/search/nuget';
     }
   };
 

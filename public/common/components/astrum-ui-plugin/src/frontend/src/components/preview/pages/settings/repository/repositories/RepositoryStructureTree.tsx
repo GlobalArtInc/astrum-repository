@@ -134,12 +134,12 @@ const TreeNode = ({
 
   const goToProfile = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.location.hash = `preview/admin/repository/repositories/${encodeURIComponent(node.name)}/profile`;
+    window.location.hash = `admin/repository/repositories/${encodeURIComponent(node.name)}/profile`;
   };
 
   const goToSettings = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.location.hash = `preview/admin/repository/repositories/${encodeURIComponent(node.name)}`;
+    window.location.hash = `admin/repository/repositories/${encodeURIComponent(node.name)}`;
   };
 
   const copyUrl = (e: React.MouseEvent) => {
@@ -156,7 +156,7 @@ const TreeNode = ({
   const goToBlobStore = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (node.blobStore) {
-      window.location.hash = `preview/admin/repository/blobstores/${encodeURIComponent(node.blobStore)}`;
+      window.location.hash = `admin/repository/blobstores/${encodeURIComponent(node.blobStore)}`;
     }
   };
 

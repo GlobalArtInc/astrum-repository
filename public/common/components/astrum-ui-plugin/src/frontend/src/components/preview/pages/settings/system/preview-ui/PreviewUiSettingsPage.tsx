@@ -62,7 +62,7 @@ export default function PreviewUiSettingsPage() {
         title={UI_STRINGS.title}
         description={UI_STRINGS.description}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: UI_STRINGS.title },
         ]}
       />
@@ -88,7 +88,7 @@ export default function PreviewUiSettingsPage() {
         title={UI_STRINGS.title}
         description={UI_STRINGS.description}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: UI_STRINGS.title },
         ]}
       />

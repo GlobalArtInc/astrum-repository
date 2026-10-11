@@ -102,7 +102,7 @@ export function AccessSecurityTab({
       <ProfileSection
         title={RepositoryProfileStrings.SECURITY_TAB.PRIVILEGES}
         icon={Key}
-        editPath="preview/admin/security/privileges"
+        editPath="admin/security/privileges"
       >
         {privileges.length > 0 ? (
           <Flex direction="column" gap="2">
@@ -131,7 +131,7 @@ export function AccessSecurityTab({
       <ProfileSection
         title={RepositoryProfileStrings.SECURITY_TAB.ROLES_ACCESS}
         icon={Users}
-        editPath="preview/admin/security/roles"
+        editPath="admin/security/roles"
       >
         {roles.length > 0 ? (
           <Table.Root>
@@ -171,7 +171,7 @@ export function AccessSecurityTab({
       <ProfileSection
         title={RepositoryProfileStrings.SECURITY_TAB.USERS_ACCESS}
         icon={User}
-        editPath="preview/admin/security/users"
+        editPath="admin/security/users"
       >
         {users.length > 0 ? (
           <Table.Root>
@@ -219,7 +219,7 @@ export function AccessSecurityTab({
       <ProfileSection
         title={RepositoryProfileStrings.SECURITY_TAB.ANONYMOUS_ACCESS}
         icon={Ghost}
-        editPath="preview/admin/security/anonymous"
+        editPath="admin/security/anonymous"
       >
         {anonymousAccess ? (
           <Flex direction="column" gap="2">

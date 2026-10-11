@@ -58,9 +58,9 @@ export function blobStorePath(blobStoreName: string | undefined, blobStore: Blob
     return undefined;
   }
   if (blobStore?.typeId) {
-    return `preview/admin/repository/blobstores/${encodeURIComponent(blobStore.typeId)}/${encodeURIComponent(blobStoreName)}`;
+    return `admin/repository/blobstores/${encodeURIComponent(blobStore.typeId)}/${encodeURIComponent(blobStoreName)}`;
   }
-  return 'preview/admin/repository/blobstores';
+  return 'admin/repository/blobstores';
 }
 
 // =============================================================================
@@ -215,7 +215,7 @@ export function RepositoryTab({
       <ProfileSection
         title={RepositoryProfileStrings.REPOSITORY_TAB.REPOSITORY_CONFIGURATION}
         icon={Database}
-        editPath={`preview/admin/repository/repositories/${encodeURIComponent(repository.name)}`}
+        editPath={`admin/repository/repositories/${encodeURIComponent(repository.name)}`}
       >
         <Grid columns="2" gapX="6" gapY="2">
           <Box style={{ gridColumn: 'span 2' }} mb="2">
@@ -354,7 +354,7 @@ export function RepositoryTab({
         <ProfileSection
           title={RepositoryProfileStrings.REPOSITORY_TAB.CLEANUP_POLICIES}
           icon={Trash2}
-          editPath="preview/admin/repository/cleanup-policies"
+          editPath="admin/repository/cleanup-policies"
         >
           <Grid columns="2" gap="4">
             {cleanupPolicies.map((policy) => (
@@ -378,7 +378,7 @@ export function RepositoryTab({
         <ProfileSection
           title={RepositoryProfileStrings.REPOSITORY_TAB.ROUTING_RULES}
           icon={Route}
-          editPath="preview/admin/repository/routing-rules"
+          editPath="admin/repository/routing-rules"
         >
           <Grid columns="2" gap="4">
             <ConfigRow label={CommonStrings.LABELS.NAME} value={routingRule.name} />

@@ -92,14 +92,14 @@ describe('GlobalHeaderRadix', () => {
   });
 
   it('keeps the user in Astrum One when the access flags flap', () => {
-    window.location.hash = 'preview/browse/welcome';
+    window.location.hash = 'browse/welcome';
 
     const {rerender} = renderHeader();
 
     mockStateValues.loggedInEnabled = false;
     rerender(<Theme><TooltipProvider><GlobalHeaderRadix /></TooltipProvider></Theme>);
 
-    expect(window.location.hash).toBe('#preview/browse/welcome');
+    expect(window.location.hash).toBe('#browse/welcome');
   });
 
   describe('onRefreshClick — Preview UI (ASTRUM-53775)', () => {
@@ -168,7 +168,7 @@ describe('GlobalHeaderRadix', () => {
     });
 
     it('has no button to switch between interfaces', () => {
-      window.location.hash = 'preview/browse/welcome';
+      window.location.hash = 'browse/welcome';
       renderHeader();
 
       expect(screen.queryByRole('button', {name: 'Switch to Classic UI'})).not.toBeInTheDocument();

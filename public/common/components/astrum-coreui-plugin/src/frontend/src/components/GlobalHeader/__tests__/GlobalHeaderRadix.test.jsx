@@ -96,9 +96,9 @@ describe('GlobalHeaderRadix', () => {
   });
 
   it.each([
-    ['an anonymous visitor in Astrum One', { authenticated: false }, 'preview/browse/welcome'],
-    ['a signed-in user in Astrum One', { authenticated: true, userId: 'admin' }, 'preview/admin/repository/repositories'],
-    ['a signed-in user on an unmapped Astrum One page', { authenticated: true, userId: 'admin' }, 'preview/browse/audit'],
+    ['an anonymous visitor in Astrum One', { authenticated: false }, 'browse/welcome'],
+    ['a signed-in user in Astrum One', { authenticated: true, userId: 'admin' }, 'admin/repository/repositories'],
+    ['a signed-in user on an unmapped Astrum One page', { authenticated: true, userId: 'admin' }, 'browse/audit'],
   ])('offers %s no way back to the Classic UI', (_who, user, hash) => {
     mockUseUser.mockReturnValue(user);
     window.location.hash = hash;
@@ -125,7 +125,7 @@ describe('GlobalHeaderRadix', () => {
     }
 
     beforeEach(() => {
-      window.location.hash = 'preview/browse/welcome';
+      window.location.hash = 'browse/welcome';
       mockUseUser.mockReturnValue({ authenticated: true, userId: 'admin' });
     });
 

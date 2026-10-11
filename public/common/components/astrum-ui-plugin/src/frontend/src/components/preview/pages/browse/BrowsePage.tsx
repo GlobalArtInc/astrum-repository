@@ -1085,7 +1085,7 @@ export function BrowsePage(): JSX.Element {
             repositoryName={selectedRepository}
             initialPath={initialPath}
             onSelect={handleSelectNode}
-            baseUrl="preview/browse"
+            baseUrl="browse"
             format={repositoryFormat}
             filter={treeFilter}
             onFilterResult={setTreeMatches}

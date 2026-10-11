@@ -504,7 +504,7 @@ function AssetRow({ asset }: { asset: GAAsset }) {
 
   const handleBrowse = () => {
     const path = asset.path.replace(/^\/+/, '');
-    window.location.hash = `#preview/browse/${encodeURIComponent(asset.repository)}/${path}?tab=summary`;
+    window.location.hash = `#browse/${encodeURIComponent(asset.repository)}/${path}?tab=summary`;
   };
 
   return (

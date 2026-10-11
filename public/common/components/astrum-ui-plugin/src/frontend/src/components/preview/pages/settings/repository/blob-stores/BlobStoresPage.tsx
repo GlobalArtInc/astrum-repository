@@ -59,7 +59,7 @@ import CommonStrings from '../../../../constants/CommonStrings';
 import { pageLanguage } from '../../../../../../interface/plural';
 
 // Base path for blob stores URLs
-const BASE_PATH = 'preview/admin/repository/blobstores';
+const BASE_PATH = 'admin/repository/blobstores';
 
 /**
  * URL-based routing patterns:
@@ -232,9 +232,9 @@ function formatBytes(bytes: number): string {
  * - Bookmarkable URLs
  *
  * URL patterns:
- * - #preview/admin/repository/blobstores                → List
- * - #preview/admin/repository/blobstores/create         → Create form
- * - #preview/admin/repository/blobstores/{type}/{name}  → Edit form
+ * - #admin/repository/blobstores                → List
+ * - #admin/repository/blobstores/create         → Create form
+ * - #admin/repository/blobstores/{type}/{name}  → Edit form
  */
 export default function BlobStoresPage() {
   const [routeState, setRouteState] = useState<RouteState>(() => parseRoute(window.location.hash));
@@ -827,7 +827,7 @@ export default function BlobStoresPage() {
         title={STRINGS.TITLE}
         description={STRINGS.DESCRIPTION}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: BlobStoresStrings.PAGE.BLOB_STORES }
         ]}
         actions={
@@ -906,7 +906,7 @@ export default function BlobStoresPage() {
       : STRINGS.CREATE_TITLE;
 
     const formBreadcrumbs = [
-      { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
       { label: BlobStoresStrings.PAGE.BLOB_STORES, onClick: handleBack },
       { label: isEdit ? (routeState.blobStoreName || CommonStrings.MESSAGES.LOADING) : CommonStrings.ACTIONS.CREATE },
     ];

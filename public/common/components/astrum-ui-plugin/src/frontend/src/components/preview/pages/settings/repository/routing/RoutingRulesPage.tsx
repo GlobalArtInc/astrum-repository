@@ -20,7 +20,7 @@ import CommonStrings from '../../../../constants/CommonStrings';
 import plural from '../../../../../../interface/plural';
 
 // Base path for routing rules URLs
-const BASE_PATH = 'preview/admin/repository/routing-rules';
+const BASE_PATH = 'admin/repository/routing-rules';
 
 /**
  * URL-based routing patterns:
@@ -89,10 +89,10 @@ function navigateTo(path: string) {
  * - Bookmarkable URLs
  *
  * URL patterns:
- * - #preview/admin/repository/routing-rules           → List
- * - #preview/admin/repository/routing-rules/create    → Create form
- * - #preview/admin/repository/routing-rules/preview   → Global preview
- * - #preview/admin/repository/routing-rules/{name}    → Edit form
+ * - #admin/repository/routing-rules           → List
+ * - #admin/repository/routing-rules/create    → Create form
+ * - #admin/repository/routing-rules/preview   → Global preview
+ * - #admin/repository/routing-rules/{name}    → Edit form
  */
 export function RoutingRulesPage() {
   const [routeState, setRouteState] = useState<RouteState>(() => parseRoute(window.location.hash));
@@ -203,7 +203,7 @@ export function RoutingRulesPage() {
           title={RoutingRulesStrings.PAGE.ROUTING_RULES}
           description={RoutingRulesStrings.PAGE.CONTROL_WHICH_REQUESTS_ALLOWED_BLOCKED}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: RoutingRulesStrings.PAGE.ROUTING_RULES }
           ]}
           actions={
@@ -238,7 +238,7 @@ export function RoutingRulesPage() {
           title={RoutingRulesStrings.PAGE.GLOBAL_ROUTING_PREVIEW}
           description={RoutingRulesStrings.PAGE.TEST_HOW_ROUTING_RULES_AFFECT}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: RoutingRulesStrings.PAGE.ROUTING_RULES, onClick: handleBack },
             { label: RoutingRulesStrings.PAGE.PREVIEW }
           ]}
@@ -265,7 +265,7 @@ export function RoutingRulesPage() {
         title={title}
         description={description}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: RoutingRulesStrings.PAGE.ROUTING_RULES, onClick: handleBack },
           { label: lastBreadcrumb }
         ]}

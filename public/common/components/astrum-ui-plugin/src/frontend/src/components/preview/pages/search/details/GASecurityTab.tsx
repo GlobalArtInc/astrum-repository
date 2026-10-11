@@ -44,7 +44,7 @@ const MAX_VIOLATIONS_SHOWN = 20;
 /**
  * State that owns the IQ Server settings entry point. Navigation goes through the router by
  * state name, never by an assembled hash: `preview.admin.iq` is declared with `url:
- * '/iq-overview'`, so the `#preview/admin/iq` this used to assign matched no route and landed
+ * '/iq-overview'`, so the `#admin/iq` this used to assign matched no route and landed
  * the user on a 404.
  */
 const IQ_SETTINGS_STATE = 'preview.admin.iq';

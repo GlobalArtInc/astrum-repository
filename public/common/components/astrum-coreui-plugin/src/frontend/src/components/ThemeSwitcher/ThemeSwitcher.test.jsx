@@ -13,7 +13,7 @@ describe('ThemeSwitcher', () => {
     localStorage.setItem('astrum-theme-preference', THEMES.LIGHT);
     document.documentElement.removeAttribute('data-theme');
     // ThemeSwitcher only renders in Preview UI, so simulate that context
-    window.location.hash = '#preview/browse/welcome';
+    window.location.hash = '#browse/welcome';
     window.matchMedia = jest.fn().mockImplementation(query => ({
       matches: false,
       media: query,

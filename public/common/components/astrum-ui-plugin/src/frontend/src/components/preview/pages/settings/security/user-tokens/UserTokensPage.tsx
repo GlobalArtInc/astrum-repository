@@ -89,7 +89,7 @@ export function UserTokensPage() {
             description={UserTokensStrings.PAGE.CONFIGURE_USER_TOKEN_SETTINGS}
           
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: UserTokensStrings.PAGE.USER_TOKENS }
           ]}
 />
@@ -134,7 +134,7 @@ export function UserTokensPage() {
           title={UserTokensStrings.PAGE.USER_TOKENS}
           description={UserTokensStrings.PAGE.CONFIGURE_USER_TOKEN_SETTINGS_REPOSITORY}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: UserTokensStrings.PAGE.USER_TOKENS }
           ]}
         />

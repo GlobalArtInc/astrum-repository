@@ -442,7 +442,7 @@ describe('GASecurityTab', () => {
       );
 
       // `preview.admin.iq` is declared with url '/iq-overview', so assembling
-      // '#preview/admin/iq' from the state name 404s. Only the router knows the URL.
+      // '#admin/iq' from the state name 404s. Only the router knows the URL.
       expect(mockGo).toHaveBeenCalledWith('preview.admin.iq');
       expect(window.location.hash).toBe(hashBefore);
     });

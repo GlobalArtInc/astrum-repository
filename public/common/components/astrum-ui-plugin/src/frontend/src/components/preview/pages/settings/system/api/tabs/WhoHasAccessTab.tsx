@@ -9,8 +9,8 @@ import type { MergedApiEndpoint } from '../utils/mergeSwaggerPermissions';
 import ApiStrings from '../../../../../constants/pages/settings/system/ApiStrings';
 import plural from '../../../../../../../interface/plural';
 
-const ROLES_PROFILE_BASE = 'preview/admin/security/roles';
-const USERS_BASE = 'preview/admin/security/users';
+const ROLES_PROFILE_BASE = 'admin/security/roles';
+const USERS_BASE = 'admin/security/users';
 
 function roleProfileHash(roleId: string): string {
   return `#${ROLES_PROFILE_BASE}/${encodeURIComponent(roleId)}/profile`;

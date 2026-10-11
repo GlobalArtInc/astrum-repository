@@ -16,20 +16,13 @@ describe('MissingRoutePage', () => {
     mockUseSref.mockClear();
   });
 
-  it('leads back to the dashboard of Astrum One from a missing page of Astrum One', () => {
-    window.location.hash = '#preview/browse/nothing-here';
+  it('leads back to the dashboard of Astrum One', () => {
+    window.location.hash = '#browse/nothing-here';
 
     render(<MissingRoutePage />);
 
     expect(screen.getByText('404')).toBeInTheDocument();
+    expect(mockUseSref).toHaveBeenCalledWith('preview.browse.welcome');
     expect(screen.getByRole('link', { name: /dashboard/i })).toHaveAttribute('href', '#preview.browse.welcome');
-  });
-
-  it('leads back to the classic dashboard from a missing classic page', () => {
-    window.location.hash = '#nothing-here';
-
-    render(<MissingRoutePage />);
-
-    expect(screen.getByRole('link', { name: /dashboard/i })).toHaveAttribute('href', '#browse.welcome');
   });
 });

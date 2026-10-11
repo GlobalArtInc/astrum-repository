@@ -92,7 +92,7 @@ export function PyPISearchPage({
       onNavigateToDetail(id);
     } else {
       // Default: navigate using hash
-      window.location.hash = `#preview/browse/search/pypi/detail/${encodeURIComponent(id)}`;
+      window.location.hash = `#browse/search/pypi/detail/${encodeURIComponent(id)}`;
     }
   }, [onNavigateToDetail]);
 

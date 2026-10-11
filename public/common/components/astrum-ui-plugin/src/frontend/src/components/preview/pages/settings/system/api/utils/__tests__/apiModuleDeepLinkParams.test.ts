@@ -28,12 +28,12 @@ function row(method: string, path: string, perms: string[]): MergedApiEndpoint {
 
 describe('apiModuleDeepLinkParams', () => {
   it('extracts query from hash', () => {
-    expect(extractQueryFromLocationHash('#/preview/browse/api?user=admin')).toBe('user=admin');
+    expect(extractQueryFromLocationHash('#browse/api?user=admin')).toBe('user=admin');
     expect(extractQueryFromLocationHash('#/path')).toBe('');
   });
 
   it('parses hash params', () => {
-    expect(parseApiModuleHashParams('#/preview/browse/api?user=a&role=r')).toEqual({
+    expect(parseApiModuleHashParams('#browse/api?user=a&role=r')).toEqual({
       user: 'a',
       role: 'r',
       permission: null,

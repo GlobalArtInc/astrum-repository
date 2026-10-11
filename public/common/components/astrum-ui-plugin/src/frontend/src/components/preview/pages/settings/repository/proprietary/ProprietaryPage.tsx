@@ -147,7 +147,7 @@ export function ProprietaryPage() {
           title={ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES}
           description={ProprietaryStrings.PAGE.CONFIGURE_WHICH_REPOSITORIES_CONTAIN_PROPRIETARY}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES }
           ]}
         />
@@ -165,7 +165,7 @@ export function ProprietaryPage() {
           title={ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES}
           description={ProprietaryStrings.PAGE.CONFIGURE_WHICH_REPOSITORIES_CONTAIN_PROPRIETARY}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES }
           ]}
         />
@@ -185,7 +185,7 @@ export function ProprietaryPage() {
         title={ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES}
         description={ProprietaryStrings.PAGE.CONFIGURE_WHICH_REPOSITORIES_CONTAIN_PROPRIETARY}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: ProprietaryStrings.PAGE.PROPRIETARY_REPOSITORIES }
         ]}
       />

@@ -20,7 +20,7 @@ import CommonStrings from '../../../../constants/CommonStrings';
 
 type ViewMode = 'list' | 'create' | 'detail';
 
-const BASE_PATH = 'preview/admin/system/tasks';
+const BASE_PATH = 'admin/system/tasks';
 
 // Permissions
 const Permissions = {
@@ -36,10 +36,10 @@ const Permissions = {
  * Parse the URL hash to determine view mode and parameters.
  *
  * URL patterns:
- * - #preview/admin/system/tasks              → list
- * - #preview/admin/system/tasks/create       → create (type selector)
- * - #preview/admin/system/tasks/create/{typeId} → create with pre-selected type
- * - #preview/admin/system/tasks/{taskId}     → detail/edit
+ * - #admin/system/tasks              → list
+ * - #admin/system/tasks/create       → create (type selector)
+ * - #admin/system/tasks/create/{typeId} → create with pre-selected type
+ * - #admin/system/tasks/{taskId}     → detail/edit
  */
 function parseTasksRoute(hash: string): { viewMode: ViewMode; taskId: string | null; typeId: string | null } {
   const cleanHash = hash.replace(/^#/, '').replace(/\?.*$/, '');
@@ -310,7 +310,7 @@ export function TasksPage({ className }: TasksPageProps) {
 
   // Navigation helper for Settings breadcrumb
   const navigateToSettings = () => {
-    window.location.hash = '#preview/admin/settings';
+    window.location.hash = '#admin/settings';
   };
 
   const createBreadcrumbs = [

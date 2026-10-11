@@ -290,7 +290,7 @@ export function RepositoryEvaluationTab({
                       <Text size="2" color="gray" as="div">
                         {RepositoriesPageStrings.EVALUATION.INHERIT_SETTINGS(
                           <Button asChild variant="ghost" size="1" color="blue" className="repository-evaluation-tab__inline-link">
-                            <a href="#preview/admin/iq/hosted-repos-eval">
+                            <a href="#admin/iq/hosted-repos-eval">
                               {RepositoriesPageStrings.EVALUATION.HOSTED_REPOSITORY_EVALUATION}
                               <ExternalLink size={12} aria-hidden="true" />
                             </a>

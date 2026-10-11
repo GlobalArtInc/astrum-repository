@@ -48,8 +48,8 @@ interface UserProfilePageProps {
   embedMode?: boolean;
 }
 
-const ROLES_BASE = 'preview/admin/security/roles';
-const PRIVILEGES_BASE = 'preview/admin/security/privileges';
+const ROLES_BASE = 'admin/security/roles';
+const PRIVILEGES_BASE = 'admin/security/privileges';
 
 function _roleProfileUrl(roleId: string): string {
   return `#${ROLES_BASE}/${encodeURIComponent(roleId)}/profile`;
@@ -304,7 +304,7 @@ export function UserProfilePage({
         title={user.userId}
         headingAs={embedMode ? 'h2' : 'h1'}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
           { label: UsersStrings.PROFILE.USERS, onClick: onBack },
           { label: user.userId }
         ]}

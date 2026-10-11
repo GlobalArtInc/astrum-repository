@@ -47,7 +47,7 @@ export default function UsagePage(): JSX.Element {
           title={USAGE_STRINGS.TITLE}
           description={USAGE_STRINGS.MENU_DESCRIPTION}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: USAGE_STRINGS.TITLE },
           ]}
         />

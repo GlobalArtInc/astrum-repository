@@ -161,8 +161,8 @@ describe('useSearchNavigation', () => {
         repository: 'maven-central',
       });
 
-      // URL format: preview/browse/search/maven/{keyword}/ga/{gaId}
-      expect(route.url).toContain('preview/browse/search/maven/');
+      // URL format: browse/search/maven/{keyword}/ga/{gaId}
+      expect(route.url).toMatch(/^browse\/search\/maven\//);
       expect(route.url).toContain('/ga/');
       expect(route.url).toContain('maven2');
       expect(route.isPreviewBrowse).toBe(false);

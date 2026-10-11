@@ -82,7 +82,7 @@ describe('CloudUsageCenterPanel', () => {
   it('renders the historical usage link', () => {
     render(<CloudUsageCenterPanel monthlyMetrics={baseMetrics} />);
     const link = screen.getByText('See historical usage data.');
-    expect(link).toHaveAttribute('href', '#preview/admin/system/usage');
+    expect(link).toHaveAttribute('href', '#admin/system/usage');
   });
 
   it('computes egress and storage independently without cross-tile contamination', () => {

@@ -296,7 +296,7 @@ export default localize('react-ui', {
     ASSETS: 'Assets',
   },
   HEALTH_CHECK_STEP: {
-    NOT_AVAILABLE: <>Repository Health Check is not available — the system capability is not enabled. <a href="#preview/admin/system/capabilities">Go to System Capabilities →</a></>,
+    NOT_AVAILABLE: <>Repository Health Check is not available — the system capability is not enabled. <a href="#admin/system/capabilities">Go to System Capabilities →</a></>,
     FAILED_ENABLE_HEALTH_CHECK: 'Failed to enable Health Check',
     REPOSITORY_HEALTH_CHECK: 'Repository Health Check',
     REPOSITORY_HEALTH_CHECK_ANALYZES_COMPONENTS: 'Repository Health Check analyzes components for security vulnerabilities and license issues. You can enable it now or configure it later from the repository profile.',

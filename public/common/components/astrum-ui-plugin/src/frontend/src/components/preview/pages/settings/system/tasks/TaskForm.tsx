@@ -180,14 +180,14 @@ export function TaskForm({
     if (isCreate && step === 0) {
       setSelectedTaskTypeObj(null);
       form.send({ type: 'TASK_TYPE_CHANGE', value: '' } as any);
-      window.history.replaceState(null, '', '#preview/admin/system/tasks/create');
+      window.history.replaceState(null, '', '#admin/system/tasks/create');
     } else if (isCreate && step === 1) {
       if (selectedTaskTypeObj) {
-        window.history.replaceState(null, '', `#preview/admin/system/tasks/create/${encodeURIComponent(selectedTaskTypeObj.id)}`);
+        window.history.replaceState(null, '', `#admin/system/tasks/create/${encodeURIComponent(selectedTaskTypeObj.id)}`);
       } else {
         setSelectedTaskTypeObj(null);
         form.send({ type: 'TASK_TYPE_CHANGE', value: '' } as any);
-        window.history.replaceState(null, '', '#preview/admin/system/tasks/create');
+        window.history.replaceState(null, '', '#admin/system/tasks/create');
       }
     }
     setInternalStep(step);

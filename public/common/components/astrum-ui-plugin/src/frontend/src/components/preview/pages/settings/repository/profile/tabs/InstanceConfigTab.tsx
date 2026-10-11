@@ -199,7 +199,7 @@ export function InstanceConfigTab({
                 <Zap size={18} color="var(--yellow-9)" />
                 <Text weight="bold">{RepositoryProfileStrings.INSTANCE_CONFIG.GLOBAL_CAPABILITIES}</Text>
               </Flex>
-              <SettingsLink previewPath="preview/admin/system/capabilities" label={RepositoryProfileStrings.INSTANCE_CONFIG.MANAGE} />
+              <SettingsLink previewPath="admin/system/capabilities" label={RepositoryProfileStrings.INSTANCE_CONFIG.MANAGE} />
             </Flex>
             <Separator size="4" />
 

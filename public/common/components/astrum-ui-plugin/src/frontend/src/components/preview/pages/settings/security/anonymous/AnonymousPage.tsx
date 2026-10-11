@@ -75,7 +75,7 @@ export function AnonymousPage({ className }: AnonymousPageProps) {
             description={AnonymousStrings.PAGE.CONFIGURE_ANONYMOUS_USER_ACCESS_SETTINGS}
           
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: AnonymousStrings.PAGE.ANONYMOUS }
           ]}
 />
@@ -116,7 +116,7 @@ export function AnonymousPage({ className }: AnonymousPageProps) {
           title={AnonymousStrings.PAGE.ANONYMOUS_ACCESS}
           description={AnonymousStrings.PAGE.CONFIGURE_ANONYMOUS_USER_ACCESS_SETTINGS}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: AnonymousStrings.PAGE.ANONYMOUS_ACCESS }
           ]}
         />

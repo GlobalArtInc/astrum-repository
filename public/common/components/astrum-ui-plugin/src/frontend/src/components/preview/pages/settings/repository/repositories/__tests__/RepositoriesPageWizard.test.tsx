@@ -13,7 +13,7 @@ jest.mock('@uirouter/react', () => ({
   useRouter: () => ({
     stateService: {
       go: jest.fn(),
-      href: jest.fn(() => '#preview/admin/iq/hosted-repos-eval'),
+      href: jest.fn(() => '#admin/iq/hosted-repos-eval'),
     },
   }),
   useCurrentStateAndParams: () => ({ state: null, params: {} }),
@@ -101,7 +101,7 @@ const renderWithTheme = (component: React.ReactElement) => {
 describe('RepositoriesPage wizard firewall step', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    window.location.hash = '#preview/admin/repository/repositories/create/maven2/proxy';
+    window.location.hash = '#admin/repository/repositories/create/maven2/proxy';
     mockUseRepositoriesApi.mockReturnValue(mockApiHook);
   });
 
@@ -191,7 +191,7 @@ describe('RepositoriesPage wizard cancel on pristine config step (ASTRUM-54349)'
   beforeEach(() => {
     jest.clearAllMocks();
     mockDirty = undefined;
-    window.location.hash = '#preview/admin/repository/repositories/create/maven2/hosted';
+    window.location.hash = '#admin/repository/repositories/create/maven2/hosted';
     mockUseRepositoriesApi.mockReturnValue(mockApiHook);
   });
 
@@ -227,7 +227,7 @@ describe('RepositoriesPage wizard cancel on pristine config step (ASTRUM-54349)'
 describe('RepositoriesPage wizard HC disabled-by-default', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    window.location.hash = '#preview/admin/repository/repositories/create/maven2/proxy';
+    window.location.hash = '#admin/repository/repositories/create/maven2/proxy';
     mockUseRepositoriesApi.mockReturnValue(mockApiHook);
   });
 
@@ -258,7 +258,7 @@ describe('RepositoriesPage wizard title', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDirty = undefined;
-    window.location.hash = '#preview/admin/repository/repositories/create/maven2/hosted';
+    window.location.hash = '#admin/repository/repositories/create/maven2/hosted';
     mockUseRepositoriesApi.mockReturnValue(mockApiHook);
   });
 

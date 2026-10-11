@@ -14,7 +14,7 @@ import { BLOB_STORE_TYPE_IDS } from './blobStoreFormMachine';
 import BlobStoresStrings from '../../../../constants/pages/settings/repository/BlobStoresStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
 
-const BASE_PATH = 'preview/admin/repository/blobstores';
+const BASE_PATH = 'admin/repository/blobstores';
 
 const WIZARD_STEPS = [
   { id: 'type', label: BlobStoresStrings.WIZARD.SELECT_TYPE },
@@ -320,7 +320,7 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
       <Box p="8">
         <PageHeader
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: BlobStoresStrings.WIZARD.BLOB_STORES, onClick: onBack },
             { label: CommonStrings.ACTIONS.CREATE },
           ]}
@@ -371,7 +371,7 @@ export function BlobStoreWizardCreate({ onBack }: BlobStoreWizardCreateProps) {
     <Box className="blob-store-wizard-create" data-testid="blob-store-wizard-create">
       <PageHeader
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: BlobStoresStrings.WIZARD.BLOB_STORES, onClick: onBack },
           { label: CommonStrings.ACTIONS.CREATE },
         ]}

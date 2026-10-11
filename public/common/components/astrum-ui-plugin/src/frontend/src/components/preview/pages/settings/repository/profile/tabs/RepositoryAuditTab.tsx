@@ -38,7 +38,7 @@ export function RepositoryAuditTab({ repositoryName }: RepositoryAuditTabProps):
 
   const { data, loading, error } = useAuditLogApi({ filters, page: 1, limit: 5 });
 
-  const auditUrl = `#preview/browse/audit?repositoryName=${encodeURIComponent(repositoryName)}`;
+  const auditUrl = `#browse/audit?repositoryName=${encodeURIComponent(repositoryName)}`;
 
   if (loading) {
     return (

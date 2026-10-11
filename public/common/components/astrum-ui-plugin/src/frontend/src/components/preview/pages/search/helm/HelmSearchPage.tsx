@@ -91,7 +91,7 @@ export function HelmSearchPage({
       onNavigateToDetail(id);
     } else {
       // Default: navigate using hash
-      window.location.hash = `#preview/browse/search/helm/detail/${encodeURIComponent(id)}`;
+      window.location.hash = `#browse/search/helm/detail/${encodeURIComponent(id)}`;
     }
   }, [onNavigateToDetail]);
 

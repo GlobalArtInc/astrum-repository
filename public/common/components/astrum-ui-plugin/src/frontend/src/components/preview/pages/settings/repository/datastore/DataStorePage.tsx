@@ -72,7 +72,7 @@ export function DataStorePage() {
         title={DataStoreStrings.PAGE.DATA_STORE}
         description={DataStoreStrings.PAGE.CONFIGURE_CONNECTION_USED_DATABASE}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: DataStoreStrings.PAGE.DATA_STORE }
         ]}
       />

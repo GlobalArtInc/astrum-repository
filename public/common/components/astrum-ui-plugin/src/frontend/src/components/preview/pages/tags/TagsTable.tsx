@@ -78,7 +78,7 @@ export function TagsTable({
   );
 
   const handleRowClick = useCallback((tagName: string) => {
-    window.location.hash = `#preview/browse/tags/${encodeURIComponent(tagName)}`;
+    window.location.hash = `#browse/tags/${encodeURIComponent(tagName)}`;
   }, []);
 
   const handleRowKeyDown = useCallback((tagName: string) => (e: React.KeyboardEvent) => {

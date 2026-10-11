@@ -487,7 +487,7 @@ describe('CapabilitiesPage', () => {
       render(<CapabilitiesPage />, { wrapper: TestWrapper });
 
       screen.getByRole('button', { name: 'Settings' }).click();
-      expect(window.location.hash).toBe('#preview/admin/settings');
+      expect(window.location.hash).toBe('#admin/settings');
     });
 
     it('renders breadcrumbs for create/selectType view', () => {

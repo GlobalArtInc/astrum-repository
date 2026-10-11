@@ -121,7 +121,7 @@ function parseUrlState(): UrlSearchState {
   // Get query string from hash (for hash-based routing) or from search
   let queryString = '';
 
-  // Check if we're using hash-based routing (#preview/browse/search?format=maven&q=test)
+  // Check if we're using hash-based routing (#browse/search?format=maven&q=test)
   const hash = window.location.hash;
   if (hash.includes('?')) {
     queryString = hash.split('?')[1] || '';
@@ -245,7 +245,7 @@ function updateBrowserUrl(state: UrlSearchState, replace = false): void {
   // Preserve the hash path but update query params
   let newUrl: string;
   if (hash) {
-    // Hash-based routing: #preview/browse/search?params
+    // Hash-based routing: #browse/search?params
     const hashPath = hash.split('?')[0];
     newUrl = queryString
       ? `${window.location.pathname}${preHashSearch}${hashPath}?${queryString}`
@@ -281,7 +281,7 @@ function updateBrowserUrl(state: UrlSearchState, replace = false): void {
 function buildShareableUrl(state: UrlSearchState): string {
   const queryString = buildQueryString(state);
   const base = `${window.location.origin}${window.location.pathname}`;
-  const hash = window.location.hash.split('?')[0] || '#preview/browse/search';
+  const hash = window.location.hash.split('?')[0] || '#browse/search';
 
   return queryString ? `${base}${hash}?${queryString}` : `${base}${hash}`;
 }
@@ -297,7 +297,7 @@ function buildShareableUrl(state: UrlSearchState): string {
  * is held here, avoiding a second competing source of truth.
  *
  * URL format (readable query params):
- * - `#preview/browse/search?q=spring&format=maven&maven.groupId=org.apache&sort=name`
+ * - `#browse/search?q=spring&format=maven&maven.groupId=org.apache&sort=name`
  *
  * @example
  * ```tsx

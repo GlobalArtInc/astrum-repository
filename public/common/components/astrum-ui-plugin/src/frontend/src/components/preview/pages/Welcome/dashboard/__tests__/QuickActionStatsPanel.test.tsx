@@ -103,7 +103,7 @@ describe('QuickActionStatsPanel — System Health cloud behaviour', () => {
     renderPanel();
     await waitFor(() => {
       const link = screen.getByRole('link', { name: /system health/i });
-      expect(link).toHaveAttribute('href', '#preview/admin/support/metrichealth');
+      expect(link).toHaveAttribute('href', '#admin/support/metrichealth');
     });
   });
 

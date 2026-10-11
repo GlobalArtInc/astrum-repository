@@ -45,8 +45,8 @@ function openInRepository(result: CustomSearchResult): void {
   const path = result.path ? result.path.replace(/^\/+/, '') : '';
   const repository = encodeURIComponent(result.repository);
   window.location.hash = path
-    ? `#preview/browse/${repository}/${path}?tab=summary`
-    : `#preview/browse/${repository}/`;
+    ? `#browse/${repository}/${path}?tab=summary`
+    : `#browse/${repository}/`;
 }
 
 export function CustomSearchResults({

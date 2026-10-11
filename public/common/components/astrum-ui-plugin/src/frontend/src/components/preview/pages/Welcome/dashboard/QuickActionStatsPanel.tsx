@@ -21,10 +21,10 @@ const {
   },
 } = UIStrings;
 
-const SYSTEM_HEALTH_HREF = '#preview/admin/support/metrichealth';
-const BROWSE_HREF = '#preview/browse';
-const SEARCH_HREF = '#preview/browse/search';
-const CLEANUP_POLICIES_HREF = '#preview/admin/repository/cleanup-policies';
+const SYSTEM_HEALTH_HREF = '#admin/support/metrichealth';
+const BROWSE_HREF = '#browse';
+const SEARCH_HREF = '#browse/search';
+const CLEANUP_POLICIES_HREF = '#admin/repository/cleanup-policies';
 
 function TileLoadingSkeleton() {
   return (

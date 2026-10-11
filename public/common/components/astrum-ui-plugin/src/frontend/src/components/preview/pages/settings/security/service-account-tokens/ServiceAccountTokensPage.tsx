@@ -303,7 +303,7 @@ export function ServiceAccountTokensPage() {
           title={LABELS.TITLE}
           description={LABELS.DESCRIPTION}
           breadcrumbs={[
-            { label: LABELS.BREADCRUMB_SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: LABELS.BREADCRUMB_SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: LABELS.TITLE },
           ]}
         />

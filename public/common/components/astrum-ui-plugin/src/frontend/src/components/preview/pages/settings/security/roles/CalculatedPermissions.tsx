@@ -8,7 +8,7 @@ import { EntityTable, TableColumn, EmptyState } from '../../../../shared';
 import RolesStrings from '../../../../constants/pages/settings/security/RolesStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
 
-const PRIVILEGES_BASE_PATH = 'preview/admin/security/privileges';
+const PRIVILEGES_BASE_PATH = 'admin/security/privileges';
 
 interface CalculatedPermissionsProps {
   privileges: Privilege[];

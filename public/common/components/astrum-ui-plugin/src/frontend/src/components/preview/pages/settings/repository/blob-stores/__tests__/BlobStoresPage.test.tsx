@@ -205,12 +205,12 @@ function makeBlobStoreHook(overrides: Partial<ReturnType<typeof useBlobStoresMod
 
 /** Point the URL hash to the edit view for a given type/name. */
 function setEditHash(type: string, name: string) {
-  window.location.hash = `#preview/admin/repository/blobstores/${type}/${name}`;
+  window.location.hash = `#admin/repository/blobstores/${type}/${name}`;
 }
 
 /** Point the URL hash to the list view. */
 function setListHash() {
-  window.location.hash = '#preview/admin/repository/blobstores';
+  window.location.hash = '#admin/repository/blobstores';
 }
 
 const mockUseBlobStore = useBlobStoresModule.useBlobStore as jest.Mock;

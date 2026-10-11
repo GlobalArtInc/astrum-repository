@@ -7,7 +7,7 @@ import { useSearchUrlState, type UrlSearchState } from '../useSearchUrlState';
  * Set the browser hash to a given search query string (hash-based routing).
  */
 function setHash(queryString: string): void {
-  const path = '#preview/browse/search';
+  const path = '#browse/search';
   window.location.hash = queryString ? `${path}?${queryString}` : path;
 }
 
@@ -229,7 +229,7 @@ describe('useSearchUrlState', () => {
         filters: { groupId: 'org.apache' },
       });
 
-      expect(url).toContain('#preview/browse/search');
+      expect(url).toContain('#browse/search');
       expect(url).toContain('q=spring');
       expect(url).toContain('format=maven');
       expect(url).toContain('maven.groupId=org.apache');
@@ -251,7 +251,7 @@ describe('useSearchUrlState', () => {
     it('keeps the context path so sub-path installs are shareable (AT-012)', () => {
       // Astrum is routinely served under a context path. Composing only
       // origin + hash produced a link that 404s for the recipient.
-      window.history.replaceState({}, '', '/astrum/#preview/browse/search');
+      window.history.replaceState({}, '', '/astrum/#browse/search');
       const { result } = renderHook(() => useSearchUrlState());
 
       const url = result.current.getShareableUrl({
@@ -260,16 +260,16 @@ describe('useSearchUrlState', () => {
         filters: {},
       });
 
-      expect(url).toBe(`${window.location.origin}/astrum/#preview/browse/search?q=spring`);
+      expect(url).toBe(`${window.location.origin}/astrum/#browse/search?q=spring`);
     });
 
     it('keeps the context path when there is no state to carry (AT-012)', () => {
-      window.history.replaceState({}, '', '/astrum/#preview/browse/search');
+      window.history.replaceState({}, '', '/astrum/#browse/search');
       const { result } = renderHook(() => useSearchUrlState());
 
       const url = result.current.getShareableUrl({ format: 'all', query: '', filters: {} });
 
-      expect(url).toBe(`${window.location.origin}/astrum/#preview/browse/search`);
+      expect(url).toBe(`${window.location.origin}/astrum/#browse/search`);
     });
   });
 
@@ -438,9 +438,9 @@ describe('useSearchUrlState', () => {
   });
 
   describe('pre-hash query string', () => {
-    /** Put the browser at `<pathname>?debug#preview/browse/search[?<search state>]`. */
+    /** Put the browser at `<pathname>?debug#browse/search[?<search state>]`. */
     function setDebugUrl(searchState: string): void {
-      const hashPath = '#preview/browse/search';
+      const hashPath = '#browse/search';
       const hash = searchState ? `${hashPath}?${searchState}` : hashPath;
       window.history.replaceState({}, '', `${window.location.pathname}?debug${hash}`);
     }

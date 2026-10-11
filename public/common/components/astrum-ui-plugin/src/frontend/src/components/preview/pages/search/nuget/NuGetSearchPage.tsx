@@ -85,7 +85,7 @@ export function NuGetSearchPage({
       onNavigateToDetail(packageId);
     } else {
       // Default: navigate using hash
-      window.location.hash = `#preview/browse/search/nuget/${encodeURIComponent(packageId)}`;
+      window.location.hash = `#browse/search/nuget/${encodeURIComponent(packageId)}`;
     }
   }, [onNavigateToDetail]);
 

@@ -72,7 +72,7 @@ describe('UnifiedSearchPage', () => {
   beforeEach(() => {
     mockGo.mockReset();
     mockGet.mockReset();
-    window.location.hash = '#preview/browse/search';
+    window.location.hash = '#browse/search';
     respond(ITEMS);
   });
 
@@ -188,7 +188,7 @@ describe('UnifiedSearchPage', () => {
   });
 
   it('restores the search of the URL', async () => {
-    window.location.hash = '#preview/browse/search?q=herald';
+    window.location.hash = '#browse/search?q=herald';
     renderPage();
 
     expect(screen.getByRole('textbox', { name: 'Search components' })).toHaveValue('herald');
@@ -197,7 +197,7 @@ describe('UnifiedSearchPage', () => {
   });
 
   it('restores a format of the URL while the formats offered are still loading', async () => {
-    window.location.hash = '#preview/browse/search?format=maven';
+    window.location.hash = '#browse/search?format=maven';
     renderPage();
 
     await waitFor(() => expect(searchCalls().length).toBeGreaterThan(0));
@@ -206,7 +206,7 @@ describe('UnifiedSearchPage', () => {
   });
 
   it('keeps the repository and the format of the URL while the choices load', async () => {
-    window.location.hash = '#preview/browse/search?q=herald&format=docker&repository=docker-hosted';
+    window.location.hash = '#browse/search?q=herald&format=docker&repository=docker-hosted';
     renderPage();
 
     await screen.findByRole('table');
@@ -220,7 +220,7 @@ describe('UnifiedSearchPage', () => {
   });
 
   it('lists everything of a format for a lone wildcard instead of sending it to the server', async () => {
-    window.location.hash = '#preview/browse/search?q=*&format=docker';
+    window.location.hash = '#browse/search?q=*&format=docker';
     renderPage();
 
     expect(await screen.findByRole('table')).toBeInTheDocument();

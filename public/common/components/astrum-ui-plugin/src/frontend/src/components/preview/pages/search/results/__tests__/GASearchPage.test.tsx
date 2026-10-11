@@ -27,7 +27,7 @@ jest.mock('../useGASearch', () => ({
 
 // Mock the core module
 jest.mock('../../core', () => ({
-  buildDetailRoute: jest.fn((gaId) => `#preview/browse/search/maven/ga/${gaId}`),
+  buildDetailRoute: jest.fn((gaId) => `#browse/search/maven/ga/${gaId}`),
   buildSearchRoute: jest.fn(),
   GA_SEARCH_PARAMS: {
     QUERY: 'q',

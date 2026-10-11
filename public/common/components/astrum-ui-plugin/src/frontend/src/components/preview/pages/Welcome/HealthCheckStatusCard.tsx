@@ -23,8 +23,8 @@ import { useHealthCheckSummary } from './useHealthCheckSummary';
 
 import './HealthCheckStatusCard.scss';
 
-const PROTECT_HREF = '#preview/browse/malwarerisk';
-const BROWSE_HREF = '#preview/browse';
+const PROTECT_HREF = '#browse/malwarerisk';
+const BROWSE_HREF = '#browse';
 
 function RhcIcon({ color }: { color: 'green' | 'red' | 'amber' | 'gray' }) {
   const size = 22;

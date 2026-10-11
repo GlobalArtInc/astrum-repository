@@ -67,7 +67,7 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
           title={SystemInfoStrings.PAGE.SYSTEM_INFORMATION}
           description={SystemInfoStrings.PAGE.VIEW_DETAILED_SYSTEM_SERVER_INFORMATION}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
             { label: SystemInfoStrings.PAGE.SYSTEM_INFORMATION },
           ]}
         />
@@ -86,7 +86,7 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
         title={SystemInfoStrings.PAGE.SYSTEM_INFORMATION}
         description={SystemInfoStrings.PAGE.VIEW_DETAILED_SYSTEM_SERVER_INFORMATION}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
           { label: SystemInfoStrings.PAGE.SYSTEM_INFORMATION },
         ]}
         actions={

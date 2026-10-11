@@ -18,10 +18,10 @@
  * - etc.
  * 
  * URL Examples (path-based):
- * - /preview/browse/search/maven                    → GA search results
- * - /preview/browse/search/maven?q=commons-lang3   → GA search with query
- * - /preview/browse/search/maven/ga/:gaId          → GA detail view
- * - /preview/browse/search/maven/ga/:gaId/versions → Versions tab
+ * - /browse/search/maven                    → GA search results
+ * - /browse/search/maven?q=commons-lang3   → GA search with query
+ * - /browse/search/maven/ga/:gaId          → GA detail view
+ * - /browse/search/maven/ga/:gaId/versions → Versions tab
  */
 
 import type { GADetailTab } from './search.types';
@@ -82,9 +82,9 @@ export const DEFAULT_SEARCH_ROUTE_NAMES = {
  * URL patterns for GA search in Preview UI.
  *
  * Full URL examples (path-based):
- * - /preview/browse/search/maven              → Search results
- * - /preview/browse/search/maven?q=guava      → Search with query
- * - /preview/browse/search/maven/ga/maven:org.apache.commons:commons-lang3 → Detail
+ * - /browse/search/maven              → Search results
+ * - /browse/search/maven?q=guava      → Search with query
+ * - /browse/search/maven/ga/maven:org.apache.commons:commons-lang3 → Detail
  */
 export const GA_SEARCH_URLS = {
   /**
@@ -170,7 +170,7 @@ export const GA_SEARCH_PARAMS = {
 
 /**
  * Builds a GA search URL for Preview UI (path-based routing).
- * Result: /preview/browse/search/maven?q=...
+ * Result: /browse/search/maven?q=...
  */
 export function buildSearchRoute(params?: {
   query?: string;
@@ -208,7 +208,7 @@ export function buildSearchRoute(params?: {
 
 /**
  * Builds a GA detail URL for Preview UI (path-based routing).
- * Result: /preview/browse/search/maven/ga/{gaId}
+ * Result: /browse/search/maven/ga/{gaId}
  */
 export function buildDetailRoute(gaId: string, tab?: GADetailTab, version?: string): string {
   const encodedGaId = encodeURIComponent(gaId);

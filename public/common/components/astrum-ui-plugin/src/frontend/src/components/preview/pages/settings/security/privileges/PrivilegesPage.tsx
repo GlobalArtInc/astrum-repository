@@ -21,7 +21,7 @@ import PrivilegesStrings from '../../../../constants/pages/settings/security/Pri
 import CommonStrings from '../../../../constants/CommonStrings';
 
 // Base path for privilege URLs
-const BASE_PATH = 'preview/admin/security/privileges';
+const BASE_PATH = 'admin/security/privileges';
 
 /**
  * URL-based routing patterns:
@@ -399,11 +399,11 @@ export function PrivilegesPage() {
             actions={routeState.viewMode === 'list' ? headerProps.actions : undefined}
             breadcrumbs={routeState.viewMode === 'list'
               ? [
-                  { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+                  { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
                   { label: PrivilegesStrings.PAGE.PRIVILEGES }
                 ]
               : [
-                  { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+                  { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
                   { label: PrivilegesStrings.PAGE.PRIVILEGES, onClick: handleBack },
                   { label: routeState.viewMode === 'create' || routeState.viewMode === 'select-type'
                     ? CommonStrings.ACTIONS.CREATE

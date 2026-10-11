@@ -90,7 +90,7 @@ export function YumSearchPage({
       onNavigateToDetail(id);
     } else {
       // Default: navigate using hash
-      window.location.hash = `#preview/browse/search/yum/detail/${encodeURIComponent(id)}`;
+      window.location.hash = `#browse/search/yum/detail/${encodeURIComponent(id)}`;
     }
   }, [onNavigateToDetail]);
 

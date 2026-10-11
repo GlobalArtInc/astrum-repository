@@ -11,7 +11,7 @@ interface SettingsLinkProps {
 /**
  * Opens the Astrum One settings page behind a section of the repository profile.
  *
- * @param previewPath hash path of the page without '#', e.g. `preview/admin/security/roles`
+ * @param previewPath hash path of the page without '#', e.g. `admin/security/roles`
  */
 export function SettingsLink({ previewPath, label = CommonStrings.ACTIONS.CONFIGURE }: SettingsLinkProps) {
   return (

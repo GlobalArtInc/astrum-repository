@@ -159,7 +159,7 @@ export function SslCertificatesPage() {
           title={SslCertificatesStrings.PAGE.SSL_CERTIFICATES}
           description={SslCertificatesStrings.PAGE.MANAGE_TRUSTED_SSL_CERTIFICATES_USE}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: SslCertificatesStrings.PAGE.SSL_CERTIFICATES }
           ]}
           actions={canCreate && (
@@ -186,7 +186,7 @@ export function SslCertificatesPage() {
         title={title}
         description={viewMode === 'create' ? SslCertificatesStrings.ADD_FORM.ADD_CERTIFICATE_TRUST_STORE_LOADING : undefined}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: SslCertificatesStrings.PAGE.SSL_CERTIFICATES, onClick: handleBack },
           { label: lastBreadcrumb }
         ]}

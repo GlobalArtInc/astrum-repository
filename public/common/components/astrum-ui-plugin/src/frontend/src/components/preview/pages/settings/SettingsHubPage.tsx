@@ -30,7 +30,7 @@ import SettingsStrings from '../../constants/pages/settings/SettingsStrings';
  * - Cards navigate to individual settings pages
  * - Cards are a list on phones and tiles on wider screens
  *
- * URL: #preview/admin/settings
+ * URL: #admin/settings
  */
 export function SettingsHubPage() {
   const [searchQuery, setSearchQuery] = useState('');

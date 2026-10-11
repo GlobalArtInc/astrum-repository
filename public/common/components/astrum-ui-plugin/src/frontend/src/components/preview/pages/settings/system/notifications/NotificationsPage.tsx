@@ -49,7 +49,7 @@ const EVENT_COLORS: Record<NotificationEvent, 'green' | 'blue' | 'red'> = {
 };
 
 const openSettingsHub = () => {
-  window.location.hash = '#preview/admin/settings';
+  window.location.hash = '#admin/settings';
 };
 
 const TYPE_BADGES = {

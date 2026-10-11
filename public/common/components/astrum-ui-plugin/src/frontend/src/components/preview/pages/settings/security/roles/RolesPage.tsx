@@ -20,7 +20,7 @@ import CommonStrings from '../../../../constants/CommonStrings';
 import plural from '../../../../../../interface/plural';
 
 // Base path for role URLs
-const BASE_PATH = 'preview/admin/security/roles';
+const BASE_PATH = 'admin/security/roles';
 
 /**
  * URL-based routing patterns:
@@ -286,7 +286,7 @@ export function RolesPage() {
               actions={headerProps.actions} 
             
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: RolesStrings.PAGE.ROLES }
           ]}
 />
@@ -313,7 +313,7 @@ export function RolesPage() {
               title={headerProps.title}
               description={headerProps.description}
               breadcrumbs={[
-                { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+                { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
                 { label: RolesStrings.PAGE.ROLES, onClick: handleBack },
                 { label: routeState.roleId || RolesStrings.PAGE.ROLE_PROFILE },
               ]}
@@ -353,7 +353,7 @@ export function RolesPage() {
             title={headerProps.title}
             description={headerProps.description}
             breadcrumbs={[
-              { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+              { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
               { label: RolesStrings.PAGE.ROLES, onClick: handleBack },
               { label: isCreateView ? CommonStrings.ACTIONS.CREATE : role?.id || routeState.roleId || '' },
             ]}

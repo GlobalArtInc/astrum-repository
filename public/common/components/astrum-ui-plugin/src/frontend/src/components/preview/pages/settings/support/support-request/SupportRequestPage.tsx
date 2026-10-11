@@ -22,7 +22,7 @@ interface SupportRequestPageProps {
 const SUPPORT_REQUEST_URL = 'https://links.globalart.dev/products/astrum/pro/support-request';
 
 // Internal Preview UI route to Support ZIP
-const SUPPORT_ZIP_ROUTE = '#preview/admin/support/supportzip';
+const SUPPORT_ZIP_ROUTE = '#admin/support/supportzip';
 
 /**
  * SupportRequestPage - Support Request page for Preview UI
@@ -31,7 +31,7 @@ const SUPPORT_ZIP_ROUTE = '#preview/admin/support/supportzip';
  * This is a Pro Edition feature only.
  *
  * Permission: astrum:atlas:create
- * Route: #preview/admin/support/supportrequest
+ * Route: #admin/support/supportrequest
  */
 export function SupportRequestPage({ className }: SupportRequestPageProps) {
   // Check permission - astrum:atlas:create required
@@ -63,7 +63,7 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
           title={SupportRequestStrings.PAGE.SUPPORT_REQUEST}
           description={SupportRequestStrings.PAGE.SUBMIT_SUPPORT_REQUEST_GLOBALART}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
             { label: SupportRequestStrings.PAGE.SUPPORT_REQUEST },
           ]}
         />
@@ -88,7 +88,7 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
           title={SupportRequestStrings.PAGE.SUPPORT_REQUEST}
           description={SupportRequestStrings.PAGE.SUBMIT_SUPPORT_REQUEST_GLOBALART}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
             { label: SupportRequestStrings.PAGE.SUPPORT_REQUEST },
           ]}
         />
@@ -111,7 +111,7 @@ export function SupportRequestPage({ className }: SupportRequestPageProps) {
         title={SupportRequestStrings.PAGE.SUPPORT_REQUEST}
         description={SupportRequestStrings.PAGE.SUBMIT_SUPPORT_REQUEST_GLOBALART}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
           { label: SupportRequestStrings.PAGE.SUPPORT_REQUEST },
         ]}
       />

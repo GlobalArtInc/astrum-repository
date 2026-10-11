@@ -74,10 +74,10 @@ describe('usageFormat', () => {
 
   it('links into each user interface', () => {
     const odd = component({ repository: 'my repo', browsePath: 'a b/c#d' });
-    expect(usageLinks.component('preview', odd)).toBe('#preview/browse/browse/my%20repo/a%20b/c%23d');
+    expect(usageLinks.component('preview', odd)).toBe('#browse/my%20repo/a%20b/c%23d');
     expect(usageLinks.component('classic', odd)).toBe('#browse/browse:my%20repo:a%20b%2Fc%23d');
-    expect(usageLinks.repository('preview', 'my repo')).toBe('#preview/browse/browse/my%20repo/');
-    expect(usageLinks.cleanupPolicies('preview')).toBe('#preview/admin/repository/cleanup-policies');
+    expect(usageLinks.repository('preview', 'my repo')).toBe('#browse/my%20repo/');
+    expect(usageLinks.cleanupPolicies('preview')).toBe('#admin/repository/cleanup-policies');
   });
 
   it('rounds the top of the chart and spaces its labels', () => {

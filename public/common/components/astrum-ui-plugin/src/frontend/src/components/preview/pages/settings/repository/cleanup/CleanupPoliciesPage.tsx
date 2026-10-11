@@ -18,7 +18,7 @@ import CommonStrings from '../../../../constants/CommonStrings';
 import plural from '../../../../../../interface/plural';
 
 // Base path for cleanup policies URLs
-const BASE_PATH = 'preview/admin/repository/cleanup-policies';
+const BASE_PATH = 'admin/repository/cleanup-policies';
 
 /**
  * URL-based routing patterns:
@@ -81,9 +81,9 @@ function navigateTo(path: string) {
  * - Bookmarkable URLs
  *
  * URL patterns:
- * - #preview/admin/repository/cleanup-policies           → List
- * - #preview/admin/repository/cleanup-policies/create    → Create form
- * - #preview/admin/repository/cleanup-policies/{name}    → Edit form
+ * - #admin/repository/cleanup-policies           → List
+ * - #admin/repository/cleanup-policies/create    → Create form
+ * - #admin/repository/cleanup-policies/{name}    → Edit form
  */
 export function CleanupPoliciesPage() {
   const [routeState, setRouteState] = useState<RouteState>(() => parseRoute(window.location.hash));
@@ -192,7 +192,7 @@ export function CleanupPoliciesPage() {
           title={CleanupPoliciesStrings.PAGE.CLEANUP_POLICIES}
           description={CleanupPoliciesStrings.PAGE.MANAGE_COMPONENT_REMOVAL_CONFIGURATION}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: CleanupPoliciesStrings.PAGE.CLEANUP_POLICIES }
           ]}
           actions={canCreate && (
@@ -229,7 +229,7 @@ export function CleanupPoliciesPage() {
         title={title}
         description={description}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: CleanupPoliciesStrings.PAGE.CLEANUP_POLICIES, onClick: handleBack },
           { label: lastBreadcrumb }
         ]}

@@ -90,7 +90,7 @@ export function RubyGemsSearchPage({
       onNavigateToDetail(id);
     } else {
       // Default: navigate using hash
-      window.location.hash = `#preview/browse/search/rubygems/detail/${encodeURIComponent(id)}`;
+      window.location.hash = `#browse/search/rubygems/detail/${encodeURIComponent(id)}`;
     }
   }, [onNavigateToDetail]);
 

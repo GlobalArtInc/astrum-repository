@@ -120,7 +120,7 @@ export function DockerDetailPage({
     if (onNavigateBack) {
       onNavigateBack();
     } else {
-      window.location.hash = '#preview/browse/search/docker';
+      window.location.hash = '#browse/search/docker';
     }
   }, [onNavigateBack]);
 

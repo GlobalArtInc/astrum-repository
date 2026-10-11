@@ -110,7 +110,7 @@ describe('RepositoryAuditTab', () => {
       renderRepositoryAuditTab('my-repo');
 
       const link = screen.getByRole('link', { name: /Open Full Audit Log/ });
-      expect(link).toHaveAttribute('href', '#preview/browse/audit?repositoryName=my-repo');
+      expect(link).toHaveAttribute('href', '#browse/audit?repositoryName=my-repo');
     });
   });
 
@@ -154,7 +154,7 @@ describe('RepositoryAuditTab', () => {
       renderRepositoryAuditTab('my-repo');
 
       const link = screen.getByRole('link', { name: /Open Full Audit Log/ });
-      expect(link).toHaveAttribute('href', '#preview/browse/audit?repositoryName=my-repo');
+      expect(link).toHaveAttribute('href', '#browse/audit?repositoryName=my-repo');
     });
   });
 
@@ -267,7 +267,7 @@ describe('RepositoryAuditTab', () => {
       renderRepositoryAuditTab('my-repo');
 
       const link = screen.getByRole('link', { name: /View Full Audit Log/ });
-      expect(link).toHaveAttribute('href', '#preview/browse/audit?repositoryName=my-repo');
+      expect(link).toHaveAttribute('href', '#browse/audit?repositoryName=my-repo');
     });
   });
 
@@ -330,7 +330,7 @@ describe('RepositoryAuditTab', () => {
       renderRepositoryAuditTab('my-repo');
 
       const viewAllLink = screen.getByText('View all in Audit Log');
-      expect(viewAllLink).toHaveAttribute('href', '#preview/browse/audit?repositoryName=my-repo');
+      expect(viewAllLink).toHaveAttribute('href', '#browse/audit?repositoryName=my-repo');
     });
   });
 
@@ -370,7 +370,7 @@ describe('RepositoryAuditTab', () => {
       renderRepositoryAuditTab('my repo with spaces');
 
       const link = screen.getByRole('link', { name: /View Full Audit Log/ });
-      expect(link).toHaveAttribute('href', '#preview/browse/audit?repositoryName=my%20repo%20with%20spaces');
+      expect(link).toHaveAttribute('href', '#browse/audit?repositoryName=my%20repo%20with%20spaces');
     });
   });
 });

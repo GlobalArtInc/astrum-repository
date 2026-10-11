@@ -307,7 +307,7 @@ export function CrowdPage({ className }: CrowdPageProps) {
           title={CrowdStrings.PAGE.ATLASSIAN_CROWD}
           description={CrowdStrings.PAGE.MANAGE_ATLASSIAN_CROWD_CONFIGURATION_USER}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: CrowdStrings.PAGE.CROWD }
           ]}
         />

@@ -74,7 +74,7 @@ describe('RepositoryRHCStep', () => {
       render(<RepositoryRHCStep mode="deferred" value="none" onChoice={jest.fn()} capabilityEnabled={false} />);
 
       const link = screen.getByRole('link', { name: /go to system capabilities/i });
-      expect(link).toHaveAttribute('href', '#preview/admin/system/capabilities');
+      expect(link).toHaveAttribute('href', '#admin/system/capabilities');
     });
 
     it('does not call onChoice when switch is clicked', async () => {

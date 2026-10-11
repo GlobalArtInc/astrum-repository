@@ -81,12 +81,12 @@ describe('UsageDashboard', () => {
     const rows = within(table).getAllByRole('row');
     expect(rows).toHaveLength(3);
     expect(within(rows[1]).getByRole('link', { name: 'org.example:demo' }))
-      .toHaveAttribute('href', '#preview/browse/browse/maven-releases/org/example/demo/1.0.0');
+      .toHaveAttribute('href', '#browse/maven-releases/org/example/demo/1.0.0');
     expect(within(rows[1]).getByText('1.0.0')).toBeInTheDocument();
     expect(within(rows[1]).getByText('Maven')).toBeInTheDocument();
     expect(within(rows[2]).getByRole('link', { name: 'tools/keel.tar.gz' }))
-      .toHaveAttribute('href', '#preview/browse/browse/raw-files/tools/keel.tar.gz');
-    expect(screen.getByRole('link', { name: STRINGS.TOP.SEARCH_LINK })).toHaveAttribute('href', '#preview/browse/search');
+      .toHaveAttribute('href', '#browse/raw-files/tools/keel.tar.gz');
+    expect(screen.getByRole('link', { name: STRINGS.TOP.SEARCH_LINK })).toHaveAttribute('href', '#browse/search');
   });
 
   it('links into the classic user interface', async () => {
@@ -141,7 +141,7 @@ describe('UsageDashboard', () => {
     expect(within(unused).getByText('600 components · 40 GB')).toBeInTheDocument();
     expect(within(unused).getByText('never downloaded: 31 (1 MB)')).toBeInTheDocument();
     expect(within(unused).getByRole('link', { name: STRINGS.UNUSED.CLEANUP }))
-      .toHaveAttribute('href', '#preview/admin/repository/cleanup-policies');
+      .toHaveAttribute('href', '#admin/repository/cleanup-policies');
   });
 
   it('offers cleanup policies only to those who may configure them', async () => {

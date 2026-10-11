@@ -74,7 +74,7 @@ export function CleanupFacet({
           {UIStrings.CLEANUP.helpText}
           {' '}
           <a
-            href="#preview/admin/repository/cleanup-policies"
+            href="#admin/repository/cleanup-policies"
             className="cleanup-facet__link"
           >
             {UIStrings.CLEANUP.MANAGE_LINK.label}

@@ -84,7 +84,7 @@ describe('CleanupPoliciesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Set URL hash to list view for most tests
-    window.location.hash = '#preview/admin/repository/cleanup-policies';
+    window.location.hash = '#admin/repository/cleanup-policies';
     
     mockFetchFormatCriteria.mockResolvedValue([
       { id: 'maven2', name: 'Maven2', availableCriteria: ['lastBlobUpdated', 'lastDownloaded', 'regex'] },

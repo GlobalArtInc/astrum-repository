@@ -93,7 +93,7 @@ describe('RoutingRulesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Set URL hash to list view for most tests
-    window.location.hash = '#preview/admin/repository/routing-rules';
+    window.location.hash = '#admin/repository/routing-rules';
     mockCheckPermission.mockReturnValue(true);
     mockUseRoutingRulesApi.mockReturnValue({
       loading: false,

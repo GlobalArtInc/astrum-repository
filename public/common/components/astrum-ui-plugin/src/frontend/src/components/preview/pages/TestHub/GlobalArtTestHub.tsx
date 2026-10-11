@@ -4,8 +4,8 @@
  * GLOBALART INTERNAL — NOT INCLUDED IN PRODUCTION BUILDS
  *
  * GlobalArtTestHub — index page for all internal test harness pages.
- * Access (append ?debug for filesystem assets): e.g. http://localhost:8081/?debug#preview/test
- * or http://localhost:7777/?debug#preview/test (cloud local).
+ * Access (append ?debug for filesystem assets): e.g. http://localhost:8081/?debug#test
+ * or http://localhost:7777/?debug#test (cloud local).
  * 
  * Two tabs:
  * - Toggles: Feature toggles for local testing (e.g., force malware banner)
@@ -440,10 +440,10 @@ function setToggle(id: string, value: boolean) {
 
 function navigateTo(route: string) {
   const routeToHash: Record<string, string> = {
-    'preview.test-dashboard': '#preview/test-dashboard',
-    'preview.test-malware-defense': '#preview/test-malware-defense',
-    'preview.test-search-fw': '#preview/test-search-fw',
-    'preview.test-search-hc': '#preview/test-search-hc',
+    'preview.test-dashboard': '#test-dashboard',
+    'preview.test-malware-defense': '#test-malware-defense',
+    'preview.test-search-fw': '#test-search-fw',
+    'preview.test-search-hc': '#test-search-hc',
   };
   const hash = routeToHash[route];
   if (hash) window.open(`${window.location.origin}${window.location.pathname}?debug${hash}`, '_blank');

@@ -116,7 +116,7 @@ export function CloudUsageCenterPanel({monthlyMetrics}) {
         <Heading size="4" mb="1">{CLOUD_TILE_LABELS.HISTORICAL_USAGE_TITLE}</Heading>
         <Text size="2" color="gray">
           {CLOUD_TILE_LABELS.HISTORICAL_USAGE_TEXT}{' '}
-          <a href="#preview/admin/system/usage">{CLOUD_TILE_LABELS.HISTORICAL_USAGE_LINK}</a>
+          <a href="#admin/system/usage">{CLOUD_TILE_LABELS.HISTORICAL_USAGE_LINK}</a>
         </Text>
       </Box>
     </Card>

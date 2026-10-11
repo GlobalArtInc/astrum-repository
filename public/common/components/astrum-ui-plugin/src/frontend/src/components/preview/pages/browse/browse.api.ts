@@ -494,11 +494,9 @@ export function canDelete(): boolean {
  * Show a success toast message.
  */
 export function showSuccessMessage(message: string): void {
-  // Use Radix toast if in Preview UI mode and provider is available
-  const isPreviewUI = typeof window !== 'undefined' && window.location.hash.includes('#preview/');
   const astrumToast = typeof window !== 'undefined' ? (window as { __astrumToast?: AstrumToast }).__astrumToast : null;
 
-  if (isPreviewUI && astrumToast) {
+  if (astrumToast) {
     astrumToast.success(message);
   } else {
     // @ts-expect-error - ExtJS is globally available
@@ -510,11 +508,9 @@ export function showSuccessMessage(message: string): void {
  * Show an error toast message.
  */
 export function showErrorMessage(message: string): void {
-  // Use Radix toast if in Preview UI mode and provider is available
-  const isPreviewUI = typeof window !== 'undefined' && window.location.hash.includes('#preview/');
   const astrumToast = typeof window !== 'undefined' ? (window as { __astrumToast?: AstrumToast }).__astrumToast : null;
 
-  if (isPreviewUI && astrumToast) {
+  if (astrumToast) {
     astrumToast.error(message);
   } else {
     // @ts-expect-error - ExtJS is globally available

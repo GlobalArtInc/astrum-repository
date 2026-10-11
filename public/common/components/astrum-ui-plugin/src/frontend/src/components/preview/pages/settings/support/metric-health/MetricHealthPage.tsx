@@ -167,7 +167,7 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
 
   // Navigation helper for Settings breadcrumb
   const navigateToSettings = () => {
-    window.location.hash = '#preview/admin/settings';
+    window.location.hash = '#admin/settings';
   };
 
   // No permission state

@@ -281,7 +281,7 @@ describe('UserTokensPage', () => {
 
       // Click Settings breadcrumb navigates to settings page
       screen.getByRole('button', { name: 'Settings' }).click();
-      expect(window.location.hash).toBe('#preview/admin/settings');
+      expect(window.location.hash).toBe('#admin/settings');
     });
 
     it('renders User Tokens as current page breadcrumb', async () => {

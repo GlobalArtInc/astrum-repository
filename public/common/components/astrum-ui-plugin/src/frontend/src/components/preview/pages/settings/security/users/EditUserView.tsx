@@ -42,7 +42,7 @@ export interface EditUserViewProps {
 }
 
 const navigateToSettings = () => {
-  window.location.hash = '#preview/admin/settings';
+  window.location.hash = '#admin/settings';
 };
 
 export function EditUserView({

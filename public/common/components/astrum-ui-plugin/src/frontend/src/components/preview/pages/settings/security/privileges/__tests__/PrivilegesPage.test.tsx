@@ -177,7 +177,7 @@ describe('PrivilegesPage', () => {
   });
 
   it('should navigate through the 3-step create wizard', async () => {
-    window.location.hash = '#preview/admin/security/privileges/create';
+    window.location.hash = '#admin/security/privileges/create';
     renderWithTheme(<PrivilegesPage />);
     
     // Step 1: Select Type
@@ -211,7 +211,7 @@ describe('PrivilegesPage', () => {
     fireEvent.click(screen.getByText('Create Privilege'));
 
     await waitFor(() => {
-      expect(window.location.hash).toBe('#preview/admin/security/privileges');
+      expect(window.location.hash).toBe('#admin/security/privileges');
     });
   });
 
@@ -233,7 +233,7 @@ describe('PrivilegesPage', () => {
 
   it('should navigate back to list after creating a privilege', async () => {
     // Start at Step 3: Configuration
-    window.location.hash = '#preview/admin/security/privileges/create/wildcard';
+    window.location.hash = '#admin/security/privileges/create/wildcard';
     renderWithTheme(<PrivilegesPage />);
 
     // Move to Step 3 manually since useEffect handles the transition from Step 1 to 2 in code
@@ -255,7 +255,7 @@ describe('PrivilegesPage', () => {
 
     await waitFor(() => {
       // Should navigate back to list after successful creation
-      expect(window.location.hash).toBe('#preview/admin/security/privileges');
+      expect(window.location.hash).toBe('#admin/security/privileges');
     });
   });
 
@@ -277,7 +277,7 @@ describe('PrivilegesPage', () => {
    */
   describe('profile tab is preserved in the URL (ASTRUM-52167)', () => {
     it('defaults to overview for a legacy /profile URL with no tab segment', async () => {
-      window.location.hash = '#preview/admin/security/privileges/test-priv/profile';
+      window.location.hash = '#admin/security/privileges/test-priv/profile';
       renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {
@@ -287,7 +287,7 @@ describe('PrivilegesPage', () => {
 
     it('restores the users tab from the URL', async () => {
       window.location.hash =
-        '#preview/admin/security/privileges/test-priv/profile?tab=users';
+        '#admin/security/privileges/test-priv/profile?tab=users';
       renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {
@@ -297,7 +297,7 @@ describe('PrivilegesPage', () => {
 
     it('restores the roles tab from the URL', async () => {
       window.location.hash =
-        '#preview/admin/security/privileges/test-priv/profile?tab=roles';
+        '#admin/security/privileges/test-priv/profile?tab=roles';
       renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {
@@ -307,7 +307,7 @@ describe('PrivilegesPage', () => {
 
     it('falls back to overview for an unknown tab segment', async () => {
       window.location.hash =
-        '#preview/admin/security/privileges/test-priv/profile?tab=not-a-tab';
+        '#admin/security/privileges/test-priv/profile?tab=not-a-tab';
       renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {
@@ -317,7 +317,7 @@ describe('PrivilegesPage', () => {
     });
 
     it('writes the tab into the hash when the tab changes', async () => {
-      window.location.hash = '#preview/admin/security/privileges/test-priv/profile';
+      window.location.hash = '#admin/security/privileges/test-priv/profile';
       renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {
@@ -328,7 +328,7 @@ describe('PrivilegesPage', () => {
 
       await waitFor(() => {
         expect(window.location.hash).toBe(
-          '#preview/admin/security/privileges/test-priv/profile?tab=users'
+          '#admin/security/privileges/test-priv/profile?tab=users'
         );
         expect(screen.getByTestId('active-tab')).toHaveTextContent('users');
       });
@@ -336,7 +336,7 @@ describe('PrivilegesPage', () => {
 
     // The reported bug, end to end.
     it('reproduces the reported round trip: users tab survives leaving and returning', async () => {
-      window.location.hash = '#preview/admin/security/privileges/test-priv/profile';
+      window.location.hash = '#admin/security/privileges/test-priv/profile';
       const { unmount } = renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {
@@ -352,7 +352,7 @@ describe('PrivilegesPage', () => {
 
       // Clicking a User ID navigates away; PrivilegesPage unmounts.
       unmount();
-      window.location.hash = '#preview/admin/security/users/test1/default/profile';
+      window.location.hash = '#admin/security/users/test1/default/profile';
 
       // Browser Back restores the previous hash and remounts the page.
       window.location.hash = urlBeforeLeaving;
@@ -371,7 +371,7 @@ describe('PrivilegesPage', () => {
      * it is invisible in jsdom, where no router is mounted and any hash "works".
      */
     it('encodes the tab as a ?tab query param, never as a path segment', async () => {
-      window.location.hash = '#preview/admin/security/privileges/test-priv/profile';
+      window.location.hash = '#admin/security/privileges/test-priv/profile';
       renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {
@@ -386,7 +386,7 @@ describe('PrivilegesPage', () => {
 
       // The path must remain exactly the registered route pattern.
       const [path] = window.location.hash.replace(/^#/, '').split('?');
-      expect(path).toBe('preview/admin/security/privileges/test-priv/profile');
+      expect(path).toBe('admin/security/privileges/test-priv/profile');
       expect(window.location.hash).not.toContain('/profile/users');
     });
 
@@ -394,7 +394,7 @@ describe('PrivilegesPage', () => {
     // the address bar cannot disagree.
     it('routes tab changes through UI-Router when one is mounted', async () => {
       const go = jest.fn();
-      window.location.hash = '#preview/admin/security/privileges/test-priv/profile';
+      window.location.hash = '#admin/security/privileges/test-priv/profile';
 
       render(
         <Theme>
@@ -422,7 +422,7 @@ describe('PrivilegesPage', () => {
     });
 
     it('falls back to writing the hash when no router is mounted', async () => {
-      window.location.hash = '#preview/admin/security/privileges/test-priv/profile';
+      window.location.hash = '#admin/security/privileges/test-priv/profile';
       renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {
@@ -438,7 +438,7 @@ describe('PrivilegesPage', () => {
     });
 
     it('does not push history entries for tab switches', async () => {
-      window.location.hash = '#preview/admin/security/privileges/test-priv/profile';
+      window.location.hash = '#admin/security/privileges/test-priv/profile';
       renderWithTheme(<PrivilegesPage />);
 
       await waitFor(() => {

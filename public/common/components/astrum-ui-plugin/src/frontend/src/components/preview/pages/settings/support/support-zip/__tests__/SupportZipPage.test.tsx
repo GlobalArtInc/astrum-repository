@@ -254,7 +254,7 @@ describe('SupportZipPage', () => {
 
       const originalHash = window.location.hash;
       screen.getByRole('button', { name: 'Settings' }).click();
-      expect(window.location.hash).toBe('#preview/admin/settings');
+      expect(window.location.hash).toBe('#admin/settings');
       window.location.hash = originalHash;
     });
   });

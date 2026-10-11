@@ -376,7 +376,7 @@ export function WelcomeDashboard({
             </div>
             {isAdmin && (
               <a
-                href="#preview/admin/support/metrichealth"
+                href="#admin/support/metrichealth"
                 className="as-dashboard__health-link"
               >
                 View details

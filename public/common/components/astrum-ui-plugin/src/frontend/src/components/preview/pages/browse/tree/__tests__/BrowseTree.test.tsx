@@ -423,7 +423,7 @@ describe('BrowseTreeNode', () => {
     onSelect: jest.fn(),
     isFocused: false,
     onKeyDown: jest.fn(),
-    baseUrl: 'preview/browse/browse/maven-releases',
+    baseUrl: 'browse/browse/maven-releases',
   };
 
   const createNodeState = (overrides: Partial<TreeNodeState> = {}): TreeNodeState => ({

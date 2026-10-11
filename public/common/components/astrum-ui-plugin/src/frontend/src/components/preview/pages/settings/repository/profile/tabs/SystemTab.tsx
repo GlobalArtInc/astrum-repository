@@ -138,7 +138,7 @@ export function SystemTab({
       <ProfileSection
         title={RepositoryProfileStrings.SYSTEM_TAB.SCHEDULED_TASKS}
         icon={Clock}
-        editPath="preview/admin/system/tasks"
+        editPath="admin/system/tasks"
       >
         {tasks.length > 0 ? (
           <Table.Root>
@@ -181,7 +181,7 @@ export function SystemTab({
       <ProfileSection
         title={RepositoryProfileStrings.SYSTEM_TAB.CAPABILITIES}
         icon={Zap}
-        editPath="preview/admin/system/capabilities"
+        editPath="admin/system/capabilities"
       >
         {capabilities.length > 0 ? (
           <Table.Root>
@@ -232,7 +232,7 @@ export function SystemTab({
         <ProfileSection
           title={RepositoryProfileStrings.SYSTEM_TAB.HTTP_SETTINGS}
           icon={Globe}
-          editPath="preview/admin/system/http"
+          editPath="admin/system/http"
         >
           {httpSettings ? (
             <Flex direction="column" gap="2">

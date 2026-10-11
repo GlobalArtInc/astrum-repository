@@ -76,7 +76,7 @@ describe('PrivilegeProfilePage cross-entity navigation (ASTRUM-52167)', () => {
 
     expect(
       screen.getByRole('link', { name: 'Open role profile: as-admin' })
-    ).toHaveAttribute('href', '#preview/admin/security/roles/as-admin/profile');
+    ).toHaveAttribute('href', '#admin/security/roles/as-admin/profile');
   });
 
   it('renders the user id as a link to the user profile, including source', async () => {
@@ -88,7 +88,7 @@ describe('PrivilegeProfilePage cross-entity navigation (ASTRUM-52167)', () => {
 
     expect(
       screen.getByRole('link', { name: 'Open user profile: admin' })
-    ).toHaveAttribute('href', '#preview/admin/security/users/admin/default/profile');
+    ).toHaveAttribute('href', '#admin/security/users/admin/default/profile');
   });
 
   // The User ID column is the only navigation affordance for a user. The Name
@@ -191,7 +191,7 @@ describe('PrivilegeProfilePage cross-entity navigation (ASTRUM-52167)', () => {
       screen.getByRole('link', { name: 'Open role profile: Ops Admin' })
     ).toHaveAttribute(
       'href',
-      '#preview/admin/security/roles/ops%2Fadmin%20role/profile'
+      '#admin/security/roles/ops%2Fadmin%20role/profile'
     );
   });
 });

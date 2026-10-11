@@ -18,7 +18,7 @@ import ContentSelectorsStrings from '../../../../constants/pages/settings/reposi
 import CommonStrings from '../../../../constants/CommonStrings';
 
 // Base path for content selectors URLs
-const BASE_PATH = 'preview/admin/repository/selectors';
+const BASE_PATH = 'admin/repository/selectors';
 
 /**
  * URL-based routing patterns:
@@ -82,9 +82,9 @@ function navigateTo(path: string) {
  * - Bookmarkable URLs
  *
  * URL patterns:
- * - #preview/admin/repository/selectors           → List
- * - #preview/admin/repository/selectors/create    → Create form
- * - #preview/admin/repository/selectors/{name}    → Edit form
+ * - #admin/repository/selectors           → List
+ * - #admin/repository/selectors/create    → Create form
+ * - #admin/repository/selectors/{name}    → Edit form
  */
 export function ContentSelectorsPage() {
   const [routeState, setRouteState] = useState<RouteState>(() => parseRoute(window.location.hash));
@@ -192,7 +192,7 @@ export function ContentSelectorsPage() {
   };
 
   const getBreadcrumbs = () => {
-    const settingsItem = { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') };
+    const settingsItem = { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') };
     if (routeState.viewMode === 'list') {
       return [settingsItem, { label: ContentSelectorsStrings.PAGE.CONTENT_SELECTORS }];
     }

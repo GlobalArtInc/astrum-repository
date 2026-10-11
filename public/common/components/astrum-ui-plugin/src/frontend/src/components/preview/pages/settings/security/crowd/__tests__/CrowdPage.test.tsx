@@ -1072,7 +1072,7 @@ describe('CrowdPage', () => {
 
     expect(screen.getByRole('link', { name: /realms/i })).toHaveAttribute(
       'href',
-      '#preview/admin/security/realms'
+      '#admin/security/realms'
     );
   });
 
@@ -1086,7 +1086,7 @@ describe('CrowdPage', () => {
 
     expect(screen.getByRole('link', { name: /configure.*truststore/i })).toHaveAttribute(
       'href',
-      '#preview/admin/security/sslcertificates'
+      '#admin/security/sslcertificates'
     );
   });
 

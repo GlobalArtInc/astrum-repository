@@ -45,7 +45,7 @@ export function LoggingConfigPage() {
   const canUpdate = ExtJS.checkPermission('astrum:logging:update');
 
   const navigateToSettings = () => {
-    window.location.hash = '#preview/admin/settings';
+    window.location.hash = '#admin/settings';
   };
 
   const renderHeader = () => {

@@ -195,7 +195,7 @@ describe('UsersPage', () => {
     fireEvent.click(createButton);
     
     // In tests, we need to manually trigger hashchange because JSDOM doesn't do it automatically on hash assignment
-    triggerHashChange('#preview/admin/security/users/create');
+    triggerHashChange('#admin/security/users/create');
     
     await waitFor(() => {
       expect(screen.getByTestId('user-form')).toBeInTheDocument();
@@ -208,7 +208,7 @@ describe('UsersPage', () => {
     
     fireEvent.click(screen.getByText('Select User'));
     
-    triggerHashChange('#preview/admin/security/users/testuser/default');
+    triggerHashChange('#admin/security/users/testuser/default');
     
     await waitFor(() => {
       // With the wizard, detail view now shows the wizard form (UserForm)
@@ -221,7 +221,7 @@ describe('UsersPage', () => {
     render(<UsersPage />, { wrapper: TestWrapper });
     
     fireEvent.click(screen.getByRole('button', { name: /Create Local User/i }));
-    triggerHashChange('#preview/admin/security/users/create');
+    triggerHashChange('#admin/security/users/create');
     
     await waitFor(() => {
       expect(screen.getByTestId('user-form')).toBeInTheDocument();
@@ -230,7 +230,7 @@ describe('UsersPage', () => {
     // Click Cancel in the wizard (rendered by WizardForm)
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
     fireEvent.click(cancelButton);
-    triggerHashChange('#preview/admin/security/users');
+    triggerHashChange('#admin/security/users');
     
     await waitFor(() => {
       expect(screen.getByTestId('users-list')).toBeInTheDocument();
@@ -246,7 +246,7 @@ describe('UsersPage', () => {
 
   describe('user deletion from detail view', () => {
     beforeEach(() => {
-      window.location.hash = '#preview/admin/security/users/testuser/default';
+      window.location.hash = '#admin/security/users/testuser/default';
     });
 
     it('opens DeleteConfirmationModal when the page-level Delete User button is clicked', async () => {
@@ -256,7 +256,7 @@ describe('UsersPage', () => {
         expect(mockFetchUser).toHaveBeenCalledWith('testuser', 'default');
       });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       const pageDelete = await screen.findByTestId('page-delete-user');
       fireEvent.click(pageDelete);
@@ -273,7 +273,7 @@ describe('UsersPage', () => {
         expect(mockFetchUser).toHaveBeenCalledWith('testuser', 'default');
       });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       const pageDelete = await screen.findByTestId('page-delete-user');
       fireEvent.click(pageDelete);
@@ -298,7 +298,7 @@ describe('UsersPage', () => {
         expect(mockFetchUser).toHaveBeenCalledWith('testuser', 'default');
       });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       const pageDelete = await screen.findByTestId('page-delete-user');
       fireEvent.click(pageDelete);
@@ -324,7 +324,7 @@ describe('UsersPage', () => {
         expect(mockFetchUser).toHaveBeenCalledWith('testuser', 'default');
       });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       const pageDelete = await screen.findByTestId('page-delete-user');
       fireEvent.click(pageDelete);
@@ -354,10 +354,10 @@ describe('UsersPage', () => {
     });
 
     it('renders the page-level Delete User button on the detail view when delete permission is granted', async () => {
-      window.location.hash = '#preview/admin/security/users/testuser/default';
+      window.location.hash = '#admin/security/users/testuser/default';
       render(<UsersPage />, { wrapper: TestWrapper });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       const btn = await screen.findByTestId('page-delete-user');
       expect(btn).toBeInTheDocument();
@@ -373,10 +373,10 @@ describe('UsersPage', () => {
         (p: string) => p !== 'astrum:users:delete'
       );
 
-      window.location.hash = '#preview/admin/security/users/testuser/default';
+      window.location.hash = '#admin/security/users/testuser/default';
       render(<UsersPage />, { wrapper: TestWrapper });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       await waitFor(() => {
         expect(screen.getByTestId('user-form')).toBeInTheDocument();
@@ -386,10 +386,10 @@ describe('UsersPage', () => {
     });
 
     it('does not render the page-level Delete User button in create mode', async () => {
-      window.location.hash = '#preview/admin/security/users/create';
+      window.location.hash = '#admin/security/users/create';
       render(<UsersPage />, { wrapper: TestWrapper });
 
-      triggerHashChange('#preview/admin/security/users/create');
+      triggerHashChange('#admin/security/users/create');
 
       await waitFor(() => {
         expect(screen.getByTestId('user-form')).toBeInTheDocument();
@@ -403,10 +403,10 @@ describe('UsersPage', () => {
       // Switch current user to "testuser" so self-precedence fires.
       (global as any).AS.State.getUser.mockReturnValue({ id: 'testuser' });
 
-      window.location.hash = '#preview/admin/security/users/testuser/default';
+      window.location.hash = '#admin/security/users/testuser/default';
       render(<UsersPage />, { wrapper: TestWrapper });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       const btn = await screen.findByTestId('page-delete-user');
       expect(btn).toBeDisabled();
@@ -430,10 +430,10 @@ describe('UsersPage', () => {
       });
       (global as any).AS.State.getUser.mockReturnValue({ id: 'somebody-else' });
 
-      window.location.hash = '#preview/admin/security/users/admin/default';
+      window.location.hash = '#admin/security/users/admin/default';
       render(<UsersPage />, { wrapper: TestWrapper });
 
-      triggerHashChange('#preview/admin/security/users/admin/default');
+      triggerHashChange('#admin/security/users/admin/default');
 
       const btn = await screen.findByTestId('page-delete-user');
       expect(btn).toBeEnabled();
@@ -456,10 +456,10 @@ describe('UsersPage', () => {
         k === 'anonymousUsername' ? 'anonymous' : undefined
       );
 
-      window.location.hash = '#preview/admin/security/users/anonymous/default';
+      window.location.hash = '#admin/security/users/anonymous/default';
       render(<UsersPage />, { wrapper: TestWrapper });
 
-      triggerHashChange('#preview/admin/security/users/anonymous/default');
+      triggerHashChange('#admin/security/users/anonymous/default');
 
       const btn = await screen.findByTestId('page-delete-user');
       expect(btn).toBeDisabled();
@@ -482,10 +482,10 @@ describe('UsersPage', () => {
       });
       (global as any).AS.State.getUser.mockReturnValue({ id: 'somebody-else' });
 
-      window.location.hash = '#preview/admin/security/users/ldapuser/LDAP';
+      window.location.hash = '#admin/security/users/ldapuser/LDAP';
       render(<UsersPage />, { wrapper: TestWrapper });
 
-      triggerHashChange('#preview/admin/security/users/ldapuser/LDAP');
+      triggerHashChange('#admin/security/users/ldapuser/LDAP');
 
       const btn = await screen.findByTestId('page-delete-user');
       expect(btn).toBeDisabled();
@@ -507,7 +507,7 @@ describe('UsersPage', () => {
         expect(mockFetchUser).toHaveBeenCalledWith('testuser', 'default');
       });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       const pageDelete = await screen.findByTestId('page-delete-user');
       expect(pageDelete).toBeEnabled();
@@ -535,10 +535,10 @@ describe('UsersPage', () => {
         (p: string) => p !== 'astrum:users:update'
       );
 
-      window.location.hash = '#preview/admin/security/users/testuser/default';
+      window.location.hash = '#admin/security/users/testuser/default';
       render(<UsersPage />, { wrapper: TestWrapper });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       await waitFor(() => {
         expect(screen.getByTestId('user-detail')).toBeInTheDocument();
@@ -553,7 +553,7 @@ describe('UsersPage', () => {
   describe('ASTRUM-54435: permission-branched row click routing', () => {
     const USER_ID = 'testuser';
     const REALM = 'default';
-    const BASE = '#preview/admin/security/users';
+    const BASE = '#admin/security/users';
     const EDIT_URL = `${BASE}/${USER_ID}/${REALM}`;
     const PROFILE_URL = `${EDIT_URL}/profile`;
 
@@ -629,7 +629,7 @@ describe('UsersPage', () => {
 
   describe('deletion error passthrough', () => {
     beforeEach(() => {
-      window.location.hash = '#preview/admin/security/users/testuser/default';
+      window.location.hash = '#admin/security/users/testuser/default';
     });
 
     it('surfaces the deletion error through setError', async () => {
@@ -644,7 +644,7 @@ describe('UsersPage', () => {
         expect(mockFetchUser).toHaveBeenCalledWith('testuser', 'default');
       });
 
-      triggerHashChange('#preview/admin/security/users/testuser/default');
+      triggerHashChange('#admin/security/users/testuser/default');
 
       await waitFor(() => {
         expect(screen.getByTestId('user-form')).toBeInTheDocument();

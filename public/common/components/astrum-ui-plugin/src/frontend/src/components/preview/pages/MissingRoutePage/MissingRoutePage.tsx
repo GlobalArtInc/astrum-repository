@@ -5,7 +5,6 @@ import { Flex, Text, Heading, Button, Box } from '@radix-ui/themes';
 import { Ghost, BookOpen, Home } from 'lucide-react';
 import { useSref } from '@uirouter/react';
 import { ROUTE_NAMES } from '../../constants/RouteNames';
-import { useIsPreviewUI } from '../../shared/Navigation/useIsPreviewUI';
 
 import './MissingRoutePage.scss';
 import AuditStrings from '../../constants/pages/audit/AuditStrings';
@@ -21,10 +20,7 @@ import AuditStrings from '../../constants/pages/audit/AuditStrings';
  * - Dark mode support
  */
 export function MissingRoutePage(): JSX.Element {
-  const isPreviewUI = useIsPreviewUI();
-  const { href: dashboardHref } = useSref(
-    isPreviewUI ? `preview.${ROUTE_NAMES.BROWSE.WELCOME.ROOT}` : ROUTE_NAMES.BROWSE.WELCOME.ROOT
-  );
+  const { href: dashboardHref } = useSref(ROUTE_NAMES.BROWSE.WELCOME.ROOT);
 
   return (
     <Flex

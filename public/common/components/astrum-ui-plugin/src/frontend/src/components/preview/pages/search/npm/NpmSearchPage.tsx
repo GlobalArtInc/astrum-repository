@@ -91,7 +91,7 @@ export function NpmSearchPage({
       onNavigateToDetail(id);
     } else {
       // Default: navigate using hash
-      window.location.hash = `#preview/browse/search/npm/detail/${encodeURIComponent(id)}`;
+      window.location.hash = `#browse/search/npm/detail/${encodeURIComponent(id)}`;
     }
   }, [onNavigateToDetail]);
 

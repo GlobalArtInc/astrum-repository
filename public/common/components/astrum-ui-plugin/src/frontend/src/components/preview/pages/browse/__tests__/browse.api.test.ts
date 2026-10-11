@@ -744,29 +744,27 @@ describe('browse.api', () => {
       delete (window as any).__astrumToast;
     });
 
-    it('showSuccessMessage routes to Radix toast in Preview UI mode', () => {
-      window.location.hash = '#preview/browse/welcome';
+    it('showSuccessMessage routes to the Radix toast when its provider is mounted', () => {
       showSuccessMessage('test message');
       expect(mockToast.success).toHaveBeenCalledWith('test message');
       expect((window as any).AS.Messages.success).not.toHaveBeenCalled();
     });
 
-    it('showSuccessMessage routes to ExtJS in Default UI mode', () => {
-      window.location.hash = '#browse/welcome';
+    it('showSuccessMessage routes to ExtJS without the toast provider', () => {
+      delete (window as any).__astrumToast;
       showSuccessMessage('test message');
       expect((window as any).AS.Messages.success).toHaveBeenCalledWith('test message');
       expect(mockToast.success).not.toHaveBeenCalled();
     });
 
-    it('showErrorMessage routes to Radix toast in Preview UI mode', () => {
-      window.location.hash = '#preview/browse/welcome';
+    it('showErrorMessage routes to the Radix toast when its provider is mounted', () => {
       showErrorMessage('error message');
       expect(mockToast.error).toHaveBeenCalledWith('error message');
       expect((window as any).AS.Messages.error).not.toHaveBeenCalled();
     });
 
-    it('showErrorMessage routes to ExtJS in Default UI mode', () => {
-      window.location.hash = '#browse/welcome';
+    it('showErrorMessage routes to ExtJS without the toast provider', () => {
+      delete (window as any).__astrumToast;
       showErrorMessage('error message');
       expect((window as any).AS.Messages.error).toHaveBeenCalledWith('error message');
       expect(mockToast.error).not.toHaveBeenCalled();

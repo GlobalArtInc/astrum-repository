@@ -25,7 +25,7 @@ import './UsersPage.scss';
 import UsersStrings from '../../../../constants/pages/settings/security/UsersStrings';
 import CommonStrings from '../../../../constants/CommonStrings';
 
-const BASE_PATH = 'preview/admin/security/users';
+const BASE_PATH = 'admin/security/users';
 
 /**
  * URL-based routing patterns:
@@ -229,7 +229,7 @@ export function UsersPage() {
           description={listHeaderProps.description}
           actions={listHeaderProps.actions}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: UsersStrings.PAGE.USERS },
           ]}
         />
@@ -241,7 +241,7 @@ export function UsersPage() {
           title={UsersStrings.PAGE.INVITE_USER}
           description={UsersStrings.PAGE.SEND_INVITATION_NEW_USER}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: UsersStrings.PAGE.USERS, onClick: handleBack },
             { label: UsersStrings.PAGE.INVITE },
           ]}
@@ -254,7 +254,7 @@ export function UsersPage() {
           title={user ? getFullName(user) || user.userId : UsersStrings.PAGE.USER_DETAILS}
           description={UsersStrings.PAGE.READ_ONLY_VIEW}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: UsersStrings.PAGE.USERS, onClick: handleBack },
             { label: user?.userId || CommonStrings.MESSAGES.LOADING },
           ]}

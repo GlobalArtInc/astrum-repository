@@ -301,7 +301,7 @@ export function LdapPage({ className }: LdapPageProps) {
           title={LdapStrings.PAGE.LDAP}
           description={LdapStrings.PAGE.MANAGE_LDAP_SERVER_CONNECTIONS_USER}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: 'LDAP' }
           ]}
           actions={canCreate && (
@@ -331,7 +331,7 @@ export function LdapPage({ className }: LdapPageProps) {
           : LdapStrings.PAGE.MODIFY_LDAP_SERVER_CONFIGURATION
         }
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: 'LDAP', onClick: handleBack },
           { label: lastBreadcrumb }
         ]}

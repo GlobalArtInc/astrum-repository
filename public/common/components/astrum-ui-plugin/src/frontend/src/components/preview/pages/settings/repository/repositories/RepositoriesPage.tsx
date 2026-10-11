@@ -41,7 +41,7 @@ function hasFirewallLicense(): boolean {
 }
 
 // Base path for repository URLs
-const BASE_PATH = 'preview/admin/repository/repositories';
+const BASE_PATH = 'admin/repository/repositories';
 
 /**
  * URL-based routing patterns:
@@ -542,12 +542,12 @@ export function RepositoriesPage() {
 
   const getBreadcrumbs = () => {
     const base = [
-      { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+      { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
       { label: RepositoriesPageStrings.PAGE.REPOSITORIES, onClick: handleBack },
     ];
     switch (routeState.viewMode) {
       case 'list': return [
-        { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+        { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
         { label: RepositoriesPageStrings.PAGE.REPOSITORIES }
       ];
       case 'select-type': return [...base, { label: CommonStrings.ACTIONS.CREATE }];
@@ -562,7 +562,7 @@ export function RepositoriesPage() {
   const EVAL_HUB_STATE = 'preview.admin.iqHostedReposEval';
   const showEvalBackLink = routeState.viewMode === 'edit' && routerParams?.tab === 'evaluation';
   const evalHubHref =
-    router.stateService.href(EVAL_HUB_STATE, {}) ?? '#preview/admin/iq/hosted-repos-eval';
+    router.stateService.href(EVAL_HUB_STATE, {}) ?? '#admin/iq/hosted-repos-eval';
 
   // On the edit page the form renders this header itself, so that the repository actions can sit next to the title.
   const renderHeader = (actions?: React.ReactNode) => (

@@ -471,7 +471,7 @@ describe('TasksPage', () => {
       });
 
       screen.getByRole('button', { name: 'Settings' }).click();
-      expect(window.location.hash).toBe('#preview/admin/settings');
+      expect(window.location.hash).toBe('#admin/settings');
     });
 
     it('renders breadcrumbs for create view', async () => {
@@ -593,7 +593,7 @@ describe('TasksPage', () => {
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
       // Start directly on the detail route so we don't depend on row-click navigation
       // (which itself uses async waitFor) under fake timers.
-      window.location.hash = '#preview/admin/system/tasks/task-1';
+      window.location.hash = '#admin/system/tasks/task-1';
     });
 
     afterEach(() => {
@@ -667,7 +667,7 @@ describe('TasksPage', () => {
       await advance(5000);
 
       act(() => {
-        window.location.hash = '#preview/admin/system/tasks';
+        window.location.hash = '#admin/system/tasks';
         window.dispatchEvent(new Event('hashchange'));
       });
       const afterNav = fetchTask.mock.calls.length;

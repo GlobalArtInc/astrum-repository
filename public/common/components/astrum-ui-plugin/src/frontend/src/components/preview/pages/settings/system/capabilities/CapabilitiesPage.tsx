@@ -250,7 +250,7 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
 
   // Navigation helper for Settings breadcrumb
   const navigateToSettings = () => {
-    window.location.hash = '#preview/admin/settings';
+    window.location.hash = '#admin/settings';
   };
 
   const detailBreadcrumbs = [

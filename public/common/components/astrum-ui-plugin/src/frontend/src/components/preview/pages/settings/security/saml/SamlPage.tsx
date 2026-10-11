@@ -95,7 +95,7 @@ export function SamlPage({ className }: SamlPageProps) {
           title={SamlStrings.PAGE.SAML}
           description={SamlStrings.PAGE.CONFIGURE_SAML_AUTHENTICATION_IDENTITY_PROVIDER}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
             { label: 'SAML' }
           ]}
           actions={

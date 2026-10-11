@@ -10,7 +10,7 @@ describe('useIsPreviewUI', () => {
     ['#browse/welcome'],
     ['#admin/security/users'],
     ['#settings'],
-    ['#preview/browse/welcome'],
+    ['#browse/welcome'],
     [''],
   ])('returns true on %p: Astrum One is the only UI', (hash) => {
     window.location.hash = hash;

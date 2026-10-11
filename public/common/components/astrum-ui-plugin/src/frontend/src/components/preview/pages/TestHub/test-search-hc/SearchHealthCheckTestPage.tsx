@@ -6,7 +6,7 @@
  * SearchHealthCheckTestPage — every permutation of HealthCheckCell in a browse-grid layout.
  * Click any cell to see the corresponding Health Check modal.
  *
- * Access: http://localhost:8081/?debug#preview/test-search-hc
+ * Access: http://localhost:8081/?debug#test-search-hc
  */
 
 import React from 'react';
@@ -281,7 +281,7 @@ function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
 
 const GROUPED = groupBy(PERMUTATIONS, (p) => p.group ?? 'Other');
 
-const LIVE_URL = `${window.location.origin}${window.location.pathname}?debug#preview/browse`;
+const LIVE_URL = `${window.location.origin}${window.location.pathname}?debug#browse`;
 
 export default function SearchHealthCheckTestPage() {
   return (

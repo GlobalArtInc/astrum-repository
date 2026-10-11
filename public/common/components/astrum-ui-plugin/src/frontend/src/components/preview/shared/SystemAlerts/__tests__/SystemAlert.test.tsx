@@ -43,12 +43,12 @@ describe('SystemAlert', () => {
       <SystemAlert
         title="Title"
         message="Message"
-        action={{ label: 'View Details', href: 'preview/admin/settings/support/recoverymode' }}
+        action={{ label: 'View Details', href: 'admin/settings/support/recoverymode' }}
       />
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'View Details' }));
-    expect(window.location.hash).toContain('preview/admin/settings/support/recoverymode');
+    expect(window.location.hash).toContain('admin/settings/support/recoverymode');
   });
 
   it('is not dismissable by default (no dismiss button)', () => {

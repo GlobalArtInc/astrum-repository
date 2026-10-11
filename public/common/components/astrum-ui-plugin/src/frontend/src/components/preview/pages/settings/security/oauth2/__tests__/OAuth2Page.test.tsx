@@ -277,7 +277,7 @@ describe('OAuth2Page', () => {
       });
 
       screen.getByRole('button', { name: 'Settings' }).click();
-      expect(window.location.hash).toBe('#preview/admin/settings');
+      expect(window.location.hash).toBe('#admin/settings');
     });
 
     it('renders OAuth2 as current page breadcrumb', async () => {

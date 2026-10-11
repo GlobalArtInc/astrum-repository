@@ -41,7 +41,7 @@ export default function SettingsNotAvailablePage({ featureName }: SettingsNotAva
           {SettingsStrings.NOT_AVAILABLE.STILL_BEING_PREPARED_ASTRUM_ONE(featureName)}
         </Text>
         <Button variant="solid" size="3" mt="2" asChild>
-          <a href="#preview/admin/settings" style={{ color: 'var(--accent-contrast)', textDecoration: 'none' }}>
+          <a href="#admin/settings" style={{ color: 'var(--accent-contrast)', textDecoration: 'none' }}>
             <ArrowLeft size={16} />
             {SettingsStrings.NOT_AVAILABLE.BACK_SETTINGS}
           </a>

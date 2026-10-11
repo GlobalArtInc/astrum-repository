@@ -66,7 +66,7 @@ export function OAuth2Page({ className }: OAuth2PageProps) {
           title={OAuth2Strings.PAGE.OPENID_CONNECT}
           description={OAuth2Strings.PAGE.CONFIGURE_OPENID_CONNECT_OIDC_AUTHENTICATION}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: OAuth2Strings.PAGE.OPENID_CONNECT }
           ]}
         />

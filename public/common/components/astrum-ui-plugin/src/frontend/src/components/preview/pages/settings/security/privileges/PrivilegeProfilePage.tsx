@@ -26,8 +26,8 @@ import './PrivilegeProfilePage.scss';
 import CommonStrings from '../../../../constants/CommonStrings';
 import PrivilegesStrings from '../../../../constants/pages/settings/security/PrivilegesStrings';
 
-const ROLES_BASE_PATH = 'preview/admin/security/roles';
-const USERS_BASE_PATH = 'preview/admin/security/users';
+const ROLES_BASE_PATH = 'admin/security/roles';
+const USERS_BASE_PATH = 'admin/security/users';
 
 /**
  * ASTRUM-52167: these used to be styled <button>s calling openEntity() from

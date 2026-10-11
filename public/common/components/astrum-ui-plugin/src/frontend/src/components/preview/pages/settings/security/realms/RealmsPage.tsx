@@ -201,7 +201,7 @@ export function RealmsPage({ className }: RealmsPageProps) {
           description={RealmsStrings.PAGE.CONFIGURE_ACTIVE_SECURITY_REALMS_THEIR}
         
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: RealmsStrings.PAGE.REALMS }
           ]}
 />

@@ -175,7 +175,7 @@ export function HttpPage({ className }: HttpPageProps) {
           title={HttpStrings.PAGE.HTTP_SETTINGS}
           description={HttpStrings.PAGE.CONFIGURE_HTTP_PROXY_CONNECTION_SETTINGS}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
             { label: 'HTTP' }
           ]}
         />
@@ -241,7 +241,7 @@ export function HttpPage({ className }: HttpPageProps) {
         title={HttpStrings.PAGE.HTTP_SETTINGS}
         description={HttpStrings.PAGE.CONFIGURE_HTTP_PROXY_CONNECTION_SETTINGS}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: 'HTTP' }
         ]}
       />

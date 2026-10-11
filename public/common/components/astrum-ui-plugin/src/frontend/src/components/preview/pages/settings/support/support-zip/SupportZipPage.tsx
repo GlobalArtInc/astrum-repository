@@ -27,7 +27,7 @@ import CommonStrings from '../../../../constants/CommonStrings';
  * Handles both single-node and HA (clustered) support ZIP generation.
  *
  * Permission: astrum:atlas:create (to create ZIP), astrum:atlas:read (to view)
- * Route: #preview/admin/support/supportzip
+ * Route: #admin/support/supportzip
  */
 export function SupportZipPage() {
   const [params, setParams] = useState<SupportZipParams>(DEFAULT_SUPPORT_ZIP_PARAMS);
@@ -77,7 +77,7 @@ export function SupportZipPage() {
           title={SupportZipStrings.PAGE.SUPPORT_ZIP}
           description={SupportZipStrings.PAGE.CREATES_ZIP_FILE_CONTAINING_USEFUL}
           breadcrumbs={[
-            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+            { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
             { label: SupportZipStrings.PAGE.SUPPORT_ZIP },
           ]}
         />
@@ -95,7 +95,7 @@ export function SupportZipPage() {
       title={SupportZipStrings.PAGE.SUPPORT_ZIP}
       description={SupportZipStrings.PAGE.CREATES_ZIP_FILE_CONTAINING_USEFUL}
       breadcrumbs={[
-        { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#preview/admin/settings'; } },
+        { label: CommonStrings.LABELS.SETTINGS, onClick: () => { window.location.hash = '#admin/settings'; } },
         { label: SupportZipStrings.PAGE.SUPPORT_ZIP },
       ]}
     />

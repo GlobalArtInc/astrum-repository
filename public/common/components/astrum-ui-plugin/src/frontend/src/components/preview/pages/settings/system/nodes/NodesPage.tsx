@@ -35,7 +35,7 @@ export function NodesPage({ className }: NodesPageProps) {
         title={NodesStrings.PAGE.NODES}
         description={NodesStrings.PAGE.VIEW_CLUSTER_NODES_ASTRUM_REPOSITORY}
         breadcrumbs={[
-          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#preview/admin/settings') },
+          { label: CommonStrings.LABELS.SETTINGS, onClick: () => navigateTo('#admin/settings') },
           { label: NodesStrings.PAGE.NODES }
         ]}
       />

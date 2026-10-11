@@ -284,7 +284,7 @@ describe('UserAccountPage', () => {
       });
 
       fireEvent.click(screen.getByTestId('manage-user-token-btn'));
-      expect(window.location.hash).toBe('#preview/user/usertoken');
+      expect(window.location.hash).toBe('#user/usertoken');
     });
 
     it('Manage NuGet API Key button navigates to nuget api token hash', async () => {
@@ -295,7 +295,7 @@ describe('UserAccountPage', () => {
       });
 
       fireEvent.click(screen.getByTestId('manage-nuget-key-btn'));
-      expect(window.location.hash).toBe('#preview/user/nugetapitoken');
+      expect(window.location.hash).toBe('#user/nugetapitoken');
     });
   });
 });

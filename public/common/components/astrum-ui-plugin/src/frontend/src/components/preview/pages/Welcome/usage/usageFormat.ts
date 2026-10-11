@@ -154,17 +154,17 @@ export const usageLinks = {
     if (variant === 'classic') {
       return `#browse/browse:${encodeURIComponent(component.repository)}:${encodeURIComponent(path)}`;
     }
-    return `#preview/browse/browse/${encodeURIComponent(component.repository)}/${encodePath(path)}`;
+    return `#browse/${encodeURIComponent(component.repository)}/${encodePath(path)}`;
   },
   repository(variant: UsageDashboardVariant, repository: string): string {
     return variant === 'classic'
       ? `#browse/browse:${encodeURIComponent(repository)}`
-      : `#preview/browse/browse/${encodeURIComponent(repository)}/`;
+      : `#browse/${encodeURIComponent(repository)}/`;
   },
   search(variant: UsageDashboardVariant): string {
-    return variant === 'classic' ? '#browse/search/generic' : '#preview/browse/search';
+    return variant === 'classic' ? '#browse/search/generic' : '#browse/search';
   },
   cleanupPolicies(variant: UsageDashboardVariant): string {
-    return variant === 'classic' ? '#admin/repository/cleanuppolicies' : '#preview/admin/repository/cleanup-policies';
+    return variant === 'classic' ? '#admin/repository/cleanuppolicies' : '#admin/repository/cleanup-policies';
   },
 };

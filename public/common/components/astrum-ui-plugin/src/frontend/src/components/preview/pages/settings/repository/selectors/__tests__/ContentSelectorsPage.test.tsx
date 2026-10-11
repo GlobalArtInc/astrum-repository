@@ -86,7 +86,7 @@ describe('ContentSelectorsPage', () => {
     jest.clearAllMocks();
     mockCheckPermission.mockReturnValue(true);
     // Set URL hash to list view for most tests
-    window.location.hash = '#preview/admin/repository/selectors';
+    window.location.hash = '#admin/repository/selectors';
     
     mockFetchContentSelector.mockResolvedValue({
       name: 'test-selector',

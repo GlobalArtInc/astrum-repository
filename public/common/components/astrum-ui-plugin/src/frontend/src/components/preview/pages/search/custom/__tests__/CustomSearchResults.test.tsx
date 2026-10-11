@@ -65,6 +65,6 @@ describe('CustomSearchResults', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open @acme/ui-kit in its repository' }));
 
-    expect(window.location.hash).toBe('#preview/browse/npm-hosted/@acme/ui-kit/-/ui-kit-2.1.0.tgz?tab=summary');
+    expect(window.location.hash).toBe('#browse/npm-hosted/@acme/ui-kit/-/ui-kit-2.1.0.tgz?tab=summary');
   });
 });

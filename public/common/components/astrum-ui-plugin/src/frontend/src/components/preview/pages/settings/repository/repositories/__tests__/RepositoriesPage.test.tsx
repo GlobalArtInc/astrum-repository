@@ -15,7 +15,7 @@ jest.mock('@uirouter/react', () => ({
   useRouter: () => ({
     stateService: {
       go: jest.fn(),
-      href: jest.fn(() => '#preview/admin/iq/hosted-repos-eval'),
+      href: jest.fn(() => '#admin/iq/hosted-repos-eval'),
     },
   }),
   useCurrentStateAndParams: () => ({ state: null, params: {} }),
@@ -111,7 +111,7 @@ describe('RepositoriesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Set URL hash to list view for most tests
-    window.location.hash = '#preview/admin/repository/repositories';
+    window.location.hash = '#admin/repository/repositories';
     mockUseRepositoriesApi.mockReturnValue(mockApiHook);
   });
 
@@ -194,7 +194,7 @@ describe('RepositoriesPage', () => {
 
   describe('repository edit view header', () => {
     beforeEach(() => {
-      window.location.hash = '#preview/admin/repository/repositories/maven-central';
+      window.location.hash = '#admin/repository/repositories/maven-central';
     });
 
     it('shows the name with status, type and format chips and the actions in one header', async () => {
@@ -218,7 +218,7 @@ describe('RepositoriesPage', () => {
 
   describe('repository edit view online toggle', () => {
     beforeEach(() => {
-      window.location.hash = '#preview/admin/repository/repositories/maven-central';
+      window.location.hash = '#admin/repository/repositories/maven-central';
     });
 
     it('starts the form over from the saved repository after taking it offline', async () => {
@@ -247,7 +247,7 @@ describe('RepositoriesPage', () => {
   describe('repository edit view deletion', () => {
     beforeEach(() => {
       // Set URL hash to edit view for a specific repository
-      window.location.hash = '#preview/admin/repository/repositories/maven-central';
+      window.location.hash = '#admin/repository/repositories/maven-central';
     });
 
     it('opens DeleteConfirmationModal when delete button clicked in edit view', async () => {
@@ -398,7 +398,7 @@ describe('RepositoriesPage', () => {
       // useRepositoryForm has already PUT updateRepository; it must not POST
       // createRepository in edit mode or the server rejects with
       // "Repository name already exists".
-      window.location.hash = '#preview/admin/repository/repositories/maven-central';
+      window.location.hash = '#admin/repository/repositories/maven-central';
     });
 
     it('does not call createRepository in edit mode (regression test for double-write)', async () => {

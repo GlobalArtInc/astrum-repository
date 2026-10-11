@@ -174,11 +174,11 @@ describe('RolesPage', () => {
     
     fireEvent.click(screen.getByRole('button', { name: 'Create Role' }));
     
-    expect(window.location.hash).toBe('#preview/admin/security/roles/create');
+    expect(window.location.hash).toBe('#admin/security/roles/create');
   });
 
   it('should render wizard when hash is create', async () => {
-    window.location.hash = '#preview/admin/security/roles/create';
+    window.location.hash = '#admin/security/roles/create';
     renderWithTheme(<RolesPage />);
 
     expect(screen.getByTestId('wizard-form')).toBeInTheDocument();
@@ -187,7 +187,7 @@ describe('RolesPage', () => {
   });
 
   it('should navigate through wizard steps', async () => {
-    window.location.hash = '#preview/admin/security/roles/create';
+    window.location.hash = '#admin/security/roles/create';
     renderWithTheme(<RolesPage />);
 
     // Step 0: Role Type - wait for mock RoleForm to render
@@ -221,7 +221,7 @@ describe('RolesPage', () => {
   });
 
   it('P0: should disable Create Role button on final step when no privileges selected', async () => {
-    window.location.hash = '#preview/admin/security/roles/create';
+    window.location.hash = '#admin/security/roles/create';
     renderWithTheme(<RolesPage />);
 
     // Wait for initial step to render
@@ -257,11 +257,11 @@ describe('RolesPage', () => {
     
     fireEvent.click(screen.getByText('Select Role'));
     
-    expect(window.location.hash).toBe('#preview/admin/security/roles/test-role/profile');
+    expect(window.location.hash).toBe('#admin/security/roles/test-role/profile');
   });
 
   it('should render role profile when hash has profile suffix', async () => {
-    window.location.hash = '#preview/admin/security/roles/test-role/profile';
+    window.location.hash = '#admin/security/roles/test-role/profile';
     renderWithTheme(<RolesPage />);
     
     await waitFor(() => {
@@ -270,7 +270,7 @@ describe('RolesPage', () => {
   });
 
   it('should render edit wizard when hash has role ID', async () => {
-    window.location.hash = '#preview/admin/security/roles/test-role';
+    window.location.hash = '#admin/security/roles/test-role';
     renderWithTheme(<RolesPage />);
 
     await waitFor(() => {
@@ -281,7 +281,7 @@ describe('RolesPage', () => {
 
   // ASTRUM-54267 AC (c): edit wizard skips the immutable Type step and starts on Setup.
   it('edit wizard skips step 0 (Type) and starts on Setup', async () => {
-    window.location.hash = '#preview/admin/security/roles/test-role';
+    window.location.hash = '#admin/security/roles/test-role';
     renderWithTheme(<RolesPage />);
 
     // Mock RoleForm renders `wizard-step-<N>` from the logical step it receives.
@@ -295,7 +295,7 @@ describe('RolesPage', () => {
   });
 
   it('puts the edit wizard under a page header with breadcrumbs and no second way back', async () => {
-    window.location.hash = '#preview/admin/security/roles/test-role';
+    window.location.hash = '#admin/security/roles/test-role';
     renderWithTheme(<RolesPage />);
 
     await waitFor(() => {
