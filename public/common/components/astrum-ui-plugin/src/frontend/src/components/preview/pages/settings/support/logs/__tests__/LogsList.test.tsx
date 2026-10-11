@@ -104,6 +104,18 @@ describe('LogsList', () => {
     expect(mockOnSelect).toHaveBeenCalledWith('astrum.log');
   });
 
+  it('marks the rows as opening a log rather than editing it', async () => {
+    render(<LogsList onSelect={mockOnSelect} />, { wrapper: TestWrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('astrum.log')).toBeInTheDocument();
+    });
+
+    const icons = screen.getAllByTestId('log-open-icon');
+    expect(icons.length).toBeGreaterThan(0);
+    expect(icons[0]).toHaveClass('lucide-chevron-right');
+  });
+
   it('calls setFilter when filter input changes', async () => {
     const mockSetFilter = jest.fn();
     mockedUseLogsList.mockReturnValue(makeHook({ setFilter: mockSetFilter }));

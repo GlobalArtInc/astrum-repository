@@ -2,7 +2,7 @@
 
 import React, { useCallback } from 'react';
 import { Box, Flex, Text, Table } from '@radix-ui/themes';
-import { Search, Pencil, ArrowUp, ArrowDown, FileText, Loader2 } from 'lucide-react';
+import { Search, ChevronRight, ArrowUp, ArrowDown, FileText, Loader2 } from 'lucide-react';
 import { HumanReadableUtils } from '../../../../../../interface/HumanReadableUtils';
 import { DateTime } from 'luxon';
 import { pageLanguage } from '../../../../../../interface/plural';
@@ -148,7 +148,7 @@ export function LogsList({ onSelect }: LogsListProps) {
                   {formatDate(log.lastModified)}
                 </Table.Cell>
                 <Table.Cell className="logs-list__cell logs-list__cell--action">
-                  <Pencil size={16} className="logs-list__edit-icon" />
+                  <ChevronRight size={16} className="logs-list__open-icon" aria-hidden="true" data-testid="log-open-icon" />
                 </Table.Cell>
               </Table.Row>
             ))
