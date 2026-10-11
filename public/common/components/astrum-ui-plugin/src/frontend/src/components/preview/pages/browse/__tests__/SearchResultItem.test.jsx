@@ -5,7 +5,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Theme } from '@radix-ui/themes';
 import '@testing-library/jest-dom';
 
-import { SearchResultItem } from '../SearchResultItem';
+import { SearchResultItem, searchResultName } from '../SearchResultItem';
 
 // Helper to wrap components with Radix Theme
 function renderWithTheme(ui) {
@@ -112,5 +112,18 @@ describe('SearchResultItem', () => {
 
       expect(mockOnClick).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('searchResultName', () => {
+  it('writes the name of a result as its format does', () => {
+    expect(searchResultName({ format: 'maven2', group: 'org.example', name: 'demo-api' })).toBe('org.example:demo-api');
+    expect(searchResultName({ format: 'npm', group: 'acme', name: 'ui-kit' })).toBe('@acme/ui-kit');
+    expect(searchResultName({ format: 'npm', name: 'left-pad' })).toBe('left-pad');
+  });
+
+  it('does not repeat the directory of a raw file, which its name already holds', () => {
+    expect(searchResultName({ format: 'raw', group: '/tools/linux', name: '/tools/linux/install.txt' }))
+      .toBe('/tools/linux/install.txt');
   });
 });

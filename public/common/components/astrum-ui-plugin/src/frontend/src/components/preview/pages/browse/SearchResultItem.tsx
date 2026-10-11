@@ -13,6 +13,21 @@ export interface SearchResultItemProps {
 }
 
 /**
+ * The name of a result as its format writes it: `group:name` for Maven, `@scope/name` for npm, and the name alone
+ * when it already holds the group, as the path of a raw file holds its directory.
+ */
+export function searchResultName(result: Pick<SearchResult, 'format' | 'group' | 'name'>): string {
+  const { format, group, name } = result;
+  if (!group || name.startsWith(group)) {
+    return name;
+  }
+  if (format === 'npm') {
+    return `@${group.replace(/^@/, '')}/${name}`;
+  }
+  return `${group}:${name}`;
+}
+
+/**
  * Individual search result item displayed in the dropdown.
  */
 export function SearchResultItem({
@@ -21,9 +36,7 @@ export function SearchResultItem({
   onMouseDown,
   isSelected = false,
 }: SearchResultItemProps): JSX.Element {
-  const displayName = result.group
-    ? `${result.group}:${result.name}`
-    : result.name;
+  const displayName = searchResultName(result);
 
   const displayVersion = result.version || '';
 
