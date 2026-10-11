@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 
 import org.globalart.astrum.crypto.LegacyCipherFactory.PbeCipher;
 import org.globalart.astrum.datastore.mybatis.handlers.PrincipalCollectionTypeHandler;
+import org.globalart.astrum.security.accesstoken.AccessTokenPrincipal;
 
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.SimplePrincipalCollection;
@@ -125,5 +126,19 @@ public class PrincipalCollectionTypeHandlerTest
     final PrincipalCollection result = principalCollectionTypeHandler.getNullableResult(callableStatement, AN_INDEX);
 
     assertThat(result, is(principalCollection));
+  }
+
+  @Test
+  public void shouldKeepAccessTokenPrincipal() throws Exception {
+    SimplePrincipalCollection scoped = new SimplePrincipalCollection("p1", "r1");
+    scoped.add(new AccessTokenPrincipal("id", "ci", "read"), "r1");
+    byte[] bytes = serialize(scoped);
+    when(databaseCipher.decrypt(bytes)).thenReturn(bytes);
+    when(resultSet.getBytes(COLUMN)).thenReturn(bytes);
+
+    final PrincipalCollection result = principalCollectionTypeHandler.getNullableResult(resultSet, COLUMN);
+
+    assertThat(result, is(scoped));
+    assertThat(result.getPrimaryPrincipal(), is("p1"));
   }
 }

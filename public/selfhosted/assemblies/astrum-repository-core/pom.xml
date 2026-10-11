@@ -329,6 +329,10 @@
     </dependency>
     <dependency>
       <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-access-token-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
       <artifactId>astrum-default-role-plugin</artifactId>
     </dependency>
     <dependency>

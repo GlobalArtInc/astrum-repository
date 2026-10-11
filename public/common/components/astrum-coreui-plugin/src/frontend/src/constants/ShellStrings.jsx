@@ -39,6 +39,7 @@ export default {
     ACCOUNT: {
       LOG_IN: 'Log In',
       MY_ACCOUNT: 'My Account',
+      ACCESS_TOKENS: 'Access Tokens',
       NUGET_API_KEY: 'NuGet API Key',
       USER_TOKEN: 'User Token',
       LOG_OUT: 'Log Out'

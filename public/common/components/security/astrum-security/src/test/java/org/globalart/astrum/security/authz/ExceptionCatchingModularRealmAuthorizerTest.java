@@ -1,6 +1,8 @@
 
 package org.globalart.astrum.security.authz;
 
+import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.apache.shiro.authc.AuthenticationException;
@@ -8,10 +10,13 @@ import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.Permission;
+import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.authz.permission.AllPermission;
+import org.apache.shiro.authz.permission.WildcardPermission;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.subject.PrincipalCollection;
+import org.apache.shiro.subject.SimplePrincipalCollection;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,5 +49,53 @@ public class ExceptionCatchingModularRealmAuthorizerTest
     Assert.assertFalse(subject.isPermitted(null, permission));
     Assert.assertFalse(subject.isPermitted(null, new String[]{""})[0]);
     Assert.assertFalse(subject.isPermitted(null, Collections.singletonList(permission))[0]);
+  }
+
+  private static final AuthorizingRealm ALMIGHTY_REALM = new AuthorizingRealm()
+  {
+    @Override
+    protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) {
+      return null;
+    }
+
+    @Override
+    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
+      SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
+      info.addObjectPermission(new AllPermission());
+      return info;
+    }
+  };
+
+  private static final class ReadOnly
+      implements ScopedPrincipal, Serializable
+  {
+    @Override
+    public boolean permits(final Permission permission) {
+      return permission.toString().endsWith(":read");
+    }
+  }
+
+  @Test
+  public void scopedPrincipalNarrowsWhatRealmsGrant() {
+    ExceptionCatchingModularRealmAuthorizer subject =
+        new ExceptionCatchingModularRealmAuthorizer(Collections.<Realm>singleton(ALMIGHTY_REALM));
+
+    SimplePrincipalCollection unscoped = new SimplePrincipalCollection("alice", "test");
+    SimplePrincipalCollection scoped = new SimplePrincipalCollection("alice", "test");
+    scoped.add(new ReadOnly(), "test");
+
+    Permission read = new WildcardPermission("astrum:repository-view:raw:files:read");
+    Permission add = new WildcardPermission("astrum:repository-view:raw:files:add");
+
+    Assert.assertTrue(subject.isPermitted(unscoped, add));
+    Assert.assertTrue(subject.isPermitted(scoped, read));
+    Assert.assertFalse(subject.isPermitted(scoped, add));
+    Assert.assertTrue(subject.isPermitted(scoped, "astrum:search:read"));
+    Assert.assertFalse(subject.isPermitted(scoped, "astrum:search:create"));
+    Assert.assertArrayEquals(new boolean[]{true, false},
+        subject.isPermitted(scoped, "astrum:settings:read", "astrum:settings:update"));
+    Assert.assertArrayEquals(new boolean[]{true, false}, subject.isPermitted(scoped, Arrays.asList(read, add)));
+    Assert.assertFalse(subject.isPermittedAll(scoped, Arrays.asList(read, add)));
+    Assert.assertEquals("alice", scoped.getPrimaryPrincipal());
   }
 }

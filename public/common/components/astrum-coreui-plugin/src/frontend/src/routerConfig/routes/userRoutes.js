@@ -1,5 +1,6 @@
 
 import { UIView } from '@uirouter/react';
+import { AccessTokensPage } from '@globalart/astrum-ui-plugin';
 import { ROUTE_NAMES } from '../routeNames/routeNames';
 import { lazyLoad } from './lazyLoad';
 
@@ -28,6 +29,18 @@ export const userRoutes = [
     name: USER.ACCOUNT,
     url: '/account',
     component: UserAccount,
+    data: {
+      visibilityRequirements: {
+        requiresUser: true,
+      },
+      title: USER.TITLE,
+    },
+  },
+
+  {
+    name: USER.ACCESS_TOKENS,
+    url: '/accesstokens',
+    component: AccessTokensPage,
     data: {
       visibilityRequirements: {
         requiresUser: true,

@@ -14,6 +14,7 @@ import java.util.Set;
 import org.globalart.astrum.datastore.mybatis.AbstractSerializableTypeHandler;
 import org.globalart.astrum.security.AstrumSimplePrincipalCollection;
 import org.globalart.astrum.security.RealmCaseMapping;
+import org.globalart.astrum.security.accesstoken.AccessTokenPrincipal;
 import org.globalart.astrum.security.anonymous.AnonymousPrincipalCollection;
 
 import org.apache.ibatis.type.TypeHandler;
@@ -40,6 +41,7 @@ public class PrincipalCollectionTypeHandler
       AnonymousPrincipalCollection.class,
       AstrumSimplePrincipalCollection.class,
       RealmCaseMapping.class,
+      AccessTokenPrincipal.class,
       // Common JDK types used by SimplePrincipalCollection
       LinkedHashMap.class,
       HashMap.class,

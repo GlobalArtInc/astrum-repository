@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.globalart.astrum.accesstoken.internal.AccessTokenDAO">
+
+  <resultMap id="AccessTokenDataResultMap" type="AccessTokenData">
+    <id property="id" column="id"/>
+    <result property="username" column="username"/>
+    <result property="principals" column="principals"/>
+    <result property="name" column="name"/>
+    <result property="tokenHash" column="token_hash"/>
+    <result property="tokenHint" column="token_hint"/>
+    <result property="scope" column="scope"/>
+    <result property="created" column="created"/>
+    <result property="expires" column="expires"/>
+    <result property="lastUsed" column="last_used"/>
+  </resultMap>
+
+  <insert id="createSchema">
+    CREATE TABLE IF NOT EXISTS access_token (
+      id          VARCHAR(36)    NOT NULL,
+      username    VARCHAR(200)   NOT NULL,
+      principals  ${BINARY_TYPE} NOT NULL,
+      name        VARCHAR(100)   NOT NULL,
+      token_hash  VARCHAR(64)    NOT NULL,
+      token_hint  VARCHAR(20)    NOT NULL,
+      scope       VARCHAR(20)    NOT NULL,
+      created     TIMESTAMP WITH TIME ZONE NOT NULL,
+      expires     TIMESTAMP WITH TIME ZONE,
+      last_used   TIMESTAMP WITH TIME ZONE,
+
+      CONSTRAINT pk_access_token_id PRIMARY KEY (id),
+      CONSTRAINT uk_access_token_token_hash UNIQUE (token_hash),
+      CONSTRAINT uk_access_token_username_name UNIQUE (username, name)
+    );
+  </insert>
+
+  <select id="browse" resultMap="AccessTokenDataResultMap">
+    SELECT * FROM access_token ORDER BY username, created;
+  </select>
+
+  <select id="browseByUser" resultMap="AccessTokenDataResultMap">
+    SELECT * FROM access_token WHERE username = #{username} ORDER BY created;
+  </select>
+
+  <select id="read" resultMap="AccessTokenDataResultMap">
+    SELECT * FROM access_token WHERE id = #{id};
+  </select>
+
+  <select id="findByHash" resultMap="AccessTokenDataResultMap">
+    SELECT * FROM access_token WHERE token_hash = #{tokenHash};
+  </select>
+
+  <select id="countByUserAndName" resultType="int">
+    SELECT COUNT(*) FROM access_token WHERE username = #{username} AND name = #{name};
+  </select>
+
+  <insert id="create" parameterType="AccessTokenData">
+    INSERT INTO access_token (id, username, principals, name, token_hash, token_hint, scope, created, expires)
+    VALUES (#{id}, #{username}, #{principals}, #{name}, #{tokenHash}, #{tokenHint}, #{scope}, #{created}, #{expires});
+  </insert>
+
+  <delete id="delete">
+    DELETE FROM access_token WHERE id = #{id};
+  </delete>
+
+  <delete id="deleteByUser">
+    DELETE FROM access_token WHERE username = #{username};
+  </delete>
+
+  <update id="updateLastUsed">
+    UPDATE access_token SET last_used = #{lastUsed} WHERE id = #{id};
+  </update>
+</mapper>

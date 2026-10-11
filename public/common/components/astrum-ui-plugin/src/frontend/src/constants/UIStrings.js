@@ -5,6 +5,7 @@ import CapabilitiesStrings from "./admin/CapabilitiesStrings";
 import TasksStrings from "./admin/TasksStrings";
 import LoginPageStrings from "./LoginPageStrings";
 import WelcomeStrings from "./WelcomeStrings";
+import AccessTokensStrings from "./pages/AccessTokensStrings";
 import localize from "../interface/localize";
 
 /**
@@ -126,5 +127,6 @@ export default localize('react-ui', {
   ...CapabilitiesStrings,
   ...TasksStrings,
   ...LoginPageStrings,
-  ...WelcomeStrings
+  ...WelcomeStrings,
+  ...AccessTokensStrings
 });

@@ -279,6 +279,7 @@ export const UserAccountPage = React.lazy(() => import('./components/preview/pag
 // User pages (preview.user.*)
 export const UserTokenPage     = React.lazy(() => import('./components/preview/pages/User/UserTokenPage'));
 export const NuGetApiTokenPage = React.lazy(() => import('./components/preview/pages/User/NuGetApiTokenPage'));
+export const AccessTokensPage  = React.lazy(() => import('./components/preview/pages/User/AccessTokensPage'));
 
 // Search pages (format-specific)
 export const GASearchPage       = React.lazy(() => import('./components/preview/pages/search/results/GASearchPage'));

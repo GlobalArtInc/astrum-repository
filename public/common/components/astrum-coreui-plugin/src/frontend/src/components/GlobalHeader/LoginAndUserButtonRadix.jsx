@@ -3,7 +3,7 @@
 import React, {useState, useEffect} from 'react';
 import {DropdownMenu, Flex, IconButton, Text} from '@radix-ui/themes';
 import {Tooltip, usePortalContainer} from '@globalart/astrum-ui-plugin';
-import {User, Key, LogOut} from 'lucide-react';
+import {User, Key, KeyRound, LogOut} from 'lucide-react';
 import {ExtJS, useIsVisible} from '@globalart/astrum-ui-plugin';
 import {useRouter, useSref} from '@uirouter/react';
 import useHasUser from '../../hooks/useHasUser';
@@ -68,9 +68,11 @@ export default function LoginAndUserButtonRadix() {
   const isPreviewUI = hashPath === 'preview' || hashPath.startsWith('preview/');
 
   const userAccountState = isPreviewUI ? 'preview.user.account' : USER.ACCOUNT;
+  const accessTokensState = isPreviewUI ? 'preview.user.accesstokens' : USER.ACCESS_TOKENS;
   const nugetApiTokenState = isPreviewUI ? 'preview.user.nugetapitoken' : USER.NUGETAPITOKEN;
   const userTokenState = isPreviewUI ? 'preview.user.usertoken' : userTokenRouteName;
   const {href: userAccountHref} = useSref(userAccountState);
+  const {href: accessTokensHref} = useSref(accessTokensState);
   const {href: userNugetApiTokenHref} = useSref(nugetApiTokenState);
   const {href: userTokenHref} = useSref(userTokenState);
 
@@ -140,6 +142,15 @@ export default function LoginAndUserButtonRadix() {
         <DropdownMenu.Item asChild>
           <a href={userAccountHref} className="as-internal-link">
             <Text size="2" color="gray">{UIStrings.USER_ACCOUNT.MENU.text}</Text>
+          </a>
+        </DropdownMenu.Item>
+
+        <DropdownMenu.Item asChild>
+          <a href={accessTokensHref} className="as-internal-link" data-testid="user-menu-access-tokens">
+            <Flex align="center" justify="start" gap="3">
+              <Text size="2" color="gray">{UIStrings.SHELL.ACCOUNT.ACCESS_TOKENS}</Text>
+              <KeyRound size={16} />
+            </Flex>
           </a>
         </DropdownMenu.Item>
 

@@ -2,6 +2,7 @@
 package org.globalart.astrum.bootstrap.security;
 
 import java.util.Collection;
+import java.util.Collections;
 
 import jakarta.inject.Provider;
 
@@ -13,7 +14,6 @@ import org.globalart.astrum.security.authz.ExceptionCatchingModularRealmAuthoriz
 
 import org.apache.shiro.authc.Authenticator;
 import org.apache.shiro.authz.Authorizer;
-import org.apache.shiro.authz.ModularRealmAuthorizer;
 import org.apache.shiro.authz.permission.RolePermissionResolver;
 import org.apache.shiro.event.EventBus;
 import org.apache.shiro.event.support.DefaultEventBus;
@@ -127,17 +127,7 @@ public class WebSecurityConfiguration
   }
 
   protected Authorizer authorizer() {
-    ModularRealmAuthorizer authorizer = new ModularRealmAuthorizer();
-    //
-    // if (permissionResolver != null) {
-    // authorizer.setPermissionResolver(permissionResolver);
-    // }
-    //
-    // if (rolePermissionResolver != null) {
-    // authorizer.setRolePermissionResolver(rolePermissionResolver);
-    // }
-
-    return authorizer;
+    return new ExceptionCatchingModularRealmAuthorizer(Collections.emptyList());
   }
 
 }

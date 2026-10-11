@@ -15,6 +15,7 @@
   <packaging>pom</packaging>
 
   <modules>
+    <module>astrum-access-token-plugin</module>
     <module>astrum-default-role-plugin</module>
     <module>astrum-ldap-plugin</module>
     <module>astrum-oidc-plugin</module>

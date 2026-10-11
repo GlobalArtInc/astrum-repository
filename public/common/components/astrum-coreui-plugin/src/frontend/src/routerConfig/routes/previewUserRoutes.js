@@ -5,6 +5,7 @@ import {
   UserAccountPage,
   UserTokenPage,
   NuGetApiTokenPage,
+  AccessTokensPage,
 } from '@globalart/astrum-ui-plugin';
 
 export const previewUserRoutes = [
@@ -19,6 +20,12 @@ export const previewUserRoutes = [
     url: '/account',
     component: UserAccountPage,
     data: {title: 'Account'},
+  },
+  {
+    name: 'preview.user.accesstokens',
+    url: '/accesstokens',
+    component: AccessTokensPage,
+    data: {title: 'Access Tokens', visibilityRequirements: {requiresUser: true}},
   },
   {
     name: 'preview.user.nugetapitoken',

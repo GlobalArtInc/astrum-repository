@@ -545,6 +545,11 @@
 
       <dependency>
         <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-access-token-plugin</artifactId>
+        <version>3.96.4-01</version>
+      </dependency>
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
         <artifactId>astrum-default-role-plugin</artifactId>
         <version>3.96.4-01</version>
       </dependency>

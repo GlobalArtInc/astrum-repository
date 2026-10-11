@@ -11,7 +11,9 @@ import org.apache.shiro.authz.AuthorizationException;
 import org.apache.shiro.authz.Authorizer;
 import org.apache.shiro.authz.ModularRealmAuthorizer;
 import org.apache.shiro.authz.Permission;
+import org.apache.shiro.authz.permission.PermissionResolver;
 import org.apache.shiro.authz.permission.RolePermissionResolver;
+import org.apache.shiro.authz.permission.WildcardPermission;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.slf4j.Logger;
@@ -155,6 +157,9 @@ public class ExceptionCatchingModularRealmAuthorizer
 
   @Override
   public boolean isPermitted(PrincipalCollection subjectPrincipal, String permission) {
+    if (outOfScope(subjectPrincipal, permission)) {
+      return false;
+    }
     for (Realm realm : getRealms()) {
       if (!(realm instanceof Authorizer)) {
         continue; // ignore non-authorizing realms
@@ -188,6 +193,9 @@ public class ExceptionCatchingModularRealmAuthorizer
 
   @Override
   public boolean isPermitted(PrincipalCollection subjectPrincipal, Permission permission) {
+    if (outOfScope(subjectPrincipal, permission)) {
+      return false;
+    }
     for (Realm realm : getRealms()) {
       if (!(realm instanceof Authorizer)) {
         continue; // ignore non-authorizing realms
@@ -231,6 +239,10 @@ public class ExceptionCatchingModularRealmAuthorizer
       }
     }
 
+    for (int i = 0; i < combinedResult.length; i++) {
+      combinedResult[i] = combinedResult[i] && !outOfScope(subjectPrincipal, permissions[i]);
+    }
+
     return combinedResult;
   }
 
@@ -257,6 +269,10 @@ public class ExceptionCatchingModularRealmAuthorizer
       }
     }
 
+    for (int i = 0; i < combinedResult.length; i++) {
+      combinedResult[i] = combinedResult[i] && !outOfScope(subjectPrincipal, permissions.get(i));
+    }
+
     return combinedResult;
   }
 
@@ -280,6 +296,27 @@ public class ExceptionCatchingModularRealmAuthorizer
     }
 
     return true;
+  }
+
+  private boolean outOfScope(final PrincipalCollection subjectPrincipal, final String permission) {
+    if (subjectPrincipal == null || subjectPrincipal.byType(ScopedPrincipal.class).isEmpty()) {
+      return false;
+    }
+    PermissionResolver resolver = getPermissionResolver();
+    return outOfScope(subjectPrincipal,
+        resolver != null ? resolver.resolvePermission(permission) : new WildcardPermission(permission));
+  }
+
+  private static boolean outOfScope(final PrincipalCollection subjectPrincipal, final Permission permission) {
+    if (subjectPrincipal == null) {
+      return false;
+    }
+    for (ScopedPrincipal scope : subjectPrincipal.byType(ScopedPrincipal.class)) {
+      if (!scope.permits(permission)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void logAndIgnore(Realm realm, Exception e) {
