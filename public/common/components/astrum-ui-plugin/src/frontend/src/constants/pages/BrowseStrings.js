@@ -82,6 +82,9 @@ export default {
       SEARCH_RESULTS: 'Search results',
       SEARCH_EMPTY: (query) => `No results found for "${query}"`,
       RESIZE_HANDLE: 'Drag to resize, double-click to reset',
+      NOT_FOUND_TITLE: 'Repository not found',
+      NOT_FOUND_DESCRIPTION: (name) => `There is no repository ${name}, or you may not browse it.`,
+      BACK_TO_LIST: 'All repositories',
     },
     TREE: {
       TITLES: {

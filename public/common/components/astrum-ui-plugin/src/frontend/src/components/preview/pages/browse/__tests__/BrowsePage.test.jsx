@@ -49,10 +49,12 @@ const mockRepositoryInfo = {
   status: { online: true },
 };
 
+let mockMissingRepository = false;
+
 jest.mock('../useRepositoryInfo', () => ({
   ...jest.requireActual('../useRepositoryInfo'),
   useRepositoryInfo: (name) => ({
-    repository: name ? { ...mockRepositoryInfo, name } : null,
+    repository: name && !mockMissingRepository ? { ...mockRepositoryInfo, name } : null,
     loading: false,
   }),
 }));
@@ -472,6 +474,27 @@ describe('BrowsePage', () => {
         repositoryName: 'maven-central',
       });
       check.mockRestore();
+    });
+  });
+
+  describe('Unknown repository', () => {
+    afterEach(() => {
+      mockMissingRepository = false;
+    });
+
+    it('says that the repository is not found instead of showing an empty tree', async () => {
+      mockMissingRepository = true;
+      mockParams = { repoName: 'no-such-repo' };
+      renderWithProviders(<BrowsePage />);
+
+      expect(screen.getByRole('heading', { level: 1, name: 'no-such-repo' })).toBeInTheDocument();
+      expect(screen.getByText('Repository not found')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-browse-tree')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /copy url/i })).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'All repositories' }));
+
+      expect(screen.getByTestId('mock-repository-list')).toBeInTheDocument();
     });
   });
 

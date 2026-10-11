@@ -39,6 +39,8 @@ export interface RepositoryHeaderProps {
   onOpenSettings: (repositoryName: string) => void;
   /** Extra controls shown before the actions (e.g. the in-repository search) */
   children?: React.ReactNode;
+  /** The repository does not exist or may not be browsed: no details and no actions */
+  missing?: boolean;
 }
 
 /**
@@ -51,6 +53,7 @@ export function RepositoryHeader({
   onBackToList,
   onOpenSettings,
   children,
+  missing = false,
 }: RepositoryHeaderProps): JSX.Element {
   const strings = UIStrings.BROWSE.REPOSITORY;
   const toast = useToast();
@@ -93,10 +96,11 @@ export function RepositoryHeader({
                 description={repository.status?.description || repository.status?.reason}
               />
             </Flex>
-          ) : (
+          ) : !missing && (
             <Skeleton width="160px" height="22px" />
           )}
         </Flex>
+        {!missing && (
         <Flex align="center" gap="2" wrap={{ initial: 'wrap', md: 'nowrap' }} className="repository-header__actions">
           {children && <Box className="repository-header__extra">{children}</Box>}
           <Tooltip content={url}>
@@ -118,6 +122,7 @@ export function RepositoryHeader({
             </Button>
           )}
         </Flex>
+        )}
       </Flex>
     </Flex>
   );

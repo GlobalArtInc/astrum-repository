@@ -5,6 +5,7 @@ import { useMachine } from '@xstate/react';
 import {
   Box,
   Button,
+  Card,
   Flex,
   Grid,
   Heading,
@@ -12,7 +13,7 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { FolderX, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useCurrentStateAndParams, useRouter } from '@uirouter/react';
 
 import { RepositoryListTable } from './repository-list/RepositoryListTable';
@@ -34,6 +35,7 @@ import { ResizablePanel } from './ResizablePanel';
 
 // Import shared components
 import {
+  EmptyState,
   TablePagination,
   useToast,
 } from '../../shared';
@@ -1005,6 +1007,38 @@ export function BrowsePage(): JSX.Element {
 
   const repositoryFormat = repositoryInfo?.format;
   const treeStrings = UIStrings.BROWSE.TREE;
+
+  if (!repositoryLoading && !repositoryInfo) {
+    const repositoryStrings = UIStrings.BROWSE.REPOSITORY;
+    return (
+      <div className="browse-page browse-page--tree" data-testid="browse-page">
+        <Box
+          className="browse-page__repository"
+          px={{ initial: '4', md: '6' }}
+          pt={{ initial: '4', md: '5' }}
+          width="100%"
+        >
+          <Flex direction="column" gap="5" width="100%" className="browse-page__repository-inner">
+            <RepositoryHeader
+              repositoryName={selectedRepository}
+              repository={null}
+              onBackToList={handleBackToList}
+              onOpenSettings={handleOpenSettings}
+              missing
+            />
+            <Card size="3" data-testid="browse-repository-missing">
+              <EmptyState
+                icon={FolderX}
+                title={repositoryStrings.NOT_FOUND_TITLE}
+                description={repositoryStrings.NOT_FOUND_DESCRIPTION(selectedRepository)}
+                action={{ label: repositoryStrings.BACK_TO_LIST, onClick: handleBackToList }}
+              />
+            </Card>
+          </Flex>
+        </Box>
+      </div>
+    );
+  }
 
   const treeCard = (
     <Box className="browse-page__tree-card" data-testid="browse-tree-card">
