@@ -943,7 +943,7 @@ export function BrowsePage(): JSX.Element {
                   firewallStatus={repoState.firewallStatus}
                   firewallLoaded={repoState.firewallLoaded}
                   showHealthCheck={showHealthCheckColumn}
-                  showIqPolicyViolations={true}
+                  showIqPolicyViolations={showIqPolicyViolationsColumn}
                   hasFilters={hasActiveFilters}
                   onAnalyze={handleAnalyze}
                   analyzingRepos={analyzingRepos}

@@ -33,9 +33,13 @@
     }
   }
 
+  &__name-cell {
+    min-width: 150px;
+  }
+
   &__name {
     color: var(--gray-12);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   &__type {
@@ -49,6 +53,7 @@
   &__url {
     display: block;
     min-width: 0;
+    max-width: 260px;
     overflow: hidden;
     font-family: var(--code-font-family);
     text-overflow: ellipsis;

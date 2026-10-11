@@ -241,7 +241,7 @@ export function RepositoryListTable({
                 aria-label={strings.ROW_LABEL(repo.name)}
                 data-analytics-id="as-browse-select-repository"
               >
-                <Table.Cell>
+                <Table.Cell className="repository-list-table__name-cell">
                   <Text size="2" weight="medium" className="repository-list-table__name">
                     {repo.name}
                   </Text>
