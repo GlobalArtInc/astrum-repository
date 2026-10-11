@@ -3,7 +3,7 @@
 import React, {useState, useEffect} from 'react';
 import {DropdownMenu, Flex, IconButton, Text} from '@radix-ui/themes';
 import {Tooltip, usePortalContainer} from '@globalart/astrum-ui-plugin';
-import {User, Key, KeyRound, LogOut} from 'lucide-react';
+import {User, UserRound, Key, KeyRound, LogOut} from 'lucide-react';
 import {ExtJS, useIsVisible} from '@globalart/astrum-ui-plugin';
 import {useRouter, useSref} from '@uirouter/react';
 import useHasUser from '../../hooks/useHasUser';
@@ -15,30 +15,49 @@ import {restClient} from '../../utils/api';
 import './LoginAndUserButtonRadix.scss';
 
 /**
+ * Up to two letters that stand for the user on the avatar: the first letters of the first two words of the
+ * name ("jane.doe" gives "JD"), or its first two letters when it is a single word ("admin" gives "AD").
+ */
+export function getInitials(name) {
+  const words = String(name ?? '').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (words.length === 0) {
+    return '';
+  }
+  const letters = words.length > 1
+    ? [...words[0]].slice(0, 1).concat([...words[1]].slice(0, 1))
+    : [...words[0]].slice(0, 2);
+  return letters.join('').toLocaleUpperCase();
+}
+
+/**
  * Single component with all hooks at top - no conditional component switching.
  * Fixes "Rendered fewer hooks" when hasUser changes during logout.
  */
 export default function LoginAndUserButtonRadix() {
   const portalContainer = usePortalContainer();
   const hasUser = useHasUser();
+  const user = ExtJS.useUser();
   const router = useRouter();
   const {USER} = ROUTE_NAMES;
   const {setTheme} = useTheme();
 
   const userTokenRouteName = USER.USER_TOKEN;
   const userNugetApiTokenName = USER.NUGETAPITOKEN;
-  const [userId, setUserId] = useState(null);
+  const [stateUserId, setStateUserId] = useState(null);
 
   useEffect(() => {
     try {
       const state = ExtJS.state();
       if (state) {
-        setUserId(state.getValue('user')?.id || null);
+        setStateUserId(state.getValue('user')?.id || null);
       }
     } catch (e) {
-      setUserId(null);
+      setStateUserId(null);
     }
   }, []);
+
+  const userId = user?.id || stateUserId;
+  const initials = getInitials(userId);
 
   const userTokenRouteState = router.stateRegistry.get(userTokenRouteName);
   const isUserTokenEnabled = useIsVisible(userTokenRouteState?.data?.visibilityRequirements);
@@ -110,12 +129,14 @@ export default function LoginAndUserButtonRadix() {
       <Tooltip content={UIStrings.SHELL.ACCOUNT.LOG_IN}>
         <IconButton
           variant="outline"
-          size="2"
+          size="3"
           color="gray"
+          className="as-global-header-radix__icon-button"
           aria-label={UIStrings.SHELL.ACCOUNT.LOG_IN}
+          data-testid="user-sign-in"
           onClick={onSignInClick}
         >
-          <User size={16} />
+          <User size={18} aria-hidden />
         </IconButton>
       </Tooltip>
     );
@@ -125,31 +146,49 @@ export default function LoginAndUserButtonRadix() {
     <DropdownMenu.Root>
       <Tooltip content={UIStrings.SHELL.ACCOUNT.MY_ACCOUNT}>
         <DropdownMenu.Trigger>
-          <IconButton variant="outline" size="2" color="gray" aria-label={UIStrings.SHELL.ACCOUNT.MY_ACCOUNT} data-testid="user-menu" data-analytics-id="as-header-user-menu">
-            <User size={16} />
-          </IconButton>
+          <button
+            type="button"
+            className="as-login-and-user-button__avatar"
+            aria-label={UIStrings.SHELL.ACCOUNT.MY_ACCOUNT}
+            data-testid="user-menu"
+            data-analytics-id="as-header-user-menu"
+          >
+            {initials ? <span aria-hidden>{initials}</span> : <User size={18} aria-hidden />}
+          </button>
         </DropdownMenu.Trigger>
       </Tooltip>
 
-      <DropdownMenu.Content align="end" container={portalContainer} color="gray" variant="soft">
-        <DropdownMenu.Label>
-          <Text size="2" as="span" weight="bold" className="as-login-and-user-button__user-id">
-            {userId}
-          </Text>
+      <DropdownMenu.Content
+        align="end"
+        container={portalContainer}
+        color="gray"
+        variant="soft"
+        className="as-global-header-radix__menu as-login-and-user-button__menu"
+      >
+        <DropdownMenu.Label className="as-login-and-user-button__menu-label">
+          <Flex align="center" gap="2">
+            <span className="as-login-and-user-button__menu-avatar" aria-hidden>{initials}</span>
+            <Text size="2" as="span" weight="bold" className="as-login-and-user-button__user-id">
+              {userId}
+            </Text>
+          </Flex>
         </DropdownMenu.Label>
         <DropdownMenu.Separator />
 
         <DropdownMenu.Item asChild>
           <a href={userAccountHref} className="as-internal-link">
-            <Text size="2" color="gray">{UIStrings.USER_ACCOUNT.MENU.text}</Text>
+            <Flex align="center" justify="start" gap="3">
+              <UserRound size={16} aria-hidden />
+              <Text size="2">{UIStrings.USER_ACCOUNT.MENU.text}</Text>
+            </Flex>
           </a>
         </DropdownMenu.Item>
 
         <DropdownMenu.Item asChild>
           <a href={accessTokensHref} className="as-internal-link" data-testid="user-menu-access-tokens">
             <Flex align="center" justify="start" gap="3">
-              <Text size="2" color="gray">{UIStrings.SHELL.ACCOUNT.ACCESS_TOKENS}</Text>
-              <KeyRound size={16} />
+              <KeyRound size={16} aria-hidden />
+              <Text size="2">{UIStrings.SHELL.ACCOUNT.ACCESS_TOKENS}</Text>
             </Flex>
           </a>
         </DropdownMenu.Item>
@@ -157,7 +196,10 @@ export default function LoginAndUserButtonRadix() {
         {isUserNugetApiTokenEnabled && (
           <DropdownMenu.Item asChild>
             <a href={userNugetApiTokenHref} className="as-internal-link">
-              <Text size="2" color="gray">{UIStrings.SHELL.ACCOUNT.NUGET_API_KEY}</Text>
+              <Flex align="center" justify="start" gap="3">
+                <Key size={16} aria-hidden />
+                <Text size="2">{UIStrings.SHELL.ACCOUNT.NUGET_API_KEY}</Text>
+              </Flex>
             </a>
           </DropdownMenu.Item>
         )}
@@ -166,8 +208,8 @@ export default function LoginAndUserButtonRadix() {
           <DropdownMenu.Item asChild>
             <a href={userTokenHref} className="as-internal-link">
               <Flex align="center" justify="start" gap="3">
+                <Key size={16} aria-hidden />
                 <Text size="2">{UIStrings.SHELL.ACCOUNT.USER_TOKEN}</Text>
-                <Key size={16} />
               </Flex>
             </a>
           </DropdownMenu.Item>
@@ -177,7 +219,7 @@ export default function LoginAndUserButtonRadix() {
 
         <DropdownMenu.Item onClick={onSignOutClick} data-analytics-id="as-header-sign-out">
           <Flex align="center" justify="start" gap="3">
-            <LogOut size={16} />
+            <LogOut size={16} aria-hidden />
             <Text size="2">{UIStrings.SHELL.ACCOUNT.LOG_OUT}</Text>
           </Flex>
         </DropdownMenu.Item>
@@ -185,4 +227,3 @@ export default function LoginAndUserButtonRadix() {
     </DropdownMenu.Root>
   );
 }
-

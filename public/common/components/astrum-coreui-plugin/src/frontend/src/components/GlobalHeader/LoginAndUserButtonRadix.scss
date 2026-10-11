@@ -1,5 +1,60 @@
+// Round avatar with the user's initials on the soft accent, the size of the other header controls
+.as-login-and-user-button__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--accent-a3);
+  color: var(--accent-11);
+  font-family: inherit;
+  font-size: var(--font-size-2);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 
+  &:hover,
+  &[data-state='open'] {
+    background-color: var(--accent-a4);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+}
+
+.as-login-and-user-button__menu {
+  min-width: 220px;
+}
+
+.as-login-and-user-button__menu-label.rt-DropdownMenuLabel {
+  height: auto;
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+}
+
+.as-login-and-user-button__menu-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--blue-a3);
+  color: var(--blue-11);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+}
 
 .as-login-and-user-button__user-id {
   color: var(--gray-12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
