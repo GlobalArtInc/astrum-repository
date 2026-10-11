@@ -10,6 +10,17 @@
     margin: 0 0 var(--as-spacing-base) 0;
   }
 
+  // The field comes from the shared components with a white box and grey text of its own; it takes the input colours
+  // of the theme like the other fields of the page, which keeps it readable in the dark theme.
+  .as-text-input__box {
+    background-color: var(--astrum-input-bg, var(--color-surface));
+    border-color: var(--gray-a7);
+  }
+
+  .as-text-input__input {
+    color: var(--gray-12);
+  }
+
   .as-combobox__menu {
     width: max-content;
     min-width: 100%;
