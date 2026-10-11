@@ -1,6 +1,7 @@
 
 package org.globalart.astrum.coreui.internal.roles;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import static org.junit.Assert.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -159,5 +161,10 @@ public class RolesUIResourceTest
           new SimpleAccount(username, "password", getName(), Collections.emptySet(), permissionSet);
       add(account);
     }
+  }
+
+  @Test
+  public void isRegisteredWithoutThePreviewUiProperty() {
+    assertNull(RolesUIResource.class.getAnnotation(ConditionalOnProperty.class));
   }
 }

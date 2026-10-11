@@ -45,14 +45,12 @@ import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.apache.shiro.authz.permission.RolePermissionResolver;
 import org.apache.shiro.subject.SimplePrincipalCollection;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
-import static org.globalart.astrum.common.app.FeatureFlags.PREVIEW_UI_SETTINGS_ENABLED;
 
 /**
  * REST resource for checking API access for users and roles.
@@ -60,7 +58,6 @@ import static org.globalart.astrum.common.app.FeatureFlags.PREVIEW_UI_SETTINGS_E
 @Component
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@ConditionalOnProperty(name = PREVIEW_UI_SETTINGS_ENABLED, havingValue = "true", matchIfMissing = true)
 @Path(ApiAccessCheckResource.RESOURCE_PATH)
 @Tag(name = "Security management: API access")
 public class ApiAccessCheckResource

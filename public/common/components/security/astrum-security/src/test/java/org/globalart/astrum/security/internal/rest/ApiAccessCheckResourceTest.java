@@ -1,6 +1,7 @@
 
 package org.globalart.astrum.security.internal.rest;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -449,5 +451,10 @@ class ApiAccessCheckResourceTest
 
     // Should not throw - admin can check roles
     assertThat(result.isHasAccess(), is(true));
+  }
+
+  @Test
+  void isRegisteredWithoutThePreviewUiProperty() {
+    assertNull(ApiAccessCheckResource.class.getAnnotation(ConditionalOnProperty.class));
   }
 }

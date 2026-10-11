@@ -20,9 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.toList;
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.globalart.astrum.security.user.UserManager.DEFAULT_SOURCE;
-import static org.globalart.astrum.common.app.FeatureFlags.PREVIEW_UI_SETTINGS_ENABLED;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -31,7 +29,6 @@ import org.springframework.stereotype.Component;
 @Component
 @Consumes(APPLICATION_JSON)
 @Produces(APPLICATION_JSON)
-@ConditionalOnProperty(name = PREVIEW_UI_SETTINGS_ENABLED, havingValue = "true", matchIfMissing = true)
 @Path("/internal/ui/roles")
 public class RolesUIResource
     implements Resource

@@ -1,6 +1,7 @@
 
 package org.globalart.astrum.coreui.internal.browse;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.Mock;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -266,5 +268,10 @@ class BrowseResourceTest
     when(node.isLeaf()).thenReturn(leaf);
     when(node.getPackageUrl()).thenReturn(packageUrl);
     return node;
+  }
+
+  @Test
+  void isRegisteredWithoutThePreviewUiProperty() {
+    assertNull(BrowseResource.class.getAnnotation(ConditionalOnProperty.class));
   }
 }

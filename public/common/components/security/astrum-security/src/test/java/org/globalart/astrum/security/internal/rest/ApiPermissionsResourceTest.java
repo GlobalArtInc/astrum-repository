@@ -1,6 +1,7 @@
 
 package org.globalart.astrum.security.internal.rest;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import java.time.Instant;
 import java.util.List;
 
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
 import static jakarta.ws.rs.core.Response.Status.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -201,5 +203,10 @@ class ApiPermissionsResourceTest
     ApiPermissionsResponse body = (ApiPermissionsResponse) response.getEntity();
     assertThat(body.getEndpoints(), hasSize(3));
     assertThat(body.getTotalEndpoints(), is(3));
+  }
+
+  @Test
+  void isRegisteredWithoutThePreviewUiProperty() {
+    assertNull(ApiPermissionsResource.class.getAnnotation(ConditionalOnProperty.class));
   }
 }

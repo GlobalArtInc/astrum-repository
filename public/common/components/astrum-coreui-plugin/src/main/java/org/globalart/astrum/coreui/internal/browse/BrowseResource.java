@@ -40,7 +40,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +49,6 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
 import static jakarta.ws.rs.core.Response.Status.FORBIDDEN;
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.globalart.astrum.common.app.FeatureFlags.PREVIEW_UI_SETTINGS_ENABLED;
 import static org.globalart.astrum.rest.APIConstants.V1_API_PREFIX;
 import static org.globalart.astrum.security.BreadActions.BROWSE;
 
@@ -63,7 +61,6 @@ import static org.globalart.astrum.security.BreadActions.BROWSE;
  */
 @Tag(name = "Repository Browse")
 @Component
-@ConditionalOnProperty(name = PREVIEW_UI_SETTINGS_ENABLED, havingValue = "true", matchIfMissing = true)
 @Path(BrowseResource.RESOURCE_URI)
 @Produces(APPLICATION_JSON)
 public class BrowseResource
