@@ -1,42 +1,38 @@
-
-
 import React from 'react';
+import classNames from 'classnames';
 import { IconButton } from '@radix-ui/themes';
 import { Tooltip } from '@globalart/astrum-ui-plugin';
-import { Sun, MoonStar } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme, THEMES } from '../../contexts/ThemeContext';
+import UIStrings from '../../constants/UIStrings';
+
+const {THEME} = UIStrings.SHELL;
 
 /**
  * ThemeSwitcher - Icon-only toggle for dark/light mode.
- * Uses Radix IconButton with Lucide icons (16px).
- * Toggles between Light and Dark only.
+ * Shows the sun in the dark theme and the moon in the light one, i.e. the theme a click switches to.
  */
-export function ThemeSwitcher() {
+export function ThemeSwitcher({className}) {
   const { effectiveTheme, setTheme } = useTheme();
+  const isDark = effectiveTheme === THEMES.DARK;
+  const label = isDark ? THEME.SWITCH_TO_LIGHT : THEME.SWITCH_TO_DARK;
 
   const toggleTheme = () => {
-    setTheme(effectiveTheme === 'dark' ? THEMES.LIGHT : THEMES.DARK);
-  };
-
-  const getIcon = () => {
-    return effectiveTheme === 'dark' ? <Sun size={16} /> : <MoonStar size={16} />;
-  };
-
-  const getTooltip = () => {
-    return effectiveTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    setTheme(isDark ? THEMES.LIGHT : THEMES.DARK);
   };
 
   return (
-    <Tooltip content={getTooltip()}>
+    <Tooltip content={label}>
       <IconButton
         variant="outline"
-        size="2"
+        size="3"
         color="gray"
-        aria-label={getTooltip()}
+        className={classNames('theme-switcher', className)}
+        aria-label={label}
         data-analytics-id="as-header-toggle-theme"
         onClick={toggleTheme}
       >
-        {getIcon()}
+        {isDark ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
       </IconButton>
     </Tooltip>
   );

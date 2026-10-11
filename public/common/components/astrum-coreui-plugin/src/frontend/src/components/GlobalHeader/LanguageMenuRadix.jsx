@@ -45,13 +45,26 @@ export default function LanguageMenuRadix() {
     <DropdownMenu.Root>
       <Tooltip content={UIStrings.SHELL.HEADER.LANGUAGE}>
         <DropdownMenu.Trigger>
-          <IconButton variant="outline" size="2" color="gray" aria-label={UIStrings.SHELL.HEADER.LANGUAGE} data-analytics-id="astrum-header-language">
-            <Languages size={16} />
+          <IconButton
+            variant="outline"
+            size="3"
+            color="gray"
+            className="as-global-header-radix__icon-button"
+            aria-label={UIStrings.SHELL.HEADER.LANGUAGE}
+            data-analytics-id="astrum-header-language"
+          >
+            <Languages size={18} aria-hidden />
           </IconButton>
         </DropdownMenu.Trigger>
       </Tooltip>
 
-      <DropdownMenu.Content align="end" container={portalContainer} color="gray" variant="soft">
+      <DropdownMenu.Content
+        align="end"
+        container={portalContainer}
+        color="gray"
+        variant="soft"
+        className="as-global-header-radix__menu"
+      >
         <DropdownMenu.RadioGroup
           value={uiLanguage.current}
           onValueChange={(language) => language !== uiLanguage.current && chooseLanguage(language)}

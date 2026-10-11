@@ -16,6 +16,7 @@ let mockStateValues = {
 };
 
 let mockIsExtJsRendered = false;
+const mockUseSideNavbarOpenState = jest.fn(() => [true]);
 
 jest.mock('@globalart/astrum-ui-plugin', () => ({
   ...jest.requireActual('@globalart/astrum-ui-plugin'),
@@ -32,7 +33,7 @@ jest.mock('@globalart/astrum-ui-plugin', () => ({
   },
   handleExtJsUnsavedChanges: (_ctrl, fn) => fn(),
   hasUnsavedChanges: jest.fn(() => false),
-  useSideNavbarOpenState: () => [true],
+  useSideNavbarOpenState: (...args) => mockUseSideNavbarOpenState(...args),
 }));
 
 jest.mock('@uirouter/react', () => ({
@@ -49,7 +50,7 @@ jest.mock('../../contexts/ThemeContext', () => ({
 
 jest.mock('./SearchRadix', () => () => <div data-testid="search-radix" />);
 jest.mock('./SystemStatusRadix', () => () => <div data-testid="system-status" />);
-jest.mock('../ThemeSwitcher/ThemeSwitcher', () => () => null);
+jest.mock('../ThemeSwitcher/ThemeSwitcher', () => () => <div data-testid="theme-switcher" />);
 jest.mock('./HelpMenuRadix', () => () => <div data-testid="help-menu" />);
 jest.mock('./LanguageMenuRadix', () => () => <div data-testid="language-menu" />);
 jest.mock('./LoginAndUserButtonRadix', () => () => <div data-testid="login-btn" />);
@@ -82,6 +83,7 @@ describe('GlobalHeaderRadix', () => {
     window.location.hash = '';
     jest.clearAllMocks();
     hasUnsavedChanges.mockReturnValue(false);
+    mockUseSideNavbarOpenState.mockReturnValue([true]);
   });
 
   it('renders the header', () => {
@@ -200,6 +202,50 @@ describe('GlobalHeaderRadix', () => {
 
       expect(window.confirm).toHaveBeenCalled();
       expect(refreshReactPage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('shell layout', () => {
+    it('opens the side menu expanded until the user chose otherwise', () => {
+      renderHeader();
+
+      expect(mockUseSideNavbarOpenState).toHaveBeenCalledWith(true);
+      expect(screen.getByRole('button', {name: 'Collapse Sidebar'})).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('offers to expand the menu when it is collapsed', () => {
+      mockUseSideNavbarOpenState.mockReturnValue([false]);
+
+      renderHeader();
+
+      expect(screen.getByRole('button', {name: 'Expand Sidebar'})).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('puts the theme toggle into Astrum One only', () => {
+      const {unmount} = renderHeader();
+      expect(screen.queryByTestId('theme-switcher')).not.toBeInTheDocument();
+      unmount();
+
+      window.location.hash = 'preview/browse/welcome';
+      renderHeader();
+      expect(screen.getByTestId('theme-switcher')).toBeInTheDocument();
+    });
+
+    it('promotes Astrum One with the brand accent and leaves it with a neutral button', () => {
+      const {unmount} = renderHeader();
+      expect(screen.getByRole('button', {name: 'Switch to Astrum One UI'})).toHaveAttribute('data-accent-color', 'blue');
+      unmount();
+
+      window.location.hash = 'preview/browse/welcome';
+      renderHeader();
+      expect(screen.getByRole('button', {name: 'Switch to Classic UI'})).toHaveAttribute('data-accent-color', 'gray');
+    });
+
+    it('gives every header control the same square style', () => {
+      renderHeader();
+
+      expect(screen.getByRole('button', {name: 'Refresh'})).toHaveClass('as-global-header-radix__icon-button');
+      expect(screen.getByRole('button', {name: 'Collapse Sidebar'})).toHaveClass('as-global-header-radix__icon-button');
     });
   });
 });

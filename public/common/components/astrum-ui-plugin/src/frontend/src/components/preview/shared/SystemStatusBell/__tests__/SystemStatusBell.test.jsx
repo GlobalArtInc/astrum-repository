@@ -175,4 +175,40 @@ describe('SystemStatusBell', () => {
 
     expect(screen.getByLabelText('System Status')).not.toHaveAttribute('data-analytics-id');
   });
+
+  it('takes the look and the labels of the button from its host', () => {
+    mockUseUnreadStatusFailure.mockReturnValue({
+      showDot: false,
+      markAcknowledged: mockMarkAcknowledged,
+    });
+
+    renderBell({
+      buttonClassName: 'header-button',
+      variant: 'outline',
+      label: 'Состояние системы',
+      unhealthyLabel: 'Состояние системы: есть сбои',
+    });
+
+    const button = screen.getByRole('button', {name: 'Состояние системы'});
+    expect(button).toHaveClass('header-button');
+    expect(button).toHaveClass('rt-variant-outline');
+  });
+
+  it('uses the unhealthy label of its host while a failure is unread', () => {
+    mockUseUnreadStatusFailure.mockReturnValue({
+      showDot: true,
+      markAcknowledged: mockMarkAcknowledged,
+    });
+
+    const {container} = renderBell({label: 'Status', unhealthyLabel: 'Status: failing'});
+
+    expect(screen.getByRole('button', {name: 'Status: failing'})).toBeInTheDocument();
+    expect(container.querySelector('.as-system-status-radix__badge')).not.toBeNull();
+  });
+
+  it('stays a ghost button by default', () => {
+    renderBell();
+
+    expect(screen.getByRole('button', {name: 'System Status'})).toHaveClass('rt-variant-ghost');
+  });
 });

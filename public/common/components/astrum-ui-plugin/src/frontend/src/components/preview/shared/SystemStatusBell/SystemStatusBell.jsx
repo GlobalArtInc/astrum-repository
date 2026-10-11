@@ -9,6 +9,7 @@ import {ExtJS} from '../../../../interface/ExtJS';
 import {useIsVisible} from '../../../../interface/NavigationUtils';
 import {useIsPreviewUI} from '../Navigation';
 import {useUnreadStatusFailure} from '../hooks';
+import {Tooltip} from '../Tooltip/TooltipContainerContext';
 
 /**
  * Global-header bell that routes to the appropriate system-status page for the
@@ -16,10 +17,20 @@ import {useUnreadStatusFailure} from '../hooks';
  * health checks are failing.
  *
  * `SystemStatusRadix` (coreui) and `SystemStatus` (cloud) are thin wrappers
- * around this component — they differ only in the root class name and the
- * analytics attribute the cloud build attaches to its icon button.
+ * around this component — they differ in the root class name, the analytics
+ * attribute the cloud build attaches to its icon button, and the look of the
+ * button (the self-hosted header draws it like its other bordered controls)
+ * and its localized labels.
  */
-export default function SystemStatusBell({className, dataAnalyticsId}) {
+export default function SystemStatusBell({
+  className,
+  dataAnalyticsId,
+  buttonClassName,
+  variant = 'ghost',
+  size,
+  label = 'System Status',
+  unhealthyLabel = 'System status -- unhealthy',
+}) {
   const isPreviewUI = useIsPreviewUI();
   const supportStatusStateIdentifier = isPreviewUI
     ? 'preview.admin.support.metrichealth'
@@ -44,17 +55,22 @@ export default function SystemStatusBell({className, dataAnalyticsId}) {
     return null;
   }
 
+  const currentLabel = showDot ? unhealthyLabel : label;
+
   return (
     <Box className={className}>
-      <IconButton
-        variant="ghost"
-        onClick={onClick}
-        title="System Status"
-        aria-label={showDot ? 'System status -- unhealthy' : 'System Status'}
-        {...(dataAnalyticsId ? {'data-analytics-id': dataAnalyticsId} : {})}
-      >
-        <Bell size={18} />
-      </IconButton>
+      <Tooltip content={currentLabel}>
+        <IconButton
+          variant={variant}
+          size={size}
+          className={buttonClassName}
+          onClick={onClick}
+          aria-label={currentLabel}
+          {...(dataAnalyticsId ? {'data-analytics-id': dataAnalyticsId} : {})}
+        >
+          <Bell size={18} aria-hidden />
+        </IconButton>
+      </Tooltip>
       {showDot && <Box className={`${className}__badge`} aria-hidden="true" />}
     </Box>
   );

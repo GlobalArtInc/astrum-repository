@@ -1,17 +1,15 @@
 
 
-// BEM modifiers — preserve inline-style output that previously lived in GlobalHeaderRadix.jsx.
-// Tokens (var(--gray-6), var(--space-3)) match the prior inline values exactly so AC#3
-// ("render identically") holds; do not retune to var(--color-border) — see ASTRUM-51836.
+// Header bar of the shell: chrome background, one bottom border, 40px controls in a 60px bar.
 .as-global-header-radix__sticky-bar {
   position: sticky;
   top: 0;
   z-index: 50;
   width: 100%;
-  padding-top: var(--space-3);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--gray-6);
-  background-color: var(--color-surface);
+  min-height: 60px;
+  padding: 10px 20px;
+  box-sizing: border-box;
+  background-color: var(--astrum-chrome-bg);
 }
 
 .as-global-header-radix__row {
@@ -23,15 +21,28 @@
 }
 
 .as-global-header-radix__search {
-  flex: 1 1 0;
-  max-width: 600px;
+  flex: 1 1 280px;
+  max-width: 560px;
   min-width: 200px;
+  margin: 0 auto;
   display: flex;
   justify-content: center;
 }
 
+.as-global-header-radix__home {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  border-radius: var(--radius-2);
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+}
+
 .as-global-header-radix__logo {
-  height: 32px;
+  height: 28px;
   display: block;
 }
 
@@ -43,89 +54,83 @@
   }
 }
 
+// Every square control of the header (and of the sign-in page header): 40x40, 1px border, 10px radius,
+// panel surface.
+@mixin header-icon-button {
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  border-radius: 10px;
+  background-color: var(--color-panel-solid);
+  box-shadow: inset 0 0 0 1px var(--gray-a5);
+  color: var(--gray-12);
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--gray-a3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+
+  &[data-state='open'] {
+    background-color: var(--gray-a4);
+  }
+}
+
+.as-global-header-radix__icon-button.rt-IconButton {
+  @include header-icon-button;
+}
+
+.as-global-header-radix {
+  .as-global-header-radix__switch.rt-Button {
+    height: 40px;
+    border-radius: 10px;
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+  }
+
+  .as-global-header-radix__switch.rt-Button.rt-variant-outline {
+    background-color: var(--color-panel-solid);
+    box-shadow: inset 0 0 0 1px var(--gray-a5);
+    color: var(--gray-12);
+
+    &:hover {
+      background-color: var(--gray-a3);
+    }
+  }
+}
+
+// Menus of the header controls: links read as menu items, not as page links
+.as-global-header-radix__menu {
+  a.rt-DropdownMenuItem,
+  a.rt-DropdownMenuItem:visited,
+  a.rt-DropdownMenuItem:hover {
+    color: var(--gray-12);
+    text-decoration: none;
+  }
+
+  .rt-DropdownMenuItem svg {
+    flex-shrink: 0;
+    color: var(--gray-11);
+  }
+}
+
 .as-global-header-radix.as-global-header-2 {
   grid-area: header !important;  // Force into grid
   z-index: 100;
   width: 100%;
   max-width: 100%;
-  overflow: visible; // Changed from hidden to allow autocomplete dropdown to show
+  overflow: visible; // Allows the search suggestions to show below the bar
   box-sizing: border-box;
-  background-color: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  background-color: var(--astrum-chrome-bg);
+  border-bottom: 1px solid var(--gray-a5);
   display: flex;
   align-items: center;
-  // No custom padding - child Flex uses Radix px="4" for horizontal padding
   padding-left: 0;
   padding-right: 0;
-  
-  // Force ALL RSC buttons (AsButton) to use theme colors
-  .as-btn {
-    color: var(--color-text) !important;
-    
-    &.as-btn--icon-only {
-      color: var(--color-text) !important;
-    }
-    
-    .as-icon {
-      color: var(--color-text) !important;
-    }
-    
-    svg {
-      color: var(--color-text) !important;
-    }
-  }
-  
-  // Force AsFontAwesomeIcon to use theme colors
-  .as-icon {
-    color: var(--color-text) !important;
-  }
-  
-  // Force dropdown toggles
-  .as-icon-dropdown__toggle {
-    color: var(--color-text) !important;
-    
-    .as-icon {
-      color: var(--color-text) !important;
-    }
-  }
-  
-  // Force navigation dropdown (Help menu, Profile menu)
-  .as-navigation-dropdown__toggle {
-    color: var(--color-text) !important;
-    
-    .as-icon {
-      color: var(--color-text) !important;
-    }
-  }
-  
-  // SystemStatus bell icon
-  .fa-layers {
-    color: var(--color-text) !important;
-    
-    .as-icon {
-      color: var(--color-text) !important;
-    }
-  }
-  
-  // Radix IconButton
-  .rt-IconButton {
-    color: var(--color-text) !important;
-  }
-  
-  // Radix Button
-  .rt-Button {
-    color: var(--color-text) !important;
-  }
-  
-  // Links
-  a {
-    color: var(--color-text) !important;
-  }
-  
-  [data-theme="dark"] & {
-    background-color: var(--color-surface);
-    border-bottom-color: var(--color-border);
-  }
 }
 
 // UI Switch Popover - ensure it floats above all content

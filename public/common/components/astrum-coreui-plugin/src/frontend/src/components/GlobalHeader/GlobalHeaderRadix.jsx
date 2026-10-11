@@ -279,7 +279,7 @@ export default function GlobalHeaderRadix() {
   }
 
 
-  const [isSidebarOpen] = useSideNavbarOpenState(false);
+  const [isSidebarOpen] = useSideNavbarOpenState(true);
   const onSidebarToggle = useCallback(() => {
     window.dispatchEvent(new CustomEvent('as-sidebar-toggle'));
   }, []);
@@ -287,22 +287,28 @@ export default function GlobalHeaderRadix() {
   return (
     <div className="as-global-header-radix as-global-header-2" data-testid="global-header">
       <Box asChild className="as-global-header-radix__sticky-bar">
-        <Flex align="center" justify="between" gap="4" px="4" className="as-global-header-radix__row">
+        <Flex align="center" justify="between" gap="4" className="as-global-header-radix__row">
           {/* Left: Sidebar toggle + Logo */}
-          <Flex align="center" gap="4" className="as-global-header-radix__side">
+          <Flex align="center" gap="3" className="as-global-header-radix__side">
             <Tooltip content={isSidebarOpen ? HEADER.COLLAPSE_SIDEBAR : HEADER.EXPAND_SIDEBAR}>
               <IconButton
                 variant="outline"
-                size="2"
+                size="3"
                 color="gray"
+                className="as-global-header-radix__icon-button"
                 aria-label={isSidebarOpen ? HEADER.COLLAPSE_SIDEBAR : HEADER.EXPAND_SIDEBAR}
+                aria-expanded={isSidebarOpen}
                 onClick={onSidebarToggle}
               >
-                <Menu size={16} />
+                <Menu size={18} aria-hidden />
               </IconButton>
             </Tooltip>
             <Box asChild>
-              <a href={`${contextPath}#${isPreviewUI ? 'preview/browse/welcome' : 'browse/welcome'}`} title={HEADER.HOME}>
+              <a
+                href={`${contextPath}#${isPreviewUI ? 'preview/browse/welcome' : 'browse/welcome'}`}
+                title={HEADER.HOME}
+                className="as-global-header-radix__home"
+              >
                 <img
                   src={getLogo()}
                   alt={HEADER.LOGO_ALT}
@@ -318,15 +324,16 @@ export default function GlobalHeaderRadix() {
           </Box>
 
           {/* Right: Utility buttons */}
-          <Flex align="center" gap="3" className="as-global-header-radix__side">
+          <Flex align="center" gap="2" className="as-global-header-radix__side as-global-header-radix__actions">
             {canAccessPreviewUi && !isDisableLegacyUi && (
               isPreviewUI ? (
                 isDisableSwitchFeedback ? (
                   <Tooltip content={HEADER.SWITCH_TO_CLASSIC}>
                     <Button
-                      variant="soft"
-                      color="green"
-                      className="as-global-header-radix__clickable"
+                      variant="outline"
+                      color="gray"
+                      size="3"
+                      className="as-global-header-radix__clickable as-global-header-radix__switch"
                       aria-label={HEADER.SWITCH_TO_CLASSIC}
                       title={HEADER.SWITCH_TO_CLASSIC}
                       data-testid="ui-toggle-button"
@@ -344,9 +351,10 @@ export default function GlobalHeaderRadix() {
                     <Tooltip content={uiSwitchPopoverOpen ? undefined : HEADER.SWITCH_TO_CLASSIC}>
                       <Popover.Trigger asChild>
                         <Button
-                          variant="soft"
-                          color="green"
-                          className="as-global-header-radix__clickable"
+                          variant="outline"
+                          color="gray"
+                          size="3"
+                          className="as-global-header-radix__clickable as-global-header-radix__switch"
                           aria-label={HEADER.SWITCH_TO_CLASSIC}
                           aria-haspopup="dialog"
                           title={HEADER.SWITCH_TO_CLASSIC}
@@ -393,8 +401,8 @@ export default function GlobalHeaderRadix() {
                           </Flex>
                           <Button
                             ref={useClassicUiButtonRef}
-                            variant="soft"
-                            color="green"
+                            variant="solid"
+                            color="blue"
                             size="2"
                             className={isFeedbackTooLong ? 'as-global-header-radix__clickable--disabled' : 'as-global-header-radix__clickable'}
                             onClick={switchToClassicUI}
@@ -414,9 +422,10 @@ export default function GlobalHeaderRadix() {
                 <Tooltip content={HEADER.SWITCH_TO_PREVIEW}>
                   <Button
                     variant="soft"
-                    color="green"
+                    color="blue"
+                    size="3"
                     onClick={switchToAstrumOneUI}
-                    className="as-global-header-radix__clickable"
+                    className="as-global-header-radix__clickable as-global-header-radix__switch"
                     aria-label={HEADER.SWITCH_TO_PREVIEW}
                     title={HEADER.SWITCH_TO_PREVIEW}
                     data-testid="ui-toggle-button"
@@ -431,24 +440,25 @@ export default function GlobalHeaderRadix() {
               )
             )}
 
-            {isPreviewUI && <ThemeSwitcher />}
-
-            <SystemStatusRadix />
-
             <Tooltip content={HEADER.REFRESH}>
               <IconButton
                 variant="outline"
-                size="2"
+                size="3"
                 color="gray"
+                className="as-global-header-radix__icon-button"
                 aria-label={HEADER.REFRESH}
                 data-analytics-id="astrum-header-refresh"
                 onClick={onRefreshClick}
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={18} aria-hidden />
               </IconButton>
             </Tooltip>
 
+            {isPreviewUI && <ThemeSwitcher className="as-global-header-radix__icon-button" />}
+
             <LanguageMenuRadix />
+
+            <SystemStatusRadix />
 
             <HelpMenuRadix />
 

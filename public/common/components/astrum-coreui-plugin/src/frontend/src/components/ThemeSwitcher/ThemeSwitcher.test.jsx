@@ -77,15 +77,29 @@ describe('ThemeSwitcher', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe(THEMES.DARK);
   });
 
-  it('renders the correct icon for each theme (Lucide Sun/MoonStar)', () => {
+  it('shows the moon in the light theme and the sun in the dark one', () => {
     renderWithTheme();
 
     const lightButton = screen.getByRole('button', { name: 'Switch to dark mode' });
-    expect(lightButton.querySelector('svg')).toBeInTheDocument();
+    expect(lightButton.querySelector('svg.lucide-moon')).toBeInTheDocument();
+    expect(lightButton.querySelector('svg.lucide-sun')).not.toBeInTheDocument();
 
     fireEvent.click(lightButton);
     const darkButton = screen.getByRole('button', { name: 'Switch to light mode' });
-    expect(darkButton.querySelector('svg')).toBeInTheDocument();
+    expect(darkButton.querySelector('svg.lucide-sun')).toBeInTheDocument();
+    expect(darkButton.querySelector('svg.lucide-moon')).not.toBeInTheDocument();
+  });
+
+  it('takes the class name of its host', () => {
+    render(
+      <TooltipProvider>
+        <ThemeProvider>
+          <ThemeSwitcher className="header-button" />
+        </ThemeProvider>
+      </TooltipProvider>
+    );
+
+    expect(screen.getByRole('button', { name: 'Switch to dark mode' })).toHaveClass('header-button');
   });
 
   it('icon is decorative - button has descriptive aria-label', () => {

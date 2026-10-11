@@ -23,8 +23,14 @@ export default {
         GO: 'Go to Classic Dashboard'
       },
       LANGUAGE: 'Language',
+      SYSTEM_STATUS: 'System Status',
+      SYSTEM_STATUS_UNHEALTHY: 'System Status: health checks are failing',
       SEARCH_PLACEHOLDER: 'Search components or CVEs...',
       SEARCH_HINT: 'Press Enter to search all results'
+    },
+    THEME: {
+      SWITCH_TO_DARK: 'Switch to dark mode',
+      SWITCH_TO_LIGHT: 'Switch to light mode'
     },
     HELP: {
       TITLE: 'Help & Documentation',
