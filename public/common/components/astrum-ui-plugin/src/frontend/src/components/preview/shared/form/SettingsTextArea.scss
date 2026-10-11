@@ -20,8 +20,8 @@
 
   &__input {
     box-sizing: border-box;
+    // As wide as the other fields of the form, so a description does not stop short of the inputs above it
     width: 100%;
-    max-width: 500px;
     padding: var(--space-2) var(--space-3);
     font-size: var(--font-size-sm);
     font-family: var(--font-family-base);
