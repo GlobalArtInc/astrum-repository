@@ -117,7 +117,7 @@ export function RoutingRuleForm({
           <SettingsTextInput
             {...form.field('name')}
             label={CommonStrings.LABELS.NAME}
-            placeholder="e.g., block-sources"
+            placeholder={CommonStrings.MESSAGES.EXAMPLE('block-sources')}
             helpText={RoutingRulesStrings.FORM.UNIQUE_NAME_ROUTING_RULE}
             required
             disabled={!isCreate || form.isSaving || loading}

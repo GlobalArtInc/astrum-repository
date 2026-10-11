@@ -31,12 +31,10 @@ function toNumber(v: number | string | null | undefined): number | null {
   return null;
 }
 
-const ZERO_BYTES = '0.00 Bytes';
-
 /** Byte cells show "0.00 Bytes" when there is no value (null / zero / non-numeric). */
 function formatBytes(v: number | string | null | undefined): string {
   const n = toNumber(v);
-  if (n === null || n <= 0) return ZERO_BYTES;
+  if (n === null || n <= 0) return HumanReadableUtils.bytesToString(0);
   return HumanReadableUtils.bytesToString(n);
 }
 

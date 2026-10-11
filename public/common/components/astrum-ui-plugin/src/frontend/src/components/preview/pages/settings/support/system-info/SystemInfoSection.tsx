@@ -8,6 +8,7 @@ import { SystemInfoSectionProps, formatValue } from './types';
 
 import './SystemInfoSection.scss';
 import SystemInfoStrings from '../../../../constants/pages/settings/support/SystemInfoStrings';
+import plural from '../../../../../../interface/plural';
 
 /**
  * SystemInfoSection - Collapsible section displaying key-value pairs
@@ -83,7 +84,7 @@ export const SystemInfoSection = forwardRef<HTMLDivElement, SystemInfoSectionPro
             {title}
           </Heading>
           <Text size="1" className="system-info-section__count">
-            ({entryCount} {entryCount === 1 ? 'item' : 'items'})
+            {plural(SystemInfoStrings.SECTION.ITEM_COUNT, entryCount)}
           </Text>
         </Flex>
       </Flex>

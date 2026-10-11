@@ -72,12 +72,12 @@ const CATEGORY_FORMAT_MAP: Record<string, string> = {
 
 const WIZARD_STEPS_CREATE = [
   { id: 'type', label: TasksStrings.FORM.SELECT_TYPE },
-  { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+  { id: 'config', label: CommonStrings.LABELS.CONFIGURE_STEP },
   { id: 'schedule', label: TasksStrings.FORM.SCHEDULE },
 ];
 
 const WIZARD_STEPS_EDIT = [
-  { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+  { id: 'config', label: CommonStrings.LABELS.CONFIGURE_STEP },
   { id: 'schedule', label: TasksStrings.FORM.SCHEDULE },
 ];
 

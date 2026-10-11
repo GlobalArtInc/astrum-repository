@@ -17,6 +17,7 @@ import {
 
 import { CertificateViewDialog } from './CertificateViewDialog';
 
+import CommonStrings from '../../../../../constants/CommonStrings';
 import UIStrings from '../../../../../../../constants/pages/admin/repository/RepositoriesStrings';
 
 import {
@@ -40,27 +41,27 @@ interface ProxyFacetProps {
   originChangeWarning?: boolean;
 }
 
-const NUGET_REMOTE_URL_EXAMPLE_DEFAULT = 'e.g., https://api.nuget.org/v3/index.json';
+const NUGET_REMOTE_URL_EXAMPLE_DEFAULT = CommonStrings.MESSAGES.EXAMPLE('https://api.nuget.org/v3/index.json');
 
 // Remote URL examples by format
 const REMOTE_URL_EXAMPLES: Record<string, string> = {
-  maven2: 'e.g., https://repo1.maven.org/maven2/',
-  npm: 'e.g., https://registry.npmjs.org/',
-  pypi: 'e.g., https://pypi.org/',
-  docker: 'e.g., https://registry-1.docker.io',
-  raw: 'e.g., https://example.com/files/',
-  yum: 'e.g., https://mirror.stream.centos.org/',
-  ansiblegalaxy: 'e.g., https://galaxy.ansible.com',
-  swift: 'e.g., https://github.com/',
-  cargo: 'e.g., https://index.crates.io',
-  terraform: 'e.g., https://registry.terraform.io',
-  composer: 'e.g., https://repo.packagist.org',
+  maven2: CommonStrings.MESSAGES.EXAMPLE('https://repo1.maven.org/maven2/'),
+  npm: CommonStrings.MESSAGES.EXAMPLE('https://registry.npmjs.org/'),
+  pypi: CommonStrings.MESSAGES.EXAMPLE('https://pypi.org/'),
+  docker: CommonStrings.MESSAGES.EXAMPLE('https://registry-1.docker.io'),
+  raw: CommonStrings.MESSAGES.EXAMPLE('https://example.com/files/'),
+  yum: CommonStrings.MESSAGES.EXAMPLE('https://mirror.stream.centos.org/'),
+  ansiblegalaxy: CommonStrings.MESSAGES.EXAMPLE('https://galaxy.ansible.com'),
+  swift: CommonStrings.MESSAGES.EXAMPLE('https://github.com/'),
+  cargo: CommonStrings.MESSAGES.EXAMPLE('https://index.crates.io'),
+  terraform: CommonStrings.MESSAGES.EXAMPLE('https://registry.terraform.io'),
+  composer: CommonStrings.MESSAGES.EXAMPLE('https://repo.packagist.org'),
   conan: UIStrings.PROXY.E_G_HTTPS_CENTER_CONAN,
-  pub: 'e.g., https://pub.dev',
-  r: 'e.g., https://cran.r-project.org',
-  rubygems: 'e.g., https://rubygems.org',
-  huggingface: 'e.g., https://huggingface.co/',
-  default: 'e.g., https://example.com/repository/',
+  pub: CommonStrings.MESSAGES.EXAMPLE('https://pub.dev'),
+  r: CommonStrings.MESSAGES.EXAMPLE('https://cran.r-project.org'),
+  rubygems: CommonStrings.MESSAGES.EXAMPLE('https://rubygems.org'),
+  huggingface: CommonStrings.MESSAGES.EXAMPLE('https://huggingface.co/'),
+  default: CommonStrings.MESSAGES.EXAMPLE('https://example.com/repository/'),
 };
 
 /**

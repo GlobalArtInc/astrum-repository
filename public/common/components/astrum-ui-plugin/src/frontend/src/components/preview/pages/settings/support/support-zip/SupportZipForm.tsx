@@ -47,10 +47,10 @@ export function SupportZipForm({
     <Box className="support-zip-form">
       {/* Description */}
       <Box className="support-zip-form__description" mb="4">
-        <Text size="2" color="gray">
+        <Text as="p" size="2" color="gray">
           {SupportZipStrings.FORM.NO_INFORMATION_SENT_GLOBALART_WHEN}
         </Text>
-        <Text size="2" color="gray" mt="2">
+        <Text as="p" size="2" color="gray" mt="2">
           {SupportZipStrings.FORM.SUPPORT_ZIP_CREATION_MAY_TAKE}
         </Text>
       </Box>

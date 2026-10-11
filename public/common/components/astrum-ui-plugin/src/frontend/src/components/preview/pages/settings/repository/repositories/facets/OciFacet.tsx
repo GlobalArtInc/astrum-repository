@@ -17,6 +17,7 @@ import {
   OciCosignAttributes,
   OciProxyAttributes,
 } from '../types';
+import CommonStrings from '../../../../../constants/CommonStrings';
 import UIStrings from '../../../../../../../constants/pages/admin/repository/RepositoriesStrings';
 
 interface OciFacetProps {
@@ -95,7 +96,7 @@ export function OciFacet({
             httpPort: value ? parseInt(value, 10) : null,
           })}
           helpText={UIStrings.OCI.CREATE_HTTP_CONNECTOR_SPECIFIED_PORT}
-          placeholder="e.g., 8082"
+          placeholder={CommonStrings.MESSAGES.EXAMPLE('8082')}
           type="number"
         />
 
@@ -107,7 +108,7 @@ export function OciFacet({
             httpsPort: value ? parseInt(value, 10) : null,
           })}
           helpText={UIStrings.OCI.CREATE_HTTPS_CONNECTOR_SPECIFIED_PORT}
-          placeholder="e.g., 8083"
+          placeholder={CommonStrings.MESSAGES.EXAMPLE('8083')}
           type="number"
         />
 
@@ -117,7 +118,7 @@ export function OciFacet({
           value={formData.oci?.subdomain || ''}
           onChange={(value) => onNestedChange('oci', { subdomain: value || null })}
           helpText={UIStrings.OCI.USE_SPECIFIED_SUBDOMAIN_ACCESS_OCI}
-          placeholder="e.g., oci-hosted"
+          placeholder={CommonStrings.MESSAGES.EXAMPLE('oci-hosted')}
         />
 
         <SettingsCheckbox
@@ -162,7 +163,7 @@ export function OciFacet({
               value={cosign.identityRegex || ''}
               onChange={(value) => updateCosign({ identityRegex: value || undefined })}
               helpText={UIStrings.OCI.REGEX_MATCHED_AGAINST_FULCIO_CERTIFICATE}
-              placeholder="e.g., ^https://github\.com/acme/.*$"
+              placeholder={CommonStrings.MESSAGES.EXAMPLE('^https://github\\.com/acme/.*$')}
               required={keylessActive}
               error={
                 keylessActive && !(cosign.identityRegex?.trim())
@@ -177,7 +178,7 @@ export function OciFacet({
               value={cosign.issuerRegex || ''}
               onChange={(value) => updateCosign({ issuerRegex: value || undefined })}
               helpText={UIStrings.OCI.REGEX_MATCHED_AGAINST_OIDC_ISSUER}
-              placeholder="e.g., ^https://token\.actions\.githubusercontent\.com$"
+              placeholder={CommonStrings.MESSAGES.EXAMPLE('^https://token\\.actions\\.githubusercontent\\.com$')}
               required={keylessActive}
               error={
                 keylessActive && !(cosign.issuerRegex?.trim())

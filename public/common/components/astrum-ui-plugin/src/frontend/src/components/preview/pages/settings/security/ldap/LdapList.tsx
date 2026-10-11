@@ -340,10 +340,10 @@ export function LdapList({
           <Info size={16} aria-hidden="true" />
           <Text size="2" weight="medium">{LdapStrings.LIST.ABOUT_LDAP_SERVERS}</Text>
         </Flex>
-        <Text size="2" className="ldap-list__help-text">
+        <Text as="p" size="2" className="ldap-list__help-text">
           {LdapStrings.LIST.LDAP_SERVERS_USED_USER_AUTHENTICATION}
         </Text>
-        <Text size="2" className="ldap-list__help-text">
+        <Text as="p" size="2" className="ldap-list__help-text">
           {LdapStrings.LIST.SEE_DOCUMENTATION(
             <a
               href="http://links.globalart.dev/products/astrum/docs/ldap"

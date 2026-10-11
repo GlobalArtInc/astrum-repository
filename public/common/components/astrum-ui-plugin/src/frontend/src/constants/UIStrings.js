@@ -94,6 +94,28 @@ export default localize('react-ui', {
 
   UNAVAILABLE: 'Unavailable',
 
+  FILE_SIZE: {
+    Byte: (size) => `${size} Byte`,
+    Bytes: (size) => `${size} Bytes`,
+    kB: (size) => `${size} kB`,
+    MB: (size) => `${size} MB`,
+    GB: (size) => `${size} GB`,
+    TB: (size) => `${size} TB`,
+    PB: (size) => `${size} PB`,
+    EB: (size) => `${size} EB`,
+    ZB: (size) => `${size} ZB`,
+    YB: (size) => `${size} YB`,
+    KB: (size) => `${size} KB`,
+    KiB: (size) => `${size} KiB`,
+    MiB: (size) => `${size} MiB`,
+    GiB: (size) => `${size} GiB`,
+    TiB: (size) => `${size} TiB`,
+    PiB: (size) => `${size} PiB`,
+    EiB: (size) => `${size} EiB`,
+    ZiB: (size) => `${size} ZiB`,
+    YiB: (size) => `${size} YiB`,
+  },
+
   EMPTY_MESSAGE: 'No data',
 
   SSL_CERTIFICATE_DETAILS: {

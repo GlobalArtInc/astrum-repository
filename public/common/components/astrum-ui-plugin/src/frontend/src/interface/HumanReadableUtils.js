@@ -2,6 +2,7 @@
 
 import UIStrings from '../constants/UIStrings';
 import fileSize from 'file-size';
+import { pageLanguage } from './plural';
 
 /**
  * @since 3.41
@@ -19,7 +20,14 @@ class HumanReadableUtils {
     if (bytes < 0) {
       return UIStrings.UNAVAILABLE;
     }
-    return fileSize(bytes).human(unitNotation);
+    const size = fileSize(bytes).calculate(unitNotation);
+    const language = pageLanguage();
+    const number = language.startsWith('en')
+      ? size.fixed
+      : new Intl.NumberFormat(language, {minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false})
+          .format(Number(size.fixed));
+    const unit = UIStrings.FILE_SIZE?.[size.suffix];
+    return unit ? unit(number) : `${number} ${size.suffix}`;
   }
 }
 

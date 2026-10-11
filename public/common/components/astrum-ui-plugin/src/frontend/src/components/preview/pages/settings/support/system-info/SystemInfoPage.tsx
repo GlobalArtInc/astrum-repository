@@ -228,10 +228,10 @@ export function SystemInfoPage({ className }: SystemInfoPageProps) {
           <Info size={16} />
           <Text size="2" weight="medium">{SystemInfoStrings.PAGE.ABOUT_SYSTEM_INFORMATION}</Text>
         </Flex>
-        <Text size="2" className="system-info-page__help-text">
+        <Text as="p" size="2" className="system-info-page__help-text">
           {SystemInfoStrings.PAGE.PAGE_DISPLAYS_DETAILED_INFORMATION_ABOUT}
         </Text>
-        <Text size="2" className="system-info-page__help-text">
+        <Text as="p" size="2" className="system-info-page__help-text">
           {SystemInfoStrings.PAGE.SEE_DOCUMENTATION(
             <a
               href="https://help.globalart.dev/en/system-information.html"

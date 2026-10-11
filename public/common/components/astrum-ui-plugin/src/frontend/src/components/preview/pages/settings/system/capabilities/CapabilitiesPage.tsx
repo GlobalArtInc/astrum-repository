@@ -321,7 +321,7 @@ export function CapabilitiesPage({ className }: CapabilitiesPageProps) {
           <WizardForm
             steps={[
               { id: 'type', label: CapabilitiesStrings.PAGE.SELECT_TYPE },
-              { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+              { id: 'config', label: CommonStrings.LABELS.CONFIGURE_STEP },
             ]}
             currentStep={createStep}
             onStepChange={handleWizardStepChange}

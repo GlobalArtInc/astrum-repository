@@ -418,7 +418,7 @@ export function TagsPageRadix(): JSX.Element {
             </Text>
             <TextField.Root
               size="2"
-              placeholder="e.g., release-1.0, staging, approved"
+              placeholder={CommonStrings.MESSAGES.EXAMPLE('release-1.0, staging, approved')}
               value={newTagName}
               onChange={(e) => handleTagNameChange(e.target.value)}
               onKeyDown={(e) =>

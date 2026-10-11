@@ -333,10 +333,10 @@ export function MetricHealthPage({ className }: MetricHealthPageProps) {
           <Info size={16} />
           <Text size="2" weight="medium">{MetricHealthStrings.PAGE.ABOUT_STATUS}</Text>
         </Flex>
-        <Text size="2" className="metric-health-page__help-text">
+        <Text as="p" size="2" className="metric-health-page__help-text">
           {MetricHealthStrings.PAGE.PAGE_DISPLAYS_STATUS_VARIOUS_HEALTH}
         </Text>
-        <Text size="2" className="metric-health-page__help-text">
+        <Text as="p" size="2" className="metric-health-page__help-text">
           {MetricHealthStrings.PAGE.SEE_DOCUMENTATION(
             <a
               href="http://links.globalart.dev/products/astrum/docs/metrics"

@@ -445,7 +445,7 @@ export function CleanupPolicyForm({
                           <SettingsTextInput
                             {...form.field('criteriaLastBlobUpdated')}
                             label=""
-                            placeholder="e.g 100 days"
+                            placeholder={CleanupPoliciesStrings.FORM.DAYS_EXAMPLE}
                             type="number"
                           />
                         </Box>
@@ -478,7 +478,7 @@ export function CleanupPolicyForm({
                           <SettingsTextInput
                             {...form.field('criteriaLastDownloaded')}
                             label=""
-                            placeholder="e.g 100 days"
+                            placeholder={CleanupPoliciesStrings.FORM.DAYS_EXAMPLE}
                             type="number"
                           />
                         </Box>
@@ -511,7 +511,7 @@ export function CleanupPolicyForm({
                           <SettingsTextInput
                             {...form.field('criteriaAssetRegex')}
                             label=""
-                            placeholder="e.g. .*-SNAPSHOT.*"
+                            placeholder={CommonStrings.MESSAGES.EXAMPLE('.*-SNAPSHOT.*')}
                           />
                         </Box>
                       )}
@@ -566,7 +566,7 @@ export function CleanupPolicyForm({
                           <SettingsTextInput
                             {...form.field('retain')}
                             label=""
-                            placeholder="e.g. 5"
+                            placeholder={CommonStrings.MESSAGES.EXAMPLE('5')}
                             type="number"
                           />
                         </Box>

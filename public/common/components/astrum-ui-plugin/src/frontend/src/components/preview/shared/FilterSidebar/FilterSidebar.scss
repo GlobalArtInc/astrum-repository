@@ -160,6 +160,14 @@
     font-size: var(--font-size-sm);
     color: var(--color-text);
     text-transform: capitalize;
+
+    &:not(:lang(en)) {
+      text-transform: none;
+
+      &::first-letter {
+        text-transform: uppercase;
+      }
+    }
   }
 
   &__count {

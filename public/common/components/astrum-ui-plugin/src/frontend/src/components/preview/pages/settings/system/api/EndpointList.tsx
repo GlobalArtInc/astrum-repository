@@ -128,7 +128,7 @@ export function EndpointList({
               <Select.Content>
                 {METHODS.map((m) => (
                   <Select.Item key={m} value={m}>
-                    {m}
+                    {m === 'ALL' ? ApiStrings.ENDPOINT_LIST.ALL_OPTION : m}
                   </Select.Item>
                 ))}
               </Select.Content>
@@ -143,7 +143,7 @@ export function EndpointList({
               <Select.Content>
                 {tags.map((t) => (
                   <Select.Item key={t} value={t}>
-                    {t}
+                    {t === 'ALL' ? ApiStrings.ENDPOINT_LIST.ALL_OPTION : t}
                   </Select.Item>
                 ))}
               </Select.Content>

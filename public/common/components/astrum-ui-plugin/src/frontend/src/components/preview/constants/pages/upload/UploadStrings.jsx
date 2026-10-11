@@ -3,6 +3,12 @@ import localize from '../../../../../interface/localize';
 
 export default localize('react-ui', {
   GENERIC_FIELDS: {
+    FILE_EXTENSION_ASSET_E_G: 'File extension for this asset (e.g., jar, pom)',
+    OPTIONAL_TAG_CATEGORIZE_COMPONENTS: 'Optional tag to categorize components',
+    UNIQUE_PACKAGE_IDENTIFIER_E_G: 'Unique package identifier (e.g., MyCompany.MyPackage)',
+    PACKAGE_NAME_LOWERCASE_HYPHENS_E_G: 'Package name using lowercase with hyphens (e.g., my-package)',
+    NAME_FILE_BEING_UPLOADED: 'Name of the file being uploaded',
+    STORAGE_PATH_WITHIN_REPOSITORY: 'Storage path within the repository',
     OTHER_GROUP: 'Other',
     MAVEN_GROUP_IDENTIFIER_E_G: 'The Maven group identifier (e.g., com.example.myapp)',
     MAVEN_ARTIFACT_NAME_E_G: 'The Maven artifact name (e.g., my-library)',

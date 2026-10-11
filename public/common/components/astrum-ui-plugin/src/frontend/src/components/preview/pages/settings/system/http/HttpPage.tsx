@@ -538,10 +538,10 @@ export function HttpPage({ className }: HttpPageProps) {
               <Info size={16} />
               <Text size="2" weight="medium">{HttpStrings.PAGE.ABOUT_HTTP_SETTINGS}</Text>
             </Flex>
-            <Text size="2" className="http-page__help-text">
+            <Text as="p" size="2" className="http-page__help-text">
               {HttpStrings.PAGE.HTTP_SETTINGS_CONTROL_HOW_ASTRUM}
             </Text>
-            <Text size="2" className="http-page__help-text">
+            <Text as="p" size="2" className="http-page__help-text">
               {HttpStrings.PAGE.SEE_DOCUMENTATION(
                 <a
                   href="http://links.globalart.dev/products/astrum/docs/http-request-and-proxy-settings"

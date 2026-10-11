@@ -12,7 +12,7 @@
 
   &__search-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 180px max-content;
+    grid-template-columns: minmax(0, 1fr) 240px max-content;
     gap: var(--space-3, 12px);
     align-items: end;
     width: 100%;
@@ -35,7 +35,7 @@
   }
 
   &__filter-wrapper {
-    width: 180px;
+    width: 240px;
     min-width: 0;
 
     .settings-select,

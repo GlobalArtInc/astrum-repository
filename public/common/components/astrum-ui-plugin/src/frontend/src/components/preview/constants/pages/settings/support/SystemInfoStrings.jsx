@@ -33,6 +33,12 @@ export default localize('react-ui', {
   },
   SECTION: {
     FILTER_PROPERTIES_PLACEHOLDER: 'Filter properties...',
+    ITEM_COUNT: {
+      ONE: (count) => `(${count} item)`,
+      FEW: (count) => `(${count} items)`,
+      MANY: (count) => `(${count} items)`,
+      OTHER: (count) => `(${count} items)`,
+    },
     NO_MATCHING_PROPERTIES_FOUND: 'No matching properties found',
     NO_PROPERTIES_AVAILABLE: 'No properties available',
   },

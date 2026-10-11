@@ -91,7 +91,7 @@ export function LoggerForm({ loggerName, isCreate = false, onSave, onCancel, onD
               label={LoggingStrings.FORM.LOGGER_NAME}
               value={name}
               onChange={setName}
-              placeholder="e.g., org.globalart.astrum"
+              placeholder={CommonStrings.MESSAGES.EXAMPLE('org.globalart.astrum')}
               helpText={LoggingStrings.FORM.FULLY_QUALIFIED_LOGGER_NAME_E}
               disabled={!isCreate}
               required

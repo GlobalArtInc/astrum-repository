@@ -836,7 +836,7 @@ export function LdapForm({
                 value={selectedTemplate}
                 onChange={handleApplyTemplate}
                 helpText={LdapStrings.FORM.SELECT_TEMPLATE_PRE_FILL_COMMON}
-                placeholder="-- Select a template --"
+                placeholder={LdapStrings.FORM.SELECT_TEMPLATE_PLACEHOLDER}
                 disabled={!canEditFields}
                 options={templates.map((template) => ({
                   value: template.name,

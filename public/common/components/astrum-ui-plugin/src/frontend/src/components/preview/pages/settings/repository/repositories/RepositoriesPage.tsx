@@ -220,7 +220,7 @@ export function RepositoriesPage() {
     () => [
       { id: 'format', label: RepositoriesPageStrings.PAGE.SELECT_FORMAT },
       { id: 'type', label: RepositoriesPageStrings.PAGE.SELECT_TYPE },
-      { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+      { id: 'config', label: CommonStrings.LABELS.CONFIGURE_STEP },
       { id: 'firewall', label: RepositoriesPageStrings.PAGE.ENABLE_FIREWALL },
       { id: 'rhc', label: RepositoriesPageStrings.PAGE.ENABLE_RHC },
     ],

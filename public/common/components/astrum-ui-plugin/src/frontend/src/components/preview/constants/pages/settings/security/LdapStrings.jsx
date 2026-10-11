@@ -3,6 +3,7 @@ import localize from '../../../../../../interface/localize';
 
 export default localize('react-ui', {
   FORM: {
+    SELECT_TEMPLATE_PLACEHOLDER: '-- Select a template --',
     CONNECTION: 'Connection',
     USER_GROUP: 'User & Group',
     EMAIL: 'Email',

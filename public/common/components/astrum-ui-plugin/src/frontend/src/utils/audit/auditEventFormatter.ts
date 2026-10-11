@@ -102,6 +102,8 @@ function formatAction(type: string): string {
     uploaded: ACTIONS.WAS_UPLOADED,
     associated: ACTIONS.WAS_TAGGED,
     disassociated: ACTIONS.WAS_UNTAGGED,
+    changed: ACTIONS.WAS_CHANGED,
+    'user-session-invalidation': ACTIONS.USER_SESSION_INVALIDATION,
   };
 
   return actionMap[type] || type.replace(/-/g, ' ');

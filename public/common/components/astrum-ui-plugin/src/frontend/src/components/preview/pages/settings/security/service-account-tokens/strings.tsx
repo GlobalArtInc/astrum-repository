@@ -16,6 +16,9 @@ export const SERVICE_ACCOUNT_TOKENS_STRINGS = localize('react-ui', {
     ACTIONS_BUTTON_LABEL: 'Actions',
     REVOKE_ACTION: 'Revoke',
     LAST_USED_NEVER: 'Never used',
+    ROW_EXPIRES: (date: string) => `expires ${date}`,
+    ROW_EXPIRES_NEVER: 'Expires never',
+    ROW_LAST_USED: (date: string) => `last used ${date}`,
     LOADING: 'Loading tokens…',
     COLUMNS: {
       NAME: 'Name',

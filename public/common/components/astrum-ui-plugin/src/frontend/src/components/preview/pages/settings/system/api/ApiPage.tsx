@@ -326,10 +326,10 @@ export function ApiPage({ className }: ApiPageProps) {
             {ApiStrings.PAGE.ABOUT_API_DOCUMENTATION}
           </Text>
         </Flex>
-        <Text size="2" className="api-page__help-text">
+        <Text as="p" size="2" className="api-page__help-text">
           {ApiStrings.PAGE.EXPLORE_ASTRUM_REPOSITORY_REST_API}
         </Text>
-        <Text size="2" className="api-page__help-text">
+        <Text as="p" size="2" className="api-page__help-text">
           {ApiStrings.PAGE.SEE_DOCUMENTATION(
             <a
               href="https://help.globalart.dev/en/rest-and-integration-api.html"

@@ -18,6 +18,7 @@
 
 import { AxiosError } from 'axios';
 import { ApiError, FieldError, RestErrorResponse } from './types';
+import { API_ERROR_STRINGS } from './errorStrings';
 
 // JAX-RS ConstraintViolationExceptionMapper prefixes the `id` field of each
 // validation error with the leaf bean's simple name (`HelperBean.`) followed by
@@ -28,12 +29,11 @@ const HELPER_BEAN_PREFIX = 'HelperBean.';
 const ATTRIBUTES_PREFIX = 'attributes.';
 
 const CONSTRAINT_MESSAGES: Record<string, string> = {
-  'org.globalart.astrum.validation.constraint.name':
-    'Only letters, digits, hyphens (-), underscores (_), and dots (.) are allowed and may not start with underscore or dot.',
-  'org.globalart.astrum.validation.constraint.case': 'Case must be the correct value.',
-  'org.globalart.astrum.validation.constraint.portnumber': 'Port number must be within the valid range.',
-  'org.globalart.astrum.validation.constraint.hostname': 'Hostname must be valid.',
-  'org.globalart.astrum.validation.constraint.notnull': 'Must not be null.',
+  'org.globalart.astrum.validation.constraint.name': API_ERROR_STRINGS.CONSTRAINTS.NAME,
+  'org.globalart.astrum.validation.constraint.case': API_ERROR_STRINGS.CONSTRAINTS.CASE,
+  'org.globalart.astrum.validation.constraint.portnumber': API_ERROR_STRINGS.CONSTRAINTS.PORT_NUMBER,
+  'org.globalart.astrum.validation.constraint.hostname': API_ERROR_STRINGS.CONSTRAINTS.HOSTNAME,
+  'org.globalart.astrum.validation.constraint.notnull': API_ERROR_STRINGS.CONSTRAINTS.NOT_NULL,
 };
 
 function resolveConstraintMessage(message: string): string {
@@ -68,7 +68,7 @@ export function parseApiError(error: unknown): ApiError {
   if (error instanceof Error) {
     return {
       status: 0,
-      message: error.message || 'An unexpected error occurred',
+      message: error.message || API_ERROR_STRINGS.UNEXPECTED,
       originalError: error,
     };
   }
@@ -84,7 +84,7 @@ export function parseApiError(error: unknown): ApiError {
   // Unknown error type
   return {
     status: 0,
-    message: 'An unexpected error occurred',
+    message: API_ERROR_STRINGS.UNEXPECTED,
     originalError: error,
   };
 }
@@ -104,7 +104,7 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
     if (error.code === 'ECONNABORTED') {
       return {
         status: 0,
-        message: 'Request timed out. Please check your connection and try again.',
+        message: API_ERROR_STRINGS.TIMEOUT,
         code: 'TIMEOUT',
         requestId,
         originalError: error,
@@ -112,7 +112,7 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
     }
     return {
       status: 0,
-      message: 'Unable to connect to server. Please check your network connection.',
+      message: API_ERROR_STRINGS.NETWORK,
       code: 'NETWORK_ERROR',
       requestId,
       originalError: error,
@@ -127,7 +127,7 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
     case 401:
       return {
         status: 401,
-        message: 'Your session has expired. Please log in again.',
+        message: API_ERROR_STRINGS.SESSION_EXPIRED,
         code: 'UNAUTHORIZED',
         requestId,
         originalError: error,
@@ -136,7 +136,7 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
     case 403:
       return {
         status: 403,
-        message: unwrapQuotedMessage(data?.message) || 'You do not have permission to perform this action. Contact your administrator if you need access.',
+        message: unwrapQuotedMessage(data?.message) || API_ERROR_STRINGS.FORBIDDEN,
         code: 'FORBIDDEN',
         requestId,
         originalError: error,
@@ -145,7 +145,7 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
     case 404:
       return {
         status: 404,
-        message: unwrapQuotedMessage(data?.message) || 'The requested resource was not found.',
+        message: unwrapQuotedMessage(data?.message) || API_ERROR_STRINGS.NOT_FOUND,
         code: 'NOT_FOUND',
         requestId,
         originalError: error,
@@ -154,7 +154,7 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
     case 405:
       return {
         status: 405,
-        message: unwrapQuotedMessage(data?.message) || 'This operation is not supported for the current resource state.',
+        message: unwrapQuotedMessage(data?.message) || API_ERROR_STRINGS.METHOD_NOT_ALLOWED,
         code: 'METHOD_NOT_ALLOWED',
         requestId,
         originalError: error,
@@ -163,7 +163,7 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
     case 409:
       return {
         status: 409,
-        message: unwrapQuotedMessage(data?.message) || 'This resource already exists or conflicts with another resource.',
+        message: unwrapQuotedMessage(data?.message) || API_ERROR_STRINGS.CONFLICT,
         code: 'CONFLICT',
         requestId,
         originalError: error,
@@ -186,11 +186,11 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
       
       const message = backendMessage 
         ? backendMessage 
-        : `Server error (${status}). Please try again later.`;
+        : API_ERROR_STRINGS.SERVER_ERROR(status);
       
       return {
         status,
-        message: requestId ? `${message} Reference: ${requestId}` : message,
+        message: requestId ? API_ERROR_STRINGS.WITH_REFERENCE(message, requestId) : message,
         code: 'SERVER_ERROR',
         requestId,
         originalError: error,
@@ -200,7 +200,7 @@ function parseAxiosError(error: AxiosError<RestErrorResponse>): ApiError {
     default:
       return {
         status,
-        message: unwrapQuotedMessage(data?.message) || 'Unable to complete request. Please try again.',
+        message: unwrapQuotedMessage(data?.message) || API_ERROR_STRINGS.REQUEST_FAILED,
         requestId,
         originalError: error,
       };
@@ -254,7 +254,7 @@ function parseBadRequest(
   else if (data?.errors && Array.isArray(data.errors)) {
     for (const err of data.errors) {
       if (err.field || err.id) {
-        const resolvedMessage = resolveConstraintMessage(err.message || 'Invalid value');
+        const resolvedMessage = resolveConstraintMessage(err.message || API_ERROR_STRINGS.INVALID_VALUE);
         fieldErrors.push({
           field: err.field || err.id || 'unknown',
           message: resolvedMessage,
@@ -281,12 +281,12 @@ function parseBadRequest(
     message = messages.join('. ');
   } else if (fieldErrors.length > 0) {
     if (fieldErrors.length === 1) {
-      message = `Validation error: ${fieldErrors[0].message}`;
+      message = API_ERROR_STRINGS.VALIDATION_ERROR(fieldErrors[0].message);
     } else {
-      message = `Please fix ${fieldErrors.length} validation errors`;
+      message = API_ERROR_STRINGS.VALIDATION_ERRORS(fieldErrors.length);
     }
   } else {
-    message = 'Invalid request. Please check your input.';
+    message = API_ERROR_STRINGS.INVALID_REQUEST;
   }
 
   return {

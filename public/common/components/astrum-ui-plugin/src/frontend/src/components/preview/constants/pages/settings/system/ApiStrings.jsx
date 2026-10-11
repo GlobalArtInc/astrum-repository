@@ -43,6 +43,7 @@ export default localize('react-ui', {
     GRANT_ACCESS: 'Grant Access',
   },
   ENDPOINT_LIST: {
+    ALL_OPTION: 'ALL',
     SEARCH_PATH_SUMMARY_PLACEHOLDER: 'Search path or summary…',
     SEARCH_ENDPOINTS_ARIA: 'Search endpoints',
     METHOD: 'Method',

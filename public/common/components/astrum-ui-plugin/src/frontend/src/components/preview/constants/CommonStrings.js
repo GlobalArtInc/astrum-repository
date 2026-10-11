@@ -28,6 +28,7 @@ export default localize('react-ui', {
   },
   LABELS: {
     ACTIONS: 'Actions',
+    CONFIGURE_STEP: 'Configure',
     DESCRIPTION: 'Description',
     FORMAT: 'Format',
     NAME: 'Name',
@@ -36,6 +37,7 @@ export default localize('react-ui', {
     TYPE: 'Type',
   },
   MESSAGES: {
+    EXAMPLE: (example) => `e.g., ${example}`,
     LOADING: 'Loading...',
     LOADING_FORM: 'Loading form...',
     NAME_REQUIRED: 'Name is required',

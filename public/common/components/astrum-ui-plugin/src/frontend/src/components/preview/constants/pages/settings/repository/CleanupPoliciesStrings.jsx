@@ -47,6 +47,7 @@ export default localize('react-ui', {
     NO_COMPONENTS_MATCH_SELECTED_CRITERIA: 'No components match the selected criteria',
   },
   FORM: {
+    DAYS_EXAMPLE: 'e.g. 100 days',
     INTRO: <><strong>Cleanup policies</strong> allow you to automatically delete unused components and free up storage space. Define <strong>cleanup criteria</strong> for selecting components to delete.</>,
     KEEP_LATEST_BY_AGE: 'Keep the latest "x" number of versions by component age.',
     KEEP_LATEST_BY_VERSION: 'Keep the latest "x" number of versions by version number.',

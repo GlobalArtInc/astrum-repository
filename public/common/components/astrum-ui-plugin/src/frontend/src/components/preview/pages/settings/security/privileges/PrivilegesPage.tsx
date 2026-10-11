@@ -441,13 +441,13 @@ export function PrivilegesPage() {
                 ? [
                     { id: 'type', label: PrivilegesStrings.PAGE.SELECT_TYPE },
                     { id: 'setup', label: PrivilegesStrings.PAGE.SETUP },
-                    { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+                    { id: 'config', label: CommonStrings.LABELS.CONFIGURE_STEP },
                     { id: 'preview', label: PrivilegesStrings.PAGE.PREVIEW },
                   ]
                 : [
                     { id: 'type', label: PrivilegesStrings.PAGE.SELECT_TYPE },
                     { id: 'setup', label: PrivilegesStrings.PAGE.SETUP },
-                    { id: 'config', label: CommonStrings.ACTIONS.CONFIGURE },
+                    { id: 'config', label: CommonStrings.LABELS.CONFIGURE_STEP },
                   ]
             }
             currentStep={wizardStep}

@@ -31,6 +31,14 @@ export const AUDIT_EVENT_STRINGS = localize('react-ui', {
     login: 'Login',
     logout: 'Logout',
     'automatic-malware-removed': 'Automatic Malware Removed',
+    changed: 'Changed',
+    scheduled: 'Scheduled',
+    stopped: 'Stopped',
+    canceled: 'Canceled',
+    purged: 'Purged',
+    activated: 'Activated',
+    passivated: 'Passivated',
+    'user-session-invalidation': 'User Session Invalidation',
   },
   ACTIONS: {
     WAS_CREATED: 'created',
@@ -51,6 +59,8 @@ export const AUDIT_EVENT_STRINGS = localize('react-ui', {
     WAS_UPLOADED: 'uploaded',
     WAS_TAGGED: 'tagged',
     WAS_UNTAGGED: 'untagged',
+    WAS_CHANGED: 'changed',
+    USER_SESSION_INVALIDATION: 'user session invalidation',
   },
   SESSION_EVENTS: {
     LOGIN_EVENT: 'login',

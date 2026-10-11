@@ -40,6 +40,21 @@ function parseRemoteHostUrl(url: string): [string, number | null, string | null]
 }
 
 /**
+ * The message to show for a failed request: the server's own message, else the given text, since the generic
+ * transport message of the HTTP client is neither helpful nor translated.
+ */
+function messageOf(err: any, fallback: string): string {
+  const serverMessage = err?.response?.data?.message;
+  if (serverMessage) {
+    return serverMessage;
+  }
+  if (err?.response || err?.isAxiosError) {
+    return fallback;
+  }
+  return err?.message || fallback;
+}
+
+/**
  * Custom hook for SSL Certificates API operations
  */
 export function useSslCertificatesApi() {
@@ -55,7 +70,7 @@ export function useSslCertificatesApi() {
       return Array.isArray(response?.data) ? response.data : [];
     } catch (err: any) {
       console.error('Failed to fetch certificates:', err);
-      throw new Error(err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_LOAD_CERTIFICATES);
+      throw new Error(messageOf(err, SslCertificatesStrings.API.FAILED_LOAD_CERTIFICATES));
     }
   }, []);
 
@@ -76,7 +91,7 @@ export function useSslCertificatesApi() {
       return ExtAPIUtils.extractResult(response);
     } catch (err: any) {
       console.error('Failed to fetch certificate from host:', err);
-      throw new Error(err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_RETRIEVE_CERTIFICATE_HOST);
+      throw new Error(messageOf(err, SslCertificatesStrings.API.FAILED_RETRIEVE_CERTIFICATE_HOST));
     }
   }, []);
 
@@ -98,7 +113,7 @@ export function useSslCertificatesApi() {
       return ExtAPIUtils.extractResult(response);
     } catch (err: any) {
       console.error('Failed to get certificate details:', err);
-      throw new Error(err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_PARSE_CERTIFICATE);
+      throw new Error(messageOf(err, SslCertificatesStrings.API.FAILED_PARSE_CERTIFICATE));
     }
   }, []);
 
@@ -116,7 +131,7 @@ export function useSslCertificatesApi() {
       });
       return response.data;
     } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_ADD_CERTIFICATE;
+      const message = messageOf(err, SslCertificatesStrings.API.FAILED_ADD_CERTIFICATE);
       setError(message);
       throw new Error(message);
     } finally {
@@ -134,7 +149,7 @@ export function useSslCertificatesApi() {
       const url = `${SSL_CERTIFICATES_URL}/${encodeURIComponent(certificateId)}`;
       await Axios.delete(url);
     } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message || SslCertificatesStrings.API.FAILED_DELETE_CERTIFICATE;
+      const message = messageOf(err, SslCertificatesStrings.API.FAILED_DELETE_CERTIFICATE);
       setError(message);
       throw new Error(message);
     } finally {

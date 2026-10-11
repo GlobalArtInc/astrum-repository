@@ -116,56 +116,56 @@ const globalartInternalRoutes = [
 // =============================================================================
 
 // Repository - Gated (Coming Soon in production, WIP accessible in dev only)
-const RepositoriesPage = withFeatureGate(RepositoriesPageRaw, 'repository.repositories', 'Repositories');
-const RepositoryProfilePage = withFeatureGate(RepositoryProfilePageRaw, 'repository.repositories', 'Repository Profile');
-const BlobStoresPage = withFeatureGate(BlobStoresPageRaw, 'repository.blobstores', 'Blob Stores');
-const ContentSelectorsPage = withFeatureGate(ContentSelectorsPageRaw, 'repository.selectors', 'Content Selectors');
-const CleanupPoliciesPage = withFeatureGate(CleanupPoliciesPageRaw, 'repository.cleanuppolicies', 'Cleanup Policies');
-const RoutingRulesPage = withFeatureGate(RoutingRulesPageRaw, 'repository.routingrules', 'Routing Rules');
-const DataStorePage = withFeatureGate(DataStorePageRaw, 'repository.datastore', 'Data Store');
-const ProprietaryPage = withFeatureGate(ProprietaryPageRaw, 'repository.proprietary', 'Proprietary');
+const RepositoriesPage = withFeatureGate(RepositoriesPageRaw, 'repository.repositories', PreviewRouteTitles.REPOSITORIES);
+const RepositoryProfilePage = withFeatureGate(RepositoryProfilePageRaw, 'repository.repositories', PreviewRouteTitles.REPOSITORY_PROFILE);
+const BlobStoresPage = withFeatureGate(BlobStoresPageRaw, 'repository.blobstores', PreviewRouteTitles.BLOB_STORES);
+const ContentSelectorsPage = withFeatureGate(ContentSelectorsPageRaw, 'repository.selectors', PreviewRouteTitles.CONTENT_SELECTORS);
+const CleanupPoliciesPage = withFeatureGate(CleanupPoliciesPageRaw, 'repository.cleanuppolicies', PreviewRouteTitles.CLEANUP_POLICIES);
+const RoutingRulesPage = withFeatureGate(RoutingRulesPageRaw, 'repository.routingrules', PreviewRouteTitles.ROUTING_RULES);
+const DataStorePage = withFeatureGate(DataStorePageRaw, 'repository.datastore', PreviewRouteTitles.DATA_STORE);
+const ProprietaryPage = withFeatureGate(ProprietaryPageRaw, 'repository.proprietary', PreviewRouteTitles.PROPRIETARY_REPOSITORIES);
 
 // Security - Gated
-const PrivilegesPage = withFeatureGate(PrivilegesPageRaw, 'security.privileges', 'Privileges');
-const RolesPage = withFeatureGate(RolesPageRaw, 'security.roles', 'Roles');
-const UsersPage = withFeatureGate(UsersPageRaw, 'security.users', 'Users');
-const AnonymousPage = withFeatureGate(AnonymousPageRaw, 'security.anonymous', 'Anonymous Access');
-const CrowdPage = withFeatureGate(CrowdPageRaw, 'security.crowd', 'Atlassian Crowd');
-const LdapPage = withFeatureGate(LdapPageRaw, 'security.ldap', 'LDAP');
-const OAuth2Page = withFeatureGate(OAuth2PageRaw, 'security.oauth2', 'OAuth 2.0');
-const RealmsPage = withFeatureGate(RealmsPageRaw, 'security.realms', 'Realms');
-const SamlPage = withFeatureGate(SamlPageRaw, 'security.saml', 'SAML');
-const SslCertificatesPage = withFeatureGate(SslCertificatesPageRaw, 'security.sslcertificates', 'SSL Certificates');
-const UserTokensPage = withFeatureGate(UserTokensPageRaw, 'security.usertokens', 'User Tokens');
+const PrivilegesPage = withFeatureGate(PrivilegesPageRaw, 'security.privileges', PreviewRouteTitles.PRIVILEGES);
+const RolesPage = withFeatureGate(RolesPageRaw, 'security.roles', PreviewRouteTitles.ROLES);
+const UsersPage = withFeatureGate(UsersPageRaw, 'security.users', PreviewRouteTitles.USERS);
+const AnonymousPage = withFeatureGate(AnonymousPageRaw, 'security.anonymous', PreviewRouteTitles.ANONYMOUS_ACCESS);
+const CrowdPage = withFeatureGate(CrowdPageRaw, 'security.crowd', PreviewRouteTitles.ATLASSIAN_CROWD);
+const LdapPage = withFeatureGate(LdapPageRaw, 'security.ldap', PreviewRouteTitles.LDAP);
+const OAuth2Page = withFeatureGate(OAuth2PageRaw, 'security.oauth2', PreviewRouteTitles.OAUTH2);
+const RealmsPage = withFeatureGate(RealmsPageRaw, 'security.realms', PreviewRouteTitles.REALMS);
+const SamlPage = withFeatureGate(SamlPageRaw, 'security.saml', PreviewRouteTitles.SAML);
+const SslCertificatesPage = withFeatureGate(SslCertificatesPageRaw, 'security.sslcertificates', PreviewRouteTitles.SSL_CERTIFICATES);
+const UserTokensPage = withFeatureGate(UserTokensPageRaw, 'security.usertokens', PreviewRouteTitles.USER_TOKENS);
 
 // Support - Gated (Logs and Logging Configuration are self-hosted only)
 const LogsPage = withCloudExcluded(
-  withFeatureGate(LogsPageRaw, 'support.logs', 'Logs'),
-  'Logs',
+  withFeatureGate(LogsPageRaw, 'support.logs', PreviewRouteTitles.LOGS),
+  PreviewRouteTitles.LOGS,
 );
 const LoggingConfigPage = withCloudExcluded(
-  withFeatureGate(LoggingConfigPageRaw, 'support.logging', 'Logging Configuration'),
-  'Logging Configuration',
+  withFeatureGate(LoggingConfigPageRaw, 'support.logging', PreviewRouteTitles.LOGGING_CONFIGURATION),
+  PreviewRouteTitles.LOGGING_CONFIGURATION,
 );
-const SystemInfoPage = withFeatureGate(SystemInfoPageRaw, 'support.systeminfo', 'System Information');
-const MetricHealthPage = withFeatureGate(MetricHealthPageRaw, 'support.metrics', 'Metric Health');
+const SystemInfoPage = withFeatureGate(SystemInfoPageRaw, 'support.systeminfo', PreviewRouteTitles.SYSTEM_INFORMATION);
+const MetricHealthPage = withFeatureGate(MetricHealthPageRaw, 'support.metrics', PreviewRouteTitles.METRIC_HEALTH);
 const RecoveryModePage = RecoveryModePageRaw;
-const SupportRequestPage = withFeatureGate(SupportRequestPageRaw, 'support.supportrequest', 'Support Request');
-const SupportZipPage = withFeatureGate(SupportZipPageRaw, 'support.supportzip', 'Support ZIP');
+const SupportRequestPage = withFeatureGate(SupportRequestPageRaw, 'support.supportrequest', PreviewRouteTitles.SUPPORT_REQUEST);
+const SupportZipPage = withFeatureGate(SupportZipPageRaw, 'support.supportzip', PreviewRouteTitles.SUPPORT_ZIP);
 
 // System - Gated
-const TasksPage = withFeatureGate(TasksPageRaw, 'system.tasks', 'Tasks');
-const CapabilitiesPage = withFeatureGate(CapabilitiesPageRaw, 'system.capabilities', 'Capabilities');
-const EmailPage = withFeatureGate(EmailPageRaw, 'system.emailserver', 'Email Server');
+const TasksPage = withFeatureGate(TasksPageRaw, 'system.tasks', PreviewRouteTitles.TASKS);
+const CapabilitiesPage = withFeatureGate(CapabilitiesPageRaw, 'system.capabilities', PreviewRouteTitles.CAPABILITIES);
+const EmailPage = withFeatureGate(EmailPageRaw, 'system.emailserver', PreviewRouteTitles.EMAIL_SERVER);
 const HttpPage = withCloudExcluded(
-  withFeatureGate(HttpPageRaw, 'system.http', 'HTTP'),
-  'HTTP',
+  withFeatureGate(HttpPageRaw, 'system.http', PreviewRouteTitles.HTTP),
+  PreviewRouteTitles.HTTP,
 );
-const NodesPage = withFeatureGate(NodesPageRaw, 'system.nodes', 'Nodes');
-const NotificationsPage = withFeatureGate(NotificationsPageRaw, 'system.notifications', 'Notifications');
+const NodesPage = withFeatureGate(NodesPageRaw, 'system.nodes', PreviewRouteTitles.NODES);
+const NotificationsPage = withFeatureGate(NotificationsPageRaw, 'system.notifications', PreviewRouteTitles.NOTIFICATIONS);
 
 // User Account
-const UserAccountPage = withFeatureGate(UserAccountPageRaw, 'useraccount', 'User Account');
+const UserAccountPage = withFeatureGate(UserAccountPageRaw, 'useraccount', PreviewRouteTitles.USER_ACCOUNT);
 
 // =============================================================================
 // ROUTE DEFINITIONS

@@ -279,7 +279,7 @@ export function SamlPage({ className }: SamlPageProps) {
             label={SamlStrings.PAGE.USERNAME_ATTRIBUTE}
             value={config.usernameAttribute || ''}
             onChange={(value) => handleFieldChange('usernameAttribute', value)}
-            placeholder="e.g., NameID, uid, email"
+            placeholder={CommonStrings.MESSAGES.EXAMPLE('NameID, uid, email')}
             required
             error={fieldError('usernameAttribute')}
             helpText={SamlStrings.PAGE.SAML_ATTRIBUTE_NAME_CONTAINING_USERNAME}
@@ -292,7 +292,7 @@ export function SamlPage({ className }: SamlPageProps) {
             label={SamlStrings.PAGE.FIRST_NAME_ATTRIBUTE}
             value={config.firstNameAttribute || ''}
             onChange={(value) => handleFieldChange('firstNameAttribute', value)}
-            placeholder="e.g., firstName, givenName"
+            placeholder={CommonStrings.MESSAGES.EXAMPLE('firstName, givenName')}
             helpText={SamlStrings.PAGE.FIRST_NAME_ATTRIBUTE_HELP}
             disabled={!canUpdate}
             data-testid="saml-input-firstNameAttribute"
@@ -303,7 +303,7 @@ export function SamlPage({ className }: SamlPageProps) {
             label={SamlStrings.PAGE.LAST_NAME_ATTRIBUTE}
             value={config.lastNameAttribute || ''}
             onChange={(value) => handleFieldChange('lastNameAttribute', value)}
-            placeholder="e.g., lastName, sn, surname"
+            placeholder={CommonStrings.MESSAGES.EXAMPLE('lastName, sn, surname')}
             helpText={SamlStrings.PAGE.LAST_NAME_ATTRIBUTE_HELP}
             disabled={!canUpdate}
             data-testid="saml-input-lastNameAttribute"
@@ -314,7 +314,7 @@ export function SamlPage({ className }: SamlPageProps) {
             label={SamlStrings.PAGE.EMAIL_ATTRIBUTE}
             value={config.emailAttribute || ''}
             onChange={(value) => handleFieldChange('emailAttribute', value)}
-            placeholder="e.g., email, mail"
+            placeholder={CommonStrings.MESSAGES.EXAMPLE('email, mail')}
             helpText={SamlStrings.PAGE.EMAIL_ATTRIBUTE_HELP}
             disabled={!canUpdate}
             data-testid="saml-input-emailAttribute"
@@ -325,7 +325,7 @@ export function SamlPage({ className }: SamlPageProps) {
             label={SamlStrings.PAGE.ROLES_GROUPS}
             value={config.groupsAttribute || ''}
             onChange={(value) => handleFieldChange('groupsAttribute', value)}
-            placeholder="e.g., groups, memberOf"
+            placeholder={CommonStrings.MESSAGES.EXAMPLE('groups, memberOf')}
             helpText={SamlStrings.PAGE.MAP_IDENTITY_PROVIDER_ROLES_GROUPS}
             disabled={!canUpdate}
             data-testid="saml-input-groupsAttribute"

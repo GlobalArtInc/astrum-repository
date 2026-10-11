@@ -9,6 +9,7 @@ export { default as SettingsStrings } from './pages/settings/SettingsStrings';
 export { default as AuditStrings } from './pages/audit/AuditStrings';
 export { AUDIT_LOG_STRINGS } from '../pages/audit/strings';
 export { AUDIT_EVENT_STRINGS } from '../../../utils/audit/auditStrings';
+export { API_ERROR_STRINGS } from '../../../interface/api/errorStrings';
 export { default as TagsStrings } from './pages/tags/TagsStrings';
 export { default as UploadStrings } from './pages/upload/UploadStrings';
 export { default as UserPagesStrings } from './pages/user/UserPagesStrings';

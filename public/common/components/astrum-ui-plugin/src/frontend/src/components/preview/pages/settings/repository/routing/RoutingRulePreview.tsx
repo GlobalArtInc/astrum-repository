@@ -253,7 +253,7 @@ export function RoutingRulePreview({ onClose }: RoutingRulePreviewProps) {
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="e.g., /com/example/artifact-1.0.jar"
+                placeholder={CommonStrings.MESSAGES.EXAMPLE('/com/example/artifact-1.0.jar')}
                 className="routing-rule-preview__path-input"
               />
             </Box>

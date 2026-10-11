@@ -20,6 +20,7 @@ import { SettingsButton } from '../../../../shared/form';
 import { RoutingRuleMatcherProps, } from './types';
 
 import './RoutingRuleMatcher.scss';
+import CommonStrings from '../../../../constants/CommonStrings';
 import RoutingRulesStrings from '../../../../constants/pages/settings/repository/RoutingRulesStrings';
 
 /**
@@ -43,7 +44,7 @@ const PATTERN_PRESETS: PatternPresetOption[] = [
     icon: <FileCode size={14} />,
     description: RoutingRulesStrings.MATCHER.CUSTOM_REGULAR_EXPRESSION,
     toRegex: (value) => value,
-    placeholder: 'e.g., .*-sources\\.jar',
+    placeholder: CommonStrings.MESSAGES.EXAMPLE('.*-sources\\.jar'),
   },
   {
     value: 'starts-with',
@@ -51,7 +52,7 @@ const PATTERN_PRESETS: PatternPresetOption[] = [
     icon: <ArrowRight size={14} />,
     description: RoutingRulesStrings.MATCHER.PATH_STARTS_PREFIX,
     toRegex: (value) => `^${escapeRegex(value)}.*`,
-    placeholder: 'e.g., /org/apache/',
+    placeholder: CommonStrings.MESSAGES.EXAMPLE('/org/apache/'),
   },
   {
     value: 'ends-with',
@@ -59,7 +60,7 @@ const PATTERN_PRESETS: PatternPresetOption[] = [
     icon: <ArrowLeft size={14} />,
     description: RoutingRulesStrings.MATCHER.PATH_ENDS_SUFFIX,
     toRegex: (value) => `.*${escapeRegex(value)}$`,
-    placeholder: 'e.g., .jar',
+    placeholder: CommonStrings.MESSAGES.EXAMPLE('.jar'),
   },
   {
     value: 'contains',
@@ -67,7 +68,7 @@ const PATTERN_PRESETS: PatternPresetOption[] = [
     icon: <Search size={14} />,
     description: RoutingRulesStrings.MATCHER.PATH_CONTAINS_TEXT,
     toRegex: (value) => `.*${escapeRegex(value)}.*`,
-    placeholder: 'e.g., sources',
+    placeholder: CommonStrings.MESSAGES.EXAMPLE('sources'),
   },
 ];
 

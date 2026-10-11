@@ -377,10 +377,10 @@ export function ServiceAccountTokensPage() {
               token.roleId,
               token.createdBy,
               token.expiresAt
-                ? `expires ${formatDate(token.expiresAt)}`
-                : LABELS.COLUMNS.EXPIRES + ' never',
+                ? LABELS.ROW_EXPIRES(formatDate(token.expiresAt))
+                : LABELS.ROW_EXPIRES_NEVER,
               token.lastUsedAt
-                ? `last used ${formatDate(token.lastUsedAt)}`
+                ? LABELS.ROW_LAST_USED(formatDate(token.lastUsedAt))
                 : LABELS.LAST_USED_NEVER,
             ].join(', ')
           }
