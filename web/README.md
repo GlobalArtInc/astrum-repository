@@ -92,10 +92,12 @@ horizontal scrolling, in both themes.
   `renderWithApp(element, { state, path, areas, routes })` from `src/test/render.tsx` gives the providers
   and a memory router; `fakeServer({...})` answers `fetch` per `METHOD path`.
 - End-to-end: `e2e/*.spec.ts` with `test` from `e2e/fixtures.ts` (`server.url`, `server.adminPassword`,
-  `server.setAnonymous()`, `signIn(page, password)`). The global setup starts `ASTRUM_BIN` (default
-  `/home/user/wt/m1-target/debug/astrum`) on a free port (or `ASTRUM_E2E_PORT`) with a fresh data directory
+  `server.setAnonymous()`, `signIn(page, password)`). Every spec file gets a server of its own, so specs
+  never see each other's data: the fixture starts `ASTRUM_BIN` (default
+  `/home/user/wt/m1-target/debug/astrum`) on a free port with a fresh data directory
   and a fresh database on `ASTRUM_E2E_DATABASE_URL` (default `postgres://postgres@127.0.0.1:5433/postgres`,
-  name prefix `ASTRUM_E2E_DATABASE_PREFIX`), serving `dist/`; it drops both at the end. Chromium comes from
+  name prefix `ASTRUM_E2E_DATABASE_PREFIX`), serving `dist/`, and drops both when the next file starts or the
+  run ends. Chromium comes from
   `/opt/pw-browsers/chromium` (`ASTRUM_E2E_CHROMIUM`). Each page gets at least one scenario.
 - Screenshots: `ASTRUM_SHOTS_DIR=<dir> corepack pnpm e2e screenshots` (1440x900 and 390x844, dark and
   light); add your pages to your own spec in the same way.

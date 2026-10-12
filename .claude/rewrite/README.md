@@ -354,8 +354,8 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   `RelativeTime`, `UnsavedChangesGuard`. Pages work at 390 px without horizontal scroll, in both themes.
 - Tests: Vitest + Testing Library next to the code; `renderWithApp(element, { state, path, areas, routes })`
   and `fakeServer({ 'GET /path': handler })` in `src/test`. 148 unit tests at the foundation.
-- End-to-end: Playwright in `web/e2e` with the preinstalled Chromium; the global setup starts `ASTRUM_BIN` on
-  a free port (or `ASTRUM_E2E_PORT`) with a fresh data dir and database (`ASTRUM_E2E_DATABASE_URL`,
+- End-to-end: Playwright in `web/e2e` with the preinstalled Chromium; every spec file gets its own server: the
+  fixture starts `ASTRUM_BIN` on a free port with a fresh data dir and database (`ASTRUM_E2E_DATABASE_URL`,
   `ASTRUM_E2E_DATABASE_PREFIX`) serving `web/dist`, and drops both afterwards; `test`/`signIn` from
   `e2e/fixtures.ts`; `ASTRUM_SHOTS_DIR=<dir> pnpm e2e screenshots` takes 1440x900 and 390x844 shots in both
   themes. The shared target dir is rebuilt by every agent, so copy your binary before pointing `ASTRUM_BIN`

@@ -227,7 +227,7 @@ async function viewer(call: Fetch) {
   );
 }
 
-let seeding: Promise<void> | null = null;
+const seeding = new Map<string, Promise<void>>();
 
 async function seed(url: string, password: string) {
   const call = client(url, password);
@@ -312,8 +312,12 @@ async function seed(url: string, password: string) {
 }
 
 export function seedBrowse(url: string, password: string): Promise<void> {
-  seeding ??= seed(url, password);
-  return seeding;
+  let running = seeding.get(url);
+  if (!running) {
+    running = seed(url, password);
+    seeding.set(url, running);
+  }
+  return running;
 }
 
 export function adminFetch(url: string, password: string): Fetch {
