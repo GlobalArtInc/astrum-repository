@@ -15,9 +15,9 @@ secrets.
   referrers API, sha512, tag parameters, chunked uploads with 416, cross-repository mount, artifact kinds in
   search and Astrum One; deleting a manifest by digest deletes its referrers; cleanup deletes tags only).
   pub and Ansible Galaxy were stopped; they will be written in Rust.
-- Rust rewrite: M0 done; M1 foundation, sessions, access tokens and audit done; blob stores, repository
-  configuration and security REST were being built by agents in `/home/user/wt/m1-{blob,repos,secrest}`
-  (branches `m1/*`, shared build dir `/home/user/wt/m1-target`, brief `/home/user/wt/M1-BRIEF.md`).
+- Rust rewrite: M0 and M1 done (security, sessions, access tokens, audit, blob stores, repository
+  configuration and the security REST API, about 260 tests); M2 is next. Not deployed. Agent brief template:
+  `/home/user/wt/M1-BRIEF.md`; shared Rust build dir `/home/user/wt/m1-target` (`CARGO_INCREMENTAL=0`).
 - Known open defects: `/service/rest/v1/user-telemetry/javascript` 404 on every page; certificate check
   in the repository HTTP settings calls a missing truststore endpoint; saving raw proxy query params,
   docker `latestPolicy` and ECR settings from Astrum One resets them; horizontal scroll at 1024px; server

@@ -1,7 +1,7 @@
 # Rewriting Astrum Repository in Rust
 
-Status: decided (owner's answers of 2026-10-12 are recorded below); M0 is done (2026-10-12), M1 is in
-progress (foundation done; blob stores, repository configuration and security REST being built in parallel).
+Status: decided (owner's answers of 2026-10-12 are recorded below); M0 and M1 are done (2026-10-12); M2 is
+next (hosted/proxy/group engine with raw, maven2, npm, docker, pypi).
 See "Where the Rust server stands" at the end for the code that exists.
 
 ## Why
@@ -225,4 +225,20 @@ M0 (2026-10-12): the skeleton runs, builds into an image and is checked by CI; n
   an in-process s3s server (`astrum_testkit::s3`). Left: SSRF check of S3 endpoints, `test-connection`,
   soft delete and compaction, a metrics reconcile task, documentation of a lifecycle rule for aborted
   multipart uploads.
+- Security REST (`routes/security/{users,roles,privileges,selectors,settings,validate}.rs`) and content
+  selectors (`astrum-security/src/selector.rs`: CSEL with `format`/`path`, `== != =~ =^`, `&&`/`||` and
+  `and`/`or`, parentheses; `=~` matches the whole string; regex features PostgreSQL would read differently
+  are refused at save; `to_sql` gives a fragment with bind parameters, checked against the evaluator on
+  PostgreSQL). Content selector privileges carry `format` and grant
+  `astrum:repository-content-selector:<selector>:<format>:<repository>:<actions>`. SSRF settings live in
+  setting `security.ssrf` (on by default; audit domain `security.ssrf`), enforced from M2 on. Deleting a user
+  removes its role mapping, ends its sessions and deletes its access tokens. Deliberate differences from
+  the reference server: changing any password (also one's own) needs `astrum:userschangepw:create` (the
+  reference only lets full administrators do it); a caller can only add roles and privileges they hold to
+  roles and users, and only create privileges whose permission they hold (no self-promotion); ids may not
+  contain `:` or control characters; 400 instead of the reference's 500 for duplicates and self-deletion;
+  SSRF settings need `astrum:*` like the reference but entries are validated. Not done: `PUT
+  /security/jwt`, LDAP/OIDC lookups (M4b).
 - Dev builds optimise `argon2` and `blake2` (`[profile.dev.package.*]`) so API tests stay fast.
+- Agents building Rust share `/home/user/wt/m1-target` with `CARGO_INCREMENTAL=0` and only `--workspace`
+  commands; the disk allowance is about 39 GB in total.

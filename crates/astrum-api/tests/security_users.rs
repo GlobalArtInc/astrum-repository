@@ -733,3 +733,68 @@ async fn user_sources_name_their_realms() {
         ])
     );
 }
+
+#[tokio::test]
+async fn deleting_a_user_ends_their_sessions_and_tokens() {
+    let fixture = Fixture::new().await;
+    fixture.add_user("leaver", "secret-123", &[]).await;
+    let token = fixture
+        .call(
+            Method::POST,
+            "/service/rest/internal/access-tokens",
+            Auth::Basic("leaver", "secret-123"),
+            Some(json!({"name": "ci", "expiresInDays": 5})),
+        )
+        .await
+        .json()["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let signed_in = fixture
+        .call(
+            Method::POST,
+            "/service/rest/internal/session",
+            Auth::None,
+            Some(json!({"username": "leaver", "password": "secret-123"})),
+        )
+        .await;
+    assert_eq!(signed_in.status, StatusCode::OK);
+
+    let deleted = fixture
+        .call(
+            Method::DELETE,
+            "/service/rest/v1/security/users/leaver",
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(deleted.status, StatusCode::NO_CONTENT);
+
+    let tokens = fixture
+        .call(
+            Method::GET,
+            "/service/rest/internal/access-tokens?userId=*",
+            Auth::Admin,
+            None,
+        )
+        .await
+        .json();
+    assert_eq!(tokens, json!([]));
+    let sessions = astrum_db::entity::user_session::Entity::find()
+        .all(fixture.state.db().conn())
+        .await
+        .unwrap();
+    assert!(sessions.iter().all(|session| session.user_id != "leaver"));
+    assert_eq!(
+        fixture
+            .call(
+                Method::GET,
+                "/service/rest/v1/security/users",
+                Auth::Basic("leaver", &token),
+                None
+            )
+            .await
+            .status,
+        StatusCode::UNAUTHORIZED
+    );
+}
