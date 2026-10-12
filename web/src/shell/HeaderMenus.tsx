@@ -109,10 +109,14 @@ export function HelpMenu({ size = '3' }: { size?: Size }) {
           </a>
         </DropdownMenu.Item>
         <DropdownMenu.Separator />
-        <DropdownMenu.Label>{t('shell.help.version', { version: state.version })}</DropdownMenu.Label>
+        <DropdownMenu.Label>{t('shell.help.version', { version: versionOf(state) })}</DropdownMenu.Label>
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   );
+}
+
+export function versionOf(state: { version: string; revision: string | null }): string {
+  return state.revision ? `${state.version} (${state.revision})` : state.version;
 }
 
 export function initials(name: string, userId: string): string {

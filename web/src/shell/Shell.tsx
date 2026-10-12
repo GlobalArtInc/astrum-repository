@@ -5,6 +5,7 @@ import { useSession } from '../auth/state';
 import { useT } from '../i18n';
 import { COMPACT, readStored, useMediaQuery, writeStored } from '../ui/hooks';
 import { Header } from './Header';
+import { versionOf } from './HeaderMenus';
 import { MobileDrawer } from './MobileDrawer';
 import styles from './Shell.module.css';
 import { SideMenu } from './SideMenu';
@@ -49,12 +50,12 @@ export function Shell() {
         onOpenSearch={() => setSearchOpen(true)}
       />
       <div className={styles.body}>
-        {!compact && <SideMenu collapsed={!sidebarOpen} version={state.version} />}
+        {!compact && <SideMenu collapsed={!sidebarOpen} version={versionOf(state)} />}
         <main id="main" tabIndex={-1} className={styles.main}>
           <Outlet />
         </main>
       </div>
-      {compact && <MobileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} version={state.version} />}
+      {compact && <MobileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} version={versionOf(state)} />}
       <SearchPanel open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   );

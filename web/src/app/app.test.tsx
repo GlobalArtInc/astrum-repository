@@ -93,6 +93,15 @@ describe('the shell', () => {
     expect(screen.getByText('Astrum Repository 3.0.0-test')).toBeInTheDocument();
   });
 
+  it('names the version and revision in the help menu', async () => {
+    app('/', { ...ADMIN_STATE, revision: 'abc1234' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Help' }));
+    expect(
+      await screen.findByText('Astrum Repository 3.0.0-test (abc1234)', { selector: '[role="menu"] *' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Documentation' })).toHaveAttribute('target', '_blank');
+  });
+
   it('hides what anonymous callers cannot use and offers to sign in', async () => {
     app('/', { ...ANONYMOUS_STATE, permissions: [] });
     expect(await within(menu()).findByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
