@@ -115,6 +115,49 @@ impl Action {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FieldKind {
+    Text,
+    Permission,
+    Format,
+    Repository,
+    ContentSelector,
+    Actions,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct Field {
+    pub id: &'static str,
+    pub kind: FieldKind,
+    pub required: bool,
+}
+
+const fn field(id: &'static str, kind: FieldKind) -> Field {
+    Field {
+        id,
+        kind,
+        required: true,
+    }
+}
+
+const APPLICATION_FIELDS: [Field; 2] = [
+    field("domain", FieldKind::Text),
+    field("actions", FieldKind::Actions),
+];
+const WILDCARD_FIELDS: [Field; 1] = [field("pattern", FieldKind::Permission)];
+const REPOSITORY_FIELDS: [Field; 3] = [
+    field("format", FieldKind::Format),
+    field("repository", FieldKind::Repository),
+    field("actions", FieldKind::Actions),
+];
+const SELECTOR_FIELDS: [Field; 4] = [
+    field("contentSelector", FieldKind::ContentSelector),
+    field("format", FieldKind::Format),
+    field("repository", FieldKind::Repository),
+    field("actions", FieldKind::Actions),
+];
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     tag = "type",
@@ -177,6 +220,24 @@ pub struct StoredPrivilegeError {
 }
 
 impl PrivilegeKind {
+    pub const TYPES: [&'static str; 5] = [
+        "application",
+        "wildcard",
+        "repository-view",
+        "repository-admin",
+        "repository-content-selector",
+    ];
+
+    pub fn fields(type_id: &str) -> &'static [Field] {
+        match type_id {
+            "application" => &APPLICATION_FIELDS,
+            "wildcard" => &WILDCARD_FIELDS,
+            "repository-view" | "repository-admin" => &REPOSITORY_FIELDS,
+            "repository-content-selector" => &SELECTOR_FIELDS,
+            _ => &[],
+        }
+    }
+
     pub fn type_id(&self) -> &'static str {
         match self {
             PrivilegeKind::Application { .. } => "application",
@@ -419,6 +480,21 @@ mod tests {
         assert!(view.contains(&Action::Browse));
         assert!(!view.contains(&Action::Start));
         assert!(PrivilegeKind::allowed_actions("wildcard").is_empty());
+    }
+
+    #[test]
+    fn every_type_describes_its_fields() {
+        for type_id in PrivilegeKind::TYPES {
+            let fields = PrivilegeKind::fields(type_id);
+            assert!(!fields.is_empty(), "{type_id}");
+            let takes_actions = fields.iter().any(|field| field.kind == FieldKind::Actions);
+            assert_eq!(
+                takes_actions,
+                !PrivilegeKind::allowed_actions(type_id).is_empty(),
+                "{type_id}"
+            );
+        }
+        assert!(PrivilegeKind::fields("script").is_empty());
     }
 
     #[test]

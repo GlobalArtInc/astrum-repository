@@ -24,7 +24,7 @@ use sha2::{Digest, Sha256};
 pub use bootstrap::{Bootstrapped, bootstrap};
 pub use model::{AnonymousSettings, ContentSelector, Role, SecurityModel, User, UserStatus};
 pub use permission::Permission;
-pub use privilege::{Action, Privilege, PrivilegeKind, SelectorGrant};
+pub use privilege::{Action, Field, FieldKind, Privilege, PrivilegeKind, SelectorGrant};
 pub use secrets::SecretBox;
 pub use selector::{Selector, SelectorError};
 pub use sessions::{ActiveSession, NewSession};

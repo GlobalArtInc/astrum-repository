@@ -1,7 +1,9 @@
+use std::collections::BTreeMap;
+
 use astrum_db::audit::Event;
 use astrum_db::entity::{content_selector, repository, security_privilege};
 use astrum_security::permission::Permission;
-use astrum_security::{Action, Privilege, PrivilegeKind};
+use astrum_security::{Action, FieldKind, Privilege, PrivilegeKind};
 use axum::Router;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -21,13 +23,6 @@ use crate::{ApiError, AppState, Caller, Json, Validation};
 const DOMAIN: &str = "security.privilege";
 const SCRIPT: &str = "script";
 const ANY: &str = "*";
-const TYPES: [&str; 5] = [
-    "application",
-    "wildcard",
-    "repository-view",
-    "repository-admin",
-    "repository-content-selector",
-];
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -114,7 +109,7 @@ impl From<&Privilege> for PrivilegeXo {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PrivilegeRequest {
     name: Option<String>,
@@ -149,14 +144,6 @@ fn built_in(name: &str) -> ApiError {
     ))
 }
 
-fn text(validation: &mut Validation, id: &str, value: Option<String>) -> String {
-    let value = value.unwrap_or_default();
-    if value.trim().is_empty() {
-        validation.add(id, "must not be empty");
-    }
-    value.trim().to_owned()
-}
-
 fn actions(validation: &mut Validation, values: Option<Vec<String>>) -> Vec<Action> {
     let values = values.unwrap_or_default();
     if values.is_empty() {
@@ -179,61 +166,75 @@ fn actions(validation: &mut Validation, values: Option<Vec<String>>) -> Vec<Acti
     actions
 }
 
+impl PrivilegeRequest {
+    fn value(&self, id: &str) -> Option<&str> {
+        match id {
+            "domain" => self.domain.as_deref(),
+            "pattern" => self.pattern.as_deref(),
+            "format" => self.format.as_deref(),
+            "repository" => self.repository.as_deref(),
+            "contentSelector" => self.content_selector.as_deref(),
+            _ => None,
+        }
+    }
+}
+
 fn check_body(kind: &str, body: PrivilegeRequest) -> Result<Checked, ApiError> {
+    let fields = PrivilegeKind::fields(kind);
+    if fields.is_empty() {
+        return Err(ApiError::not_found(format!("no privilege type {kind}")));
+    }
     let mut validation = Validation::new();
-    let name = body.name.unwrap_or_default();
+    let name = body.name.clone().unwrap_or_default();
     if name.is_empty() {
         validation.add("name", "must not be empty");
     } else if !validate::name(&name) {
         validation.add("name", validate::NAME_RULE);
     }
+    let mut values: BTreeMap<&str, String> = BTreeMap::new();
+    let mut granted = Vec::new();
+    for field in fields {
+        if field.kind == FieldKind::Actions {
+            granted = actions(&mut validation, body.actions.clone());
+            continue;
+        }
+        let value = body.value(field.id).unwrap_or_default().trim().to_owned();
+        if field.required && value.is_empty() {
+            validation.add(field.id, "must not be empty");
+        }
+        if field.kind == FieldKind::Permission
+            && !value.is_empty()
+            && let Err(error) = Permission::parse(&value)
+        {
+            validation.add(field.id, error.to_string());
+        }
+        values.insert(field.id, value);
+    }
+    let mut value = |id: &str| values.remove(id).unwrap_or_default();
     let kind = match kind {
-        "application" => {
-            let domain = text(&mut validation, "domain", body.domain);
-            PrivilegeKind::Application {
-                domain,
-                actions: actions(&mut validation, body.actions),
-            }
-        }
-        "wildcard" => {
-            let pattern = text(&mut validation, "pattern", body.pattern);
-            if !pattern.is_empty()
-                && let Err(error) = Permission::parse(&pattern)
-            {
-                validation.add("pattern", error.to_string());
-            }
-            PrivilegeKind::Wildcard { pattern }
-        }
-        "repository-view" | "repository-admin" | "repository-content-selector" => {
-            let content_selector = match kind {
-                "repository-content-selector" => {
-                    text(&mut validation, "contentSelector", body.content_selector)
-                }
-                _ => String::new(),
-            };
-            let format = text(&mut validation, "format", body.format);
-            let repository = text(&mut validation, "repository", body.repository);
-            let actions = actions(&mut validation, body.actions);
-            match kind {
-                "repository-view" => PrivilegeKind::RepositoryView {
-                    format,
-                    repository,
-                    actions,
-                },
-                "repository-admin" => PrivilegeKind::RepositoryAdmin {
-                    format,
-                    repository,
-                    actions,
-                },
-                _ => PrivilegeKind::RepositoryContentSelector {
-                    content_selector,
-                    format,
-                    repository,
-                    actions,
-                },
-            }
-        }
-        _ => return Err(ApiError::not_found(format!("no privilege type {kind}"))),
+        "application" => PrivilegeKind::Application {
+            domain: value("domain"),
+            actions: granted,
+        },
+        "wildcard" => PrivilegeKind::Wildcard {
+            pattern: value("pattern"),
+        },
+        "repository-view" => PrivilegeKind::RepositoryView {
+            format: value("format"),
+            repository: value("repository"),
+            actions: granted,
+        },
+        "repository-admin" => PrivilegeKind::RepositoryAdmin {
+            format: value("format"),
+            repository: value("repository"),
+            actions: granted,
+        },
+        _ => PrivilegeKind::RepositoryContentSelector {
+            content_selector: value("contentSelector"),
+            format: value("format"),
+            repository: value("repository"),
+            actions: granted,
+        },
     };
     validation.finish()?;
     Ok(Checked {
@@ -357,7 +358,7 @@ async fn create(
     if kind == SCRIPT {
         return Err(script_refused());
     }
-    if !TYPES.contains(&kind.as_str()) {
+    if !PrivilegeKind::TYPES.contains(&kind.as_str()) {
         return Err(ApiError::not_found(format!("no privilege type {kind}")));
     }
     let mut privilege = check_body(&kind, body)?;
@@ -419,7 +420,7 @@ async fn update(
     if kind == SCRIPT {
         return Err(script_refused());
     }
-    if !TYPES.contains(&kind.as_str()) {
+    if !PrivilegeKind::TYPES.contains(&kind.as_str()) {
         return Err(ApiError::not_found(format!("no privilege type {kind}")));
     }
     let mut privilege = check_body(&kind, body)?;
@@ -507,4 +508,43 @@ pub(super) async fn used_by(
         .filter(|row| row.properties["contentSelector"].as_str() == Some(selector))
         .map(|row| row.id)
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_described_field_reaches_the_request() {
+        let request = PrivilegeRequest {
+            domain: Some("d".to_owned()),
+            pattern: Some("p".to_owned()),
+            format: Some("f".to_owned()),
+            repository: Some("r".to_owned()),
+            content_selector: Some("c".to_owned()),
+            ..Default::default()
+        };
+        for type_id in PrivilegeKind::TYPES {
+            for field in PrivilegeKind::fields(type_id) {
+                if field.kind != FieldKind::Actions {
+                    assert!(request.value(field.id).is_some(), "{type_id}: {}", field.id);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn required_fields_come_from_the_description() {
+        let Err(ApiError::Invalid(errors)) = check_body(
+            "repository-content-selector",
+            PrivilegeRequest {
+                name: Some("p".to_owned()),
+                ..Default::default()
+            },
+        ) else {
+            panic!("an empty privilege was accepted");
+        };
+        let ids: Vec<&str> = errors.iter().map(|error| error.id.as_str()).collect();
+        assert_eq!(ids, ["contentSelector", "format", "repository", "actions"]);
+    }
 }
