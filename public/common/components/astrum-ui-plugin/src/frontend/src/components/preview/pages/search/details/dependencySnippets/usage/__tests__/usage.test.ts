@@ -1,3 +1,4 @@
+import { getDependencySnippets } from '../../registry';
 import { getUsageSnippets, USAGE_GENERATORS } from '..';
 import type { UsageContext } from '../types';
 
@@ -27,7 +28,7 @@ describe('usage snippets', () => {
   it('has a repository-aware generator for every format the server supports', () => {
     expect(Object.keys(USAGE_GENERATORS).sort()).toEqual([
       'alpine', 'apt', 'cargo', 'cocoapods', 'composer', 'conan', 'conda', 'docker', 'gitlfs', 'go', 'helm',
-      'huggingface', 'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw', 'swift', 'yum',
+      'huggingface', 'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw', 'rubygems', 'swift', 'yum',
     ]);
   });
 
@@ -364,6 +365,36 @@ describe('usage snippets', () => {
     });
   });
 
+  describe('rubygems', () => {
+    const gem = context({ format: 'rubygems', repositoryName: 'gems-hosted', name: 'herald', version: '1.2.0' });
+
+    it('installs from the repository and pushes to a hosted one', () => {
+      const s = texts(gem);
+      expect(s.install).toBe(
+        'gem install herald -v 1.2.0 --clear-sources --source https://astrum.example.com/repository/gems-hosted/',
+      );
+      expect(s.gemfile).toBe('source "https://astrum.example.com/repository/gems-hosted/"\n\ngem "herald", "1.2.0"');
+      expect(s.sources).toBe('gem sources --add https://astrum.example.com/repository/gems-hosted/');
+      expect(s.push).toBe(
+        'export RUBYGEMS_HOST=https://astrum.example.com/repository/gems-hosted\ngem signin\ngem push herald-1.2.0.gem',
+      );
+      expect(ids(gem)).toEqual(['install', 'gemfile', 'sources', 'push']);
+    });
+
+    it('mirrors rubygems.org through a proxy', () => {
+      const proxy = { ...gem, repositoryName: 'gems-proxy', repositoryUrl: `${BASE}/gems-proxy`, repositoryType: 'proxy' };
+      const s = texts(proxy);
+      expect(s.mirror).toBe('bundle config set --global mirror.https://rubygems.org https://astrum.example.com/repository/gems-proxy/');
+      expect(ids(proxy)).toEqual(['install', 'gemfile', 'mirror']);
+    });
+
+    it('offers the source alone without a component', () => {
+      const group = context({ format: 'rubygems', repositoryName: 'gems', repositoryType: 'group' });
+      expect(texts(group).gemfile).toBe('source "https://astrum.example.com/repository/gems/"');
+      expect(ids(group)).toEqual(['gemfile', 'sources']);
+    });
+  });
+
   describe('conan', () => {
     it('adds a remote and installs from it', () => {
       const s = texts(context({ format: 'conan', repositoryName: 'conan-hosted', name: 'zlib', version: '1.3.1' }));
@@ -576,9 +607,12 @@ describe('usage snippets', () => {
 
   describe('formats without a repository-aware generator', () => {
     it('fall back to the component dependency snippets', () => {
-      const snippets = getUsageSnippets(context({ format: 'rubygems', repositoryName: 'gems', name: 'rails', version: '7.1.0' }));
-      expect(snippets.map((snippet) => snippet.label)).toEqual(['Install', 'Gemfile']);
-      expect(snippets[0].snippetText).toBe('gem install rails -v 7.1.0');
+      const component = { format: 'oci', group: '', name: 'astrum.example.com:8443/team/app', version: '1.0', repositoryName: 'oci' };
+      const snippets = getUsageSnippets(context({ ...component, repositoryName: 'oci' }));
+      const fallback = getDependencySnippets('oci', component);
+      expect(fallback.length).toBeGreaterThan(0);
+      expect(snippets.map((snippet) => snippet.label)).toEqual(fallback.map((snippet) => snippet.displayName));
+      expect(snippets[0].snippetText).toBe(fallback[0].snippetText);
     });
 
     it('get nothing when there is no generator at all', () => {
