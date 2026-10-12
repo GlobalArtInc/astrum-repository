@@ -1,7 +1,7 @@
 # Astrum Repository
 
 Astrum Repository is GlobalArt's artifact repository manager. It serves Alpine, APT, Cargo, CocoaPods,
-Composer, Conan, Conda, Docker, Go, Helm, Maven, npm, NuGet, P2, PyPI, R and raw repositories on an
+Composer, Conan, Conda, Docker, Git LFS, Go, Helm, Maven, npm, NuGet, P2, PyPI, R and raw repositories on an
 embedded H2 database.
 
 <picture>
