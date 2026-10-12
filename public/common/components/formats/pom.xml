@@ -37,6 +37,7 @@
     <module>astrum-repository-yum</module>
     <module>astrum-repository-swift</module>
     <module>astrum-repository-huggingface</module>
+    <module>astrum-repository-terraform</module>
   </modules>
 
 </project>
