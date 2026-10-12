@@ -66,10 +66,15 @@ describe('TerraformFacet', () => {
 
   it('shows the signing key and an empty passphrase on edit', () => {
     renderInTheme(
-      <TerraformFacet formData={{ ...terraformData, terraformSigning: { keypair: 'KEY' } }} onNestedChange={jest.fn()} isEdit />
+      <TerraformFacet
+        formData={{ ...terraformData, terraformSigning: { keypair: 'KEY' } }}
+        onNestedChange={jest.fn()}
+        isEdit
+        repoType="hosted"
+      />
     );
 
-    expect(screen.getByText('Terraform Settings')).toBeInTheDocument();
+    expect(screen.getByText('Provider Signing')).toBeInTheDocument();
     expect(screen.getByDisplayValue('KEY')).toBeInTheDocument();
     const passphrase = document.querySelector('input[name="terraform-passphrase"]') as HTMLInputElement;
     expect(passphrase).toHaveAttribute('type', 'password');
@@ -79,11 +84,39 @@ describe('TerraformFacet', () => {
 
   it('passes typed values on', () => {
     const onNestedChange = jest.fn();
-    renderInTheme(<TerraformFacet formData={terraformData} onNestedChange={onNestedChange} isEdit={false} />);
+    renderInTheme(<TerraformFacet formData={terraformData} onNestedChange={onNestedChange} isEdit={false} repoType="hosted" />);
 
     fireEvent.change(document.querySelector('input[name="terraform-passphrase"]') as HTMLInputElement, { target: { value: 'pw' } });
+    fireEvent.change(document.querySelector('input[name="terraform-registryHost"]') as HTMLInputElement,
+      { target: { value: 'terraform.example.com' } });
+    fireEvent.click(screen.getByRole('checkbox', { name: /Restrict repository content to authenticated users/ }));
 
     expect(onNestedChange).toHaveBeenCalledWith('terraformSigning', { passphrase: 'pw' });
+    expect(onNestedChange).toHaveBeenCalledWith('terraform', { registryHost: 'terraform.example.com' });
+    expect(onNestedChange).toHaveBeenCalledWith('terraform', { requireAuthentication: true });
+  });
+
+  it('clears an emptied host and shows saved settings', () => {
+    const onNestedChange = jest.fn();
+    renderInTheme(
+      <TerraformFacet
+        formData={{ ...terraformData, type: 'proxy', recipe: 'terraform-proxy',
+          terraform: { requireAuthentication: true, registryHost: 'tf.example.com', upstreamHost: 'registry.terraform.io' } }}
+        onNestedChange={onNestedChange}
+        isEdit
+        repoType="proxy"
+      />
+    );
+
+    expect(screen.getByDisplayValue('tf.example.com')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('registry.terraform.io')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Restrict repository content/ })).toBeChecked();
+    expect(screen.queryByText('Provider Signing')).not.toBeInTheDocument();
+
+    fireEvent.change(document.querySelector('input[name="terraform-upstreamHost"]') as HTMLInputElement,
+      { target: { value: '' } });
+
+    expect(onNestedChange).toHaveBeenCalledWith('terraform', { upstreamHost: null });
   });
 
   it('shows a missing key error', () => {
@@ -93,6 +126,7 @@ describe('TerraformFacet', () => {
         onNestedChange={jest.fn()}
         errors={{ 'terraformSigning.keypair': 'A signing key is required when a passphrase is set' }}
         isEdit={false}
+        repoType="hosted"
       />
     );
 

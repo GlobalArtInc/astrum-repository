@@ -1452,14 +1452,22 @@ describe('RepositoryForm', () => {
       expect(screen.queryByText('Protocol version')).not.toBeInTheDocument();
     });
 
-    it('shows Terraform signing for terraform hosted repositories only', () => {
-      renderRecipe('terraform', 'hosted');
+    it.each(['hosted', 'proxy', 'group'] as const)('shows the Terraform settings for terraform %s', (type) => {
+      renderRecipe('terraform', type);
       expect(screen.getByText('Terraform Settings')).toBeInTheDocument();
+      expect(screen.getByText('Registry Host')).toBeInTheDocument();
     });
 
-    it('shows no Terraform signing for terraform proxies', () => {
+    it('shows Terraform provider signing for terraform hosted repositories only', () => {
+      renderRecipe('terraform', 'hosted');
+      expect(screen.getByText('Provider Signing')).toBeInTheDocument();
+      expect(screen.queryByText('Upstream Registry Host')).not.toBeInTheDocument();
+    });
+
+    it('shows the upstream registry host and no signing for terraform proxies', () => {
       renderRecipe('terraform', 'proxy');
-      expect(screen.queryByText('Terraform Settings')).not.toBeInTheDocument();
+      expect(screen.getByText('Upstream Registry Host')).toBeInTheDocument();
+      expect(screen.queryByText('Provider Signing')).not.toBeInTheDocument();
     });
 
     it.each(['hosted', 'proxy', 'group'] as const)('shows the OCI connectors for oci %s', (type) => {

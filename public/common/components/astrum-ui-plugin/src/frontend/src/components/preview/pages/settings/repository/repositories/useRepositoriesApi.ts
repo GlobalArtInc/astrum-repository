@@ -708,6 +708,14 @@ export function buildRepositoryConfig(data: RepositoryFormData): Record<string, 
     };
   }
 
+  if (data.format === 'terraform') {
+    config.terraform = {
+      requireAuthentication: data.terraform?.requireAuthentication ?? false,
+      registryHost: data.terraform?.registryHost?.trim() || null,
+      ...(data.type === 'proxy' ? { upstreamHost: data.terraform?.upstreamHost?.trim() || null } : {}),
+    };
+  }
+
   if (data.format === 'terraform' && data.type === 'hosted') {
     // The passphrase is write-only: it is only sent when the admin typed one.
     const keypair = data.terraformSigning?.keypair?.trim();

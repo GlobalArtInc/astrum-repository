@@ -591,9 +591,25 @@ export default localize('react-ui', {
   // TerraformFacet
   // ---------------------------------------------------------------------------
   TERRAFORM: {
-    SIGNING: {
+    SETTINGS: {
       title: 'Terraform Settings',
-      description: 'PGP key that signs the providers of this repository',
+      description: 'How Terraform addresses this repository and who may read it',
+      REGISTRY_HOST: {
+        label: 'Registry Host',
+        helpText: 'Host name, with an optional port, that Terraform configurations use for this repository, as in <host>/<namespace>/<name>/<system>. The server answers service discovery at https://<host>/.well-known/terraform.json with this repository. Leave empty to reach the repository only through its own URL.',
+      },
+      UPSTREAM_HOST: {
+        label: 'Upstream Registry Host',
+        helpText: 'Host name the providers of the remote registry carry in their addresses, which the provider network mirror protocol names. Leave empty to use the host of the remote URL; set it, for example to registry.terraform.io, when the remote is another mirror of that registry.',
+      },
+      REQUIRE_AUTHENTICATION: {
+        label: 'Restrict repository content to authenticated users',
+        description: 'Leaving this box unchecked only allows anonymous access to this repository if anonymous access is also enabled in your instance',
+      },
+    },
+    SIGNING: {
+      title: 'Provider Signing',
+      description: 'PGP key that signs the checksums of providers uploaded without a signature of their own',
       KEYPAIR: {
         label: 'Signing Key',
         helpText: 'PGP signing key pair (armored private key e.g. gpg --export-secret-key --armor)',

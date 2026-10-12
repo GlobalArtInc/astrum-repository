@@ -262,6 +262,17 @@ export interface TerraformSigningConfig {
 }
 
 /**
+ * Terraform configuration (hosted, proxy and group)
+ */
+export interface TerraformConfig {
+  requireAuthentication?: boolean;
+  /** Host name Terraform configurations use for this repository; answers service discovery at that host. */
+  registryHost?: string | null;
+  /** Proxy only: host name of the upstream registry in provider addresses, for the network mirror protocol. */
+  upstreamHost?: string | null;
+}
+
+/**
  * Cargo configuration (hosted, proxy and group)
  */
 export interface CargoConfig {
@@ -336,6 +347,7 @@ export interface RepositoryAttributes {
   raw?: RawConfig;
   pypi?: PypiConfig;
   terraformSigning?: TerraformSigningConfig | null;
+  terraform?: TerraformConfig;
   cargo?: CargoConfig;
   conanProxy?: ConanProxyConfig;
   oci?: OciConfig;
@@ -388,6 +400,7 @@ export interface RepositoryFormData {
   raw?: RawConfig;
   pypi?: PypiConfig;
   terraformSigning?: TerraformSigningConfig | null;
+  terraform?: TerraformConfig;
   cargo?: CargoConfig;
   conanProxy?: ConanProxyConfig;
   oci?: OciConfig;
@@ -576,6 +589,10 @@ export interface RepositoryFormErrors {
   };
   terraformSigning?: {
     keypair?: string;
+  };
+  terraform?: {
+    registryHost?: string;
+    upstreamHost?: string;
   };
   oci?: {
     httpPort?: string;

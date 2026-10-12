@@ -320,12 +320,13 @@ export function RepositoryForm({
           />
         )}
 
-        {recipe.format === 'terraform' && recipe.type === 'hosted' && (
+        {recipe.format === 'terraform' && (
           <TerraformFacet
             formData={formData}
             onNestedChange={handleNestedChange}
             errors={errors}
             isEdit={!isCreate}
+            repoType={recipe.type}
           />
         )}
 

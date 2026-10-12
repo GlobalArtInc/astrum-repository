@@ -111,6 +111,18 @@ describe('format attributes of the repository form', () => {
       });
       expect(data.terraformSigning).toEqual({ keypair: 'KEY' });
     });
+
+    it('loads the Terraform settings', async () => {
+      const data = await loadedData({
+        format: 'terraform',
+        repositoryName: 'tf-group',
+        preloadedRepository: {
+          name: 'tf-group', type: 'group', format: 'terraform',
+          terraform: { requireAuthentication: true, registryHost: 'terraform.example.com' },
+        } as any,
+      });
+      expect(data.terraform).toEqual({ requireAuthentication: true, registryHost: 'terraform.example.com' });
+    });
   });
 
   describe('validation', () => {
@@ -121,6 +133,18 @@ describe('format attributes of the repository form', () => {
 
     it('accepts a Terraform hosted repository without signing', () => {
       expect(validateRepository(formData('terraform', 'hosted'))).toEqual({});
+    });
+
+    it('checks the Terraform host names', () => {
+      const message = 'Enter a host name, optionally followed by :port, without https:// or a path';
+      const errors = validateRepository(formData('terraform', 'proxy', {
+        terraform: { registryHost: 'https://terraform.example.com/', upstreamHost: 'registry terraform' },
+      }));
+      expect(errors['terraform.registryHost']).toBe(message);
+      expect(errors['terraform.upstreamHost']).toBe(message);
+      expect(validateRepository(formData('terraform', 'group', {
+        terraform: { registryHost: 'terraform.example.com:8443' },
+      }))).toEqual({});
     });
 
     it('checks the OCI connector ports', () => {
@@ -161,6 +185,15 @@ describe('format attributes of the repository form', () => {
         .toEqual({ conanVersion: 'V1' });
       expect(buildRepositoryConfig(formData('conan', 'proxy')).conanProxy).toEqual({ conanVersion: 'V2' });
       expect(buildRepositoryConfig(formData('conan', 'hosted')).conanProxy).toBeUndefined();
+    });
+
+    it('sends the Terraform settings, with the upstream host for proxies only', () => {
+      expect(buildRepositoryConfig(formData('terraform', 'proxy', {
+        terraform: { requireAuthentication: true, registryHost: ' tf.example.com ', upstreamHost: 'registry.terraform.io' },
+      })).terraform).toEqual({ requireAuthentication: true, registryHost: 'tf.example.com', upstreamHost: 'registry.terraform.io' });
+      expect(buildRepositoryConfig(formData('terraform', 'group', { terraform: { upstreamHost: 'x.example.com' } })).terraform)
+        .toEqual({ requireAuthentication: false, registryHost: null });
+      expect(buildRepositoryConfig(formData('raw', 'hosted')).terraform).toBeUndefined();
     });
 
     it('sends the Terraform passphrase only when one was typed', () => {

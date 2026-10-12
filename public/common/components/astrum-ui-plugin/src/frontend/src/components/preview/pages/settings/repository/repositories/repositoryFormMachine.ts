@@ -28,6 +28,9 @@ import UIStrings from '../../../../../../constants/pages/admin/repository/Reposi
 // Constants
 // =============================================================================
 
+/** A host name with an optional port, as Terraform writes it in module and provider addresses. */
+const TERRAFORM_HOST = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::[0-9]{1,5})?$/;
+
 /** Repository type constants for machine sub-states */
 export const REPOSITORY_TYPES = {
   HOSTED: 'hosted' as const,
@@ -241,6 +244,16 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
     }
   }
 
+  // Terraform host names: a host name with an optional port, as Terraform writes it in addresses.
+  if (data.format === 'terraform') {
+    for (const field of ['registryHost', 'upstreamHost'] as const) {
+      const host = data.terraform?.[field]?.trim();
+      if (host && !TERRAFORM_HOST.test(host)) {
+        errors[`terraform.${field}`] = RepositoriesPageStrings.FORM_MACHINE.TERRAFORM_HOST_INVALID;
+      }
+    }
+  }
+
   // Terraform signing: a passphrase without a key cannot sign anything.
   if (data.format === 'terraform' && data.type === 'hosted') {
     if (data.terraformSigning?.passphrase?.trim() && !data.terraformSigning?.keypair?.trim()) {
@@ -368,6 +381,7 @@ function buildFormDataFromRepository(repo: Repository): RepositoryFormData {
     // is now expressed via `firewall.mode = "PCCS"` on the top-level config.)
     pypi: getConfig('pypi'),
     terraformSigning: withoutPassphrase(getConfig<RepositoryFormData['terraformSigning']>('terraformSigning')),
+    terraform: getConfig('terraform'),
     cargo: getConfig('cargo'),
     conanProxy: getConfig('conanProxy'),
     oci: getConfig('oci'),
