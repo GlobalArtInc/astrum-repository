@@ -1,7 +1,8 @@
 # Rewriting Astrum Repository in Rust
 
-Status: decided (owner's answers of 2026-10-12 are recorded below); M0, M1 and M2 are done (2026-10-12); M3
-(UI) is next.
+Status: decided (owner's answers of 2026-10-12 are recorded below); M0, M1, M2 and M3 are done (2026-10-12);
+M4 is in progress (wave 1: helm, nuget, tasks and cleanup, LDAP/OIDC/default role). The Rust server runs at
+https://next.astrum.globalart.hu.
 See "Where the Rust server stands" at the end for the code that exists.
 
 ## Why
@@ -398,3 +399,20 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   (`POST /v1/blobstores/group`, `GET|PUT /v1/blobstores/group/{name}`: members must be existing plain
   stores in no other group and not used by repositories, members holding blobs cannot be removed, and
   repositories cannot be created on a group member).
+- M3 pages (2026-10-12, merged from four parallel branches): dashboard (`/`), browse (`/browse`, tree and details
+  at `/browse/<repo>/<path>`, folder paths end with `/`; asset details through
+  `GET /internal/ui/browse/{repo}/asset?path=` judged by the browsed repository), component page
+  (`/search/component/<format:group:name>?version=&tab=`), usage snippets for raw, maven2, npm, pypi and docker
+  (`web/src/areas/browse/usage`), search (`/search`, `/search/custom` with format keys and a files mode, the
+  header panel), upload (`/upload[/<repo>]`, forms from upload specs; npm now has an upload spec), audit
+  (`/audit`, facets from `GET /internal/ui/audit/facets`), repository settings (list, create from recipes,
+  edit with settings/membership/audit tabs; saving writes back only changed fields onto the stored document,
+  checked against 118 reference GET documents), blob stores (file, S3, group), content selectors with live
+  preview, privileges (forms from the privilege types), roles, users, anonymous access, realms, SSRF
+  protection, account, access tokens, onboarding for administrators while `admin.password` exists. `/v1/search`
+  sorts by name, version, group and repository and accepts `*` in `q`. `OrderedListField` and area
+  `watchers` were added to the foundation. Tests at the end of M3: 487 Rust, 770 web unit, 52 e2e (every spec
+  file gets its own server). The web dictionaries (1387 keys) are in Ownlate under the `web.` prefix.
+- Left after M3: idle-session countdown, response compression, docker port suggestion, repository profile
+  tabs "structure", "security" and "system", tree filter and type-ahead, downloads over time, connection
+  examples for formats added later, session dialog on a 401 during upload.

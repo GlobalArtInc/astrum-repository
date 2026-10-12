@@ -2,7 +2,7 @@
 
 Astrum Repository is GlobalArt's artifact repository manager, version 2.0.0, running in production at
 https://astrum.globalart.hu. Today it is a modified version of Nexus Repository OSS (EPL-1.0) with a
-React UI called Astrum One. A from-scratch Rust rewrite is under way (M0-M2 done): read
+React UI called Astrum One. A from-scratch Rust rewrite is under way (M0-M3 done, M4 in progress): read
 `.claude/rewrite/README.md` before any work on it, and follow its clean-room rules. This repository is public: never commit
 secrets.
 
@@ -15,10 +15,10 @@ secrets.
   referrers API, sha512, tag parameters, chunked uploads with 416, cross-repository mount, artifact kinds in
   search and Astrum One; deleting a manifest by digest deletes its referrers; cleanup deletes tags only).
   pub and Ansible Galaxy were stopped; they will be written in Rust.
-- Rust rewrite: M0, M1 and M2 done (security, sessions, access tokens, audit, blob stores, repository
-  configuration, the content engine with raw, maven2, npm, pypi and docker/OCI, components/assets/search/
-  upload/browse API, 417 tests); M3 (UI) is next. Not deployed. Agent brief templates:
-  `/home/user/wt/M1-BRIEF.md`, `/home/user/wt/M2-BRIEF.md`; shared Rust build dir `/home/user/wt/m1-target`
+- Rust rewrite: M0-M3 done (security, sessions, access tokens, audit, blob stores, repository
+  configuration, the content engine with raw, maven2, npm, pypi and docker/OCI, the REST API, and the web UI in
+  `web/` with every page whose backend exists); M4 wave 1 in progress (helm, nuget, tasks and cleanup,
+  LDAP/OIDC/default role, worktrees `/home/user/wt/m4-*`). Agent briefs: `/home/user/wt/M{1,2,3,4}-BRIEF.md`; shared Rust build dir `/home/user/wt/m1-target`
   (`CARGO_INCREMENTAL=0`). Test instance live at https://next.astrum.globalart.hu (since 2026-10-12): the
   `Server` workflow publishes `globalartltd/astrum-repository:next-<YYYYMMDDHHMMSS>-<sha7>` on pushes to main
   (line `published ...` in the "container image" job); to deploy, set `astrum_next_version` in infra
