@@ -1,4 +1,6 @@
+mod privileges;
 mod roles;
+mod selectors;
 mod users;
 mod validate;
 
@@ -14,7 +16,11 @@ use crate::{ApiError, AppState, Caller};
 pub const SECURITY: &str = "/service/rest/v1/security";
 
 pub fn routes() -> Router<AppState> {
-    Router::new().merge(users::routes()).merge(roles::routes())
+    Router::new()
+        .merge(users::routes())
+        .merge(roles::routes())
+        .merge(privileges::routes())
+        .merge(selectors::routes())
 }
 
 async fn changed(state: &AppState, caller: &Caller, event: Event) -> Result<(), ApiError> {

@@ -1,6 +1,16 @@
 use std::net::{IpAddr, Ipv6Addr};
 
+pub const NAME_RULE: &str = "must start with a letter, digit or hyphen and hold only letters, digits, hyphens, underscores and dots";
+
 const ATOM_SYMBOLS: &str = "!#$%&'*+/=?^_`{|}~-";
+
+pub fn name(value: &str) -> bool {
+    let mut chars = value.chars();
+    chars
+        .next()
+        .is_some_and(|first| first.is_ascii_alphanumeric() || first == '-')
+        && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+}
 
 pub fn identifier_problem(value: &str) -> Option<&'static str> {
     if value.trim().is_empty() {
@@ -94,6 +104,16 @@ mod tests {
             "a@b.c.", "a@b-.c", "plain", "",
         ] {
             assert!(!email(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn names_follow_the_documented_pattern() {
+        for good in ["a", "a.b", "-ab", "a_b", "Team-1.read"] {
+            assert!(name(good), "{good}");
+        }
+        for bad in ["", ".ab", "_ab", "a b", "ü", "a/b", "a*b", "a:b"] {
+            assert!(!name(bad), "{bad}");
         }
     }
 
