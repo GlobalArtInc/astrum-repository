@@ -5,10 +5,12 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
@@ -21,6 +23,7 @@ import org.globalart.astrum.repository.Facet;
 import org.globalart.astrum.repository.FacetSupport;
 import org.globalart.astrum.repository.IllegalOperationException;
 import org.globalart.astrum.repository.InvalidContentException;
+import org.globalart.astrum.repository.RedeployDisabledException;
 import org.globalart.astrum.repository.config.WritePolicy;
 import org.globalart.astrum.repository.content.fluent.FluentAsset;
 import org.globalart.astrum.repository.content.maintenance.ContentMaintenanceFacet;
@@ -146,45 +149,60 @@ public class TerraformHostedFacet
       @Nullable final List<String> protocols,
       final Consumer<String> authorizer) throws IOException
   {
-    AssetKind kind = ProviderFiles.kindOf(coordinates, fileName)
-        .orElseGet(() -> ProviderFiles.isKeyUpload(fileName) ? AssetKind.PROVIDER_KEY : null);
-    if (kind == null) {
-      throw new InvalidContentException("'" + fileName + "' is not a release file of " + coordinates.address()
-          + " " + coordinates.version() + "; expected " + coordinates.filePrefix() + "<os>_<arch>.zip, "
-          + coordinates.shasumsFileName() + ", " + coordinates.signatureFileName() + ", "
-          + coordinates.manifestFileName() + " or a public key (.asc, .gpg)");
+    Map<String, Payload> files = new LinkedHashMap<>();
+    files.put(fileName, payload);
+    return putProviderFiles(coordinates, files, protocols, authorizer).get(0);
+  }
+
+  /**
+   * Stores release files of a provider version, recognized by their names, and brings the checksums and the
+   * signature of the version up to date. The files are checked with each other and with the files the version keeps
+   * before any of them is stored.
+   */
+  public List<Content> putProviderFiles(
+      final ProviderCoordinates coordinates,
+      final Map<String, ? extends Payload> files,
+      @Nullable final List<String> protocols,
+      final Consumer<String> authorizer) throws IOException
+  {
+    Map<String, AssetKind> kinds = new LinkedHashMap<>();
+    Set<String> targets = new HashSet<>();
+    for (String fileName : files.keySet()) {
+      AssetKind kind = kindOf(coordinates, fileName);
+      String target = storedName(coordinates, kind, fileName);
+      if (!targets.add(target)) {
+        throw new InvalidContentException("The upload holds more than one " + target);
+      }
+      authorizer.accept(coordinates.filePath(target).substring(1));
+      kinds.put(fileName, kind);
     }
-    String storedName = switch (kind) {
-      case PROVIDER_SHASUMS -> coordinates.shasumsFileName();
-      case PROVIDER_SIGNATURE -> coordinates.signatureFileName();
-      case PROVIDER_MANIFEST -> coordinates.manifestFileName();
-      case PROVIDER_KEY -> ProviderCoordinates.KEY_FILE_NAME;
-      default -> fileName;
-    };
-    authorizer.accept(coordinates.filePath(storedName).substring(1));
     Lock lock = versionLocks.get(coordinates.directory());
     lock.lock();
+    List<TempBlob> blobs = new ArrayList<>();
     try {
-      TerraformContentFacet content = content();
-      Content stored;
-      try (TempBlob blob = content.ingest(payload)) {
-        stored = switch (kind) {
-          case PROVIDER_ARCHIVE -> putPackage(coordinates, fileName, blob);
-          case PROVIDER_SHASUMS -> putShasums(coordinates, blob);
-          case PROVIDER_SIGNATURE -> putSignature(coordinates, blob);
-          case PROVIDER_MANIFEST -> putManifest(coordinates, read(blob), false);
-          case PROVIDER_KEY -> putKey(coordinates, blob);
-          default -> throw new IllegalStateException(kind.name());
-        };
+      List<ReleaseFile> release = new ArrayList<>();
+      for (Map.Entry<String, ? extends Payload> file : files.entrySet()) {
+        TempBlob blob = content().ingest(file.getValue());
+        blobs.add(blob);
+        release.add(prepare(coordinates, file.getKey(), kinds.get(file.getKey()), blob));
       }
-      if (protocols != null && !protocols.isEmpty() && kind != AssetKind.PROVIDER_MANIFEST
+      ProviderRelease.check(coordinates, uploadedFiles(release), storedFiles(coordinates),
+          repositoryKey().orElse(null));
+      List<Content> stored = new ArrayList<>();
+      for (ReleaseFile file : release) {
+        stored.add(store(coordinates, file));
+      }
+      if (protocols != null && !protocols.isEmpty()
           && file(coordinates, coordinates.manifestFileName()).filter(asset -> !generated(asset)).isEmpty()) {
-        putManifest(coordinates, manifest(protocols), true);
+        byte[] manifest = manifest(protocols);
+        storeBytes(coordinates, coordinates.manifestFileName(), AssetKind.PROVIDER_MANIFEST, manifest,
+            Map.of(PROTOCOLS, manifestProtocols(manifest), GENERATED, true));
       }
       refreshChecksums(coordinates);
       return stored;
     }
     finally {
+      blobs.forEach(TempBlob::close);
       lock.unlock();
     }
   }
@@ -340,93 +358,85 @@ public class TerraformHostedFacet
     return tokens.sign(TerraformPaths.relative(from, to), to);
   }
 
-  private Content putPackage(final ProviderCoordinates coordinates, final String fileName, final TempBlob blob)
-      throws IOException
+  private static AssetKind kindOf(final ProviderCoordinates coordinates, final String fileName) {
+    AssetKind kind = ProviderFiles.kindOf(coordinates, fileName)
+        .orElseGet(() -> ProviderFiles.isKeyUpload(fileName) ? AssetKind.PROVIDER_KEY : null);
+    if (kind == null) {
+      throw new InvalidContentException("'" + fileName + "' is not a release file of " + coordinates.address()
+          + " " + coordinates.version() + "; expected " + coordinates.filePrefix() + "<os>_<arch>.zip, "
+          + coordinates.shasumsFileName() + ", " + coordinates.signatureFileName() + ", "
+          + coordinates.manifestFileName() + " or a public key (.asc, .gpg)");
+    }
+    return kind;
+  }
+
+  private static String storedName(final ProviderCoordinates coordinates, final AssetKind kind,
+                                   final String fileName)
   {
-    if (!ModuleArchives.ZIP.equals(ModuleArchives.sniff(head(blob)).orElse(null))) {
-      throw new InvalidContentException("A provider package must be a zip archive: " + fileName);
-    }
-    String sha256 = blob.getHashes().get(HashAlgorithm.SHA256).toString();
-    Optional<FluentAsset> sums = file(coordinates, coordinates.shasumsFileName()).filter(asset -> !generated(asset));
-    if (sums.isPresent()) {
-      Optional<String> listed = Sha256Sums.parse(read(sums.get())).digest(fileName);
-      if (listed.isEmpty()) {
-        throw new InvalidContentException(coordinates.shasumsFileName() + " of this version does not list "
-            + fileName + "; upload the release's checksums again with it");
-      }
-      if (!listed.get().equals(sha256)) {
-        throw new InvalidContentException(fileName + " does not match its checksum in "
-            + coordinates.shasumsFileName());
-      }
-    }
-    Platform platform = ProviderFiles.platformOf(coordinates, fileName).orElseThrow();
-    Map<String, Object> attributes = new LinkedHashMap<>();
-    attributes.put(OS, platform.os());
-    attributes.put(ARCH, platform.arch());
-    return content().putProviderFile(coordinates, fileName, AssetKind.PROVIDER_ARCHIVE, blob, attributes).download();
+    return switch (kind) {
+      case PROVIDER_SHASUMS -> coordinates.shasumsFileName();
+      case PROVIDER_SIGNATURE -> coordinates.signatureFileName();
+      case PROVIDER_MANIFEST -> coordinates.manifestFileName();
+      case PROVIDER_KEY -> ProviderCoordinates.KEY_FILE_NAME;
+      default -> fileName;
+    };
   }
 
-  private Content putShasums(final ProviderCoordinates coordinates, final TempBlob blob) throws IOException {
-    Sha256Sums sums;
-    try {
-      sums = Sha256Sums.parse(read(blob));
-    }
-    catch (IllegalArgumentException e) {
-      throw new InvalidContentException(e.getMessage());
-    }
-    for (FluentAsset archive : content().assetsIn(coordinates.directory(), AssetKind.PROVIDER_ARCHIVE)) {
-      String name = fileName(archive);
-      String sha256 = archive.blob().map(assetBlob -> assetBlob.checksums().get(HashAlgorithm.SHA256.name()))
-          .orElse(null);
-      Optional<String> listed = sums.digest(name);
-      if (listed.isPresent() && !listed.get().equals(sha256)) {
-        throw new InvalidContentException(coordinates.shasumsFileName() + " does not match the stored " + name);
-      }
-    }
-    return content().putProviderFile(coordinates, coordinates.shasumsFileName(), AssetKind.PROVIDER_SHASUMS, blob,
-        Map.of(GENERATED, false)).download();
-  }
-
-  private Content putSignature(final ProviderCoordinates coordinates, final TempBlob blob) throws IOException {
-    byte[] signature;
-    try {
-      signature = Pgp.binarySignature(read(blob));
-    }
-    catch (IllegalArgumentException e) {
-      throw new InvalidContentException(e.getMessage());
-    }
-    Optional<FluentAsset> sums = file(coordinates, coordinates.shasumsFileName()).filter(asset -> !generated(asset));
-    List<Pgp.PublicKey> keys = keys(coordinates, false);
-    if (sums.isPresent() && !keys.isEmpty() && !verifies(read(sums.get()), signature, keys)) {
-      throw new InvalidContentException(coordinates.signatureFileName() + " is not a signature of "
-          + coordinates.shasumsFileName() + " by a known key");
-    }
-    return storeBytes(coordinates, coordinates.signatureFileName(), AssetKind.PROVIDER_SIGNATURE, signature,
-        Map.of(GENERATED, false));
-  }
-
-  private Content putKey(final ProviderCoordinates coordinates, final TempBlob blob) throws IOException {
-    Pgp.PublicKey key;
-    try {
-      key = Pgp.readPublicKey(read(blob));
-    }
-    catch (IllegalArgumentException e) {
-      throw new InvalidContentException(e.getMessage());
-    }
-    Optional<FluentAsset> sums = file(coordinates, coordinates.shasumsFileName()).filter(asset -> !generated(asset));
-    Optional<FluentAsset> signature = file(coordinates, coordinates.signatureFileName())
-        .filter(asset -> !generated(asset));
-    if (sums.isPresent() && signature.isPresent()
-        && !verifies(read(sums.get()), read(signature.get()), List.of(key))) {
-      throw new InvalidContentException("Key " + key.keyId() + " did not sign " + coordinates.shasumsFileName());
-    }
-    return storeBytes(coordinates, ProviderCoordinates.KEY_FILE_NAME, AssetKind.PROVIDER_KEY,
-        key.armored().getBytes(US_ASCII), Map.of(KEY_ID, key.keyId()));
-  }
-
-  private Content putManifest(final ProviderCoordinates coordinates, final byte[] manifest, final boolean generated)
-      throws IOException
+  /**
+   * Reads an uploaded release file into the form it is stored in, refusing files that are not what their names
+   * say.
+   */
+  private ReleaseFile prepare(
+      final ProviderCoordinates coordinates,
+      final String fileName,
+      final AssetKind kind,
+      final TempBlob blob) throws IOException
   {
+    String name = storedName(coordinates, kind, fileName);
+    return switch (kind) {
+      case PROVIDER_ARCHIVE -> {
+        if (!ModuleArchives.ZIP.equals(ModuleArchives.sniff(head(blob)).orElse(null))) {
+          throw new InvalidContentException("A provider package must be a zip archive: " + fileName);
+        }
+        if (writePolicy() == WritePolicy.ALLOW_ONCE && file(coordinates, name).isPresent()) {
+          throw new RedeployDisabledException(getRepository(), coordinates.filePath(name),
+              " cannot be updated as asset already exists and redeploy is not allowed");
+        }
+        Platform platform = ProviderFiles.platformOf(coordinates, fileName).orElseThrow();
+        yield new ReleaseFile(name, kind, blob, null, Map.of(OS, platform.os(), ARCH, platform.arch()));
+      }
+      case PROVIDER_SHASUMS -> new ReleaseFile(name, kind, blob, read(blob), Map.of(GENERATED, false));
+      case PROVIDER_SIGNATURE -> {
+        try {
+          yield new ReleaseFile(name, kind, blob, Pgp.binarySignature(read(blob)), Map.of(GENERATED, false));
+        }
+        catch (IllegalArgumentException e) {
+          throw new InvalidContentException(e.getMessage());
+        }
+      }
+      case PROVIDER_KEY -> {
+        Pgp.PublicKey key = publicKey(read(blob));
+        yield new ReleaseFile(name, kind, blob, key.armored().getBytes(US_ASCII), Map.of(KEY_ID, key.keyId()));
+      }
+      case PROVIDER_MANIFEST -> {
+        byte[] manifest = read(blob);
+        yield new ReleaseFile(name, kind, blob, manifest,
+            Map.of(PROTOCOLS, manifestProtocols(manifest), GENERATED, false));
+      }
+      default -> throw new IllegalStateException(kind.name());
+    };
+  }
+
+  private static Pgp.PublicKey publicKey(final byte[] data) {
+    try {
+      return Pgp.readPublicKey(data);
+    }
+    catch (IllegalArgumentException e) {
+      throw new InvalidContentException(e.getMessage());
+    }
+  }
+
+  static List<String> manifestProtocols(final byte[] manifest) {
     List<String> protocols = new ArrayList<>();
     try {
       JsonNode versions = TerraformResponses.read(manifest).path("metadata").path("protocol_versions");
@@ -443,10 +453,56 @@ public class TerraformHostedFacet
         throw new InvalidContentException("Invalid plugin protocol version: " + protocol);
       }
     }
-    Map<String, Object> attributes = new LinkedHashMap<>();
-    attributes.put(PROTOCOLS, protocols);
-    attributes.put(GENERATED, generated);
-    return storeBytes(coordinates, coordinates.manifestFileName(), AssetKind.PROVIDER_MANIFEST, manifest, attributes);
+    return protocols;
+  }
+
+  private static ProviderRelease.Files uploadedFiles(final List<ReleaseFile> release) {
+    Map<String, String> packages = new LinkedHashMap<>();
+    byte[] sums = null;
+    byte[] signature = null;
+    Pgp.PublicKey key = null;
+    for (ReleaseFile file : release) {
+      switch (file.kind()) {
+        case PROVIDER_ARCHIVE -> packages.put(file.name(), file.blob().getHashes().get(HashAlgorithm.SHA256)
+            .toString());
+        case PROVIDER_SHASUMS -> sums = file.document();
+        case PROVIDER_SIGNATURE -> signature = file.document();
+        case PROVIDER_KEY -> key = new Pgp.PublicKey((String) file.attributes().get(KEY_ID),
+            new String(file.document(), US_ASCII));
+        default -> {
+        }
+      }
+    }
+    return new ProviderRelease.Files(packages, sums, signature, key);
+  }
+
+  private ProviderRelease.Files storedFiles(final ProviderCoordinates coordinates) throws IOException {
+    Map<String, String> packages = new LinkedHashMap<>();
+    for (FluentAsset archive : content().assetsIn(coordinates.directory(), AssetKind.PROVIDER_ARCHIVE)) {
+      archive.blob().map(blob -> blob.checksums().get(HashAlgorithm.SHA256.name()))
+          .ifPresent(sha256 -> packages.put(fileName(archive), sha256));
+    }
+    Optional<FluentAsset> sums = file(coordinates, coordinates.shasumsFileName()).filter(asset -> !generated(asset));
+    Optional<FluentAsset> signature = file(coordinates, coordinates.signatureFileName())
+        .filter(asset -> !generated(asset));
+    Optional<FluentAsset> key = file(coordinates, ProviderCoordinates.KEY_FILE_NAME);
+    return new ProviderRelease.Files(packages,
+        sums.isPresent() ? read(sums.get()) : null,
+        signature.isPresent() ? read(signature.get()) : null,
+        key.isPresent() ? Pgp.readPublicKey(read(key.get())) : null);
+  }
+
+  private Optional<Pgp.PublicKey> repositoryKey() {
+    return signing().flatMap(TerraformSigningFacet::signingKey)
+        .map(key -> new Pgp.PublicKey(key.keyId(), key.armoredPublicKey()));
+  }
+
+  private Content store(final ProviderCoordinates coordinates, final ReleaseFile file) {
+    if (file.document() == null) {
+      return content().putProviderFile(coordinates, file.name(), file.kind(), file.blob(), file.attributes())
+          .download();
+    }
+    return storeBytes(coordinates, file.name(), file.kind(), file.document(), file.attributes());
   }
 
   private void refreshChecksums(final ProviderCoordinates coordinates) throws IOException {
@@ -505,15 +561,10 @@ public class TerraformHostedFacet
         keys.add(Pgp.readPublicKey(read(uploaded.get())));
       }
     }
-    signing().flatMap(TerraformSigningFacet::signingKey)
-        .map(key -> new Pgp.PublicKey(key.keyId(), key.armoredPublicKey()))
+    repositoryKey()
         .filter(key -> keys.stream().noneMatch(known -> known.keyId().equals(key.keyId())))
         .ifPresent(keys::add);
     return keys;
-  }
-
-  private static boolean verifies(final byte[] document, final byte[] signature, final List<Pgp.PublicKey> keys) {
-    return keys.stream().anyMatch(key -> Pgp.verify(document, signature, key.armored()));
   }
 
   private Content storeBytes(
@@ -640,6 +691,15 @@ public class TerraformHostedFacet
 
   private TerraformContentFacet content() {
     return facet(TerraformContentFacet.class);
+  }
+
+  /**
+   * A release file read for storing: the asset name, and the document to store in place of the upload when it
+   * differs, such as a binary signature for an armored one.
+   */
+  private record ReleaseFile(String name, AssetKind kind, TempBlob blob, @Nullable byte[] document,
+                             Map<String, Object> attributes)
+  {
   }
 
   /**

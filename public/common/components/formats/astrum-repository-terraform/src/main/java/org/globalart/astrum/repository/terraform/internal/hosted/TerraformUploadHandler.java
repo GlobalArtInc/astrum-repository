@@ -3,7 +3,7 @@ package org.globalart.astrum.repository.terraform.internal.hosted;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -11,15 +11,14 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.globalart.astrum.repository.InvalidContentException;
 import org.globalart.astrum.repository.Repository;
 import org.globalart.astrum.repository.content.Asset;
 import org.globalart.astrum.repository.rest.UploadDefinitionExtension;
 import org.globalart.astrum.repository.security.ContentPermissionChecker;
 import org.globalart.astrum.repository.security.VariableResolverAdapter;
-import org.globalart.astrum.repository.terraform.AssetKind;
 import org.globalart.astrum.repository.terraform.ModuleCoordinates;
 import org.globalart.astrum.repository.terraform.ProviderCoordinates;
-import org.globalart.astrum.repository.terraform.ProviderFiles;
 import org.globalart.astrum.repository.terraform.TerraformFormat;
 import org.globalart.astrum.repository.terraform.TerraformPaths;
 import org.globalart.astrum.repository.upload.AssetUpload;
@@ -75,13 +74,6 @@ public class TerraformUploadHandler
 
   static final String PROVIDER_GROUP = "Provider Coordinates";
 
-  /**
-   * The order release files of one upload are stored in: the checksums first, so packages are checked against the
-   * checksums of the same release, and the signature last, so it is checked with the key of the same release.
-   */
-  private static final List<AssetKind> PROVIDER_ORDER = List.of(AssetKind.PROVIDER_SHASUMS,
-      AssetKind.PROVIDER_ARCHIVE, AssetKind.PROVIDER_MANIFEST, AssetKind.PROVIDER_KEY, AssetKind.PROVIDER_SIGNATURE);
-
   private final ContentPermissionChecker contentPermissionChecker;
 
   private final VariableResolverAdapter variableResolverAdapter;
@@ -105,36 +97,65 @@ public class TerraformUploadHandler
     String uploadType = uploadType(fields);
     TerraformHostedFacet hosted = repository.facet(TerraformHostedFacet.class);
     List<Content> contents = new ArrayList<>();
-    if (MODULE.equals(uploadType)) {
-      if (upload.getAssetUploads().size() != 1) {
-        throw new ValidationErrorsException("A module upload takes exactly one package");
+    try {
+      if (MODULE.equals(uploadType)) {
+        contents.add(putModule(repository, hosted, fields, upload));
       }
-      ModuleCoordinates coordinates = new ModuleCoordinates(required(fields, NAMESPACE), required(fields, NAME),
-          required(fields, SYSTEM), requiredVersion(fields));
-      PartPayload payload = upload.getAssetUploads().get(0).getPayload();
-      contents.add(hosted.putModule(coordinates, payload.getName(), payload,
-          path -> ensurePermitted(repository.getName(), TerraformFormat.NAME, path, Map.of())));
+      else {
+        contents.addAll(putProviderFiles(repository, hosted, fields, upload));
+      }
     }
-    else {
-      ProviderCoordinates coordinates = new ProviderCoordinates(required(fields, NAMESPACE), required(fields, TYPE),
-          requiredVersion(fields));
-      List<String> protocols = protocols(fields.get(PROTOCOLS));
-      List<AssetUpload> assets = new ArrayList<>(upload.getAssetUploads());
-      assets.sort(Comparator.comparingInt(asset -> order(coordinates, asset)));
-      for (AssetUpload asset : assets) {
-        PartPayload payload = asset.getPayload();
-        String fileName = payload.getName();
-        if (fileName == null || fileName.isBlank()) {
-          throw new ValidationErrorsException("Provider files are recognized by their names; a file has no name");
-        }
-        contents.add(hosted.putProviderFile(coordinates, baseName(fileName), payload, protocols,
-            path -> ensurePermitted(repository.getName(), TerraformFormat.NAME, path, Map.of())));
-      }
+    catch (InvalidContentException e) {
+      throw new ValidationErrorsException(e.getMessage());
     }
     List<String> paths = contents.stream()
         .map(content -> content.getAttributes().require(Asset.class).path())
         .toList();
     return new UploadResponse(contents, paths);
+  }
+
+  private Content putModule(
+      final Repository repository,
+      final TerraformHostedFacet hosted,
+      final Map<String, String> fields,
+      final ComponentUpload upload) throws IOException
+  {
+    if (upload.getAssetUploads().size() != 1) {
+      throw new ValidationErrorsException("A module upload takes exactly one package");
+    }
+    ModuleCoordinates coordinates = new ModuleCoordinates(required(fields, NAMESPACE), required(fields, NAME),
+        required(fields, SYSTEM), requiredVersion(fields));
+    PartPayload payload = upload.getAssetUploads().get(0).getPayload();
+    return hosted.putModule(coordinates, payload.getName(), payload,
+        path -> ensurePermitted(repository.getName(), TerraformFormat.NAME, path, Map.of()));
+  }
+
+  /**
+   * Stores the release files of one provider version, recognized by their names; the hosted facet checks them with
+   * each other before it stores any.
+   */
+  private List<Content> putProviderFiles(
+      final Repository repository,
+      final TerraformHostedFacet hosted,
+      final Map<String, String> fields,
+      final ComponentUpload upload) throws IOException
+  {
+    ProviderCoordinates coordinates = new ProviderCoordinates(required(fields, NAMESPACE), required(fields, TYPE),
+        requiredVersion(fields));
+    List<String> protocols = protocols(fields.get(PROTOCOLS));
+    Map<String, PartPayload> files = new LinkedHashMap<>();
+    for (AssetUpload asset : upload.getAssetUploads()) {
+      PartPayload payload = asset.getPayload();
+      String fileName = payload.getName();
+      if (fileName == null || fileName.isBlank()) {
+        throw new ValidationErrorsException("Provider files are recognized by their names; a file has no name");
+      }
+      if (files.put(baseName(fileName), payload) != null) {
+        throw new ValidationErrorsException("The upload holds " + baseName(fileName) + " more than once");
+      }
+    }
+    return hosted.putProviderFiles(coordinates, files, protocols,
+        path -> ensurePermitted(repository.getName(), TerraformFormat.NAME, path, Map.of()));
   }
 
   /**
@@ -238,14 +259,6 @@ public class TerraformUploadHandler
       }
     }
     return protocols;
-  }
-
-  private static int order(final ProviderCoordinates coordinates, final AssetUpload asset) {
-    String name = asset.getPayload() == null || asset.getPayload().getName() == null ? ""
-        : baseName(asset.getPayload().getName());
-    AssetKind kind = ProviderFiles.kindOf(coordinates, name)
-        .orElse(ProviderFiles.isKeyUpload(name) ? AssetKind.PROVIDER_KEY : AssetKind.PROVIDER_ARCHIVE);
-    return PROVIDER_ORDER.indexOf(kind);
   }
 
   private static String baseName(final String fileName) {

@@ -154,7 +154,8 @@ public key (`.asc`, `.gpg`, `.pub`, `.key`, stored as `signing-key.asc`).
 
 Uploaded files are checked against each other: packages against the uploaded checksums (a package the
 checksums do not list is refused), checksums against stored packages, the signature and the key against the
-checksums once both are there.
+checksums once both are there. The files of one request are checked together before any of them is stored, so a
+release that does not fit together is refused as a whole.
 
 Without uploaded checksums the repository writes `SHA256SUMS` from the packages and rewrites it when packages
 come and go. Without an uploaded signature it signs the checksums with the key of the repository
