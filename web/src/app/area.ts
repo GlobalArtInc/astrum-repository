@@ -29,18 +29,27 @@ export interface MenuEntry {
   activeFor?: string[];
 }
 
-export type SettingsSection = 'repository' | 'security';
+export type SettingsSection = 'repository' | 'security' | 'support' | 'system';
 
 export interface SettingsTile {
   id: string;
-  section: SettingsSection;
   to: string;
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  order: number;
   need?: Need;
+  section?: SettingsSection;
+  title?: string;
+  description?: string;
+  icon?: LucideIcon;
+  order?: number;
 }
+
+export const MENU_ORDER = {
+  dashboard: 10,
+  search: 20,
+  browse: 30,
+  upload: 40,
+  api: 50,
+  settings: 900,
+} as const;
 
 export interface SearchResultsProps {
   query: string;

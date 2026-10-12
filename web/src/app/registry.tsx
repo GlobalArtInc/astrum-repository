@@ -2,7 +2,7 @@ import { type ComponentType, createContext, type ReactNode, useContext, useMemo 
 import { useSession } from '../auth/state';
 import type { Area, MenuEntry, SearchProvider, SettingsTile } from './area';
 
-const byOrder = <T extends { order: number }>(left: T, right: T) => left.order - right.order;
+const byOrder = <T extends { order?: number }>(left: T, right: T) => (left.order ?? 0) - (right.order ?? 0);
 
 export interface Registry {
   areas: Area[];

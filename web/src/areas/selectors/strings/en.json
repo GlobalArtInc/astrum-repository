@@ -65,7 +65,5 @@
   "selectors.preview.repositoryPicker": "Repository",
   "selectors.preview.results": "Matching files",
   "selectors.preview.title": "Preview",
-  "selectors.preview.waiting": "Enter an expression to see what it matches",
-  "selectors.tile.description": "Pick content of repositories for privileges",
-  "selectors.tile.title": "Content selectors"
+  "selectors.preview.waiting": "Enter an expression to see what it matches"
 }

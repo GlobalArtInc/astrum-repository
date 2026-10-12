@@ -16,7 +16,7 @@ test('a content selector is written with a live preview and kept while privilege
   await admin.putFile('e2e-sel-files', 'bin/tool.sh', 'echo hello');
 
   await page.goto('/settings');
-  await page.getByRole('link', { name: /^Content selectors/ }).click();
+  await page.getByRole('link', { name: /^Content selectors/i }).click();
   await expect(page).toHaveURL(/\/admin\/repository\/selectors$/);
   await page.getByRole('link', { name: 'Create selector' }).click();
   await page.getByRole('textbox', { name: /^Name/ }).fill('e2e-docs');
@@ -336,8 +336,8 @@ test('a user without administration rights sees only what their roles allow', as
 
   await page.goto('/settings');
   await expect(page.getByRole('link', { name: /^Privileges/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /^Content selectors/ })).toBeVisible();
-  for (const hidden of [/^Roles/, /^Users/, /^Anonymous access/, /^Realms/, /^SSRF protection/]) {
+  await expect(page.getByRole('link', { name: /^Content selectors/i })).toBeVisible();
+  for (const hidden of [/^Roles/, /^Users/, /^Anonymous access/i, /^Realms/, /^SSRF protection/i]) {
     await expect(page.getByRole('link', { name: hidden })).toHaveCount(0);
   }
   await page.goto('/admin/security/privileges');

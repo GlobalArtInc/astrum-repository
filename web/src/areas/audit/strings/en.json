@@ -1,6 +1,4 @@
 {
-  "audit.tile.title": "Audit log",
-  "audit.tile.description": "Who changed what and when: repositories, content, users, roles and settings",
   "audit.page.title": "Audit log",
   "audit.page.description": "Changes made in Astrum Repository, newest first",
   "audit.page.refresh": "Refresh",

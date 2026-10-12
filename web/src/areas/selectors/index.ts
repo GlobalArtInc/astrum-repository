@@ -1,4 +1,3 @@
-import { Filter } from 'lucide-react';
 import type { Area } from '../../app/area';
 
 const READ = 'astrum:selectors:read';
@@ -17,12 +16,7 @@ export const selectorsArea: Area = {
   settings: [
     {
       id: 'selectors',
-      section: 'repository',
       to: '/admin/repository/selectors',
-      title: 'selectors.tile.title',
-      description: 'selectors.tile.description',
-      icon: Filter,
-      order: 30,
       need: READ,
     },
   ],

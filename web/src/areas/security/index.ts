@@ -1,4 +1,3 @@
-import { KeyRound, Layers, ShieldAlert, ShieldCheck, UsersRound, UserX } from 'lucide-react';
 import type { Area } from '../../app/area';
 
 const PRIVILEGES_READ = 'astrum:privileges:read';
@@ -60,63 +59,28 @@ export const securityArea: Area = {
   settings: [
     {
       id: 'privileges',
-      section: 'security',
       to: '/admin/security/privileges',
-      title: 'security.tiles.privileges',
-      description: 'security.tiles.privilegesText',
-      icon: KeyRound,
-      order: 10,
       need: PRIVILEGES_READ,
     },
     {
       id: 'roles',
-      section: 'security',
       to: '/admin/security/roles',
-      title: 'security.tiles.roles',
-      description: 'security.tiles.rolesText',
-      icon: ShieldCheck,
-      order: 20,
       need: ROLES_NEED,
     },
     {
       id: 'users',
-      section: 'security',
       to: '/admin/security/users',
-      title: 'security.tiles.users',
-      description: 'security.tiles.usersText',
-      icon: UsersRound,
-      order: 30,
       need: USERS_NEED,
     },
     {
       id: 'anonymous',
-      section: 'security',
       to: '/admin/security/anonymous',
-      title: 'security.tiles.anonymous',
-      description: 'security.tiles.anonymousText',
-      icon: UserX,
-      order: 40,
       need: SETTINGS_READ,
     },
     {
       id: 'realms',
-      section: 'security',
       to: '/admin/security/realms',
-      title: 'security.tiles.realms',
-      description: 'security.tiles.realmsText',
-      icon: Layers,
-      order: 50,
       need: SETTINGS_READ,
-    },
-    {
-      id: 'ssrf-protection',
-      section: 'security',
-      to: '/admin/security/ssrf-protection',
-      title: 'security.tiles.ssrf',
-      description: 'security.tiles.ssrfText',
-      icon: ShieldAlert,
-      order: 60,
-      need: ADMINISTRATOR,
     },
   ],
 };

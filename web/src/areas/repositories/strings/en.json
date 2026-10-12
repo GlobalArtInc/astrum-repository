@@ -1,6 +1,4 @@
 {
-  "repositories.tile.title": "Repositories",
-  "repositories.tile.description": "Hosted, proxy and group repositories of every format",
   "repositories.crumbs.settings": "Settings",
   "repositories.crumbs.repositories": "Repositories",
   "repositories.crumbs.create": "Create",

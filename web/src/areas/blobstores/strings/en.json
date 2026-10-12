@@ -1,6 +1,4 @@
 {
-  "blobstores.tile.title": "Blob stores",
-  "blobstores.tile.description": "Where repositories keep their files: folders, S3 buckets and groups of stores",
   "blobstores.crumbs.settings": "Settings",
   "blobstores.crumbs.list": "Blob stores",
   "blobstores.crumbs.create": "Create",

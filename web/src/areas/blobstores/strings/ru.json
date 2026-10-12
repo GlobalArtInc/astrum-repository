@@ -1,6 +1,4 @@
 {
-  "blobstores.tile.title": "Хранилища блобов",
-  "blobstores.tile.description": "Где репозитории хранят файлы: каталоги, бакеты S3 и группы хранилищ",
   "blobstores.crumbs.settings": "Настройки",
   "blobstores.crumbs.list": "Хранилища блобов",
   "blobstores.crumbs.create": "Создание",

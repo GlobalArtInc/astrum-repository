@@ -176,7 +176,7 @@ for (const size of SIZES) {
       await shoot(page, `blobstore-group-members-${suffix}`);
 
       await page.goto('/settings');
-      await expect(page.getByRole('link', { name: /Blob stores/ })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Blob stores/i })).toBeVisible();
       await shoot(page, `settings-repository-${suffix}`);
     });
   }

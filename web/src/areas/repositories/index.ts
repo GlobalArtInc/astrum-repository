@@ -1,4 +1,3 @@
-import { Database } from 'lucide-react';
 import type { Area } from '../../app/area';
 
 const ADMIN = { some: 'astrum:repository-admin' } as const;
@@ -31,12 +30,7 @@ export const repositoriesArea: Area = {
   settings: [
     {
       id: 'repositories',
-      section: 'repository',
       to: '/admin/repository/repositories',
-      title: 'repositories.tile.title',
-      description: 'repositories.tile.description',
-      icon: Database,
-      order: 10,
       need: ADMIN,
     },
   ],

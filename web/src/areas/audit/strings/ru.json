@@ -1,6 +1,4 @@
 {
-  "audit.tile.title": "Журнал аудита",
-  "audit.tile.description": "Кто, что и когда изменил: репозитории, содержимое, пользователи, роли и настройки",
   "audit.page.title": "Журнал аудита",
   "audit.page.description": "Изменения в Astrum Repository, сначала новые",
   "audit.page.refresh": "Обновить",

@@ -67,7 +67,5 @@
   "selectors.preview.repositoryPicker": "Репозиторий для предпросмотра",
   "selectors.preview.results": "Подходящие файлы",
   "selectors.preview.title": "Предпросмотр",
-  "selectors.preview.waiting": "Введите выражение, чтобы увидеть, что под него подходит",
-  "selectors.tile.description": "Выбор содержимого репозиториев для привилегий",
-  "selectors.tile.title": "Селекторы содержимого"
+  "selectors.preview.waiting": "Введите выражение, чтобы увидеть, что под него подходит"
 }

@@ -1,4 +1,3 @@
-import { HardDrive } from 'lucide-react';
 import type { Area } from '../../app/area';
 
 const READ = 'astrum:blobstores:read';
@@ -26,12 +25,7 @@ export const blobstoresArea: Area = {
   settings: [
     {
       id: 'blobstores',
-      section: 'repository',
       to: '/admin/repository/blobstores',
-      title: 'blobstores.tile.title',
-      description: 'blobstores.tile.description',
-      icon: HardDrive,
-      order: 20,
       need: READ,
     },
   ],
