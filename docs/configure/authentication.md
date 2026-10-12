@@ -15,6 +15,7 @@ they are tried in the listed order.
 | NuGet API-Key Realm | `nuget push` with the user's API key |
 | Conan Bearer Token Realm | `conan remote login` |
 | Cargo Bearer Token Realm | `cargo login` tokens |
+| Terraform Bearer Token Realm | Tokens in `credentials` blocks of the Terraform CLI configuration |
 | Default Role Realm | Grants one role to every signed-in user, configured as a capability |
 
 ## Users, roles and privileges

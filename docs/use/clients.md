@@ -340,6 +340,37 @@ curl -u "ci-deployer:$ASTRUM_PASSWORD" --upload-file hello-2.12.1-3.el9.x86_64.r
   https://astrum.example.com/repository/yum-hosted/Packages/hello-2.12.1-3.el9.x86_64.rpm
 ```
 
+## Terraform
+
+Give the Terraform group a registry host (Settings > Repositories > Terraform Settings), here
+`astrum.example.com`; Astrum then answers Terraform's service discovery on that host. Terraform needs HTTPS.
+
+```hcl
+module "vpc" {
+  source  = "astrum.example.com/acme/vpc/aws"
+  version = "1.2.0"
+}
+```
+
+`~/.terraformrc`, with a token from `curl -u <user> https://astrum.example.com/repository/terraform-group/token`
+once the **Terraform Bearer Token Realm** is active:
+
+```hcl
+credentials "astrum.example.com" {
+  token = "TerraformToken.<key>"
+}
+
+provider_installation {
+  network_mirror {
+    url = "https://astrum.example.com/repository/terraform-group/"
+  }
+}
+```
+
+The network mirror is optional; it installs every provider, also those of `registry.terraform.io`, through the
+group. Publishing, signing and the proxy are described in
+`public/common/components/formats/astrum-repository-terraform/README.md`.
+
 ## P2 (Eclipse)
 
 Use `https://astrum.example.com/repository/p2-proxy/` as the update site in Eclipse or in a Tycho
