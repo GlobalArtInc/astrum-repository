@@ -30,11 +30,32 @@ impl FileBlobStore {
         root: impl Into<PathBuf>,
         metrics: Metrics,
     ) -> Result<Self, Error> {
+        let root = root.into();
+        tokio::fs::create_dir_all(&root)
+            .await
+            .map_err(Error::io(&root))?;
+        Self::attach(name, root, metrics).await
+    }
+
+    pub async fn attach(
+        name: impl Into<String>,
+        root: impl Into<PathBuf>,
+        metrics: Metrics,
+    ) -> Result<Self, Error> {
         let store = Self {
             name: name.into(),
             root: root.into(),
             metrics,
         };
+        let metadata = tokio::fs::metadata(&store.root)
+            .await
+            .map_err(Error::io(&store.root))?;
+        if !metadata.is_dir() {
+            return Err(Error::Io {
+                path: store.root.clone(),
+                source: io::Error::new(io::ErrorKind::NotADirectory, "not a directory"),
+            });
+        }
         for dir in [store.content_dir(), store.temp_dir()] {
             tokio::fs::create_dir_all(&dir)
                 .await
@@ -68,14 +89,7 @@ impl FileBlobStore {
     }
 
     pub async fn remove_if_empty(&self) -> Result<bool, Error> {
-        let root = self.root.clone();
-        tokio::task::spawn_blocking(move || remove_empty_tree(&root))
-            .await
-            .map_err(|error| Error::Io {
-                path: self.root.clone(),
-                source: io::Error::other(error),
-            })?
-            .map_err(Error::io(&self.root))
+        remove_if_empty(&self.root).await
     }
 
     async fn write_temp(
@@ -260,6 +274,17 @@ impl BlobStore for FileBlobStore {
         }
         Ok(())
     }
+}
+
+pub async fn remove_if_empty(root: &Path) -> Result<bool, Error> {
+    let owned = root.to_owned();
+    tokio::task::spawn_blocking(move || remove_empty_tree(&owned))
+        .await
+        .map_err(|error| Error::Io {
+            path: root.to_owned(),
+            source: io::Error::other(error),
+        })?
+        .map_err(Error::io(root))
 }
 
 struct TempFile(Option<PathBuf>);

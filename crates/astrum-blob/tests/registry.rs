@@ -63,6 +63,12 @@ async fn stores_open_once_until_forgotten() {
     let data = tempfile::tempdir().unwrap();
     db.register_file("files", "files").await;
     let stores = BlobStores::new(db.db.conn().clone(), data.path(), secrets());
+    assert!(
+        matches!(stores.get("files").await, Err(Error::Io { .. })),
+        "a missing directory is not created behind the administrator's back"
+    );
+    assert!(!data.path().join("blobs/files").exists());
+    std::fs::create_dir_all(data.path().join("blobs/files")).unwrap();
 
     let first = stores.get("files").await.unwrap();
     let again = stores.get("files").await.unwrap();
@@ -143,8 +149,10 @@ async fn file_paths_may_not_overlap() {
 
 async fn group(db: &Db, policy: FillPolicy) -> (tempfile::TempDir, BlobStores) {
     let data = tempfile::tempdir().unwrap();
-    db.register_file("one", "one").await;
-    db.register_file("two", "two").await;
+    for name in ["one", "two"] {
+        db.register_file(name, name).await;
+        std::fs::create_dir_all(data.path().join("blobs").join(name)).unwrap();
+    }
     db.register(&StoreConfig {
         name: "both".to_owned(),
         settings: Settings::Group(GroupSettings {

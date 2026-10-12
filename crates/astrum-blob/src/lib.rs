@@ -14,6 +14,7 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
 
 pub use config::{FileSettings, FillPolicy, GroupSettings, Settings, StoreConfig, StoreKind};
@@ -136,6 +137,10 @@ pub trait BlobStore: Send + Sync {
     async fn available_space(&self) -> Result<Option<u64>, Error>;
 
     async fn check(&self) -> Result<(), Error>;
+}
+
+pub fn content_of(bytes: impl Into<Bytes>) -> ContentStream {
+    futures_util::stream::once(std::future::ready(Ok(bytes.into()))).boxed()
 }
 
 pub(crate) fn clamp_range(size: u64, offset: u64, length: u64) -> Result<u64, Error> {

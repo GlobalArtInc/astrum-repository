@@ -170,6 +170,7 @@ name = "astrum-api"
 version = "3.0.0-dev"
 dependencies = [
  "anyhow",
+ "astrum-blob",
  "astrum-db",
  "astrum-repo",
  "astrum-security",

@@ -6,6 +6,7 @@ pub mod routes;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use astrum_blob::BlobStores;
 use astrum_db::Database;
 use astrum_db::audit::{self, Event};
 use astrum_security::{SecretBox, Security};
@@ -30,16 +31,19 @@ struct Inner {
     data_dir: PathBuf,
     security: Security,
     secrets: SecretBox,
+    blob_stores: BlobStores,
 }
 
 impl AppState {
     pub fn new(db: Database, data_dir: PathBuf, security: Security, secrets: SecretBox) -> Self {
+        let blob_stores = BlobStores::new(db.conn().clone(), &data_dir, secrets.clone());
         Self {
             inner: Arc::new(Inner {
                 db,
                 data_dir,
                 security,
                 secrets,
+                blob_stores,
             }),
         }
     }
@@ -67,6 +71,10 @@ impl AppState {
 
     pub fn secrets(&self) -> &SecretBox {
         &self.inner.secrets
+    }
+
+    pub fn blob_stores(&self) -> &BlobStores {
+        &self.inner.blob_stores
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {

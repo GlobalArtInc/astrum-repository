@@ -136,7 +136,7 @@ impl BlobStores {
         let name = config.name.as_str();
         Ok(match &config.settings {
             Settings::File(FileSettings { path }) => {
-                Arc::new(FileBlobStore::open(name, self.resolve(path), self.metrics(name)).await?)
+                Arc::new(FileBlobStore::attach(name, self.resolve(path), self.metrics(name)).await?)
             }
             Settings::S3(settings) => Arc::new(self.open_s3(name, settings).await?),
             Settings::Group(group) => {
