@@ -1469,18 +1469,5 @@ describe('RepositoryForm', () => {
       expect(screen.getByText('Upstream Registry Host')).toBeInTheDocument();
       expect(screen.queryByText('Provider Signing')).not.toBeInTheDocument();
     });
-
-    it.each(['hosted', 'proxy', 'group'] as const)('shows the OCI connectors for oci %s', (type) => {
-      renderRecipe('oci', type);
-      expect(screen.getByText('OCI Registry Connectors')).toBeInTheDocument();
-      expect(screen.getByText('HTTP Connector')).toBeInTheDocument();
-      expect(screen.getByText('HTTPS Connector')).toBeInTheDocument();
-      expect(screen.getByText('Subdomain')).toBeInTheDocument();
-    });
-
-    it('shows the OCI index settings for oci proxies', () => {
-      renderRecipe('oci', 'proxy');
-      expect(screen.getByText('OCI Registry Index')).toBeInTheDocument();
-    });
   });
 });

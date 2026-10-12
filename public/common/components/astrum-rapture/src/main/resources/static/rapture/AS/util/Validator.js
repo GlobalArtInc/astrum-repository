@@ -47,16 +47,6 @@ Ext.define('AS.util.Validator', {
   asUrlRegex: /^https?:\/\/[^"<>^`{|}]+$/i,
 
   /**
-   * Looser URL regex for OCI proxy remote URLs. Accepts {@code http://}, {@code https://}, and
-   * the OCI URI conventions {@code oci://} and {@code oci+http://}. The backend's
-   * {@code OciProxyRepositoryApiRequestToConfigurationConverter#normalizeRemoteUrl} normalises
-   * those OCI schemes to {@code https}/{@code http} on save, so the UI must accept what the
-   * server already accepts.
-   * @private
-   */
-  asOciUrlRegex: /^(https?|oci(\+http)?):\/\/[^"<>^`{|}]+$/i,
-
-  /**
    * A regular expression to detect whether we have leading and trailing white space
    *
    * @private
@@ -102,10 +92,6 @@ Ext.define('AS.util.Validator', {
           return AS.util.Validator.asUrlRegex.test(val);
         },
         'as-urlText': AS.I18n.get('Util_Validator_Url'),
-        'as-oci-url': function(val) {
-          return AS.util.Validator.asOciUrlRegex.test(val);
-        },
-        'as-oci-urlText': AS.I18n.get('Util_Validator_OciUrl'),
         'as-subdomain': function(val) {
           return AS.util.Validator.asSubdomainRegex.test(val);
         },

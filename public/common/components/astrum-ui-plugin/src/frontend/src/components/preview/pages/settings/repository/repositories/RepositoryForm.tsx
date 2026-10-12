@@ -51,7 +51,6 @@ import { RawFacet } from './facets/RawFacet';
 import { CargoFacet } from './facets/CargoFacet';
 import { ConanFacet } from './facets/ConanFacet';
 import { TerraformFacet } from './facets/TerraformFacet';
-import { OciFacet } from './facets/OciFacet';
 import { RoutingRuleFacet } from './facets/RoutingRuleFacet';
 import { RepositoryFirewallConfigTab } from './RepositoryFirewallConfigTab';
 import { RepositoryAuditTab } from './RepositoryAuditTab';
@@ -326,15 +325,6 @@ export function RepositoryForm({
             onNestedChange={handleNestedChange}
             errors={errors}
             isEdit={!isCreate}
-            repoType={recipe.type}
-          />
-        )}
-
-        {recipe.format === 'oci' && (
-          <OciFacet
-            formData={formData}
-            onNestedChange={handleNestedChange}
-            errors={errors}
             repoType={recipe.type}
           />
         )}

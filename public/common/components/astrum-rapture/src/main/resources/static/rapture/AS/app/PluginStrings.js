@@ -152,8 +152,7 @@ Ext.define('AS.app.PluginStrings', {
     AboutWindow_Version_Label: 'Version',
     AboutWindow_Edition_Label: 'Edition',
     AboutWindow_BuildRevision_Label: 'Build Revision',
-    AboutWindow_BuildTimestamp_Label: 'Build Timestamp',
-    Util_Validator_OciUrl: 'Must be a valid URL using http://, https://, oci://, or oci+http://'
+    AboutWindow_BuildTimestamp_Label: 'Build Timestamp'
   }
 }, function(obj) {
   AS.I18n.register(obj);

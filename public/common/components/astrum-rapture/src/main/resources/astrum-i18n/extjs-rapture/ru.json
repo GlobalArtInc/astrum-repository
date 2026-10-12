@@ -69,7 +69,6 @@
   "User_View_Authenticate_Submit_Button": "Подтвердить",
   "Util_DownloadHelper_Download_Message": "Загрузка начата",
   "Util_Validator_Hostname": "Укажите корректное имя хоста",
-  "Util_Validator_OciUrl": "Укажите корректный URL со схемой http://, https://, oci:// или oci+http://",
   "Util_Validator_Subdomain_Text": "Поддомен должен содержать от 1 до 63 символов (буквы, цифры и дефисы), начинаться с буквы и заканчиваться буквой или цифрой",
   "Util_Validator_Text": "Допускаются только буквы, цифры, подчёркивания (_), дефисы (-) и точки (.); начинаться с подчёркивания или точки нельзя.",
   "Util_Validator_Trim": "Значение не может начинаться или заканчиваться пробелом",

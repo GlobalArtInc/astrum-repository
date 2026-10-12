@@ -22,7 +22,6 @@ import {
 } from './types';
 import CommonStrings from '../../../../constants/CommonStrings';
 import RepositoriesPageStrings from '../../../../constants/pages/settings/repository/RepositoriesPageStrings';
-import UIStrings from '../../../../../../constants/pages/admin/repository/RepositoriesStrings';
 
 // =============================================================================
 // Constants
@@ -261,38 +260,6 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
     }
   }
 
-  // OCI connector ports, cosign keyless policy and custom proxy index
-  if (data.format === 'oci') {
-    const httpPort = data.oci?.httpPort;
-    const httpsPort = data.oci?.httpsPort;
-    if (httpPort != null && (Number.isNaN(httpPort) || httpPort < 1 || httpPort > 65535)) {
-      errors['oci.httpPort'] = RepositoriesPageStrings.FORM_MACHINE.PORT_MUST_BETWEEN_1_65535;
-    }
-    if (httpsPort != null && (Number.isNaN(httpsPort) || httpsPort < 1 || httpsPort > 65535)) {
-      errors['oci.httpsPort'] = RepositoriesPageStrings.FORM_MACHINE.PORT_MUST_BETWEEN_1_65535;
-    }
-    if (data.oci?.cosign?.enforcement === 'KEYLESS') {
-      if (!data.oci.cosign.identityRegex?.trim()) {
-        errors['oci.cosign.identityRegex'] = UIStrings.OCI.IDENTITY_REGEX_REQUIRED_WHEN_KEYLESS;
-      }
-      if (!data.oci.cosign.issuerRegex?.trim()) {
-        errors['oci.cosign.issuerRegex'] = UIStrings.OCI.ISSUER_REGEX_REQUIRED_WHEN_KEYLESS;
-      }
-    }
-    if (data.type === 'proxy' && data.oci?.ociProxy?.indexType === 'CUSTOM') {
-      const indexUrl = data.oci.ociProxy.indexUrl?.trim();
-      if (!indexUrl) {
-        errors['oci.ociProxy.indexUrl'] = UIStrings.OCI.INDEX_URL_REQUIRED_WHEN_CUSTOM;
-      } else {
-        try {
-          new URL(indexUrl);
-        } catch {
-          errors['oci.ociProxy.indexUrl'] = RepositoriesPageStrings.FORM_MACHINE.INVALID_URL_FORMAT;
-        }
-      }
-    }
-  }
-
   // NuGet proxy validation
   if (data.format === 'nuget' && data.type === 'proxy') {
     const queryCacheItemMaxAge = data.nugetProxy?.queryCacheItemMaxAge;
@@ -384,7 +351,6 @@ function buildFormDataFromRepository(repo: Repository): RepositoryFormData {
     terraform: getConfig('terraform'),
     cargo: getConfig('cargo'),
     conanProxy: getConfig('conanProxy'),
-    oci: getConfig('oci'),
   };
 }
 
@@ -461,18 +427,6 @@ function buildDefaultFormData(format: string, type: RepositoryType): RepositoryF
   // Conan proxy: new proxies speak Conan 2 unless the admin picks Conan 1 (matches the Classic UI).
   if (format === 'conan' && type === 'proxy') {
     baseValues.conanProxy = { conanVersion: 'V2' };
-  }
-
-  // OCI: path-based routing and no cosign enforcement, as the OCI facet shows by default.
-  if (format === 'oci') {
-    baseValues.oci = {
-      pathEnabled: true,
-      forceBasicAuth: false,
-      cosign: { enforcement: 'NONE' },
-      ...(type === 'proxy'
-        ? { ociProxy: { indexType: 'REGISTRY', cacheForeignLayers: false, foreignLayerUrlWhitelist: [] } }
-        : {}),
-    };
   }
 
   // npm proxy: post-migration STL-381 there is no longer any npm-specific

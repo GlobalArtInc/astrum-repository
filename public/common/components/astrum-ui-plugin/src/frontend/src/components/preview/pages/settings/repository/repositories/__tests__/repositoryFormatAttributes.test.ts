@@ -59,24 +59,10 @@ describe('format attributes of the repository form', () => {
       expect(data.conanProxy).toEqual({ conanVersion: 'V2' });
     });
 
-    it('creates OCI proxies with path routing, no cosign enforcement and the registry index', async () => {
-      const data = await loadedData({ format: 'oci', repositoryType: 'proxy' });
-      expect(data.oci).toEqual({
-        pathEnabled: true,
-        forceBasicAuth: false,
-        cosign: { enforcement: 'NONE' },
-        ociProxy: { indexType: 'REGISTRY', cacheForeignLayers: false, foreignLayerUrlWhitelist: [] },
-      });
-    });
-
-    it('creates OCI hosted repositories without proxy settings', async () => {
-      const data = await loadedData({ format: 'oci', repositoryType: 'hosted' });
-      expect(data.oci?.ociProxy).toBeUndefined();
-    });
   });
 
   describe('editing a saved repository', () => {
-    it('loads the cargo, conan and oci attributes', async () => {
+    it('loads the cargo and conan attributes', async () => {
       const cargo = await loadedData({
         format: 'cargo',
         repositoryName: 'crates',
@@ -90,15 +76,6 @@ describe('format attributes of the repository form', () => {
         preloadedRepository: { name: 'conan-v1', type: 'proxy', format: 'conan', conanProxy: { conanVersion: 'V1' } } as any,
       });
       expect(conan.conanProxy).toEqual({ conanVersion: 'V1' });
-
-      const oci = await loadedData({
-        format: 'oci',
-        repositoryName: 'oci-hosted',
-        preloadedRepository: {
-          name: 'oci-hosted', type: 'hosted', format: 'oci', oci: { pathEnabled: false, httpPort: 8082, subdomain: 'images' },
-        } as any,
-      });
-      expect(oci.oci).toEqual({ pathEnabled: false, httpPort: 8082, subdomain: 'images' });
     });
 
     it('never puts the saved Terraform passphrase into the form', async () => {
@@ -146,27 +123,6 @@ describe('format attributes of the repository form', () => {
         terraform: { registryHost: 'terraform.example.com:8443' },
       }))).toEqual({});
     });
-
-    it('checks the OCI connector ports', () => {
-      const errors = validateRepository(formData('oci', 'hosted', { oci: { httpPort: 70000, httpsPort: 0 } }));
-      expect(errors['oci.httpPort']).toBe('Port must be between 1 and 65535');
-      expect(errors['oci.httpsPort']).toBe('Port must be between 1 and 65535');
-    });
-
-    it('requires both regexes for keyless cosign enforcement', () => {
-      const errors = validateRepository(formData('oci', 'hosted', { oci: { cosign: { enforcement: 'KEYLESS' } } }));
-      expect(errors['oci.cosign.identityRegex']).toBeDefined();
-      expect(errors['oci.cosign.issuerRegex']).toBeDefined();
-    });
-
-    it('requires a valid URL for a custom OCI proxy index', () => {
-      expect(validateRepository(formData('oci', 'proxy', { oci: { ociProxy: { indexType: 'CUSTOM' } } }))['oci.ociProxy.indexUrl'])
-        .toBe('Index URL is required when Custom index is selected');
-      expect(validateRepository(formData('oci', 'proxy', { oci: { ociProxy: { indexType: 'CUSTOM', indexUrl: 'nope' } } }))['oci.ociProxy.indexUrl'])
-        .toBe('Invalid URL format');
-      expect(validateRepository(formData('oci', 'proxy', { oci: { ociProxy: { indexType: 'CUSTOM', indexUrl: 'https://index.example.com' } } })))
-        .toEqual({});
-    });
   });
 
   describe('REST payload', () => {
@@ -204,42 +160,6 @@ describe('format attributes of the repository form', () => {
       expect(buildRepositoryConfig(formData('terraform', 'hosted', { terraformSigning: { keypair: 'KEY', passphrase: '' } })).terraformSigning)
         .toEqual({ keypair: 'KEY' });
       expect(buildRepositoryConfig(formData('terraform', 'hosted')).terraformSigning).toBeUndefined();
-    });
-
-    it('sends the OCI connector settings of a hosted repository', () => {
-      expect(buildRepositoryConfig(formData('oci', 'hosted', {
-        oci: { pathEnabled: false, httpPort: 8082, httpsPort: null, subdomain: '', forceBasicAuth: true, cosign: { enforcement: 'NONE', identityRegex: 'x' } },
-      })).oci).toEqual({
-        pathEnabled: false,
-        forceBasicAuth: true,
-        httpPort: 8082,
-        httpsPort: null,
-        subdomain: null,
-        cosign: { enforcement: 'NONE' },
-      });
-    });
-
-    it('sends the OCI proxy index and keyless policy', () => {
-      expect(buildRepositoryConfig(formData('oci', 'proxy', {
-        oci: {
-          cosign: { enforcement: 'KEYLESS', identityRegex: '^me$', issuerRegex: '^issuer$' },
-          ociProxy: { indexType: 'CUSTOM', indexUrl: 'https://index.example.com', cacheForeignLayers: true, foreignLayerUrlWhitelist: ['.*', ' '] },
-        },
-      })).oci).toEqual({
-        pathEnabled: true,
-        forceBasicAuth: false,
-        httpPort: null,
-        httpsPort: null,
-        subdomain: null,
-        cosign: { enforcement: 'KEYLESS', identityRegex: '^me$', issuerRegex: '^issuer$' },
-        ociProxy: {
-          indexType: 'CUSTOM',
-          indexUrl: 'https://index.example.com',
-          useTrustStoreForIndexAccess: false,
-          cacheForeignLayers: true,
-          foreignLayerUrlWhitelist: ['.*'],
-        },
-      });
     });
   });
 });

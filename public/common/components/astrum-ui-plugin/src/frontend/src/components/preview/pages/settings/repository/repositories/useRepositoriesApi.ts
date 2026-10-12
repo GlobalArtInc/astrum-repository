@@ -728,33 +728,6 @@ export function buildRepositoryConfig(data: RepositoryFormData): Record<string, 
     }
   }
 
-  if (data.format === 'oci') {
-    const oci = data.oci ?? {};
-    const keyless = oci.cosign?.enforcement === 'KEYLESS';
-    config.oci = {
-      pathEnabled: oci.pathEnabled ?? true,
-      forceBasicAuth: oci.forceBasicAuth ?? false,
-      httpPort: oci.httpPort || null,
-      httpsPort: oci.httpsPort || null,
-      subdomain: oci.subdomain || null,
-      cosign: {
-        enforcement: keyless ? 'KEYLESS' : 'NONE',
-        ...(keyless ? { identityRegex: oci.cosign?.identityRegex, issuerRegex: oci.cosign?.issuerRegex } : {}),
-      },
-      ...(data.type === 'proxy'
-        ? {
-            ociProxy: {
-              indexType: oci.ociProxy?.indexType ?? 'REGISTRY',
-              indexUrl: oci.ociProxy?.indexType === 'CUSTOM' ? oci.ociProxy?.indexUrl || null : null,
-              useTrustStoreForIndexAccess: oci.ociProxy?.useTrustStoreForIndexAccess ?? false,
-              cacheForeignLayers: oci.ociProxy?.cacheForeignLayers ?? false,
-              foreignLayerUrlWhitelist: (oci.ociProxy?.foreignLayerUrlWhitelist ?? []).filter((url) => url.trim()),
-            },
-          }
-        : {}),
-    };
-  }
-
   if (data.format === 'pypi' && data.type === 'proxy') {
     // Always emit the `pypi` block for pypi proxies. Guarding on `data.pypi`
     // here meant a create where the user never opened the PyPI section sent
