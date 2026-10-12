@@ -19,7 +19,13 @@ secrets.
   configuration, the content engine with raw, maven2, npm, pypi and docker/OCI, components/assets/search/
   upload/browse API, 417 tests); M3 (UI) is next. Not deployed. Agent brief templates:
   `/home/user/wt/M1-BRIEF.md`, `/home/user/wt/M2-BRIEF.md`; shared Rust build dir `/home/user/wt/m1-target`
-  (`CARGO_INCREMENTAL=0`). Open question to the owner: keep the `astrum` schema plus a migrator, or tables
+  (`CARGO_INCREMENTAL=0`). Test instance live at https://next.astrum.globalart.hu (since 2026-10-12): the
+  `Server` workflow publishes `globalartltd/astrum-repository:next-<YYYYMMDDHHMMSS>-<sha7>` on pushes to main
+  (line `published ...` in the "container image" job); to deploy, set `astrum_next_version` in infra
+  `infralive/ansible/roles/astrum/defaults/main.yaml`, commit `Update astrum_next_version to <tag>` as Roman,
+  push, dispatch `provision.yml` (`apply`, `name=prod1-astrum1`). It runs as `astrum-next.service` on
+  `prod1-astrum1`, port 8082, data `/opt/astrum-next/data`, database `astrum-next` on `prod1-dbms1`; route and
+  certificate in gitops `clusters/prod1/platform/astrum/next.yaml`. Open question to the owner: keep the `astrum` schema plus a migrator, or tables
   identical to the Java server's.
 - Known open defects: `/service/rest/v1/user-telemetry/javascript` 404 on every page; certificate check
   in the repository HTTP settings calls a missing truststore endpoint; saving raw proxy query params,
