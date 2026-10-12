@@ -1,4 +1,5 @@
 mod file;
+mod group;
 mod s3;
 
 use std::time::Duration;
@@ -35,6 +36,11 @@ pub fn routes() -> Router<AppState> {
         .route(
             &format!("{BLOBSTORES}/file/{{name}}"),
             get(file::read).put(file::update),
+        )
+        .route(&format!("{BLOBSTORES}/group"), post(group::create))
+        .route(
+            &format!("{BLOBSTORES}/group/{{name}}"),
+            get(group::read).put(group::update),
         )
         .route(&format!("{BLOBSTORES}/s3"), post(s3::create))
         .route(

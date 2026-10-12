@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use astrum_db::entity::{blob_store, repository};
 use sea_orm::sea_query::{Expr, Func};
@@ -76,6 +76,7 @@ pub struct Writer {
     txn: DatabaseTransaction,
     repositories: Vec<Repository>,
     blob_stores: BTreeSet<String>,
+    grouped: BTreeMap<String, String>,
     cleanup_policies: BTreeSet<String>,
     routing_rules: BTreeSet<String>,
 }
@@ -86,18 +87,34 @@ impl Writer {
         txn.execute_unprepared(&format!("SELECT pg_advisory_xact_lock({WRITE_LOCK})"))
             .await?;
         let repositories = list(&txn).await?;
-        let blob_stores = blob_store::Entity::find()
+        let stores: Vec<(String, String, serde_json::Value)> = blob_store::Entity::find()
             .select_only()
             .column(blob_store::Column::Name)
-            .into_tuple::<String>()
+            .column(blob_store::Column::Kind)
+            .column(blob_store::Column::Attributes)
+            .into_tuple()
             .all(&txn)
-            .await?
-            .into_iter()
-            .collect();
+            .await?;
+        let mut grouped = BTreeMap::new();
+        for (name, kind, attributes) in &stores {
+            if kind != "Group" {
+                continue;
+            }
+            for member in attributes["group"]["members"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(serde_json::Value::as_str)
+            {
+                grouped.insert(member.to_owned(), name.clone());
+            }
+        }
+        let blob_stores = stores.into_iter().map(|(name, _, _)| name).collect();
         Ok(Self {
             txn,
             repositories,
             blob_stores,
+            grouped,
             cleanup_policies: BTreeSet::new(),
             routing_rules: BTreeSet::new(),
         })
@@ -118,6 +135,16 @@ impl Writer {
             );
         }
         self.check(&repository, &mut problems);
+        if let Some(blob_store) = repository.blob_store()
+            && let Some(group) = self.grouped.get(blob_store)
+        {
+            problems.add(
+                "blobStoreName",
+                format!(
+                    "the blob store \"{blob_store}\" is a member of the group \"{group}\"; use the group"
+                ),
+            );
+        }
         problems.finish().map_err(WriteError::Invalid)?;
         let now = chrono::Utc::now().fixed_offset();
         let row = repository::ActiveModel {
