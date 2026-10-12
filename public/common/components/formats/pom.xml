@@ -35,6 +35,7 @@
     <module>astrum-repository-gitlfs</module>
     <module>astrum-repository-yum</module>
     <module>astrum-repository-swift</module>
+    <module>astrum-repository-huggingface</module>
   </modules>
 
 </project>
