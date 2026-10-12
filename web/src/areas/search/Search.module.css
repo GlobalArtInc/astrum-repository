@@ -1,0 +1,183 @@
+.filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-4);
+  background: var(--color-panel-solid);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  min-height: 24px;
+}
+
+.mono {
+  font-family: var(--code-font-family);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+}
+
+.nameCell {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.link {
+  color: var(--accent-11);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+  border-radius: var(--radius-1);
+}
+
+.criteria {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-4);
+  background: var(--color-panel-solid);
+}
+
+.criteriaList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.criterion {
+  display: grid;
+  grid-template-columns: minmax(10rem, 14rem) minmax(8rem, 10rem) minmax(0, 1fr) auto;
+  grid-template-areas: "key operator value remove";
+  align-items: start;
+  gap: var(--space-2);
+}
+
+.criterionKey {
+  grid-area: key;
+  min-width: 0;
+}
+
+.criterionOperator {
+  grid-area: operator;
+  min-width: 0;
+}
+
+.criterionRemove {
+  grid-area: remove;
+}
+
+.operator {
+  display: flex;
+  align-items: center;
+  min-height: var(--space-6);
+  padding: 0 var(--space-2);
+  color: var(--gray-11);
+  font-size: var(--font-size-2);
+}
+
+.criterionValue {
+  grid-area: value;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.criteriaActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.full {
+  width: 100%;
+}
+
+.recentItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}
+
+.version {
+  font-family: var(--code-font-family);
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+}
+
+.panelNote {
+  padding: var(--space-1) var(--space-2);
+  color: var(--gray-11);
+  font-size: var(--font-size-2);
+}
+
+@media (max-width: 1023px) {
+  .filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .query {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 639px) {
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-3);
+  }
+
+  .criterion {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "key remove"
+      "operator operator"
+      "value value";
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--gray-a4);
+  }
+
+  .itemMeta .repositoryName {
+    display: none;
+  }
+}
