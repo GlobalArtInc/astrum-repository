@@ -1,6 +1,6 @@
 import { Tooltip } from '@radix-ui/themes';
 import { Fragment } from 'react';
-import { NavLink, useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import type { MenuEntry } from '../app/area';
 import { useVisibleMenu } from '../app/registry';
 import { useT } from '../i18n';
@@ -36,17 +36,18 @@ export function MenuItems({
               const Icon = entry.icon;
               const label = t(entry.label);
               const link = (
-                <NavLink
+                <Link
                   to={entry.to}
                   className={styles.item}
                   aria-current={isActive(entry, pathname) ? 'page' : undefined}
                   aria-label={collapsed ? label : undefined}
                   onClick={onNavigate}
-                  end={entry.to === '/'}
                 >
-                  <Icon size={18} aria-hidden="true" />
-                  {!collapsed && <span>{label}</span>}
-                </NavLink>
+                  <span className={styles.itemIcon}>
+                    <Icon size={18} aria-hidden="true" />
+                  </span>
+                  {!collapsed && <span className={styles.itemText}>{label}</span>}
+                </Link>
               );
               return (
                 <li key={entry.id}>
@@ -74,7 +75,11 @@ export function SideMenu({ collapsed, version }: { collapsed: boolean; version: 
       <nav aria-label={t('shell.menu.label')} className={styles.nav}>
         <MenuItems collapsed={collapsed} />
       </nav>
-      {!collapsed && <div className={styles.version}>{t('shell.menu.version', { version })}</div>}
+      {!collapsed && (
+        <div className={styles.sideFoot}>
+          <div className={styles.version}>{t('shell.menu.version', { version })}</div>
+        </div>
+      )}
     </aside>
   );
 }

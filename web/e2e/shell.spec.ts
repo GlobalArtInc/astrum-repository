@@ -20,9 +20,9 @@ test('the server sends the UI with its security headers', async ({ request, serv
 
 test('theme and language change and stay after a reload', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.getByRole('button', { name: 'Theme' }).click();
-  await page.getByRole('menuitemradio', { name: 'Light' }).click();
+  await page.getByRole('button', { name: 'Switch to the light theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.getByRole('button', { name: 'Switch to the dark theme' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Language' }).click();
   await page.getByRole('menuitemradio', { name: 'Русский' }).click();
@@ -47,13 +47,59 @@ test('the menu collapses and remembers it', async ({ page }) => {
   await expect(menu.getByRole('link', { name: 'Dashboard' })).toBeVisible();
 });
 
-test('the search panel opens with the keyboard', async ({ page }) => {
+test('the header search opens a dropdown under its field', async ({ page }) => {
   await page.keyboard.press('Control+k');
-  const panel = page.getByRole('dialog', { name: 'Search' });
+  const input = page.getByRole('combobox', { name: 'Search components' });
+  await expect(input).toBeFocused();
+  const panel = page.getByRole('listbox', { name: 'Search suggestions' });
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole('combobox', { name: 'Search' })).toBeFocused();
+  const field = await input.boundingBox();
+  const dropdown = await panel.boundingBox();
+  expect(dropdown && field && dropdown.y > field.y + field.height).toBe(true);
   await page.keyboard.press('Escape');
   await expect(panel).toHaveCount(0);
+});
+
+test('the header keeps the controls of Astrum One', async ({ page }) => {
+  const header = page.getByRole('banner').first();
+  const names = await header
+    .getByRole('button')
+    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')));
+  expect(names).toEqual([
+    'Collapse the menu',
+    'Refresh',
+    'Switch to the light theme',
+    'Language',
+    'System status',
+    'Help and documentation',
+    'Account menu of Administrator User',
+  ]);
+  await expect(header.getByRole('button', { name: /Account menu/ })).toHaveText('AD');
+  await header.getByRole('button', { name: 'Help and documentation' }).click();
+  await expect(page.getByRole('menuitem')).toHaveCount(6);
+  await expect(page.getByText('Version: ')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(header.getByRole('button', { name: 'Language' })).toHaveCount(0);
+  await expect(header.getByRole('button', { name: 'Search', exact: true })).toBeVisible();
+  await noHorizontalScroll(page);
+});
+
+test('the settings hub shows the old sections without SSRF and audit tiles', async ({ page }) => {
+  await page.goto('/settings');
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Repository', 'Security']);
+  const security = page.getByRole('region', { name: 'Security' });
+  await expect(security.getByRole('link')).toHaveText([
+    /^Users/,
+    /^Roles/,
+    /^Privileges/,
+    /^Realms/,
+    /^Anonymous Access/,
+  ]);
+  await expect(page.getByRole('link', { name: /SSRF/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Audit/ })).toHaveCount(0);
+  await page.goto('/admin/security/ssrf-protection');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
 test('a phone gets a drawer that keeps the focus', async ({ page }) => {
@@ -92,10 +138,10 @@ test('old hash addresses lead to their new paths', async ({ page }) => {
 
 test('a missing page keeps its address', async ({ page }) => {
   await page.goto('/no/such/page?x=1');
-  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
-  await expect(page.getByText('/no/such/page?x=1')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Page Not Found' })).toBeVisible();
+  await expect(page.getByText('404')).toBeVisible();
   await expect(page).toHaveURL(/\/no\/such\/page\?x=1$/);
-  await expect(page).toHaveTitle('Page not found - Astrum Repository');
-  await page.getByRole('link', { name: 'Go to the dashboard' }).click();
+  await expect(page).toHaveTitle('Page Not Found - GlobalArt Astrum Repository');
+  await page.getByRole('link', { name: 'Back to the Dashboard' }).click();
   await expect(page).toHaveURL(/\/$/);
 });

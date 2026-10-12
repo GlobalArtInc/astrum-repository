@@ -23,6 +23,7 @@ interface ThemeState {
   preference: ThemePreference;
   appearance: Appearance;
   setPreference(preference: ThemePreference): void;
+  toggle(): void;
 }
 
 const ThemeContext = createContext<ThemeState | null>(null);
@@ -34,10 +35,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     writeStored(THEME_KEY, next);
     setCurrent(next);
   }, []);
-  const value = useMemo(
-    () => ({ preference, appearance: resolveAppearance(preference, prefersLight), setPreference }),
-    [preference, prefersLight, setPreference],
-  );
+  const value = useMemo(() => {
+    const appearance = resolveAppearance(preference, prefersLight);
+    return {
+      preference,
+      appearance,
+      setPreference,
+      toggle: () => setPreference(appearance === 'dark' ? 'light' : 'dark'),
+    };
+  }, [preference, prefersLight, setPreference]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

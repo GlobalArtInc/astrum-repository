@@ -1,11 +1,11 @@
-import { FolderOpen, History, Package, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Database, FolderOpen, History, Package, Search } from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useApi, withQuery } from '../../api';
 import type { SearchResultsProps } from '../../app/area';
 import { useT } from '../../i18n';
 import { SearchGroup, SearchItem } from '../../shell/search';
-import { formatName } from '../../ui';
+import { FormatBadge, TypeBadge } from '../../ui';
 import {
   browsePath,
   componentPath,
@@ -59,6 +59,21 @@ export function matchRepositories(repositories: readonly RepositorySummary[], te
     .slice(0, PANEL_REPOSITORIES);
 }
 
+export function highlight(text: string, query: string): ReactNode {
+  const wanted = query.trim().toLowerCase();
+  const at = wanted === '' ? -1 : text.toLowerCase().indexOf(wanted);
+  if (at < 0) {
+    return text;
+  }
+  return (
+    <>
+      {text.slice(0, at)}
+      <strong className={styles.match}>{text.slice(at, at + wanted.length)}</strong>
+      {text.slice(at + wanted.length)}
+    </>
+  );
+}
+
 export function submitSearch(query: string): string {
   rememberSearch(query);
   return searchAddress(query);
@@ -74,7 +89,7 @@ function RecentSearches() {
     <SearchGroup title={t('search.panel.recent')}>
       {recent.map((entry) => (
         <SearchItem key={entry} to={searchAddress(entry)} onSelect={() => rememberSearch(entry)}>
-          <History size={16} aria-hidden="true" color="var(--gray-10)" />
+          <History size={16} aria-hidden="true" />
           <span className={styles.itemText}>{entry}</span>
         </SearchItem>
       ))}
@@ -90,7 +105,7 @@ export function HeaderSearchResults({ query }: SearchResultsProps) {
   const repositories = useApi<RepositorySummary[]>(query === '' ? null : REPOSITORIES);
   const wanted = settled.trim().length >= MIN_QUERY ? settled.trim() : null;
   const components = useApi<SearchPage<SearchComponent>>(
-    wanted ? withQuery(SEARCH, { q: wanted, direction: 'desc' }) : null,
+    wanted ? withQuery(SEARCH, { q: wanted, sort: 'name', direction: 'asc' }) : null,
   );
   const repositoryMatches = useMemo(
     () => matchRepositories(repositories.data ?? [], query),
@@ -112,13 +127,13 @@ export function HeaderSearchResults({ query }: SearchResultsProps) {
     <>
       <SearchGroup title={t('search.panel.searchIn', { query })}>
         <SearchItem to={searchAddress(query)} onSelect={remember}>
-          <Search size={16} aria-hidden="true" color="var(--gray-10)" />
+          <Search size={16} aria-hidden="true" />
           <span className={styles.itemText}>{t('search.panel.everywhere')}</span>
         </SearchItem>
         {here && (
           <SearchItem to={searchAddress(query, here)} onSelect={remember}>
-            <FolderOpen size={16} aria-hidden="true" color="var(--gray-10)" />
-            <span className={styles.itemText}>{t('search.panel.thisRepository', { repository: here })}</span>
+            <FolderOpen size={16} aria-hidden="true" />
+            <span className={styles.itemText}>{t('search.panel.thisRepository')}</span>
           </SearchItem>
         )}
       </SearchGroup>
@@ -126,9 +141,12 @@ export function HeaderSearchResults({ query }: SearchResultsProps) {
         <SearchGroup title={t('search.panel.repositories')}>
           {repositoryMatches.map((repository) => (
             <SearchItem key={repository.name} to={browsePath(repository.name)}>
-              <FolderOpen size={16} aria-hidden="true" color="var(--gray-10)" />
-              <span className={styles.itemText}>{repository.name}</span>
-              <span className={styles.itemMeta}>{formatName(repository.format)}</span>
+              <Database size={16} aria-hidden="true" />
+              <span className={styles.itemText}>{highlight(repository.name, query)}</span>
+              <span className={styles.itemMeta}>
+                <FormatBadge format={repository.format} variant="name" />
+                <TypeBadge type={repository.type} variant="outline" />
+              </span>
             </SearchItem>
           ))}
         </SearchGroup>
@@ -137,15 +155,15 @@ export function HeaderSearchResults({ query }: SearchResultsProps) {
         <SearchGroup title={t('search.panel.components')}>
           {componentMatches?.map((component) => (
             <SearchItem key={component.id} to={componentPath(component)} onSelect={remember}>
-              <Package size={16} aria-hidden="true" color="var(--gray-10)" />
+              <Package size={16} aria-hidden="true" />
               <span className={styles.itemText}>
-                {component.name}
-                {component.version && <span className={styles.version}> {component.version}</span>}
-                {component.group && <span className={styles.version}> · {component.group}</span>}
+                {highlight(component.name, query)}
+                {component.version && <span className={styles.version}>{component.version}</span>}
+                {component.group && <span className={styles.group}>{component.group}</span>}
               </span>
               <span className={styles.itemMeta}>
                 <span className={styles.repositoryName}>{component.repository}</span>
-                <span>{formatName(component.format)}</span>
+                <FormatBadge format={component.format} variant="name" />
               </span>
             </SearchItem>
           ))}

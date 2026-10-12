@@ -113,7 +113,7 @@
   "search.panel.recent": "Recent searches",
   "search.panel.searchIn": "Search for “{query}” in…",
   "search.panel.everywhere": "all repositories",
-  "search.panel.thisRepository": "this repository, {repository}",
+  "search.panel.thisRepository": "this repository",
   "search.panel.repositories": "Repositories",
   "search.panel.components": "Components",
   "search.panel.searching": "Searching…",

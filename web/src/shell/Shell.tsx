@@ -6,11 +6,10 @@ import { useSession } from '../auth/state';
 import { useT } from '../i18n';
 import { COMPACT, readStored, useMediaQuery, writeStored } from '../ui/hooks';
 import { Header } from './Header';
-import { versionOf } from './HeaderMenus';
 import { MobileDrawer } from './MobileDrawer';
 import styles from './Shell.module.css';
 import { SideMenu } from './SideMenu';
-import { SearchPanel, useSearchShortcut } from './search';
+import { useSearchShortcut } from './search';
 
 export const SIDEBAR_KEY = 'astrum.sidebar.open';
 
@@ -49,16 +48,16 @@ export function Shell() {
         compact={compact}
         collapsed={!sidebarOpen}
         onToggleMenu={toggleMenu}
-        onOpenSearch={() => setSearchOpen(true)}
+        searchOpen={searchOpen}
+        onSearchOpenChange={setSearchOpen}
       />
       <div className={styles.body}>
-        {!compact && <SideMenu collapsed={!sidebarOpen} version={versionOf(state)} />}
+        {!compact && <SideMenu collapsed={!sidebarOpen} version={state.version} />}
         <main id="main" tabIndex={-1} className={styles.main}>
           <Outlet />
         </main>
       </div>
-      {compact && <MobileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} version={versionOf(state)} />}
-      <SearchPanel open={searchOpen} onOpenChange={setSearchOpen} />
+      {compact && <MobileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} version={state.version} />}
       {watchers.map((Watcher) => (
         <Watcher key={Watcher.displayName ?? Watcher.name} />
       ))}

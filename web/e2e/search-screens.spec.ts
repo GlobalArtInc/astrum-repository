@@ -59,9 +59,8 @@ for (const size of SIZES) {
 
       await page.goto('/browse/search-npm');
       await page.keyboard.press('Control+k');
-      const panel = page.getByRole('dialog', { name: 'Search' });
-      await panel.getByRole('combobox', { name: 'Search' }).fill('astrum');
-      await expect(panel.getByRole('group', { name: 'Components' })).toBeVisible();
+      await page.getByRole('combobox', { name: 'Search components' }).fill('astrum');
+      await expect(page.getByRole('group', { name: 'Components' })).toBeVisible();
       await shoot(page, `search-panel-${suffix}`);
       await page.keyboard.press('Escape');
 

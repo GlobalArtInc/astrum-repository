@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SearchPanel } from '../../shell/search';
@@ -64,17 +64,20 @@ describe('the header search', () => {
   it('offers scopes, five repositories and six components', async () => {
     const calls = stub();
     panel('/browse/raw-files/tools');
-    await userEvent.type(screen.getByRole('combobox', { name: 'Search' }), 'maven');
+    await userEvent.type(screen.getByRole('combobox', { name: 'Search components' }), 'maven');
     expect(screen.getByRole('option', { name: 'all repositories' })).toHaveAttribute(
       'href',
       '/search?q=maven',
     );
-    expect(screen.getByRole('option', { name: 'this repository, raw-files' })).toHaveAttribute(
+    expect(screen.getByRole('option', { name: 'this repository' })).toHaveAttribute(
       'href',
       '/search?q=maven&repository=raw-files',
     );
     const repositories = await screen.findByRole('group', { name: 'Repositories' });
     expect(repositories.querySelectorAll('[data-search-item]')).toHaveLength(3);
+    const central = within(repositories).getByRole('option', { name: /maven-central/ });
+    expect(central.querySelector('strong')).toHaveTextContent('maven');
+    expect(central).toHaveTextContent('maven-centralMavenHosted');
     const components = await screen.findByRole('group', { name: 'Components' });
     expect(components.querySelectorAll('[data-search-item]')).toHaveLength(6);
     expect(screen.getByRole('option', { name: /maven-plugin-0/ })).toHaveAttribute(
@@ -83,12 +86,14 @@ describe('the header search', () => {
     );
     const searches = calls.filter((url) => url.pathname === '/service/rest/v1/search');
     expect(searches.map((url) => url.searchParams.get('q'))).toEqual(['maven']);
+    expect(searches[0]?.searchParams.get('sort')).toBe('name');
+    expect(searches[0]?.searchParams.get('direction')).toBe('asc');
   });
 
   it('opens the chosen entry with the keyboard and remembers the search', async () => {
     stub();
     const { router } = panel('/');
-    const input = screen.getByRole('combobox', { name: 'Search' });
+    const input = screen.getByRole('combobox', { name: 'Search components' });
     await userEvent.type(input, 'maven');
     await screen.findByRole('group', { name: 'Components' });
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
@@ -100,7 +105,7 @@ describe('the header search', () => {
   it('searches everywhere on Enter without a choice', async () => {
     stub();
     const { router } = panel('/');
-    await userEvent.type(screen.getByRole('combobox', { name: 'Search' }), 'junit{Enter}');
+    await userEvent.type(screen.getByRole('combobox', { name: 'Search components' }), 'junit{Enter}');
     await waitFor(() => expect(router.state.location.search).toBe('?q=junit'));
     expect(JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? '[]')).toEqual(['junit']);
   });

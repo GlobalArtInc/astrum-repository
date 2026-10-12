@@ -1,83 +1,123 @@
-import { Button, DropdownMenu, IconButton, Text, Tooltip } from '@radix-ui/themes';
+import { DropdownMenu, Text, Tooltip } from '@radix-ui/themes';
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  BookOpen,
-  CircleHelp,
+  Bell,
+  CircleQuestionMark,
+  ExternalLink,
   KeyRound,
   Languages,
-  LogIn,
   LogOut,
-  Monitor,
   Moon,
   Package,
+  RefreshCw,
+  Search,
   Sun,
   UserRound,
 } from 'lucide-react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
+import { useVisibleSettings } from '../app/registry';
 import { loginPath } from '../auth/returnTo';
 import { useSession } from '../auth/state';
 import { useSignOut } from '../auth/useSignOut';
 import { LANGUAGES, type Language, useI18n } from '../i18n';
 import styles from './Shell.module.css';
-import { type ThemePreference, useTheme } from './theme';
+import { useTheme } from './theme';
 
-export const DOCUMENTATION_URL = 'https://github.com/GlobalArtInc/astrum-repository/tree/main/docs';
+const LINKS = 'https://links.globalart.dev/products/astrum';
+const UTM = 'utm_medium=product&utm_source=astrum_repo';
 
-const THEME_LABELS: Record<ThemePreference, string> = {
-  dark: 'shell.theme.dark',
-  light: 'shell.theme.light',
-  system: 'shell.theme.system',
-};
+export function helpLink(path: string, campaign: string): string {
+  return `${LINKS}/${path}?${UTM}&utm_campaign=${campaign}`;
+}
+
+export function documentationUrl(version: string): string {
+  const [major = '0', minor = '0'] = version.split(/[.-]/);
+  return helpLink(`docs/${major}.${minor}`, 'menu-docs');
+}
+
+export const DOCUMENTATION_URL = documentationUrl('3.0.0');
+
+export const STATUS_TILE = 'metric-health';
+export const STATUS_NEED = 'astrum:metrics:read';
 
 const LANGUAGE_NAMES: Record<Language, string> = {
   en: 'shell.language.en',
   ru: 'shell.language.ru',
 };
 
-type Size = '2' | '3';
+type HeaderButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  label: string;
+  ref?: Ref<HTMLButtonElement>;
+};
 
-export function ThemeMenu({ size = '3' }: { size?: Size }) {
-  const { t } = useI18n();
-  const { preference, appearance, setPreference } = useTheme();
-  const Icon = preference === 'system' ? Monitor : appearance === 'dark' ? Moon : Sun;
+export function HeaderButton({ label, children, className, ref, ...rest }: HeaderButtonProps) {
   return (
-    <DropdownMenu.Root>
-      <Tooltip content={t('shell.theme.label')}>
-        <DropdownMenu.Trigger>
-          <IconButton variant="surface" color="gray" size={size} aria-label={t('shell.theme.label')}>
-            <Icon size={18} aria-hidden="true" />
-          </IconButton>
-        </DropdownMenu.Trigger>
-      </Tooltip>
-      <DropdownMenu.Content align="end">
-        <DropdownMenu.Label>{t('shell.theme.label')}</DropdownMenu.Label>
-        <DropdownMenu.RadioGroup
-          value={preference}
-          onValueChange={(value) => setPreference(value as ThemePreference)}
-        >
-          {(['dark', 'light', 'system'] as const).map((value) => (
-            <DropdownMenu.RadioItem key={value} value={value}>
-              {t(THEME_LABELS[value])}
-            </DropdownMenu.RadioItem>
-          ))}
-        </DropdownMenu.RadioGroup>
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
+    <button
+      ref={ref}
+      type="button"
+      aria-label={label}
+      className={className ? `${styles.headerButton} ${className}` : styles.headerButton}
+      {...rest}
+    >
+      {children}
+    </button>
   );
 }
 
-export function LanguageMenu({ size = '3' }: { size?: Size }) {
+function WithTooltip({ label, children }: { label: string; children: ReactNode }) {
+  return <Tooltip content={label}>{children}</Tooltip>;
+}
+
+export function RefreshButton() {
+  const { t } = useI18n();
+  const client = useQueryClient();
+  const label = t('shell.header.refresh');
+  return (
+    <WithTooltip label={label}>
+      <HeaderButton label={label} onClick={() => void client.invalidateQueries()}>
+        <RefreshCw size={18} aria-hidden="true" />
+      </HeaderButton>
+    </WithTooltip>
+  );
+}
+
+export function SearchButton({ onClick }: { onClick(): void }) {
+  const { t } = useI18n();
+  return (
+    <HeaderButton label={t('shell.search.open')} aria-haspopup="dialog" onClick={onClick}>
+      <Search size={18} aria-hidden="true" />
+    </HeaderButton>
+  );
+}
+
+export function ThemeToggle() {
+  const { t } = useI18n();
+  const { appearance, toggle } = useTheme();
+  const label = appearance === 'dark' ? t('shell.theme.toLight') : t('shell.theme.toDark');
+  const Icon = appearance === 'dark' ? Sun : Moon;
+  return (
+    <WithTooltip label={label}>
+      <HeaderButton label={label} onClick={toggle}>
+        <Icon size={18} aria-hidden="true" />
+      </HeaderButton>
+    </WithTooltip>
+  );
+}
+
+export function LanguageMenu() {
   const { t, language, setLanguage } = useI18n();
+  const label = t('shell.language.label');
   return (
     <DropdownMenu.Root>
-      <Tooltip content={t('shell.language.label')}>
+      <WithTooltip label={label}>
         <DropdownMenu.Trigger>
-          <IconButton variant="surface" color="gray" size={size} aria-label={t('shell.language.label')}>
+          <HeaderButton label={label}>
             <Languages size={18} aria-hidden="true" />
-          </IconButton>
+          </HeaderButton>
         </DropdownMenu.Trigger>
-      </Tooltip>
+      </WithTooltip>
       <DropdownMenu.Content align="end">
-        <DropdownMenu.Label>{t('shell.language.label')}</DropdownMenu.Label>
         <DropdownMenu.RadioGroup value={language} onValueChange={(value) => setLanguage(value as Language)}>
           {LANGUAGES.map((value) => (
             <DropdownMenu.RadioItem key={value} value={value} lang={value}>
@@ -90,27 +130,92 @@ export function LanguageMenu({ size = '3' }: { size?: Size }) {
   );
 }
 
-export function HelpMenu({ size = '3' }: { size?: Size }) {
+export function StatusBell() {
+  const { t } = useI18n();
+  const { can } = useSession();
+  const navigate = useNavigate();
+  const health = useVisibleSettings().find((tile) => tile.id === STATUS_TILE);
+  if (!can(STATUS_NEED)) {
+    return null;
+  }
+  const label = t('shell.status.label');
+  return (
+    <WithTooltip label={label}>
+      <HeaderButton
+        label={label}
+        aria-disabled={health ? undefined : true}
+        onClick={() => {
+          if (health) {
+            navigate(health.to);
+          }
+        }}
+      >
+        <Bell size={18} aria-hidden="true" />
+      </HeaderButton>
+    </WithTooltip>
+  );
+}
+
+const HELP_LINKS: Array<Array<{ id: string; label: string; path: string; campaign: string }>> = [
+  [
+    {
+      id: 'releaseNotes',
+      label: 'shell.help.releaseNotes',
+      path: 'release-notes',
+      campaign: 'menu-release-notes',
+    },
+    { id: 'knowledgeBase', label: 'shell.help.knowledgeBase', path: 'kb', campaign: 'menu-knowledge' },
+    { id: 'guides', label: 'shell.help.guides', path: 'guides', campaign: 'menu-guides' },
+  ],
+  [
+    { id: 'community', label: 'shell.help.community', path: 'community', campaign: 'menu-community' },
+    { id: 'issues', label: 'shell.help.issues', path: 'issues', campaign: 'menu-issuetracker' },
+  ],
+];
+
+function ExternalItem({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <DropdownMenu.Item asChild>
+      <a href={href} target="_blank" rel="noopener noreferrer" className={styles.external}>
+        <span>{children}</span>
+        <ExternalLink size={14} aria-hidden="true" />
+      </a>
+    </DropdownMenu.Item>
+  );
+}
+
+export function HelpMenu() {
   const { t } = useI18n();
   const { state } = useSession();
+  const label = t('shell.help.label');
   return (
     <DropdownMenu.Root>
-      <Tooltip content={t('shell.help.label')}>
+      <WithTooltip label={label}>
         <DropdownMenu.Trigger>
-          <IconButton variant="surface" color="gray" size={size} aria-label={t('shell.help.label')}>
-            <CircleHelp size={18} aria-hidden="true" />
-          </IconButton>
+          <HeaderButton label={label}>
+            <CircleQuestionMark size={18} aria-hidden="true" />
+          </HeaderButton>
         </DropdownMenu.Trigger>
-      </Tooltip>
-      <DropdownMenu.Content align="end">
-        <DropdownMenu.Item asChild>
-          <a href={DOCUMENTATION_URL} target="_blank" rel="noopener noreferrer">
-            <BookOpen size={14} aria-hidden="true" />
-            {t('shell.help.documentation')}
-          </a>
-        </DropdownMenu.Item>
+      </WithTooltip>
+      <DropdownMenu.Content align="end" className={styles.spaced}>
+        <ExternalItem href={documentationUrl(state.version)}>{t('shell.help.documentation')}</ExternalItem>
+        {HELP_LINKS[0]?.map((link) => (
+          <ExternalItem key={link.id} href={helpLink(link.path, link.campaign)}>
+            {t(link.label)}
+          </ExternalItem>
+        ))}
         <DropdownMenu.Separator />
-        <DropdownMenu.Label>{t('shell.help.version', { version: versionOf(state) })}</DropdownMenu.Label>
+        {HELP_LINKS[1]?.map((link) => (
+          <ExternalItem key={link.id} href={helpLink(link.path, link.campaign)}>
+            {t(link.label)}
+          </ExternalItem>
+        ))}
+        <DropdownMenu.Separator />
+        <DropdownMenu.Label>
+          <Text size="1" className={styles.versionLabel}>
+            {t('shell.help.version', { version: versionOf(state) })}
+          </Text>
+        </DropdownMenu.Label>
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   );
@@ -120,11 +225,8 @@ export function versionOf(state: { version: string; revision: string | null }): 
   return state.revision ? `${state.version} (${state.revision})` : state.version;
 }
 
-export function initials(name: string, userId: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  const letters =
-    words.length >= 2 ? `${words[0]?.[0] ?? ''}${words[1]?.[0] ?? ''}` : (words[0] ?? userId).slice(0, 2);
-  return letters.toUpperCase();
+export function initials(userId: string): string {
+  return userId.trim().slice(0, 2).toUpperCase();
 }
 
 export function UserMenu() {
@@ -134,13 +236,17 @@ export function UserMenu() {
   const navigate = useNavigate();
   const signOut = useSignOut();
   if (!user) {
+    const label = t('shell.user.signIn');
     return (
-      <Button asChild variant="soft" size="3">
-        <Link to={loginPath(location.pathname + location.search)}>
-          <LogIn size={16} aria-hidden="true" />
-          {t('shell.user.signIn')}
+      <WithTooltip label={label}>
+        <Link
+          to={loginPath(location.pathname + location.search)}
+          className={styles.headerButton}
+          aria-label={label}
+        >
+          <UserRound size={18} aria-hidden="true" />
         </Link>
-      </Button>
+      </WithTooltip>
     );
   }
   return (
@@ -149,27 +255,27 @@ export function UserMenu() {
         <button
           type="button"
           className={styles.avatar}
-          aria-label={t('shell.user.menu', { name: user.name })}
+          aria-label={t('shell.user.menu', { name: user.name || user.userId })}
         >
-          {initials(user.name, user.userId)}
+          <span className={styles.avatarCircle}>{initials(user.userId)}</span>
         </button>
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content align="end" style={{ minWidth: 220 }}>
-        <DropdownMenu.Label style={{ height: 'auto', flexDirection: 'column', alignItems: 'flex-start' }}>
-          <Text size="2" weight="bold" style={{ color: 'var(--gray-12)' }}>
-            {user.name}
-          </Text>
-          <Text size="1" color="gray">
+      <DropdownMenu.Content align="end" className={`${styles.userMenu} ${styles.spaced}`}>
+        <DropdownMenu.Label className={styles.userLabel}>
+          <span className={styles.avatarSmall} aria-hidden="true">
+            {initials(user.userId)}
+          </span>
+          <Text size="2" weight="bold" className={styles.userId}>
             {user.userId}
           </Text>
         </DropdownMenu.Label>
         <DropdownMenu.Separator />
         <DropdownMenu.Item onSelect={() => navigate('/user/account')}>
-          <UserRound size={14} aria-hidden="true" />
+          <UserRound size={16} aria-hidden="true" />
           {t('shell.user.account')}
         </DropdownMenu.Item>
         <DropdownMenu.Item onSelect={() => navigate('/user/access-tokens')}>
-          <KeyRound size={14} aria-hidden="true" />
+          <KeyRound size={16} aria-hidden="true" />
           {t('shell.user.accessTokens')}
         </DropdownMenu.Item>
         {state.nugetApiKeyRealm && (
@@ -180,7 +286,7 @@ export function UserMenu() {
         )}
         <DropdownMenu.Separator />
         <DropdownMenu.Item onSelect={() => void signOut()}>
-          <LogOut size={14} aria-hidden="true" />
+          <LogOut size={16} aria-hidden="true" />
           {t('shell.user.signOut')}
         </DropdownMenu.Item>
       </DropdownMenu.Content>

@@ -117,7 +117,7 @@
   "search.panel.recent": "Недавние запросы",
   "search.panel.searchIn": "Искать «{query}» в…",
   "search.panel.everywhere": "всех репозиториях",
-  "search.panel.thisRepository": "этом репозитории, {repository}",
+  "search.panel.thisRepository": "этом репозитории",
   "search.panel.repositories": "Репозитории",
   "search.panel.components": "Компоненты",
   "search.panel.searching": "Поиск…",

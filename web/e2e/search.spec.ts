@@ -119,8 +119,9 @@ test('criteria search uses format keys and finds files with download links', asy
 
 test('the header search panel works with the keyboard', async ({ page }) => {
   await page.keyboard.press('Control+k');
-  const panel = page.getByRole('dialog', { name: 'Search' });
-  const input = panel.getByRole('combobox', { name: 'Search' });
+  const panel = page.getByRole('listbox', { name: 'Search suggestions' });
+  const input = page.getByRole('combobox', { name: 'Search components' });
+  await expect(input).toBeFocused();
   await input.fill('astrum');
   await expect(panel.getByRole('group', { name: 'Components' }).getByRole('option')).toHaveCount(5);
   await expect(panel.getByRole('option', { name: /astrum-client.*1\.4\.0/ })).toBeVisible();
@@ -150,7 +151,7 @@ test('the header search panel works with the keyboard', async ({ page }) => {
 
   await page.keyboard.press('Control+k');
   await input.fill('kit');
-  await expect(panel.getByRole('option', { name: 'this repository, search-npm' })).toBeVisible();
+  await expect(panel.getByRole('option', { name: 'this repository' })).toBeVisible();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
@@ -177,7 +178,7 @@ test('search pages fit a phone', async ({ page }) => {
   const box = await panel.boundingBox();
   expect(box?.width).toBe(390);
   expect(box?.height).toBe(844);
-  await panel.getByRole('combobox', { name: 'Search' }).fill('left');
+  await panel.getByRole('combobox', { name: 'Search components' }).fill('left');
   await expect(panel.getByRole('option', { name: /left-pad/ })).toBeVisible();
   await noHorizontalScroll(page);
 });

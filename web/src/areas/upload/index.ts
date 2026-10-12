@@ -1,4 +1,4 @@
-import { Upload } from 'lucide-react';
+import { HardDriveUpload } from 'lucide-react';
 import type { Area } from '../../app/area';
 import type { Need } from '../../auth/permissions';
 
@@ -22,7 +22,7 @@ export const uploadArea: Area = {
       id: 'upload',
       to: '/upload',
       label: 'upload.menu.label',
-      icon: Upload,
+      icon: HardDriveUpload,
       group: 'main',
       order: 40,
       need: UPLOAD_NEED,

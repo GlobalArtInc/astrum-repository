@@ -1,6 +1,4 @@
-import { IconButton, Theme } from '@radix-ui/themes';
-import { Search, X } from 'lucide-react';
-import { Dialog } from 'radix-ui';
+import { ArrowLeft, Search, X } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useVisibleSearch } from '../../app/registry';
@@ -30,48 +28,111 @@ export function useSearchShortcut(toggle: () => void): void {
   }, [toggle]);
 }
 
-function moveActive(container: HTMLElement | null, step: number, current: number): number {
-  const items = Array.from(container?.querySelectorAll<HTMLElement>(ITEM_SELECTOR) ?? []);
-  if (items.length === 0) {
-    return -1;
-  }
-  const next =
-    current < 0 ? (step > 0 ? 0 : items.length - 1) : (current + step + items.length) % items.length;
-  items.forEach((item, index) => {
-    item.dataset.active = String(index === next);
-    item.setAttribute('aria-selected', String(index === next));
-  });
-  items[next]?.scrollIntoView({ block: 'nearest' });
-  return next;
+export function isMac(): boolean {
+  return /mac|iphone|ipad/i.test(navigator.platform || navigator.userAgent);
 }
 
-export function SearchPanel({ open, onOpenChange }: { open: boolean; onOpenChange(open: boolean): void }) {
+function items(container: HTMLElement | null): HTMLElement[] {
+  return Array.from(container?.querySelectorAll<HTMLElement>(ITEM_SELECTOR) ?? []);
+}
+
+function markActive(container: HTMLElement | null, index: number): string | undefined {
+  const all = items(container);
+  all.forEach((item, position) => {
+    item.dataset.active = String(position === index);
+    item.setAttribute('aria-selected', String(position === index));
+  });
+  const chosen = all[index];
+  chosen?.scrollIntoView({ block: 'nearest' });
+  return chosen?.id;
+}
+
+export interface SearchPanelProps {
+  open: boolean;
+  onOpenChange(open: boolean): void;
+  layer?: boolean;
+}
+
+export function SearchPanel({ open, onOpenChange, layer = false }: SearchPanelProps) {
   const t = useT();
   const navigate = useNavigate();
   const providers = useVisibleSearch();
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(-1);
+  const [activeId, setActiveId] = useState<string | undefined>();
+  const container = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
   const listId = useId();
-  const close = () => onOpenChange(false);
+
+  const resetActive = () => {
+    markActive(results.current, -1);
+    setActive(-1);
+    setActiveId(undefined);
+  };
+
+  const finish = () => {
+    setQuery('');
+    resetActive();
+    input.current?.blur();
+    onOpenChange(false);
+  };
 
   useEffect(() => {
+    if (open && document.activeElement !== input.current) {
+      input.current?.focus();
+    }
     if (!open) {
-      setQuery('');
       setActive(-1);
+      setActiveId(undefined);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || layer) {
+      return;
+    }
+    const outside = (event: PointerEvent) => {
+      if (container.current && !container.current.contains(event.target as Node)) {
+        onOpenChange(false);
+      }
+    };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, [open, layer, onOpenChange]);
+
+  const move = (step: number) => {
+    const count = items(results.current).length;
+    if (count === 0) {
+      return;
+    }
+    const next = active < 0 ? (step > 0 ? 0 : count - 1) : (active + step + count) % count;
+    setActive(next);
+    setActiveId(markActive(results.current, next));
+  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      setActive(moveActive(results.current, event.key === 'ArrowDown' ? 1 : -1, active));
+      if (!open) {
+        onOpenChange(true);
+        return;
+      }
+      move(event.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (layer || !open) {
+        finish();
+      } else {
+        onOpenChange(false);
+      }
       return;
     }
     if (event.key === 'Enter') {
       event.preventDefault();
-      const items = results.current?.querySelectorAll<HTMLElement>(ITEM_SELECTOR);
-      const chosen = active >= 0 ? items?.[active] : undefined;
+      const chosen = active >= 0 ? items(results.current)[active] : undefined;
       if (chosen) {
         chosen.click();
         return;
@@ -80,7 +141,7 @@ export function SearchPanel({ open, onOpenChange }: { open: boolean; onOpenChang
       for (const provider of providers) {
         const target = text ? provider.submit?.(text) : null;
         if (target) {
-          close();
+          finish();
           navigate(target);
           return;
         }
@@ -88,61 +149,113 @@ export function SearchPanel({ open, onOpenChange }: { open: boolean; onOpenChang
     }
   };
 
+  const shown = open || layer;
+  const field = (
+    <div className={styles.field} data-focused={shown || undefined}>
+      <span className={styles.slot} aria-hidden="true">
+        <Search size={16} />
+      </span>
+      <input
+        ref={input}
+        className={styles.input}
+        type="text"
+        role="combobox"
+        autoComplete="off"
+        spellCheck={false}
+        aria-expanded={shown}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        aria-activedescendant={shown ? activeId : undefined}
+        aria-label={t('shell.search.label')}
+        placeholder={t('shell.search.placeholder')}
+        value={query}
+        onFocus={() => {
+          if (!open) {
+            onOpenChange(true);
+          }
+        }}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          resetActive();
+          if (!open) {
+            onOpenChange(true);
+          }
+        }}
+        onKeyDown={onKeyDown}
+      />
+      {query !== '' ? (
+        <button
+          type="button"
+          className={styles.clear}
+          aria-label={t('shell.search.clear')}
+          onClick={() => {
+            setQuery('');
+            resetActive();
+            input.current?.focus();
+          }}
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      ) : (
+        !layer && (
+          <span className={styles.slot} aria-hidden="true">
+            <kbd className={styles.kbd}>{isMac() ? '⌘ K' : 'Ctrl K'}</kbd>
+          </span>
+        )
+      )}
+    </div>
+  );
+
+  const dropdown = shown && (
+    <SearchPanelContext.Provider value={{ close: finish }}>
+      <div className={styles.dropdown}>
+        <div
+          ref={results}
+          id={listId}
+          role="listbox"
+          aria-label={t('shell.search.results')}
+          className={styles.results}
+        >
+          {providers.length === 0 || query.trim() === '' ? (
+            <div className={styles.hint}>{t('shell.search.hint')}</div>
+          ) : null}
+          {providers.map((provider) => (
+            <provider.Results key={provider.id} query={query.trim()} close={finish} />
+          ))}
+        </div>
+      </div>
+    </SearchPanelContext.Provider>
+  );
+
+  if (layer) {
+    return (
+      <div className={styles.layer} role="dialog" aria-modal="true" aria-label={t('shell.search.title')}>
+        <div className={styles.bar}>
+          <button type="button" className={styles.back} aria-label={t('shell.search.close')} onClick={finish}>
+            <ArrowLeft size={20} aria-hidden="true" />
+          </button>
+          <div ref={container} className={styles.container}>
+            {field}
+            {dropdown}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Theme>
-          <Dialog.Overlay className={styles.scrim} />
-          <Dialog.Content className={styles.panel} aria-describedby={undefined}>
-            <Dialog.Title className="visually-hidden">{t('shell.search.title')}</Dialog.Title>
-            <div className={styles.inputRow}>
-              <Search size={18} aria-hidden="true" color="var(--gray-10)" />
-              <input
-                className={styles.input}
-                type="search"
-                role="combobox"
-                aria-expanded="true"
-                aria-controls={listId}
-                aria-autocomplete="list"
-                aria-label={t('shell.search.label')}
-                placeholder={t('shell.search.placeholder')}
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setActive(-1);
-                }}
-                onKeyDown={onKeyDown}
-              />
-              <Dialog.Close asChild>
-                <IconButton variant="ghost" color="gray" aria-label={t('shell.search.close')}>
-                  <X size={18} aria-hidden="true" />
-                </IconButton>
-              </Dialog.Close>
-            </div>
-            <SearchPanelContext.Provider value={{ close }}>
-              <div
-                ref={results}
-                id={listId}
-                role="listbox"
-                aria-label={t('shell.search.results')}
-                className={styles.results}
-              >
-                {providers.length === 0 || query.trim() === '' ? (
-                  <div className={styles.hint}>{t('shell.search.hint')}</div>
-                ) : null}
-                {providers.map((provider) => (
-                  <provider.Results key={provider.id} query={query.trim()} close={close} />
-                ))}
-              </div>
-            </SearchPanelContext.Provider>
-            <div className={styles.footer}>
-              <span>{t('shell.search.keysMove')}</span>
-              <span>{t('shell.search.keysOpen')}</span>
-              <span>{t('shell.search.keysClose')}</span>
-            </div>
-          </Dialog.Content>
-        </Theme>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <div
+      ref={container}
+      role="search"
+      className={styles.container}
+      onBlur={(event) => {
+        if (open && !event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          onOpenChange(false);
+        }
+      }}
+    >
+      {field}
+      {dropdown}
+    </div>
   );
 }

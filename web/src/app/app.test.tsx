@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { KeyRound, Search, Users } from 'lucide-react';
+import { Activity, Search, Sparkles } from 'lucide-react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UiState } from '../api';
 import { dashboardArea } from '../areas/dashboard';
@@ -35,7 +35,7 @@ const testArea: Area = {
     {
       id: 'search',
       to: '/search',
-      label: 'shell.search.label',
+      label: 'shell.search.open',
       icon: Search,
       group: 'main',
       order: 20,
@@ -43,24 +43,26 @@ const testArea: Area = {
     },
   ],
   settings: [
+    { id: 'privileges', to: '/admin/security/privileges', need: 'astrum:privileges:read' },
     {
       id: 'users',
-      section: 'security',
+      section: 'repository',
       to: '/admin/security/users',
       title: 'shell.user.account',
       description: 'shell.user.accessTokens',
-      icon: Users,
-      order: 10,
+      icon: Sparkles,
+      order: 999,
       need: 'astrum:users:read',
     },
+    { id: 'blobstores', to: '/admin/repository/blobstores', need: 'astrum:blobstores:read' },
     {
-      id: 'stores',
-      section: 'repository',
-      to: '/admin/repository/blobstores',
-      title: 'shell.theme.label',
-      description: 'shell.theme.dark',
-      icon: KeyRound,
-      order: 10,
+      id: 'extra',
+      section: 'system',
+      to: '/admin/system/extra',
+      title: 'shell.user.account',
+      description: 'shell.user.accessTokens',
+      icon: Activity,
+      order: 5,
       need: 'astrum:blobstores:read',
     },
   ],
@@ -93,13 +95,75 @@ describe('the shell', () => {
     expect(screen.getByText('Astrum Repository 3.0.0-test')).toBeInTheDocument();
   });
 
-  it('names the version and revision in the help menu', async () => {
+  it('lists the help links and names the version and revision', async () => {
     app('/', { ...ADMIN_STATE, revision: 'abc1234' });
-    await userEvent.click(await screen.findByRole('button', { name: 'Help' }));
+    expect(await screen.findByText('Astrum Repository 3.0.0-test')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Help and documentation' }));
     expect(
-      await screen.findByText('Astrum Repository 3.0.0-test (abc1234)', { selector: '[role="menu"] *' }),
+      await screen.findByText('Version: 3.0.0-test (abc1234)', { selector: '[role="menu"] *' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Documentation' })).toHaveAttribute('target', '_blank');
+    const items = screen.getAllByRole('menuitem').map((item) => item.textContent);
+    expect(items).toEqual([
+      'Documentation',
+      'Release Notes',
+      'Knowledge Base',
+      'GlobalArt Guides',
+      'Community',
+      'Issue Tracker',
+    ]);
+    const documentation = screen.getByRole('menuitem', { name: 'Documentation' });
+    expect(documentation).toHaveAttribute('target', '_blank');
+    expect(documentation.getAttribute('href')).toMatch(
+      /^https:\/\/links\.globalart\.dev\/products\/astrum\/docs\/3\.0\?utm_medium=product&/,
+    );
+  });
+
+  it('keeps the old header controls in their order', async () => {
+    app('/');
+    const [header] = await screen.findAllByRole('banner');
+    if (!header) {
+      throw new Error('no header');
+    }
+    const names = within(header)
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label'));
+    expect(names).toEqual([
+      'Collapse the menu',
+      'Refresh',
+      'Switch to the light theme',
+      'Language',
+      'System status',
+      'Help and documentation',
+      'Account menu of Administrator User',
+    ]);
+    expect(within(header).getByRole('button', { name: /Account menu/ })).toHaveTextContent('AD');
+    expect(within(header).getByRole('combobox', { name: 'Search components' })).toHaveAttribute(
+      'placeholder',
+      'Search for components or CVEs...',
+    );
+  });
+
+  it('opens the health page from the bell once it exists', async () => {
+    const health: Area = {
+      id: 'health',
+      routes: [{ path: 'admin/support/metric-health', page: () => <p>health page</p> }],
+      settings: [{ id: 'metric-health', to: '/admin/support/metric-health' }],
+    };
+    const areas = [...AREAS, health];
+    const { router } = renderWithApp(null, {
+      path: '/',
+      state: ADMIN_STATE,
+      areas,
+      routes: buildRoutes(areas),
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'System status' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/support/metric-health'));
+  });
+
+  it('shows no bell to callers without the metrics permission', async () => {
+    app('/', { ...ADMIN_STATE, permissions: ['astrum:search:read'] });
+    await screen.findByRole('navigation', { name: 'Main menu' });
+    expect(screen.queryByRole('button', { name: 'System status' })).toBeNull();
   });
 
   it('hides what anonymous callers cannot use and offers to sign in', async () => {
@@ -130,10 +194,11 @@ describe('the shell', () => {
 
   it('keeps the address of a missing page', async () => {
     const { router } = app('/no/such/page?x=1');
-    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
-    expect(screen.getByText('/no/such/page?x=1')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Page Not Found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to the Dashboard' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Read the Documentation' })).toHaveAttribute('target', '_blank');
     expect(router.state.location.pathname).toBe('/no/such/page');
-    expect(document.title).toBe('Page not found - Astrum Repository');
+    expect(document.title).toBe('Page Not Found - GlobalArt Astrum Repository');
   });
 
   it('sends section addresses to their first page', async () => {
@@ -141,13 +206,14 @@ describe('the shell', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/settings'));
   });
 
-  it('switches the theme and remembers it', async () => {
+  it('switches the theme with one click and remembers it', async () => {
     app('/');
     expect(document.documentElement.dataset.theme).toBe('dark');
-    await userEvent.click(await screen.findByRole('button', { name: 'Theme' }));
-    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'Light' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Switch to the light theme' }));
     expect(document.documentElement.dataset.theme).toBe('light');
     expect(window.localStorage.getItem('astrum-theme-preference')).toBe('light');
+    await userEvent.click(screen.getByRole('button', { name: 'Switch to the dark theme' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
   it('switches the language and keeps it in a cookie', async () => {
@@ -178,43 +244,91 @@ describe('the shell', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('opens the search panel with Ctrl+K and moves through results', async () => {
+  it('focuses the header search with Ctrl+K and moves through the dropdown', async () => {
     const { router } = app('/');
     await screen.findByRole('navigation', { name: 'Main menu' });
     await userEvent.keyboard('{Control>}k{/Control}');
-    const panel = await screen.findByRole('dialog', { name: 'Search' });
-    const input = within(panel).getByRole('combobox', { name: 'Search' });
+    const input = screen.getByRole('combobox', { name: 'Search components' });
     expect(input).toHaveFocus();
+    expect(input).toHaveAttribute('aria-expanded', 'true');
     await userEvent.type(input, 'react');
-    expect(within(panel).getByRole('group', { name: 'Things' })).toBeInTheDocument();
+    const list = screen.getByRole('listbox', { name: 'Search suggestions' });
+    expect(within(list).getByRole('group', { name: 'Things' })).toBeInTheDocument();
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
-    expect(within(panel).getByRole('option', { name: 'Second' })).toHaveAttribute('aria-selected', 'true');
+    const second = within(list).getByRole('option', { name: 'Second' });
+    expect(second).toHaveAttribute('aria-selected', 'true');
+    expect(input).toHaveAttribute('aria-activedescendant', second.id);
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(router.state.location.pathname).toBe('/user/account'));
-    expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(input).toHaveValue('');
+  });
+
+  it('closes the dropdown with Escape and keeps the text', async () => {
+    app('/');
+    const input = await screen.findByRole('combobox', { name: 'Search components' });
+    await userEvent.type(input, 'react');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(input).toHaveValue('react');
+    await userEvent.click(screen.getByRole('button', { name: 'Clear the search' }));
+    expect(input).toHaveValue('');
   });
 
   it('submits a search when no result is chosen', async () => {
     const { router } = app('/');
-    await userEvent.click(await screen.findByRole('button', { name: /Search components/ }));
-    await userEvent.type(await screen.findByRole('combobox', { name: 'Search' }), 'lodash{Enter}');
+    await userEvent.type(await screen.findByRole('combobox', { name: 'Search components' }), 'lodash{Enter}');
     await waitFor(() => expect(router.state.location.search).toBe('?q=lodash'));
+  });
+
+  it('turns the phone header into a search bar', async () => {
+    setMedia(COMPACT, true);
+    const { router } = app('/');
+    expect(screen.queryByRole('combobox')).toBeNull();
+    await userEvent.click(await screen.findByRole('button', { name: 'Search' }));
+    const layer = await screen.findByRole('dialog', { name: 'Search' });
+    const input = within(layer).getByRole('combobox', { name: 'Search components' });
+    expect(input).toHaveFocus();
+    await userEvent.type(input, 'vue{Enter}');
+    await waitFor(() => expect(router.state.location.search).toBe('?q=vue'));
+    expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();
   });
 });
 
 describe('the settings hub', () => {
-  it('shows the tiles the caller may open, by section', async () => {
+  it('shows the tiles the caller may open in the old sections and order', async () => {
     app('/settings');
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
+      'Repository',
+      'Security',
+      'System',
+    ]);
     const security = screen.getByRole('region', { name: 'Security' });
-    expect(within(security).getByRole('link', { name: /My account/ })).toHaveAttribute(
-      'href',
-      '/admin/security/users',
+    expect(
+      within(security)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/admin/security/users', '/admin/security/privileges']);
+    expect(within(security).getByRole('link', { name: /^Users/ })).toHaveTextContent(
+      'Accounts that can sign in, and their roles',
     );
-    expect(screen.getByRole('region', { name: 'Repository' })).toBeInTheDocument();
-    await userEvent.type(screen.getByRole('searchbox', { name: 'Find a setting' }), 'theme');
+    const repository = screen.getByRole('region', { name: 'Repository' });
+    expect(within(repository).getByRole('link', { name: /Blob Stores/ })).toHaveAttribute(
+      'href',
+      '/admin/repository/blobstores',
+    );
+    const system = screen.getByRole('region', { name: 'System' });
+    expect(within(system).getByRole('link', { name: /My Account/ })).toHaveAttribute(
+      'href',
+      '/admin/system/extra',
+    );
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search settings...' }), 'blob');
     expect(screen.queryByRole('region', { name: 'Security' })).toBeNull();
     expect(screen.getByRole('region', { name: 'Repository' })).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search settings...' }), 'zzz');
+    expect(screen.getByText('No settings match “blobzzz”')).toBeInTheDocument();
   });
 
   it('hides sections without visible tiles', async () => {

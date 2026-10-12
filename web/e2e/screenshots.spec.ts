@@ -38,14 +38,18 @@ for (const size of SIZES) {
       await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
       await shoot(page, `settings-${size.name}-${theme}`);
       await page.goto('/no/such/page');
-      await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Page Not Found' })).toBeVisible();
       await shoot(page, `not-found-${size.name}-${theme}`);
       await page.goto('/');
       await page.getByRole('button', { name: /Account menu of/ }).click();
       await shoot(page, `user-menu-${size.name}-${theme}`);
       await page.keyboard.press('Escape');
       await page.keyboard.press('Control+k');
-      await expect(page.getByRole('dialog', { name: 'Search' })).toBeVisible();
+      await expect(
+        size.width < 1024
+          ? page.getByRole('dialog', { name: 'Search' })
+          : page.getByRole('listbox', { name: 'Search suggestions' }),
+      ).toBeVisible();
       await shoot(page, `search-panel-${size.name}-${theme}`);
       await page.keyboard.press('Escape');
       if (size.width < 1024) {
