@@ -11,4 +11,5 @@ export {
   TextField,
 } from './fields';
 export { MultiSelectField } from './MultiSelectField';
+export { addItem, moveItem, OrderedListField, removeItem } from './OrderedListField';
 export { type Errors, type FieldBinding, type Form, mapServerErrors, useForm } from './useForm';

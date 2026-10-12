@@ -21,9 +21,13 @@
     "many": "Выбрано {count}",
     "other": "Выбрано {count}"
   },
+  "ui.form.drag": "Перетащите, чтобы изменить порядок",
   "ui.form.filter": "Фильтр",
   "ui.form.hideSecret": "Скрыть",
+  "ui.form.moveDown": "Переместить {name} ниже",
+  "ui.form.moveUp": "Переместить {name} выше",
   "ui.form.noOptions": "Совпадений не найдено",
+  "ui.form.noneChosen": "Пока ничего не выбрано",
   "ui.form.remove": "Убрать {name}",
   "ui.form.secretStored": "Значение сохранено. Оставьте поле пустым, чтобы его не менять.",
   "ui.form.showSecret": "Показать",

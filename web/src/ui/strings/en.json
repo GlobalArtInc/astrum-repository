@@ -19,9 +19,13 @@
     "one": "{count} chosen",
     "other": "{count} chosen"
   },
+  "ui.form.drag": "Drag to change the order",
   "ui.form.filter": "Filter",
   "ui.form.hideSecret": "Hide",
+  "ui.form.moveDown": "Move {name} down",
+  "ui.form.moveUp": "Move {name} up",
   "ui.form.noOptions": "Nothing matches",
+  "ui.form.noneChosen": "Nothing chosen yet",
   "ui.form.remove": "Remove {name}",
   "ui.form.secretStored": "A value is stored. Leave the field empty to keep it.",
   "ui.form.showSecret": "Show",
