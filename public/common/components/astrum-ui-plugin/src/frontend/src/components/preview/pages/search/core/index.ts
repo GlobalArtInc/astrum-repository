@@ -5,9 +5,6 @@
  * 
  * This module contains the authoritative contracts for GA-level search.
  * 
- * IMPORTANT: GA search exists ONLY in Preview UI.
- * Default UI (#browse/search/*) remains ExtJS-based and unchanged.
- * 
  * OWNERSHIP: Agent 0 (Tech Lead) owns this module.
  * Other agents import from here but do not modify.
  * 
@@ -15,7 +12,6 @@
  * - Domain types (search.types.ts)
  * - API contracts (search.api.ts)
  * - Route definitions (search.routes.ts)
- * - UI mode detection (search.flags.ts)
  */
 
 // Domain Types
@@ -57,29 +53,16 @@ export {
 // Route Definitions
 export {
   GA_SEARCH_ROUTE_NAMES,
-  DEFAULT_SEARCH_ROUTE_NAMES,
   GA_SEARCH_URLS,
   GA_SEARCH_PARAMS,
   PREVIEW_BASE_URL,
   buildSearchRoute,
   buildDetailRoute,
-  buildDefaultSearchRoute,
   parseGaId,
   parseSearchParams,
   TAB_ROUTE_MAP,
   getTabFromRoute,
 } from './search.routes';
-
-// UI Mode Detection
-export {
-  PREVIEW_UI_PREFIX,
-  isPreviewUI,
-  isGASearchContext,
-  toPreviewSearchUrl,
-  toDefaultSearchUrl,
-  GA_SEARCH_VISIBILITY,
-  GA_SEARCH_FEATURE_FLAGS,
-} from './search.flags';
 
 // Search API (connects to existing /service/rest/v1/search)
 export {
@@ -117,6 +100,5 @@ export type {
 } from './searchUtils';
 
 // UI Components (Agent 0)
-export { SwitchToDefaultUI } from './SwitchToDefaultUI';
 export { SearchBar } from './SearchBar';
 export type { SearchBarProps, SearchFormat } from './SearchBar';

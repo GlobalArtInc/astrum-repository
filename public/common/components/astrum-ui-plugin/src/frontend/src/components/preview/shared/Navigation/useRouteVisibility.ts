@@ -1,7 +1,6 @@
 
 import { useRouter } from '@uirouter/react';
 import { useIsVisible } from '../../../../interface/NavigationUtils';
-import { useContextAwareRouteName } from './useContextAwareRouteName';
 
 // Sentinel value to indicate route doesn't exist (distinct from undefined visibilityRequirements)
 const ROUTE_NOT_FOUND = Symbol('ROUTE_NOT_FOUND');
@@ -10,16 +9,11 @@ const ROUTE_NOT_FOUND = Symbol('ROUTE_NOT_FOUND');
  * Hook to resolve route state and visibilityRequirements from a route.
  * Returns ROUTE_NOT_FOUND if the route doesn't exist, or the requirements (which may be undefined).
  */
-function useRouteVisibilityRequirements(baseName: string) {
+function useRouteVisibilityRequirements(name: string) {
   const router = useRouter();
-  const contextAwareName = useContextAwareRouteName(baseName) || '';
 
   try {
-    // Try context-aware name first, fall back to base name
-    let state = router.stateRegistry.get(contextAwareName);
-    if (!state) {
-      state = router.stateRegistry.get(baseName);
-    }
+    const state = router.stateRegistry.get(name);
 
     if (!state) {
       return ROUTE_NOT_FOUND; // Route doesn't exist
@@ -38,11 +32,11 @@ function useRouteVisibilityRequirements(baseName: string) {
  * Uses the reactive useIsVisible hook from astrum-ui-plugin which subscribes to
  * Permissions#changed, State#changed, and State#userchanged events.
  *
- * @param baseName - Base route name to check visibility for
+ * @param name - Name of the route to check visibility for
  * @returns boolean indicating if the route is visible
  */
-export function useRouteVisibility(baseName: string): boolean {
-  const visibilityRequirements = useRouteVisibilityRequirements(baseName);
+export function useRouteVisibility(name: string): boolean {
+  const visibilityRequirements = useRouteVisibilityRequirements(name);
   const routeExists = visibilityRequirements !== ROUTE_NOT_FOUND;
 
   // useIsVisible handles permission/state change events reactively

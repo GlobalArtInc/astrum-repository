@@ -4,12 +4,11 @@ import UIStrings from '../../../../../constants/UIStrings';
 import plural from '../../../../../interface/plural';
 import { UsageBar } from './UsageBar';
 import { formatBytes, formatDays, formatNumber, usageLinks } from './usageFormat';
-import type { UnusedComponents, UsageDashboardVariant } from './usageDashboard.types';
+import type { UnusedComponents } from './usageDashboard.types';
 
 export interface UnusedCardProps {
   unused: UnusedComponents;
   unusedDays: number;
-  variant: UsageDashboardVariant;
   canConfigureCleanup: boolean;
 }
 
@@ -17,7 +16,7 @@ export interface UnusedCardProps {
  * The components nobody downloaded for a while and the repositories holding most of them, pointing at cleanup
  * policies.
  */
-export function UnusedCard({ unused, unusedDays, variant, canConfigureCleanup }: UnusedCardProps): JSX.Element {
+export function UnusedCard({ unused, unusedDays, canConfigureCleanup }: UnusedCardProps): JSX.Element {
   const strings = UIStrings.USAGE_DASHBOARD.UNUSED;
   const period = formatDays(unusedDays);
   const most = unused.repositories[0]?.bytes || 1;
@@ -67,7 +66,7 @@ export function UnusedCard({ unused, unusedDays, variant, canConfigureCleanup }:
         {canConfigureCleanup && (
           <Flex mt="auto">
             <Button asChild size="2">
-              <a href={usageLinks.cleanupPolicies(variant)} className="as-usage-dashboard__cleanup">{strings.CLEANUP}</a>
+              <a href={usageLinks.cleanupPolicies()} className="as-usage-dashboard__cleanup">{strings.CLEANUP}</a>
             </Button>
           </Flex>
         )}

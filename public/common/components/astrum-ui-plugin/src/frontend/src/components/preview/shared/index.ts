@@ -168,9 +168,6 @@ export {
   RequiredMark,
 } from './form';
 
-// SearchRadix - Global header search with autocomplete
-export { SearchRadix } from './SearchRadix';
-
 // SystemStatusBell - Global header status bell shared by coreui and cloud
 export { default as SystemStatusBell } from './SystemStatusBell/SystemStatusBell';
 
@@ -181,9 +178,6 @@ export {
   NavItemBox,
   type NavItemBoxProps,
   useRouteVisibility,
-  useContextAwareRouteName,
-  useIsPreviewUI,
-  PreviewUIContext,
 } from './Navigation';
 
 // SessionExpiry - Session expiration handling

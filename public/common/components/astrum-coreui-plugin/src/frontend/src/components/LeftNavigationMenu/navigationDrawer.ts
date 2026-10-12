@@ -32,7 +32,7 @@ export function useNavigationDrawerOpen(): boolean {
 
 /** Return value of {@link useNavigationDrawer}. */
 export interface NavigationDrawer {
-  /** Whether the menu is a drawer (Astrum One narrower than a desktop) instead of the side rail. */
+  /** Whether the menu is a drawer (narrower than a desktop) instead of the side rail. */
   isDrawer: boolean;
   /** Whether the drawer is open. */
   isDrawerOpen: boolean;
@@ -48,9 +48,8 @@ export interface NavigationDrawer {
  * The menu drawer of Astrum One on phones and tablets. It closes after a pick, on Esc, on a tap on the scrim, after
  * any navigation and when the viewport grows to a desktop, and gives the focus back to where it was opened from.
  */
-export function useNavigationDrawer(isPreviewUI: boolean): NavigationDrawer {
-  const isCompact = useIsCompactViewport();
-  const isDrawer = isPreviewUI && isCompact;
+export function useNavigationDrawer(): NavigationDrawer {
+  const isDrawer = useIsCompactViewport();
   const isOpen = useNavigationDrawerOpen();
   const isDrawerOpen = isDrawer && isOpen;
   const drawerRef = useRef<HTMLElement>(null);

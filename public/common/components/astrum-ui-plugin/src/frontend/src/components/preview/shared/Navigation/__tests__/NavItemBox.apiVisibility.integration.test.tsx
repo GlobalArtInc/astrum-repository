@@ -10,11 +10,10 @@ import {
 } from '@uirouter/react';
 
 import { NavItemBox } from '../NavItemBox';
-import { PreviewUIContext } from '../PreviewUIContext';
 
 // ASTRUM-54212: End-to-end guard that the "API" left-nav item is visible for a user
 // holding only astrum:settings:read. This exercises the REAL chain:
-//   NavItemBox -> useRouteVisibility -> useContextAwareRouteName -> router.stateRegistry
+//   NavItemBox -> useRouteVisibility -> router.stateRegistry
 //   -> useIsVisible -> isVisible(route.data.visibilityRequirements)
 // against a real uirouter registry seeded with the real preview.browse.api route data,
 // rather than the fully-mocked unit tests. The Settings hub tile and this nav item both
@@ -58,9 +57,7 @@ const renderApiNavItem = (router: UIRouterReact) =>
   render(
     <Theme>
       <UIRouter router={router}>
-        <PreviewUIContext.Provider value={true}>
-          <NavItemBox name="preview.browse.api" text="API" icon={null} isCollapsed={false} />
-        </PreviewUIContext.Provider>
+        <NavItemBox name="preview.browse.api" text="API" icon={null} isCollapsed={false} />
       </UIRouter>
     </Theme>
   );

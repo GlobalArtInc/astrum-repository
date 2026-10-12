@@ -281,7 +281,7 @@ export const previewAdminRoutes = [
     component: UIView,
     data: {
       title: PreviewRouteTitles.REPOSITORIES,
-      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js REPOSITORIES.ROOT), which uses a
+      // ASTRUM-54048: match the retired Classic page, which uses a
       // repository-admin prefix so a user with admin on any single repo can see the menu. A specific
       // requiresPermission: 'astrum:repository-admin:*:*:read' would NOT be satisfied by a narrower
       // per-repo grant, hiding the menu from users the Default UI shows it to.
@@ -404,7 +404,7 @@ export const previewAdminRoutes = [
     component: UIView,
     data: {
       title: PreviewRouteTitles.CLEANUP_POLICIES,
-      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js CLEANUPPOLICIES.ROOT), which gates on
+      // ASTRUM-54048: match the retired Classic page, which gates on
       // astrum:* — the write endpoints require admin, and the menu must not surface to a
       // settings:read-only user who would then hit a 403.
       visibilityRequirements: {
@@ -438,7 +438,7 @@ export const previewAdminRoutes = [
     component: UIView,
     data: {
       title: PreviewRouteTitles.ROUTING_RULES,
-      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js ROUTINGRULES.ROOT). RoutingRulesResource
+      // ASTRUM-54048: match the retired Classic page. RoutingRulesResource
       // requires astrum:* on every endpoint, including the GET/list — so settings:read here would show
       // the menu but 403 on load.
       visibilityRequirements: {
@@ -477,7 +477,7 @@ export const previewAdminRoutes = [
     data: {
       title: PreviewRouteTitles.DATA_STORE,
       visibilityRequirements: {
-        // ASTRUM-54019: match Classic/Default UI (adminRoutes.js DATASTORE.ROOT). The Data Store
+        // ASTRUM-54019: match the retired Classic page. The Data Store
         // screen is admin-only (astrum:*) AND only available with the pro-datastore bundle on
         // PRO/COMMUNITY editions — without the bundle+editions gates the tile shows where the
         // feature does not exist and then dead-ends.
@@ -568,7 +568,7 @@ export const previewAdminRoutes = [
     component: UIView,
     data: {
       title: PreviewRouteTitles.ROLES,
-      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js ROLES.ROOT), which requires BOTH
+      // ASTRUM-54048: match the retired Classic page, which requires BOTH
       // roles:read and privileges:read (permissions[] is AND).
       visibilityRequirements: {
         permissions: [Permissions.ROLES.READ, Permissions.PRIVILEGES.READ],
@@ -609,7 +609,7 @@ export const previewAdminRoutes = [
     component: UIView,
     data: {
       title: PreviewRouteTitles.USERS,
-      // ASTRUM-54048: match Classic/Default UI (adminRoutes.js USERS.ROOT), which requires BOTH
+      // ASTRUM-54048: match the retired Classic page, which requires BOTH
       // users:read and roles:read (permissions[] is AND).
       visibilityRequirements: {
         permissions: [Permissions.USERS.READ, Permissions.ROLES.READ],
@@ -731,7 +731,7 @@ export const previewAdminRoutes = [
     component: UserTokensPage,
     data: {
       title: PreviewRouteTitles.USER_TOKENS,
-      // ASTRUM-54019: match Classic/Default UI (adminRoutes.js USERTOKEN.ROOT) — usertoken-settings:read
+      // ASTRUM-54019: match the retired Classic page — usertoken-settings:read
       // gated to PRO edition AND a valid usertoken license. Without the licenseValid gate the tile
       // shows on PRO installs whose license does not include user tokens and then dead-ends.
       visibilityRequirements: {
@@ -761,7 +761,7 @@ export const previewAdminRoutes = [
     data: {
       title: PreviewRouteTitles.SAML,
       visibilityRequirements: {
-        // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SAML.ROOT). SAML is admin-only
+        // ASTRUM-54019: match the retired Classic page. SAML is admin-only
         // (astrum:*) AND only available with the saml bundle on PRO — without the bundle+editions
         // gates the tile shows where the feature does not exist and then dead-ends.
         bundle: 'astrum-saml-plugin',
@@ -789,7 +789,7 @@ export const previewAdminRoutes = [
     data: {
       title: PreviewRouteTitles.ATLASSIAN_CROWD,
       visibilityRequirements: {
-        // ASTRUM-54019: match Classic/Default UI (adminRoutes.js ATLASSIANCROWD.ROOT). Crowd is
+        // ASTRUM-54019: match the retired Classic page. Crowd is
         // only available with the crowd bundle and a valid crowd license — without the
         // bundle+licenseValid gates the tile shows where the feature does not exist and dead-ends.
         bundle: 'astrum-crowd-plugin',
@@ -929,7 +929,7 @@ export const previewAdminRoutes = [
     component: SupportRequestPage,
     data: {
       title: PreviewRouteTitles.SUPPORT_REQUEST,
-      // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SUPPORTREQUEST.ROOT) — atlas:create
+      // ASTRUM-54019: match the retired Classic page — atlas:create
       // gated to PRO. Preview previously gated on atlas:read, which showed the tile to users who
       // lack the create permission the page actually requires.
       visibilityRequirements: {
@@ -944,7 +944,7 @@ export const previewAdminRoutes = [
     component: SupportZipPage,
     data: {
       title: PreviewRouteTitles.SUPPORT_ZIP,
-      // ASTRUM-54019: match Classic/Default UI (adminRoutes.js SUPPORTZIP.ROOT) — atlas:read.
+      // ASTRUM-54019: match the retired Classic page — atlas:read.
       // Preview previously gated on the non-existent astrum:supportzip:read privilege.
       visibilityRequirements: {
         requiresPermission: Permissions.ATLAS.READ,
@@ -1083,7 +1083,7 @@ export const previewAdminRoutes = [
     data: {
       title: PreviewRouteTitles.NODES,
       visibilityRequirements: {
-        // ASTRUM-54048: match Classic/Default UI (adminRoutes.js NODES.ROOT), which gates on
+        // ASTRUM-54048: match the retired Classic page, which gates on
         // astrum:* — the Nodes screen is an admin-only screen.
         requiresPermission: Permissions.ADMIN,
       },

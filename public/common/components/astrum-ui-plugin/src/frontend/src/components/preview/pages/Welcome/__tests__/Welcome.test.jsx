@@ -56,7 +56,6 @@ jest.mock('../usage', () => ({
   UsageDashboard: (props) => (
     <div
       data-testid="usage-dashboard"
-      data-variant={props.variant}
       data-can-search={String(props.canSearch)}
       data-can-configure-cleanup={String(props.canConfigureCleanup)}
     />
@@ -98,13 +97,12 @@ describe('Welcome', () => {
     ExtJS.checkPermission.mockReturnValue(true);
   });
 
-  it('shows the usage of the repositories with links into Astrum One', () => {
+  it('shows the usage of the repositories', () => {
     ExtJS.useUser.mockReturnValue({userId: 'admin', administrator: true});
 
     render(<Welcome />);
 
     const dashboard = screen.getByTestId('usage-dashboard');
-    expect(dashboard).toHaveAttribute('data-variant', 'preview');
     expect(dashboard).toHaveAttribute('data-can-search', 'true');
     expect(dashboard).toHaveAttribute('data-can-configure-cleanup', 'true');
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();

@@ -10,7 +10,7 @@ import { UnusedCard } from './UnusedCard';
 import { UsageKpiSkeletons, UsageKpiTiles } from './UsageKpiTiles';
 import { formatDay, formatDays, formatNumber } from './usageFormat';
 import { useUsageDashboard } from './useUsageDashboard';
-import { USAGE_PERIODS, type UsageDashboardData, type UsageDashboardVariant } from './usageDashboard.types';
+import { USAGE_PERIODS, type UsageDashboardData } from './usageDashboard.types';
 
 import './UsageDashboard.scss';
 
@@ -19,8 +19,6 @@ const ALL = '*';
 const SKELETON_ROWS = ['first', 'second', 'third', 'fourth', 'fifth'];
 
 export interface UsageDashboardProps {
-  /** Which user interface the links lead to: Astrum One or the classic one. */
-  variant?: UsageDashboardVariant;
   /** Whether to link to the search. */
   canSearch?: boolean;
   /** Whether to offer configuring cleanup policies. */
@@ -78,10 +76,8 @@ function DashboardSkeleton(): JSX.Element {
 /**
  * How much of what is used in the repositories the user may browse: headline figures, downloads per day, the most
  * downloaded components, the largest and busiest repositories, what was published lately and what nobody downloads.
- * Shared by the welcome pages of Astrum One and of the classic user interface.
  */
 export function UsageDashboard({
-  variant = 'preview',
   canSearch = true,
   canConfigureCleanup = false,
   initialDays = 30,
@@ -160,14 +156,13 @@ export function UsageDashboard({
           <ChartCard data={data} />
           <div className="as-usage-dashboard__row">
             <TopComponentsCard days={data.days} inPeriod={data.topComponents} allTime={data.topComponentsAllTime}
-              variant={variant} canSearch={canSearch} />
+              canSearch={canSearch} />
             <RepositoriesCard byDownloads={data.topRepositoriesByDownloads}
-              byStorage={data.topRepositoriesByStorage} variant={variant} />
+              byStorage={data.topRepositoriesByStorage} />
           </div>
           <div className="as-usage-dashboard__row">
-            <RecentComponentsCard components={data.recentComponents} variant={variant} />
-            <UnusedCard unused={data.unused} unusedDays={data.unusedDays} variant={variant}
-              canConfigureCleanup={canConfigureCleanup} />
+            <RecentComponentsCard components={data.recentComponents} />
+            <UnusedCard unused={data.unused} unusedDays={data.unusedDays} canConfigureCleanup={canConfigureCleanup} />
           </div>
         </div>
       )}

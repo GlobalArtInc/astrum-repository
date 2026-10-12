@@ -304,11 +304,3 @@ function hasAnonymousPermissions() {
 export function useIsVisible(visibilityRequirements) {
   return ExtJS.useVisiblityWithChanges(() => isVisible(visibilityRequirements));
 }
-
-export function isExtjsCapabilitiesEnabled() {
-  return ExtJS.state().getValue('astrum.extjs.capabilities.enabled');
-}
-
-export function isReactCapabilitiesEnabled() {
-  return ExtJS.state().getValue('astrum.react.capabilities.enabled');
-}

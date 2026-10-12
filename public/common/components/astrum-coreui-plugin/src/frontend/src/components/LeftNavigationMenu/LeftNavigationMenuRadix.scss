@@ -75,8 +75,7 @@
 }
 
 // Navigation item: 40px row, 8px radius, 10px between icon and label.
-// The anchor wraps a Radix Flex whose spacing props are overridden here so that the shared NavItem,
-// the Classic search entry and its children all line up.
+// The anchor wraps a Radix Flex whose spacing props are overridden here so that every entry lines up.
 .guide-nav-item {
   display: block;
   border-radius: 8px;
@@ -233,35 +232,6 @@
   color: inherit !important;
 }
 
-// Search Collapsible Nav (Classic UI format submenu)
-.search-collapsible {
-  &__chevron {
-    display: flex;
-    align-items: center;
-    color: var(--gray-11);
-    transition: transform 0.2s ease;
-  }
-
-  &__submenu {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin: 2px 0 4px 20px;
-    padding-left: 8px;
-    border-left: 1px solid var(--gray-a5);
-
-    .guide-nav-item > .rt-Flex {
-      min-height: 36px;
-      padding: 0 10px;
-    }
-  }
-
-  &__loading {
-    font-size: var(--font-size-1);
-    color: var(--gray-11);
-  }
-}
-
 // Footer of the expanded menu: the product version
 .guide-sidebar__footer {
   flex-shrink: 0;
@@ -403,14 +373,4 @@
     width: 44px;
     height: 44px;
   }
-}
-
-.guide-sidebar__drawer-classic.rt-Button {
-  justify-content: flex-start;
-  min-height: 44px;
-  border-radius: 10px;
-  background-color: var(--color-panel-solid);
-  box-shadow: inset 0 0 0 1px var(--gray-a5);
-  color: var(--gray-12);
-  cursor: pointer;
 }

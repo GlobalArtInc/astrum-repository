@@ -2,8 +2,7 @@ import React, {useState, useEffect, useRef, useCallback, useId, useMemo} from 'r
 import {useCurrentStateAndParams, useRouter} from '@uirouter/react';
 import {Badge, IconButton, TextField} from '@radix-ui/themes';
 import {Database, FolderSearch, History, Package, Search as SearchIcon, X} from 'lucide-react';
-import {ExtJS, FORMAT_LABELS, TYPE_LABELS, useIsVisible, handleExtJsUnsavedChanges} from '@globalart/astrum-ui-plugin';
-import {ROUTE_NAMES} from '../../routerConfig/routeNames/routeNames';
+import {FORMAT_LABELS, TYPE_LABELS, useIsVisible} from '@globalart/astrum-ui-plugin';
 import Axios from 'axios';
 
 import './SearchRadix.scss';
@@ -11,8 +10,6 @@ import UIStrings from '../../constants/UIStrings';
 import {
   MAX_COMPONENTS,
   addRecentSearch,
-  classicBrowseParam,
-  classicSearchKeyword,
   currentRepositoryOf,
   highlightParts,
   matchRepositories,
@@ -25,6 +22,8 @@ const DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 2;
 const SEARCH = 'preview.browse.search';
 const UNIFIED_SEARCH = 'preview.browse.search.unified';
+const BROWSE_REPOSITORY = 'preview.browse.browse.repo';
+const BROWSE_PATH = 'preview.browse.browse.repo.path';
 const {HEADER} = UIStrings.SHELL;
 const PANEL = HEADER.SEARCH_PANEL;
 
@@ -60,14 +59,10 @@ function Highlighted({text, query}) {
 /**
  * Global search of the header, in the manner of GitLab: the field opens a panel right under it with the recent
  * searches, or, while the user types, where to search, the repositories whose name matches and the first
- * components found.
- *
- * Routing behavior:
- * - Astrum One: the search page `#browse/search?q=<query>`, repositories and components in its browse page
- * - Classic UI: the search route `#browse/search/generic=keyword=<query>`, repositories and components in its
- *   browse route
+ * components found: the search runs on the search page `#browse/search?q=<query>`, repositories and components
+ * open in the browse page.
  */
-export default function SearchRadix({ isPreviewUI = true }) {
+export default function SearchRadix() {
   const [searchValue, setSearchValue] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -87,7 +82,7 @@ export default function SearchRadix({ isPreviewUI = true }) {
 
   // The search is offered to whoever may open the Astrum One search page
   const searchRoute = router.stateRegistry.get(SEARCH);
-  const defaultUIVisible = useIsVisible(searchRoute?.data?.visibilityRequirements);
+  const searchVisible = useIsVisible(searchRoute?.data?.visibilityRequirements);
 
   const query = searchValue.trim();
 
@@ -181,14 +176,6 @@ export default function SearchRadix({ isPreviewUI = true }) {
     return () => document.removeEventListener('keydown', handleShortcut);
   }, [isApple, openPanel]);
 
-  const withClassicNavigation = useCallback((navigate) => {
-    const menuCtrl =
-      window.Ext && Ext.getApplication && Ext.getApplication().getController
-        ? Ext.getApplication().getController('Menu')
-        : null;
-    handleExtJsUnsavedChanges(menuCtrl, navigate);
-  }, []);
-
   const remember = useCallback((text) => {
     if (text) {
       setRecentSearches(addRecentSearch(text));
@@ -200,60 +187,42 @@ export default function SearchRadix({ isPreviewUI = true }) {
     closePanel();
     remember(text);
 
-    if (isPreviewUI) {
-      // inherit: false — `go` defaults to inheriting the router's cached params,
-      // and those go stale because the search page writes its URL with raw
-      // pushState, which never informs the router. Without this, a fresh search
-      // silently resurrects a format or sort the user had moved on from.
-      // Unspecified params fall back to their declared defaults, all null.
-      //
-      // reload — inherit: false alone still loses the case this fix targets.
-      // Re-submitting a term the router already has cached produces a
-      // same-state/same-params transition, which UI-Router rejects as
-      // 'SameAsCurrent' (see Transition._ignoredReason), so nothing navigates
-      // and the page keeps showing the drilled-down nameOrVersion results.
-      // Naming the state (rather than passing `true`) scopes the forced
-      // re-entry: options.reload === true resolves to the registry root
-      // (stateService.transitionTo), remounting the whole preview shell —
-      // including this header — on every search.
-      const searchParams = text ? {q: text} : {};
-      if (text && repository) {
-        searchParams.repository = repository;
-      }
-      router.stateService.go(UNIFIED_SEARCH, searchParams, {inherit: false, reload: UNIFIED_SEARCH});
-    } else {
-      withClassicNavigation(async () => {
-        if (state.name !== ROUTE_NAMES.BROWSE.SEARCH.GENERIC) {
-          await router.stateService.go(ROUTE_NAMES.BROWSE.SEARCH.GENERIC, {
-            keyword: classicSearchKeyword(text, repository)
-          });
-        } else if (text) {
-          ExtJS.search(text);
-        }
-      });
+    // inherit: false — `go` defaults to inheriting the router's cached params,
+    // and those go stale because the search page writes its URL with raw
+    // pushState, which never informs the router. Without this, a fresh search
+    // silently resurrects a format or sort the user had moved on from.
+    // Unspecified params fall back to their declared defaults, all null.
+    //
+    // reload — inherit: false alone still loses the case this fix targets.
+    // Re-submitting a term the router already has cached produces a
+    // same-state/same-params transition, which UI-Router rejects as
+    // 'SameAsCurrent' (see Transition._ignoredReason), so nothing navigates
+    // and the page keeps showing the drilled-down nameOrVersion results.
+    // Naming the state (rather than passing `true`) scopes the forced
+    // re-entry: options.reload === true resolves to the registry root
+    // (stateService.transitionTo), remounting the whole preview shell —
+    // including this header — on every search.
+    const searchParams = text ? {q: text} : {};
+    if (text && repository) {
+      searchParams.repository = repository;
     }
-  }, [isPreviewUI, state.name, router, closePanel, remember, withClassicNavigation]);
+    router.stateService.go(UNIFIED_SEARCH, searchParams, {inherit: false, reload: UNIFIED_SEARCH});
+  }, [router, closePanel, remember]);
 
   // Open a repository, or a component at the path of its first asset, in the browse page
   const navigateToBrowse = useCallback((repository, path = null) => {
     closePanel();
     setSearchValue('');
 
-    if (isPreviewUI) {
-      // Deferred so focus and blur handlers of the panel cannot cancel the transition
-      queueMicrotask(() => {
-        if (path) {
-          router.stateService.go('preview.browse.browse.repo.path', {repoName: repository, path, tab: 'summary'});
-        } else {
-          router.stateService.go('preview.browse.browse.repo', {repoName: repository});
-        }
-      });
-    } else {
-      withClassicNavigation(() => router.stateService.go(ROUTE_NAMES.BROWSE.BROWSE.ROOT, {
-        repo: classicBrowseParam(repository, path)
-      }));
-    }
-  }, [isPreviewUI, router, closePanel, withClassicNavigation]);
+    // Deferred so focus and blur handlers of the panel cannot cancel the transition
+    queueMicrotask(() => {
+      if (path) {
+        router.stateService.go(BROWSE_PATH, {repoName: repository, path, tab: 'summary'});
+      } else {
+        router.stateService.go(BROWSE_REPOSITORY, {repoName: repository});
+      }
+    });
+  }, [router, closePanel]);
 
   const forgetRecentSearch = useCallback((text) => {
     setRecentSearches(removeRecentSearch(text));
@@ -345,11 +314,11 @@ export default function SearchRadix({ isPreviewUI = true }) {
     }
   }, [activeIndex, optionId]);
 
-  // Both UIs should behave identically - use the same visibility check (permission-based)
+  // The visibility check is permission-based
   // In dev, anonymous has astrum:search:read so search shows
   // In prod, anonymous typically doesn't have this permission so search is hidden
   // NOTE: This check must come AFTER all hooks to avoid React hook violations
-  if (!defaultUIVisible) {
+  if (!searchVisible) {
     return null;
   }
 

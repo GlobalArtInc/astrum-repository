@@ -79,7 +79,4 @@ export interface UnusedComponents {
   repositories: Array<{ name: string; format: string; components: number; bytes: number }>;
 }
 
-/** Which user interface the links of the dashboard lead to. */
-export type UsageDashboardVariant = 'preview' | 'classic';
-
 export const USAGE_PERIODS = [7, 30, 90] as const;

@@ -20,10 +20,7 @@ jest.mock('@globalart/astrum-ui-plugin', () => ({
     useUser: (...args) => mockUseUser(...args),
     state: (...args) => mockState(...args),
     checkPermission: jest.fn(() => true),
-    isExtJsRendered: jest.fn(() => false),
-    refresh: jest.fn(),
   },
-  handleExtJsUnsavedChanges: jest.fn((_, cb) => cb()),
   useSideNavbarOpenState: () => [true],
 }));
 

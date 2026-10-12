@@ -24,16 +24,15 @@ describe('useNavigationDrawer', () => {
     act(() => setNavigationDrawerOpen(true));
   }
 
-  it('is a drawer in Astrum One narrower than a desktop only', () => {
-    expect(renderHook(() => useNavigationDrawer(true)).result.current.isDrawer).toBe(true);
-    expect(renderHook(() => useNavigationDrawer(false)).result.current.isDrawer).toBe(false);
+  it('is a drawer narrower than a desktop only', () => {
+    expect(renderHook(() => useNavigationDrawer()).result.current.isDrawer).toBe(true);
 
     mockIsCompact.mockReturnValue(false);
-    expect(renderHook(() => useNavigationDrawer(true)).result.current.isDrawer).toBe(false);
+    expect(renderHook(() => useNavigationDrawer()).result.current.isDrawer).toBe(false);
   });
 
   it('starts closed and opens on request', () => {
-    const { result } = renderHook(() => useNavigationDrawer(true));
+    const { result } = renderHook(() => useNavigationDrawer());
     expect(result.current.isDrawerOpen).toBe(false);
 
     open();
@@ -41,7 +40,7 @@ describe('useNavigationDrawer', () => {
   });
 
   it('closes on Esc', () => {
-    const { result } = renderHook(() => useNavigationDrawer(true));
+    const { result } = renderHook(() => useNavigationDrawer());
     open();
 
     act(() => {
@@ -52,7 +51,7 @@ describe('useNavigationDrawer', () => {
   });
 
   it('closes after a navigation', () => {
-    const { result } = renderHook(() => useNavigationDrawer(true));
+    const { result } = renderHook(() => useNavigationDrawer());
     open();
 
     act(() => transitionSuccess?.());
@@ -61,7 +60,7 @@ describe('useNavigationDrawer', () => {
   });
 
   it('closes when one of its links is picked, not on other clicks', () => {
-    const { result } = renderHook(() => useNavigationDrawer(true));
+    const { result } = renderHook(() => useNavigationDrawer());
     open();
     const link = document.createElement('a');
     link.href = '#browse/browse';
@@ -76,7 +75,7 @@ describe('useNavigationDrawer', () => {
   });
 
   it('closes when the viewport grows to a desktop', () => {
-    const { result, rerender } = renderHook(() => useNavigationDrawer(true));
+    const { result, rerender } = renderHook(() => useNavigationDrawer());
     open();
 
     mockIsCompact.mockReturnValue(false);

@@ -15,7 +15,6 @@ let mockStateValues = {
   loggedInEnabled: true,
 };
 
-let mockIsExtJsRendered = false;
 const mockUseSideNavbarOpenState = jest.fn(() => [true]);
 
 jest.mock('@globalart/astrum-ui-plugin', () => ({
@@ -27,11 +26,8 @@ jest.mock('@globalart/astrum-ui-plugin', () => ({
       getValue: (key, defaultVal) => mockStateValues[key] ?? defaultVal,
     }),
     checkPermission: () => true,
-    isExtJsRendered: () => mockIsExtJsRendered,
     showSuccessMessage: jest.fn(),
-    refresh: jest.fn(),
   },
-  handleExtJsUnsavedChanges: (_ctrl, fn) => fn(),
   hasUnsavedChanges: jest.fn(() => false),
   useSideNavbarOpenState: (...args) => mockUseSideNavbarOpenState(...args),
 }));
@@ -79,7 +75,6 @@ describe('GlobalHeaderRadix', () => {
       anonymousEnabled: true,
       loggedInEnabled: true,
     };
-    mockIsExtJsRendered = false;
     window.location.hash = '';
     jest.clearAllMocks();
     hasUnsavedChanges.mockReturnValue(false);
@@ -102,7 +97,7 @@ describe('GlobalHeaderRadix', () => {
     expect(window.location.hash).toBe('#browse/welcome');
   });
 
-  describe('onRefreshClick — Preview UI (ASTRUM-53775)', () => {
+  describe('onRefreshClick (ASTRUM-53775)', () => {
     beforeEach(() => {
       jest.spyOn(window, 'confirm');
     });

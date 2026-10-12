@@ -163,7 +163,7 @@ export function TagDetailPage(): JSX.Element {
   const { navigateToDetail } = useSearchNavigation();
 
   // Check if user can navigate to Search component detail (same check the left-nav uses)
-  const canOpenComponent = useRouteVisibility('browse.search');
+  const canOpenComponent = useRouteVisibility('preview.browse.search');
 
   // Gate the Delete Tag action on the tags:delete permission (ASTRUM-54212). This prominent
   // destructive button stays visible but disabled for read-only users (discoverability),

@@ -4,7 +4,6 @@ import { Flex } from '@radix-ui/themes';
 import { ExternalLink, LucideIcon } from 'lucide-react';
 import { useSref, useIsActive } from '@uirouter/react';
 import { Tooltip } from '../Tooltip/TooltipContainerContext';
-import { useContextAwareRouteName } from './useContextAwareRouteName';
 
 export interface NavItemProps {
   /** Route name for navigation */
@@ -27,7 +26,6 @@ export interface NavItemProps {
 
 /**
  * Navigation Item Component using Radix + uirouter.
- * Context-aware: uses preview.* routes when in Preview UI.
  */
 export function NavItem({
   name,
@@ -45,14 +43,8 @@ export function NavItem({
     return null;
   }
 
-  const contextAwareName = useContextAwareRouteName(name) || name;
-  const contextAwareSelectedState = useContextAwareRouteName(selectedState);
-
-  // Ensure we always pass a string to useSref
-  const safeRouteName = contextAwareName || name;
-
-  const sref = useSref(safeRouteName, params);
-  const isActive = useIsActive(contextAwareSelectedState || safeRouteName);
+  const sref = useSref(name, params);
+  const isActive = useIsActive(selectedState || name);
 
   // Use direct href for external links, otherwise use router-generated href
   const finalHref = directHref || sref.href;

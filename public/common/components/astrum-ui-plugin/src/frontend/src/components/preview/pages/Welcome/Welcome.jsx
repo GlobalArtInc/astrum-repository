@@ -78,7 +78,7 @@ function WelcomeDashboard({
 
   const dashboard = (
     <ErrorBoundary>
-      <UsageDashboard variant="preview" canSearch={canSearch} canConfigureCleanup={canConfigureCleanup} />
+      <UsageDashboard canSearch={canSearch} canConfigureCleanup={canConfigureCleanup} />
     </ErrorBoundary>
   );
 

@@ -71,8 +71,8 @@ export const previewBrowseRoutes = [
     component: ApiPage,
     data: {
       title: PreviewRouteTitles.API,
-      // ASTRUM-54048: API requires the same permission as the Default UI (adminRoutes.js
-      // ADMIN.SYSTEM.API.ROOT) and Classic UI — astrum:settings:read. There is no
+      // ASTRUM-54048: API requires the same permission as the retired Classic page —
+      // astrum:settings:read. There is no
       // API-specific privilege in the platform; settings:read is the authoritative gate.
       visibilityRequirements: {
         requiresUser: true,
@@ -120,7 +120,7 @@ export const previewBrowseRoutes = [
     },
     data: {
       title: PreviewRouteTitles.BROWSE,
-      // Mirrors Default UI BROWSE.BROWSE.ROOT (browseRoutes.js): visible to users with
+      // Mirrors the retired Classic page: visible to users with
       // any repository-view or content-selector permission and at least one browseable format.
       visibilityRequirements: {
         anonymousAccessOrHasUser: true,
@@ -251,7 +251,7 @@ export const previewBrowseRoutes = [
     component: UIView,
     data: {
       title: PreviewRouteTitles.UPLOAD,
-      // Mirrors Default UI BROWSE.UPLOAD.ROOT (browseRoutes.js).
+      // Mirrors the retired Classic page.
       visibilityRequirements: {
         permissions: [Permissions.COMPONENT.CREATE],
       },
@@ -289,7 +289,7 @@ export const previewBrowseRoutes = [
     component: TagsPage,
     data: {
       title: PreviewRouteTitles.TAGS,
-      // Mirrors Default UI BROWSE.TAGS.ROOT (browseRoutes.js). The isProEdition gate in
+      // Mirrors the retired Classic page. The isProEdition gate in
       // LeftNavigationMenuRadix.tsx remains (now redundant with editions: ['PRO'], but harmless).
       visibilityRequirements: {
         permissions: [Permissions.TAGS.READ],

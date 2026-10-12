@@ -1,7 +1,7 @@
 import UIStrings from '../../../../../constants/UIStrings';
 import { pageLanguage } from '../../../../../interface/plural';
 import { FORMAT_LABELS } from '../../../shared/Badges/formatConstants';
-import type { UsageComponent, UsageDashboardVariant } from './usageDashboard.types';
+import type { UsageComponent } from './usageDashboard.types';
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
 
@@ -147,24 +147,18 @@ export function browsePathOf(component: UsageComponent): string {
   return [group, name, version].filter(Boolean).join('/');
 }
 
-/** Where the links of the dashboard lead to in each user interface. */
+/** Where the links of the dashboard lead to. */
 export const usageLinks = {
-  component(variant: UsageDashboardVariant, component: UsageComponent): string {
-    const path = browsePathOf(component);
-    if (variant === 'classic') {
-      return `#browse/browse:${encodeURIComponent(component.repository)}:${encodeURIComponent(path)}`;
-    }
-    return `#browse/${encodeURIComponent(component.repository)}/${encodePath(path)}`;
+  component(component: UsageComponent): string {
+    return `#browse/${encodeURIComponent(component.repository)}/${encodePath(browsePathOf(component))}`;
   },
-  repository(variant: UsageDashboardVariant, repository: string): string {
-    return variant === 'classic'
-      ? `#browse/browse:${encodeURIComponent(repository)}`
-      : `#browse/${encodeURIComponent(repository)}/`;
+  repository(repository: string): string {
+    return `#browse/${encodeURIComponent(repository)}/`;
   },
-  search(variant: UsageDashboardVariant): string {
-    return variant === 'classic' ? '#browse/search/generic' : '#browse/search';
+  search(): string {
+    return '#browse/search';
   },
-  cleanupPolicies(variant: UsageDashboardVariant): string {
-    return variant === 'classic' ? '#admin/repository/cleanuppolicies' : '#admin/repository/cleanup-policies';
+  cleanupPolicies(): string {
+    return '#admin/repository/cleanup-policies';
   },
 };

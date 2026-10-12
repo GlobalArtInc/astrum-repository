@@ -27,10 +27,7 @@ jest.mock('@globalart/astrum-ui-plugin', () => ({
     useUser: (...args) => mockUseUser(...args),
     state: (...args) => mockState(...args),
     checkPermission: (...args) => mockCheckPermission(...args),
-    isExtJsRendered: jest.fn(() => false),
-    refresh: jest.fn(),
   },
-  handleExtJsUnsavedChanges: jest.fn((_, cb) => cb()),
   restClient: {
     post: (...args) => mockRestClientPost(...args),
   },

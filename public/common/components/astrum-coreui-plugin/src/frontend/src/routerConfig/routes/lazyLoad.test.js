@@ -224,14 +224,21 @@ describe('lazyLoad', () => {
 
 describe('Route Configuration Integration', () => {
   // Import route files
-  const adminRoutes = require('./adminRoutes').adminRoutes;
-  const browseRoutes = require('./browseRoutes').browseRoutes;
-  const userRoutes = require('./userRoutes').userRoutes;
+  const {previewAdminRoutes, globalartInternalTestRoutes} = require('./previewAdminRoutes');
+  const {previewBrowseRoutes} = require('./previewBrowseRoutes');
+  const {previewUserRoutes} = require('./previewUserRoutes');
+  const {loginRoutes} = require('./loginRoutes');
 
   describe('route name validation', () => {
     it('should not have duplicate route names', () => {
       // Combine all routes from all route files
-      const allRoutes = [...adminRoutes, ...browseRoutes, ...userRoutes];
+      const allRoutes = [
+        ...loginRoutes,
+        ...previewBrowseRoutes,
+        ...previewAdminRoutes,
+        ...previewUserRoutes,
+        ...globalartInternalTestRoutes,
+      ];
 
       // Extract just the route names
       const routeNames = allRoutes.map(r => r.name);

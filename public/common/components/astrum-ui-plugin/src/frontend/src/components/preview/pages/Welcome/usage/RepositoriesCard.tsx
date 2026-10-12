@@ -3,18 +3,17 @@ import { Badge, Card, Flex, Heading, Link, SegmentedControl, Text } from '@radix
 import UIStrings from '../../../../../constants/UIStrings';
 import { UsageBar } from './UsageBar';
 import { formatBytes, formatLabel, formatNumber, usageLinks } from './usageFormat';
-import type { RepositoryUsage, UsageDashboardVariant } from './usageDashboard.types';
+import type { RepositoryUsage } from './usageDashboard.types';
 
 export interface RepositoriesCardProps {
   byDownloads: RepositoryUsage[];
   byStorage: RepositoryUsage[];
-  variant: UsageDashboardVariant;
 }
 
 /**
  * The repositories downloaded from most in the period, or taking up most storage.
  */
-export function RepositoriesCard({ byDownloads, byStorage, variant }: RepositoriesCardProps): JSX.Element {
+export function RepositoriesCard({ byDownloads, byStorage }: RepositoriesCardProps): JSX.Element {
   const strings = UIStrings.USAGE_DASHBOARD.REPOSITORIES;
   const [order, setOrder] = useState<'downloads' | 'size'>('downloads');
   const repositories = order === 'downloads' ? byDownloads : byStorage;
@@ -44,7 +43,7 @@ export function RepositoriesCard({ byDownloads, byStorage, variant }: Repositori
                 <Flex direction="column" gap="2">
                   <Flex justify="between" align="center" gap="2">
                     <Flex align="center" gap="2" minWidth="0">
-                      <Link href={usageLinks.repository(variant, repository.name)} color="gray" highContrast
+                      <Link href={usageLinks.repository(repository.name)} color="gray" highContrast
                         underline="hover" weight="medium" size="2" truncate title={repository.name}>
                         {repository.name}
                       </Link>

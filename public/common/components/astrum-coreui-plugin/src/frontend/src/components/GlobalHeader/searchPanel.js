@@ -1,4 +1,3 @@
-import {ROUTE_NAMES} from '../../routerConfig/routeNames/routeNames';
 
 export const RECENT_SEARCHES_KEY = 'astrum-recent-searches';
 export const MAX_RECENT_SEARCHES = 5;
@@ -82,47 +81,14 @@ export function matchRepositories(repositories, query) {
     .slice(0, MAX_REPOSITORIES);
 }
 
-function decode(text) {
-  try {
-    return decodeURIComponent(text);
-  } catch {
-    return text;
-  }
-}
-
 /**
- * The repository the current page browses: Astrum One `#browse/<name>/...` or Classic
- * `#browse/browse:<name>[:<path>]`. Null anywhere else.
+ * The repository the current page browses, `#browse/<name>/...`. Null anywhere else.
  */
 export function currentRepositoryOf(stateName = '', params = {}) {
   if (stateName === 'preview.browse.browse.repo' || stateName.startsWith('preview.browse.browse.repo.')) {
     return params.repoName || null;
   }
-  if (stateName === ROUTE_NAMES.BROWSE.BROWSE.ROOT && params.repo) {
-    const [name] = String(params.repo).replace(/^:/, '').split(':');
-    return name ? decode(name) : null;
-  }
   return null;
-}
-
-/**
- * The `keyword` parameter of the Classic search route: the criteria of the search, joined by ` AND ` as the
- * Classic search writes its bookmarks.
- */
-export function classicSearchKeyword(query, repository) {
-  if (!query) {
-    return null;
-  }
-  const keyword = `=keyword=${encodeURIComponent(query)}`;
-  return repository ? `${keyword}${encodeURIComponent(' AND ')}repository_name=${encodeURIComponent(repository)}` : keyword;
-}
-
-/**
- * The `repo` parameter of the Classic browse route: the repository, and the path of a node inside it.
- */
-export function classicBrowseParam(repository, path) {
-  const node = path ? path.replace(/^\/+/, '') : '';
-  return `:${encodeURIComponent(repository)}${node ? `:${encodeURIComponent(node)}` : ''}`;
 }
 
 /**

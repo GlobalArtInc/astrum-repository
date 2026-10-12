@@ -7,8 +7,6 @@ import SearchRadix, {isApplePlatform, isSearchShortcut} from './SearchRadix';
 import {
   RECENT_SEARCHES_KEY,
   addRecentSearch,
-  classicBrowseParam,
-  classicSearchKeyword,
   currentRepositoryOf,
   highlightParts,
   matchRepositories,
@@ -16,8 +14,7 @@ import {
 } from './searchPanel';
 
 const mockGo = jest.fn().mockResolvedValue(undefined);
-const mockSearch = jest.fn();
-let mockState = {name: 'browse.welcome'};
+let mockState = {name: 'preview.browse.welcome'};
 let mockParams = {};
 
 jest.mock('@uirouter/react', () => ({
@@ -37,31 +34,11 @@ let mockIsVisible = true;
 
 jest.mock('@globalart/astrum-ui-plugin', () => ({
   ...jest.requireActual('@globalart/astrum-ui-plugin'),
-  ExtJS: {
-    search: (...args) => mockSearch(...args),
-    state: () => ({getValue: () => false}),
-    showSuccessMessage: jest.fn(),
-  },
   useIsVisible: () => mockIsVisible,
-  handleExtJsUnsavedChanges: (_ctrl, fn) => fn(),
 }));
 
 jest.mock('axios', () => ({
   get: jest.fn().mockResolvedValue({data: []}),
-}));
-
-jest.mock('../../routerConfig/routeNames/routeNames', () => ({
-  ROUTE_NAMES: {
-    BROWSE: {
-      BROWSE: {
-        ROOT: 'browse.browse',
-      },
-      SEARCH: {
-        ROOT: 'browse.search',
-        GENERIC: 'browse.search.generic',
-      },
-    },
-  },
 }));
 
 const PLACEHOLDER = 'Search components or CVEs...';
@@ -134,7 +111,7 @@ describe('SearchRadix', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsVisible = true;
-    mockState = {name: 'browse.welcome'};
+    mockState = {name: 'preview.browse.welcome'};
     mockParams = {};
     window.localStorage.clear();
     mockApi();
@@ -154,54 +131,9 @@ describe('SearchRadix', () => {
     });
   });
 
-  describe('Default UI navigation (bug rhv)', () => {
-    it('navigates via router on Enter with query (not hardcoded hash)', () => {
-      render(<SearchRadix isPreviewUI={false} />);
-
-      fireEvent.change(field(), {target: {value: 'logback'}});
-      fireEvent.keyDown(field(), {key: 'Enter'});
-
-      expect(mockGo).toHaveBeenCalledWith(
-        'browse.search.generic',
-        {keyword: '=keyword=logback'}
-      );
-    });
-
-    it('navigates via router on Enter with empty query (keyword null)', () => {
-      render(<SearchRadix isPreviewUI={false} />);
-
-      fireEvent.keyDown(field(), {key: 'Enter'});
-
-      expect(mockGo).toHaveBeenCalledWith(
-        'browse.search.generic',
-        {keyword: null}
-      );
-    });
-
-    it('searches in place when the search page is already open', () => {
-      mockState = {name: 'browse.search.generic'};
-      render(<SearchRadix isPreviewUI={false} />);
-
-      fireEvent.change(field(), {target: {value: 'logback'}});
-      fireEvent.keyDown(field(), {key: 'Enter'});
-
-      expect(mockGo).not.toHaveBeenCalled();
-      expect(mockSearch).toHaveBeenCalledWith('logback');
-    });
-
-    it('does not set window.location.hash directly', () => {
-      const originalHash = window.location.hash;
-      render(<SearchRadix isPreviewUI={false} />);
-
-      fireEvent.keyDown(field(), {key: 'Enter'});
-
-      expect(window.location.hash).toBe(originalHash);
-    });
-  });
-
-  describe('Preview UI navigation', () => {
+  describe('navigation', () => {
     it('navigates to unified search on Enter with query', () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       fireEvent.change(field(), {target: {value: 'react'}});
       fireEvent.keyDown(field(), {key: 'Enter'});
@@ -214,7 +146,7 @@ describe('SearchRadix', () => {
     });
 
     it('navigates to unified search on Enter without query', () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       fireEvent.keyDown(field(), {key: 'Enter'});
 
@@ -232,7 +164,7 @@ describe('SearchRadix', () => {
       // rejects as 'SameAsCurrent' and the page never re-syncs. The reload
       // option names the state rather than passing `true`, which would resolve
       // to the registry root and remount the whole preview shell.
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       fireEvent.change(field(), {target: {value: 'spring'}});
       fireEvent.keyDown(field(), {key: 'Enter'});
@@ -246,7 +178,7 @@ describe('SearchRadix', () => {
 
   describe('opening the panel', () => {
     it('opens under the field on focus, with a hint when there is no history', () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       fireEvent.focus(field());
 
@@ -255,7 +187,7 @@ describe('SearchRadix', () => {
     });
 
     it('opens on a click in the field after it was closed', () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
       fireEvent.focus(field());
       fireEvent.keyDown(field(), {key: 'Escape'});
       expect(panel()).not.toBeInTheDocument();
@@ -267,7 +199,7 @@ describe('SearchRadix', () => {
 
     it('opens on Ctrl+K', () => {
       Object.defineProperty(window.navigator, 'platform', {value: 'Win32', configurable: true});
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       fireEvent.keyDown(document.body, {key: 'k', ctrlKey: true});
 
@@ -278,7 +210,7 @@ describe('SearchRadix', () => {
     it('closes on Escape and on a click outside', () => {
       render(
         <div>
-          <SearchRadix isPreviewUI={true} />
+          <SearchRadix />
           <button type="button">Elsewhere</button>
         </div>
       );
@@ -294,7 +226,7 @@ describe('SearchRadix', () => {
     });
 
     it('shows a clear button once the field has text', () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
       expect(screen.queryByRole('button', {name: 'Clear search'})).not.toBeInTheDocument();
       expect(screen.getByTestId('search-shortcut-hint')).toBeInTheDocument();
 
@@ -308,7 +240,7 @@ describe('SearchRadix', () => {
     });
 
     it('sets the combobox roles', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
       const input = screen.getByRole('combobox', {name: 'Search components'});
       expect(input).toHaveAttribute('aria-expanded', 'false');
 
@@ -323,7 +255,7 @@ describe('SearchRadix', () => {
 
   describe('sections', () => {
     it('offers to search all repositories, outside a repository', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('zzz');
 
@@ -335,7 +267,7 @@ describe('SearchRadix', () => {
     it('offers this repository first while browsing one in Astrum One', async () => {
       mockState = {name: 'preview.browse.browse.repo.path'};
       mockParams = {repoName: 'maven-releases', path: 'org/example'};
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('zzz');
 
@@ -350,21 +282,8 @@ describe('SearchRadix', () => {
       );
     });
 
-    it('offers this repository while browsing one in the Classic UI', async () => {
-      mockState = {name: 'browse.browse'};
-      mockParams = {repo: ':maven-releases:org%2Fexample'};
-      render(<SearchRadix isPreviewUI={false} />);
-
-      await type('zzz');
-      fireEvent.click(screen.getByRole('option', {name: /this repository/}));
-
-      expect(mockGo).toHaveBeenCalledWith('browse.search.generic', {
-        keyword: '=keyword=zzz%20AND%20repository_name=maven-releases',
-      });
-    });
-
     it('lists up to 5 repositories whose name contains the query, with the match in bold', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('MAVEN');
 
@@ -381,7 +300,7 @@ describe('SearchRadix', () => {
 
     it('lists up to 6 components found by the search API, after a pause in typing', async () => {
       mockApi({components: ['spring-a', 'spring-b', 'spring-c', 'spring-d', 'spring-e', 'spring-f', 'spring-g'].map((name) => component(name))});
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('spring');
 
@@ -404,7 +323,7 @@ describe('SearchRadix', () => {
     it('debounces the component search and cancels a request still in flight', async () => {
       jest.useFakeTimers();
       try {
-        render(<SearchRadix isPreviewUI={true} />);
+        render(<SearchRadix />);
         fireEvent.focus(field());
 
         fireEvent.change(field(), {target: {value: 'sp'}});
@@ -436,7 +355,7 @@ describe('SearchRadix', () => {
     });
 
     it('says when nothing matches', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('nothing-like-this');
 
@@ -447,7 +366,7 @@ describe('SearchRadix', () => {
 
     it('keeps the sections in order', async () => {
       mockApi({components: [component('maven-plugin')]});
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('maven');
 
@@ -460,7 +379,7 @@ describe('SearchRadix', () => {
 
   describe('opening a row', () => {
     it('opens a repository in the Astrum One browse page', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('docker');
       fireEvent.click(await findOption('docker-hosted'));
@@ -472,7 +391,7 @@ describe('SearchRadix', () => {
 
     it('opens a component at its path in the Astrum One browse page', async () => {
       mockApi({components: [component('spring-core')]});
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('spring');
       fireEvent.click(await findOption('spring-core'));
@@ -483,27 +402,12 @@ describe('SearchRadix', () => {
         tab: 'summary',
       }));
     });
-
-    it('opens repositories and components in the Classic browse route', async () => {
-      mockApi({components: [component('spring-core')]});
-      render(<SearchRadix isPreviewUI={false} />);
-
-      await type('docker');
-      fireEvent.click(await findOption('docker-hosted'));
-      expect(mockGo).toHaveBeenCalledWith('browse.browse', {repo: ':docker-hosted'});
-
-      await type('spring');
-      fireEvent.click(await findOption('spring-core'));
-      expect(mockGo).toHaveBeenCalledWith('browse.browse', {
-        repo: ':maven-releases:org%2Fexample%2Fspring-core%2F1.0.0%2Fspring-core-1.0.0.jar',
-      });
-    });
   });
 
   describe('keyboard', () => {
     it('moves through every row across sections, wrapping, and opens the active one on Enter', async () => {
       mockApi({components: [component('maven-plugin')]});
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('maven-p');
       await screen.findByTestId('search-section-components');
@@ -533,7 +437,7 @@ describe('SearchRadix', () => {
     });
 
     it('starts from the last row on ArrowUp', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('npm');
       await screen.findByTestId('search-section-repositories');
@@ -544,7 +448,7 @@ describe('SearchRadix', () => {
     });
 
     it('searches all repositories on Enter when no row is active', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('maven');
       fireEvent.keyDown(field(), {key: 'Enter'});
@@ -560,7 +464,7 @@ describe('SearchRadix', () => {
 
   describe('recent searches', () => {
     it('keeps the queries the user runs, newest first', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('first');
       fireEvent.keyDown(field(), {key: 'Enter'});
@@ -575,7 +479,7 @@ describe('SearchRadix', () => {
     });
 
     it('does not keep repositories or components the user opens', async () => {
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       await type('docker');
       fireEvent.click(await findOption('docker-hosted'));
@@ -585,7 +489,7 @@ describe('SearchRadix', () => {
 
     it('shows the last 5 on an empty query and runs one when opened', () => {
       ['one', 'two', 'three', 'four', 'five', 'six'].forEach(addRecentSearch);
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       fireEvent.focus(field());
 
@@ -601,7 +505,7 @@ describe('SearchRadix', () => {
 
     it('removes one with its × button', () => {
       ['one', 'two'].forEach(addRecentSearch);
-      render(<SearchRadix isPreviewUI={true} />);
+      render(<SearchRadix />);
 
       fireEvent.focus(field());
       fireEvent.click(screen.getByRole('button', {name: 'Remove “two” from recent searches'}));
@@ -648,17 +552,7 @@ describe('SearchRadix', () => {
       expect(currentRepositoryOf('preview.browse.browse.repo', {repoName: 'npm-proxy'})).toBe('npm-proxy');
       expect(currentRepositoryOf('preview.browse.browse.repo.path.summary', {repoName: 'npm-proxy'})).toBe('npm-proxy');
       expect(currentRepositoryOf('preview.browse.browse', {})).toBeNull();
-      expect(currentRepositoryOf('browse.browse', {repo: ':my%20repo:a%2Fb'})).toBe('my repo');
-      expect(currentRepositoryOf('browse.browse', {repo: null})).toBeNull();
-      expect(currentRepositoryOf('browse.welcome', {})).toBeNull();
-    });
-
-    it('builds the Classic search and browse parameters', () => {
-      expect(classicSearchKeyword('', null)).toBeNull();
-      expect(classicSearchKeyword('a b', null)).toBe('=keyword=a%20b');
-      expect(classicSearchKeyword('a', 'maven-releases')).toBe('=keyword=a%20AND%20repository_name=maven-releases');
-      expect(classicBrowseParam('maven-releases')).toBe(':maven-releases');
-      expect(classicBrowseParam('maven-releases', '/a/b.jar')).toBe(':maven-releases:a%2Fb.jar');
+      expect(currentRepositoryOf('preview.browse.welcome', {})).toBeNull();
     });
   });
 

@@ -791,18 +791,6 @@ export default class ExtJS {
     Ext.widget('as-aboutwindow')
   }
 
-  static refresh() {
-    Ext.getApplication().getController('Refresh').refresh();
-  }
-
-  static search(query) {
-    Ext.getApplication().getController('Search').onQuickSearch(null, query);
-  }
-
-  static isExtJsRendered() {
-    return document.getElementsByClassName('as-ext-js-wrapper').length > 0;
-  }
-
   /**
    * This function will wait for the ExtJS application to be fully loaded before executing the callback.
    * NOTE: This no longer waits for permissions to be loaded (ASTRUM-53199). The UI renders immediately

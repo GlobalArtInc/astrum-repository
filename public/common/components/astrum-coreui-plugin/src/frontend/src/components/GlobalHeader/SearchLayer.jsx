@@ -61,7 +61,7 @@ export default function SearchLayer({onClose}) {
           <ArrowLeft size={20} aria-hidden />
         </IconButton>
         <div className="as-search-layer__field">
-          <SearchRadix isPreviewUI />
+          <SearchRadix />
         </div>
       </div>
     </div>

@@ -11,8 +11,8 @@ jest.mock('@uirouter/react', () => ({
   },
 }));
 
-jest.mock('./SearchRadix', () => ({ isPreviewUI }) => (
-  <input aria-label="Search components" data-preview={String(isPreviewUI)} />
+jest.mock('./SearchRadix', () => () => (
+  <input aria-label="Search components" />
 ));
 
 import SearchLayer from './SearchLayer';
@@ -28,12 +28,11 @@ function renderLayer(onClose = jest.fn()) {
 }
 
 describe('SearchLayer', () => {
-  it('holds the search field of the header, of Astrum One, with the focus', () => {
+  it('holds the search field of the header with the focus', () => {
     renderLayer();
 
     const field = screen.getByRole('textbox', { name: 'Search components' });
     expect(screen.getByRole('dialog', { name: 'Search components' })).toBeInTheDocument();
-    expect(field).toHaveAttribute('data-preview', 'true');
     expect(field).toHaveFocus();
   });
 

@@ -9,16 +9,8 @@ import { App } from './App';
 import { getRouter } from './routerConfig/routerConfig';
 import { ExtJS, resetDialogState, ToastProvider } from '@globalart/astrum-ui-plugin';
 import { ROUTE_NAMES } from './routerConfig/routeNames/routeNames';
-import { AuthProvider } from './contexts/AuthContext';
-import { PermissionsProvider } from './contexts/PermissionsContext';
-import { StateProvider } from './contexts/StateContext';
 
 const { BROWSE } = ROUTE_NAMES;
-
-// mocking out the Welcome page to avoid having to mock all the various ExtJs functions/state required to render it
-jest.mock('./components/pages/user/Welcome/Welcome', () => {
-  return () => (<main><h1>Welcome Test Mock</h1></main>);
-});
 
 jest.mock('./components/login/SelfHostedLoginPageWrapper', () => {
   return () => (<main><h1>Login Test Mock</h1></main>);
@@ -27,39 +19,6 @@ jest.mock('./components/login/SelfHostedLoginPageWrapper', () => {
 jest.mock('./components/login/LoginPageRadix', () => {
   return () => (<main><h1>Login Test Mock</h1></main>);
 });
-
-// Phase 1: Mock Context providers to use ExtJS state directly in tests
-jest.mock('./contexts/AuthContext', () => ({
-  AuthProvider: ({ children }) => children,
-  useAuth: () => ({
-    user: window.AS?.State?.getUser?.() || null,
-    isLoading: false,
-    isAuthenticated: Boolean(window.AS?.Security?.hasUser?.()),
-    hasUser: () => Boolean(window.AS?.Security?.hasUser?.()),
-    refreshUser: () => Promise.resolve()
-  })
-}));
-
-jest.mock('./contexts/PermissionsContext', () => ({
-  PermissionsProvider: ({ children }) => children,
-  usePermissions: () => ({
-    checkPermission: (permission) => window.AS?.Permissions?.check?.(permission) || false,
-    hasPermission: (permission) => window.AS?.Permissions?.check?.(permission) || false,
-    usePermission: (permission) => window.AS?.Permissions?.check?.(permission) || false
-  })
-}));
-
-jest.mock('./contexts/StateContext', () => ({
-  StateProvider: ({ children }) => children,
-  useAppState: () => ({
-    getValue: (key) => window.AS?.State?.getValue?.(key),
-    setValue: (key, value) => window.AS?.State?.setValue?.(key, value),
-    useState: (key) => window.AS?.State?.getValue?.(key),
-    getEdition: () => window.AS?.State?.getEdition?.() || 'OSS',
-    getVersion: () => window.AS?.State?.getVersion?.(),
-    getLicense: () => window.AS?.State?.getValue?.('license')
-  })
-}));
 
 jest.mock('./contexts/ThemeContext', () => ({
   ThemeProvider: ({ children }) => children,
@@ -593,21 +552,15 @@ describe('App', () => {
     routerInstance = router;
 
     const renderResult = render(
-      <AuthProvider>
-        <PermissionsProvider>
-          <StateProvider>
-            <Theme>
-              <TooltipProvider>
-                <ToastProvider>
-                  <UIRouter router={router}>
-                    <App />
-                  </UIRouter>
-                </ToastProvider>
-              </TooltipProvider>
-            </Theme>
-          </StateProvider>
-        </PermissionsProvider>
-      </AuthProvider>
+      <Theme>
+        <TooltipProvider>
+          <ToastProvider>
+            <UIRouter router={router}>
+              <App />
+            </UIRouter>
+          </ToastProvider>
+        </TooltipProvider>
+      </Theme>
     );
 
     await waitFor(() => {

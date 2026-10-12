@@ -6,7 +6,6 @@ import {Theme} from '@radix-ui/themes';
 import '@testing-library/jest-dom';
 
 const mockHealthChecksFailed = {value: false};
-const mockUseIsPreviewUI = jest.fn(() => false);
 const mockUseIsVisible = jest.fn(() => true);
 const mockUseUnreadStatusFailure = jest.fn();
 const mockMarkAcknowledged = jest.fn();
@@ -27,10 +26,6 @@ jest.mock('../../../../../interface/ExtJS', () => ({
 
 jest.mock('../../../../../interface/NavigationUtils', () => ({
   useIsVisible: (...args) => mockUseIsVisible(...args),
-}));
-
-jest.mock('../../Navigation', () => ({
-  useIsPreviewUI: (...args) => mockUseIsPreviewUI(...args),
 }));
 
 jest.mock('../../hooks', () => ({
@@ -58,7 +53,6 @@ describe('SystemStatusBell', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockHealthChecksFailed.value = false;
-    mockUseIsPreviewUI.mockReturnValue(false);
     mockUseIsVisible.mockReturnValue(true);
     mockUseUnreadStatusFailure.mockReturnValue({
       showDot: false,
@@ -69,9 +63,7 @@ describe('SystemStatusBell', () => {
     });
   });
 
-  it('navigates to the Preview metric-health state when clicked in Astrum One UI', () => {
-    mockUseIsPreviewUI.mockReturnValue(true);
-
+  it('navigates to the metric-health state when clicked', () => {
     renderBell();
     fireEvent.click(screen.getByLabelText('System Status'));
 
@@ -80,19 +72,6 @@ describe('SystemStatusBell', () => {
       expect.objectContaining({requiresPermission: 'astrum:metrics:read'}),
     );
     expect(mockStateServiceGo).toHaveBeenCalledWith('preview.admin.support.metrichealth');
-  });
-
-  it('navigates to the Classic support-status state when clicked in Classic UI', () => {
-    mockUseIsPreviewUI.mockReturnValue(false);
-
-    renderBell();
-    fireEvent.click(screen.getByLabelText('System Status'));
-
-    expect(mockStateRegistryGet).toHaveBeenCalledWith('admin.support.status');
-    expect(mockUseIsVisible).toHaveBeenCalledWith(
-      expect.objectContaining({requiresPermission: 'astrum:metrics:read'}),
-    );
-    expect(mockStateServiceGo).toHaveBeenCalledWith('admin.support.status');
   });
 
   it('renders nothing when the target state is not registered', () => {
@@ -155,7 +134,7 @@ describe('SystemStatusBell', () => {
     fireEvent.click(screen.getByLabelText('System status -- unhealthy'));
 
     expect(mockMarkAcknowledged).toHaveBeenCalledTimes(1);
-    expect(mockStateServiceGo).toHaveBeenCalledWith('admin.support.status');
+    expect(mockStateServiceGo).toHaveBeenCalledWith('preview.admin.support.metrichealth');
     const ackOrder = mockMarkAcknowledged.mock.invocationCallOrder[0];
     const goOrder = mockStateServiceGo.mock.invocationCallOrder[0];
     expect(ackOrder).toBeLessThan(goOrder);

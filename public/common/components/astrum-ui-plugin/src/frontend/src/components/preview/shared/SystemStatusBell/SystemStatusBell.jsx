@@ -7,15 +7,15 @@ import {useRouter} from '@uirouter/react';
 
 import {ExtJS} from '../../../../interface/ExtJS';
 import {useIsVisible} from '../../../../interface/NavigationUtils';
-import {useIsPreviewUI} from '../Navigation';
 import {useUnreadStatusFailure} from '../hooks';
 import {Tooltip} from '../Tooltip/TooltipContainerContext';
 import SharedStrings from '../../constants/SharedStrings';
 
+const METRIC_HEALTH_STATE = 'preview.admin.support.metrichealth';
+
 /**
- * Global-header bell that routes to the appropriate system-status page for the
- * user's current UI (Classic vs. Preview) and shows a red "unread" dot when
- * health checks are failing.
+ * Global-header bell that routes to the system-status page (Metric Health) and
+ * shows a red "unread" dot when health checks are failing.
  *
  * `SystemStatusRadix` (coreui) and `SystemStatus` (cloud) are thin wrappers
  * around this component — they differ in the root class name, the analytics
@@ -32,25 +32,21 @@ export default function SystemStatusBell({
   label = SharedStrings.SYSTEM_STATUS_BELL.SYSTEM_STATUS,
   unhealthyLabel = 'System status -- unhealthy',
 }) {
-  const isPreviewUI = useIsPreviewUI();
-  const supportStatusStateIdentifier = isPreviewUI
-    ? 'preview.admin.support.metrichealth'
-    : 'admin.support.status';
   const healthChecksFailed = ExtJS.useState(() =>
     ExtJS.state().getValue('health_checks_failed', false),
   );
   const {showDot, markAcknowledged} = useUnreadStatusFailure(healthChecksFailed);
   const router = useRouter();
 
-  const visibilityRequirements = router.stateRegistry.get(supportStatusStateIdentifier)?.data
+  const visibilityRequirements = router.stateRegistry.get(METRIC_HEALTH_STATE)?.data
     ?.visibilityRequirements;
 
   const isVisibleValue = useIsVisible(visibilityRequirements);
 
   const onClick = useCallback(() => {
     markAcknowledged();
-    router.stateService.go(supportStatusStateIdentifier);
-  }, [markAcknowledged, router.stateService, supportStatusStateIdentifier]);
+    router.stateService.go(METRIC_HEALTH_STATE);
+  }, [markAcknowledged, router.stateService]);
 
   if (!visibilityRequirements || !isVisibleValue) {
     return null;

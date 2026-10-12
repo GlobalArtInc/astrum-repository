@@ -2,13 +2,11 @@
 
 import {
   GA_SEARCH_ROUTE_NAMES,
-  DEFAULT_SEARCH_ROUTE_NAMES,
   GA_SEARCH_URLS,
   PREVIEW_BASE_URL,
   GA_SEARCH_PARAMS,
   buildSearchRoute,
   buildDetailRoute,
-  buildDefaultSearchRoute,
   parseGaId,
   parseSearchParams,
   TAB_ROUTE_MAP,
@@ -36,12 +34,6 @@ describe('search.routes', () => {
         expect(GA_SEARCH_ROUTE_NAMES.MAVEN_DETAIL_REPOS).toBeDefined();
         expect(GA_SEARCH_ROUTE_NAMES.MAVEN_DETAIL_FILES).toBeDefined();
         expect(GA_SEARCH_ROUTE_NAMES.MAVEN_DETAIL_SECURITY).toBeDefined();
-      });
-    });
-
-    describe('DEFAULT_SEARCH_ROUTE_NAMES', () => {
-      it('has maven route without preview prefix', () => {
-        expect(DEFAULT_SEARCH_ROUTE_NAMES.MAVEN).toBe('browse.search.maven');
       });
     });
 
@@ -196,12 +188,6 @@ describe('search.routes', () => {
     it('encodes version with special characters', () => {
       const url = buildDetailRoute('maven:org:artifact', 'files', '1.0.0-SNAPSHOT');
       expect(url).toContain(encodeURIComponent('1.0.0-SNAPSHOT'));
-    });
-  });
-
-  describe('buildDefaultSearchRoute', () => {
-    it('returns correct default search URL', () => {
-      expect(buildDefaultSearchRoute()).toBe('#browse/search/maven');
     });
   });
 

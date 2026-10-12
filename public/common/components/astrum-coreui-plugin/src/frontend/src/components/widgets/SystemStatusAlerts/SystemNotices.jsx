@@ -1,24 +1,18 @@
 
-
 import React from 'react';
-import {ExtJS} from '@globalart/astrum-ui-plugin';
 import {
   AsSystemNotice,
 } from '@globalart/astrum-react-shared-components';
 
 import './SystemNotices.scss';
 import UpgradeAlert from './UpgradeAlert/UpgradeAlert';
-import RecoveryModeAlert from './RecoveryModeAlert/RecoveryModeAlert';
 
-export default function SystemNotices ({isPreviewUI = false} = {}) {
-  const recoveryModeEnabled = ExtJS.useState(() => ExtJS.state().getValue('recovery.mode.enabled'));
-
-  // In Preview UI the recovery banner is rendered separately by the Radix
-  // SystemAlerts host, so skip the classic RecoveryModeAlert here to avoid a
-  // duplicate. All other banners render as before.
-  const showClassicRecoveryAlert = recoveryModeEnabled && !isPreviewUI;
-
+/**
+ * The banners of the upgrade of a cluster. The recovery mode banner is rendered by the SystemAlerts host of
+ * astrum-ui-plugin.
+ */
+export default function SystemNotices() {
   return <AsSystemNotice.Container className="as-system-notices">
-    {showClassicRecoveryAlert ? <RecoveryModeAlert /> : <UpgradeAlert />}
+    <UpgradeAlert />
   </AsSystemNotice.Container>;
 }

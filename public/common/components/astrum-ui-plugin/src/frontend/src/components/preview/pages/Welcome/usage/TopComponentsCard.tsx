@@ -4,13 +4,12 @@ import { ArrowRight } from 'lucide-react';
 import UIStrings from '../../../../../constants/UIStrings';
 import { UsageBar } from './UsageBar';
 import { componentName, formatDays, formatLabel, formatNumber, usageLinks } from './usageFormat';
-import type { UsageComponent, UsageDashboardVariant } from './usageDashboard.types';
+import type { UsageComponent } from './usageDashboard.types';
 
 export interface TopComponentsCardProps {
   days: number;
   inPeriod: UsageComponent[];
   allTime: UsageComponent[];
-  variant: UsageDashboardVariant;
   canSearch: boolean;
 }
 
@@ -18,7 +17,7 @@ export interface TopComponentsCardProps {
  * The components downloaded most, in the period or since downloads are counted, each linked to its node in the browse
  * tree.
  */
-export function TopComponentsCard({ days, inPeriod, allTime, variant, canSearch }: TopComponentsCardProps): JSX.Element {
+export function TopComponentsCard({ days, inPeriod, allTime, canSearch }: TopComponentsCardProps): JSX.Element {
   const strings = UIStrings.USAGE_DASHBOARD.TOP;
   const [scope, setScope] = useState<'period' | 'all'>('period');
   const components = scope === 'period' ? inPeriod : allTime;
@@ -55,7 +54,7 @@ export function TopComponentsCard({ days, inPeriod, allTime, variant, canSearch 
                     <Text size="2" color="gray">{index + 1}</Text>
                   </Table.Cell>
                   <Table.Cell className="as-usage-dashboard__component-cell">
-                    <Link href={usageLinks.component(variant, component)} color="gray" highContrast underline="hover"
+                    <Link href={usageLinks.component(component)} color="gray" highContrast underline="hover"
                       weight="medium" size="2" title={componentName(component)}>
                       {componentName(component)}
                     </Link>
@@ -83,7 +82,7 @@ export function TopComponentsCard({ days, inPeriod, allTime, variant, canSearch 
       )}
       {canSearch && (
         <Flex mt="3">
-          <Link href={usageLinks.search(variant)} size="2" className="as-usage-dashboard__search-link">
+          <Link href={usageLinks.search()} size="2" className="as-usage-dashboard__search-link">
             <Flex align="center" gap="1" asChild>
               <span>{strings.SEARCH_LINK}<ArrowRight size={14} aria-hidden="true" /></span>
             </Flex>

@@ -12,10 +12,6 @@ jest.mock('../../../../../interface/NavigationUtils', () => ({
   useIsVisible: jest.fn(),
 }));
 
-jest.mock('../useContextAwareRouteName', () => ({
-  useContextAwareRouteName: jest.fn((name: string) => name),
-}));
-
 const {useRouter} = require('@uirouter/react');
 const {useIsVisible} = require('../../../../../interface/NavigationUtils');
 
@@ -40,7 +36,7 @@ describe('useRouteVisibility', () => {
     useRouter.mockReturnValue(makeRouter());
     useIsVisible.mockReturnValue(true);
 
-    const {result} = renderHook(() => useRouteVisibility('browse.search'));
+    const {result} = renderHook(() => useRouteVisibility('preview.browse.search'));
     expect(result.current).toBe(true);
   });
 
@@ -48,7 +44,7 @@ describe('useRouteVisibility', () => {
     useRouter.mockReturnValue(makeRouter());
     useIsVisible.mockReturnValue(false);
 
-    const {result} = renderHook(() => useRouteVisibility('browse.search'));
+    const {result} = renderHook(() => useRouteVisibility('preview.browse.search'));
     expect(result.current).toBe(false);
   });
 

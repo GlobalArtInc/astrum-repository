@@ -72,12 +72,12 @@ describe('usageFormat', () => {
       .toBe('v2/app/tags/1.0.0');
   });
 
-  it('links into each user interface', () => {
+  it('links into the pages of Astrum One', () => {
     const odd = component({ repository: 'my repo', browsePath: 'a b/c#d' });
-    expect(usageLinks.component('preview', odd)).toBe('#browse/my%20repo/a%20b/c%23d');
-    expect(usageLinks.component('classic', odd)).toBe('#browse/browse:my%20repo:a%20b%2Fc%23d');
-    expect(usageLinks.repository('preview', 'my repo')).toBe('#browse/my%20repo/');
-    expect(usageLinks.cleanupPolicies('preview')).toBe('#admin/repository/cleanup-policies');
+    expect(usageLinks.component(odd)).toBe('#browse/my%20repo/a%20b/c%23d');
+    expect(usageLinks.repository('my repo')).toBe('#browse/my%20repo/');
+    expect(usageLinks.search()).toBe('#browse/search');
+    expect(usageLinks.cleanupPolicies()).toBe('#admin/repository/cleanup-policies');
   });
 
   it('rounds the top of the chart and spaces its labels', () => {

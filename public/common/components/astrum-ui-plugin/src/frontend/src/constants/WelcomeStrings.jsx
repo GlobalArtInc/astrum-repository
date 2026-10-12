@@ -1,13 +1,8 @@
 
 import React from 'react';
-import { faHome } from '@fortawesome/free-solid-svg-icons';
 
 export default {
   WELCOME: {
-    MENU: {
-      text: 'Dashboard',
-      icon: faHome
-    },
     ACTIONS: {
       SYSTEM_HEALTH: {
         title: 'System Health Check',

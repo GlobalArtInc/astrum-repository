@@ -3,53 +3,36 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import type { UseLeftNavigationMenuResult, UseSearchCollapsibleNavResult } from './useLeftNavigationMenu';
+import type { UseLeftNavigationMenuResult } from './useLeftNavigationMenu';
 
-const mockUseSearchCollapsibleNav = jest.fn<UseSearchCollapsibleNavResult, [boolean]>();
 const mockUseLeftNavigationMenu = jest.fn<UseLeftNavigationMenuResult, []>();
 
 // Component tests mock the hook layer: presentation is verified in isolation.
 jest.mock('./useLeftNavigationMenu', () => ({
-  useSearchCollapsibleNav: (isCollapsed: boolean) => mockUseSearchCollapsibleNav(isCollapsed),
   useLeftNavigationMenu: () => mockUseLeftNavigationMenu(),
 }));
 
-// NavItemBox is the shared Preview UI primitive; stub it to a simple node.
-// useContextAwareRouteName is used by the local Classic UI SearchNavItem leaf.
+// NavItemBox is the shared navigation primitive; stub it to a simple node.
 jest.mock('@globalart/astrum-ui-plugin', () => ({
-  useContextAwareRouteName: (name: string) => name,
   NavItemBox: ({ name, text }: { name: string; text: string }) => <div data-testid={`nav-item-${name}`}>{text}</div>,
-  PreviewUIContext: {
-    Provider: ({ children }: { children: React.ReactNode }) => children,
-  },
-}));
-
-// The local SearchNavItem leaf binds to the router; stub those bindings.
-jest.mock('@uirouter/react', () => ({
-  useIsActive: () => false,
-  useSref: (name: string) => ({
-    href: `#/${name}`,
-    onClick: jest.fn(),
-  }),
 }));
 
 jest.mock('../../routerConfig/routeNames/routeNames', () => ({
   ROUTE_NAMES: {
     BROWSE: {
-      WELCOME: { ROOT: 'browse.welcome' },
+      WELCOME: { ROOT: 'preview.browse.welcome' },
       SEARCH: {
-        ROOT: 'browse.search',
-        UNIFIED: 'browse.search.unified',
-        GENERIC: 'browse.search.generic',
-        CUSTOM: 'browse.search.custom',
+        ROOT: 'preview.browse.search',
+        UNIFIED: 'preview.browse.search.unified',
       },
-      BROWSE: { ROOT: 'browse.browse' },
-      UPLOAD: { ROOT: 'browse.upload', LIST: 'browse.upload.list' },
-      TAGS: { ROOT: 'browse.tags' },
-      MALWARERISK: { ROOT: 'browse.malwarerisk' },
+      BROWSE: { ROOT: 'preview.browse.browse' },
+      API: { ROOT: 'preview.browse.api' },
+      UPLOAD: { ROOT: 'preview.browse.upload', LIST: 'preview.browse.upload.list' },
+      TAGS: { ROOT: 'preview.browse.tags' },
     },
     ADMIN: {
-      DIRECTORY: 'admin',
+      DIRECTORY: 'preview.admin',
+      SETTINGS: 'preview.settings',
     },
   },
 }));
@@ -78,30 +61,15 @@ jest.mock('lucide-react', () => {
     Settings: Icon,
     ShieldAlert: Icon,
     FileCode: Icon,
-    ChevronDown: Icon,
-    ChevronUp: Icon,
+    FlaskConical: Icon,
   };
 });
 
-import LeftNavigationMenuRadix, { SearchCollapsibleNav } from './LeftNavigationMenuRadix';
-
-const collapsibleResult = (
-  overrides: Partial<UseSearchCollapsibleNavResult> = {}
-): UseSearchCollapsibleNavResult => ({
-  isExpanded: false,
-  isParentActive: false,
-  parentHref: '#/browse.search.generic',
-  navigateToSearch: jest.fn(),
-  handleParentClick: jest.fn(),
-  customRouteName: 'browse.search.custom',
-  visibleFormats: [],
-  ...overrides,
-});
+import LeftNavigationMenuRadix from './LeftNavigationMenuRadix';
 
 const menuResult = (overrides: Partial<UseLeftNavigationMenuResult> = {}): UseLeftNavigationMenuResult => ({
   isCollapsed: false,
-  isPreviewUI: false,
-  adminInitialRouteName: 'admin.system.api',
+  adminInitialRouteName: 'preview.admin.repository',
   isSettingsVisible: true,
   showTestHub: false,
   isProEdition: true,
@@ -115,80 +83,27 @@ const menuResult = (overrides: Partial<UseLeftNavigationMenuResult> = {}): UseLe
   ...overrides,
 });
 
-describe('SearchCollapsibleNav', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockUseSearchCollapsibleNav.mockReturnValue(collapsibleResult());
-  });
-
-  it('renders the custom entry and filtered formats when expanded', () => {
-    mockUseSearchCollapsibleNav.mockReturnValue(
-      collapsibleResult({
-        isExpanded: true,
-        visibleFormats: [
-          { id: 'alpine', label: 'Alpine', routeName: 'browse.search.alpine' },
-          { id: 'maven', label: 'Maven', routeName: 'browse.search.maven' },
-        ],
-      })
-    );
-
-    render(<SearchCollapsibleNav isCollapsed={false} />);
-
-    expect(screen.getByText('Custom')).toBeInTheDocument();
-    expect(screen.getByText('Alpine')).toBeInTheDocument();
-    expect(screen.getByText('Maven')).toBeInTheDocument();
-  });
-
-  it('does not render the submenu when collapsed', () => {
-    const { container } = render(<SearchCollapsibleNav isCollapsed={false} />);
-
-    expect(container.querySelector('.search-collapsible')).not.toHaveClass('search-collapsible--expanded');
-    expect(screen.queryByText('Custom')).not.toBeInTheDocument();
-  });
-
-  it('reflects expansion state from the hook', () => {
-    mockUseSearchCollapsibleNav.mockReturnValue(collapsibleResult({ isExpanded: true }));
-
-    const { container } = render(<SearchCollapsibleNav isCollapsed={false} />);
-
-    expect(container.querySelector('.search-collapsible')).toHaveClass('search-collapsible--expanded');
-  });
-
-  it('renders a minimal link without submenu when collapsed', () => {
-    const { container } = render(<SearchCollapsibleNav isCollapsed />);
-
-    expect(container.querySelector('.search-collapsible')).not.toBeInTheDocument();
-    expect(container.querySelector('.guide-nav-item')).toBeInTheDocument();
-    expect(screen.queryByText('Custom')).not.toBeInTheDocument();
-  });
-});
-
 describe('LeftNavigationMenuRadix', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseSearchCollapsibleNav.mockReturnValue(collapsibleResult());
   });
 
-  it('shouldShowApiNavItemInPreviewUI', () => {
-    mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isPreviewUI: true }));
+  it('links the pages of Astrum One', () => {
+    mockUseLeftNavigationMenu.mockReturnValue(menuResult());
 
     render(<LeftNavigationMenuRadix />);
 
-    expect(screen.getByTestId('nav-item-preview.browse.api')).toBeInTheDocument();
-    expect(screen.getByText('API')).toBeInTheDocument();
-  });
-
-  it('shouldNotShowApiNavItemInClassicUI', () => {
-    mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isPreviewUI: false }));
-
-    render(<LeftNavigationMenuRadix />);
-
-    expect(screen.queryByTestId('nav-item-preview.browse.api')).not.toBeInTheDocument();
+    expect(screen.getByTestId('nav-item-preview.browse.welcome')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-item-preview.browse.search.unified')).toHaveTextContent('Search');
+    expect(screen.getByTestId('nav-item-preview.browse.browse')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-item-preview.browse.upload.list')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-item-preview.browse.api')).toHaveTextContent('API');
+    expect(screen.getByTestId('nav-item-preview.settings')).toBeInTheDocument();
   });
 
   it('hides the settings entry when not visible', () => {
     mockUseLeftNavigationMenu.mockReturnValue(
-      menuResult({ isPreviewUI: true, isSettingsVisible: false, adminInitialRouteName: null })
+      menuResult({ isSettingsVisible: false, adminInitialRouteName: null })
     );
 
     render(<LeftNavigationMenuRadix />);
@@ -201,7 +116,7 @@ describe('LeftNavigationMenuRadix', () => {
 
     render(<LeftNavigationMenuRadix />);
 
-    expect(screen.queryByTestId('nav-item-browse.tags')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-item-preview.browse.tags')).not.toBeInTheDocument();
   });
 
   it('shouldShowTagsNavItemInProEdition', () => {
@@ -209,7 +124,7 @@ describe('LeftNavigationMenuRadix', () => {
 
     render(<LeftNavigationMenuRadix />);
 
-    expect(screen.getByTestId('nav-item-browse.tags')).toBeInTheDocument();
+    expect(screen.getByTestId('nav-item-preview.browse.tags')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
   });
 });
@@ -217,7 +132,6 @@ describe('LeftNavigationMenuRadix', () => {
 describe('LeftNavigationMenuRadix footer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseSearchCollapsibleNav.mockReturnValue(collapsibleResult());
   });
 
   it('labels the menu', () => {
@@ -228,11 +142,8 @@ describe('LeftNavigationMenuRadix footer', () => {
     expect(screen.getByRole('navigation', { name: 'Main menu' })).toBeInTheDocument();
   });
 
-  it.each([
-    ['Astrum One', true],
-    ['the Classic UI', false],
-  ])('shows the version and no theme choice in %s', (_ui, isPreviewUI) => {
-    mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isPreviewUI }));
+  it('shows the version and no theme choice', () => {
+    mockUseLeftNavigationMenu.mockReturnValue(menuResult());
 
     render(<LeftNavigationMenuRadix />);
 
@@ -242,7 +153,7 @@ describe('LeftNavigationMenuRadix footer', () => {
   });
 
   it('leaves the footer out of the collapsed menu', () => {
-    mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isPreviewUI: true, isCollapsed: true }));
+    mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isCollapsed: true }));
 
     render(<LeftNavigationMenuRadix />);
 
@@ -259,7 +170,7 @@ describe('LeftNavigationMenuRadix footer', () => {
 
   describe('as a drawer on phones and tablets', () => {
     it('stays closed and keeps its rows expanded even when the side menu was collapsed', () => {
-      mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isPreviewUI: true, isDrawer: true, isCollapsed: true }));
+      mockUseLeftNavigationMenu.mockReturnValue(menuResult({ isDrawer: true, isCollapsed: true }));
 
       render(<LeftNavigationMenuRadix />);
 
@@ -273,7 +184,7 @@ describe('LeftNavigationMenuRadix footer', () => {
     it('shows the scrim, a close button and the controls the header has no room for when open', () => {
       const closeDrawer = jest.fn();
       mockUseLeftNavigationMenu.mockReturnValue(
-        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true, closeDrawer })
+        menuResult({ isDrawer: true, isDrawerOpen: true, closeDrawer })
       );
 
       render(<LeftNavigationMenuRadix />);
@@ -292,23 +203,13 @@ describe('LeftNavigationMenuRadix footer', () => {
     it('closes after a pick', () => {
       const onDrawerClick = jest.fn();
       mockUseLeftNavigationMenu.mockReturnValue(
-        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true, onDrawerClick })
+        menuResult({ isDrawer: true, isDrawerOpen: true, onDrawerClick })
       );
 
       render(<LeftNavigationMenuRadix />);
-      fireEvent.click(screen.getByTestId('nav-item-browse.welcome'));
+      fireEvent.click(screen.getByTestId('nav-item-preview.browse.welcome'));
 
       expect(onDrawerClick).toHaveBeenCalled();
-    });
-
-    it('does not offer the Classic UI in the drawer', () => {
-      mockUseLeftNavigationMenu.mockReturnValue(
-        menuResult({ isPreviewUI: true, isDrawer: true, isDrawerOpen: true })
-      );
-
-      render(<LeftNavigationMenuRadix />);
-
-      expect(screen.queryByTestId('left-nav-switch-classic')).not.toBeInTheDocument();
     });
   });
 });

@@ -102,10 +102,12 @@ describe('SystemNotices - Upgrade Alert', () => {
     expect(axios.delete).toHaveBeenCalledWith('service/rest/v1/clustered/upgrade-database-schema');
   });
 
-  it('hides upgrade alert when recovery mode is enabled', () => {
+  it('shows upgrade alert when recovery mode is enabled', () => {
     renderComponent('needsUpgrade', null, true);
 
-    expect(screen.queryByText(UpgradeAlertStrings.UPGRADE_ALERT.PENDING.TEXT)).not.toBeInTheDocument();
+    const expectedMessage = UpgradeAlertStrings.UPGRADE_ALERT.PENDING.TEXT;
+    const expectedTitle = UpgradeAlertStrings.UPGRADE_ALERT.PENDING.LABEL;
+    assertCommunityEditionLimitMessageShowing(expectedMessage, expectedTitle);
   });
 
   it('shows upgrade alert when recovery mode is disabled', async () => {

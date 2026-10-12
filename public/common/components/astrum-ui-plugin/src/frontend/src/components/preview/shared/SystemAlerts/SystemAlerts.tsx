@@ -3,7 +3,6 @@
 import React from 'react';
 import { Box } from '@radix-ui/themes';
 
-import { useIsPreviewUI } from '../Navigation';
 import { RecoveryModeAlert } from './RecoveryModeAlert';
 
 import './SystemAlerts.scss';
@@ -14,21 +13,14 @@ export interface SystemAlertsProps {
 }
 
 /**
- * SystemAlerts - Application-scoped banner host for the Preview UI.
+ * SystemAlerts - Application-scoped banner host of Astrum One.
  *
- * Renders only in Preview UI (gated by useIsPreviewUI). Mounted once per app
- * shell (coreui / cloudui) above the global header.
+ * Mounted once per app shell (coreui / cloudui) above the global header.
  *
- * Composes self-gating alert children (each decides its own visibility),
- * mirroring the classic SystemNotices pattern. Add new system banners here.
+ * Composes self-gating alert children (each decides its own visibility).
+ * Add new system banners here.
  */
-export function SystemAlerts({ className = '' }: SystemAlertsProps): React.ReactElement | null {
-  const isPreview = useIsPreviewUI();
-
-  if (!isPreview) {
-    return null;
-  }
-
+export function SystemAlerts({ className = '' }: SystemAlertsProps): React.ReactElement {
   return (
     <Box className={`as-system-alerts ${className}`.trim()} data-testid="as-system-alerts">
       <RecoveryModeAlert />

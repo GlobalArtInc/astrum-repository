@@ -1,62 +1,11 @@
 
 import {
-  getHeritageEquivalent,
   heritageToPreviewPath,
   isClassicPath,
   isClassicSearchPath,
-  previewBrowsePathToHeritageBrowseParam,
   PREVIEW_WELCOME_PATH,
   withoutPreviewPrefix,
 } from '../previewHeritageNavigation';
-
-describe('previewBrowsePathToHeritageBrowseParam', () => {
-  it('maps repo-only path to browse param with encoded repo name', () => {
-    expect(previewBrowsePathToHeritageBrowseParam('preview/browse/my-repo/'))
-      .toBe('browse/browse:my-repo');
-  });
-
-  it('maps repo + node path to colon-separated browse param', () => {
-    expect(previewBrowsePathToHeritageBrowseParam('preview/browse/my-repo/com/foo'))
-      .toBe('browse/browse:my-repo:com%2Ffoo');
-  });
-
-  it('falls back to browse/browse for bare prefix', () => {
-    expect(previewBrowsePathToHeritageBrowseParam('preview/browse/')).toBe('browse/browse');
-  });
-
-  it('falls back for non-matching prefix', () => {
-    expect(previewBrowsePathToHeritageBrowseParam('other/path')).toBe('browse/browse');
-  });
-});
-
-describe('getHeritageEquivalent', () => {
-  it.each([
-    ['preview/browse/welcome', 'browse/welcome'],
-    ['preview/admin/repository/repositories', 'admin/repository/repositories'],
-    ['preview/admin/repository/cleanup-policies', 'admin/repository/cleanuppolicies'],
-    ['preview/admin/security/privileges', 'admin/security/privileges'],
-    ['preview/admin/security/crowd', 'admin/security/atlassiancrowd'],
-    ['preview/admin/support/metrichealth', 'admin/support/status'],
-    ['preview/admin/support/recoverymode', 'admin/support/recovery'],
-    ['preview/admin/system/tasks', 'admin/system/tasks'],
-    ['preview/admin/repository/repositories/npm-proxy-central', 'admin/repository/repositories:npm-proxy-central'],
-    ['preview/admin/repository/repositories/Maven%20Central', 'admin/repository/repositories:Maven%20Central'],
-    ['preview/admin/repository/repositories/my-repo?tab=config', 'admin/repository/repositories:my-repo?tab=config'],
-    ['preview/browse/welcome?tab=overview', 'browse/welcome?tab=overview'],
-    ['preview/browse/my-repo/', 'browse/browse:my-repo'],
-    ['preview/browse/my-repo/?tab=info', 'browse/browse:my-repo?tab=info'],
-    ['preview/browse/my-repo/com/foo', 'browse/browse:my-repo:com%2Ffoo'],
-    ['preview/browse/welcome/', 'browse/welcome'],
-    ['/preview/admin/system/nodes', 'admin/system/nodes'],
-  ])('maps %s to %s', (preview, classic) => {
-    expect(getHeritageEquivalent(preview)).toBe(classic);
-  });
-
-  it.each([['admin/repository/repositories'], [''], [null], [undefined]])(
-    'returns null for %p', (path) => {
-      expect(getHeritageEquivalent(path)).toBeNull();
-    });
-});
 
 describe('heritageToPreviewPath', () => {
   describe.each([
@@ -233,9 +182,9 @@ describe('heritageToPreviewPath', () => {
     expect(PREVIEW_WELCOME_PATH).toBe('browse/welcome');
   });
 
-  it('round-trips repository entity paths through the Classic UI', () => {
-    const original = 'preview/admin/repository/repositories/npm-proxy-central';
-    expect(heritageToPreviewPath(getHeritageEquivalent(original))).toBe('admin/repository/repositories/npm-proxy-central');
+  it('opens the repository of a Classic repository URL', () => {
+    expect(heritageToPreviewPath('admin/repository/repositories:npm-proxy-central'))
+      .toBe('admin/repository/repositories/npm-proxy-central');
   });
 });
 

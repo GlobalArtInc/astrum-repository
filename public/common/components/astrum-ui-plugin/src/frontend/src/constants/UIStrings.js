@@ -1,8 +1,5 @@
 
-import HistoricalUsageStrings from "./HistoricalUsageStrings";
 import CleanupPoliciesStrings from "./admin/CleanupPoliciesStrings";
-import CapabilitiesStrings from "./admin/CapabilitiesStrings";
-import TasksStrings from "./admin/TasksStrings";
 import LoginPageStrings from "./LoginPageStrings";
 import WelcomeStrings from "./WelcomeStrings";
 import AccessTokensStrings from "./pages/AccessTokensStrings";
@@ -50,7 +47,6 @@ export default localize('react-ui', {
     HOME_LINK: 'Astrum Repository home'
   },
   LOADING: 'Loading...',
-  FILTER: 'Filter',
   CLOSE: 'Close',
 
   PRISTINE_TOOLTIP: 'There are no changes',
@@ -83,15 +79,6 @@ export default localize('react-ui', {
 
   SAVE_SUCCESS: 'The form was saved successfully',
 
-  MULTI_SELECT: {
-    FROM_LABEL: 'Available',
-    TO_LABEL: 'Selected',
-    MOVE_RIGHT: 'Move Selection Right',
-    MOVE_LEFT: 'Move Selection Left',
-    MOVE_UP: 'Move Selection Up',
-    MOVE_DOWN: 'Move Selection Down'
-  },
-
   UNAVAILABLE: 'Unavailable',
 
   FILE_SIZE: {
@@ -115,8 +102,6 @@ export default localize('react-ui', {
     ZiB: (size) => `${size} ZiB`,
     YiB: (size) => `${size} YiB`,
   },
-
-  EMPTY_MESSAGE: 'No data',
 
   SSL_CERTIFICATE_DETAILS: {
     TITLE: 'Certificate Details',
@@ -149,10 +134,7 @@ export default localize('react-ui', {
     }
   },
 
-  ...HistoricalUsageStrings,
   ...CleanupPoliciesStrings,
-  ...CapabilitiesStrings,
-  ...TasksStrings,
   ...LoginPageStrings,
   ...WelcomeStrings,
   ...AccessTokensStrings,

@@ -28,7 +28,7 @@ export const previewUserRoutes = [
     component: AccessTokensPage,
     data: {title: PreviewRouteTitles.ACCESS_TOKENS, visibilityRequirements: {requiresUser: true}},
   },
-  // Both mirror the Classic routes (userRoutes.js): the pages work only where their realm is active.
+  // Both mirror the retired Classic pages: the pages work only where their realm is active.
   {
     name: 'preview.user.nugetapitoken',
     url: '/nugetapitoken',

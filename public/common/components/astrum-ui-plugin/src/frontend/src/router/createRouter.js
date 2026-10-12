@@ -53,10 +53,6 @@ function getTransitionFromStateName(transition) {
   return from.name || (from.state && from.state.name) || '';
 }
 
-function isPreviewUIRouteName(stateName) {
-  return stateName === 'preview' || (stateName && stateName.startsWith('preview.'));
-}
-
 /** How long to keep watching for a user after redirecting to login. */
 const LOGIN_RECOVERY_TIMEOUT_MS = 15000;
 
@@ -160,14 +156,11 @@ function goToReturnTo(router, returnTo) {
 }
 
 /**
- * Preview UI uses Radix AlertDialog via window.showPreviewUnsavedDialog (registered from coreui App).
+ * Asks with the Radix AlertDialog of window.showPreviewUnsavedDialog (registered from coreui App).
  * Polls with escalating delays (up to ~216ms total) to handle mount timing edge cases.
- * Falls back to classic modal only as a last resort.
+ * Falls back to the modal of UnsavedChangesModal only as a last resort.
  */
-export async function promptUnsavedChangesForNavigation(isPreviewRoute) {
-  if (!isPreviewRoute) {
-    return showUnsavedChangesModal();
-  }
+export async function promptUnsavedChangesForNavigation() {
   const tryPreview = () =>
       typeof window.showPreviewUnsavedDialog === 'function'
         ? window.showPreviewUnsavedDialog()
@@ -185,8 +178,8 @@ export async function promptUnsavedChangesForNavigation(isPreviewRoute) {
   }
 
   console.warn(
-    '[UnsavedChanges] Preview route but showPreviewUnsavedDialog unavailable after retries. ' +
-    'Falling back to classic modal. window.showPreviewUnsavedDialog:',
+    '[UnsavedChanges] showPreviewUnsavedDialog unavailable after retries. ' +
+    'Falling back to UnsavedChangesModal. window.showPreviewUnsavedDialog:',
     typeof window.showPreviewUnsavedDialog
   );
   return showUnsavedChangesModal();
@@ -424,17 +417,13 @@ export function createRouter({initialRoute, menuRoutes, missingRoute}) {
           return true;
         }
 
-        const fromState = getTransitionFromStateName(transition);
-        const isPreviewRoute = isPreviewUIRouteName(fromState);
-
         console.debug(
           '[UnsavedChanges] Dirty forms:', window.dirty,
-          '| from:', fromState,
-          '| isPreview:', isPreviewRoute,
+          '| from:', getTransitionFromStateName(transition),
           '| hasRadixDialog:', typeof window.showPreviewUnsavedDialog === 'function'
         );
 
-        const confirm = await promptUnsavedChangesForNavigation(isPreviewRoute);
+        const confirm = await promptUnsavedChangesForNavigation();
         if (!confirm) {
           return false;
         }

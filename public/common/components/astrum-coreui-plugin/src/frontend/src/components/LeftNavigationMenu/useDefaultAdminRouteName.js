@@ -33,10 +33,10 @@ function useIsSectionVisible(section) {
 export function useDefaultAdminRouteName() {
   const { ADMIN } = ROUTE_NAMES;
 
-  const repositorySection = `preview.${ADMIN.REPOSITORY.DIRECTORY}`;
-  const securitySection = `preview.${ADMIN.SECURITY.DIRECTORY}`;
-  const systemSection = `preview.${ADMIN.SYSTEM.DIRECTORY}`;
-  const supportSection = `preview.${ADMIN.SUPPORT.DIRECTORY}`;
+  const repositorySection = ADMIN.REPOSITORY.DIRECTORY;
+  const securitySection = ADMIN.SECURITY.DIRECTORY;
+  const systemSection = ADMIN.SYSTEM.DIRECTORY;
+  const supportSection = ADMIN.SUPPORT.DIRECTORY;
 
   const repoVisible = useIsSectionVisible(repositorySection);
   const securityVisible = useIsSectionVisible(securitySection);

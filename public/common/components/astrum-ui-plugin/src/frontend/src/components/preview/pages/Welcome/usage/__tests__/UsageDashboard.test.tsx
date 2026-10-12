@@ -75,7 +75,7 @@ describe('UsageDashboard', () => {
   it('links the most downloaded components to the browse tree of Astrum One', async () => {
     fetchMock.mockResolvedValue(dashboard());
 
-    renderDashboard({ variant: 'preview', canSearch: true });
+    renderDashboard({ canSearch: true });
 
     const table = await screen.findByRole('table');
     const rows = within(table).getAllByRole('row');
@@ -89,17 +89,14 @@ describe('UsageDashboard', () => {
     expect(screen.getByRole('link', { name: STRINGS.TOP.SEARCH_LINK })).toHaveAttribute('href', '#browse/search');
   });
 
-  it('links into the classic user interface', async () => {
+  it('links the repositories and the cleanup policies to their Astrum One pages', async () => {
     fetchMock.mockResolvedValue(dashboard());
 
-    renderDashboard({ variant: 'classic', canSearch: true, canConfigureCleanup: true });
+    renderDashboard({ canSearch: true, canConfigureCleanup: true });
 
-    expect(await screen.findByRole('link', { name: 'org.example:demo' }))
-      .toHaveAttribute('href', '#browse/browse:maven-releases:org%2Fexample%2Fdemo%2F1.0.0');
-    expect(screen.getAllByRole('link', { name: 'raw-files' })[0]).toHaveAttribute('href', '#browse/browse:raw-files');
-    expect(screen.getByRole('link', { name: STRINGS.TOP.SEARCH_LINK })).toHaveAttribute('href', '#browse/search/generic');
+    expect((await screen.findAllByRole('link', { name: 'raw-files' }))[0]).toHaveAttribute('href', '#browse/raw-files/');
     expect(screen.getByRole('link', { name: STRINGS.UNUSED.CLEANUP }))
-      .toHaveAttribute('href', '#admin/repository/cleanuppolicies');
+      .toHaveAttribute('href', '#admin/repository/cleanup-policies');
   });
 
   it('switches the top list to all time', async () => {

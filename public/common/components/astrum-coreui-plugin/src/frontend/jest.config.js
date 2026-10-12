@@ -108,10 +108,6 @@ module.exports = {
     // the barrel uses, so a deep import shares one transformed module instance
     // rather than an untransformed copy resolved via node_modules.
     '^@globalart/astrum-ui-plugin/src/frontend/src/components/widgets/SystemStatusAlerts/CELimits/usageHelperUtils$': '<rootDir>/../../../astrum-ui-plugin/src/frontend/src/components/widgets/SystemStatusAlerts/CELimits/usageHelperUtils.js',
-    // Redirect astrum-ui-plugin's broken Tasks exports (files missing, live in astrum-coreui-plugin) - see TEST-BASELINE.md
-    '^(\\./)?components/admin/Tasks/TasksList$': '<rootDir>/src/components/pages/admin/Tasks/TasksList.jsx',
-    '^(\\./)?components/admin/Tasks/TasksListMachine$': '<rootDir>/src/components/pages/admin/Tasks/TasksListMachine.js',
-    '^(\\./)?components/admin/Tasks/TasksHelper$': '<rootDir>/src/components/pages/admin/Tasks/TasksHelper.js',
     '^@nosc$': '<rootDir>/src/nosc/index.ts',
     '^@nosc/(.*)$': '<rootDir>/src/nosc/$1',
     '^@/utils/api$': '<rootDir>/__jest__/mocks/utilsApiMock.js',

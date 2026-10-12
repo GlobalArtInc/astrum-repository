@@ -3,7 +3,6 @@ export { useUsageDashboard } from './useUsageDashboard';
 export { fetchUsageDashboard, USAGE_DASHBOARD_URL } from './usageDashboard.api';
 export type {
   UsageDashboardData,
-  UsageDashboardVariant,
   UsageComponent,
   UsageRepository,
   UsageTotals,

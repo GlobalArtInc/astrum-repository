@@ -66,11 +66,4 @@ describe('UIStrings in Russian', () => {
 
     expect(broken).toEqual([]);
   });
-
-  it('replaces the texts computed by getters', () => {
-    const acknowledgement = strings.REALMS.LOCAL_REALM_REMOVAL_MODAL.ACKNOWLEDGEMENT;
-
-    expect(acknowledgement.SUBLABEL).toBe(ru['REALMS.LOCAL_REALM_REMOVAL_MODAL.ACKNOWLEDGEMENT.SUBLABEL']);
-    expect(acknowledgement.SUBLABEL).toContain(acknowledgement.STRING);
-  });
 });

@@ -9,23 +9,7 @@ export default {
       CLOSE_SEARCH: 'Close search',
       HOME: 'Home',
       LOGO_ALT: 'Astrum Repository',
-      SWITCH_TO_CLASSIC: 'Switch to Classic UI',
-      SWITCH_TO_PREVIEW: 'Switch to Astrum One UI',
-      SWITCH_FEEDBACK: {
-        TITLE: 'Trying the new Astrum One UI',
-        DESCRIPTION: 'Prefer the classic experience? Let us know why you\'re switching back.',
-        PLACEHOLDER: 'Share your feedback...',
-        LABEL: 'Optional feedback',
-        TOO_LONG: (max, over) => `Feedback must be ${max} characters or less (${over} characters too many)`,
-        USE_CLASSIC: 'Use Classic UI'
-      },
       REFRESH: 'Refresh',
-      CLASSIC_UNAVAILABLE: {
-        TITLE: 'Not Available in Classic UI',
-        TEXT: 'This view is only available in the Astrum One UI. The Classic UI doesn\'t have an equivalent page for this feature.',
-        STAY: 'Stay on Astrum One UI',
-        GO: 'Go to Classic Dashboard'
-      },
       LANGUAGE: 'Language',
       SYSTEM_STATUS: 'System Status',
       SYSTEM_STATUS_UNHEALTHY: 'System Status: health checks are failing',
@@ -74,7 +58,6 @@ export default {
     NAVIGATION: {
       DASHBOARD: 'Dashboard',
       SEARCH: 'Search',
-      CUSTOM_SEARCH: 'Custom',
       BROWSE: 'Browse',
       UPLOAD: 'Upload',
       TAGS: 'Tags',
@@ -86,25 +69,11 @@ export default {
     LOGIN: {
       HOME_LINK: 'GlobalArt Astrum Repository home'
     },
-    MISSING_ROUTE: {
-      TITLE: 'RESOURCE NOT FOUND',
-      TEXT: 'This resource is not available. It may have been moved, deleted, or you don’t have access.',
-      SUGGESTIONS: 'You might want to:',
-      DASHBOARD: 'Return to Dashboard',
-      DOCUMENTATION: 'Visit Documentation'
-    },
     SESSION_EXPIRY: {
       TITLE: 'Session Expired',
       SUBTITLE: 'Authentication Required',
       REFRESH: 'Refresh Page',
       SIGN_IN: 'Sign In'
-    },
-    EXTJS_CONTAINER: {
-      FAILED_TITLE: 'Failed to Load Classic UI Component',
-      FAILED_TEXT: 'The legacy ExtJS framework failed to initialize. This component requires ExtJS to function.',
-      ERROR: (message) => `Error: ${message}`,
-      RELOAD: 'Reload Page',
-      LOADING: 'Loading Classic UI component...'
     },
     SELECT: {
       CLEAR: 'Clear selection',

@@ -79,9 +79,6 @@ export default class ExtJS {
   static onPermissionsChange = jest.fn(() => () => {});
   static signOut = jest.fn();
   static showAbout = jest.fn();
-  static refresh = jest.fn();
-  static search = jest.fn();
-  static isExtJsRendered = jest.fn(() => true);
   static waitForExtJs = jest.fn((callback) => callback());
   static arePermissionsReady = jest.fn(() => true);
   static waitForPermissions = jest.fn().mockResolvedValue(undefined);

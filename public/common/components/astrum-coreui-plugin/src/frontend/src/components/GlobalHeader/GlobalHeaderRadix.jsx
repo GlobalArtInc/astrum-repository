@@ -6,7 +6,6 @@ import {Tooltip} from '@globalart/astrum-ui-plugin';
 import {RefreshCw, Menu, Search} from 'lucide-react';
 import {
   ExtJS,
-  handleExtJsUnsavedChanges,
   hasUnsavedChanges,
   useSideNavbarOpenState,
   PREVIEW_WELCOME_HASH,
@@ -62,24 +61,11 @@ export default function GlobalHeaderRadix() {
   const closeSearchLayer = useCallback(() => setSearchLayerOpen(false), []);
 
   const onRefreshClick = () => {
-    if (!ExtJS.isExtJsRendered()) {
-      // Preview UI: ExtJS warnBeforeNavigate crashes when there is no backing ExtJS
-      // controller, so handle React dirty state directly here (ASTRUM-53775).
-      if (hasUnsavedChanges() && !window.confirm('You have unsaved changes. Refreshing will discard them. Continue?')) {
-        return;
-      }
-      refreshReactPage(router);
+    // React dirty state is handled here; ExtJS warnBeforeNavigate has no backing controller (ASTRUM-53775).
+    if (hasUnsavedChanges() && !window.confirm('You have unsaved changes. Refreshing will discard them. Continue?')) {
       return;
     }
-
-    const menuCtrl =
-      window.Ext && Ext.getApplication && Ext.getApplication().getController
-        ? Ext.getApplication().getController('Menu')
-        : null;
-
-    handleExtJsUnsavedChanges(menuCtrl, () => {
-      ExtJS.refresh();
-    });
+    refreshReactPage(router);
   };
 
   function getLogo() {
@@ -140,7 +126,7 @@ export default function GlobalHeaderRadix() {
           {/* Center: Search Bar */}
           {!isCompact && (
             <Box className="as-global-header-radix__search">
-              <SearchRadix isPreviewUI />
+              <SearchRadix />
             </Box>
           )}
 

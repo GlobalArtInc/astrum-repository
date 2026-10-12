@@ -113,32 +113,7 @@ a.as-internal-link:hover {
       --color-selection: var(--accent-3);
     }
 
-    // ==========================================================================
-    // ExtJS-only layout rules (scoped to ExtJsContainer)
-    //
-    // These rules ONLY apply when an ExtJS page is rendering inside
-    // ExtJsContainer. Preview UI pages are not affected.
-    // ==========================================================================
-    .as-ext-js-wrapper {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      padding: 0 !important; // Override .as-page-main's padding — ExtJS manages its own internal spacing
-
-      > div {
-        flex: 1;
-        min-height: 0;
-      }
-    }
-
-    // Default UI pages using RSC's AsPageSidebar + AsPageMain pattern
-    // These classes only exist in Default UI ExtJS wrapper pages
-    .as-page-sidebar {
-      flex-shrink: 0;
-      width: 270px;
-      overflow-y: auto;
-    }
-
+    // Pages using RSC's AsPageMain, such as the fallback shown while a route loads
     .as-page-main {
       grid-area: unset !important;
       position: relative !important;

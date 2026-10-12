@@ -3,20 +3,19 @@ import { Card, Flex, Heading, Link, Text } from '@radix-ui/themes';
 import UIStrings from '../../../../../constants/UIStrings';
 import { FormatIcon } from '../../../shared/Badges/FormatIcon';
 import { componentName, formatAgo, formatLabel, usageLinks } from './usageFormat';
-import type { UsageComponent, UsageDashboardVariant } from './usageDashboard.types';
+import type { UsageComponent } from './usageDashboard.types';
 
 /** How many of the components added last the card lists, so that it stays about as tall as its neighbour. */
 const SHOWN = 6;
 
 export interface RecentComponentsCardProps {
   components: UsageComponent[];
-  variant: UsageDashboardVariant;
 }
 
 /**
  * The components added last, with their repository, who uploaded them and when.
  */
-export function RecentComponentsCard({ components, variant }: RecentComponentsCardProps): JSX.Element {
+export function RecentComponentsCard({ components }: RecentComponentsCardProps): JSX.Element {
   const strings = UIStrings.USAGE_DASHBOARD.RECENT;
   return (
     <Card size="3" className="as-usage-dashboard__panel as-usage-dashboard__wide" aria-label={strings.TITLE}>
@@ -35,7 +34,7 @@ export function RecentComponentsCard({ components, variant }: RecentComponentsCa
                 </span>
                 <Flex direction="column" minWidth="0" flexGrow="1">
                   <Text size="2" truncate>
-                    <Link href={usageLinks.component(variant, component)} color="gray" highContrast underline="hover"
+                    <Link href={usageLinks.component(component)} color="gray" highContrast underline="hover"
                       weight="medium">
                       {componentName(component)}
                     </Link>

@@ -1,21 +1,13 @@
 
 
 /**
- * GA Search Routes - PREVIEW UI ONLY
+ * GA Search Routes
  * 
- * AUTHORITATIVE: These are the route definitions for GA search in Preview UI.
+ * AUTHORITATIVE: These are the route definitions for GA search in Astrum One.
  * 
- * IMPORTANT: GA search lives ONLY in Preview UI.
- * The existing ExtJS search at #browse/search/* remains UNCHANGED.
- * 
- * Preview UI Route Hierarchy (path-based /preview/...):
+ * Route Hierarchy:
  * - preview.browse.search.maven       → GA-aggregated Maven search
  * - preview.browse.search.component    → Component detail view with tabs
- * 
- * Default UI Routes (UNCHANGED - ExtJS):
- * - browse.search.maven               → Legacy ExtJS Maven search
- * - browse.search.npm                 → Legacy ExtJS npm search
- * - etc.
  * 
  * URL Examples (path-based):
  * - /browse/search/maven                    → GA search results
@@ -33,8 +25,6 @@ import type { GADetailTab } from './search.types';
 /**
  * Route name constants for GA search in Preview UI.
  * Use these in router.stateService.go() calls.
- * 
- * NOTE: These are PREVIEW routes. Default routes remain with ExtJS.
  */
 export const GA_SEARCH_ROUTE_NAMES = {
   /**
@@ -61,17 +51,6 @@ export const GA_SEARCH_ROUTE_NAMES = {
   MAVEN_DETAIL_REPOS: 'preview.browse.search.component.repos',
   MAVEN_DETAIL_FILES: 'preview.browse.search.component.files',
   MAVEN_DETAIL_SECURITY: 'preview.browse.search.component.security',
-} as const;
-
-/**
- * Default UI route names (ExtJS - DO NOT MODIFY).
- * These exist for reference only. GA search does NOT touch these.
- */
-export const DEFAULT_SEARCH_ROUTE_NAMES = {
-  MAVEN: 'browse.search.maven',
-  NPM: 'browse.search.npm',
-  DOCKER: 'browse.search.docker',
-  // ... etc - all remain ExtJS
 } as const;
 
 // =============================================================================
@@ -223,13 +202,6 @@ export function buildDetailRoute(gaId: string, tab?: GADetailTab, version?: stri
   }
   
   return url;
-}
-
-/**
- * Builds URL to switch back to Default UI (ExtJS) search.
- */
-export function buildDefaultSearchRoute(): string {
-  return '#browse/search/maven';
 }
 
 // =============================================================================
