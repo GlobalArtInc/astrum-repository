@@ -1,6 +1,7 @@
 mod privileges;
 mod roles;
 mod selectors;
+mod settings;
 mod users;
 mod validate;
 
@@ -21,6 +22,7 @@ pub fn routes() -> Router<AppState> {
         .merge(roles::routes())
         .merge(privileges::routes())
         .merge(selectors::routes())
+        .merge(settings::routes())
 }
 
 async fn changed(state: &AppState, caller: &Caller, event: Event) -> Result<(), ApiError> {
