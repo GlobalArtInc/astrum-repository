@@ -1,0 +1,18 @@
+[package]
+name = "astrum-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+astrum-db.workspace = true
+axum.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+astrum-testkit.workspace = true
+http-body-util.workspace = true
+tempfile.workspace = true
+tower.workspace = true

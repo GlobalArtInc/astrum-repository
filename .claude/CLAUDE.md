@@ -2,8 +2,8 @@
 
 Astrum Repository is GlobalArt's artifact repository manager, version 2.0.0, running in production at
 https://astrum.globalart.hu. Today it is a modified version of Nexus Repository OSS (EPL-1.0) with a
-React UI called Astrum One. A from-scratch Rust rewrite is planned: read `.claude/rewrite/README.md`
-before any work on it, and follow its clean-room rules. This repository is public: never commit
+React UI called Astrum One. A from-scratch Rust rewrite is under way (M0 done): read
+`.claude/rewrite/README.md` before any work on it, and follow its clean-room rules. This repository is public: never commit
 secrets.
 
 ## State (2026-10-12)
@@ -53,7 +53,9 @@ secrets.
   design tokens in `astrum-coreui-plugin/src/frontend/src/styles/astrum-brand.css`.
 - i18n dictionaries: `<module>/src/main/resources/astrum-i18n/<dict>/{en,ru}.json`; tooling `tools/i18n`.
 - Docs: `docs/` (install, configure, operate, use, migrate). Container: `Dockerfile`, `docker/`.
-- CI: `.github/workflows/image.yml` (builds and pushes the image) and `i18n.yml`, on `ubuntu-latest`.
+- Rust server (the rewrite): `Cargo.toml`, `crates/`, `docker/server.Dockerfile`; not deployed yet.
+- CI: `.github/workflows/image.yml` (builds and pushes the Java image; skips pushes that only touch the
+  Rust server or `.claude/`), `server.yml` (Rust checks and image) and `i18n.yml`, on `ubuntu-latest`.
 
 ## Build and test
 - Modules, from `public/common/components`:

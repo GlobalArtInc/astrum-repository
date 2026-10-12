@@ -1,0 +1,123 @@
+name: Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "docker/server.Dockerfile*"
+      - ".github/workflows/server.yml"
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/**"
+      - "docker/server.Dockerfile*"
+      - ".github/workflows/server.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  check:
+    name: fmt, clippy, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: astrum
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      ASTRUM_TEST_DATABASE_URL: postgres://postgres:astrum@127.0.0.1:5432/postgres
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Install the toolchain from rust-toolchain.toml
+        run: |
+          rustup toolchain install
+          rustc --version
+          cargo --version
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --locked
+
+  image:
+    name: container image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Build
+        run: |
+          set -eu
+          docker build -f docker/server.Dockerfile \
+            --build-arg VERSION="$(git rev-parse --short=7 HEAD)" \
+            --build-arg GIT_REVISION="$(git rev-parse --short=7 HEAD)" \
+            -t astrum-server:ci .
+          docker run --rm astrum-server:ci version
+
+      - name: Start it against PostgreSQL
+        run: |
+          set -eu
+          trap 'docker logs astrum-ci 2>&1 | tail -n 100 || true' ERR
+          docker network create astrum-ci
+          docker run -d --name astrum-ci-db --network astrum-ci -e POSTGRES_PASSWORD=astrum postgres:16
+          for i in $(seq 1 30); do
+            docker exec astrum-ci-db pg_isready -U postgres >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker run -d --name astrum-ci --network astrum-ci -p 127.0.0.1::8081 \
+            -e ASTRUM_DATABASE_URL=postgres://postgres:astrum@astrum-ci-db:5432/postgres \
+            astrum-server:ci
+          port="$(docker port astrum-ci 8081/tcp | head -n1 | sed 's/.*://')"
+          for i in $(seq 1 30); do
+            curl -fs "http://127.0.0.1:$port/service/rest/v1/status/writable" >/dev/null && break
+            if [ "$(docker inspect -f '{{.State.Running}}' astrum-ci)" != "true" ]; then
+              exit 1
+            fi
+            sleep 2
+          done
+          curl -fs "http://127.0.0.1:$port/service/rest/v1/status" >/dev/null
+          curl -fs "http://127.0.0.1:$port/service/rest/v1/status/writable" >/dev/null
+          docker exec astrum-ci astrum check
+          test "$(docker exec astrum-ci id -u)" = 200
+          docker exec astrum-ci test -d /astrum-data/tmp
+          docker stop -t 20 astrum-ci
+          test "$(docker inspect -f '{{.State.ExitCode}}' astrum-ci)" = 0
+          docker logs astrum-ci 2>&1 | grep stopped >/dev/null
+          echo "the image starts, serves its status and stops cleanly"
+
+      - if: always()
+        run: docker rm -f astrum-ci astrum-ci-db >/dev/null 2>&1 || true

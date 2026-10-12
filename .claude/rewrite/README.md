@@ -1,7 +1,7 @@
 # Rewriting Astrum Repository in Rust
 
-Status: planned and decided (owner's answers of 2026-10-12 are recorded below), not started. Work starts
-after the usage limits reset (Saturday) or earlier if limits allow, with milestone M0.
+Status: decided (owner's answers of 2026-10-12 are recorded below); M0 is done (2026-10-12), M1 is next.
+See "Where the Rust server stands" at the end for the code that exists.
 
 ## Why
 Astrum Repository today is a modified version of Nexus Repository OSS (EPL-1.0), and its web UI (Astrum
@@ -97,11 +97,18 @@ Everything else in `public/` is upstream-derived.
   pypi; components/assets/search/browse API; uploads; tested with real clients.
 - M3 UI: shell (header, menu, search panel, themes, languages, mobile), dashboard, browse, search,
   upload, settings for repositories, blob stores and security.
-- M4 Everything else: remaining formats (alpine, apt, cargo, cocoapods, composer, conan, conda, go, helm,
-  nuget, p2, r, rubygems, swift, terraform, yum, gitlfs, huggingface, pub, ansible), cleanup policies with
-  previews, routing rules, tasks, settings that replace capabilities (base URL, UI settings, branding,
-  default role, audit, webhooks), email, HTTP, SSL truststore, LDAP, OIDC, notifications, download
-  counters and usage dashboard, logs and support pages, Nexus 2 style URLs.
+- M4 Everything else, in three parts so each ends in a working server and the least used work comes last
+  (the whole of M4 was estimated at 180-300% of a weekly limit; ordered this way it is about 100-170% before
+  M4c, which may never be needed):
+  - M4a Formats production uses: take the list of repositories from production first and port only the
+    formats that have repositories there. Our own formats (yum, rubygems, terraform, huggingface, swift,
+    gitlfs) are ported from our own code and cost less than the clean-room ones.
+  - M4b Operations: cleanup policies with previews, routing rules, tasks, settings that replace
+    capabilities (base URL, UI settings, branding, default role, audit, webhooks), email, HTTP, SSL
+    truststore, LDAP, OIDC, notifications, download counters and usage dashboard, logs and support pages,
+    Nexus 2 style URLs. LDAP, OIDC, notifications and the counters are ours and are ported from our code.
+  - M4c Formats production does not use (likely p2, r, cocoapods, conan, conda, pub, ansible): only on
+    request; the migrator reports repositories of a format the Rust server does not have yet.
 - M5 Migration: `astrum-migrate` (from the Java Astrum and from Nexus 3) against a copy of production data, side-by-side run with the Java
   server comparing client behaviour, switch production, rollback plan.
 - M6 Removal: delete the Java tree and `@globalart/astrum-react-shared-components` usage, new LICENSE,
@@ -119,3 +126,36 @@ Everything else in `public/` is upstream-derived.
 - `inventory-server.md` — formats, REST API, security, tasks, blob stores, settings, configuration.
 - `inventory-data.md` — database tables, secrets, blob store layout, versions (for the migrator).
 - `inventory-ui.md` — routes, pages, actions, shell, what is upstream-only.
+
+## Where the Rust server stands
+M0 (2026-10-12): the skeleton runs, builds into an image and is checked by CI; nothing of it is deployed.
+- `Cargo.toml` (workspace, version `3.0.0-dev`: the Rust server replaces 2.x as 3.0), `rust-toolchain.toml`
+  (1.98.0), crates:
+  - `astrum-db`: `DatabaseConfig`/`DatabaseUrl` (the password never shows in logs or errors), `Database`
+    (sea-orm pool with the search path set to the schema, `astrum` by default, created on connect;
+    `migrate` under a session advisory lock so replicas starting together do not race on the ledger;
+    `ping`; `accepts_writes` = not a standby and not `transaction_read_only`), migrations in
+    `crates/astrum-db/migrations` (`<ms>-<slug>.up.sql`/`.down.sql`, applied by `sqlmig`, our crate, into
+    the `migration` ledger), `setting` (key/jsonb store), `read_only` (read-only mode kept as a setting).
+  - `astrum-api`: `AppState` and `router`; `GET /service/rest/v1/status` (200 when the database answers)
+    and `/status/writable` (200 when the database accepts writes, read-only mode is off and the data
+    directory is writable), 503 otherwise, as the public Nexus API documents them; everything else 404.
+  - `astrum-server`: binary `astrum` with `serve` (default), `migrate`, `check` (exit 0 when the local
+    server's status is 200, used by the image's HEALTHCHECK), `version`; configuration from flags >
+    environment > file > defaults: `--config`/`ASTRUM_CONFIG` (default `<data dir>/etc/astrum.toml`),
+    `--data-dir`/`ASTRUM_DATA_DIR` (`/astrum-data`), `--listen`/`ASTRUM_LISTEN` (`0.0.0.0:8081`),
+    `ASTRUM_DATABASE_URL` (`database.url`, required to serve), `ASTRUM_DATABASE_SCHEMA`,
+    `ASTRUM_DATABASE_MAX_CONNECTIONS` (at least 3), `ASTRUM_LOG` (`info,sqlx=warn`), `ASTRUM_LOG_FORMAT`
+    (`text`/`json`). Graceful stop on SIGTERM/SIGINT.
+  - `astrum-testkit`: `TestDatabase` creates a database per test on the server named by
+    `ASTRUM_TEST_DATABASE_URL` and drops it afterwards.
+- Image: `docker/server.Dockerfile` (+ `.dockerignore` next to it), build context the repository root;
+  Debian trixie slim, uid/gid 200, `/astrum-data`, port 8081, `HEALTHCHECK astrum check`.
+- CI: `.github/workflows/server.yml` (fmt, clippy `-D warnings`, tests against a PostgreSQL 16 service, then
+  the image is built and started against PostgreSQL and checked). It is not pushed anywhere yet. The Java
+  `Image` workflow ignores pushes that only touch the Rust server or `.claude/`.
+- Local checks: `cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings`
+  and `ASTRUM_TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5433/postgres cargo test --workspace --locked`
+  (the local PostgreSQL 16 of the e2e setup trusts local connections). A local docker daemon starts with
+  `dockerd &`; Docker Hub rate-limits anonymous pulls here, so pull bases from `mirror.gcr.io/library/...`
+  and tag them; package installs inside builds cannot reach the network from this sandbox.

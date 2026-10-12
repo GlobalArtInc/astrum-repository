@@ -1,0 +1,11 @@
+[package]
+name = "astrum-testkit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+astrum-db.workspace = true
+sea-orm.workspace = true
+tokio.workspace = true
