@@ -63,7 +63,7 @@ const mockRepository = {
 const mockInternalRepository = {
   ...mockRepository,
   storage: { blobStoreName: 'default', strictContentTypeValidation: true },
-  cleanup: { policyName: ['test-cleanup-policy'] },
+  cleanup: { policyNames: ['test-cleanup-policy'] },
   routingRuleName: 'test-rule',
 };
 

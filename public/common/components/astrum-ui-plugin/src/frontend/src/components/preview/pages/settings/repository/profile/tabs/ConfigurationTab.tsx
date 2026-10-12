@@ -222,7 +222,7 @@ export function ConfigurationTab({ repository }: ConfigurationTabProps): JSX.Ele
             label={RepositoryProfileStrings.CONFIGURATION.CLEANUP_POLICIES}
             value={undefined}
             isList
-            listItems={cleanup.policyName || []}
+            listItems={cleanup.policyNames || []}
           />
         </ConfigSection>
       )}

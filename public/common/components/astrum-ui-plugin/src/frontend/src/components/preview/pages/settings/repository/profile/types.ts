@@ -66,7 +66,7 @@ export interface RepositoryProfileData {
       };
     };
     cleanup?: {
-      policyName?: string[];
+      policyNames?: string[];
     };
     component?: {
       proprietaryComponents?: boolean;

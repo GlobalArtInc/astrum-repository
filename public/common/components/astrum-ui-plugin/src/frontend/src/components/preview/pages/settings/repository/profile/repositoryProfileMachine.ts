@@ -121,7 +121,7 @@ async function fetchRepository(repositoryName: string): Promise<RepositoryProfil
 
     const internal = fullConfig as RepositoryProfileData & {
       storage?: { blobStoreName?: string; strictContentTypeValidation?: boolean; writePolicy?: string };
-      cleanup?: { policyName?: string[] };
+      cleanup?: { policyNames?: string[] };
       routingRuleName?: string;
     };
 

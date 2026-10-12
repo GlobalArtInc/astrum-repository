@@ -243,7 +243,7 @@ export function RepositoryTab({
             label={RepositoryProfileStrings.REPOSITORY_TAB.CLEANUP_POLICIES}
             value={undefined}
             isList
-            listItems={cleanup?.policyName || []}
+            listItems={cleanup?.policyNames || []}
           />
 
           {isProxy && (
