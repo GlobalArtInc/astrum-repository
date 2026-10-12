@@ -1,5 +1,19 @@
 # syntax=docker/dockerfile:1.7
 
+FROM node:22-bookworm-slim AS web
+
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    CI=true
+
+WORKDIR /src/web
+COPY web/package.json web/pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/root/.cache/node/corepack,sharing=locked \
+    --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
+    corepack pnpm install --frozen-lockfile
+COPY web ./
+RUN --mount=type=cache,target=/root/.cache/node/corepack,sharing=locked \
+    corepack pnpm build
+
 FROM rust:1.98.0-trixie AS build
 
 ARG GIT_REVISION=""
@@ -34,9 +48,11 @@ RUN apt-get update \
  && chown 200:200 /astrum-data
 
 COPY --from=build /out/astrum /usr/local/bin/astrum
+COPY --from=web /src/web/dist /usr/share/astrum/web
 
 ENV ASTRUM_DATA_DIR=/astrum-data \
-    ASTRUM_LISTEN=0.0.0.0:8081
+    ASTRUM_LISTEN=0.0.0.0:8081 \
+    ASTRUM_WEB_DIR=/usr/share/astrum/web
 
 WORKDIR /astrum-data
 USER 200:200

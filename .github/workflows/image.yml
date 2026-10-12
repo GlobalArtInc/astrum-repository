@@ -11,6 +11,7 @@ on:
       - "rust-toolchain.toml"
       - "crates/**"
       - "docker/server.Dockerfile*"
+      - "web/**"
       - ".github/workflows/server.yml"
   workflow_dispatch:
 

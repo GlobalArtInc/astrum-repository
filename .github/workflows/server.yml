@@ -9,6 +9,7 @@ on:
       - "rust-toolchain.toml"
       - "crates/**"
       - "docker/server.Dockerfile*"
+      - "web/**"
       - ".github/workflows/server.yml"
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - "rust-toolchain.toml"
       - "crates/**"
       - "docker/server.Dockerfile*"
+      - "web/**"
       - ".github/workflows/server.yml"
   workflow_dispatch:
 
@@ -72,6 +74,40 @@ jobs:
       - name: Test
         run: cargo test --workspace --locked
 
+  web:
+    name: web UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: corepack pnpm lint
+
+      - name: Typecheck
+        run: corepack pnpm typecheck
+
+      - name: Test
+        run: corepack pnpm test
+
+      - name: Check the UI texts
+        run: corepack pnpm i18n:check
+
+      - name: Build
+        run: corepack pnpm build
+
   image:
     name: container image
     runs-on: ubuntu-latest
@@ -111,13 +147,17 @@ jobs:
           done
           curl -fs "http://127.0.0.1:$port/service/rest/v1/status" >/dev/null
           curl -fs "http://127.0.0.1:$port/service/rest/v1/status/writable" >/dev/null
+          curl -fs "http://127.0.0.1:$port/" | grep -q '<div id="root">'
+          curl -fs "http://127.0.0.1:$port/browse/x" | grep -q '<div id="root">'
+          curl -fsI "http://127.0.0.1:$port/browse/x" | grep -qi "^content-security-policy: default-src 'self'"
+          test "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/service/rest/v1/nothing")" = 404
           docker exec astrum-ci astrum check
           test "$(docker exec astrum-ci id -u)" = 200
           docker exec astrum-ci test -d /astrum-data/tmp
           docker stop -t 20 astrum-ci
           test "$(docker inspect -f '{{.State.ExitCode}}' astrum-ci)" = 0
           docker logs astrum-ci 2>&1 | grep stopped >/dev/null
-          echo "the image starts, serves its status and stops cleanly"
+          echo "the image starts, serves its status and the UI, and stops cleanly"
 
       - if: always()
         run: docker rm -f astrum-ci astrum-ci-db >/dev/null 2>&1 || true
