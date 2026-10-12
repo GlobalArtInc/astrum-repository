@@ -38,4 +38,5 @@ export const sections = {
   dockerProxy: (spec: Spec) => spec.format === 'docker' && spec.type === 'proxy',
   raw: (spec: Spec) => spec.format === 'raw',
   rawQuery: (spec: Spec) => spec.format === 'raw' && spec.type === 'proxy',
+  nugetProxy: (spec: Spec) => spec.format === 'nuget' && spec.type === 'proxy',
 };

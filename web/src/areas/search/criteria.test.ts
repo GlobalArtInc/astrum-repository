@@ -30,6 +30,10 @@ describe('criteria', () => {
       expect.arrayContaining(['helm.appVersion', 'helm.description', 'helm.keywords']),
     );
     expect(buildValue(row('helm.keywords', 'web', 'contains'))).toBe('*web*');
+    expect(availableCriteria(['nuget']).map((criterion) => criterion.key)).toEqual(
+      expect.arrayContaining(['nuget.id', 'nuget.tags']),
+    );
+    expect(keys).not.toContain('nuget.id');
   });
 
   it('turn operators into wildcards only where the server matches patterns', () => {

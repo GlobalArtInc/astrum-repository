@@ -81,6 +81,11 @@ const DISPOSITIONS = [
   { value: 'ATTACHMENT', label: 'repositories.form.dispositions.ATTACHMENT' },
 ];
 
+const NUGET_VERSIONS = [
+  { value: 'V2', label: 'repositories.form.nugetVersions.V2' },
+  { value: 'V3', label: 'repositories.form.nugetVersions.V3' },
+];
+
 const INDEX_TYPES = [
   { value: 'REGISTRY', label: 'repositories.form.indexTypes.REGISTRY' },
   { value: 'HUB', label: 'repositories.form.indexTypes.HUB' },
@@ -257,6 +262,31 @@ export function RepositoryForm(props: RepositoryFormProps) {
         </Section>
       )}
 
+      {sections.nugetProxy(spec) && (
+        <Section
+          title={t('repositories.form.sections.nuget')}
+          description={t('repositories.form.sections.nugetText')}
+        >
+          <Wide>
+            <SelectField
+              {...field('nugetVersion')}
+              label={t('repositories.form.nugetVersion')}
+              required
+              options={NUGET_VERSIONS.map((option) => ({ value: option.value, label: t(option.label) }))}
+            />
+          </Wide>
+          <Wide>
+            <NumberField
+              {...field('queryCacheItemMaxAge')}
+              label={t('repositories.form.queryCacheItemMaxAge')}
+              hint={t('repositories.form.queryCacheItemMaxAgeHint')}
+              min={0}
+              required
+            />
+          </Wide>
+        </Section>
+      )}
+
       {sections.proxy(spec) && (
         <Section
           title={t('repositories.form.sections.proxy')}
@@ -267,7 +297,11 @@ export function RepositoryForm(props: RepositoryFormProps) {
               {...field('remoteUrl')}
               type="url"
               label={t('repositories.form.remoteUrl')}
-              hint={t('repositories.form.remoteUrlHint')}
+              hint={
+                spec.format === 'nuget'
+                  ? t('repositories.form.remoteUrlHintNuget')
+                  : t('repositories.form.remoteUrlHint')
+              }
               required
             />
           </Wide>

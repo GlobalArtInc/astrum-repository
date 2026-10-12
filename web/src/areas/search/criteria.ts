@@ -72,6 +72,14 @@ export const CRITERIA: readonly CriterionDefinition[] = [
   },
   { key: 'npm.scope', label: 'search.criterion.npmScope', kind: 'text', format: 'npm', example: 'acme' },
   {
+    key: 'nuget.id',
+    label: 'search.criterion.nugetId',
+    kind: 'text',
+    format: 'nuget',
+    example: 'Newtonsoft.Json',
+  },
+  { key: 'nuget.tags', label: 'search.criterion.nugetTags', kind: 'text', format: 'nuget', example: 'json' },
+  {
     key: 'pypi.classifiers',
     label: 'search.criterion.pypiClassifiers',
     kind: 'text',

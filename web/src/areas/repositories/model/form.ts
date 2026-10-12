@@ -59,6 +59,8 @@ export interface RepositoryValues {
   rawContentDisposition: string;
   forwardQueryParameters: boolean;
   excludedQueryParameters: string;
+  nugetVersion: string;
+  queryCacheItemMaxAge: number | null;
 }
 
 export type FieldKey = keyof RepositoryValues;
@@ -125,6 +127,8 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'rawContentDisposition', path: ['raw', 'contentDisposition'], kind: 'enum' },
   { key: 'forwardQueryParameters', path: ['raw', 'forwardQueryParameters'], kind: 'bool' },
   { key: 'excludedQueryParameters', path: ['raw', 'excludedQueryParameters'], kind: 'lines' },
+  { key: 'nugetVersion', path: ['nugetProxy', 'nugetVersion'], kind: 'enum' },
+  { key: 'queryCacheItemMaxAge', path: ['nugetProxy', 'queryCacheItemMaxAge'], kind: 'int' },
 ];
 
 function read(def: FieldDef, value: Json | undefined): RepositoryValues[FieldKey] {
@@ -275,6 +279,9 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
   if (spec.format === 'npm' && spec.type === 'proxy') {
     document.npm = { removeNonCataloged: false, removeQuarantined: false };
   }
+  if (sections.nugetProxy(spec)) {
+    document.nugetProxy = { nugetVersion: 'V3', queryCacheItemMaxAge: 3600 };
+  }
   if (sections.raw(spec)) {
     document.raw = sections.rawQuery(spec)
       ? { contentDisposition: 'ATTACHMENT', forwardQueryParameters: false, excludedQueryParameters: [] }
@@ -357,6 +364,9 @@ export function validate(values: RepositoryValues, context: ValidationContext, t
     if (values.authType === 'bearerToken' && values.bearerToken === '' && !context.stored.bearerToken) {
       errors.bearerToken = t('repositories.form.errors.bearerTokenRequired');
     }
+  }
+  if (sections.nugetProxy(spec) && !between(values.queryCacheItemMaxAge, 0, 2_147_483_647)) {
+    errors.queryCacheItemMaxAge = t('repositories.form.errors.queryCacheItemMaxAge');
   }
   if (sections.group(spec) && values.memberNames.length === 0) {
     errors.memberNames = t('repositories.form.errors.membersRequired');

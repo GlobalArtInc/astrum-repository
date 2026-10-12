@@ -25,7 +25,7 @@ export interface Snippet {
   hintVars?: Record<string, string>;
 }
 
-export const USAGE_FORMATS = ['maven2', 'npm', 'pypi', 'docker', 'raw', 'helm'] as const;
+export const USAGE_FORMATS = ['maven2', 'npm', 'nuget', 'pypi', 'docker', 'raw', 'helm'] as const;
 
 export function supportsUsage(format: string): boolean {
   return (USAGE_FORMATS as readonly string[]).includes(format);
@@ -308,6 +308,62 @@ function pypi(context: UsageContext): Snippet[] {
   return snippets;
 }
 
+function nuget(context: UsageContext): Snippet[] {
+  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const index = `${url}index.json`;
+  const name = context.repositoryName;
+  const component = context.component;
+  const snippets: Snippet[] = [];
+  if (component?.name) {
+    const version = component.version ? ` --version ${component.version}` : '';
+    snippets.push({
+      id: 'dotnet',
+      label: '.NET CLI',
+      code: `dotnet add package ${component.name}${version} --source ${index}`,
+    });
+  }
+  snippets.push(
+    {
+      id: 'source',
+      label: 'dotnet nuget',
+      code: `dotnet nuget add source ${index} --name ${name}`,
+      hint: 'browse.usage.hint.nugetSource',
+    },
+    {
+      id: 'nuget',
+      label: 'nuget.exe',
+      code: `nuget sources add -Name ${name} -Source ${index}`,
+      hint: 'browse.usage.hint.nugetSource',
+    },
+    {
+      id: 'config',
+      label: 'NuGet.Config',
+      code: [
+        '<configuration>',
+        '  <packageSources>',
+        `    <add key="${xml(name)}" value="${xml(index)}" />`,
+        '  </packageSources>',
+        '</configuration>',
+      ].join('\n'),
+      hint: 'browse.usage.hint.nugetConfig',
+    },
+  );
+  if (context.repositoryType === 'hosted') {
+    const file = component?.name
+      ? component.version
+        ? `${component.name}.${component.version}.nupkg`
+        : `${component.name}.nupkg`
+      : '<package>.nupkg';
+    snippets.push({
+      id: 'push',
+      label: 'dotnet nuget push',
+      code: `dotnet nuget push ${file} --source ${url} --api-key <api-key>`,
+      hint: 'browse.usage.hint.nugetPush',
+    });
+  }
+  return snippets;
+}
+
 const MANIFEST = /^\/?v2\/(.+)\/manifests\/([^/]+)$/;
 
 export function dockerImage(context: UsageContext): { image: string; reference: string } | null {
@@ -434,6 +490,7 @@ function helm(context: UsageContext): Snippet[] {
 const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   maven2: maven,
   npm,
+  nuget,
   pypi,
   docker,
   raw,

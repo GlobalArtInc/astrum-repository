@@ -19,7 +19,7 @@ import { apiFormat, formatFromUrl, type Spec, sections } from './spec';
 
 const t = makeTranslate('en');
 const DOCUMENTS = Object.entries(reference as unknown as Record<string, RepositoryDocument>);
-const SERVED = ['raw', 'maven2', 'npm', 'pypi', 'docker'];
+const SERVED = ['raw', 'maven2', 'npm', 'nuget', 'pypi', 'docker'];
 
 function specOf(document: RepositoryDocument): Spec {
   return { format: String(document.format), type: document.type as Spec['type'] };
@@ -169,6 +169,9 @@ describe('new repositories', () => {
     expect('maven' in document).toBe(sections.maven(spec));
     expect('docker' in document).toBe(spec.format === 'docker');
     expect('dockerProxy' in document).toBe(spec.format === 'docker' && spec.type === 'proxy');
+    expect(getPath(document, ['nugetProxy'])).toEqual(
+      sections.nugetProxy(spec) ? { nugetVersion: 'V3', queryCacheItemMaxAge: 3600 } : undefined,
+    );
     expect(getPath(document, ['storage', 'writePolicy'])).toBe(
       spec.type === 'hosted' ? 'ALLOW_ONCE' : undefined,
     );
@@ -234,6 +237,20 @@ describe('form checks', () => {
     expect(check(proxy, { retries: 11 }).retries).toBeDefined();
     expect(check(proxy, { timeout: 0 }).timeout).toBeDefined();
     expect(check(proxy, { retries: null, timeout: null })).toEqual({});
+  });
+
+  it('checks the query cache age of NuGet proxies', () => {
+    const nuget: Spec = { format: 'nuget', type: 'proxy' };
+    expect(check(nuget, {})).toEqual({});
+    expect(check(nuget, { queryCacheItemMaxAge: -1 }).queryCacheItemMaxAge).toBe(
+      'Enter a whole number of seconds, 0 or more',
+    );
+    expect(check(nuget, { queryCacheItemMaxAge: null }).queryCacheItemMaxAge).toBeDefined();
+    const saved = toDocument(
+      { ...fromDocument(template(nuget, 'default')), nugetVersion: 'V2', queryCacheItemMaxAge: 60 },
+      template(nuget, 'default'),
+    );
+    expect(getPath(saved, ['nugetProxy'])).toEqual({ nugetVersion: 'V2', queryCacheItemMaxAge: 60 });
   });
 
   it('asks for credentials unless they are stored', () => {

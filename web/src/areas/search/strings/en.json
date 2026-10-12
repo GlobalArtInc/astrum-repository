@@ -87,6 +87,8 @@
   "search.criterion.mavenClassifier": "Maven classifier",
   "search.criterion.mavenExtension": "Maven extension",
   "search.criterion.npmScope": "npm scope",
+  "search.criterion.nugetId": "NuGet package ID",
+  "search.criterion.nugetTags": "NuGet tag",
   "search.criterion.pypiClassifiers": "PyPI classifiers",
   "search.criterion.pypiDescription": "PyPI description",
   "search.criterion.pypiKeywords": "PyPI keywords",

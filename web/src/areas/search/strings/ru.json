@@ -91,6 +91,8 @@
   "search.criterion.mavenClassifier": "Maven: классификатор",
   "search.criterion.mavenExtension": "Maven: расширение",
   "search.criterion.npmScope": "npm: scope",
+  "search.criterion.nugetId": "NuGet: ID пакета",
+  "search.criterion.nugetTags": "NuGet: тег",
   "search.criterion.pypiClassifiers": "PyPI: классификаторы",
   "search.criterion.pypiDescription": "PyPI: описание",
   "search.criterion.pypiKeywords": "PyPI: ключевые слова",

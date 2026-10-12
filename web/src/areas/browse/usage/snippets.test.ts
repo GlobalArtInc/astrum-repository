@@ -231,3 +231,36 @@ describe('helm usage', () => {
     expect(code(hosted, 'upload')).toContain('--upload-file <chart>-<version>.tgz');
   });
 });
+
+describe('nuget usage', () => {
+  const component = { group: '', name: 'Astrum.Probe', version: '1.0.0' };
+
+  it('adds the package, registers the source and pushes to a hosted repository', () => {
+    const snippets = usageSnippets(context({ format: 'nuget', repositoryName: 'nuget-hosted', component }));
+    expect(ids(snippets)).toEqual(['dotnet', 'source', 'nuget', 'config', 'push']);
+    const index = 'https://repo.example.org/repository/nuget-hosted/index.json';
+    expect(code(snippets, 'dotnet')).toBe(
+      `dotnet add package Astrum.Probe --version 1.0.0 --source ${index}`,
+    );
+    expect(code(snippets, 'source')).toBe(`dotnet nuget add source ${index} --name nuget-hosted`);
+    expect(code(snippets, 'nuget')).toBe(`nuget sources add -Name nuget-hosted -Source ${index}`);
+    expect(code(snippets, 'config')).toBe(
+      `<configuration>\n  <packageSources>\n    <add key="nuget-hosted" value="${index}" />\n  </packageSources>\n</configuration>`,
+    );
+    expect(code(snippets, 'push')).toBe(
+      'dotnet nuget push Astrum.Probe.1.0.0.nupkg --source https://repo.example.org/repository/nuget-hosted/ --api-key <api-key>',
+    );
+    expect(snippets.find((snippet) => snippet.id === 'push')?.hint).toBe('browse.usage.hint.nugetPush');
+  });
+
+  it('only reads from proxies and groups and works without a component', () => {
+    const group = usageSnippets(
+      context({ format: 'nuget', repositoryName: 'nuget-group', repositoryType: 'group' }),
+    );
+    expect(ids(group)).toEqual(['source', 'nuget', 'config']);
+    const proxy = usageSnippets(
+      context({ format: 'nuget', repositoryName: 'nuget.org', repositoryType: 'proxy', component }),
+    );
+    expect(ids(proxy)).toEqual(['dotnet', 'source', 'nuget', 'config']);
+  });
+});
