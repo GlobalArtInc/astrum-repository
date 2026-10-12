@@ -281,6 +281,7 @@ version = "3.0.0-dev"
 dependencies = [
  "anyhow",
  "astrum-api",
+ "astrum-blob",
  "astrum-db",
  "astrum-security",
  "astrum-testkit",

@@ -26,6 +26,7 @@ async fn the_server_starts_answers_and_stops() {
     let server = Server::start(&config).await.unwrap();
     let address = server.local_addr();
     assert!(config.data_dir.join("tmp").is_dir());
+    assert!(config.data_dir.join("blobs/default/content").is_dir());
 
     let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
     let running = tokio::spawn(server.run(async {

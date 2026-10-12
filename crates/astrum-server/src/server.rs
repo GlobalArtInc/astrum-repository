@@ -24,6 +24,7 @@ impl Server {
         let db = connect(config).await?;
         db.migrate().await?;
         astrum_security::bootstrap(db.conn(), &config.data_dir).await?;
+        astrum_blob::bootstrap(db.conn(), &config.data_dir).await?;
         let secrets = SecretBox::load_or_create(&config.secrets_key)?;
         let state = AppState::load(db, config.data_dir.clone(), secrets).await?;
         let listener = TcpListener::bind(config.listen)
