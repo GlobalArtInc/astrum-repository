@@ -301,3 +301,32 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   sha512. Left: per-repository ports and subdomain routing, blob garbage collection (layers stay after
   deletes), REST deletes that cascade to tags and referrers, a Bearer challenge from the authentication
   layer (it answers with Basic before the format sees the request).
+
+## M3 progress (2026-10-12)
+- M3 UI API (`crates/astrum-api/src/routes/internal/ui/`, tests `tests/ui_*.rs`, shared helpers
+  `tests/ui_support`): internal endpoints under `/service/rest/internal/ui`, camelCase JSON, showing only
+  what the caller may see (whole repositories through repository-view browse/read, single assets through
+  content selector grants; `Ctx::grant` in `astrum-content` says which, and the selectors' SQL translation
+  filters aggregates). `GET /repositories` (every repository the caller may browse, read, administer or add
+  to, with url, blob store, remote URL, visible members and containing groups, component/asset counts, size
+  and last upload from one aggregate query (null where the content is hidden), `limited` when only
+  selectors give access, and flags browse/read/add/edit/delete/admin/adminEdit/adminDelete);
+  `GET /repositories/recipes` (registry format/type pairs whose format is served); `GET|DELETE
+  /browse/{repository}?path=` (direct children of a folder: folders with child counts, a folder named after
+  the version of its only component as a `component` node, assets with public API ids, size, content
+  type, last modified and a download URL through the browsed repository; groups show the union of their
+  members, first member wins; missing folders 404; the delete removes what the caller may delete under a
+  folder through the content store, audits each asset and emptied component, refuses groups and the root,
+  and answers `{deletedAssets, deletedComponents, skippedAssets}`); `GET /search/versions?format=&group=&name=`
+  (newest first: numbers compared as numbers, pre-releases before releases); `GET /dashboard` (totals,
+  downloads, top 10 assets and components, 10 latest hosted uploads, blob stores with
+  `astrum:blobstores:read`); `GET /blobstores` (usage, quota state, users, groups, `deletable`);
+  `POST /content-selectors/preview` (first 100 matches and `more`); `GET /privileges/types` (built from
+  `PrivilegeKind::fields`, which the privileges API validates with); `GET|PUT /user` and
+  `PUT /user/password`. Changing one's own password needs no `astrum:userschangepw:create`, a deliberate
+  exception because the caller proves the current password (rate limited like sign-in; the other sessions
+  end, the current one stays). Also new: audit filters `q`, `initiator`, `kind`/`type`, `context`,
+  `repository`, `since`, `until` on `GET /service/rest/internal/audit`, and group blob stores
+  (`POST /v1/blobstores/group`, `GET|PUT /v1/blobstores/group/{name}`: members must be existing plain
+  stores in no other group and not used by repositories, members holding blobs cannot be removed, and
+  repositories cannot be created on a group member).
