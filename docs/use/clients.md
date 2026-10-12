@@ -103,6 +103,44 @@ docker push astrum.example.com/docker-hosted/team/app:1.0
 podman, buildah, skopeo, crane and containerd use the same names. For anonymous pulls activate the
 **Docker Bearer Token Realm** and allow anonymous access.
 
+### OCI artifacts
+
+Docker repositories implement the OCI Distribution Specification 1.1 and store any OCI artifact, not
+only container images: Helm charts, signatures, SBOMs, attestations, Wasm modules, AI models. Add
+`--plain-http` to oras and helm when the server is reached over plain HTTP.
+
+```shell
+helm registry login astrum.example.com
+helm push mychart-1.2.0.tgz oci://astrum.example.com/docker-hosted/charts
+helm install mychart oci://astrum.example.com/docker-group/charts/mychart --version 1.2.0
+
+oras push astrum.example.com/docker-hosted/team/model:q4 \
+  --artifact-type application/vnd.cncf.model.manifest.v1+json weights.gguf:application/vnd.cncf.model.weight.v1.raw
+oras attach --artifact-type application/spdx+json \
+  astrum.example.com/docker-hosted/team/app:1.0 sbom.spdx.json:application/spdx+json
+oras discover astrum.example.com/docker-group/team/app:1.0
+
+cosign sign --key cosign.key astrum.example.com/docker-hosted/team/app@sha256:...
+notation sign astrum.example.com/docker-hosted/team/app@sha256:...
+```
+
+Signatures, SBOMs and attestations attached through `subject` are listed by the referrers API
+(`GET /v2/<name>/referrers/<digest>`, filtered with `?artifactType=`). A hosted repository also lists
+what a client kept under the tag of the referrers tag schema (`sha256-<hex>`). A proxy asks its remote,
+reads that tag when the remote has no referrers API, and keeps listing the referrers it has cached when
+the remote is down. A group lists the referrers of all its members. A mount from another Docker
+repository (`from=<repository>/<name>`) copies the blob when the user may read it there.
+
+Search and the repository browser tell artifacts apart: `docker.artifactKind` is `image`, `helm`,
+`signature`, `sbom`, `attestation`, `wasm`, `model` or `other`.
+
+What is attached to a manifest lives and dies with it. Deleting a manifest by its digest (through the
+registry API or in the browser) deletes the manifests whose `subject` it is, recursively, and the tags
+of the tag schema derived from its digest (`sha256-<hex>`, `.sig`, `.att`, `.sbom`). Cleanup policies
+delete tags only and never the manifest a tag points at, so they never delete a subject while referrers
+remain, and an image pinned by its digest keeps working after its tag was cleaned up. Layers are not
+reference counted and stay when manifests go.
+
 ## Helm
 
 ```shell
