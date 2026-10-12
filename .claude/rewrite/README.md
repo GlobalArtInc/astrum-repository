@@ -1,8 +1,7 @@
 # Rewriting Astrum Repository in Rust
 
-Status: planned, not started. Work starts after the usage limits reset (Saturday) or earlier if limits
-allow. Nothing here is approved code; the plan below needs the owner's approval before the first line of
-Rust is written.
+Status: planned and decided (owner's answers of 2026-10-12 are recorded below), not started. Work starts
+after the usage limits reset (Saturday) or earlier if limits allow, with milestone M0.
 
 ## Why
 Astrum Repository today is a modified version of Nexus Repository OSS (EPL-1.0), and its web UI (Astrum
@@ -22,6 +21,19 @@ so the new server and UI are written from scratch.
 - Scope: the whole project — every format, the REST API, the UI, and the migration of production data.
 - OCI support belongs to the Docker format, not a separate format.
 - pub and Ansible Galaxy are written directly in Rust (their Java versions were stopped).
+- PostgreSQL only; no embedded H2.
+- No Groovy script API (`/v1/script`, `script` task and privilege type are dropped).
+- Astrum stays compatible with Nexus Repository for clients and tools:
+  - the public REST API keeps the Nexus 3 paths and JSON shapes (`/service/rest/v1/...`), so scripts,
+    Terraform/Ansible providers and CI integrations written for Nexus keep working;
+  - client URLs keep the same layouts (`/repository/<name>/...`, Docker `/v2/...`);
+  - the Nexus 2 style URLs (`/content/repositories|groups|sites/...`, `/service/local/...`) keep working;
+  - migration from Nexus 3 (`tools/nexus-migrate`, `docs/migrate/from-nexus.md`) stays, next to the
+    migration from the current Java Astrum.
+  Compatibility is implemented from the public API documentation and black-box behaviour, never from
+  upstream code. Nexus is named only where compatibility or migration needs it.
+- UI URLs are plain paths (`/browse/...`, `/admin/...`, `/settings`, `/user/...`, `/login`); old hash URLs
+  (`#browse/...`, `#preview/...`, Classic URLs) redirect to them.
 
 ## Clean-room rules (every session and agent must follow them)
 1. Do not read the Java sources of upstream-derived modules, or the Astrum One React code, as a model,
@@ -35,8 +47,9 @@ so the new server and UI are written from scratch.
    - the data layout in `inventory-data.md`, only to read existing installations;
    - the inventories in this folder (behaviour, URLs, settings, screens);
    - our own code (see "Our own code" below) and our own design tokens and Russian translations.
-3. The REST API paths and JSON shapes that external tools rely on (see `inventory-server.md`) may be kept
-   for compatibility; implement them from the documented behaviour, not from the Java resources.
+3. The REST API must stay compatible with Nexus 3 (paths and JSON shapes, see `inventory-server.md` and
+   the public Nexus REST API documentation); implement it from that documented interface and black-box
+   behaviour, not from the Java resources.
 4. New English UI texts are written afresh. Russian texts are ours and can be reused.
 5. No licence headers in files. The new code's licence goes in LICENSE once the Java tree is gone.
 
@@ -64,20 +77,22 @@ Everything else in `public/` is upstream-derived.
   types), `astrum-api` (public REST v1 compatible paths + internal API for the UI), `astrum-format-<id>`
   (one crate per format), `astrum-migrate` (import from an existing installation), `astrum-notify`,
   `astrum-audit`, `astrum-i18n`.
-- PostgreSQL only (proposal: drop H2). Our own schema; the migrator reads the old schema.
+- PostgreSQL only. Our own schema; the migrator reads the old schema.
 - Blob stores: our own layout; the migrator moves or hard-links the old blob files (same filesystem) or
   reads the old layout once, so large stores are not copied twice.
 - Client-facing URLs stay: `/repository/<name>/...` per format, Docker `/v2/...` with path routing and
   per-repository ports, Terraform discovery at the host root.
 - UI: React + Radix Themes with our tokens, our own component layer; English and Russian through Ownlate;
-  hash URLs kept and the old-URL mapping from `inventory-ui.md` preserved.
+  path URLs served by the server (single-page fallback for UI paths that do not collide with
+  `/repository/`, `/service/`, `/v2/`, `/content/`, `/.well-known/`); old hash URLs redirect, including
+  the old-URL mapping from `inventory-ui.md`.
 - Single binary + static UI in one container image (uid 200, port 8081, data in `/astrum-data`), built on
   GitHub-hosted runners (the repository is public).
 
 ## Milestones (each ends in a demonstrable state)
 - M0 Skeleton: workspace, config, PostgreSQL migrations, health/status endpoints, container image, CI.
 - M1 Core: blob stores (file, S3), users/roles/privileges/realms (local), sessions and CSRF, access
-  tokens, content selectors, REST for security, repositories and blob stores, audit.
+  tokens, content selectors, Nexus-compatible REST for security, repositories and blob stores, audit.
 - M2 Engine + first formats: hosted/proxy/group engine with raw, maven2, npm, docker (incl. OCI 1.1),
   pypi; components/assets/search/browse API; uploads; tested with real clients.
 - M3 UI: shell (header, menu, search panel, themes, languages, mobile), dashboard, browse, search,
@@ -86,8 +101,8 @@ Everything else in `public/` is upstream-derived.
   nuget, p2, r, rubygems, swift, terraform, yum, gitlfs, huggingface, pub, ansible), cleanup policies with
   previews, routing rules, tasks, settings that replace capabilities (base URL, UI settings, branding,
   default role, audit, webhooks), email, HTTP, SSL truststore, LDAP, OIDC, notifications, download
-  counters and usage dashboard, logs and support pages.
-- M5 Migration: `astrum-migrate` against a copy of production data, side-by-side run with the Java
+  counters and usage dashboard, logs and support pages, Nexus 2 style URLs.
+- M5 Migration: `astrum-migrate` (from the Java Astrum and from Nexus 3) against a copy of production data, side-by-side run with the Java
   server comparing client behaviour, switch production, rollback plan.
 - M6 Removal: delete the Java tree and `@globalart/astrum-react-shared-components` usage, new LICENSE,
   drop the upstream attribution from NOTICE, update docs.
@@ -99,14 +114,6 @@ Everything else in `public/` is upstream-derived.
 - Side-by-side harness: the same client scripts against the Java server and the Rust server, comparing
   outcomes (status, bodies where meaningful, headers clients rely on).
 - Clients that may call public hosts by default run without internet access, so no credentials leak.
-
-## Open questions for the owner
-- Drop H2 and support PostgreSQL only? (proposed: yes)
-- Keep the Groovy script API? (proposed: drop; tasks and REST cover the use cases)
-- Keep the migration-from-Nexus tool and its documentation (it names the third-party product only to
-  import from it)?
-- Keep the old Nexus 2 URL compatibility (`LegacyUrlCapability`)? (proposed: drop)
-- Keep hash URLs in the UI or move to path URLs with redirects from the old ones?
 
 ## Inventories
 - `inventory-server.md` — formats, REST API, security, tasks, blob stores, settings, configuration.
