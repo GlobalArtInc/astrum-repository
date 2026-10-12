@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use astrum_db::entity::{
-    content_selector, repository, security_privilege, security_role, security_user,
-    security_user_role,
+    content_selector, repository, security_oidc_user, security_privilege, security_role,
+    security_user, security_user_role,
 };
 use astrum_db::setting;
 use sea_orm::{ConnectionTrait, EntityTrait, QuerySelect};
@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::Error;
 use crate::catalogue::{self, DEFAULT_SOURCE};
+use crate::ldap::{self, LdapServer};
+use crate::oidc::{self, OidcSettings, OidcUser};
 use crate::permission::Permission;
 use crate::privilege::{Privilege, PrivilegeKind, SelectorGrant};
 use crate::realm;
@@ -18,6 +20,13 @@ use crate::subject::Subject;
 
 pub const REALMS_KEY: &str = "security.realms";
 pub const ANONYMOUS_KEY: &str = "security.anonymous";
+pub const DEFAULT_ROLE_KEY: &str = "security.defaultRole";
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DefaultRole {
+    pub role: String,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -110,6 +119,24 @@ pub struct SecurityModel {
     pub anonymous: AnonymousSettings,
     pub realms: Vec<String>,
     pub session_timeout_minutes: u32,
+    pub ldap_servers: Vec<LdapServer>,
+    pub oidc: Option<OidcSettings>,
+    pub oidc_users: BTreeMap<String, OidcUser>,
+    pub default_role: Option<String>,
+}
+
+async fn tolerant<T: serde::de::DeserializeOwned>(
+    db: &impl ConnectionTrait,
+    key: &str,
+) -> Result<Option<T>, Error> {
+    match setting::get(db, key).await {
+        Ok(value) => Ok(value),
+        Err(astrum_db::Error::Setting { key, source }) => {
+            tracing::error!(%key, error = %source, "a stored setting cannot be read and is ignored");
+            Ok(None)
+        }
+        Err(other) => Err(other.into()),
+    }
 }
 
 impl SecurityModel {
@@ -213,6 +240,25 @@ impl SecurityModel {
         model.session_timeout_minutes = setting::get(db, crate::sessions::TIMEOUT_KEY)
             .await?
             .unwrap_or(0);
+        model.ldap_servers = tolerant(db, ldap::SERVERS_KEY).await?.unwrap_or_default();
+        model.oidc = tolerant(db, oidc::SETTINGS_KEY).await?;
+        model.default_role = tolerant::<DefaultRole>(db, DEFAULT_ROLE_KEY)
+            .await?
+            .map(|default| default.role)
+            .filter(|role| !role.is_empty());
+        for row in security_oidc_user::Entity::find().all(db).await? {
+            model.oidc_users.insert(
+                row.user_id.clone(),
+                OidcUser {
+                    user_id: row.user_id,
+                    subject: row.subject,
+                    first_name: row.first_name,
+                    last_name: row.last_name,
+                    email: row.email,
+                    groups: strings(&row.groups),
+                },
+            );
+        }
         Ok(model)
     }
 
@@ -289,6 +335,29 @@ impl SecurityModel {
         self.expand_roles([&role_id]).contains(wanted)
     }
 
+    pub fn effective_default_role(&self) -> Option<&str> {
+        self.default_role
+            .as_deref()
+            .filter(|_| self.realm_active(realm::DEFAULT_ROLE))
+    }
+
+    fn build_subject(
+        &self,
+        user_id: &str,
+        source: &str,
+        realm: &str,
+        direct_roles: &[String],
+        with_default: bool,
+    ) -> Subject {
+        let mut direct = direct_roles.to_vec();
+        if with_default && let Some(role) = self.effective_default_role() {
+            direct.push(role.to_owned());
+        }
+        let roles = self.expand_roles(&direct);
+        let (permissions, selectors) = self.grants(&roles);
+        Subject::new(user_id, source, realm, roles, permissions, selectors)
+    }
+
     pub fn subject_with_roles(
         &self,
         user_id: &str,
@@ -296,14 +365,49 @@ impl SecurityModel {
         realm: &str,
         direct_roles: &[String],
     ) -> Subject {
-        let roles = self.expand_roles(direct_roles);
-        let (permissions, selectors) = self.grants(&roles);
-        Subject::new(user_id, source, realm, roles, permissions, selectors)
+        self.build_subject(user_id, source, realm, direct_roles, true)
     }
 
     pub fn subject(&self, user_id: &str, source: &str, realm: &str) -> Subject {
         let direct = self.roles_of(user_id, source).to_vec();
         self.subject_with_roles(user_id, source, realm, &direct)
+    }
+
+    pub fn group_roles(&self, groups: &[String]) -> Vec<String> {
+        groups
+            .iter()
+            .filter_map(|group| {
+                self.roles
+                    .get(group)
+                    .map(|role| role.id.clone())
+                    .or_else(|| {
+                        self.roles
+                            .keys()
+                            .find(|id| id.eq_ignore_ascii_case(group))
+                            .cloned()
+                    })
+            })
+            .collect()
+    }
+
+    pub fn external_subject(
+        &self,
+        user_id: &str,
+        source: &str,
+        realm: &str,
+        groups: &[String],
+    ) -> Subject {
+        let mut direct = self.roles_of(user_id, source).to_vec();
+        direct.extend(self.group_roles(groups));
+        self.subject_with_roles(user_id, source, realm, &direct)
+    }
+
+    pub fn oidc_subject(&self, user_id: &str) -> Option<Subject> {
+        if !self.realm_active(realm::OIDC) {
+            return None;
+        }
+        let user = self.oidc_users.get(user_id)?;
+        Some(self.external_subject(&user.user_id, oidc::SOURCE, realm::OIDC, &user.groups))
     }
 
     pub fn local_subject(&self, user_id: &str, realm: &str) -> Option<Subject> {
@@ -322,9 +426,16 @@ impl SecurityModel {
         if !user.status.can_sign_in() {
             return None;
         }
+        let direct = self.roles_of(&user.id, DEFAULT_SOURCE).to_vec();
         Some(
-            self.subject(&user.id, DEFAULT_SOURCE, &self.anonymous.realm_name)
-                .as_anonymous(),
+            self.build_subject(
+                &user.id,
+                DEFAULT_SOURCE,
+                &self.anonymous.realm_name,
+                &direct,
+                false,
+            )
+            .as_anonymous(),
         )
     }
 }

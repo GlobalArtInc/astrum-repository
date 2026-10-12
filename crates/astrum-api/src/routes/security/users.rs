@@ -1,9 +1,9 @@
 use astrum_db::audit::Event;
-use astrum_db::entity::{security_user, security_user_role};
+use astrum_db::entity::{security_oidc_user, security_user, security_user_role};
 use astrum_security::bootstrap::ADMIN_PASSWORD_FILE;
 use astrum_security::catalogue::{ADMIN_USER, DEFAULT_SOURCE};
 use astrum_security::realm::{self, USER_SOURCES};
-use astrum_security::{SecurityModel, Subject, UserStatus, password};
+use astrum_security::{SecurityModel, Subject, UserStatus, ldap, oidc, password};
 use axum::Router;
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
@@ -104,17 +104,63 @@ fn local(model: &SecurityModel, user: &astrum_security::User) -> UserXo {
     }
 }
 
-fn external(user_id: &str, source: &str, roles: &[String]) -> UserXo {
+fn split_name(name: Option<&str>) -> (Option<String>, Option<String>) {
+    match name.map(str::trim).filter(|name| !name.is_empty()) {
+        None => (None, None),
+        Some(name) => match name.split_once(' ') {
+            Some((first, last)) => (Some(first.to_owned()), Some(last.trim().to_owned())),
+            None => (Some(name.to_owned()), None),
+        },
+    }
+}
+
+fn ldap_user(model: &SecurityModel, user: &astrum_security::ldap::LdapUser) -> UserXo {
+    let (first_name, last_name) = split_name(user.real_name.as_deref());
     UserXo {
-        user_id: user_id.to_owned(),
-        first_name: None,
-        last_name: None,
-        email_address: None,
-        source: source.to_owned(),
+        user_id: user.username.clone(),
+        first_name,
+        last_name,
+        email_address: user.email.clone(),
+        source: ldap::SOURCE.to_owned(),
         status: UserStatus::Active.as_str(),
         read_only: true,
-        roles: roles.to_vec(),
-        external_roles: Vec::new(),
+        roles: model.roles_of(&user.username, ldap::SOURCE).to_vec(),
+        external_roles: user.groups.clone(),
+    }
+}
+
+fn oidc_user(model: &SecurityModel, user: &astrum_security::oidc::OidcUser) -> UserXo {
+    let text = |value: &str| Some(value.to_owned()).filter(|value| !value.is_empty());
+    UserXo {
+        user_id: user.user_id.clone(),
+        first_name: text(&user.first_name),
+        last_name: text(&user.last_name),
+        email_address: text(&user.email),
+        source: oidc::SOURCE.to_owned(),
+        status: UserStatus::Active.as_str(),
+        read_only: true,
+        roles: model.roles_of(&user.user_id, oidc::SOURCE).to_vec(),
+        external_roles: user.groups.clone(),
+    }
+}
+
+async fn external_known(state: &AppState, user_id: &str, source: &str) -> Result<bool, ApiError> {
+    let model = state.security().model();
+    if model
+        .user_roles
+        .contains_key(&(user_id.to_owned(), source.to_owned()))
+    {
+        return Ok(true);
+    }
+    match source {
+        ldap::SOURCE => match state.security().ldap_user(user_id).await {
+            Ok(user) => Ok(user.is_some()),
+            Err(error) => Err(ApiError::BadRequest(format!(
+                "LDAP cannot be asked about the user {user_id}: {error}"
+            ))),
+        },
+        oidc::SOURCE => Ok(model.oidc_users.contains_key(user_id)),
+        _ => Ok(false),
     }
 }
 
@@ -247,12 +293,28 @@ async fn list(
             .filter(|user| wanted(&user.id))
             .map(|user| local(&model, user))
             .collect()
-    } else if external_source(source) {
-        model
-            .user_roles
+    } else if source == ldap::SOURCE {
+        let prefix = query.user_id.as_deref().map(str::trim);
+        state
+            .security()
+            .ldap()
+            .search_users(
+                &model.ldap_servers,
+                state.security().secrets(),
+                prefix,
+                ldap::SEARCH_LIMIT,
+            )
+            .await
             .iter()
-            .filter(|((user_id, mapped), _)| mapped == source && wanted(user_id))
-            .map(|((user_id, mapped), roles)| external(user_id, mapped, roles))
+            .map(|user| ldap_user(&model, user))
+            .collect()
+    } else if source == oidc::SOURCE {
+        model
+            .oidc_users
+            .values()
+            .filter(|user| wanted(&user.user_id))
+            .take(ldap::SEARCH_LIMIT)
+            .map(|user| oidc_user(&model, user))
             .collect()
     } else {
         Vec::new()
@@ -361,10 +423,9 @@ async fn update(
             "the user source {source} does not exist"
         )));
     }
-    let key = (user_id.clone(), source.clone());
     let known = match source == DEFAULT_SOURCE {
         true => model.users.contains_key(&user_id),
-        false => model.user_roles.contains_key(&key),
+        false => external_known(&state, &user_id, &source).await?,
     };
     if !known {
         return Err(user_not_found(&user_id));
@@ -430,10 +491,9 @@ async fn remove(
             })?,
     };
     let model = state.security().model();
-    let key = (user_id.clone(), source.to_owned());
     let known = match source == DEFAULT_SOURCE {
         true => model.users.contains_key(&user_id),
-        false => model.user_roles.contains_key(&key),
+        false => external_known(&state, &user_id, source).await?,
     };
     if !known {
         return Err(user_not_found(&user_id));
@@ -458,7 +518,18 @@ async fn remove(
     security_user_role::Entity::delete_by_id((user_id.clone(), source.to_owned()))
         .exec(&txn)
         .await?;
+    if source == oidc::SOURCE {
+        security_oidc_user::Entity::delete_by_id(user_id.clone())
+            .exec(&txn)
+            .await?;
+    }
     txn.commit().await?;
+    if source == oidc::SOURCE {
+        state
+            .security()
+            .close_sessions_in_realm(&user_id, realm::OIDC)
+            .await?;
+    }
     if source == DEFAULT_SOURCE {
         state.security().close_sessions_of(&user_id).await?;
         state.security().delete_tokens_of(&user_id).await?;

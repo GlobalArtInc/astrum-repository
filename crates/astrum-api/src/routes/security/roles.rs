@@ -1,7 +1,7 @@
 use astrum_db::audit::Event;
 use astrum_db::entity::security_role;
 use astrum_security::catalogue::DEFAULT_SOURCE;
-use astrum_security::{Role, SecurityModel, Subject};
+use astrum_security::{Role, SecurityModel, Subject, ldap, oidc};
 use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -16,7 +16,6 @@ use super::{SECURITY, changed, conflict, dedup, now, unique_violation, validate}
 use crate::{ApiError, AppState, Caller, FieldError, Json, Validation};
 
 const DOMAIN: &str = "security.role";
-const EXTERNAL_SOURCE: &str = "LDAP";
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -30,7 +29,7 @@ pub fn routes() -> Router<AppState> {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct RoleXo {
+pub(crate) struct RoleXo {
     id: String,
     source: String,
     name: String,
@@ -62,6 +61,7 @@ struct SourceQuery {
 #[derive(Debug, Deserialize)]
 struct RoleRequest {
     id: Option<String>,
+    source: Option<String>,
     name: Option<String>,
     description: Option<String>,
     privileges: Option<Vec<String>>,
@@ -69,18 +69,95 @@ struct RoleRequest {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Source {
+pub(crate) enum Source {
     Local,
-    External,
+    Ldap,
+    Oidc,
+}
+
+impl Source {
+    pub(crate) fn parse(value: Option<&str>) -> Result<Self, ApiError> {
+        match value.map(str::trim) {
+            None | Some("") | Some(DEFAULT_SOURCE) => Ok(Source::Local),
+            Some(ldap::SOURCE) => Ok(Source::Ldap),
+            Some(oidc::SOURCE) => Ok(Source::Oidc),
+            Some(other) => Err(ApiError::BadRequest(format!(
+                "the role source {other} does not exist; use {DEFAULT_SOURCE}, {} or {}",
+                ldap::SOURCE,
+                oidc::SOURCE
+            ))),
+        }
+    }
+
+    pub(crate) fn id(self) -> &'static str {
+        match self {
+            Source::Local => DEFAULT_SOURCE,
+            Source::Ldap => ldap::SOURCE,
+            Source::Oidc => oidc::SOURCE,
+        }
+    }
 }
 
 fn source(query: &SourceQuery) -> Result<Source, ApiError> {
-    match query.source.as_deref().map(str::trim) {
-        None | Some("") | Some(DEFAULT_SOURCE) => Ok(Source::Local),
-        Some(EXTERNAL_SOURCE) => Ok(Source::External),
-        Some(other) => Err(ApiError::BadRequest(format!(
-            "the role source {other} does not exist; use {DEFAULT_SOURCE} or {EXTERNAL_SOURCE}"
-        ))),
+    Source::parse(query.source.as_deref())
+}
+
+pub(crate) fn group_role(group: &str, source: Source) -> RoleXo {
+    let kind = match source {
+        Source::Oidc => "OpenID Connect group",
+        _ => "LDAP group",
+    };
+    RoleXo {
+        id: group.to_owned(),
+        source: source.id().to_owned(),
+        name: group.to_owned(),
+        description: format!("{kind} {group}"),
+        read_only: true,
+        privileges: Vec::new(),
+        roles: Vec::new(),
+    }
+}
+
+pub(crate) async fn external_groups(
+    state: &AppState,
+    source: Source,
+    search: Option<&str>,
+) -> Vec<String> {
+    let model = state.security().model();
+    let search = search.map(str::trim).filter(|search| !search.is_empty());
+    match source {
+        Source::Local => Vec::new(),
+        Source::Ldap => {
+            state
+                .security()
+                .ldap()
+                .search_groups(
+                    &model.ldap_servers,
+                    state.security().secrets(),
+                    search,
+                    ldap::GROUP_LIMIT,
+                )
+                .await
+        }
+        Source::Oidc => {
+            let wanted = search.map(str::to_lowercase);
+            let mut groups: Vec<String> = Vec::new();
+            for group in model
+                .oidc_users
+                .values()
+                .flat_map(|user| user.groups.iter())
+            {
+                if wanted
+                    .as_deref()
+                    .is_none_or(|wanted| group.to_lowercase().contains(wanted))
+                    && !groups.contains(group)
+                {
+                    groups.push(group.clone());
+                }
+            }
+            groups.sort_by_key(|group| group.to_lowercase());
+            groups
+        }
     }
 }
 
@@ -96,6 +173,7 @@ fn built_in(id: &str) -> ApiError {
 
 struct Checked {
     id: String,
+    source: Option<Source>,
     name: String,
     description: Option<String>,
     privileges: Vec<String>,
@@ -109,9 +187,24 @@ fn check_body(body: RoleRequest) -> Result<Checked, ApiError> {
         validation.add("id", problem);
     }
     validation.require("name", body.name.as_deref());
+    let source = match Source::parse(body.source.as_deref()) {
+        Ok(source) => Some(source),
+        Err(_) => {
+            validation.add(
+                "source",
+                format!(
+                    "must be {DEFAULT_SOURCE}, {} or {}",
+                    ldap::SOURCE,
+                    oidc::SOURCE
+                ),
+            );
+            None
+        }
+    };
     validation.finish()?;
     Ok(Checked {
         id,
+        source: source.filter(|_| body.source.is_some()),
         name: body.name.unwrap_or_default(),
         description: body.description,
         privileges: dedup(body.privileges.unwrap_or_default()),
@@ -177,8 +270,15 @@ async fn list(
     Query(query): Query<SourceQuery>,
 ) -> Result<axum::Json<Vec<RoleXo>>, ApiError> {
     caller.require("astrum:roles:read")?;
-    if source(&query)? == Source::External {
-        return Ok(axum::Json(Vec::new()));
+    let source = source(&query)?;
+    if source != Source::Local {
+        return Ok(axum::Json(
+            external_groups(&state, source, None)
+                .await
+                .iter()
+                .map(|group| group_role(group, source))
+                .collect(),
+        ));
     }
     let model = state.security().model();
     Ok(axum::Json(model.roles.values().map(RoleXo::from).collect()))
@@ -190,7 +290,7 @@ async fn assignable(
     Query(query): Query<SourceQuery>,
 ) -> Result<axum::Json<Vec<RoleXo>>, ApiError> {
     let subject = caller.require("astrum:roles:read")?;
-    if source(&query)? == Source::External {
+    if source(&query)? != Source::Local {
         return Ok(axum::Json(Vec::new()));
     }
     let model = state.security().model();
@@ -211,8 +311,25 @@ async fn read(
     Query(query): Query<SourceQuery>,
 ) -> Result<axum::Json<RoleXo>, ApiError> {
     caller.require("astrum:roles:read")?;
-    if source(&query)? == Source::External {
-        return Err(role_not_found(&id));
+    let source = source(&query)?;
+    if source == Source::Ldap {
+        let model = state.security().model();
+        let exists = state
+            .security()
+            .ldap()
+            .group_exists(&model.ldap_servers, state.security().secrets(), &id)
+            .await
+            .map_err(|error| ApiError::BadRequest(error.0))?;
+        return match exists {
+            true => Ok(axum::Json(group_role(&id, source))),
+            false => Err(role_not_found(&id)),
+        };
+    }
+    if source == Source::Oidc {
+        return match external_groups(&state, source, None).await.contains(&id) {
+            true => Ok(axum::Json(group_role(&id, source))),
+            false => Err(role_not_found(&id)),
+        };
     }
     let model = state.security().model();
     model
@@ -229,12 +346,9 @@ async fn create(
     Json(body): Json<RoleRequest>,
 ) -> Result<axum::Json<RoleXo>, ApiError> {
     let subject = caller.require("astrum:roles:create")?.clone();
-    if source(&query)? == Source::External {
-        return Err(ApiError::BadRequest(format!(
-            "roles of the source {EXTERNAL_SOURCE} come from the directory and cannot be created here; create a {DEFAULT_SOURCE} role with the group name as its id"
-        )));
-    }
+    let queried = source(&query)?;
     let role = check_body(body)?;
+    let role_source = role.source.unwrap_or(queried);
     let model = state.security().model();
     if model.roles.contains_key(&role.id) {
         return Err(already_exists());
@@ -246,7 +360,7 @@ async fn create(
     let description = role.description.clone().unwrap_or_else(|| role.id.clone());
     let inserted = security_role::Entity::insert(security_role::ActiveModel {
         id: ActiveValue::Set(role.id.clone()),
-        source: ActiveValue::Set(DEFAULT_SOURCE.to_owned()),
+        source: ActiveValue::Set(role_source.id().to_owned()),
         name: ActiveValue::Set(role.name.clone()),
         description: ActiveValue::Set(description),
         privileges: ActiveValue::Set(json!(role.privileges)),
@@ -267,8 +381,11 @@ async fn create(
     changed(
         &state,
         &caller,
-        Event::new(DOMAIN, "created", &role.id)
-            .with(json!({"privileges": role.privileges, "roles": role.roles})),
+        Event::new(DOMAIN, "created", &role.id).with(json!({
+            "source": role_source.id(),
+            "privileges": role.privileges,
+            "roles": role.roles
+        })),
     )
     .await?;
     let model = state.security().model();
@@ -291,10 +408,10 @@ async fn update(
     Json(body): Json<RoleRequest>,
 ) -> Result<Response, ApiError> {
     let subject = caller.require("astrum:roles:update")?.clone();
-    let external = source(&query)? == Source::External;
+    source(&query)?;
     let role = check_body(body)?;
     let model = state.security().model();
-    let Some(current) = model.roles.get(&id).filter(|_| !external) else {
+    let Some(current) = model.roles.get(&id) else {
         return Err(role_not_found(&id));
     };
     if current.read_only {
@@ -323,8 +440,13 @@ async fn update(
     )?;
 
     let description = role.description.clone().unwrap_or_else(|| role.id.clone());
+    let role_source = role
+        .source
+        .map(|source| source.id().to_owned())
+        .unwrap_or_else(|| current.source.clone());
     security_role::Entity::update(security_role::ActiveModel {
         id: ActiveValue::Unchanged(id.clone()),
+        source: ActiveValue::Set(role_source.clone()),
         name: ActiveValue::Set(role.name.clone()),
         description: ActiveValue::Set(description),
         privileges: ActiveValue::Set(json!(role.privileges)),
@@ -338,8 +460,11 @@ async fn update(
     changed(
         &state,
         &caller,
-        Event::new(DOMAIN, "updated", &id)
-            .with(json!({"privileges": role.privileges, "roles": role.roles})),
+        Event::new(DOMAIN, "updated", &id).with(json!({
+            "source": role_source,
+            "privileges": role.privileges,
+            "roles": role.roles
+        })),
     )
     .await?;
     Ok(StatusCode::NO_CONTENT.into_response())
@@ -352,9 +477,9 @@ async fn remove(
     Query(query): Query<SourceQuery>,
 ) -> Result<StatusCode, ApiError> {
     caller.require("astrum:roles:delete")?;
-    let external = source(&query)? == Source::External;
+    source(&query)?;
     let model = state.security().model();
-    let Some(current) = model.roles.get(&id).filter(|_| !external) else {
+    let Some(current) = model.roles.get(&id) else {
         return Err(role_not_found(&id));
     };
     if current.read_only {

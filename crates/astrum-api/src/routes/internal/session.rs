@@ -58,24 +58,36 @@ async fn sign_in(
         Err(astrum_security::AuthError::Internal(error)) => return Err(error.into()),
     };
     security.sign_in_succeeded(&user);
+    let mut response = axum::Json(describe(&state, Some(&subject))).into_response();
+    begin(&state, &headers, &subject, &mut response).await?;
+    Ok(response)
+}
+
+pub(crate) async fn begin(
+    state: &AppState,
+    headers: &HeaderMap,
+    subject: &Subject,
+    response: &mut Response,
+) -> Result<(), ApiError> {
     let user_agent = headers
         .get(header::USER_AGENT)
         .and_then(|value| value.to_str().ok())
         .unwrap_or_default();
-    let session = security
-        .open_session(&subject, &client_ip(&headers), user_agent)
+    let session = state
+        .security()
+        .open_session(subject, &client_ip(headers), user_agent)
         .await?;
     let caller = Caller(Some(subject.clone()));
     state
         .audit(
             &caller,
-            Event::new("security.session", "created", &subject.user_id),
+            Event::new("security.session", "created", &subject.user_id)
+                .with(json!({"realm": subject.realm})),
         )
         .await;
-    let secure = is_https(&headers);
-    let mut response = axum::Json(describe(&state, Some(&subject))).into_response();
+    let secure = is_https(headers);
     set_cookie(
-        &mut response,
+        response,
         SESSION_COOKIE,
         &session.token,
         true,
@@ -83,14 +95,14 @@ async fn sign_in(
         COOKIE_AGE,
     );
     set_cookie(
-        &mut response,
+        response,
         CSRF_COOKIE,
         &session.csrf,
         false,
         secure,
         COOKIE_AGE,
     );
-    Ok(response)
+    Ok(())
 }
 
 async fn sign_out(
@@ -121,6 +133,7 @@ fn describe(state: &AppState, subject: Option<&Subject>) -> Value {
     };
     let model = state.security().model();
     let user = model.users.get(&subject.user_id);
+    let profile = state.security().profile(subject);
     let permissions: Vec<String> = subject
         .permissions()
         .iter()
@@ -131,10 +144,10 @@ fn describe(state: &AppState, subject: Option<&Subject>) -> Value {
         "anonymous": subject.anonymous,
         "user": {
             "userId": subject.user_id,
-            "firstName": user.map(|user| user.first_name.as_str()).unwrap_or_default(),
-            "lastName": user.map(|user| user.last_name.as_str()).unwrap_or_default(),
-            "emailAddress": user.map(|user| user.email.as_str()).unwrap_or_default(),
-            "status": user.map(|user| user.status.as_str()).unwrap_or("active"),
+            "firstName": profile.first_name,
+            "lastName": profile.last_name,
+            "emailAddress": profile.email,
+            "status": user.filter(|_| subject.source == DEFAULT_SOURCE).map(|user| user.status.as_str()).unwrap_or("active"),
             "source": if subject.source.is_empty() { DEFAULT_SOURCE } else { subject.source.as_str() },
             "realm": subject.realm,
         },
@@ -146,7 +159,7 @@ fn refused(status: StatusCode, message: &str) -> Response {
     (status, axum::Json(json!({"id": "*", "message": message}))).into_response()
 }
 
-fn set_cookie(
+pub(crate) fn set_cookie(
     response: &mut Response,
     name: &str,
     value: &str,

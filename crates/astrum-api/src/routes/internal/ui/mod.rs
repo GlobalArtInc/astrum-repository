@@ -5,6 +5,7 @@ mod blobstores;
 mod browse;
 mod browse_asset;
 mod dashboard;
+pub(crate) mod identity;
 mod privileges;
 mod repositories;
 mod search;
@@ -30,6 +31,7 @@ pub fn routes() -> Router<AppState> {
         .merge(account::routes())
         .merge(privileges::routes())
         .merge(audit::routes())
+        .merge(identity::routes())
 }
 
 fn time(value: DateTime<FixedOffset>) -> String {

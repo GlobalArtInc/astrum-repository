@@ -2,6 +2,7 @@ pub mod blobstores;
 pub mod components;
 pub mod content;
 pub mod internal;
+pub mod oidc;
 pub mod repositories;
 pub mod security;
 pub mod status;

@@ -1,7 +1,9 @@
 pub mod bootstrap;
 pub mod catalogue;
 pub mod format_tokens;
+pub mod ldap;
 pub mod model;
+pub mod oidc;
 pub mod password;
 pub mod permission;
 pub mod privilege;
@@ -49,6 +51,13 @@ pub enum Error {
     Join(#[from] tokio::task::JoinError),
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Profile {
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
     #[error("the user name or password is wrong")]
@@ -62,6 +71,9 @@ pub struct Security {
     model: RwLock<Arc<SecurityModel>>,
     verified: Mutex<HashMap<[u8; 32], Instant>>,
     failures: Mutex<HashMap<String, (u32, Instant)>>,
+    secrets: Option<SecretBox>,
+    ldap: ldap::Ldap,
+    oidc: oidc::OidcProvider,
 }
 
 impl std::fmt::Debug for Security {
@@ -78,7 +90,31 @@ impl Security {
             model: RwLock::new(Arc::new(model)),
             verified: Mutex::new(HashMap::new()),
             failures: Mutex::new(HashMap::new()),
+            secrets: None,
+            ldap: ldap::Ldap::new(),
+            oidc: oidc::OidcProvider::default(),
         })
+    }
+
+    pub fn with_secrets(mut self, secrets: SecretBox) -> Self {
+        self.secrets = Some(secrets);
+        self
+    }
+
+    pub fn secrets(&self) -> Option<&SecretBox> {
+        self.secrets.as_ref()
+    }
+
+    pub fn ldap(&self) -> &ldap::Ldap {
+        &self.ldap
+    }
+
+    pub fn oidc(&self) -> &oidc::OidcProvider {
+        &self.oidc
+    }
+
+    pub fn db(&self) -> &DatabaseConnection {
+        &self.db
     }
 
     pub fn model(&self) -> Arc<SecurityModel> {
@@ -90,10 +126,19 @@ impl Security {
 
     pub async fn reload(&self) -> Result<(), Error> {
         let model = SecurityModel::load(&self.db).await?;
-        *self
-            .model
-            .write()
-            .expect("the security model lock is never poisoned") = Arc::new(model);
+        let previous = std::mem::replace(
+            &mut *self
+                .model
+                .write()
+                .expect("the security model lock is never poisoned"),
+            Arc::new(model),
+        );
+        if previous.ldap_servers != self.model().ldap_servers {
+            self.ldap.clear();
+        }
+        if previous.oidc != self.model().oidc {
+            self.oidc.reset();
+        }
         self.verified
             .lock()
             .expect("the verification cache lock is never poisoned")
@@ -107,16 +152,33 @@ impl Security {
 
     pub async fn authenticate(&self, user_id: &str, password: &str) -> Result<Subject, AuthError> {
         let model = self.model();
-        if !model.realm_active(realm::LOCAL) {
-            return Err(AuthError::BadCredentials);
+        for realm in &model.realms {
+            let found = match realm.as_str() {
+                realm::LOCAL => self.authenticate_local(&model, user_id, password).await?,
+                realm::LDAP => self.authenticate_ldap(&model, user_id, password).await,
+                _ => None,
+            };
+            if let Some(subject) = found {
+                return Ok(subject);
+            }
         }
-        let user = model.users.get(user_id).ok_or(AuthError::BadCredentials)?;
-        let stored = user
-            .password_hash
-            .clone()
-            .ok_or(AuthError::BadCredentials)?;
+        Err(AuthError::BadCredentials)
+    }
+
+    async fn authenticate_local(
+        &self,
+        model: &SecurityModel,
+        user_id: &str,
+        password: &str,
+    ) -> Result<Option<Subject>, AuthError> {
+        let Some(user) = model.users.get(user_id) else {
+            return Ok(None);
+        };
+        let Some(stored) = user.password_hash.clone() else {
+            return Ok(None);
+        };
         if !user.status.can_sign_in() {
-            return Err(AuthError::BadCredentials);
+            return Ok(None);
         }
         let key = cache_key(user_id, password, &stored);
         if !self.recently_verified(&key) {
@@ -126,16 +188,139 @@ impl Security {
                 .await
                 .map_err(Error::from)?;
             if !verified.matched() {
-                return Err(AuthError::BadCredentials);
+                return Ok(None);
             }
             if verified == password::Verified::MatchButOutdated {
                 self.rehash(user_id, password).await?;
             }
             self.remember(key);
         }
-        model
-            .local_subject(user_id, realm::LOCAL)
-            .ok_or(AuthError::BadCredentials)
+        Ok(model.local_subject(user_id, realm::LOCAL))
+    }
+
+    async fn authenticate_ldap(
+        &self,
+        model: &SecurityModel,
+        user_id: &str,
+        password: &str,
+    ) -> Option<Subject> {
+        if model.ldap_servers.is_empty() || password.is_empty() {
+            return None;
+        }
+        match self
+            .ldap
+            .authenticate(&model.ldap_servers, self.secrets(), user_id, password)
+            .await
+        {
+            Ok(user) => Some(model.external_subject(
+                &user.username,
+                ldap::SOURCE,
+                realm::LDAP,
+                &user.groups,
+            )),
+            Err(ldap::LdapAuthError::Unavailable(error)) => {
+                tracing::warn!(user = user_id, %error, "LDAP could not check a sign-in");
+                None
+            }
+            Err(_) => None,
+        }
+    }
+
+    pub async fn ldap_user(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<ldap::LdapUser>, ldap::LdapServerError> {
+        let model = self.model();
+        self.ldap
+            .user(&model.ldap_servers, self.secrets(), user_id)
+            .await
+    }
+
+    pub async fn ldap_subject(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<Subject>, ldap::LdapServerError> {
+        let model = self.model();
+        if !model.realm_active(realm::LDAP) {
+            return Ok(None);
+        }
+        Ok(self.ldap_user(user_id).await?.map(|user| {
+            model.external_subject(&user.username, ldap::SOURCE, realm::LDAP, &user.groups)
+        }))
+    }
+
+    pub fn profile(&self, subject: &Subject) -> Profile {
+        let model = self.model();
+        match subject.source.as_str() {
+            ldap::SOURCE => {
+                let user = self.ldap.cached(&subject.user_id);
+                let name = user
+                    .as_ref()
+                    .and_then(|user| user.real_name.clone())
+                    .unwrap_or_default();
+                let (first_name, last_name) = match name.split_once(' ') {
+                    Some((first, last)) => (first.to_owned(), last.trim().to_owned()),
+                    None => (name, String::new()),
+                };
+                Profile {
+                    first_name,
+                    last_name,
+                    email: user.and_then(|user| user.email).unwrap_or_default(),
+                }
+            }
+            oidc::SOURCE => model
+                .oidc_users
+                .get(&subject.user_id)
+                .map(|user| Profile {
+                    first_name: user.first_name.clone(),
+                    last_name: user.last_name.clone(),
+                    email: user.email.clone(),
+                })
+                .unwrap_or_default(),
+            _ => model
+                .users
+                .get(&subject.user_id)
+                .map(|user| Profile {
+                    first_name: user.first_name.clone(),
+                    last_name: user.last_name.clone(),
+                    email: user.email.clone(),
+                })
+                .unwrap_or_default(),
+        }
+    }
+
+    pub async fn oidc_sign_in(&self, user: &oidc::OidcUser) -> Result<Option<Subject>, Error> {
+        let now = chrono::Utc::now().fixed_offset();
+        astrum_db::entity::security_oidc_user::Entity::insert(
+            astrum_db::entity::security_oidc_user::ActiveModel {
+                user_id: ActiveValue::Set(user.user_id.clone()),
+                subject: ActiveValue::Set(user.subject.clone()),
+                first_name: ActiveValue::Set(user.first_name.clone()),
+                last_name: ActiveValue::Set(user.last_name.clone()),
+                email: ActiveValue::Set(user.email.clone()),
+                groups: ActiveValue::Set(serde_json::json!(user.groups)),
+                last_login_at: ActiveValue::Set(now),
+                created_at: ActiveValue::Set(now),
+            },
+        )
+        .on_conflict(
+            sea_orm::sea_query::OnConflict::column(
+                astrum_db::entity::security_oidc_user::Column::UserId,
+            )
+            .update_columns([
+                astrum_db::entity::security_oidc_user::Column::Subject,
+                astrum_db::entity::security_oidc_user::Column::FirstName,
+                astrum_db::entity::security_oidc_user::Column::LastName,
+                astrum_db::entity::security_oidc_user::Column::Email,
+                astrum_db::entity::security_oidc_user::Column::Groups,
+                astrum_db::entity::security_oidc_user::Column::LastLoginAt,
+            ])
+            .to_owned(),
+        )
+        .exec(&self.db)
+        .await?;
+        self.reload().await?;
+        Ok(self.model().oidc_subject(&user.user_id))
     }
 
     async fn rehash(&self, user_id: &str, password: &str) -> Result<(), Error> {

@@ -7,6 +7,8 @@ use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 use sha2::{Digest, Sha256};
 
+use crate::catalogue::DEFAULT_SOURCE;
+use crate::realm;
 use crate::subject::Subject;
 use crate::tokens::hex;
 use crate::{Error, Security};
@@ -57,6 +59,7 @@ impl Security {
             model
                 .users
                 .get(&subject.user_id)
+                .filter(|_| subject.source == DEFAULT_SOURCE || subject.source.is_empty())
                 .and_then(|user| user.password_hash.as_deref()),
         );
         let token = random_token();
@@ -91,13 +94,29 @@ impl Security {
         };
         let model = self.model();
         let now = Utc::now().fixed_offset();
-        let user = model.users.get(&row.user_id);
-        let stamp_matches = user.is_some_and(|user| {
-            credential_stamp(user.password_hash.as_deref()) == row.credential_stamp
-        });
         let timed_out = model.session_timeout_minutes > 0
             && now - row.last_seen_at > Duration::minutes(i64::from(model.session_timeout_minutes));
-        let subject = model.local_subject(&row.user_id, &row.realm);
+        let external_stamp = credential_stamp(None);
+        let (subject, stamp_matches) = match row.realm.as_str() {
+            realm::LDAP => match self.ldap_subject(&row.user_id).await {
+                Ok(subject) => (subject, row.credential_stamp == external_stamp),
+                Err(error) => {
+                    tracing::warn!(user = %row.user_id, %error, "LDAP cannot confirm a session; the request goes on without it");
+                    return Ok(None);
+                }
+            },
+            realm::OIDC => (
+                model.oidc_subject(&row.user_id),
+                row.credential_stamp == external_stamp,
+            ),
+            _ => {
+                let user = model.users.get(&row.user_id);
+                let stamp_matches = user.is_some_and(|user| {
+                    credential_stamp(user.password_hash.as_deref()) == row.credential_stamp
+                });
+                (model.local_subject(&row.user_id, &row.realm), stamp_matches)
+            }
+        };
         let (Some(subject), true, false) = (subject, stamp_matches, timed_out) else {
             session::Entity::delete_by_id(hash).exec(&self.db).await?;
             return Ok(None);
@@ -127,6 +146,15 @@ impl Security {
     pub async fn close_sessions_of(&self, user_id: &str) -> Result<u64, Error> {
         let deleted = session::Entity::delete_many()
             .filter(session::Column::UserId.eq(user_id))
+            .exec(&self.db)
+            .await?;
+        Ok(deleted.rows_affected)
+    }
+
+    pub async fn close_sessions_in_realm(&self, user_id: &str, realm: &str) -> Result<u64, Error> {
+        let deleted = session::Entity::delete_many()
+            .filter(session::Column::UserId.eq(user_id))
+            .filter(session::Column::Realm.eq(realm))
             .exec(&self.db)
             .await?;
         Ok(deleted.rows_affected)

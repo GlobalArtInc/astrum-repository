@@ -13,6 +13,7 @@ fn config(test: &TestDatabase, data_dir: PathBuf) -> Config {
         log: LogConfig::default(),
         secrets_key: data_dir.join("etc/secrets.key"),
         web_dir: data_dir.join("web"),
+        ldap_cache_ttl: std::time::Duration::from_secs(300),
         file: data_dir.join("etc/astrum.toml"),
         file_found: false,
     }

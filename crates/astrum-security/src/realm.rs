@@ -3,6 +3,7 @@ pub const AUTHORIZING: &str = "AstrumAuthorizingRealm";
 pub const ACCESS_TOKEN: &str = "AccessTokenRealm";
 pub const LDAP: &str = "LdapRealm";
 pub const OIDC: &str = "OAuth2Realm";
+pub const DEFAULT_ROLE: &str = "DefaultRole";
 
 pub const DEFAULT_ACTIVE: [&str; 2] = [LOCAL, ACCESS_TOKEN];
 
@@ -25,7 +26,7 @@ pub const AVAILABLE: [Realm; 12] = [
         name: "Conan tokens",
     },
     Realm {
-        id: "DefaultRole",
+        id: DEFAULT_ROLE,
         name: "Default role",
     },
     Realm {

@@ -38,6 +38,7 @@ struct Inner {
 
 impl AppState {
     pub fn new(db: Database, data_dir: PathBuf, security: Security, secrets: SecretBox) -> Self {
+        let security = security.with_secrets(secrets.clone());
         let blob_stores = Arc::new(BlobStores::new(
             db.conn().clone(),
             &data_dir,
@@ -109,6 +110,7 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
         .merge(routes::blobstores::routes())
         .merge(routes::repositories::routes())
         .merge(routes::internal::routes())
+        .merge(routes::oidc::routes())
         .merge(routes::content::routes())
         .merge(routes::components::routes())
         .fallback(not_found)

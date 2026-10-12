@@ -36,7 +36,7 @@ async fn built_in_roles_are_listed_and_read() {
         ("?source=", StatusCode::OK, 2),
         ("?source=LDAP", StatusCode::OK, 0),
         ("?source=nope", StatusCode::BAD_REQUEST, 0),
-        ("?source=OAuth2", StatusCode::BAD_REQUEST, 0),
+        ("?source=OAuth2", StatusCode::OK, 0),
     ] {
         let reply = fixture
             .call(Method::GET, &format!("{ROLES}{query}"), Auth::Admin, None)
@@ -152,10 +152,11 @@ async fn roles_are_created_with_checked_references() {
             Some(role("ldap-group", &[], &[])),
         )
         .await;
-    assert_eq!(reply.status, StatusCode::BAD_REQUEST);
+    assert_eq!(reply.status, StatusCode::OK, "an external role mapping");
+    assert_eq!(reply.json()["source"], "LDAP");
 
     let events = audit(&fixture, "security.role").await;
-    assert_eq!(events.len(), 2);
+    assert_eq!(events.len(), 3);
     assert_eq!(
         (events[0].0.as_str(), events[0].1.as_str()),
         ("created", "devs")

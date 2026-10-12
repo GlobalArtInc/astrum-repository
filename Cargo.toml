@@ -40,10 +40,13 @@ clap = { version = "4", features = ["derive"] }
 flate2 = "1"
 futures-util = "0.3"
 hex = "0.4"
+hmac = "0.12"
 http-body-util = "0.1"
 httpdate = "1"
 hyper-util = { version = "0.1", features = ["server-auto", "tokio"] }
 infer = "0.19"
+ldap3_lber = "=0.8.1"
+ldap3_proto = "0.8.1"
 md-5 = "0.10"
 migrator = { package = "sqlmig", version = "0.2.1" }
 mime_guess = "2"
@@ -51,10 +54,14 @@ multer = "3"
 percent-encoding = "2"
 quick-xml = "0.42"
 rand = "0.9"
+rcgen = "0.14"
 regex = "1"
 regex-syntax = "0.8"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "stream", "http2"] }
+ring = "0.17"
 rustix = { version = "1", features = ["fs"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
+rustls-native-certs = "0.8"
 s3s = "0.17"
 s3s-fs = "0.17"
 sea-orm = { version = "1.1", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-json", "with-uuid", "postgres-array"] }
@@ -69,6 +76,7 @@ tar = { version = "0.4", default-features = false }
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "net", "io-util", "fs", "time"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "logging", "tls12"] }
 tokio-util = { version = "0.7", features = ["io"] }
 toml = "1"
 tower = { version = "0.5", features = ["util"] }

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use astrum_security::bootstrap::ADMIN_PASSWORD_FILE;
 use astrum_security::catalogue::DEFAULT_SOURCE;
-use astrum_security::{PrivilegeKind, SecurityModel, Subject};
+use astrum_security::{PrivilegeKind, Subject, realm};
 use axum::Router;
 use axum::extract::State;
 use axum::routing::get;
@@ -32,6 +32,15 @@ struct UiState {
     base_url: String,
     session_timeout_minutes: u32,
     admin_password_file: Option<String>,
+    oidc_enabled: bool,
+    default_role: Option<UiRole>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UiRole {
+    id: String,
+    name: String,
 }
 
 #[derive(Serialize)]
@@ -68,27 +77,37 @@ async fn ui_state(
     axum::Json(UiState {
         version: VERSION,
         revision: REVISION.filter(|revision| !revision.is_empty()),
-        user: signed_in.map(|subject| user(&model, subject)),
+        user: signed_in.map(|subject| user(security, subject)),
         anonymous_access: security.anonymous().is_some(),
         permissions: subject.map(permissions).unwrap_or_default(),
         formats: formats(&state),
         base_url,
         session_timeout_minutes: model.session_timeout_minutes,
         admin_password_file,
+        oidc_enabled: model.oidc.is_some() && model.realm_active(realm::OIDC),
+        default_role: signed_in
+            .and_then(|_| model.effective_default_role())
+            .and_then(|id| model.roles.get(id))
+            .map(|role| UiRole {
+                id: role.id.clone(),
+                name: role.name.clone(),
+            }),
     })
 }
 
-fn user(model: &SecurityModel, subject: &Subject) -> UiUser {
-    let stored = model.users.get(&subject.user_id);
-    let name = stored
-        .map(|user| format!("{} {}", user.first_name.trim(), user.last_name.trim()))
-        .map(|name| name.trim().to_owned())
-        .filter(|name| !name.is_empty())
-        .unwrap_or_else(|| subject.user_id.clone());
+fn user(security: &astrum_security::Security, subject: &Subject) -> UiUser {
+    let profile = security.profile(subject);
+    let name = format!("{} {}", profile.first_name.trim(), profile.last_name.trim())
+        .trim()
+        .to_owned();
+    let name = match name.is_empty() {
+        true => subject.user_id.clone(),
+        false => name,
+    };
     UiUser {
         user_id: subject.user_id.clone(),
         name,
-        email: stored.map(|user| user.email.clone()).unwrap_or_default(),
+        email: profile.email,
         source: match subject.source.is_empty() {
             true => DEFAULT_SOURCE.to_owned(),
             false => subject.source.clone(),

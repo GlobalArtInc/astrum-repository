@@ -1,5 +1,6 @@
+mod ldap;
 mod privileges;
-mod roles;
+pub(crate) mod roles;
 mod selectors;
 mod settings;
 pub(crate) mod users;
@@ -23,6 +24,7 @@ pub fn routes() -> Router<AppState> {
         .merge(privileges::routes())
         .merge(selectors::routes())
         .merge(settings::routes())
+        .merge(ldap::routes())
 }
 
 async fn changed(state: &AppState, caller: &Caller, event: Event) -> Result<(), ApiError> {

@@ -1,4 +1,7 @@
+pub mod ldap;
+pub mod oidc;
 pub mod s3;
+pub mod tls;
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};

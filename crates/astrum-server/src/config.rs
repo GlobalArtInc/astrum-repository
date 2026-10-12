@@ -1,5 +1,6 @@
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use astrum_db::{
     DEFAULT_MAX_CONNECTIONS, DEFAULT_SCHEMA, DatabaseConfig, DatabaseUrl, check_pool, check_schema,
@@ -25,6 +26,7 @@ pub const ENV_LOG: &str = "ASTRUM_LOG";
 pub const ENV_LOG_FORMAT: &str = "ASTRUM_LOG_FORMAT";
 pub const ENV_SECRETS_KEY_FILE: &str = "ASTRUM_SECRETS_KEY_FILE";
 pub const ENV_WEB_DIR: &str = "ASTRUM_WEB_DIR";
+pub const ENV_LDAP_CACHE_TTL: &str = "ASTRUM_LDAP_CACHE_TTL";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Config {
@@ -34,6 +36,7 @@ pub struct Config {
     pub log: LogConfig,
     pub secrets_key: PathBuf,
     pub web_dir: PathBuf,
+    pub ldap_cache_ttl: Duration,
     pub file: PathBuf,
     pub file_found: bool,
 }
@@ -102,6 +105,14 @@ struct FileConfig {
     log: FileLog,
     #[serde(default)]
     web: FileWeb,
+    #[serde(default)]
+    ldap: FileLdap,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FileLdap {
+    cache_ttl: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -191,6 +202,12 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
 
     let database = database(&env, parsed.database)?;
 
+    let ldap_cache_ttl = match (env(ENV_LDAP_CACHE_TTL), parsed.ldap.cache_ttl) {
+        (Some(value), _) => parse_duration(&value, Origin::Env(ENV_LDAP_CACHE_TTL))?,
+        (None, Some(value)) => parse_duration(&value, Origin::File("ldap.cache_ttl"))?,
+        (None, None) => astrum_security::ldap::DEFAULT_CACHE_TTL,
+    };
+
     let filter = match (env(ENV_LOG), parsed.log.filter) {
         (Some(value), _) => check_filter(value, Origin::Env(ENV_LOG))?,
         (None, Some(value)) => check_filter(value, Origin::File("log.filter"))?,
@@ -209,6 +226,7 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         log: LogConfig { filter, format },
         secrets_key,
         web_dir,
+        ldap_cache_ttl,
         file,
         file_found,
     })
@@ -286,6 +304,33 @@ fn check_filter(value: String, origin: Origin<'_>) -> Result<String, ConfigError
     Ok(value)
 }
 
+fn parse_duration(value: &str, origin: Origin<'_>) -> Result<Duration, ConfigError> {
+    let text = value.trim().to_ascii_lowercase();
+    let (number, unit) = match text.find(|c: char| !c.is_ascii_digit()) {
+        Some(at) => text.split_at(at),
+        None => (text.as_str(), "s"),
+    };
+    let factor = match unit.trim() {
+        "ms" => {
+            return number
+                .parse::<u64>()
+                .map(Duration::from_millis)
+                .map_err(|_| {
+                    origin.fail(format!("\"{value}\" is not a duration such as 5m or 300s"))
+                });
+        }
+        "s" | "sec" | "seconds" => 1,
+        "m" | "min" | "minutes" => 60,
+        "h" | "hours" => 3600,
+        "d" | "days" => 86_400,
+        _ => 0,
+    };
+    match number.parse::<u64>() {
+        Ok(count) if factor > 0 => Ok(Duration::from_secs(count.saturating_mul(factor))),
+        _ => Err(origin.fail(format!("\"{value}\" is not a duration such as 5m or 300s"))),
+    }
+}
+
 fn parse_format(value: &str, origin: Origin<'_>) -> Result<LogFormat, ConfigError> {
     match value.trim().to_ascii_lowercase().as_str() {
         "text" => Ok(LogFormat::Text),
@@ -320,6 +365,21 @@ mod tests {
             data_dir: Some(dir.to_owned()),
             ..Cli::default()
         }
+    }
+
+    #[test]
+    fn the_ldap_cache_lifetime_reads_like_the_old_property() {
+        let config = load(&Cli::default(), &env(&[])).unwrap();
+        assert_eq!(config.ldap_cache_ttl, Duration::from_secs(300));
+        let config = load(&Cli::default(), &env(&[(ENV_LDAP_CACHE_TTL, "1m")])).unwrap();
+        assert_eq!(config.ldap_cache_ttl, Duration::from_secs(60));
+        let dir = data_dir_with("[ldap]\ncache_ttl = \"90\"\n");
+        let config = load(&cli_in(dir.path()), &env(&[])).unwrap();
+        assert_eq!(config.ldap_cache_ttl, Duration::from_secs(90));
+        let config = load(&Cli::default(), &env(&[(ENV_LDAP_CACHE_TTL, "0")])).unwrap();
+        assert_eq!(config.ldap_cache_ttl, Duration::ZERO);
+        assert!(load(&Cli::default(), &env(&[(ENV_LDAP_CACHE_TTL, "soon")])).is_err());
+        assert!(load(&Cli::default(), &env(&[(ENV_LDAP_CACHE_TTL, "5x")])).is_err());
     }
 
     #[test]

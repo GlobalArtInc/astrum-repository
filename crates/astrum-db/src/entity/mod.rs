@@ -8,6 +8,7 @@ pub mod content_selector;
 pub mod docker_upload;
 pub mod format_token;
 pub mod repository;
+pub mod security_oidc_user;
 pub mod security_privilege;
 pub mod security_role;
 pub mod security_user;

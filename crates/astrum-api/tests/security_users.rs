@@ -306,17 +306,8 @@ async fn external_users_only_get_role_mappings() {
         .await;
     assert_eq!(
         reply.json(),
-        json!([{
-            "userId": "jdoe",
-            "firstName": null,
-            "lastName": null,
-            "emailAddress": null,
-            "source": "LDAP",
-            "status": "active",
-            "readOnly": true,
-            "roles": ["as-anonymous"],
-            "externalRoles": [],
-        }])
+        json!([]),
+        "LDAP users are listed from the directory, and none is configured"
     );
 
     let mut mapping = update("jdoe", &["as-admin"]);

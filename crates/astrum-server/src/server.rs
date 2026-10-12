@@ -28,6 +28,7 @@ impl Server {
         astrum_blob::bootstrap(db.conn(), &config.data_dir).await?;
         let secrets = SecretBox::load_or_create(&config.secrets_key)?;
         let state = AppState::load(db, config.data_dir.clone(), secrets).await?;
+        state.security().ldap().set_cache_ttl(config.ldap_cache_ttl);
         crate::formats::register(state.content());
         let listener = TcpListener::bind(config.listen)
             .await
