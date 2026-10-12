@@ -7,7 +7,7 @@ use astrum_blob::ContentStream;
 use astrum_db::setting;
 use astrum_repo::config::{AuthenticationType, Repository};
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
-use axum::http::{HeaderMap, StatusCode, header};
+use axum::http::{HeaderMap, Method, StatusCode, header};
 use chrono::{DateTime, FixedOffset, Utc};
 use futures_util::TryStreamExt;
 use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
@@ -314,6 +314,15 @@ pub async fn request(
     url: url::Url,
     extra: &[(header::HeaderName, String)],
 ) -> Result<Remote, ContentError> {
+    send(ctx, Method::GET, url, extra).await
+}
+
+pub async fn send(
+    ctx: &Ctx,
+    method: Method,
+    url: url::Url,
+    extra: &[(header::HeaderName, String)],
+) -> Result<Remote, ContentError> {
     if remote_blocked(ctx) {
         return Err(ContentError::BadGateway(format!(
             "the remote of {} is blocked",
@@ -341,11 +350,12 @@ pub async fn request(
     });
     let mut attempt = 0;
     loop {
-        let mut builder = client.get(url.clone());
+        let mut builder = client.request(method.clone(), url.clone());
         for (name, value) in extra {
             builder = builder.header(name, value);
         }
-        if let Some(authentication) = authentication.filter(|_| challenged) {
+        let own_authorization = extra.iter().any(|(name, _)| name == header::AUTHORIZATION);
+        if let Some(authentication) = authentication.filter(|_| challenged && !own_authorization) {
             let open = |sealed: &Option<String>| {
                 sealed
                     .as_deref()

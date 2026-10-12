@@ -241,6 +241,51 @@ pub async fn put(ctx: &Ctx, put: PutAsset, body: ContentStream) -> Result<Asset,
     }
 }
 
+pub async fn write_blob(ctx: &Ctx, body: ContentStream) -> Result<Written, ContentError> {
+    let store_name = ctx.repository.blob_store().ok_or_else(|| {
+        ContentError::internal(anyhow::anyhow!(
+            "the repository {} has no blob store",
+            ctx.name()
+        ))
+    })?;
+    let store = ctx.content.blob_stores().get(store_name).await?;
+    Ok(store.put(body).await?)
+}
+
+pub async fn adopt(ctx: &Ctx, put: PutAsset, written: &Written) -> Result<Asset, ContentError> {
+    let repository = ctx.name();
+    let refused = match put.write_policy {
+        Some(WritePolicy::Deny) => Some(ContentError::BadRequest(format!(
+            "the repository {repository} is read-only"
+        ))),
+        Some(WritePolicy::AllowOnce) if find(ctx.db(), repository, &put.path).await?.is_some() => {
+            Some(redeploy(repository, &put.path))
+        }
+        _ => None,
+    };
+    if let Some(error) = refused {
+        discard(ctx.content.clone(), &written.store, written.id.uuid());
+        return Err(error);
+    }
+    let content_type = put
+        .content_type
+        .clone()
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| mime::OCTET_STREAM.to_owned());
+    match record(ctx, &put, &written.store, written, &content_type).await {
+        Ok((asset, replaced)) => {
+            if let Some((store, id)) = replaced {
+                discard(ctx.content.clone(), &store, id);
+            }
+            Ok(asset)
+        }
+        Err(error) => {
+            discard(ctx.content.clone(), &written.store, written.id.uuid());
+            Err(error)
+        }
+    }
+}
+
 fn redeploy(repository: &str, path: &str) -> ContentError {
     ContentError::Conflict(format!(
         "{repository}{path} cannot be updated as asset already exists and redeploy is not allowed"
@@ -507,7 +552,7 @@ pub async fn blobs_of_repository(
         .await?)
 }
 
-fn discard(content: Content, store: &str, id: Uuid) {
+pub fn discard(content: Content, store: &str, id: Uuid) {
     let store = store.to_owned();
     tokio::spawn(async move {
         delete_blobs(&content, vec![(store, id)]).await;
