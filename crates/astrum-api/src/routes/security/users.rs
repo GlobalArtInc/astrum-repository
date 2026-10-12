@@ -465,6 +465,7 @@ async fn remove(
     if source == DEFAULT_SOURCE {
         state.security().close_sessions_of(&user_id).await?;
         state.security().delete_tokens_of(&user_id).await?;
+        state.security().revoke_format_tokens_of(&user_id).await?;
     }
 
     changed(

@@ -6,6 +6,7 @@ use axum::response::{IntoResponse, Response};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 
+use astrum_security::format_tokens::looks_like_format_token;
 use astrum_security::tokens::looks_like_token;
 use astrum_security::{AuthError, Subject};
 use axum::http::Method;
@@ -79,6 +80,7 @@ pub async fn authenticate(
 enum Credentials {
     Basic(String, String),
     Token(String),
+    FormatToken(String),
 }
 
 async fn resolve(
@@ -100,6 +102,10 @@ async fn resolve(
             Credentials::Token(token) => (
                 String::new(),
                 security.authenticate_token(None, &token).await,
+            ),
+            Credentials::FormatToken(token) => (
+                String::new(),
+                security.authenticate_format_token(&token).await,
             ),
         };
         return match result {
@@ -170,7 +176,13 @@ fn credentials(headers: &HeaderMap) -> Result<Option<Credentials>, ApiError> {
     };
     if scheme.eq_ignore_ascii_case("bearer") {
         let token = encoded.trim();
-        return Ok(looks_like_token(token).then(|| Credentials::Token(token.to_owned())));
+        if looks_like_token(token) {
+            return Ok(Some(Credentials::Token(token.to_owned())));
+        }
+        if looks_like_format_token(token).is_some() {
+            return Ok(Some(Credentials::FormatToken(token.to_owned())));
+        }
+        return Ok(None);
     }
     if !scheme.eq_ignore_ascii_case("basic") {
         return Ok(None);

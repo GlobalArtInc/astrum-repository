@@ -82,3 +82,56 @@ async fn anonymous_access_can_be_switched_on() {
         StatusCode::OK
     );
 }
+
+#[tokio::test]
+async fn format_tokens_work_while_their_realm_is_active() {
+    let fixture = Fixture::new().await;
+    let security = fixture.state.security();
+    let token = security
+        .issue_format_token("NpmToken", "admin", None)
+        .await
+        .unwrap();
+    assert!(token.starts_with("NpmToken."));
+    let bearer = format!("Bearer {token}");
+    let inactive = fixture
+        .send(
+            Method::GET,
+            "/service/rest/internal/audit",
+            Auth::None,
+            None,
+            &[("authorization", &bearer)],
+        )
+        .await;
+    assert_eq!(inactive.status, StatusCode::UNAUTHORIZED);
+
+    astrum_db::setting::put(
+        fixture.state.db().conn(),
+        astrum_security::model::REALMS_KEY,
+        &["AstrumAuthenticatingRealm", "NpmToken"],
+    )
+    .await
+    .unwrap();
+    security.reload().await.unwrap();
+    let active = fixture
+        .send(
+            Method::GET,
+            "/service/rest/internal/audit",
+            Auth::None,
+            None,
+            &[("authorization", &bearer)],
+        )
+        .await;
+    assert_eq!(active.status, StatusCode::OK);
+
+    assert!(security.revoke_format_token(&token).await.unwrap());
+    let revoked = fixture
+        .send(
+            Method::GET,
+            "/service/rest/internal/audit",
+            Auth::None,
+            None,
+            &[("authorization", &bearer)],
+        )
+        .await;
+    assert_eq!(revoked.status, StatusCode::UNAUTHORIZED);
+}

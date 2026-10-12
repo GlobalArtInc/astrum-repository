@@ -1,5 +1,6 @@
 pub mod bootstrap;
 pub mod catalogue;
+pub mod format_tokens;
 pub mod model;
 pub mod password;
 pub mod permission;
