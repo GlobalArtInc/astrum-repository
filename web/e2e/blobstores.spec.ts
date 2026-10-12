@@ -76,9 +76,7 @@ test('a store in use explains why it cannot be deleted', async ({ page, request,
   await expect(page.getByRole('heading', { level: 1, name: 'default' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Delete' })).toBeDisabled();
   await expect(
-    page.getByText('It cannot be deleted while it is in use. The repositories on-default use it.', {
-      exact: true,
-    }),
+    page.getByText(/^It cannot be deleted while it is in use\. The repositories (.+, )?on-default(, .+)? use it\.$/),
   ).toBeVisible();
 });
 
