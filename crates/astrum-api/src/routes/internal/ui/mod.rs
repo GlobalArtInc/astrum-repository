@@ -1,5 +1,6 @@
 mod access;
 mod account;
+mod audit;
 mod blobstores;
 mod browse;
 mod dashboard;
@@ -26,6 +27,7 @@ pub fn routes() -> Router<AppState> {
         .merge(selectors::routes())
         .merge(account::routes())
         .merge(privileges::routes())
+        .merge(audit::routes())
 }
 
 fn time(value: DateTime<FixedOffset>) -> String {

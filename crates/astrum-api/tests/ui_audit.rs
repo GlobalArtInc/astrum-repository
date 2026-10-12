@@ -177,3 +177,31 @@ async fn audit_filters_refuse_bad_dates_and_need_audit_read() {
         StatusCode::FORBIDDEN
     );
 }
+
+#[tokio::test]
+async fn audit_facets_list_the_domains_types_and_initiators_in_use() {
+    let fixture = history().await;
+    let reply = get(&fixture, &format!("{UI}/audit/facets"), Auth::Admin).await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+    assert_eq!(
+        reply.json(),
+        json!({
+            "domains": ["asset", "repository", "security.user"],
+            "types": ["created", "deleted", "updated"],
+            "initiators": ["admin", "jane", "Jane_Ops"]
+        })
+    );
+    fixture.add_user("nobody", "password-1", &[]).await;
+    assert_eq!(
+        get(&fixture, &format!("{UI}/audit/facets"), user("nobody"))
+            .await
+            .status,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        get(&fixture, &format!("{UI}/audit/facets"), Auth::None)
+            .await
+            .status,
+        StatusCode::UNAUTHORIZED
+    );
+}
