@@ -3,5 +3,50 @@
   "dashboard.home.title": "Обзор",
   "dashboard.home.description": "Как используются репозитории этого сервера",
   "dashboard.home.placeholderTitle": "Пока показать нечего",
-  "dashboard.home.placeholderText": "Здесь появятся загрузки, занятое место и самые используемые компоненты."
+  "dashboard.home.placeholderText": "Здесь появятся скачивания, занятое место и самые используемые компоненты, когда появятся доступные вам репозитории.",
+  "dashboard.home.createRepository": "Создать репозиторий",
+  "dashboard.links.browse": "Репозитории",
+  "dashboard.links.search": "Поиск",
+  "dashboard.links.upload": "Загрузка",
+  "dashboard.kpi.repositories": "Репозитории",
+  "dashboard.kpi.components": "Компоненты",
+  "dashboard.kpi.assets": "Файлы",
+  "dashboard.kpi.storage": "Хранилище",
+  "dashboard.kpi.stores": {
+    "one": "в {count} хранилище blob-объектов",
+    "few": "в {count} хранилищах blob-объектов",
+    "many": "в {count} хранилищах blob-объектов",
+    "other": "в {count} хранилища blob-объектов"
+  },
+  "dashboard.kpi.downloads": "Скачивания",
+  "dashboard.kpi.downloadsCaption": "за всё время",
+  "dashboard.types.hosted": "Размещённые",
+  "dashboard.types.proxy": "Прокси",
+  "dashboard.types.group": "Группы",
+  "dashboard.formats.title": "Репозитории по форматам",
+  "dashboard.formats.legend": "Типы репозиториев",
+  "dashboard.formats.part": "{type}: {count}",
+  "dashboard.top.title": "Самые скачиваемые",
+  "dashboard.top.view": "Показать",
+  "dashboard.top.components": "Компоненты",
+  "dashboard.top.assets": "Файлы",
+  "dashboard.top.empty": "Пока ничего не скачивали.",
+  "dashboard.recent.title": "Недавно загруженные",
+  "dashboard.recent.empty": "В размещённые репозитории пока ничего не загружали.",
+  "dashboard.recent.files": {
+    "one": "{count} файл",
+    "few": "{count} файла",
+    "many": "{count} файлов",
+    "other": "{count} файла"
+  },
+  "dashboard.stores.title": "Хранилища blob-объектов",
+  "dashboard.stores.empty": "Хранилищ нет.",
+  "dashboard.stores.unavailable": "Недоступно",
+  "dashboard.stores.blobs": {
+    "one": "{shown} blob-объект",
+    "few": "{shown} blob-объекта",
+    "many": "{shown} blob-объектов",
+    "other": "{shown} blob-объекта"
+  },
+  "dashboard.stores.free": "свободно {size}"
 }

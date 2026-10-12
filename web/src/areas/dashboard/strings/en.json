@@ -3,5 +3,44 @@
   "dashboard.home.title": "Overview",
   "dashboard.home.description": "How the repositories of this server are used",
   "dashboard.home.placeholderTitle": "Nothing to show yet",
-  "dashboard.home.placeholderText": "Downloads, storage and the most used components will appear here."
+  "dashboard.home.placeholderText": "Downloads, storage and the most used components will appear here once there are repositories you may see.",
+  "dashboard.home.createRepository": "Create a repository",
+  "dashboard.links.browse": "Browse",
+  "dashboard.links.search": "Search",
+  "dashboard.links.upload": "Upload",
+  "dashboard.kpi.repositories": "Repositories",
+  "dashboard.kpi.components": "Components",
+  "dashboard.kpi.assets": "Files",
+  "dashboard.kpi.storage": "Storage",
+  "dashboard.kpi.stores": {
+    "one": "in {count} blob store",
+    "other": "in {count} blob stores"
+  },
+  "dashboard.kpi.downloads": "Downloads",
+  "dashboard.kpi.downloadsCaption": "all time",
+  "dashboard.types.hosted": "Hosted",
+  "dashboard.types.proxy": "Proxy",
+  "dashboard.types.group": "Group",
+  "dashboard.formats.title": "Repositories by format",
+  "dashboard.formats.legend": "Repository types",
+  "dashboard.formats.part": "{type} {count}",
+  "dashboard.top.title": "Most downloaded",
+  "dashboard.top.view": "Show",
+  "dashboard.top.components": "Components",
+  "dashboard.top.assets": "Files",
+  "dashboard.top.empty": "Nothing has been downloaded yet.",
+  "dashboard.recent.title": "Recently uploaded",
+  "dashboard.recent.empty": "Nothing has been uploaded to hosted repositories yet.",
+  "dashboard.recent.files": {
+    "one": "{count} file",
+    "other": "{count} files"
+  },
+  "dashboard.stores.title": "Blob stores",
+  "dashboard.stores.empty": "There are no blob stores.",
+  "dashboard.stores.unavailable": "Unavailable",
+  "dashboard.stores.blobs": {
+    "one": "{shown} blob",
+    "other": "{shown} blobs"
+  },
+  "dashboard.stores.free": "{size} free"
 }
