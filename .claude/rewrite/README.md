@@ -329,7 +329,8 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   nodes)`; keys written as literals. `pnpm i18n:check` fails on differing keys, plural forms or placeholders
   and on used keys missing from the dictionaries. Format names (`ui/formats.ts`) and the logo are the only
   texts in code. The language (cookie `astrum-language`, else the browser) switches without a reload. The web
-  dictionaries are not in Ownlate yet.
+  dictionaries are in Ownlate with the Java ones (keys `web.<key>`, plural forms `web.<key>#<form>`):
+  `tools/i18n` checks them, `pull` writes the `ru.json` files and the `i18n` workflow fails when they differ.
 - UI state: `GET /service/rest/internal/ui/state` (`routes/internal/ui_state.rs`) answers `version`,
   `revision`, `user` (`userId`, `name`, `email`, `source`; null for strangers and anonymous callers),
   `anonymousAccess`, `permissions` (the caller's permission strings plus content selector grants as
