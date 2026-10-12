@@ -3,6 +3,7 @@ mod account;
 mod audit;
 mod blobstores;
 mod browse;
+mod browse_asset;
 mod dashboard;
 mod privileges;
 mod repositories;
@@ -21,6 +22,7 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(repositories::routes())
         .merge(browse::routes())
+        .merge(browse_asset::routes())
         .merge(search::routes())
         .merge(dashboard::routes())
         .merge(blobstores::routes())
