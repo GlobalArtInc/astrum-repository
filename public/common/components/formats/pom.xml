@@ -34,6 +34,7 @@
     <module>astrum-repository-helm</module>
     <module>astrum-repository-gitlfs</module>
     <module>astrum-repository-yum</module>
+    <module>astrum-repository-swift</module>
   </modules>
 
 </project>

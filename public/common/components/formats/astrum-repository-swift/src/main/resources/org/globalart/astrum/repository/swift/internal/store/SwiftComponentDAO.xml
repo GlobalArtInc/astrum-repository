@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="${namespace}">
+
+  <insert id="extendSchema" databaseId="H2">
+    CREATE TABLE IF NOT EXISTS swift_package_url (
+      repository_id INT NOT NULL,
+      component_id  INT NOT NULL,
+      url           VARCHAR NOT NULL,
+
+      CONSTRAINT pk_swift_package_url PRIMARY KEY (component_id, url),
+      CONSTRAINT fk_swift_package_url_component FOREIGN KEY (component_id)
+         REFERENCES swift_component (component_id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_swift_package_url_url ON swift_package_url (repository_id, url);
+  </insert>
+
+  <insert id="extendSchema" databaseId="PostgreSQL">
+    CREATE TABLE IF NOT EXISTS swift_package_url (
+      repository_id INT NOT NULL,
+      component_id  INT NOT NULL,
+      url           VARCHAR NOT NULL,
+
+      CONSTRAINT pk_swift_package_url PRIMARY KEY (component_id, url),
+      CONSTRAINT fk_swift_package_url_component FOREIGN KEY (component_id)
+         REFERENCES swift_component (component_id) ON DELETE CASCADE
+    );
+
+    DO $$
+    BEGIN
+      IF to_regclass('idx_swift_package_url_url') IS NULL THEN
+        CREATE INDEX idx_swift_package_url_url ON swift_package_url (repository_id, url);
+      END IF;
+    END
+    $$;
+  </insert>
+
+  <insert id="addPackageUrl">
+    INSERT INTO swift_package_url (repository_id, component_id, url) VALUES (#{repositoryId}, #{componentId}, #{url});
+  </insert>
+
+  <delete id="deletePackageUrls">
+    DELETE FROM swift_package_url WHERE component_id = #{componentId};
+  </delete>
+
+  <select id="findPackageIdentifiers" resultType="java.lang.String">
+    SELECT DISTINCT C.namespace || '.' || C.name AS identifier
+      FROM swift_package_url U
+      JOIN swift_component C ON C.component_id = U.component_id
+     WHERE U.repository_id = #{repositoryId} AND U.url = #{url}
+     ORDER BY identifier;
+  </select>
+
+</mapper>

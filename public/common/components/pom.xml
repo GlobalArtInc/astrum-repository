@@ -686,6 +686,11 @@
         <artifactId>astrum-repository-gitlfs</artifactId>
         <version>2.0.0</version>
       </dependency>
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-swift</artifactId>
+        <version>2.0.0</version>
+      </dependency>
 
     </dependencies>
   </dependencyManagement>
