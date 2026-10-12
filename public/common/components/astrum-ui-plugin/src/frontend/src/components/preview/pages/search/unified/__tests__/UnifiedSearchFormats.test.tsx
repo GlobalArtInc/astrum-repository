@@ -430,6 +430,9 @@ describe('Unified Search - Format-Specific Filters', () => {
 
       expect(filterMap.get('provider')?.apiParam).toBe('terraform.provider');
       expect(filterMap.get('namespace')?.apiParam).toBe('terraform.namespace');
+      expect(filterMap.get('terraformName')?.apiParam).toBe('terraform.name');
+      expect(filterMap.get('kind')?.apiParam).toBe('terraform.kind');
+      expect(filterMap.get('kind')?.options).toEqual(['module', 'provider']);
     });
   });
 

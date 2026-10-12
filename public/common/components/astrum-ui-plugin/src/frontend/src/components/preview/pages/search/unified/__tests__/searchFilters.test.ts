@@ -120,7 +120,7 @@ const EXPECTED_FILTERS: Record<string, string[]> = {
   pypi: ['repository', 'classifiers', 'description', 'keywords', 'summary'],
   rubygems: ['repository', 'description', 'platform', 'summary'],
   swift: ['repository', 'scope'],
-  terraform: ['repository', 'provider', 'namespace'],
+  terraform: ['repository', 'kind', 'namespace', 'terraformName', 'provider'],
   yum: ['repository', 'yumName', 'architecture'],
 };
 
@@ -198,8 +198,10 @@ const FORMAT_SPECIFIC_API_PARAMS: Record<string, Record<string, string>> = {
     scope: 'swift.scope',
   },
   terraform: {
+    kind: 'terraform.kind',
     provider: 'terraform.provider',
     namespace: 'terraform.namespace',
+    terraformName: 'terraform.name',
   },
   yum: {
     yumName: 'yum.name',

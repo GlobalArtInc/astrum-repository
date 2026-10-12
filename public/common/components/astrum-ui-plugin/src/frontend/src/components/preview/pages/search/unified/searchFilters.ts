@@ -690,24 +690,40 @@ export const FORMAT_FILTERS: Record<SearchFormat, FormatFilterConfig> = {
     ],
   },
 
-  // Terraform - filters from TerraformSearchMappings.java
+  // Terraform - filters from TerraformSearchMappings.java. Components are named after their address
+  // (namespace/name/system for modules, namespace/type for providers); these filters match one part of it.
   terraform: {
     format: FORMATS.terraform,
     filters: [
       REPOSITORY_FILTER,
       {
-        id: 'provider',
-        label: 'Provider',
-        type: 'text',
-        apiParam: 'terraform.provider',
-        placeholder: 'e.g., aws',
+        id: 'kind',
+        label: 'Kind',
+        type: 'select',
+        apiParam: 'terraform.kind',
+        options: ['module', 'provider'],
+        placeholder: 'Modules and providers',
       },
       {
         id: 'namespace',
         label: 'Namespace',
         type: 'text',
         apiParam: 'terraform.namespace',
-        placeholder: 'Module namespace',
+        placeholder: 'e.g., hashicorp',
+      },
+      {
+        id: 'terraformName',
+        label: 'Module or provider name',
+        type: 'text',
+        apiParam: 'terraform.name',
+        placeholder: 'e.g., vpc',
+      },
+      {
+        id: 'provider',
+        label: 'System or provider type',
+        type: 'text',
+        apiParam: 'terraform.provider',
+        placeholder: 'e.g., aws',
       },
     ],
   },
