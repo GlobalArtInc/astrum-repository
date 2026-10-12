@@ -37,6 +37,7 @@
   "shell.user.accessTokens": "Access tokens",
   "shell.user.account": "My account",
   "shell.user.menu": "Account menu of {name}",
+  "shell.user.nugetApiKey": "NuGet API Key",
   "shell.user.signIn": "Sign in",
   "shell.user.signOut": "Sign out",
   "shell.user.signOutFailed": "Could not sign out"

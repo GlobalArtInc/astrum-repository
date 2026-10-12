@@ -8,6 +8,7 @@ import {
   LogOut,
   Monitor,
   Moon,
+  Package,
   Sun,
   UserRound,
 } from 'lucide-react';
@@ -128,7 +129,7 @@ export function initials(name: string, userId: string): string {
 
 export function UserMenu() {
   const { t } = useI18n();
-  const { user } = useSession();
+  const { user, state } = useSession();
   const location = useLocation();
   const navigate = useNavigate();
   const signOut = useSignOut();
@@ -171,6 +172,12 @@ export function UserMenu() {
           <KeyRound size={14} aria-hidden="true" />
           {t('shell.user.accessTokens')}
         </DropdownMenu.Item>
+        {state.nugetApiKeyRealm && (
+          <DropdownMenu.Item onSelect={() => navigate('/user/nuget-api-key')}>
+            <Package size={14} aria-hidden="true" />
+            {t('shell.user.nugetApiKey')}
+          </DropdownMenu.Item>
+        )}
         <DropdownMenu.Separator />
         <DropdownMenu.Item onSelect={() => void signOut()}>
           <LogOut size={14} aria-hidden="true" />

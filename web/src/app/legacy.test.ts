@@ -49,7 +49,7 @@ const CASES: Array<[string, string | null]> = [
   ['#admin/nothing/here', '/'],
   ['#user/account', '/user/account'],
   ['#user/accesstokens', '/user/access-tokens'],
-  ['#user/NuGetApiToken', '/user/nuget-api-token'],
+  ['#user/NuGetApiToken', '/user/nuget-api-key'],
   ['#user/usertoken', '/'],
   ['#404', '/404'],
   [`#/login?returnTo=${btoa('#browse/browse')}`, '/login?returnTo=%2Fbrowse'],

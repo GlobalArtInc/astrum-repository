@@ -49,7 +49,7 @@ const USER_PAGES: Record<string, string> = {
   account: '/user/account',
   accesstokens: '/user/access-tokens',
   'access-tokens': '/user/access-tokens',
-  nugetapitoken: '/user/nuget-api-token',
+  nugetapitoken: '/user/nuget-api-key',
 };
 
 const CLASSIC_SEARCH_FORMATS: Record<string, string> = {
