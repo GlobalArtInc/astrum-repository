@@ -4,6 +4,7 @@ pub mod config;
 pub mod formats;
 mod server;
 pub mod telemetry;
+pub mod web;
 
 pub use server::{Server, migrate, shutdown_signal};
 

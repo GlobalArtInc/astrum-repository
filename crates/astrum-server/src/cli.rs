@@ -29,6 +29,13 @@ pub struct Cli {
         help = "Address to listen on [env: ASTRUM_LISTEN] [default: 0.0.0.0:8081]"
     )]
     pub listen: Option<SocketAddr>,
+    #[arg(
+        long,
+        global = true,
+        value_name = "DIR",
+        help = "Directory of the built user interface [env: ASTRUM_WEB_DIR] [default: /usr/share/astrum/web]"
+    )]
+    pub web_dir: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Option<Command>,
 }

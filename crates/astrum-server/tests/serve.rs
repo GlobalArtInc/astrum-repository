@@ -12,6 +12,7 @@ fn config(test: &TestDatabase, data_dir: PathBuf) -> Config {
         database: Some(test.config()),
         log: LogConfig::default(),
         secrets_key: data_dir.join("etc/secrets.key"),
+        web_dir: data_dir.join("web"),
         file: data_dir.join("etc/astrum.toml"),
         file_found: false,
     }
@@ -72,4 +73,71 @@ async fn without_a_database_the_server_does_not_start() {
 #[test]
 fn the_version_line_names_the_product() {
     assert!(astrum_server::version_line().starts_with("Astrum Repository 3."));
+}
+
+async fn fetch(address: std::net::SocketAddr, path: &str) -> (u16, String) {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let mut stream = tokio::net::TcpStream::connect(address).await.unwrap();
+    let request = format!("GET {path} HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n");
+    stream.write_all(request.as_bytes()).await.unwrap();
+    let mut reply = String::new();
+    stream.read_to_string(&mut reply).await.unwrap();
+    let status = reply
+        .split_ascii_whitespace()
+        .nth(1)
+        .and_then(|code| code.parse().ok())
+        .unwrap();
+    (status, reply)
+}
+
+#[tokio::test]
+async fn the_server_serves_the_ui_next_to_the_api() {
+    let test = TestDatabase::create().await;
+    let data = tempfile::tempdir().unwrap();
+    let config = config(&test, data.path().join("data"));
+    std::fs::create_dir_all(config.web_dir.join("assets")).unwrap();
+    std::fs::write(
+        config.web_dir.join("index.html"),
+        "<!doctype html><title>astrum-ui-marker</title>",
+    )
+    .unwrap();
+    std::fs::write(config.web_dir.join("assets/app-1.js"), "1").unwrap();
+
+    let server = Server::start(&config).await.unwrap();
+    let address = server.local_addr();
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let running = tokio::spawn(server.run(async {
+        let _ = stopped.await;
+    }));
+    check(address).await.unwrap();
+
+    for path in ["/", "/browse/maven-releases/org", "/login?returnTo=%2F"] {
+        let (status, reply) = fetch(address, path).await;
+        assert_eq!(status, 200, "{path}");
+        assert!(reply.contains("astrum-ui-marker"), "{path}");
+        assert!(
+            reply
+                .to_ascii_lowercase()
+                .contains("content-security-policy: default-src 'self'"),
+            "{path}"
+        );
+    }
+    let (status, reply) = fetch(address, "/assets/app-1.js").await;
+    assert_eq!(status, 200);
+    assert!(reply.to_ascii_lowercase().contains("immutable"));
+    let (status, reply) = fetch(address, astrum_api::STATUS).await;
+    assert_eq!(status, 200);
+    assert!(!reply.contains("astrum-ui-marker"));
+    for path in [
+        "/service/rest/v1/nothing",
+        "/repository/missing/a.txt",
+        "/v2/missing/manifests/latest",
+    ] {
+        let (status, reply) = fetch(address, path).await;
+        assert!(status >= 400, "{path}: {status}");
+        assert!(!reply.contains("astrum-ui-marker"), "{path}");
+    }
+
+    stop.send(()).unwrap();
+    running.await.unwrap().unwrap();
 }

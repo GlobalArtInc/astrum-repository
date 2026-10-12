@@ -24,6 +24,7 @@ pub const ENV_DATABASE_MAX_CONNECTIONS: &str = "ASTRUM_DATABASE_MAX_CONNECTIONS"
 pub const ENV_LOG: &str = "ASTRUM_LOG";
 pub const ENV_LOG_FORMAT: &str = "ASTRUM_LOG_FORMAT";
 pub const ENV_SECRETS_KEY_FILE: &str = "ASTRUM_SECRETS_KEY_FILE";
+pub const ENV_WEB_DIR: &str = "ASTRUM_WEB_DIR";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Config {
@@ -32,6 +33,7 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     pub log: LogConfig,
     pub secrets_key: PathBuf,
+    pub web_dir: PathBuf,
     pub file: PathBuf,
     pub file_found: bool,
 }
@@ -98,6 +100,14 @@ struct FileConfig {
     database: FileDatabase,
     #[serde(default)]
     log: FileLog,
+    #[serde(default)]
+    web: FileWeb,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FileWeb {
+    dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -172,6 +182,13 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         .or(parsed.secrets_key_file)
         .unwrap_or_else(|| data_dir.join(astrum_security::secrets::KEY_FILE));
 
+    let web_dir = cli
+        .web_dir
+        .clone()
+        .or_else(|| env(ENV_WEB_DIR).map(PathBuf::from))
+        .or(parsed.web.dir)
+        .unwrap_or_else(|| PathBuf::from(crate::web::DEFAULT_DIR));
+
     let database = database(&env, parsed.database)?;
 
     let filter = match (env(ENV_LOG), parsed.log.filter) {
@@ -191,6 +208,7 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         database,
         log: LogConfig { filter, format },
         secrets_key,
+        web_dir,
         file,
         file_found,
     })
@@ -317,6 +335,7 @@ mod tests {
             config.secrets_key,
             PathBuf::from("/astrum-data/etc/secrets.key")
         );
+        assert_eq!(config.web_dir, PathBuf::from("/usr/share/astrum/web"));
         assert!(config.database.is_none());
         let error = config.database().unwrap_err().to_string();
         assert!(error.contains(ENV_DATABASE_URL), "{error}");
@@ -336,9 +355,11 @@ mod tests {
                 (ENV_LOG, "astrum=debug,info"),
                 (ENV_LOG_FORMAT, "JSON"),
                 (ENV_SECRETS_KEY_FILE, "/run/secrets/astrum.key"),
+                (ENV_WEB_DIR, "/srv/astrum-web"),
             ]),
         )
         .unwrap();
+        assert_eq!(config.web_dir, PathBuf::from("/srv/astrum-web"));
         assert_eq!(config.secrets_key, PathBuf::from("/run/secrets/astrum.key"));
         assert_eq!(config.listen, "127.0.0.1:9000".parse().unwrap());
         assert_eq!(config.data_dir, PathBuf::from("/srv/astrum"));
@@ -364,9 +385,13 @@ max_connections = 7
 [log]
 filter = "warn"
 format = "json"
+
+[web]
+dir = "/opt/astrum/web"
 "#,
         );
         let config = load(&cli_in(dir.path()), &env(&[])).unwrap();
+        assert_eq!(config.web_dir, PathBuf::from("/opt/astrum/web"));
         assert!(config.file_found);
         assert_eq!(config.file, dir.path().join(CONFIG_FILE));
         assert_eq!(config.listen, "127.0.0.1:8082".parse().unwrap());
@@ -386,26 +411,30 @@ listen = "127.0.0.1:8082"
 [database]
 url = "postgres://file@db/astrum"
 schema = "from_file"
+[web]
+dir = "/from/file"
 "#,
         );
         let variables = env(&[
             (ENV_LISTEN, "127.0.0.1:8083"),
             (ENV_DATABASE_URL, "postgres://env@db/astrum"),
+            (ENV_WEB_DIR, "/from/env"),
         ]);
         let config = load(&cli_in(dir.path()), &variables).unwrap();
         assert_eq!(config.listen, "127.0.0.1:8083".parse().unwrap());
+        assert_eq!(config.web_dir, PathBuf::from("/from/env"));
         let database = config.database().unwrap();
         assert_eq!(database.url.expose(), "postgres://env@db/astrum");
         assert_eq!(database.schema, "from_file");
 
         let cli = Cli {
             listen: Some("127.0.0.1:8084".parse().unwrap()),
+            web_dir: Some(PathBuf::from("/from/flag")),
             ..cli_in(dir.path())
         };
-        assert_eq!(
-            load(&cli, &variables).unwrap().listen,
-            "127.0.0.1:8084".parse().unwrap()
-        );
+        let config = load(&cli, &variables).unwrap();
+        assert_eq!(config.listen, "127.0.0.1:8084".parse().unwrap());
+        assert_eq!(config.web_dir, PathBuf::from("/from/flag"));
     }
 
     #[test]

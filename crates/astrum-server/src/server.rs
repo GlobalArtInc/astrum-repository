@@ -1,6 +1,6 @@
 use std::future::Future;
 use std::net::SocketAddr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use astrum_api::AppState;
@@ -16,6 +16,7 @@ pub struct Server {
     listener: TcpListener,
     address: SocketAddr,
     state: AppState,
+    web_dir: PathBuf,
 }
 
 impl Server {
@@ -36,6 +37,7 @@ impl Server {
             listener,
             address,
             state,
+            web_dir: config.web_dir.clone(),
         })
     }
 
@@ -48,7 +50,15 @@ impl Server {
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> anyhow::Result<()> {
         self.state.content().spawn_background();
+        match crate::web::installed(&self.web_dir) {
+            true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
+            false => tracing::warn!(
+                dir = %self.web_dir.display(),
+                "the user interface is not installed; the REST API and repositories work without it"
+            ),
+        }
         let app = astrum_api::router_with(self.state.clone(), crate::formats::routes())
+            .fallback_service(crate::web::router(self.web_dir.clone()))
             .layer(TraceLayer::new_for_http());
         tracing::info!(address = %self.address, version = %version_line(), "serving requests");
         axum::serve(self.listener, app)
