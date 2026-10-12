@@ -417,6 +417,35 @@ pub async fn touch(
     Ok(())
 }
 
+pub async fn set_attributes(
+    db: &impl ConnectionTrait,
+    asset_id: i64,
+    attributes: Value,
+) -> Result<(), ContentError> {
+    let row = asset::ActiveModel {
+        id: ActiveValue::Unchanged(asset_id),
+        attributes: ActiveValue::Set(attributes),
+        ..Default::default()
+    };
+    asset::Entity::update(row).exec(db).await?;
+    Ok(())
+}
+
+pub async fn set_component_attributes(
+    db: &impl ConnectionTrait,
+    component_id: i64,
+    attributes: Value,
+) -> Result<(), ContentError> {
+    let row = component::ActiveModel {
+        id: ActiveValue::Unchanged(component_id),
+        attributes: ActiveValue::Set(attributes),
+        updated_at: ActiveValue::Set(Utc::now().fixed_offset()),
+        ..Default::default()
+    };
+    component::Entity::update(row).exec(db).await?;
+    Ok(())
+}
+
 pub async fn mark_stale(db: &impl ConnectionTrait, repository: &str) -> Result<u64, ContentError> {
     let result = asset::Entity::update_many()
         .col_expr(

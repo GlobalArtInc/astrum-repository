@@ -239,6 +239,25 @@ pub fn remote_url(
         .map_err(|error| ContentError::BadGateway(format!("the remote URL is not valid: {error}")))
 }
 
+pub struct Origin {
+    pub url: url::Url,
+    pub headers: Vec<(header::HeaderName, String)>,
+}
+
+impl Origin {
+    pub fn new(url: url::Url) -> Self {
+        Self {
+            url,
+            headers: Vec::new(),
+        }
+    }
+
+    pub fn header(mut self, name: header::HeaderName, value: impl Into<String>) -> Self {
+        self.headers.push((name, value.into()));
+        self
+    }
+}
+
 pub struct Remote {
     pub status: StatusCode,
     pub headers: HeaderMap,
@@ -267,6 +286,16 @@ impl Remote {
         }
         Ok(collected)
     }
+}
+
+fn same_origin(repository: &Repository, url: &url::Url) -> bool {
+    repository
+        .attributes
+        .proxy
+        .as_ref()
+        .and_then(|proxy| proxy.remote_url.as_deref())
+        .and_then(|remote| url::Url::parse(remote).ok())
+        .is_some_and(|remote| remote.origin() == url.origin())
 }
 
 pub fn remote_blocked(ctx: &Ctx) -> bool {
@@ -303,14 +332,16 @@ pub async fn request(
         .and_then(|connection| connection.retries)
         .unwrap_or(2)
         .clamp(0, 10) as usize;
+    let authentication = http_client
+        .and_then(|client| client.authentication.as_ref())
+        .filter(|_| same_origin(&ctx.repository, &url));
     let mut attempt = 0;
     loop {
         let mut builder = client.get(url.clone());
         for (name, value) in extra {
             builder = builder.header(name, value);
         }
-        if let Some(authentication) = http_client.and_then(|client| client.authentication.as_ref())
-        {
+        if let Some(authentication) = authentication {
             let open = |sealed: &Option<String>| {
                 sealed
                     .as_deref()
@@ -417,6 +448,27 @@ pub async fn fetch(
     freshness: Freshness,
     describe: impl FnOnce() -> PutAsset,
 ) -> Result<Option<Asset>, ContentError> {
+    fetch_from(
+        ctx,
+        path,
+        freshness,
+        || async { remote_url(&ctx.repository, path, query).map(|url| Some(Origin::new(url))) },
+        describe,
+    )
+    .await
+}
+
+pub async fn fetch_from<F, Fut>(
+    ctx: &Ctx,
+    path: &str,
+    freshness: Freshness,
+    origin: F,
+    describe: impl FnOnce() -> PutAsset,
+) -> Result<Option<Asset>, ContentError>
+where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future<Output = Result<Option<Origin>, ContentError>>,
+{
     let existing = store::find(ctx.db(), ctx.name(), path).await?;
     if let Some(asset) = &existing
         && is_fresh(ctx, asset, freshness)
@@ -436,8 +488,20 @@ pub async fn fetch(
     {
         return Ok(existing);
     }
-    let url = remote_url(&ctx.repository, path, query)?;
-    let mut conditional = Vec::new();
+    let origin = match origin().await {
+        Ok(Some(origin)) => origin,
+        Ok(None) => return Ok(existing),
+        Err(error) => {
+            return match existing {
+                Some(stale) => {
+                    tracing::info!(repository = ctx.name(), path, %error, "serving a stale copy");
+                    Ok(Some(stale))
+                }
+                None => Err(error),
+            };
+        }
+    };
+    let mut conditional = origin.headers;
     if let Some(asset) = &existing {
         if let Some(etag) = &asset.remote_etag {
             conditional.push((header::IF_NONE_MATCH, etag.clone()));
@@ -449,7 +513,7 @@ pub async fn fetch(
             ));
         }
     }
-    let remote = match request(ctx, url, &conditional).await {
+    let remote = match request(ctx, origin.url, &conditional).await {
         Ok(remote) => remote,
         Err(error) => {
             return match existing {
@@ -549,6 +613,25 @@ mod tests {
                 .as_str(),
             "https://repo.example/simple/?q=1"
         );
+    }
+
+    #[test]
+    fn credentials_go_only_to_the_remote_origin() {
+        let repository = proxy("https://pypi.example/simple/");
+        assert!(same_origin(
+            &repository,
+            &"https://pypi.example/packages/a.whl".parse().unwrap()
+        ));
+        for other in [
+            "https://files.example/packages/a.whl",
+            "http://pypi.example/packages/a.whl",
+            "https://pypi.example:8443/packages/a.whl",
+        ] {
+            assert!(
+                !same_origin(&repository, &other.parse().unwrap()),
+                "{other}"
+            );
+        }
     }
 
     #[test]
