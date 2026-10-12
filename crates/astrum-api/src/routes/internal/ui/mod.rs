@@ -11,6 +11,7 @@ mod privileges;
 mod repositories;
 mod search;
 mod selectors;
+mod usage;
 mod versions;
 
 use axum::Router;
@@ -27,6 +28,7 @@ pub fn routes() -> Router<AppState> {
         .merge(browse_asset::routes())
         .merge(search::routes())
         .merge(dashboard::routes())
+        .merge(usage::routes())
         .merge(blobstores::routes())
         .merge(selectors::routes())
         .merge(account::routes())
