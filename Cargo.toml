@@ -13,6 +13,7 @@ repository = "https://github.com/GlobalArtInc/astrum-repository"
 astrum-api = { path = "crates/astrum-api" }
 astrum-blob = { path = "crates/astrum-blob" }
 astrum-content = { path = "crates/astrum-content" }
+astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-repo = { path = "crates/astrum-repo" }
@@ -50,6 +51,7 @@ rustix = { version = "1", features = ["fs"] }
 s3s = "0.17"
 s3s-fs = "0.17"
 sea-orm = { version = "1.1", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-json", "with-uuid", "postgres-array"] }
+semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha1 = "0.10"

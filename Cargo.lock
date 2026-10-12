@@ -274,6 +274,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-npm"
+version = "3.0.0-dev"
+dependencies = [
+ "anyhow",
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "hex",
+ "httpdate",
+ "sea-orm",
+ "semver",
+ "serde_json",
+ "sha1 0.10.7",
+ "sha2 0.10.9",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-raw"
 version = "3.0.0-dev"
 dependencies = [
@@ -334,6 +361,7 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-format-npm",
  "astrum-format-raw",
  "astrum-security",
  "astrum-testkit",
