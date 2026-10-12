@@ -46,6 +46,12 @@ uuid = { version = "1", features = ["v4", "serde"] }
 [profile.dev]
 debug = "line-tables-only"
 
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
+
 [profile.test]
 debug = "line-tables-only"
 
