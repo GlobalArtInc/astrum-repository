@@ -36,6 +36,7 @@ ASTRUM_BIN=/path/to/astrum corepack pnpm e2e           # needs a build and a Pos
               order: 30, need: { some: 'astrum:repository-view' } }],
      settings: [],   // tiles: { id, section: 'repository' | 'security', to, title, description, icon, order, need }
      search: [],     // header search providers: { id, order, need, Results, submit }
+     watchers: [],   // components the shell renders on every page, e.g. the onboarding redirect
    };
    ```
 

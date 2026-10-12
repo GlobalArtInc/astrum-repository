@@ -61,4 +61,5 @@ export interface Area {
   menu?: MenuEntry[];
   settings?: SettingsTile[];
   search?: SearchProvider[];
+  watchers?: ComponentType[];
 }

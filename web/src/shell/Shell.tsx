@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
+import { useRegistry } from '../app/registry';
 import { loginPath } from '../auth/returnTo';
 import { useSession } from '../auth/state';
 import { useT } from '../i18n';
@@ -21,6 +22,7 @@ export function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(() => readStored(SIDEBAR_KEY) !== 'false');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { watchers } = useRegistry();
   const toggleSearch = useCallback(() => setSearchOpen((open) => !open), []);
   useSearchShortcut(toggleSearch);
 
@@ -57,6 +59,9 @@ export function Shell() {
       </div>
       {compact && <MobileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} version={versionOf(state)} />}
       <SearchPanel open={searchOpen} onOpenChange={setSearchOpen} />
+      {watchers.map((Watcher) => (
+        <Watcher key={Watcher.displayName ?? Watcher.name} />
+      ))}
     </>
   );
 }

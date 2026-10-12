@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useMemo } from 'react';
+import { type ComponentType, createContext, type ReactNode, useContext, useMemo } from 'react';
 import { useSession } from '../auth/state';
 import type { Area, MenuEntry, SearchProvider, SettingsTile } from './area';
 
@@ -9,6 +9,7 @@ export interface Registry {
   menu: MenuEntry[];
   settings: SettingsTile[];
   search: SearchProvider[];
+  watchers: ComponentType[];
 }
 
 export function buildRegistry(areas: Area[]): Registry {
@@ -17,6 +18,7 @@ export function buildRegistry(areas: Area[]): Registry {
     menu: areas.flatMap((area) => area.menu ?? []).sort(byOrder),
     settings: areas.flatMap((area) => area.settings ?? []).sort(byOrder),
     search: areas.flatMap((area) => area.search ?? []).sort(byOrder),
+    watchers: areas.flatMap((area) => area.watchers ?? []),
   };
 }
 
