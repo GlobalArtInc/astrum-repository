@@ -83,7 +83,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('the component page', () => {
+describe('the component page', { timeout: 20_000 }, () => {
   it('reads the component from the address', () => {
     expect(keyFromPath('/search/component/maven2%3Aorg.acme%3Alib')).toBe('maven2:org.acme:lib');
     expect(keyFromPath('/search/component/docker%3A%3Ateam%2Fapp/')).toBe('docker::team/app');

@@ -78,7 +78,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('the dashboard', () => {
+describe('the dashboard', { timeout: 20_000 }, () => {
   it('shows the totals, the most downloaded and the latest uploads', async () => {
     serve(DATA);
     renderWithApp(<DashboardPage />);

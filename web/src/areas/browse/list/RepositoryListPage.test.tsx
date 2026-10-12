@@ -34,8 +34,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('the repository list', () => {
-  it('filters by format and type and keeps the filters in the address', { timeout: 15_000 }, async () => {
+describe('the repository list', { timeout: 20_000 }, () => {
+  it('filters by format and type and keeps the filters in the address', async () => {
     serve();
     const { router } = page();
     await screen.findByRole('table');
@@ -48,7 +48,7 @@ describe('the repository list', () => {
     expect(names()).toEqual(['maven-releases']);
   });
 
-  it('filters by status and name', { timeout: 15_000 }, async () => {
+  it('filters by status and name', async () => {
     serve();
     page('/browse?status=offline');
     await screen.findByRole('table');

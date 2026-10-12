@@ -38,6 +38,9 @@ test('the repository list filters by format, type, status and name', async ({ pa
   await table.getByRole('link', { name: SEED.maven, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/browse/${SEED.maven}$`));
   await expect(page.getByRole('heading', { level: 1, name: SEED.maven })).toBeVisible();
+  await page.goto(`/browse/${SEED.rawProxy}`);
+  await expect(page.getByText('A proxy keeps what clients have asked for through it')).toBeVisible();
+  await expect(page.getByText('http://127.0.0.1:9/')).toBeVisible();
 });
 
 test('the tree navigates with the keyboard and opens deep links', async ({ page, server }) => {

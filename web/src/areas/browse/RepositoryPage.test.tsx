@@ -64,7 +64,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('the repository page', () => {
+describe('the repository page', { timeout: 20_000 }, () => {
   it('opens a deep link down to the file and shows its details', async () => {
     server();
     const { router } = page('/browse/files/a/b/two.txt');

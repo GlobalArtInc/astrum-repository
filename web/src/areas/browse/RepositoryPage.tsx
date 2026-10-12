@@ -71,7 +71,8 @@ function RepositoryOverview({ repository }: { repository: RepositoryItem }) {
   const t = useT();
   const { language } = useI18n();
   const { state } = useSession();
-  const count = (value: number | null) => (value === null ? '—' : formatNumber(language, value));
+  const group = repository.type === 'group';
+  const count = (value: number | null) => (value === null || group ? '—' : formatNumber(language, value));
   const items: DetailItem[] = [
     { id: 'format', label: t('browse.details.format'), value: formatName(repository.format) },
     { id: 'components', label: t('browse.repository.components'), value: count(repository.componentCount) },
@@ -79,7 +80,7 @@ function RepositoryOverview({ repository }: { repository: RepositoryItem }) {
     {
       id: 'size',
       label: t('browse.details.size'),
-      value: repository.totalSize === null ? '—' : <FileSize bytes={repository.totalSize} />,
+      value: repository.totalSize === null || group ? '—' : <FileSize bytes={repository.totalSize} />,
     },
     {
       id: 'uploaded',
