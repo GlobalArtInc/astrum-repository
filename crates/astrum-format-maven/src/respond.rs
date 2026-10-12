@@ -13,6 +13,7 @@ use sha2::{Sha256, Sha512};
 use crate::path::Hash;
 
 pub const XML: &str = "application/xml";
+pub const JSON: &str = "application/json";
 pub const TEXT: &str = "text/plain";
 pub const HTML: &str = "text/html;charset=utf-8";
 

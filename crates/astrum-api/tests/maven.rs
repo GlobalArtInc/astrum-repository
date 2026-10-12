@@ -304,6 +304,23 @@ async fn hosted_deploys_keep_metadata_and_checksums() {
     );
     let pom_reply = get(&fixture, &format!("{lib}/1.0/lib-1.0.pom")).await;
     assert_eq!(pom_reply.headers[header::CONTENT_TYPE], "application/xml");
+    assert_eq!(
+        put(
+            &fixture,
+            &format!("{lib}/1.0/lib-1.0.module"),
+            "{\"formatVersion\": \"1.1\"}",
+            Auth::Admin
+        )
+        .await
+        .status,
+        StatusCode::CREATED
+    );
+    assert_eq!(
+        get(&fixture, &format!("{lib}/1.0/lib-1.0.module"))
+            .await
+            .headers[header::CONTENT_TYPE],
+        "application/json"
+    );
     let head = fixture
         .call(
             Method::HEAD,

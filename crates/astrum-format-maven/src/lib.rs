@@ -81,9 +81,10 @@ pub(crate) fn describe(parsed: &MavenPath, put: PutAsset) -> PutAsset {
             let put = put
                 .component(component_key(coordinates))
                 .attributes(coordinates.attributes());
-            match hosted::is_pom(coordinates) {
-                true => put.content_type(respond::XML),
-                false => put,
+            match coordinates.extension.as_str() {
+                "pom" => put.content_type(respond::XML),
+                "module" => put.content_type(respond::JSON),
+                _ => put,
             }
         }
         Kind::Metadata | Kind::ArchetypeCatalog => put.content_type(respond::XML),
