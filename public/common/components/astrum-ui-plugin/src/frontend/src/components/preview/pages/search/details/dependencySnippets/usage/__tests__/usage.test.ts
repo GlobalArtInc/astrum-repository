@@ -27,7 +27,7 @@ describe('usage snippets', () => {
   it('has a repository-aware generator for every format the server supports', () => {
     expect(Object.keys(USAGE_GENERATORS).sort()).toEqual([
       'alpine', 'apt', 'cargo', 'cocoapods', 'composer', 'conan', 'conda', 'docker', 'gitlfs', 'go', 'helm',
-      'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw', 'yum',
+      'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw', 'swift', 'yum',
     ]);
   });
 
@@ -446,44 +446,28 @@ describe('usage snippets', () => {
     });
   });
 
-  describe('yum', () => {
-    it('points the .repo file at the repodata of a hosted repository and uploads to the package path', () => {
-      const s = texts(context({
-        format: 'yum',
-        repositoryName: 'yum-hosted',
-        name: 'hello',
-        version: '2.12.1-3.el9',
-        path: 'el9/x86_64/Packages/hello-2.12.1-3.el9.x86_64.rpm',
-        repodataDepth: 2,
-        repodataSigned: true,
-      }));
-      expect(s.repo).toBe([
-        '[yum-hosted]',
-        'name=yum-hosted',
-        'baseurl=https://astrum.example.com/repository/yum-hosted/el9/x86_64/',
-        'enabled=1',
-        'gpgcheck=0',
-        'repo_gpgcheck=1',
-        'gpgkey=https://astrum.example.com/repository/yum-hosted/el9/x86_64/repodata/repomd.xml.key',
-      ].join('\n'));
-      expect(s.install).toBe('sudo dnf install hello-2.12.1-3.el9');
-      expect(s.upload).toBe('curl -u <user> --upload-file ./hello-2.12.1-3.el9.x86_64.rpm '
-        + 'https://astrum.example.com/repository/yum-hosted/el9/x86_64/Packages/hello-2.12.1-3.el9.x86_64.rpm');
-    });
-
-    it('finds the repodata of a proxy above its Packages directory', () => {
-      const s = texts(context({
-        format: 'yum',
-        repositoryName: 'rocky-proxy',
-        repositoryType: 'proxy',
-        name: 'bash',
-        path: 'BaseOS/x86_64/os/Packages/b/bash-5.1.8-9.el9.x86_64.rpm',
-      }));
-      expect(s.repo).toContain('baseurl=https://astrum.example.com/repository/rocky-proxy/BaseOS/x86_64/os/\n');
-      expect(s.repo).not.toContain('repo_gpgcheck');
-      expect(s.install).toBe('sudo dnf install bash');
-      expect(ids(context({ format: 'yum', repositoryName: 'rocky-proxy', repositoryType: 'proxy' })))
-        .toEqual(['repo']);
+  '--url http://10.0.0.5:8081/repository/swift-hosted/ --allow-insecure-http',
+  '.package(id: "mona.LinkedList", from: "1.1.1")', '1.1.1', '2.12.1-3.el9',
+  'BaseOS/x86_64/os/Packages/b/bash-5.1.8-9.el9.x86_64.rpm', 'LinkedList', '[yum-hosted]', '\n',
+  'allows plain HTTP and signs in through .netrc',
+  'baseurl=https://astrum.example.com/repository/rocky-proxy/BaseOS/x86_64/os/\n',
+  'baseurl=https://astrum.example.com/repository/yum-hosted/el9/x86_64/', 'bash',
+  'curl -u <user> --upload-file ./hello-2.12.1-3.el9.x86_64.rpm ', 'does not publish to a proxy or a group',
+  'el9/x86_64/Packages/hello-2.12.1-3.el9.x86_64.rpm', 'enabled=1',
+  'finds the repodata of a proxy above its Packages directory', 'gpgcheck=0',
+  'gpgkey=https://astrum.example.com/repository/yum-hosted/el9/x86_64/repodata/repomd.xml.key', 'group',
+  'hello', 'http://10.0.0.5:8081/repository/swift-hosted',
+  'https://astrum.example.com/repository/yum-hosted/el9/x86_64/Packages/hello-2.12.1-3.el9.x86_64.rpm',
+  'login', 'machine 10.0.0.5\n  login <user>\n  password <password>', 'manifest', 'mona', 'name=yum-hosted',
+  'netrc', 'points the .repo file at the repodata of a hosted repository and uploads to the package path',
+  'proxy', 'publish', 'registry', 'repo', 'repo_gpgcheck', 'repo_gpgcheck=1', 'rocky-proxy',
+  'sets the registry, adds the dependency, signs in and publishes over HTTPS', 'sudo dnf install bash',
+  'sudo dnf install hello-2.12.1-3.el9', 'swift',
+  'swift package-registry login https://astrum.example.com/repository/swift-hosted/ --username <user>',
+  'swift package-registry publish mona.LinkedList 1.1.1 --url https://astrum.example.com/repository/swift-hosted/',
+  'swift package-registry set --allow-insecure-http http://10.0.0.5:8081/repository/swift-hosted/',
+  'swift package-registry set https://astrum.example.com/repository/swift-hosted/', 'swift-group',
+  'swift-hosted', 'swift-proxy', 'yum', 'yum-hosted',
     });
   });
 

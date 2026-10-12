@@ -52,7 +52,7 @@ const REMOTE_URL_EXAMPLES: Record<string, string> = {
   raw: CommonStrings.MESSAGES.EXAMPLE('https://example.com/files/'),
   yum: CommonStrings.MESSAGES.EXAMPLE('https://mirror.stream.centos.org/'),
   ansiblegalaxy: CommonStrings.MESSAGES.EXAMPLE('https://galaxy.ansible.com'),
-  swift: CommonStrings.MESSAGES.EXAMPLE('https://github.com/'),
+  swift: CommonStrings.MESSAGES.EXAMPLE('https://packages.example.com/'),
   cargo: CommonStrings.MESSAGES.EXAMPLE('https://index.crates.io'),
   terraform: CommonStrings.MESSAGES.EXAMPLE('https://registry.terraform.io'),
   composer: CommonStrings.MESSAGES.EXAMPLE('https://repo.packagist.org'),

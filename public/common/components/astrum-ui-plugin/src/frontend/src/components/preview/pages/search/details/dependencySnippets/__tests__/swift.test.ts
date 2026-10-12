@@ -20,4 +20,9 @@ describe('swift dependency snippet generator', () => {
     expect(snippet.description).toBe('Add the following dependency to your Package.swift:');
     expect(snippet.snippetText).toBe('.package(id: "apple.swift-collections", from: "1.1.0")');
   });
+
+  it('prefixes the scope kept as the component group', () => {
+    const [snippet] = generate({ format: 'swift', group: 'mona', name: 'LinkedList', version: '1.1.1' });
+    expect(snippet.snippetText).toBe('.package(id: "mona.LinkedList", from: "1.1.1")');
+  });
 });

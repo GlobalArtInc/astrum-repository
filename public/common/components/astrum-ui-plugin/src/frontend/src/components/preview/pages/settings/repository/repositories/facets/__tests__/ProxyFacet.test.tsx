@@ -108,7 +108,7 @@ describe('ProxyFacet', () => {
     };
     renderFacet({ formData, format: 'swift' });
 
-    expect(screen.getByText(/https:\/\/github\.com/)).toBeInTheDocument();
+    expect(screen.getByText(/https:\/\/packages\.example\.com/)).toBeInTheDocument();
   });
 
   it('shows correct placeholder for cargo format', () => {
