@@ -936,6 +936,21 @@ async fn npm_tokens_are_issued_used_and_revoked() {
         .status,
         StatusCode::UNAUTHORIZED
     );
+    let again = send(
+        &fixture,
+        Method::PUT,
+        &login,
+        Who::Bearer(&token),
+        Some(body(&password)),
+        &[],
+    )
+    .await;
+    assert_eq!(
+        again.status,
+        StatusCode::CREATED,
+        "a revoked token left in .npmrc does not block signing in again: {}",
+        again.text()
+    );
 
     let created = admin(
         &fixture,

@@ -71,6 +71,9 @@ pub async fn authenticate(
     let from_ui = is_ui(request.headers());
     let caller = match resolve(&state, request.method(), request.headers()).await {
         Ok(caller) => caller,
+        Err(ApiError::Unauthorized) if is_sign_in(request.uri().path()) => {
+            Caller(state.security().anonymous())
+        }
         Err(error) => return without_challenge(error.into_response(), from_ui),
     };
     request.extensions_mut().insert(caller);
@@ -126,6 +129,10 @@ async fn resolve(
         return Ok(Caller(Some(session.subject)));
     }
     Ok(Caller(state.security().anonymous()))
+}
+
+fn is_sign_in(path: &str) -> bool {
+    path.contains("/-/user/org.couchdb.user:")
 }
 
 fn is_safe(method: &Method) -> bool {
