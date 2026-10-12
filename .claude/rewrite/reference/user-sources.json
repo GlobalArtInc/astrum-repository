@@ -1,0 +1,14 @@
+[
+ {
+  "id": "default",
+  "name": "AstrumAuthenticatingRealm"
+ },
+ {
+  "id": "LDAP",
+  "name": "LdapRealm"
+ },
+ {
+  "id": "OAuth2",
+  "name": "OAuth2Realm"
+ }
+]

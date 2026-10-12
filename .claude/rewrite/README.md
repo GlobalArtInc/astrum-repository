@@ -1,6 +1,7 @@
 # Rewriting Astrum Repository in Rust
 
-Status: decided (owner's answers of 2026-10-12 are recorded below); M0 is done (2026-10-12), M1 is next.
+Status: decided (owner's answers of 2026-10-12 are recorded below); M0 is done (2026-10-12), M1 is in
+progress (foundation done; blob stores, repository configuration and security REST being built in parallel).
 See "Where the Rust server stands" at the end for the code that exists.
 
 ## Why
@@ -159,3 +160,37 @@ M0 (2026-10-12): the skeleton runs, builds into an image and is checked by CI; n
   (the local PostgreSQL 16 of the e2e setup trusts local connections). A local docker daemon starts with
   `dockerd &`; Docker Hub rate-limits anonymous pulls here, so pull bases from `mirror.gcr.io/library/...`
   and tag them; package installs inside builds cannot reach the network from this sandbox.
+
+## M1 conventions (foundation of 2026-10-12)
+- Interface reference: `reference/openapi-m1.json` (paths and JSON schemas of the security, blob store,
+  repository and status REST API, descriptions stripped), `reference/builtin-privileges.json`,
+  `builtin-roles.json`, `realms-available.json`, `user-sources.json`, `users-default.json`,
+  `anonymous.json`, `repository-privileges-sample.json`, `responses.txt` (status codes and bodies of
+  errors). Captured from the running server; ids and names are the compatibility surface (`as-*`
+  privileges and roles, realm ids), English descriptions are ours.
+- Tables (`crates/astrum-db/migrations/*-create-core-tables`): `security_user`, `security_role`,
+  `security_privilege` (custom privileges only; built-in and per-repository privileges are generated),
+  `security_user_role` (user, source → roles), `content_selector`, `blob_store`, `repository` (FK to
+  `blob_store`, so a used store cannot be deleted), `audit_event`. Settings keys: `security.realms`,
+  `security.anonymous`, `read_only`.
+- `astrum-security`: `Permission` (wildcard parts `:`, values `,`, `*`; case-insensitive), privilege kinds
+  → permissions: application `astrum:<domain>:<create|read|update|delete|...>` (ADD→create, EDIT→update),
+  `astrum:repository-view:<fmt>:<repo>:<browse|read|edit|add|delete>`,
+  `astrum:repository-admin:<fmt>:<repo>:<...>`, wildcard as written; content selector privileges are
+  grants evaluated by content access (M2). `SecurityModel` is an in-memory snapshot; every write to users,
+  roles, privileges, settings or repositories must be followed by `Security::reload()`. Passwords: argon2id;
+  old `$shiro1$SHA-512$...` hashes verify and are rewritten on sign-in. Basic sign-ins are cached for 5
+  minutes per (user, password, stored hash). `SecretBox` (AES-256-GCM, key in `<data>/etc/secrets.key` or
+  `ASTRUM_SECRETS_KEY_FILE`) seals secrets kept in configuration JSON as `astrum:v1:...`; REST never returns
+  them. `bootstrap` upserts the built-in roles, default realms and anonymous settings, and on an empty user
+  table creates `admin` (random password in `<data>/admin.password`) and `anonymous`.
+- `astrum-api`: `AppState` (db, data dir, security, secrets, `audit()`), `Caller` extractor with
+  `require(permission)` (401 + `WWW-Authenticate: Basic realm="Astrum Repository"` for anonymous or no
+  caller, 403 otherwise; the challenge is dropped when the request carries `X-Astrum-UI: true`),
+  `ApiError` (404 `{"id":"*","message"}`, 400 `[{"id","message"}]` from `Validation`, 415, 500 with a log
+  reference), `Json` extractor (415 without a JSON content type). Routes live in `src/routes/<area>.rs`,
+  each `pub fn routes() -> Router<AppState>` with full paths under `/service/rest`. Audit events: domain
+  per area (`security.user`, `security.role`, `security.privilege`, `security.realm`, `security.anonymous`,
+  `security.contentselector`, `blobstore`, `repository`), kind `created|updated|deleted`, context = the
+  object's name. Tests use `crates/astrum-api/tests/support` (`Fixture` with a migrated, bootstrapped
+  database and the admin password).

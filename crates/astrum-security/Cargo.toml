@@ -1,0 +1,27 @@
+[package]
+name = "astrum-security"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+aes-gcm.workspace = true
+argon2.workspace = true
+astrum-db.workspace = true
+astrum-repo.workspace = true
+base64.workspace = true
+chrono.workspace = true
+rand.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+astrum-testkit.workspace = true
+tempfile.workspace = true

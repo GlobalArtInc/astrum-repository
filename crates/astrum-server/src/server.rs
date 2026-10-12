@@ -5,6 +5,7 @@ use std::path::Path;
 use anyhow::Context;
 use astrum_api::AppState;
 use astrum_db::Database;
+use astrum_security::SecretBox;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 
@@ -22,6 +23,9 @@ impl Server {
         prepare_data_dir(&config.data_dir)?;
         let db = connect(config).await?;
         db.migrate().await?;
+        astrum_security::bootstrap(db.conn(), &config.data_dir).await?;
+        let secrets = SecretBox::load_or_create(&config.secrets_key)?;
+        let state = AppState::load(db, config.data_dir.clone(), secrets).await?;
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;
@@ -29,7 +33,7 @@ impl Server {
         Ok(Self {
             listener,
             address,
-            state: AppState::new(db, config.data_dir.clone()),
+            state,
         })
     }
 

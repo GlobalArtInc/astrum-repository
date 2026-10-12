@@ -12,18 +12,26 @@ repository = "https://github.com/GlobalArtInc/astrum-repository"
 [workspace.dependencies]
 astrum-api = { path = "crates/astrum-api" }
 astrum-db = { path = "crates/astrum-db" }
+astrum-repo = { path = "crates/astrum-repo" }
+astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }
 astrum-testkit = { path = "crates/astrum-testkit" }
 
+aes-gcm = "0.10"
 anyhow = "1"
+argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
+base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 clap = { version = "4", features = ["derive"] }
 http-body-util = "0.1"
 migrator = { package = "sqlmig", version = "0.2.1" }
+rand = "0.9"
 sea-orm = { version = "1.1", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
+subtle = "2"
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "net", "io-util", "fs", "time"] }

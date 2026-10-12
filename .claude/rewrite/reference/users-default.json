@@ -1,0 +1,28 @@
+[
+ {
+  "userId": "anonymous",
+  "firstName": "Anonymous",
+  "lastName": "User",
+  "emailAddress": "anonymous@example.org",
+  "source": "default",
+  "status": "active",
+  "readOnly": false,
+  "roles": [
+   "as-anonymous"
+  ],
+  "externalRoles": []
+ },
+ {
+  "userId": "admin",
+  "firstName": "Administrator",
+  "lastName": "User",
+  "emailAddress": "admin@example.org",
+  "source": "default",
+  "status": "active",
+  "readOnly": false,
+  "roles": [
+   "as-admin"
+  ],
+  "externalRoles": []
+ }
+]

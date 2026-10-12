@@ -13,6 +13,7 @@ path = "src/main.rs"
 anyhow.workspace = true
 astrum-api.workspace = true
 astrum-db.workspace = true
+astrum-security.workspace = true
 axum.workspace = true
 clap.workspace = true
 serde.workspace = true

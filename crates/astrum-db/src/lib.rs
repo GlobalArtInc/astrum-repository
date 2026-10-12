@@ -1,4 +1,6 @@
+pub mod audit;
 mod config;
+pub mod entity;
 pub mod read_only;
 pub mod setting;
 

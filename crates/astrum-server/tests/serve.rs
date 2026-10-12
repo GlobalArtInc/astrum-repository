@@ -11,6 +11,7 @@ fn config(test: &TestDatabase, data_dir: PathBuf) -> Config {
         data_dir: data_dir.clone(),
         database: Some(test.config()),
         log: LogConfig::default(),
+        secrets_key: data_dir.join("etc/secrets.key"),
         file: data_dir.join("etc/astrum.toml"),
         file_found: false,
     }

@@ -23,6 +23,7 @@ pub const ENV_DATABASE_SCHEMA: &str = "ASTRUM_DATABASE_SCHEMA";
 pub const ENV_DATABASE_MAX_CONNECTIONS: &str = "ASTRUM_DATABASE_MAX_CONNECTIONS";
 pub const ENV_LOG: &str = "ASTRUM_LOG";
 pub const ENV_LOG_FORMAT: &str = "ASTRUM_LOG_FORMAT";
+pub const ENV_SECRETS_KEY_FILE: &str = "ASTRUM_SECRETS_KEY_FILE";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Config {
@@ -30,6 +31,7 @@ pub struct Config {
     pub data_dir: PathBuf,
     pub database: Option<DatabaseConfig>,
     pub log: LogConfig,
+    pub secrets_key: PathBuf,
     pub file: PathBuf,
     pub file_found: bool,
 }
@@ -91,6 +93,7 @@ impl Config {
 struct FileConfig {
     listen: Option<String>,
     data_dir: Option<PathBuf>,
+    secrets_key_file: Option<PathBuf>,
     #[serde(default)]
     database: FileDatabase,
     #[serde(default)]
@@ -164,6 +167,11 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         .or(parsed.data_dir)
         .unwrap_or_else(|| PathBuf::from(DEFAULT_DATA_DIR));
 
+    let secrets_key = env(ENV_SECRETS_KEY_FILE)
+        .map(PathBuf::from)
+        .or(parsed.secrets_key_file)
+        .unwrap_or_else(|| data_dir.join(astrum_security::secrets::KEY_FILE));
+
     let database = database(&env, parsed.database)?;
 
     let filter = match (env(ENV_LOG), parsed.log.filter) {
@@ -182,6 +190,7 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         data_dir,
         database,
         log: LogConfig { filter, format },
+        secrets_key,
         file,
         file_found,
     })
@@ -304,6 +313,10 @@ mod tests {
         assert_eq!(config.file, PathBuf::from("/astrum-data/etc/astrum.toml"));
         assert!(!config.file_found);
         assert_eq!(config.log, LogConfig::default());
+        assert_eq!(
+            config.secrets_key,
+            PathBuf::from("/astrum-data/etc/secrets.key")
+        );
         assert!(config.database.is_none());
         let error = config.database().unwrap_err().to_string();
         assert!(error.contains(ENV_DATABASE_URL), "{error}");
@@ -322,9 +335,11 @@ mod tests {
                 (ENV_DATABASE_MAX_CONNECTIONS, "5"),
                 (ENV_LOG, "astrum=debug,info"),
                 (ENV_LOG_FORMAT, "JSON"),
+                (ENV_SECRETS_KEY_FILE, "/run/secrets/astrum.key"),
             ]),
         )
         .unwrap();
+        assert_eq!(config.secrets_key, PathBuf::from("/run/secrets/astrum.key"));
         assert_eq!(config.listen, "127.0.0.1:9000".parse().unwrap());
         assert_eq!(config.data_dir, PathBuf::from("/srv/astrum"));
         assert_eq!(config.file, PathBuf::from("/srv/astrum/etc/astrum.toml"));
