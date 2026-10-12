@@ -22,6 +22,7 @@ use astrum_security::{SecretBox, SecurityModel, Subject};
 use sea_orm::DatabaseConnection;
 
 pub use access::{Grant, View};
+pub use downloads::DOWNLOAD_DAYS_KEPT;
 pub use error::{CHALLENGE, ContentError};
 pub use format::{Format, SearchKey, UploadField, UploadForm, UploadSpec, fetch};
 pub use proxy::Freshness;
@@ -30,6 +31,8 @@ pub use serve::{Serve, serve};
 pub use store::{Asset, Component, ComponentKey, PutAsset};
 
 pub const DOWNLOAD_FLUSH: Duration = Duration::from_secs(10);
+
+const DOWNLOAD_DAYS_PRUNE: u32 = 360;
 
 #[derive(Clone)]
 pub struct Content {
@@ -143,15 +146,26 @@ impl Content {
         self.inner.downloads.flush(self.db()).await
     }
 
+    pub async fn prune_download_days(&self) -> Result<u64, ContentError> {
+        downloads::Downloads::prune(self.db()).await
+    }
+
     pub fn spawn_background(&self) {
         let content = self.clone();
         tokio::spawn(async move {
             let mut ticker = tokio::time::interval(DOWNLOAD_FLUSH);
+            let mut ticks: u32 = 0;
             loop {
                 ticker.tick().await;
                 if let Err(error) = content.flush_downloads().await {
                     tracing::warn!(%error, "download counts were not saved");
                 }
+                if ticks.is_multiple_of(DOWNLOAD_DAYS_PRUNE)
+                    && let Err(error) = content.prune_download_days().await
+                {
+                    tracing::warn!(%error, "old download days were not deleted");
+                }
+                ticks = ticks.wrapping_add(1);
             }
         });
     }
