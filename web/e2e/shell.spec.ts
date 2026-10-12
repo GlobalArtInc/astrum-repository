@@ -94,6 +94,9 @@ test('the settings hub shows the old sections without SSRF and audit tiles', asy
     /^Roles/,
     /^Privileges/,
     /^Realms/,
+    /^LDAP/,
+    /^Default Role/,
+    /^OpenID Connect/,
     /^Anonymous Access/,
   ]);
   await expect(page.getByRole('link', { name: /SSRF/ })).toHaveCount(0);
