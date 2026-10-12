@@ -125,11 +125,12 @@ public class RubygemsHostedFacet
   public void invalidateIndexes() {
     indexLock.lock();
     try {
-      RubygemsContentFacet content = content();
-      content.delete(VERSIONS);
-      content.delete(NAMES);
+      List<String> paths = new ArrayList<>(List.of(VERSIONS, NAMES));
       for (LegacySpecs.Kind kind : LegacySpecs.Kind.values()) {
-        content.delete(kind.path());
+        paths.add(kind.path());
+      }
+      for (String path : paths) {
+        content().getAsset(path).ifPresent(asset -> asset.withAttribute(RubygemsContentFacet.ATTRIBUTES, Map.of()));
       }
     }
     finally {
