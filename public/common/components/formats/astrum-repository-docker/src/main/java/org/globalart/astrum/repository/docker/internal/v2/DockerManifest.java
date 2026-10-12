@@ -3,8 +3,10 @@ package org.globalart.astrum.repository.docker.internal.v2;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -25,6 +27,10 @@ public class DockerManifest
   public static final String OCI_MANIFEST = "application/vnd.oci.image.manifest.v1+json";
 
   public static final String OCI_INDEX = "application/vnd.oci.image.index.v1+json";
+
+  public static final String OCI_ARTIFACT_MANIFEST = "application/vnd.oci.artifact.manifest.v1+json";
+
+  public static final String OCI_EMPTY = "application/vnd.oci.empty.v1+json";
 
   public static final String ACCEPT = String.join(", ", OCI_INDEX, DOCKER_LIST, OCI_MANIFEST, DOCKER_V2,
       DOCKER_V1_SIGNED, DOCKER_V1);
@@ -48,6 +54,12 @@ public class DockerManifest
 
   private final String artifactType;
 
+  private final String configMediaType;
+
+  private final List<String> layerMediaTypes;
+
+  private final Map<String, String> annotations;
+
   private DockerManifest(
       final String mediaType,
       final boolean index,
@@ -55,7 +67,10 @@ public class DockerManifest
       final List<String> blobs,
       final List<String> manifests,
       @Nullable final String subject,
-      @Nullable final String artifactType)
+      @Nullable final String artifactType,
+      @Nullable final String configMediaType,
+      final List<String> layerMediaTypes,
+      final Map<String, String> annotations)
   {
     this.mediaType = mediaType;
     this.index = index;
@@ -64,6 +79,9 @@ public class DockerManifest
     this.manifests = manifests;
     this.subject = subject;
     this.artifactType = artifactType;
+    this.configMediaType = configMediaType;
+    this.layerMediaTypes = layerMediaTypes;
+    this.annotations = annotations;
   }
 
   public String getMediaType() {
@@ -91,9 +109,38 @@ public class DockerManifest
     return subject;
   }
 
+  /**
+   * The artifact type a referrers response reports for this manifest: its own {@code artifactType}, else the media
+   * type of its config.
+   */
   @Nullable
   public String getArtifactType() {
+    if (artifactType != null || index) {
+      return artifactType;
+    }
+    return configMediaType;
+  }
+
+  @Nullable
+  public String getExplicitArtifactType() {
     return artifactType;
+  }
+
+  @Nullable
+  public String getConfigMediaType() {
+    return configMediaType;
+  }
+
+  public List<String> getLayerMediaTypes() {
+    return layerMediaTypes;
+  }
+
+  public Map<String, String> getAnnotations() {
+    return annotations;
+  }
+
+  public DockerArtifactKind kind(@Nullable final String tag) {
+    return DockerArtifactKind.of(this, tag);
   }
 
   public static DockerManifest parse(final byte[] bytes, @Nullable final String contentType)
@@ -117,7 +164,8 @@ public class DockerManifest
         blobs.add(requireDigest(layer.path("blobSum")));
       }
       String type = root.has("signatures") ? DOCKER_V1_SIGNED : DOCKER_V1;
-      return new DockerManifest(type, false, true, blobs, Collections.emptyList(), null, null);
+      return new DockerManifest(type, false, true, blobs, Collections.emptyList(), null, null, null,
+          Collections.emptyList(), Collections.emptyMap());
     }
     if (schemaVersion != 2) {
       throw new InvalidManifestException("unsupported manifest schemaVersion " + schemaVersion);
@@ -141,7 +189,10 @@ public class DockerManifest
 
     List<String> blobs = new ArrayList<>();
     List<String> manifests = new ArrayList<>();
+    List<String> layerTypes = new ArrayList<>();
+    String configType = null;
     if (isIndex) {
+      requireArray(root, "manifests");
       for (JsonNode child : root.path("manifests")) {
         manifests.add(requireDigest(child.path("digest")));
       }
@@ -149,12 +200,22 @@ public class DockerManifest
     else {
       JsonNode config = root.path("config");
       if (!config.isMissingNode()) {
+        if (!config.isObject()) {
+          throw new InvalidManifestException("config must be a descriptor");
+        }
         blobs.add(requireDigest(config.path("digest")));
+        configType = text(config.path("mediaType"));
       }
-      for (JsonNode layer : root.path("layers")) {
+      String layersField = OCI_ARTIFACT_MANIFEST.equals(type) ? "blobs" : "layers";
+      requireArray(root, layersField);
+      for (JsonNode layer : root.path(layersField)) {
         String digest = requireDigest(layer.path("digest"));
         if (!isForeign(layer)) {
           blobs.add(digest);
+        }
+        String layerType = text(layer.path("mediaType"));
+        if (layerType != null) {
+          layerTypes.add(layerType);
         }
       }
     }
@@ -164,13 +225,32 @@ public class DockerManifest
     if (subjectNode.isObject()) {
       subject = requireDigest(subjectNode.path("digest"));
     }
-
-    String artifactType = text(root.path("artifactType"));
-    if (artifactType == null && !isIndex) {
-      artifactType = text(root.path("config").path("mediaType"));
+    else if (!subjectNode.isMissingNode() && !subjectNode.isNull()) {
+      throw new InvalidManifestException("subject must be a descriptor");
     }
 
-    return new DockerManifest(type, isIndex, false, blobs, manifests, subject, artifactType);
+    return new DockerManifest(type, isIndex, false, blobs, manifests, subject, text(root.path("artifactType")),
+        configType, layerTypes, annotations(root.path("annotations")));
+  }
+
+  private static void requireArray(final JsonNode root, final String field) throws InvalidManifestException {
+    JsonNode node = root.path(field);
+    if (!node.isMissingNode() && !node.isNull() && !node.isArray()) {
+      throw new InvalidManifestException(field + " must be an array");
+    }
+  }
+
+  private static Map<String, String> annotations(final JsonNode node) {
+    if (!node.isObject() || node.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    Map<String, String> annotations = new LinkedHashMap<>();
+    node.fields().forEachRemaining(entry -> {
+      if (entry.getValue().isTextual()) {
+        annotations.put(entry.getKey(), entry.getValue().asText());
+      }
+    });
+    return Collections.unmodifiableMap(annotations);
   }
 
   private static boolean isForeign(final JsonNode layer) {

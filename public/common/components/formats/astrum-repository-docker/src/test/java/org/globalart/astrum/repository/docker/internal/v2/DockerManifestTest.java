@@ -1,6 +1,7 @@
 package org.globalart.astrum.repository.docker.internal.v2;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import org.globalart.astrum.repository.docker.internal.v2.DockerManifest.InvalidManifestException;
 
@@ -64,6 +65,47 @@ public class DockerManifestTest
         + "\"digest\":\"" + CHILD + "\"}}"), null);
     assertThat(manifest.getSubject(), is(CHILD));
     assertThat(manifest.getArtifactType(), is("application/vnd.example"));
+  }
+
+  @Test
+  public void configLayersAndAnnotationsAreRead() throws Exception {
+    DockerManifest manifest = DockerManifest.parse(bytes("{\"schemaVersion\":2,\"mediaType\":\""
+        + DockerManifest.OCI_MANIFEST + "\",\"config\":{\"mediaType\":\"application/vnd.cncf.helm.config.v1+json\","
+        + "\"digest\":\"" + CONFIG + "\"},\"layers\":[{\"mediaType\":"
+        + "\"application/vnd.cncf.helm.chart.content.v1.tar+gzip\",\"digest\":\"" + LAYER + "\"}],"
+        + "\"annotations\":{\"org.opencontainers.image.title\":\"chart\",\"ignored\":1}}"), null);
+    assertThat(manifest.getConfigMediaType(), is("application/vnd.cncf.helm.config.v1+json"));
+    assertThat(manifest.getLayerMediaTypes(), contains("application/vnd.cncf.helm.chart.content.v1.tar+gzip"));
+    assertThat(manifest.getAnnotations(), is(Map.of("org.opencontainers.image.title", "chart")));
+    assertThat(manifest.getExplicitArtifactType(), nullValue());
+    assertThat(manifest.getArtifactType(), is("application/vnd.cncf.helm.config.v1+json"));
+    assertThat(manifest.kind(null), is(DockerArtifactKind.HELM));
+  }
+
+  @Test
+  public void indexHasNoImplicitArtifactType() throws Exception {
+    DockerManifest manifest = DockerManifest.parse(bytes("{\"schemaVersion\":2,\"mediaType\":\""
+        + DockerManifest.OCI_INDEX + "\",\"manifests\":[]}"), null);
+    assertThat(manifest.getArtifactType(), nullValue());
+  }
+
+  @Test
+  public void artifactManifestListsBlobs() throws Exception {
+    DockerManifest manifest = DockerManifest.parse(bytes("{\"mediaType\":\"" + DockerManifest.OCI_ARTIFACT_MANIFEST
+        + "\",\"schemaVersion\":2,\"artifactType\":\"application/vnd.example\",\"blobs\":[{\"digest\":\""
+        + LAYER + "\"}]}"), null);
+    assertThat(manifest.getBlobs(), contains(LAYER));
+    assertThat(manifest.getArtifactType(), is("application/vnd.example"));
+  }
+
+  @Test(expected = InvalidManifestException.class)
+  public void subjectMustBeADescriptor() throws Exception {
+    DockerManifest.parse(bytes("{\"schemaVersion\":2,\"layers\":[],\"subject\":\"" + CHILD + "\"}"), null);
+  }
+
+  @Test(expected = InvalidManifestException.class)
+  public void layersMustBeAnArray() throws Exception {
+    DockerManifest.parse(bytes("{\"schemaVersion\":2,\"layers\":{}}"), null);
   }
 
   @Test
