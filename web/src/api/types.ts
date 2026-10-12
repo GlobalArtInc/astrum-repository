@@ -25,4 +25,5 @@ export interface UiState {
   adminPasswordFile: string | null;
   oidcEnabled?: boolean;
   defaultRole?: { id: string; name: string } | null;
+  nugetApiKeyRealm?: boolean;
 }

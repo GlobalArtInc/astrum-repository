@@ -100,7 +100,14 @@ async fn resolve(
                 (user, result)
             }
             Credentials::Basic(user, password) => {
-                let result = security.authenticate(&user, &password).await;
+                let mut result = security.authenticate(&user, &password).await;
+                if matches!(result, Err(AuthError::BadCredentials))
+                    && api_keys::looks_like_api_key(&password)
+                {
+                    result = security
+                        .authenticate_api_key_as(api_keys::NUGET, &user, &password)
+                        .await;
+                }
                 (user, result)
             }
             Credentials::Token(token) => (

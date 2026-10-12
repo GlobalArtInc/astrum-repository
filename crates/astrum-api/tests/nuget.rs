@@ -552,6 +552,8 @@ async fn pushes_need_rights_and_take_nuget_api_keys() {
     )
     .await;
     assert_eq!(inactive.status, StatusCode::UNAUTHORIZED);
+    let state = get_json(&fixture, "/service/rest/internal/ui/state").await;
+    assert_eq!(state["nugetApiKeyRealm"], false);
 
     astrum_db::setting::put(
         fixture.state.db().conn(),
@@ -561,6 +563,8 @@ async fn pushes_need_rights_and_take_nuget_api_keys() {
     .await
     .unwrap();
     fixture.state.security().reload().await.unwrap();
+    let state = get_json(&fixture, "/service/rest/internal/ui/state").await;
+    assert_eq!(state["nugetApiKeyRealm"], true);
     let with_key = push_with(
         &fixture,
         "/repository/keys/",
@@ -570,6 +574,24 @@ async fn pushes_need_rights_and_take_nuget_api_keys() {
     )
     .await;
     assert_eq!(with_key.status, StatusCode::CREATED, "{}", with_key.text());
+    let as_password = fixture
+        .call(
+            Method::GET,
+            "/repository/keys/index.json",
+            Auth::Basic("admin", &key),
+            None,
+        )
+        .await;
+    assert_eq!(as_password.status, StatusCode::OK);
+    let someone_elses = fixture
+        .call(
+            Method::GET,
+            "/repository/keys/index.json",
+            Auth::Basic("reader", &key),
+            None,
+        )
+        .await;
+    assert_eq!(someone_elses.status, StatusCode::UNAUTHORIZED);
     let wrong = push_with(
         &fixture,
         "/repository/keys/",

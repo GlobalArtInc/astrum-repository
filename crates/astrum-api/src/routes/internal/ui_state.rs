@@ -34,6 +34,7 @@ struct UiState {
     admin_password_file: Option<String>,
     oidc_enabled: bool,
     default_role: Option<UiRole>,
+    nuget_api_key_realm: bool,
 }
 
 #[derive(Serialize)]
@@ -92,6 +93,7 @@ async fn ui_state(
                 id: role.id.clone(),
                 name: role.name.clone(),
             }),
+        nuget_api_key_realm: model.realm_active(astrum_security::api_keys::NUGET),
     })
 }
 

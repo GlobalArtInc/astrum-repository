@@ -27,6 +27,14 @@ pub struct ApiKey {
     pub created: bool,
 }
 
+pub fn looks_like_api_key(value: &str) -> bool {
+    value.len() == 36
+        && value.char_indices().all(|(at, c)| match at {
+            8 | 13 | 18 | 23 => c == '-',
+            _ => c.is_ascii_hexdigit(),
+        })
+}
+
 fn find(realm: &str, user_id: &str) -> sea_orm::Select<api_key::Entity> {
     api_key::Entity::find()
         .filter(api_key::Column::Realm.eq(realm))
@@ -113,6 +121,19 @@ impl Security {
         Ok(deleted.rows_affected)
     }
 
+    pub async fn authenticate_api_key_as(
+        &self,
+        realm: &str,
+        user_id: &str,
+        key: &str,
+    ) -> Result<Subject, AuthError> {
+        let subject = self.authenticate_api_key(realm, key).await?;
+        match subject.user_id == user_id {
+            true => Ok(subject),
+            false => Err(AuthError::BadCredentials),
+        }
+    }
+
     pub async fn authenticate_api_key(&self, realm: &str, key: &str) -> Result<Subject, AuthError> {
         let key = key.trim();
         if key.is_empty() || key.len() > MAX_LENGTH {
@@ -145,5 +166,18 @@ impl Security {
             .map_err(Error::from)?;
         }
         Ok(subject)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn api_keys_look_like_uuids() {
+        assert!(looks_like_api_key("3a5a1d8a-0b1c-4d2e-8f90-123456789abc"));
+        assert!(!looks_like_api_key("3a5a1d8a-0b1c-4d2e-8f90-123456789ab"));
+        assert!(!looks_like_api_key("3a5a1d8a00b1c-4d2e-8f90-123456789abc"));
+        assert!(!looks_like_api_key("a password of thirty-six characters!"));
     }
 }
