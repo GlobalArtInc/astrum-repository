@@ -33,7 +33,7 @@ export const identityArea: Area = {
       need: LDAP_READ,
     },
     {
-      id: 'oauth2',
+      id: 'oidc',
       section: 'security',
       to: '/admin/security/oauth2',
       title: 'identity.tiles.oidc',
