@@ -164,7 +164,15 @@ pub async fn put_chart(
     adopt_chart(ctx, written, Some(file)).await
 }
 
+pub fn may_add(ctx: &Ctx) -> Result<(), ContentError> {
+    match ctx.grant(View::Add).any() || ctx.grant(View::Edit).any() {
+        true => Ok(()),
+        false => ctx.require(View::Add, "/"),
+    }
+}
+
 pub async fn upload_chart(ctx: &Ctx, body: ContentStream) -> Result<(Asset, Chart), ContentError> {
+    may_add(ctx)?;
     let written = store::write_blob(ctx, body).await?;
     adopt_chart(ctx, written, None).await
 }

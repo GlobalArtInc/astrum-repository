@@ -68,6 +68,7 @@ async fn small(field: multer::Field<'static>) -> Result<Vec<u8>, ContentError> {
 }
 
 pub async fn charts(ctx: &Ctx, request: ContentRequest) -> Result<Response, PushError> {
+    hosted::may_add(ctx)?;
     let Some(mut form) = multipart(&request) else {
         hosted::upload_chart(ctx, request.into_stream()).await?;
         return Ok(saved());
@@ -114,6 +115,7 @@ pub async fn charts(ctx: &Ctx, request: ContentRequest) -> Result<Response, Push
 }
 
 pub async fn provenance(ctx: &Ctx, request: ContentRequest) -> Result<Response, PushError> {
+    hosted::may_add(ctx)?;
     let text = match multipart(&request) {
         None => request.bytes(MAX_PROVENANCE).await?.to_vec(),
         Some(mut form) => {
