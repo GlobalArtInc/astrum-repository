@@ -2,8 +2,8 @@ mod privileges;
 mod roles;
 mod selectors;
 mod settings;
-mod users;
-mod validate;
+pub(crate) mod users;
+pub(crate) mod validate;
 
 use astrum_db::audit::Event;
 use axum::Router;

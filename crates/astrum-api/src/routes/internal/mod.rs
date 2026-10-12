@@ -1,6 +1,7 @@
 mod access_tokens;
 mod audit;
 mod session;
+mod ui;
 
 use axum::Router;
 use axum::http::HeaderMap;
@@ -14,6 +15,7 @@ pub fn routes() -> Router<AppState> {
         .merge(session::routes())
         .merge(access_tokens::routes())
         .merge(audit::routes())
+        .merge(ui::routes())
 }
 
 pub(crate) fn client_ip(headers: &HeaderMap) -> String {

@@ -150,12 +150,9 @@ fn check_email(validation: &mut Validation, value: Option<&str>) {
     }
 }
 
-fn check_password(validation: &mut Validation, value: &str) {
+pub(crate) fn check_password(validation: &mut Validation, id: &str, value: &str) {
     if value.chars().count() < MIN_PASSWORD {
-        validation.add(
-            "password",
-            format!("must be at least {MIN_PASSWORD} characters"),
-        );
+        validation.add(id, format!("must be at least {MIN_PASSWORD} characters"));
     }
 }
 
@@ -282,7 +279,7 @@ async fn create(
     check_email(&mut validation, body.email_address.as_deref());
     let password = body.password.unwrap_or_default();
     if !password.is_empty() {
-        check_password(&mut validation, &password);
+        check_password(&mut validation, "password", &password);
     }
     validation.finish()?;
     let status = status.unwrap_or(UserStatus::Active);
@@ -497,33 +494,11 @@ async fn change_password(
     let mut validation = Validation::new();
     match password.is_empty() {
         true => validation.add("password", "must not be empty"),
-        false => check_password(&mut validation, &password),
+        false => check_password(&mut validation, "password", &password),
     }
     validation.finish()?;
 
-    let status = match user.status {
-        UserStatus::Changepassword => UserStatus::Active,
-        other => other,
-    };
-    let password_hash = hash(password).await?;
-    security_user::Entity::update(security_user::ActiveModel {
-        id: ActiveValue::Unchanged(user_id.clone()),
-        password_hash: ActiveValue::Set(Some(password_hash)),
-        status: ActiveValue::Set(status.as_str().to_owned()),
-        updated_at: ActiveValue::Set(now()),
-        ..Default::default()
-    })
-    .exec(state.db().conn())
-    .await?;
-    if user_id == ADMIN_USER {
-        let file = state.data_dir().join(ADMIN_PASSWORD_FILE);
-        match tokio::fs::remove_file(&file).await {
-            Err(error) if error.kind() != std::io::ErrorKind::NotFound => {
-                tracing::warn!(%error, file = %file.display(), "the first admin password file stays")
-            }
-            _ => {}
-        }
-    }
+    store_password(&state, user, password).await?;
 
     changed(
         &state,
@@ -532,6 +507,37 @@ async fn change_password(
     )
     .await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub(crate) async fn store_password(
+    state: &AppState,
+    user: &astrum_security::User,
+    password: String,
+) -> Result<(), ApiError> {
+    let status = match user.status {
+        UserStatus::Changepassword => UserStatus::Active,
+        other => other,
+    };
+    let password_hash = hash(password).await?;
+    security_user::Entity::update(security_user::ActiveModel {
+        id: ActiveValue::Unchanged(user.id.clone()),
+        password_hash: ActiveValue::Set(Some(password_hash)),
+        status: ActiveValue::Set(status.as_str().to_owned()),
+        updated_at: ActiveValue::Set(now()),
+        ..Default::default()
+    })
+    .exec(state.db().conn())
+    .await?;
+    if user.id == ADMIN_USER {
+        let file = state.data_dir().join(ADMIN_PASSWORD_FILE);
+        match tokio::fs::remove_file(&file).await {
+            Err(error) if error.kind() != std::io::ErrorKind::NotFound => {
+                tracing::warn!(%error, file = %file.display(), "the first admin password file stays")
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 fn plain_text(headers: &HeaderMap) -> bool {

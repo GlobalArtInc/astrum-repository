@@ -3,6 +3,7 @@ use std::time::{Duration as StdDuration, Instant};
 use astrum_db::entity::user_session as session;
 use chrono::{Duration, Utc};
 use rand::RngCore;
+use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 use sha2::{Digest, Sha256};
 
@@ -129,6 +130,28 @@ impl Security {
             .exec(&self.db)
             .await?;
         Ok(deleted.rows_affected)
+    }
+
+    pub async fn keep_only_session(&self, user_id: &str, keep: Option<&str>) -> Result<u64, Error> {
+        let mut others = session::Entity::delete_many().filter(session::Column::UserId.eq(user_id));
+        if let Some(token) = keep {
+            let hash = token_hash(token);
+            others = others.filter(session::Column::TokenHash.ne(hash.clone()));
+            let model = self.model();
+            let stamp = credential_stamp(
+                model
+                    .users
+                    .get(user_id)
+                    .and_then(|user| user.password_hash.as_deref()),
+            );
+            session::Entity::update_many()
+                .col_expr(session::Column::CredentialStamp, Expr::value(stamp))
+                .filter(session::Column::TokenHash.eq(hash))
+                .filter(session::Column::UserId.eq(user_id))
+                .exec(&self.db)
+                .await?;
+        }
+        Ok(others.exec(&self.db).await?.rows_affected)
     }
 
     pub fn sign_in_blocked(&self, user_id: &str) -> bool {
