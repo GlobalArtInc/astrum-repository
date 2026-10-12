@@ -23,6 +23,7 @@
     <module>astrum-repository-cocoapods</module>
     <module>astrum-repository-conan</module>
     <module>astrum-repository-r</module>
+    <module>astrum-repository-rubygems</module>
     <module>astrum-repository-conda</module>
     <module>astrum-repository-docker</module>
     <module>astrum-repository-alpine</module>
