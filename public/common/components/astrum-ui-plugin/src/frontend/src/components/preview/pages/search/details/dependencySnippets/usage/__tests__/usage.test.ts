@@ -513,6 +513,9 @@ describe('usage snippets', () => {
     it('does not publish to a proxy or a group', () => {
       expect(ids({ ...release, repositoryName: 'swift-group', repositoryType: 'group' })).toEqual(['registry', 'manifest', 'login']);
       expect(ids(context({ format: 'swift', repositoryName: 'swift-proxy', repositoryType: 'proxy' }))).toEqual(['registry', 'login']);
+    });
+  });
+
   describe('huggingface', () => {
     const commit = '8f4dff0307bd726d0932f44183f1a88e297bcfe4';
 
