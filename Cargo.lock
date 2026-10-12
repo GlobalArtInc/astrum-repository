@@ -173,6 +173,7 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-format-maven",
  "astrum-format-npm",
  "astrum-format-pypi",
  "astrum-format-raw",
@@ -191,6 +192,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "sha1 0.10.7",
  "sha2 0.10.9",
  "subtle",
  "tar",
@@ -278,6 +280,32 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-format-maven"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "chrono",
+ "futures-util",
+ "hex",
+ "http-body-util",
+ "httpdate",
+ "md-5 0.10.6",
+ "quick-xml",
+ "sea-orm",
+ "serde_json",
+ "sha1 0.10.7",
+ "sha2 0.10.9",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -398,6 +426,7 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-format-maven",
  "astrum-format-npm",
  "astrum-format-pypi",
  "astrum-format-raw",

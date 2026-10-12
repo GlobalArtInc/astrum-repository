@@ -13,6 +13,7 @@ repository = "https://github.com/GlobalArtInc/astrum-repository"
 astrum-api = { path = "crates/astrum-api" }
 astrum-blob = { path = "crates/astrum-blob" }
 astrum-content = { path = "crates/astrum-content" }
+astrum-format-maven = { path = "crates/astrum-format-maven" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
@@ -46,6 +47,7 @@ migrator = { package = "sqlmig", version = "0.2.1" }
 mime_guess = "2"
 multer = "3"
 percent-encoding = "2"
+quick-xml = "0.42"
 rand = "0.9"
 regex = "1"
 regex-syntax = "0.8"
