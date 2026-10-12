@@ -1,0 +1,153 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 900px;
+  min-width: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.code textarea,
+textarea.code {
+  font-family: var(--code-font-family);
+  font-size: var(--font-size-2);
+}
+
+.status {
+  min-height: 1.25em;
+}
+
+.status svg {
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
+.hints {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-3);
+  background: var(--gray-a2);
+}
+
+.tokens {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tokens li {
+  display: contents;
+}
+
+.token {
+  justify-self: start;
+  font-family: var(--code-font-family);
+}
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.example {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2);
+  border-radius: var(--radius-2);
+  border: 1px solid var(--gray-a4);
+  background: var(--color-panel-solid);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.example code {
+  font-family: var(--code-font-family);
+  font-size: var(--font-size-1);
+  color: var(--accent-11);
+}
+
+.example:hover {
+  border-color: var(--accent-a7);
+}
+
+.example:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--code-font-family);
+  font-size: var(--font-size-1);
+  overflow-wrap: anywhere;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.picker {
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 420px;
+}
+
+@media (max-width: 767px) {
+  .hints {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 639px) {
+  .actions > * {
+    flex: 1 1 auto;
+  }
+
+  .picker {
+    max-width: none;
+  }
+}
