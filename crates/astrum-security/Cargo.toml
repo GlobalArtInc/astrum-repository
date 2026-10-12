@@ -15,6 +15,7 @@ chrono.workspace = true
 rand.workspace = true
 regex.workspace = true
 regex-syntax.workspace = true
+reqwest.workspace = true
 sea-orm.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -23,6 +24,7 @@ subtle.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+url.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
