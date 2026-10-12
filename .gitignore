@@ -33,4 +33,6 @@ node_modules/
 .data/
 
 # Local Claude Code worktrees
-.claude/
+.claude/*
+!.claude/CLAUDE.md
+!.claude/rewrite/
