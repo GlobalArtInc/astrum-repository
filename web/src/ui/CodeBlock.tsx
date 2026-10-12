@@ -1,3 +1,4 @@
+import { Theme } from '@radix-ui/themes';
 import styles from './CodeBlock.module.css';
 import { CopyButton } from './CopyButton';
 
@@ -9,20 +10,16 @@ export interface CodeBlockProps {
 
 export function CodeBlock({ code, title, copyLabel }: CodeBlockProps) {
   return (
-    <div className={styles.block}>
-      {title ? (
-        <div className={styles.head}>
-          <span>{title}</span>
-          <CopyButton text={code} label={copyLabel} />
+    <Theme appearance="dark" hasBackground={false} className={styles.theme}>
+      <div className={styles.block}>
+        {title && <div className={styles.head}>{title}</div>}
+        <div className={styles.row}>
+          <pre className={styles.pre}>
+            <code>{code}</code>
+          </pre>
+          <CopyButton text={code} label={copyLabel} variant="text" />
         </div>
-      ) : (
-        <div className={styles.floating}>
-          <CopyButton text={code} label={copyLabel} />
-        </div>
-      )}
-      <pre className={title ? styles.pre : `${styles.pre} ${styles.withFloating}`}>
-        <code>{code}</code>
-      </pre>
-    </div>
+      </div>
+    </Theme>
   );
 }

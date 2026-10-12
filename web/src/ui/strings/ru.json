@@ -1,6 +1,7 @@
 {
   "ui.confirm.cancel": "Отмена",
   "ui.confirm.confirm": "Подтвердить",
+  "ui.copy.button": "Копировать",
   "ui.copy.copied": "Скопировано",
   "ui.copy.failed": "Не удалось скопировать в буфер обмена",
   "ui.copy.label": "Скопировать",

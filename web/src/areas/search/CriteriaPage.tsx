@@ -258,6 +258,8 @@ export default function CriteriaPage() {
 
   return (
     <Page
+      size="large"
+      gutter="large"
       title={t('search.criteria.title')}
       description={t('search.criteria.description')}
       breadcrumbs={[{ label: t('search.page.title'), to: '/search' }, { label: t('search.criteria.title') }]}

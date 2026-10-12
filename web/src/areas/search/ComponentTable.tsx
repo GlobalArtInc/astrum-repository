@@ -71,6 +71,7 @@ export function ComponentTable({
   ];
   return (
     <DataTable
+      phoneLayout="cards"
       label={label}
       columns={columns}
       rows={results.items}
@@ -144,6 +145,7 @@ export function AssetTable({
   ];
   return (
     <DataTable
+      phoneLayout="cards"
       label={label}
       columns={columns}
       rows={results.items}

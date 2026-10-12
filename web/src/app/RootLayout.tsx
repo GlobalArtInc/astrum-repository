@@ -21,7 +21,13 @@ export function AppTheme({
     document.documentElement.dataset.theme = shown;
   }, [shown]);
   return (
-    <Theme appearance={shown} accentColor="blue" grayColor="slate" radius="medium" panelBackground="solid">
+    <Theme
+      appearance={shown}
+      accentColor="blue"
+      grayColor="slate"
+      radius="medium"
+      panelBackground="translucent"
+    >
       {children}
     </Theme>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 export const PRODUCT = 'Astrum Repository';
+export const TITLE_SUFFIX = 'GlobalArt Astrum Repository';
 export const PHONE = '(max-width: 639px)';
 export const COMPACT = '(max-width: 1023px)';
 
@@ -21,7 +22,7 @@ export function useMediaQuery(query: string): boolean {
 }
 
 export function documentTitle(title?: string): string {
-  return title ? `${title} - ${PRODUCT}` : PRODUCT;
+  return title ? `${title} - ${TITLE_SUFFIX}` : TITLE_SUFFIX;
 }
 
 export function useDocumentTitle(title?: string): void {

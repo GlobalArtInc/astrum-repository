@@ -48,6 +48,7 @@ export interface DataTableProps<T> {
   hasMore?: boolean;
   onLoadMore?: () => void;
   loadingMore?: boolean;
+  phoneLayout?: 'table' | 'cards';
 }
 
 export function compareValues(left: SortValue, right: SortValue, collator: Intl.Collator): number {
@@ -136,6 +137,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     hasMore = false,
     onLoadMore,
     loadingMore = false,
+    phoneLayout = 'table',
   } = props;
   const { language, t } = useI18n();
   const phone = useMediaQuery(PHONE);
@@ -253,7 +255,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const isEmpty = !loading && total === 0;
   const emptyContent = empty ?? <EmptyState title={t('ui.table.empty')} />;
 
-  if (phone) {
+  if (phone && phoneLayout === 'cards') {
     return (
       <section aria-label={label} aria-busy={loading}>
         {loading && total === 0 ? (
@@ -294,8 +296,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }
 
   return (
-    <div className={styles.wrap} aria-busy={loading}>
-      <Table.Root variant="ghost" size="2">
+    <div className={styles.wrap} aria-busy={loading} data-phone={phone || undefined}>
+      <Table.Root variant="ghost" size="2" className={styles.table}>
         <caption className="visually-hidden">{label}</caption>
         <Table.Header>
           <Table.Row>

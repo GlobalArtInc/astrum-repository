@@ -113,9 +113,16 @@ describe('DataTable', () => {
     expect(remove).toHaveBeenCalledWith(ROWS[1]);
   });
 
-  it('turns rows into cards on phones', () => {
+  it('stays a table on phones', () => {
     setMedia(PHONE, true);
     table({ initialSort: { column: 'name', direction: 'asc' } });
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getAllByRole('row')).toHaveLength(6);
+  });
+
+  it('turns rows into cards on phones when asked', () => {
+    setMedia(PHONE, true);
+    table({ initialSort: { column: 'name', direction: 'asc' }, phoneLayout: 'cards' });
     expect(screen.queryByRole('table')).toBeNull();
     const cards = within(screen.getByRole('region', { name: 'Things' })).getAllByRole('listitem');
     expect(cards).toHaveLength(5);

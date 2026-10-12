@@ -10,13 +10,14 @@ export { describeError, ErrorState } from './ErrorState';
 export { FileSize } from './FileSize';
 export { FormError } from './FormError';
 export * from './form';
-export { FORMATS, formatColor, formatName } from './formats';
+export { FORMATS, formatColor, formatLabel, formatName } from './formats';
 export {
   COMPACT,
   documentTitle,
   PHONE,
   PRODUCT,
   readStored,
+  TITLE_SUFFIX,
   useDocumentTitle,
   useMediaQuery,
   writeStored,

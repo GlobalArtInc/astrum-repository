@@ -412,7 +412,7 @@ export default function RepositoryPage() {
 
   if (list.isPending) {
     return (
-      <Page title={name} breadcrumbs={crumbs}>
+      <Page size="large" gutter="large" title={name} breadcrumbs={crumbs}>
         <Text size="2" color="gray" aria-busy="true">
           {t('browse.tree.loading')}
         </Text>
@@ -421,14 +421,14 @@ export default function RepositoryPage() {
   }
   if (list.isError) {
     return (
-      <Page title={name} breadcrumbs={crumbs}>
+      <Page size="large" gutter="large" title={name} breadcrumbs={crumbs}>
         <ErrorState error={list.error} onRetry={() => list.refetch()} />
       </Page>
     );
   }
   if (!repository) {
     return (
-      <Page title={t('browse.repository.notFoundTitle')} breadcrumbs={crumbs}>
+      <Page size="large" gutter="large" title={t('browse.repository.notFoundTitle')} breadcrumbs={crumbs}>
         <EmptyState
           icon={FolderX}
           title={t('browse.repository.notFoundTitle')}
@@ -444,6 +444,8 @@ export default function RepositoryPage() {
   }
   return (
     <Page
+      size="large"
+      gutter="large"
       title={repository.name}
       breadcrumbs={crumbs}
       description={

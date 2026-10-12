@@ -56,13 +56,15 @@ describe('small widgets', () => {
       <>
         <FormatBadge format="maven2" />
         <FormatBadge format="unknown-format" />
+        <FormatBadge format="maven2" variant="name" />
         <TypeBadge type="proxy" />
         <StatusBadge tone="success">Online</StatusBadge>
       </>,
     );
+    expect(screen.getByText('maven')).toBeInTheDocument();
     expect(screen.getByText('Maven')).toBeInTheDocument();
     expect(screen.getByText('unknown-format')).toBeInTheDocument();
-    expect(screen.getByText('Proxy')).toBeInTheDocument();
+    expect(screen.getByText('Proxy').className).toMatch(/lower/);
     expect(screen.getByText('Online')).toBeInTheDocument();
   });
 
@@ -89,7 +91,7 @@ describe('small widgets', () => {
         actions={<button type="button">Create</button>}
       />,
     );
-    expect(document.title).toBe('Users - Astrum Repository');
+    expect(document.title).toBe('Users - GlobalArt Astrum Repository');
     expect(screen.getByRole('heading', { level: 1, name: 'Users' })).toBeInTheDocument();
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumbs' });
     expect(crumbs.querySelector('a')).toHaveAttribute('href', '/settings');

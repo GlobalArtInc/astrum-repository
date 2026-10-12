@@ -422,6 +422,8 @@ export default function RepositoryListPage() {
 
   return (
     <Page
+      size="large"
+      gutter="large"
       title={t('browse.list.title')}
       description={
         query.data ? t('browse.list.count', { count: items.length }) : t('browse.list.description')

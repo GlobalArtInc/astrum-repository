@@ -67,6 +67,8 @@ export default function SearchPage() {
 
   return (
     <Page
+      size="large"
+      gutter="large"
       title={t('search.page.title')}
       description={t('search.page.description')}
       actions={

@@ -1,6 +1,7 @@
 {
   "ui.confirm.cancel": "Cancel",
   "ui.confirm.confirm": "Confirm",
+  "ui.copy.button": "Copy",
   "ui.copy.copied": "Copied",
   "ui.copy.failed": "Could not copy to the clipboard",
   "ui.copy.label": "Copy",

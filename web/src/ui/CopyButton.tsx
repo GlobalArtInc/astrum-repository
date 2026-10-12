@@ -1,4 +1,4 @@
-import { IconButton, Tooltip } from '@radix-ui/themes';
+import { Button, IconButton, Tooltip } from '@radix-ui/themes';
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useT } from '../i18n';
@@ -9,9 +9,10 @@ export interface CopyButtonProps {
   text: string;
   label?: string;
   size?: '1' | '2';
+  variant?: 'icon' | 'text';
 }
 
-export function CopyButton({ text, label, size = '1' }: CopyButtonProps) {
+export function CopyButton({ text, label, size = '1', variant = 'icon' }: CopyButtonProps) {
   const t = useT();
   const toast = useToast();
   const [copied, setCopied] = useState(false);
@@ -31,6 +32,22 @@ export function CopyButton({ text, label, size = '1' }: CopyButtonProps) {
       toast.error(t('ui.copy.failed'));
     }
   };
+  if (variant === 'text') {
+    return (
+      <Button
+        type="button"
+        size="2"
+        variant="surface"
+        color="gray"
+        highContrast
+        aria-label={name}
+        onClick={copy}
+      >
+        {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+        {copied ? t('ui.copy.copied') : t('ui.copy.button')}
+      </Button>
+    );
+  }
   return (
     <Tooltip content={copied ? t('ui.copy.copied') : name}>
       <IconButton type="button" size={size} variant="ghost" color="gray" aria-label={name} onClick={copy}>

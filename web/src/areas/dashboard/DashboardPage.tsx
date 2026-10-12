@@ -465,7 +465,10 @@ export function DashboardPage() {
   const query = useApi<Dashboard>(DASHBOARD_PATH);
   return (
     <Page
+      size="large"
+      gutter="large"
       title={t('dashboard.home.title')}
+      documentTitle={t('dashboard.home.documentTitle')}
       description={t('dashboard.home.description')}
       actions={<QuickLinks />}
     >

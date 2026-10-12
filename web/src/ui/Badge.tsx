@@ -2,15 +2,14 @@ import { Badge } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 import type { RepositoryType } from '../api';
 import { useT } from '../i18n';
-import { formatColor, formatName } from './formats';
+import styles from './Badge.module.css';
+import { formatColor, formatLabel, formatName } from './formats';
 
 const TYPE_LABELS: Record<RepositoryType, string> = {
   hosted: 'ui.repositoryType.hosted',
   proxy: 'ui.repositoryType.proxy',
   group: 'ui.repositoryType.group',
 };
-
-const TYPE_COLORS = { hosted: 'blue', proxy: 'teal', group: 'amber' } as const;
 
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 
@@ -22,18 +21,38 @@ const TONE_COLORS = {
   danger: 'red',
 } as const;
 
-export function FormatBadge({ format }: { format: string }) {
+export function FormatBadge({ format, variant = 'id' }: { format: string; variant?: 'id' | 'name' }) {
+  if (variant === 'name') {
+    return (
+      <Badge color="gray" variant="soft" radius="full">
+        {formatName(format)}
+      </Badge>
+    );
+  }
   return (
     <Badge color={formatColor(format)} variant="soft" radius="full">
-      {formatName(format)}
+      {formatLabel(format)}
     </Badge>
   );
 }
 
-export function TypeBadge({ type }: { type: RepositoryType }) {
+export function TypeBadge({
+  type,
+  variant = 'pill',
+}: {
+  type: RepositoryType;
+  variant?: 'pill' | 'outline';
+}) {
   const t = useT();
+  if (variant === 'outline') {
+    return (
+      <Badge color="gray" variant="outline" radius="full">
+        {t(TYPE_LABELS[type])}
+      </Badge>
+    );
+  }
   return (
-    <Badge color={TYPE_COLORS[type]} variant="outline" radius="full">
+    <Badge color="gray" variant="soft" radius="full" className={styles.lower}>
       {t(TYPE_LABELS[type])}
     </Badge>
   );

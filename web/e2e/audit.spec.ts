@@ -19,8 +19,7 @@ test('the audit log shows changes and filters them', async ({ page, server }) =>
     'delete repository',
   );
 
-  await page.goto('/settings');
-  await page.getByRole('link', { name: /Audit log/ }).click();
+  await page.goto('/audit');
   await expect(page).toHaveURL(/\/audit$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible();
   const table = page.getByRole('table');

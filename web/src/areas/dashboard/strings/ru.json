@@ -1,6 +1,7 @@
 {
   "dashboard.menu.label": "Обзор",
   "dashboard.home.title": "Обзор",
+  "dashboard.home.documentTitle": "Главная",
   "dashboard.home.description": "Как используются репозитории этого сервера",
   "dashboard.home.placeholderTitle": "Пока показать нечего",
   "dashboard.home.placeholderText": "Здесь появятся скачивания, занятое место и самые используемые компоненты, когда появятся доступные вам репозитории.",

@@ -16,14 +16,17 @@ html[data-theme="light"] {
 body {
   margin: 0;
   background: var(--color-background);
+  color: var(--gray-12);
   font-family: var(--font-family-base, system-ui, sans-serif);
+  font-size: 16px;
+  line-height: 24px;
 }
 
 #root > .radix-themes {
   min-height: 100%;
 }
 
-:focus-visible {
+:where(:focus-visible) {
   outline: 2px solid var(--accent-8);
   outline-offset: 2px;
 }
@@ -38,10 +41,4 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-.rt-TextFieldRoot.rt-variant-surface,
-.rt-TextAreaRoot.rt-variant-surface,
-.rt-SelectTrigger.rt-variant-surface {
-  --color-surface: var(--astrum-input-bg);
 }

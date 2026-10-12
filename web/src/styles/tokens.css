@@ -188,10 +188,14 @@
   --gray-content-bg: #fafafb;
   --color-background: var(--gray-content-bg);
   --color-panel-solid: #ffffff;
+  --color-panel-translucent: rgb(255 255 255 / 0.7);
+  --color-surface: rgb(255 255 255 / 0.85);
   --astrum-brand-mark: #5b47e0;
   --astrum-chrome-bg: #ffffff;
   --astrum-nav-text: #3c3e4a;
   --astrum-input-bg: #f7f7f8;
+  --astrum-logo-text: #1c1f2a;
+  --astrum-logo-accent: #6d5ef5;
 }
 
 .dark,
@@ -200,13 +204,17 @@
   --gray-content-bg: var(--gray-1);
   --color-background: var(--gray-1);
   --color-panel-solid: var(--gray-2);
+  --color-panel-translucent: var(--gray-a2);
   --color-surface: var(--gray-a2);
   --astrum-brand-mark: #8e7dff;
   --astrum-chrome-bg: var(--gray-1);
   --astrum-nav-text: #c5cad6;
   --astrum-input-bg: #12151c;
+  --astrum-logo-text: #ffffff;
+  --astrum-logo-accent: #a99bff;
 }
 
+:root,
 .radix-themes {
   --font-family-base: "Geist Variable", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
   --default-font-family: var(--font-family-base);
