@@ -87,6 +87,21 @@ export const CRITERIA: readonly CriterionDefinition[] = [
   { key: 'pypi.keywords', label: 'search.criterion.pypiKeywords', kind: 'text', format: 'pypi' },
   { key: 'pypi.summary', label: 'search.criterion.pypiSummary', kind: 'text', format: 'pypi' },
   {
+    key: 'helm.appVersion',
+    label: 'search.criterion.helmAppVersion',
+    kind: 'text',
+    format: 'helm',
+    example: '1.16.0',
+  },
+  { key: 'helm.description', label: 'search.criterion.helmDescription', kind: 'text', format: 'helm' },
+  {
+    key: 'helm.keywords',
+    label: 'search.criterion.helmKeywords',
+    kind: 'text',
+    format: 'helm',
+    example: 'web',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

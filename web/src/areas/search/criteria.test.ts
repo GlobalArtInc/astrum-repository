@@ -26,6 +26,10 @@ describe('criteria', () => {
     expect(keys).not.toContain('npm.scope');
     expect(keys).not.toContain('docker.imageName');
     expect(availableCriteria(['docker']).map((criterion) => criterion.key)).toContain('docker.artifactKind');
+    expect(availableCriteria(['helm']).map((criterion) => criterion.key)).toEqual(
+      expect.arrayContaining(['helm.appVersion', 'helm.description', 'helm.keywords']),
+    );
+    expect(buildValue(row('helm.keywords', 'web', 'contains'))).toBe('*web*');
   });
 
   it('turn operators into wildcards only where the server matches patterns', () => {

@@ -183,6 +183,8 @@
   "browse.usage.hint.dockerInsecure": "The server answers over plain HTTP: let Docker use it by adding this to /etc/docker/daemon.json and restarting Docker.",
   "browse.usage.hint.rawSignIn": "Add -u <user> when the repository needs a sign-in.",
   "browse.usage.hint.rawUpload": "Uploading needs a user who may add to this repository.",
+  "browse.usage.hint.helmRepo": "Register the repository once, then install charts from it",
+  "browse.usage.hint.helmUpload": "Uploading needs a user with write access to this repository",
 
   "browse.component.search": "Search",
   "browse.component.invalidTitle": "Unknown component",

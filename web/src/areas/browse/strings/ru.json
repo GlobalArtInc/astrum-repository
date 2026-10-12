@@ -228,6 +228,8 @@
   "browse.usage.hint.dockerInsecure": "Сервер отвечает по обычному HTTP: чтобы Docker с ним работал, добавьте это в /etc/docker/daemon.json и перезапустите Docker.",
   "browse.usage.hint.rawSignIn": "Добавьте -u <user>, если репозиторий требует входа.",
   "browse.usage.hint.rawUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий.",
+  "browse.usage.hint.helmRepo": "Один раз подключите репозиторий, затем ставьте из него чарты",
+  "browse.usage.hint.helmUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
 
   "browse.component.search": "Поиск",
   "browse.component.invalidTitle": "Неизвестный компонент",

@@ -196,6 +196,38 @@ describe('raw usage', () => {
   });
 
   it('has nothing for formats it does not know', () => {
-    expect(usageSnippets(context({ format: 'helm' }))).toEqual([]);
+    expect(usageSnippets(context({ format: 'no-such-format' }))).toEqual([]);
+  });
+});
+
+describe('helm usage', () => {
+  const component = { group: '', name: 'demo', version: '0.5.0' };
+
+  it('adds the repository, installs, declares and uploads a hosted chart', () => {
+    const snippets = usageSnippets(context({ format: 'helm', repositoryName: 'charts', component }));
+    expect(ids(snippets)).toEqual(['repo', 'install', 'dependency', 'upload']);
+    expect(code(snippets, 'repo')).toBe(
+      'helm repo add charts https://repo.example.org/repository/charts/\nhelm repo update',
+    );
+    expect(code(snippets, 'install')).toBe('helm install demo charts/demo --version 0.5.0');
+    expect(code(snippets, 'dependency')).toBe(
+      'dependencies:\n  - name: demo\n    version: 0.5.0\n    repository: https://repo.example.org/repository/charts/',
+    );
+    expect(code(snippets, 'upload')).toBe(
+      'curl -u <user> --upload-file demo-0.5.0.tgz https://repo.example.org/repository/charts/demo-0.5.0.tgz',
+    );
+    expect(snippets.find((snippet) => snippet.id === 'repo')?.hint).toBe('browse.usage.hint.helmRepo');
+    expect(snippets.find((snippet) => snippet.id === 'upload')?.hint).toBe('browse.usage.hint.helmUpload');
+  });
+
+  it('only reads from proxies and groups and uses placeholders without a chart', () => {
+    const snippets = usageSnippets(
+      context({ format: 'helm', repositoryName: 'all-charts', repositoryType: 'group' }),
+    );
+    expect(ids(snippets)).toEqual(['repo', 'install', 'dependency']);
+    expect(code(snippets, 'install')).toBe('helm install <chart> all-charts/<chart>');
+    expect(code(snippets, 'dependency')).not.toContain('version:');
+    const hosted = usageSnippets(context({ format: 'helm', repositoryName: 'charts' }));
+    expect(code(hosted, 'upload')).toContain('--upload-file <chart>-<version>.tgz');
   });
 });

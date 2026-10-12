@@ -25,7 +25,7 @@ export interface Snippet {
   hintVars?: Record<string, string>;
 }
 
-export const USAGE_FORMATS = ['maven2', 'npm', 'pypi', 'docker', 'raw'] as const;
+export const USAGE_FORMATS = ['maven2', 'npm', 'pypi', 'docker', 'raw', 'helm'] as const;
 
 export function supportsUsage(format: string): boolean {
   return (USAGE_FORMATS as readonly string[]).includes(format);
@@ -390,12 +390,54 @@ function raw(context: UsageContext): Snippet[] {
   return snippets;
 }
 
+function helm(context: UsageContext): Snippet[] {
+  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const repository = context.repositoryName;
+  const name = context.component?.name || '<chart>';
+  const version = context.component?.version ?? '';
+  const snippets: Snippet[] = [
+    {
+      id: 'repo',
+      label: 'helm repo add',
+      code: `helm repo add ${repository} ${url}\nhelm repo update`,
+      hint: 'browse.usage.hint.helmRepo',
+    },
+    {
+      id: 'install',
+      label: 'helm install',
+      code: `helm install ${name} ${repository}/${name}${version ? ` --version ${version}` : ''}`,
+    },
+    {
+      id: 'dependency',
+      label: 'Chart.yaml',
+      code: [
+        'dependencies:',
+        `  - name: ${name}`,
+        ...(version ? [`    version: ${version}`] : []),
+        `    repository: ${url}`,
+      ].join('\n'),
+    },
+  ];
+  if (context.repositoryType === 'hosted') {
+    const file = `${name}-${version || '<version>'}.tgz`;
+    snippets.push({
+      id: 'upload',
+      label: 'curl',
+      labelKey: 'browse.usage.label.upload',
+      code: `curl -u <user> --upload-file ${file} ${url}${file}`,
+      hint: 'browse.usage.hint.helmUpload',
+    });
+  }
+  return snippets;
+}
+
 const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   maven2: maven,
   npm,
   pypi,
   docker,
   raw,
+  helm,
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {
