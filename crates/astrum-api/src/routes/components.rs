@@ -271,6 +271,7 @@ fn search_filters(
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                         .replace('_', "\\_")
+                        .replace('*', "%")
                 );
                 let parameter = filters.bind(escaped);
                 filters.clauses.push(format!(
@@ -333,12 +334,20 @@ async fn find_rows(
         .clauses
         .push(format!("a.repository = ANY({repositories})"));
     search_filters(state, params, target, &mut filters)?;
-    let order = match params.get("sort").map(String::as_str) {
+    let sort = params.get("sort").map(String::as_str);
+    let order = match sort {
         Some("name") => "c.name",
         Some("version") => "c.version",
         Some("group") => "c.namespace",
         Some("repository") => "a.repository",
         _ => "a.id",
+    };
+    let component_order = match sort {
+        Some("name") => "lower(c.name)",
+        Some("version") => "c.version",
+        Some("group") => "lower(c.namespace)",
+        Some("repository") => "lower(c.repository)",
+        _ => "NULL::text",
     };
     let direction = match params
         .get("direction")
@@ -348,8 +357,10 @@ async fn find_rows(
         _ => "ASC",
     };
     let grouping = match target {
-        SearchTarget::Component => "DISTINCT ON (c.id) c.id AS component_id, a.id AS asset_id",
-        SearchTarget::Asset => "c.id AS component_id, a.id AS asset_id",
+        SearchTarget::Component => format!(
+            "DISTINCT ON (c.id) c.id AS component_id, a.id AS asset_id, {component_order} AS sort_key"
+        ),
+        SearchTarget::Asset => "c.id AS component_id, a.id AS asset_id".to_owned(),
     };
     let joined = match target {
         SearchTarget::Component => "FROM asset a JOIN component c ON c.id = a.component_id",
@@ -364,9 +375,14 @@ async fn find_rows(
         filters.clauses.join(" AND ")
     );
     let wrapped = match target {
-        SearchTarget::Component => format!(
-            "SELECT component_id, asset_id FROM ({base}) found ORDER BY component_id {direction}"
-        ),
+        SearchTarget::Component => match sort {
+            Some("name" | "version" | "group" | "repository") => format!(
+                "SELECT component_id, asset_id FROM ({base}) found ORDER BY sort_key {direction}, component_id {direction}"
+            ),
+            _ => format!(
+                "SELECT component_id, asset_id FROM ({base}) found ORDER BY component_id {direction}"
+            ),
+        },
         SearchTarget::Asset => base,
     };
     let mut examined = start;
