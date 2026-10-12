@@ -32,15 +32,6 @@ public class FeatureFlags
   public static final String COMPOSER_FORMAT_ENABLED = "astrum.format.composer.enabled";
 
   /*
-   * Kill switch for the OCI (Open Container Initiative) repository format. When false, the OCI
-   * hosted/proxy/group recipes are not registered, so OCI repositories cannot be created or served.
-   * Intended as a field-rollback escape hatch. Available values: true, false. Default value: true.
-   */
-  public static final String OCI_FORMAT_ENABLED = "astrum.format.oci.enabled";
-
-  public static final String OCI_FORMAT_ENABLED_NAMED_VALUE = "${astrum.format.oci.enabled:true}";
-
-  /*
    * Feature flag for Chocolatey-specific NuGet behaviour (LegacyGallery suppression
    * in v3 hosted service index, and mixed v2+v3 group routing). When true, enables
    * Chocolatey support. Available values: true, false. Default value: true.

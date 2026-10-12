@@ -1410,23 +1410,6 @@
       </build>
     </profile>
 
-    <!--
-    Includes the OCI integration-test module (ASTRUM-42721) when its pom is present.
-    The module is never built by default; it is built only when invoked explicitly with
-    `-pl testsuite/oci-integration-tests -am` and exercised via `-Pit` which wires failsafe.
-    -->
-    <profile>
-      <id>include-oci-integration-tests</id>
-      <activation>
-        <file>
-          <exists>testsuite/oci-integration-tests/pom.xml</exists>
-        </file>
-      </activation>
-      <modules>
-        <module>testsuite/oci-integration-tests</module>
-      </modules>
-    </profile>
-
   </profiles>
 
 </project>
