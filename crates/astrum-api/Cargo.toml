@@ -27,6 +27,7 @@ tracing.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+astrum-format-npm.workspace = true
 astrum-format-raw.workspace = true
 astrum-testkit.workspace = true
 http-body-util.workspace = true

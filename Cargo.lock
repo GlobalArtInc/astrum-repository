@@ -173,6 +173,7 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-format-npm",
  "astrum-format-raw",
  "astrum-repo",
  "astrum-security",
