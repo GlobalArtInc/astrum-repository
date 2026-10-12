@@ -1,3 +1,5 @@
+pub mod s3;
+
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 

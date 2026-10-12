@@ -1,6 +1,7 @@
 pub mod access_token;
 pub mod audit_event;
 pub mod blob_store;
+pub mod blob_store_metrics;
 pub mod content_selector;
 pub mod repository;
 pub mod security_privilege;
