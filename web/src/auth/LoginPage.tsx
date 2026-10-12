@@ -11,6 +11,7 @@ import { PasswordField, TextField } from '../ui/form';
 import { useDocumentTitle } from '../ui/hooks';
 import styles from './LoginPage.module.css';
 import { safeReturnTo } from './returnTo';
+import { SsoButton, SsoFailure } from './SsoButton';
 import { signIn, takeSessionEnded } from './session';
 import { useRefreshSession, useSession } from './state';
 
@@ -93,6 +94,7 @@ export function LoginPage() {
                 <Callout.Text>{t('auth.login.ended')}</Callout.Text>
               </Callout.Root>
             )}
+            {!error && <SsoFailure code={params.get('sso')} />}
             {error && (
               <Callout.Root color="red" role="alert">
                 <Callout.Icon>
@@ -123,6 +125,7 @@ export function LoginPage() {
             <Button type="submit" size="3" loading={busy}>
               {t('auth.login.submit')}
             </Button>
+            {state.oidcEnabled && <SsoButton returnTo={returnTo} />}
             {anonymousAccess && (
               <Text size="2" align="center">
                 <RadixLink asChild>

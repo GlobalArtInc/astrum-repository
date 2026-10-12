@@ -20,5 +20,12 @@
   "auth.noAccess.home": "Go to the dashboard",
   "auth.noAccess.title": "You cannot open this page",
   "auth.required.description": "What you asked for needs a signed-in user.",
-  "auth.required.title": "Sign in to continue"
+  "auth.required.title": "Sign in to continue",
+  "auth.sso.button": "Continue with SSO",
+  "auth.sso.denied": "The identity provider refused the sign-in.",
+  "auth.sso.divider": "or",
+  "auth.sso.expired": "The sign-in took too long. Try again.",
+  "auth.sso.failed": "Signing in with SSO failed. Try again or ask an administrator.",
+  "auth.sso.loading": "Redirecting...",
+  "auth.sso.provider": "The identity provider cannot be reached. Try again later."
 }

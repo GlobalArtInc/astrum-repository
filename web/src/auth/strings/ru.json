@@ -20,5 +20,12 @@
   "auth.noAccess.home": "На главную",
   "auth.noAccess.title": "Эта страница вам недоступна",
   "auth.required.description": "Для этого нужно войти в систему.",
-  "auth.required.title": "Требуется вход"
+  "auth.required.title": "Требуется вход",
+  "auth.sso.button": "Продолжить через SSO",
+  "auth.sso.denied": "Поставщик удостоверений отклонил вход.",
+  "auth.sso.divider": "или",
+  "auth.sso.expired": "Вход занял слишком много времени. Попробуйте ещё раз.",
+  "auth.sso.failed": "Не удалось войти через SSO. Попробуйте ещё раз или обратитесь к администратору.",
+  "auth.sso.loading": "Перенаправление...",
+  "auth.sso.provider": "Поставщик удостоверений недоступен. Попробуйте позже."
 }
