@@ -335,13 +335,17 @@ pub async fn request(
     let authentication = http_client
         .and_then(|client| client.authentication.as_ref())
         .filter(|_| same_origin(&ctx.repository, &url));
+    let mut challenged = !authentication.is_some_and(|authentication| {
+        authentication.kind == Some(AuthenticationType::Username)
+            && authentication.preemptive == Some(false)
+    });
     let mut attempt = 0;
     loop {
         let mut builder = client.get(url.clone());
         for (name, value) in extra {
             builder = builder.header(name, value);
         }
-        if let Some(authentication) = authentication {
+        if let Some(authentication) = authentication.filter(|_| challenged) {
             let open = |sealed: &Option<String>| {
                 sealed
                     .as_deref()
@@ -362,6 +366,10 @@ pub async fn request(
         match builder.send().await {
             Ok(response) => {
                 let status = response.status();
+                if status == StatusCode::UNAUTHORIZED && !challenged {
+                    challenged = true;
+                    continue;
+                }
                 let auto_block = http_client
                     .and_then(|client| client.auto_block)
                     .unwrap_or(true);
