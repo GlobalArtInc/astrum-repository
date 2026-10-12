@@ -1,0 +1,90 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-8);
+  min-width: 0;
+}
+
+.steps {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+  border-radius: 999px;
+  border: 1px solid var(--gray-a5);
+  color: var(--gray-11);
+  font-size: var(--font-size-2);
+}
+
+.step[data-state="current"] {
+  border-color: var(--accent-a8);
+  background: var(--accent-a3);
+  color: var(--accent-12);
+  font-weight: 500;
+}
+
+.step[data-state="done"] {
+  color: var(--green-11);
+}
+
+.number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--gray-a3);
+  font-size: var(--font-size-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.step[data-state="current"] .number {
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+}
+
+.step[data-state="done"] .number {
+  background: transparent;
+}
+
+.card {
+  min-width: 0;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.path {
+  font-family: var(--code-font-family);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  .page {
+    padding: var(--space-4) var(--space-4) var(--space-6);
+  }
+}

@@ -2,6 +2,7 @@ import { auditArea } from '../areas/audit';
 import { blobstoresArea } from '../areas/blobstores';
 import { browseArea } from '../areas/browse';
 import { dashboardArea } from '../areas/dashboard';
+import { onboardingArea } from '../areas/onboarding';
 import { repositoriesArea } from '../areas/repositories';
 import { searchArea } from '../areas/search';
 import { securityArea } from '../areas/security';
@@ -23,4 +24,5 @@ export const areas: Area[] = [
   selectorsArea,
   securityArea,
   userArea,
+  onboardingArea,
 ];
