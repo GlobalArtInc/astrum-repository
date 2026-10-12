@@ -11,9 +11,13 @@ secrets.
   prefix removed, Astrum One at the root of the hash (`#browse/...`, `#admin/...`, `#settings`), 23 formats
   (alpine, apt, cargo, cocoapods, composer, conan, conda, docker, gitlfs, go, helm, huggingface, maven2,
   npm, nuget, p2, pypi, r, raw, rubygems, swift, terraform, yum), Russian and English.
-- In progress: OCI Distribution 1.1 inside the Docker format (branch `format/oci`, worktree
-  `/home/user/wt/oci` if the container still exists). pub and Ansible Galaxy were stopped; they will be
-  written in Rust.
+- OCI Distribution 1.1 lives inside the Docker format (live since image 20261012131009-0f089f9:
+  referrers API, sha512, tag parameters, chunked uploads with 416, cross-repository mount, artifact kinds in
+  search and Astrum One; deleting a manifest by digest deletes its referrers; cleanup deletes tags only).
+  pub and Ansible Galaxy were stopped; they will be written in Rust.
+- Rust rewrite: M0 done; M1 foundation, sessions, access tokens and audit done; blob stores, repository
+  configuration and security REST were being built by agents in `/home/user/wt/m1-{blob,repos,secrest}`
+  (branches `m1/*`, shared build dir `/home/user/wt/m1-target`, brief `/home/user/wt/M1-BRIEF.md`).
 - Known open defects: `/service/rest/v1/user-telemetry/javascript` 404 on every page; certificate check
   in the repository HTTP settings calls a missing truststore endpoint; saving raw proxy query params,
   docker `latestPolicy` and ECR settings from Astrum One resets them; horizontal scroll at 1024px; server
