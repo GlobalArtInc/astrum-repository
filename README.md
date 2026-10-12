@@ -48,12 +48,6 @@ The server listens on port 8081 and keeps its data in `.data/astrum3` (override 
 outside `target/`, so rebuilds do not wipe it. The first start writes the generated administrator
 password to `.data/astrum3/admin.password`.
 
-## Third-party UI components
-
-The React component library the UI is built on is `@globalart/astrum-react-shared-components` from
-npmjs, built from [GlobalArtInc/astrum-react-shared-components](https://github.com/GlobalArtInc/astrum-react-shared-components).
-The root `resolutions` entry pins its version for every workspace.
-
 ## License
 
 Astrum Repository is a modified version of Nexus Repository OSS and is distributed under the
