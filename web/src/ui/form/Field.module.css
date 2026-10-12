@@ -1,0 +1,83 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.label {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.required {
+  color: var(--red-11);
+}
+
+.inline {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.inline > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.chipRemove {
+  all: unset;
+  display: inline-flex;
+  cursor: pointer;
+  border-radius: var(--radius-1);
+}
+
+.chipRemove:focus-visible {
+  outline: 2px solid var(--accent-8);
+}
+
+.trigger {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.list {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  font-size: var(--font-size-2);
+}
+
+.option[data-active="true"] {
+  background: var(--accent-a3);
+}
+
+.secret {
+  display: flex;
+  gap: var(--space-2);
+}
