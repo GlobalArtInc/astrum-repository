@@ -1,9 +1,9 @@
 # Astrum Repository documentation
 
 Astrum Repository is a self-hosted artifact repository manager. One server hosts, proxies and groups
-repositories for Alpine, APT, Cargo, CocoaPods, Composer, Conan, Conda, Docker, Git LFS, Go, Helm, Hugging Face,
-Maven, npm, NuGet, P2, PyPI, R, Swift, Yum and raw files, with users, roles, content selectors, cleanup policies and
-OpenID Connect sign-in.
+repositories for Alpine, APT, Cargo, CocoaPods, Composer, Conan, Conda, Docker, Git LFS, Go, Helm,
+Hugging Face, Maven, npm, NuGet, P2, PyPI, R, RubyGems, Swift, Yum and raw files, with users, roles,
+content selectors, cleanup policies and OpenID Connect sign-in.
 
 ## Install
 
