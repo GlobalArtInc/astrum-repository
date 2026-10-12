@@ -9,7 +9,10 @@ import { parseGaCoordinates } from './detailHelpers';
 import { getDependencySnippets } from './dependencySnippets/registry';
 import { getFormatLabel } from './dependencySnippets/formatLabel';
 import { trackSnippetCopy } from './dependencySnippets/trackSnippetCopy';
-import type { SnippetComponentModel } from './dependencySnippets/types';
+import type { DependencySnippet, SnippetComponentModel } from './dependencySnippets/types';
+import { getUsageSnippets } from './dependencySnippets/usage';
+import { dockerArtifactKind } from '../../../shared/DockerArtifact';
+import { repositoryUrlOf } from '../../browse/useRepositoryInfo';
 
 import { pageLanguage } from '../../../../../interface/plural';
 import S from '../../../constants/pages/search/ComponentDetailStrings';
@@ -31,6 +34,39 @@ interface GAOverviewTabProps {
   registryUrl?: string;
   /** The selected version's most recent asset timestamp, or null if none carries one. */
   lastUpdated?: string | null;
+  /**
+   * Docker attributes of the selected version in the first of those repositories: a Docker repository holds any
+   * OCI artifact, and a Helm chart or an SBOM is not pulled with docker.
+   */
+  dockerAttributes?: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * The commands for a Docker artifact that is no container image (Helm chart, signature, SBOM...), from the same
+ * generator as the usage block of the repository browser; null for an image, which keeps the Docker snippets.
+ */
+function dockerArtifactSnippets(
+  component: SnippetComponentModel,
+  registryUrl: string | undefined,
+  dockerAttributes: Readonly<Record<string, unknown>> | undefined,
+): DependencySnippet[] | null {
+  const kind = dockerArtifactKind(dockerAttributes ? { docker: dockerAttributes } : null);
+  if (component.format !== 'docker' || !kind || kind === 'image' || !component.repositoryName) {
+    return null;
+  }
+  return getUsageSnippets({
+    format: 'docker',
+    repositoryName: component.repositoryName,
+    repositoryUrl: repositoryUrlOf(component.repositoryName),
+    name: component.name,
+    version: component.version,
+    registryUrl: registryUrl ?? null,
+    attributes: { docker: dockerAttributes },
+  }).map((snippet) => ({
+    displayName: snippet.label,
+    snippetText: snippet.snippetText,
+    description: snippet.description,
+  }));
 }
 
 function formatDate(dateString: string | null | undefined): string {
@@ -57,6 +93,7 @@ export function GAOverviewTab({
   repositories = [],
   registryUrl,
   lastUpdated = null,
+  dockerAttributes,
 }: GAOverviewTabProps) {
   const { gaId, format } = detail;
   const [copied, setCopied] = useState(false);
@@ -98,8 +135,9 @@ export function GAOverviewTab({
     // The Overview is component-level, so there is no specific asset — matching Classic, which
     // emits no extension here. Synthesizing a jar extension for Maven would wrongly append @jar
     // to Gradle/PURL/Leiningen coordinates and break transitive resolution.
-    return getDependencySnippets(format, component, registryUrl ? { registryUrl } : undefined);
-  }, [format, group, name, ver, repositoryName, registryUrl]);
+    return dockerArtifactSnippets(component, registryUrl, dockerAttributes)
+      ?? getDependencySnippets(format, component, registryUrl ? { registryUrl } : undefined);
+  }, [format, group, name, ver, repositoryName, registryUrl, dockerAttributes]);
 
   // Require a resolvable version: several generators (npm, pypi, maven, …) don't guard on an empty
   // version, so without this gate a version-less component would emit a truncated coordinate.

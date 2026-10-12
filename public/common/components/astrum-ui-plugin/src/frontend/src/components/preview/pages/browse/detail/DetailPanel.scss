@@ -124,6 +124,60 @@
       transform: rotate(180deg);
     }
   }
+
+  // Artifacts attached to a Docker manifest
+  &__referrers {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__referrer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-2);
+    border: 1px solid var(--gray-a5);
+    border-radius: var(--radius-3);
+    background: transparent;
+    color: var(--gray-11);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--gray-a3);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-8);
+      outline-offset: 1px;
+    }
+  }
+
+  &__referrer-text {
+    flex: 1;
+  }
+
+  &__referrer-type {
+    font-family: var(--code-font-family);
+    overflow-wrap: anywhere;
+  }
+
+  &__link-button {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
 }
 
 // Phones: cards of the details keep 16px of padding

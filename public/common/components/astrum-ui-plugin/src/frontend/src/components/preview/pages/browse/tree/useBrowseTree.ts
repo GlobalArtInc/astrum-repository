@@ -63,12 +63,16 @@ function withoutOmittedRoot(
   return parts;
 }
 
-const DIGEST_TEXT = /^sha256:/;
+const DIGEST_TEXT = /^sha(256|512):/;
+
+const DIGEST_SEGMENT = /^sha(256|512)(:|%3A)/i;
 
 /**
  * The Docker view of a level of the tree: the registry root `v2` and the shared blob store `-` are
  * skipped so the root lists the images, and an image lists the tags in its `manifests` folder rather
- * than that folder. Manifests stored only under a digest stay visible when an image has no tags.
+ * than that folder. The manifests stored only under a digest (signatures, SBOMs and the other artifacts
+ * attached to an image, the platforms of an index) stay in that folder below the tags, or take their
+ * place when an image has no tags.
  */
 async function presentDockerChildren(
   nodeId: string,
@@ -79,6 +83,10 @@ async function presentDockerChildren(
     const images = await fetch(children[0].id);
     return images.filter((node) => node.text !== '-');
   }
+  if (nodeId.endsWith('/manifests')) {
+    const digests = children.filter((node) => DIGEST_TEXT.test(node.text));
+    return digests.length > 0 ? digests : children;
+  }
   const manifests = children.find((node) => node.text === 'manifests' && !node.leaf);
   if (!manifests) {
     return children;
@@ -86,7 +94,11 @@ async function presentDockerChildren(
   const references = await fetch(manifests.id);
   const tags = references.filter((node) => !DIGEST_TEXT.test(node.text));
   const rest = children.filter((node) => node.text !== 'manifests' && node.text !== 'tags');
-  return [...(tags.length > 0 ? tags : references), ...rest];
+  if (tags.length === 0) {
+    return [...references, ...rest];
+  }
+  const hasDigests = references.some((node) => DIGEST_TEXT.test(node.text));
+  return [...tags, ...(hasDigests ? [manifests] : []), ...rest];
 }
 
 /**
@@ -640,6 +652,11 @@ export function useBrowseTree(
     for (let i = 0; i < pathParts.length; i++) {
       const part = pathParts[i];
       currentPath = currentPath ? `${currentPath}/${part}` : part;
+
+      // Docker tags sit right under their image; only manifests stored under a digest keep their folder.
+      if (format === 'docker' && part === 'manifests' && !DIGEST_SEGMENT.test(pathParts[i + 1] ?? '')) {
+        continue;
+      }
 
       let node = findNodeByIdFlexible(workingNodes, currentPath);
 

@@ -173,7 +173,7 @@ describe('searchMachine', () => {
 
   describe('format classification', () => {
     const EXPECTED_SIMPLE = ['all', 'alpine', 'apt', 'cargo', 'cocoapods', 'conda', 'go', 'helm', 'huggingface', 'pub', 'r', 'raw'];
-    const EXPECTED_CUSTOM = ['ansiblegalaxy', 'composer', 'conan', 'docker', 'gitlfs', 'maven', 'npm', 'nuget', 'oci', 'p2', 'pypi', 'rubygems', 'swift', 'terraform', 'yum'];
+    const EXPECTED_CUSTOM = ['ansiblegalaxy', 'composer', 'conan', 'docker', 'gitlfs', 'maven', 'npm', 'nuget', 'p2', 'pypi', 'rubygems', 'swift', 'terraform', 'yum'];
 
     it.each(EXPECTED_SIMPLE)('format %s is classified as simple (repository only)', (format) => {
       expect(SIMPLE_FORMATS).toContain(format);
@@ -183,8 +183,8 @@ describe('searchMachine', () => {
       expect(FORMATS_WITH_CUSTOM_FILTERS).toContain(format);
     });
 
-    it('covers all 27 formats', () => {
-      expect(ALL_FORMATS).toHaveLength(27); // 27 formats (26 specific + 'all')
+    it('covers all 26 formats', () => {
+      expect(ALL_FORMATS).toHaveLength(26); // 26 formats (25 specific + 'all')
     });
   });
 
@@ -217,13 +217,13 @@ describe('searchMachine', () => {
       service.stop();
     });
 
-    it('Docker declares imageName, imageTag, layerId, contentDigest', () => {
+    it('Docker declares imageName, imageTag, contentDigest, artifactKind', () => {
       const service = startMachine();
       service.send({ type: 'SELECT_FORMAT', format: 'docker' });
       const meta = getActiveFormatMeta(service.getSnapshot());
 
       expect(meta!.customFilters.map((f) => f.id)).toEqual([
-        'imageName', 'imageTag', 'layerId', 'contentDigest',
+        'imageName', 'imageTag', 'contentDigest', 'artifactKind',
       ]);
 
       service.stop();

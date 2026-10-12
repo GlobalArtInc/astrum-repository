@@ -515,7 +515,7 @@ export default localize('react-ui', {
     COMBINE_MULTIPLE_REPOSITORIES_HOSTED_PROXY: 'Combine multiple repositories (hosted and proxy) into a single URL. This allows users to access all components from a single entry point.',
     STANDARD_JAVA_DEVELOPMENT_SUPPORTS_SNAPSHOTS: 'Standard for Java development. Supports snapshots and releases.',
     PACKAGE_MANAGER_JAVASCRIPT_NODE_JS: 'The package manager for JavaScript and Node.js.',
-    CONTAINER_IMAGE_REGISTRY_DOCKER_OCI: 'Container image registry for Docker and OCI images.',
+    CONTAINER_IMAGES_OCI_ARTIFACTS: 'Container images and any other OCI artifact: Helm charts, signatures, SBOMs, Wasm modules, AI models.',
     PACKAGE_MANAGER_NET_DEVELOPMENT: 'The package manager for .NET development.',
     OFFICIAL_THIRD_PARTY_SOFTWARE_REPOSITORY: 'The official third-party software repository for Python.',
     STANDARD_RUBY_PACKAGE_MANAGER: 'The standard ruby package manager.',

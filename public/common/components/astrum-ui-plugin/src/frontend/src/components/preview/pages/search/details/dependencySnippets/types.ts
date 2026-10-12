@@ -44,7 +44,7 @@ export interface SnippetComponentModel {
  *
  * The Overview tab is component-level, so generators are invoked with `undefined`
  * here (matching Classic passing `assetModel` as undefined). The shape is kept so the
- * asset-aware generators (Maven, Docker, OCI) can be reused for per-asset snippets later.
+ * asset-aware generators (Maven, Docker) can be reused for per-asset snippets later.
  */
 export interface SnippetAssetModel {
   readonly attributes?: {
@@ -55,8 +55,6 @@ export interface SnippetAssetModel {
   };
   /** Docker top-level registry URL (ASTRUM-51972). */
   readonly registryUrl?: string;
-  /** OCI image digest. */
-  readonly digest?: string;
 }
 
 /**

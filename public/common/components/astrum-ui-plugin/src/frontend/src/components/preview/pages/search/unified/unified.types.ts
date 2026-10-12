@@ -1,4 +1,4 @@
-
+import type { DockerArtifactKind } from '../../../shared/DockerArtifact';
 
 /**
  * Unified Search Types
@@ -31,7 +31,6 @@ export type SearchFormat =
   | 'maven'
   | 'npm'
   | 'nuget'
-  | 'oci'
   | 'p2'
   | 'pub'
   | 'pypi'
@@ -132,6 +131,8 @@ export interface SearchResult {
   downloadUrl?: string;
   /** Asset path */
   path?: string;
+  /** What a Docker manifest carries: image, helm, signature, sbom... */
+  artifactKind?: DockerArtifactKind;
 }
 
 /**

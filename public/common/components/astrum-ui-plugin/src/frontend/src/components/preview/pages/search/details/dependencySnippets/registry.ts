@@ -6,7 +6,6 @@ import { generate as docker } from './docker';
 import { generate as maven2 } from './maven2';
 import { generate as npm } from './npm';
 import { generate as nuget } from './nuget';
-import { generate as oci } from './oci';
 import { generate as pypi } from './pypi';
 import { generate as rubygems } from './rubygems';
 import { generate as swift } from './swift';
@@ -24,7 +23,6 @@ const GENERATORS: Readonly<Record<string, SnippetGenerator>> = {
   maven2,
   npm,
   nuget,
-  oci,
   pypi,
   rubygems,
   swift,

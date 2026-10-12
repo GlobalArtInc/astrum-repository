@@ -12,6 +12,12 @@ import { deleteAsset, deleteComponent } from '../../browse.api';
 
 const mockFetchBrowseNodes = jest.fn();
 
+const mockAxiosGet = jest.fn();
+jest.mock('axios', () => ({
+  __esModule: true,
+  default: { get: (...args: unknown[]) => mockAxiosGet(...args) },
+}));
+
 const mockTrackSnippetCopy = jest.fn();
 jest.mock('../../../search/details/dependencySnippets/trackSnippetCopy', () => ({
   trackSnippetCopy: (...args: unknown[]) => mockTrackSnippetCopy(...args),
@@ -98,6 +104,7 @@ describe('DetailPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (window as any).__astrumToast = mockToast;
+    mockAxiosGet.mockResolvedValue({ data: { manifests: [] } });
     mockFetchBrowseNodes.mockResolvedValue([
       { id: 'child1', text: 'child1', type: 'folder', leaf: false },
       { id: 'child2', text: 'child2', type: 'component', leaf: false },
@@ -894,11 +901,106 @@ describe('DetailPanel', () => {
       );
 
       expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-        'docker pull', 'docker login', 'Dockerfile', 'Compose', 'Kubernetes', 'docker push',
+        'docker pull', 'docker login', 'Dockerfile', 'Compose', 'Kubernetes', 'oras discover', 'docker push',
       ]);
       expect(screen.getByRole('tabpanel')).toHaveTextContent('docker pull astrum.example.com/docker-hosted/herald-api:0.1.0');
       expect(screen.getByText('Digest').parentElement).toHaveTextContent('sha256:2afc9a93');
       expect(screen.getByText('SHA-1').parentElement).toHaveTextContent('aa11');
+    });
+
+    it('names a Helm chart, offers helm and lists the artifacts attached to it', async () => {
+      const digest = 'sha256:85e57ba7a6537efc05d47ce917a61246f127dc49e29160396b4f3e980a197958';
+      const signature = 'sha256:02dde9ac789b0f02f41817894ba8949e53a7438a70aa25c9d9dd6ed0507dcedd';
+      mockAxiosGet.mockResolvedValue({
+        data: {
+          manifests: [{
+            mediaType: 'application/vnd.oci.image.manifest.v1+json',
+            digest: signature,
+            size: 728,
+            artifactType: 'application/vnd.cncf.notary.signature',
+            annotations: { 'org.opencontainers.image.created': '2026-10-12T12:02:23Z' },
+          }],
+        },
+      });
+      const onOpenPath = jest.fn();
+      const tagNode: BrowseNode = { id: 'v2/charts/mychart/manifests/0.1.0', text: '0.1.0', type: 'asset', leaf: true, assetId: 'a1' };
+      renderWithTheme(
+        <DetailPanel
+          node={tagNode}
+          repositoryName="docker-hosted"
+          repository={{ ...repository, name: 'docker-hosted', format: 'docker', url: 'https://astrum.example.com/repository/docker-hosted' }}
+          assetData={{
+            ...mockAssetData,
+            format: 'docker',
+            name: '/v2/charts/mychart/manifests/0.1.0',
+            path: '/v2/charts/mychart/manifests/0.1.0',
+            registryUrl: 'astrum.example.com/docker-hosted',
+            attributes: { docker: { digest, artifactKind: 'helm', artifactType: 'application/vnd.cncf.helm.config.v1+json' } },
+          }}
+          componentData={{ ...mockComponentData, format: 'docker', group: null, name: 'charts/mychart', version: '0.1.0' }}
+          onOpenPath={onOpenPath}
+        />,
+      );
+
+      expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+        'helm pull', 'helm install', 'helm registry login', 'helm push',
+      ]);
+      expect(screen.getAllByText('Kind')[0].parentElement).toHaveTextContent('Helm chart');
+      expect(mockAxiosGet).toHaveBeenCalledWith(
+        `/repository/docker-hosted/v2/charts/mychart/referrers/${digest}`,
+        expect.anything(),
+      );
+      const open = await screen.findByRole('button', { name: `Open ${signature}` });
+      expect(open).toHaveTextContent('Signature');
+      expect(open).toHaveTextContent('application/vnd.cncf.notary.signature');
+      await userEvent.click(open);
+      expect(onOpenPath).toHaveBeenCalledWith(`v2/charts/mychart/manifests/${signature}`);
+    });
+
+    it('links an attached artifact to the manifest it belongs to', async () => {
+      const subject = 'sha256:6f48b8ceff217c8be876966ae98d1f15a251baaf81eaefc0c463f2784a5d2538';
+      const sbom = 'sha256:63fc8afdfdb7883b3819e411a4837c32ec61158c26133692edb5d7d8a2143d48';
+      const onOpenPath = jest.fn();
+      const node: BrowseNode = { id: `v2/demo/app/manifests/${sbom}`, text: sbom, type: 'asset', leaf: true, assetId: 'a3' };
+      renderWithTheme(
+        <DetailPanel
+          node={node}
+          repositoryName="docker-hosted"
+          repository={{ ...repository, name: 'docker-hosted', format: 'docker', url: 'https://astrum.example.com/repository/docker-hosted' }}
+          assetData={{
+            ...mockAssetData,
+            format: 'docker',
+            name: `/v2/demo/app/manifests/${sbom}`,
+            path: `/v2/demo/app/manifests/${sbom}`,
+            attributes: { docker: { digest: sbom, subject, artifactKind: 'sbom', artifactType: 'application/spdx+json' } },
+          }}
+          onOpenPath={onOpenPath}
+        />,
+      );
+
+      expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+        'oras pull', 'oras manifest fetch', 'oras discover', 'oras login', 'oras attach',
+      ]);
+      expect(screen.getAllByText('Kind')[0].parentElement).toHaveTextContent('SBOM');
+      await userEvent.click(screen.getByRole('button', { name: subject }));
+      expect(onOpenPath).toHaveBeenCalledWith(`v2/demo/app/manifests/${subject}`);
+    });
+
+    it('says when nothing is attached to a manifest', async () => {
+      mockAxiosGet.mockResolvedValue({ data: { schemaVersion: 2, manifests: [] } });
+      const digest = 'sha256:6f48b8ceff217c8be876966ae98d1f15a251baaf81eaefc0c463f2784a5d2538';
+      const node: BrowseNode = { id: `v2/demo/app/manifests/${digest}`, text: digest, type: 'asset', leaf: true, assetId: 'a2' };
+      renderWithTheme(
+        <DetailPanel
+          node={node}
+          repositoryName="docker-hosted"
+          repository={{ ...repository, name: 'docker-hosted', format: 'docker', url: 'https://astrum.example.com/repository/docker-hosted' }}
+          assetData={{ ...mockAssetData, format: 'docker', name: `/v2/demo/app/manifests/${digest}`, path: `/v2/demo/app/manifests/${digest}` }}
+        />,
+      );
+
+      expect(await screen.findByText('Nothing is attached to this manifest')).toBeInTheDocument();
+      expect(mockAxiosGet).toHaveBeenCalledWith(`/repository/docker-hosted/v2/demo/app/referrers/${digest}`, expect.anything());
     });
 
     it('shows no usage for a folder', () => {

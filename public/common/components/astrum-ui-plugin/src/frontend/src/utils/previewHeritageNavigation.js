@@ -39,7 +39,6 @@ const SEARCH_FORMATS = {
   maven2: 'maven',
   npm: 'npm',
   nuget: 'nuget',
-  oci: 'oci',
   p2: 'p2',
   pub: 'pub',
   pypi: 'pypi',

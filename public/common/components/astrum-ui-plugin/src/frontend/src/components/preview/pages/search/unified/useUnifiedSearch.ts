@@ -26,6 +26,7 @@ import { createSearchMachine } from './searchMachine';
 import { isMockMode } from '../../../config/featureFlags';
 import { getMockSearchResults } from '../../browse/mockData';
 import { compareBySort } from './sortOptions';
+import { dockerArtifactKind } from '../../../shared/DockerArtifact';
 
 // Error name for cancelled Axios requests
 const ABORT_ERROR_NAME = 'CanceledError';
@@ -66,6 +67,7 @@ interface RawSearchItem {
     downloadUrl: string;
     contentType?: string;
     lastModified?: string;
+    docker?: Record<string, unknown>;
   }>;
 }
 
@@ -123,6 +125,7 @@ function transformResult(item: RawSearchItem): SearchResult {
     downloadUrl: primaryAsset?.downloadUrl,
     path: primaryAsset?.path,
     lastUpdated: primaryAsset?.lastModified,
+    artifactKind: item.format === 'docker' ? dockerArtifactKind(primaryAsset) ?? undefined : undefined,
   };
 }
 

@@ -9,6 +9,7 @@ import {
   DataList,
   Flex,
   Heading,
+  Link,
   Spinner,
   Text,
 } from '@radix-ui/themes';
@@ -38,6 +39,8 @@ import { getUsageSnippets, type UsageContext } from '../../search/details/depend
 import { trackSnippetCopy } from '../../search/details/dependencySnippets/trackSnippetCopy';
 import { formatBytes, formatNumber } from '../../Welcome/usage/usageFormat';
 import { repositoryUrlOf, type RepositoryInfo } from '../useRepositoryInfo';
+import { DockerArtifactBadge, dockerArtifactKind, dockerAttributesOf } from '../../../shared/DockerArtifact';
+import { DockerReferrersCard } from './DockerReferrersCard';
 import UIStrings from '../../../constants/UIStrings';
 
 import './DetailPanel.scss';
@@ -68,6 +71,8 @@ export interface DetailPanelProps {
   error?: string | null;
   /** Callback when item is deleted */
   onDeleted?: () => void;
+  /** Opens another path of the repository, e.g. an artifact attached to the selected manifest */
+  onOpenPath?: (path: string) => void;
   /** Whether user has delete permission */
   canDelete?: boolean;
   /** Tab from the URL; the panel shows every section at once, so it is only kept for old links */
@@ -138,6 +143,26 @@ function safeDecode(value: string): string {
   } catch {
     return value;
   }
+}
+
+/**
+ * The Docker manifest an asset is: its image, digest, what it carries and the manifest it is attached to.
+ * Null for blobs and anything that is no manifest.
+ */
+function dockerManifestOf(path: string, attributes: Record<string, unknown> | undefined) {
+  const match = DOCKER_MANIFEST.exec(path);
+  if (!match) {
+    return null;
+  }
+  const docker = dockerAttributesOf(attributes) ?? {};
+  const reference = safeDecode(match[2]);
+  const recorded = typeof docker.digest === 'string' && docker.digest ? docker.digest : null;
+  return {
+    image: match[1],
+    digest: recorded ?? (/^[a-z0-9]+:/.test(reference) ? reference : null),
+    kind: dockerArtifactKind(attributes),
+    subject: typeof docker.subject === 'string' && docker.subject ? docker.subject : null,
+  };
 }
 
 function withLeadingSlash(path: string): string {
@@ -494,6 +519,7 @@ export function DetailPanel({
   loading = false,
   error = null,
   onDeleted,
+  onOpenPath,
   canDelete = false,
 }: DetailPanelProps): JSX.Element {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -706,6 +732,7 @@ export function DetailPanel({
           canDelete={canDelete}
           onDeleteClick={handleDeleteClick}
           onDownloadClick={handleDownload}
+          onOpenPath={onOpenPath}
         />
       )}
 
@@ -887,6 +914,7 @@ interface AssetDetailsProps {
   canDelete: boolean;
   onDeleteClick: () => void;
   onDownloadClick: () => void;
+  onOpenPath?: (path: string) => void;
 }
 
 function AssetDetails({
@@ -899,6 +927,7 @@ function AssetDetails({
   canDelete,
   onDeleteClick,
   onDownloadClick,
+  onOpenPath,
 }: AssetDetailsProps): JSX.Element {
   const rawPath = assetData?.path || assetData?.name || node.id;
   const path = withLeadingSlash(rawPath);
@@ -914,10 +943,27 @@ function AssetDetails({
     .filter(([algorithm]) => !(isDocker && algorithm === 'sha256'))
     .map(([algorithm, value]) => ({ label: CHECKSUM_LABELS[algorithm] ?? algorithm.toUpperCase(), value, mono: true }));
   const digest = isDocker && assetData?.checksum?.sha256 ? `sha256:${assetData.checksum.sha256}` : null;
+  const docker = isDocker ? dockerManifestOf(rawPath, assetData?.attributes) : null;
 
   const rows: DetailRowData[] = [
     { label: strings().ROWS.REPOSITORY, value: repositoryName },
     { label: strings().ROWS.FORMAT, value: formatLabel(assetData?.format || format) },
+    ...(docker?.kind ? [{ label: strings().ROWS.ARTIFACT_KIND, value: <DockerArtifactBadge kind={docker.kind} /> }] : []),
+    ...(docker?.subject ? [{
+      label: strings().ROWS.SUBJECT,
+      value: onOpenPath ? (
+        <Link asChild size="2">
+          <button
+            type="button"
+            className="detail-panel__link-button"
+            onClick={() => onOpenPath(`v2/${docker.image}/manifests/${docker.subject}`)}
+          >
+            {docker.subject}
+          </button>
+        </Link>
+      ) : docker.subject,
+      mono: true,
+    }] : []),
     ...(componentData?.group ? [{ label: strings().ROWS.GROUP, value: componentData.group, mono: true }] : []),
     ...(componentData ? [{ label: strings().ROWS.COMPONENT, value: componentData.name }] : []),
     ...(componentData?.version ? [{ label: strings().ROWS.VERSION, value: componentData.version, mono: true }] : []),
@@ -961,6 +1007,9 @@ function AssetDetails({
         </Flex>
       </Card>
       <DetailsCard rows={rows} />
+      {docker?.digest && (
+        <DockerReferrersCard repositoryName={repositoryName} image={docker.image} digest={docker.digest} onOpen={onOpenPath} />
+      )}
       {assetData && <AttributesCard assetData={assetData} />}
     </>
   );

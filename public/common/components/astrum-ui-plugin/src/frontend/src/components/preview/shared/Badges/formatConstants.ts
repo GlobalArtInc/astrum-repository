@@ -9,7 +9,6 @@ export const FORMAT_LABELS: Record<string, string> = {
   nuget: 'NuGet',
   pypi: 'PyPI',
   docker: 'Docker',
-  oci: 'OCI',
   helm: 'Helm',
   go: 'Go',
   yum: 'Yum',

@@ -249,6 +249,11 @@ export interface GAAsset {
    * Registry host and path that clients pull from (Docker), e.g. "repo.example.com:8082/docker-hosted".
    */
   readonly registryUrl?: string;
+
+  /**
+   * Docker attributes of the asset (digest, media type, artifact type and kind), for Docker only.
+   */
+  readonly docker?: Readonly<Record<string, unknown>>;
 }
 
 // =============================================================================

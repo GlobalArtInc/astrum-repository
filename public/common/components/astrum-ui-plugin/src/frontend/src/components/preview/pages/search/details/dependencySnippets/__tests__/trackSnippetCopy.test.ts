@@ -24,9 +24,9 @@ describe('trackSnippetCopy', () => {
   });
 
   it('URL-encodes spaces in the snippet display name', () => {
-    trackSnippetCopy('oci', 'OCI Pull (ORAS)');
+    trackSnippetCopy('docker', 'docker pull');
     expect(mockAxios.post).toHaveBeenCalledWith(
-      '/service/rest/dependency_snippets?format=oci&snippet=OCI%20Pull%20(ORAS)',
+      '/service/rest/dependency_snippets?format=docker&snippet=docker%20pull',
     );
   });
 

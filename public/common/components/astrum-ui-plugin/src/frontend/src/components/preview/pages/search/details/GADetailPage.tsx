@@ -139,6 +139,12 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
     return assets.find((asset) => asset.repository === repository && asset.registryUrl)?.registryUrl;
   }, [assets, overviewRepositories]);
 
+  // What the selected version of a Docker component carries, so a Helm chart or an SBOM gets its own commands.
+  const overviewDockerAttributes = useMemo(() => {
+    const repository = overviewRepositories[0];
+    return assets.find((asset) => asset.repository === repository && asset.docker)?.docker;
+  }, [assets, overviewRepositories]);
+
   const securityCount =
     securityResult.data &&
     (securityResult.data.criticalCount +
@@ -431,6 +437,7 @@ export function GADetailPage({ gaId: gaIdParam, version }: GADetailPageProps) {
                     repositories={overviewRepositories}
                     registryUrl={overviewRegistryUrl}
                     lastUpdated={versionLastUpdated}
+                    dockerAttributes={overviewDockerAttributes}
                   />
                 </Tabs.Content>
 

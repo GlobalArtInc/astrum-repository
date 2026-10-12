@@ -1,6 +1,6 @@
 import { getDependencySnippets } from '../../registry';
 import { getUsageSnippets, USAGE_GENERATORS } from '..';
-import type { UsageContext } from '../types';
+import type { UsageContext, UsageGenerator } from '../types';
 
 const BASE = 'https://astrum.example.com/repository';
 
@@ -59,8 +59,14 @@ describe('usage snippets', () => {
       registryUrl: 'astrum.example.com/docker-hosted',
     });
 
-    it('offers pull, login, Dockerfile, Compose, Kubernetes and push for a hosted repository', () => {
-      expect(ids(tag)).toEqual(['pull', 'login', 'dockerfile', 'compose', 'kubernetes', 'push']);
+    it('offers pull, login, Dockerfile, Compose, Kubernetes, attached artifacts and push for a hosted repository', () => {
+      expect(ids(tag)).toEqual(['pull', 'login', 'dockerfile', 'compose', 'kubernetes', 'discover', 'push']);
+      expect(texts(tag).discover).toBe('oras discover astrum.example.com/docker-hosted/herald-api:0.1.0');
+    });
+
+    it('treats a manifest without a recorded kind as an image', () => {
+      expect(ids({ ...tag, attributes: { docker: { mediaType: 'application/vnd.oci.image.manifest.v1+json' } } }))
+        .toContain('dockerfile');
     });
 
     it('addresses the image through the registry of the repository', () => {
@@ -105,6 +111,83 @@ describe('usage snippets', () => {
       expect(texts({ ...tag, registryUrl: 'evil.com"; rm -rf /' }).pull).toBe(
         'docker pull astrum.example.com/docker-hosted/herald-api:0.1.0',
       );
+    });
+
+    describe('Helm charts', () => {
+      const chart = {
+        ...tag,
+        name: 'charts/mychart',
+        version: '0.1.0',
+        path: '/v2/charts/mychart/manifests/0.1.0',
+        attributes: { docker: { artifactKind: 'helm', artifactType: 'application/vnd.cncf.helm.config.v1+json' } },
+      };
+
+      it('offers helm instead of docker', () => {
+        expect(ids(chart)).toEqual(['helm-pull', 'helm-install', 'helm-login', 'helm-push']);
+      });
+
+      it('addresses the chart with oci:// and pushes into its parent', () => {
+        const s = texts(chart);
+        expect(s['helm-pull']).toBe('helm pull oci://astrum.example.com/docker-hosted/charts/mychart --version 0.1.0');
+        expect(s['helm-install'])
+          .toBe('helm install mychart oci://astrum.example.com/docker-hosted/charts/mychart --version 0.1.0');
+        expect(s['helm-login']).toBe('helm registry login astrum.example.com');
+        expect(s['helm-push']).toBe(
+          'helm package ./mychart\nhelm push mychart-0.1.0.tgz oci://astrum.example.com/docker-hosted/charts',
+        );
+      });
+
+      it('recognises a chart stored before kinds were recorded by its config media type', () => {
+        const old = { ...chart, attributes: { docker: { artifactType: 'application/vnd.cncf.helm.config.v1+json' } } };
+        expect(ids(old)).toContain('helm-pull');
+      });
+
+      it('adds --plain-http when the server is reached over plain HTTP', () => {
+        const s = texts({ ...chart, repositoryUrl: 'http://localhost:8081/repository/docker-hosted/', registryUrl: null });
+        expect(s['helm-pull']).toBe('helm pull oci://localhost:8081/docker-hosted/charts/mychart --version 0.1.0 --plain-http');
+        expect(s['helm-login']).toBe('helm registry login localhost:8081 --plain-http');
+      });
+    });
+
+    describe('other OCI artifacts', () => {
+      const subject = 'sha256:6f48b8ceff217c8be876966ae98d1f15a251baaf81eaefc0c463f2784a5d2538';
+      const sbomDigest = 'sha256:63fc8afdfdb7883b3819e411a4837c32ec61158c26133692edb5d7d8a2143d48';
+      const sbom = {
+        ...tag,
+        name: null,
+        version: null,
+        path: `v2/herald-api/manifests/${sbomDigest}`,
+        attributes: { docker: { artifactKind: 'sbom', artifactType: 'application/spdx+json', subject } },
+      };
+
+      it('pulls an SBOM with oras and leads to the other artifacts of its subject', () => {
+        expect(ids(sbom)).toEqual(['oras-pull', 'oras-manifest', 'oras-discover', 'oras-login', 'oras-attach']);
+        const s = texts(sbom);
+        expect(s['oras-pull']).toBe(`oras pull astrum.example.com/docker-hosted/herald-api@${sbomDigest}`);
+        expect(s['oras-discover']).toBe(`oras discover astrum.example.com/docker-hosted/herald-api@${subject}`);
+        expect(s['oras-attach']).toBe(
+          `oras attach --artifact-type application/spdx+json astrum.example.com/docker-hosted/herald-api@${subject} ./file`,
+        );
+      });
+
+      it('pushes a tagged artifact with its artifact type', () => {
+        const model = {
+          ...tag,
+          name: 'models/tiny',
+          version: 'q4',
+          path: '/v2/models/tiny/manifests/q4',
+          attributes: { docker: { artifactKind: 'model', artifactType: 'application/vnd.cncf.model.manifest.v1+json' } },
+        };
+        expect(ids(model)).toEqual(['oras-pull', 'oras-manifest', 'oras-login', 'oras-push']);
+        expect(texts(model)['oras-push']).toBe(
+          'oras push --artifact-type application/vnd.cncf.model.manifest.v1+json '
+            + 'astrum.example.com/docker-hosted/models/tiny:q4 ./file:application/octet-stream',
+        );
+      });
+
+      it('offers nothing to push through a proxy', () => {
+        expect(ids({ ...sbom, repositoryType: 'proxy' })).toEqual(['oras-pull', 'oras-manifest', 'oras-discover', 'oras-login']);
+      });
     });
   });
 
@@ -608,12 +691,19 @@ describe('usage snippets', () => {
 
   describe('formats without a repository-aware generator', () => {
     it('fall back to the component dependency snippets', () => {
-      const component = { format: 'oci', group: '', name: 'astrum.example.com:8443/team/app', version: '1.0', repositoryName: 'oci' };
-      const snippets = getUsageSnippets(context({ ...component, repositoryName: 'oci' }));
-      const fallback = getDependencySnippets('oci', component);
-      expect(fallback.length).toBeGreaterThan(0);
-      expect(snippets.map((snippet) => snippet.label)).toEqual(fallback.map((snippet) => snippet.displayName));
-      expect(snippets[0].snippetText).toBe(fallback[0].snippetText);
+      const generators = USAGE_GENERATORS as Record<string, UsageGenerator>;
+      const nuget = generators.nuget;
+      delete generators.nuget;
+      try {
+        const component = { format: 'nuget', group: '', name: 'Newtonsoft.Json', version: '13.0.3', repositoryName: 'nuget' };
+        const snippets = getUsageSnippets(context(component));
+        const fallback = getDependencySnippets('nuget', component);
+        expect(fallback.length).toBeGreaterThan(0);
+        expect(snippets.map((snippet) => snippet.label)).toEqual(fallback.map((snippet) => snippet.displayName));
+        expect(snippets[0].snippetText).toBe(fallback[0].snippetText);
+      } finally {
+        generators.nuget = nuget;
+      }
     });
 
     it('get nothing when there is no generator at all', () => {

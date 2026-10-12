@@ -32,6 +32,7 @@ interface RawAsset {
   fileSize?: number | null;
   checksum?: Record<string, string> | null;
   registryUrl?: string | null;
+  docker?: Record<string, unknown> | null;
 }
 
 interface RawSearchItem {
@@ -62,6 +63,7 @@ function toAsset(raw: RawAsset, itemRepository: string): GAAsset {
     lastModified: raw.lastModified ?? null,
     checksums: raw.checksum || {},
     ...(raw.registryUrl ? { registryUrl: raw.registryUrl } : {}),
+    ...(raw.docker ? { docker: raw.docker } : {}),
   };
 }
 

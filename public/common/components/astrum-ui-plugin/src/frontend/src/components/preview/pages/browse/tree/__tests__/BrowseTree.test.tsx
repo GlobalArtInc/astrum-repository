@@ -640,7 +640,7 @@ describe('BrowseTree Docker view', () => {
     expect(screen.queryByTestId('tree-node-v2/-')).not.toBeInTheDocument();
   });
 
-  it('opens an image on click and lists its tags, not the manifests folder or digests', async () => {
+  it('opens an image on click and lists its tags, with its digests in the manifests folder below them', async () => {
     const onSelect = jest.fn();
     render(<BrowseTree repositoryName="docker-hosted" format="docker" onSelect={onSelect} />);
     await waitFor(() => expect(screen.getByTestId('link-v2/herald-api')).toBeInTheDocument());
@@ -649,10 +649,15 @@ describe('BrowseTree Docker view', () => {
 
     await waitFor(() => expect(screen.getByTestId('tree-node-v2/herald-api/manifests/0.1.0')).toBeInTheDocument());
     expect(screen.getByTestId('tree-node-v2/herald-api/manifests/0.2.0')).toBeInTheDocument();
-    expect(screen.queryByTestId('tree-node-v2/herald-api/manifests')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tree-node-v2/herald-api/manifests')).toBeInTheDocument();
     expect(screen.queryByTestId('tree-node-v2/herald-api/manifests/sha256%3Aabc')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('icon-tag')).toHaveLength(2);
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'v2/herald-api' }));
+
+    fireEvent.click(screen.getByTestId('link-v2/herald-api/manifests'));
+
+    await waitFor(() => expect(screen.getByTestId('tree-node-v2/herald-api/manifests/sha256%3Aabc')).toBeInTheDocument());
+    expect(screen.getAllByTestId('tree-node-v2/herald-api/manifests/0.1.0')).toHaveLength(1);
   });
 
   it('keeps the digests of an image without tags', async () => {
@@ -677,5 +682,22 @@ describe('BrowseTree Docker view', () => {
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'v2/herald-api/manifests/0.2.0' })));
     expect(screen.getByRole('treeitem', { selected: true })).toHaveTextContent('0.2.0');
+  });
+
+  it('opens a deep link to a manifest stored under a digest through the manifests folder', async () => {
+    const onSelect = jest.fn();
+    render(
+      <BrowseTree
+        repositoryName="docker-hosted"
+        format="docker"
+        initialPath="v2/herald-api/manifests/sha256:abc"
+        onSelect={onSelect}
+      />,
+    );
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'v2/herald-api/manifests/sha256%3Aabc' }),
+    ));
+    expect(screen.getByRole('treeitem', { selected: true })).toHaveTextContent('sha256:abc');
   });
 });

@@ -23,7 +23,7 @@ import {
 const ALL_FORMATS = [
   'all', 'alpine','ansiblegalaxy', 'apt', 'cargo', 'cocoapods', 'composer', 'conan', 'conda',
   'docker', 'gitlfs', 'go', 'helm', 'huggingface', 'maven', 'npm',
-  'nuget', 'oci', 'p2', 'pub', 'pypi', 'r', 'raw', 'rubygems', 'swift', 'terraform', 'yum'
+  'nuget', 'p2', 'pub', 'pypi', 'r', 'raw', 'rubygems', 'swift', 'terraform', 'yum'
 ] as const;
 
 // Expected API format mappings
@@ -45,7 +45,6 @@ const API_FORMAT_MAPPINGS: Record<string, string> = {
   maven: 'maven2', // Special case: maven -> maven2
   npm: 'npm',
   nuget: 'nuget',
-  oci: 'oci',
   p2: 'p2',
   pub: 'pub',
   pypi: 'pypi',
@@ -76,7 +75,6 @@ const PLACEHOLDER_PATTERNS: Record<string, RegExp> = {
   maven: /group.*id|artifact/i,
   npm: /name|scope/i,
   nuget: /id|tags|package/i,
-  oci: /image/i,
   p2: /plugin/i,
   pub: /package/i,
   pypi: /package/i,
@@ -110,12 +108,11 @@ const EXPECTED_FILTERS: Record<string, string[]> = {
   // Formats with custom filters
   composer: ['repository', 'vendor', 'package', 'description', 'keywords'],
   conan: ['repository', 'baseVersion', 'channel', 'revision', 'packageId', 'packageRevision'],
-  docker: ['repository', 'imageName', 'imageTag', 'layerId', 'contentDigest'],
+  docker: ['repository', 'imageName', 'imageTag', 'contentDigest', 'artifactKind'],
   gitlfs: ['repository', 'sha256'],
   maven: ['repository', 'groupId', 'artifactId', 'baseVersion', 'classifier', 'extension'],
   npm: ['repository', 'scope', 'author', 'description', 'keywords', 'license'],
   nuget: ['repository', 'nugetId', 'tags', 'title', 'authors', 'description', 'summary'],
-  oci: ['repository', 'imageName', 'imageTag', 'contentDigest'],
   p2: ['repository', 'pluginName'],
   pypi: ['repository', 'classifiers', 'description', 'keywords', 'summary'],
   rubygems: ['repository', 'description', 'platform', 'summary'],
@@ -147,8 +144,8 @@ const FORMAT_SPECIFIC_API_PARAMS: Record<string, Record<string, string>> = {
   docker: {
     imageName: 'docker.imageName',
     imageTag: 'docker.imageTag',
-    layerId: 'docker.layerId',
     contentDigest: 'docker.contentDigest',
+    artifactKind: 'docker.artifactKind',
   },
   gitlfs: {
     sha256: 'sha256',
@@ -174,11 +171,6 @@ const FORMAT_SPECIFIC_API_PARAMS: Record<string, Record<string, string>> = {
     authors: 'nuget.authors',
     description: 'nuget.description',
     summary: 'nuget.summary',
-  },
-  oci: {
-    imageName: 'oci.imageName',
-    imageTag: 'oci.imageTag',
-    contentDigest: 'oci.contentDigest',
   },
   p2: {
     pluginName: 'p2.pluginName',
@@ -214,9 +206,9 @@ const FORMAT_SPECIFIC_API_PARAMS: Record<string, Record<string, string>> = {
 // =============================================================================
 
 describe('searchFilters', () => {
-  describe('FORMATS - All 27 Formats', () => {
-    it('defines exactly 27 formats', () => {
-      expect(Object.keys(FORMATS).length).toBe(27);
+  describe('FORMATS - All 26 Formats', () => {
+    it('defines exactly 26 formats', () => {
+      expect(Object.keys(FORMATS).length).toBe(26);
     });
 
     ALL_FORMATS.forEach(format => {
@@ -255,9 +247,9 @@ describe('searchFilters', () => {
   // TESTS: Format Filters
   // =============================================================================
 
-  describe('FORMAT_FILTERS - All 27 Formats', () => {
-    it('defines filters for exactly 27 formats', () => {
-      expect(Object.keys(FORMAT_FILTERS).length).toBe(27);
+  describe('FORMAT_FILTERS - All 26 Formats', () => {
+    it('defines filters for exactly 26 formats', () => {
+      expect(Object.keys(FORMAT_FILTERS).length).toBe(26);
     });
 
     ALL_FORMATS.forEach(format => {
@@ -354,7 +346,7 @@ describe('searchFilters', () => {
     it('returns array of all formats', () => {
       const options = getFormatOptions();
       expect(Array.isArray(options)).toBe(true);
-      expect(options.length).toBe(27);
+      expect(options.length).toBe(26);
     });
 
     it('includes all expected formats', () => {
@@ -545,16 +537,16 @@ describe('searchFilters', () => {
         const params = buildQueryParams('docker', 'nginx', {
           imageName: 'nginx',
           imageTag: 'latest',
-          layerId: 'sha256:abc123',
           contentDigest: 'sha256:def456',
+          artifactKind: 'helm',
         });
 
         expect(params.get('q')).toBe('nginx');
         expect(params.get('format')).toBe('docker');
         expect(params.get('docker.imageName')).toBe('nginx');
         expect(params.get('docker.imageTag')).toBe('latest');
-        expect(params.get('docker.layerId')).toBe('sha256:abc123');
         expect(params.get('docker.contentDigest')).toBe('sha256:def456');
+        expect(params.get('docker.artifactKind')).toBe('helm');
       });
 
       it('builds correct params for pypi', () => {

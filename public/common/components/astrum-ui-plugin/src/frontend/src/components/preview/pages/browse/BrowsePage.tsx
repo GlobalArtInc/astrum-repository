@@ -603,6 +603,18 @@ export function BrowsePage(): JSX.Element {
   );
 
   /**
+   * Opens a path of the repository, as a link in the details does: the tree expands to it and selects it.
+   */
+  const handleOpenPath = useCallback(
+    (path: string) => {
+      if (selectedRepository && path) {
+        router.stateService.go(ROUTE_STATES.path, { repoName: selectedRepository, path, tab: 'summary' });
+      }
+    },
+    [selectedRepository, router],
+  );
+
+  /**
    * Handle search result selection - navigate and potentially load component directly.
    * For hierarchical formats (Maven), let the tree handle expansion.
    * For flat formats (npm, nuget), construct node from search result and load directly.
@@ -1105,6 +1117,7 @@ export function BrowsePage(): JSX.Element {
       loading={detailLoading}
       error={detailError}
       onDeleted={handleDeleted}
+      onOpenPath={handleOpenPath}
       canDelete={canDelete}
       activeTab={params.tab || 'summary'}
       onTabChange={handleTabChange}

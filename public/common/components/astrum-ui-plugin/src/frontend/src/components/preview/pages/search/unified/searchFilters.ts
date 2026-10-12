@@ -137,12 +137,6 @@ export const FORMATS: Record<SearchFormat, FormatInfo> = {
     apiFormat: 'nuget',
     placeholder: 'Search by ID or tags',
   },
-  oci: {
-    id: 'oci',
-    label: 'OCI',
-    apiFormat: 'oci',
-    placeholder: 'Search by image name or tag',
-  },
   p2: {
     id: 'p2',
     label: 'P2',
@@ -342,7 +336,7 @@ export const FORMAT_FILTERS: Record<SearchFormat, FormatFilterConfig> = {
     filters: [REPOSITORY_FILTER],
   },
 
-  // Docker - uses imageName/imageTag instead of name/version
+  // Docker - uses imageName/imageTag instead of name/version; any OCI artifact, told apart by its kind
   docker: {
     format: FORMATS.docker,
     filters: [
@@ -362,18 +356,19 @@ export const FORMAT_FILTERS: Record<SearchFormat, FormatFilterConfig> = {
         placeholder: 'e.g., latest',
       },
       {
-        id: 'layerId',
-        label: 'Layer ID',
-        type: 'text',
-        apiParam: 'docker.layerId',
-        placeholder: 'SHA256 hash',
-      },
-      {
         id: 'contentDigest',
         label: 'Content Digest',
         type: 'text',
         apiParam: 'docker.contentDigest',
         placeholder: 'sha256:...',
+      },
+      {
+        id: 'artifactKind',
+        label: 'Artifact Type',
+        type: 'select',
+        apiParam: 'docker.artifactKind',
+        options: ['image', 'helm', 'signature', 'sbom', 'attestation', 'wasm', 'model', 'other'],
+        placeholder: 'Every artifact type',
       },
     ],
   },
@@ -543,36 +538,6 @@ export const FORMAT_FILTERS: Record<SearchFormat, FormatFilterConfig> = {
         type: 'text',
         apiParam: 'nuget.summary',
         placeholder: 'Package summary',
-      },
-    ],
-  },
-
-  // OCI - uses imageName/imageTag from OciSearchMappings.java (oci.* namespace).
-  // Reuses Docker's content facet internally but must not be aliased to Docker.
-  oci: {
-    format: FORMATS.oci,
-    filters: [
-      REPOSITORY_FILTER,
-      {
-        id: 'imageName',
-        label: 'Image Name',
-        type: 'text',
-        apiParam: 'oci.imageName',
-        placeholder: 'e.g., nginx',
-      },
-      {
-        id: 'imageTag',
-        label: 'Image Tag',
-        type: 'text',
-        apiParam: 'oci.imageTag',
-        placeholder: 'e.g., latest',
-      },
-      {
-        id: 'contentDigest',
-        label: 'Content Digest',
-        type: 'text',
-        apiParam: 'oci.contentDigest',
-        placeholder: 'sha256:...',
       },
     ],
   },
@@ -758,7 +723,7 @@ export const FORMAT_FILTERS: Record<SearchFormat, FormatFilterConfig> = {
 /** Format order for sidebar checkboxes - alphabetically sorted */
 export const FORMAT_ORDER: SearchFormat[] = [
   'alpine', 'ansiblegalaxy', 'apt', 'cargo', 'cocoapods', 'composer', 'conan', 'conda', 'docker', 'gitlfs',
-  'go', 'helm', 'huggingface', 'maven', 'npm', 'nuget', 'oci', 'p2', 'pub', 'pypi', 'r',
+  'go', 'helm', 'huggingface', 'maven', 'npm', 'nuget', 'p2', 'pub', 'pypi', 'r',
   'raw', 'rubygems', 'swift', 'terraform', 'yum',
 ];
 

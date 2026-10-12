@@ -85,6 +85,25 @@ describe('GAOverviewTab', () => {
     expect(screen.getByText('docker pull repo.example.com:8082/docker-hosted/acme/web:1.1.0')).toBeInTheDocument();
   });
 
+  it('offers helm for a Helm chart stored in a Docker repository', () => {
+    render(
+      <Theme>
+        <GAOverviewTab
+          detail={detail({ gaId: 'docker:charts/mychart', format: 'docker', name: 'charts/mychart' } as any)}
+          selectedVersion="0.1.0"
+          repositories={['docker-hosted']}
+          registryUrl="repo.example.com/docker-hosted"
+          dockerAttributes={{ artifactKind: 'helm', artifactType: 'application/vnd.cncf.helm.config.v1+json' }}
+        />
+      </Theme>,
+    );
+
+    // jsdom serves the page over plain HTTP, so helm is told to use it
+    expect(screen.getByText('helm pull oci://repo.example.com/docker-hosted/charts/mychart --version 0.1.0 --plain-http'))
+      .toBeInTheDocument();
+    expect(screen.queryByText(/docker pull/)).not.toBeInTheDocument();
+  });
+
   it('renders a snippet-type dropdown listing the maven snippet options', async () => {
     renderTab(detail({ gaId: 'maven:org.apache.commons:commons-lang3', format: 'maven' }));
     await userEvent.click(screen.getByRole('combobox', { name: /dependency snippet/i }));

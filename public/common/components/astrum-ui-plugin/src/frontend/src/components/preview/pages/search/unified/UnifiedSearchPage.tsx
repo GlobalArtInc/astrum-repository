@@ -18,6 +18,7 @@ import { useRouter } from '@uirouter/react';
 
 import UIStrings from '../../../constants/UIStrings';
 import { FormatBadge } from '../../browse/shared';
+import { DockerArtifactBadge } from '../../../shared/DockerArtifact';
 import { getFormatOptions } from './searchFilters';
 import { useRepositories } from './useRepositories';
 import { useSearchNavigation } from './useSearchNavigation';
@@ -301,6 +302,7 @@ export function UnifiedSearchPage(): JSX.Element {
                   </Text>
                   <Flex align="center" gap="2" wrap="wrap">
                     <FormatBadge format={result.format} size="1" radius="full" />
+                    {result.artifactKind && <DockerArtifactBadge kind={result.artifactKind} />}
                     <Text size="1" color="gray">{result.repository}</Text>
                   </Flex>
                 </button>
@@ -357,7 +359,10 @@ export function UnifiedSearchPage(): JSX.Element {
                   <Text size="2" className="unified-search__mono">{result.version || '—'}</Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <FormatBadge format={result.format} size="1" radius="full" />
+                  <Flex align="center" gap="2" wrap="wrap">
+                    <FormatBadge format={result.format} size="1" radius="full" />
+                    {result.artifactKind && <DockerArtifactBadge kind={result.artifactKind} />}
+                  </Flex>
                 </Table.Cell>
                 <Table.Cell>
                   <Text size="2" color="gray">{result.repository}</Text>

@@ -102,6 +102,32 @@ describe('UnifiedSearchPage', () => {
     expect(screen.getByText('Shown: 2')).toBeInTheDocument();
   });
 
+  it('names what a Docker result carries', async () => {
+    respond([
+      {
+        ...ITEMS[0],
+        name: 'charts/mychart',
+        assets: [{
+          id: 'a3',
+          path: '/v2/charts/mychart/manifests/0.1.0',
+          downloadUrl: 'z',
+          docker: { artifactKind: 'helm', artifactType: 'application/vnd.cncf.helm.config.v1+json' },
+        }],
+      },
+      ITEMS[0],
+      ITEMS[1],
+    ]);
+    renderPage();
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search components' }), { target: { value: 'herald' } });
+
+    const table = await screen.findByRole('table');
+    const rows = within(table).getAllByRole('button', { name: /in its repository/ });
+    expect(within(rows[0]).getByTestId('docker-artifact-badge')).toHaveTextContent('Helm chart');
+    expect(within(rows[1]).queryByTestId('docker-artifact-badge')).not.toBeInTheDocument();
+    expect(within(rows[2]).queryByTestId('docker-artifact-badge')).not.toBeInTheDocument();
+  });
+
   it('lists the components without a table on phones', async () => {
     const originalMatchMedia = window.matchMedia;
     window.matchMedia = jest.fn((query: string) => ({

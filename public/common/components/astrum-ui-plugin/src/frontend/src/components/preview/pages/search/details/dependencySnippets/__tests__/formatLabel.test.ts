@@ -15,7 +15,7 @@ describe('getFormatLabel', () => {
     expect(getFormatLabel('npm')).toBe('npm');
     expect(getFormatLabel('nuget')).toBe('NuGet');
     expect(getFormatLabel('pypi')).toBe('PyPI');
-    expect(getFormatLabel('oci')).toBe('OCI');
+    expect(getFormatLabel('docker')).toBe('Docker');
     expect(getFormatLabel('rubygems')).toBe('RubyGems');
   });
 
