@@ -33,6 +33,7 @@
     <module>astrum-repository-npm</module>
     <module>astrum-repository-helm</module>
     <module>astrum-repository-gitlfs</module>
+    <module>astrum-repository-yum</module>
   </modules>
 
 </project>
