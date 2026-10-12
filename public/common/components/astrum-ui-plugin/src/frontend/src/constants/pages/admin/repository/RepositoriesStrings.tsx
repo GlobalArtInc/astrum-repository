@@ -531,8 +531,8 @@ export default localize('react-ui', {
   // ---------------------------------------------------------------------------
   YUM: {
     SIGNING: {
-      title: 'Yum Settings',
-      description: 'GPG signing configuration for verifying Yum repodata files',
+      title: 'Metadata Signing',
+      description: 'Signs repodata/repomd.xml so that clients with repo_gpgcheck can verify it; the public key is served at repodata/repomd.xml.key',
       KEYPAIR: {
         label: 'Signing Key',
         helpText: 'PGP signing key pair (armored private key e.g. gpg --export-secret-key --armor)',
@@ -544,14 +544,14 @@ export default localize('react-ui', {
     },
     HOSTED: {
       title: 'Yum Settings',
-      description: 'Yum/RPM repository configuration',
+      description: 'Where the repository generates repodata and what it accepts',
       REPODATA_DEPTH: {
         label: 'Repodata Depth',
-        helpText: 'Specifies the repository depth where repodata folder(s) are created (0-5)',
+        helpText: 'Directory depth below the repository root at which repodata is generated, from 0 (the root) to 5',
       },
       DEPLOY_POLICY: {
-        label: 'Deploy Policy',
-        helpText: 'Validate that RPM deployments comply with the deployed version',
+        label: 'Layout Policy',
+        helpText: 'Strict accepts only RPM packages stored at least as deep as the repodata; permissive accepts any file at any path',
         STRICT: 'Strict',
         PERMISSIVE: 'Permissive',
       },

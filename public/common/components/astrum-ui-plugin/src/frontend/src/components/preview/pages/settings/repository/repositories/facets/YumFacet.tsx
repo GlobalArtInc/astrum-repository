@@ -32,9 +32,8 @@ const DEPLOY_POLICY_OPTIONS = [
  * YumFacet - Yum/RPM-specific repository configuration
  *
  * Fields:
- * - Repodata Depth (0-5)
- * - Deploy Policy (Strict/Permissive) for hosted repos
- * - GPG Signing keypair and passphrase (proxy and group)
+ * - Repodata Depth (0-5) and Layout Policy (Strict/Permissive) for hosted repos
+ * - GPG key pair and passphrase that sign repodata/repomd.xml, for every type
  */
 export function YumFacet({
   formData,
@@ -43,36 +42,9 @@ export function YumFacet({
   repoType,
 }: YumFacetProps) {
   const isHosted = repoType === 'hosted';
-  const showSigning = repoType === 'proxy' || repoType === 'group';
 
   return (
     <>
-      {showSigning && (
-        <SettingsFormSection
-          title={UIStrings.YUM.SIGNING.title}
-          description={UIStrings.YUM.SIGNING.description}
-        >
-          <SettingsTextArea
-            name="yumSigning-keypair"
-            label={UIStrings.YUM.SIGNING.KEYPAIR.label}
-            value={formData.yumSigning?.keypair || ''}
-            onChange={(value) => onNestedChange('yumSigning', { keypair: value })}
-            helpText={UIStrings.YUM.SIGNING.KEYPAIR.helpText}
-            rows={8}
-            monospace
-          />
-
-          <SettingsPasswordInput
-            name="yumSigning-passphrase"
-            label={UIStrings.YUM.SIGNING.PASSPHRASE.label}
-            value={formData.yumSigning?.passphrase || ''}
-            onChange={(value) => onNestedChange('yumSigning', { passphrase: value })}
-            helpText={UIStrings.YUM.SIGNING.PASSPHRASE.helpText}
-            showToggle={false}
-          />
-        </SettingsFormSection>
-      )}
-
       {isHosted && (
         <SettingsFormSection
           title={UIStrings.YUM.HOSTED.title}
@@ -104,6 +76,30 @@ export function YumFacet({
           />
         </SettingsFormSection>
       )}
+
+      <SettingsFormSection
+        title={UIStrings.YUM.SIGNING.title}
+        description={UIStrings.YUM.SIGNING.description}
+      >
+        <SettingsTextArea
+          name="yumSigning-keypair"
+          label={UIStrings.YUM.SIGNING.KEYPAIR.label}
+          value={formData.yumSigning?.keypair || ''}
+          onChange={(value) => onNestedChange('yumSigning', { keypair: value })}
+          helpText={UIStrings.YUM.SIGNING.KEYPAIR.helpText}
+          rows={8}
+          monospace
+        />
+
+        <SettingsPasswordInput
+          name="yumSigning-passphrase"
+          label={UIStrings.YUM.SIGNING.PASSPHRASE.label}
+          value={formData.yumSigning?.passphrase || ''}
+          onChange={(value) => onNestedChange('yumSigning', { passphrase: value })}
+          helpText={UIStrings.YUM.SIGNING.PASSPHRASE.helpText}
+          showToggle={false}
+        />
+      </SettingsFormSection>
     </>
   );
 }

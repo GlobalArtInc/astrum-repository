@@ -252,6 +252,53 @@ describe('useRepositoriesApi', () => {
     });
   });
 
+  describe('buildRepositoryConfig - yum', () => {
+    it('sends the yum settings and the signing key of a hosted repository', async () => {
+      mockRestClient.post.mockResolvedValueOnce({});
+
+      const { result } = renderHook(() => useRepositoriesApi());
+
+      await act(async () => {
+        await result.current.createRepository({
+          name: 'yum-hosted',
+          type: 'hosted',
+          format: 'yum',
+          recipe: 'yum-hosted',
+          online: true,
+          storage: { blobStoreName: 'default', strictContentTypeValidation: true },
+          yum: { repodataDepth: 2, deployPolicy: 'PERMISSIVE' },
+          yumSigning: { keypair: ' -----BEGIN PGP PRIVATE KEY BLOCK----- ', passphrase: 'secret' },
+        });
+      });
+
+      expect(mockRestClient.post.mock.calls[0][0]).toBe('/service/rest/v1/repositories/yum/hosted');
+      const postedBody = mockRestClient.post.mock.calls[0][1];
+      expect(postedBody.yum).toEqual({ repodataDepth: 2, deployPolicy: 'PERMISSIVE' });
+      expect(postedBody.yumSigning).toEqual({ keypair: '-----BEGIN PGP PRIVATE KEY BLOCK-----', passphrase: 'secret' });
+    });
+
+    it('omits yumSigning when no key is given', async () => {
+      mockRestClient.post.mockResolvedValueOnce({});
+
+      const { result } = renderHook(() => useRepositoriesApi());
+
+      await act(async () => {
+        await result.current.createRepository({
+          name: 'yum-group',
+          type: 'group',
+          format: 'yum',
+          recipe: 'yum-group',
+          online: true,
+          storage: { blobStoreName: 'default', strictContentTypeValidation: true },
+          group: { memberNames: ['yum-hosted'] },
+          yumSigning: { keypair: '', passphrase: '' },
+        });
+      });
+
+      expect(mockRestClient.post.mock.calls[0][1]).not.toHaveProperty('yumSigning');
+    });
+  });
+
   describe('buildRepositoryConfig - pypi proxy', () => {
     // Regression: the previous build skipped emitting the `pypi` block
     // when `data.pypi` was undefined, so the backend converter never

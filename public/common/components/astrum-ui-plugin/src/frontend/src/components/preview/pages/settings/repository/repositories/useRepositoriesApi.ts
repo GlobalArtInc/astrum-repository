@@ -637,7 +637,7 @@ export function buildRepositoryConfig(data: RepositoryFormData): Record<string, 
     };
   }
 
-  if (data.format === 'yum' && (data.type === 'proxy' || data.type === 'group')) {
+  if (data.format === 'yum') {
     const yumSigningConfig: Record<string, string | null> = {};
     if (data.yumSigning?.keypair?.trim()) {
       yumSigningConfig.keypair = data.yumSigning.keypair.trim();

@@ -104,7 +104,7 @@ describe('AptFacet', () => {
 });
 
 describe('YumFacet', () => {
-  it('shouldShowRepodataDepthAndDeployPolicyForHostedOnly', () => {
+  it('shouldShowRepodataDepthAndLayoutPolicyForHostedOnly', () => {
     const { rerender } = render(
       <Theme>
         <YumFacet formData={{ ...baseFormData, format: 'yum' }} onNestedChange={jest.fn()} errors={{}} repoType="hosted" />
@@ -112,7 +112,7 @@ describe('YumFacet', () => {
     );
     expect(screen.getByText('Yum Settings')).toBeInTheDocument();
     expect(screen.getByText('Repodata Depth')).toBeInTheDocument();
-    expect(screen.getByText('Deploy Policy')).toBeInTheDocument();
+    expect(screen.getByText('Layout Policy')).toBeInTheDocument();
 
     rerender(
       <Theme>
@@ -120,33 +120,32 @@ describe('YumFacet', () => {
       </Theme>
     );
     expect(screen.queryByText('Repodata Depth')).not.toBeInTheDocument();
-    expect(screen.queryByText('Deploy Policy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Layout Policy')).not.toBeInTheDocument();
   });
 
-  it('shouldShowSigningFieldsForProxyAndGroupOnly', () => {
-    const { rerender } = render(
-      <Theme>
-        <YumFacet formData={{ ...baseFormData, format: 'yum' }} onNestedChange={jest.fn()} errors={{}} repoType="proxy" />
-      </Theme>
-    );
-    expect(screen.getByText('Signing Key')).toBeInTheDocument();
-    expect(screen.getByText('Passphrase')).toBeInTheDocument();
+  it('shouldShowSigningFieldsForEveryType', () => {
+    for (const repoType of ['hosted', 'proxy', 'group'] as const) {
+      const { unmount } = render(
+        <Theme>
+          <YumFacet formData={{ ...baseFormData, format: 'yum' }} onNestedChange={jest.fn()} errors={{}} repoType={repoType} />
+        </Theme>
+      );
+      expect(screen.getByText('Metadata Signing')).toBeInTheDocument();
+      expect(screen.getByText('Signing Key')).toBeInTheDocument();
+      expect(screen.getByText('Passphrase')).toBeInTheDocument();
+      unmount();
+    }
+  });
 
-    rerender(
+  it('shouldClampTheRepodataDepth', () => {
+    const onNestedChange = jest.fn();
+    render(
       <Theme>
-        <YumFacet formData={{ ...baseFormData, format: 'yum' }} onNestedChange={jest.fn()} errors={{}} repoType="group" />
+        <YumFacet formData={{ ...baseFormData, format: 'yum' }} onNestedChange={onNestedChange} errors={{}} repoType="hosted" />
       </Theme>
     );
-    expect(screen.getByText('Signing Key')).toBeInTheDocument();
-    expect(screen.getByText('Passphrase')).toBeInTheDocument();
-
-    rerender(
-      <Theme>
-        <YumFacet formData={{ ...baseFormData, format: 'yum' }} onNestedChange={jest.fn()} errors={{}} repoType="hosted" />
-      </Theme>
-    );
-    expect(screen.queryByText('Signing Key')).not.toBeInTheDocument();
-    expect(screen.queryByText('Passphrase')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByDisplayValue('0'), { target: { value: '9' } });
+    expect(onNestedChange).toHaveBeenCalledWith('yum', { repodataDepth: 5 });
   });
 
   it('shouldShowPassphraseValueWhenProvided', () => {
