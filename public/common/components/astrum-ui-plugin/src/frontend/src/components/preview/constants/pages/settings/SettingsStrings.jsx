@@ -85,7 +85,5 @@ export default localize('react-ui', {
     VIEW_CLUSTER_NODES_STATUS: 'View cluster nodes and status',
     USAGE: 'Usage',
     MONITOR_HISTORICAL_USAGE_METRICS_TRENDS: 'Monitor historical usage metrics and trends',
-    ASTRUM_ONE_UI: 'Astrum One UI',
-    CONFIGURE_ASTRUM_ONE_UI_SETTINGS: 'Configure Astrum One UI settings and features',
   },
 }, 'PREVIEW.SETTINGS');

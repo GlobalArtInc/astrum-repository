@@ -60,12 +60,8 @@ describe('getInitialRoute', () => {
     expect(getInitialRoute()).toBe('preview.browse.welcome');
   });
 
-  it.each([
-    ['all Preview flags on', { defaultToPreviewUi: true, anonymousEnabled: true }],
-    ['defaultToPreviewUi off', { defaultToPreviewUi: false, anonymousEnabled: true }],
-    ['anonymousEnabled off', { defaultToPreviewUi: true, anonymousEnabled: false }],
-  ])('sends an anonymous visitor to the Astrum One dashboard with %s', (_flags, values) => {
-    mockGetValue.mockImplementation(stateWith({ anonymousUsername: 'anonymous', ...values }));
+  it('sends an anonymous visitor to the Astrum One dashboard', () => {
+    mockGetValue.mockImplementation(stateWith({ anonymousUsername: 'anonymous' }));
     expect(getInitialRoute()).toBe('preview.browse.welcome');
   });
 

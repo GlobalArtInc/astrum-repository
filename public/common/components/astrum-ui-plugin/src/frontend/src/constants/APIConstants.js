@@ -234,9 +234,6 @@ const APIConstants = {
       get PRIVILEGES_TYPES() {
         return `${this.BASE_URL}privileges/types`;
       },
-      get PREVIEW_UI_SETTINGS() {
-        return `${this.BASE_URL}preview-ui-settings`;
-      },
       get RECOVERY_MODE() {
         return `${this.BASE_URL}recovery-mode`;
       },

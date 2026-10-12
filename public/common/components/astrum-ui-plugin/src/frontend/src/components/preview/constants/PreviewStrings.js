@@ -22,7 +22,6 @@ export { default as EmailStrings } from './pages/settings/system/EmailStrings';
 export { default as HttpStrings } from './pages/settings/system/HttpStrings';
 export { default as IqServerStrings } from './pages/settings/system/IqServerStrings';
 export { default as NodesStrings } from './pages/settings/system/NodesStrings';
-export { default as PreviewUiStrings } from './pages/admin/system/PreviewUiStrings';
 export { default as MaliciousRiskStrings } from './pages/maliciousrisk/MaliciousRiskStrings';
 export { USAGE_STRINGS } from '../pages/settings/system/usage/usageStrings';
 export { default as LoggingStrings } from './pages/settings/support/LoggingStrings';

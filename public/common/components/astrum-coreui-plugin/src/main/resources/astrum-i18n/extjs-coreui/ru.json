@@ -443,8 +443,6 @@
   "Nodes_OSS_Message": "Astrum Repository Manager работает в режиме одного узла.",
   "Nodes_Quorum_lost_warning": "Недоступно достаточное число узлов Astrum Repository Manager в кластере, кворум не достигнут; база данных доступна только для чтения. <a href=\"#admin/system/nodes/clusterreset\">Устранение неполадок</a>",
   "Nodes_Text": "Узлы",
-  "PreviewUiSettings_Description": "Настройка доступа к интерфейсу Astrum One UI",
-  "PreviewUiSettings_Text": "Astrum One UI",
   "Privilege_PrivilegeAdd_Create_Error": "У вас нет прав на создание привилегий",
   "Privilege_PrivilegeFeature_Delete_Button": "Удалить привилегию",
   "Privilege_PrivilegeFeature_Details_Tab": "Сводка",

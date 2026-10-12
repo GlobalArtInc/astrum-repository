@@ -22,13 +22,8 @@ describe('previewAdminRoutes', () => {
     expect(pagesRoute.component).not.toBe(UIView);
   });
 
-  it('sends old links to the Astrum One UI settings page to the settings hub', () => {
-    const route = previewAdminRoutes.find((r) => r.name === 'preview.admin.system.previewui');
-
-    expect(route).toBeDefined();
-    expect(route.url).toBe('/previewui');
-    expect(route.component).toBeUndefined();
-    expect(route.redirectTo).toBe('preview.settings');
+  it('has no state for the retired Astrum One UI settings page, whose links the Classic URL table sends to the hub', () => {
+    expect(previewAdminRoutes.find((r) => r.name === 'preview.admin.system.previewui')).toBeUndefined();
   });
 
   it('defines the settings hub route', () => {

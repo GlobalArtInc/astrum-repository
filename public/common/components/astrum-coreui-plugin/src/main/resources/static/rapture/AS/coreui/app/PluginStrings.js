@@ -1122,10 +1122,6 @@ Ext.define('AS.coreui.app.PluginStrings', {
     Api_Text: 'API',
     Api_Description: 'Learn how to interact with GlobalArt Astrum Repository programmatically',
 
-    // Admin -> System -> Astrum One UI
-    PreviewUiSettings_Text: 'Astrum One UI',
-    PreviewUiSettings_Description: 'Configure access to the Astrum One UI experience',
-
     // Admin -> System -> Capabilities
     Capabilities_Text: 'Capabilities',
     Capabilities_Description: 'Manage capabilities',

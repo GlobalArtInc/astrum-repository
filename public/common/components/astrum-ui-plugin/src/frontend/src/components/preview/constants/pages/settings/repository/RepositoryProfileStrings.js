@@ -154,9 +154,6 @@ export default localize('react-ui', {
     VIEW_DETAILED_REPORT: 'View Detailed Report',
     HEALTH_CHECK_NOT_ENABLED_REPOSITORY: 'Health Check is not enabled for this repository. Enable it to scan for security and license issues.',
   },
-  CLASSIC_LINK: {
-    OPENS_DEFAULT_UI_ASTRUM_ONE: 'Opens in default UI. Astrum One UI settings coming soon.',
-  },
   CONFIGURATION: {
     YES: 'Yes',
     NO: 'No',

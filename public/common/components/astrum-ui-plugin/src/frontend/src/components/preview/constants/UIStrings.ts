@@ -13,13 +13,11 @@
  */
 import AstrumUIStrings from '../../../constants/UIStrings';
 import MaliciousRiskStrings from './pages/maliciousrisk/MaliciousRiskStrings';
-import PreviewUiStrings from './pages/admin/system/PreviewUiStrings';
 
 const PreviewUIStrings = {
   ...AstrumUIStrings,
   // Preview-specific keys referenced by components/super/:
   ...MaliciousRiskStrings,
-  ...PreviewUiStrings,
 };
 
 export default PreviewUIStrings;

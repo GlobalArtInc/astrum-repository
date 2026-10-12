@@ -6,7 +6,6 @@ export default localize('react-coreui', {
   ACCOUNT: 'Account',
   ANONYMOUS_ACCESS: 'Anonymous Access',
   API: 'API',
-  ASTRUM_ONE_UI: 'Astrum One UI',
   ATLASSIAN_CROWD: 'Atlassian Crowd',
   ATTRIBUTES: 'Attributes',
   AUDIT: 'Audit',

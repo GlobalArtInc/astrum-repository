@@ -203,7 +203,6 @@ export const SupportZipPage     = React.lazy(() => import('./components/preview/
 export const ApiPage                = React.lazy(() => import('./components/preview/pages/settings/system/api/ApiPage'));
 export const TasksPage              = React.lazy(() => import('./components/preview/pages/settings/system/tasks/TasksPage'));
 export const CapabilitiesPage       = React.lazy(() => import('./components/preview/pages/settings/system/capabilities/CapabilitiesPage'));
-export const PreviewUiSettingsPage  = React.lazy(() => import('./components/preview/pages/settings/system/preview-ui/PreviewUiSettingsPage'));
 export const EmailPage              = React.lazy(() => import('./components/preview/pages/settings/system/email/EmailPage'));
 export const HttpPage               = React.lazy(() => import('./components/preview/pages/settings/system/http/HttpPage'));
 export const NodesPage              = React.lazy(() => import('./components/preview/pages/settings/system/nodes/NodesPage'));

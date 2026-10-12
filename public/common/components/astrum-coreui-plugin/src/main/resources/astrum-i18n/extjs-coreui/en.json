@@ -443,8 +443,6 @@
   "Nodes_OSS_Message": "You are running a single-node instance of Astrum Repository Manager.",
   "Nodes_Quorum_lost_warning": "Not enough Astrum Repository Manager nodes in the cluster are reachable so quorum cannot be achieved; database is read only. <a href=\"#admin/system/nodes/clusterreset\">Troubleshoot</a>",
   "Nodes_Text": "Nodes",
-  "PreviewUiSettings_Description": "Configure access to the Astrum One UI experience",
-  "PreviewUiSettings_Text": "Astrum One UI",
   "Privilege_PrivilegeAdd_Create_Error": "You do not have permission to create privileges",
   "Privilege_PrivilegeFeature_Delete_Button": "Delete privilege",
   "Privilege_PrivilegeFeature_Details_Tab": "Summary",

@@ -1038,12 +1038,6 @@ export const previewAdminRoutes = [
     data: { title: PreviewRouteTitles.CAPABILITY_DETAILS },
   },
   {
-    // The Classic UI is retired, so there is nothing left to configure here; old links open the hub.
-    name: 'preview.admin.system.previewui',
-    url: '/previewui',
-    redirectTo: 'preview.settings',
-  },
-  {
     name: 'preview.admin.system.notifications',
     url: '/notifications',
     component: NotificationsPage,

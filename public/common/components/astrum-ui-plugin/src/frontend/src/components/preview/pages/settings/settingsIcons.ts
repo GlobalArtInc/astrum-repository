@@ -9,7 +9,6 @@ import {
   Code,
   Database,
   Eraser,
-  Eye,
   FileArchive,
   FileKey,
   Filter,
@@ -73,5 +72,4 @@ export const SETTINGS_ICONS: Readonly<Record<string, LucideIcon>> = {
   notifications: Bell,
   nodes: Boxes,
   usage: BarChart3,
-  'preview-ui': Eye,
 };
