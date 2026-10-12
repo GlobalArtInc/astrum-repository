@@ -1,0 +1,66 @@
+import { describe, expect, it } from 'vitest';
+import { legacyPath } from './legacy';
+
+const CASES: Array<[string, string | null]> = [
+  ['', null],
+  ['#main', null],
+  ['#something/else', null],
+  ['#browse/welcome', '/'],
+  ['#browse/welcome?tab=overview', '/'],
+  ['#browse', '/'],
+  ['#preview/browse/welcome', '/'],
+  ['#browse/browse', '/browse'],
+  ['#browse/browse?format=npm', '/browse?format=npm'],
+  ['#browse/browse:maven-releases', '/browse/maven-releases'],
+  ['#browse/browse:maven-releases:org%2Fexample%2Fapp', '/browse/maven-releases/org/example/app'],
+  ['#browse/maven-releases/org/example?tab=usage', '/browse/maven-releases/org/example?tab=usage'],
+  ['#preview/browse/npm-internal/', '/browse/npm-internal/'],
+  ['#browse/search?q=react&format=npm', '/search?q=react&format=npm'],
+  ['#browse/search=keyword%3Dreact', '/search?q=react'],
+  ['#browse/search/maven', '/search?format=maven2'],
+  ['#browse/search/npm=keyword%3Dlodash', '/search?q=lodash&format=npm'],
+  ['#browse/search/custom', '/search/custom'],
+  ['#browse/search/component/npm::react?version=19.0.0', '/search/component/npm::react?version=19.0.0'],
+  ['#browse/upload', '/upload'],
+  ['#browse/upload:raw-files', '/upload/raw-files'],
+  ['#browse/upload/raw-files', '/upload/raw-files'],
+  ['#browse/api', '/api'],
+  ['#browse/audit?repositoryName=raw-files', '/audit?repositoryName=raw-files'],
+  ['#browse/repository-profile/maven-central', '/admin/repository/repositories/maven-central/profile'],
+  ['#admin', '/settings'],
+  ['#settings', '/settings'],
+  ['#admin/repository', '/admin/repository/repositories'],
+  ['#admin/security', '/admin/security/privileges'],
+  ['#admin/support', '/admin/support/logs'],
+  ['#admin/system', '/admin/system/tasks'],
+  ['#admin/repository/repositories', '/admin/repository/repositories'],
+  ['#admin/repository/repositories:maven-central', '/admin/repository/repositories/maven-central'],
+  [
+    '#admin/repository/repositories/maven-central?tab=storage',
+    '/admin/repository/repositories/maven-central?tab=storage',
+  ],
+  ['#admin/repository/cleanuppolicies', '/admin/repository/cleanup-policies'],
+  ['#admin/repository/routingrules', '/admin/repository/routing-rules'],
+  ['#preview/admin/repository/blobstores', '/admin/repository/blobstores'],
+  ['#admin/security/users:admin', '/admin/security/users/admin'],
+  ['#admin/security/users/admin/default', '/admin/security/users/admin/default'],
+  ['#admin/system/api', '/api'],
+  ['#admin/system/bundles', '/'],
+  ['#admin/nothing/here', '/'],
+  ['#user/account', '/user/account'],
+  ['#user/accesstokens', '/user/access-tokens'],
+  ['#user/NuGetApiToken', '/user/nuget-api-token'],
+  ['#user/usertoken', '/'],
+  ['#404', '/404'],
+  [`#/login?returnTo=${btoa('#browse/browse')}`, '/login?returnTo=%2Fbrowse'],
+  [`#login?returnTo=${btoa('#admin/security/users')}`, '/login?returnTo=%2Fadmin%2Fsecurity%2Fusers'],
+  [`#/login?returnTo=${btoa('#browse/welcome')}`, '/login'],
+  ['#/login?returnTo=%%%', '/login'],
+  ['#/login', '/login'],
+];
+
+describe('old hash addresses', () => {
+  it.each(CASES)('%s goes to %s', (hash, path) => {
+    expect(legacyPath(hash)).toBe(path);
+  });
+});
