@@ -1,0 +1,7 @@
+{
+  "dashboard.menu.label": "Обзор",
+  "dashboard.home.title": "Обзор",
+  "dashboard.home.description": "Как используются репозитории этого сервера",
+  "dashboard.home.placeholderTitle": "Пока показать нечего",
+  "dashboard.home.placeholderText": "Здесь появятся загрузки, занятое место и самые используемые компоненты."
+}

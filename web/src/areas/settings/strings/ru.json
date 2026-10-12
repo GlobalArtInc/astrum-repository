@@ -1,0 +1,12 @@
+{
+  "settings.menu.label": "Настройки",
+  "settings.hub.title": "Настройки",
+  "settings.hub.description": "Репозитории, хранилища и безопасность этого сервера",
+  "settings.hub.filter": "Найти настройку",
+  "settings.hub.repository": "Репозитории",
+  "settings.hub.security": "Безопасность",
+  "settings.hub.none": "Здесь нет ничего, что вы можете изменить",
+  "settings.hub.noneText": "У вашей учётной записи нет прав на чтение настроек этого сервера. Если они нужны, обратитесь к администратору.",
+  "settings.hub.noMatches": "Подходящих настроек нет",
+  "settings.hub.empty": "На этом сервере пока нет настроек"
+}

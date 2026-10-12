@@ -1,0 +1,12 @@
+{
+  "settings.menu.label": "Settings",
+  "settings.hub.title": "Settings",
+  "settings.hub.description": "Repositories, storage and security of this server",
+  "settings.hub.filter": "Find a setting",
+  "settings.hub.repository": "Repository",
+  "settings.hub.security": "Security",
+  "settings.hub.none": "There is nothing here you can change",
+  "settings.hub.noneText": "Your account has no permission to read the settings of this server. Ask an administrator if you need it.",
+  "settings.hub.noMatches": "No settings match",
+  "settings.hub.empty": "No settings are available on this server yet"
+}

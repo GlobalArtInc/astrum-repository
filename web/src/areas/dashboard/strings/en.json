@@ -1,0 +1,7 @@
+{
+  "dashboard.menu.label": "Dashboard",
+  "dashboard.home.title": "Overview",
+  "dashboard.home.description": "How the repositories of this server are used",
+  "dashboard.home.placeholderTitle": "Nothing to show yet",
+  "dashboard.home.placeholderText": "Downloads, storage and the most used components will appear here."
+}

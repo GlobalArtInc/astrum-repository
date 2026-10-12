@@ -1,0 +1,120 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgb(0 0 0 / 0.45);
+}
+
+.panel {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  z-index: 61;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(70vh, 640px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--color-panel-solid);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-4);
+  box-shadow: var(--shadow-6);
+  outline: none;
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.input {
+  all: unset;
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  font-size: var(--font-size-3);
+  color: var(--gray-12);
+}
+
+.input::placeholder {
+  color: var(--gray-10);
+}
+
+.results {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.hint {
+  padding: var(--space-4) var(--space-3);
+  color: var(--gray-11);
+  font-size: var(--font-size-2);
+}
+
+.group {
+  padding: var(--space-1) 0;
+}
+
+.groupTitle {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  color: var(--gray-11);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.groupList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-2);
+  color: var(--gray-12);
+  text-decoration: none;
+  font-size: var(--font-size-2);
+  cursor: pointer;
+}
+
+.item[data-active="true"],
+.item:hover {
+  background: var(--accent-a3);
+}
+
+.footer {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--gray-a4);
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+}
+
+@media (max-width: 1023px) {
+  .panel {
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    transform: none;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .footer {
+    display: none;
+  }
+}
