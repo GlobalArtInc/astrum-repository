@@ -8,6 +8,7 @@ import { securityArea } from '../areas/security';
 import { selectorsArea } from '../areas/selectors';
 import { settingsArea } from '../areas/settings';
 import { uploadArea } from '../areas/upload';
+import { userArea } from '../areas/user';
 import type { Area } from './area';
 
 export const areas: Area[] = [
@@ -21,4 +22,5 @@ export const areas: Area[] = [
   blobstoresArea,
   selectorsArea,
   securityArea,
+  userArea,
 ];
