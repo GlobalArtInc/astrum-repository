@@ -302,6 +302,73 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   deletes), REST deletes that cascade to tags and referrers, a Bearer challenge from the authentication
   layer (it answers with Basic before the format sees the request).
 
+## M3 conventions (web UI foundation, 2026-10-12)
+- Layout: `web/` (own `package.json` with pnpm 10.18 through corepack, `pnpm-lock.yaml`, `biome.json`;
+  scripts `dev` (Vite with `/service`, `/repository`, `/v2` proxied to `ASTRUM_URL`), `build`, `lint`,
+  `typecheck`, `test`, `i18n:check`, `e2e`). `src/app` (bootstrap, router, `area.ts`, `areas.ts`, `legacy.ts`),
+  `src/shell` (header, menu, drawer, search panel host, theme, 404), `src/auth` (UI state, permissions, login,
+  guard, session watcher), `src/api`, `src/ui` (component layer), `src/i18n`, `src/styles` (tokens copied from
+  `astrum-brand.css`: dark by default, light, system; Radix `blue` is the Astrum violet; Geist self-hosted),
+  `src/areas/<area>/` (pages, components, `strings/`, tests). `web/README.md` is the how-to for page authors.
+- Area registration: `src/areas/<area>/index.ts` exports an `Area { id, routes, menu, settings, search }` and
+  `src/app/areas.ts` lists it (one line). Routes `{ path, page | load, need, requiresUser }` live under the
+  shell (`load` = lazy default export). Menu entries `{ id, to, label, icon, group: main|admin, order, need,
+  visible, activeFor }` (orders: dashboard 10, search 20, browse 30, upload 40, settings 900). Settings tiles
+  `{ id, section: repository|security, to, title, description, icon, order, need }`; the hub hides sections
+  without visible tiles and the Settings entry shows when any tile is visible. Search panel providers
+  `{ id, order, need, Results({ query, close }), submit(query) }` render `SearchGroup`/`SearchItem` from
+  `src/shell/search` (Ctrl+K/Cmd+K, arrows, Enter). Paths: `/`, `/browse[/<repo>/<path>]`, `/search`,
+  `/search/custom`, `/search/component/...`, `/upload[/<repo>]`, `/audit`, `/settings`,
+  `/admin/repository/<page>[/...]`, `/admin/security/<page>[/...]`, `/user/account`, `/user/access-tokens`,
+  `/login?returnTo=`; `/admin`, `/admin/repository`, `/admin/security` redirect to their first page.
+  `src/app/legacy.ts` maps old hash URLs onto these (e.g. `#browse/repository-profile/x` →
+  `/admin/repository/repositories/x/profile`, `#admin/security/users:jane` → `/admin/security/users/jane`);
+  change both together.
+- Strings: `strings/{en,ru}.json` per area (and shell, ui, auth); keys `<area>.<page>.<name>` starting with
+  the folder name; plurals as objects of `Intl.PluralRules` forms; `useT()`, `t(key, vars)`, `t.rich(key,
+  nodes)`; keys written as literals. `pnpm i18n:check` fails on differing keys, plural forms or placeholders
+  and on used keys missing from the dictionaries. Format names (`ui/formats.ts`) and the logo are the only
+  texts in code. The language (cookie `astrum-language`, else the browser) switches without a reload. The web
+  dictionaries are not in Ownlate yet.
+- UI state: `GET /service/rest/internal/ui/state` (`routes/internal/ui_state.rs`) answers `version`,
+  `revision`, `user` (`userId`, `name`, `email`, `source`; null for strangers and anonymous callers),
+  `anonymousAccess`, `permissions` (the caller's permission strings plus content selector grants as
+  `astrum:repository-content-selector:<selector>:<format>:<repo>:<actions>`), `formats` (`id`, `apiName`,
+  `types` of the registered formats), `baseUrl` (from the request), `sessionTimeoutMinutes`, and
+  `adminPasswordFile` while `<data>/admin.password` exists, only to strangers and holders of `astrum:*`.
+  It is fetched before the router starts and on every return to the tab.
+- Permissions: `src/auth/permissions.ts` matches like `astrum-security` `Permission`; a need is a permission
+  string, `{ all }`, `{ any }` or `{ some: prefix }` (holds anything under the prefix). `useCan(need)`,
+  `useSession()`, `Guard` (anonymous callers go to the login page, signed-in ones see "cannot open").
+  Without anonymous access every shell page sends strangers to `/login?returnTo=`.
+- API client: same-origin `fetch` with `X-Astrum-UI: true` and `X-Astrum-CSRF` from `astrum_csrf` on unsafe
+  methods; `api.get/post/put/delete`, `` path`...${x}` ``, `withQuery`; `useApi(path)` (query key
+  `['api', path]`), `useInvalidateApi()(prefix)`; `ApiError` (`status`, `message`, `fieldErrors`),
+  `describeError(t, error)`. A 401 clears the user: with anonymous access a dialog offers to sign in again,
+  without it the login page opens with the return address. Signing out reloads the page.
+- Components (`src/ui`): `Page`, `DataTable` (sort, client pages or "show more", server "load more",
+  skeleton, empty/error, row links and actions, cards on phones), `useForm` and fields (text, number, secret
+  with `stored`, select, multi-select, checkbox, switch, textarea; 400 field errors land on their fields),
+  `FormError`, `ConfirmDialog`/`useConfirm`, `useToast`, `CopyButton`, `CodeBlock`, `QueryTabs` (`?tab=`),
+  `EmptyState`, `ErrorState`, `FormatBadge`/`TypeBadge`/`StatusBadge`, `FileSize`, `DateTime`,
+  `RelativeTime`, `UnsavedChangesGuard`. Pages work at 390 px without horizontal scroll, in both themes.
+- Tests: Vitest + Testing Library next to the code; `renderWithApp(element, { state, path, areas, routes })`
+  and `fakeServer({ 'GET /path': handler })` in `src/test`. 148 unit tests at the foundation.
+- End-to-end: Playwright in `web/e2e` with the preinstalled Chromium; the global setup starts `ASTRUM_BIN` on
+  a free port (or `ASTRUM_E2E_PORT`) with a fresh data dir and database (`ASTRUM_E2E_DATABASE_URL`,
+  `ASTRUM_E2E_DATABASE_PREFIX`) serving `web/dist`, and drops both afterwards; `test`/`signIn` from
+  `e2e/fixtures.ts`; `ASTRUM_SHOTS_DIR=<dir> pnpm e2e screenshots` takes 1440x900 and 390x844 shots in both
+  themes. The shared target dir is rebuilt by every agent, so copy your binary before pointing `ASTRUM_BIN`
+  at it.
+- Serving (`crates/astrum-server/src/web.rs`): `web.dir` / `ASTRUM_WEB_DIR` / `--web-dir` (default
+  `/usr/share/astrum/web`); GET/HEAD outside `/repository`, `/service`, `/v2`, `/content`, `/.well-known` get
+  the file or `index.html`; `/assets/` cached for a year (a missing asset is 404), the rest `no-cache` with an
+  ETag; CSP `default-src 'self'` without inline scripts (inline styles allowed for Radix), `frame-ancestors
+  'none'`, `nosniff`, `Referrer-Policy: same-origin`. Without the directory `/` says the UI is not installed.
+- CI and image: `docker/server.Dockerfile` builds `web/` in a node stage (frozen lockfile) into
+  `/usr/share/astrum/web`; `server.yml` runs on `web/**` with a `web` job (install, lint, typecheck, test,
+  i18n check, build) and the image job checks `/` and `/browse/x`; `image.yml` ignores `web/**`.
+
 ## M3 progress (2026-10-12)
 - M3 UI API (`crates/astrum-api/src/routes/internal/ui/`, tests `tests/ui_*.rs`, shared helpers
   `tests/ui_support`): internal endpoints under `/service/rest/internal/ui`, camelCase JSON, showing only
