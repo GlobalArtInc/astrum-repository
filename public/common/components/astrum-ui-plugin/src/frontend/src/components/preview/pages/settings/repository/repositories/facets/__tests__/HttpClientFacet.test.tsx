@@ -406,6 +406,36 @@ describe('HttpClientFacet', () => {
       });
     });
 
+    it('uses the bearer token type the server expects', () => {
+      const onNestedChange = jest.fn();
+      const handler = createAuthTypeChangeHandler(onNestedChange, { existingAuth: null });
+
+      handler('bearerToken');
+
+      expect(onNestedChange).toHaveBeenCalledWith('httpClient', {
+        authentication: { type: 'bearerToken', username: '', password: '' },
+      });
+    });
+
+    it('shows the token of a repository the server returned with a bearer token', () => {
+      renderFacet({
+        format: 'huggingface',
+        formData: {
+          ...defaultFormData,
+          format: 'huggingface',
+          proxy: { remoteUrl: 'https://huggingface.co/', contentMaxAge: -1, metadataMaxAge: 60 },
+          httpClient: {
+            blocked: false,
+            autoBlock: true,
+            connection: null,
+            authentication: { type: 'bearerToken', bearerToken: 'hf_secret' },
+          },
+        },
+      });
+
+      expect(document.querySelector('input[name="httpClient-bearerToken"]')).not.toBeNull();
+    });
+
     it('initializes with empty credentials when no existing auth', () => {
       const onNestedChange = jest.fn();
       const handler = createAuthTypeChangeHandler(onNestedChange, {

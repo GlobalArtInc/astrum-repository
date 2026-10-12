@@ -147,7 +147,7 @@ export function validateRepository(data: RepositoryFormData, options?: { isCloud
 
     // HTTP Authentication validation — fields required vary by auth type
     const authType = data.httpClient?.authentication?.type;
-    if (authType === 'bearer') {
+    if (authType === 'bearerToken') {
       if (!data.httpClient?.authentication?.bearerToken?.trim()) {
         errors['httpClient.authentication.bearerToken'] = RepositoriesPageStrings.FORM_MACHINE.BEARER_TOKEN_REQUIRED;
       }

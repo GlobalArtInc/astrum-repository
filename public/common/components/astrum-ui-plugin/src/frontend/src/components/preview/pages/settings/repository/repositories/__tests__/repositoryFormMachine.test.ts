@@ -810,7 +810,7 @@ describe('repositoryFormMachine', () => {
         service.send({ type: 'UPDATE', name: 'proxy', value: baseProxyData.proxy } as any);
         service.send({ type: 'UPDATE', name: 'httpClient', value: {
           ...baseProxyData.httpClient,
-          authentication: { type: 'bearer', bearerToken: '' },
+          authentication: { type: 'bearerToken', bearerToken: '' },
         } } as any);
         service.send({ type: 'SUBMIT' } as any);
 
@@ -833,7 +833,7 @@ describe('repositoryFormMachine', () => {
         service.send({ type: 'UPDATE', name: 'proxy', value: baseProxyData.proxy } as any);
         service.send({ type: 'UPDATE', name: 'httpClient', value: {
           ...baseProxyData.httpClient,
-          authentication: { type: 'bearer', bearerToken: 'my-secret-token' },
+          authentication: { type: 'bearerToken', bearerToken: 'my-secret-token' },
         } } as any);
         service.send({ type: 'SUBMIT' } as any);
 

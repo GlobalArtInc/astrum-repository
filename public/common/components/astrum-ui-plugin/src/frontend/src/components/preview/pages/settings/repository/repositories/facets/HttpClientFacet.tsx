@@ -79,7 +79,7 @@ const BASE_AUTH_TYPE_OPTIONS = [
   { value: 'ntlm', label: UIStrings.HTTP_CLIENT.AUTH_TYPE.NTLM },
 ];
 
-const BEARER_AUTH_TYPE_OPTION = { value: 'bearer', label: UIStrings.HTTP_CLIENT.AUTH_TYPE.BEARER };
+const BEARER_AUTH_TYPE_OPTION = { value: 'bearerToken', label: UIStrings.HTTP_CLIENT.AUTH_TYPE.BEARER };
 
 /**
  * Creates the Authentication Type change handler. Exported as a pure factory for direct unit
@@ -101,7 +101,7 @@ export function createAuthTypeChangeHandler(
     } else {
       onNestedChange('httpClient', {
         authentication: {
-          type: value as 'username' | 'ntlm' | 'bearer',
+          type: value as HttpClientAuthenticationConfig['type'],
           username: existingAuth?.username || '',
           password: existingAuth?.password || '',
         },
@@ -297,7 +297,7 @@ export function HttpClientFacet({
           </>
         )}
 
-        {authType === 'bearer' && (
+        {authType === 'bearerToken' && (
           <SettingsPasswordInput
             name="httpClient-bearerToken"
             label={UIStrings.HTTP_CLIENT.BEARER_TOKEN.label}

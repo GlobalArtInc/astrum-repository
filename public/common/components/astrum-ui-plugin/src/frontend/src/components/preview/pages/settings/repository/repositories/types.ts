@@ -68,7 +68,7 @@ export interface HttpClientConnectionConfig {
  * HTTP authentication configuration
  */
 export interface HttpClientAuthenticationConfig {
-  type: 'username' | 'ntlm' | 'bearer';
+  type: 'username' | 'ntlm' | 'bearerToken';
   username?: string;
   password?: string;
   ntlmHost?: string;
