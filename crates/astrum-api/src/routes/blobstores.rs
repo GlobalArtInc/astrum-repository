@@ -70,10 +70,10 @@ struct QuotaResult {
     blob_store_name: String,
 }
 
-struct Measured {
-    unavailable: bool,
-    totals: Totals,
-    available: Option<u64>,
+pub(crate) struct Measured {
+    pub(crate) unavailable: bool,
+    pub(crate) totals: Totals,
+    pub(crate) available: Option<u64>,
 }
 
 async fn list(
@@ -81,6 +81,26 @@ async fn list(
     caller: Caller,
 ) -> Result<axum::Json<Vec<Summary>>, ApiError> {
     caller.require(READ)?;
+    Ok(axum::Json(
+        measure_all(&state)
+            .await?
+            .into_iter()
+            .map(|(config, measured)| Summary {
+                soft_quota: config.soft_quota,
+                kind: config.kind().as_str(),
+                unavailable: measured.unavailable,
+                blob_count: measured.totals.blob_count,
+                total_size_in_bytes: measured.totals.total_bytes,
+                available_space_in_bytes: measured.available,
+                name: config.name,
+            })
+            .collect(),
+    ))
+}
+
+pub(crate) async fn measure_all(
+    state: &AppState,
+) -> Result<Vec<(StoreConfig, Measured)>, ApiError> {
     let configs = state.blob_stores().configs().await.map_err(internal)?;
     let mut checks = JoinSet::new();
     for (index, config) in configs.iter().cloned().enumerate() {
@@ -92,24 +112,11 @@ async fn list(
         let (index, result) = done.map_err(ApiError::internal)?;
         measured[index] = Some(result);
     }
-    Ok(axum::Json(
-        configs
-            .into_iter()
-            .zip(measured)
-            .map(|(config, measured)| {
-                let measured = measured.expect("every store was measured");
-                Summary {
-                    soft_quota: config.soft_quota,
-                    kind: config.kind().as_str(),
-                    unavailable: measured.unavailable,
-                    blob_count: measured.totals.blob_count,
-                    total_size_in_bytes: measured.totals.total_bytes,
-                    available_space_in_bytes: measured.available,
-                    name: config.name,
-                }
-            })
-            .collect(),
-    ))
+    Ok(configs
+        .into_iter()
+        .zip(measured)
+        .map(|(config, measured)| (config, measured.expect("every store was measured")))
+        .collect())
 }
 
 async fn quota_status(
@@ -163,7 +170,7 @@ async fn remove(
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn measure(state: &AppState, config: &StoreConfig) -> Measured {
+pub(crate) async fn measure(state: &AppState, config: &StoreConfig) -> Measured {
     let stores = state.blob_stores();
     let store = match stores.get(&config.name).await {
         Ok(store) => store,

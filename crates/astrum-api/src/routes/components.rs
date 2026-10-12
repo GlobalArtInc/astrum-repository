@@ -72,7 +72,7 @@ fn time(value: DateTime<FixedOffset>) -> String {
     value.to_rfc3339_opts(SecondsFormat::Millis, false)
 }
 
-fn encode_path(path: &str) -> String {
+pub(crate) fn encode_path(path: &str) -> String {
     path.split('/')
         .map(|segment| {
             percent_encoding::utf8_percent_encode(segment, percent_encoding::NON_ALPHANUMERIC)
