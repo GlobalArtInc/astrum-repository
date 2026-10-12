@@ -51,9 +51,9 @@ function differences(left: RepositoryDocument, right: RepositoryDocument): strin
 
 describe('reference documents', () => {
   it('cover every format and type the server registry offers, twice', () => {
-    expect(DOCUMENTS).toHaveLength(118);
+    expect(DOCUMENTS).toHaveLength(120);
     const kinds = new Set(DOCUMENTS.map(([, document]) => `${document.format}/${document.type}`));
-    expect(kinds.size).toBe(59);
+    expect(kinds.size).toBe(60);
   });
 
   it.each(DOCUMENTS)('%s is saved unchanged when nothing is edited', (_, document) => {

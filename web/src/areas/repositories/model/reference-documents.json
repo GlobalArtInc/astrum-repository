@@ -1414,6 +1414,34 @@
     "type": "proxy",
     "url": "http://127.0.0.1:8081/repository/m3-repo-go-proxy-min"
   },
+  "helm/group/max": {
+    "format": "helm",
+    "group": {
+      "memberNames": ["m3-repo-helm-hosted-min"]
+    },
+    "name": "m3-repo-helm-group-max",
+    "online": false,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-helm-group-max"
+  },
+  "helm/group/min": {
+    "format": "helm",
+    "group": {
+      "memberNames": ["m3-repo-helm-hosted-min"]
+    },
+    "name": "m3-repo-helm-group-min",
+    "online": true,
+    "storage": {
+      "blobStoreName": "default",
+      "strictContentTypeValidation": false
+    },
+    "type": "group",
+    "url": "http://127.0.0.1:8081/repository/m3-repo-helm-group-min"
+  },
   "helm/hosted/max": {
     "cleanup": {
       "policyNames": []
