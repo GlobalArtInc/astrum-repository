@@ -21,7 +21,7 @@ use astrum_repo::config::Repository;
 use astrum_security::{SecretBox, SecurityModel, Subject};
 use sea_orm::DatabaseConnection;
 
-pub use access::View;
+pub use access::{Grant, View};
 pub use error::{CHALLENGE, ContentError};
 pub use format::{Format, SearchKey, UploadField, UploadForm, UploadSpec, fetch};
 pub use proxy::Freshness;

@@ -1,4 +1,4 @@
-use astrum_security::Action;
+use astrum_security::{Action, ContentSelector};
 
 use crate::{ContentError, Ctx};
 
@@ -33,13 +33,26 @@ impl View {
     }
 }
 
+#[derive(Debug)]
+pub enum Grant<'a> {
+    Whole,
+    Selected(Vec<&'a ContentSelector>),
+    Nothing,
+}
+
+impl Grant<'_> {
+    pub fn any(&self) -> bool {
+        !matches!(self, Grant::Nothing)
+    }
+}
+
 impl Ctx {
-    pub fn allowed(&self, view: View, path: &str) -> bool {
+    pub fn grant(&self, view: View) -> Grant<'_> {
         if self.trusted {
-            return true;
+            return Grant::Whole;
         }
         let Some(subject) = &self.subject else {
-            return false;
+            return Grant::Nothing;
         };
         let format = self.format_id();
         let repository = self.name();
@@ -47,14 +60,15 @@ impl Ctx {
             "astrum:repository-view:{format}:{repository}:{}",
             view.name()
         )) {
-            return true;
+            return Grant::Whole;
         }
         if subject.scope == astrum_security::Scope::Read
             && !matches!(view, View::Browse | View::Read)
         {
-            return false;
+            return Grant::Nothing;
         }
-        subject.selectors().iter().any(|grant| {
+        let mut selected: Vec<&ContentSelector> = Vec::new();
+        for grant in subject.selectors() {
             let action = grant
                 .actions
                 .iter()
@@ -66,15 +80,29 @@ impl Ctx {
                     .repository
                     .strip_prefix("*-")
                     .is_some_and(|wanted| wanted == format);
-            action
-                && format_matches
-                && repository_matches
-                && self
-                    .security
-                    .selectors
-                    .get(&grant.selector)
-                    .is_some_and(|selector| selector.selector.matches(format, path))
-        })
+            if !(action && format_matches && repository_matches) {
+                continue;
+            }
+            if let Some(selector) = self.security.selectors.get(&grant.selector)
+                && !selected.iter().any(|known| known.name == selector.name)
+            {
+                selected.push(selector);
+            }
+        }
+        match selected.is_empty() {
+            true => Grant::Nothing,
+            false => Grant::Selected(selected),
+        }
+    }
+
+    pub fn allowed(&self, view: View, path: &str) -> bool {
+        match self.grant(view) {
+            Grant::Whole => true,
+            Grant::Selected(selectors) => selectors
+                .iter()
+                .any(|selector| selector.selector.matches(self.format_id(), path)),
+            Grant::Nothing => false,
+        }
     }
 
     pub fn require(&self, view: View, path: &str) -> Result<(), ContentError> {
