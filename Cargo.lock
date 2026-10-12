@@ -186,8 +186,14 @@ dependencies = [
 name = "astrum-repo"
 version = "3.0.0-dev"
 dependencies = [
+ "astrum-db",
+ "astrum-testkit",
+ "chrono",
+ "sea-orm",
  "serde",
  "serde_json",
+ "thiserror",
+ "tokio",
  "url",
 ]
 
