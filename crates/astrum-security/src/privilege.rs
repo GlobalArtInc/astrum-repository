@@ -62,8 +62,56 @@ impl Action {
         }
     }
 
+    pub const ALL_ACTIONS: [Action; 11] = [
+        Action::Read,
+        Action::Browse,
+        Action::Edit,
+        Action::Add,
+        Action::Delete,
+        Action::Run,
+        Action::Associate,
+        Action::Disassociate,
+        Action::Start,
+        Action::Stop,
+        Action::All,
+    ];
+
+    pub const APPLICATION: [Action; 9] = [
+        Action::Read,
+        Action::Edit,
+        Action::Add,
+        Action::Delete,
+        Action::Associate,
+        Action::Disassociate,
+        Action::Start,
+        Action::Stop,
+        Action::All,
+    ];
+
     pub fn is_bread(self) -> bool {
         Self::BREAD.contains(&self) || self == Action::All
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Action::Read => "READ",
+            Action::Browse => "BROWSE",
+            Action::Edit => "EDIT",
+            Action::Add => "ADD",
+            Action::Delete => "DELETE",
+            Action::Run => "RUN",
+            Action::Associate => "ASSOCIATE",
+            Action::Disassociate => "DISASSOCIATE",
+            Action::Start => "START",
+            Action::Stop => "STOP",
+            Action::All => "ALL",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        Self::ALL_ACTIONS
+            .into_iter()
+            .find(|action| action.as_str().eq_ignore_ascii_case(value.trim()))
     }
 }
 
@@ -93,14 +141,21 @@ pub enum PrivilegeKind {
     },
     RepositoryContentSelector {
         content_selector: String,
+        #[serde(default = "any")]
+        format: String,
         repository: String,
         actions: Vec<Action>,
     },
 }
 
+fn any() -> String {
+    "*".to_owned()
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SelectorGrant {
     pub selector: String,
+    pub format: String,
     pub repository: String,
     pub actions: Vec<Action>,
 }
@@ -129,6 +184,47 @@ impl PrivilegeKind {
             PrivilegeKind::RepositoryView { .. } => "repository-view",
             PrivilegeKind::RepositoryAdmin { .. } => "repository-admin",
             PrivilegeKind::RepositoryContentSelector { .. } => "repository-content-selector",
+        }
+    }
+
+    pub fn actions(&self) -> &[Action] {
+        match self {
+            PrivilegeKind::Application { actions, .. }
+            | PrivilegeKind::RepositoryView { actions, .. }
+            | PrivilegeKind::RepositoryAdmin { actions, .. }
+            | PrivilegeKind::RepositoryContentSelector { actions, .. } => actions,
+            PrivilegeKind::Wildcard { .. } => &[],
+        }
+    }
+
+    pub fn allowed_actions(type_id: &str) -> &'static [Action] {
+        match type_id {
+            "application" => &Action::APPLICATION,
+            "repository-view" | "repository-admin" | "repository-content-selector" => &[
+                Action::Browse,
+                Action::Read,
+                Action::Edit,
+                Action::Add,
+                Action::Delete,
+                Action::All,
+            ],
+            _ => &[],
+        }
+    }
+
+    pub fn effective_permission(&self) -> Option<Permission> {
+        match self {
+            PrivilegeKind::RepositoryContentSelector {
+                content_selector,
+                format,
+                repository,
+                actions,
+            } => Permission::parse(&format!(
+                "{DOMAIN}:repository-content-selector:{content_selector}:{format}:{repository}:{}",
+                join(actions, Action::repository_name)?
+            ))
+            .ok(),
+            other => other.permission(),
         }
     }
 
@@ -166,10 +262,12 @@ impl PrivilegeKind {
         match self {
             PrivilegeKind::RepositoryContentSelector {
                 content_selector,
+                format,
                 repository,
                 actions,
             } => Some(SelectorGrant {
                 selector: content_selector.clone(),
+                format: format.clone(),
                 repository: repository.clone(),
                 actions: actions.clone(),
             }),
@@ -285,29 +383,68 @@ mod tests {
     fn content_selector_privileges_are_grants_not_permissions() {
         let kind = PrivilegeKind::RepositoryContentSelector {
             content_selector: "team-a".to_owned(),
+            format: "*".to_owned(),
             repository: "*".to_owned(),
             actions: vec![Action::Read],
         };
         assert!(kind.permission().is_none());
         assert_eq!(kind.selector_grant().unwrap().selector, "team-a");
+        assert_eq!(
+            kind.effective_permission().unwrap().to_string(),
+            "astrum:repository-content-selector:team-a:*:*:read"
+        );
+    }
+
+    #[test]
+    fn actions_parse_without_regard_to_case() {
+        assert_eq!(Action::parse("read"), Some(Action::Read));
+        assert_eq!(Action::parse(" Disassociate "), Some(Action::Disassociate));
+        assert_eq!(Action::parse("CREATE"), None);
+        for action in Action::ALL_ACTIONS {
+            assert_eq!(Action::parse(action.as_str()), Some(action));
+            assert_eq!(
+                serde_json::to_value(action).unwrap(),
+                Value::String(action.as_str().to_owned())
+            );
+        }
+    }
+
+    #[test]
+    fn each_type_has_its_actions() {
+        let application = PrivilegeKind::allowed_actions("application");
+        assert!(application.contains(&Action::Start));
+        assert!(!application.contains(&Action::Browse));
+        assert!(!application.contains(&Action::Run));
+        let view = PrivilegeKind::allowed_actions("repository-view");
+        assert!(view.contains(&Action::Browse));
+        assert!(!view.contains(&Action::Start));
+        assert!(PrivilegeKind::allowed_actions("wildcard").is_empty());
     }
 
     #[test]
     fn stored_form_round_trips() {
         let kind = PrivilegeKind::RepositoryContentSelector {
             content_selector: "team-a".to_owned(),
+            format: "maven2".to_owned(),
             repository: "maven-releases".to_owned(),
             actions: vec![Action::Read, Action::Browse],
         };
         let properties = kind.properties();
         assert_eq!(
             properties,
-            json!({"contentSelector": "team-a", "repository": "maven-releases", "actions": ["READ", "BROWSE"]})
+            json!({"contentSelector": "team-a", "format": "maven2", "repository": "maven-releases", "actions": ["READ", "BROWSE"]})
         );
         assert_eq!(
             PrivilegeKind::from_stored("p", kind.type_id(), &properties).unwrap(),
             kind
         );
+        let without_format = PrivilegeKind::from_stored(
+            "p",
+            "repository-content-selector",
+            &json!({"contentSelector": "team-a", "repository": "*", "actions": ["READ"]}),
+        )
+        .unwrap();
+        assert_eq!(without_format.selector_grant().unwrap().format, "*");
         assert!(PrivilegeKind::from_stored("p", "script", &json!({})).is_err());
     }
 }

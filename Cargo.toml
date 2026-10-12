@@ -37,6 +37,8 @@ hyper-util = { version = "0.1", features = ["server-auto", "tokio"] }
 md-5 = "0.10"
 migrator = { package = "sqlmig", version = "0.2.1" }
 rand = "0.9"
+regex = "1"
+regex-syntax = "0.8"
 rustix = { version = "1", features = ["fs"] }
 s3s = "0.17"
 s3s-fs = "0.17"

@@ -263,6 +263,8 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "rand 0.9.5",
+ "regex",
+ "regex-syntax",
  "sea-orm",
  "serde",
  "serde_json",

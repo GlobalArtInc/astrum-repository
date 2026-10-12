@@ -1,7 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use astrum_db::entity::{
-    repository, security_privilege, security_role, security_user, security_user_role,
+    content_selector, repository, security_privilege, security_role, security_user,
+    security_user_role,
 };
 use astrum_db::setting;
 use sea_orm::{ConnectionTrait, EntityTrait, QuerySelect};
@@ -12,6 +13,7 @@ use crate::catalogue::{self, DEFAULT_SOURCE};
 use crate::permission::Permission;
 use crate::privilege::{Privilege, PrivilegeKind, SelectorGrant};
 use crate::realm;
+use crate::selector::Selector;
 use crate::subject::Subject;
 
 pub const REALMS_KEY: &str = "security.realms";
@@ -73,6 +75,13 @@ pub struct Role {
     pub read_only: bool,
 }
 
+#[derive(Clone, Debug)]
+pub struct ContentSelector {
+    pub name: String,
+    pub description: String,
+    pub selector: Selector,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnonymousSettings {
@@ -97,6 +106,7 @@ pub struct SecurityModel {
     pub roles: BTreeMap<String, Role>,
     pub privileges: BTreeMap<String, Privilege>,
     pub user_roles: BTreeMap<(String, String), Vec<String>>,
+    pub selectors: BTreeMap<String, ContentSelector>,
     pub anonymous: AnonymousSettings,
     pub realms: Vec<String>,
     pub session_timeout_minutes: u32,
@@ -175,6 +185,24 @@ impl SecurityModel {
                 .insert((row.user_id, row.source), strings(&row.roles));
         }
 
+        for row in content_selector::Entity::find().all(db).await? {
+            match Selector::parse(&row.expression) {
+                Ok(selector) => {
+                    model.selectors.insert(
+                        row.name.clone(),
+                        ContentSelector {
+                            name: row.name,
+                            description: row.description,
+                            selector,
+                        },
+                    );
+                }
+                Err(error) => {
+                    tracing::warn!(selector = %row.name, %error, "a stored content selector is ignored")
+                }
+            }
+        }
+
         model.anonymous = setting::get(db, ANONYMOUS_KEY).await?.unwrap_or_default();
         model.realms = setting::get(db, REALMS_KEY).await?.unwrap_or_else(|| {
             realm::DEFAULT_ACTIVE
@@ -232,6 +260,33 @@ impl SecurityModel {
             }
         }
         (permissions, selectors)
+    }
+
+    pub fn can_grant_privilege(&self, subject: &Subject, privilege_id: &str) -> bool {
+        self.privileges.get(privilege_id).is_some_and(|privilege| {
+            privilege
+                .kind
+                .effective_permission()
+                .is_some_and(|permission| subject.permits(&permission))
+        })
+    }
+
+    pub fn can_grant_role(&self, subject: &Subject, role_id: &str) -> bool {
+        if !self.roles.contains_key(role_id) {
+            return false;
+        }
+        let role_id = role_id.to_owned();
+        self.expand_roles([&role_id])
+            .iter()
+            .filter_map(|id| self.roles.get(id))
+            .flat_map(|role| role.privileges.iter())
+            .filter(|id| self.privileges.contains_key(*id))
+            .all(|id| self.can_grant_privilege(subject, id))
+    }
+
+    pub fn contains_role(&self, role_id: &str, wanted: &str) -> bool {
+        let role_id = role_id.to_owned();
+        self.expand_roles([&role_id]).contains(wanted)
     }
 
     pub fn subject_with_roles(
@@ -364,6 +419,33 @@ mod tests {
         let anonymous = model.anonymous_subject().unwrap();
         assert!(anonymous.anonymous);
         assert!(anonymous.is_permitted("astrum:users:read"));
+    }
+
+    #[test]
+    fn only_what_a_subject_holds_can_be_granted() {
+        let mut model = model();
+        model
+            .roles
+            .insert("admins".to_owned(), role("admins", &["as-all"], &[]));
+        model.roles.insert(
+            "wraps-admins".to_owned(),
+            role("wraps-admins", &[], &["admins"]),
+        );
+        let jane = model.subject("jane", DEFAULT_SOURCE, realm::LOCAL);
+        assert!(model.can_grant_privilege(&jane, "as-users-read"));
+        assert!(!model.can_grant_privilege(&jane, "as-users-update"));
+        assert!(!model.can_grant_privilege(&jane, "missing"));
+        assert!(model.can_grant_role(&jane, "devs"));
+        assert!(model.can_grant_role(&jane, "readers"));
+        assert!(!model.can_grant_role(&jane, "admins"));
+        assert!(!model.can_grant_role(&jane, "wraps-admins"));
+        assert!(!model.can_grant_role(&jane, "missing"));
+        let root =
+            model.subject_with_roles("root", DEFAULT_SOURCE, realm::LOCAL, &["admins".to_owned()]);
+        assert!(model.can_grant_role(&root, "wraps-admins"));
+        assert!(model.contains_role("wraps-admins", "admins"));
+        assert!(model.contains_role("loop-a", "loop-a"));
+        assert!(!model.contains_role("devs", "admins"));
     }
 
     #[test]

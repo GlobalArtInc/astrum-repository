@@ -6,7 +6,9 @@ pub mod permission;
 pub mod privilege;
 pub mod realm;
 pub mod secrets;
+pub mod selector;
 pub mod sessions;
+pub mod ssrf;
 pub mod subject;
 pub mod tokens;
 
@@ -19,11 +21,13 @@ use sea_orm::{ActiveValue, DatabaseConnection, DbErr, EntityTrait};
 use sha2::{Digest, Sha256};
 
 pub use bootstrap::{Bootstrapped, bootstrap};
-pub use model::{AnonymousSettings, Role, SecurityModel, User, UserStatus};
+pub use model::{AnonymousSettings, ContentSelector, Role, SecurityModel, User, UserStatus};
 pub use permission::Permission;
 pub use privilege::{Action, Privilege, PrivilegeKind, SelectorGrant};
 pub use secrets::SecretBox;
+pub use selector::{Selector, SelectorError};
 pub use sessions::{ActiveSession, NewSession};
+pub use ssrf::SsrfProtection;
 pub use subject::{Scope, Subject};
 pub use tokens::{TokenError, TokenInfo};
 
