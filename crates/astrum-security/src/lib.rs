@@ -1,3 +1,4 @@
+pub mod api_keys;
 pub mod bootstrap;
 pub mod catalogue;
 pub mod format_tokens;

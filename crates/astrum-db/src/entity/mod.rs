@@ -1,4 +1,5 @@
 pub mod access_token;
+pub mod api_key;
 pub mod asset;
 pub mod audit_event;
 pub mod blob_store;

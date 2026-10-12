@@ -6,6 +6,7 @@ mod browse;
 mod browse_asset;
 mod dashboard;
 pub(crate) mod identity;
+mod nuget_api_key;
 mod privileges;
 mod repositories;
 mod search;
@@ -32,6 +33,7 @@ pub fn routes() -> Router<AppState> {
         .merge(privileges::routes())
         .merge(audit::routes())
         .merge(identity::routes())
+        .merge(nuget_api_key::routes())
 }
 
 fn time(value: DateTime<FixedOffset>) -> String {

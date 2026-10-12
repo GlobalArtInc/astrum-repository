@@ -534,6 +534,7 @@ async fn remove(
         state.security().close_sessions_of(&user_id).await?;
         state.security().delete_tokens_of(&user_id).await?;
         state.security().revoke_format_tokens_of(&user_id).await?;
+        state.security().delete_api_keys_of(&user_id).await?;
     }
 
     changed(

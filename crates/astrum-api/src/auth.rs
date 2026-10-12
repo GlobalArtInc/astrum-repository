@@ -6,6 +6,7 @@ use axum::response::{IntoResponse, Response};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 
+use astrum_security::api_keys;
 use astrum_security::format_tokens::looks_like_format_token;
 use astrum_security::tokens::looks_like_token;
 use astrum_security::{AuthError, Subject};
@@ -119,6 +120,22 @@ async fn resolve(
             }
             Err(AuthError::Internal(error)) => Err(error.into()),
         };
+    }
+    if let Some(key) = headers
+        .get(api_keys::NUGET_HEADER)
+        .and_then(|value| value.to_str().ok())
+    {
+        match state
+            .security()
+            .authenticate_api_key(api_keys::NUGET, key)
+            .await
+        {
+            Ok(subject) => return Ok(Caller(Some(subject))),
+            Err(AuthError::BadCredentials) => {
+                tracing::debug!("a NuGet API key was not accepted");
+            }
+            Err(AuthError::Internal(error)) => return Err(error.into()),
+        }
     }
     if let Some(token) = cookie(headers, SESSION_COOKIE)
         && let Some(session) = state.security().session(token).await?
