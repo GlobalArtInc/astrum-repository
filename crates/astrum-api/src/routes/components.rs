@@ -216,19 +216,30 @@ impl Filters {
     }
 
     fn like(&mut self, column: &str, pattern: &str) {
-        let escaped = pattern
-            .replace('\\', "\\\\")
-            .replace('%', "\\%")
-            .replace('_', "\\_")
-            .replace('*', "%");
-        let parameter = self.bind(escaped);
+        let parameter = self.bind(like_pattern(pattern));
         self.clauses.push(format!("{column} ILIKE {parameter}"));
+    }
+
+    fn like_attribute(&mut self, alias: &str, path: &str, pattern: &str) {
+        let parameter = self.bind(like_pattern(pattern));
+        let node = format!("({alias}.attributes #> '{path}')");
+        self.clauses.push(format!(
+            "(CASE WHEN jsonb_typeof({node}) = 'array' THEN EXISTS (SELECT 1 FROM jsonb_array_elements_text({node}) AS element(value) WHERE element.value ILIKE {parameter}) ELSE ({alias}.attributes #>> '{path}') ILIKE {parameter} END)"
+        ));
     }
 
     fn equals(&mut self, column: &str, value: &str) {
         let parameter = self.bind(value.to_owned());
         self.clauses.push(format!("{column} = {parameter}"));
     }
+}
+
+fn like_pattern(pattern: &str) -> String {
+    pattern
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
+        .replace('*', "%")
 }
 
 fn token(offset: u64) -> String {
@@ -303,8 +314,7 @@ fn search_filters(
                     SearchTarget::Component => prefix,
                     SearchTarget::Asset => asset_prefix,
                 };
-                let column = format!("({alias}.attributes #>> '{path}')");
-                filters.like(&column, value);
+                filters.like_attribute(alias, &path, value);
             }
         }
     }

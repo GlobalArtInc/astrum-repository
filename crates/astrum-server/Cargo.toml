@@ -18,6 +18,7 @@ astrum-format-docker.workspace = true
 astrum-format-helm.workspace = true
 astrum-format-maven.workspace = true
 astrum-format-npm.workspace = true
+astrum-format-nuget.workspace = true
 astrum-format-pypi.workspace = true
 astrum-format-raw.workspace = true
 astrum-db.workspace = true
