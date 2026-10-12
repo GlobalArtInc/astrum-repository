@@ -34,7 +34,7 @@ ASTRUM_BIN=/path/to/astrum corepack pnpm e2e           # needs a build and a Pos
      ],
      menu: [{ id: 'browse', to: '/browse', label: 'browse.menu.label', icon: FolderOpen, group: 'main',
               order: 30, need: { some: 'astrum:repository-view' } }],
-     settings: [],   // tiles: { id, section: 'repository' | 'security', to, title, description, icon, order, need }
+     settings: [],   // tiles: { id, to, need } for an id of the settings catalog (below)
      search: [],     // header search providers: { id, order, need, Results, submit }
      watchers: [],   // components the shell renders on every page, e.g. the onboarding redirect
    };
@@ -42,12 +42,36 @@ ASTRUM_BIN=/path/to/astrum corepack pnpm e2e           # needs a build and a Pos
 
    Pages are default exports when loaded with `load` (one chunk per page), or components with `page`.
 2. Add it to the list in `src/app/areas.ts` (one line).
-3. Menu orders in use: dashboard 10, search 20, browse 30, upload 40, settings 900 (group `admin`).
+3. Menu orders (`MENU_ORDER` in `src/app/area.ts`): dashboard 10, search 20, browse 30, upload 40, API 50
+   (group `main`, icon `FileCode`, label "API", path `/api`; the old menu shows it between Upload and the
+   divider), settings 900 (group `admin`).
+
+### Settings tiles
+
+The hub (`/settings`) shows the four sections of Astrum One in their order: Repository, Security, Support,
+System. `src/areas/settings/sections.ts` lists every old tile (`CATALOG`) with its id, section, order,
+path, icon and texts; a tile appears only when an area registers its id, so a new page registers
+`{ id, to, need }` and lands in its old place with the old title, description and icon:
+
+| Section | Tiles (id, order) |
+| --- | --- |
+| repository | `repositories` 10, `blobstores` 20, `cleanup-policies` 30, `routing-rules` 40, `selectors` 50, `proprietary` 60 |
+| security | `users` 10, `roles` 20, `privileges` 30, `realms` 40, `ldap` 50, `oidc` 60, `anonymous` 70, `ssl-certificates` 80 |
+| support | `system-information` 10, `logs` 20, `logging` 30, `metric-health` 40, `support-zip` 50 |
+| system | `tasks` 10, `email` 20, `http` 30, `api` 40, `capabilities` 50, `notifications` 60, `nodes` 70 |
+
+A tile whose id is not in the catalog needs its own `section`, `title`, `description`, `icon` and `order`.
+The audit log and the SSRF protection page have no tile (the old hub has none): the audit log opens from a
+repository and by its address, and SSRF protection moves under System → HTTP once that page exists. The
+header bell opens the page of the `metric-health` tile once an area registers it (callers with
+`astrum:metrics:read` see the bell).
 
 Routes are relative paths under the shell. `requiresUser: true` sends anonymous callers to `/login`;
 `need` hides the page (signed-in callers see "You cannot open this page", anonymous ones go to the login
 page). Use `Page` (title, breadcrumbs, actions, description) as the root of every page: it also sets the
-document title `<title> - Astrum Repository`.
+document title `<title> - GlobalArt Astrum Repository`. English texts follow the style of Astrum One:
+Title Case for names of pages, tiles, menu items and buttons ("Blob Stores", "Sign Out"), sentence case
+for sentences.
 
 ## Texts
 
@@ -82,12 +106,17 @@ upload the English and the Russian to Ownlate and pull, or the `i18n` workflow f
 
 ## Components (`src/ui`)
 
-`Page`, `DataTable` (sorting, client paging or "show more", server "load more", skeleton, empty and error
-states, row links and actions, cards on phones), `useForm` with `TextField`, `NumberField`,
+`Page` (breadcrumbs, title, `titleExtra` beside it, description, actions; `size="large"` for the 28 px
+titles of the dashboard, search and browse pages, `gutter` `small` | `medium` | `large` for 16, 24 or
+24/32 px padding), `DataTable` (sorting, client paging or "show more", server "load more", skeleton,
+empty and error states, row links and actions; on phones a table that scrolls sideways like the old admin
+lists, or cards with `phoneLayout="cards"`), `useForm` with `TextField`, `NumberField`,
 `SecretField` (`stored` keeps a server-side secret when left empty), `SelectField`, `MultiSelectField`,
 `CheckboxField`, `SwitchField`, `TextAreaField` (spread `form.field('name')` into them; 400 field errors
-land on their fields), `FormError`, `ConfirmDialog` / `useConfirm()`, `useToast()`, `CopyButton`,
-`CodeBlock`, `QueryTabs` (`?tab=`), `EmptyState`, `ErrorState`, `FormatBadge`, `TypeBadge`, `StatusBadge`,
+land on their fields), `FormError`, `ConfirmDialog` / `useConfirm()`, `useToast()`, `CopyButton` (`variant="text"` for the
+"Copy" button), `CodeBlock` (dark in both themes, long lines wrap), `QueryTabs` (`?tab=`), `EmptyState`,
+`ErrorState`, `FormatBadge` (lower-case id in the format colour, `variant="name"` for the grey name),
+`TypeBadge` (grey lower-case pill, `variant="outline"` for the outlined name), `StatusBadge`,
 `FileSize`, `DateTime`, `RelativeTime`, `UnsavedChangesGuard`. Pages must work at 390 px wide without
 horizontal scrolling, in both themes.
 

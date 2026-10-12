@@ -318,11 +318,13 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
 - Area registration: `src/areas/<area>/index.ts` exports an `Area { id, routes, menu, settings, search }` and
   `src/app/areas.ts` lists it (one line). Routes `{ path, page | load, need, requiresUser }` live under the
   shell (`load` = lazy default export). Menu entries `{ id, to, label, icon, group: main|admin, order, need,
-  visible, activeFor }` (orders: dashboard 10, search 20, browse 30, upload 40, settings 900). Settings tiles
-  `{ id, section: repository|security, to, title, description, icon, order, need }`; the hub hides sections
-  without visible tiles and the Settings entry shows when any tile is visible. Search panel providers
-  `{ id, order, need, Results({ query, close }), submit(query) }` render `SearchGroup`/`SearchItem` from
-  `src/shell/search` (Ctrl+K/Cmd+K, arrows, Enter). Paths: `/`, `/browse[/<repo>/<path>]`, `/search`,
+  visible, activeFor }` (orders: dashboard 10, search 20, browse 30, upload 40, API 50, settings 900). Settings
+  tiles `{ id, to, need }` name an id of the catalog in `src/areas/settings/sections.ts`, which places them in
+  the old sections (repository, security, support, system) and order with the old texts and icons (other ids
+  bring `section, title, description, icon, order`); the hub hides sections without visible tiles and the
+  Settings entry shows when any tile is visible. Search providers `{ id, order, need, Results({ query, close
+  }), submit(query) }` render `SearchGroup`/`SearchItem` from `src/shell/search` in the dropdown under the
+  header field (Ctrl+K/Cmd+K, arrows, Enter, Esc; a full-screen search bar on compact screens). Paths: `/`, `/browse[/<repo>/<path>]`, `/search`,
   `/search/custom`, `/search/component/...`, `/upload[/<repo>]`, `/audit`, `/settings`,
   `/admin/repository/<page>[/...]`, `/admin/security/<page>[/...]`, `/user/account`, `/user/access-tokens`,
   `/login?returnTo=`; `/admin`, `/admin/repository`, `/admin/security` redirect to their first page.
