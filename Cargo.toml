@@ -14,6 +14,7 @@ astrum-api = { path = "crates/astrum-api" }
 astrum-blob = { path = "crates/astrum-blob" }
 astrum-content = { path = "crates/astrum-content" }
 astrum-format-docker = { path = "crates/astrum-format-docker" }
+astrum-format-helm = { path = "crates/astrum-format-helm" }
 astrum-format-maven = { path = "crates/astrum-format-maven" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
@@ -60,6 +61,7 @@ sea-orm = { version = "1.1", default-features = false, features = ["sqlx-postgre
 semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_norway = "0.9"
 sha1 = "0.10"
 sha2 = "0.10"
 subtle = "2"

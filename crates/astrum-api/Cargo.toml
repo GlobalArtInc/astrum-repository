@@ -28,6 +28,7 @@ uuid.workspace = true
 
 [dev-dependencies]
 astrum-format-docker.workspace = true
+astrum-format-helm.workspace = true
 astrum-format-maven.workspace = true
 astrum-format-npm.workspace = true
 astrum-format-pypi.workspace = true
@@ -37,6 +38,7 @@ flate2.workspace = true
 hex.workspace = true
 http-body-util.workspace = true
 md-5.workspace = true
+serde_norway.workspace = true
 sha1.workspace = true
 sha2.workspace = true
 tar.workspace = true
