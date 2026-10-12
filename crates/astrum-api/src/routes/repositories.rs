@@ -149,6 +149,7 @@ async fn update(
     let seal = |plain: &str| state.secrets().seal(plain);
     let repository = Repository::prepare(spec, request, Some(&existing), &seal).map_err(invalid)?;
     let updated = writer.update(&existing.name, repository).await?;
+    state.content().forget_repository(&updated.name);
     changed(&state, &caller, "updated", &updated).await
 }
 
@@ -163,7 +164,12 @@ async fn remove(
     if !subject.is_permitted(&admin(&existing, "delete")) {
         return Err(hidden_or_denied(subject, &existing));
     }
+    let blobs = astrum_content::store::blobs_of_repository(state.db().conn(), &existing.name)
+        .await
+        .map_err(ApiError::internal)?;
     let deleted = writer.delete(&existing.name).await?;
+    state.content().forget_repository(&deleted.name);
+    state.content().purge_blobs(blobs).await;
     changed(&state, &caller, "deleted", &deleted).await
 }
 
@@ -210,10 +216,13 @@ async fn maintain(
     if !kinds.contains(&repository.kind) {
         return Err(ApiError::BadRequest(refusal.to_owned()));
     }
-    tracing::info!(
-        repository = %repository.name,
-        "accepted a maintenance request; content maintenance is not built yet"
-    );
+    if repository.kind != RepositoryType::Hosted {
+        astrum_content::store::mark_stale(state.db().conn(), &repository.name)
+            .await
+            .map_err(ApiError::internal)?;
+        state.content().forget_repository(&repository.name);
+    }
+    tracing::info!(repository = %repository.name, "cached content marked for revalidation");
     Ok(StatusCode::NO_CONTENT)
 }
 

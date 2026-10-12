@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use astrum_blob::BlobStores;
+use astrum_content::Content;
 use astrum_db::Database;
 use astrum_db::audit::{self, Event};
 use astrum_security::{SecretBox, Security};
@@ -31,12 +32,18 @@ struct Inner {
     data_dir: PathBuf,
     security: Security,
     secrets: SecretBox,
-    blob_stores: BlobStores,
+    blob_stores: Arc<BlobStores>,
+    content: Content,
 }
 
 impl AppState {
     pub fn new(db: Database, data_dir: PathBuf, security: Security, secrets: SecretBox) -> Self {
-        let blob_stores = BlobStores::new(db.conn().clone(), &data_dir, secrets.clone());
+        let blob_stores = Arc::new(BlobStores::new(
+            db.conn().clone(),
+            &data_dir,
+            secrets.clone(),
+        ));
+        let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
         Self {
             inner: Arc::new(Inner {
                 db,
@@ -44,6 +51,7 @@ impl AppState {
                 security,
                 secrets,
                 blob_stores,
+                content,
             }),
         }
     }
@@ -77,6 +85,10 @@ impl AppState {
         &self.inner.blob_stores
     }
 
+    pub fn content(&self) -> &Content {
+        &self.inner.content
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let event = event.by(caller.initiator());
         if let Err(error) = audit::record(self.db().conn(), event).await {
@@ -86,12 +98,19 @@ impl AppState {
 }
 
 pub fn router(state: AppState) -> Router {
+    router_with(state, Router::new())
+}
+
+pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
     Router::new()
+        .merge(extra)
         .merge(routes::status::routes())
         .merge(routes::security::routes())
         .merge(routes::blobstores::routes())
         .merge(routes::repositories::routes())
         .merge(routes::internal::routes())
+        .merge(routes::content::routes())
+        .merge(routes::components::routes())
         .fallback(not_found)
         .layer(middleware::from_fn_with_state(
             state.clone(),

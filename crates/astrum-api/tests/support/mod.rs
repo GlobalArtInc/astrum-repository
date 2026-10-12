@@ -103,6 +103,47 @@ impl Fixture {
         self.send(method, path, auth, body, &[]).await
     }
 
+    pub async fn send_body(
+        &self,
+        method: Method,
+        path: &str,
+        auth: Auth<'_>,
+        body: Body,
+        headers: &[(&str, &str)],
+    ) -> Reply {
+        let mut request = Request::builder().method(method).uri(path);
+        let credentials = match auth {
+            Auth::None => None,
+            Auth::Admin => Some((ADMIN_USER, self.admin_password.as_str())),
+            Auth::Basic(user, password) => Some((user, password)),
+        };
+        if let Some((user, password)) = credentials {
+            let encoded = STANDARD.encode(format!("{user}:{password}"));
+            request = request.header(header::AUTHORIZATION, format!("Basic {encoded}"));
+        }
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        let response = router(self.state.clone())
+            .oneshot(request.body(body).unwrap())
+            .await
+            .unwrap();
+        let status = response.status();
+        let headers = response.headers().clone();
+        let body = response
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes()
+            .to_vec();
+        Reply {
+            status,
+            headers,
+            body,
+        }
+    }
+
     pub async fn send(
         &self,
         method: Method,

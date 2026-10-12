@@ -27,6 +27,7 @@ impl Server {
         astrum_blob::bootstrap(db.conn(), &config.data_dir).await?;
         let secrets = SecretBox::load_or_create(&config.secrets_key)?;
         let state = AppState::load(db, config.data_dir.clone(), secrets).await?;
+        crate::formats::register(state.content());
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;
@@ -46,12 +47,17 @@ impl Server {
         self,
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> anyhow::Result<()> {
-        let app = astrum_api::router(self.state.clone()).layer(TraceLayer::new_for_http());
+        self.state.content().spawn_background();
+        let app = astrum_api::router_with(self.state.clone(), crate::formats::routes())
+            .layer(TraceLayer::new_for_http());
         tracing::info!(address = %self.address, version = %version_line(), "serving requests");
         axum::serve(self.listener, app)
             .with_graceful_shutdown(shutdown)
             .await
             .context("the HTTP server failed")?;
+        if let Err(error) = self.state.content().flush_downloads().await {
+            tracing::warn!(%error, "download counts were not saved");
+        }
         self.state.db().clone().close().await?;
         tracing::info!("stopped");
         Ok(())

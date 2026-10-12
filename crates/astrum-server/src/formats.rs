@@ -1,0 +1,13 @@
+use std::sync::Arc;
+
+use astrum_api::AppState;
+use astrum_content::Content;
+use axum::Router;
+
+pub fn register(content: &Content) {
+    content.register(Arc::new(astrum_format_raw::Raw));
+}
+
+pub fn routes() -> Router<AppState> {
+    Router::new()
+}

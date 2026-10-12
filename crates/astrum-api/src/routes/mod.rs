@@ -1,4 +1,6 @@
 pub mod blobstores;
+pub mod components;
+pub mod content;
 pub mod internal;
 pub mod repositories;
 pub mod security;

@@ -1,7 +1,7 @@
 # Rewriting Astrum Repository in Rust
 
-Status: decided (owner's answers of 2026-10-12 are recorded below); M0 and M1 are done (2026-10-12); M2 is
-next (hosted/proxy/group engine with raw, maven2, npm, docker, pypi).
+Status: decided (owner's answers of 2026-10-12 are recorded below); M0 and M1 are done (2026-10-12); M2 is in
+progress: the content engine and raw are done; maven2, npm, pypi and docker are being built.
 See "Where the Rust server stands" at the end for the code that exists.
 
 ## Why
@@ -242,3 +242,38 @@ M0 (2026-10-12): the skeleton runs, builds into an image and is checked by CI; n
 - Dev builds optimise `argon2` and `blake2` (`[profile.dev.package.*]`) so API tests stay fast.
 - Agents building Rust share `/home/user/wt/m1-target` with `CARGO_INCREMENTAL=0` and only `--workspace`
   commands; the disk allowance is about 39 GB in total.
+
+## M2 conventions (content engine, 2026-10-12)
+- Reference: `reference/openapi-m2.json` (components, assets, search, upload specs, browse, routing rules,
+  HTTP settings) and `reference/content-responses.txt` (raw hosted behaviour of the old server: 201 on PUT,
+  409 on a second PUT under ALLOW_ONCE, 400 on a content type mismatch, ETag `"<sha1>"`, 206/416 ranges,
+  304, 404 texts, 405 with `Allow`, component/asset/search JSON, raw upload spec).
+- Tables: `component` (repository, format, namespace = the API's `group`, name, version, kind, attributes
+  JSONB; unique per repository/namespace/name/version) and `asset` (repository, format, path with a leading
+  `/`, kind, component, blob store + blob id, size, content type, sha1/sha256/sha512/md5, attributes JSONB,
+  uploader, uploader IP, created, blob updated, last downloaded, download count, last verified, remote ETag
+  and Last-Modified; unique per repository/path). Format attributes live under the format id in
+  `attributes` (`{"maven2": {...}}`) and are returned as the asset's `<format>` object. Both tables cascade
+  from `repository`; deleting a repository also deletes its blobs.
+- `crates/astrum-content` (engine): `Content` (in `AppState::content()`; formats are registered in
+  `crates/astrum-server/src/formats.rs`), `Ctx` (repository, security snapshot, caller, base URL, client IP;
+  `require(View::Read|Browse|Add|Edit|Delete, path)` checks `astrum:repository-view:...` and content selector
+  grants; group members are read with `ctx.member(..)`, which skips checks), trait `Format` (`handle` the
+  whole `/repository/<name>/<path>` request, `get` an asset for group/search use, optional upload spec,
+  upload and search keys), `store` (find, `put` with write policy and strict content type check, delete,
+  components, list under a prefix), `serve` (ETag, Last-Modified, Range, 304, HEAD, Content-Disposition,
+  download counting flushed every 10 s), `proxy::fetch` (max age per content/metadata, conditional
+  revalidation, stale-on-error, negative cache, single flight, auto-block with backoff, Basic/Bearer remote
+  auth, SSRF protection on DNS answers, IP literals and redirects, retries) and `proxy::request` for formats
+  that must rewrite remote answers, `group::members|first|writable_member`, `fetch` (the generic
+  hosted/proxy/group lookup). Content errors are `text/plain` with the status the old server used.
+- REST in `crates/astrum-api/src/routes/components.rs`: components and assets (page of 10, opaque
+  continuation token), search (`q`, `repository`, `format`, `group`, `name`, `version` with `*`, checksums,
+  sort/direction, format keys declared by formats as JSON paths into attributes), `search/assets`,
+  `search/assets/download` (302 for exactly one match), upload specs, multipart upload into temporary files
+  handed to the format, HTML browse at `/service/rest/repository/browse/<repo>/<path>/`. Listings show what
+  the caller may browse or read, including content selector grants per asset. Extra top-level routes of a
+  format (Docker `/v2`) go through `astrum_api::router_with` from `formats::routes()`.
+- Formats: one crate each, `crates/astrum-format-<id>` (raw is the model: `crates/astrum-format-raw`),
+  integration tests in `crates/astrum-api/tests/<id>.rs` using `Fixture` plus a real client run documented in
+  the report.
