@@ -21,6 +21,7 @@ import { generate as raw } from './raw';
 import { generate as yum } from './yum';
 import { generate as swift } from './swift';
 import { generate as rubygems } from './rubygems';
+import { generate as terraform } from './terraform';
 import type { UsageContext, UsageGenerator, UsageSnippet } from './types';
 
 export type { UsageContext, UsageGenerator, UsageSnippet } from './types';
@@ -51,6 +52,7 @@ export const USAGE_GENERATORS: Readonly<Record<string, UsageGenerator>> = {
   yum,
   swift,
   rubygems,
+  terraform,
 };
 
 /**

@@ -4,25 +4,33 @@ import { generate } from '../terraform';
 import type { SnippetComponentModel } from '../types';
 
 describe('terraform dependency snippet generator', () => {
-  const component: SnippetComponentModel = {
+  const provider: SnippetComponentModel = {
     format: 'terraform',
-    group: '',
-    name: 'hashicorp/aws',
+    group: 'hashicorp',
+    name: 'aws',
     version: '5.40.0',
   };
 
-  it('emits the Classic tool set in order', () => {
-    expect(generate(component).map((s) => s.displayName)).toEqual(['terraform', 'manual']);
+  it('declares a provider requirement for a provider component', () => {
+    const snippets = generate(provider);
+    expect(snippets.map((s) => s.displayName)).toEqual(['required_providers']);
+    expect(snippets[0].snippetText).toBe(
+      'terraform {\n  required_providers {\n    aws = {\n      source  = "<registry host>/hashicorp/aws"\n' +
+        '      version = "5.40.0"\n    }\n  }\n}',
+    );
   });
 
-  it('produces snippet text matching Classic', () => {
-    const s: Record<string, string> = {};
-    for (const g of generate(component)) s[g.displayName] = g.snippetText;
-    expect(s['terraform']).toBe('terraform add hashicorp/aws@5.40.0');
-    expect(s['manual']).toBe('hashicorp/aws = "5.40.0"');
+  it('declares a module block for a module component', () => {
+    const snippets = generate({ ...provider, group: 'acme', name: 'vpc/aws', version: '1.2.0' });
+    expect(snippets.map((s) => s.displayName)).toEqual(['module']);
+    expect(snippets[0].snippetText).toBe(
+      'module "vpc" {\n  source  = "<registry host>/acme/vpc/aws"\n  version = "1.2.0"\n}',
+    );
   });
 
-  it('returns no snippets when the version is missing', () => {
-    expect(generate({ ...component, version: '' })).toEqual([]);
+  it('returns no snippets when the version is missing or the name is no address', () => {
+    expect(generate({ ...provider, version: '' })).toEqual([]);
+    expect(generate({ ...provider, group: '' })).toEqual([]);
+    expect(generate({ ...provider, name: 'a/b/c' })).toEqual([]);
   });
 });

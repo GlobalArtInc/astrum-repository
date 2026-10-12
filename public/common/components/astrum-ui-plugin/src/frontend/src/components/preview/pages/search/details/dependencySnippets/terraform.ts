@@ -6,25 +6,36 @@ import S from '../../../../constants/pages/search/ComponentDetailStrings';
 /**
  * Terraform dependency snippet generator.
  *
- * Ported from Classic AS.terraform.controller.TerraformDependencySnippetController. Returns no
- * snippets for a versionless component, matching Classic.
+ * The group of a component is its namespace; a module component is named `name/system` and a provider component
+ * after its type. The registry host is left as a placeholder: the component view does not know which host the
+ * repository answers for. Returns no snippets for a versionless component.
  */
 export const generate: SnippetGenerator = (component) => {
-  const { name, version } = component;
-  if (!version) {
+  const { group, name, version } = component;
+  if (!version || !name || !group) {
     return [];
   }
-
-  return [
-    {
-      displayName: 'terraform',
-      description: S.SNIPPETS.RUN_IN_PROJECT,
-      snippetText: `terraform add ${name}@${version}`,
-    },
-    {
-      displayName: 'manual',
-      description: S.SNIPPETS.ADD_LINE_TO('Terraform.toml'),
-      snippetText: `${name} = "${version}"`,
-    },
-  ];
+  const parts = name.split('/');
+  if (parts.length === 2) {
+    return [
+      {
+        displayName: 'module',
+        description: S.SNIPPETS.ADD_LINE_TO('main.tf'),
+        snippetText: `module "${parts[0]}" {\n  source  = "<registry host>/${group}/${name}"\n  version = "${version}"\n}`,
+      },
+    ];
+  }
+  if (parts.length === 1) {
+    return [
+      {
+        displayName: 'required_providers',
+        description: S.SNIPPETS.ADD_LINE_TO('main.tf'),
+        snippetText:
+          'terraform {\n  required_providers {\n' +
+          `    ${name} = {\n      source  = "<registry host>/${group}/${name}"\n      version = "${version}"\n    }\n` +
+          '  }\n}',
+      },
+    ];
+  }
+  return [];
 };
