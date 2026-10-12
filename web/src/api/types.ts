@@ -23,4 +23,6 @@ export interface UiState {
   baseUrl: string;
   sessionTimeoutMinutes: number;
   adminPasswordFile: string | null;
+  oidcEnabled?: boolean;
+  defaultRole?: { id: string; name: string } | null;
 }

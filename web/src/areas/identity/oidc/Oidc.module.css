@@ -1,0 +1,44 @@
+.form {
+  min-width: 0;
+}
+
+.bar {
+  position: sticky;
+  top: var(--astrum-header-height, 60px);
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 32px 12px;
+  border-bottom: 1px solid var(--gray-a5);
+  background: var(--color-background);
+}
+
+.body {
+  width: 800px;
+  max-width: 100%;
+  padding: 32px 32px 48px;
+  box-sizing: border-box;
+}
+
+.value {
+  margin: 0;
+  font-size: var(--font-size-2);
+  line-height: 20px;
+  color: var(--gray-12);
+  overflow-wrap: anywhere;
+}
+
+.certificate {
+  margin-top: 8px;
+}
+
+@media (max-width: 639px) {
+  .bar {
+    padding: 12px 0;
+  }
+
+  .body {
+    padding: 24px 0 32px;
+  }
+}

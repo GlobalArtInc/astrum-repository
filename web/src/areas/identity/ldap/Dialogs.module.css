@@ -1,0 +1,19 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-2);
+  font-weight: 500;
+  color: var(--gray-12);
+}
+
+.outcome {
+  margin-top: 16px;
+}
