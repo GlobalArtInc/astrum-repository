@@ -104,7 +104,7 @@ pub const FORMATS: &[Format] = &[
     Format {
         id: "helm",
         api_name: "helm",
-        types: HP,
+        types: HPG,
     },
     Format {
         id: "huggingface",
