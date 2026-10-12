@@ -6,12 +6,18 @@ use axum::response::{IntoResponse, Response};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 
+use astrum_security::tokens::looks_like_token;
 use astrum_security::{AuthError, Subject};
+use axum::http::Method;
+use subtle::ConstantTimeEq;
 
 use crate::AppState;
 use crate::error::ApiError;
 
 pub const UI_HEADER: &str = "x-astrum-ui";
+pub const SESSION_COOKIE: &str = "astrum_session";
+pub const CSRF_COOKIE: &str = "astrum_csrf";
+pub const CSRF_HEADER: &str = "x-astrum-csrf";
 
 #[derive(Clone, Debug, Default)]
 pub struct Caller(pub Option<Subject>);
@@ -62,7 +68,7 @@ pub async fn authenticate(
     next: Next,
 ) -> Response {
     let from_ui = is_ui(request.headers());
-    let caller = match resolve(&state, request.headers()).await {
+    let caller = match resolve(&state, request.method(), request.headers()).await {
         Ok(caller) => caller,
         Err(error) => return without_challenge(error.into_response(), from_ui),
     };
@@ -70,9 +76,33 @@ pub async fn authenticate(
     without_challenge(next.run(request).await, from_ui)
 }
 
-async fn resolve(state: &AppState, headers: &HeaderMap) -> Result<Caller, ApiError> {
-    if let Some((user, password)) = basic_credentials(headers)? {
-        return match state.security().authenticate(&user, &password).await {
+enum Credentials {
+    Basic(String, String),
+    Token(String),
+}
+
+async fn resolve(
+    state: &AppState,
+    method: &Method,
+    headers: &HeaderMap,
+) -> Result<Caller, ApiError> {
+    if let Some(credentials) = credentials(headers)? {
+        let security = state.security();
+        let (user, result) = match credentials {
+            Credentials::Basic(user, password) if looks_like_token(&password) => {
+                let result = security.authenticate_token(Some(&user), &password).await;
+                (user, result)
+            }
+            Credentials::Basic(user, password) => {
+                let result = security.authenticate(&user, &password).await;
+                (user, result)
+            }
+            Credentials::Token(token) => (
+                String::new(),
+                security.authenticate_token(None, &token).await,
+            ),
+        };
+        return match result {
             Ok(subject) => Ok(Caller(Some(subject))),
             Err(AuthError::BadCredentials) => {
                 tracing::info!(user, "a sign-in failed");
@@ -81,10 +111,54 @@ async fn resolve(state: &AppState, headers: &HeaderMap) -> Result<Caller, ApiErr
             Err(AuthError::Internal(error)) => Err(error.into()),
         };
     }
+    if let Some(token) = cookie(headers, SESSION_COOKIE)
+        && let Some(session) = state.security().session(token).await?
+    {
+        if !is_safe(method) {
+            check_csrf(headers, &session.csrf)?;
+        }
+        return Ok(Caller(Some(session.subject)));
+    }
     Ok(Caller(state.security().anonymous()))
 }
 
-fn basic_credentials(headers: &HeaderMap) -> Result<Option<(String, String)>, ApiError> {
+fn is_safe(method: &Method) -> bool {
+    matches!(*method, Method::GET | Method::HEAD | Method::OPTIONS)
+}
+
+fn check_csrf(headers: &HeaderMap, expected: &str) -> Result<(), ApiError> {
+    let site = headers
+        .get("sec-fetch-site")
+        .and_then(|value| value.to_str().ok());
+    if site.is_some_and(|site| site != "same-origin" && site != "none") {
+        return Err(ApiError::Forbidden(
+            "requests from other sites are refused".to_owned(),
+        ));
+    }
+    let given = headers
+        .get(CSRF_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default();
+    match bool::from(given.as_bytes().ct_eq(expected.as_bytes())) && !given.is_empty() {
+        true => Ok(()),
+        false => Err(ApiError::Forbidden(
+            "the request lacks the anti-forgery token of its session".to_owned(),
+        )),
+    }
+}
+
+pub fn cookie<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
+    headers
+        .get_all(header::COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .flat_map(|value| value.split(';'))
+        .filter_map(|pair| pair.trim().split_once('='))
+        .find(|(key, _)| *key == name)
+        .map(|(_, value)| value.trim())
+}
+
+fn credentials(headers: &HeaderMap) -> Result<Option<Credentials>, ApiError> {
     let Some(value) = headers.get(header::AUTHORIZATION) else {
         return Ok(None);
     };
@@ -94,6 +168,10 @@ fn basic_credentials(headers: &HeaderMap) -> Result<Option<(String, String)>, Ap
     let Some((scheme, encoded)) = value.trim().split_once(' ') else {
         return Err(ApiError::Unauthorized);
     };
+    if scheme.eq_ignore_ascii_case("bearer") {
+        let token = encoded.trim();
+        return Ok(looks_like_token(token).then(|| Credentials::Token(token.to_owned())));
+    }
     if !scheme.eq_ignore_ascii_case("basic") {
         return Ok(None);
     }
@@ -103,7 +181,10 @@ fn basic_credentials(headers: &HeaderMap) -> Result<Option<(String, String)>, Ap
         .and_then(|bytes| String::from_utf8(bytes).ok())
         .ok_or(ApiError::Unauthorized)?;
     let (user, password) = decoded.split_once(':').ok_or(ApiError::Unauthorized)?;
-    Ok(Some((user.to_owned(), password.to_owned())))
+    Ok(Some(Credentials::Basic(
+        user.to_owned(),
+        password.to_owned(),
+    )))
 }
 
 fn is_ui(headers: &HeaderMap) -> bool {

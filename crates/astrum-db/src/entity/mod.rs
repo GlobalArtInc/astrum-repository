@@ -1,3 +1,4 @@
+pub mod access_token;
 pub mod audit_event;
 pub mod blob_store;
 pub mod content_selector;
@@ -6,3 +7,4 @@ pub mod security_privilege;
 pub mod security_role;
 pub mod security_user;
 pub mod security_user_role;
+pub mod user_session;

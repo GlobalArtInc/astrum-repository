@@ -27,7 +27,7 @@ clap = { version = "4", features = ["derive"] }
 http-body-util = "0.1"
 migrator = { package = "sqlmig", version = "0.2.1" }
 rand = "0.9"
-sea-orm = { version = "1.1", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-json"] }
+sea-orm = { version = "1.1", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-json", "with-uuid"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
@@ -41,6 +41,7 @@ tower-http = { version = "0.7", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 url = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
 
 [profile.dev]
 debug = "line-tables-only"

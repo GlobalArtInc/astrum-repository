@@ -6,7 +6,9 @@ pub mod permission;
 pub mod privilege;
 pub mod realm;
 pub mod secrets;
+pub mod sessions;
 pub mod subject;
+pub mod tokens;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
@@ -21,7 +23,9 @@ pub use model::{AnonymousSettings, Role, SecurityModel, User, UserStatus};
 pub use permission::Permission;
 pub use privilege::{Action, Privilege, PrivilegeKind, SelectorGrant};
 pub use secrets::SecretBox;
+pub use sessions::{ActiveSession, NewSession};
 pub use subject::{Scope, Subject};
+pub use tokens::{TokenError, TokenInfo};
 
 const VERIFIED_FOR: Duration = Duration::from_secs(300);
 const VERIFIED_LIMIT: usize = 10_000;
@@ -52,6 +56,7 @@ pub struct Security {
     db: DatabaseConnection,
     model: RwLock<Arc<SecurityModel>>,
     verified: Mutex<HashMap<[u8; 32], Instant>>,
+    failures: Mutex<HashMap<String, (u32, Instant)>>,
 }
 
 impl std::fmt::Debug for Security {
@@ -67,6 +72,7 @@ impl Security {
             db,
             model: RwLock::new(Arc::new(model)),
             verified: Mutex::new(HashMap::new()),
+            failures: Mutex::new(HashMap::new()),
         })
     }
 

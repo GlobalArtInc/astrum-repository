@@ -16,9 +16,11 @@ chrono.workspace = true
 sea-orm.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+subtle.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 astrum-testkit.workspace = true

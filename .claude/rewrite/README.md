@@ -194,3 +194,13 @@ M0 (2026-10-12): the skeleton runs, builds into an image and is checked by CI; n
   `security.contentselector`, `blobstore`, `repository`), kind `created|updated|deleted`, context = the
   object's name. Tests use `crates/astrum-api/tests/support` (`Fixture` with a migrated, bootstrapped
   database and the admin password).
+- Sessions, tokens and audit (ours, internal API under `/service/rest/internal`):
+  `GET|POST|DELETE /session` (JSON `{username, password}`; cookies `astrum_session` (HttpOnly) and
+  `astrum_csrf`; session rows in `user_session` keyed by the SHA-256 of the token, ended when the password
+  hash changes, the user can no longer sign in, or after `security.sessionTimeoutMinutes` idle (0 = never);
+  unsafe requests through a session need header `X-Astrum-CSRF` equal to the cookie and a same-origin
+  `Sec-Fetch-Site`; 10 failed sign-ins in 5 minutes pause the user's sign-in with 429),
+  `GET|POST /access-tokens`, `DELETE /access-tokens/{id}` (`astrum_` + 40 characters, SHA-256 stored, scope
+  READ/WRITE, 1–3650 days, at most 100 per user; usable as the Basic password of its owner or as a Bearer
+  token while `AccessTokenRealm` is active; managed only after signing in with a password; other users'
+  tokens need `astrum:accesstokens:read|delete`), `GET /audit?limit&before&domain` (`astrum:audit:read`).

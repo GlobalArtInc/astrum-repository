@@ -83,6 +83,7 @@ pub fn router(state: AppState) -> Router {
         .merge(routes::security::routes())
         .merge(routes::blobstores::routes())
         .merge(routes::repositories::routes())
+        .merge(routes::internal::routes())
         .fallback(not_found)
         .layer(middleware::from_fn_with_state(
             state.clone(),

@@ -99,6 +99,7 @@ pub struct SecurityModel {
     pub user_roles: BTreeMap<(String, String), Vec<String>>,
     pub anonymous: AnonymousSettings,
     pub realms: Vec<String>,
+    pub session_timeout_minutes: u32,
 }
 
 impl SecurityModel {
@@ -181,6 +182,9 @@ impl SecurityModel {
                 .map(|id| (*id).to_owned())
                 .collect()
         });
+        model.session_timeout_minutes = setting::get(db, crate::sessions::TIMEOUT_KEY)
+            .await?
+            .unwrap_or(0);
         Ok(model)
     }
 

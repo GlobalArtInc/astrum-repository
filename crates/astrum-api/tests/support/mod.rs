@@ -44,6 +44,35 @@ pub enum Auth<'a> {
 }
 
 impl Fixture {
+    pub async fn add_user(&self, user_id: &str, password: &str, roles: &[&str]) {
+        use astrum_db::entity::{security_user, security_user_role};
+        use sea_orm::{ActiveValue, EntityTrait};
+        let now = chrono::Utc::now().fixed_offset();
+        security_user::Entity::insert(security_user::ActiveModel {
+            id: ActiveValue::Set(user_id.to_owned()),
+            first_name: ActiveValue::Set(user_id.to_owned()),
+            last_name: ActiveValue::Set("Tester".to_owned()),
+            email: ActiveValue::Set(format!("{user_id}@example.org")),
+            password_hash: ActiveValue::Set(Some(astrum_security::password::hash(password))),
+            status: ActiveValue::Set("active".to_owned()),
+            created_at: ActiveValue::Set(now),
+            updated_at: ActiveValue::Set(now),
+        })
+        .exec(self.state.db().conn())
+        .await
+        .unwrap();
+        security_user_role::Entity::insert(security_user_role::ActiveModel {
+            user_id: ActiveValue::Set(user_id.to_owned()),
+            source: ActiveValue::Set("default".to_owned()),
+            roles: ActiveValue::Set(serde_json::json!(roles)),
+            updated_at: ActiveValue::Set(now),
+        })
+        .exec(self.state.db().conn())
+        .await
+        .unwrap();
+        self.state.security().reload().await.unwrap();
+    }
+
     pub async fn new() -> Self {
         let test = TestDatabase::create().await;
         let data = tempfile::tempdir().unwrap();
