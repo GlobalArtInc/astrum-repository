@@ -4,6 +4,11 @@ Astrum Repository is GlobalArt's artifact repository manager. It serves Alpine, 
 Composer, Conan, Conda, Docker, Go, Helm, Maven, npm, NuGet, P2, PyPI, R and raw repositories on an
 embedded H2 database.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard-dark.png">
+  <img alt="The Astrum Repository dashboard: downloads, components, storage and downloads per day" src="docs/images/dashboard-light.png">
+</picture>
+
 ## Quick start
 
 ```shell
