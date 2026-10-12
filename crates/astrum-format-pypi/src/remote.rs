@@ -3,8 +3,10 @@ use std::sync::Mutex;
 use astrum_content::proxy::{self, Origin};
 use astrum_content::store::{self, ComponentKey, PutAsset};
 use astrum_content::{Asset, ContentError, Ctx, Freshness};
+use astrum_db::entity::component;
 use axum::http::header;
 use futures_util::TryStreamExt;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Value, json};
 
 use crate::archive;
@@ -160,6 +162,7 @@ pub async fn file(ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError> 
         return Ok(None);
     }
     let existing = store::find(ctx.db(), ctx.name(), path).await?;
+    let known = known_attributes(ctx, &project, &wanted.version).await?;
     let listed: Mutex<Option<File>> = Mutex::new(None);
     let fetched = proxy::fetch_from(
         ctx,
@@ -187,7 +190,7 @@ pub async fn file(ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError> 
                 .expect("the listed file lock is never poisoned")
                 .take()
                 .unwrap_or_default();
-            describe(path, &project, &wanted, &file)
+            describe(path, &project, &wanted, &file, known)
         },
     )
     .await?;
@@ -200,7 +203,28 @@ pub async fn file(ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError> 
     Ok(fetched)
 }
 
-fn describe(path: &str, project: &str, wanted: &Wanted, file: &File) -> PutAsset {
+async fn known_attributes(
+    ctx: &Ctx,
+    project: &str,
+    version: &str,
+) -> Result<Option<Value>, ContentError> {
+    Ok(component::Entity::find()
+        .filter(component::Column::Repository.eq(ctx.name()))
+        .filter(component::Column::Namespace.eq(""))
+        .filter(component::Column::Name.eq(project))
+        .filter(component::Column::Version.eq(version))
+        .one(ctx.db())
+        .await?
+        .map(|found| found.attributes))
+}
+
+fn describe(
+    path: &str,
+    project: &str,
+    wanted: &Wanted,
+    file: &File,
+    known: Option<Value>,
+) -> PutAsset {
     let mut pypi = serde_json::Map::new();
     pypi.insert("name".to_owned(), json!(project));
     pypi.insert("version".to_owned(), json!(wanted.version));
@@ -217,7 +241,8 @@ fn describe(path: &str, project: &str, wanted: &Wanted, file: &File) -> PutAsset
             name: project.to_owned(),
             version: wanted.version.clone(),
             kind: String::new(),
-            attributes: json!({ "pypi": {"name": project, "version": wanted.version} }),
+            attributes: known
+                .unwrap_or_else(|| json!({ "pypi": {"name": project, "version": wanted.version} })),
         })
         .kind(if wanted.metadata {
             "metadata"

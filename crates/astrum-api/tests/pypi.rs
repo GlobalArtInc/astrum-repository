@@ -441,7 +441,9 @@ async fn hosted_uploads_from_twine_are_served_on_simple_pages() {
         )
         .await;
     assert!(role.status.is_success(), "{}", role.text());
-    fixture.add_user("adder", "adder-pass", &["pypi-adder"]).await;
+    fixture
+        .add_user("adder", "adder-pass", &["pypi-adder"])
+        .await;
     let add_only = twine(
         &fixture,
         "pypi-hosted",
@@ -617,7 +619,7 @@ async fn twine_uploads_are_checked() {
         {
             let mut body = form(
                 &[(":action", "file_upload"), ("name", "late"), ("version", "1.0")],
-                Some(("content", "late-1.0.tar.gz", &data)),
+                Some(("content", "late-1.0-py3-none-any.whl", &wheel("late", "1.0"))),
             );
             body.truncate(body.len() - format!("--{BOUNDARY}--\r\n").len());
             write!(
@@ -631,16 +633,17 @@ async fn twine_uploads_are_checked() {
     )
     .await;
     assert_eq!(late.status, StatusCode::BAD_REQUEST);
-    assert_eq!(
-        get(
-            &fixture,
-            "/repository/checked/packages/late/1.0/late-1.0.tar.gz",
-            None
-        )
-        .await
-        .status,
-        StatusCode::NOT_FOUND
-    );
+    for path in [
+        "/repository/checked/packages/late/1.0/late-1.0-py3-none-any.whl",
+        "/repository/checked/packages/late/1.0/late-1.0-py3-none-any.whl.metadata",
+        "/repository/checked/simple/late/",
+    ] {
+        assert_eq!(
+            get(&fixture, path, None).await.status,
+            StatusCode::NOT_FOUND,
+            "{path}"
+        );
+    }
 
     let unnamed = post_form(
         &fixture,
@@ -1157,6 +1160,19 @@ async fn proxies_rewrite_pages_and_fetch_files_from_other_hosts() {
         .clone();
     assert_eq!(wheel_asset["pypi"]["summary"], "The demo test package");
     assert_eq!(wheel_asset["pypi"]["requires_python"], ">=3.8");
+    let found = fixture
+        .call(
+            Method::GET,
+            "/service/rest/v1/search?repository=pypi-proxy&pypi.summary=*demo%20test*",
+            Auth::Admin,
+            None,
+        )
+        .await
+        .json();
+    assert_eq!(
+        found["items"][0]["version"], "1.0",
+        "storing the metadata file keeps what the wheel told: {found}"
+    );
 
     for (path, status) in [
         (

@@ -196,7 +196,9 @@ pub async fn legacy(ctx: &Ctx, request: ContentRequest) -> Result<Response, Cont
         md5: after.md5.filter(|_| before.md5.is_none()),
     };
     if let Err(message) = late.check(&asset.sha256, &asset.md5) {
+        let companion = format!("{}{}", asset.path, hosted::METADATA_SUFFIX);
         store::delete_asset(&ctx.content, asset).await?;
+        store::delete(ctx, &companion).await?;
         return Err(ContentError::BadRequest(message));
     }
     Ok(StatusCode::OK.into_response())
