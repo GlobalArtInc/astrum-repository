@@ -438,6 +438,10 @@
     </dependency>
     <dependency>
       <groupId>org.globalart.astrum.common.components</groupId>
+      <artifactId>astrum-repository-gitlfs</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.globalart.astrum.common.components</groupId>
       <artifactId>astrum-script-plugin</artifactId>
     </dependency>
     <dependency>

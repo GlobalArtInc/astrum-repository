@@ -32,6 +32,7 @@
     <module>astrum-repository-composer</module>
     <module>astrum-repository-npm</module>
     <module>astrum-repository-helm</module>
+    <module>astrum-repository-gitlfs</module>
   </modules>
 
 </project>
