@@ -275,6 +275,7 @@ async fn read_default_role(
 #[derive(Debug, Deserialize)]
 struct DefaultRoleRequest {
     role: Option<String>,
+    enabled: Option<bool>,
 }
 
 async fn save_default_role(
@@ -306,12 +307,14 @@ async fn save_default_role(
         &DefaultRole { role: role.clone() },
     )
     .await?;
-    let realms = activate(&state, realm::DEFAULT_ROLE, true).await?;
+    let enabled = body.enabled.unwrap_or(true);
+    let realms = activate(&state, realm::DEFAULT_ROLE, enabled).await?;
     state.security().reload().await?;
     state
         .audit(
             &caller,
-            Event::new("security.defaultrole", "updated", &role).with(json!({"role": role})),
+            Event::new("security.defaultrole", "updated", &role)
+                .with(json!({"role": role, "enabled": enabled})),
         )
         .await;
     realm_changed(&state, &caller, realms).await;

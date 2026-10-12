@@ -724,6 +724,40 @@ async fn the_default_role_reaches_every_signed_in_user() {
         .await;
     assert_eq!(after.status, StatusCode::OK);
 
+    let paused = fixture
+        .call(
+            Method::PUT,
+            path,
+            Auth::Admin,
+            Some(json!({"role": "readers", "enabled": false})),
+        )
+        .await;
+    assert_eq!(paused.status, StatusCode::NO_CONTENT, "{}", paused.text());
+    assert_eq!(
+        fixture
+            .call(Method::GET, path, Auth::Admin, None)
+            .await
+            .json(),
+        json!({"role": "readers", "enabled": false, "missing": false})
+    );
+    let without = fixture
+        .call(
+            Method::GET,
+            USERS,
+            Auth::Basic("plain", "plain-password"),
+            None,
+        )
+        .await;
+    assert_eq!(without.status, StatusCode::FORBIDDEN);
+    fixture
+        .call(
+            Method::PUT,
+            path,
+            Auth::Admin,
+            Some(json!({"role": "readers", "enabled": true})),
+        )
+        .await;
+
     fixture
         .call(
             Method::PUT,
