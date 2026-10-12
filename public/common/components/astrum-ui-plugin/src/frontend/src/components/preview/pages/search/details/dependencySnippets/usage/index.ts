@@ -10,6 +10,7 @@ import { generate as docker } from './docker';
 import { generate as gitlfs } from './gitlfs';
 import { generate as go } from './go';
 import { generate as helm } from './helm';
+import { generate as huggingface } from './huggingface';
 import { generate as maven2 } from './maven2';
 import { generate as npm } from './npm';
 import { generate as nuget } from './nuget';
@@ -38,6 +39,7 @@ export const USAGE_GENERATORS: Readonly<Record<string, UsageGenerator>> = {
   gitlfs,
   go,
   helm,
+  huggingface,
   maven2,
   npm,
   nuget,

@@ -214,6 +214,7 @@ export const FORMAT_DISPLAY: Record<string, { label: string; color: string }> = 
   r: { label: 'R', color: 'plum' },
   gitlfs: { label: 'Git LFS', color: 'crimson' },
   cocoapods: { label: 'CocoaPods', color: 'tomato' },
+  huggingface: { label: 'Hugging Face', color: 'amber' },
 };
 
 /**

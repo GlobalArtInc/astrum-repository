@@ -100,6 +100,8 @@ export const RECIPE_DESCRIPTIONS: Record<string, string> = {
   'swift-hosted': RepositoriesPageStrings.TYPE_DESCRIPTIONS.STORE_OWN_SWIFT_PACKAGES_PRIVATE,
   'swift-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_SWIFT_PACKAGES_REMOTE_REGISTRY,
   'swift-group': RepositoriesPageStrings.TYPE_DESCRIPTIONS.COMBINE_MULTIPLE_SWIFT_REGISTRIES_INTO,
+  // Hugging Face
+  'huggingface-proxy': RepositoriesPageStrings.TYPE_DESCRIPTIONS.CACHE_MODELS_DATASETS_HUGGING_FACE,
 };
 
 /**
@@ -137,6 +139,7 @@ export const FORMAT_DESCRIPTIONS: Record<string, string> = {
   ansiblegalaxy: RepositoriesPageStrings.TYPE_DESCRIPTIONS.REPOSITORY_ANSIBLE_COLLECTIONS_CONTAINING_ROLES,
   composer: RepositoriesPageStrings.TYPE_DESCRIPTIONS.DEPENDENCY_MANAGER_PHP,
   swift: RepositoriesPageStrings.TYPE_DESCRIPTIONS.PACKAGE_REGISTRY_SWIFT_PACKAGE_MANAGER,
+  huggingface: RepositoriesPageStrings.TYPE_DESCRIPTIONS.MODELS_DATASETS_MACHINE_LEARNING,
 };
 
 /**

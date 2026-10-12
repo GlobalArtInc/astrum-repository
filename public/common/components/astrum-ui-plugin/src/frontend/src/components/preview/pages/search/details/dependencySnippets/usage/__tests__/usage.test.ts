@@ -27,7 +27,7 @@ describe('usage snippets', () => {
   it('has a repository-aware generator for every format the server supports', () => {
     expect(Object.keys(USAGE_GENERATORS).sort()).toEqual([
       'alpine', 'apt', 'cargo', 'cocoapods', 'composer', 'conan', 'conda', 'docker', 'gitlfs', 'go', 'helm',
-      'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw', 'swift', 'yum',
+      'huggingface', 'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw', 'swift', 'yum',
     ]);
   });
 
@@ -513,6 +513,61 @@ describe('usage snippets', () => {
     it('does not publish to a proxy or a group', () => {
       expect(ids({ ...release, repositoryName: 'swift-group', repositoryType: 'group' })).toEqual(['registry', 'manifest', 'login']);
       expect(ids(context({ format: 'swift', repositoryName: 'swift-proxy', repositoryType: 'proxy' }))).toEqual(['registry', 'login']);
+  describe('huggingface', () => {
+    const commit = '8f4dff0307bd726d0932f44183f1a88e297bcfe4';
+
+    it('points the client at the repository and downloads the file at its commit', () => {
+      const file = context({
+        format: 'huggingface',
+        repositoryName: 'hf-proxy',
+        repositoryType: 'proxy',
+        group: 'models',
+        name: 'acme/tiny',
+        version: commit,
+        path: `/models/acme/tiny/${commit}/onnx/model.onnx`,
+      });
+      expect(ids(file)).toEqual(['endpoint', 'cli', 'python', 'transformers']);
+      const snippets = texts(file);
+      expect(snippets.endpoint).toBe(`export HF_ENDPOINT=${BASE}/hf-proxy`);
+      expect(snippets.cli).toBe(`hf download acme/tiny onnx/model.onnx --revision ${commit}`);
+      expect(snippets.python).toBe(
+        'from huggingface_hub import hf_hub_download\n\npath = hf_hub_download(\n' +
+          `    repo_id="acme/tiny",\n    filename="onnx/model.onnx",\n    revision="${commit}",\n)`,
+      );
+      expect(snippets.transformers).toContain(`AutoModel.from_pretrained("acme/tiny", revision="${commit}")`);
+    });
+
+    it('downloads a whole dataset without transformers', () => {
+      const dataset = context({
+        format: 'huggingface',
+        repositoryName: 'hf-proxy',
+        repositoryType: 'proxy',
+        group: 'datasets',
+        name: 'acme/data',
+        version: commit,
+      });
+      expect(ids(dataset)).toEqual(['endpoint', 'cli', 'python']);
+      expect(texts(dataset).cli).toBe(`hf download acme/data --repo-type dataset --revision ${commit}`);
+      expect(texts(dataset).python).toContain('snapshot_download(\n    repo_id="acme/data",\n    repo_type="dataset",');
+    });
+
+    it('prefers the file the server recorded', () => {
+      const asset = context({
+        format: 'huggingface',
+        repositoryName: 'hf-proxy',
+        group: 'models',
+        name: 'acme/tiny',
+        version: commit,
+        path: 'unexpected/layout',
+        attributes: { huggingface: { file: 'config.json' } },
+      });
+      expect(texts(asset).cli).toBe(`hf download acme/tiny config.json --revision ${commit}`);
+    });
+
+    it('only sets the endpoint for the repository itself and for folders above a commit', () => {
+      expect(ids(context({ format: 'huggingface', repositoryName: 'hf-proxy' }))).toEqual(['endpoint']);
+      expect(ids(context({ format: 'huggingface', repositoryName: 'hf-proxy', name: 'tiny', path: 'models/acme/tiny' })))
+        .toEqual(['endpoint']);
     });
   });
 

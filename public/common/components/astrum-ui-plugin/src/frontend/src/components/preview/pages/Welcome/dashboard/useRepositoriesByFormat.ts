@@ -53,6 +53,7 @@ const FORMAT_NAMES: Record<string, string> = {
   composer: 'Composer',
   swift: 'Swift',
   cargo: 'Cargo',
+  huggingface: 'Hugging Face',
 };
 
 /**
