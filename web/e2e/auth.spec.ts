@@ -6,7 +6,6 @@ test('a stranger signs in and out', async ({ page, server }) => {
   await expect(page).toHaveURL(/\/login\?returnTo=%2Fsettings$/);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page).toHaveTitle('Sign in - Astrum Repository');
-  await expect(page.getByText(/admin\.password/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Continue without signing in' })).toHaveCount(0);
 
   await signIn(page, 'wrong-password');

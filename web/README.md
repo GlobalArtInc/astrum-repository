@@ -99,3 +99,6 @@ horizontal scrolling, in both themes.
   `/opt/pw-browsers/chromium` (`ASTRUM_E2E_CHROMIUM`). Each page gets at least one scenario.
 - Screenshots: `ASTRUM_SHOTS_DIR=<dir> corepack pnpm e2e screenshots` (1440x900 and 390x844, dark and
   light); add your pages to your own spec in the same way.
+- The shared e2e server starts like an installation whose first-run setup is done (`admin.password` is
+  removed after it is read). A scenario that needs a brand-new server calls
+  `startServer({ firstRun: true, port })` from `e2e/server.ts` itself and stops it afterwards.

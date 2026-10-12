@@ -52,7 +52,12 @@ async function waitFor(url: string, child: ChildProcess, log: () => string): Pro
   throw new Error(`the server did not answer within a minute:\n${log()}`);
 }
 
-export async function startServer(): Promise<Running> {
+export interface StartOptions {
+  firstRun?: boolean;
+  port?: number;
+}
+
+export async function startServer(options: StartOptions = {}): Promise<Running> {
   const binary = process.env.ASTRUM_BIN ?? '/home/user/wt/m1-target/debug/astrum';
   const webDir = process.env.ASTRUM_WEB_DIR ?? join(ROOT, 'dist');
   if (!existsSync(binary)) {
@@ -65,7 +70,8 @@ export async function startServer(): Promise<Running> {
   const prefix = process.env.ASTRUM_E2E_DATABASE_PREFIX ?? 'astrum_e2e';
   const database = `${prefix}_${randomBytes(4).toString('hex')}`;
   const dataDir = mkdtempSync(join(tmpdir(), 'astrum-e2e-'));
-  const port = Number(process.env.ASTRUM_E2E_PORT ?? (await freePort()));
+  const asked = options.port ?? Number(process.env.ASTRUM_E2E_PORT ?? 0);
+  const port = asked > 0 ? asked : await freePort();
   const url = `http://127.0.0.1:${port}`;
   psql(admin, `create database ${database}`);
   let output = '';
@@ -99,7 +105,11 @@ export async function startServer(): Promise<Running> {
     cleanUp();
     throw error;
   }
-  const adminPassword = readFileSync(join(dataDir, 'admin.password'), 'utf8').trim();
+  const passwordFile = join(dataDir, 'admin.password');
+  const adminPassword = readFileSync(passwordFile, 'utf8').trim();
+  if (!options.firstRun) {
+    rmSync(passwordFile);
+  }
   return {
     url,
     adminPassword,
