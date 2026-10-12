@@ -641,6 +641,12 @@
 
       <dependency>
         <groupId>org.globalart.astrum.common.components</groupId>
+        <artifactId>astrum-repository-yum</artifactId>
+        <version>2.0.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.globalart.astrum.common.components</groupId>
         <artifactId>astrum-repository-golang</artifactId>
         <version>2.0.0</version>
       </dependency>
