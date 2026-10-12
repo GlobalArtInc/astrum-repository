@@ -4,7 +4,6 @@ mod audit;
 mod blobstores;
 mod browse;
 mod browse_asset;
-mod dashboard;
 pub(crate) mod identity;
 mod nuget_api_key;
 mod privileges;
@@ -27,7 +26,6 @@ pub fn routes() -> Router<AppState> {
         .merge(browse::routes())
         .merge(browse_asset::routes())
         .merge(search::routes())
-        .merge(dashboard::routes())
         .merge(usage::routes())
         .merge(blobstores::routes())
         .merge(selectors::routes())

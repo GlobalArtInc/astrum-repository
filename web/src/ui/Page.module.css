@@ -30,6 +30,11 @@
   flex-wrap: nowrap;
 }
 
+.header[data-actions="end"] {
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
 .heading {
   display: flex;
   flex-direction: column;

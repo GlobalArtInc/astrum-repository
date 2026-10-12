@@ -285,7 +285,7 @@ describe('the shell', () => {
   it('turns the phone header into a search bar', async () => {
     setMedia(COMPACT, true);
     const { router } = app('/');
-    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Search components' })).toBeNull();
     await userEvent.click(await screen.findByRole('button', { name: 'Search' }));
     const layer = await screen.findByRole('dialog', { name: 'Search' });
     const input = within(layer).getByRole('combobox', { name: 'Search components' });

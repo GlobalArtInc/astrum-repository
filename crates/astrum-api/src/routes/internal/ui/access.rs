@@ -55,7 +55,6 @@ pub(super) struct Seen {
 }
 
 pub(super) struct Survey {
-    pub subject: Subject,
     pub seen: Vec<Seen>,
     pub all: Vec<Arc<Repository>>,
 }
@@ -156,7 +155,7 @@ pub(super) async fn survey(state: &AppState, caller: &Caller) -> Result<Survey, 
                 || seen.flags.delete
         })
         .collect();
-    Ok(Survey { subject, seen, all })
+    Ok(Survey { seen, all })
 }
 
 #[derive(Default)]

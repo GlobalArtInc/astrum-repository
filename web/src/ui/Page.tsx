@@ -17,6 +17,7 @@ export interface PageProps {
   breadcrumbs?: Crumb[];
   actions?: ReactNode;
   titleExtra?: ReactNode;
+  actionsAlign?: 'center' | 'end';
   documentTitle?: string;
   size?: 'medium' | 'large';
   gutter?: 'small' | 'medium' | 'large';
@@ -61,6 +62,7 @@ export function Page({
   breadcrumbs,
   actions,
   titleExtra,
+  actionsAlign = 'center',
   documentTitle,
   size = 'medium',
   gutter = 'medium',
@@ -72,7 +74,7 @@ export function Page({
     <div className={className ? `${styles.page} ${className}` : styles.page} data-gutter={gutter}>
       <div className={styles.top}>
         {breadcrumbs && breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} />}
-        <header className={styles.header}>
+        <header className={styles.header} data-actions={actionsAlign}>
           <div className={styles.heading}>
             <div className={styles.titleRow}>
               <Heading as="h1" size={size === 'large' ? '7' : '6'} weight="bold" className={styles.title}>

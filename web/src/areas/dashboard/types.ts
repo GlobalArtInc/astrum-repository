@@ -1,86 +1,146 @@
-export const DASHBOARD_PATH = '/service/rest/internal/ui/dashboard';
+import type { RepositoryType } from '../../api';
 
-export interface TypeCounts {
+export const USAGE_PATH = '/service/rest/internal/ui/usage-dashboard';
+
+export const PERIODS = [7, 30, 90] as const;
+export type Period = (typeof PERIODS)[number];
+
+export interface RepositoryRef {
+  name: string;
+  format: string;
+  type: RepositoryType;
+}
+
+export interface Totals {
+  repositories: number;
   hosted: number;
   proxy: number;
   group: number;
-}
-
-export interface FormatCount extends TypeCounts {
-  format: string;
-  total: number;
-}
-
-export interface TopAsset {
-  repository: string;
-  format: string;
-  path: string;
-  assetId: string;
-  componentId: string | null;
-  downloads: number;
-  lastDownloaded: string | null;
-}
-
-export interface TopComponent {
-  repository: string;
-  format: string;
-  group: string;
-  name: string;
-  version: string;
-  componentId: string;
-  downloads: number;
-}
-
-export interface Upload {
-  kind: 'component' | 'asset';
-  repository: string;
-  format: string;
-  componentId?: string;
-  group?: string;
-  name: string;
-  version?: string;
-  path: string;
-  assetId: string;
-  assetCount: number;
-  uploadedAt: string;
-  uploader: string;
-}
-
-export interface StoreUsage {
-  name: string;
-  type: string;
-  unavailable: boolean;
-  blobCount: number;
-  totalSize: number;
-  availableSpace: number | null;
-}
-
-export interface Dashboard {
-  repositories: { total: number; byType: TypeCounts; byFormat: FormatCount[] };
   components: number;
   assets: number;
-  totalSize: number;
-  downloads: { total: number; topAssets: TopAsset[]; topComponents: TopComponent[] };
-  recentUploads: Upload[];
-  blobStores?: StoreUsage[];
+  storageBytes: number;
+  proxyStorageBytes: number;
+  downloads: number;
+  downloadsToday: number;
+  downloadsInPeriod: number;
+  componentsDownloadedInPeriod: number;
+}
+
+export interface DayDownloads {
+  day: string;
+  downloads: number;
+}
+
+export interface UsageComponent {
+  id: string;
+  repository: string;
+  format: string;
+  group: string | null;
+  name: string;
+  version: string | null;
+  downloads: number;
+  created: string;
+  createdBy: string | null;
+  browsePath: string | null;
+}
+
+export interface RepositoryUsage {
+  name: string;
+  format: string;
+  type: RepositoryType;
+  downloads: number;
+  storageBytes: number;
+  components: number;
+}
+
+export interface UnusedRepository {
+  name: string;
+  format: string;
+  components: number;
+  bytes: number;
+}
+
+export interface Usage {
+  days: number;
+  from: string;
+  to: string;
+  retentionDays: number;
+  unusedDays: number;
+  repository: string | null;
+  repositories: RepositoryRef[];
+  totals: Totals;
+  downloadsPerDay: DayDownloads[];
+  topComponents: UsageComponent[];
+  topComponentsAllTime: UsageComponent[];
+  topRepositoriesByDownloads: RepositoryUsage[];
+  topRepositoriesByStorage: RepositoryUsage[];
+  recentComponents: UsageComponent[];
+  unused: {
+    components: number;
+    bytes: number;
+    neverDownloadedComponents: number;
+    neverDownloadedBytes: number;
+    repositories: UnusedRepository[];
+  };
 }
 
 export function share(value: number, max: number): number {
   if (max <= 0 || value <= 0) {
     return 0;
   }
-  return Math.max(2, Math.min(100, (value / max) * 100));
+  return Math.min(100, (value / max) * 100);
 }
 
-export function fileName(path: string): string {
-  const parts = path.split('/').filter(Boolean);
-  return parts[parts.length - 1] ?? path;
-}
+const NICE = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+const NICE_SMALL = [2, 4, 6, 8, 10];
 
-export function storeUse(store: StoreUsage): number | null {
-  if (store.availableSpace === null) {
-    return null;
+export function axisMax(peak: number): number {
+  if (peak <= 0) {
+    return 4;
   }
-  const total = store.totalSize + store.availableSpace;
-  return total <= 0 ? 0 : (store.totalSize / total) * 100;
+  if (peak <= 10) {
+    return NICE_SMALL.find((step) => step >= peak) ?? 10;
+  }
+  const scale = 10 ** Math.floor(Math.log10(peak));
+  const factor = NICE.find((step) => step * scale >= peak) ?? 10;
+  return factor * scale;
+}
+
+export function parseDay(day: string): Date {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(Date.UTC(year ?? 1970, (month ?? 1) - 1, date ?? 1));
+}
+
+export function isWeekend(day: string): boolean {
+  const weekday = parseDay(day).getUTCDay();
+  return weekday === 0 || weekday === 6;
+}
+
+export interface Peak {
+  day: string;
+  downloads: number;
+}
+
+export function peakOf(days: DayDownloads[]): Peak | null {
+  let peak: Peak | null = null;
+  for (const entry of days) {
+    if (entry.downloads > 0 && (peak === null || entry.downloads > peak.downloads)) {
+      peak = entry;
+    }
+  }
+  return peak;
+}
+
+export function componentName(component: Pick<UsageComponent, 'format' | 'group' | 'name'>): string {
+  if (component.format === 'raw') {
+    return component.name.replace(/^\/+/, '');
+  }
+  const group = component.group ?? '';
+  if (group === '') {
+    return component.name;
+  }
+  if (component.format === 'npm') {
+    return `@${group.replace(/^@/, '')}/${component.name}`;
+  }
+  return `${group}:${component.name}`;
 }

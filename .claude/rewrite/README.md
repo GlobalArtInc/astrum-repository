@@ -393,9 +393,12 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   members, first member wins; missing folders 404; the delete removes what the caller may delete under a
   folder through the content store, audits each asset and emptied component, refuses groups and the root,
   and answers `{deletedAssets, deletedComponents, skippedAssets}`); `GET /search/versions?format=&group=&name=`
-  (newest first: numbers compared as numbers, pre-releases before releases); `GET /dashboard` (totals,
-  downloads, top 10 assets and components, 10 latest hosted uploads, blob stores with
-  `astrum:blobstores:read`); `GET /blobstores` (usage, quota state, users, groups, `deletable`);
+  (newest first: numbers compared as numbers, pre-releases before releases); `GET /usage-dashboard?days=&repository=`
+  (the overview of Astrum One, same JSON as the old server: visible repositories, totals with proxy cache and
+  today's downloads, downloads per UTC day of the period from `asset_download_day` (per asset and day, filled
+  by the download flush, kept 180 days), top 10 components in the period and of all time, repositories by
+  downloads and by size, latest components, components not downloaded for 90 days; it replaced
+  `GET /dashboard`); `GET /blobstores` (usage, quota state, users, groups, `deletable`);
   `POST /content-selectors/preview` (first 100 matches and `more`); `GET /privileges/types` (built from
   `PrivilegeKind::fields`, which the privileges API validates with); `GET|PUT /user` and
   `PUT /user/password`. Changing one's own password needs no `astrum:userschangepw:create`, a deliberate
@@ -420,5 +423,5 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   `watchers` were added to the foundation. Tests at the end of M3: 487 Rust, 770 web unit, 52 e2e (every spec
   file gets its own server). The web dictionaries (1387 keys) are in Ownlate under the `web.` prefix.
 - Left after M3: idle-session countdown, response compression, docker port suggestion, repository profile
-  tabs "structure", "security" and "system", tree filter and type-ahead, downloads over time, connection
+  tabs "structure", "security" and "system", tree filter and type-ahead, connection
   examples for formats added later, session dialog on a 401 during upload.

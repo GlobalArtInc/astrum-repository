@@ -8,6 +8,7 @@ export { DateTime, RelativeTime } from './DateTime';
 export { EmptyState } from './EmptyState';
 export { describeError, ErrorState } from './ErrorState';
 export { FileSize } from './FileSize';
+export { FormatLogo } from './FormatLogo';
 export { FormError } from './FormError';
 export * from './form';
 export { FORMATS, formatColor, formatLabel, formatName } from './formats';

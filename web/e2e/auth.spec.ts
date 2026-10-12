@@ -74,7 +74,7 @@ test('with anonymous access an ended session asks in a dialog', async ({ page, s
   await endSession(page, request, server.url);
   const dialog = page.getByRole('alertdialog', { name: 'Your session has ended' });
   await expect(dialog).toBeVisible();
-  await expect(page.getByText('Nothing to show yet')).toBeVisible();
+  await expect(page.getByText('There are no repositories you may browse yet.')).toBeVisible();
   await dialog.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await signIn(page, server.adminPassword);
