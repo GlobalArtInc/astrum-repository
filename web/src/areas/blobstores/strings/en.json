@@ -104,7 +104,7 @@
   "blobstores.group.section": "Members",
   "blobstores.group.text": "Reads look in every member; new blobs go to a member chosen by the fill policy.",
   "blobstores.group.members": "Member stores",
-  "blobstores.group.membersHint": "File or S3 stores that are in no other group and serve no repository. A member that holds blobs cannot be removed.",
+  "blobstores.group.membersHint": "A member that holds blobs cannot be removed.",
   "blobstores.group.addMember": "Add a blob store…",
   "blobstores.group.noMembers": "No members yet",
   "blobstores.group.noCandidates": "No other blob store can join: a member must be a file or S3 store in no group, serving no repository.",

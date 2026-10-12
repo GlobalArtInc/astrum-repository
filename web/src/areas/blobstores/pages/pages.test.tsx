@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { configure, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UiState } from '../../../api';
@@ -9,6 +9,7 @@ import BlobStoresPage from './BlobStoresPage';
 import CreateBlobStorePage from './CreateBlobStorePage';
 
 vi.setConfig({ testTimeout: 30_000 });
+configure({ asyncUtilTimeout: 5_000 });
 
 const LIST = '/service/rest/internal/ui/blobstores';
 

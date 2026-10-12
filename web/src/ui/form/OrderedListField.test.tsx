@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { configure, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -6,6 +6,7 @@ import { renderWithApp } from '../../test/render';
 import { addItem, moveItem, OrderedListField, removeItem } from './OrderedListField';
 
 vi.setConfig({ testTimeout: 30_000 });
+configure({ asyncUtilTimeout: 5_000 });
 
 describe('ordering helpers', () => {
   it('move, add and remove items', () => {

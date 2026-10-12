@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { configure, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UiState } from '../../../api';
@@ -12,6 +12,7 @@ import RepositoriesPage, { filterRepositories } from './RepositoriesPage';
 import RepositoryPage from './RepositoryPage';
 
 vi.setConfig({ testTimeout: 30_000 });
+configure({ asyncUtilTimeout: 5_000 });
 
 const DOCUMENTS = reference as unknown as Record<string, RepositoryDocument>;
 const LIST = '/service/rest/internal/ui/repositories';

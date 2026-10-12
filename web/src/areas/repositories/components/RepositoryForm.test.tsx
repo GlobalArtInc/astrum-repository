@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { configure, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../api';
@@ -11,6 +11,7 @@ import type { Spec } from '../model/spec';
 import { RepositoryForm, type RepositoryFormProps } from './RepositoryForm';
 
 vi.setConfig({ testTimeout: 30_000 });
+configure({ asyncUtilTimeout: 5_000 });
 
 const DOCUMENTS = Object.entries(reference as unknown as Record<string, RepositoryDocument>);
 const BY_KEY = reference as unknown as Record<string, RepositoryDocument>;

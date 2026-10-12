@@ -1,6 +1,6 @@
 import { Button, Callout, Heading, Text } from '@radix-ui/themes';
 import { Info } from 'lucide-react';
-import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useT } from '../../../i18n';
 import {
   FormError,
@@ -212,12 +212,22 @@ export function RepositoryForm(props: RepositoryFormProps) {
     );
 
   const authentication = values.authType;
-  const submit = (event: FormEvent) => {
-    void form.submit(event);
+  const formElement = useRef<HTMLFormElement>(null);
+  const submit = async (event: FormEvent) => {
+    await form.submit(event);
+    window.requestAnimationFrame(() => {
+      formElement.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+    });
   };
 
   return (
-    <form className={styles.form} onSubmit={submit} noValidate aria-label={props.submitLabel}>
+    <form
+      ref={formElement}
+      className={styles.form}
+      onSubmit={(event) => void submit(event)}
+      noValidate
+      aria-label={props.submitLabel}
+    >
       <UnsavedChangesGuard when={form.dirty && !readOnly} />
       {readOnly && (
         <Callout.Root color="gray" variant="surface">
