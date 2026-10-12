@@ -1,7 +1,9 @@
 package org.globalart.astrum.repository.docker.internal.group;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
@@ -9,9 +11,11 @@ import java.util.TreeSet;
 import javax.annotation.Nonnull;
 
 import org.globalart.astrum.repository.Repository;
+import org.globalart.astrum.repository.docker.internal.v2.DockerDigest;
 import org.globalart.astrum.repository.docker.internal.v2.DockerError;
 import org.globalart.astrum.repository.docker.internal.v2.DockerLocations;
 import org.globalart.astrum.repository.docker.internal.v2.DockerMetadataHandler;
+import org.globalart.astrum.repository.docker.internal.v2.DockerReferrers;
 import org.globalart.astrum.repository.docker.internal.v2.DockerResponses;
 import org.globalart.astrum.repository.docker.internal.v2.DockerRoute;
 import org.globalart.astrum.repository.group.GroupFacet;
@@ -24,6 +28,7 @@ import org.globalart.astrum.repository.view.Response;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,6 +36,12 @@ import org.springframework.stereotype.Component;
 public class DockerGroupHandler
     extends GroupHandler
 {
+  private final long maxManifestSize;
+
+  public DockerGroupHandler(@Value("${astrum.docker.manifest.maxSize:4194304}") final long maxManifestSize) {
+    this.maxManifestSize = maxManifestSize;
+  }
+
   @Nonnull
   @Override
   public Response handle(@Nonnull final Context context) throws Exception {
@@ -45,6 +56,8 @@ public class DockerGroupHandler
         return tags(context, route);
       case CATALOG:
         return catalog(context);
+      case REFERRERS:
+        return referrers(context, route);
       case MANIFEST:
       case BLOB:
         return super.handle(context);
@@ -99,11 +112,32 @@ public class DockerGroupHandler
     return DockerMetadataHandler.catalog(context, names);
   }
 
+  private Response referrers(final Context context, final DockerRoute route) throws Exception {
+    if (!DockerDigest.isDigest(route.getReference())) {
+      return DockerMetadataHandler.invalidReferrersDigest(route);
+    }
+    List<List<Map<String, Object>>> lists = new ArrayList<>();
+    for (Entry<Repository, Response> entry : dispatchAll(context).entrySet()) {
+      Response response = entry.getValue();
+      if (!response.getStatus().isSuccessful() || response.getPayload() == null) {
+        continue;
+      }
+      try (InputStream in = response.getPayload().openInputStream()) {
+        lists.add(DockerReferrers.parseIndex(in));
+      }
+      catch (Exception e) {
+        log.debug("Unable to read the referrers {} of {}", route.getReference(), entry.getKey().getName(), e);
+      }
+    }
+    return DockerReferrers.response(context, route.getName(), route.getReference(), DockerReferrers.merge(lists),
+        maxManifestSize);
+  }
+
   private LinkedHashMap<Repository, Response> dispatchAll(final Context context) throws Exception {
     Request original = context.getRequest();
     Parameters parameters = new Parameters();
     for (Entry<String, String> parameter : original.getParameters()) {
-      if (!"n".equals(parameter.getKey()) && !"last".equals(parameter.getKey())) {
+      if (!"n".equals(parameter.getKey()) && !DockerReferrers.LAST_PARAMETER.equals(parameter.getKey())) {
         parameters.set(parameter.getKey(), parameter.getValue());
       }
     }

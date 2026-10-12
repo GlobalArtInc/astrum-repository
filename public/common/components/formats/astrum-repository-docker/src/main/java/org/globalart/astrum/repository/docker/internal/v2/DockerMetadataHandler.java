@@ -1,7 +1,5 @@
 package org.globalart.astrum.repository.docker.internal.v2;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,18 +8,14 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.globalart.astrum.repository.content.fluent.FluentAsset;
 import org.globalart.astrum.repository.docker.DockerContentFacet;
-import org.globalart.astrum.repository.docker.DockerFormat;
 import org.globalart.astrum.repository.docker.internal.security.DockerAuth;
 import org.globalart.astrum.repository.view.Context;
 import org.globalart.astrum.repository.view.Handler;
 import org.globalart.astrum.repository.view.Response;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -30,13 +24,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class DockerMetadataHandler
     implements Handler
 {
-  private static final Logger log = LoggerFactory.getLogger(DockerMetadataHandler.class);
-
   private final DockerAuth dockerAuth;
 
+  private final long maxManifestSize;
+
   @Autowired
-  public DockerMetadataHandler(final DockerAuth dockerAuth) {
+  public DockerMetadataHandler(
+      final DockerAuth dockerAuth,
+      @Value("${astrum.docker.manifest.maxSize:4194304}") final long maxManifestSize)
+  {
     this.dockerAuth = checkNotNull(dockerAuth);
+    this.maxManifestSize = maxManifestSize;
   }
 
   @Nonnull
@@ -103,46 +101,16 @@ public class DockerMetadataHandler
   }
 
   private Response referrers(final Context context, final DockerRoute route) {
+    if (!DockerDigest.isDigest(route.getReference())) {
+      return invalidReferrersDigest(route);
+    }
     DockerContentFacet content = context.getRepository().facet(DockerContentFacet.class);
-    String artifactType = context.getRequest().getParameters().get("artifactType");
-    List<Map<String, Object>> descriptors = new ArrayList<>();
-    for (FluentAsset asset : content.referrers(route.getName(), route.getReference())) {
-      Map<String, Object> descriptor = descriptor(asset);
-      if (artifactType != null && !artifactType.equals(descriptor.get("artifactType"))) {
-        continue;
-      }
-      descriptors.add(descriptor);
-    }
-    Map<String, Object> body = new LinkedHashMap<>();
-    body.put("schemaVersion", 2);
-    body.put("mediaType", DockerManifest.OCI_INDEX);
-    body.put("manifests", descriptors);
-    Response.Builder response = DockerResponses.success(200)
-        .payload(DockerResponses.json(body, DockerManifest.OCI_INDEX));
-    if (artifactType != null) {
-      response.header("OCI-Filters-Applied", "artifactType");
-    }
-    return response.build();
+    return DockerReferrers.response(context, route.getName(), route.getReference(),
+        DockerReferrers.local(content, route.getName(), route.getReference()), maxManifestSize);
   }
 
-  private static Map<String, Object> descriptor(final FluentAsset asset) {
-    Map<String, Object> descriptor = new LinkedHashMap<>();
-    descriptor.put("mediaType", DockerContentFacet.mediaTypeOf(asset));
-    descriptor.put("digest", DockerContentFacet.digestOf(asset));
-    descriptor.put("size", asset.blob().map(blob -> blob.blobSize()).orElse(0L));
-    Object artifactType = asset.attributes(DockerFormat.NAME).get(DockerContentFacet.ATTR_ARTIFACT_TYPE);
-    if (artifactType != null) {
-      descriptor.put("artifactType", artifactType.toString());
-    }
-    try (var in = asset.download().openInputStream()) {
-      JsonNode annotations = DockerResponses.MAPPER.readTree(in).path("annotations");
-      if (annotations.isObject() && annotations.size() > 0) {
-        descriptor.put("annotations", annotations);
-      }
-    }
-    catch (IOException | RuntimeException e) {
-      log.debug("Unable to read annotations of {}", asset.path(), e);
-    }
-    return descriptor;
+  public static Response invalidReferrersDigest(final DockerRoute route) {
+    return DockerResponses.error(DockerError.DIGEST_INVALID, "invalid digest " + route.getReference(),
+        Map.of("digest", route.getReference()));
   }
 }

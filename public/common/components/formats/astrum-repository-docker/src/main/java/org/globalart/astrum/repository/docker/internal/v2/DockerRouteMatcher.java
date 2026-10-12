@@ -35,9 +35,11 @@ public class DockerRouteMatcher
 
   public static final Pattern UPLOAD = Pattern.compile("^/v2/(" + NAME + ")/blobs/uploads/(" + UUID + ")$");
 
-  public static final Pattern REFERRERS = Pattern.compile("^/v2/(" + NAME + ")/referrers/(" + DIGEST + ")$");
+  public static final Pattern REFERRERS = Pattern.compile("^/v2/(" + NAME + ")/referrers/([^/]+)$");
 
   private static final Pattern VALID_NAME = Pattern.compile("^" + NAME + "$");
+
+  private static final Pattern VALID_TAG = Pattern.compile("^" + TAG + "$");
 
   private final DockerRoute.Type type;
 
@@ -68,6 +70,10 @@ public class DockerRouteMatcher
 
   public static boolean isValidName(final String name) {
     return name != null && name.length() <= 255 && VALID_NAME.matcher(name).matches();
+  }
+
+  public static boolean isValidTag(final String tag) {
+    return tag != null && VALID_TAG.matcher(tag).matches();
   }
 
   @Override

@@ -3,6 +3,8 @@ package org.globalart.astrum.repository.docker.internal.v2;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,7 +31,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.globalart.astrum.common.hash.HashAlgorithm.SHA256;
 
 @Component
 public class DockerHostedHandler
@@ -37,16 +38,22 @@ public class DockerHostedHandler
 {
   private static final Logger log = LoggerFactory.getLogger(DockerHostedHandler.class);
 
+  private static final String TAG_PARAMETER = "tag";
+
   private final DockerUploadStore uploadStore;
+
+  private final DockerBlobMounter blobMounter;
 
   private final long maxManifestSize;
 
   @Autowired
   public DockerHostedHandler(
       final DockerUploadStore uploadStore,
+      final DockerBlobMounter blobMounter,
       @Value("${astrum.docker.manifest.maxSize:4194304}") final long maxManifestSize)
   {
     this.uploadStore = checkNotNull(uploadStore);
+    this.blobMounter = checkNotNull(blobMounter);
     this.maxManifestSize = maxManifestSize;
   }
 
@@ -114,7 +121,10 @@ public class DockerHostedHandler
     }
     String name = route.getName();
     String reference = route.getReference();
-    String digest = DockerDigest.sha256(bytes);
+    if (route.isDigestReference() && !DockerDigest.isSupported(reference)) {
+      return DockerResponses.error(DockerError.DIGEST_INVALID, "unsupported digest " + reference);
+    }
+    String digest = route.isDigestReference() ? DockerDigest.of(bytes, reference) : DockerDigest.sha256(bytes);
     if (route.isDigestReference() && !reference.equals(digest)) {
       return DockerResponses.error(DockerError.DIGEST_INVALID,
           "manifest digest " + digest + " does not match " + reference);
@@ -144,19 +154,31 @@ public class DockerHostedHandler
       }
     }
 
+    List<String> tags = new ArrayList<>();
     if (!route.isDigestReference()) {
-      Optional<FluentAsset> existing = content.findManifest(name, reference);
+      tags.add(reference);
+    }
+    for (String tag : request.getParameters().getAll(TAG_PARAMETER)) {
+      if (!DockerRouteMatcher.isValidTag(tag)) {
+        return DockerResponses.error(DockerError.MANIFEST_INVALID, "invalid tag " + tag, Map.of("tag", tag));
+      }
+      if (!tags.contains(tag)) {
+        tags.add(tag);
+      }
+    }
+    for (String tag : tags) {
+      Optional<FluentAsset> existing = content.findManifest(name, tag);
       if (existing.isPresent() && !digest.equals(DockerContentFacet.digestOf(existing.get()))
-          && !tagUpdateAllowed(content, policy, reference)) {
+          && !tagUpdateAllowed(content, policy, tag)) {
         return DockerResponses.error(400, DockerError.DENIED,
-            "repository " + context.getRepository().getName() + " does not allow updating tag " + reference
+            "repository " + context.getRepository().getName() + " does not allow updating tag " + tag
                 + " of " + DockerLocations.externalName(context, name), null);
       }
     }
 
     content.saveManifest(name, digest, bytes, manifest);
-    if (!route.isDigestReference()) {
-      content.saveTag(name, reference, digest, bytes, manifest);
+    for (String tag : tags) {
+      content.saveTag(name, tag, digest, bytes, manifest);
     }
 
     Response.Builder response = DockerResponses.success(201)
@@ -165,6 +187,9 @@ public class DockerHostedHandler
         .header("Content-Length", "0");
     if (manifest.getSubject() != null) {
       response.header(DockerResponses.OCI_SUBJECT_HEADER, manifest.getSubject());
+    }
+    if (route.isDigestReference() && !tags.isEmpty()) {
+      response.header(DockerResponses.OCI_TAG_HEADER, String.join(", ", tags));
     }
     return response.build();
   }
@@ -230,8 +255,11 @@ public class DockerHostedHandler
     }
     String name = route.getName();
     String mount = context.getRequest().getParameters().get("mount");
-    if (mount != null && DockerDigest.isDigest(mount) && content.findBlob(mount).isPresent()) {
-      return blobCreated(context, name, mount);
+    if (mount != null && DockerDigest.isDigest(mount)) {
+      if (content.findBlob(mount).isPresent()
+          || blobMounter.mount(context, mount, context.getRequest().getParameters().get("from"))) {
+        return blobCreated(context, name, mount);
+      }
     }
     String digest = context.getRequest().getParameters().get("digest");
     if (digest != null) {
@@ -250,7 +278,7 @@ public class DockerHostedHandler
       return DockerResponses.error(DockerError.BLOB_UPLOAD_INVALID, "blob body is required");
     }
     DockerContentFacet content = content(context);
-    try (TempBlob blob = content.ingest(payload)) {
+    try (TempBlob blob = content.ingest(payload, digest)) {
       return finishBlob(context, name, digest, blob);
     }
   }
@@ -273,7 +301,7 @@ public class DockerHostedHandler
       case HttpMethods.PATCH:
         return patchUpload(context, name, uuid, path);
       case HttpMethods.PUT:
-        return completeUpload(context, name, path);
+        return completeUpload(context, name, uuid, path);
       default:
         return DockerResponses.error(DockerError.UNSUPPORTED);
     }
@@ -288,12 +316,7 @@ public class DockerHostedHandler
     long current = uploadStore.size(path);
     long[] range = parseContentRange(context.getRequest().getHeaders().get("Content-Range"));
     if (range != null && range[0] != current) {
-      Response error = DockerResponses.error(DockerError.RANGE_INVALID,
-          "upload is at offset " + current + ", chunk starts at " + range[0]);
-      error.getHeaders().replace("Location", DockerLocations.upload(context, name, uuid));
-      error.getHeaders().replace("Range", rangeHeader(current));
-      error.getHeaders().replace(DockerResponses.UPLOAD_UUID_HEADER, uuid);
-      return error;
+      return outOfOrder(context, name, uuid, current, range[0]);
     }
     long size = appendBody(context, path);
     if (range != null && range[1] >= range[0] && size != range[1] + 1) {
@@ -303,7 +326,12 @@ public class DockerHostedHandler
     return uploadStatus(context, name, uuid, size, 202);
   }
 
-  private Response completeUpload(final Context context, final String name, final Path path) throws IOException {
+  private Response completeUpload(
+      final Context context,
+      final String name,
+      final String uuid,
+      final Path path) throws IOException
+  {
     String digest = context.getRequest().getParameters().get("digest");
     if (digest == null) {
       return DockerResponses.error(DockerError.DIGEST_INVALID, "digest parameter is required");
@@ -311,9 +339,14 @@ public class DockerHostedHandler
     if (!DockerDigest.isSupported(digest)) {
       return DockerResponses.error(DockerError.DIGEST_INVALID, "unsupported digest " + digest);
     }
+    long current = uploadStore.size(path);
+    long[] range = parseContentRange(context.getRequest().getHeaders().get("Content-Range"));
+    if (range != null && range[0] != current) {
+      return outOfOrder(context, name, uuid, current, range[0]);
+    }
     appendBody(context, path);
     DockerContentFacet content = content(context);
-    try (TempBlob blob = content.ingest(path)) {
+    try (TempBlob blob = content.ingest(path, digest)) {
       return finishBlob(context, name, digest, blob);
     }
     finally {
@@ -321,9 +354,24 @@ public class DockerHostedHandler
     }
   }
 
+  private static Response outOfOrder(
+      final Context context,
+      final String name,
+      final String uuid,
+      final long current,
+      final long start)
+  {
+    Response error = DockerResponses.error(DockerError.RANGE_INVALID,
+        "upload is at offset " + current + ", chunk starts at " + start);
+    error.getHeaders().replace("Location", DockerLocations.upload(context, name, uuid));
+    error.getHeaders().replace("Range", rangeHeader(current));
+    error.getHeaders().replace(DockerResponses.UPLOAD_UUID_HEADER, uuid);
+    return error;
+  }
+
   private Response finishBlob(final Context context, final String name, final String digest, final TempBlob blob) {
-    String actual = DockerDigest.sha256(blob.getHashes().get(SHA256));
-    if (!actual.equals(digest)) {
+    String actual = DockerDigest.of(blob, digest);
+    if (!digest.equals(actual)) {
       return DockerResponses.error(DockerError.DIGEST_INVALID,
           "uploaded content has digest " + actual + " instead of " + digest, Map.of("digest", digest));
     }

@@ -42,7 +42,8 @@ public class DockerAssetXODescriptorTest
   @Test
   public void exposesTheDockerAttributes() {
     assertThat(descriptor.listExposedAttributeKeys(),
-        containsInAnyOrder("name", "digest", "mediaType", "subject", "artifactType"));
+        containsInAnyOrder("name", "digest", "mediaType", "subject", "artifactType", "artifactKind", "annotations",
+            "manifests"));
   }
 
   @Test

@@ -64,7 +64,7 @@ public class DockerHostedRecipe
   private ViewFacet configure(final ConfigurableViewFacet facet) {
     Router.Builder builder = new Router.Builder();
 
-    metadataRoutes(builder, metadataHandler, metadataHandler);
+    metadataRoutes(builder, metadataHandler, metadataHandler, metadataHandler);
     builder.route(route(DockerRoute.Type.MANIFEST, DockerRouteMatcher.MANIFEST, List.of(GET, HEAD),
         lastDownloadedHandler, hostedHandler));
     builder.route(route(DockerRoute.Type.MANIFEST, DockerRouteMatcher.MANIFEST, List.of(PUT, DELETE),

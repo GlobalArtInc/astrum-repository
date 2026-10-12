@@ -7,10 +7,10 @@ import org.globalart.astrum.repository.Format;
 import org.globalart.astrum.repository.RecipeSupport;
 import org.globalart.astrum.repository.Type;
 import org.globalart.astrum.repository.content.browse.BrowseFacet;
-import org.globalart.astrum.repository.content.maintenance.LastAssetMaintenanceFacet;
 import org.globalart.astrum.repository.content.search.SearchFacet;
 import org.globalart.astrum.repository.docker.DockerContentFacet;
 import org.globalart.astrum.repository.docker.internal.DockerConnectorFacet;
+import org.globalart.astrum.repository.docker.internal.DockerMaintenanceFacet;
 import org.globalart.astrum.repository.docker.internal.security.DockerSecurityFacet;
 import org.globalart.astrum.repository.docker.internal.v2.DockerError;
 import org.globalart.astrum.repository.docker.internal.v2.DockerMetadataHandler;
@@ -49,7 +49,7 @@ public abstract class DockerRecipeSupport
 
   protected Provider<BrowseFacet> browseFacet;
 
-  protected Provider<LastAssetMaintenanceFacet> maintenanceFacet;
+  protected Provider<DockerMaintenanceFacet> maintenanceFacet;
 
   protected Provider<DockerConnectorFacet> connectorFacet;
 
@@ -80,7 +80,7 @@ public abstract class DockerRecipeSupport
       final Provider<ConfigurableViewFacet> viewFacet,
       final Provider<SearchFacet> searchFacet,
       final Provider<BrowseFacet> browseFacet,
-      final Provider<LastAssetMaintenanceFacet> maintenanceFacet,
+      final Provider<DockerMaintenanceFacet> maintenanceFacet,
       final Provider<DockerConnectorFacet> connectorFacet,
       final ExceptionHandler exceptionHandler,
       final TimingHandler timingHandler,
@@ -132,11 +132,16 @@ public abstract class DockerRecipeSupport
     return builder.create();
   }
 
-  protected void metadataRoutes(final Router.Builder builder, final Handler tagsHandler, final Handler catalogHandler) {
+  protected void metadataRoutes(
+      final Router.Builder builder,
+      final Handler tagsHandler,
+      final Handler catalogHandler,
+      final Handler referrersHandler)
+  {
     builder.route(route(DockerRoute.Type.BASE, DockerRouteMatcher.BASE, List.of(GET, HEAD), metadataHandler));
     builder.route(route(DockerRoute.Type.CATALOG, DockerRouteMatcher.CATALOG, List.of(GET), catalogHandler));
     builder.route(route(DockerRoute.Type.TAGS, DockerRouteMatcher.TAGS, List.of(GET), tagsHandler));
-    builder.route(route(DockerRoute.Type.REFERRERS, DockerRouteMatcher.REFERRERS, List.of(GET), metadataHandler));
+    builder.route(route(DockerRoute.Type.REFERRERS, DockerRouteMatcher.REFERRERS, List.of(GET), referrersHandler));
   }
 
   protected static List<String> readActions() {

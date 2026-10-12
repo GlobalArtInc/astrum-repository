@@ -11,6 +11,7 @@ import org.globalart.astrum.repository.cache.NegativeCacheHandler;
 import org.globalart.astrum.repository.docker.DockerFormat;
 import org.globalart.astrum.repository.docker.internal.proxy.DockerProxyFacet;
 import org.globalart.astrum.repository.docker.internal.proxy.DockerProxyHandler;
+import org.globalart.astrum.repository.docker.internal.proxy.DockerProxyReferrersHandler;
 import org.globalart.astrum.repository.docker.internal.proxy.DockerProxyTagsHandler;
 import org.globalart.astrum.repository.docker.internal.v2.DockerRoute;
 import org.globalart.astrum.repository.docker.internal.v2.DockerRouteMatcher;
@@ -54,6 +55,8 @@ public class DockerProxyRecipe
 
   private final DockerProxyTagsHandler tagsHandler;
 
+  private final DockerProxyReferrersHandler referrersHandler;
+
   @Autowired
   public DockerProxyRecipe(
       @Qualifier(ProxyType.NAME) final Type type,
@@ -65,7 +68,8 @@ public class DockerProxyRecipe
       final NegativeCacheHandler negativeCacheHandler,
       final RoutingRuleHandler routingRuleHandler,
       final Provider<DockerProxyHandler> proxyHandler,
-      final DockerProxyTagsHandler tagsHandler)
+      final DockerProxyTagsHandler tagsHandler,
+      final DockerProxyReferrersHandler referrersHandler)
   {
     super(type, format);
     this.httpClientFacet = checkNotNull(httpClientFacet);
@@ -76,6 +80,7 @@ public class DockerProxyRecipe
     this.routingRuleHandler = checkNotNull(routingRuleHandler);
     this.proxyHandler = checkNotNull(proxyHandler);
     this.tagsHandler = checkNotNull(tagsHandler);
+    this.referrersHandler = checkNotNull(referrersHandler);
   }
 
   @Override
@@ -97,7 +102,7 @@ public class DockerProxyRecipe
     Router.Builder builder = new Router.Builder();
     DockerProxyHandler handler = proxyHandler.get();
 
-    metadataRoutes(builder, tagsHandler, metadataHandler);
+    metadataRoutes(builder, tagsHandler, metadataHandler, referrersHandler);
     builder.route(route(DockerRoute.Type.MANIFEST, DockerRouteMatcher.MANIFEST, readActions(),
         routingRuleHandler, negativeCacheHandler, lastDownloadedHandler, handler));
     builder.route(route(DockerRoute.Type.BLOB, DockerRouteMatcher.BLOB, readActions(),

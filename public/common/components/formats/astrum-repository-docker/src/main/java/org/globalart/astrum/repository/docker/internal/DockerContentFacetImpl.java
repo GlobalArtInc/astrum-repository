@@ -1,25 +1,31 @@
 package org.globalart.astrum.repository.docker.internal;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import org.globalart.astrum.blobstore.api.Blob;
+import org.globalart.astrum.common.collect.NestedAttributesMap;
 import org.globalart.astrum.common.entity.Continuations;
 import org.globalart.astrum.common.hash.HashAlgorithm;
 import org.globalart.astrum.repository.config.ConfigurationConstants;
 import org.globalart.astrum.repository.config.WritePolicy;
 import org.globalart.astrum.repository.content.Asset;
+import org.globalart.astrum.repository.content.AttributeOperation;
 import org.globalart.astrum.repository.content.facet.ContentFacetSupport;
 import org.globalart.astrum.repository.content.fluent.FluentAsset;
 import org.globalart.astrum.repository.content.fluent.FluentComponent;
@@ -28,7 +34,10 @@ import org.globalart.astrum.repository.content.store.FormatStoreManager;
 import org.globalart.astrum.repository.docker.DockerConfig;
 import org.globalart.astrum.repository.docker.DockerContentFacet;
 import org.globalart.astrum.repository.docker.DockerFormat;
+import org.globalart.astrum.repository.docker.internal.v2.DockerArtifactKind;
+import org.globalart.astrum.repository.docker.internal.v2.DockerDigest;
 import org.globalart.astrum.repository.docker.internal.v2.DockerManifest;
+import org.globalart.astrum.repository.docker.internal.v2.DockerReferrers;
 import org.globalart.astrum.repository.view.Payload;
 import org.globalart.astrum.repository.view.payloads.TempBlob;
 
@@ -55,6 +64,8 @@ public class DockerContentFacetImpl
   private static final String OCTET_STREAM = "application/octet-stream";
 
   private static final String NAMESPACE = "";
+
+  private static final int MAX_ANNOTATIONS_LENGTH = 8192;
 
   @Autowired
   public DockerContentFacetImpl(@Qualifier(DockerFormat.NAME) final FormatStoreManager formatStoreManager) {
@@ -97,6 +108,11 @@ public class DockerContentFacetImpl
   }
 
   @Override
+  public TempBlob ingest(final Payload payload, final String digest) {
+    return blobs().ingest(payload, DockerDigest.hashesFor(digest));
+  }
+
+  @Override
   public TempBlob ingest(final InputStream in, @Nullable final String contentType) {
     return blobs().ingest(in, contentType, HASHES);
   }
@@ -104,6 +120,11 @@ public class DockerContentFacetImpl
   @Override
   public TempBlob ingest(final Path file) {
     return blobs().ingest(file, OCTET_STREAM, HASHES, false);
+  }
+
+  @Override
+  public TempBlob ingest(final Path file, final String digest) {
+    return blobs().ingest(file, OCTET_STREAM, DockerDigest.hashesFor(digest), false);
   }
 
   @Override
@@ -145,13 +166,13 @@ public class DockerContentFacetImpl
   {
     Optional<FluentAsset> existing = findManifest(name, digest);
     if (existing.isPresent()) {
-      return existing.get();
+      return completeAttributes(existing.get(), manifestAttributes(name, digest, manifest, null));
     }
     try (TempBlob blob = ingest(new ByteArrayInputStream(bytes), manifest.getMediaType())) {
       return assets()
           .path(DockerContentFacet.manifestPath(name, digest))
           .kind(KIND_MANIFEST)
-          .attributes(DockerFormat.NAME, manifestAttributes(name, digest, manifest))
+          .attributes(DockerFormat.NAME, manifestAttributes(name, digest, manifest, null))
           .blob(blob)
           .save();
     }
@@ -167,7 +188,7 @@ public class DockerContentFacetImpl
   {
     Optional<FluentAsset> existing = findManifest(name, tag);
     if (existing.isPresent() && digest.equals(DockerContentFacet.digestOf(existing.get()))) {
-      return existing.get();
+      return completeAttributes(existing.get(), manifestAttributes(name, digest, manifest, tag));
     }
     FluentComponent component = components()
         .name(name)
@@ -179,7 +200,7 @@ public class DockerContentFacetImpl
           .path(DockerContentFacet.manifestPath(name, tag))
           .kind(KIND_TAG)
           .component(component)
-          .attributes(DockerFormat.NAME, manifestAttributes(name, digest, manifest))
+          .attributes(DockerFormat.NAME, manifestAttributes(name, digest, manifest, tag))
           .blob(blob)
           .save();
     }
@@ -188,7 +209,8 @@ public class DockerContentFacetImpl
   private static Map<String, Object> manifestAttributes(
       final String name,
       final String digest,
-      final DockerManifest manifest)
+      final DockerManifest manifest,
+      @Nullable final String tag)
   {
     Map<String, Object> attributes = new LinkedHashMap<>();
     attributes.put(ATTR_NAME, name);
@@ -200,7 +222,32 @@ public class DockerContentFacetImpl
     if (manifest.getArtifactType() != null) {
       attributes.put(ATTR_ARTIFACT_TYPE, manifest.getArtifactType());
     }
+    attributes.put(ATTR_ARTIFACT_KIND, manifest.kind(tag).id());
+    if (manifest.getSubject() != null && !manifest.getAnnotations().isEmpty()
+        && manifest.getAnnotations().toString().length() <= MAX_ANNOTATIONS_LENGTH) {
+      attributes.put(ATTR_ANNOTATIONS, new LinkedHashMap<>(manifest.getAnnotations()));
+    }
+    if (manifest.isIndex()) {
+      attributes.put(ATTR_MANIFESTS, new ArrayList<>(manifest.getManifests()));
+    }
     return attributes;
+  }
+
+  /**
+   * Adds what an asset stored before artifact kinds were recorded lacks.
+   */
+  private static FluentAsset completeAttributes(final FluentAsset asset, final Map<String, Object> attributes) {
+    NestedAttributesMap current = asset.attributes(DockerFormat.NAME);
+    Map<String, Object> missing = new LinkedHashMap<>();
+    attributes.forEach((key, value) -> {
+      if (!current.contains(key)) {
+        missing.put(key, value);
+      }
+    });
+    if (missing.isEmpty()) {
+      return asset;
+    }
+    return asset.attributes(AttributeOperation.OVERLAY, DockerFormat.NAME, missing);
   }
 
   @Override
@@ -218,15 +265,54 @@ public class DockerContentFacetImpl
 
   @Override
   public boolean deleteManifest(final String name, final String digest) {
-    Optional<FluentAsset> asset = assets().path(DockerContentFacet.manifestPath(name, digest)).find();
-    if (asset.isEmpty()) {
+    if (assets().path(DockerContentFacet.manifestPath(name, digest)).find().isEmpty()) {
       return false;
     }
-    for (FluentAsset tag : tagsByDigest(name, digest)) {
-      String path = tag.path();
-      deleteTag(name, path.substring(path.lastIndexOf('/') + 1));
+    deleteWithReferrers(name, digest, new HashSet<>());
+    return true;
+  }
+
+  private void deleteWithReferrers(final String name, final String digest, final Set<String> visited) {
+    if (!visited.add(digest)) {
+      return;
     }
-    return asset.get().delete();
+    for (FluentAsset referrer : referrers(name, digest)) {
+      String referrerDigest = DockerContentFacet.digestOf(referrer);
+      if (referrerDigest != null) {
+        deleteWithReferrers(name, referrerDigest, visited);
+      }
+    }
+    for (FluentAsset tag : tagSchemaTags(name, digest)) {
+      String target = DockerContentFacet.digestOf(tag);
+      deleteTagAsset(name, tag);
+      if (target != null && tagsByDigest(name, target).isEmpty()) {
+        deleteWithReferrers(name, target, visited);
+      }
+    }
+    for (FluentAsset tag : tagsByDigest(name, digest)) {
+      deleteTagAsset(name, tag);
+    }
+    assets().path(DockerContentFacet.manifestPath(name, digest)).find().ifPresent(FluentAsset::delete);
+  }
+
+  private void deleteTagAsset(final String name, final FluentAsset tag) {
+    String path = tag.path();
+    deleteTag(name, path.substring(path.lastIndexOf('/') + 1));
+  }
+
+  private List<FluentAsset> tagSchemaTags(final String name, final String digest) {
+    String fallback = DockerArtifactKind.fallbackTag(digest);
+    if (fallback == null) {
+      return Collections.emptyList();
+    }
+    String prefix = DockerContentFacet.manifestPath(name, fallback);
+    FluentQuery<FluentAsset> query = assets().byFilter(
+        "kind = #{filterParams.kind} AND (path = #{filterParams.path} OR path LIKE #{filterParams.prefix})",
+        Map.of("kind", KIND_TAG, "path", prefix, "prefix", prefix + ".%"));
+    return Continuations.streamOf(query::browse)
+        .filter(asset -> asset.path().equals(prefix) || asset.path().startsWith(prefix + "."))
+        .filter(asset -> asset.path().indexOf('/', DockerContentFacet.manifestsPrefix(name).length()) < 0)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -241,6 +327,26 @@ public class DockerContentFacetImpl
     return manifestAssets(name, KIND_MANIFEST)
         .filter(asset -> digest.equals(asset.attributes(DockerFormat.NAME).get(ATTR_SUBJECT)))
         .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Map<String, Object>> fallbackReferrers(final String name, final String digest) {
+    String tag = DockerArtifactKind.fallbackTag(digest);
+    if (tag == null) {
+      return Collections.emptyList();
+    }
+    Optional<FluentAsset> index = findManifest(name, tag)
+        .filter(asset -> DockerManifest.OCI_INDEX.equals(DockerContentFacet.mediaTypeOf(asset)));
+    if (index.isEmpty()) {
+      return Collections.emptyList();
+    }
+    try (InputStream in = index.get().download().openInputStream()) {
+      return DockerReferrers.parseIndex(in);
+    }
+    catch (IOException | RuntimeException e) {
+      log.debug("Unable to read the referrers index {} of {}", tag, name, e);
+      return Collections.emptyList();
+    }
   }
 
   private Stream<FluentAsset> manifestAssets(final String name, final String kind) {

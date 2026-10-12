@@ -25,6 +25,8 @@ public final class DockerResponses
 
   public static final String OCI_SUBJECT_HEADER = "OCI-Subject";
 
+  public static final String OCI_TAG_HEADER = "OCI-Tag";
+
   public static final String WWW_AUTHENTICATE = "WWW-Authenticate";
 
   public static final String JSON_CONTENT_TYPE = "application/json; charset=utf-8";

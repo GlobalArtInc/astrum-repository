@@ -14,8 +14,11 @@ import org.globalart.astrum.repository.rest.api.AssetXODescriptor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import static org.globalart.astrum.repository.docker.DockerContentFacet.ATTR_ANNOTATIONS;
+import static org.globalart.astrum.repository.docker.DockerContentFacet.ATTR_ARTIFACT_KIND;
 import static org.globalart.astrum.repository.docker.DockerContentFacet.ATTR_ARTIFACT_TYPE;
 import static org.globalart.astrum.repository.docker.DockerContentFacet.ATTR_DIGEST;
+import static org.globalart.astrum.repository.docker.DockerContentFacet.ATTR_MANIFESTS;
 import static org.globalart.astrum.repository.docker.DockerContentFacet.ATTR_MEDIA_TYPE;
 import static org.globalart.astrum.repository.docker.DockerContentFacet.ATTR_NAME;
 import static org.globalart.astrum.repository.docker.DockerContentFacet.ATTR_SUBJECT;
@@ -32,7 +35,8 @@ public class DockerAssetXODescriptor
     implements AssetXODescriptor
 {
   private static final Set<String> ATTRIBUTE_KEYS =
-      Set.of(ATTR_NAME, ATTR_DIGEST, ATTR_MEDIA_TYPE, ATTR_SUBJECT, ATTR_ARTIFACT_TYPE);
+      Set.of(ATTR_NAME, ATTR_DIGEST, ATTR_MEDIA_TYPE, ATTR_SUBJECT, ATTR_ARTIFACT_TYPE, ATTR_ARTIFACT_KIND,
+          ATTR_ANNOTATIONS, ATTR_MANIFESTS);
 
   @Override
   public Set<String> listExposedAttributeKeys() {

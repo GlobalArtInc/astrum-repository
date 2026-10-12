@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,10 +26,12 @@ import org.globalart.astrum.repository.content.facet.ContentProxyFacetSupport;
 import org.globalart.astrum.repository.content.fluent.FluentAsset;
 import org.globalart.astrum.repository.docker.DockerContentFacet;
 import org.globalart.astrum.repository.docker.DockerFormat;
+import org.globalart.astrum.repository.docker.internal.v2.DockerArtifactKind;
 import org.globalart.astrum.repository.docker.internal.v2.DockerContentResponses;
 import org.globalart.astrum.repository.docker.internal.v2.DockerDigest;
 import org.globalart.astrum.repository.docker.internal.v2.DockerManifest;
 import org.globalart.astrum.repository.docker.internal.v2.DockerManifest.InvalidManifestException;
+import org.globalart.astrum.repository.docker.internal.v2.DockerReferrers;
 import org.globalart.astrum.repository.docker.internal.v2.DockerResponses;
 import org.globalart.astrum.repository.docker.internal.v2.DockerRoute;
 import org.globalart.astrum.repository.httpclient.HttpClientFacet;
@@ -56,8 +60,6 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import static org.globalart.astrum.common.hash.HashAlgorithm.SHA256;
-
 @Component
 @Qualifier(DockerFormat.NAME)
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -74,6 +76,8 @@ public class DockerProxyFacet
   private static final int MAX_REDIRECTS = 10;
 
   private static final long MIN_TOKEN_SECONDS = 30;
+
+  private static final int MAX_REFERRER_PAGES = 20;
 
   private final Map<String, RemoteAuthorization> authorizations = new ConcurrentHashMap<>();
 
@@ -152,6 +156,9 @@ public class DockerProxyFacet
     DockerRoute route = context.getAttributes().get(DockerRoute.class);
     if (route != null && route.getType() == DockerRoute.Type.MANIFEST) {
       request.setHeader(HttpHeaders.ACCEPT, DockerManifest.ACCEPT);
+    }
+    else if (route != null && route.getType() == DockerRoute.Type.REFERRERS) {
+      request.setHeader(HttpHeaders.ACCEPT, DockerManifest.OCI_INDEX);
     }
     else if (route != null && route.getType() == DockerRoute.Type.TAGS) {
       request.setHeader(HttpHeaders.ACCEPT, "application/json");
@@ -368,7 +375,9 @@ public class DockerProxyFacet
     catch (InvalidManifestException e) {
       throw new InvalidContentException("Invalid manifest from remote: " + e.getMessage());
     }
-    String digest = DockerDigest.sha256(bytes);
+    String digest = route.isDigestReference()
+        ? DockerDigest.of(bytes, route.getReference())
+        : DockerDigest.sha256(bytes);
     if (route.isDigestReference() && !manifest.isSchema1() && !digest.equals(route.getReference())) {
       throw new InvalidContentException("Remote manifest digest " + digest + " does not match " + route.getReference());
     }
@@ -385,9 +394,9 @@ public class DockerProxyFacet
 
   private Content storeBlob(final DockerRoute route, final Content remote) {
     DockerContentFacet content = content();
-    try (TempBlob blob = content.ingest(remote)) {
-      String actual = DockerDigest.sha256(blob.getHashes().get(SHA256));
-      if (!actual.equals(route.getReference())) {
+    try (TempBlob blob = content.ingest(remote, route.getReference())) {
+      String actual = DockerDigest.of(blob, route.getReference());
+      if (actual == null || !actual.equals(route.getReference())) {
         throw new InvalidContentException("Remote blob digest " + actual + " does not match " + route.getReference());
       }
       return content.saveBlob(blob, actual).markAsCached(remote).download();
@@ -422,6 +431,64 @@ public class DockerProxyFacet
       }
     }
     return tags;
+  }
+
+  /**
+   * The referrers the remote reports for a digest: from its referrers API, or, when it has none, from the index a
+   * client keeps under the tag of the tag schema. {@code null} when the remote could not be asked.
+   */
+  @Nullable
+  public List<Map<String, Object>> remoteReferrers(final Context context) throws IOException {
+    DockerRoute route = DockerRoute.get(context);
+    String base = remoteBase() + "/v2/" + remoteName(route.getName());
+    String url = base + "/referrers/" + route.getReference();
+    String artifactType = DockerReferrers.artifactType(context);
+    if (artifactType != null) {
+      url += "?" + DockerReferrers.ARTIFACT_TYPE_PARAMETER + "="
+          + URLEncoder.encode(artifactType, StandardCharsets.UTF_8);
+    }
+    List<List<Map<String, Object>>> pages = new ArrayList<>();
+    int count = 0;
+    while (url != null && count < MAX_REFERRER_PAGES) {
+      Content page = fetch(url, context, null);
+      if (page == null) {
+        break;
+      }
+      try (InputStream in = page.openInputStream()) {
+        pages.add(DockerReferrers.parseIndex(in));
+      }
+      finally {
+        page.close();
+      }
+      url = nextLink(context, url);
+      count++;
+    }
+    if (!pages.isEmpty()) {
+      return DockerReferrers.merge(pages);
+    }
+    int status = lastStatus(context);
+    if (status != 404 && status != 405 && status != 400) {
+      return null;
+    }
+    String tag = DockerArtifactKind.fallbackTag(route.getReference());
+    if (tag == null) {
+      return List.of();
+    }
+    Content index = fetch(base + "/manifests/" + tag, context, null);
+    if (index == null) {
+      return lastStatus(context) == 404 ? List.of() : null;
+    }
+    try (InputStream in = index.openInputStream()) {
+      return DockerReferrers.parseIndex(in);
+    }
+    finally {
+      index.close();
+    }
+  }
+
+  private static int lastStatus(final Context context) {
+    Object response = context.getAttributes().get(HTTP_RESPONSE);
+    return response instanceof HttpResponse httpResponse ? httpResponse.getStatusLine().getStatusCode() : -1;
   }
 
   @Nullable

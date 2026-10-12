@@ -69,7 +69,7 @@ public class DockerGroupRecipe
   private ViewFacet configure(final ConfigurableViewFacet facet) {
     Router.Builder builder = new Router.Builder();
 
-    metadataRoutes(builder, groupHandler, groupHandler);
+    metadataRoutes(builder, groupHandler, groupHandler, groupHandler);
     builder.route(route(DockerRoute.Type.MANIFEST, DockerRouteMatcher.MANIFEST, List.of(GET, HEAD, PUT, DELETE),
         groupHandler));
     builder.route(route(DockerRoute.Type.BLOB, DockerRouteMatcher.BLOB, List.of(GET, HEAD, DELETE),

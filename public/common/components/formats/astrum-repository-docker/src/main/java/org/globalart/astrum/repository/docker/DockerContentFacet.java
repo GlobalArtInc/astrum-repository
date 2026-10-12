@@ -3,6 +3,7 @@ package org.globalart.astrum.repository.docker;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -35,6 +36,12 @@ public interface DockerContentFacet
 
   String ATTR_ARTIFACT_TYPE = "artifactType";
 
+  String ATTR_ARTIFACT_KIND = "artifactKind";
+
+  String ATTR_ANNOTATIONS = "annotations";
+
+  String ATTR_MANIFESTS = "manifests";
+
   String BLOBS_PREFIX = "/v2/-/blobs/";
 
   String LATEST = "latest";
@@ -53,9 +60,13 @@ public interface DockerContentFacet
 
   TempBlob ingest(Payload payload);
 
+  TempBlob ingest(Payload payload, String digest);
+
   TempBlob ingest(InputStream in, @Nullable String contentType);
 
   TempBlob ingest(Path file);
+
+  TempBlob ingest(Path file, String digest);
 
   Optional<FluentAsset> findBlob(String digest);
 
@@ -71,11 +82,23 @@ public interface DockerContentFacet
 
   boolean deleteTag(String name, String tag);
 
+  /**
+   * Deletes the manifest stored under the digest with the tags that point at it, and everything attached to it:
+   * the manifests whose {@code subject} it is and the tags of the tag schema derived from its digest, recursively.
+   */
   boolean deleteManifest(String name, String digest);
 
   List<FluentAsset> tagsByDigest(String name, String digest);
 
+  /**
+   * The manifests of the name whose {@code subject} is the digest.
+   */
   List<FluentAsset> referrers(String name, String digest);
+
+  /**
+   * The descriptors of an index stored under the tag a client without the referrers API keeps for the digest.
+   */
+  List<Map<String, Object>> fallbackReferrers(String name, String digest);
 
   List<String> tags(String name);
 
@@ -91,6 +114,12 @@ public interface DockerContentFacet
   static String digestOf(final FluentAsset asset) {
     Object digest = asset.attributes(DockerFormat.NAME).get(ATTR_DIGEST);
     return digest == null ? null : digest.toString();
+  }
+
+  @Nullable
+  static String nameOf(final FluentAsset asset) {
+    Object name = asset.attributes(DockerFormat.NAME).get(ATTR_NAME);
+    return name == null ? null : name.toString();
   }
 
   @Nullable

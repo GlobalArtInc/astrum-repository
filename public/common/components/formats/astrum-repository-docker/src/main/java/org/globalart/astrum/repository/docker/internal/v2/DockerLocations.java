@@ -35,6 +35,10 @@ public final class DockerLocations
     return prefix(context) + name + "/blobs/uploads/" + uuid;
   }
 
+  public static String referrers(final Context context, final String name, final String digest) {
+    return prefix(context) + name + "/referrers/" + digest;
+  }
+
   public static String tags(final Context context, final String name) {
     return prefix(context) + name + "/tags/list";
   }
