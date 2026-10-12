@@ -6,6 +6,7 @@ use axum::Router;
 
 pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_npm::Npm::default()));
+    content.register(Arc::new(astrum_format_pypi::PyPi));
     content.register(Arc::new(astrum_format_raw::Raw));
 }
 

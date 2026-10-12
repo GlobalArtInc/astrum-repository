@@ -14,6 +14,7 @@ astrum-api = { path = "crates/astrum-api" }
 astrum-blob = { path = "crates/astrum-blob" }
 astrum-content = { path = "crates/astrum-content" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
+astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-repo = { path = "crates/astrum-repo" }
@@ -33,6 +34,7 @@ base64 = "0.22"
 bytes = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 clap = { version = "4", features = ["derive"] }
+flate2 = "1"
 futures-util = "0.3"
 hex = "0.4"
 http-body-util = "0.1"
@@ -42,6 +44,7 @@ infer = "0.19"
 md-5 = "0.10"
 migrator = { package = "sqlmig", version = "0.2.1" }
 mime_guess = "2"
+multer = "3"
 percent-encoding = "2"
 rand = "0.9"
 regex = "1"
@@ -57,6 +60,7 @@ serde_json = "1"
 sha1 = "0.10"
 sha2 = "0.10"
 subtle = "2"
+tar = { version = "0.4", default-features = false }
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "net", "io-util", "fs", "time"] }
