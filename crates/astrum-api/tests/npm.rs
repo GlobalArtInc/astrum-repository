@@ -1332,3 +1332,108 @@ async fn groups_merge_their_members() {
         "tool does things"
     );
 }
+
+fn package_tgz(manifest: &str) -> Vec<u8> {
+    let encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    let mut builder = tar::Builder::new(encoder);
+    for (name, data) in [
+        ("package/package.json", manifest.as_bytes()),
+        ("package/index.js", b"module.exports = 42;\n".as_slice()),
+    ] {
+        let mut header = tar::Header::new_gnu();
+        header.set_size(data.len() as u64);
+        header.set_mode(0o644);
+        header.set_cksum();
+        builder.append_data(&mut header, name, data).unwrap();
+    }
+    builder.into_inner().unwrap().finish().unwrap()
+}
+
+async fn upload_file(fixture: &Fixture, repository: &str, filename: &str, data: &[u8]) -> Reply {
+    let boundary = "NPMUPLOADBOUNDARY";
+    let mut body = format!(
+        "--{boundary}\r\nContent-Disposition: form-data; name=\"npm.asset\"; filename=\"{filename}\"\r\nContent-Type: application/octet-stream\r\n\r\n"
+    )
+    .into_bytes();
+    body.extend_from_slice(data);
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+    let content_type = format!("multipart/form-data; boundary={boundary}");
+    fixture
+        .send_body(
+            Method::POST,
+            &format!("/service/rest/v1/components?repository={repository}"),
+            support::Auth::Admin,
+            Body::from(body),
+            &[("content-type", content_type.as_str())],
+        )
+        .await
+}
+
+#[tokio::test]
+async fn package_tarballs_upload_through_the_components_api() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("npm-hosted", "ALLOW_ONCE")).await;
+    let spec = get(&fixture, "/service/rest/v1/formats/npm/upload-specs").await;
+    assert_eq!(spec.status, StatusCode::OK);
+    assert_eq!(
+        spec.json(),
+        json!({
+            "format": "npm",
+            "multipleUpload": false,
+            "componentFields": [],
+            "assetFields": [{"name": "asset", "type": "FILE", "description": null, "optional": false, "group": null, "groupHelpText": null, "options": null}]
+        })
+    );
+
+    let tgz = package_tgz(r#"{"name":"@team/widgets","version":"1.2.3","description":"Widgets"}"#);
+    let reply = upload_file(&fixture, "npm-hosted", "local-name.tgz", &tgz).await;
+    assert_eq!(reply.status, StatusCode::NO_CONTENT, "{}", reply.text());
+
+    let document = get(&fixture, &format!("{HOSTED}/@team%2fwidgets"))
+        .await
+        .json();
+    assert_eq!(document["dist-tags"]["latest"], "1.2.3");
+    assert_eq!(document["description"], "Widgets");
+    let dist = &document["versions"]["1.2.3"]["dist"];
+    assert_eq!(
+        dist["shasum"],
+        hex::encode(<sha1::Sha1 as sha1::Digest>::digest(&tgz))
+    );
+    let tarball = get(
+        &fixture,
+        &format!("{HOSTED}/@team/widgets/-/widgets-1.2.3.tgz"),
+    )
+    .await;
+    assert_eq!(tarball.status, StatusCode::OK);
+    assert_eq!(tarball.body, tgz);
+
+    let found = get(
+        &fixture,
+        "/service/rest/v1/search?repository=npm-hosted&name=widgets",
+    )
+    .await
+    .json();
+    assert_eq!(found["items"][0]["group"], "team");
+    assert_eq!(found["items"][0]["version"], "1.2.3");
+
+    let again = upload_file(&fixture, "npm-hosted", "local-name.tgz", &tgz).await;
+    assert_eq!(again.status, StatusCode::BAD_REQUEST, "{}", again.text());
+    assert!(
+        again.text().contains("already published"),
+        "{}",
+        again.text()
+    );
+
+    let plain = upload_file(&fixture, "npm-hosted", "notes.txt", b"just text").await;
+    assert_eq!(plain.status, StatusCode::BAD_REQUEST);
+    assert!(plain.text().contains("npm.asset"), "{}", plain.text());
+
+    let nameless = package_tgz(r#"{"version":"1.0.0"}"#);
+    let reply = upload_file(&fixture, "npm-hosted", "x.tgz", &nameless).await;
+    assert_eq!(reply.status, StatusCode::BAD_REQUEST);
+    assert!(
+        reply.text().contains("names no package"),
+        "{}",
+        reply.text()
+    );
+}

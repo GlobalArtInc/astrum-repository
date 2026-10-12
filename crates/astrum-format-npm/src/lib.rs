@@ -6,6 +6,7 @@ mod packument;
 mod path;
 mod reply;
 mod search;
+mod upload;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
@@ -13,7 +14,8 @@ use std::sync::{Arc, Mutex, Weak};
 use astrum_content::format::{SearchKey, SearchTarget};
 use astrum_content::store::PutAsset;
 use astrum_content::{
-    Asset, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, View, serve,
+    Asset, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadForm, UploadSpec,
+    View, serve,
 };
 use astrum_repo::RepositoryType;
 use async_trait::async_trait;
@@ -247,6 +249,14 @@ impl Format for Npm {
             }
             _ => Ok(None),
         }
+    }
+
+    fn upload_spec(&self) -> Option<UploadSpec> {
+        Some(upload::spec())
+    }
+
+    async fn upload(&self, ctx: Ctx, form: UploadForm) -> Result<(), ContentError> {
+        upload::upload(self, &ctx, form).await
     }
 
     fn search_keys(&self) -> &'static [SearchKey] {

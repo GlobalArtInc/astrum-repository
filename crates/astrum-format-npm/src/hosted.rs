@@ -95,6 +95,18 @@ pub async fn put(
     }
 }
 
+pub async fn publish_document(
+    npm: &Npm,
+    ctx: &Ctx,
+    name: &Name,
+    incoming: &Value,
+) -> Result<(), ContentError> {
+    writable(ctx)?;
+    let _held = npm.lock(ctx, name).await;
+    let stored = documents::hosted(ctx, name).await?;
+    publish(ctx, name, stored, incoming).await.map(|_| ())
+}
+
 async fn publish(
     ctx: &Ctx,
     name: &Name,
