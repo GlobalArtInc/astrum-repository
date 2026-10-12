@@ -2,7 +2,7 @@
 
 Astrum Repository is GlobalArt's artifact repository manager, version 2.0.0, running in production at
 https://astrum.globalart.hu. Today it is a modified version of Nexus Repository OSS (EPL-1.0) with a
-React UI called Astrum One. A from-scratch Rust rewrite is under way (M0 done): read
+React UI called Astrum One. A from-scratch Rust rewrite is under way (M0-M2 done): read
 `.claude/rewrite/README.md` before any work on it, and follow its clean-room rules. This repository is public: never commit
 secrets.
 
@@ -15,9 +15,12 @@ secrets.
   referrers API, sha512, tag parameters, chunked uploads with 416, cross-repository mount, artifact kinds in
   search and Astrum One; deleting a manifest by digest deletes its referrers; cleanup deletes tags only).
   pub and Ansible Galaxy were stopped; they will be written in Rust.
-- Rust rewrite: M0 and M1 done (security, sessions, access tokens, audit, blob stores, repository
-  configuration and the security REST API, about 260 tests); M2 is next. Not deployed. Agent brief template:
-  `/home/user/wt/M1-BRIEF.md`; shared Rust build dir `/home/user/wt/m1-target` (`CARGO_INCREMENTAL=0`).
+- Rust rewrite: M0, M1 and M2 done (security, sessions, access tokens, audit, blob stores, repository
+  configuration, the content engine with raw, maven2, npm, pypi and docker/OCI, components/assets/search/
+  upload/browse API, 417 tests); M3 (UI) is next. Not deployed. Agent brief templates:
+  `/home/user/wt/M1-BRIEF.md`, `/home/user/wt/M2-BRIEF.md`; shared Rust build dir `/home/user/wt/m1-target`
+  (`CARGO_INCREMENTAL=0`). Open question to the owner: keep the `astrum` schema plus a migrator, or tables
+  identical to the Java server's.
 - Known open defects: `/service/rest/v1/user-telemetry/javascript` 404 on every page; certificate check
   in the repository HTTP settings calls a missing truststore endpoint; saving raw proxy query params,
   docker `latestPolicy` and ECR settings from Astrum One resets them; horizontal scroll at 1024px; server

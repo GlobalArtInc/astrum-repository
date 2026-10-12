@@ -1,7 +1,7 @@
 # Rewriting Astrum Repository in Rust
 
-Status: decided (owner's answers of 2026-10-12 are recorded below); M0 and M1 are done (2026-10-12); M2 is in
-progress: the content engine and raw are done; maven2, npm, pypi and docker are being built.
+Status: decided (owner's answers of 2026-10-12 are recorded below); M0, M1 and M2 are done (2026-10-12); M3
+(UI) is next.
 See "Where the Rust server stands" at the end for the code that exists.
 
 ## Why
@@ -277,3 +277,24 @@ M0 (2026-10-12): the skeleton runs, builds into an image and is checked by CI; n
 - Formats: one crate each, `crates/astrum-format-<id>` (raw is the model: `crates/astrum-format-raw`),
   integration tests in `crates/astrum-api/tests/<id>.rs` using `Fixture` plus a real client run documented in
   the report.
+
+## M2 progress (2026-10-12)
+Done: the content engine, raw, maven2, npm, pypi and docker (with OCI 1.1), the components, assets, search,
+upload and browse API; 417 tests; a run of the binary against PostgreSQL served every format. Real clients:
+mvn and Gradle 8.14, npm, pip and twine, docker, crane, oras and the OCI conformance suite (986 of 986).
+Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
+- Engine: `store::write_blob` + `adopt` (write, verify, then record), `proxy::fetch_from` (the format resolves
+  the remote URL, possibly on another host; credentials go only to the remote's own origin), `proxy::send`
+  with a method and the caller's own Authorization replacing configured credentials, preemptive `false`
+  sends credentials only after a 401.
+- Format tokens (`astrum-security::format_tokens`, table `format_token`): NpmToken and DockerToken bearer
+  tokens. npm sign-in ignores a stale token from `.npmrc` and is judged by the password.
+- maven2: metadata and checksums are derived on every read, not stored (uploaded ones are validated and
+  dropped); groups merge metadata and the archetype catalog. Left: gavec, `.index` generation.
+- npm: documents are built from components; proxy tarball locations assume the npmjs layout. Left: audit
+  (404), search endpoint `/-/v1/search`.
+- pypi: PEP 503/592/629/658/691/700/714; hosted pages are rendered, not stored. Left: tokenized search.
+- docker: path routing and `/repository/<name>/v2/`, upload sessions in `docker_upload`, referrers, mounts,
+  sha512. Left: per-repository ports and subdomain routing, blob garbage collection (layers stay after
+  deletes), REST deletes that cascade to tags and referrers, a Bearer challenge from the authentication
+  layer (it answers with Basic before the format sees the request).
