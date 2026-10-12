@@ -7,10 +7,12 @@ publish.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+astrum-api.workspace = true
 astrum-blob.workspace = true
 astrum-content.workspace = true
 astrum-db.workspace = true
 astrum-repo.workspace = true
+astrum-security.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 base64.workspace = true

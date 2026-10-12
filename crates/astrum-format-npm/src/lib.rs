@@ -1,6 +1,7 @@
 mod attachment;
 mod documents;
 mod hosted;
+mod login;
 mod packument;
 mod path;
 mod reply;
@@ -22,6 +23,8 @@ use serde_json::{Value, json};
 
 use crate::documents::not_found;
 use crate::path::{Name, Route};
+
+pub use login::routes;
 
 pub const ID: &str = "npm";
 pub const REALM: &str = "NpmToken";

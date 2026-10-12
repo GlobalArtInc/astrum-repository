@@ -10,5 +10,5 @@ pub fn register(content: &Content) {
 }
 
 pub fn routes() -> Router<AppState> {
-    Router::new()
+    Router::new().merge(astrum_format_npm::routes())
 }

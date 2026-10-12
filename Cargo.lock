@@ -278,10 +278,12 @@ name = "astrum-format-npm"
 version = "3.0.0-dev"
 dependencies = [
  "anyhow",
+ "astrum-api",
  "astrum-blob",
  "astrum-content",
  "astrum-db",
  "astrum-repo",
+ "astrum-security",
  "async-trait",
  "axum",
  "base64 0.22.1",
