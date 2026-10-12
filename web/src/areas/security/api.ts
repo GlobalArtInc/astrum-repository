@@ -13,6 +13,8 @@ export const REALMS_AVAILABLE = `${SECURITY}/realms/available`;
 export const REALMS_ACTIVE = `${SECURITY}/realms/active`;
 export const SSRF = `${SECURITY}/ssrf-protection`;
 export const REPOSITORIES = `${V1}/repositories`;
+export const ROLE_SOURCES = `${INTERNAL}/ui/roles/sources`;
+export const SOURCE_ROLES = `${INTERNAL}/ui/roles`;
 
 export const PRIVILEGE_TYPE_IDS = [
   'application',
@@ -87,6 +89,11 @@ export interface User {
   readOnly: boolean;
   roles: string[];
   externalRoles: string[];
+}
+
+export interface RoleSource {
+  id: string;
+  name: string;
 }
 
 export interface UserSource {

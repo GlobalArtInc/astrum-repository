@@ -20,6 +20,8 @@ describe('the role form', () => {
   it('maps a role to the form and back, trimmed', () => {
     const values = fromRole(role('dev', { name: 'Developers', privileges: ['a'], roles: ['readers'] }));
     expect(values).toEqual({
+      type: 'astrum',
+      source: 'default',
       id: 'dev',
       name: 'Developers',
       description: '',
@@ -27,6 +29,7 @@ describe('the role form', () => {
       roles: ['readers'],
     });
     expect(toRoleRequest({ ...values, name: ' Developers ', description: ' Team ' })).toEqual({
+      source: 'default',
       id: 'dev',
       name: 'Developers',
       description: 'Team',

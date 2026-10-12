@@ -1,4 +1,4 @@
-import { Button, Card, Flex, Heading, Spinner } from '@radix-ui/themes';
+import { Badge, Button, Card, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
 import { KeySquare, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -184,6 +184,26 @@ function UserForm({ user, leaving, leave }: { user?: User; leaving: boolean; lea
               disabled={readOnly}
               hint={readOnly ? undefined : t('security.user.rolesHint')}
             />
+            {!local && user && (
+              <div className={styles.section}>
+                <Text as="p" size="2" weight="medium">
+                  {t('security.user.externalRoles')}
+                </Text>
+                {user.externalRoles.length > 0 ? (
+                  <Flex gap="1" wrap="wrap">
+                    {user.externalRoles.map((role) => (
+                      <Badge key={role} color="gray" variant="soft">
+                        {role}
+                      </Badge>
+                    ))}
+                  </Flex>
+                ) : (
+                  <Text as="p" size="2" color="gray">
+                    {t('security.user.externalRolesNone', { source: sourceLabel(t, user.source) })}
+                  </Text>
+                )}
+              </div>
+            )}
           </div>
         </Card>
         <FormError message={form.formError} />

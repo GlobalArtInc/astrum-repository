@@ -10,12 +10,23 @@ import {
   ErrorState,
   FormError,
   Page,
+  SelectField,
   TextField,
   UnsavedChangesGuard,
   useForm,
   useToast,
 } from '../../../ui';
-import { ASSIGNABLE_ROLES, PRIVILEGES, type Privilege, ROLES, type Role, USERS } from '../api';
+import {
+  ASSIGNABLE_ROLES,
+  DEFAULT_SOURCE,
+  PRIVILEGES,
+  type Privilege,
+  ROLE_SOURCES,
+  ROLES,
+  type Role,
+  type RoleSource,
+  USERS,
+} from '../api';
 import { BuiltInNote } from '../shared/BuiltInNote';
 import { ChipPicker } from '../shared/ChipPicker';
 import { EffectivePrivileges } from '../shared/EffectivePrivileges';
@@ -23,10 +34,12 @@ import styles from '../shared/Form.module.css';
 import { ROLES_PAGE, roleHref } from '../shared/links';
 import { explainRefusal } from '../shared/messages';
 import { useLeave } from '../shared/useLeave';
+import { MappedRoleField } from './MappedRoleField';
 import {
   EMPTY_ROLE,
   fromRole,
   privilegeOptions,
+  type RoleType,
   type RoleValues,
   roleOptions,
   toRoleRequest,
@@ -46,6 +59,7 @@ function RoleForm({ role, leaving, leave }: { role?: Role; leaving: boolean; lea
   const privileges = useApi<Privilege[]>(PRIVILEGES);
   const roles = useApi<Role[]>(ROLES);
   const assignable = useApi<Role[]>(readOnly ? null : ASSIGNABLE_ROLES);
+  const sources = useApi<RoleSource[]>(ROLE_SOURCES);
 
   const form = useForm<RoleValues>({
     initial: role ? fromRole(role) : EMPTY_ROLE,
@@ -74,6 +88,8 @@ function RoleForm({ role, leaving, leave }: { role?: Role; leaving: boolean; lea
     [assignable.data, roles.data, form.values.roles, form.values.id],
   );
 
+  const sourceName = (id: string) => sources.data?.find((source) => source.id === id)?.name ?? id;
+
   const remove = async () => {
     if (!role) {
       return;
@@ -89,6 +105,54 @@ function RoleForm({ role, leaving, leave }: { role?: Role; leaving: boolean; lea
       {builtIn && <BuiltInNote text={t('security.role.builtIn')} />}
       <Card size="3">
         <div className={styles.card}>
+          {(creating || form.values.type === 'external') && (
+            <SelectField
+              label={t('security.role.type')}
+              name="type"
+              value={form.values.type}
+              onChange={(value) => {
+                const type = value as RoleType;
+                form.set('type', type);
+                if (type === 'external' && form.values.source === DEFAULT_SOURCE) {
+                  form.set('source', sources.data?.[0]?.id ?? '');
+                }
+              }}
+              options={[
+                { value: 'astrum', label: t('security.role.typeAstrum') },
+                { value: 'external', label: t('security.role.typeExternal') },
+              ]}
+              required
+              disabled={readOnly || !creating}
+              hint={creating ? t('security.role.typeHint') : undefined}
+            />
+          )}
+          {form.values.type === 'external' && (
+            <>
+              <SelectField
+                label={t('security.role.source')}
+                {...form.field('source')}
+                options={(sources.data ?? []).map((source) => ({ value: source.id, label: source.name }))}
+                required
+                disabled={readOnly || !creating}
+                hint={creating ? t('security.role.sourceHint') : undefined}
+              />
+              {creating && form.values.source !== '' && (
+                <MappedRoleField
+                  key={form.values.source}
+                  source={form.values.source}
+                  sourceName={sourceName(form.values.source)}
+                  value={form.values.id}
+                  disabled={readOnly}
+                  onPick={(id) => {
+                    if (form.values.name === '' || form.values.name === form.values.id) {
+                      form.set('name', id);
+                    }
+                    form.set('id', id);
+                  }}
+                />
+              )}
+            </>
+          )}
           <div className={styles.pair}>
             <TextField
               label={t('security.role.id')}

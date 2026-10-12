@@ -79,7 +79,7 @@ export default function UsersPage() {
       header: t('security.users.roles'),
       cell: (row) => (
         <Text size="2" color="gray">
-          {row.roles.join(', ')}
+          {[...new Set([...row.roles, ...row.externalRoles])].join(', ')}
         </Text>
       ),
       hideOnPhone: true,

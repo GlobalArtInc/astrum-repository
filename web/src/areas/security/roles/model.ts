@@ -1,9 +1,13 @@
 import type { Translate } from '../../../i18n';
-import type { Privilege, Role } from '../api';
+import { DEFAULT_SOURCE, type Privilege, type Role } from '../api';
 import { typeLabel } from '../privileges/labels';
 import type { PickerOption } from '../shared/ChipPicker';
 
+export type RoleType = 'astrum' | 'external';
+
 export interface RoleValues {
+  type: RoleType;
+  source: string;
   id: string;
   name: string;
   description: string;
@@ -11,10 +15,20 @@ export interface RoleValues {
   roles: string[];
 }
 
-export const EMPTY_ROLE: RoleValues = { id: '', name: '', description: '', privileges: [], roles: [] };
+export const EMPTY_ROLE: RoleValues = {
+  type: 'astrum',
+  source: DEFAULT_SOURCE,
+  id: '',
+  name: '',
+  description: '',
+  privileges: [],
+  roles: [],
+};
 
 export function fromRole(role: Role): RoleValues {
   return {
+    type: role.source === DEFAULT_SOURCE ? 'astrum' : 'external',
+    source: role.source,
     id: role.id,
     name: role.name,
     description: role.description ?? '',
@@ -23,8 +37,9 @@ export function fromRole(role: Role): RoleValues {
   };
 }
 
-export function toRoleRequest(values: RoleValues): Omit<Role, 'source' | 'readOnly'> {
+export function toRoleRequest(values: RoleValues): Omit<Role, 'readOnly'> {
   return {
+    source: values.type === 'external' ? values.source : DEFAULT_SOURCE,
     id: values.id.trim(),
     name: values.name.trim(),
     description: values.description.trim(),
@@ -54,6 +69,9 @@ export function validateRole(t: Translate, values: RoleValues): Partial<Record<k
   }
   if (values.name.trim() === '') {
     errors.name = t('security.form.required');
+  }
+  if (values.type === 'external' && (values.source === '' || values.source === DEFAULT_SOURCE)) {
+    errors.source = t('security.form.required');
   }
   return errors;
 }

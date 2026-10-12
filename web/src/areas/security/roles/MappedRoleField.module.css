@@ -1,0 +1,42 @@
+.anchor {
+  position: relative;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: var(--space-1);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-3);
+  background: var(--color-panel-solid);
+  box-shadow: var(--shadow-4);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.option {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  font-size: var(--font-size-2);
+  overflow-wrap: anywhere;
+}
+
+.option[data-active="true"],
+.option:hover {
+  background: var(--accent-a3);
+}
+
+.none {
+  margin: 0;
+  padding: var(--space-2);
+}
