@@ -30,6 +30,8 @@ class HuggingFaceSearchCustomFieldContributorTest
 
     verify(record).addFormatFieldValue1("main", true);
     verify(record).addFormatFieldValue1("v1.0", true);
+    verify(record).addKeyword("main");
+    verify(record).addKeyword("v1.0");
     verify(record).addFormatFieldValue2("onnx/model.onnx");
   }
 
