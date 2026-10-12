@@ -204,3 +204,25 @@ M0 (2026-10-12): the skeleton runs, builds into an image and is checked by CI; n
   READ/WRITE, 1–3650 days, at most 100 per user; usable as the Basic password of its owner or as a Bearer
   token while `AccessTokenRealm` is active; managed only after signing in with a password; other users'
   tokens need `astrum:accesstokens:read|delete`), `GET /audit?limit&before&domain` (`astrum:audit:read`).
+
+## M1 progress (2026-10-12)
+- Repository configuration (`crates/astrum-repo/src/config`, `store.rs`, REST `routes/repositories.rs`): every
+  format and type of the registry (59 combinations) can be created, read, updated and deleted with the
+  documented JSON; 118 GET documents of the reference server were accepted unchanged by our POST. Writes take
+  a transaction advisory lock and check names (ignoring case), blob store, group members (format, cycles,
+  writable member), docker ports. Deleting a repository removes it from groups and clears a stale writable
+  member. Secrets (proxy passwords, bearer tokens, signing keys and passphrases) are sealed and never
+  returned; a PUT without them keeps them. `invalidate-cache` and `rebuild-index` answer but do nothing until
+  M2. Left: SSRF check of remote URLs (with the HTTP client in M2), base URL setting, real sizes in the list,
+  cleanup policy and routing rule names (M4b), uniqueness of docker `subdomain` and terraform `registryHost`.
+- Blob stores (`crates/astrum-blob`, REST `routes/blobstores*`): `BlobStore` trait (put with sha1/sha256/md5,
+  read, ranged read, exists, delete, totals, space, check); file store `content/<2 hex>/<2 hex>/<uuid>` with
+  fsync + rename; S3 (aws-sdk-s3 on rustls/ring, multipart over 8 MiB, SSE/KMS, assume role, path style;
+  expiration, signer, presigned URLs and failover buckets are stored but inert); group stores (writeToFirst,
+  roundRobin; no REST yet); soft quotas; totals in `blob_store_metrics`; registry `state.blob_stores()`
+  (`get`, `forget()` after config changes); the `default` file store is created once on a fresh installation
+  (setting `blobstore.provisioned`). A store holding blobs cannot change path, bucket or prefix. S3 tests run
+  an in-process s3s server (`astrum_testkit::s3`). Left: SSRF check of S3 endpoints, `test-connection`,
+  soft delete and compaction, a metrics reconcile task, documentation of a lifecycle rule for aborted
+  multipart uploads.
+- Dev builds optimise `argon2` and `blake2` (`[profile.dev.package.*]`) so API tests stay fast.
