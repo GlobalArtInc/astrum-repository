@@ -528,7 +528,7 @@ describe('usage snippets', () => {
       });
       expect(ids(file)).toEqual(['endpoint', 'cli', 'python', 'transformers']);
       const snippets = texts(file);
-      expect(snippets.endpoint).toBe(`export HF_ENDPOINT=${BASE}/hf-proxy`);
+      expect(snippets.endpoint).toBe(`export HF_ENDPOINT=${BASE}/hf-proxy\nexport HF_HUB_DOWNLOAD_TIMEOUT=600`);
       expect(snippets.cli).toBe(`hf download acme/tiny onnx/model.onnx --revision ${commit}`);
       expect(snippets.python).toBe(
         'from huggingface_hub import hf_hub_download\n\npath = hf_hub_download(\n' +

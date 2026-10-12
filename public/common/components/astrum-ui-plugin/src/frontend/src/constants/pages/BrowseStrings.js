@@ -225,7 +225,7 @@ export default {
         NUGET_CONFIG: 'Put into NuGet.Config next to the solution',
         NUGET_PUSH: 'The API key is the NuGet API key of your user on this server',
         HELM_REPO: 'Register the repository once, then install charts from it',
-        HF_ENDPOINT: 'Set once; huggingface_hub, transformers and the hf command then download through this repository. Put user:token@ before the host when the repository needs a sign-in',
+        HF_ENDPOINT: 'Set once; huggingface_hub, transformers and the hf command then download through this repository. The longer timeout leaves time for large files the repository fetches for the first time. Put user:token@ before the host when the repository needs a sign-in',
         HF_DOWNLOAD: 'Downloads into the Hugging Face cache; without a file name, the whole repository',
         HF_TRANSFORMERS: 'With HF_ENDPOINT set, transformers loads the model through this repository',
         RAW_SIGN_IN: 'Add -u <user> when the repository needs a sign-in',

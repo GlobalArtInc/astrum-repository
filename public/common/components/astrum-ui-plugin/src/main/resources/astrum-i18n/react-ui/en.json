@@ -234,7 +234,7 @@
   "BROWSE.USAGE.HINTS.GRADLE_KOTLIN": "Add to build.gradle.kts",
   "BROWSE.USAGE.HINTS.HELM_REPO": "Register the repository once, then install charts from it",
   "BROWSE.USAGE.HINTS.HF_DOWNLOAD": "Downloads into the Hugging Face cache; without a file name, the whole repository",
-  "BROWSE.USAGE.HINTS.HF_ENDPOINT": "Set once; huggingface_hub, transformers and the hf command then download through this repository. Put user:token@ before the host when the repository needs a sign-in",
+  "BROWSE.USAGE.HINTS.HF_ENDPOINT": "Set once; huggingface_hub, transformers and the hf command then download through this repository. The longer timeout leaves time for large files the repository fetches for the first time. Put user:token@ before the host when the repository needs a sign-in",
   "BROWSE.USAGE.HINTS.HF_TRANSFORMERS": "With HF_ENDPOINT set, transformers loads the model through this repository",
   "BROWSE.USAGE.HINTS.LFS_CONFIG": "Run in the git repository and commit .lfsconfig, so every clone keeps its large files here",
   "BROWSE.USAGE.HINTS.LFS_LOCAL_CONFIG": "Run in a clone to use this repository for its large files without committing anything",

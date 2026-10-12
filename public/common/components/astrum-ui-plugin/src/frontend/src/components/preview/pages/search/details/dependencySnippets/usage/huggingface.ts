@@ -36,7 +36,7 @@ export const generate: UsageGenerator = (context) => {
     {
       id: 'endpoint',
       label: 'HF_ENDPOINT',
-      snippetText: `export HF_ENDPOINT=${endpoint}`,
+      snippetText: `export HF_ENDPOINT=${endpoint}\nexport HF_HUB_DOWNLOAD_TIMEOUT=600`,
       description: strings.HINTS.HF_ENDPOINT,
     },
   ];
