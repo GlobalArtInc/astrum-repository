@@ -937,6 +937,35 @@ async fn proxies_rewrite_a_v3_upstream_and_cache_its_packages() {
     );
     let refused = push(&fixture, "mirror", nupkg("X", "1.0.0", ""), Auth::Admin).await;
     assert_eq!(refused.status, StatusCode::METHOD_NOT_ALLOWED);
+
+    create(&fixture, "hosted", hosted("elsewhere", "ALLOW")).await;
+    push(
+        &fixture,
+        "elsewhere",
+        nupkg("Moved.Lib", "1.0.0", ""),
+        Auth::Admin,
+    )
+    .await;
+    let moved = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/repositories/nuget/proxy/mirror",
+            Auth::Admin,
+            Some(proxy(
+                "mirror",
+                &format!("http://{address}/repository/elsewhere/index.json"),
+                "V3",
+                &fixture.admin_password,
+            )),
+        )
+        .await;
+    assert_eq!(moved.status, StatusCode::NO_CONTENT, "{}", moved.text());
+    let versions = get_json(
+        &fixture,
+        "/repository/mirror/v3/content/moved.lib/index.json",
+    )
+    .await;
+    assert_eq!(versions, json!({"versions": ["1.0.0"]}));
 }
 
 #[tokio::test]

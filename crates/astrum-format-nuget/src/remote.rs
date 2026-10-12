@@ -291,11 +291,34 @@ async fn cached(ctx: &Ctx, path: &str, url: url::Url) -> Result<Option<Asset>, C
     .await
 }
 
+fn remote_of(asset: &Asset) -> Option<&str> {
+    asset
+        .attributes
+        .pointer("/nuget/remote")
+        .and_then(Value::as_str)
+}
+
 pub async fn upstream(ctx: &Ctx, cache: &Cache) -> Result<Arc<Upstream>, ContentError> {
     let url = index_url(ctx)?;
-    let asset = cached(ctx, INDEX_PATH, url)
-        .await?
-        .ok_or_else(|| ContentError::BadGateway("the remote has no service index".to_owned()))?;
+    if let Some(known) = store::find(ctx.db(), ctx.name(), INDEX_PATH).await?
+        && remote_of(&known) != Some(url.as_str())
+    {
+        store::delete(ctx, INDEX_PATH).await?;
+    }
+    let remote = url.to_string();
+    let asset = proxy::fetch_from(
+        ctx,
+        INDEX_PATH,
+        Freshness::Metadata,
+        || async move { Ok(Some(proxy::Origin::new(url))) },
+        || {
+            PutAsset::cached(INDEX_PATH)
+                .content_type("application/json")
+                .attributes(json!({ ID: { "remote": remote } }))
+        },
+    )
+    .await?
+    .ok_or_else(|| ContentError::BadGateway("the remote has no service index".to_owned()))?;
     if let Some((blob, known)) = cache
         .indexes
         .lock()
@@ -307,6 +330,11 @@ pub async fn upstream(ctx: &Ctx, cache: &Cache) -> Result<Arc<Upstream>, Content
     }
     let value = parse_json(&read_asset(ctx, &asset).await?)?;
     let found = Arc::new(read_index(&value));
+    if found.package_base.is_none() && found.registration_base.is_none() {
+        return Err(ContentError::BadGateway(
+            "the remote's service index names no package or registration resources".to_owned(),
+        ));
+    }
     cache
         .indexes
         .lock()
