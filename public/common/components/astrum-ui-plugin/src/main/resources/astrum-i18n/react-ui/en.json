@@ -253,6 +253,7 @@
   "BROWSE.USAGE.HINTS.TWINE": "twine asks for the user name and password of this server",
   "BROWSE.USAGE.HINTS.TYCHO": "Add to the repositories of your Tycho build",
   "BROWSE.USAGE.HINTS.UPLOAD_WRITE_ACCESS": "Uploading needs a user with write access to this repository",
+  "BROWSE.USAGE.HINTS.YUM_REPO": "Put into /etc/yum.repos.d/{0}.repo, then install with dnf or yum",
   "BROWSE.USAGE.LABELS.UPDATE_SITE": "Update site",
   "BROWSE.USAGE.LABELS.UPLOAD": "Upload",
   "BROWSE.USAGE.TITLE": "Usage",

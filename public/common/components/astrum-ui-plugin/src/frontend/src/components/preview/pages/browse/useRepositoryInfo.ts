@@ -11,7 +11,22 @@ import type { RepositoryPageResponse, RepositoryReference } from './browse.types
 export interface RepositoryInfo extends RepositoryReference {
   /** APT distribution, read from the repository settings when the user may see them. */
   distribution?: string | null;
+  /** Directory depth at which a Yum hosted repository generates repodata, when the user may see it. */
+  repodataDepth?: number | null;
+  /** Whether a Yum repository signs its repomd.xml, when the user may see its settings. */
+  repodataSigned?: boolean | null;
 }
+
+/**
+ * The repository settings the usage snippets read.
+ */
+interface UsageSettings {
+  distribution: string | null;
+  repodataDepth: number | null;
+  repodataSigned: boolean | null;
+}
+
+const NO_SETTINGS: UsageSettings = { distribution: null, repodataDepth: null, repodataSigned: null };
 
 /**
  * The absolute URL of a repository, from the server when it sent one, else built from this page's
@@ -36,17 +51,23 @@ async function fetchRepository(name: string): Promise<RepositoryReference | null
  * Settings of the repository that the usage snippets need. Only administrators of the repository
  * may read them; for everyone else the snippets fall back to what they can tell without.
  */
-async function fetchDistribution(name: string, format: string): Promise<string | null> {
-  if (format !== 'apt' || isMockMode()) {
-    return null;
+async function fetchUsageSettings(name: string, format: string): Promise<UsageSettings> {
+  if ((format !== 'apt' && format !== 'yum') || isMockMode()) {
+    return NO_SETTINGS;
   }
   try {
-    const settings = await restClient.get<{ apt?: { distribution?: string } }>(
-      `/service/rest/internal/ui/repositories/repository/${encodeURIComponent(name)}`,
-    );
-    return settings?.apt?.distribution ?? null;
+    const settings = await restClient.get<{
+      apt?: { distribution?: string };
+      yum?: { repodataDepth?: number };
+      yumSigning?: { keypair?: string };
+    }>(`/service/rest/internal/ui/repositories/repository/${encodeURIComponent(name)}`);
+    return {
+      distribution: settings?.apt?.distribution ?? null,
+      repodataDepth: settings?.yum?.repodataDepth ?? null,
+      repodataSigned: format === 'yum' ? Boolean(settings?.yumSigning?.keypair) : null,
+    };
   } catch {
-    return null;
+    return NO_SETTINGS;
   }
 }
 
@@ -73,8 +94,8 @@ export function useRepositoryInfo(repositoryName: string | null | undefined): {
         if (!found) {
           return null;
         }
-        const distribution = await fetchDistribution(found.name, found.format);
-        return { ...found, distribution };
+        const settings = await fetchUsageSettings(found.name, found.format);
+        return { ...found, ...settings };
       })
       .catch(() => null)
       .then((info) => {

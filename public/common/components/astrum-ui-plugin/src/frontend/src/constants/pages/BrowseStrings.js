@@ -243,6 +243,7 @@ export default {
         LFS_CONFIG: 'Run in the git repository and commit .lfsconfig, so every clone keeps its large files here',
         LFS_LOCAL_CONFIG: 'Run in a clone to use this repository for its large files without committing anything',
         LFS_OBJECT: 'Downloads the object by its SHA-256 id, as git lfs does when it checks out a file',
+        YUM_REPO: (name) => `Put into /etc/yum.repos.d/${name}.repo, then install with dnf or yum`,
       },
     },
   },

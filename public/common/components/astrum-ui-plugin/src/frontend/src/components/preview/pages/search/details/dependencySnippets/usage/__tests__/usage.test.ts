@@ -27,7 +27,7 @@ describe('usage snippets', () => {
   it('has a repository-aware generator for every format the server supports', () => {
     expect(Object.keys(USAGE_GENERATORS).sort()).toEqual([
       'alpine', 'apt', 'cargo', 'cocoapods', 'composer', 'conan', 'conda', 'docker', 'gitlfs', 'go', 'helm',
-      'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw',
+      'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw', 'yum',
     ]);
   });
 
@@ -443,6 +443,47 @@ describe('usage snippets', () => {
       }));
       expect(s.repositories).toBe('echo "https://astrum.example.com/repository/alpine-proxy/v3.20/main" >> /etc/apk/repositories\napk update');
       expect(s.add).toBe('apk add curl=8.9.1-r0');
+    });
+  });
+
+  describe('yum', () => {
+    it('points the .repo file at the repodata of a hosted repository and uploads to the package path', () => {
+      const s = texts(context({
+        format: 'yum',
+        repositoryName: 'yum-hosted',
+        name: 'hello',
+        version: '2.12.1-3.el9',
+        path: 'el9/x86_64/Packages/hello-2.12.1-3.el9.x86_64.rpm',
+        repodataDepth: 2,
+        repodataSigned: true,
+      }));
+      expect(s.repo).toBe([
+        '[yum-hosted]',
+        'name=yum-hosted',
+        'baseurl=https://astrum.example.com/repository/yum-hosted/el9/x86_64/',
+        'enabled=1',
+        'gpgcheck=0',
+        'repo_gpgcheck=1',
+        'gpgkey=https://astrum.example.com/repository/yum-hosted/el9/x86_64/repodata/repomd.xml.key',
+      ].join('\n'));
+      expect(s.install).toBe('sudo dnf install hello-2.12.1-3.el9');
+      expect(s.upload).toBe('curl -u <user> --upload-file ./hello-2.12.1-3.el9.x86_64.rpm '
+        + 'https://astrum.example.com/repository/yum-hosted/el9/x86_64/Packages/hello-2.12.1-3.el9.x86_64.rpm');
+    });
+
+    it('finds the repodata of a proxy above its Packages directory', () => {
+      const s = texts(context({
+        format: 'yum',
+        repositoryName: 'rocky-proxy',
+        repositoryType: 'proxy',
+        name: 'bash',
+        path: 'BaseOS/x86_64/os/Packages/b/bash-5.1.8-9.el9.x86_64.rpm',
+      }));
+      expect(s.repo).toContain('baseurl=https://astrum.example.com/repository/rocky-proxy/BaseOS/x86_64/os/\n');
+      expect(s.repo).not.toContain('repo_gpgcheck');
+      expect(s.install).toBe('sudo dnf install bash');
+      expect(ids(context({ format: 'yum', repositoryName: 'rocky-proxy', repositoryType: 'proxy' })))
+        .toEqual(['repo']);
     });
   });
 

@@ -32,6 +32,10 @@ export interface UsageContext {
   readonly attributes?: Readonly<Record<string, unknown>> | null;
   /** APT distribution of the repository, when known. */
   readonly distribution?: string | null;
+  /** Directory depth at which a Yum hosted repository generates repodata, when known. */
+  readonly repodataDepth?: number | null;
+  /** Whether a Yum repository signs its repomd.xml, when known. */
+  readonly repodataSigned?: boolean | null;
 }
 
 /**

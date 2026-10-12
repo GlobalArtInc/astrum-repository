@@ -215,6 +215,8 @@ function usageContextOf(
     registryUrl: assetData?.registryUrl ?? null,
     attributes: assetData?.attributes ?? null,
     distribution: repository?.distribution ?? null,
+    repodataDepth: repository?.repodataDepth ?? null,
+    repodataSigned: repository?.repodataSigned ?? null,
   };
 }
 

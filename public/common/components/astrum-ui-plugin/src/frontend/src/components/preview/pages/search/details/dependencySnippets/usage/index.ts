@@ -17,6 +17,7 @@ import { generate as p2 } from './p2';
 import { generate as pypi } from './pypi';
 import { generate as r } from './r';
 import { generate as raw } from './raw';
+import { generate as yum } from './yum';
 import type { UsageContext, UsageGenerator, UsageSnippet } from './types';
 
 export type { UsageContext, UsageGenerator, UsageSnippet } from './types';
@@ -43,6 +44,7 @@ export const USAGE_GENERATORS: Readonly<Record<string, UsageGenerator>> = {
   pypi,
   r,
   raw,
+  yum,
 };
 
 /**
