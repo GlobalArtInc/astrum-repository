@@ -447,7 +447,7 @@ function Overview({ data }: { data: Dashboard }) {
       <div className={styles.cards}>
         <div className={styles.column}>
           <TopDownloads components={data.downloads.topComponents} assets={data.downloads.topAssets} />
-          <RecentUploads uploads={data.recentUploads} />
+          <RecentUploads uploads={data.recentUploads.filter((upload) => upload.kind === 'component')} />
         </div>
         <div className={styles.column}>
           <Formats formats={data.repositories.byFormat} />

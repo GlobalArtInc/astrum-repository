@@ -16,3 +16,7 @@
     padding: var(--space-4);
   }
 }
+
+:global(.rt-BaseDialogScrollPadding):has(> .dialog) {
+  min-width: 0;
+}
