@@ -28,8 +28,14 @@ uuid.workspace = true
 
 [dev-dependencies]
 astrum-format-npm.workspace = true
+astrum-format-pypi.workspace = true
 astrum-format-raw.workspace = true
 astrum-testkit.workspace = true
+flate2.workspace = true
+hex.workspace = true
 http-body-util.workspace = true
+md-5.workspace = true
+sha2.workspace = true
+tar.workspace = true
 tempfile.workspace = true
 tower.workspace = true
