@@ -26,7 +26,7 @@ function ids(ctx: UsageContext): string[] {
 describe('usage snippets', () => {
   it('has a repository-aware generator for every format the server supports', () => {
     expect(Object.keys(USAGE_GENERATORS).sort()).toEqual([
-      'alpine', 'apt', 'cargo', 'cocoapods', 'composer', 'conan', 'conda', 'docker', 'go', 'helm',
+      'alpine', 'apt', 'cargo', 'cocoapods', 'composer', 'conan', 'conda', 'docker', 'gitlfs', 'go', 'helm',
       'maven2', 'npm', 'nuget', 'p2', 'pypi', 'r', 'raw',
     ]);
   });
@@ -253,6 +253,28 @@ describe('usage snippets', () => {
     });
   });
 
+  describe('gitlfs', () => {
+    const oid = '4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393';
+    const object = context({ format: 'gitlfs', repositoryName: 'lfs', name: oid, path: `objects/4d/7a/${oid}` });
+
+    it('points git at the LFS API of the repository and downloads the object by its id', () => {
+      const s = texts(object);
+      expect(s.lfsconfig).toBe(
+        'git config -f .lfsconfig lfs.url https://astrum.example.com/repository/lfs/info/lfs\ngit add .lfsconfig',
+      );
+      expect(s['git-config']).toBe('git config lfs.url https://astrum.example.com/repository/lfs/info/lfs');
+      expect(s.curl).toBe(
+        `curl -u <user> -fL -o ${oid} https://astrum.example.com/repository/lfs/info/lfs/objects/${oid}`,
+      );
+    });
+
+    it('takes the id from the asset path and leaves out the download without one', () => {
+      expect(texts(context({ format: 'gitlfs', repositoryName: 'lfs', path: `objects/4d/7a/${oid}` })).curl)
+        .toContain(`/info/lfs/objects/${oid}`);
+      expect(ids(context({ format: 'gitlfs', repositoryName: 'lfs', name: 'model.bin' }))).toEqual(['lfsconfig', 'git-config']);
+    });
+  });
+
   describe('raw', () => {
     const file = context({ format: 'raw', repositoryName: 'raw-hosted', path: 'releases/0.2.1/herald agent.tar.gz' });
 
@@ -432,7 +454,7 @@ describe('usage snippets', () => {
     });
 
     it('get nothing when there is no generator at all', () => {
-      expect(getUsageSnippets(context({ format: 'gitlfs', repositoryName: 'lfs', name: 'x', version: '1' }))).toEqual([]);
+      expect(getUsageSnippets(context({ format: 'bower', repositoryName: 'bower', name: 'x', version: '1' }))).toEqual([]);
     });
   });
 });

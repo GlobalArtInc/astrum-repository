@@ -7,6 +7,7 @@ import { generate as composer } from './composer';
 import { generate as conan } from './conan';
 import { generate as conda } from './conda';
 import { generate as docker } from './docker';
+import { generate as gitlfs } from './gitlfs';
 import { generate as go } from './go';
 import { generate as helm } from './helm';
 import { generate as maven2 } from './maven2';
@@ -32,6 +33,7 @@ export const USAGE_GENERATORS: Readonly<Record<string, UsageGenerator>> = {
   conan,
   conda,
   docker,
+  gitlfs,
   go,
   helm,
   maven2,
