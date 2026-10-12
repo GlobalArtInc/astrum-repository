@@ -90,39 +90,6 @@ export default class ExtJS {
     }
   }
 
-  /**
-   * @return {location: {pathname: string }}
-   */
-  static useHistory({basePath}) {
-    const [path, setPath] = useState(Ext.History.getToken());
-
-    useEffect(() => {
-      // When the unmount is occurring due to a route change, Ext seems to already commit
-      // to firing the change handler even though the useEffect cleanup function fires before it does.
-      // This causes React memory leak warnings if the state mutator gets called at that point. So we need this
-      // extra variable to check whether the unmount has in fact occurred
-      let unmounted = false;
-
-      function _setPath(p) {
-        if (!unmounted) {
-          setPath(p);
-        }
-      }
-
-      Ext.History.on('change', _setPath);
-      return () => {
-        unmounted = true;
-        Ext.History.un('change', _setPath);
-      };
-    }, []);
-
-    return {
-      location: {
-        pathname: path.replace(basePath, '')
-      }
-    };
-  }
-
   static requestConfirmation({title, message, yesButtonText = 'Yes', noButtonText = 'No'}) {
     const options = {
       buttonText: {
@@ -521,64 +488,6 @@ export default class ExtJS {
   }
 
   /**
-   * A hook to add search criteria to the search subsystem
-   * @param {*} criterias
-   */
-  static useCriteria(criterias) {
-    if (!window.Ext?.getApplication) {
-      console.warn('[ExtJS.useCriteria] ExtJS not loaded');
-      return;
-    }
-
-    const app = window.Ext.getApplication();
-    if (!app) {
-      console.warn('[ExtJS.useCriteria] ExtJS application not initialized');
-      return;
-    }
-
-    const state = app.getStore('SearchCriteria');
-    if (!state) {
-      console.warn('[ExtJS.useCriteria] SearchCriteria store not found');
-      return;
-    }
-
-    const models = state.add(criterias);
-
-    useEffect(() => {
-      return () => {
-        if (state && models) {
-          state.remove(models);
-        }
-      }
-    }, []);
-  }
-
-  /**
-   * A hook to use a search filter model
-   * @param {*} filter
-   * @returns
-   */
-  static useSearchFilterModel(filter) {
-    if (!window.Ext?.getApplication) {
-      console.warn('[ExtJS.useSearchFilterModel] ExtJS not loaded');
-      return null;
-    }
-
-    const app = window.Ext.getApplication();
-    if (!app) {
-      console.warn('[ExtJS.useSearchFilterModel] ExtJS application not initialized');
-      return null;
-    }
-
-    try {
-      return app.getModel("AS.coreui.model.SearchFilter").create(filter);
-    } catch (error) {
-      console.error('[ExtJS.useSearchFilterModel] Failed to create SearchFilter model:', error);
-      return null;
-    }
-  }
-
-  /**
    * A hook that automatically re-evaluates whenever any state is changed
    * @param getValue - A function to get the value from the state subsystem
    * @returns {unknown}
@@ -785,10 +694,6 @@ export default class ExtJS {
       // Fallback: Navigate to logout endpoint
       window.location.href = '/service/rapture/session';
     }
-  }
-
-  static showAbout() {
-    Ext.widget('as-aboutwindow')
   }
 
   /**

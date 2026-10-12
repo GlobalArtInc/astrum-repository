@@ -107,13 +107,9 @@ Ext.define('AS.app.Application', {
    * Always active controllers.
    */
   controllers: [
-    'Copy',
-    'DependencySnippet',
     'Logging',
     'State',
-    'Bookmarking',
     'ExtDirect',
-    'Features',
     'Icon',
     'KeyNav',
     'Permissions'

@@ -22,10 +22,6 @@ export default class ExtJS {
     }
   });
 
-  static useHistory = jest.fn(() => ({
-    location: { pathname: '/test-path' }
-  }));
-
   static requestConfirmation = jest.fn(() => Promise.resolve());
   static fetchAuthenticationToken = jest.fn(() => Promise.resolve('mock-token'));
   static requestSession = jest.fn(() => Promise.resolve({status: 200}));
@@ -68,8 +64,6 @@ export default class ExtJS {
 
   static useVisiblityWithChanges = jest.fn(() => true);
   static useState = jest.fn((getValue) => getValue());
-  static useCriteria = jest.fn();
-  static useSearchFilterModel = jest.fn(() => ({}));
   static usePermission = jest.fn((getValue) => getValue());
 
   static hasUser = jest.fn(() => true);
@@ -78,7 +72,6 @@ export default class ExtJS {
   static onStateChange = jest.fn(() => () => {});
   static onPermissionsChange = jest.fn(() => () => {});
   static signOut = jest.fn();
-  static showAbout = jest.fn();
   static waitForExtJs = jest.fn((callback) => callback());
   static arePermissionsReady = jest.fn(() => true);
   static waitForPermissions = jest.fn().mockResolvedValue(undefined);

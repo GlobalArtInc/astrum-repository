@@ -38,7 +38,6 @@ export function isVisible(visibilityRequirements) {
     capability,
     editions,
     requiresUser,
-    browseableFormat,
     notClustered,
     anonymousAccessOrHasUser
   } = visibilityRequirements;
@@ -51,7 +50,7 @@ export function isVisible(visibilityRequirements) {
     const hasAnyRequirements = bundle || licenseValid || statesEnabled || permissions ||
                                 requiresPermission || requiresAnyPermission || permissionPrefix ||
                                 permissionPrefixes || capability || editions || requiresUser ||
-                                browseableFormat || notClustered || anonymousAccessOrHasUser;
+                                notClustered || anonymousAccessOrHasUser;
     if (!hasAnyRequirements) {
       return true;
     }
@@ -124,20 +123,12 @@ export function isVisible(visibilityRequirements) {
     return false
   }
 
-  if (browseableFormat && !isFormatBrowseable(browseableFormat)) {
-    return false;
-  }
-
   if (anonymousAccessOrHasUser &&
       !(!!AS.State.getValue('anonymousUsername') || Security.hasUser())) {
     return false;
   }
 
   return true;
-}
-
-function isFormatBrowseable(browseableFormat) {
-  return Ext.getApplication().getController('AS.coreui.controller.BrowseableFormats').getFormats().includes(browseableFormat);
 }
 
 function areAllRequiredStatesEnabled(statesEnabled) {

@@ -587,7 +587,6 @@
               ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-base/src/main/resources,
               ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-coreui-plugin/src/main/resources,
               ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-coreui-plugin/target/classes,
-              ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-example-content/src/main/resources,
               ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-onboarding-plugin/src/main/resources,
               ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-rapture/src/main/resources,
               ${project.parent.parent.parent.parent.basedir}/public/common/components/astrum-rapture/target/classes,

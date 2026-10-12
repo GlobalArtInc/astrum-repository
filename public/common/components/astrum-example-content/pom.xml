@@ -36,21 +36,4 @@
     </dependency>
   </dependencies>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.globalart.astrum.common.maven.plugins</groupId>
-        <artifactId>extjs-maven-plugin</artifactId>
-        <configuration>
-          <namespace>AS.example</namespace>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.globalart.plugins</groupId>
-        <artifactId>yuicompressor-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
-
 </project>

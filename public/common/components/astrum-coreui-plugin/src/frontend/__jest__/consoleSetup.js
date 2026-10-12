@@ -40,7 +40,6 @@ const IGNORED = {
     /editions=false/,
     /capability=false/,
     /requiresUser=false/,
-    /browseableFormat=false/,
     /anonymousAccessOrHasUser=false/,
     /notClustered=/,
     /evaluating transition from/,

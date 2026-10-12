@@ -4,9 +4,9 @@
  * Browse Detail Types
  *
  * Type definitions for the Browse detail panel components.
- * These types mirror the ExtJS models in:
- * - AS.coreui.model.Component
- * - AS.coreui.model.Asset
+ * These types mirror the transfer objects in org.globalart.astrum.coreui:
+ * - ComponentXO
+ * - AssetXO
  */
 
 /**
@@ -34,7 +34,7 @@ export interface BrowseNode {
 }
 
 /**
- * Component transfer object - matches AS.coreui.model.Component.
+ * Component transfer object - matches ComponentXO.
  * Represents a component (e.g., a Maven artifact, npm package) in the repository.
  */
 export interface ComponentXO {
@@ -94,7 +94,7 @@ export interface AssetAttributes {
 }
 
 /**
- * Asset transfer object - matches AS.coreui.model.Asset.
+ * Asset transfer object - matches AssetXO.
  * Represents a file/blob in the repository.
  */
 export interface AssetXO {

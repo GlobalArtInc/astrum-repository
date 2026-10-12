@@ -14,21 +14,7 @@ Ext.define('AS.app.PluginConfig', {
   ],
 
   controllers: [
-    'Dashboard',
-    'Help',
-    'Main',
-    'Menu',
-    'MenuGroup',
-    'Refresh',
-    'SettingsForm',
     'UiSessionTimeout',
-    'User',
-
-    {
-      id: 'dev.Developer',
-      active: function () {
-        return AS.app.Application.debugMode;
-      }
-    },
+    'User'
   ]
 });

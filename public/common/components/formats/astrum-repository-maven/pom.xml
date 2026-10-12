@@ -118,25 +118,6 @@
           <excludePackageNames>org.globalart.astrum.content.maven.upgrade</excludePackageNames>
         </configuration>
       </plugin>
-
-      <plugin>
-        <groupId>org.globalart.astrum.common.maven.plugins</groupId>
-        <artifactId>extjs-maven-plugin</artifactId>
-        <configuration>
-          <namespace>AS.maven</namespace>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.globalart.plugins</groupId>
-        <artifactId>yuicompressor-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>plugin-css</id>
-            <phase>none</phase> <!-- no css -->
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 </project>
