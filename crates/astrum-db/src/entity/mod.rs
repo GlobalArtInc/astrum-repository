@@ -5,6 +5,7 @@ pub mod blob_store;
 pub mod blob_store_metrics;
 pub mod component;
 pub mod content_selector;
+pub mod docker_upload;
 pub mod format_token;
 pub mod repository;
 pub mod security_privilege;
