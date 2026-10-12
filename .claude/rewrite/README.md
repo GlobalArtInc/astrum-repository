@@ -35,6 +35,9 @@ so the new server and UI are written from scratch.
   upstream code. Nexus is named only where compatibility or migration needs it.
 - UI URLs are plain paths (`/browse/...`, `/admin/...`, `/settings`, `/user/...`, `/login`); old hash URLs
   (`#browse/...`, `#preview/...`, Classic URLs) redirect to them.
+- After M3 the Rust server runs as a test instance at `next.astrum.globalart.hu` on the production VM
+  (`prod1-astrum1`), next to the Java server, with its own database on `prod1-dbms1` and its own data
+  directory; production stays on the Java server until M5.
 
 ## Clean-room rules (every session and agent must follow them)
 1. Do not read the Java sources of upstream-derived modules, or the Astrum One React code, as a model,
