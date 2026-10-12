@@ -1,0 +1,47 @@
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  font-family: var(--font-family-base, system-ui, sans-serif);
+}
+
+#root > .radix-themes {
+  min-height: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.rt-TextFieldRoot.rt-variant-surface,
+.rt-TextAreaRoot.rt-variant-surface,
+.rt-SelectTrigger.rt-variant-surface {
+  --color-surface: var(--astrum-input-bg);
+}
