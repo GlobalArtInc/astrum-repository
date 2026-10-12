@@ -28,10 +28,17 @@ describe('the login page', () => {
     expect(await screen.findByRole('heading', { name: 'Welcome' })).toBeInTheDocument();
     expect(screen.getByText('/astrum-data/admin.password')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Continue without signing in' })).toBeNull();
-    expect(document.title).toBe('Sign in - Astrum Repository');
-    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(screen.getByText('Enter the user name')).toBeInTheDocument();
-    expect(screen.getByText('Enter the password')).toBeInTheDocument();
+    expect(document.title).toBe('Sign in - GlobalArt Astrum Repository');
+    const submit = screen.getByRole('button', { name: 'Sign in' });
+    expect(screen.getByLabelText('User name')).toHaveAttribute('placeholder', 'User name');
+    expect(screen.getByLabelText('Password')).toHaveAttribute('placeholder', 'Password');
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
+    expect(screen.queryByRole('button', { name: 'Show' })).toBeNull();
+    expect(submit).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('User name'), 'admin');
+    expect(submit).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('Password'), 'x');
+    expect(submit).toBeEnabled();
   });
 
   it('shows a wrong password', async () => {
@@ -47,6 +54,12 @@ describe('the login page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('The user name or password is wrong');
     expect(server.calls[0]?.body).toEqual({ username: 'admin', password: 'nope' });
     expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(
+      'The user name or password is wrong',
+    );
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeDisabled();
+    expect(screen.getByLabelText('User name')).toHaveValue('admin');
   });
 
   it('signs in and returns to the page that asked', async () => {
@@ -85,7 +98,7 @@ describe('signing out', () => {
     vi.stubGlobal('fetch', server.fetch);
     app('/settings', ADMIN_STATE);
     await userEvent.click(await screen.findByRole('button', { name: 'Account menu of Administrator User' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign out' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign Out' }));
     await waitFor(() => expect(openFresh).toHaveBeenCalledWith('/'));
     expect(server.calls.map((call) => `${call.method} ${call.path}`)).toEqual([
       'DELETE /service/rest/internal/session',
@@ -100,7 +113,7 @@ describe('signing out', () => {
     vi.stubGlobal('fetch', server.fetch);
     app('/', ADMIN_STATE);
     await userEvent.click(await screen.findByRole('button', { name: 'Account menu of Administrator User' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign out' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign Out' }));
     expect(await screen.findByText('Could not sign out')).toBeInTheDocument();
   });
 });
