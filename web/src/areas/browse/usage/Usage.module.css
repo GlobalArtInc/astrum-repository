@@ -1,0 +1,18 @@
+.root {
+  min-width: 0;
+}
+
+.tabs {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.dialog {
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .dialog {
+    padding: var(--space-4);
+  }
+}

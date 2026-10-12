@@ -1,0 +1,159 @@
+.badges {
+  min-width: 0;
+}
+
+.split {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.treePane {
+  position: sticky;
+  top: 76px;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--tree-width, 340px);
+  width: var(--tree-width, 340px);
+  max-height: calc(100dvh - 92px);
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-4);
+  background: var(--color-panel-solid);
+  overflow: hidden;
+}
+
+.paneHead {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.treeScroll {
+  flex: 1 1 auto;
+  min-height: 120px;
+  overflow: auto;
+}
+
+.detailsPane {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: var(--space-5);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-4);
+  background: var(--color-panel-solid);
+}
+
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+.phone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.phone .treePane {
+  position: static;
+  width: 100%;
+  max-height: none;
+}
+
+.phone .detailsPane {
+  padding: var(--space-4);
+}
+
+.back {
+  align-self: flex-start;
+}
+
+.searchLoading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.searchNote {
+  padding: var(--space-2) var(--space-3);
+}
+
+.searchResults {
+  display: flex;
+  flex-direction: column;
+}
+
+.resultList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0 var(--space-1) var(--space-2);
+  list-style: none;
+}
+
+.result {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+}
+
+.result:hover {
+  background: var(--gray-a3);
+}
+
+.result:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -2px;
+}
+
+.result[data-current="true"] {
+  background: var(--accent-a4);
+}
+
+.result:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.resultIcon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent-10);
+}
+
+.resultText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.resultName {
+  font-size: var(--font-size-2);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.resultMeta {
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+  overflow-wrap: anywhere;
+}
