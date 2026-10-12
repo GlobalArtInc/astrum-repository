@@ -10,7 +10,7 @@
   <description>${project.name}</description>
   <packaging>pom</packaging>
 
-  <version>3.96.4-01</version>
+  <version>2.0.0</version>
 
   <inceptionYear>2008</inceptionYear>
   <url>http://astrum.globalart.dev/</url>
@@ -58,7 +58,7 @@
     Define astrum versions.  The 'astrum.version' property always refers to the version of the current project.
     These values must always be constants; 'astrum.version' will get update automatically by set-version.
     -->
-    <astrum.version>3.96.4-01</astrum.version>
+    <astrum.version>2.0.0</astrum.version>
     <astrum2.version>2.15.1-02</astrum2.version>
 
     <spring-boot.version>4.1.0</spring-boot.version>
@@ -306,7 +306,7 @@
         <plugin>
           <groupId>org.globalart.astrum.common.maven.plugins</groupId>
           <artifactId>extjs-maven-plugin</artifactId>
-          <version>3.96.4-01</version>
+          <version>2.0.0</version>
           <executions>
             <execution>
               <goals>

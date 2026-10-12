@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.globalart.astrum.selfhosted.components</groupId>
     <artifactId>astrum-selfhosted-components-parent</artifactId>
-    <version>3.96.4-01</version>
+    <version>2.0.0</version>
   </parent>
 
   <artifactId>astrum-selfhosted-components-api-parent</artifactId>
@@ -28,7 +28,7 @@
         <groupId>org.globalart.astrum.common.buildsupport</groupId>
         <artifactId>astrum-common-buildsupport-all</artifactId>
         <type>pom</type>
-        <version>3.96.4-01</version>
+        <version>2.0.0</version>
         <scope>import</scope>
       </dependency>
 
@@ -37,13 +37,13 @@
       <dependency>
         <groupId>org.globalart.astrum.selfhosted.components</groupId>
         <artifactId>astrum-api-extdirect-selfhosted</artifactId>
-        <version>3.96.4-01</version>
+        <version>2.0.0</version>
       </dependency>
 
       <dependency>
         <groupId>org.globalart.astrum.selfhosted.components</groupId>
         <artifactId>astrum-api-rest-selfhosted</artifactId>
-        <version>3.96.4-01</version>
+        <version>2.0.0</version>
       </dependency>
 
     </dependencies>

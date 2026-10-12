@@ -9,7 +9,7 @@ version cannot run against a migrated database, so the way back is a restore fro
 2. [Back up](backup-restore.md) the database, the blob stores and the secrets key file.
 3. Stop the server and wait until it has exited; give it up to three minutes.
 4. Change the version:
-   - container: change the image tag, for example `globalartltd/astrum-repository:3.96.4-02`;
+   - container: change the image tag, for example `globalartltd/astrum-repository:2.0.1`;
    - distribution: unpack the new distribution into a new install directory and point the service at
      it. The data directory stays where it is.
 5. Start the server and follow the log. Migration steps are logged as they run; on a large database

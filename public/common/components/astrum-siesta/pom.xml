@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.globalart.astrum.common.components</groupId>
     <artifactId>astrum-common-components-parent</artifactId>
-    <version>3.96.4-01</version>
+    <version>2.0.0</version>
   </parent>
 
   <artifactId>astrum-siesta</artifactId>

@@ -5,7 +5,7 @@ The image is published on Docker Hub as `globalartltd/astrum-repository`.
 | Tag | Meaning |
 |---|---|
 | `latest` | The newest release |
-| `<version>`, for example `3.96.4-01` | A specific release; pin this in production |
+| `<version>`, for example `2.0.0` | A specific release; pin this in production |
 | `edge` | The newest build of the `main` branch, for testing |
 
 The image runs the server as uid/gid 200, listens on port 8081 and keeps all state under
@@ -80,7 +80,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Container]
-Image=docker.io/globalartltd/astrum-repository:3.96.4-01
+Image=docker.io/globalartltd/astrum-repository:2.0.0
 ContainerName=astrum
 PublishPort=8081:8081
 Volume=/srv/astrum/data:/astrum-data:Z

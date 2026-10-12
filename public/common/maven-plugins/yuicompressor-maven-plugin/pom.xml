@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.globalart.astrum.common.maven.plugins</groupId>
     <artifactId>astrum-common-maven-plugins-parent</artifactId>
-    <version>3.96.4-01</version>
+    <version>2.0.0</version>
   </parent>
   <groupId>org.globalart.plugins</groupId>
   <artifactId>yuicompressor-maven-plugin</artifactId>
@@ -25,7 +25,7 @@
         <groupId>org.globalart.astrum.common.buildsupport</groupId>
         <artifactId>astrum-common-buildsupport-all</artifactId>
         <type>pom</type>
-        <version>3.96.4-01</version>
+        <version>2.0.0</version>
         <scope>import</scope>
       </dependency>
     </dependencies>
