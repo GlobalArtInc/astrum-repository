@@ -41,10 +41,11 @@ jobs:
             exit 0
           fi
           node tools/i18n/i18n.mjs pull
-          changes="$(git status --porcelain -- '*/astrum-i18n/*')"
+          dictionaries=('*/astrum-i18n/*' 'web/src/*/strings/*')
+          changes="$(git status --porcelain -- "${dictionaries[@]}")"
           if [ -n "$changes" ]; then
             echo "$changes"
-            git diff --stat -- '*/astrum-i18n/*'
+            git diff --stat -- "${dictionaries[@]}"
             echo "::error::Ownlate has translations that are not committed: run node tools/i18n/i18n.mjs pull"
             exit 1
           fi
