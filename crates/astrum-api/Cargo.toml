@@ -27,6 +27,7 @@ tracing.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+astrum-format-docker.workspace = true
 astrum-format-maven.workspace = true
 astrum-format-npm.workspace = true
 astrum-format-pypi.workspace = true

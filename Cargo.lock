@@ -173,6 +173,7 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-format-docker",
  "astrum-format-maven",
  "astrum-format-npm",
  "astrum-format-pypi",
@@ -280,6 +281,34 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-format-docker"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-api",
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "astrum-security",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "hex",
+ "percent-encoding",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -426,6 +455,7 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-format-docker",
  "astrum-format-maven",
  "astrum-format-npm",
  "astrum-format-pypi",

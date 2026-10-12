@@ -14,6 +14,7 @@ anyhow.workspace = true
 astrum-api.workspace = true
 astrum-blob.workspace = true
 astrum-content.workspace = true
+astrum-format-docker.workspace = true
 astrum-format-maven.workspace = true
 astrum-format-npm.workspace = true
 astrum-format-pypi.workspace = true
