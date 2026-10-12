@@ -612,8 +612,18 @@ async fn pushes_need_rights_and_take_nuget_api_keys() {
             Some(json!({"password": fixture.admin_password})),
         )
         .await;
-    assert_eq!(reset.status, StatusCode::OK);
-    let fresh = reset.json()["apiKey"].as_str().unwrap().to_owned();
+    assert_eq!(reset.status, StatusCode::NO_CONTENT);
+    let status = get_json(&fixture, "/service/rest/internal/ui/user/nuget-api-key").await;
+    assert_eq!(status["createdAt"], Value::Null);
+    let again = fixture
+        .call(
+            Method::POST,
+            "/service/rest/internal/ui/user/nuget-api-key",
+            Auth::Admin,
+            Some(json!({"password": fixture.admin_password})),
+        )
+        .await;
+    let fresh = again.json()["apiKey"].as_str().unwrap().to_owned();
     assert_ne!(fresh, key);
     let stale = push_with(
         &fixture,
@@ -637,7 +647,7 @@ async fn pushes_need_rights_and_take_nuget_api_keys() {
         .filter_map(|event| event["kind"].as_str().or_else(|| event["type"].as_str()))
         .collect();
     assert!(
-        kinds.contains(&"created") && kinds.contains(&"updated"),
+        kinds.contains(&"created") && kinds.contains(&"deleted"),
         "{audit}"
     );
 

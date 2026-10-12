@@ -101,18 +101,10 @@ async fn confirm(state: &AppState, user_id: &str, password: &str) -> Result<bool
     }
 }
 
-async fn issued(state: &AppState, caller: &Caller, key: ApiKey, reset: bool) -> Revealed {
-    let user = caller.initiator();
-    if reset {
+async fn issued(state: &AppState, caller: &Caller, key: ApiKey) -> Revealed {
+    if key.created {
         state
-            .audit(
-                caller,
-                Event::new(DOMAIN, "updated", &user).with(json!({"reset": true})),
-            )
-            .await;
-    } else if key.created {
-        state
-            .audit(caller, Event::new(DOMAIN, "created", &user))
+            .audit(caller, Event::new(DOMAIN, "created", caller.initiator()))
             .await;
     }
     Revealed {
@@ -121,17 +113,24 @@ async fn issued(state: &AppState, caller: &Caller, key: ApiKey, reset: bool) -> 
     }
 }
 
-async fn with_password(
+async fn removed(state: &AppState, caller: &Caller, user_id: &str) -> Result<(), ApiError> {
+    if state.security().delete_api_key(NUGET, user_id).await? {
+        state
+            .audit(caller, Event::new(DOMAIN, "deleted", user_id))
+            .await;
+    }
+    Ok(())
+}
+
+async fn confirmed(
     state: &AppState,
     caller: &Caller,
     permission: &str,
     body: Confirmation,
-    reset: bool,
-) -> Result<Response, ApiError> {
+) -> Result<Result<Subject, Response>, ApiError> {
     let subject = holder(caller, permission)?.clone();
-    let security = state.security();
-    if security.sign_in_blocked(&subject.user_id) {
-        return Ok(too_many());
+    if state.security().sign_in_blocked(&subject.user_id) {
+        return Ok(Err(too_many()));
     }
     let password = body.password.unwrap_or_default();
     if password.is_empty() {
@@ -140,19 +139,7 @@ async fn with_password(
     if !confirm(state, &subject.user_id, &password).await? {
         return Err(ApiError::invalid("password", "the password is wrong"));
     }
-    let key = match reset {
-        true => {
-            security
-                .reset_api_key(state.secrets(), NUGET, &subject.user_id)
-                .await?
-        }
-        false => {
-            security
-                .api_key(state.secrets(), NUGET, &subject.user_id)
-                .await?
-        }
-    };
-    Ok(axum::Json(issued(state, caller, key, reset).await).into_response())
+    Ok(Ok(subject))
 }
 
 async fn reveal(
@@ -160,7 +147,15 @@ async fn reveal(
     caller: Caller,
     Json(body): Json<Confirmation>,
 ) -> Result<Response, ApiError> {
-    with_password(&state, &caller, READ, body, false).await
+    let subject = match confirmed(&state, &caller, READ, body).await? {
+        Ok(subject) => subject,
+        Err(response) => return Ok(response),
+    };
+    let key = state
+        .security()
+        .api_key(state.secrets(), NUGET, &subject.user_id)
+        .await?;
+    Ok(axum::Json(issued(&state, &caller, key).await).into_response())
 }
 
 async fn reset(
@@ -168,7 +163,12 @@ async fn reset(
     caller: Caller,
     Json(body): Json<Confirmation>,
 ) -> Result<Response, ApiError> {
-    with_password(&state, &caller, DELETE, body, true).await
+    let subject = match confirmed(&state, &caller, DELETE, body).await? {
+        Ok(subject) => subject,
+        Err(response) => return Ok(response),
+    };
+    removed(&state, &caller, &subject.user_id).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
 }
 
 #[derive(Deserialize)]
@@ -268,7 +268,7 @@ async fn ticket_reveal(
         .security()
         .api_key(state.secrets(), NUGET, &subject.user_id)
         .await?;
-    let revealed = issued(&state, &caller, key, false).await;
+    let revealed = issued(&state, &caller, key).await;
     Ok(axum::Json(json!({"apiKey": revealed.api_key})).into_response())
 }
 
@@ -279,14 +279,6 @@ async fn ticket_reset(
 ) -> Result<StatusCode, ApiError> {
     ticket_holder(&state, &caller, &query)?;
     let subject = caller.require(DELETE)?;
-    if state
-        .security()
-        .delete_api_key(NUGET, &subject.user_id)
-        .await?
-    {
-        state
-            .audit(&caller, Event::new(DOMAIN, "deleted", &subject.user_id))
-            .await;
-    }
+    removed(&state, &caller, &subject.user_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }

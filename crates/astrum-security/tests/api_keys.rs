@@ -58,10 +58,9 @@ async fn api_keys_are_kept_revealed_reset_and_checked_against_the_realm() {
         Err(AuthError::BadCredentials)
     ));
 
-    let reset = security
-        .reset_api_key(&secrets, NUGET, ADMIN_USER)
-        .await
-        .unwrap();
+    assert!(security.delete_api_key(NUGET, ADMIN_USER).await.unwrap());
+    assert!(!security.delete_api_key(NUGET, ADMIN_USER).await.unwrap());
+    let reset = security.api_key(&secrets, NUGET, ADMIN_USER).await.unwrap();
     assert!(reset.created);
     assert_ne!(reset.key, first.key);
     assert!(

@@ -96,16 +96,6 @@ impl Security {
         })
     }
 
-    pub async fn reset_api_key(
-        &self,
-        secrets: &SecretBox,
-        realm: &str,
-        user_id: &str,
-    ) -> Result<ApiKey, Error> {
-        self.delete_api_key(realm, user_id).await?;
-        self.api_key(secrets, realm, user_id).await
-    }
-
     pub async fn delete_api_key(&self, realm: &str, user_id: &str) -> Result<bool, Error> {
         let deleted = api_key::Entity::delete_many()
             .filter(api_key::Column::Realm.eq(realm))
