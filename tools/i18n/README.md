@@ -6,7 +6,7 @@ packs into the modules. A running server does not talk to Ownlate.
 
 ## Dictionaries
 
-[`dictionaries.json`](dictionaries.json) lists the dictionaries. Each one is a directory
+[`dictionaries.json`](dictionaries.json) lists the dictionaries. Each one of the Java UIs is a directory
 `<module>/src/main/resources/astrum-i18n/<name>/` holding:
 
 - `en.json`: the English source, generated from the code by `extract` (never edited by hand);
@@ -22,9 +22,31 @@ one project holds all dictionaries.
 | `extjs-onboarding` | `astrum-onboarding-plugin/.../AS/onboarding/app/PluginStrings.js` |
 | `react-ui` | `astrum-ui-plugin/src/frontend/src/constants/UIStrings.js`, the onboarding wizard's `UIStrings.ts` and Astrum One's `components/preview/constants/PreviewStrings.js` |
 | `react-coreui` | `astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx` and the Astrum One route titles in `routerConfig/routes/previewRouteTitles.js` |
+| `web` | `web/src/**/strings/en.json` of the web UI (below) |
 
 ExtJS keys are the keys of `PluginStrings.js`; bundle keys are written `<class>/<key>`. Values that only
 reference another key (`@Other_Key`) or contain no letters are not translated.
+
+## Web UI texts
+
+The web UI of the Rust server keeps its texts in `web/src/**/strings/en.json` and `ru.json`, one pair per
+area (see [`web/README.md`](../../web/README.md)). The `web` entry of `dictionaries.json` makes every
+`strings` directory under `web/src` a dictionary with the prefix `web`. Its `en.json` is written by hand
+and is the source itself, so `extract` leaves it alone.
+
+- The Ownlate key is `web.` and the key, e.g. `web.browse.list.title`.
+- A plural entry is one Ownlate key per form, `<key>#<form>`, e.g. `web.browse.list.count#few`. The source
+  offers every form a translation needs (`one`, `few`, `many` and `other` for Russian); a form English
+  lacks carries its `other` text.
+- `pull` writes `ru.json` in the key order and with the blank lines of its `en.json`, plural forms in CLDR
+  order, and takes a plural entry only with all the forms Russian needs.
+- `check` compares the `{name}` placeholders of each entry (over all its plural forms) with `en.json` and
+  the plural forms with those of the language. `pnpm i18n:check` in `web/` checks the rest: every key
+  translated, every key used in the code present.
+
+Developers write the Russian text next to the English one. Upload both after a change: the source texts
+first, then the translations as approved (`catalogue en` and `catalogue ru` print them under their Ownlate
+keys); then `pull` and commit what it changes.
 
 ## React texts
 
@@ -94,7 +116,8 @@ node tools/i18n/i18n.mjs check
 
 `pull` rewrites every `<lang>.json` from the project's approved translations; keys the code no longer
 has are dropped. Without network access to Ownlate, export a language from the web interface as JSON
-and run `node tools/i18n/i18n.mjs import <lang> <file>` instead.
+and run `node tools/i18n/i18n.mjs import <lang> <file>` instead. Like `pull`, `import` rewrites every
+dictionary from what it is given, so give it a whole export of the language, never a part.
 
 `check` also fails when a translation has a key the source lacks, or different `{0}` placeholders,
 HTML tags or numbered `<0>` elements than the English text.
@@ -105,10 +128,13 @@ HTML tags or numbered `<0>` elements than the English text.
 
 Add the language to the Ownlate project, translate, and pull. A language appears in the header menu as
 soon as some module ships a dictionary for it. For the framework's own texts add
-`astrum-rapture/src/main/resources/astrum-i18n/ext-locale-<lang>.js` (see `ext-locale-ru.js`).
+`astrum-rapture/src/main/resources/astrum-i18n/ext-locale-<lang>.js` (see `ext-locale-ru.js`). The web UI
+also lists its languages in `LANGUAGES` of `web/src/i18n/translate.ts` and `web/scripts/i18n-check.mjs`;
+when the new language has plural forms the others lack, upload `catalogue en` again once its `<lang>.json`
+files exist, so that Ownlate offers those forms.
 
 ## CI
 
 The `i18n` workflow runs `check` on every change. When the repository has the `ASTRUM_OWNLATE_TOKEN`
-secret and the `ASTRUM_OWNLATE_PROJECT` variable, it also pulls and fails if Ownlate holds translations
-that are not committed yet.
+secret and the `ASTRUM_OWNLATE_PROJECT` variable, it also pulls and fails if the committed translations,
+those of the web UI included, differ from Ownlate.

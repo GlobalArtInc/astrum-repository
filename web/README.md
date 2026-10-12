@@ -64,6 +64,11 @@ Use `const t = useT()`, `t('browse.list.title')`, `t('browse.list.count', { coun
 can see them; it fails when en and ru differ (keys, plural forms, placeholders) or a used key is missing.
 Russian texts of the old UI (`public/**/astrum-i18n/**/ru.json`) may be reused; English is written afresh.
 
+The dictionaries live in Ownlate with the rest of Astrum Repository's (`tools/i18n/README.md`): keys
+`web.<key>`, plural forms `web.<key>#<form>`. `en.json` is the source; `ru.json` is what
+`node tools/i18n/i18n.mjs pull` writes (key order and blank lines of `en.json`). After changing a text,
+upload the English and the Russian to Ownlate and pull, or the `i18n` workflow fails once it pulls.
+
 ## Permissions and API
 
 - `useCan(need)` and `useSession()` (`user`, `anonymousAccess`, `state.formats`, `state.baseUrl`). A need

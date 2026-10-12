@@ -35,6 +35,10 @@
         "public/common/components/astrum-coreui-plugin/src/frontend/src/constants/UIStrings.jsx",
         "public/common/components/astrum-coreui-plugin/src/frontend/src/routerConfig/routes/previewRouteTitles.js"
       ]
+    },
+    {
+      "web": "web/src",
+      "prefix": "web"
     }
   ]
 }
