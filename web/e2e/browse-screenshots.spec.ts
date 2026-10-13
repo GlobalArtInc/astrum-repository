@@ -76,11 +76,11 @@ for (const size of SIZES) {
       await shoot(page, `repository-npm-${suffix}`);
 
       await page.goto(COMPONENT);
-      await expect(page.getByRole('combobox', { name: 'Version' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'demo-lib v2.0.0' })).toBeVisible();
       await shoot(page, `component-overview-${suffix}`);
-      for (const tab of ['files', 'usage', 'versions']) {
-        await page.goto(`${COMPONENT}?tab=${tab}`);
-        await expect(page.getByRole('combobox', { name: 'Version' })).toBeVisible();
+      for (const tab of ['versions', 'repos', 'files', 'security']) {
+        await page.goto(`${COMPONENT}/${tab}`);
+        await expect(page.getByRole('heading', { level: 1, name: 'demo-lib v2.0.0' })).toBeVisible();
         await page.waitForTimeout(300);
         await shoot(page, `component-${tab}-${suffix}`);
       }

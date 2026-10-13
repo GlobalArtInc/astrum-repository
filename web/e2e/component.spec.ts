@@ -9,38 +9,35 @@ test('the component page shows versions, files and usage', async ({ page, server
   await signIn(page, server.adminPassword);
   await expect(page.getByRole('button', { name: /Account menu of/ })).toBeVisible();
   await page.goto(PAGE);
-  await expect(page.getByRole('heading', { level: 1, name: 'org.acme:demo-lib' })).toBeVisible();
-  const picker = page.getByRole('combobox', { name: 'Version' });
-  await expect(picker).toHaveText('2.0.0');
-  await expect(page.getByRole('link', { name: SEED.maven })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'demo-lib v2.0.0' })).toBeVisible();
+  await expect(page.getByText('<version>2.0.0</version>')).toBeVisible();
+  await expect(page.getByText(SEED.maven, { exact: true })).toBeVisible();
 
-  await page.getByRole('tab', { name: /Versions/ }).click();
+  const tabs = page.getByRole('navigation', { name: 'Component sections' });
+  await tabs.getByRole('link', { name: /Versions/ }).click();
   const versions = page.getByRole('table', { name: 'Versions' });
-  await expect(versions.getByRole('rowheader')).toHaveText([/2\.0\.0/, /1\.1\.0/, /1\.0\.0/]);
+  await expect(versions.getByRole('rowheader')).toHaveText(['2.0.0', '1.1.0', '1.0.0']);
+  await versions.getByRole('link', { name: '1.0.0' }).click();
+  await expect(page).toHaveURL(/\/versions\?version=1\.0\.0$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'demo-lib v1.0.0' })).toBeVisible();
 
-  await picker.click();
-  await page.getByRole('option', { name: '1.0.0' }).click();
-  await expect(page).toHaveURL(/version=1\.0\.0/);
-  await page.getByRole('tab', { name: /Files/ }).click();
-  const files = page.getByRole('table', { name: 'Files of this version' });
-  await expect(files.getByRole('rowheader')).toHaveText([
-    '/org/acme/demo-lib/1.0.0/demo-lib-1.0.0.jar',
-    '/org/acme/demo-lib/1.0.0/demo-lib-1.0.0.pom',
-  ]);
+  await tabs.getByRole('link', { name: /Files/ }).click();
+  const files = page.getByRole('table', { name: 'Files' });
+  await expect(files.getByRole('rowheader')).toHaveCount(2);
+  await expect(files.getByText('demo-lib-1.0.0.jar')).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Usage' }).click();
-  await expect(page.getByText('<version>1.0.0</version>')).toBeVisible();
-  await page.getByRole('tab', { name: /Gradle Kotlin/ }).click();
+  await tabs.getByRole('link', { name: /Overview/ }).click();
+  await page.getByRole('combobox', { name: 'Choose a dependency snippet' }).click();
+  await page.getByRole('option', { name: 'Gradle Kotlin DSL' }).click();
   await expect(page.getByText('implementation("org.acme:demo-lib:1.0.0")')).toBeVisible();
-  await expect(page).toHaveURL(/tab=usage/);
 
-  await page.goto(`/search/component/${encodeURIComponent('docker::team/app')}?tab=usage`);
+  await page.goto(`/search/component/${encodeURIComponent('docker::team/app')}`);
   await expect(
     page.getByText(`docker pull ${new URL(server.url).host}/${SEED.docker}/team/app:1.0`),
   ).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${PAGE}?tab=files`);
-  await expect(page.getByRole('heading', { level: 1, name: 'org.acme:demo-lib' })).toBeVisible();
+  await page.goto(`${PAGE}/files`);
+  await expect(page.getByRole('heading', { level: 1, name: 'demo-lib v2.0.0' })).toBeVisible();
   await noHorizontalScroll(page);
 });

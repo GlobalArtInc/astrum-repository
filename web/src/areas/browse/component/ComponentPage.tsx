@@ -1,37 +1,23 @@
-import {
-  Button,
-  Flex,
-  IconButton,
-  Link as RadixLink,
-  Select,
-  Skeleton,
-  Text,
-  Tooltip,
-} from '@radix-ui/themes';
+import { Badge, Button, Heading, IconButton, Select, Skeleton, TabNav, Text } from '@radix-ui/themes';
 import { useQueries } from '@tanstack/react-query';
-import { Download, PackageSearch } from 'lucide-react';
-import { useState } from 'react';
+import { Copy, ExternalLink, PackageSearch, ShieldOff } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { api, apiKey, path, useApi, withQuery } from '../../../api';
 import { useSession } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import {
-  type Column,
-  DataTable,
+  Breadcrumbs,
+  copyText,
   DateTime,
   EmptyState,
   ErrorState,
-  FileSize,
-  FormatBadge,
   formatName,
-  Page,
-  QueryTabs,
+  useDocumentTitle,
+  useToast,
 } from '../../../ui';
-import { componentPageUrl, componentTitle, parseComponentKey } from '../links';
-import { AttributeList, DetailList, Section } from '../parts';
-import { browseUrl } from '../tree/model';
+import { componentKey, parseComponentKey } from '../links';
 import {
-  formatAttributes,
   REPOSITORIES_PATH,
   type RepositoryItem,
   type SearchAsset,
@@ -40,64 +26,162 @@ import {
   type VersionEntry,
   type VersionsResponse,
 } from '../types';
-import { supportsUsage, UsageSnippets } from '../usage';
 import styles from './ComponentPage.module.css';
+import { componentGuideUrl, componentPath, componentSnippets, registryUrl } from './snippets';
+import { type FileRow, FilesTab, RepositoriesTab, VersionsTab } from './tables';
 
 const PREFIX = '/search/component/';
+const TABS = ['versions', 'repos', 'files', 'security'] as const;
+type Tab = 'overview' | (typeof TABS)[number];
+
+export function locate(pathname: string): { key: string; tab: Tab } {
+  const raw = pathname.startsWith(PREFIX) ? pathname.slice(PREFIX.length).replace(/\/+$/, '') : '';
+  const slash = raw.lastIndexOf('/');
+  const last = slash >= 0 ? raw.slice(slash + 1) : '';
+  const tab = (TABS as readonly string[]).includes(last) ? (last as Tab) : 'overview';
+  const encoded = tab === 'overview' ? raw : raw.slice(0, slash);
+  try {
+    return { key: decodeURIComponent(encoded), tab };
+  } catch {
+    return { key: encoded, tab };
+  }
+}
 
 export function keyFromPath(pathname: string): string {
-  const raw = pathname.startsWith(PREFIX) ? pathname.slice(PREFIX.length) : '';
-  try {
-    return decodeURIComponent(raw.replace(/\/+$/, ''));
-  } catch {
-    return raw;
-  }
+  return locate(pathname).key;
+}
+
+export function tabUrl(key: string, tab: Tab, version?: string): string {
+  const base = `${PREFIX}${encodeURIComponent(key)}${tab === 'overview' ? '' : `/${tab}`}`;
+  return version ? `${base}?version=${encodeURIComponent(version)}` : base;
 }
 
 export function mainAsset(format: string, assets: readonly SearchAsset[]): SearchAsset | undefined {
   const score = (asset: SearchAsset) => {
-    const attributes = formatAttributes(format, asset);
-    const size = Object.keys(attributes).length;
     if (format === 'docker' && asset.path.includes('/manifests/')) {
-      return 1000 + size;
+      return 1000;
     }
     if (format === 'maven2') {
-      const extension = attributes.extension;
-      return (extension === 'jar' ? 500 : extension === 'pom' ? 400 : 0) + size;
+      return asset.path.endsWith('.jar') ? 500 : asset.path.endsWith('.pom') ? 400 : 0;
     }
-    return size;
+    return 0;
   };
   return [...assets].sort((left, right) => score(right) - score(left))[0];
 }
 
-interface FileRow extends SearchAsset {
-  key: string;
-}
-
-function VersionPicker({
-  versions,
-  current,
-  onChange,
+function Dependencies({
+  format,
+  group,
+  name,
+  version,
+  repository,
 }: {
-  versions: VersionEntry[];
-  current: string;
-  onChange(version: string): void;
+  format: string;
+  group: string;
+  name: string;
+  version: string;
+  repository: string;
 }) {
   const t = useT();
+  const toast = useToast();
+  const { state } = useSession();
+  const snippets = componentSnippets({ format, group, name, version, repository, baseUrl: state.baseUrl });
+  const [chosen, setChosen] = useState<string | undefined>(undefined);
+  const current = snippets.find((snippet) => snippet.id === chosen) ?? snippets[0];
+  if (!current) {
+    return null;
+  }
+  const copy = async () => {
+    try {
+      await copyText(current.code);
+      toast.success(t('ui.copy.copied'));
+    } catch {
+      toast.error(t('ui.copy.failed'));
+    }
+  };
   return (
-    <Select.Root value={current} onValueChange={onChange}>
-      <label htmlFor="component-version" className="visually-hidden">
-        {t('browse.component.versionPicker')}
-      </label>
-      <Select.Trigger id="component-version" className={styles.picker} />
-      <Select.Content position="popper">
-        {versions.map((entry) => (
-          <Select.Item key={entry.version} value={entry.version}>
-            {entry.version}
-          </Select.Item>
+    <section className={styles.card} aria-labelledby="component-dependencies">
+      <Heading as="h2" size="5" weight="bold" id="component-dependencies" className={styles.cardTitle}>
+        {t('browse.component.dependencies')}
+      </Heading>
+      <div className={styles.snippetBar}>
+        <Select.Root value={current.id} onValueChange={setChosen}>
+          <Select.Trigger className={styles.snippetSelect} aria-label={t('browse.component.chooseSnippet')} />
+          <Select.Content position="popper">
+            {snippets.map((snippet) => (
+              <Select.Item key={snippet.id} value={snippet.id}>
+                {snippet.label}
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Root>
+        <IconButton
+          variant="soft"
+          aria-label={t('browse.component.copySnippet', { label: current.label })}
+          onClick={copy}
+        >
+          <Copy size={16} aria-hidden="true" />
+        </IconButton>
+      </div>
+      {current.hint && (
+        <Text as="p" size="1" color="gray" className={styles.snippetHint}>
+          {t(current.hint)}
+        </Text>
+      )}
+      <pre className={styles.snippet}>
+        <code>{current.code}</code>
+      </pre>
+    </section>
+  );
+}
+
+function Facts({
+  format,
+  group,
+  name,
+  entry,
+}: {
+  format: string;
+  group: string;
+  name: string;
+  entry: VersionEntry;
+}) {
+  const t = useT();
+  const rows: Array<{ id: string; label: string; value: ReactNode; mono?: boolean }> = [
+    {
+      id: 'modified',
+      label: t('browse.details.updated'),
+      value: entry.lastModified ? <DateTime value={entry.lastModified} dateOnly /> : '—',
+    },
+    { id: 'format', label: t('browse.details.format'), value: formatName(format) },
+  ];
+  if (group) {
+    rows.push({ id: 'group', label: t('browse.details.group'), value: group });
+  }
+  rows.push({ id: 'name', label: t('browse.details.name'), value: name });
+  if (entry.version) {
+    rows.push({ id: 'version', label: t('browse.details.version'), value: entry.version });
+  }
+  rows.push({
+    id: 'repository',
+    label: t('browse.details.repository'),
+    value: entry.repositories.join(', '),
+    mono: true,
+  });
+  return (
+    <section className={styles.card} aria-labelledby="component-facts">
+      <Heading as="h2" size="5" weight="bold" id="component-facts" className={styles.cardTitle}>
+        {t('browse.component.facts')}
+      </Heading>
+      <dl className={styles.facts}>
+        {rows.map((row) => (
+          <div key={row.id} className={styles.fact}>
+            <dt>{row.label}</dt>
+            <dd data-mono={row.mono === true}>{row.value}</dd>
+          </div>
         ))}
-      </Select.Content>
-    </Select.Root>
+      </dl>
+    </section>
   );
 }
 
@@ -106,248 +190,133 @@ function Overview({
   group,
   name,
   entry,
-  main,
 }: {
   format: string;
   group: string;
   name: string;
   entry: VersionEntry;
-  main: SearchAsset | undefined;
 }) {
-  const t = useT();
-  const attributes = main ? formatAttributes(format, main) : {};
+  const { state } = useSession();
+  const repository = entry.repositories[0] ?? '';
+  const hasSnippets =
+    componentSnippets({ format, group, name, version: entry.version, repository, baseUrl: state.baseUrl })
+      .length > 0;
   return (
-    <Flex direction="column" gap="5">
-      <Section title={t('browse.component.summary')}>
-        <DetailList
-          items={[
-            { id: 'format', label: t('browse.details.format'), value: <FormatBadge format={format} /> },
-            ...(group ? [{ id: 'group', label: t('browse.details.group'), value: group, mono: true }] : []),
-            { id: 'name', label: t('browse.details.name'), value: name, mono: true },
-            { id: 'version', label: t('browse.details.version'), value: entry.version, mono: true },
-            {
-              id: 'repositories',
-              label: t('browse.component.repositories'),
-              value: (
-                <span className={styles.links}>
-                  {entry.repositories.map((repository) => (
-                    <RadixLink asChild key={repository}>
-                      <Link to={browseUrl(repository)}>{repository}</Link>
-                    </RadixLink>
-                  ))}
-                </span>
-              ),
-            },
-            {
-              id: 'modified',
-              label: t('browse.component.lastModified'),
-              value: entry.lastModified ? <DateTime value={entry.lastModified} /> : '—',
-            },
-          ]}
+    <div className={styles.overview} data-single={!hasSnippets}>
+      {hasSnippets && (
+        <Dependencies
+          format={format}
+          group={group}
+          name={name}
+          version={entry.version}
+          repository={repository}
         />
-      </Section>
-      {Object.keys(attributes).length > 0 && (
-        <Section title={t('browse.details.attributes', { format: formatName(format) })}>
-          <AttributeList
-            attributes={attributes}
-            label={t('browse.details.attributes', { format: formatName(format) })}
-          />
-        </Section>
       )}
-    </Flex>
+      <Facts format={format} group={group} name={name} entry={entry} />
+    </div>
   );
 }
 
-function Files({ rows, loading, error }: { rows: FileRow[]; loading: boolean; error: unknown }) {
+function Security() {
   const t = useT();
-  const columns: Column<FileRow>[] = [
-    {
-      id: 'path',
-      header: t('browse.component.file'),
-      primary: true,
-      cell: (row) => <span className={styles.mono}>{row.path}</span>,
-      sortValue: (row) => row.path,
-    },
-    {
-      id: 'repository',
-      header: t('browse.details.repository'),
-      cell: (row) => row.repository,
-      sortValue: (row) => row.repository,
-    },
-    {
-      id: 'size',
-      header: t('browse.details.size'),
-      align: 'right',
-      cell: (row) => <FileSize bytes={row.fileSize} />,
-      sortValue: (row) => row.fileSize,
-    },
-    {
-      id: 'modified',
-      header: t('browse.details.updated'),
-      cell: (row) => <DateTime value={row.lastModified} />,
-      sortValue: (row) => new Date(row.lastModified),
-      hideOnPhone: true,
-    },
-    {
-      id: 'download',
-      header: t('browse.details.download'),
-      align: 'right',
-      cell: (row) => (
-        <Tooltip content={t('browse.component.downloadFile', { name: row.path })}>
-          <IconButton asChild variant="ghost" size="1">
-            <a
-              href={row.downloadUrl}
-              download
-              aria-label={t('browse.component.downloadFile', { name: row.path })}
-            >
-              <Download size={15} aria-hidden="true" />
-            </a>
-          </IconButton>
-        </Tooltip>
-      ),
-    },
-  ];
   return (
-    <DataTable
-      label={t('browse.component.files')}
-      columns={columns}
-      rows={rows}
-      loading={loading}
-      error={error}
-      getRowId={(row) => row.key}
-      rowHref={(row) => browseUrl(row.repository, row.path)}
-      initialSort={{ column: 'path', direction: 'asc' }}
+    <EmptyState
+      icon={ShieldOff}
+      title={t('browse.component.securityTitle')}
+      description={t('browse.component.securityText')}
     />
   );
 }
 
-function Usage({
+function Actions({
   format,
   group,
   name,
-  entry,
-  components,
-  repositories,
+  version,
 }: {
   format: string;
   group: string;
   name: string;
-  entry: VersionEntry;
-  components: SearchComponent[];
-  repositories: RepositoryItem[] | undefined;
+  version: string;
 }) {
   const t = useT();
-  const { state } = useSession();
-  const [chosen, setChosen] = useState<string | undefined>(undefined);
-  const repository = chosen && entry.repositories.includes(chosen) ? chosen : entry.repositories[0];
-  if (!supportsUsage(format)) {
-    return (
-      <Text as="p" size="2" color="gray">
-        {t('browse.usage.none', { format: formatName(format) })}
-      </Text>
-    );
-  }
-  if (!repository) {
+  const copied = componentPath(format, group, name, version);
+  const registry = registryUrl(format, group, name);
+  const guide = componentGuideUrl(format, group, name, version);
+  if (!copied && !registry && !guide) {
     return null;
   }
-  const item = repositories?.find((candidate) => candidate.name === repository);
-  const component = components.find((candidate) => candidate.repository === repository);
-  const main = component ? mainAsset(format, component.assets) : undefined;
   return (
-    <Flex direction="column" gap="4">
-      {entry.repositories.length > 1 && (
-        <Flex direction="column" gap="1" className={styles.repositoryPicker}>
-          <Text as="label" size="2" weight="medium" htmlFor="usage-repository">
-            {t('browse.component.usageRepository')}
-          </Text>
-          <Select.Root value={repository} onValueChange={setChosen}>
-            <Select.Trigger id="usage-repository" />
-            <Select.Content position="popper">
-              {entry.repositories.map((candidate) => (
-                <Select.Item key={candidate} value={candidate}>
-                  {candidate}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Root>
-        </Flex>
+    <div className={styles.actions}>
+      {copied && <PathButton text={copied} />}
+      {registry && (
+        <Button asChild variant="soft" color="gray" highContrast>
+          <a href={registry} target="_blank" rel="noreferrer">
+            <ExternalLink size={14} aria-hidden="true" />
+            {t('browse.component.registry')}
+          </a>
+        </Button>
       )}
-      <UsageSnippets
-        key={repository}
-        context={{
-          format,
-          repositoryName: repository,
-          repositoryType: item?.type ?? 'hosted',
-          baseUrl: state.baseUrl,
-          component: { group, name, version: entry.version },
-          path: format === 'raw' || format === 'docker' ? main?.path : undefined,
-          attributes: main ? formatAttributes(format, main) : undefined,
-        }}
-      />
-    </Flex>
+      {guide && (
+        <Button asChild variant="soft">
+          <a href={guide} target="_blank" rel="noreferrer">
+            <ExternalLink size={14} aria-hidden="true" />
+            {t('browse.details.research')}
+          </a>
+        </Button>
+      )}
+    </div>
   );
 }
 
-function Versions({
-  format,
-  group,
-  name,
-  versions,
-  current,
-}: {
-  format: string;
-  group: string;
-  name: string;
-  versions: VersionEntry[];
-  current: string;
-}) {
+function PathButton({ text }: { text: string }) {
   const t = useT();
-  const columns: Column<VersionEntry>[] = [
-    {
-      id: 'version',
-      header: t('browse.details.version'),
-      primary: true,
-      cell: (row) => (
-        <span className={styles.mono}>
-          {row.version}
-          {row.version === current && (
-            <Text size="1" color="gray">
-              {' '}
-              {t('browse.component.shown')}
-            </Text>
-          )}
-        </span>
-      ),
-    },
-    {
-      id: 'repositories',
-      header: t('browse.component.repositories'),
-      cell: (row) => row.repositories.join(', '),
-    },
-    {
-      id: 'modified',
-      header: t('browse.component.lastModified'),
-      cell: (row) => (row.lastModified ? <DateTime value={row.lastModified} /> : '—'),
-    },
-  ];
+  const toast = useToast();
   return (
-    <DataTable
-      label={t('browse.component.versions')}
-      columns={columns}
-      rows={versions}
-      getRowId={(row) => row.version}
-      rowHref={(row) => componentPageUrl(format, group, name, row.version)}
-      pageSize={50}
-      paging="more"
-    />
+    <Button
+      variant="soft"
+      aria-label={t('browse.component.copyPath')}
+      onClick={async () => {
+        try {
+          await copyText(text);
+          toast.success(t('ui.copy.copied'));
+        } catch {
+          toast.error(t('ui.copy.failed'));
+        }
+      }}
+    >
+      <Copy size={14} aria-hidden="true" />
+      {t('browse.component.path')}
+    </Button>
+  );
+}
+
+function Frame({
+  crumbs,
+  title,
+  children,
+}: {
+  crumbs: Array<{ label: string; to?: string }>;
+  title: string;
+  children: ReactNode;
+}) {
+  useDocumentTitle(title);
+  return (
+    <div className={styles.page}>
+      <Breadcrumbs items={crumbs} />
+      <Heading as="h1" size="6" weight="bold" className={styles.title}>
+        {title}
+      </Heading>
+      {children}
+    </div>
   );
 }
 
 export default function ComponentPage() {
   const t = useT();
   const location = useLocation();
-  const [params, setParams] = useSearchParams();
-  const key = keyFromPath(location.pathname);
+  const [params] = useSearchParams();
+  const { key, tab } = locate(location.pathname);
   const parsed = parseComponentKey(key);
   const versionsPath = parsed
     ? withQuery(`${UI_PATH}/search/versions`, {
@@ -374,111 +343,104 @@ export default function ComponentPage() {
   const files: FileRow[] = loaded.flatMap((component) =>
     component.assets.map((asset) => ({ ...asset, key: `${component.repository}|${asset.path}` })),
   );
-
   const format = versions.data?.format ?? parsed?.format ?? '';
   const group = parsed?.group ?? '';
   const name = parsed?.name ?? '';
-  const title = parsed ? componentTitle(format, group, name) : t('browse.component.invalidTitle');
-  const crumbs = [{ label: t('browse.component.search'), to: '/search' }, { label: title }];
+  const search = { label: t('browse.component.search'), to: '/search' };
 
   if (!parsed) {
+    const title = t('browse.component.invalidTitle');
     return (
-      <Page title={title} breadcrumbs={crumbs}>
+      <Frame crumbs={[search, { label: title }]} title={title}>
         <EmptyState icon={PackageSearch} title={title} description={t('browse.component.invalidText')} />
-      </Page>
+      </Frame>
     );
   }
   if (versions.isPending) {
     return (
-      <Page title={title} breadcrumbs={crumbs}>
+      <Frame crumbs={[search, { label: name }]} title={name}>
         <Skeleton height="200px" />
-      </Page>
+      </Frame>
     );
   }
   if (versions.isError) {
     return (
-      <Page title={title} breadcrumbs={crumbs}>
+      <Frame crumbs={[search, { label: name }]} title={name}>
         <ErrorState error={versions.error} onRetry={() => versions.refetch()} />
-      </Page>
+      </Frame>
     );
   }
   if (!entry) {
     return (
-      <Page title={title} breadcrumbs={crumbs}>
+      <Frame crumbs={[search, { label: name }]} title={t('browse.component.notFoundTitle')}>
         <EmptyState
           icon={PackageSearch}
           title={t('browse.component.notFoundTitle')}
-          description={t('browse.component.notFoundText', { name: title })}
+          description={t('browse.component.notFoundText', { name })}
           action={
             <Button asChild variant="soft">
               <Link to="/search">{t('browse.component.toSearch')}</Link>
             </Button>
           }
         />
-      </Page>
+      </Frame>
     );
   }
+  const own = componentKey(format, group, name);
+  const order = list.map((item) => item.version);
+  const compare = (left: string, right: string) => order.indexOf(right) - order.indexOf(left);
+  const title = entry.version ? `${name} v${entry.version}` : name;
+  const crumbs = [
+    search,
+    { label: name, to: tabUrl(own, 'overview') },
+    ...(entry.version ? [{ label: entry.version }] : []),
+  ];
+  const repositoryCount = new Set(list.flatMap((item) => item.repositories)).size;
   const loadingFiles = components.some((result) => result.isPending);
   const filesError = components.find((result) => result.isError)?.error;
-  const main = mainAsset(format, loaded[0]?.assets ?? []);
-  const chooseVersion = (version: string) => {
-    setParams(
-      (previous) => {
-        const next = new URLSearchParams(previous);
-        next.set('version', version);
-        return next;
-      },
-      { replace: false },
-    );
-  };
+  const tabs: Array<{ id: Tab; label: string; count?: number }> = [
+    { id: 'overview', label: t('browse.component.overview') },
+    { id: 'versions', label: t('browse.component.versionsTab'), count: list.length },
+    { id: 'repos', label: t('browse.component.repositoriesTab'), count: repositoryCount },
+    { id: 'files', label: t('browse.component.files'), count: loadingFiles ? undefined : files.length },
+    { id: 'security', label: t('browse.component.security') },
+  ];
   return (
-    <Page
-      title={title}
-      documentTitle={`${title} ${entry.version}`}
-      breadcrumbs={crumbs}
-      description={
-        <Flex as="span" gap="2" align="center" wrap="wrap">
-          <FormatBadge format={format} />
-          <span>{t('browse.component.versionCount', { count: list.length })}</span>
-        </Flex>
-      }
-      actions={<VersionPicker versions={list} current={entry.version} onChange={chooseVersion} />}
-    >
-      <QueryTabs
-        tabs={[
-          {
-            value: 'overview',
-            label: t('browse.component.overview'),
-            content: <Overview format={format} group={group} name={name} entry={entry} main={main} />,
-          },
-          {
-            value: 'files',
-            label: t('browse.component.filesTab', { count: files.length }),
-            content: <Files rows={files} loading={loadingFiles} error={filesError} />,
-          },
-          {
-            value: 'usage',
-            label: t('browse.component.usage'),
-            content: (
-              <Usage
-                format={format}
-                group={group}
-                name={name}
-                entry={entry}
-                components={loaded}
-                repositories={repositories.data}
-              />
-            ),
-          },
-          {
-            value: 'versions',
-            label: t('browse.component.versionsTab', { count: list.length }),
-            content: (
-              <Versions format={format} group={group} name={name} versions={list} current={entry.version} />
-            ),
-          },
-        ]}
-      />
-    </Page>
+    <Frame crumbs={crumbs} title={title}>
+      <Actions format={format} group={group} name={name} version={entry.version} />
+      <TabNav.Root className={styles.tabs} aria-label={t('browse.component.tabs')}>
+        {tabs.map((item) => (
+          <TabNav.Link key={item.id} asChild active={tab === item.id}>
+            <Link to={tabUrl(own, item.id, entry.version)}>
+              {item.label}
+              {item.count !== undefined && (
+                <Badge size="1" color="gray" variant="soft" radius="full" className={styles.count}>
+                  {item.count}
+                </Badge>
+              )}
+            </Link>
+          </TabNav.Link>
+        ))}
+      </TabNav.Root>
+      {tab === 'overview' && <Overview format={format} group={group} name={name} entry={entry} />}
+      {tab === 'versions' && (
+        <VersionsTab
+          versions={list}
+          current={entry.version}
+          hrefOf={(version) => tabUrl(own, 'versions', version)}
+          compare={compare}
+        />
+      )}
+      {tab === 'repos' && <RepositoriesTab versions={list} repositories={repositories.data ?? []} />}
+      {tab === 'files' &&
+        (filesError ? (
+          <ErrorState error={filesError} />
+        ) : loadingFiles ? (
+          <Skeleton height="200px" />
+        ) : (
+          <FilesTab rows={files} />
+        ))}
+      {tab === 'security' && <Security />}
+    </Frame>
   );
 }

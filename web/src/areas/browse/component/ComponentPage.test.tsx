@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../../test/render';
 import { repository } from '../test-fixtures';
 import type { SearchAsset, SearchComponent } from '../types';
-import ComponentPage, { keyFromPath, mainAsset } from './ComponentPage';
+import ComponentPage, { keyFromPath, locate, mainAsset } from './ComponentPage';
+import { componentSnippets } from './snippets';
+import { csv } from './tables';
 
 const VERSIONS = '/service/rest/internal/ui/search/versions?format=maven2&group=org.acme&name=lib';
 
@@ -84,10 +86,46 @@ afterEach(() => {
 });
 
 describe('the component page', { timeout: 20_000 }, () => {
-  it('reads the component from the address', () => {
+  it('reads the component and the tab from the address', () => {
     expect(keyFromPath('/search/component/maven2%3Aorg.acme%3Alib')).toBe('maven2:org.acme:lib');
     expect(keyFromPath('/search/component/docker%3A%3Ateam%2Fapp/')).toBe('docker::team/app');
+    expect(locate('/search/component/maven2%3Aorg.acme%3Alib/files')).toEqual({
+      key: 'maven2:org.acme:lib',
+      tab: 'files',
+    });
     expect(keyFromPath('/elsewhere')).toBe('');
+  });
+
+  it('builds the dependency snippets and the CSV', () => {
+    const context = {
+      group: 'org.acme',
+      name: 'lib',
+      version: '2.0',
+      baseUrl: 'https://r.example',
+      repository: 'x',
+    };
+    expect(componentSnippets({ ...context, format: 'maven2' }).map((snippet) => snippet.label)).toEqual([
+      'Apache Maven',
+      'Gradle Groovy DSL',
+      'Gradle Kotlin DSL',
+      'Scala SBT',
+      'Apache Ivy',
+      'Groovy Grape',
+      'Leiningen',
+      'Apache Buildr',
+      'Maven Central Badge',
+      'PURL',
+    ]);
+    expect(componentSnippets({ ...context, format: 'docker', group: '', name: 'team/app' })[0]?.code).toBe(
+      'docker pull r.example/x/team/app:2.0',
+    );
+    expect(componentSnippets({ ...context, format: 'helm' })).toEqual([]);
+    expect(
+      csv([
+        ['a,b', 'c"d'],
+        ['e', 'f'],
+      ]),
+    ).toBe('"a,b","c""d"\ne,f\n');
   });
 
   it('prefers the jar of a Maven component and the manifest of an image', () => {
@@ -101,44 +139,62 @@ describe('the component page', { timeout: 20_000 }, () => {
     expect(mainAsset('docker', [blob, manifest])?.path).toBe('/v2/app/manifests/1.0');
   });
 
-  it('shows the newest version with its repositories and attributes', async () => {
+  it('shows the newest version with its dependency snippet and details', async () => {
     serve();
     page(URL);
-    expect(await screen.findByRole('heading', { level: 1, name: 'org.acme:lib' })).toBeInTheDocument();
-    expect(await screen.findByRole('combobox', { name: 'Version' })).toHaveTextContent('2.0');
-    expect(screen.getByRole('link', { name: 'releases' })).toHaveAttribute('href', '/browse/releases');
-    expect(screen.getByRole('link', { name: 'mirror' })).toBeInTheDocument();
-    expect(await screen.findByText('artifactId')).toBeInTheDocument();
-    expect(screen.getByText('jar')).toBeInTheDocument();
-  });
-
-  it('lists the files of the chosen version', async () => {
-    serve();
-    page(`${URL}?version=1.0&tab=files`);
-    const table = await screen.findByRole('table', { name: 'Files of this version' });
-    await waitFor(() => expect(within(table).getAllByRole('rowheader')).toHaveLength(2));
-    expect(within(table).getByRole('link', { name: '/org/acme/lib/1.0/lib-1.0.jar' })).toHaveAttribute(
+    expect(await screen.findByRole('heading', { level: 1, name: 'lib v2.0' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Registry' })).toHaveAttribute(
       'href',
-      '/browse/releases/org/acme/lib/1.0/lib-1.0.jar',
+      'https://central.globalart.dev/artifact/org.acme/lib',
     );
-    expect(
-      within(table).getByRole('link', { name: 'Download /org/acme/lib/1.0/lib-1.0.pom' }),
-    ).toHaveAttribute('href', 'http://localhost/repository/releases/org/acme/lib/1.0/lib-1.0.pom');
+    expect(screen.getByRole('link', { name: 'Research in Guide' })).toHaveAttribute(
+      'href',
+      'https://guide.globalart.dev/component/maven/org.acme%3Alib/2.0?referrer=search-component-detail',
+    );
+    expect(screen.getByRole('heading', { name: 'Dependencies' })).toBeInTheDocument();
+    expect(screen.getByText(/<version>2\.0<\/version>/)).toBeInTheDocument();
+    expect(screen.getByText('Paste this snippet into pom.xml')).toBeInTheDocument();
+    expect(screen.getByText('releases, mirror')).toBeInTheDocument();
+    const tabs = screen.getByRole('navigation', { name: 'Component sections' });
+    expect(within(tabs).getByRole('link', { name: /Versions\s*2/ })).toHaveAttribute(
+      'href',
+      `${URL}/versions?version=2.0`,
+    );
   });
 
-  it('gives usage for the exact version through the chosen repository', async () => {
+  it('lists the files of the chosen version with their type and menu', async () => {
     serve();
-    const { router } = page(`${URL}?tab=usage`);
-    expect(await screen.findByText(/<version>2\.0<\/version>/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: /settings\.xml/ }));
-    expect(screen.getByText(/<activeProfile>releases<\/activeProfile>/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('combobox', { name: 'Repository' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'mirror' }));
-    await userEvent.click(screen.getByRole('tab', { name: /settings\.xml/ }));
-    expect(screen.getByText(/<mirrorOf>\*<\/mirrorOf>/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: /Versions/ }));
-    await userEvent.click(await screen.findByRole('link', { name: '1.0' }));
+    page(`${URL}/files?version=1.0`);
+    const table = await screen.findByRole('table', { name: 'Files' });
+    await waitFor(() => expect(within(table).getAllByRole('rowheader')).toHaveLength(2));
+    expect(within(table).getByText('lib-1.0.jar')).toBeInTheDocument();
+    expect(within(table).getAllByText('releases')).toHaveLength(2);
+    const filters = screen.getByRole('complementary', { name: 'Filters' });
+    await userEvent.click(within(filters).getByRole('checkbox', { name: 'pom' }));
+    expect(within(table).getAllByRole('rowheader')).toHaveLength(1);
+    await userEvent.click(within(table).getByRole('button', { name: 'Actions for lib-1.0.pom' }));
+    expect(await screen.findByRole('menuitem', { name: 'Open in Repository' })).toBeInTheDocument();
+  });
+
+  it('lists versions and repositories and moves between versions', async () => {
+    serve();
+    const { router } = page(`${URL}/versions`);
+    const table = await screen.findByRole('table', { name: 'Versions' });
+    expect(
+      within(table)
+        .getAllByRole('rowheader')
+        .map((cell) => cell.textContent),
+    ).toEqual(['2.0', '1.0']);
+    expect(within(table).getByText('2 repositories')).toBeInTheDocument();
+    await userEvent.click(within(table).getByRole('link', { name: '1.0' }));
     await waitFor(() => expect(router.state.location.search).toBe('?version=1.0'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'lib v1.0' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: /Repositories\s*2/ }));
+    const repositories = await screen.findByRole('table', { name: 'Repositories' });
+    expect(within(repositories).getByText('2 versions')).toBeInTheDocument();
+    expect(within(repositories).getByText('Proxy')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: /^Security/ }));
+    expect(await screen.findByRole('heading', { name: 'Security Analysis Unavailable' })).toBeInTheDocument();
   });
 
   it('says when nobody may see the component', async () => {
@@ -151,7 +207,7 @@ describe('the component page', { timeout: 20_000 }, () => {
       }).fetch,
     );
     page(URL);
-    expect(await screen.findByRole('heading', { name: 'Component not found' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Component not found' })).toBeInTheDocument();
   });
 
   it('names an address that is not a component', async () => {
