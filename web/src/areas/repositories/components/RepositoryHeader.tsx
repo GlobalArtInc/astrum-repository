@@ -53,10 +53,12 @@ export function RepositoryButtons({
   onToggleOnline,
   onDelete,
   extra,
+  tone = 'gray',
 }: {
   repository: UiRepository;
   online: boolean;
   busy?: boolean;
+  tone?: 'gray' | 'accent';
   onRebuild(): void;
   onInvalidate(): void;
   onToggleOnline(): void;
@@ -65,10 +67,11 @@ export function RepositoryButtons({
 }) {
   const t = useT();
   const flags = repository.permissions;
+  const color = tone === 'gray' ? 'gray' : undefined;
   return (
     <Flex gap="2" wrap="wrap" align="center" justify="end">
       {(flags.browse || flags.read) && (
-        <Button asChild variant="soft" color="gray">
+        <Button asChild variant="soft" color={color}>
           <Link to={browseAddress(repository.name)}>
             <FolderTree size={16} aria-hidden="true" />
             {t('repositories.edit.browse')}
@@ -76,19 +79,19 @@ export function RepositoryButtons({
         </Button>
       )}
       {canRebuild(repository) && (
-        <Button variant="soft" color="gray" onClick={onRebuild}>
+        <Button variant="soft" color={color} onClick={onRebuild}>
           <Database size={16} aria-hidden="true" />
           {t('repositories.actions.rebuild')}
         </Button>
       )}
       {canInvalidate(repository) && (
-        <Button variant="soft" color="gray" onClick={onInvalidate}>
+        <Button variant="soft" color={color} onClick={onInvalidate}>
           <DatabaseZap size={16} aria-hidden="true" />
           {t('repositories.actions.invalidate')}
         </Button>
       )}
       {flags.adminEdit && (
-        <Button variant="soft" color="gray" disabled={busy} onClick={onToggleOnline}>
+        <Button variant="soft" color={color} disabled={busy} onClick={onToggleOnline}>
           <Power size={16} aria-hidden="true" />
           {online ? t('repositories.actions.takeOffline') : t('repositories.actions.bringOnline')}
         </Button>

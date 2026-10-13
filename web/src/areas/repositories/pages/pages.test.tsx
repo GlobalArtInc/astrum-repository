@@ -9,6 +9,7 @@ import type { RepositoryDocument } from '../model/document';
 import reference from '../model/reference-documents.json';
 import CreatePickerPage, { groupRecipes } from './CreatePickerPage';
 import CreateRepositoryPage from './CreateRepositoryPage';
+import ProfilePage from './ProfilePage';
 import RepositoriesPage, { filterRepositories, sortRepositories } from './RepositoriesPage';
 import RepositoryPage from './RepositoryPage';
 
@@ -412,5 +413,61 @@ describe('the repository page', () => {
     expect(
       await screen.findByText('There is no repository named nothing-here, or you cannot see it.'),
     ).toBeInTheDocument();
+  });
+});
+
+describe('the repository profile', () => {
+  it('shows the configuration, the groups and the read-only tabs', async () => {
+    serve({
+      [`GET ${LIST}`]: () => jsonResponse(ROWS),
+      'GET /service/rest/v1/repositories/maven/hosted/maven-releases': () =>
+        jsonResponse({ ...(DOCUMENTS['maven/hosted/min'] as RepositoryDocument), name: 'maven-releases' }),
+      'GET /service/rest/internal/ui/blobstores': () =>
+        jsonResponse([
+          {
+            name: 'default',
+            type: 'File',
+            path: 'default',
+            unavailable: false,
+            blobCount: 4,
+            totalSize: 2048,
+            availableSpace: 4096,
+            softQuota: null,
+            quotaStatus: null,
+            repositories: ['maven-releases'],
+            repositoryCount: 1,
+            groups: [],
+            deletable: false,
+          },
+        ]),
+    });
+    renderWithApp(null, {
+      path: '/admin/repository/repositories/maven-releases/profile',
+      routes: [
+        { path: '/admin/repository/repositories/:name/profile', element: <ProfilePage /> },
+        { path: '/admin/repository/repositories/:name', element: <p>the edit page</p> },
+      ],
+    });
+    expect(await screen.findByRole('region', { name: 'Repository Configuration' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      expect.stringMatching(/^Repository/),
+      expect.stringMatching(/^Group Membership/),
+      expect.stringMatching(/^Usage/),
+      expect.stringMatching(/^Audit/),
+      expect.stringMatching(/^Access & Security/),
+      expect.stringMatching(/^System/),
+      expect.stringMatching(/^Instance Settings/),
+    ]);
+    expect(await screen.findByRole('region', { name: 'Blob Store: default' })).toHaveTextContent('Location');
+    await userEvent.click(screen.getByRole('tab', { name: /Group Membership/ }));
+    expect(await screen.findByRole('link', { name: 'maven-public' })).toHaveAttribute(
+      'href',
+      '/admin/repository/repositories/maven-public/profile',
+    );
+    await userEvent.click(screen.getByRole('tab', { name: /System/ }));
+    expect(await screen.findByText('No capabilities affect this repository.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /^Repository/ }));
+    await userEvent.click((await screen.findAllByRole('link', { name: 'Configure' }))[0] as HTMLElement);
+    expect(await screen.findByText('the edit page')).toBeInTheDocument();
   });
 });

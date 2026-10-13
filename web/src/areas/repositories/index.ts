@@ -23,7 +23,7 @@ export const repositoriesArea: Area = {
     },
     {
       path: 'admin/repository/repositories/:name/profile',
-      load: () => import('./pages/ProfileRedirect'),
+      load: () => import('./pages/ProfilePage'),
       need: ADMIN,
     },
   ],
