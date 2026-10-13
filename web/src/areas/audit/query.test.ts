@@ -1,64 +1,81 @@
 import { describe, expect, it } from 'vitest';
-import {
-  attributeEntries,
-  auditPath,
-  EMPTY_FILTERS,
-  isFiltered,
-  knownDomains,
-  nextBefore,
-  PAGE_SIZE,
-  readFilters,
-  writeFilters,
-} from './query';
+import type { Translate } from '../../i18n';
+import { categoryOf, kindLabel, summaryOf } from './events';
+import { auditLogPath, EMPTY_FILTERS, pageWindow, readFilters, readPaging, writeParams } from './query';
 
-describe('audit filters', () => {
-  it('read the address, including the old repositoryName parameter', () => {
-    expect(
-      readFilters(new URLSearchParams('repositoryName=files&type=deleted&since=2026-10-01&until=soon')),
-    ).toEqual({
+const t = Object.assign(
+  (key: string, vars?: Record<string, unknown>) =>
+    vars
+      ? `${key}(${Object.entries(vars)
+          .map(([name, value]) => `${name}=${value}`)
+          .join(',')})`
+      : key,
+  { rich: () => [] },
+) as unknown as Translate;
+
+describe('audit query', () => {
+  it('reads and writes the filters and paging of the address', () => {
+    const params = new URLSearchParams(
+      'period=7&categories=security,bogus&types=login&repositoryName=x&page=2&size=50',
+    );
+    const filters = readFilters(params);
+    expect(filters).toEqual({
       ...EMPTY_FILTERS,
-      repository: 'files',
-      type: 'deleted',
-      since: '2026-10-01',
+      period: 7,
+      categories: ['security'],
+      types: ['login'],
+      repository: 'x',
     });
-    expect(isFiltered(readFilters(new URLSearchParams('')))).toBe(false);
-  });
-
-  it('write only the filters that are set', () => {
-    const filters = { ...EMPTY_FILTERS, q: ' jane ', domain: 'security.user', repository: 'files' };
-    expect(writeFilters(filters).toString()).toBe('q=jane&domain=security.user&repositoryName=files');
-    expect(writeFilters(EMPTY_FILTERS).toString()).toBe('');
-  });
-
-  it('ask the server page by page before the last id', () => {
-    const filters = { ...EMPTY_FILTERS, repository: 'files', initiator: 'admin', until: '2026-10-12' };
-    expect(auditPath(filters)).toBe(
-      `/service/rest/internal/audit?limit=${PAGE_SIZE}&initiator=admin&repository=files&until=2026-10-12`,
+    expect(readPaging(params)).toEqual({ page: 2, size: 50 });
+    expect(writeParams(filters, { page: 2, size: 50 }).toString()).toBe(
+      'period=7&categories=security&types=login&repositoryName=x&page=2&size=50',
     );
-    expect(auditPath(EMPTY_FILTERS, 41)).toBe(`/service/rest/internal/audit?limit=${PAGE_SIZE}&before=41`);
-    const event = (id: number) => ({
-      id,
-      at: '',
-      domain: '',
-      type: '',
-      context: '',
-      initiator: '',
-      attributes: {},
-    });
-    expect(nextBefore(Array.from({ length: PAGE_SIZE }, (_, index) => event(100 - index)))).toBe(
-      100 - PAGE_SIZE + 1,
-    );
-    expect(nextBefore([event(3)])).toBeUndefined();
+    expect(writeParams(EMPTY_FILTERS, { page: 1, size: 20 }).toString()).toBe('');
+    expect(readPaging(new URLSearchParams('page=-3&size=7'))).toEqual({ page: 1, size: 20 });
   });
 
-  it('show attributes as text and know the domains in use', () => {
-    expect(attributeEntries({ repository: 'files', active: ['a', 'b'], size: 3 })).toEqual([
-      ['repository', 'files'],
-      ['active', '["a","b"]'],
-      ['size', '3'],
-    ]);
-    expect(attributeEntries(null)).toEqual([]);
-    expect(knownDomains(['repository', 'custom.domain'])).toContain('custom.domain');
-    expect(knownDomains().filter((domain) => domain === 'repository')).toHaveLength(1);
+  it('asks the server for one page of a period', () => {
+    const now = new Date('2026-10-13T00:00:00.000Z');
+    expect(
+      auditLogPath(
+        { ...EMPTY_FILTERS, period: 1, types: ['created', 'deleted'] },
+        { page: 3, size: 40 },
+        now,
+      ),
+    ).toBe(
+      '/service/rest/internal/ui/audit-log?page=3&limit=40&types=created%2Cdeleted&startDate=2026-10-12T00%3A00%3A00.000Z&endDate=2026-10-13T00%3A00%3A00.000Z',
+    );
+  });
+
+  it('numbers the pages like the old pager', () => {
+    expect(pageWindow(1, 3)).toEqual([1, 2, 3]);
+    expect(pageWindow(1, 229)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 'gap', 229]);
+    expect(pageWindow(229, 229)).toEqual([1, 'gap', 222, 223, 224, 225, 226, 227, 228, 229]);
+    expect(pageWindow(50, 229)).toEqual([1, 'gap', 48, 49, 50, 51, 52, 'gap', 229]);
+  });
+});
+
+describe('audit events', () => {
+  it('turn sessions into sign-ins and group domains into categories', () => {
+    expect(categoryOf({ domain: 'security.session', type: 'created' })).toBe('security');
+    expect(categoryOf({ domain: 'asset', type: 'deleted' })).toBe('repository');
+    expect(categoryOf({ domain: 'security.ssrf', type: 'updated' })).toBe('configuration');
+    expect(kindLabel(t, { domain: 'security.session', type: 'deleted' })).toBe('audit.kind.logout');
+    expect(kindLabel(t, { domain: 'repository', type: 'revoked-token-attempt' })).toBe(
+      'Revoked Token Attempt',
+    );
+  });
+
+  it('write the old summaries', () => {
+    const base = { id: 1, timestamp: '', initiator: 'admin/10.0.0.1', attributes: {} };
+    expect(summaryOf(t, { ...base, domain: 'security.session', type: 'created', context: 'jane' })).toBe(
+      'audit.summary.session(name=jane,action=audit.summary.login)',
+    );
+    expect(summaryOf(t, { ...base, domain: 'security.user', type: 'created', context: 'jane' })).toBe(
+      'audit.summary.event(entity=audit.entity.user,name=jane,action=audit.action.created,initiator=admin/10.0.0.1)',
+    );
+    expect(summaryOf(t, { ...base, domain: 'other', type: 'weird-kind', context: '' })).toBe(
+      'audit.summary.event(entity=audit.entity.event,name=audit.summary.unknown,action=weird kind,initiator=admin/10.0.0.1)',
+    );
   });
 });

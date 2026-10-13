@@ -117,8 +117,9 @@ land on their fields), `FormError`, `ConfirmDialog` / `useConfirm()`, `useToast(
 "Copy" button), `CodeBlock` (dark in both themes, long lines wrap), `QueryTabs` (`?tab=`), `EmptyState`,
 `ErrorState`, `FormatBadge` (lower-case id in the format colour, `variant="name"` for the grey name),
 `TypeBadge` (grey lower-case pill, `variant="outline"` for the outlined name), `StatusBadge`,
-`FileSize`, `DateTime`, `RelativeTime`, `UnsavedChangesGuard`. Pages must work at 390 px wide without
-horizontal scrolling, in both themes.
+`FileSize`, `DateTime`, `RelativeTime`, `UnsavedChangesGuard`, `FilterLayout` with `ResetFiltersButton`,
+`FilterSection` and `CheckList` (the filter column of the old list pages, a side sheet below 520 px).
+Pages must work at 390 px wide without horizontal scrolling, in both themes.
 
 ## Tests
 

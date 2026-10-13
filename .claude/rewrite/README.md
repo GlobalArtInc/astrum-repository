@@ -422,6 +422,12 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   sorts by name, version, group and repository and accepts `*` in `q`. `OrderedListField` and area
   `watchers` were added to the foundation. Tests at the end of M3: 487 Rust, 770 web unit, 52 e2e (every spec
   file gets its own server). The web dictionaries (1387 keys) are in Ownlate under the `web.` prefix.
+- Audit log (parity work, 2026-10-13): `GET /internal/ui/audit-log` answers the old page's query (page, limit,
+  startDate, endDate, comma lists of categories and types, repository, initiator and context text) with `items` and
+  the old `pagination` object; categories group domains as the old page does (security, repository, protection,
+  configuration for the rest; sign-ins and sign-outs are security). Audit initiators are `user/address` when the
+  client address is known (X-Forwarded-For, X-Real-IP or the peer), and a failed UI sign-in is audited as
+  `security.session failed`.
 - Left after M3: idle-session countdown, response compression, docker port suggestion, repository profile
   tabs "structure", "security" and "system", tree filter and type-ahead, connection
   examples for formats added later, session dialog on a 401 during upload.

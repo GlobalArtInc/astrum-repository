@@ -1,141 +1,140 @@
 import { withQuery } from '../../api';
+import { CATEGORIES, type Category, EVENT_TYPES } from './events';
 
-export const AUDIT = '/service/rest/internal/audit';
-export const AUDIT_FACETS = '/service/rest/internal/ui/audit/facets';
-export const PAGE_SIZE = 50;
+export const AUDIT_LOG = '/service/rest/internal/ui/audit-log';
+export const PERIODS = [1, 7, 30, 90] as const;
+export const PAGE_SIZES = [20, 40, 50, 100, 250] as const;
+export const DEFAULT_PERIOD = 30;
+export const DEFAULT_SIZE = 20;
 
-export interface AuditEvent {
-  id: number;
-  at: string;
-  domain: string;
-  type: string;
-  context: string;
-  initiator: string;
-  attributes: Record<string, unknown> | null;
-}
-
-export interface AuditFacets {
-  domains: string[];
-  types: string[];
-  initiators: string[];
-}
+export type Period = (typeof PERIODS)[number];
+export type EventType = (typeof EVENT_TYPES)[number];
 
 export interface AuditFilters {
-  q: string;
-  domain: string;
-  type: string;
-  initiator: string;
+  period: Period;
+  categories: Category[];
+  types: EventType[];
+  format: string;
   repository: string;
-  since: string;
-  until: string;
+  initiator: string;
+  q: string;
+}
+
+export interface AuditPaging {
+  page: number;
+  size: number;
+}
+
+export interface AuditPage<T> {
+  items: T[];
+  pagination: { totalItems: number; totalPages: number; currentPage: number; itemsPerPage: number };
 }
 
 export const EMPTY_FILTERS: AuditFilters = {
-  q: '',
-  domain: '',
-  type: '',
-  initiator: '',
+  period: DEFAULT_PERIOD,
+  categories: [],
+  types: [],
+  format: '',
   repository: '',
-  since: '',
-  until: '',
+  initiator: '',
+  q: '',
 };
 
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
+function listOf<T extends string>(value: string | null, allowed: readonly T[]): T[] {
+  return (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item): item is T => (allowed as readonly string[]).includes(item));
+}
+
+function numberOf<T extends number>(value: string | null, allowed: readonly T[], fallback: T): T {
+  const parsed = Number(value);
+  return (allowed as readonly number[]).includes(parsed) ? (parsed as T) : fallback;
+}
 
 export function readFilters(params: URLSearchParams): AuditFilters {
-  const date = (value: string | null) => (value && DATE.test(value) ? value : '');
   return {
-    q: params.get('q') ?? '',
-    domain: params.get('domain') ?? '',
-    type: params.get('type') ?? '',
-    initiator: params.get('initiator') ?? '',
+    period: numberOf(params.get('period'), PERIODS, DEFAULT_PERIOD),
+    categories: listOf(params.get('categories'), CATEGORIES),
+    types: listOf(params.get('types'), EVENT_TYPES),
+    format: params.get('format') ?? '',
     repository: params.get('repositoryName') ?? '',
-    since: date(params.get('since')),
-    until: date(params.get('until')),
+    initiator: params.get('initiator') ?? '',
+    q: params.get('q') ?? '',
   };
 }
 
-export function writeFilters(filters: AuditFilters): URLSearchParams {
+export function readPaging(params: URLSearchParams): AuditPaging {
+  const page = Math.floor(Number(params.get('page')));
+  return {
+    page: Number.isFinite(page) && page > 1 ? page : 1,
+    size: numberOf(params.get('size'), PAGE_SIZES, DEFAULT_SIZE),
+  };
+}
+
+export function writeParams(filters: AuditFilters, paging: AuditPaging): URLSearchParams {
   const params = new URLSearchParams();
+  if (filters.period !== DEFAULT_PERIOD) {
+    params.set('period', String(filters.period));
+  }
   const entries: Array<[string, string]> = [
-    ['q', filters.q],
-    ['domain', filters.domain],
-    ['type', filters.type],
-    ['initiator', filters.initiator],
+    ['categories', filters.categories.join(',')],
+    ['types', filters.types.join(',')],
+    ['format', filters.format],
     ['repositoryName', filters.repository],
-    ['since', filters.since],
-    ['until', filters.until],
+    ['initiator', filters.initiator],
+    ['q', filters.q],
   ];
   for (const [key, value] of entries) {
     if (value.trim() !== '') {
       params.set(key, value.trim());
     }
   }
+  if (paging.page > 1) {
+    params.set('page', String(paging.page));
+  }
+  if (paging.size !== DEFAULT_SIZE) {
+    params.set('size', String(paging.size));
+  }
   return params;
 }
 
 export function isFiltered(filters: AuditFilters): boolean {
-  return Object.values(filters).some((value) => value.trim() !== '');
+  return (
+    filters.period !== DEFAULT_PERIOD ||
+    filters.categories.length > 0 ||
+    filters.types.length > 0 ||
+    filters.format !== '' ||
+    filters.repository !== '' ||
+    filters.initiator.trim() !== '' ||
+    filters.q.trim() !== ''
+  );
 }
 
-export function auditPath(filters: AuditFilters, before?: number | null): string {
-  return withQuery(AUDIT, {
-    limit: PAGE_SIZE,
-    q: filters.q.trim(),
-    domain: filters.domain,
-    type: filters.type,
-    initiator: filters.initiator,
+export function auditLogPath(filters: AuditFilters, paging: AuditPaging, now: Date): string {
+  const start = new Date(now.getTime() - filters.period * 24 * 60 * 60 * 1000);
+  return withQuery(AUDIT_LOG, {
+    page: paging.page,
+    limit: paging.size,
+    categories: filters.categories.join(','),
+    types: filters.types.join(','),
     repository: filters.repository,
-    since: filters.since,
-    until: filters.until,
-    before: before ?? undefined,
+    initiator: filters.initiator.trim(),
+    q: filters.q.trim(),
+    startDate: start.toISOString(),
+    endDate: now.toISOString(),
   });
 }
 
-export function nextBefore(page: readonly AuditEvent[]): number | undefined {
-  if (page.length < PAGE_SIZE) {
-    return undefined;
+export function pageWindow(current: number, total: number): Array<number | 'gap'> {
+  if (total <= 9) {
+    return Array.from({ length: total }, (_, index) => index + 1);
   }
-  return page[page.length - 1]?.id;
-}
-
-export function attributeEntries(attributes: AuditEvent['attributes']): Array<[string, string]> {
-  if (!attributes || typeof attributes !== 'object') {
-    return [];
+  if (current <= 5) {
+    return [1, 2, 3, 4, 5, 6, 7, 8, 'gap', total];
   }
-  return Object.entries(attributes).map(([key, value]) => [
-    key,
-    typeof value === 'string' ? value : JSON.stringify(value),
-  ]);
-}
-
-export const DOMAIN_LABELS: Record<string, string> = {
-  repository: 'audit.domain.repository',
-  blobstore: 'audit.domain.blobstore',
-  component: 'audit.domain.component',
-  asset: 'audit.domain.asset',
-  'security.user': 'audit.domain.user',
-  'security.role': 'audit.domain.role',
-  'security.privilege': 'audit.domain.privilege',
-  'security.realm': 'audit.domain.realm',
-  'security.anonymous': 'audit.domain.anonymous',
-  'security.contentselector': 'audit.domain.contentSelector',
-  'security.ssrf': 'audit.domain.ssrf',
-  'security.session': 'audit.domain.session',
-  'security.accesstoken': 'audit.domain.accessToken',
-  'security.npmtoken': 'audit.domain.npmToken',
-};
-
-export const TYPE_LABELS: Record<string, string> = {
-  created: 'audit.type.created',
-  updated: 'audit.type.updated',
-  deleted: 'audit.type.deleted',
-};
-
-export function knownDomains(seen: readonly string[] = []): string[] {
-  return [...new Set([...Object.keys(DOMAIN_LABELS), ...seen])];
-}
-
-export function knownTypes(seen: readonly string[] = []): string[] {
-  return [...new Set([...Object.keys(TYPE_LABELS), ...seen])];
+  if (current >= total - 4) {
+    return [1, 'gap', ...Array.from({ length: 8 }, (_, index) => total - 7 + index)];
+  }
+  return [1, 'gap', current - 2, current - 1, current, current + 1, current + 2, 'gap', total];
 }

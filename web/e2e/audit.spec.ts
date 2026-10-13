@@ -21,52 +21,71 @@ test('the audit log shows changes and filters them', async ({ page, server }) =>
 
   await page.goto('/audit');
   await expect(page).toHaveURL(/\/audit$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Audit Log' })).toBeVisible();
+  await expect(page.getByText(/^\d+ events$/)).toBeVisible();
   const table = page.getByRole('table');
-  await expect(table.getByRole('row').nth(1)).toContainText('audit-dropped');
-  await expect(table.getByRole('row').nth(1)).toContainText('Deleted');
+  const first = table.getByRole('row').nth(1);
+  await expect(first).toContainText('Repository');
+  await expect(first).toContainText('Deleted');
+  await expect(first).toContainText('Repository “audit-dropped” was deleted (initiator: admin');
+  await expect(table).toContainText('User “admin”: signed in');
 
-  await page.getByRole('combobox', { name: 'Domain' }).click();
-  await page.getByRole('option', { name: 'Repository', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Type' }).click();
-  await page.getByRole('option', { name: 'Deleted' }).click();
-  await expect(page).toHaveURL(/\/audit\?domain=repository&type=deleted$/);
-  await expect(table.getByRole('row')).toHaveCount(2);
+  const filters = page.getByRole('complementary', { name: 'Audit log filters' });
+  await filters.getByRole('checkbox', { name: 'Repository' }).click();
+  await filters.getByRole('checkbox', { name: 'Deleted' }).click();
+  await expect(page).toHaveURL(/\/audit\?categories=repository&types=deleted$/);
   await expect(table).toContainText('audit-dropped');
+  await expect(table).not.toContainText('signed in');
 
   await page.goto('/audit?repositoryName=audit-kept');
-  await expect(page.getByRole('combobox', { name: 'Repository' })).toHaveText('audit-kept');
-  await expect(table.getByRole('row')).toHaveCount(3);
-  await expect(table).toContainText('Component');
-  await expect(table).toContainText('/a:/a/gone.txt:');
-  await page
-    .getByText(/^\d+ attributes?$/)
-    .first()
-    .click();
-  await expect(table.getByRole('definition').filter({ hasText: 'audit-kept' }).first()).toBeVisible();
+  await expect(filters.getByRole('combobox', { name: 'Repository' })).toHaveText('audit-kept');
+  await expect(page.getByText('2 events')).toBeVisible();
+  await expect(table).toContainText('Component “/a:/a/gone.txt:” was deleted');
+  await table.getByRole('button', { name: 'Show details' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Event Details' })).toBeVisible();
+  await expect(table).toContainText('"repository": "audit-kept"');
 
-  await page.getByRole('searchbox', { name: 'Search' }).fill('dropped');
+  await page.getByRole('textbox', { name: 'Search by context' }).fill('dropped');
   await expect(page).toHaveURL(/q=dropped/);
-  await expect(page.getByText('No events match the filters')).toBeVisible();
-  await page.getByRole('button', { name: 'Reset filters' }).click();
+  await expect(page.getByText('No audit events found')).toBeVisible();
+  await filters.getByRole('button', { name: 'Reset Filters' }).click();
   await expect(page).toHaveURL(/\/audit$/);
-  await page.getByRole('combobox', { name: 'Initiator' }).click();
-  await page.getByRole('option', { name: 'admin' }).click();
-  await expect(page).toHaveURL(/initiator=admin/);
-  const today = new Date().toISOString().slice(0, 10);
-  await page.getByLabel('From', { exact: true }).fill(today);
-  await expect(page).toHaveURL(new RegExp(`since=${today}`));
+  await filters.getByRole('checkbox', { name: 'Sign-in' }).click();
+  await expect(table).toContainText('User “admin”: signed in');
+  await expect(table).not.toContainText('audit-dropped');
+  await filters.getByRole('textbox', { name: 'Initiator' }).fill('nobody-like-this');
+  await expect(page).toHaveURL(/initiator=nobody-like-this/);
+  await expect(page.getByText('No audit events found')).toBeVisible();
+  await filters.getByRole('button', { name: 'Reset Filters' }).click();
+  await filters.getByRole('combobox', { name: 'Period' }).click();
+  await page.getByRole('option', { name: 'Last 24 hours' }).click();
+  await expect(page).toHaveURL(/period=1/);
   await expect(table).toContainText('audit-dropped');
-  await page.getByLabel('From', { exact: true }).fill('2000-01-01');
-  await page.getByLabel('To', { exact: true }).fill('2000-01-02');
-  await expect(page.getByText('No events match the filters')).toBeVisible();
+});
+
+test('the audit log pages through many events', async ({ page, server }) => {
+  for (let index = 0; index < 23; index += 1) {
+    await hosted(server, 'raw', `audit-page-${index}`, { raw: { contentDisposition: 'ATTACHMENT' } });
+  }
+  await page.goto('/audit');
+  await expect(page.getByRole('navigation', { name: /Pagination, page 1 of \d+/ })).toBeVisible();
+  await expect(page.getByRole('table').getByRole('button', { name: 'Show details' })).toHaveCount(20);
+  await page.getByRole('button', { name: 'Next page' }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page.getByRole('navigation', { name: /Pagination, page 2 of/ })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Rows per page' }).click();
+  await page.getByRole('option', { name: '50', exact: true }).click();
+  await expect(page).toHaveURL(/size=50/);
+  await expect(page.getByRole('navigation', { name: 'Pagination, page 1 of 1' })).toBeVisible();
 });
 
 test('the audit log fits a phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/audit');
-  await expect(page.getByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible();
-  await page.getByRole('button', { name: /^Filters/ }).click();
-  await expect(page.getByRole('combobox', { name: 'Domain' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Audit Log' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open filters' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Filter' });
+  await expect(sheet.getByRole('combobox', { name: 'Period' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Close' }).click();
   await noHorizontalScroll(page);
 });

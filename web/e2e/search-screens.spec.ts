@@ -84,14 +84,11 @@ for (const size of SIZES) {
       await shoot(page, `upload-maven-errors-${suffix}`);
 
       await page.goto('/audit');
-      await expect(page.getByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible();
-      await page
-        .getByText(/^\d+ attributes?$/)
-        .first()
-        .click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Audit Log' })).toBeVisible();
+      await page.getByRole('button', { name: 'Show details' }).first().click();
       await shoot(page, `audit-${suffix}`);
       if (size.width < 640) {
-        await page.getByRole('button', { name: /^Filters/ }).click();
+        await page.getByRole('button', { name: 'Open filters' }).click();
         await shoot(page, `audit-filters-${suffix}`);
       }
     });
