@@ -1,12 +1,12 @@
 import { Badge, Button } from '@radix-ui/themes';
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useApi, withQuery } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import { ErrorState, Page } from '../../../ui';
-import { DEFAULT_SOURCE, USERS, type User } from '../api';
+import { DEFAULT_SOURCE, USER_SOURCES, USERS, type User, type UserSource } from '../api';
 import {
   countBy,
   DOCS,
@@ -47,9 +47,26 @@ export default function UsersPage() {
   const navigate = useNavigate();
   const collator = useCollator();
   const canCreate = useCan('astrum:users:create');
-  const users = useApi<User[]>(withQuery(USERS, { source: DEFAULT_SOURCE }));
+  const [params] = useSearchParams();
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<FilterState>({});
+  const [filters, setFilters] = useState<FilterState>((): FilterState => {
+    const source = params.get('source');
+    return source ? { source: [source] } : {};
+  });
+  const external = (filters.source ?? []).find((source) => source !== DEFAULT_SOURCE);
+  const known = useApi<UserSource[]>(USER_SOURCES);
+  const local = useApi<User[]>(withQuery(USERS, { source: DEFAULT_SOURCE }));
+  const others = useApi<User[]>(external ? withQuery(USERS, { source: external }) : null);
+  const data = useMemo(
+    () => (local.data ? [...local.data, ...(external ? (others.data ?? []) : [])] : undefined),
+    [local.data, others.data, external],
+  );
+  const users = {
+    data,
+    error: local.error ?? (external ? others.error : null),
+    isPending: local.isPending || (external !== undefined && others.isPending),
+    refetch: () => Promise.all([local.refetch(), ...(external ? [others.refetch()] : [])]),
+  };
   const [sort, setSort] = useState<{ column: string; direction: 'asc' | 'desc' }>({
     column: 'userId',
     direction: 'asc',
@@ -61,7 +78,9 @@ export default function UsersPage() {
     {
       id: 'source',
       title: t('security.users.source'),
-      options: [...sources.keys()].map((source) => ({
+      options: [
+        ...new Set([DEFAULT_SOURCE, ...(known.data ?? []).map((source) => source.id), ...sources.keys()]),
+      ].map((source) => ({
         value: source,
         label: source === DEFAULT_SOURCE ? t('security.users.sourceLocal') : sourceLabel(t, source),
         count: sources.get(source) ?? 0,

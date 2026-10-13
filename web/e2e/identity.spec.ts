@@ -112,24 +112,28 @@ test('an LDAP server is created, verified and used to sign in with a mapped role
   await expect(page.getByText(`ldap://127.0.0.1:${ldap.port}`)).toBeVisible();
 
   await page.goto('/admin/security/roles/create');
-  await page.getByLabel('Type').click();
+  await page.getByRole('combobox', { name: 'Type' }).click();
   await page.getByRole('option', { name: 'External Role Mapping' }).click();
-  await expect(page.getByLabel('External Source')).toContainText('LDAP');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('combobox', { name: /External Source/ })).toContainText('LDAP');
   const mapped = page.getByRole('combobox', { name: 'Mapped Role' });
   await mapped.click();
   const searched = page.waitForResponse((response) => response.url().includes('/ui/roles?source=LDAP'));
   await mapped.fill('develop');
   expect((await searched).status()).toBe(200);
   await page.getByRole('option', { name: 'developers' }).click();
-  await expect(page.getByRole('textbox', { name: /^Role ID/ })).toHaveValue('developers');
+  await expect(page.getByRole('textbox', { name: /^ID/ })).toHaveValue('developers');
   await page.getByRole('textbox', { name: /^Name/ }).fill('LDAP developers');
-  const privileges = page.getByRole('combobox', { name: 'Find Privileges' });
+  await page.getByRole('button', { name: 'Continue' }).click();
+  const privileges = page.getByPlaceholder('Find privileges by name…');
   for (const privilege of ['as-users-read', 'as-roles-read']) {
     await privileges.fill(privilege);
     await page.getByRole('option', { name: new RegExp(`^${privilege}`) }).click();
     await privileges.fill('');
   }
-  await page.getByRole('button', { name: 'Create role' }).click();
+  await expect(page.getByText('2 privileges granted')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Create Role' }).click();
   await expect(page.getByText('Role developers is created', { exact: true })).toBeVisible();
 
   const bob = await newSession(browser, server.url, 'bob', 'bob-secret');
@@ -146,7 +150,11 @@ test('an LDAP server is created, verified and used to sign in with a mapped role
   await bob.context().close();
 
   await page.goto('/admin/security/users?source=LDAP');
-  await expect(page.getByRole('row', { name: /alice/ })).toContainText('developers');
+  await expect(page.getByRole('button', { name: 'Edit Alice Smith' })).toBeVisible();
+  const alice = await request.get(`${server.url}/service/rest/v1/security/users?source=LDAP&userId=alice`, {
+    headers: { Authorization: basic('admin', server.adminPassword) },
+  });
+  expect(JSON.stringify(await alice.json())).toContain('developers');
 
   const admin = new AdminApi(request, server);
   await admin.send('POST', '/service/rest/v1/security/ldap', ldapServer('backup'));
@@ -245,9 +253,14 @@ test('a user signs in through OpenID Connect in the browser and gets the mapped 
     await context.close();
 
     await page.goto('/admin/security/users?source=OAuth2');
-    const carla = page.getByRole('row', { name: /carla/ });
-    await expect(carla).toContainText('Carla Diaz');
-    await expect(carla).toContainText('oidc-readers');
+    await expect(page.getByRole('button', { name: 'Edit Carla Diaz' })).toBeVisible();
+    const carla = await request.get(
+      `${server.url}/service/rest/v1/security/users?source=OAuth2&userId=carla`,
+      {
+        headers: { Authorization: basic('admin', server.adminPassword) },
+      },
+    );
+    expect(JSON.stringify(await carla.json())).toContain('oidc-readers');
 
     const failed = await browser.newContext({ baseURL: server.url });
     const late = await failed.newPage();
