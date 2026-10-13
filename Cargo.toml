@@ -15,6 +15,7 @@ astrum-blob = { path = "crates/astrum-blob" }
 astrum-content = { path = "crates/astrum-content" }
 astrum-format-docker = { path = "crates/astrum-format-docker" }
 astrum-format-helm = { path = "crates/astrum-format-helm" }
+astrum-format-huggingface = { path = "crates/astrum-format-huggingface" }
 astrum-format-maven = { path = "crates/astrum-format-maven" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-nuget = { path = "crates/astrum-format-nuget" }

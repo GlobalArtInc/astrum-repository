@@ -16,6 +16,7 @@ astrum-blob.workspace = true
 astrum-content.workspace = true
 astrum-format-docker.workspace = true
 astrum-format-helm.workspace = true
+astrum-format-huggingface.workspace = true
 astrum-format-maven.workspace = true
 astrum-format-npm.workspace = true
 astrum-format-nuget.workspace = true
