@@ -16,11 +16,13 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_raw::Raw));
     content.register(Arc::new(astrum_format_swift::Swift));
     content.register(Arc::new(astrum_format_terraform::Terraform::default()));
+    content.register(Arc::new(astrum_format_yum::Yum::default()));
 }
 
 pub fn register_tasks(tasks: &Tasks) {
     tasks.register(Arc::new(astrum_format_docker::gc::Gc));
     tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
+    tasks.register(Arc::new(astrum_format_yum::task::RebuildMetadata::default()));
 }
 
 pub fn routes() -> Router<AppState> {

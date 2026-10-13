@@ -44,6 +44,7 @@ const GUIDE_FORMATS: Record<string, string> = {
   docker: 'docker',
   helm: 'helm',
   nuget: 'nuget',
+  yum: 'yum',
 };
 
 export function guideUrl(

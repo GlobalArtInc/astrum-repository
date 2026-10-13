@@ -129,6 +129,9 @@ pub fn prerelease_rule(format: &str) -> Option<&'static str> {
         ),
         "nuget" => Some("(split_part(c.version, '+', 1) LIKE '%-%')"),
         "rubygems" => Some("(c.version ~ '[A-Za-z]')"),
+        "yum" => Some(
+            "(c.version ~ '~[^-]*-[^-]*$' OR (c.version !~ '-' AND c.version LIKE '%~%') OR c.version ~ '-0\\.[^-]*$')",
+        ),
         _ => None,
     }
 }

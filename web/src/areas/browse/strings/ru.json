@@ -217,6 +217,8 @@
   "browse.usage.hint.terraformProviderProxy": "Добавьте в файл .tf и устанавливайте провайдеры через этот репозиторий как сетевое зеркало",
   "browse.usage.hint.terraformRegistry": "Добавьте в файл .tf. Terraform ищет реестр по адресу https://{host}/.well-known/terraform.json, поэтому {host} должен быть хостом реестра этого репозитория или группы, в которую он входит",
   "browse.usage.hint.terraformUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
+  "browse.usage.hint.yumRepo": "Сохраните в /etc/yum.repos.d/{name}.repo и устанавливайте пакеты через dnf или yum",
+  "browse.usage.hint.yumUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
 
   "browse.component.search": "Поиск",
   "browse.component.invalidTitle": "Неизвестный компонент",

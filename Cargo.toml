@@ -25,6 +25,7 @@ astrum-format-swift = { path = "crates/astrum-format-swift" }
 astrum-format-terraform = { path = "crates/astrum-format-terraform" }
 astrum-mail = { path = "crates/astrum-mail" }
 astrum-outbound = { path = "crates/astrum-outbound" }
+astrum-format-yum = { path = "crates/astrum-format-yum" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-logging = { path = "crates/astrum-logging" }
 astrum-notify = { path = "crates/astrum-notify" }
@@ -43,6 +44,7 @@ aws-sdk-s3 = { version = "1", default-features = false, features = ["rt-tokio", 
 aws-smithy-http-client = { version = "1", features = ["rustls-ring"] }
 axum = "0.8"
 base64 = "0.22"
+bzip2 = "0.6"
 bytes = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 clap = { version = "4", features = ["derive"] }
@@ -56,6 +58,7 @@ hyper-util = { version = "0.1", features = ["server-auto", "tokio"] }
 infer = "0.19"
 ldap3_lber = "=0.8.1"
 ldap3_proto = "0.8.1"
+lzma-rs = "0.3"
 md-5 = "0.10"
 migrator = { package = "sqlmig", version = "0.2.1" }
 mime_guess = "2"
@@ -65,6 +68,7 @@ pgp = { version = "0.21", default-features = false }
 quick-xml = "0.42"
 rand = "0.9"
 rand_core06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }
+rand08 = { package = "rand", version = "0.8" }
 rcgen = "0.14"
 regex = "1"
 regex-syntax = "0.8"
@@ -73,6 +77,7 @@ ring = "0.17"
 rustix = { version = "1", features = ["fs"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
 rustls-native-certs = "0.8"
+ruzstd = "0.9"
 s3s = "0.17"
 s3s-fs = "0.17"
 sea-orm = { version = "1.1", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-json", "with-uuid", "postgres-array"] }

@@ -39,6 +39,7 @@ export const USAGE_FORMATS = [
   'huggingface',
   'swift',
   'terraform',
+  'yum',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -481,6 +482,53 @@ function helm(context: UsageContext): Snippet[] {
   return snippets;
 }
 
+function yumBase(context: UsageContext): string[] {
+  const directories = (context.path ?? '')
+    .split('/')
+    .filter((segment) => segment !== '')
+    .slice(0, -1);
+  const packages = directories.lastIndexOf('Packages');
+  return packages >= 0 ? directories.slice(0, packages) : directories;
+}
+
+function yum(context: UsageContext): Snippet[] {
+  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const name = context.repositoryName;
+  const base = yumBase(context);
+  const baseUrl = base.length > 0 ? `${url}${encodePath(base.join('/'))}/` : url;
+  const snippets: Snippet[] = [
+    {
+      id: 'repo',
+      label: `${name}.repo`,
+      code: [`[${name}]`, `name=${name}`, `baseurl=${baseUrl}`, 'enabled=1', 'gpgcheck=0'].join('\n'),
+      hint: 'browse.usage.hint.yumRepo',
+      hintVars: { name },
+    },
+  ];
+  const component = context.component;
+  if (component?.name) {
+    snippets.push({
+      id: 'install',
+      label: 'dnf',
+      code: `sudo dnf install ${component.name}${component.version ? `-${component.version}` : ''}`,
+    });
+  }
+  if (context.repositoryType === 'hosted') {
+    const path = context.path ?? '';
+    const known = path.endsWith('.rpm');
+    const file = known ? (path.split('/').pop() ?? '<package>.rpm') : '<package>.rpm';
+    const target = known ? encodePath(path) : `${base.length > 0 ? `${base.join('/')}/` : ''}<package>.rpm`;
+    snippets.push({
+      id: 'upload',
+      label: 'curl',
+      labelKey: 'browse.usage.label.upload',
+      code: `curl -u <user> --upload-file ./${file} ${url}${target}`,
+      hint: 'browse.usage.hint.yumUpload',
+    });
+  }
+  return snippets;
+}
+
 const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   maven2: maven,
   npm,
@@ -494,6 +542,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   huggingface: (context) => huggingface(context, repositoryUrl(context.baseUrl, context.repositoryName)),
   terraform: (context) =>
     terraform(context, repositoryUrl(context.baseUrl, context.repositoryName), hostOf(context.baseUrl)),
+  yum,
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

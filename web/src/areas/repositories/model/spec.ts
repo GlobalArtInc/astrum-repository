@@ -41,4 +41,6 @@ export const sections = {
   nugetProxy: (spec: Spec) => spec.format === 'nuget' && spec.type === 'proxy',
   terraform: (spec: Spec) => spec.format === 'terraform',
   terraformSigning: (spec: Spec) => spec.format === 'terraform' && spec.type === 'hosted',
+  yum: (spec: Spec) => spec.format === 'yum' && spec.type === 'hosted',
+  yumSigning: (spec: Spec) => spec.format === 'yum',
 };
