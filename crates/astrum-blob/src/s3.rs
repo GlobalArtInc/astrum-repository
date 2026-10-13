@@ -25,8 +25,8 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::digest::{Digests, Hasher};
 use crate::{
-    BlobId, BlobStore, Content, ContentStream, Error, Metrics, StoreKind, Totals, Written,
-    clamp_range,
+    BlobId, BlobStore, Content, ContentStream, Error, Metrics, StoreKind, StoredBlob, Totals,
+    Written, clamp_range,
 };
 
 pub const DEFAULT_REGION: &str = "DEFAULT";
@@ -542,6 +542,60 @@ impl BlobStore for S3BlobStore {
             .map_err(|error| failed("DeleteObject", error))?;
         self.metrics.removed(size).await;
         Ok(true)
+    }
+
+    async fn list(&self, after: Option<BlobId>, limit: usize) -> Result<Vec<StoredBlob>, Error> {
+        let content = format!("{}content/", self.prefix);
+        let mut start_after = after.map(|id| self.key_of(id));
+        let mut found = Vec::new();
+        loop {
+            let _permit = self.permit().await;
+            let mut request = self
+                .client
+                .list_objects_v2()
+                .bucket(&self.bucket)
+                .prefix(&content)
+                .max_keys(limit.clamp(1, 1000) as i32);
+            if let Some(key) = &start_after {
+                request = request.start_after(key);
+            }
+            let output = request
+                .send()
+                .await
+                .map_err(|error| failed("ListObjectsV2", error))?;
+            let objects = output.contents();
+            for object in objects {
+                let Some(key) = object.key() else {
+                    continue;
+                };
+                start_after = Some(key.to_owned());
+                let Some(id) = key
+                    .rsplit('/')
+                    .next()
+                    .and_then(|name| name.parse::<BlobId>().ok())
+                else {
+                    continue;
+                };
+                if key != self.key_of(id) {
+                    continue;
+                }
+                let modified = object
+                    .last_modified()
+                    .and_then(|at| std::time::SystemTime::try_from(*at).ok())
+                    .unwrap_or(std::time::SystemTime::now());
+                found.push(StoredBlob {
+                    id,
+                    size: object.size().unwrap_or(0).max(0) as u64,
+                    modified,
+                });
+                if found.len() >= limit {
+                    return Ok(found);
+                }
+            }
+            if objects.is_empty() || !output.is_truncated().unwrap_or(false) {
+                return Ok(found);
+            }
+        }
     }
 
     async fn totals(&self) -> Result<Totals, Error> {

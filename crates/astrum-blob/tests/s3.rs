@@ -225,3 +225,29 @@ async fn the_pool_size_limits_requests_in_flight() {
         .unwrap();
     assert_eq!(size, Some(1_000));
 }
+
+#[tokio::test]
+async fn listings_page_through_the_bucket_under_the_prefix() {
+    let server = S3Server::start().await;
+    let db = Db::new().await;
+    let store = s3_store(&db, "objects", &s3_settings(&server, "listed", "/team/")).await;
+    let mut ids = Vec::new();
+    for size in [3, 5, 7] {
+        ids.push(store.put(chunks(&pattern(size), size)).await.unwrap().id);
+    }
+    ids.sort();
+    let first = store.list(None, 2).await.unwrap();
+    assert_eq!(
+        first.iter().map(|blob| blob.id).collect::<Vec<_>>(),
+        ids[..2]
+    );
+    let rest = store.list(Some(first[1].id), 2).await.unwrap();
+    assert_eq!(
+        rest.iter().map(|blob| blob.id).collect::<Vec<_>>(),
+        ids[2..]
+    );
+    assert_eq!(
+        first.iter().chain(&rest).map(|blob| blob.size).sum::<u64>(),
+        15
+    );
+}

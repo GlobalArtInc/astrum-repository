@@ -10,6 +10,11 @@ const ADD: &str = "INSERT INTO blob_store_metrics (store, blob_count, total_byte
      total_bytes = GREATEST(blob_store_metrics.total_bytes + EXCLUDED.total_bytes, 0), \
      updated_at = now()";
 
+const RESET: &str = "INSERT INTO blob_store_metrics (store, blob_count, total_bytes, updated_at) \
+     VALUES ($1, $2, $3, now()) \
+     ON CONFLICT (store) DO UPDATE SET blob_count = EXCLUDED.blob_count, \
+     total_bytes = EXCLUDED.total_bytes, updated_at = now()";
+
 #[derive(Clone, Debug)]
 pub struct Metrics {
     db: DatabaseConnection,
@@ -26,6 +31,21 @@ impl Metrics {
 
     pub async fn totals(&self) -> Result<Totals, Error> {
         Ok(read(&self.db, &self.store).await?)
+    }
+
+    pub async fn reset(&self, totals: Totals) -> Result<(), Error> {
+        self.db
+            .execute(Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                RESET,
+                [
+                    self.store.clone().into(),
+                    (totals.blob_count as i64).into(),
+                    (totals.total_bytes as i64).into(),
+                ],
+            ))
+            .await?;
+        Ok(())
     }
 
     pub(crate) async fn added(&self, size: u64) {

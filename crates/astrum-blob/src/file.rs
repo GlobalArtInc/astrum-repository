@@ -8,8 +8,8 @@ use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 
 use crate::digest::Hasher;
 use crate::{
-    BlobId, BlobStore, Content, ContentStream, Error, Metrics, StoreKind, Totals, Written,
-    clamp_range, stream,
+    BlobId, BlobStore, Content, ContentStream, Error, Metrics, StoreKind, StoredBlob, Totals,
+    Written, clamp_range, stream,
 };
 
 pub const CONTENT_DIR: &str = "content";
@@ -233,6 +233,18 @@ impl BlobStore for FileBlobStore {
         }
     }
 
+    async fn list(&self, after: Option<BlobId>, limit: usize) -> Result<Vec<StoredBlob>, Error> {
+        let dir = self.content_dir();
+        let failed = dir.clone();
+        tokio::task::spawn_blocking(move || listing(&dir, after, limit))
+            .await
+            .map_err(|error| Error::Io {
+                path: failed.clone(),
+                source: io::Error::other(error),
+            })?
+            .map_err(Error::io(failed))
+    }
+
     async fn totals(&self) -> Result<Totals, Error> {
         self.metrics.totals().await
     }
@@ -335,6 +347,66 @@ fn sweep(dir: &Path, older_than: Duration) -> usize {
         }
     }
     removed
+}
+
+fn sorted_entries(dir: &Path) -> io::Result<Vec<(String, std::fs::DirEntry)>> {
+    let mut entries = Vec::new();
+    match std::fs::read_dir(dir) {
+        Ok(read) => {
+            for entry in read {
+                let entry = entry?;
+                if let Some(name) = entry.file_name().to_str() {
+                    entries.push((name.to_owned(), entry));
+                }
+            }
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error),
+    }
+    entries.sort_by(|left, right| left.0.cmp(&right.0));
+    Ok(entries)
+}
+
+fn listing(content: &Path, after: Option<BlobId>, limit: usize) -> io::Result<Vec<StoredBlob>> {
+    let after_text = after.map(|id| id.to_string()).unwrap_or_default();
+    let (first, second) = match after_text.len() >= 4 {
+        true => (&after_text[0..2], &after_text[2..4]),
+        false => ("", ""),
+    };
+    let mut found = Vec::new();
+    for (top, top_entry) in sorted_entries(content)? {
+        if top.as_str() < first || !top_entry.file_type()?.is_dir() {
+            continue;
+        }
+        for (sub, sub_entry) in sorted_entries(&top_entry.path())? {
+            if (top == first && sub.as_str() < second) || !sub_entry.file_type()?.is_dir() {
+                continue;
+            }
+            for (name, entry) in sorted_entries(&sub_entry.path())? {
+                let Ok(id) = name.parse::<BlobId>() else {
+                    continue;
+                };
+                if after.is_some_and(|after| id <= after) {
+                    continue;
+                }
+                let metadata = match entry.metadata() {
+                    Ok(metadata) if metadata.is_file() => metadata,
+                    Ok(_) => continue,
+                    Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+                    Err(error) => return Err(error),
+                };
+                found.push(StoredBlob {
+                    id,
+                    size: metadata.len(),
+                    modified: metadata.modified()?,
+                });
+                if found.len() >= limit {
+                    return Ok(found);
+                }
+            }
+        }
+    }
+    Ok(found)
 }
 
 fn remove_empty_tree(root: &Path) -> io::Result<bool> {

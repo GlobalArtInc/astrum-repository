@@ -247,3 +247,31 @@ async fn only_an_empty_store_removes_its_directory() {
     assert!(store.remove_if_empty().await.unwrap());
     assert!(!root.exists());
 }
+
+#[tokio::test]
+async fn listings_page_through_the_blobs_in_id_order() {
+    let db = Db::new().await;
+    let dir = tempfile::tempdir().unwrap();
+    let store = store(&db, dir.path()).await;
+    let mut written = Vec::new();
+    for size in 1..=5 {
+        written.push(store.put(chunks(&pattern(size), 1)).await.unwrap());
+    }
+    written.sort_by_key(|blob| blob.id);
+    let first = store.list(None, 3).await.unwrap();
+    assert_eq!(
+        first.iter().map(|blob| blob.id).collect::<Vec<_>>(),
+        written[..3].iter().map(|blob| blob.id).collect::<Vec<_>>()
+    );
+    assert_eq!(first[0].size, written[0].size);
+    let rest = store.list(Some(first[2].id), 3).await.unwrap();
+    assert_eq!(
+        rest.iter().map(|blob| blob.id).collect::<Vec<_>>(),
+        written[3..].iter().map(|blob| blob.id).collect::<Vec<_>>()
+    );
+    assert!(store.list(Some(rest[1].id), 3).await.unwrap().is_empty());
+    assert!(
+        first[0].modified <= SystemTime::now()
+            && first[0].modified > SystemTime::now() - Duration::from_secs(60)
+    );
+}

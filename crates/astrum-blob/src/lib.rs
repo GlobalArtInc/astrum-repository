@@ -11,6 +11,7 @@ mod stream;
 
 use std::io;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -90,6 +91,13 @@ pub struct Totals {
     pub total_bytes: u64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StoredBlob {
+    pub id: BlobId,
+    pub size: u64,
+    pub modified: SystemTime,
+}
+
 pub struct Content {
     pub size: u64,
     pub offset: u64,
@@ -131,6 +139,8 @@ pub trait BlobStore: Send + Sync {
     }
 
     async fn delete(&self, id: BlobId) -> Result<bool, Error>;
+
+    async fn list(&self, after: Option<BlobId>, limit: usize) -> Result<Vec<StoredBlob>, Error>;
 
     async fn totals(&self) -> Result<Totals, Error>;
 

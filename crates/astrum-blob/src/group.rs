@@ -4,7 +4,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use async_trait::async_trait;
 
 use crate::{
-    BlobId, BlobStore, Content, ContentStream, Error, FillPolicy, StoreKind, Totals, Written,
+    BlobId, BlobStore, Content, ContentStream, Error, FillPolicy, StoreKind, StoredBlob, Totals,
+    Written,
 };
 
 pub struct GroupBlobStore {
@@ -102,6 +103,17 @@ impl BlobStore for GroupBlobStore {
             deleted |= member.delete(id).await?;
         }
         Ok(deleted)
+    }
+
+    async fn list(&self, after: Option<BlobId>, limit: usize) -> Result<Vec<StoredBlob>, Error> {
+        let mut found = Vec::new();
+        for member in &self.members {
+            found.extend(member.list(after, limit).await?);
+        }
+        found.sort_by_key(|blob| blob.id);
+        found.dedup_by_key(|blob| blob.id);
+        found.truncate(limit);
+        Ok(found)
     }
 
     async fn totals(&self) -> Result<Totals, Error> {
