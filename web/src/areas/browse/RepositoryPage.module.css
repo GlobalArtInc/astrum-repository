@@ -145,9 +145,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   padding: 32px 16px;
   text-align: center;
+}
+
+.empty > button {
+  margin-top: 20px;
 }
 
 .empty p {
@@ -155,6 +159,7 @@
 }
 
 .emptyIcon {
+  margin-bottom: 14px;
   color: var(--gray-9);
 }
 
