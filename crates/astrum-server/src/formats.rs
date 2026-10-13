@@ -8,6 +8,7 @@ use axum::Router;
 pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_docker::Docker::default()));
     content.register(Arc::new(astrum_format_helm::Helm::default()));
+    content.register(Arc::new(astrum_format_huggingface::HuggingFace::default()));
     content.register(Arc::new(astrum_format_maven::Maven));
     content.register(Arc::new(astrum_format_npm::Npm::default()));
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
