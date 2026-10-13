@@ -147,15 +147,30 @@ describe('choosing what to create', () => {
     expect(groupRecipes(RECIPES, () => true, 'mav').map((group) => group.format)).toEqual(['maven2']);
   });
 
-  it('links each kind to its form', async () => {
+  it('walks from the format to the type and on to its form', async () => {
     serve({ 'GET /service/rest/internal/ui/repositories/recipes': () => jsonResponse(RECIPES) });
     const state: UiState = { ...ADMIN_STATE, permissions: ['astrum:repository-admin:raw:*:*'] };
-    renderWithApp(<CreatePickerPage />, { state });
-    expect(await screen.findByRole('link', { name: 'Create a Raw proxy repository' })).toHaveAttribute(
-      'href',
-      '/admin/repository/repositories/create/raw/proxy',
-    );
-    expect(screen.queryByText('Maven')).not.toBeInTheDocument();
+    renderWithApp(null, {
+      state,
+      path: '/admin/repository/repositories/create',
+      routes: [
+        { path: '/admin/repository/repositories/create', element: <CreatePickerPage /> },
+        { path: '/admin/repository/repositories/create/:format/:type', element: <p>the form</p> },
+      ],
+    });
+    expect(await screen.findByRole('heading', { name: /Choose a Format/ })).toHaveTextContent('1');
+    expect(screen.queryByRole('button', { name: 'Maven' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Raw' }));
+    expect(await screen.findByRole('heading', { name: /Choose a Type/ })).toHaveTextContent('3');
+    expect(
+      screen.getAllByRole('button', { name: /^Create a .*Raw/ }).map((button) => button.textContent),
+    ).toEqual([
+      expect.stringMatching(/^Proxy/),
+      expect.stringMatching(/^Hosted/),
+      expect.stringMatching(/^Group/),
+    ]);
+    await userEvent.click(screen.getByRole('button', { name: 'Create a Raw proxy repository' }));
+    expect(await screen.findByText('the form')).toBeInTheDocument();
   });
 });
 
@@ -175,19 +190,24 @@ describe('creating a repository', () => {
       path: '/admin/repository/repositories/create/maven2/hosted',
       routes: [
         { path: '/admin/repository/repositories/create/:format/:type', element: <CreateRepositoryPage /> },
-        { path: '/admin/repository/repositories/:name', element: <p>opened</p> },
+        { path: '/admin/repository/repositories', element: <p>the list</p> },
       ],
     });
-    expect(await screen.findByRole('heading', { name: 'New hosted Maven repository' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Create Maven Repository (Hosted)' }),
+    ).toBeInTheDocument();
+    const next = screen.getByRole('button', { name: 'Continue' });
+    expect(next).toBeDisabled();
     await userEvent.type(await screen.findByRole('textbox', { name: /Name/ }), 'maven-new');
-    await userEvent.click(screen.getByRole('button', { name: 'Create repository' }));
-    expect(await screen.findByText('opened')).toBeInTheDocument();
+    await waitFor(() => expect(next).toBeEnabled());
+    await userEvent.click(next);
+    expect(await screen.findByText('the list')).toBeInTheDocument();
     const posted = server.calls.find((call) => call.method === 'POST');
     expect(posted?.body).toMatchObject({
       name: 'maven-new',
       online: true,
       storage: { blobStoreName: 'default', writePolicy: 'ALLOW_ONCE', strictContentTypeValidation: true },
-      maven: { versionPolicy: 'RELEASE', layoutPolicy: 'STRICT' },
+      maven: { versionPolicy: 'RELEASE', layoutPolicy: 'STRICT', contentDisposition: 'ATTACHMENT' },
     });
   });
 
@@ -230,19 +250,41 @@ function proxyDocument(): RepositoryDocument {
 }
 
 describe('the repository page', () => {
+  it('opens on the settings with the old header and tabs', async () => {
+    editPage('maven-central', {
+      'GET /service/rest/v1/repositories/maven/proxy/maven-central': () => jsonResponse(proxyDocument()),
+    });
+    expect(await screen.findByRole('tab', { name: /Settings/, selected: true })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      expect.stringMatching(/^Summary/),
+      expect.stringMatching(/^Settings/),
+      expect.stringMatching(/^Audit/),
+      expect.stringMatching(/^Tasks & Capabilities/),
+      expect.stringMatching(/^Access & Security/),
+    ]);
+    expect(screen.getByRole('link', { name: 'Browse Repository' })).toHaveAttribute(
+      'href',
+      '/browse/maven-central',
+    );
+    expect(screen.getByRole('button', { name: 'Rebuild Index' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Save Changes' })).toBeDisabled();
+  });
+
   it('takes a repository offline after asking', async () => {
     const { server } = editPage('maven-central', {
       'GET /service/rest/v1/repositories/maven/proxy/maven-central': () => jsonResponse(proxyDocument()),
       'PUT /service/rest/v1/repositories/maven/proxy/maven-central': () =>
         new Response(null, { status: 204 }),
     });
-    await userEvent.click(await screen.findByRole('button', { name: 'Take offline' }));
-    const dialog = await screen.findByRole('alertdialog', { name: 'Take maven-central offline?' });
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Take offline' }));
+    await screen.findByRole('button', { name: 'Save Changes' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Take Offline' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Take Repository Offline' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Take Offline' }));
     await waitFor(() => expect(server.calls.some((call) => call.method === 'PUT')).toBe(true));
     const put = server.calls.find((call) => call.method === 'PUT');
     expect(put?.body).toEqual({ ...proxyDocument(), online: false });
-    expect(await screen.findByText('maven-central is offline')).toBeInTheDocument();
+    expect(await screen.findByText('Repository "maven-central" is offline')).toBeInTheDocument();
   });
 
   it('invalidates the cache of a proxy', async () => {
@@ -251,12 +293,11 @@ describe('the repository page', () => {
       'POST /service/rest/v1/repositories/maven-central/invalidate-cache': () =>
         new Response(null, { status: 204 }),
     });
-    await userEvent.click(await screen.findByRole('button', { name: 'More actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Invalidate cache' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Invalidate Cache' }));
     await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Invalidate cache' }),
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Invalidate Cache' }),
     );
-    expect(await screen.findByText('The cache of maven-central was invalidated')).toBeInTheDocument();
+    expect(await screen.findByText('The cache of "maven-central" was invalidated')).toBeInTheDocument();
     expect(server.calls.map((call) => `${call.method} ${call.path}`)).toContain(
       'POST /service/rest/v1/repositories/maven-central/invalidate-cache',
     );
@@ -267,8 +308,7 @@ describe('the repository page', () => {
       'GET /service/rest/v1/repositories/maven/proxy/maven-central': () => jsonResponse(proxyDocument()),
       'DELETE /service/rest/v1/repositories/maven-central': () => new Response(null, { status: 204 }),
     });
-    await userEvent.click(await screen.findByRole('button', { name: 'More actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete' }));
     const dialog = await screen.findByRole('alertdialog', { name: 'Delete maven-central?' });
     expect(dialog).toHaveTextContent('everything it cached');
     expect(dialog).toHaveTextContent('taken out of these groups: maven-public');
@@ -283,46 +323,68 @@ describe('the repository page', () => {
     expect(server.calls.some((call) => call.method === 'DELETE')).toBe(true);
   });
 
-  it('shows membership and the audit of a group', async () => {
-    editPage('maven-public', {
+  it('shows the summary, the audit and the access of a repository', async () => {
+    const { server } = editPage('maven-public', {
       'GET /service/rest/v1/repositories/maven/group/maven-public': () =>
-        jsonResponse({
-          ...(DOCUMENTS['maven/group/min'] as RepositoryDocument),
-          name: 'maven-public',
-          group: { memberNames: ['maven-releases', 'maven-central', 'hidden-one'] },
-        }),
-      'GET /service/rest/internal/audit?repository=maven-public&limit=20': () =>
+        jsonResponse({ ...(DOCUMENTS['maven/group/min'] as RepositoryDocument), name: 'maven-public' }),
+      'GET /service/rest/internal/ui/blobstores': () => jsonResponse([]),
+      'GET /service/rest/v1/security/privileges': () =>
         jsonResponse([
           {
-            id: 7,
-            at: '2026-10-12T10:00:00Z',
-            domain: 'repository',
-            type: 'created',
-            context: 'maven-public',
-            initiator: 'admin',
-            attributes: {},
+            type: 'repository-view',
+            name: 'view-public',
+            repository: 'maven-public',
+            format: 'maven2',
+            actions: ['READ'],
+          },
+          {
+            type: 'repository-view',
+            name: 'view-other',
+            repository: 'raw-files',
+            format: 'raw',
+            actions: ['READ'],
           },
         ]),
+      'GET /service/rest/v1/security/roles': () =>
+        jsonResponse([
+          { id: 'readers', privileges: ['view-public'], roles: [] },
+          { id: 'nested', privileges: [], roles: ['readers'] },
+          { id: 'others', privileges: ['view-other'], roles: [] },
+        ]),
+      'GET /service/rest/v1/security/users': () => jsonResponse([{ userId: 'jane', roles: ['nested'] }]),
+      'GET /service/rest/v1/security/anonymous': () => jsonResponse({ enabled: false, userId: 'anonymous' }),
     });
-    await userEvent.click(await screen.findByRole('tab', { name: /Membership/ }));
-    const members = await screen.findByRole('list', { name: 'Members' });
-    expect(
-      within(members)
-        .getAllByRole('listitem')
-        .map((item) => item.textContent),
-    ).toEqual([
-      expect.stringContaining('maven-releases'),
-      expect.stringContaining('maven-central'),
-      expect.stringContaining('hidden-one'),
-    ]);
-    expect(within(members).getByText('Not visible to you')).toBeInTheDocument();
-    expect(screen.getByText('No group contains this repository.')).toBeInTheDocument();
+    const event = {
+      id: 7,
+      at: '2026-10-12T10:00:00Z',
+      domain: 'repository',
+      type: 'created',
+      context: 'maven-public',
+      initiator: 'admin',
+      attributes: {},
+    };
+    vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith('/service/rest/internal/audit?repository=maven-public&')
+        ? Promise.resolve(jsonResponse([event]))
+        : server.fetch(input, init),
+    );
+    await userEvent.click(await screen.findByRole('tab', { name: /Summary/ }));
+    expect(await screen.findByRole('region', { name: 'Repository Metrics' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: /Audit/ }));
-    expect(await screen.findByText('Created')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open the audit log' })).toHaveAttribute(
+    expect(
+      await screen.findByText('Repository "maven-public": created (initiator: admin)'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Full Audit Log' })).toHaveAttribute(
       'href',
       '/audit?repositoryName=maven-public',
     );
+    await userEvent.click(screen.getByRole('tab', { name: /Access & Security/ }));
+    expect(await screen.findByText('view-public')).toBeInTheDocument();
+    expect(screen.queryByText('view-other')).not.toBeInTheDocument();
+    expect(screen.getByText('readers')).toBeInTheDocument();
+    expect(screen.getByText('nested')).toBeInTheDocument();
+    expect(screen.getByText('jane')).toBeInTheDocument();
+    expect(screen.getByText('Anonymous users cannot reach this repository.')).toBeInTheDocument();
   });
 
   it('gives readers the settings without actions', async () => {
@@ -340,8 +402,8 @@ describe('the repository page', () => {
       { ...ADMIN_STATE, permissions: ['astrum:repository-admin:*:*:read'] },
     );
     expect(await screen.findByText('You can read these settings but not change them.')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Take offline' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Take Offline' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Audit/ })).not.toBeInTheDocument();
   });
 

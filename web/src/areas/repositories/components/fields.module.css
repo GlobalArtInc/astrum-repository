@@ -1,0 +1,180 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 960px;
+}
+
+.form[data-width="narrow"] .content {
+  max-width: 880px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.divider {
+  height: 1px;
+  margin: 32px 0;
+  background: var(--gray-6);
+}
+
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--gray-12);
+}
+
+.sectionText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-11);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 500;
+  color: var(--gray-12);
+}
+
+.required {
+  margin-left: 4px;
+  color: var(--red-11);
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+  color: var(--gray-11);
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--red-11);
+}
+
+.control {
+  margin-top: 0;
+}
+
+.select {
+  width: 100%;
+  height: 40px;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.check > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.checkLabel {
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 500;
+  color: var(--gray-12);
+}
+
+.checkText {
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.03px;
+  color: var(--gray-11);
+}
+
+.box {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.box:global(.rt-CheckboxRoot) {
+  --checkbox-size: 22px;
+}
+
+.subLabel {
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 500;
+  color: var(--gray-12);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  padding: 12px 0;
+  border-top: 1px solid var(--gray-6);
+  background: var(--color-background);
+}
+
+.unsaved {
+  font-size: 13px;
+  line-height: 19.5px;
+  color: var(--amber-11);
+}
+
+.toggle {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 500;
+  color: var(--gray-12);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+}

@@ -1,0 +1,28 @@
+.badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.badge {
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+.dotOnline {
+  color: var(--green-9);
+}
+
+.dotOffline {
+  color: var(--gray-9);
+}
+
+.tabLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

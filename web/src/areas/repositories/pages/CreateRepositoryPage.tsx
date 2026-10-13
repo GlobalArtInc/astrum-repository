@@ -1,6 +1,6 @@
 import { Button, Flex, Spinner } from '@radix-ui/themes';
 import { PackageX } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, type RepositoryType, useInvalidateApi } from '../../../api';
 import { useSession } from '../../../auth/state';
@@ -9,7 +9,6 @@ import { EmptyState, ErrorState, formatName, Page, useToast } from '../../../ui'
 import {
   CREATE_ADDRESS,
   createPath,
-  editAddress,
   LIST_ADDRESS,
   UI_REPOSITORIES,
   useRecipes,
@@ -17,18 +16,23 @@ import {
 } from '../api';
 import { type BlobStoreChoice, RepositoryForm } from '../components/RepositoryForm';
 import { useBlobStoreChoices } from '../components/useBlobStoreChoices';
+import { StepTitle, WizardBar } from '../components/Wizard';
+import wizard from '../components/Wizard.module.css';
 import type { RepositoryDocument } from '../model/document';
 import { template } from '../model/form';
 import { apiFormat, formatFromUrl, isRepositoryType, type Spec } from '../model/spec';
 
-const TITLES: Record<RepositoryType, string> = {
-  hosted: 'repositories.create.titleHosted',
-  proxy: 'repositories.create.titleProxy',
-  group: 'repositories.create.titleGroup',
+const TYPE_NAMES: Record<RepositoryType, string> = {
+  hosted: 'ui.repositoryType.hosted',
+  proxy: 'ui.repositoryType.proxy',
+  group: 'ui.repositoryType.group',
 };
 
 export function createTitle(t: Translate, spec: Spec): string {
-  return t(TITLES[spec.type], { format: formatName(spec.format) });
+  return t('repositories.create.formTitle', {
+    format: formatName(spec.format),
+    type: t(TYPE_NAMES[spec.type]),
+  });
 }
 
 export function defaultBlobStore(stores: readonly BlobStoreChoice[] | null): string {
@@ -71,12 +75,14 @@ export default function CreateRepositoryPage() {
     () => (kind && storesReady ? template({ format, type: kind }, blobStore) : null),
     [format, kind, storesReady, blobStore],
   );
+  const formId = useId();
+  const [ready, setReady] = useState(false);
   const onSaved = useCallback(
     (saved: RepositoryDocument) => {
       const name = String(saved.name ?? '');
       toast.success(t('repositories.create.created', { name }));
       void invalidate(UI_REPOSITORIES);
-      navigate(editAddress(name), { replace: true });
+      navigate(LIST_ADDRESS, { replace: true });
     },
     [invalidate, navigate, t, toast],
   );
@@ -107,32 +113,50 @@ export default function CreateRepositoryPage() {
   const title = createTitle(t, spec);
   const failure = recipes.error ?? repositories.error;
   return (
-    <Page title={title} breadcrumbs={[...crumbs, { label: formatName(spec.format) }]}>
-      {failure ? (
-        <ErrorState
-          error={failure}
-          onRetry={() => {
-            void recipes.refetch();
-            void repositories.refetch();
-          }}
-        />
-      ) : !document || recipes.isPending || repositories.isPending ? (
-        <Loading />
-      ) : (
-        <RepositoryForm
-          spec={spec}
-          creating
-          document={document}
-          repositories={repositories.data ?? []}
-          blobStores={stores.choices}
-          submitLabel={t('repositories.create.submit')}
-          onSubmit={async (body) => {
-            await api.post(createPath(apiFormat(spec.format, state.formats), spec.type), body);
-          }}
-          onSaved={onSaved}
-          onCancel={() => navigate(CREATE_ADDRESS)}
-        />
-      )}
+    <Page
+      title={title}
+      breadcrumbs={crumbs.map((crumb, index) => (index === 2 ? { label: crumb.label } : crumb))}
+    >
+      <WizardBar
+        step={3}
+        onCancel={() => navigate(LIST_ADDRESS)}
+        onBack={() => navigate(`${CREATE_ADDRESS}?format=${encodeURIComponent(spec.format)}`)}
+        next={
+          <Button type="submit" form={formId} disabled={!ready}>
+            {t('repositories.create.next')}
+          </Button>
+        }
+      />
+      <div className={wizard.body}>
+        <StepTitle title={t('repositories.create.configure')} />
+        {failure ? (
+          <ErrorState
+            error={failure}
+            onRetry={() => {
+              void recipes.refetch();
+              void repositories.refetch();
+            }}
+          />
+        ) : !document || recipes.isPending || repositories.isPending ? (
+          <Loading />
+        ) : (
+          <RepositoryForm
+            spec={spec}
+            creating
+            document={document}
+            repositories={repositories.data ?? []}
+            blobStores={stores.choices}
+            submitLabel={t('repositories.create.submit')}
+            formId={formId}
+            onReadyChange={setReady}
+            onSubmit={async (body) => {
+              await api.post(createPath(apiFormat(spec.format, state.formats), spec.type), body);
+            }}
+            onSaved={onSaved}
+            onCancel={() => navigate(CREATE_ADDRESS)}
+          />
+        )}
+      </div>
     </Page>
   );
 }

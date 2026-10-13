@@ -9,9 +9,9 @@ export interface ProfileTab {
   keepMounted?: boolean;
 }
 
-export function ProfileTabs({ tabs }: { tabs: ProfileTab[] }) {
+export function ProfileTabs({ tabs, defaultTab }: { tabs: ProfileTab[]; defaultTab?: string }) {
   const [params, setParams] = useSearchParams();
-  const fallback = tabs[0]?.value ?? '';
+  const fallback = defaultTab ?? tabs[0]?.value ?? '';
   const asked = params.get('tab');
   const current = tabs.some((tab) => tab.value === asked) && asked ? asked : fallback;
   const select = (value: string) => {
@@ -29,7 +29,7 @@ export function ProfileTabs({ tabs }: { tabs: ProfileTab[] }) {
     );
   };
   return (
-    <Tabs.Root value={current} onValueChange={select}>
+    <Tabs.Root value={current} onValueChange={select} style={{ marginTop: -14 }}>
       <Box style={{ overflowX: 'auto' }}>
         <Tabs.List>
           {tabs.map((tab) => (
@@ -42,7 +42,7 @@ export function ProfileTabs({ tabs }: { tabs: ProfileTab[] }) {
       {tabs.map((tab) => (
         <Tabs.Content key={tab.value} value={tab.value} forceMount={tab.keepMounted ? true : undefined}>
           <div hidden={tab.value !== current}>
-            <Box pt="4">{tab.content}</Box>
+            <Box pt="5">{tab.content}</Box>
           </div>
         </Tabs.Content>
       ))}

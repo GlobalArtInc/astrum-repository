@@ -1,19 +1,26 @@
-import { Flex, Skeleton, Text, TextField } from '@radix-ui/themes';
+import { Skeleton, TextField } from '@radix-ui/themes';
 import { Search, ShieldOff } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import type { RepositoryType } from '../../../api';
 import { useSession } from '../../../auth/state';
 import { type Translate, useT } from '../../../i18n';
-import { EmptyState, ErrorState, FormatBadge, formatName, Page, TypeBadge } from '../../../ui';
+import { EmptyState, ErrorState, formatName, Page } from '../../../ui';
 import { createAddress, LIST_ADDRESS, type Recipe, useRecipes } from '../api';
+import { Logo, StepTitle, WizardBar } from '../components/Wizard';
+import styles from '../components/Wizard.module.css';
 import { TYPES } from '../model/spec';
-import styles from '../repositories.module.css';
 
-const DESCRIPTIONS: Record<RepositoryType, string> = {
+const TYPE_TEXTS: Record<RepositoryType, string> = {
   hosted: 'repositories.types.hosted',
   proxy: 'repositories.types.proxy',
   group: 'repositories.types.group',
+};
+
+const TYPE_NAMES: Record<RepositoryType, string> = {
+  hosted: 'ui.repositoryType.hosted',
+  proxy: 'ui.repositoryType.proxy',
+  group: 'ui.repositoryType.group',
 };
 
 const CHOOSE: Record<RepositoryType, string> = {
@@ -21,6 +28,18 @@ const CHOOSE: Record<RepositoryType, string> = {
   proxy: 'repositories.create.chooseProxy',
   group: 'repositories.create.chooseGroup',
 };
+
+const FORMAT_TEXTS: Record<string, string> = {
+  docker: 'repositories.formats.docker',
+  helm: 'repositories.formats.helm',
+  maven2: 'repositories.formats.maven2',
+  npm: 'repositories.formats.npm',
+  nuget: 'repositories.formats.nuget',
+  pypi: 'repositories.formats.pypi',
+  raw: 'repositories.formats.raw',
+};
+
+const TYPE_ORDER: RepositoryType[] = ['proxy', 'hosted', 'group'];
 
 export interface FormatChoice {
   format: string;
@@ -60,14 +79,24 @@ export function createLabel(t: Translate, format: string, type: RepositoryType):
   return t(CHOOSE[type], { format: formatName(format) });
 }
 
+export function formatText(t: Translate, format: string): string {
+  const key = FORMAT_TEXTS[format];
+  return key ? t(key) : t('repositories.formats.other', { format: formatName(format) });
+}
+
 export default function CreatePickerPage() {
   const t = useT();
+  const navigate = useNavigate();
   const { can } = useSession();
   const recipes = useRecipes();
+  const [params, setParams] = useSearchParams();
   const [filter, setFilter] = useState('');
   const allowed = (format: string) => can({ some: `astrum:repository-admin:${format}:*:add` });
+  const all = recipes.data ? groupRecipes(recipes.data, allowed, '') : [];
   const choices = recipes.data ? groupRecipes(recipes.data, allowed, filter) : [];
-  const anyAllowed = recipes.data ? groupRecipes(recipes.data, allowed, '').length > 0 : true;
+  const chosen = all.find((choice) => choice.format === params.get('format'));
+  const choose = (format: string | null) =>
+    setParams(format ? new URLSearchParams({ format }) : new URLSearchParams());
 
   return (
     <Page
@@ -79,70 +108,85 @@ export default function CreatePickerPage() {
         { label: t('repositories.crumbs.create') },
       ]}
     >
-      {anyAllowed && (
-        <TextField.Root
-          size="3"
-          type="search"
-          value={filter}
-          placeholder={t('repositories.create.filter')}
-          aria-label={t('repositories.create.filter')}
-          onChange={(event) => setFilter(event.target.value)}
-        >
-          <TextField.Slot>
-            <Search size={16} aria-hidden="true" />
-          </TextField.Slot>
-        </TextField.Root>
-      )}
-      {recipes.isPending ? (
-        <ul className={styles.formats}>
-          {[0, 1, 2, 3, 4].map((index) => (
-            <li key={index}>
-              <Skeleton height="180px" />
-            </li>
-          ))}
-        </ul>
-      ) : recipes.error ? (
-        <ErrorState error={recipes.error} onRetry={() => void recipes.refetch()} />
-      ) : !anyAllowed ? (
-        <EmptyState
-          icon={ShieldOff}
-          title={t('repositories.create.none')}
-          description={t('repositories.create.noneText')}
-        />
-      ) : choices.length === 0 ? (
-        <EmptyState icon={Search} title={t('repositories.create.noMatches')} />
-      ) : (
-        <ul className={styles.formats}>
-          {choices.map((choice) => (
-            <li key={choice.format} className={styles.formatCard}>
-              <Flex align="center" gap="2">
-                <FormatBadge format={choice.format} />
-                <Text size="4" weight="medium">
-                  {formatName(choice.format)}
-                </Text>
-              </Flex>
-              <ul className={styles.recipes}>
-                {choice.types.map((type) => (
-                  <li key={type}>
-                    <Link
-                      to={createAddress(choice.format, type)}
-                      className={styles.recipe}
-                      aria-label={createLabel(t, choice.format, type)}
-                    >
-                      <span>
-                        <TypeBadge type={type} />
+      <WizardBar
+        step={chosen ? 2 : 1}
+        onCancel={() => navigate(LIST_ADDRESS)}
+        onBack={chosen ? () => choose(null) : undefined}
+      />
+      <div className={styles.body}>
+        {recipes.isPending ? (
+          <Skeleton height="200px" />
+        ) : recipes.error ? (
+          <ErrorState error={recipes.error} onRetry={() => void recipes.refetch()} />
+        ) : all.length === 0 ? (
+          <EmptyState
+            icon={ShieldOff}
+            title={t('repositories.create.none')}
+            description={t('repositories.create.noneText')}
+          />
+        ) : chosen ? (
+          <>
+            <StepTitle title={t('repositories.create.chooseType')} count={chosen.types.length} />
+            <div className={styles.format}>
+              <span className={styles.formatLogo}>
+                <Logo format={chosen.format} size={36} />
+              </span>
+              <span>
+                <p className={styles.formatName}>{formatName(chosen.format)}</p>
+                <p className={styles.formatText}>{formatText(t, chosen.format)}</p>
+              </span>
+            </div>
+            <ul className={styles.types}>
+              {TYPE_ORDER.filter((type) => chosen.types.includes(type)).map((type) => (
+                <li key={type}>
+                  <button
+                    type="button"
+                    className={styles.type}
+                    aria-label={createLabel(t, chosen.format, type)}
+                    onClick={() => navigate(createAddress(chosen.format, type))}
+                  >
+                    <span className={styles.typeTitle}>{t(TYPE_NAMES[type])}</span>
+                    <span className={styles.typeText}>{t(TYPE_TEXTS[type])}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <>
+            <StepTitle title={t('repositories.create.chooseFormat')} count={all.length} />
+            <TextField.Root
+              className={styles.search}
+              size="3"
+              type="search"
+              value={filter}
+              placeholder={t('repositories.create.filter')}
+              aria-label={t('repositories.create.filter')}
+              onChange={(event) => setFilter(event.target.value)}
+            >
+              <TextField.Slot>
+                <Search size={16} aria-hidden="true" />
+              </TextField.Slot>
+            </TextField.Root>
+            {choices.length === 0 ? (
+              <EmptyState icon={Search} title={t('repositories.create.noMatches')} />
+            ) : (
+              <ul className={styles.tiles}>
+                {choices.map((choice) => (
+                  <li key={choice.format}>
+                    <button type="button" className={styles.tile} onClick={() => choose(choice.format)}>
+                      <span className={styles.logoBox}>
+                        <Logo format={choice.format} />
                       </span>
-                      <Text size="2" color="gray">
-                        {t(DESCRIPTIONS[type])}
-                      </Text>
-                    </Link>
+                      {formatName(choice.format)}
+                    </button>
                   </li>
                 ))}
               </ul>
-            </li>
-          ))}
-        </ul>
-      )}
+            )}
+          </>
+        )}
+      </div>
     </Page>
   );
 }

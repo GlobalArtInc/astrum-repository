@@ -85,7 +85,7 @@ describe('the repository form', () => {
       });
     });
     renderForm({ document, onSubmit });
-    const remote = screen.getByRole('textbox', { name: /Remote storage URL/ });
+    const remote = screen.getByRole('textbox', { name: /Remote Storage/ });
     await userEvent.clear(remote);
     await userEvent.type(remote, 'https://other.example.org/');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -93,16 +93,14 @@ describe('the repository form', () => {
     expect(getPath(onSubmit.mock.calls[0]?.[0] as RepositoryDocument, ['proxy', 'remoteUrl'])).toBe(
       'https://other.example.org/',
     );
-    expect(await screen.findByRole('switch', { name: /Remember missing paths/ })).toHaveAccessibleDescription(
-      /must not be null/,
-    );
-    expect(screen.getByText('routingRuleName: the routing rule "x" does not exist')).toBeInTheDocument();
+    expect(await screen.findByText('must not be null')).toBeInTheDocument();
+    expect(screen.getByText('the routing rule "x" does not exist')).toBeInTheDocument();
   });
 
   it('stops at its own checks before asking the server', async () => {
     const document = BY_KEY['maven/proxy/min'] as RepositoryDocument;
     const { onSubmit } = renderForm({ document });
-    await userEvent.clear(screen.getByRole('spinbutton', { name: /Time to live/ }));
+    await userEvent.clear(screen.getByRole('spinbutton', { name: /Negative Cache TTL/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Enter a whole number of minutes, 0 or more')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -112,8 +110,8 @@ describe('the repository form', () => {
     renderForm({ document: BY_KEY['docker/hosted/max'] as RepositoryDocument, readOnly: true });
     expect(screen.getByText('You can read these settings but not change them.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: /Allow redeploying the latest tag/ })).toBeDisabled();
-    expect(screen.getByRole('combobox', { name: /Deployment policy/ })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: /Force Basic Authentication/ })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: /Deployment Policy/ })).toBeDisabled();
     for (const input of screen.getAllByRole('textbox')) {
       expect(input).toBeDisabled();
     }
@@ -131,19 +129,19 @@ describe('the repository form', () => {
       row(String(document.name), 'raw', 'group'),
     ];
     const { onSubmit } = renderForm({ document, repositories });
-    const members = screen.getByRole('list', { name: 'Members' });
-    expect(
-      within(members)
-        .getAllByRole('listitem')
-        .map((item) => item.textContent),
-    ).toEqual([expect.stringContaining('a'), expect.stringContaining('b'), expect.stringContaining('c')]);
-    expect(within(members).getByText('Offline')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Move c up' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Remove a' }));
-    await userEvent.click(screen.getByRole('combobox', { name: 'Add a repository…' }));
+    const members = screen.getByRole('list', { name: 'Member Repositories' });
+    const items = within(members).getAllByRole('listitem');
+    expect(items.map((item) => item.textContent)).toEqual([
+      expect.stringContaining('a'),
+      expect.stringContaining('b'),
+      expect.stringContaining('c'),
+    ]);
+    await userEvent.click(within(items[2] as HTMLElement).getByRole('button', { name: 'Move Up' }));
+    await userEvent.click(within(items[0] as HTMLElement).getByRole('button', { name: 'Remove' }));
+    await userEvent.click(screen.getByRole('combobox', { name: /Member Repositories/ }));
     const options = screen.getAllByRole('option').map((option) => option.textContent);
-    expect(options).toEqual(['a', 'd']);
-    await userEvent.click(screen.getByRole('option', { name: 'd' }));
+    expect(options).toEqual(['a (hosted)', 'd (hosted)']);
+    await userEvent.click(screen.getByRole('option', { name: 'd (hosted)' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     expect(getPath(onSubmit.mock.calls[0]?.[0] as RepositoryDocument, ['group', 'memberNames'])).toEqual([
@@ -167,14 +165,15 @@ describe('the repository form', () => {
       submitLabel: 'Create repository',
       onSaved,
     });
-    await userEvent.click(screen.getByRole('button', { name: 'Create repository' }));
+    const form = screen.getByRole('form', { name: 'Create repository' });
+    fireEvent.submit(form);
     expect(await screen.findByText('Enter a name')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('textbox', { name: /Name/ }), 'docker-hub');
     await userEvent.type(
-      screen.getByRole('textbox', { name: /Remote storage URL/ }),
+      screen.getByRole('textbox', { name: /Remote Storage/ }),
       'https://registry-1.docker.io',
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Create repository' }));
+    fireEvent.submit(form);
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
     const sent = onSubmit.mock.calls[0]?.[0] as RepositoryDocument;
     expect(sent.name).toBe('docker-hub');

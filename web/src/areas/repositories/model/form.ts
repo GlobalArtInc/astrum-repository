@@ -61,6 +61,10 @@ export interface RepositoryValues {
   excludedQueryParameters: string;
   nugetVersion: string;
   queryCacheItemMaxAge: number | null;
+  proprietaryComponents: boolean;
+  preserveEncodedCharacters: boolean;
+  routingRuleName: string;
+  useTrustStore: boolean;
 }
 
 export type FieldKey = keyof RepositoryValues;
@@ -129,6 +133,10 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'excludedQueryParameters', path: ['raw', 'excludedQueryParameters'], kind: 'lines' },
   { key: 'nugetVersion', path: ['nugetProxy', 'nugetVersion'], kind: 'enum' },
   { key: 'queryCacheItemMaxAge', path: ['nugetProxy', 'queryCacheItemMaxAge'], kind: 'int' },
+  { key: 'proprietaryComponents', path: ['component', 'proprietaryComponents'], kind: 'bool' },
+  { key: 'preserveEncodedCharacters', path: ['proxy', 'preserveEncodedCharacters'], kind: 'bool' },
+  { key: 'routingRuleName', path: ['routingRuleName'], kind: 'enum' },
+  { key: 'useTrustStore', path: ['httpClient', 'connection', 'useTrustStore'], kind: 'bool' },
 ];
 
 function read(def: FieldDef, value: Json | undefined): RepositoryValues[FieldKey] {
@@ -231,6 +239,11 @@ export function hasSection(document: RepositoryDocument, key: string): boolean {
   return isObject(document[key]);
 }
 
+export function cleanupPolicies(document: RepositoryDocument): string[] {
+  const names = getPath(document, ['cleanup', 'policyNames']);
+  return Array.isArray(names) ? names.map(String) : [];
+}
+
 export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
   const document: JsonObject = {
     name: '',
@@ -268,7 +281,7 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
     document.group = { memberNames: [] };
   }
   if (sections.maven(spec)) {
-    document.maven = { versionPolicy: 'RELEASE', layoutPolicy: 'STRICT', contentDisposition: 'INLINE' };
+    document.maven = { versionPolicy: 'RELEASE', layoutPolicy: 'STRICT', contentDisposition: 'ATTACHMENT' };
   }
   if (sections.docker(spec)) {
     document.docker = { v1Enabled: false, forceBasicAuth: true, pathEnabled: true };
