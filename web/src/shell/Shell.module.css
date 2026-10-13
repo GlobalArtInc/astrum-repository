@@ -74,6 +74,21 @@
   outline-offset: 2px;
 }
 
+.statusButton {
+  position: relative;
+}
+
+.statusDot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red-9);
+  box-shadow: 0 0 0 2px var(--color-background);
+}
+
 .headerButton.ghost {
   background: transparent;
   box-shadow: none;
