@@ -65,6 +65,7 @@ export interface RepositoryValues {
   preserveEncodedCharacters: boolean;
   routingRuleName: string;
   useTrustStore: boolean;
+  cleanupPolicies: string[];
 }
 
 export type FieldKey = keyof RepositoryValues;
@@ -137,6 +138,7 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'preserveEncodedCharacters', path: ['proxy', 'preserveEncodedCharacters'], kind: 'bool' },
   { key: 'routingRuleName', path: ['routingRuleName'], kind: 'enum' },
   { key: 'useTrustStore', path: ['httpClient', 'connection', 'useTrustStore'], kind: 'bool' },
+  { key: 'cleanupPolicies', path: ['cleanup', 'policyNames'], kind: 'list' },
 ];
 
 function read(def: FieldDef, value: Json | undefined): RepositoryValues[FieldKey] {
@@ -418,6 +420,8 @@ export function formField(id: string, spec: Spec): FieldKey | null {
       return spec.format === 'raw' ? 'rawContentDisposition' : 'mavenContentDisposition';
     case 'removeQuarantined':
       return spec.format === 'pypi' ? 'pypiRemoveQuarantined' : 'removeQuarantined';
+    case 'policyNames':
+      return 'cleanupPolicies';
     default:
       return SAME_NAME.has(last) ? (last as FieldKey) : null;
   }

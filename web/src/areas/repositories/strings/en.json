@@ -245,6 +245,10 @@
   "repositories.form.blobStorePlaceholder": "Choose a blob store...",
   "repositories.form.blocking": "Blocking",
   "repositories.form.cancel": "Cancel",
+  "repositories.form.cleanupAdd": "Apply selected",
+  "repositories.form.cleanupAddAll": "Apply all",
+  "repositories.form.cleanupAddAllLabel": "Apply all available policies",
+  "repositories.form.cleanupAddLabel": "Apply the selected policies",
   "repositories.form.cleanupApplied": "Applied Policies",
   "repositories.form.cleanupAvailable": "Available Policies",
   "repositories.form.cleanupFilter": "Filter...",
@@ -254,8 +258,14 @@
     "other": "{count} items"
   },
   "repositories.form.cleanupManage": "Manage cleanup policies",
+  "repositories.form.cleanupNoMatches": "No matches",
+  "repositories.form.cleanupNoneAvailable": "No policies available",
   "repositories.form.cleanupNothing": "Nothing selected",
   "repositories.form.cleanupPolicies": "Cleanup Policies",
+  "repositories.form.cleanupRemove": "Remove selected",
+  "repositories.form.cleanupRemoveAll": "Remove all",
+  "repositories.form.cleanupRemoveAllLabel": "Remove all applied policies",
+  "repositories.form.cleanupRemoveLabel": "Remove the selected policies",
   "repositories.form.cleanupText": "Cleanup policies delete components from this repository automatically.",
   "repositories.form.enableCircularRedirectsHint": "Allow redirects to the same address",
   "repositories.form.enableCookiesHint": "Allow cookies to be kept and sent",
@@ -337,6 +347,7 @@
     "other": "{count} tasks"
   },
   "repositories.tasks.empty": "No scheduled tasks target this repository.",
+  "repositories.tasks.notScheduled": "Not scheduled",
   "repositories.tasks.capabilities": "Capabilities",
   "repositories.tasks.capabilityCount": {
     "one": "{count} capability",

@@ -1,8 +1,8 @@
 import { configure, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../api';
-import { renderWithApp } from '../../../test/render';
+import { fakeServer, jsonResponse, renderWithApp } from '../../../test/render';
 import type { UiRepository } from '../api';
 import { canonical, getPath, type RepositoryDocument } from '../model/document';
 import { template } from '../model/form';
@@ -63,6 +63,10 @@ function renderForm(props: Partial<RepositoryFormProps> & { document: Repository
   );
   return { ...result, onSubmit };
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('the repository form', () => {
   it.each(DOCUMENTS)('saves %s unchanged when nothing is edited', async (_, document) => {
@@ -180,5 +184,61 @@ describe('the repository form', () => {
     expect(getPath(sent, ['storage', 'blobStoreName'])).toBe('default');
     expect(getPath(sent, ['proxy', 'remoteUrl'])).toBe('https://registry-1.docker.io');
     expect(getPath(sent, ['dockerProxy', 'indexType'])).toBe('REGISTRY');
+  });
+
+  it('applies cleanup policies of the format with the transfer list', async () => {
+    const server = fakeServer({
+      'GET /service/rest/internal/ui/cleanup-policies/names?format=raw': () =>
+        jsonResponse([
+          { name: 'daily', format: 'raw', notes: '' },
+          { name: 'everything', format: '*', notes: '' },
+          { name: 'weekly', format: 'raw', notes: '' },
+        ]),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    const document = structuredClone(BY_KEY['raw/hosted/max'] as RepositoryDocument);
+    document.cleanup = { policyNames: ['weekly'] };
+    const { onSubmit } = renderForm({ document });
+    const available = await screen.findByRole('listbox', { name: 'Available Policies' });
+    const applied = screen.getByRole('listbox', { name: 'Applied Policies' });
+    await waitFor(() => expect(within(available).getAllByRole('option')).toHaveLength(2));
+    expect(
+      within(available)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['daily', 'everything']);
+    expect(
+      within(applied)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['weekly']);
+    expect(screen.getByRole('button', { name: 'Apply the selected policies' })).toBeDisabled();
+    await userEvent.dblClick(within(available).getByRole('option', { name: 'everything' }));
+    await userEvent.click(within(available).getByRole('option', { name: 'daily' }));
+    expect(within(available).getByRole('option', { name: 'daily' })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply the selected policies' }));
+    expect(within(available).queryAllByRole('option')).toHaveLength(0);
+    expect(within(available).getByText('No policies available')).toBeInTheDocument();
+    await userEvent.click(within(applied).getByRole('option', { name: 'weekly' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove the selected policies' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Applied Policies: Filter...' }), 'EVERY');
+    expect(
+      within(applied)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['everything']);
+    expect(screen.getByText('1 item')).toBeInTheDocument();
+    expect(screen.getByText('2 items')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(getPath(onSubmit.mock.calls[0]?.[0] as RepositoryDocument, ['cleanup', 'policyNames'])).toEqual([
+      'everything',
+      'daily',
+    ]);
+  });
+
+  it('has no cleanup for group repositories', () => {
+    renderForm({ document: BY_KEY['raw/group/max'] as RepositoryDocument });
+    expect(screen.queryByRole('listbox', { name: 'Available Policies' })).not.toBeInTheDocument();
   });
 });

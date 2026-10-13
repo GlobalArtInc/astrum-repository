@@ -107,6 +107,17 @@ describe('editing a document', () => {
     expect(differences(document, saved)).toEqual(['negativeCache.timeToLive']);
   });
 
+  it('writes the applied cleanup policies, also into a document without cleanup', () => {
+    const document = clone(rawProxy);
+    document.cleanup = null;
+    expect(fromDocument(document).cleanupPolicies).toEqual([]);
+    const saved = edit(document, { cleanupPolicies: ['weekly', 'old-snapshots'] });
+    expect(saved.cleanup).toEqual({ policyNames: ['weekly', 'old-snapshots'] });
+    expect(differences(document, saved)).toEqual(['cleanup']);
+    const cleared = edit(saved, { cleanupPolicies: [] });
+    expect(cleared.cleanup).toEqual({ policyNames: [] });
+  });
+
   it('writes the latest policy of docker hosted repositories', () => {
     const saved = edit(dockerHosted, { latestPolicy: false });
     expect(getPath(saved, ['storage', 'latestPolicy'])).toBe(false);
@@ -295,7 +306,8 @@ describe('server problems', () => {
     expect(formField('PARAMETER contentDisposition', { format: 'maven2', type: 'hosted' })).toBe(
       'mavenContentDisposition',
     );
-    expect(formField('PARAMETER policyNames', raw)).toBeNull();
+    expect(formField('PARAMETER policyNames', raw)).toBe('cleanupPolicies');
+    expect(formField('PARAMETER routingRule', raw)).toBeNull();
     const error = onFormFields(
       new ApiError(400, 'x', {
         fieldErrors: [

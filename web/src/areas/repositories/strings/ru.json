@@ -245,6 +245,10 @@
   "repositories.form.blobStorePlaceholder": "Выберите хранилище блобов...",
   "repositories.form.blocking": "Блокировка",
   "repositories.form.cancel": "Отмена",
+  "repositories.form.cleanupAdd": "Переместить выбранные",
+  "repositories.form.cleanupAddAll": "Переместить все",
+  "repositories.form.cleanupAddAllLabel": "Переместить все в выбранные",
+  "repositories.form.cleanupAddLabel": "Переместить выбранные вправо",
   "repositories.form.cleanupApplied": "Применённые политики",
   "repositories.form.cleanupAvailable": "Доступные политики",
   "repositories.form.cleanupFilter": "Фильтр...",
@@ -256,8 +260,14 @@
     "other": "{count} элемента"
   },
   "repositories.form.cleanupManage": "Управление политиками очистки",
+  "repositories.form.cleanupNoMatches": "Совпадений нет",
+  "repositories.form.cleanupNoneAvailable": "Нет доступных элементов",
   "repositories.form.cleanupNothing": "Ничего не выбрано",
   "repositories.form.cleanupPolicies": "Политики очистки",
+  "repositories.form.cleanupRemove": "Убрать выбранные",
+  "repositories.form.cleanupRemoveAll": "Убрать все",
+  "repositories.form.cleanupRemoveAllLabel": "Переместить все в доступные",
+  "repositories.form.cleanupRemoveLabel": "Переместить выбранные влево",
   "repositories.form.cleanupText": "Политики очистки автоматически удаляют компоненты из этого репозитория.",
   "repositories.form.enableCircularRedirectsHint": "Разрешить перенаправления на тот же адрес",
   "repositories.form.enableCookiesHint": "Разрешить сохранение и использование cookie",
@@ -343,6 +353,7 @@
     "other": "{count} задачи"
   },
   "repositories.tasks.empty": "Нет запланированных задач для этого репозитория.",
+  "repositories.tasks.notScheduled": "Не запланирована",
   "repositories.tasks.capabilities": "Возможности",
   "repositories.tasks.capabilityCount": {
     "one": "{count} возможность",

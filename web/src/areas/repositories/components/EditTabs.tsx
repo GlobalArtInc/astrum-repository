@@ -296,16 +296,51 @@ export function AuditCard({ name }: { name: string }) {
   );
 }
 
-export function TasksTab() {
+interface RepositoryTask {
+  id: string;
+  name: string;
+  typeName: string;
+  enabled: boolean;
+  nextRun: string | null;
+  properties: Record<string, string>;
+}
+
+export function tasksOf(tasks: readonly RepositoryTask[], repository: string): RepositoryTask[] {
+  const name = repository.toLowerCase();
+  return tasks.filter((task) => (task.properties.repositoryName ?? '').toLowerCase() === name);
+}
+
+export function TasksTab({ repository }: { repository: string }) {
   const t = useT();
+  const canRead = useCan('astrum:tasks:read');
+  const tasks = useApi<RepositoryTask[]>(canRead ? `${INTERNAL}/ui/tasks` : null);
+  const found = tasksOf(tasks.data ?? [], repository);
   return (
     <div className={styles.stack}>
       <Card
         icon={<Clock size={18} />}
         title={t('repositories.tasks.title')}
-        count={t('repositories.tasks.count', { count: 0 })}
+        count={t('repositories.tasks.count', { count: found.length })}
       >
-        <p className={styles.text}>{t('repositories.tasks.empty')}</p>
+        {found.length === 0 ? (
+          <p className={styles.text}>{t('repositories.tasks.empty')}</p>
+        ) : (
+          <ul className={styles.rows}>
+            {found.map((task) => (
+              <li key={task.id} className={styles.row}>
+                <span>
+                  <Link to={`/admin/system/tasks/${encodeURIComponent(task.id)}`} className={styles.link}>
+                    {task.name}
+                  </Link>{' '}
+                  <span className={styles.muted}>({task.typeName})</span>
+                </span>
+                <span className={styles.muted}>
+                  {task.nextRun ? <DateTime value={task.nextRun} /> : t('repositories.tasks.notScheduled')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
       <Card
         icon={<Zap size={18} />}

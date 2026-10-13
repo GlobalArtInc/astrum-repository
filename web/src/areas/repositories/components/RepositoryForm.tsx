@@ -1,12 +1,13 @@
 import { Button, Callout } from '@radix-ui/themes';
 import { ChevronDown, ChevronRight, Info, TriangleAlert } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { INTERNAL, useApi } from '../../../api';
+import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import { FormError, UnsavedChangesGuard, useForm } from '../../../ui';
 import type { UiRepository } from '../api';
 import type { RepositoryDocument } from '../model/document';
 import {
-  cleanupPolicies,
   fromDocument,
   onFormFields,
   type RepositoryValues,
@@ -49,6 +50,21 @@ export interface RepositoryFormProps {
 }
 
 const NONE = '_none';
+
+export const CLEANUP_POLICY_NAMES = `${INTERNAL}/ui/cleanup-policies/names`;
+
+interface PolicyName {
+  name: string;
+  format: string;
+}
+
+function useCleanupOptions(format: string, applied: readonly string[], enabled: boolean): string[] {
+  const names = useApi<PolicyName[]>(
+    enabled ? `${CLEANUP_POLICY_NAMES}?${new URLSearchParams({ format })}` : null,
+  );
+  const known = (names.data ?? []).map((policy) => policy.name);
+  return [...known, ...applied.filter((name) => !known.includes(name))];
+}
 
 const WRITE_POLICIES = [
   { value: 'ALLOW_ONCE', label: 'repositories.form.writePolicies.ALLOW_ONCE' },
@@ -128,6 +144,8 @@ export function RepositoryForm(props: RepositoryFormProps) {
   });
   const { values } = form;
   const { onSaved, onDirtyChange, onReadyChange } = props;
+  const canManagePolicies = useCan('astrum:cleanup-policies:read');
+  const cleanupOptions = useCleanupOptions(spec.format, values.cleanupPolicies, !sections.group(spec));
 
   useEffect(() => {
     onDirtyChange?.(form.dirty);
@@ -554,7 +572,14 @@ export function RepositoryForm(props: RepositoryFormProps) {
 
         {!sections.group(spec) && (
           <Section title={t('repositories.form.sections.cleanup')}>
-            <CleanupPolicies applied={cleanupPolicies(document)} />
+            <CleanupPolicies
+              options={cleanupOptions}
+              value={values.cleanupPolicies}
+              onChange={(value) => form.set('cleanupPolicies', value)}
+              disabled={readOnly}
+              error={form.errors.cleanupPolicies}
+              manage={canManagePolicies ? '/admin/repository/cleanup-policies' : undefined}
+            />
           </Section>
         )}
 

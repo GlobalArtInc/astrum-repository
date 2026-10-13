@@ -174,7 +174,7 @@ export default function RepositoryPage() {
           {
             value: 'tasks',
             label: <TabLabel icon={ListChecks} label={t('repositories.edit.tabs.tasks')} />,
-            content: <TasksTab />,
+            content: <TasksTab repository={repository.name} />,
           },
           {
             value: 'access',
