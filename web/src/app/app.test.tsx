@@ -6,7 +6,7 @@ import type { UiState } from '../api';
 import { dashboardArea } from '../areas/dashboard';
 import { settingsArea } from '../areas/settings';
 import { SearchGroup, SearchItem } from '../shell/search';
-import { ADMIN_STATE, ANONYMOUS_STATE, renderWithApp } from '../test/render';
+import { ADMIN_STATE, ANONYMOUS_STATE, fakeServer, jsonResponse, renderWithApp } from '../test/render';
 import { setMedia } from '../test/setup';
 import { COMPACT } from '../ui/hooks';
 import type { Area, SearchResultsProps } from './area';
@@ -158,6 +158,22 @@ describe('the shell', () => {
     });
     await userEvent.click(await screen.findByRole('button', { name: 'System status' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/support/metric-health'));
+  });
+
+  it('marks the bell when a health check fails', async () => {
+    const check = { message: null, error: null, details: null, time: 1, duration: 0, timestamp: '' };
+    vi.stubGlobal(
+      'fetch',
+      fakeServer({
+        'GET /service/rest/internal/ui/status-check': () =>
+          jsonResponse({ Database: { ...check, healthy: true }, Scheduler: { ...check, healthy: false } }),
+      }).fetch,
+    );
+    app('/');
+    expect(
+      await screen.findByRole('button', { name: 'System status: 1 health check fails' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('status-dot')).toBeInTheDocument();
   });
 
   it('shows no bell to callers without the metrics permission', async () => {

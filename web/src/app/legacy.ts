@@ -22,10 +22,10 @@ const ADMIN_SECTIONS: Record<string, Record<string, string>> = {
   support: {
     logs: '/admin/support/logs',
     logging: '/admin/support/logging',
-    systeminformation: '/admin/support/systeminformation',
-    metrichealth: '/admin/support/metrichealth',
+    systeminformation: '/admin/support/system-information',
+    metrichealth: '/admin/support/metric-health',
     recoverymode: '/admin/support/recoverymode',
-    supportzip: '/admin/support/supportzip',
+    supportzip: '/admin/support/support-zip',
   },
   system: {
     tasks: '/admin/system/tasks',

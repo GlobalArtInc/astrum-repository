@@ -10,6 +10,7 @@ import { searchArea } from '../areas/search';
 import { securityArea } from '../areas/security';
 import { selectorsArea } from '../areas/selectors';
 import { settingsArea } from '../areas/settings';
+import { supportArea } from '../areas/support';
 import { tasksArea } from '../areas/tasks';
 import { uploadArea } from '../areas/upload';
 import { userArea } from '../areas/user';
@@ -29,6 +30,7 @@ export const areas: Area[] = [
   securityArea,
   identityArea,
   tasksArea,
+  supportArea,
   userArea,
   onboardingArea,
 ];

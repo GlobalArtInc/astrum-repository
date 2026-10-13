@@ -37,6 +37,7 @@
   "shell.startup.failed": "Astrum Repository did not start",
   "shell.startup.loading": "Loading Astrum Repository",
   "shell.status.label": "System status",
+  "shell.status.failing": { "one": "{count} health check fails", "other": "{count} health checks fail" },
   "shell.theme.toDark": "Switch to the dark theme",
   "shell.theme.toLight": "Switch to the light theme",
   "shell.user.accessTokens": "Access Tokens",

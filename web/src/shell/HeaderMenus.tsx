@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
+import { INTERNAL, useApi } from '../api';
 import { useVisibleSettings } from '../app/registry';
 import { loginPath } from '../auth/returnTo';
 import { useSession } from '../auth/state';
@@ -40,6 +41,8 @@ export const DOCUMENTATION_URL = documentationUrl('3.0.0');
 
 export const STATUS_TILE = 'metric-health';
 export const STATUS_NEED = 'astrum:metrics:read';
+export const STATUS_CHECKS = `${INTERNAL}/ui/status-check`;
+const STATUS_POLL = 60_000;
 
 const LANGUAGE_NAMES: Record<Language, string> = {
   en: 'shell.language.en',
@@ -135,14 +138,24 @@ export function StatusBell() {
   const { can } = useSession();
   const navigate = useNavigate();
   const health = useVisibleSettings().find((tile) => tile.id === STATUS_TILE);
-  if (!can(STATUS_NEED)) {
+  const allowed = can(STATUS_NEED);
+  const checks = useApi<Record<string, { healthy: boolean }>>(allowed ? STATUS_CHECKS : null, {
+    refetchInterval: STATUS_POLL,
+    staleTime: STATUS_POLL / 2,
+  });
+  if (!allowed) {
     return null;
   }
-  const label = t('shell.status.label');
+  const failing = Object.values(checks.data ?? {}).filter((check) => !check.healthy).length;
+  const label =
+    failing > 0
+      ? `${t('shell.status.label')}: ${t('shell.status.failing', { count: failing })}`
+      : t('shell.status.label');
   return (
     <WithTooltip label={label}>
       <HeaderButton
         label={label}
+        className={styles.statusButton}
         aria-disabled={health ? undefined : true}
         onClick={() => {
           if (health) {
@@ -151,6 +164,7 @@ export function StatusBell() {
         }}
       >
         <Bell size={18} aria-hidden="true" />
+        {failing > 0 && <span className={styles.statusDot} data-testid="status-dot" />}
       </HeaderButton>
     </WithTooltip>
   );
