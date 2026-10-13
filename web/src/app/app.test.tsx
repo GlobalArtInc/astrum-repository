@@ -169,7 +169,13 @@ describe('the shell', () => {
           jsonResponse({ Database: { ...check, healthy: true }, Scheduler: { ...check, healthy: false } }),
       }).fetch,
     );
-    app('/');
+    const health: Area = {
+      id: 'health',
+      routes: [{ path: 'admin/support/metric-health', page: () => <p>health page</p> }],
+      settings: [{ id: 'metric-health', to: '/admin/support/metric-health' }],
+    };
+    const areas = [...AREAS, health];
+    renderWithApp(null, { path: '/', state: ADMIN_STATE, areas, routes: buildRoutes(areas) });
     expect(
       await screen.findByRole('button', { name: 'System status: 1 health check fails' }),
     ).toBeInTheDocument();

@@ -22,6 +22,12 @@
   max-width: 400px;
 }
 
+.showing {
+  margin: -4px 0 0;
+  color: var(--gray-11);
+  font-size: 12px;
+}
+
 .fileName {
   display: inline-flex;
   align-items: center;
@@ -463,7 +469,7 @@
 .zipChecks {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 11px;
 }
 
 .zipSelect {

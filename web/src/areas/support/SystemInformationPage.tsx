@@ -13,7 +13,7 @@ import { useApi } from '../../api';
 import { useT } from '../../i18n';
 import { copyText, ErrorState, Page, useToast } from '../../ui';
 import { HelpCard } from '../security/shared/AdminList';
-import { DOCS, flatten, SYSTEM_INFORMATION, saveJson, sectionTitle } from './api';
+import { DOCS, flatten, orderSections, SYSTEM_INFORMATION, saveJson, sectionTitle } from './api';
 import styles from './Support.module.css';
 
 type Report = Record<string, unknown>;
@@ -25,7 +25,7 @@ export default function SystemInformationPage() {
   const toast = useToast();
   const ids = useId();
   const report = useApi<Report>(SYSTEM_INFORMATION);
-  const sections = Object.entries(report.data ?? {});
+  const sections = orderSections(report.data ?? {});
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const isOpen = (key: string, index: number) => open[key] ?? index < OPEN_FIRST;
   const setAll = (value: boolean) => setOpen(Object.fromEntries(sections.map(([key]) => [key, value])));
@@ -37,7 +37,7 @@ export default function SystemInformationPage() {
   };
   return (
     <Page
-      gutter="medium"
+      gutter="large"
       title={t('support.sysinfo.title')}
       description={t('support.sysinfo.intro')}
       breadcrumbs={[

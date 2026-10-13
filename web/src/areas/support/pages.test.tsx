@@ -2,7 +2,7 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeServer, jsonResponse, renderWithApp } from '../../test/render';
-import { flatten, type HealthChecks, type Logger, sectionTitle } from './api';
+import { flatten, type HealthChecks, type Logger, orderSections, sectionTitle } from './api';
 import LoggerPage from './LoggerPage';
 import LoggingPage from './LoggingPage';
 import LogsPage from './LogsPage';
@@ -218,6 +218,9 @@ describe('the system information', () => {
       ['a.c.1', ''],
     ]);
     expect(sectionTitle('system-filestores')).toBe('System Filestores');
+    expect(
+      orderSections({ 'system-os': 1, 'astrum-node': 2, 'astrum-status': 3, extra: 4 }).map(([key]) => key),
+    ).toEqual(['astrum-status', 'astrum-node', 'system-os', 'extra']);
   });
 });
 
