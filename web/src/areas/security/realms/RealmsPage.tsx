@@ -1,13 +1,24 @@
-import { Badge, Button, Callout, Flex, Heading, IconButton, Spinner, Text } from '@radix-ui/themes';
+import { Button, Flex, Spinner } from '@radix-ui/themes';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, GripVertical, Info, Plus, X } from 'lucide-react';
-import { type DragEvent, useState } from 'react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  GripVertical,
+  Search,
+} from 'lucide-react';
+import { type DragEvent, type FormEvent, type ReactNode, useState } from 'react';
 import { api, useApi, useInvalidateApi } from '../../../api';
 import { STATE_KEY, useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import { ConfirmDialog, ErrorState, FormError, Page, UnsavedChangesGuard, useToast } from '../../../ui';
 import { REALMS_ACTIVE, REALMS_AVAILABLE, type Realm } from '../api';
-import formStyles from '../shared/Form.module.css';
+import { HelpCard } from '../shared/AdminList';
+import { EditBar, EditForm } from '../shared/Edit';
+import edit from '../shared/Edit.module.css';
 import { refusedBy } from '../shared/messages';
 import {
   activate,
@@ -23,6 +34,167 @@ import {
 import styles from './Realms.module.css';
 
 const DRAG_TYPE = 'application/x-astrum-realm';
+const HELP = 'https://help.globalart.dev/en/realms.html';
+
+type Side = 'available' | 'active';
+
+interface Selection {
+  side: Side;
+  id: string;
+}
+
+function MoveButton({
+  label,
+  title,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  title: string;
+  disabled: boolean;
+  onClick(): void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={styles.move}
+      aria-label={label}
+      title={title}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RealmPane({
+  side,
+  title,
+  label,
+  count,
+  realms,
+  selected,
+  readOnly,
+  onSelect,
+  onMove,
+  drag,
+}: {
+  side: Side;
+  title: string;
+  label: string;
+  count: string;
+  realms: Realm[];
+  selected: Selection | null;
+  readOnly: boolean;
+  onSelect(id: string): void;
+  onMove(id: string): void;
+  drag: {
+    start(event: DragEvent, id: string): void;
+    end(): void;
+    over: number | null;
+    dragging: string | null;
+    hover(index: number | null): void;
+    drop(event: DragEvent, index: number | null): void;
+  };
+}) {
+  const t = useT();
+  const [filter, setFilter] = useState('');
+  const words = filter.trim().toLowerCase();
+  const ordered = side === 'active';
+  const shown = realms
+    .map((realm, index) => ({ realm, index }))
+    .filter(({ realm }) => !words || realmLabel(realm).toLowerCase().includes(words));
+  return (
+    <div className={ordered ? `${styles.pane} ${styles.activePane}` : styles.pane}>
+      <div className={styles.head}>
+        <span className={styles.title}>{title}</span>
+        <span className={styles.count}>{count}</span>
+      </div>
+      <div className={styles.filter}>
+        <Search size={14} aria-hidden="true" className={styles.searchIcon} />
+        <input
+          type="text"
+          className={styles.filterInput}
+          value={filter}
+          placeholder={t('security.transfer.filter')}
+          aria-label={t('security.transfer.filterOf', { list: label })}
+          onChange={(event) => setFilter(event.target.value)}
+        />
+      </div>
+      <div
+        className={styles.list}
+        role="listbox"
+        tabIndex={-1}
+        aria-label={label}
+        onDragOver={(event) => {
+          if (!readOnly) {
+            event.preventDefault();
+          }
+        }}
+        onDrop={(event) => !readOnly && drag.drop(event, null)}
+      >
+        {shown.map(({ realm, index }) => {
+          const on = selected?.side === side && selected.id === realm.id;
+          const classes = [styles.option];
+          if (on) {
+            classes.push(styles.selected);
+          }
+          if (ordered && drag.over === index) {
+            classes.push(styles.over);
+          }
+          return (
+            <div
+              key={realm.id}
+              role="option"
+              tabIndex={0}
+              aria-selected={on}
+              className={classes.join(' ')}
+              data-ordered={ordered || undefined}
+              data-dragging={drag.dragging === realm.id || undefined}
+              draggable={!readOnly}
+              onClick={() => !readOnly && onSelect(realm.id)}
+              onDoubleClick={() => !readOnly && onMove(realm.id)}
+              onKeyDown={(event) => {
+                if (readOnly) {
+                  return;
+                }
+                if (event.key === ' ') {
+                  event.preventDefault();
+                  onSelect(realm.id);
+                } else if (event.key === 'Enter') {
+                  event.preventDefault();
+                  onMove(realm.id);
+                }
+              }}
+              onDragStart={(event) => drag.start(event, realm.id)}
+              onDragEnd={drag.end}
+              onDragOver={(event) => {
+                if (!readOnly && ordered) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  drag.hover(index);
+                }
+              }}
+              onDrop={(event) => {
+                if (!readOnly && ordered) {
+                  event.stopPropagation();
+                  drag.drop(event, index);
+                }
+              }}
+            >
+              {ordered && <GripVertical size={14} aria-hidden="true" className={styles.grip} />}
+              <span>{realmLabel(realm)}</span>
+              {ordered && <span className={styles.position}>{index + 1}</span>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function RealmsEditor({ available, saved }: { available: Realm[]; saved: string[] }) {
   const t = useT();
@@ -30,8 +202,10 @@ function RealmsEditor({ available, saved }: { available: Realm[]; saved: string[
   const client = useQueryClient();
   const invalidate = useInvalidateApi();
   const canWrite = useCan('astrum:settings:update');
+  const readOnly = !canWrite;
   const [active, setActive] = useState(saved);
   const [baseline, setBaseline] = useState(saved);
+  const [selected, setSelected] = useState<Selection | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -40,10 +214,19 @@ function RealmsEditor({ available, saved }: { available: Realm[]; saved: string[
   const dirty = !sameOrder(active, baseline);
   const shownActive = activeRealms(available, active);
   const shownInactive = inactiveRealms(available, active);
+  const selectedIndex = selected?.side === 'active' ? active.indexOf(selected.id) : -1;
 
   const change = (next: string[]) => {
     setActive(next);
     setError(null);
+  };
+
+  const toggle = (side: Side, id: string) =>
+    setSelected(selected?.side === side && selected.id === id ? null : { side, id });
+
+  const move = (side: Side, id: string) => {
+    change(side === 'available' ? activate(active, id) : deactivate(active, id));
+    setSelected(null);
   };
 
   const store = async () => {
@@ -62,7 +245,11 @@ function RealmsEditor({ available, saved }: { available: Realm[]; saved: string[
     }
   };
 
-  const save = () => {
+  const save = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!dirty || readOnly) {
+      return;
+    }
     if (active.length === 0) {
       setError(t('security.realms.noneActive'));
       return;
@@ -74,236 +261,164 @@ function RealmsEditor({ available, saved }: { available: Realm[]; saved: string[
     void store();
   };
 
-  const dragStart = (event: DragEvent, id: string) => {
-    event.dataTransfer.setData(DRAG_TYPE, id);
-    event.dataTransfer.setData('text/plain', id);
-    event.dataTransfer.effectAllowed = 'move';
-    setDragging(id);
-  };
-
-  const dragEnd = () => {
-    setDragging(null);
-    setOver(null);
-  };
-
   const droppedId = (event: DragEvent) =>
     event.dataTransfer.getData(DRAG_TYPE) || event.dataTransfer.getData('text/plain') || dragging;
 
-  const dropOnActive = (event: DragEvent, index: number) => {
-    event.preventDefault();
-    const id = droppedId(event);
-    if (id) {
-      const current = active.indexOf(id);
-      change(
-        current >= 0 ? moveTo(active, current, index) : moveTo(activate(active, id), active.length, index),
-      );
-    }
-    dragEnd();
-  };
-
-  const dropOnAvailable = (event: DragEvent) => {
-    event.preventDefault();
-    const id = droppedId(event);
-    if (id) {
-      change(deactivate(active, id));
-    }
-    dragEnd();
-  };
+  const drag = (side: Side) => ({
+    over: side === 'active' ? over : null,
+    dragging,
+    start(event: DragEvent, id: string) {
+      event.dataTransfer.setData(DRAG_TYPE, id);
+      event.dataTransfer.setData('text/plain', id);
+      event.dataTransfer.effectAllowed = 'move';
+      setDragging(id);
+    },
+    end() {
+      setDragging(null);
+      setOver(null);
+    },
+    hover(index: number | null) {
+      setOver(index);
+    },
+    drop(event: DragEvent, index: number | null) {
+      event.preventDefault();
+      const id = droppedId(event);
+      if (id) {
+        if (side === 'available') {
+          change(deactivate(active, id));
+        } else {
+          const target = index ?? active.length;
+          const current = active.indexOf(id);
+          change(
+            current >= 0
+              ? moveTo(active, current, target)
+              : moveTo(activate(active, id), active.length, target),
+          );
+        }
+      }
+      setDragging(null);
+      setOver(null);
+    },
+  });
 
   return (
-    <Flex direction="column" gap="4">
-      <div className={styles.columns}>
-        <section className={styles.panel} aria-labelledby="realms-active">
-          <header className={styles.head}>
-            <Heading as="h2" size="3" id="realms-active">
-              {t('security.realms.active')}
-            </Heading>
-            <Badge variant="soft" color="gray">
-              {t('security.realms.count', { count: active.length })}
-            </Badge>
-          </header>
-          <ol
-            className={styles.list}
-            aria-labelledby="realms-active"
-            onDragOver={(event) => {
-              if (canWrite) {
-                event.preventDefault();
-              }
-            }}
-            onDrop={(event) => canWrite && dropOnActive(event, active.length)}
-          >
-            {shownActive.length === 0 && (
-              <li className={styles.empty}>
-                <Text size="2" color="gray">
-                  {t('security.realms.emptyActive')}
-                </Text>
-              </li>
-            )}
-            {shownActive.map((realm, index) => {
-              const label = realmLabel(t, realm);
-              return (
-                <li
-                  key={realm.id}
-                  className={styles.item}
-                  data-dragging={dragging === realm.id || undefined}
-                  data-over={over === index || undefined}
-                  draggable={canWrite}
-                  onDragStart={(event) => dragStart(event, realm.id)}
-                  onDragEnd={dragEnd}
-                  onDragOver={(event) => {
-                    if (canWrite) {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setOver(index);
-                    }
-                  }}
-                  onDrop={(event) => {
-                    event.stopPropagation();
-                    if (canWrite) {
-                      dropOnActive(event, index);
-                    }
+    <EditForm
+      id="realms-form"
+      onSubmit={save}
+      bar={
+        <EditBar
+          end={
+            !readOnly && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    change(baseline);
+                    setSelected(null);
                   }}
                 >
-                  {canWrite && <GripVertical size={16} aria-hidden="true" className={styles.grip} />}
-                  <span className={styles.position} aria-hidden="true">
-                    {index + 1}
-                  </span>
-                  <span className={styles.name}>
-                    <Text size="2" weight="medium">
-                      {label}
-                    </Text>
-                    <Text size="1" color="gray" className={formStyles.mono}>
-                      {realm.id}
-                    </Text>
-                  </span>
-                  {canWrite && (
-                    <span className={styles.buttons}>
-                      <IconButton
-                        type="button"
-                        size="1"
-                        variant="ghost"
-                        color="gray"
-                        disabled={index === 0}
-                        aria-label={t('security.realms.up', { name: label })}
-                        onClick={() => change(moveBy(active, realm.id, -1))}
-                      >
-                        <ArrowUp size={14} aria-hidden="true" />
-                      </IconButton>
-                      <IconButton
-                        type="button"
-                        size="1"
-                        variant="ghost"
-                        color="gray"
-                        disabled={index === active.length - 1}
-                        aria-label={t('security.realms.down', { name: label })}
-                        onClick={() => change(moveBy(active, realm.id, 1))}
-                      >
-                        <ArrowDown size={14} aria-hidden="true" />
-                      </IconButton>
-                      <IconButton
-                        type="button"
-                        size="1"
-                        variant="ghost"
-                        color="red"
-                        aria-label={t('security.realms.deactivate', { name: label })}
-                        onClick={() => change(deactivate(active, realm.id))}
-                      >
-                        <X size={14} aria-hidden="true" />
-                      </IconButton>
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-        <section
-          className={styles.panel}
-          aria-labelledby="realms-available"
-          onDragOver={(event) => {
-            if (canWrite) {
-              event.preventDefault();
-            }
-          }}
-          onDrop={(event) => canWrite && dropOnAvailable(event)}
-        >
-          <header className={styles.head}>
-            <Heading as="h2" size="3" id="realms-available">
-              {t('security.realms.available')}
-            </Heading>
-            <Badge variant="soft" color="gray">
-              {t('security.realms.count', { count: shownInactive.length })}
-            </Badge>
-          </header>
-          <ul className={styles.list} aria-labelledby="realms-available">
-            {shownInactive.length === 0 && (
-              <li className={styles.empty}>
-                <Text size="2" color="gray">
-                  {t('security.realms.emptyAvailable')}
-                </Text>
-              </li>
-            )}
-            {shownInactive.map((realm) => {
-              const label = realmLabel(t, realm);
-              return (
-                <li
-                  key={realm.id}
-                  className={styles.item}
-                  draggable={canWrite}
-                  onDragStart={(event) => dragStart(event, realm.id)}
-                  onDragEnd={dragEnd}
-                >
-                  <span className={styles.name}>
-                    <Text size="2" weight="medium">
-                      {label}
-                    </Text>
-                    <Text size="1" color="gray" className={formStyles.mono}>
-                      {realm.id}
-                    </Text>
-                  </span>
-                  {canWrite && (
-                    <span className={styles.buttons}>
-                      <IconButton
-                        type="button"
-                        size="1"
-                        variant="soft"
-                        aria-label={t('security.realms.activate', { name: label })}
-                        onClick={() => change(activate(active, realm.id))}
-                      >
-                        <Plus size={14} aria-hidden="true" />
-                      </IconButton>
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      </div>
-      <Callout.Root color="gray" variant="surface" className={styles.about}>
-        <Callout.Icon>
-          <Info size={16} />
-        </Callout.Icon>
-        <Callout.Text>{t('security.realms.about')}</Callout.Text>
-      </Callout.Root>
+                  {t('security.form.discard')}
+                </Button>
+                <Button type="submit" disabled={!dirty} loading={saving}>
+                  {t('security.form.save')}
+                </Button>
+              </>
+            )
+          }
+        />
+      }
+    >
+      <h2 className={styles.heading}>{t('security.realms.activeRealms')}</h2>
       <FormError message={error} />
-      {canWrite && (
-        <div className={formStyles.actions}>
-          <Button type="button" loading={saving} disabled={!dirty} onClick={save}>
-            {t('security.form.save')}
-          </Button>
-          <Button
-            type="button"
-            variant="soft"
-            color="gray"
-            disabled={!dirty}
-            onClick={() => change(baseline)}
+      <div className={styles.transfer}>
+        <RealmPane
+          side="available"
+          title={t('security.realms.available')}
+          label={t('security.realms.availableList')}
+          count={t('security.realms.count', { count: shownInactive.length })}
+          realms={shownInactive}
+          selected={selected}
+          readOnly={readOnly}
+          onSelect={(id) => toggle('available', id)}
+          onMove={(id) => move('available', id)}
+          drag={drag('available')}
+        />
+        <div className={styles.moves}>
+          <MoveButton
+            label={t('security.realms.addAll')}
+            title={t('security.realms.addAllShort')}
+            disabled={readOnly || shownInactive.length === 0}
+            onClick={() => {
+              change([...active, ...shownInactive.map((realm) => realm.id)]);
+              setSelected(null);
+            }}
           >
-            {t('security.form.discard')}
-          </Button>
+            <ChevronsRight size={16} aria-hidden="true" />
+          </MoveButton>
+          <MoveButton
+            label={t('security.realms.add')}
+            title={t('security.realms.addShort')}
+            disabled={readOnly || selected?.side !== 'available'}
+            onClick={() => selected && move('available', selected.id)}
+          >
+            <ChevronRight size={16} aria-hidden="true" />
+          </MoveButton>
+          <MoveButton
+            label={t('security.realms.remove')}
+            title={t('security.realms.removeShort')}
+            disabled={readOnly || selected?.side !== 'active'}
+            onClick={() => selected && move('active', selected.id)}
+          >
+            <ChevronLeft size={16} aria-hidden="true" />
+          </MoveButton>
+          <MoveButton
+            label={t('security.realms.removeAll')}
+            title={t('security.realms.removeAllShort')}
+            disabled={readOnly || active.length === 0}
+            onClick={() => {
+              change([]);
+              setSelected(null);
+            }}
+          >
+            <ChevronsLeft size={16} aria-hidden="true" />
+          </MoveButton>
         </div>
-      )}
-      <UnsavedChangesGuard when={dirty} />
+        <RealmPane
+          side="active"
+          title={t('security.realms.active')}
+          label={t('security.realms.activeList')}
+          count={t('security.realms.count', { count: shownActive.length })}
+          realms={shownActive}
+          selected={selected}
+          readOnly={readOnly}
+          onSelect={(id) => toggle('active', id)}
+          onMove={(id) => move('active', id)}
+          drag={drag('active')}
+        />
+        <div className={styles.moves}>
+          <MoveButton
+            label={t('security.realms.up')}
+            title={t('security.realms.upShort')}
+            disabled={readOnly || selectedIndex <= 0}
+            onClick={() => selected && change(moveBy(active, selected.id, -1))}
+          >
+            <ArrowUp size={16} aria-hidden="true" />
+          </MoveButton>
+          <MoveButton
+            label={t('security.realms.down')}
+            title={t('security.realms.downShort')}
+            disabled={readOnly || selectedIndex < 0 || selectedIndex === active.length - 1}
+            onClick={() => selected && change(moveBy(active, selected.id, 1))}
+          >
+            <ArrowDown size={16} aria-hidden="true" />
+          </MoveButton>
+        </div>
+      </div>
+      <HelpCard title={t('security.realms.helpTitle')} link={HELP}>
+        {t('security.realms.about')}
+      </HelpCard>
+      <UnsavedChangesGuard when={dirty && !readOnly} />
       <ConfirmDialog
         open={confirmLocal}
         onOpenChange={setConfirmLocal}
@@ -313,7 +428,7 @@ function RealmsEditor({ available, saved }: { available: Realm[]; saved: string[
         confirmLabel={t('security.realms.localConfirm')}
         danger
       />
-    </Flex>
+    </EditForm>
   );
 }
 
@@ -324,6 +439,7 @@ export default function RealmsPage() {
   const error = available.error ?? active.error;
   return (
     <Page
+      className={edit.settingsPage}
       title={t('security.realms.title')}
       description={t('security.realms.intro')}
       breadcrumbs={[

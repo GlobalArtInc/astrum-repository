@@ -1,26 +1,9 @@
-import type { Translate } from '../../../i18n';
 import type { Realm } from '../api';
 
 export const LOCAL_REALM = 'AstrumAuthenticatingRealm';
 
-const REALM_LABELS: Record<string, string> = {
-  AccessTokenRealm: 'security.realm.accessTokens',
-  CargoToken: 'security.realm.cargo',
-  ConanToken: 'security.realm.conan',
-  DefaultRole: 'security.realm.defaultRole',
-  DockerToken: 'security.realm.docker',
-  LdapRealm: 'security.realm.ldap',
-  AstrumAuthenticatingRealm: 'security.realm.local',
-  NpmToken: 'security.realm.npm',
-  NuGetApiKey: 'security.realm.nuget',
-  OAuth2Realm: 'security.realm.oidc',
-  RubyGemsApiKey: 'security.realm.rubygems',
-  TerraformToken: 'security.realm.terraform',
-};
-
-export function realmLabel(t: Translate, realm: Realm): string {
-  const key = REALM_LABELS[realm.id];
-  return key ? t(key) : realm.name || realm.id;
+export function realmLabel(realm: Realm): string {
+  return realm.name || realm.id;
 }
 
 export function activeRealms(available: readonly Realm[], active: readonly string[]): Realm[] {

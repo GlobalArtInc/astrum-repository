@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { makeTranslate } from '../../../i18n';
 import {
   activate,
   activeRealms,
@@ -51,10 +50,10 @@ describe('realm ordering', () => {
     ]);
   });
 
-  it('names known realms in the language of the page', () => {
-    expect(realmLabel(makeTranslate('ru'), { id: 'AstrumAuthenticatingRealm', name: 'x' })).toBe(
-      'Локальные пользователи',
+  it('names a realm as the server does', () => {
+    expect(realmLabel({ id: 'AstrumAuthenticatingRealm', name: 'Local Authenticating Realm' })).toBe(
+      'Local Authenticating Realm',
     );
-    expect(realmLabel(makeTranslate('en'), { id: 'Custom', name: 'Custom realm' })).toBe('Custom realm');
+    expect(realmLabel({ id: 'Custom', name: '' })).toBe('Custom');
   });
 });

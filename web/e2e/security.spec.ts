@@ -255,23 +255,26 @@ test('realms are reordered with buttons and by dragging', async ({ page, request
   const admin = new AdminApi(request, server);
   try {
     await page.goto('/admin/security/realms');
-    const active = page.getByRole('list', { name: 'Active' });
-    await page.getByRole('button', { name: 'Activate Docker tokens' }).click();
-    await page.getByRole('button', { name: 'Move Docker tokens up' }).click();
-    await expect(active.getByRole('listitem').nth(1)).toContainText('Docker tokens');
+    const active = page.getByRole('listbox', { name: 'Active realms' });
+    const available = page.getByRole('listbox', { name: 'Available realms' });
+    await available.getByRole('option', { name: 'Docker Bearer Token Realm' }).click();
+    await page.getByRole('button', { name: 'Activate the selected realm' }).click();
+    await active.getByRole('option', { name: /Docker Bearer Token Realm/ }).click();
+    await page.getByRole('button', { name: 'Move the selected realm up' }).click();
+    await expect(active.getByRole('option').nth(1)).toContainText('Docker Bearer Token Realm');
     await active
-      .getByRole('listitem')
-      .filter({ hasText: 'Access tokens' })
-      .dragTo(active.getByRole('listitem').filter({ hasText: 'Local users' }));
-    await expect(active.getByRole('listitem').first()).toContainText('Access tokens');
-    await page.getByRole('button', { name: 'Deactivate Local users' }).click();
+      .getByRole('option', { name: /Access Token Realm/ })
+      .dragTo(active.getByRole('option', { name: /Local Authenticating Realm/ }));
+    await expect(active.getByRole('option').first()).toContainText('Access Token Realm');
+    await active.getByRole('option', { name: /Local Authenticating Realm/ }).dblclick();
     await page.getByRole('button', { name: 'Save' }).click();
     const warning = page.getByRole('alertdialog', { name: 'Deactivate local users?' });
     await warning.getByRole('button', { name: 'Cancel' }).click();
-    await page.getByRole('button', { name: 'Discard changes' }).click();
-    await page.getByRole('button', { name: 'Activate Docker tokens' }).click();
-    await page.getByRole('button', { name: 'Move Docker tokens up' }).click();
-    await page.getByRole('button', { name: 'Move Docker tokens up' }).click();
+    await page.getByRole('button', { name: 'Discard Changes' }).click();
+    await available.getByRole('option', { name: 'Docker Bearer Token Realm' }).dblclick();
+    await active.getByRole('option', { name: /Docker Bearer Token Realm/ }).click();
+    await page.getByRole('button', { name: 'Move the selected realm up' }).click();
+    await page.getByRole('button', { name: 'Move the selected realm up' }).click();
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(toast(page, 'The realms are saved')).toBeVisible();
     expect(await admin.get<string[]>('/service/rest/v1/security/realms/active')).toEqual([

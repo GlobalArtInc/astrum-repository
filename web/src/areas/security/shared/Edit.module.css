@@ -231,3 +231,13 @@
     padding: 24px 0;
   }
 }
+
+.settingsPage[data-gutter] {
+  padding: 32px;
+}
+
+@media (max-width: 639px) {
+  .settingsPage[data-gutter] {
+    padding: 16px;
+  }
+}
