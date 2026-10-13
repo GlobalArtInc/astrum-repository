@@ -64,6 +64,7 @@ test('the tree navigates with the keyboard and opens deep links', async ({ page,
   await docs.focus();
   await page.keyboard.press('ArrowRight');
   await expect(docs).toHaveAttribute('aria-expanded', 'true');
+  await expect(files.getByRole('treeitem', { name: /readme\.txt/ })).toBeVisible();
   await page.keyboard.press('ArrowDown');
   await expect(files.getByRole('treeitem', { name: /readme\.txt/ })).toBeFocused();
   await page.keyboard.press('Enter');
