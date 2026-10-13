@@ -39,4 +39,6 @@ export const sections = {
   raw: (spec: Spec) => spec.format === 'raw',
   rawQuery: (spec: Spec) => spec.format === 'raw' && spec.type === 'proxy',
   nugetProxy: (spec: Spec) => spec.format === 'nuget' && spec.type === 'proxy',
+  yum: (spec: Spec) => spec.format === 'yum' && spec.type === 'hosted',
+  yumSigning: (spec: Spec) => spec.format === 'yum',
 };

@@ -182,6 +182,8 @@
   "browse.usage.hint.rawUpload": "Uploading needs a user who may add to this repository",
   "browse.usage.hint.helmRepo": "Register the repository once, then install charts from it",
   "browse.usage.hint.helmUpload": "Uploading needs a user with write access to this repository",
+  "browse.usage.hint.yumRepo": "Save it as /etc/yum.repos.d/{name}.repo and install packages with dnf or yum",
+  "browse.usage.hint.yumUpload": "Uploading needs a user with write access to this repository",
 
   "browse.component.search": "Search",
   "browse.component.invalidTitle": "Unknown component",

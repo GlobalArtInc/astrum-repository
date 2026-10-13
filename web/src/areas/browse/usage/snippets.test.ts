@@ -266,3 +266,41 @@ describe('nuget usage', () => {
     expect(ids(proxy)).toEqual(['dotnet', 'source', 'nuget', 'config']);
   });
 });
+
+describe('yum usage', () => {
+  const component = { group: '', name: 'astrum-dep', version: '1:2.0-3' };
+
+  it('writes a .repo file at the repodata directory, installs and uploads a hosted package', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'yum',
+        repositoryName: 'rpms',
+        component,
+        path: 'el9/x86_64/Packages/astrum-dep-2.0-3.noarch.rpm',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['repo', 'install', 'upload']);
+    expect(code(snippets, 'repo')).toBe(
+      '[rpms]\nname=rpms\nbaseurl=https://repo.example.org/repository/rpms/el9/x86_64/\nenabled=1\ngpgcheck=0',
+    );
+    expect(snippets[0]?.label).toBe('rpms.repo');
+    expect(snippets[0]?.hintVars).toEqual({ name: 'rpms' });
+    expect(code(snippets, 'install')).toBe('sudo dnf install astrum-dep-1:2.0-3');
+    expect(code(snippets, 'upload')).toBe(
+      'curl -u <user> --upload-file ./astrum-dep-2.0-3.noarch.rpm https://repo.example.org/repository/rpms/el9/x86_64/Packages/astrum-dep-2.0-3.noarch.rpm',
+    );
+    expect(snippets.find((snippet) => snippet.id === 'upload')?.hint).toBe('browse.usage.hint.yumUpload');
+  });
+
+  it('only reads from proxies and groups and uses placeholders without a package', () => {
+    const group = usageSnippets(
+      context({ format: 'yum', repositoryName: 'all-rpms', repositoryType: 'group' }),
+    );
+    expect(ids(group)).toEqual(['repo']);
+    expect(code(group, 'repo')).toContain('baseurl=https://repo.example.org/repository/all-rpms/\n');
+    const hosted = usageSnippets(context({ format: 'yum', repositoryName: 'rpms' }));
+    expect(code(hosted, 'upload')).toBe(
+      'curl -u <user> --upload-file ./<package>.rpm https://repo.example.org/repository/rpms/<package>.rpm',
+    );
+  });
+});

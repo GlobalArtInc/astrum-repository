@@ -9,6 +9,7 @@ import type { UiRepository } from '../api';
 import type { RepositoryDocument } from '../model/document';
 import {
   fromDocument,
+  hasSection,
   onFormFields,
   type RepositoryValues,
   storedSecrets,
@@ -86,6 +87,11 @@ const LAYOUT_POLICIES = [
 const DISPOSITIONS = [
   { value: 'INLINE', label: 'repositories.form.dispositions.INLINE' },
   { value: 'ATTACHMENT', label: 'repositories.form.dispositions.ATTACHMENT' },
+];
+
+const DEPLOY_POLICIES = [
+  { value: 'STRICT', label: 'repositories.form.deployPolicies.STRICT' },
+  { value: 'PERMISSIVE', label: 'repositories.form.deployPolicies.PERMISSIVE' },
 ];
 
 const NUGET_VERSIONS = [
@@ -382,6 +388,50 @@ export function RepositoryForm(props: RepositoryFormProps) {
               label={t('repositories.form.queryCacheItemMaxAge')}
               hint={t('repositories.form.queryCacheItemMaxAgeHint')}
               min={0}
+            />
+          </Section>
+        )}
+
+        {sections.yum(spec) && (
+          <Section
+            title={t('repositories.form.sections.yum')}
+            description={t('repositories.form.sections.yumText')}
+          >
+            <NumberInput
+              {...field('repodataDepth')}
+              label={t('repositories.form.repodataDepth')}
+              hint={t('repositories.form.repodataDepthHint')}
+              min={0}
+              max={5}
+              required
+            />
+            <SelectInput
+              {...field('deployPolicy')}
+              label={t('repositories.form.deployPolicy')}
+              hint={t('repositories.form.deployPolicyHint')}
+              options={options(DEPLOY_POLICIES)}
+            />
+          </Section>
+        )}
+
+        {sections.yumSigning(spec) && (
+          <Section
+            title={t('repositories.form.sections.yumSigning')}
+            description={t('repositories.form.sections.yumSigningText')}
+          >
+            <TextAreaInput
+              {...field('yumKeypair')}
+              label={t('repositories.form.yumKeypair')}
+              hint={
+                !creating && hasSection(document, 'yumSigning')
+                  ? t('repositories.form.yumKeypairStored')
+                  : t('repositories.form.yumKeypairHint')
+              }
+            />
+            <SecretInput
+              {...field('yumPassphrase')}
+              label={t('repositories.form.yumPassphrase')}
+              hint={t('repositories.form.yumPassphraseHint')}
             />
           </Section>
         )}

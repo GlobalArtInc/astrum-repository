@@ -109,6 +109,22 @@ const MORE: readonly CriterionDefinition[] = [
     format: 'helm',
     example: 'web',
   },
+  { key: 'yum.name', label: 'search.criterion.yumName', kind: 'text', format: 'yum', example: 'bash' },
+  {
+    key: 'yum.version',
+    label: 'search.criterion.yumVersion',
+    kind: 'text',
+    format: 'yum',
+    example: '5.2.26',
+  },
+  { key: 'yum.release', label: 'search.criterion.yumRelease', kind: 'text', format: 'yum', example: '1.el9' },
+  {
+    key: 'yum.architecture',
+    label: 'search.criterion.yumArchitecture',
+    kind: 'text',
+    format: 'yum',
+    example: 'x86_64',
+  },
   {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',

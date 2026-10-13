@@ -431,3 +431,14 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
 - Left after M3: idle-session countdown, response compression, docker port suggestion, repository profile
   tabs "structure", "security" and "system", tree filter and type-ahead, connection
   examples for formats added later, session dialog on a 401 during upload.
+- Yum (M4 wave 2, `crates/astrum-format-yum`, ported from our Java module): hosted repositories generate
+  `repodata` (primary, filelists, other as gzip plus `repomd.xml`, like createrepo_c) at `repodataDepth`
+  directories, rebuilt after each package change (debounced, PostgreSQL advisory lock per base) and checked
+  against a fingerprint of the packages on every `repomd.xml` read, so deletes through the REST API, browse
+  or cleanup also show; the previous generation of files is kept for clients mid-fetch; `deployPolicy`
+  STRICT/PERMISSIVE; `yumSigning` signs `repomd.xml.asc` (rpgp) and serves `repomd.xml.key`; proxies cache
+  metadata and packages and mark cached repodata stale when `repomd.xml` lists other checksums; groups merge
+  member repodata (gz/xz/bz2/zstd, first location wins) under a merge key and pass a single member through;
+  upload spec with `directory`, search keys `yum.name|version|release|architecture`, the visible task
+  `repository.yum.rebuild.metadata`, cleanup pre-releases (`~` in the version or a release starting `0.`).
+  Real clients: dnf 4.24 (hosted, depth 2 with `repo_gpgcheck`, proxy, group), createrepo_c output compared.

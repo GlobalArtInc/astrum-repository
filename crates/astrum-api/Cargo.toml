@@ -36,6 +36,7 @@ astrum-format-npm.workspace = true
 astrum-format-nuget.workspace = true
 astrum-format-pypi.workspace = true
 astrum-format-raw.workspace = true
+astrum-format-yum.workspace = true
 astrum-testkit.workspace = true
 flate2.workspace = true
 hex.workspace = true

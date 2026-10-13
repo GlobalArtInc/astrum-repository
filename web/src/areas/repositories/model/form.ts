@@ -66,6 +66,10 @@ export interface RepositoryValues {
   routingRuleName: string;
   useTrustStore: boolean;
   cleanupPolicies: string[];
+  repodataDepth: number | null;
+  deployPolicy: string;
+  yumKeypair: string;
+  yumPassphrase: string;
 }
 
 export type FieldKey = keyof RepositoryValues;
@@ -139,6 +143,10 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'routingRuleName', path: ['routingRuleName'], kind: 'enum' },
   { key: 'useTrustStore', path: ['httpClient', 'connection', 'useTrustStore'], kind: 'bool' },
   { key: 'cleanupPolicies', path: ['cleanup', 'policyNames'], kind: 'list' },
+  { key: 'repodataDepth', path: ['yum', 'repodataDepth'], kind: 'int' },
+  { key: 'deployPolicy', path: ['yum', 'deployPolicy'], kind: 'enum' },
+  { key: 'yumKeypair', path: ['yumSigning', 'keypair'], kind: 'secret' },
+  { key: 'yumPassphrase', path: ['yumSigning', 'passphrase'], kind: 'secret' },
 ];
 
 function read(def: FieldDef, value: Json | undefined): RepositoryValues[FieldKey] {
@@ -297,6 +305,9 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
   if (sections.nugetProxy(spec)) {
     document.nugetProxy = { nugetVersion: 'V3', queryCacheItemMaxAge: 3600 };
   }
+  if (sections.yum(spec)) {
+    document.yum = { repodataDepth: 0, deployPolicy: 'STRICT' };
+  }
   if (sections.raw(spec)) {
     document.raw = sections.rawQuery(spec)
       ? { contentDisposition: 'ATTACHMENT', forwardQueryParameters: false, excludedQueryParameters: [] }
@@ -380,6 +391,9 @@ export function validate(values: RepositoryValues, context: ValidationContext, t
       errors.bearerToken = t('repositories.form.errors.bearerTokenRequired');
     }
   }
+  if (sections.yum(spec) && !between(values.repodataDepth, 0, 5)) {
+    errors.repodataDepth = t('repositories.form.errors.repodataDepth');
+  }
   if (sections.nugetProxy(spec) && !between(values.queryCacheItemMaxAge, 0, 2_147_483_647)) {
     errors.queryCacheItemMaxAge = t('repositories.form.errors.queryCacheItemMaxAge');
   }
@@ -422,6 +436,10 @@ export function formField(id: string, spec: Spec): FieldKey | null {
       return spec.format === 'pypi' ? 'pypiRemoveQuarantined' : 'removeQuarantined';
     case 'policyNames':
       return 'cleanupPolicies';
+    case 'keypair':
+      return spec.format === 'yum' ? 'yumKeypair' : null;
+    case 'passphrase':
+      return spec.format === 'yum' ? 'yumPassphrase' : null;
     default:
       return SAME_NAME.has(last) ? (last as FieldKey) : null;
   }

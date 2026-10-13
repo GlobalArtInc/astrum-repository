@@ -203,6 +203,8 @@
   "browse.usage.hint.rawUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
   "browse.usage.hint.helmRepo": "Один раз подключите репозиторий, затем ставьте из него чарты",
   "browse.usage.hint.helmUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
+  "browse.usage.hint.yumRepo": "Сохраните в /etc/yum.repos.d/{name}.repo и устанавливайте пакеты через dnf или yum",
+  "browse.usage.hint.yumUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
 
   "browse.component.search": "Поиск",
   "browse.component.invalidTitle": "Неизвестный компонент",
