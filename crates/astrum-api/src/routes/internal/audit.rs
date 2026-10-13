@@ -105,6 +105,10 @@ async fn list(
                 )
                 .add(Expr::cust_with_values(
                     "(attributes ->> 'repository') = $1",
+                    [repository.clone()],
+                ))
+                .add(Expr::cust_with_values(
+                    "(attributes ->> 'repository.name') = $1",
                     [repository],
                 )),
         );

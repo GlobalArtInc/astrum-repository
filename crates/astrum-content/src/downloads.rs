@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -8,11 +8,14 @@ use crate::ContentError;
 
 pub const DOWNLOAD_DAYS_KEPT: i32 = 180;
 
+pub const DOWNLOAD_AUDIT_INTERVAL: chrono::Duration = chrono::Duration::hours(12);
+
 const SECONDS_PER_DAY: u64 = 86_400;
 
 #[derive(Default)]
 pub(crate) struct Downloads {
     pending: Mutex<HashMap<(i64, i32), i64>>,
+    audited: Mutex<HashSet<i64>>,
 }
 
 fn today() -> i32 {
@@ -33,7 +36,31 @@ impl Downloads {
             .or_default() += 1;
     }
 
+    pub(crate) fn first_since_audit(
+        &self,
+        asset_id: i64,
+        last_downloaded: Option<chrono::DateTime<chrono::Utc>>,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> bool {
+        let stale = last_downloaded.is_none_or(|last| now - last >= DOWNLOAD_AUDIT_INTERVAL);
+        stale
+            && self
+                .audited
+                .lock()
+                .expect("the download audit lock is never poisoned")
+                .insert(asset_id)
+    }
+
     pub(crate) async fn flush(&self, db: &DatabaseConnection) -> Result<(), ContentError> {
+        let result = self.save(db).await;
+        self.audited
+            .lock()
+            .expect("the download audit lock is never poisoned")
+            .clear();
+        result
+    }
+
+    async fn save(&self, db: &DatabaseConnection) -> Result<(), ContentError> {
         let pending = std::mem::take(
             &mut *self
                 .pending
@@ -82,5 +109,22 @@ impl Downloads {
             ))
             .await?;
         Ok(result.rows_affected())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_download_is_audited_once_per_interval() {
+        let downloads = Downloads::default();
+        let now = chrono::Utc::now();
+        assert!(downloads.first_since_audit(1, None, now));
+        assert!(!downloads.first_since_audit(1, None, now));
+        assert!(!downloads.first_since_audit(2, Some(now - chrono::Duration::hours(1)), now));
+        assert!(downloads.first_since_audit(2, Some(now - chrono::Duration::hours(13)), now));
+        downloads.audited.lock().unwrap().clear();
+        assert!(downloads.first_since_audit(1, None, now));
     }
 }

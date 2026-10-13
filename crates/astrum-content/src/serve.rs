@@ -182,6 +182,7 @@ pub async fn serve(
     };
     if options.count_download && offset == 0 {
         ctx.content.note_download(asset.id);
+        ctx.content.audit_download(asset, &ctx.uploader()).await;
     }
     builder
         .body(Body::from_stream(content.stream))

@@ -14,6 +14,7 @@ use crate::auth::{CSRF_COOKIE, SESSION_COOKIE, cookie};
 use crate::{ApiError, AppState, Caller, Json};
 
 const COOKIE_AGE: u64 = 400 * 24 * 60 * 60;
+const SIGN_IN_PATH: &str = "/service/rest/internal/session";
 
 pub fn routes() -> Router<AppState> {
     Router::new().route(
@@ -50,12 +51,19 @@ async fn sign_in(
         Err(astrum_security::AuthError::BadCredentials) => {
             security.sign_in_failed(&user);
             tracing::info!(user, "a sign-in to the user interface failed");
-            state
-                .audit(
-                    &Caller::default(),
-                    Event::new("security.session", "failed", &user),
-                )
-                .await;
+            audit_failed_sign_in(&state, &user, SIGN_IN_PATH, &headers).await;
+            if security.sign_in_blocked(&user) {
+                state
+                    .audit(
+                        &Caller(None),
+                        Event::new("security.auth.ratelimit", "blocked", &user).with(json!({
+                            "sourceIp": client_ip(&headers),
+                            "username": user,
+                            "authMethod": "UI",
+                        })),
+                    )
+                    .await;
+            }
             return Ok(refused(
                 StatusCode::UNAUTHORIZED,
                 "the user name or password is wrong",
@@ -87,8 +95,7 @@ pub(crate) async fn begin(
     state
         .audit(
             &caller,
-            Event::new("security.session", "created", &subject.user_id)
-                .with(json!({"realm": subject.realm})),
+            Event::new(&subject.realm, "login", "").with(json!({"principal": subject.user_id})),
         )
         .await;
     let secure = is_https(headers);
@@ -118,11 +125,13 @@ async fn sign_out(
 ) -> Result<Response, ApiError> {
     if let Some(token) = cookie(&headers, SESSION_COOKIE)
         && state.security().close_session(token).await?
+        && let Some(subject) = caller.subject()
     {
         state
             .audit(
                 &caller,
-                Event::new("security.session", "deleted", caller.initiator()),
+                Event::new(&subject.realm, "logout", "")
+                    .with(json!({"principal": subject.user_id})),
             )
             .await;
     }
@@ -159,6 +168,34 @@ fn describe(state: &AppState, subject: Option<&Subject>) -> Value {
         },
         "permissions": permissions,
     })
+}
+
+pub(crate) async fn audit_failed_sign_in(
+    state: &AppState,
+    user: &str,
+    path: &str,
+    headers: &HeaderMap,
+) {
+    if !state.security().model().users.contains_key(user) {
+        return;
+    }
+    let user_agent = headers
+        .get(header::USER_AGENT)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default();
+    state
+        .audit(
+            &Caller(None),
+            Event::new("security.user", "authentication", "").with(json!({
+                "path": path,
+                "userId": user,
+                "remoteIp": client_ip(headers),
+                "userAgent": user_agent,
+                "wasSuccessful": false,
+                "failureReasons": ["INCORRECT_CREDENTIALS"],
+            })),
+        )
+        .await;
 }
 
 fn refused(status: StatusCode, message: &str) -> Response {

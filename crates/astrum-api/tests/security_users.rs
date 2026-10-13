@@ -566,12 +566,20 @@ async fn changing_a_password_needs_its_own_permission() {
     assert_eq!(new.json()[0]["status"], "active");
 
     let events = audit(&fixture, "security.user").await;
-    let last = events.last().unwrap();
+    let last = events
+        .iter()
+        .rev()
+        .find(|event| event.0 == "updated")
+        .unwrap();
     assert_eq!(
         (last.0.as_str(), last.1.as_str(), last.2.as_str()),
         ("updated", "jane", "desk")
     );
     assert!(!last.3.to_string().contains("battery"));
+    assert!(
+        events.iter().any(|event| event.0 == "authentication"),
+        "the sign-in with the old password is recorded as a failure"
+    );
 }
 
 #[tokio::test]

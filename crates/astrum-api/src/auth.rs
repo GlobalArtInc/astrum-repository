@@ -15,6 +15,7 @@ use subtle::ConstantTimeEq;
 
 use crate::AppState;
 use crate::error::ApiError;
+use crate::routes::internal::session;
 
 pub const UI_HEADER: &str = "x-astrum-ui";
 pub const SESSION_COOKIE: &str = "astrum_session";
@@ -94,7 +95,14 @@ pub async fn authenticate(State(state): State<AppState>, request: Request, next:
 
 async fn admit(state: AppState, mut request: Request, next: Next) -> Response {
     let from_ui = is_ui(request.headers());
-    let caller = match resolve(&state, request.method(), request.headers()).await {
+    let caller = match resolve(
+        &state,
+        request.method(),
+        request.uri().path(),
+        request.headers(),
+    )
+    .await
+    {
         Ok(caller) => caller,
         Err(ApiError::Unauthorized) if is_sign_in(request.uri().path()) => {
             Caller(state.security().anonymous())
@@ -114,10 +122,13 @@ enum Credentials {
 async fn resolve(
     state: &AppState,
     method: &Method,
+    path: &str,
     headers: &HeaderMap,
 ) -> Result<Caller, ApiError> {
     if let Some(credentials) = credentials(headers)? {
         let security = state.security();
+        let password_given =
+            matches!(&credentials, Credentials::Basic(_, password) if !looks_like_token(password));
         let (user, result) = match credentials {
             Credentials::Basic(user, password) if looks_like_token(&password) => {
                 let result = security.authenticate_token(Some(&user), &password).await;
@@ -147,6 +158,9 @@ async fn resolve(
             Ok(subject) => Ok(Caller(Some(subject))),
             Err(AuthError::BadCredentials) => {
                 tracing::info!(user, "a sign-in failed");
+                if password_given {
+                    session::audit_failed_sign_in(state, &user, &audit_path(path), headers).await;
+                }
                 Err(ApiError::Unauthorized)
             }
             Err(AuthError::Internal(error)) => Err(error.into()),
@@ -177,6 +191,15 @@ async fn resolve(
         return Ok(Caller(Some(session.subject)));
     }
     Ok(Caller(state.security().anonymous()))
+}
+
+fn audit_path(path: &str) -> String {
+    let mut parts = path.split('/').filter(|part| !part.is_empty());
+    match (parts.next(), parts.next()) {
+        (Some("service"), Some(second)) => format!("/service/{second}"),
+        (Some(first), _) => format!("/{first}"),
+        (None, _) => "/".to_owned(),
+    }
 }
 
 fn is_sign_in(path: &str) -> bool {
@@ -266,4 +289,17 @@ fn without_challenge(mut response: Response, from_ui: bool) -> Response {
         response.headers_mut().remove(header::WWW_AUTHENTICATE);
     }
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use super::audit_path;
+
+    #[test]
+    fn failed_sign_ins_name_the_part_of_the_server() {
+        assert_eq!(audit_path("/repository/raw/docs/a.txt"), "/repository");
+        assert_eq!(audit_path("/service/rest/v1/repositories"), "/service/rest");
+        assert_eq!(audit_path("/v2/team/app/manifests/1"), "/v2");
+        assert_eq!(audit_path("/"), "/");
+    }
 }

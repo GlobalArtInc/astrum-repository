@@ -142,6 +142,30 @@ impl Content {
         self.inner.downloads.note(asset_id);
     }
 
+    pub async fn audit_download(&self, asset: &Asset, initiator: &str) {
+        let last = asset
+            .last_downloaded_at
+            .map(|at| at.with_timezone(&chrono::Utc));
+        if !self
+            .inner
+            .downloads
+            .first_since_audit(asset.id, last, chrono::Utc::now())
+        {
+            return;
+        }
+        let event =
+            astrum_db::audit::Event::new("repository.asset", "updated-downloaded", &asset.path)
+                .by(initiator)
+                .with(serde_json::json!({
+                    "kind": asset.kind,
+                    "path": asset.path,
+                    "repository.name": asset.repository,
+                }));
+        if let Err(error) = astrum_db::audit::record(self.db(), event).await {
+            tracing::warn!(%error, "a download was not recorded in the audit log");
+        }
+    }
+
     pub async fn flush_downloads(&self) -> Result<(), ContentError> {
         self.inner.downloads.flush(self.db()).await
     }
