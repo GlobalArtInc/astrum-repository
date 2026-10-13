@@ -11,6 +11,7 @@ astrum-blob.workspace = true
 astrum-content.workspace = true
 astrum-db.workspace = true
 astrum-logging.workspace = true
+astrum-notify.workspace = true
 astrum-repo.workspace = true
 astrum-security.workspace = true
 astrum-tasks.workspace = true
@@ -33,6 +34,7 @@ tracing.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+async-trait.workspace = true
 astrum-format-docker.workspace = true
 astrum-format-helm.workspace = true
 astrum-format-huggingface.workspace = true

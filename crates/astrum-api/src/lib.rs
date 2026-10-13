@@ -11,6 +11,7 @@ use astrum_content::Content;
 use astrum_db::Database;
 use astrum_db::audit::{self, Event};
 use astrum_logging::Logging;
+use astrum_notify::Notifier;
 use astrum_security::{SecretBox, Security};
 use astrum_tasks::Tasks;
 use axum::Router;
@@ -40,6 +41,7 @@ struct Inner {
     logging: OnceLock<Logging>,
     configuration: OnceLock<Vec<(String, String)>>,
     started: chrono::DateTime<chrono::Utc>,
+    notifier: Notifier,
 }
 
 impl AppState {
@@ -52,6 +54,7 @@ impl AppState {
         ));
         let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
         let tasks = Tasks::new(content.clone());
+        let notifier = Notifier::new(db.conn().clone(), secrets.clone());
         Self {
             inner: Arc::new(Inner {
                 db,
@@ -64,6 +67,7 @@ impl AppState {
                 logging: OnceLock::new(),
                 configuration: OnceLock::new(),
                 started: chrono::Utc::now(),
+                notifier,
             }),
         }
     }
@@ -123,6 +127,10 @@ impl AppState {
 
     pub fn started(&self) -> chrono::DateTime<chrono::Utc> {
         self.inner.started
+    }
+
+    pub fn notifier(&self) -> &Notifier {
+        &self.inner.notifier
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {

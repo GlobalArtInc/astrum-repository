@@ -64,6 +64,7 @@ impl Server {
         self.state.content().spawn_background();
         let scheduler = self.state.tasks().spawn();
         let logging = spawn_logging_sync(self.state.clone());
+        let notifier = self.state.notifier().spawn();
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(
@@ -85,6 +86,8 @@ impl Server {
         self.state.tasks().shutdown(TASK_SHUTDOWN).await;
         scheduler.abort();
         logging.abort();
+        self.state.notifier().stop();
+        let _ = notifier.await;
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");
         }

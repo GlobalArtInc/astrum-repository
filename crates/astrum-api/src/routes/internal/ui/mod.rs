@@ -6,6 +6,7 @@ mod browse;
 mod browse_asset;
 mod cleanup_policies;
 pub(crate) mod identity;
+mod notifications;
 mod nuget_api_key;
 mod privileges;
 mod repositories;
@@ -38,6 +39,7 @@ pub fn routes() -> Router<AppState> {
         .merge(nuget_api_key::routes())
         .merge(tasks::routes())
         .merge(cleanup_policies::routes())
+        .merge(notifications::routes())
 }
 
 fn time(value: DateTime<FixedOffset>) -> String {

@@ -25,6 +25,7 @@ astrum-format-swift = { path = "crates/astrum-format-swift" }
 astrum-format-terraform = { path = "crates/astrum-format-terraform" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-logging = { path = "crates/astrum-logging" }
+astrum-notify = { path = "crates/astrum-notify" }
 astrum-repo = { path = "crates/astrum-repo" }
 astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }
@@ -65,7 +66,7 @@ rand_core06 = { package = "rand_core", version = "0.6", features = ["getrandom"]
 rcgen = "0.14"
 regex = "1"
 regex-syntax = "0.8"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "stream", "http2"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "stream", "http2", "socks"] }
 ring = "0.17"
 rustix = { version = "1", features = ["fs"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
