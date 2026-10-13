@@ -6,7 +6,7 @@ use astrum_repo::{Repository, RepositoryType};
 use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::routing::get;
-use sea_orm::EntityTrait;
+use sea_orm::{ConnectionTrait, EntityTrait};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -52,6 +52,26 @@ async fn placed(
         .from_raw_sql(sql.statement(&query))
         .one(db)
         .await?)
+}
+
+async fn placed_at(
+    db: &sea_orm::DatabaseConnection,
+    layout: &BrowseLayout,
+    asset: &store::Asset,
+) -> Result<Option<String>, ApiError> {
+    let Some(expression) = layout.path else {
+        return Ok(Some(asset.path.clone()));
+    };
+    let mut sql = Sql::default();
+    let id = sql.bind(asset.id);
+    let query = format!(
+        "SELECT ({expression}) AS tree_path FROM asset a LEFT JOIN component c ON c.id = a.component_id WHERE a.id = {id}"
+    );
+    let row = db.query_one(sql.statement(&query)).await?;
+    Ok(match row {
+        Some(row) => row.try_get::<Option<String>>("", "tree_path")?,
+        None => None,
+    })
 }
 
 async fn asset_details(
@@ -131,5 +151,12 @@ async fn asset_details(
         })
     });
     value["canDelete"] = json!(can_delete);
+    value["treePath"] = json!(placed_at(db, &layout, &asset).await?);
+    value["blobRef"] = json!(format!(
+        "{}@{}@{}",
+        asset.blob_store,
+        asset.blob_id,
+        asset.created_at.format("%Y-%m-%dT%H:%M")
+    ));
     Ok(axum::Json(value))
 }

@@ -1,22 +1,59 @@
 .root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
 }
 
 .tabs {
-  overflow-x: auto;
-  scrollbar-width: thin;
+  display: inline-flex;
+  align-self: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--gray-a2);
+  box-sizing: border-box;
 }
 
-.dialog {
+.tab {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 5px;
+  font-size: var(--font-size-2);
+  line-height: 14px;
+  font-weight: 500;
+  color: var(--gray-11);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--gray-12);
+}
+
+.tab[aria-selected="true"] {
+  background: var(--gray-a5);
+  color: var(--gray-12);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -2px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
 }
 
-@media (max-width: 639px) {
-  .dialog {
-    padding: var(--space-4);
-  }
-}
-
-:global(.rt-BaseDialogScrollPadding):has(> .dialog) {
-  min-width: 0;
+.hint {
+  margin: 0;
 }

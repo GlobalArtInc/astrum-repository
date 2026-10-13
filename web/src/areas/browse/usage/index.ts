@@ -6,4 +6,4 @@ export {
   type UsageContext,
   usageSnippets,
 } from './snippets';
-export { UsageDialog, type UsageDialogProps, UsageSnippets, type UsageSnippetsProps } from './UsageSnippets';
+export { UsageSnippets, type UsageSnippetsProps, UsageTabs } from './UsageSnippets';

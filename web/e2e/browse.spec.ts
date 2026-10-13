@@ -38,8 +38,10 @@ test('the repository list filters by format, type, status and name', async ({ pa
   await expect(page).toHaveURL(new RegExp(`/browse/${SEED.maven}$`));
   await expect(page.getByRole('heading', { level: 1, name: SEED.maven })).toBeVisible();
   await page.goto(`/browse/${SEED.rawProxy}`);
-  await expect(page.getByText('A proxy keeps what clients have asked for through it')).toBeVisible();
-  await expect(page.getByText('http://127.0.0.1:9/')).toBeVisible();
+  await expect(
+    page.getByText('Upload components, or request them through a proxy, and they show up here.'),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
 });
 
 test('the tree navigates with the keyboard and opens deep links', async ({ page, server }) => {
@@ -52,17 +54,16 @@ test('the tree navigates with the keyboard and opens deep links', async ({ page,
     'aria-expanded',
     'true',
   );
-  await expect(page.getByRole('heading', { level: 2, name: 'demo-lib-2.0.0.jar' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'demo-lib:2.0.0' })).toBeVisible();
 
   await page.goto(`/browse/${SEED.raw}`);
-  await expect(page.getByRole('heading', { name: 'Nothing selected' })).toBeVisible();
+  await expect(page.getByText('Nothing selected', { exact: true })).toBeVisible();
+  await expect(page.getByText('Files', { exact: true })).toBeVisible();
   const files = page.getByRole('tree', { name: `Content of ${SEED.raw}` });
   const docs = files.getByRole('treeitem', { name: /^docs/ });
   await docs.focus();
   await page.keyboard.press('ArrowRight');
   await expect(docs).toHaveAttribute('aria-expanded', 'true');
-  await page.keyboard.press('ArrowDown');
-  await expect(files.getByRole('treeitem', { name: /^guide/ })).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await expect(files.getByRole('treeitem', { name: /readme\.txt/ })).toBeFocused();
   await page.keyboard.press('Enter');
@@ -92,11 +93,12 @@ test('a file shows its details and how to fetch it', async ({ page, server }) =>
   await enter(page, server.adminPassword);
   await page.goto(`/browse/${SEED.npm}`);
   const tree = page.getByRole('tree');
-  await tree.getByRole('treeitem', { name: /^@team/ }).click();
-  await tree.getByRole('treeitem', { name: /^tool/ }).first().click();
-  await tree.getByRole('treeitem', { name: /^-/ }).click();
-  await tree.getByRole('treeitem', { name: /tool-1\.0\.0\.tgz/ }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'tool-1.0.0.tgz' })).toBeVisible();
+  await expect(tree.getByRole('treeitem', { level: 1 })).toHaveText(['@team', 'left-pad']);
+  await tree.getByRole('treeitem', { name: '@team' }).click();
+  await tree.getByRole('treeitem', { name: 'tool', exact: true }).click();
+  await tree.getByRole('treeitem', { name: 'tool-1.0.0.tgz' }).click();
+  await expect(page).toHaveURL(new RegExp(`/browse/${SEED.npm}/%40team/tool/tool-1\\.0\\.0\\.tgz$`));
+  await expect(page.getByRole('heading', { level: 2, name: '@team/tool@1.0.0' })).toBeVisible();
   const details = page.getByRole('region', { name: 'Details' });
   await expect(details.getByText('application/x-tgz')).toBeVisible();
   await expect(details.getByText('Never')).toBeVisible();
@@ -106,8 +108,10 @@ test('a file shows its details and how to fetch it', async ({ page, server }) =>
     'href',
     `${server.url}/repository/${SEED.npm}/%40team/tool/-/tool-1.0.0.tgz`,
   );
-  await details.getByRole('link', { name: 'Component page' }).click();
-  await expect(page).toHaveURL(/\/search\/component\/npm%3Ateam%3Atool\?version=1\.0\.0$/);
+  await expect(details.getByRole('link', { name: 'Research in Guide' })).toHaveAttribute(
+    'href',
+    'https://guide.globalart.dev/component/npm/tool/1.0.0?referrer=repo-browse-asset',
+  );
 });
 
 test('folders, components and files are deleted after a confirmation', async ({ page, server }) => {
@@ -120,12 +124,12 @@ test('folders, components and files are deleted after a confirmation', async ({ 
   await enter(page, server.adminPassword);
 
   await page.goto(`/browse/${SEED.raw}/trash/`);
-  await page.getByRole('button', { name: 'Delete folder' }).click();
-  const folderDialog = page.getByRole('alertdialog', { name: 'Delete the folder trash?' });
-  await expect(folderDialog).toContainText('including the 2 items directly inside it');
+  await page.getByRole('button', { name: 'Delete Folder' }).click();
+  const folderDialog = page.getByRole('alertdialog', { name: 'Delete Folder' });
+  await expect(folderDialog).toContainText('Delete the folder “trash” with everything in it?');
   await folderDialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(folderDialog).toHaveCount(0);
-  await page.getByRole('button', { name: 'Delete folder' }).click();
+  await page.getByRole('button', { name: 'Delete Folder' }).click();
   await folderDialog.getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByText('The folder trash is deleted', { exact: true })).toBeVisible();
   await expect(page.getByText('2 files deleted · 2 components deleted', { exact: true })).toBeVisible();
@@ -133,9 +137,9 @@ test('folders, components and files are deleted after a confirmation', async ({ 
   await expect(page.getByRole('tree').getByRole('treeitem', { name: /^trash/ })).toHaveCount(0);
 
   await page.goto(`/browse/${SEED.raw}/single.txt`);
-  await page.getByRole('button', { name: 'Delete file' }).click();
+  await page.getByRole('button', { name: 'Delete File' }).click();
   await page
-    .getByRole('alertdialog', { name: 'Delete the file?' })
+    .getByRole('alertdialog', { name: 'Delete File' })
     .getByRole('button', { name: 'Delete' })
     .click();
   await expect(page.getByText('single.txt is deleted', { exact: true })).toBeVisible();
@@ -143,8 +147,8 @@ test('folders, components and files are deleted after a confirmation', async ({ 
 
   await page.goto(`/browse/${SEED.maven}/com/example/scratch/${version}/`);
   await expect(page.getByRole('heading', { level: 2, name: `scratch:${version}` })).toBeVisible();
-  await page.getByRole('button', { name: 'Delete component' }).click();
-  const componentDialog = page.getByRole('alertdialog', { name: 'Delete the component?' });
+  await page.getByRole('button', { name: 'Delete Component' }).click();
+  const componentDialog = page.getByRole('alertdialog', { name: 'Delete Component' });
   await expect(componentDialog).toContainText(`com.example:scratch:${version}`);
   await componentDialog.getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByText(`com.example:scratch:${version} is deleted`, { exact: true })).toBeVisible();
@@ -160,30 +164,26 @@ test('someone who only sees a group browses its members through it', async ({ pa
   await expect(table.getByRole('rowheader')).toHaveText([SEED.rawGroup]);
   await table.getByRole('link', { name: SEED.rawGroup }).click();
   const tree = page.getByRole('tree');
-  await expect(tree.getByRole('treeitem', { level: 1 })).toHaveText([
-    /docs/,
-    /shared/,
-    /tools/,
-    /hello\.txt/,
-  ]);
+  await expect(tree.getByRole('treeitem', { level: 1 })).toHaveCount(4);
+  await expect(tree.getByRole('treeitem', { level: 1 }).first()).toHaveAccessibleName('hello.txt');
   await tree.getByRole('treeitem', { name: /^docs/ }).click();
   await tree.getByRole('treeitem', { name: /readme\.txt/ }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'readme.txt' })).toBeVisible();
   const details = page.getByRole('region', { name: 'Details' });
-  await expect(details.getByText(`${SEED.raw} (through ${SEED.rawGroup})`)).toBeVisible();
+  await expect(details.getByText(SEED.raw, { exact: true })).toBeVisible();
   await expect(details.getByText(/^15\sB$/)).toBeVisible();
   await expect(details.getByRole('link', { name: 'Download' })).toHaveAttribute(
     'href',
     new RegExp(`/repository/${SEED.rawGroup}/docs/readme\\.txt$`),
   );
-  await expect(details.getByRole('button', { name: 'Delete file' })).toHaveCount(0);
-  await tree.getByRole('treeitem', { name: /^shared/ }).click();
-  await expect(page.getByRole('button', { name: 'Delete folder' })).toHaveCount(0);
+  await expect(details.getByRole('button', { name: 'Delete File' })).toHaveCount(0);
+  await tree.getByRole('treeitem', { name: 'shared' }).click();
+  await expect(page.getByRole('button', { name: 'Delete Folder' })).toHaveCount(0);
   await page.goto(`/browse/${SEED.raw}`);
   await expect(page.getByRole('heading', { level: 1, name: 'Repository not found' })).toBeVisible();
 });
 
-test('a phone shows the tree and the details as two steps', async ({ page, server }) => {
+test('a phone stacks the tree and the details', async ({ page, server }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await enter(page, server.adminPassword);
   await page.goto('/browse');
@@ -192,17 +192,11 @@ test('a phone shows the tree and the details as two steps', async ({ page, serve
   await noHorizontalScroll(page);
   await page.getByRole('link', { name: SEED.raw, exact: true }).click();
   const tree = page.getByRole('tree');
-  await tree.getByRole('treeitem', { name: /^docs/ }).click();
-  await noHorizontalScroll(page);
-  await tree.getByRole('treeitem', { name: /readme\.txt/ }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'readme.txt' })).toBeVisible();
-  await expect(page.getByRole('tree')).toHaveCount(0);
-  await noHorizontalScroll(page);
-  await page.getByRole('button', { name: 'Back to the tree' }).click();
-  await tree.getByRole('button', { name: 'Details of docs' }).click();
+  await tree.getByRole('treeitem', { name: 'docs' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'docs' })).toBeVisible();
   await noHorizontalScroll(page);
-  await page.getByRole('button', { name: 'Usage' }).click();
-  const box = await page.getByRole('dialog', { name: `Connect to ${SEED.raw}` }).boundingBox();
-  expect((box?.x ?? 0) + (box?.width ?? 1000)).toBeLessThanOrEqual(390);
+  await tree.getByRole('treeitem', { name: 'readme.txt' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'readme.txt' })).toBeVisible();
+  await expect(page.getByRole('tree')).toBeVisible();
+  await noHorizontalScroll(page);
 });

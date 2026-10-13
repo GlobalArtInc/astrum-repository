@@ -53,6 +53,9 @@ export interface TreeNode {
   contentType?: string;
   lastModified?: string;
   downloadUrl?: string;
+  assetPath?: string;
+  downloadCount?: number;
+  generated?: boolean;
 }
 
 export interface TreeListing {
@@ -97,6 +100,8 @@ export interface AssetDetails {
   downloadCount: number;
   component: AssetComponent | null;
   canDelete: boolean;
+  treePath?: string | null;
+  blobRef?: string;
   [format: string]: unknown;
 }
 

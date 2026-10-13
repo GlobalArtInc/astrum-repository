@@ -79,6 +79,8 @@ struct Node {
     #[serde(skip_serializing_if = "Option::is_none")]
     last_modified: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    download_count: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     download_url: Option<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     generated: bool,
@@ -99,6 +101,7 @@ impl Node {
             size: None,
             content_type: None,
             last_modified: None,
+            download_count: None,
             download_url: None,
             generated: false,
         }
@@ -440,6 +443,7 @@ async fn nodes(
             size: Some(asset.size),
             content_type: Some(asset.content_type.clone()),
             last_modified: Some(time(asset.blob_updated_at)),
+            download_count: Some(asset.download_count),
             download_url: Some(format!(
                 "{base}/repository/{}{}",
                 repository.name,

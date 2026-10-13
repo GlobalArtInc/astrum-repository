@@ -14,6 +14,8 @@ import type { RepositoryItem, SearchComponent, SearchPage } from './types';
 
 export const SEARCH_PATH = '/service/rest/v1/search';
 
+const LAYOUT_FORMATS = ['docker', 'npm', 'pypi', 'helm', 'nuget'];
+
 export function searchedRepositories(repository: RepositoryItem): string[] {
   return repository.type === 'group' ? (repository.members ?? []) : [repository.name];
 }
@@ -91,10 +93,12 @@ export function RepositorySearch({
       </Text>
       <ul aria-label={t('browse.search.results')} className={styles.resultList}>
         {items.map((item) => {
-          const target = searchTarget(
-            item.version,
-            item.assets.map((asset) => asset.path),
-          );
+          const target = LAYOUT_FORMATS.includes(item.format)
+            ? (item.assets[0]?.path ?? '')
+            : searchTarget(
+                item.version,
+                item.assets.map((asset) => asset.path),
+              );
           const current = target !== '' && target === selection;
           return (
             <li key={item.id}>

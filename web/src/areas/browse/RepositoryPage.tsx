@@ -1,28 +1,26 @@
-import { Button, Flex, IconButton, Link as RadixLink, Text, TextField } from '@radix-ui/themes';
+import { Badge, Button, Heading, IconButton, Text, TextField } from '@radix-ui/themes';
 import { useQueries } from '@tanstack/react-query';
-import { ArrowLeft, FolderX, MousePointerClick, Plug, Search, Settings2, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Copy, FolderOpen, FolderX, RefreshCw, Search, Settings, X } from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { api, apiKey, useApi } from '../../api';
-import { useSession } from '../../auth/state';
-import { formatNumber, useI18n, useT } from '../../i18n';
+import { useT } from '../../i18n';
 import {
-  DateTime,
+  copyText,
   EmptyState,
   ErrorState,
-  FileSize,
-  FormatBadge,
-  formatName,
-  Page,
+  formatColor,
+  formatLabel,
   PHONE,
   readStored,
-  TypeBadge,
+  useDocumentTitle,
   useMediaQuery,
+  useToast,
   writeStored,
 } from '../../ui';
-import { AssetPanel, ComponentPanel, FolderPanel, treePath } from './details/panels';
+import { AssetPanel, assetPath, ComponentPanel, FolderPanel, treePath } from './details/panels';
 import { settingsPath } from './list/RepositoryListPage';
-import { type DetailItem, DetailList, OnlineStatus, Section, UrlLine } from './parts';
+import { OnlineStatus } from './parts';
 import styles from './RepositoryPage.module.css';
 import { RepositorySearch } from './RepositorySearch';
 import {
@@ -37,12 +35,33 @@ import {
 } from './tree/model';
 import { RepositoryTree } from './tree/RepositoryTree';
 import { clamp, Splitter } from './tree/Splitter';
-import { REPOSITORIES_PATH, type RepositoryItem, type TreeListing, type TreeNode } from './types';
-import { supportsUsage, UsageDialog, UsageSnippets } from './usage';
+import {
+  type AssetDetails,
+  REPOSITORIES_PATH,
+  type RepositoryItem,
+  type TreeListing,
+  type TreeNode,
+} from './types';
 
 export const WIDTH_KEY = 'astrum.browse.treeWidth';
 const DEFAULT_WIDTH = 340;
 const MIN_WIDTH = 220;
+
+const TREE_TITLES: Record<string, string> = {
+  raw: 'browse.tree.title.raw',
+  maven2: 'browse.tree.title.maven2',
+  docker: 'browse.tree.title.docker',
+  npm: 'browse.tree.title.npm',
+  pypi: 'browse.tree.title.pypi',
+  nuget: 'browse.tree.title.nuget',
+  helm: 'browse.tree.title.helm',
+};
+
+const TYPE_LABELS = {
+  hosted: 'browse.list.type.hosted',
+  proxy: 'browse.list.type.proxy',
+  group: 'browse.list.type.group',
+} as const;
 
 function useDebounced<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -67,99 +86,191 @@ function useTreeWidth(): [number, (value: number) => void] {
   ];
 }
 
-function RepositoryOverview({ repository }: { repository: RepositoryItem }) {
+function withSlash(url: string): string {
+  return url.endsWith('/') ? url : `${url}/`;
+}
+
+function Crumbs({ name }: { name: string }) {
   const t = useT();
-  const { language } = useI18n();
-  const { state } = useSession();
-  const group = repository.type === 'group';
-  const count = (value: number | null) => (value === null || group ? '—' : formatNumber(language, value));
-  const items: DetailItem[] = [
-    { id: 'format', label: t('browse.details.format'), value: formatName(repository.format) },
-    { id: 'components', label: t('browse.repository.components'), value: count(repository.componentCount) },
-    { id: 'assets', label: t('browse.repository.assets'), value: count(repository.assetCount) },
-    {
-      id: 'size',
-      label: t('browse.details.size'),
-      value: repository.totalSize === null || group ? '—' : <FileSize bytes={repository.totalSize} />,
-    },
-    {
-      id: 'uploaded',
-      label: t('browse.repository.lastUploaded'),
-      value: repository.lastUploaded ? <DateTime value={repository.lastUploaded} /> : '—',
-    },
-  ];
-  if (repository.blobStoreName) {
-    items.push({ id: 'store', label: t('browse.details.blobStore'), value: repository.blobStoreName });
-  }
-  if (repository.remoteUrl) {
-    items.push({
-      id: 'remote',
-      label: t('browse.repository.remote'),
-      value: repository.remoteUrl,
-      mono: true,
-    });
-  }
-  if (repository.members) {
-    items.push({
-      id: 'members',
-      label: t('browse.repository.members'),
-      value:
-        repository.members.length === 0 ? (
-          '—'
-        ) : (
-          <span className={styles.links}>
-            {repository.members.map((member) => (
-              <RadixLink asChild key={member}>
-                <Link to={browseUrl(member)}>{member}</Link>
-              </RadixLink>
-            ))}
-          </span>
-        ),
-    });
-  }
-  if (repository.memberOf.length > 0) {
-    items.push({
-      id: 'memberOf',
-      label: t('browse.repository.memberOf'),
-      value: (
-        <span className={styles.links}>
-          {repository.memberOf.map((group) => (
-            <RadixLink asChild key={group}>
-              <Link to={browseUrl(group)}>{group}</Link>
-            </RadixLink>
-          ))}
-        </span>
-      ),
-    });
-  }
+  const navigate = useNavigate();
   return (
-    <div className={styles.overview}>
-      <EmptyState
-        icon={MousePointerClick}
-        title={t('browse.repository.nothingSelected')}
-        description={t('browse.repository.nothingSelectedText')}
-      />
-      <Section title={t('browse.repository.about')}>
-        {repository.limited && (
-          <Text as="p" size="2" color="gray">
-            {t('browse.repository.limited')}
-          </Text>
+    <nav aria-label={t('browse.repository.breadcrumb')} className={styles.crumbs}>
+      <Text size="2" color="gray">
+        <button type="button" className={styles.crumb} onClick={() => navigate('/browse')}>
+          {t('browse.list.title')}
+        </button>
+        <span aria-hidden="true" className={styles.separator}>
+          /
+        </span>
+        <span aria-current="page">{name}</span>
+      </Text>
+    </nav>
+  );
+}
+
+function HeaderSearch({ repository, onOpen }: { repository: RepositoryItem; onOpen(path: string): void }) {
+  const t = useT();
+  const [text, setText] = useState('');
+  const [open, setOpen] = useState(false);
+  const query = useDebounced(text.trim(), 300);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const close = (event: MouseEvent) => {
+      if (box.current && !box.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  return (
+    <div ref={box} className={styles.search}>
+      <TextField.Root
+        type="search"
+        value={text}
+        placeholder={t('browse.search.placeholder', { name: repository.name })}
+        aria-label={t('browse.search.label', { name: repository.name })}
+        onChange={(event) => {
+          setText(event.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            setOpen(false);
+          }
+        }}
+      >
+        <TextField.Slot>
+          <Search size={16} aria-hidden="true" />
+        </TextField.Slot>
+        {text !== '' && (
+          <TextField.Slot>
+            <IconButton
+              size="1"
+              variant="ghost"
+              color="gray"
+              aria-label={t('browse.search.clear')}
+              onClick={() => setText('')}
+            >
+              <X size={14} aria-hidden="true" />
+            </IconButton>
+          </TextField.Slot>
         )}
-        <DetailList items={items} />
-      </Section>
-      {supportsUsage(repository.format) && (
-        <Section title={t('browse.details.usage')}>
-          <UsageSnippets
-            context={{
-              format: repository.format,
-              repositoryName: repository.name,
-              repositoryType: repository.type,
-              baseUrl: state.baseUrl,
+      </TextField.Root>
+      {open && query !== '' && (
+        <div className={styles.searchPanel}>
+          <RepositorySearch
+            repository={repository}
+            query={query}
+            selection=""
+            onOpen={(target) => {
+              setOpen(false);
+              onOpen(target);
             }}
           />
-        </Section>
+        </div>
       )}
     </div>
+  );
+}
+
+function Header({ repository, onOpen }: { repository: RepositoryItem; onOpen(path: string): void }) {
+  const t = useT();
+  const toast = useToast();
+  const copy = async () => {
+    try {
+      await copyText(withSlash(repository.url));
+      toast.success(t('browse.repository.urlCopied'));
+    } catch {
+      toast.error(t('browse.list.urlCopyFailed'));
+    }
+  };
+  return (
+    <header className={styles.header}>
+      <Crumbs name={repository.name} />
+      <div className={styles.titleRow}>
+        <div className={styles.titleGroup}>
+          <Heading as="h1" size="7" weight="bold" className={styles.title}>
+            {repository.name}
+          </Heading>
+          <div className={styles.badges}>
+            <Badge size="2" color={formatColor(repository.format)} variant="soft" radius="full">
+              {formatLabel(repository.format)}
+            </Badge>
+            <Badge size="2" color="gray" variant="soft" radius="full" className={styles.lower}>
+              {t(TYPE_LABELS[repository.type])}
+            </Badge>
+            <OnlineStatus online={repository.online} />
+          </div>
+        </div>
+        <div className={styles.headerActions}>
+          <HeaderSearch repository={repository} onOpen={onOpen} />
+          <Button variant="surface" color="gray" highContrast onClick={copy}>
+            <Copy size={16} aria-hidden="true" />
+            {t('browse.repository.copyUrl')}
+          </Button>
+          {repository.permissions.admin && (
+            <Button asChild variant="surface" color="gray" highContrast>
+              <Link to={settingsPath(repository.name)}>
+                <Settings size={16} aria-hidden="true" />
+                {t('browse.repository.settings')}
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Missing({ repository, selection }: { repository: RepositoryItem; selection: string }) {
+  const t = useT();
+  return (
+    <section className={styles.emptyCard}>
+      <EmptyState
+        icon={FolderX}
+        title={t('browse.repository.missingTitle')}
+        description={t('browse.repository.missingText', { path: selection, repository: repository.name })}
+        action={
+          <Button asChild variant="soft">
+            <Link to={browseUrl(repository.name)}>{t('browse.repository.toRoot')}</Link>
+          </Button>
+        }
+      />
+    </section>
+  );
+}
+
+function Resolve({ repository, selection }: { repository: RepositoryItem; selection: string }) {
+  const navigate = useNavigate();
+  const query = useApi<AssetDetails>(assetPath(repository.name, selection));
+  const target = query.data?.treePath;
+  useEffect(() => {
+    if (target && target !== selection) {
+      navigate(browseUrl(repository.name, target), { replace: true });
+    }
+  }, [target, selection, repository.name, navigate]);
+  if (query.isPending || (target && target !== selection)) {
+    return null;
+  }
+  return <Missing repository={repository} selection={selection} />;
+}
+
+function Nothing() {
+  const t = useT();
+  return (
+    <section className={styles.nothing}>
+      <Text as="p" size="3" weight="medium">
+        {t('browse.repository.nothingSelected')}
+      </Text>
+      <Text as="p" size="2" color="gray">
+        {t('browse.repository.nothingSelectedText')}
+      </Text>
+    </section>
   );
 }
 
@@ -178,24 +289,20 @@ function Details({
 }) {
   const t = useT();
   if (selection === '') {
-    return <RepositoryOverview repository={repository} />;
+    return <Nothing />;
   }
   if (!node) {
-    return missing ? (
-      <EmptyState
-        icon={FolderX}
-        title={t('browse.repository.missingTitle')}
-        description={t('browse.repository.missingText', { path: selection, repository: repository.name })}
-        action={
-          <Button asChild variant="soft">
-            <Link to={browseUrl(repository.name)}>{t('browse.repository.toRoot')}</Link>
-          </Button>
-        }
-      />
+    if (!missing) {
+      return (
+        <Text as="p" size="2" color="gray" aria-busy="true">
+          {t('browse.tree.loading')}
+        </Text>
+      );
+    }
+    return selection.endsWith('/') ? (
+      <Missing repository={repository} selection={selection} />
     ) : (
-      <Text as="p" size="2" color="gray" aria-busy="true">
-        {t('browse.tree.loading')}
-      </Text>
+      <Resolve repository={repository} selection={selection} />
     );
   }
   if (node.kind === 'asset') {
@@ -207,22 +314,25 @@ function Details({
   return <FolderPanel key={node.path} repository={repository} node={node} onNavigate={onNavigate} />;
 }
 
+function opened(selection: string): string[] {
+  const wanted = ancestorsOf(selection);
+  return selection.endsWith('/') && selection !== ROOT ? [...wanted, selection] : wanted;
+}
+
 function Browser({ repository }: { repository: RepositoryItem }) {
   const t = useT();
   const navigate = useNavigate();
   const phone = useMediaQuery(PHONE);
   const location = useLocation();
   const selection = selectionFromPathname(location.pathname);
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(ancestorsOf(selection)));
-  const [showDetails, setShowDetails] = useState(selection !== '');
-  const [search, setSearch] = useState('');
-  const query = useDebounced(search.trim(), 300);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(opened(selection)));
+  const [filter, setFilter] = useState('');
   const [width, setWidth] = useTreeWidth();
   const split = useRef<HTMLDivElement>(null);
   const [room, setRoom] = useState(1200);
 
   useEffect(() => {
-    const wanted = ancestorsOf(selection);
+    const wanted = opened(selection);
     setExpanded((current) => {
       if (wanted.every((path) => current.has(path))) {
         return current;
@@ -269,16 +379,8 @@ function Browser({ repository }: { repository: RepositoryItem }) {
   const missing = parent?.status === 'error' || (parent?.status === 'success' && !node);
   const root = loaded.get(ROOT);
 
-  const open = (path: string) => {
-    navigate(browseUrl(repository.name, path));
-    setShowDetails(true);
-  };
-  const select = (selected: TreeNode) => {
-    navigate(browseUrl(repository.name, selected.path));
-    if (selected.kind === 'asset') {
-      setShowDetails(true);
-    }
-  };
+  const open = (path: string) => navigate(browseUrl(repository.name, path));
+  const select = (selected: TreeNode) => navigate(browseUrl(repository.name, selected.path));
   const toggle = (path: string, isOpen: boolean) => {
     setExpanded((current) => {
       const next = new Set(current);
@@ -300,60 +402,73 @@ function Browser({ repository }: { repository: RepositoryItem }) {
   };
 
   const treeLabel = t('browse.tree.label', { name: repository.name });
-  const searchBox = (
-    <TextField.Root
-      type="search"
-      value={search}
-      placeholder={t('browse.search.placeholder', { name: repository.name })}
-      aria-label={t('browse.search.label', { name: repository.name })}
-      onChange={(event) => setSearch(event.target.value)}
-    >
-      <TextField.Slot>
-        <Search size={15} aria-hidden="true" />
-      </TextField.Slot>
-      {search !== '' && (
-        <TextField.Slot>
-          <IconButton
-            size="1"
-            variant="ghost"
-            color="gray"
-            aria-label={t('browse.search.clear')}
-            onClick={() => setSearch('')}
-          >
-            <X size={14} aria-hidden="true" />
-          </IconButton>
-        </TextField.Slot>
-      )}
-    </TextField.Root>
-  );
+  const title = t(TREE_TITLES[repository.format] ?? 'browse.tree.title.default');
+  let body: ReactNode;
+  if (root?.status === 'error') {
+    body = <ErrorState error={root.error} onRetry={() => retry(ROOT)} title={t('browse.tree.rootError')} />;
+  } else if (root?.status === 'success' && root.listing?.children.length === 0) {
+    body = (
+      <div className={styles.empty}>
+        <FolderOpen size={32} aria-hidden="true" className={styles.emptyIcon} />
+        <Text as="p" size="3" weight="medium">
+          {t('browse.tree.emptyTitle')}
+        </Text>
+        <Text as="p" size="1" color="gray" className={styles.emptyText}>
+          {t('browse.tree.emptyText')}
+        </Text>
+        <Button onClick={() => retry(ROOT)}>
+          <RefreshCw size={16} aria-hidden="true" />
+          {t('browse.tree.retry')}
+        </Button>
+      </div>
+    );
+  } else {
+    body = (
+      <RepositoryTree
+        label={treeLabel}
+        format={repository.format}
+        rows={rows}
+        selection={selection}
+        filter={filter}
+        onSelect={select}
+        onToggle={toggle}
+        onRetry={retry}
+      />
+    );
+  }
 
   const treePane = (
     <section className={styles.treePane} id="browse-tree" aria-label={treeLabel}>
-      <div className={styles.paneHead}>{searchBox}</div>
-      <div className={styles.treeScroll}>
-        {query !== '' ? (
-          <RepositorySearch repository={repository} query={query} selection={selection} onOpen={open} />
-        ) : root?.status === 'error' ? (
-          <ErrorState error={root.error} onRetry={() => retry(ROOT)} title={t('browse.tree.rootError')} />
-        ) : root?.status === 'success' && root.listing?.children.length === 0 ? (
-          <EmptyState
-            title={t('browse.tree.emptyTitle')}
-            description={
-              repository.type === 'proxy' ? t('browse.tree.emptyProxy') : t('browse.tree.emptyText')
-            }
-          />
-        ) : (
-          <RepositoryTree
-            label={treeLabel}
-            rows={rows}
-            selection={selection}
-            onSelect={select}
-            onToggle={toggle}
-            onRetry={retry}
-            onDetails={phone ? (target) => open(target.path) : undefined}
-          />
-        )}
+      <div className={styles.paneHead}>
+        <Text as="p" size="3" weight="bold">
+          {title}
+        </Text>
+        <TextField.Root
+          type="search"
+          value={filter}
+          placeholder={t('browse.tree.filterPlaceholder')}
+          aria-label={t('browse.tree.filterLabel')}
+          onChange={(event) => setFilter(event.target.value)}
+        >
+          <TextField.Slot>
+            <Search size={14} aria-hidden="true" />
+          </TextField.Slot>
+          {filter !== '' && (
+            <TextField.Slot>
+              <IconButton
+                size="1"
+                variant="ghost"
+                color="gray"
+                aria-label={t('browse.tree.clearFilter')}
+                onClick={() => setFilter('')}
+              >
+                <X size={14} aria-hidden="true" />
+              </IconButton>
+            </TextField.Slot>
+          )}
+        </TextField.Root>
       </div>
+      <div className={styles.treeScroll}>{body}</div>
     </section>
   );
 
@@ -370,16 +485,11 @@ function Browser({ repository }: { repository: RepositoryItem }) {
   );
 
   if (phone) {
-    return showDetails && selection !== '' ? (
+    return (
       <div className={styles.phone}>
-        <Button variant="soft" color="gray" onClick={() => setShowDetails(false)} className={styles.back}>
-          <ArrowLeft size={15} aria-hidden="true" />
-          {t('browse.details.back')}
-        </Button>
+        {treePane}
         {details}
       </div>
-    ) : (
-      <div className={styles.phone}>{treePane}</div>
     );
   }
 
@@ -402,33 +512,49 @@ function Browser({ repository }: { repository: RepositoryItem }) {
   );
 }
 
+function Shell({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <Crumbs name={name} />
+        <Heading as="h1" size="7" weight="bold" className={styles.title}>
+          {name}
+        </Heading>
+      </header>
+      {children}
+    </div>
+  );
+}
+
 export default function RepositoryPage() {
   const t = useT();
-  const { state } = useSession();
+  const navigate = useNavigate();
   const { repository: name = '' } = useParams();
   const list = useApi<RepositoryItem[]>(REPOSITORIES_PATH);
   const repository = list.data?.find((item) => item.name === name);
-  const crumbs = [{ label: t('browse.list.title'), to: '/browse' }, { label: name }];
+  useDocumentTitle(
+    repository ? repository.name : list.isPending ? name : t('browse.repository.notFoundTitle'),
+  );
 
   if (list.isPending) {
     return (
-      <Page size="large" gutter="large" title={name} breadcrumbs={crumbs}>
+      <Shell name={name}>
         <Text size="2" color="gray" aria-busy="true">
           {t('browse.tree.loading')}
         </Text>
-      </Page>
+      </Shell>
     );
   }
   if (list.isError) {
     return (
-      <Page size="large" gutter="large" title={name} breadcrumbs={crumbs}>
+      <Shell name={name}>
         <ErrorState error={list.error} onRetry={() => list.refetch()} />
-      </Page>
+      </Shell>
     );
   }
   if (!repository) {
     return (
-      <Page size="large" gutter="large" title={t('browse.repository.notFoundTitle')} breadcrumbs={crumbs}>
+      <Shell name={t('browse.repository.notFoundTitle')}>
         <EmptyState
           icon={FolderX}
           title={t('browse.repository.notFoundTitle')}
@@ -439,54 +565,13 @@ export default function RepositoryPage() {
             </Button>
           }
         />
-      </Page>
+      </Shell>
     );
   }
   return (
-    <Page
-      size="large"
-      gutter="large"
-      title={repository.name}
-      breadcrumbs={crumbs}
-      description={
-        <Flex as="span" gap="2" align="center" wrap="wrap" className={styles.badges}>
-          <FormatBadge format={repository.format} />
-          <TypeBadge type={repository.type} />
-          <OnlineStatus online={repository.online} />
-          <UrlLine url={repository.url} label={t('browse.repository.copyUrl')} />
-        </Flex>
-      }
-      actions={
-        <>
-          {supportsUsage(repository.format) && (
-            <UsageDialog
-              title={t('browse.usage.title', { name: repository.name })}
-              context={{
-                format: repository.format,
-                repositoryName: repository.name,
-                repositoryType: repository.type,
-                baseUrl: state.baseUrl,
-              }}
-              trigger={
-                <Button variant="soft">
-                  <Plug size={15} aria-hidden="true" />
-                  {t('browse.repository.usage')}
-                </Button>
-              }
-            />
-          )}
-          {repository.permissions.admin && (
-            <Button asChild variant="soft" color="gray">
-              <Link to={settingsPath(repository.name)}>
-                <Settings2 size={15} aria-hidden="true" />
-                {t('browse.repository.settings')}
-              </Link>
-            </Button>
-          )}
-        </>
-      }
-    >
+    <div className={styles.page}>
+      <Header repository={repository} onOpen={(target) => navigate(browseUrl(repository.name, target))} />
       <Browser key={repository.name} repository={repository} />
-    </Page>
+    </div>
   );
 }

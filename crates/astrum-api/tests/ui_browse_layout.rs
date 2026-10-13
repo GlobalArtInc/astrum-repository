@@ -253,6 +253,13 @@ async fn docker_shows_images_and_tags_without_blobs_and_digests() {
     .await;
     assert_eq!(details.status, StatusCode::OK, "{}", details.text());
     assert_eq!(details.json()["path"], "/v2/team/app/manifests/1.0");
+    assert_eq!(details.json()["treePath"], "/team/app/1.0");
+    assert!(
+        details.json()["blobRef"]
+            .as_str()
+            .unwrap()
+            .starts_with("default@")
+    );
     let stored = get(
         &fixture,
         &format!("{BROWSE}/images/asset?path=/v2/team/app/manifests/1.0"),
@@ -260,6 +267,7 @@ async fn docker_shows_images_and_tags_without_blobs_and_digests() {
     )
     .await;
     assert_eq!(stored.status, StatusCode::OK);
+    assert_eq!(stored.json()["treePath"], "/team/app/1.0");
     let missing = get(&fixture, &format!("{BROWSE}/images?path=/v2/"), Auth::Admin).await;
     assert_eq!(missing.status, StatusCode::NOT_FOUND);
 

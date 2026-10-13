@@ -58,16 +58,11 @@ for (const size of SIZES) {
       await expect(page.getByRole('heading', { level: 2, name: 'demo-lib:2.0.0' })).toBeVisible();
       await shoot(page, `repository-component-${suffix}`);
       await page.goto(`/browse/${SEED.maven}/org/acme/demo-lib/2.0.0/demo-lib-2.0.0.jar`);
-      await expect(page.getByRole('heading', { level: 2, name: 'demo-lib-2.0.0.jar' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 2, name: 'demo-lib:2.0.0' })).toBeVisible();
       await shoot(page, `repository-asset-${suffix}`);
       await page.goto(`/browse/${SEED.raw}/docs/`);
       await expect(page.getByRole('heading', { level: 2, name: 'docs' })).toBeVisible();
       await shoot(page, `repository-folder-${suffix}`);
-      if (size.width < 1024) {
-        await page.getByRole('button', { name: 'Back to the tree' }).click();
-        await expect(page.getByRole('tree')).toBeVisible();
-        await shoot(page, `repository-tree-${suffix}`);
-      }
       await page.goto(`/browse/${SEED.docker}/v2/team/app/manifests/1.0`);
       await expect(page.getByRole('heading', { level: 2, name: 'team/app:1.0' })).toBeVisible();
       await shoot(page, `repository-docker-${suffix}`);
@@ -76,11 +71,9 @@ for (const size of SIZES) {
       await page.getByRole('searchbox', { name: `Search in ${SEED.rawGroup}` }).fill('readme');
       await expect(page.getByRole('list', { name: 'Search results' })).toBeVisible();
       await shoot(page, `repository-search-${suffix}`);
-      await page.goto(`/browse/${SEED.npm}`);
-      await page.getByRole('button', { name: 'Usage' }).click();
-      await expect(page.getByRole('dialog', { name: `Connect to ${SEED.npm}` })).toBeVisible();
-      await shoot(page, `repository-usage-${suffix}`);
-      await page.keyboard.press('Escape');
+      await page.goto(`/browse/${SEED.npm}/left-pad/left-pad-1.3.0.tgz`);
+      await expect(page.getByRole('heading', { level: 2, name: 'left-pad@1.3.0' })).toBeVisible();
+      await shoot(page, `repository-npm-${suffix}`);
 
       await page.goto(COMPONENT);
       await expect(page.getByRole('combobox', { name: 'Version' })).toBeVisible();

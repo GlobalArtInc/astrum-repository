@@ -79,7 +79,8 @@ describe('the repository page', { timeout: 20_000 }, () => {
       'href',
       'http://localhost/repository/files/a/b/two.txt',
     );
-    expect(screen.getByRole('button', { name: 'Delete file' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete File' })).toBeInTheDocument();
+    expect(screen.getByText('MD5')).toBeInTheDocument();
     expect(screen.getByRole('note')).toHaveTextContent('Only the first 2 items of this folder are shown');
     expect(router.state.location.pathname).toBe('/browse/files/a/b/two.txt');
   });
@@ -99,8 +100,8 @@ describe('the repository page', { timeout: 20_000 }, () => {
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files/c.txt'));
     expect(await screen.findByRole('heading', { level: 2, name: 'c.txt' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Delete file' })).toBeNull();
-    await userEvent.click(within(tree).getByRole('treeitem', { name: /^a/ }));
+    expect(screen.queryByRole('button', { name: 'Delete File' })).toBeNull();
+    await userEvent.click(within(tree).getByText('a', { exact: true }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files/a/'));
     expect(await screen.findByRole('heading', { level: 2, name: 'a' })).toBeInTheDocument();
   });
@@ -111,9 +112,11 @@ describe('the repository page', { timeout: 20_000 }, () => {
         jsonResponse({ deletedAssets: 3, deletedComponents: 3, skippedAssets: 1 }),
     });
     const { router } = page('/browse/files/a/');
-    await userEvent.click(await screen.findByRole('button', { name: 'Delete folder' }));
-    const dialog = await screen.findByRole('alertdialog', { name: 'Delete the folder a?' });
-    expect(dialog).toHaveTextContent('including the 2 items directly inside it');
+    expect(await screen.findByText('Deleting a folder deletes everything inside it.')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete Folder' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Folder' });
+    expect(dialog).toHaveTextContent('Delete the folder “a” with everything in it? This cannot be undone.');
+    expect(dialog).toHaveTextContent('Repository: files');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(fake.calls.some((call) => call.method === 'DELETE')).toBe(true));
     expect(await screen.findByText('The folder a is deleted')).toBeInTheDocument();
@@ -160,32 +163,34 @@ describe('the repository page', { timeout: 20_000 }, () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files/a/b/two.txt'));
   });
 
-  it('shows the tree and the details as two steps on a phone', async () => {
+  it('stacks the tree and the details on a phone', async () => {
     setMedia(PHONE, true);
     setMedia(COMPACT, true);
     server();
     page('/browse/files/c.txt');
     expect(await screen.findByRole('heading', { level: 2, name: 'c.txt' })).toBeInTheDocument();
-    expect(screen.queryByRole('tree')).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Back to the tree' }));
-    const tree = await screen.findByRole('tree');
-    await userEvent.click(within(tree).getByRole('button', { name: 'Details of a' }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'a' })).toBeInTheDocument();
+    expect(screen.getByRole('tree', { name: 'Content of files' })).toBeInTheDocument();
   });
 
-  it('lets anyone open the usage of the repository', async () => {
+  it('filters the loaded tree and shows the usage of a file in pill tabs', async () => {
     server();
     renderWithApp(null, {
-      path: '/browse/files',
+      path: '/browse/files/c.txt',
       state: { ...ADMIN_STATE, baseUrl: 'https://repo.example.org' },
       routes: [{ path: 'browse/:repository/*', element: <RepositoryPage /> }],
     });
-    await userEvent.click(await screen.findByRole('button', { name: 'Usage' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Connect to files' });
+    expect(await screen.findByText('Files')).toBeInTheDocument();
+    const tabs = await screen.findByRole('tablist', { name: 'Clients' });
+    expect(within(tabs).getByRole('tab', { name: 'curl' })).toHaveAttribute('aria-selected', 'true');
     expect(
-      within(dialog).getByText(/curl -fLO https:\/\/repo\.example\.org\/repository\/files\/path/),
+      screen.getByText(/curl -fLO https:\/\/repo\.example\.org\/repository\/files\/c\.txt/),
     ).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('tab', { name: /Upload/ }));
-    expect(within(dialog).getByText(/--upload-file/)).toBeInTheDocument();
+    await userEvent.click(within(tabs).getByRole('tab', { name: /Upload/ }));
+    expect(screen.getByText(/--upload-file/)).toBeInTheDocument();
+    const tree = screen.getByRole('tree');
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Filter the loaded tree' }), 'c.t');
+    expect(within(tree).getAllByRole('treeitem')).toHaveLength(1);
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Filter the loaded tree' }), 'zzz');
+    expect(screen.getByText('Nothing loaded matches the filter')).toBeInTheDocument();
   });
 });
