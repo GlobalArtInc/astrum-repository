@@ -1,6 +1,5 @@
 import type { Translate } from '../../../i18n';
-import { DEFAULT_SOURCE, type Privilege, type Role } from '../api';
-import { typeLabel } from '../privileges/labels';
+import { DEFAULT_SOURCE, type Role } from '../api';
 import type { PickerOption } from '../shared/ChipPicker';
 
 export type RoleType = 'astrum' | 'external';
@@ -59,31 +58,6 @@ export function validateId(t: Translate, value: string): string | undefined {
     return t('security.form.idColon');
   }
   return undefined;
-}
-
-export function validateRole(t: Translate, values: RoleValues): Partial<Record<keyof RoleValues, string>> {
-  const errors: Partial<Record<keyof RoleValues, string>> = {};
-  const id = validateId(t, values.id);
-  if (id) {
-    errors.id = id;
-  }
-  if (values.name.trim() === '') {
-    errors.name = t('security.form.required');
-  }
-  if (values.type === 'external' && (values.source === '' || values.source === DEFAULT_SOURCE)) {
-    errors.source = t('security.form.required');
-  }
-  return errors;
-}
-
-export function privilegeOptions(t: Translate, privileges: readonly Privilege[]): PickerOption[] {
-  return [...privileges]
-    .sort((left, right) => left.name.localeCompare(right.name))
-    .map((privilege) => ({
-      value: privilege.name,
-      label: privilege.name,
-      detail: [typeLabel(t, privilege.type), privilege.description].filter(Boolean).join(' · '),
-    }));
 }
 
 export function roleOptions(

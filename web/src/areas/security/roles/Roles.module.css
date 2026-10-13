@@ -1,0 +1,114 @@
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.lock {
+  flex: 0 0 auto;
+  color: var(--gray-9);
+}
+
+.mono {
+  font-family: var(--code-font-family);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 400px;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid var(--gray-4);
+  border-radius: 6px;
+  background: var(--gray-1);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.cardText {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--gray-11);
+}
+
+.key {
+  flex: 0 0 auto;
+  color: var(--amber-9);
+}
+
+.person {
+  flex: 0 0 auto;
+  color: var(--accent-9);
+}
+
+.linkCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.permission {
+  font-family: var(--code-font-family);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--gray-11);
+  overflow-wrap: anywhere;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 16px 0;
+  padding: 12px 12px 24px;
+  border-radius: 6px;
+  background: var(--accent-a3);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-12);
+}
+
+.note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent-11);
+}
+
+.note strong {
+  color: var(--accent-11);
+}
+
+.intro {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-11);
+}
+
+.link {
+  color: var(--accent-11);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.userId {
+  font-weight: 500;
+}
+
+.usersTable {
+  padding: 0 16px 16px;
+}
+
+.card:has(.note) {
+  padding: 16px 0 0;
+  gap: 16px;
+}

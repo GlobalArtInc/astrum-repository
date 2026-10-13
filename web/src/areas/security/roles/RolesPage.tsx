@@ -1,20 +1,42 @@
-import { Button, Text } from '@radix-ui/themes';
-import { Lock, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { Button } from '@radix-ui/themes';
+import { Eye, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { api, path, useApi, useInvalidateApi } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
-import { type Column, ConfirmDialog, DataTable, EmptyState, Page, useToast } from '../../../ui';
+import { ConfirmDialog, ErrorState, Page, useToast } from '../../../ui';
 import { ROLES, type Role, USERS } from '../api';
-import styles from '../shared/Form.module.css';
-import { ListSearch } from '../shared/ListSearch';
-import { roleHref } from '../shared/links';
+import {
+  DOCS,
+  FilterPanel,
+  type FilterState,
+  HelpCard,
+  type ListColumn,
+  ListLayout,
+  ListPager,
+  ListTable,
+  SearchBox,
+  sortList,
+  useCollator,
+  usePaging,
+} from '../shared/AdminList';
+import list from '../shared/AdminList.module.css';
+import { roleHref, roleProfileHref } from '../shared/links';
+import styles from './Roles.module.css';
 
-export function filterRoles(roles: readonly Role[], query: string): Role[] {
+const PAGE_SIZE = 25;
+const CUSTOM = 'custom';
+const SYSTEM = 'system';
+
+export function filterRoles(roles: readonly Role[], filters: FilterState, query: string): Role[] {
   const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const management = filters.management ?? [];
   return roles.filter((role) => {
-    const text = `${role.id} ${role.name} ${role.description}`.toLowerCase();
+    if (management.length > 0 && !management.includes(role.readOnly ? SYSTEM : CUSTOM)) {
+      return false;
+    }
+    const text = `${role.id} ${role.name} ${role.description ?? ''}`.toLowerCase();
     return words.every((word) => text.includes(word));
   });
 }
@@ -22,62 +44,76 @@ export function filterRoles(roles: readonly Role[], query: string): Role[] {
 export default function RolesPage() {
   const t = useT();
   const toast = useToast();
+  const navigate = useNavigate();
   const invalidate = useInvalidateApi();
+  const collator = useCollator();
   const canCreate = useCan('astrum:roles:create');
+  const canUpdate = useCan('astrum:roles:update');
   const canDelete = useCan('astrum:roles:delete');
-  const [params, setParams] = useSearchParams();
-  const query = params.get('q') ?? '';
-  const [deleting, setDeleting] = useState<Role | null>(null);
   const roles = useApi<Role[]>(ROLES);
-  const rows = useMemo(() => (roles.data ? filterRoles(roles.data, query) : undefined), [roles.data, query]);
+  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<FilterState>({});
+  const [deleting, setDeleting] = useState<Role | null>(null);
+  const [sort, setSort] = useState<{ column: string; direction: 'asc' | 'desc' }>({
+    column: 'name',
+    direction: 'asc',
+  });
 
-  const columns: Column<Role>[] = [
+  const all = roles.data ?? [];
+  const sections = [
+    {
+      id: 'management',
+      title: t('security.roles.management'),
+      options: [
+        {
+          value: CUSTOM,
+          label: t('security.roles.custom'),
+          count: all.filter((role) => !role.readOnly).length,
+        },
+        {
+          value: SYSTEM,
+          label: t('security.roles.system'),
+          count: all.filter((role) => role.readOnly).length,
+        },
+      ].filter((option) => option.count > 0),
+    },
+  ];
+
+  const columns: ListColumn<Role>[] = [
+    {
+      id: 'name',
+      header: t('security.roles.name'),
+      sortValue: (row) => row.name || row.id,
+      width: '26%',
+      cell: (row) => (
+        <span className={styles.name}>
+          <span>{row.name || row.id}</span>
+          {row.readOnly && (
+            <Lock size={12} aria-label={t('security.roles.readOnly')} className={styles.lock} />
+          )}
+        </span>
+      ),
+    },
     {
       id: 'id',
       header: t('security.roles.id'),
-      cell: (row) => row.id,
       sortValue: (row) => row.id,
-      primary: true,
+      width: '20%',
+      cell: (row) => row.id,
     },
-    { id: 'name', header: t('security.roles.name'), cell: (row) => row.name, sortValue: (row) => row.name },
     {
       id: 'description',
       header: t('security.roles.descriptionColumn'),
-      cell: (row) => (
-        <Text size="2" color="gray">
-          {row.description}
-        </Text>
-      ),
-      hideOnPhone: true,
-    },
-    {
-      id: 'privileges',
-      header: t('security.roles.privileges'),
-      cell: (row) => row.privileges.length,
-      sortValue: (row) => row.privileges.length,
-      align: 'right',
-    },
-    {
-      id: 'roles',
-      header: t('security.roles.roles'),
-      cell: (row) => row.roles.length,
-      sortValue: (row) => row.roles.length,
-      align: 'right',
-    },
-    {
-      id: 'builtIn',
-      header: t('security.privileges.builtIn'),
-      cell: (row) =>
-        row.readOnly ? (
-          <Lock size={14} aria-label={t('security.privileges.builtInYes')} />
-        ) : (
-          <span className="visually-hidden">{t('security.privileges.builtInNo')}</span>
-        ),
-      sortValue: (row) => (row.readOnly ? 0 : 1),
-      align: 'center',
-      width: '96px',
+      sortValue: (row) => row.description ?? '',
+      cell: (row) => row.description,
     },
   ];
+  const column = columns.find((candidate) => candidate.id === sort.column);
+  const rows = useMemo(
+    () => sortList(filterRoles(all, filters, query), column?.sortValue, sort.direction, collator),
+    [all, filters, query, column, sort.direction, collator],
+  );
+  const paging = usePaging(rows, PAGE_SIZE);
 
   const remove = async () => {
     if (!deleting) {
@@ -90,6 +126,7 @@ export default function RolesPage() {
 
   return (
     <Page
+      gutter="small"
       title={t('security.roles.title')}
       description={t('security.roles.intro')}
       breadcrumbs={[
@@ -107,60 +144,92 @@ export default function RolesPage() {
         )
       }
     >
-      <div className={styles.toolbar}>
-        <ListSearch
-          value={query}
-          label={t('security.roles.search')}
-          onChange={(value) =>
-            setParams(
-              (previous) => {
-                const next = new URLSearchParams(previous);
-                if (value) {
-                  next.set('q', value);
-                } else {
-                  next.delete('q');
-                }
-                return next;
-              },
-              { replace: true },
-            )
-          }
-        />
-      </div>
-      <DataTable
-        label={t('security.roles.title')}
-        columns={columns}
-        rows={rows}
-        getRowId={(row) => row.id}
-        loading={roles.isPending}
-        error={roles.error}
-        onRetry={() => void roles.refetch()}
-        rowHref={(row) => roleHref(row.id)}
-        initialSort={{ column: 'id', direction: 'asc' }}
-        pageSize={50}
-        empty={
-          <EmptyState
-            icon={ShieldCheck}
-            title={query ? t('security.roles.noMatches') : t('security.roles.empty')}
+      <ListLayout
+        filters={
+          <FilterPanel
+            sections={sections}
+            selected={filters}
+            onChange={(section, values) => {
+              setFilters({ ...filters, [section]: values });
+              paging.setPage(0);
+            }}
           />
         }
-        rowActions={
-          canDelete
-            ? (row) =>
-                row.readOnly
-                  ? []
-                  : [
+      >
+        <SearchBox
+          value={query}
+          onChange={(value) => {
+            setQuery(value);
+            paging.setPage(0);
+          }}
+          placeholder={t('security.roles.search')}
+        />
+        {roles.error ? (
+          <ErrorState error={roles.error} onRetry={() => void roles.refetch()} />
+        ) : (
+          <>
+            <ListTable
+              label={t('security.roles.listLabel')}
+              columns={columns}
+              rows={paging.visible}
+              loading={roles.isPending}
+              getRowId={(row) => `${row.source}/${row.id}`}
+              rowLabel={(row) => t('security.roles.open', { id: row.id })}
+              onOpen={(row) => navigate(roleProfileHref(row.id))}
+              buttons={(row) => [
+                {
+                  label: t('security.roles.open', { id: row.id }),
+                  icon: Eye,
+                  onClick: () => navigate(roleProfileHref(row.id)),
+                },
+                ...(!row.readOnly && canUpdate
+                  ? [
                       {
-                        id: 'delete',
-                        label: t('security.form.delete'),
-                        icon: Trash2,
-                        danger: true,
-                        onSelect: setDeleting,
+                        label: t('security.roles.edit', { id: row.id }),
+                        icon: Pencil,
+                        onClick: () => navigate(roleHref(row.id)),
                       },
                     ]
-            : undefined
-        }
-      />
+                  : []),
+                ...(!row.readOnly && canDelete
+                  ? [
+                      {
+                        label: t('security.roles.remove', { id: row.id }),
+                        icon: Trash2,
+                        danger: true,
+                        onClick: () => setDeleting(row),
+                      },
+                    ]
+                  : []),
+              ]}
+              sort={sort}
+              onSort={(id) =>
+                setSort(
+                  sort.column === id
+                    ? { column: id, direction: sort.direction === 'asc' ? 'desc' : 'asc' }
+                    : { column: id, direction: 'asc' },
+                )
+              }
+              empty={
+                <div className={list.count}>
+                  {query || Object.values(filters).some((values) => values.length > 0)
+                    ? t('security.roles.noMatches')
+                    : t('security.roles.empty')}
+                </div>
+              }
+            />
+            <ListPager
+              range={t('security.roles.range', { from: paging.from, to: paging.to, total: paging.total })}
+              page={paging.page}
+              pages={paging.pages}
+              onPage={paging.setPage}
+            />
+          </>
+        )}
+        <HelpCard title={t('security.roles.helpTitle')} link={`${DOCS}/roles`}>
+          {t('security.roles.helpText')}
+        </HelpCard>
+      </ListLayout>
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}

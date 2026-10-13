@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { makeTranslate } from '../../../i18n';
 import type { Role } from '../api';
-import { EMPTY_ROLE, fromRole, privilegeOptions, roleOptions, toRoleRequest, validateRole } from './model';
+import { EMPTY_ROLE, fromRole, roleOptions, toRoleRequest } from './model';
+import { setupErrors } from './RolePage';
 import { filterRoles } from './RolesPage';
 
 const t = makeTranslate('en');
@@ -39,11 +40,11 @@ describe('the role form', () => {
   });
 
   it('checks the id and the name', () => {
-    expect(validateRole(t, EMPTY_ROLE)).toEqual({ id: 'Fill this in', name: 'Fill this in' });
-    expect(validateRole(t, { ...EMPTY_ROLE, id: 'a:b', name: 'x' })).toEqual({
+    expect(setupErrors(t, EMPTY_ROLE)).toEqual({ id: 'Fill this in', name: 'Fill this in' });
+    expect(setupErrors(t, { ...EMPTY_ROLE, id: 'a:b', name: 'x' })).toEqual({
       id: 'Must not contain a colon',
     });
-    expect(validateRole(t, { ...EMPTY_ROLE, id: ' a', name: 'x' })).toEqual({
+    expect(setupErrors(t, { ...EMPTY_ROLE, id: ' a', name: 'x' })).toEqual({
       id: 'Must not start or end with a space',
     });
   });
@@ -60,20 +61,11 @@ describe('the role form', () => {
     expect(options[1]?.detail).toBe('Charlie');
   });
 
-  it('describes privileges by type and description', () => {
-    const options = privilegeOptions(t, [
-      { type: 'wildcard', name: 'z', description: 'Everything', readOnly: true },
-      { type: 'application', name: 'a', description: '', readOnly: false },
-    ]);
-    expect(options).toEqual([
-      { value: 'a', label: 'a', detail: 'Application' },
-      { value: 'z', label: 'z', detail: 'Wildcard · Everything' },
-    ]);
-  });
-
   it('filters the list by id, name and description', () => {
     const roles = [role('dev', { name: 'Developers' }), role('ops', { description: 'Operations team' })];
-    expect(filterRoles(roles, 'team').map((item) => item.id)).toEqual(['ops']);
-    expect(filterRoles(roles, 'DEVELOPERS').map((item) => item.id)).toEqual(['dev']);
+    expect(filterRoles(roles, {}, 'team').map((item) => item.id)).toEqual(['ops']);
+    expect(filterRoles(roles, {}, 'DEVELOPERS').map((item) => item.id)).toEqual(['dev']);
+    expect(filterRoles(roles, { management: ['system'] }, '')).toEqual([]);
+    expect(filterRoles(roles, { management: ['custom'] }, '')).toHaveLength(2);
   });
 });

@@ -1,0 +1,154 @@
+.transfer {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pane {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-width: 0;
+  height: 300px;
+  box-sizing: border-box;
+  border: 1px solid var(--gray-6);
+  border-radius: 6px;
+  background: var(--gray-a2);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gray-6);
+  background: var(--gray-2);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.count {
+  color: var(--gray-11);
+}
+
+.filter {
+  padding: 8px;
+  border-bottom: 1px solid var(--gray-6);
+}
+
+.list {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px;
+  overflow-y: auto;
+  background: var(--gray-2);
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 21px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.option:hover {
+  background: var(--gray-a3);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -2px;
+}
+
+.selected,
+.selected:hover {
+  background: var(--accent-a4);
+}
+
+.detail {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--gray-11);
+}
+
+.buttons {
+  display: flex;
+  flex: 0 0 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -4px 0;
+  padding: 4px;
+  border-radius: 3px;
+  color: var(--gray-a11);
+  cursor: pointer;
+}
+
+.button + .button {
+  margin-top: 4px;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--accent-a3);
+  color: var(--accent-11);
+}
+
+.button:disabled {
+  color: var(--gray-a8);
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--accent-8);
+}
+
+.up {
+  transform: rotate(-90deg);
+}
+
+.down {
+  transform: rotate(90deg);
+}
+
+@media (max-width: 639px) {
+  .transfer {
+    flex-direction: column;
+  }
+
+  .buttons {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .button,
+  .button + .button {
+    margin: 0;
+  }
+
+  .pane {
+    height: 220px;
+  }
+}

@@ -8,15 +8,22 @@ export function EditForm({
   bar,
   children,
   wide,
+  tight,
 }: {
   id: string;
   onSubmit(event: React.FormEvent<HTMLFormElement>): void;
   bar: ReactNode;
   children: ReactNode;
   wide?: boolean;
+  tight?: boolean;
 }) {
   return (
-    <form id={id} className={styles.form} onSubmit={onSubmit} noValidate>
+    <form
+      id={id}
+      className={tight ? `${styles.form} ${styles.tight}` : styles.form}
+      onSubmit={onSubmit}
+      noValidate
+    >
       {bar}
       <div className={wide ? `${styles.body} ${styles.wide}` : styles.body}>{children}</div>
     </form>
@@ -35,7 +42,7 @@ export function EditBar({
   return (
     <div className={progress ? `${styles.bar} ${styles.wizardBar}` : styles.bar}>
       <div className={styles.barRow}>
-        <div className={styles.group}>{start}</div>
+        <div className={`${styles.group} ${styles.start}`}>{start}</div>
         <div className={styles.group}>{end}</div>
       </div>
       {progress}

@@ -5,6 +5,14 @@
   background: var(--gray-1);
 }
 
+.tight {
+  margin-top: -16px;
+}
+
+.start {
+  gap: 8px;
+}
+
 .bar {
   position: sticky;
   top: 0;

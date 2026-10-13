@@ -41,6 +41,11 @@ export const securityArea: Area = {
       need: { all: [ROLES_NEED, 'astrum:roles:create'] },
     },
     { path: 'admin/security/roles/:id', load: () => import('./roles/RolePage'), need: ROLES_NEED },
+    {
+      path: 'admin/security/roles/:id/profile',
+      load: () => import('./roles/RoleProfilePage'),
+      need: ROLES_NEED,
+    },
     { path: 'admin/security/users', load: () => import('./users/UsersPage'), need: USERS_NEED },
     {
       path: 'admin/security/users/create',
