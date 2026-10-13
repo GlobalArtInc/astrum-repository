@@ -105,6 +105,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   pypi: 'https://pypi.org/',
   docker: 'https://registry-1.docker.io',
   helm: 'https://charts.helm.sh/stable/',
+  huggingface: 'https://huggingface.co',
   raw: 'https://example.org/files/',
 };
 

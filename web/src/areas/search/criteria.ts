@@ -110,6 +110,20 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'web',
   },
   {
+    key: 'huggingface.revision',
+    label: 'search.criterion.huggingfaceRevision',
+    kind: 'text',
+    format: 'huggingface',
+    example: 'main',
+  },
+  {
+    key: 'huggingface.file',
+    label: 'search.criterion.huggingfaceFile',
+    kind: 'text',
+    format: 'huggingface',
+    example: 'config.json',
+  },
+  {
     key: 'terraform.namespace',
     label: 'search.criterion.terraformNamespace',
     kind: 'text',
