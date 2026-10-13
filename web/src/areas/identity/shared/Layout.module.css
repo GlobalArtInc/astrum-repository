@@ -100,3 +100,13 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.page[data-gutter] {
+  padding: 32px;
+}
+
+@media (max-width: 639px) {
+  .page[data-gutter] {
+    padding: 16px;
+  }
+}

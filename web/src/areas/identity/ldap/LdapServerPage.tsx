@@ -25,7 +25,6 @@ import {
 } from '../api';
 import { failureText } from '../shared/errors';
 import { Check, Choice, Input, Password, Section } from '../shared/Fields';
-import fields from '../shared/Fields.module.css';
 import layout from '../shared/Layout.module.css';
 import { PasswordDialog, TestLoginDialog } from './Dialogs';
 import { LDAP_PAGE } from './links';
@@ -773,7 +772,7 @@ function Wizard({ server, names }: { server?: LdapServer; names: string[] }) {
     <div className={styles.wizard} data-step={step}>
       {actions}
       <form id="ldap-wizard" className={styles.body} onSubmit={step === 1 ? next : save} noValidate>
-        <div className={fields.stack}>
+        <div className={styles.steps}>
           {step === 1 ? stepOne : stepTwo}
           <FormError message={formError} />
         </div>
@@ -828,6 +827,7 @@ export default function LdapServerPage() {
   const failure = !creating && server.error ? server.error : servers.error;
   return (
     <Page
+      className={layout.page}
       title={creating ? t('identity.ldap.createTitle') : t('identity.ldap.editTitle', { name: name ?? '' })}
       description={creating ? t('identity.ldap.createText') : t('identity.ldap.editText')}
       breadcrumbs={breadcrumbs}

@@ -21,6 +21,25 @@
   box-sizing: border-box;
 }
 
+.redirect {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.redirectLabel {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.redirectHelp {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--gray-a11);
+}
+
 .value {
   margin: 0;
   font-size: var(--font-size-2);
@@ -30,7 +49,11 @@
 }
 
 .certificate {
-  margin-top: 8px;
+  height: 32px;
+  margin-top: 4px;
+  padding: 0 12px;
+  border-radius: 6px;
+  gap: 8px;
 }
 
 @media (max-width: 639px) {

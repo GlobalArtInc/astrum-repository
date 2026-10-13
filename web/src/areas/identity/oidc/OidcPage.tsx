@@ -8,7 +8,7 @@ import { useT } from '../../../i18n';
 import { describeError, ErrorState, FormError, Page, UnsavedChangesGuard, useToast } from '../../../ui';
 import { OIDC, type OidcSettings } from '../api';
 import { Area, Check, Input, Password, Section } from '../shared/Fields';
-import fields from '../shared/Fields.module.css';
+import layout from '../shared/Layout.module.css';
 import {
   fromSettings,
   type OidcErrors,
@@ -126,14 +126,14 @@ function OidcForm({ settings }: { settings: OidcSettings }) {
       )}
       <div className={styles.body}>
         <Section title={t('identity.oidc.settings')} id="oidc-settings">
-          <div className={fields.field}>
-            <span className={fields.label} id={redirectId}>
+          <div className={styles.redirect}>
+            <span className={styles.redirectLabel} id={redirectId}>
               {t('identity.oidc.redirectUri')}
             </span>
             <output className={styles.value} aria-labelledby={redirectId}>
               {settings.redirectUri}
             </output>
-            <p className={fields.help}>{t('identity.oidc.redirectUriHelp')}</p>
+            <p className={styles.redirectHelp}>{t('identity.oidc.redirectUriHelp')}</p>
           </div>
           <Input
             label={t('identity.oidc.issuerUrl')}
@@ -206,7 +206,7 @@ function OidcForm({ settings }: { settings: OidcSettings }) {
               className={styles.certificate}
               disabled
             >
-              <ShieldCheck size={14} aria-hidden="true" />
+              <ShieldCheck size={16} aria-hidden="true" />
               {t('identity.oidc.viewCertificate')}
             </Button>
           </Check>
@@ -245,6 +245,7 @@ function OidcForm({ settings }: { settings: OidcSettings }) {
             {...bind('idpJwsAlgorithm')}
           />
           <Area
+            mono={false}
             label={t('identity.oidc.jwks')}
             help={t('identity.oidc.jwksHelp')}
             rows={4}
@@ -253,18 +254,21 @@ function OidcForm({ settings }: { settings: OidcSettings }) {
         </Section>
         <Section title={t('identity.oidc.advanced')} id="oidc-advanced">
           <Area
+            mono={false}
             label={t('identity.oidc.authorizationParams')}
             help={t('identity.oidc.authorizationParamsHelp')}
             rows={3}
             {...bind('authorizationCustomParams')}
           />
           <Area
+            mono={false}
             label={t('identity.oidc.tokenParams')}
             help={t('identity.oidc.tokenParamsHelp')}
             rows={3}
             {...bind('tokenRequestCustomParams')}
           />
           <Area
+            mono={false}
             label={t('identity.oidc.exactClaims')}
             help={t('identity.oidc.exactClaimsHelp')}
             rows={3}
@@ -283,6 +287,7 @@ export default function OidcPage() {
   const settings = useApi<OidcSettings>(OIDC);
   return (
     <Page
+      className={layout.page}
       title={t('identity.oidc.title')}
       description={t('identity.oidc.description')}
       breadcrumbs={[

@@ -48,7 +48,7 @@ describe('the LDAP list page', () => {
     renderWithApp(<LdapListPage />);
     expect(await screen.findByText('No LDAP servers configured')).toBeInTheDocument();
     expect(screen.getByText('Click "Create LDAP Server" to add one')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Change Order' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Change Order' })).toBeEnabled();
     expect(screen.getByRole('link', { name: 'Create LDAP Server' })).toHaveAttribute(
       'href',
       '/admin/security/ldap/create',

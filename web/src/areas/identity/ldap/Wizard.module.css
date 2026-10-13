@@ -1,11 +1,13 @@
 .wizard {
-  width: 730px;
+  width: 800px;
   max-width: 100%;
   min-width: 0;
 }
 
-.wizard[data-step="2"] {
-  width: 800px;
+.steps {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .bar {
@@ -76,7 +78,7 @@
 
 .endpoint {
   display: grid;
-  grid-template-columns: minmax(0, 174fr) minmax(0, 348fr) minmax(0, 120fr);
+  grid-template-columns: minmax(0, 197fr) minmax(0, 395fr) minmax(0, 120fr);
   gap: 12px;
   align-items: start;
 }
@@ -98,6 +100,7 @@
 .template {
   display: flex;
   flex-direction: column;
+  margin-bottom: 16px;
   gap: 4px;
   padding: 16px;
   border: 1px solid var(--accent-a7);

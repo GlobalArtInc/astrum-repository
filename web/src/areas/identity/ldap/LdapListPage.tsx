@@ -1,4 +1,4 @@
-import { Button, IconButton, Spinner, TextField, Tooltip } from '@radix-ui/themes';
+import { Button, IconButton, Spinner, Tooltip } from '@radix-ui/themes';
 import {
   ArrowUpDown,
   CircleHelp,
@@ -31,7 +31,7 @@ export function AboutLdap() {
   return (
     <aside className={layout.card} aria-labelledby="about-ldap">
       <h2 id="about-ldap" className={layout.cardTitle}>
-        <CircleHelp size={14} aria-hidden="true" color="var(--gray-11)" />
+        <CircleHelp size={14} aria-hidden="true" color="var(--gray-9)" />
         {t('identity.ldap.about')}
       </h2>
       <p className={layout.helpText}>{t('identity.ldap.aboutText')}</p>
@@ -46,13 +46,13 @@ export function AboutLdap() {
 function AboutServers() {
   const t = useT();
   return (
-    <section className={layout.card} aria-labelledby="about-ldap-servers">
+    <section className={styles.serversCard} aria-labelledby="about-ldap-servers">
       <h2 id="about-ldap-servers" className={layout.cardTitle}>
-        <Info size={16} aria-hidden="true" color="var(--accent-11)" />
+        <Info size={16} aria-hidden="true" color="var(--accent-9)" />
         {t('identity.ldap.aboutServers')}
       </h2>
-      <p className={layout.cardText}>{t('identity.ldap.aboutServersText')}</p>
-      <p className={layout.cardText}>
+      <p className={styles.serversText}>{t('identity.ldap.aboutServersText')}</p>
+      <p className={styles.serversText}>
         {t.rich('identity.ldap.seeDocs', {
           link: (
             <a key="link" className={layout.link} href={LDAP_DOCS} target="_blank" rel="noreferrer">
@@ -248,6 +248,7 @@ export default function LdapListPage() {
 
   return (
     <Page
+      className={layout.page}
       title={t('identity.ldap.title')}
       description={t('identity.ldap.description')}
       breadcrumbs={[
@@ -268,18 +269,17 @@ export default function LdapListPage() {
       <div className={layout.layout}>
         <div className={layout.main}>
           <div className={styles.toolbar}>
-            <TextField.Root
-              className={styles.filter}
-              size="2"
-              value={filter}
-              placeholder={t('identity.ldap.filter')}
-              aria-label={t('identity.ldap.filterLabel')}
-              onChange={(event) => setFilter(event.target.value)}
-            >
-              <TextField.Slot>
-                <Search size={14} aria-hidden="true" />
-              </TextField.Slot>
-            </TextField.Root>
+            <div className={styles.filter}>
+              <Search size={16} aria-hidden="true" className={styles.filterIcon} />
+              <input
+                type="text"
+                className={styles.filterInput}
+                value={filter}
+                placeholder={t('identity.ldap.filter')}
+                aria-label={t('identity.ldap.filterLabel')}
+                onChange={(event) => setFilter(event.target.value)}
+              />
+            </div>
             <div className={styles.buttons}>
               {canUpdate && (
                 <Button
@@ -287,7 +287,6 @@ export default function LdapListPage() {
                   variant="outline"
                   color="gray"
                   className={layout.neutralButton}
-                  disabled={list.length < 2}
                   onClick={() => setOrdering(true)}
                 >
                   <ArrowUpDown size={16} aria-hidden="true" />
