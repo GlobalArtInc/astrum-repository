@@ -4,12 +4,13 @@ pub mod json;
 pub mod routes;
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use astrum_blob::BlobStores;
 use astrum_content::Content;
 use astrum_db::Database;
 use astrum_db::audit::{self, Event};
+use astrum_logging::Logging;
 use astrum_security::{SecretBox, Security};
 use astrum_tasks::Tasks;
 use axum::Router;
@@ -36,6 +37,9 @@ struct Inner {
     blob_stores: Arc<BlobStores>,
     content: Content,
     tasks: Tasks,
+    logging: OnceLock<Logging>,
+    configuration: OnceLock<Vec<(String, String)>>,
+    started: chrono::DateTime<chrono::Utc>,
 }
 
 impl AppState {
@@ -57,6 +61,9 @@ impl AppState {
                 blob_stores,
                 content,
                 tasks,
+                logging: OnceLock::new(),
+                configuration: OnceLock::new(),
+                started: chrono::Utc::now(),
             }),
         }
     }
@@ -98,6 +105,26 @@ impl AppState {
         &self.inner.tasks
     }
 
+    pub fn logging(&self) -> &Logging {
+        self.inner.logging.get_or_init(Logging::detached)
+    }
+
+    pub fn set_logging(&self, logging: Logging) {
+        let _ = self.inner.logging.set(logging);
+    }
+
+    pub fn configuration(&self) -> &[(String, String)] {
+        self.inner.configuration.get().map_or(&[], Vec::as_slice)
+    }
+
+    pub fn set_configuration(&self, entries: Vec<(String, String)>) {
+        let _ = self.inner.configuration.set(entries);
+    }
+
+    pub fn started(&self) -> chrono::DateTime<chrono::Utc> {
+        self.inner.started
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
@@ -127,6 +154,7 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
         .merge(routes::components::routes())
         .merge(routes::tasks::routes())
         .merge(routes::cleanup_policies::routes())
+        .merge(routes::support::routes())
         .fallback(not_found)
         .layer(middleware::from_fn_with_state(
             state.clone(),

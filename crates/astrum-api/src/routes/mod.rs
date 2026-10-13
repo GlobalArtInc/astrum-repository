@@ -7,4 +7,5 @@ pub mod oidc;
 pub mod repositories;
 pub mod security;
 pub mod status;
+pub mod support;
 pub mod tasks;

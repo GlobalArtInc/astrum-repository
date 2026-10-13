@@ -21,6 +21,7 @@ astrum-format-nuget = { path = "crates/astrum-format-nuget" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
 astrum-db = { path = "crates/astrum-db" }
+astrum-logging = { path = "crates/astrum-logging" }
 astrum-repo = { path = "crates/astrum-repo" }
 astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }
