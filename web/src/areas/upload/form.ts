@@ -41,9 +41,14 @@ export function optionValues(field: UploadFieldSpec): string[] {
   return Array.isArray(field.options) ? field.options : Object.keys(field.options);
 }
 
-function initialValue(field: UploadFieldSpec): string {
+export const DEFAULT_PACKAGING = 'jar';
+
+function initialValue(spec: UploadSpec, field: UploadFieldSpec): string {
   if (field.type === BOOLEAN) {
     return 'false';
+  }
+  if (spec.format === 'maven2' && field.name === 'packaging') {
+    return DEFAULT_PACKAGING;
   }
   return '';
 }
@@ -51,7 +56,7 @@ function initialValue(field: UploadFieldSpec): string {
 export function emptyAsset(spec: UploadSpec): AssetDraft {
   const values: Record<string, string> = {};
   for (const field of assetTextFields(spec)) {
-    values[field.name] = initialValue(field);
+    values[field.name] = initialValue(spec, field);
   }
   return { key: nextAssetKey(), file: null, values };
 }
@@ -59,7 +64,7 @@ export function emptyAsset(spec: UploadSpec): AssetDraft {
 export function emptyDraft(spec: UploadSpec): UploadDraft {
   const component: Record<string, string> = {};
   for (const field of spec.componentFields) {
-    component[field.name] = initialValue(field);
+    component[field.name] = initialValue(spec, field);
   }
   return { component, assets: [emptyAsset(spec)] };
 }
@@ -165,8 +170,15 @@ export function hasPom(spec: UploadSpec, draft: UploadDraft): boolean {
   );
 }
 
+export function showsRequired(field: UploadFieldSpec): boolean {
+  return !field.optional && field.type !== BOOLEAN;
+}
+
 export function isRequired(spec: UploadSpec, draft: UploadDraft, field: UploadFieldSpec): boolean {
   if (field.optional || field.type === BOOLEAN) {
+    return false;
+  }
+  if (spec.format === 'raw' && field.name === 'filename') {
     return false;
   }
   if (spec.format === 'maven2' && field.group && hasPom(spec, draft)) {
@@ -288,8 +300,12 @@ function validateRaw(spec: UploadSpec, draft: UploadDraft, problems: Problems): 
 export function toFormData(spec: UploadSpec, draft: UploadDraft): FormData {
   const data = new FormData();
   const pom = hasPom(spec, draft);
+  const generate = (draft.component['generate-pom'] ?? '') === 'true';
   for (const field of spec.componentFields) {
     const value = (draft.component[field.name] ?? '').trim();
+    if (spec.format === 'maven2' && field.name === 'packaging' && (!generate || pom)) {
+      continue;
+    }
     if (field.type === BOOLEAN) {
       if (value === 'true' && !(pom && field.name === 'generate-pom')) {
         data.append(componentFieldName(spec, field.name), 'true');
@@ -300,7 +316,10 @@ export function toFormData(spec: UploadSpec, draft: UploadDraft): FormData {
   }
   draft.assets.forEach((asset, index) => {
     for (const field of assetTextFields(spec)) {
-      const value = (asset.values[field.name] ?? '').trim();
+      let value = (asset.values[field.name] ?? '').trim();
+      if (spec.format === 'raw' && field.name === 'filename' && value === '' && asset.file) {
+        value = asset.file.name;
+      }
       if (field.type === BOOLEAN) {
         if (value === 'true') {
           data.append(assetFieldName(spec, index, field.name), 'true');

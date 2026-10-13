@@ -1,0 +1,134 @@
+.layout {
+  display: grid;
+  grid-template-columns: var(--filter-width) minmax(0, 1fr);
+  gap: var(--filter-gap);
+  align-items: start;
+  min-width: 0;
+}
+
+.aside {
+  min-width: 0;
+}
+
+.main {
+  min-width: 0;
+}
+
+.reset {
+  align-self: flex-start;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.titleBold {
+  margin: 0;
+  font-weight: 700;
+}
+
+.titleSemibold {
+  margin: 0;
+  font-weight: 600;
+}
+
+.checks {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 2px 6px;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  background: var(--gray-a3);
+  color: var(--gray-a11);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.clear {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-11);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.clear:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+}
+
+.more.more {
+  gap: 4px;
+}
+
+.sheet.sheet {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(351px, 90vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--gray-6);
+  border-radius: 0;
+  background: var(--color-panel-solid);
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--gray-6);
+}
+
+.sheetTitle.sheetTitle {
+  margin: 0;
+}
+
+.sheetActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sheetBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+@media (max-width: 519px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

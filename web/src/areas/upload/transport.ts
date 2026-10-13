@@ -58,15 +58,3 @@ export function uploadComponent(
     request.send(data);
   });
 }
-
-export async function sha1Of(file: File, limit = 256 * 1024 * 1024): Promise<string | null> {
-  if (file.size > limit || typeof crypto === 'undefined' || !crypto.subtle) {
-    return null;
-  }
-  try {
-    const digest = await crypto.subtle.digest('SHA-1', await file.arrayBuffer());
-    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-  } catch {
-    return null;
-  }
-}

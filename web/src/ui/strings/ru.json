@@ -53,5 +53,12 @@
   "ui.unsaved.description": "У вас есть несохранённые изменения. Если уйти, они будут потеряны.",
   "ui.unsaved.leave": "Уйти",
   "ui.unsaved.stay": "Остаться",
-  "ui.unsaved.title": "Уйти без сохранения?"
+  "ui.unsaved.title": "Уйти без сохранения?",
+  "ui.filters.title": "Фильтр",
+  "ui.filters.resetAll": "Сбросить все",
+  "ui.filters.close": "Закрыть",
+  "ui.filters.reset": "Сбросить фильтры",
+  "ui.filters.clear": "Очистить",
+  "ui.filters.more": "Показать ещё",
+  "ui.filters.less": "Свернуть"
 }

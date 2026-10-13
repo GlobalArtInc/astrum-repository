@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../api';
 import { ADMIN_STATE, jsonResponse, renderWithApp } from '../../test/render';
 import { MAVEN, NPM, RAW } from './specs.fixture';
-import { sha1Of, uploadComponent } from './transport';
+import { uploadComponent } from './transport';
 import UploadListPage from './UploadListPage';
 import UploadPage from './UploadPage';
 
@@ -12,7 +12,7 @@ vi.setConfig({ testTimeout: 20_000 });
 
 const FILE = /^File\*?$/;
 
-vi.mock('./transport', () => ({ uploadComponent: vi.fn(), sha1Of: vi.fn() }));
+vi.mock('./transport', () => ({ uploadComponent: vi.fn() }));
 
 const repository = (name: string, format: string, type = 'hosted', add = true) => ({
   name,
@@ -74,44 +74,72 @@ function sent(): Array<[string, string]> {
 
 beforeEach(() => {
   vi.mocked(uploadComponent).mockReset();
-  vi.mocked(sha1Of).mockReset();
-  vi.mocked(sha1Of).mockResolvedValue(null);
 });
 
 describe('the upload list', () => {
-  it('shows only hosted repositories the caller may add to', async () => {
+  it('shows only hosted repositories the caller may add to, with the old filters', async () => {
+    stub();
+    const { router } = page('/upload');
+    await screen.findByRole('button', { name: 'Upload to files' });
+    expect(screen.getByRole('button', { name: 'Upload to releases' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Upload to cache' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Upload to locked' })).toBeNull();
+    expect(screen.getByText('3 repositories')).toBeInTheDocument();
+    const filters = screen.getByRole('complementary', { name: 'Filter panel' });
+    expect(within(filters).getByText('Raw')).toBeInTheDocument();
+    await userEvent.click(within(filters).getByRole('checkbox', { name: 'Maven' }));
+    expect(screen.getByText('1 repository')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Upload to files' })).toBeNull();
+    await userEvent.click(within(filters).getByRole('button', { name: 'Reset Filters' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Filter repositories by name' }), 'fil');
+    expect(screen.queryByRole('button', { name: 'Upload to releases' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Upload to files' }));
+    expect(router.state.location.pathname).toBe('/upload/files');
+  });
+
+  it('sorts by name or format from the headers', async () => {
     stub();
     page('/upload');
-    expect(await screen.findByRole('link', { name: 'files' })).toHaveAttribute('href', '/upload/files');
-    expect(screen.getByRole('link', { name: 'releases' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'cache' })).toBeNull();
-    expect(screen.queryByRole('link', { name: 'locked' })).toBeNull();
-    await userEvent.type(screen.getByLabelText('Name'), 'rel');
-    expect(screen.queryByRole('link', { name: 'files' })).toBeNull();
+    await screen.findByRole('button', { name: 'Upload to files' });
+    const names = () =>
+      screen.getAllByRole('button', { name: /^Upload to / }).map((row) => row.getAttribute('aria-label'));
+    expect(names()).toEqual(['Upload to files', 'Upload to packages', 'Upload to releases']);
+    await userEvent.click(screen.getByRole('button', { name: 'Name: ascending; click to sort descending' }));
+    expect(names()).toEqual(['Upload to releases', 'Upload to packages', 'Upload to files']);
+    await userEvent.click(screen.getByRole('button', { name: 'Sort by Format' }));
+    expect(names()).toEqual(['Upload to releases', 'Upload to packages', 'Upload to files']);
   });
 });
 
 describe('the upload form', () => {
-  it('uploads raw files with names from the chosen files and links to the folder', async () => {
+  it('uploads raw files with names from the chosen files and returns to the list', async () => {
     stub();
     vi.mocked(uploadComponent).mockImplementation(async (_repository, _data, progress) => {
       progress({ loaded: 5, total: 10 });
     });
-    page('/upload/files');
-    await userEvent.type(await screen.findByLabelText(/Directory/), '/tools/linux');
-    await userEvent.upload(screen.getByLabelText(FILE), new File(['hello'], 'hello.txt'));
-    expect(screen.getByLabelText(/File name/)).toHaveValue('hello.txt');
-    await userEvent.click(screen.getByRole('button', { name: 'Add another file' }));
-    const second = screen.getByRole('group', { name: 'File 2' });
-    await userEvent.upload(within(second).getByLabelText(FILE), new File(['bye'], 'bye.txt'));
-    await userEvent.clear(within(second).getByLabelText(/File name/));
-    await userEvent.type(within(second).getByLabelText(/File name/), 'docs/bye.txt');
-    expect(screen.getByText('2 files ready, 8 B')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Upload' }));
-    expect(await screen.findByRole('link', { name: 'Show in Browse' })).toHaveAttribute(
-      'href',
-      '/browse/files/tools/linux',
+    const { router } = page('/upload/files');
+    expect(await screen.findByText('No files selected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Upload Component' })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: /Target Repository/ })).toHaveValue('files');
+    await userEvent.type(screen.getByLabelText(/Directory/), '/tools/linux');
+    await userEvent.upload(
+      screen.getByLabelText(FILE, { selector: 'input' }),
+      new File(['hello'], 'hello.txt'),
     );
+    expect(screen.getByLabelText(/File Name/)).toHaveValue('hello.txt');
+    await userEvent.click(screen.getByRole('button', { name: 'Add Another File' }));
+    const second = screen.getByRole('group', { name: 'File 2' });
+    await userEvent.upload(
+      within(second).getByLabelText(FILE, { selector: 'input' }),
+      new File(['bye'], 'bye.txt'),
+    );
+    await userEvent.clear(within(second).getByLabelText(/File Name/));
+    await userEvent.type(within(second).getByLabelText(/File Name/), 'docs/bye.txt');
+    expect(screen.getByText('2 files ready')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Upload Component' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/upload'));
+    expect(await screen.findByText('Component uploaded to files')).toBeInTheDocument();
+    expect(screen.getByText('Component: tools linux')).toBeInTheDocument();
     expect(vi.mocked(uploadComponent).mock.calls[0]?.[0]).toBe('files');
     expect(sent()).toEqual([
       ['raw.directory', '/tools/linux'],
@@ -120,7 +148,6 @@ describe('the upload form', () => {
       ['raw.asset2.filename', 'docs/bye.txt'],
       ['raw.asset2', 'file:bye.txt'],
     ]);
-    expect(screen.getByText('No files chosen')).toBeInTheDocument();
   });
 
   it('checks the form before sending and shows server errors on their fields', async () => {
@@ -134,91 +161,79 @@ describe('the upload form', () => {
       }),
     );
     page('/upload/releases');
-    await userEvent.click(await screen.findByRole('button', { name: 'Upload' }));
-    expect(screen.getByText('Fix the marked fields and try again.')).toBeInTheDocument();
-    expect(screen.getAllByText('Fill in this field.')).toHaveLength(4);
-    expect(screen.getByText('Choose a file.')).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: 'Packaging' })).toBeDisabled();
+    await userEvent.upload(
+      screen.getByLabelText(FILE, { selector: 'input' }),
+      new File(['jar'], 'lib-1.0-tests.jar'),
+    );
+    expect(screen.getByLabelText(/Extension/)).toHaveValue('jar');
+    await userEvent.click(screen.getByRole('button', { name: 'Upload Component' }));
+    expect(screen.getByText('Fix the errors in the form')).toBeInTheDocument();
+    expect(screen.getAllByText('This field is required')).toHaveLength(3);
     expect(uploadComponent).not.toHaveBeenCalled();
     await userEvent.type(screen.getByLabelText(/Group ID/), 'org.example');
     await userEvent.type(screen.getByLabelText(/Artifact ID/), 'lib');
     await userEvent.type(screen.getByLabelText(/^Version/), '1.0');
-    await userEvent.click(screen.getByLabelText(/Generate a POM/));
-    await userEvent.upload(screen.getByLabelText(FILE), new File(['jar'], 'lib-1.0-tests.jar'));
-    expect(screen.getByLabelText(/Classifier/)).toHaveValue('tests');
-    expect(screen.getByLabelText(/Extension/)).toHaveValue('jar');
-    await userEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await userEvent.click(screen.getByText('Generate POM'));
+    expect(screen.getByRole('combobox', { name: 'Packaging' })).toBeEnabled();
+    expect(screen.getByRole('combobox', { name: 'Packaging' })).toHaveTextContent('jar');
+    await userEvent.click(screen.getByRole('button', { name: 'Upload Component' }));
     expect(await screen.findByText('maven2.asset1.extension is not allowed here')).toBeInTheDocument();
     expect(screen.getByLabelText(/Extension/)).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByText('Version policy mismatch')).toBeInTheDocument();
     expect(sent()).toContainEqual(['maven2.generate-pom', 'true']);
+    expect(sent()).toContainEqual(['maven2.packaging', 'jar']);
   });
 
-  it('lets a POM stand in for the coordinates and links to the uploaded component', async () => {
-    const calls = stub({
-      items: [
-        {
-          id: 'c1',
-          repository: 'releases',
-          format: 'maven2',
-          group: 'org.example',
-          name: 'lib',
-          version: '2.0',
-          assets: [
-            {
-              id: 'a1',
-              path: '/org/example/lib/2.0/lib-2.0.pom',
-              downloadUrl: '',
-              repository: 'releases',
-              format: 'maven2',
-              contentType: 'application/xml',
-              lastModified: null,
-              fileSize: 3,
-              checksum: { sha1: 'abc' },
-            },
-          ],
-        },
-      ],
-      continuationToken: null,
-    });
-    vi.mocked(sha1Of).mockResolvedValue('abc');
+  it('lets a POM stand in for the coordinates', async () => {
+    stub();
     vi.mocked(uploadComponent).mockResolvedValue();
-    page('/upload/releases');
-    await userEvent.upload(await screen.findByLabelText(FILE), new File(['<project/>'], 'lib-2.0.pom'));
+    const { router } = page('/upload/releases');
+    await userEvent.upload(
+      await screen.findByLabelText(FILE, { selector: 'input' }),
+      new File(['<project/>'], 'lib-2.0.pom'),
+    );
     expect(screen.getByLabelText(/Extension/)).toHaveValue('pom');
     expect(
-      screen.getByText(
-        'The coordinates come from the POM file among the files, so these fields can stay empty.',
-      ),
+      screen.getByText('The component coordinates are taken from the provided POM file.'),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Generate a POM/)).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Upload' }));
-    expect(await screen.findByRole('link', { name: 'Open lib 2.0' })).toHaveAttribute(
-      'href',
-      '/search/component/maven2%3Aorg.example%3Alib?version=2.0',
-    );
-    expect(screen.getByRole('link', { name: 'Show in Browse' })).toHaveAttribute(
-      'href',
-      '/browse/releases/org/example/lib/2.0',
-    );
-    const lookup = calls.find((url) => url.pathname === '/service/rest/v1/search');
-    expect(lookup?.search).toBe('?repository=releases&sha1=abc');
+    expect(screen.getByRole('checkbox', { name: /Generate POM/ })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Upload Component' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/upload'));
+    expect(sent().map(([key]) => key)).toEqual(['maven2.asset1.extension', 'maven2.asset1']);
   });
 
   it('refuses files of the wrong kind for npm', async () => {
     stub();
     page('/upload/packages');
-    await userEvent.upload(await screen.findByLabelText(FILE), new File(['x'], 'package.zip'), {
-      applyAccept: false,
-    });
-    await userEvent.click(screen.getByRole('button', { name: 'Upload' }));
-    expect(await screen.findByText('Choose a file of these types: .tgz, .tar.gz.')).toBeInTheDocument();
+    await userEvent.upload(
+      await screen.findByLabelText(FILE, { selector: 'input' }),
+      new File(['x'], 'package.zip'),
+      {
+        applyAccept: false,
+      },
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Upload Component' }));
+    expect(await screen.findByText('Supported: .tgz, .tar.gz')).toBeInTheDocument();
     expect(uploadComponent).not.toHaveBeenCalled();
+  });
+
+  it('switches the target repository from the combobox', async () => {
+    stub();
+    const { router } = page('/upload/files');
+    const combo = await screen.findByRole('combobox', { name: /Target Repository/ });
+    await userEvent.clear(combo);
+    await userEvent.type(combo, 'rel');
+    const options = screen.getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual(['releasesmaven2']);
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/upload/releases'));
   });
 
   it('explains repositories that take no uploads from the caller', async () => {
     stub();
     const { router } = page('/upload/locked');
-    expect(await screen.findByText('You cannot upload here')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('locked');
     await userEvent.click(screen.getByRole('link', { name: 'Back to Upload' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/upload'));
   });

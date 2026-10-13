@@ -30,17 +30,19 @@ const HINTS: Record<string, string> = {
   'maven2.extension': 'upload.hint.extension',
 };
 
-const GROUPS: Record<string, string> = {
-  'Component coordinates': 'upload.group.coordinates',
-  'Component attributes': 'upload.group.attributes',
+const PLACEHOLDERS: Record<string, string> = {
+  'raw.directory': 'upload.placeholder.directory',
+  'maven2.groupId': 'upload.placeholder.groupId',
+  'maven2.artifactId': 'upload.placeholder.artifactId',
+  'maven2.version': 'upload.placeholder.version',
 };
 
-const INTROS: Record<string, string> = {
-  maven2: 'upload.intro.maven2',
-  npm: 'upload.intro.npm',
-  pypi: 'upload.intro.pypi',
-  raw: 'upload.intro.raw',
+const SECTIONS: Record<string, string> = {
+  raw: 'upload.group.raw',
+  maven2: 'upload.group.coordinates',
 };
+
+export const PACKAGING = ['jar', 'war', 'ear', 'pom', 'maven-plugin', 'ejb', 'bundle'];
 
 export function humanize(name: string): string {
   const spaced = name
@@ -63,15 +65,12 @@ export function fieldHint(t: Translate, format: string, field: UploadFieldSpec):
   return field.description ?? undefined;
 }
 
-export function groupTitle(t: Translate, title: string | null): string | null {
-  if (title === null) {
-    return null;
-  }
-  const key = GROUPS[title];
-  return key ? t(key) : title;
+export function fieldPlaceholder(t: Translate, format: string, field: UploadFieldSpec): string | undefined {
+  const key = PLACEHOLDERS[`${format}.${field.name}`];
+  return key ? t(key) : undefined;
 }
 
-export function formatIntro(t: Translate, format: string): string | null {
-  const key = INTROS[format];
-  return key ? t(key) : null;
+export function sectionTitle(t: Translate, format: string): string {
+  const key = SECTIONS[format];
+  return key ? t(key) : t('upload.group.component');
 }

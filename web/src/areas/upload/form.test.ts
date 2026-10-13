@@ -48,7 +48,7 @@ describe('upload forms built from specs', () => {
       artifactId: '',
       version: '',
       'generate-pom': 'false',
-      packaging: '',
+      packaging: 'jar',
     });
     expect(maven.assets).toHaveLength(1);
     expect(maven.assets[0]?.values).toEqual({ classifier: '', extension: '' });
@@ -81,6 +81,13 @@ describe('upload forms built from specs', () => {
     expect(suggestAssetValues(RAW, raw, raw.assets[0] as never, file('notes.txt'))).toEqual({
       filename: 'notes.txt',
     });
+    expect(
+      entries(toFormData(RAW, draft(RAW, { directory: '/d' }, [[file('notes.txt'), { filename: '' }]]))),
+    ).toEqual([
+      ['raw.directory', '/d'],
+      ['raw.asset1.filename', 'notes.txt'],
+      ['raw.asset1', 'file:notes.txt'],
+    ]);
     const maven = draft(MAVEN, { artifactId: 'lib', version: '1.0' }, [
       [null, { classifier: '', extension: '' }],
     ]);
@@ -102,7 +109,6 @@ describe('upload forms built from specs', () => {
     expect(validateDraft(RAW, emptyDraft(RAW))).toEqual({
       'raw.directory': { message: 'upload.validation.required' },
       'raw.asset1': { message: 'upload.validation.file' },
-      'raw.asset1.filename': { message: 'upload.validation.required' },
     });
     expect(validateDraft(NPM, draft(NPM, {}, [[file('pkg.tgz'), {}]]))).toEqual({});
     expect(validateDraft(TERRAFORM, draft(TERRAFORM, {}, [[file('m.zip'), {}]]))).toEqual({
@@ -170,6 +176,7 @@ describe('upload forms built from specs', () => {
       ['maven2.artifactId', 'lib'],
       ['maven2.version', '1.0'],
       ['maven2.generate-pom', 'true'],
+      ['maven2.packaging', 'jar'],
       ['maven2.asset1.extension', 'jar'],
       ['maven2.asset1', 'file:lib-1.0.jar'],
       ['maven2.asset2.classifier', 'sources'],

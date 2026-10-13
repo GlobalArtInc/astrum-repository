@@ -62,19 +62,24 @@ for (const size of SIZES) {
       await page.keyboard.press('Escape');
 
       await page.goto('/upload');
-      await expect(page.getByRole('link', { name: 'upload-raw' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Upload to upload-raw' })).toBeVisible();
       await shoot(page, `upload-list-${suffix}`);
       await page.goto('/upload/upload-raw');
       await page.getByLabel(/Directory/).fill('/tools/linux');
-      await page.getByLabel(/^File\*?$/).setInputFiles({
+      await page.locator('input[type=file]').setInputFiles({
         name: 'agent-linux-amd64',
         mimeType: 'application/octet-stream',
         buffer: Buffer.alloc(2048, 7),
       });
       await shoot(page, `upload-raw-${suffix}`);
       await page.goto('/upload/search-maven');
-      await page.getByRole('button', { name: 'Upload', exact: true }).click();
-      await expect(page.getByText('Fix the marked fields and try again.')).toBeVisible();
+      await page.locator('input[type=file]').setInputFiles({
+        name: 'lib.jar',
+        mimeType: 'application/java-archive',
+        buffer: Buffer.alloc(64, 1),
+      });
+      await page.getByRole('button', { name: 'Upload Component' }).click();
+      await expect(page.getByText('Fix the errors in the form')).toBeVisible();
       await page.getByLabel(/Group ID/).scrollIntoViewIfNeeded();
       await shoot(page, `upload-maven-errors-${suffix}`);
 

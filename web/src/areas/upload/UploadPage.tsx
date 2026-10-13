@@ -1,31 +1,20 @@
-import { Button, Callout, Flex, Heading, IconButton, Progress, Spinner, Text } from '@radix-ui/themes';
-import { CircleCheck, Info, Package, Plus, Trash2, Upload } from 'lucide-react';
-import { type FormEvent, useRef, useState } from 'react';
+import { Badge, Button, Callout, Heading, IconButton, Separator, Spinner, Text } from '@radix-ui/themes';
+import {
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  Clock,
+  File as FileIcon,
+  Info,
+  Package,
+  Plus,
+  X,
+} from 'lucide-react';
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ApiError, api, useInvalidateApi, withQuery } from '../../api';
+import { ApiError, useInvalidateApi } from '../../api';
 import { formatBytes, useI18n } from '../../i18n';
-import {
-  CheckboxField,
-  describeError,
-  EmptyState,
-  ErrorState,
-  FormatBadge,
-  FormError,
-  Page,
-  SelectField,
-  TextField,
-  UnsavedChangesGuard,
-  useToast,
-} from '../../ui';
-import {
-  browsePath,
-  componentPath,
-  folderOf,
-  SEARCH,
-  type SearchComponent,
-  type SearchPage,
-} from '../search/model';
-import { FilePicker } from './FilePicker';
+import { describeError, formatName, UnsavedChangesGuard, useDocumentTitle, useToast } from '../../ui';
 import {
   ACCEPTED,
   type AssetDraft,
@@ -34,106 +23,84 @@ import {
   assetTextFields,
   BOOLEAN,
   componentFieldName,
-  componentGroups,
   emptyAsset,
   emptyDraft,
   fileField,
-  folderGuess,
   hasPom,
-  isRequired,
   knownFieldNames,
-  optionValues,
   type Problems,
   placeServerErrors,
+  showsRequired,
   suggestAssetValues,
   toFormData,
   type UploadDraft,
   validateDraft,
 } from './form';
-import { fieldHint, fieldLabel, formatIntro, groupTitle } from './labels';
+import { fieldHint, fieldLabel, fieldPlaceholder, PACKAGING, sectionTitle } from './labels';
 import type { UploadFieldSpec, UploadRepository, UploadSpec } from './model';
 import { useUploadTargets } from './targets';
-import { sha1Of, type Progress as UploadProgress, uploadComponent } from './transport';
+import { type Progress as UploadProgress, uploadComponent } from './transport';
 import styles from './Upload.module.css';
+import { Dropzone, SettingsCheckbox, SettingsField, SettingsSelect, TargetCombobox } from './UploadFields';
 
-interface Done {
-  repository: string;
-  folder: string;
-  component: SearchComponent | null;
+function badgeText(format: string): string {
+  return format === 'maven2' ? formatName(format) : format;
 }
 
-async function findUploaded(repository: string, spec: UploadSpec, draft: UploadDraft): Promise<Done> {
-  const done: Done = { repository, folder: folderGuess(spec, draft), component: null };
-  const first = draft.assets.find((asset) => asset.file)?.file;
-  const sha1 = first ? await sha1Of(first) : null;
-  if (!sha1) {
-    return done;
-  }
-  try {
-    const page = await api.get<SearchPage<SearchComponent>>(withQuery(SEARCH, { repository, sha1 }));
-    const match = page.items[0];
-    if (match) {
-      const asset = match.assets.find((candidate) => candidate.checksum?.sha1 === sha1) ?? match.assets[0];
-      return { repository, component: match, folder: asset ? folderOf(asset.path) : done.folder };
+function componentSummary(spec: UploadSpec, draft: UploadDraft): string {
+  const parts: string[] = [];
+  for (const field of spec.componentFields) {
+    if (field.type === BOOLEAN || field.name === 'packaging') {
+      continue;
     }
-  } catch {}
-  return done;
+    const value = (draft.component[field.name] ?? '').trim();
+    if (value !== '') {
+      parts.push(...value.split('/').filter((part) => part !== ''));
+    }
+  }
+  if (parts.length === 0) {
+    const first = draft.assets.find((asset) => asset.file)?.file;
+    return first?.name ?? '';
+  }
+  return parts.join(' ');
 }
 
-function fieldInput(
-  field: UploadFieldSpec,
-  props: {
-    name: string;
-    label: string;
-    hint?: string;
-    error?: string;
-    required: boolean;
-    disabled: boolean;
-    value: string;
-    onChange(value: string): void;
-  },
-) {
-  if (field.type === BOOLEAN) {
-    return (
-      <CheckboxField
-        name={props.name}
-        label={props.label}
-        description={props.hint}
-        error={props.error}
-        disabled={props.disabled}
-        value={props.value === 'true'}
-        onChange={(checked) => props.onChange(checked ? 'true' : 'false')}
-      />
-    );
-  }
-  const options = optionValues(field);
-  if (options.length > 0) {
-    return (
-      <SelectField
-        name={props.name}
-        label={props.label}
-        hint={props.hint}
-        error={props.error}
-        required={props.required}
-        disabled={props.disabled}
-        value={props.value}
-        options={options.map((option) => ({ value: option, label: option }))}
-        onChange={props.onChange}
-      />
-    );
-  }
+function Crumbs({ repository }: { repository: string }) {
+  const { t } = useI18n();
   return (
-    <TextField
-      name={props.name}
-      label={props.label}
-      hint={props.hint}
-      error={props.error}
-      required={props.required}
-      disabled={props.disabled}
-      value={props.value}
-      autoComplete="off"
-      onChange={props.onChange}
-    />
+    <nav className={styles.crumbs} aria-label={t('ui.page.breadcrumbs')}>
+      <Button asChild variant="ghost" size="2" className={styles.crumbLink}>
+        <Link to="/upload">{t('upload.list.title')}</Link>
+      </Button>
+      <ChevronRight size={14} aria-hidden="true" />
+      <Text size="2" weight="medium" className={styles.gray} aria-current="page">
+        {repository}
+      </Text>
+    </nav>
+  );
+}
+
+function Section({
+  title,
+  icon,
+  id,
+  children,
+}: {
+  title: string;
+  icon?: ReactNode;
+  id: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={styles.section} aria-labelledby={id}>
+      <div className={styles.sectionHead}>
+        {icon && <div className={styles.sectionIcon}>{icon}</div>}
+        <Heading as="h2" size="3" weight="medium" id={id}>
+          {title}
+        </Heading>
+      </div>
+      <div className={styles.sectionContent}>{children}</div>
+    </section>
   );
 }
 
@@ -155,15 +122,23 @@ function UploadForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
-  const [done, setDone] = useState<Done | null>(null);
+  const [finished, setFinished] = useState(false);
   const abort = useRef<AbortController | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (finished) {
+      navigate('/upload');
+    }
+  }, [finished, navigate]);
   const pom = hasPom(spec, draft);
   const files = fileField(spec);
   const chosen = draft.assets.filter((asset) => asset.file !== null);
   const totalBytes = chosen.reduce((sum, asset) => sum + (asset.file?.size ?? 0), 0);
   const accepted = ACCEPTED[spec.format];
-  const intro = formatIntro(t, spec.format);
+  const generatePom = draft.component['generate-pom'] === 'true';
+  const title = t('upload.form.title', { repository: repository.name });
+  useDocumentTitle(title);
 
   const translate = (problems: Problems) =>
     Object.fromEntries(
@@ -197,10 +172,9 @@ function UploadForm({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (uploading) {
+    if (uploading || chosen.length === 0) {
       return;
     }
-    setDone(null);
     const found = validateDraft(spec, draft);
     if (Object.keys(found).length > 0) {
       setErrors(translate(found));
@@ -217,12 +191,15 @@ function UploadForm({
     const sent = draft;
     try {
       await uploadComponent(repository.name, toFormData(spec, sent), setProgress, controller.signal);
-      const result = await findUploaded(repository.name, spec, sent);
-      setDone(result);
-      setDraft(emptyDraft(spec));
-      toast.success(t('upload.form.uploaded', { repository: repository.name }));
+      const summary = componentSummary(spec, sent);
+      toast.success(
+        t('upload.form.uploaded', { repository: repository.name }),
+        summary ? t('upload.form.uploadedComponent', { name: summary }) : undefined,
+      );
       void invalidate('/service/rest/v1/search');
       void invalidate('/service/rest/internal/ui');
+      setDraft(emptyDraft(spec));
+      setFinished(true);
     } catch (failure) {
       if (failure instanceof DOMException && failure.name === 'AbortError') {
         setFormError(t('upload.form.cancelled'));
@@ -243,242 +220,292 @@ function UploadForm({
 
   const percent = progress && progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
 
-  return (
-    <Page
-      title={t('upload.form.title', { repository: repository.name })}
-      description={t('upload.form.description')}
-      breadcrumbs={[{ label: t('upload.list.title'), to: '/upload' }, { label: repository.name }]}
-      actions={<FormatBadge format={repository.format} />}
-    >
-      <UnsavedChangesGuard when={uploading || chosen.length > 0} />
-      {done && (
-        <Callout.Root color="green" role="status">
-          <Callout.Icon>
-            <CircleCheck size={16} />
-          </Callout.Icon>
-          <Callout.Text>
-            {t('upload.form.uploaded', { repository: done.repository })}
-            <span className={styles.links}>
-              {done.component && (
-                <Link className={styles.link} to={componentPath(done.component)}>
-                  {t('upload.form.openComponent', {
-                    name: done.component.name,
-                    version: done.component.version ?? '',
-                  })}
-                </Link>
-              )}
-              <Link className={styles.link} to={browsePath(done.repository, done.folder)}>
-                {t('upload.form.openFolder')}
-              </Link>
-            </span>
-          </Callout.Text>
-        </Callout.Root>
-      )}
-      <form ref={formRef} className={styles.form} onSubmit={submit} noValidate>
-        <section className={styles.section} aria-labelledby="upload-repository">
-          <Heading as="h2" size="4" id="upload-repository">
-            {t('upload.form.repository')}
-          </Heading>
-          <SelectField
-            label={t('upload.form.target')}
-            hint={t('upload.form.targetHint')}
-            value={repository.name}
-            disabled={uploading}
-            options={targets.map((target) => ({ value: target.name, label: target.name }))}
-            onChange={(name) => navigate(`/upload/${encodeURIComponent(name)}`)}
-          />
-        </section>
-        {componentGroups(spec).map((group, index) => {
-          const title = groupTitle(t, group.title) ?? t('upload.form.component');
-          const headingId = `upload-group-${index}`;
-          return (
-            <section key={group.title ?? index} className={styles.section} aria-labelledby={headingId}>
-              <div className={styles.sectionHead}>
-                <Package size={18} aria-hidden="true" color="var(--accent-11)" />
-                <Heading as="h2" size="4" id={headingId}>
-                  {title}
-                </Heading>
-              </div>
-              {spec.format === 'maven2' && pom && group.title !== null && (
-                <Callout.Root color="blue" size="1">
-                  <Callout.Icon>
-                    <Info size={16} />
-                  </Callout.Icon>
-                  <Callout.Text>{t('upload.form.fromPom')}</Callout.Text>
-                </Callout.Root>
-              )}
-              <div className={styles.grid}>
-                {group.fields.map((field) => {
-                  const name = componentFieldName(spec, field.name);
-                  return (
-                    <div key={field.name} className={field.type === BOOLEAN ? styles.wide : undefined}>
-                      {fieldInput(field, {
-                        name,
-                        label: fieldLabel(t, spec.format, field),
-                        hint: fieldHint(t, spec.format, field),
-                        error: errors[name],
-                        required: isRequired(spec, draft, field),
-                        disabled: uploading || (pom && field.name === 'generate-pom'),
-                        value: draft.component[field.name] ?? '',
-                        onChange: (value) => setComponent(field.name, value),
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-        <section className={styles.section} aria-labelledby="upload-assets">
-          <Flex direction="column" gap="1">
-            <Heading as="h2" size="4" id="upload-assets">
-              {t('upload.form.assets')}
-            </Heading>
-            {intro && (
-              <Text size="2" color="gray">
-                {intro}
-              </Text>
-            )}
-          </Flex>
-          {draft.assets.map((asset, index) => {
-            const fileName = assetFileName(spec, index);
-            const number = index + 1;
-            return (
-              <div
-                key={asset.key}
-                className={styles.asset}
-                role="group"
-                aria-label={t('upload.form.assetNumber', { number })}
-              >
-                {spec.multipleUpload && (
-                  <div className={styles.assetHead}>
-                    <Text size="2" weight="medium">
-                      {t('upload.form.assetNumber', { number })}
-                    </Text>
-                    {draft.assets.length > 1 && (
-                      <IconButton
-                        type="button"
-                        size="1"
-                        variant="ghost"
-                        color="red"
-                        disabled={uploading}
-                        aria-label={t('upload.form.removeAsset', { number })}
-                        onClick={() =>
-                          setDraft((current) => ({
-                            ...current,
-                            assets: current.assets.filter((candidate) => candidate.key !== asset.key),
-                          }))
-                        }
-                      >
-                        <Trash2 size={14} aria-hidden="true" />
-                      </IconButton>
-                    )}
-                  </div>
-                )}
-                {files && (
-                  <FilePicker
-                    label={fieldLabel(t, spec.format, files)}
-                    name={fileName}
-                    file={asset.file}
-                    accept={accepted?.join(',')}
-                    required
-                    disabled={uploading}
-                    error={errors[fileName]}
-                    hint={accepted ? t('upload.file.accepted', { types: accepted.join(', ') }) : undefined}
-                    onChange={(file) => {
-                      clearError(fileName);
-                      setAsset(asset.key, (current, whole) => ({
-                        ...current,
-                        file,
-                        values: file ? suggestAssetValues(spec, whole, current, file) : current.values,
-                      }));
-                    }}
-                  />
-                )}
-                {assetTextFields(spec).length > 0 && (
-                  <div className={styles.grid}>
-                    {assetTextFields(spec).map((field) => {
-                      const name = assetFieldName(spec, index, field.name);
-                      return (
-                        <div key={field.name}>
-                          {fieldInput(field, {
-                            name,
-                            label: fieldLabel(t, spec.format, field),
-                            hint: fieldHint(t, spec.format, field),
-                            error: errors[name],
-                            required: isRequired(spec, draft, field),
-                            disabled: uploading,
-                            value: asset.values[field.name] ?? '',
-                            onChange: (value) => {
-                              clearError(name);
-                              setAsset(asset.key, (current) => ({
-                                ...current,
-                                values: { ...current.values, [field.name]: value },
-                              }));
-                            },
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
+  const textField = (
+    field: UploadFieldSpec,
+    name: string,
+    value: string,
+    onChange: (value: string) => void,
+  ) => (
+    <SettingsField
+      key={field.name}
+      name={name}
+      label={fieldLabel(t, spec.format, field)}
+      help={fieldHint(t, spec.format, field)}
+      placeholder={fieldPlaceholder(t, spec.format, field)}
+      error={errors[name]}
+      required={showsRequired(field)}
+      disabled={uploading}
+      value={value}
+      onChange={onChange}
+    />
+  );
+
+  const componentField = (field: UploadFieldSpec) => {
+    const name = componentFieldName(spec, field.name);
+    const value = draft.component[field.name] ?? '';
+    if (field.type === BOOLEAN) {
+      return (
+        <SettingsCheckbox
+          key={field.name}
+          label={fieldLabel(t, spec.format, field)}
+          description={fieldHint(t, spec.format, field)}
+          checked={value === 'true'}
+          disabled={uploading || pom}
+          onChange={(checked) => setComponent(field.name, checked ? 'true' : 'false')}
+        />
+      );
+    }
+    if (spec.format === 'maven2' && field.name === 'packaging') {
+      return (
+        <SettingsSelect
+          key={field.name}
+          label={fieldLabel(t, spec.format, field)}
+          help={fieldHint(t, spec.format, field)}
+          disabled={uploading || !generatePom || pom}
+          value={value || PACKAGING[0] || ''}
+          options={PACKAGING}
+          onChange={(next) => setComponent(field.name, next)}
+        />
+      );
+    }
+    return textField(field, name, value, (next) => setComponent(field.name, next));
+  };
+
+  const plainFields = spec.componentFields.filter((field) => field.type !== BOOLEAN);
+  const checkFields = spec.componentFields.filter((field) => field.type === BOOLEAN);
+
+  let status: ReactNode;
+  if (uploading) {
+    status = (
+      <span className={styles.statusItem} role="status">
+        <Spinner size="1" />
+        <Text size="1" weight="medium">
+          {t('upload.form.uploading', {
+            percent,
+            sent: formatBytes(language, progress?.loaded ?? 0),
+            total: formatBytes(language, progress?.total ?? totalBytes),
           })}
-          {spec.multipleUpload && (
-            <div>
-              <Button
-                type="button"
-                variant="soft"
-                disabled={uploading}
-                onClick={() =>
-                  setDraft((current) => ({ ...current, assets: [...current.assets, emptyAsset(spec)] }))
-                }
-              >
-                <Plus size={16} aria-hidden="true" />
-                {t('upload.form.addAsset')}
+        </Text>
+      </span>
+    );
+  } else if (chosen.length === 0) {
+    status = (
+      <span className={styles.statusItem}>
+        <Clock size={14} aria-hidden="true" />
+        <Text size="1" className={styles.gray}>
+          {t('upload.form.noFiles')}
+        </Text>
+      </span>
+    );
+  } else {
+    status = (
+      <span className={styles.statusItem}>
+        <CircleCheck size={14} aria-hidden="true" className={styles.ready} />
+        <Text size="1" weight="medium">
+          {t('upload.form.ready', { count: chosen.length })}
+        </Text>
+      </span>
+    );
+  }
+
+  return (
+    <div className={styles.formPage}>
+      <UnsavedChangesGuard when={!finished && (uploading || chosen.length > 0)} />
+      <Crumbs repository={repository.name} />
+      <div className={styles.formOuter}>
+        <form ref={formRef} className={styles.form} onSubmit={submit} noValidate>
+          <header className={styles.formHeader}>
+            <Heading as="h1" size="6" weight="medium">
+              {title}
+            </Heading>
+            <Badge size="2" className={styles.formatBadge}>
+              {badgeText(spec.format)}
+            </Badge>
+          </header>
+          <div className={styles.bar}>
+            <div className={styles.status}>
+              {status}
+              {formError && (
+                <span className={`${styles.statusItem} ${styles.statusError}`} role="alert">
+                  <CircleAlert size={14} aria-hidden="true" className={styles.danger} />
+                  <Text size="1" weight="medium" className={styles.danger}>
+                    {formError}
+                  </Text>
+                </span>
+              )}
+            </div>
+            <div className={styles.barActions}>
+              {uploading ? (
+                <Button type="button" variant="outline" onClick={() => abort.current?.abort()}>
+                  {t('upload.form.cancel')}
+                </Button>
+              ) : (
+                <Button asChild variant="outline">
+                  <Link to="/upload">{t('upload.form.back')}</Link>
+                </Button>
+              )}
+              <Button type="submit" loading={uploading} disabled={chosen.length === 0}>
+                {t('upload.form.submit')}
               </Button>
             </div>
-          )}
-        </section>
-        <FormError message={formError} />
-        <div className={styles.actions}>
-          {uploading ? (
-            <div className={styles.progress}>
-              <Text size="2" role="status">
-                {t('upload.form.progress', {
-                  percent,
-                  sent: formatBytes(language, progress?.loaded ?? 0),
-                  total: formatBytes(language, progress?.total ?? totalBytes),
-                })}
-              </Text>
-              <Progress value={percent} max={100} aria-label={t('upload.form.progressLabel')} />
+          </div>
+          <div className={styles.content}>
+            <div className={styles.inner}>
+              <Section title={t('upload.form.repository')} id="upload-repository">
+                <TargetCombobox
+                  label={t('upload.form.target')}
+                  help={t('upload.form.targetHint')}
+                  placeholder={t('upload.form.targetPlaceholder')}
+                  ariaLabel={t('upload.form.targetLabel')}
+                  value={repository.name}
+                  disabled={uploading}
+                  options={targets.map((target) => ({ value: target.name, description: target.format }))}
+                  onSelect={(name) => navigate(`/upload/${encodeURIComponent(name)}`)}
+                />
+              </Section>
+              <Separator size="4" className={styles.separator} />
+              {spec.componentFields.length > 0 && (
+                <>
+                  <Section
+                    title={sectionTitle(t, spec.format)}
+                    id="upload-component"
+                    icon={
+                      spec.format === 'raw' ? (
+                        <FileIcon size={18} aria-hidden="true" />
+                      ) : (
+                        <Package size={18} aria-hidden="true" />
+                      )
+                    }
+                  >
+                    {spec.format === 'maven2' && pom && (
+                      <Callout.Root color="blue" size="1">
+                        <Callout.Icon>
+                          <Info size={16} />
+                        </Callout.Icon>
+                        <Callout.Text>{t('upload.form.fromPom')}</Callout.Text>
+                      </Callout.Root>
+                    )}
+                    <div className={spec.format === 'maven2' ? styles.grid : styles.stack}>
+                      {plainFields.map(componentField)}
+                    </div>
+                    {checkFields.map(componentField)}
+                  </Section>
+                  <Separator size="4" className={styles.separator} />
+                </>
+              )}
+              <Section title={t('upload.form.assets')} id="upload-assets">
+                <div>
+                  {draft.assets.map((asset, index) => {
+                    const fileName = assetFileName(spec, index);
+                    const number = index + 1;
+                    const textFields = assetTextFields(spec);
+                    return (
+                      <div
+                        key={asset.key}
+                        className={styles.asset}
+                        role="group"
+                        aria-label={t('upload.form.assetNumber', { number })}
+                      >
+                        {draft.assets.length > 1 && (
+                          <div className={styles.assetHead}>
+                            <div className={styles.assetTitle}>
+                              <span className={styles.assetNumber}>{number}</span>
+                              <Text size="2" weight="medium">
+                                {t('upload.form.assetNumber', { number })}
+                              </Text>
+                            </div>
+                            <IconButton
+                              type="button"
+                              size="1"
+                              variant="ghost"
+                              color="red"
+                              disabled={uploading}
+                              aria-label={t('upload.form.removeAsset')}
+                              onClick={() =>
+                                setDraft((current) => ({
+                                  ...current,
+                                  assets: current.assets.filter((candidate) => candidate.key !== asset.key),
+                                }))
+                              }
+                            >
+                              <X size={14} aria-hidden="true" />
+                            </IconButton>
+                          </div>
+                        )}
+                        {files && (
+                          <Dropzone
+                            label={fieldLabel(t, spec.format, files)}
+                            help={t('upload.file.help')}
+                            name={fileName}
+                            file={asset.file}
+                            accept={accepted?.join(',')}
+                            disabled={uploading}
+                            error={errors[fileName]}
+                            onChange={(file) => {
+                              clearError(fileName);
+                              setAsset(asset.key, (current, whole) => ({
+                                ...current,
+                                file,
+                                values: file
+                                  ? suggestAssetValues(spec, whole, current, file)
+                                  : current.values,
+                              }));
+                            }}
+                          />
+                        )}
+                        {textFields.length > 0 && (
+                          <div className={styles.assetFields}>
+                            <Text as="p" size="1" className={styles.describe}>
+                              {t('upload.form.describeAsset')}
+                            </Text>
+                            <div className={styles.stack}>
+                              {textFields.map((field) => {
+                                const name = assetFieldName(spec, index, field.name);
+                                return textField(field, name, asset.values[field.name] ?? '', (value) => {
+                                  clearError(name);
+                                  setAsset(asset.key, (current) => ({
+                                    ...current,
+                                    values: { ...current.values, [field.name]: value },
+                                  }));
+                                });
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {spec.multipleUpload && (
+                    <Button
+                      type="button"
+                      variant="soft"
+                      className={styles.addAsset}
+                      disabled={uploading}
+                      aria-label={t('upload.form.addAsset')}
+                      onClick={() =>
+                        setDraft((current) => ({ ...current, assets: [...current.assets, emptyAsset(spec)] }))
+                      }
+                    >
+                      <Plus size={16} aria-hidden="true" />
+                      {t('upload.form.addAsset')}
+                    </Button>
+                  )}
+                </div>
+              </Section>
             </div>
-          ) : (
-            <Text size="2" color="gray">
-              {chosen.length === 0
-                ? t('upload.form.noFiles')
-                : t('upload.form.ready', { count: chosen.length, size: formatBytes(language, totalBytes) })}
-            </Text>
-          )}
-          <Flex gap="2">
-            {uploading ? (
-              <Button type="button" variant="soft" color="gray" onClick={() => abort.current?.abort()}>
-                {t('upload.form.cancel')}
-              </Button>
-            ) : (
-              <Button asChild variant="soft" color="gray">
-                <Link to="/upload">{t('upload.form.back')}</Link>
-              </Button>
-            )}
-            <Button type="submit" loading={uploading}>
-              <Upload size={16} aria-hidden="true" />
-              {t('upload.form.submit')}
-            </Button>
-          </Flex>
-        </div>
-      </form>
-    </Page>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Unavailable({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <div className={styles.formPage}>
+      <Crumbs repository={name} />
+      <div className={styles.formOuter}>{children}</div>
+    </div>
   );
 }
 
@@ -488,38 +515,47 @@ export default function UploadPage() {
   const { targets, specs, loading, error, retry } = useUploadTargets();
   const target = targets.find((candidate) => candidate.name === name);
   const spec = specs?.find((candidate) => candidate.format === target?.format);
-  const title = t('upload.form.title', { repository: name });
-  const crumbs = [{ label: t('upload.list.title'), to: '/upload' }, { label: name }];
+  useDocumentTitle(t('upload.form.title', { repository: name }));
   if (loading) {
     return (
-      <Page title={title} breadcrumbs={crumbs}>
-        <Flex justify="center" py="8">
+      <Unavailable name={name}>
+        <div className={styles.loading} role="status">
           <Spinner size="3" />
-        </Flex>
-      </Page>
+          <Text size="2" className={styles.gray}>
+            {t('upload.form.loading')}
+          </Text>
+        </div>
+      </Unavailable>
     );
   }
   if (error) {
     return (
-      <Page title={title} breadcrumbs={crumbs}>
-        <ErrorState error={error} onRetry={retry} />
-      </Page>
+      <Unavailable name={name}>
+        <Callout.Root color="red" role="alert">
+          <Callout.Icon>
+            <CircleAlert size={16} />
+          </Callout.Icon>
+          <Callout.Text>{describeError(t, error)}</Callout.Text>
+        </Callout.Root>
+        <Button type="button" variant="soft" color="gray" onClick={retry} className={styles.retry}>
+          {t('upload.form.retry')}
+        </Button>
+      </Unavailable>
     );
   }
   if (!target || !spec) {
     return (
-      <Page title={title} breadcrumbs={crumbs}>
-        <EmptyState
-          icon={Upload}
-          title={t('upload.form.unavailableTitle')}
-          description={t('upload.form.unavailableText', { repository: name })}
-          action={
-            <Button asChild variant="soft">
-              <Link to="/upload">{t('upload.form.back')}</Link>
-            </Button>
-          }
-        />
-      </Page>
+      <Unavailable name={name}>
+        <Callout.Root color="red" role="alert">
+          <Callout.Icon>
+            <CircleAlert size={16} />
+          </Callout.Icon>
+          <Callout.Text>{t('upload.form.unavailableText', { repository: name })}</Callout.Text>
+        </Callout.Root>
+        <Button asChild variant="outline" className={styles.retry}>
+          <Link to="/upload">{t('upload.form.back')}</Link>
+        </Button>
+      </Unavailable>
     );
   }
   return <UploadForm key={target.name} repository={target} spec={spec} targets={targets} />;

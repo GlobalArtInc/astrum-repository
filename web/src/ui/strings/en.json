@@ -49,5 +49,12 @@
   "ui.unsaved.description": "You have changes that are not saved. If you leave, they will be lost.",
   "ui.unsaved.leave": "Leave",
   "ui.unsaved.stay": "Stay",
-  "ui.unsaved.title": "Leave without saving?"
+  "ui.unsaved.title": "Leave without saving?",
+  "ui.filters.title": "Filter",
+  "ui.filters.resetAll": "Reset All",
+  "ui.filters.close": "Close",
+  "ui.filters.reset": "Reset Filters",
+  "ui.filters.clear": "Clear",
+  "ui.filters.more": "Show More",
+  "ui.filters.less": "Show Less"
 }
