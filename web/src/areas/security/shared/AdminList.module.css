@@ -412,3 +412,27 @@
   margin-top: -16px;
   min-height: calc(100dvh - 193px);
 }
+
+.chevronCell {
+  width: 40px;
+  color: var(--gray-9);
+}
+
+.flush {
+  margin: 0;
+}
+
+.toolbarEnd {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toolbarEnd > * {
+  width: 300px;
+  max-width: 100%;
+}
+
+.plainCard {
+  min-height: 0;
+  flex: 0 0 auto;
+}

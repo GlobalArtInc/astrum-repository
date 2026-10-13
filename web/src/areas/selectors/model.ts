@@ -85,28 +85,3 @@ export function validateSelector(
 export function selectorHref(name: string): string {
   return path`/admin/repository/selectors/${name}`;
 }
-
-export function browseHref(repository: string, assetPath: string): string {
-  const segments = assetPath
-    .split('/')
-    .filter((segment) => segment !== '')
-    .map((segment) => encodeURIComponent(segment));
-  return [`/browse/${encodeURIComponent(repository)}`, ...segments].join('/');
-}
-
-export function insertAt(
-  text: string,
-  insertion: string,
-  start: number,
-  end: number,
-): { text: string; caret: number } {
-  const before = text.slice(0, start);
-  const after = text.slice(end);
-  const spaceBefore = before !== '' && !/\s$/.test(before) && !/^\s/.test(insertion) ? ' ' : '';
-  const spaceAfter = after !== '' && !/^\s/.test(after) && !/\s$/.test(insertion) ? ' ' : '';
-  const inserted = `${spaceBefore}${insertion}${spaceAfter}`;
-  return {
-    text: `${before}${inserted}${after}`,
-    caret: before.length + spaceBefore.length + insertion.length,
-  };
-}

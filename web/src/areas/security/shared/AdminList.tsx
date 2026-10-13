@@ -249,7 +249,11 @@ export function ListTable<T>({
   onSort,
   empty,
   loading,
+  chevron,
+  plain,
 }: {
+  chevron?: boolean;
+  plain?: boolean;
   label: string;
   columns: ListColumn<T>[];
   rows: readonly T[];
@@ -263,7 +267,11 @@ export function ListTable<T>({
   loading?: boolean;
 }) {
   return (
-    <div className={styles.tableCard} role="region" aria-label={label}>
+    <div
+      className={plain ? `${styles.tableCard} ${styles.plainCard}` : styles.tableCard}
+      role="region"
+      aria-label={label}
+    >
       <Table.Root variant="ghost" size="2" className={styles.table}>
         <Table.Header>
           <Table.Row>
@@ -288,7 +296,7 @@ export function ListTable<T>({
                 </Table.ColumnHeaderCell>
               );
             })}
-            {buttons && <Table.ColumnHeaderCell className={styles.th} />}
+            {(buttons || chevron) && <Table.ColumnHeaderCell className={styles.th} />}
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -319,6 +327,11 @@ export function ListTable<T>({
                     {column.cell(row)}
                   </Table.Cell>
                 ))}
+                {chevron && !buttons && (
+                  <Table.Cell className={`${styles.td} ${styles.chevronCell}`} align="right">
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </Table.Cell>
+                )}
                 {buttons && (
                   <Table.Cell className={styles.td} align="right">
                     <span className={styles.buttons}>
@@ -428,15 +441,17 @@ export function HelpCard({
   children,
   link,
   linkLabel,
+  flush,
 }: {
   title: string;
   children: ReactNode;
   link: string;
   linkLabel?: string;
+  flush?: boolean;
 }) {
   const t = useT();
   return (
-    <section className={styles.help} aria-label={title}>
+    <section className={flush ? `${styles.help} ${styles.flush}` : styles.help} aria-label={title}>
       <h2 className={styles.helpTitle}>
         <CircleHelp size={14} aria-hidden="true" className={styles.helpIcon} />
         {title}
