@@ -16,7 +16,7 @@ const ADMIN_SECTIONS: Record<string, Record<string, string>> = {
     anonymous: '/admin/security/anonymous',
     ldap: '/admin/security/ldap',
     realms: '/admin/security/realms',
-    sslcertificates: '/admin/security/sslcertificates',
+    sslcertificates: '/admin/security/ssl-certificates',
     oauth2: '/admin/security/oauth2',
   },
   support: {
@@ -31,7 +31,7 @@ const ADMIN_SECTIONS: Record<string, Record<string, string>> = {
     tasks: '/admin/system/tasks',
     capabilities: '/admin/system/capabilities',
     notifications: '/admin/system/notifications',
-    emailserver: '/admin/system/emailserver',
+    emailserver: '/admin/system/email',
     http: '/admin/system/http',
     nodes: '/admin/system/nodes',
     api: '/api',

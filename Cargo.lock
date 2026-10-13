@@ -219,6 +219,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-pypi",
  "astrum-format-raw",
+ "astrum-outbound",
  "astrum-repo",
  "astrum-security",
  "astrum-tasks",
@@ -245,6 +246,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tokio-rustls",
  "tower",
  "tracing",
  "url",
@@ -287,6 +289,7 @@ dependencies = [
  "anyhow",
  "astrum-blob",
  "astrum-db",
+ "astrum-outbound",
  "astrum-repo",
  "astrum-security",
  "astrum-testkit",
@@ -510,6 +513,32 @@ dependencies = [
  "async-trait",
  "axum",
  "serde_json",
+]
+
+[[package]]
+name = "astrum-outbound"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-db",
+ "astrum-security",
+ "astrum-testkit",
+ "base64 0.22.1",
+ "chrono",
+ "hex",
+ "rcgen",
+ "reqwest",
+ "rustls",
+ "rustls-native-certs",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha1 0.10.7",
+ "thiserror",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+ "url",
+ "x509-parser",
 ]
 
 [[package]]

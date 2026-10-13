@@ -181,13 +181,22 @@ async fn guard(ctx: &Ctx) -> Result<SsrfProtection, ContentError> {
     Ok(settings)
 }
 
-async fn client(ctx: &Ctx) -> Result<(reqwest::Client, Arc<Guard>), ContentError> {
-    let settings = guard(ctx).await?;
+async fn client(
+    ctx: &Ctx,
+) -> Result<(reqwest::Client, Arc<Guard>, Arc<astrum_outbound::Snapshot>), ContentError> {
+    let outbound = ctx
+        .content
+        .outbound()
+        .snapshot()
+        .await
+        .map_err(ContentError::internal)?;
+    let settings = outbound.guard_settings(&guard(ctx).await?);
     let guard = Arc::new(Guard::new(&settings));
     let fingerprint = format!(
-        "{}|{}",
+        "{}|{}|{}",
         serde_json::to_string(&ctx.repository.attributes.http_client).unwrap_or_default(),
-        serde_json::to_string(&settings).unwrap_or_default()
+        serde_json::to_string(&settings).unwrap_or_default(),
+        outbound.fingerprint
     );
     let state = ctx.content.proxy_state();
     if let Some((stored, client)) = state
@@ -197,15 +206,21 @@ async fn client(ctx: &Ctx) -> Result<(reqwest::Client, Arc<Guard>), ContentError
         .get(ctx.name())
         && *stored == fingerprint
     {
-        return Ok((client.clone(), guard));
+        return Ok((client.clone(), guard, outbound));
     }
-    let client = http::build(&ctx.repository, guard.clone()).map_err(ContentError::internal)?;
+    let client = http::build(
+        &ctx.repository,
+        guard.clone(),
+        &outbound,
+        ctx.content.secrets(),
+    )
+    .map_err(ContentError::internal)?;
     state
         .clients
         .lock()
         .expect("the client cache lock is never poisoned")
         .insert(ctx.name().to_owned(), (fingerprint, client.clone()));
-    Ok((client, guard))
+    Ok((client, guard, outbound))
 }
 
 pub fn remote_url(
@@ -329,18 +344,30 @@ pub async fn send(
             ctx.name()
         )));
     }
-    let (client, guard) = client(ctx).await?;
+    let (client, guard, outbound) = client(ctx).await?;
     if !http::literal_allowed(&guard, &url) {
         return Err(ContentError::BadGateway(
             "the remote address is blocked by the SSRF protection".to_owned(),
         ));
     }
+    if outbound.proxied(&url)
+        && let Some(host) = url.host_str()
+        && let Err(astrum_outbound::certificate::FetchError::Blocked(message)) =
+            astrum_outbound::certificate::resolve_guarded(
+                &guard,
+                host,
+                url.port_or_known_default().unwrap_or(443),
+            )
+            .await
+    {
+        return Err(ContentError::BadGateway(message));
+    }
     let http_client = ctx.repository.attributes.http_client.as_ref();
-    let retries = http_client
-        .and_then(|client| client.connection.as_ref())
-        .and_then(|connection| connection.retries)
-        .unwrap_or(2)
-        .clamp(0, 10) as usize;
+    let retries = outbound.retries(
+        http_client
+            .and_then(|client| client.connection.as_ref())
+            .and_then(|connection| connection.retries),
+    );
     let authentication = http_client
         .and_then(|client| client.authentication.as_ref())
         .filter(|_| same_origin(&ctx.repository, &url));

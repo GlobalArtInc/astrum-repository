@@ -1,0 +1,502 @@
+.about {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  border: 1px solid var(--gray-a4);
+  border-radius: var(--radius-2);
+  background: var(--color-panel-solid);
+  min-width: 0;
+}
+
+.aboutAccent {
+  border-color: var(--accent-a6);
+  border-radius: var(--radius-3);
+  background: var(--accent-a3);
+  color: var(--accent-10);
+}
+
+.aboutHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.aboutIcon {
+  flex: 0 0 auto;
+  color: var(--accent-11);
+}
+
+.aboutTitle {
+  font-size: var(--font-size-2);
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.aboutAccent .aboutTitle,
+.aboutAccent .aboutIcon {
+  color: var(--accent-10);
+}
+
+.aboutText {
+  margin: 0 0 14px;
+  font-size: var(--font-size-2);
+  line-height: 21px;
+  color: var(--gray-11);
+  overflow-wrap: anywhere;
+}
+
+.aboutText:last-child {
+  margin-bottom: 0;
+}
+
+.aboutAccent .aboutText {
+  line-height: 24px;
+  color: var(--accent-10);
+}
+
+.aboutSpacer {
+  margin-top: var(--space-6);
+}
+
+.docs {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.about .docs {
+  color: inherit;
+}
+
+.aboutAccent .docs {
+  color: var(--accent-10);
+}
+
+.docs:hover {
+  text-decoration: underline;
+}
+
+.collapsible {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-top: 12px;
+}
+
+.excludeText {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-2);
+  line-height: 21px;
+  color: var(--gray-11);
+}
+
+.collapsibleHead {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-2);
+  background: var(--gray-a3);
+  color: var(--gray-12);
+  font: inherit;
+  font-size: var(--font-size-3);
+  line-height: 22px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collapsibleHead:hover {
+  background: var(--gray-a4);
+}
+
+.collapsibleHead:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 2px;
+}
+
+.chevron,
+.chevronOpen {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--gray-11);
+  transition: transform 120ms ease;
+}
+
+.chevron {
+  transform: rotate(-90deg);
+}
+
+.collapsibleBody {
+  margin-top: var(--space-4);
+}
+
+.result {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: 12px var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius-2);
+  overflow-wrap: anywhere;
+}
+
+.result svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.success {
+  border-color: var(--green-a7);
+  background: var(--green-a3);
+  color: var(--green-11);
+}
+
+.failure {
+  border-color: var(--red-a7);
+  background: var(--red-a3);
+  color: var(--red-11);
+}
+
+.addRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.addInput {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 400px;
+  min-width: 0;
+}
+
+.inlineLabel {
+  font-size: var(--font-size-2);
+  line-height: 21px;
+  font-weight: 500;
+}
+
+.inlineHint {
+  margin: 4px 0;
+}
+
+.hosts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: 12px;
+  list-style: none;
+  border-radius: var(--radius-2);
+  background: var(--gray-a2);
+}
+
+.host {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--gray-a4);
+  border-radius: var(--radius-2);
+  background: var(--color-background);
+  font-size: var(--font-size-2);
+  overflow-wrap: anywhere;
+}
+
+.readOnly {
+  margin: 0 0 var(--space-5);
+}
+
+.trustRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.testRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.testInput {
+  flex: 0 1 400px;
+  min-width: 0;
+}
+
+.testText {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-2);
+  line-height: 21px;
+  color: var(--gray-11);
+}
+
+.testResult {
+  margin-top: var(--space-5);
+}
+
+.testSection {
+  margin-top: var(--space-6);
+}
+
+.inlineAbout {
+  margin-top: var(--space-4);
+}
+
+.page {
+  min-width: 0;
+}
+
+.page[data-gutter] {
+  padding: 32px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.filter {
+  width: 458px;
+  max-width: 100%;
+}
+
+.fingerprint {
+  font-family: var(--code-font-family);
+  font-size: 11px;
+  color: var(--gray-11);
+  white-space: nowrap;
+}
+
+.empty {
+  padding: var(--space-6);
+  font-size: var(--font-size-2);
+  line-height: 20px;
+  text-align: center;
+  color: var(--gray-11);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.detailsSection + .detailsSection {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--gray-a5);
+}
+
+.detailsTitle {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-3);
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  align-items: center;
+  min-height: 48px;
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row dt {
+  font-size: var(--font-size-2);
+  color: var(--gray-11);
+}
+
+.row dd {
+  margin: 0;
+  font-size: var(--font-size-2);
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--code-font-family);
+  font-size: 11px;
+}
+
+.warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding: 12px var(--space-4);
+  border: 1px solid var(--amber-a7);
+  border-radius: var(--radius-2);
+  background: var(--amber-a3);
+  color: var(--amber-11);
+  font-size: var(--font-size-2);
+}
+
+.expired {
+  border-color: var(--red-a7);
+  background: var(--red-a3);
+  color: var(--red-11);
+}
+
+.trustWarning {
+  margin-top: var(--space-6);
+  padding: 12px var(--space-4);
+  border: 1px solid var(--amber-a6);
+  border-radius: var(--radius-2);
+  background: var(--amber-a2);
+  color: var(--amber-11);
+  font-size: var(--font-size-2);
+  line-height: 21px;
+}
+
+.backRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--gray-a5);
+}
+
+.source {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-left: 19px;
+}
+
+.option {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.optionBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.optionTitle {
+  font-size: var(--font-size-2);
+  line-height: 21px;
+  font-weight: 500;
+}
+
+.optionText {
+  font-size: var(--font-size-1);
+  line-height: 18px;
+  color: var(--gray-11);
+}
+
+.optionInput {
+  margin: var(--space-5) 0 0 7px;
+}
+
+.exists {
+  margin-bottom: var(--space-4);
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.dialogRows .row {
+  grid-template-columns: 180px minmax(0, 1fr);
+  min-height: 40px;
+}
+
+.dialogWarning {
+  padding: 12px var(--space-4);
+  border-radius: var(--radius-2);
+  background: var(--amber-a3);
+  color: var(--amber-11);
+  font-size: var(--font-size-2);
+  line-height: 20px;
+}
+
+@media (max-width: 639px) {
+  .page[data-gutter] {
+    padding: 16px;
+  }
+
+  .row,
+  .dialogRows .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    padding: 8px 0;
+  }
+
+  .addRow,
+  .testRow {
+    flex-wrap: wrap;
+  }
+
+  .addInput,
+  .testInput {
+    flex: 1 1 100%;
+  }
+
+  .source {
+    padding-left: 0;
+  }
+}
+
+.required {
+  color: var(--red-9);
+}
+
+.tlsSection {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--gray-a5);
+}
+
+.flushPage.flushPage {
+  gap: 0;
+}
+
+.settingsPage label:has(> :global(.rt-CheckboxRoot)) > span {
+  gap: 4px;
+}
+
+.settingsPage label:has(> :global(.rt-CheckboxRoot)) > span > :first-child {
+  line-height: 21px;
+}
+
+.settingsPage label:has(> :global(.rt-CheckboxRoot)) [id$="-hint"] {
+  line-height: 18px;
+  color: var(--gray-11);
+}
+
+.aboutTextLoose {
+  line-height: 24px;
+}

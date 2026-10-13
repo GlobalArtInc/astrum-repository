@@ -311,6 +311,7 @@
   "repositories.form.unsaved": "Несохранённые изменения",
   "repositories.form.useTrustStore": "Использовать хранилище доверенных сертификатов Astrum Repository",
   "repositories.form.useTrustStoreHint": "Использовать сертификаты из хранилища доверенных сертификатов Astrum Repository для подключения к внешним системам",
+  "repositories.form.viewCertificate": "Показать сертификат",
   "repositories.form.v1EnabledHint": "Разрешить клиентам работать с этим репозиторием через V1 API",
   "repositories.edit.tabs.summary": "Сводка",
   "repositories.edit.tabs.tasks": "Задачи и возможности",

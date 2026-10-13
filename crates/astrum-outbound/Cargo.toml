@@ -1,0 +1,30 @@
+[package]
+name = "astrum-outbound"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+astrum-db.workspace = true
+astrum-security.workspace = true
+base64.workspace = true
+chrono.workspace = true
+hex.workspace = true
+reqwest.workspace = true
+rustls.workspace = true
+rustls-native-certs.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha1.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-rustls.workspace = true
+tracing.workspace = true
+url.workspace = true
+x509-parser.workspace = true
+
+[dev-dependencies]
+astrum-testkit.workspace = true
+rcgen.workspace = true

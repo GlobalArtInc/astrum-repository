@@ -1,10 +1,14 @@
-import { Button, Callout } from '@radix-ui/themes';
-import { ChevronDown, ChevronRight, Info, TriangleAlert } from 'lucide-react';
+import { Button, Callout, Flex } from '@radix-ui/themes';
+import { ChevronDown, ChevronRight, Info, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { INTERNAL, useApi } from '../../../api';
+import { INTERNAL, useApi, V1 } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import { FormError, UnsavedChangesGuard, useForm } from '../../../ui';
+import { settingsButton } from '../../../ui/SettingsForm';
+import { TRUSTSTORE_READ } from '../../outbound/api';
+import { remoteServer } from '../../outbound/model';
+import { CertificateDialog } from '../../outbound/ssl/CertificateDialog';
 import type { UiRepository } from '../api';
 import type { RepositoryDocument } from '../model/document';
 import {
@@ -64,6 +68,25 @@ function useCleanupOptions(format: string, applied: readonly string[], enabled: 
   );
   const known = (names.data ?? []).map((policy) => policy.name);
   return [...known, ...applied.filter((name) => !known.includes(name))];
+}
+
+export const ROUTING_RULES = `${V1}/routing-rules`;
+
+interface RoutingRuleChoice {
+  name: string;
+  mode: string;
+}
+
+function useRoutingOptions(current: string, enabled: boolean): Array<{ value: string; label: string }> {
+  const rules = useApi<RoutingRuleChoice[]>(enabled ? ROUTING_RULES : null);
+  const known = (rules.data ?? []).map((rule) => ({
+    value: rule.name,
+    label: `${rule.name} (${rule.mode})`,
+  }));
+  if (current !== '' && !known.some((option) => option.value === current)) {
+    known.unshift({ value: current, label: current });
+  }
+  return known;
 }
 
 const WRITE_POLICIES = [
@@ -129,6 +152,8 @@ export function RepositoryForm(props: RepositoryFormProps) {
   const stored = creating ? { password: false, bearerToken: false } : storedSecrets(document);
   const [saved, setSaved] = useState<RepositoryDocument | null>(null);
   const [advanced, setAdvanced] = useState(false);
+  const [viewingCertificate, setViewingCertificate] = useState(false);
+  const canViewCertificate = useCan(TRUSTSTORE_READ);
   const form = useForm<RepositoryValues>({
     initial: fromDocument(document),
     validate: (values) => validate(values, { spec, creating, stored }, t),
@@ -146,6 +171,8 @@ export function RepositoryForm(props: RepositoryFormProps) {
   const { onSaved, onDirtyChange, onReadyChange } = props;
   const canManagePolicies = useCan('astrum:cleanup-policies:read');
   const cleanupOptions = useCleanupOptions(spec.format, values.cleanupPolicies, !sections.group(spec));
+  const routable = sections.proxy(spec) || sections.group(spec);
+  const routingRules = useRoutingOptions(values.routingRuleName, routable);
 
   useEffect(() => {
     onDirtyChange?.(form.dirty);
@@ -205,12 +232,24 @@ export function RepositoryForm(props: RepositoryFormProps) {
       ? [{ value: 'bearerToken', label: 'repositories.form.authTypes.bearerToken' }]
       : []),
   ];
-  const routingOptions = [
-    { value: NONE, label: t('repositories.form.routingRuleNone') },
-    ...(values.routingRuleName !== ''
-      ? [{ value: values.routingRuleName, label: values.routingRuleName }]
-      : []),
-  ];
+  const routingOptions = [{ value: NONE, label: t('repositories.form.routingRuleNone') }, ...routingRules];
+  const routingSection = (
+    <Section
+      title={t('repositories.form.sections.routing')}
+      description={t('repositories.form.sections.routingText')}
+    >
+      <SelectInput
+        name="routingRuleName"
+        error={form.errors.routingRuleName}
+        value={values.routingRuleName === '' ? NONE : values.routingRuleName}
+        onChange={(value) => form.set('routingRuleName', value === NONE ? '' : value)}
+        disabled={readOnly}
+        label={t('repositories.form.routingRule')}
+        hint={t('repositories.form.routingRuleHint')}
+        options={routingOptions}
+      />
+    </Section>
+  );
 
   const authentication = values.authType;
   const showAdvanced = advanced || Boolean(form.errors.retries || form.errors.timeout);
@@ -439,10 +478,34 @@ export function RepositoryForm(props: RepositoryFormProps) {
               required
             />
             {values.remoteUrl.trim().toLowerCase().startsWith('https://') && (
-              <CheckInput
-                {...field('useTrustStore')}
-                label={t('repositories.form.useTrustStore')}
-                description={t('repositories.form.useTrustStoreHint')}
+              <Flex direction="column" align="start" gap="3">
+                <CheckInput
+                  {...field('useTrustStore')}
+                  label={t('repositories.form.useTrustStore')}
+                  description={t('repositories.form.useTrustStoreHint')}
+                />
+                {canViewCertificate && (
+                  <Button
+                    className={settingsButton}
+                    type="button"
+                    variant="outline"
+                    color="gray"
+                    size="3"
+                    disabled={remoteServer(values.remoteUrl) === null}
+                    onClick={() => setViewingCertificate(true)}
+                  >
+                    <ShieldCheck size={16} aria-hidden="true" />
+                    {t('repositories.form.viewCertificate')}
+                  </Button>
+                )}
+              </Flex>
+            )}
+            {viewingCertificate && remoteServer(values.remoteUrl) && (
+              <CertificateDialog
+                open={viewingCertificate}
+                onOpenChange={setViewingCertificate}
+                host={remoteServer(values.remoteUrl)?.host ?? ''}
+                port={remoteServer(values.remoteUrl)?.port ?? 443}
               />
             )}
             <CheckInput
@@ -515,21 +578,7 @@ export function RepositoryForm(props: RepositoryFormProps) {
 
         {sections.proxy(spec) && (
           <>
-            <Section
-              title={t('repositories.form.sections.routing')}
-              description={t('repositories.form.sections.routingText')}
-            >
-              <SelectInput
-                name="routingRuleName"
-                error={form.errors.routingRuleName}
-                value={values.routingRuleName === '' ? NONE : values.routingRuleName}
-                onChange={(value) => form.set('routingRuleName', value === NONE ? '' : value)}
-                disabled={readOnly}
-                label={t('repositories.form.routingRule')}
-                hint={t('repositories.form.routingRuleHint')}
-                options={routingOptions}
-              />
-            </Section>
+            {routingSection}
             <Section title={t('repositories.form.sections.negativeCache')}>
               <CheckInput
                 {...field('negativeCacheEnabled')}
@@ -569,6 +618,8 @@ export function RepositoryForm(props: RepositoryFormProps) {
             )}
           </Section>
         )}
+
+        {sections.group(spec) && routingSection}
 
         {!sections.group(spec) && (
           <Section title={t('repositories.form.sections.cleanup')}>

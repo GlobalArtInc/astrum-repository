@@ -241,4 +241,51 @@ describe('the repository form', () => {
     renderForm({ document: BY_KEY['raw/group/max'] as RepositoryDocument });
     expect(screen.queryByRole('listbox', { name: 'Available Policies' })).not.toBeInTheDocument();
   });
+
+  it('offers the routing rules with their modes to proxies', async () => {
+    const server = fakeServer({
+      'GET /service/rest/v1/routing-rules': () =>
+        jsonResponse([
+          { name: 'block-sources', description: '', mode: 'BLOCK', matchers: ['.*-sources\\.jar'] },
+          { name: 'only-org', description: '', mode: 'ALLOW', matchers: ['^/org/.*'] },
+        ]),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    const { onSubmit } = renderForm({ document: BY_KEY['raw/proxy/min'] as RepositoryDocument });
+    const select = screen.getByRole('combobox', { name: /Routing Rule/ });
+    await waitFor(() => expect(server.calls.some((call) => call.path.endsWith('/routing-rules'))).toBe(true));
+    await userEvent.click(select);
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'None (allow every request)',
+      'block-sources (BLOCK)',
+      'only-org (ALLOW)',
+    ]);
+    await userEvent.click(screen.getByRole('option', { name: 'only-org (ALLOW)' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(getPath(onSubmit.mock.calls[0]?.[0] as RepositoryDocument, ['routingRuleName'])).toBe('only-org');
+  });
+
+  it('keeps the current rule when the rules cannot be listed and lets groups choose one', async () => {
+    const server = fakeServer({
+      'GET /service/rest/v1/routing-rules': () => jsonResponse({ id: '*', message: 'forbidden' }, 403),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    const document = structuredClone(BY_KEY['raw/group/min'] as RepositoryDocument);
+    document.routingRuleName = 'secret-rule';
+    const { onSubmit } = renderForm({ document });
+    const select = screen.getByRole('combobox', { name: /Routing Rule/ });
+    expect(select).toHaveTextContent('secret-rule');
+    await waitFor(() => expect(server.calls).toHaveLength(1));
+    await userEvent.click(select);
+    await userEvent.click(screen.getByRole('option', { name: 'None (allow every request)' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(getPath(onSubmit.mock.calls[0]?.[0] as RepositoryDocument, ['routingRuleName'])).toBeNull();
+  });
+
+  it('has no routing rule for hosted repositories', () => {
+    renderForm({ document: BY_KEY['raw/hosted/max'] as RepositoryDocument });
+    expect(screen.queryByRole('combobox', { name: /Routing Rule/ })).not.toBeInTheDocument();
+  });
 });

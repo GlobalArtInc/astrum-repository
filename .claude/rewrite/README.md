@@ -431,3 +431,20 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
 - Left after M3: idle-session countdown, response compression, docker port suggestion, repository profile
   tabs "structure", "security" and "system", tree filter and type-ahead, connection
   examples for formats added later, session dialog on a 401 during upload.
+- Outbound (M4 wave 2, 2026-10-13): routing rules (`astrum-repo::routing`, table `routing_rule`; public
+  `/v1/routing-rules` with the Nexus shape, renames move repositories along, a rule in use cannot be deleted;
+  internal `/internal/ui/routing-rules` list/get, `test` (per-matcher, whole-path match) and `preview` tree;
+  proxies and groups answer a blocked path with 403 and the reference text, groups skip blocked members;
+  groups accept `routingRuleName` and show it only when set; `/v2/` docker path routing is not checked).
+  `astrum-outbound`: global HTTP settings (setting `http.client`, `GET/PUT /v1/http`, passwords sealed and
+  masked as `#~ASTRUM~PLACEHOLDER~PASSWORD~#`, used by every proxy client: user agent, timeout, retries,
+  HTTP/HTTPS proxies with Basic auth (NTLM fields stored, not spoken) and non-proxy host globs; proxy hosts
+  pass the SSRF guard, proxied targets are still checked when they resolve), the SSL truststore (table
+  `ssl_certificate`, `GET /v1/security/ssl?host&port&protocolHint` with SMTP STARTTLS for 25/587,
+  `GET/POST /v1/security/ssl/truststore`, `DELETE .../{id}`, internal `POST /internal/ui/ssl/certificate-details`;
+  a stored certificate is trusted exactly like Java does, also a leaf; used by proxies with `useTrustStore`
+  and by mail). `astrum-mail`: email settings (setting `email`, `GET/PUT/DELETE /v1/email`, `POST
+  /v1/email/verify` with a text address) and an SMTP client of our own (SSL on connect, STARTTLS
+  optional/required, AUTH PLAIN/LOGIN, identity check, truststore); other code sends mail with
+  `state.mailer().send(&Message { to, subject, text })` (fails with `Disabled` while email is off).
+  Web areas `routing` and `outbound`.
