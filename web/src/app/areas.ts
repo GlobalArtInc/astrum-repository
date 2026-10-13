@@ -1,3 +1,4 @@
+import { apiArea } from '../areas/api';
 import { auditArea } from '../areas/audit';
 import { blobstoresArea } from '../areas/blobstores';
 import { browseArea } from '../areas/browse';
@@ -21,6 +22,7 @@ export const areas: Area[] = [
   browseArea,
   searchArea,
   uploadArea,
+  apiArea,
   auditArea,
   settingsArea,
   repositoriesArea,
