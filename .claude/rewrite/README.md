@@ -432,3 +432,17 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
 - Left after M3: idle-session countdown, response compression, docker port suggestion, repository profile
   tabs "structure", "security" and "system", tree filter and type-ahead, connection
   examples for formats added later, session dialog on a 401 during upload.
+- Support (M4 wave 2, branch `m4-support`): crate `astrum-logging` writes the tracing output also to
+  `<data>/log/astrum-<node>.log` (node `ASTRUM_NODE_NAME`, else the host name; 32 MiB, four rotations, files of
+  other nodes pruned after 30 days) and reloads the filter at runtime; overrides live in setting `logging.levels`,
+  applied at start and every 30 s. Endpoints: `GET /internal/logging/logs[/{file}?bytesCount=-N]`,
+  `POST /internal/logging/log/mark`, `GET|PUT|DELETE /internal/ui/loggingConfiguration[/{name}]` plus
+  `POST .../{name}/reset` and `.../reset` (names are Rust module paths or `ROOT`), `GET /v1/status/check` and
+  `/internal/ui/status-check` (CPUs, disk, blob store quota/readiness, database and writes, admin password file,
+  default role realm, log files, scheduler heartbeat `Tasks::last_tick`), `GET /service/rest/atlas/system-information`
+  (no environment; the database password is masked), `POST /v1/support/supportzip[path]` and
+  `GET /service/rest/wonderland/download/{file}` (own ZIP writer; `<data>/downloads`, pruned after a day),
+  `GET /service/rest/swagger.json` (the routed subset of `crates/astrum-api/tests/data/openapi-reference.json`;
+  the `openapi` test fails when routes and document differ, `ASTRUM_WRITE_OPENAPI=1` rewrites it). Pages under
+  `/admin/support/...` and `/api`, the header bell shows a red dot while a check fails. Per node: logs, marks and
+  support ZIPs live on the replica that served the request.
