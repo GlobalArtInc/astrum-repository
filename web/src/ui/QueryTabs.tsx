@@ -10,7 +10,15 @@ export interface TabDefinition {
 
 export const TAB_PARAM = 'tab';
 
-export function QueryTabs({ tabs, defaultValue }: { tabs: TabDefinition[]; defaultValue?: string }) {
+export function QueryTabs({
+  tabs,
+  defaultValue,
+  className,
+}: {
+  tabs: TabDefinition[];
+  defaultValue?: string;
+  className?: string;
+}) {
   const [params, setParams] = useSearchParams();
   const fallback = defaultValue ?? tabs[0]?.value ?? '';
   const asked = params.get(TAB_PARAM);
@@ -30,7 +38,7 @@ export function QueryTabs({ tabs, defaultValue }: { tabs: TabDefinition[]; defau
     );
   };
   return (
-    <Tabs.Root value={current} onValueChange={select}>
+    <Tabs.Root value={current} onValueChange={select} className={className}>
       <Box style={{ overflowX: 'auto' }}>
         <Tabs.List>
           {tabs.map((tab) => (

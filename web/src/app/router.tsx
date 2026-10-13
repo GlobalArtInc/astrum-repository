@@ -45,6 +45,7 @@ export const SECTION_REDIRECTS: Record<string, string> = {
   admin: '/settings',
   'admin/repository': '/admin/repository/repositories',
   'admin/security': '/admin/security/privileges',
+  'admin/system': '/admin/system/tasks',
 };
 
 export function buildRoutes(areas: Area[]): RouteObject[] {
