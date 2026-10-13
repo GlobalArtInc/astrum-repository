@@ -84,6 +84,8 @@
   "search.criterion.helmAppVersion": "Helm App Version",
   "search.criterion.helmDescription": "Helm Description",
   "search.criterion.helmKeywords": "Helm Keywords",
+  "search.criterion.swiftDescription": "Swift Description",
+  "search.criterion.swiftRepositoryUrl": "Swift Repository URL",
   "search.criterion.huggingfaceFile": "Hugging Face File",
   "search.criterion.huggingfaceRevision": "Hugging Face Branch or Tag",
   "search.criterion.terraformKind": "Terraform Kind",

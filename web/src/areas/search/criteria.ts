@@ -123,6 +123,14 @@ const MORE: readonly CriterionDefinition[] = [
     format: 'huggingface',
     example: 'config.json',
   },
+  { key: 'swift.description', label: 'search.criterion.swiftDescription', kind: 'text', format: 'swift' },
+  {
+    key: 'swift.repositoryURL',
+    label: 'search.criterion.swiftRepositoryUrl',
+    kind: 'text',
+    format: 'swift',
+    example: 'https://github.com/mona/LinkedList.git',
+  },
   {
     key: 'terraform.namespace',
     label: 'search.criterion.terraformNamespace',

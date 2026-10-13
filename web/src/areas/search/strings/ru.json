@@ -86,6 +86,8 @@
   "search.criterion.helmAppVersion": "Helm: версия приложения",
   "search.criterion.helmDescription": "Helm: описание",
   "search.criterion.helmKeywords": "Helm: ключевые слова",
+  "search.criterion.swiftDescription": "Swift: описание",
+  "search.criterion.swiftRepositoryUrl": "Swift: URL репозитория",
   "search.criterion.huggingfaceFile": "Hugging Face: файл",
   "search.criterion.huggingfaceRevision": "Hugging Face: ветка или тег",
   "search.criterion.terraformKind": "Terraform: вид",

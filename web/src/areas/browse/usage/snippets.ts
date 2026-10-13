@@ -1,5 +1,6 @@
 import type { RepositoryType } from '../../../api';
 import { huggingface } from './huggingface';
+import { swift } from './swift';
 import { terraform } from './terraform';
 
 export interface UsageComponent {
@@ -36,6 +37,7 @@ export const USAGE_FORMATS = [
   'raw',
   'helm',
   'huggingface',
+  'swift',
   'terraform',
 ] as const;
 
@@ -487,6 +489,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   docker,
   raw,
   helm,
+  swift: (context) =>
+    swift(context, repositoryUrl(context.baseUrl, context.repositoryName), hostnameOf(context.baseUrl)),
   huggingface: (context) => huggingface(context, repositoryUrl(context.baseUrl, context.repositoryName)),
   terraform: (context) =>
     terraform(context, repositoryUrl(context.baseUrl, context.repositoryName), hostOf(context.baseUrl)),
