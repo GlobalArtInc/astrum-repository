@@ -3,12 +3,15 @@ use std::fmt;
 use astrum_db::entity::blob_store;
 use sea_orm::sea_query::{Expr, Func};
 use sea_orm::{
-    ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, SqlErr,
+    ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, QueryOrder,
+    RuntimeErr, SqlErr, sqlx,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{Error, S3Settings, SoftQuota};
+
+const RESTRICT_VIOLATION: &str = "23001";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StoreKind {
@@ -240,16 +243,24 @@ pub async fn delete(db: &impl ConnectionTrait, name: &str) -> Result<bool, Error
         .await
     {
         Ok(result) => Ok(result.rows_affected > 0),
-        Err(error)
-            if matches!(
-                error.sql_err(),
-                Some(SqlErr::ForeignKeyConstraintViolation(_))
-            ) =>
-        {
-            Err(Error::InUse(name.to_owned()))
-        }
+        Err(error) if still_referenced(&error) => Err(Error::InUse(name.to_owned())),
         Err(error) => Err(error.into()),
     }
+}
+
+fn still_referenced(error: &DbErr) -> bool {
+    if matches!(
+        error.sql_err(),
+        Some(SqlErr::ForeignKeyConstraintViolation(_))
+    ) {
+        return true;
+    }
+    let (DbErr::Exec(RuntimeErr::SqlxError(sqlx::Error::Database(database)))
+    | DbErr::Query(RuntimeErr::SqlxError(sqlx::Error::Database(database)))) = error
+    else {
+        return false;
+    };
+    database.code().as_deref() == Some(RESTRICT_VIOLATION)
 }
 
 #[cfg(test)]
