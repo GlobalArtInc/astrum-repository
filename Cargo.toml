@@ -20,6 +20,7 @@ astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-nuget = { path = "crates/astrum-format-nuget" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
+astrum-format-rubygems = { path = "crates/astrum-format-rubygems" }
 astrum-format-yum = { path = "crates/astrum-format-yum" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-repo = { path = "crates/astrum-repo" }

@@ -250,6 +250,9 @@ fn credentials(headers: &HeaderMap) -> Result<Option<Credentials>, ApiError> {
         return Err(ApiError::Unauthorized);
     };
     let Some((scheme, encoded)) = value.trim().split_once(' ') else {
+        if looks_like_format_token(value.trim()).is_some() {
+            return Ok(Some(Credentials::FormatToken(value.trim().to_owned())));
+        }
         return Err(ApiError::Unauthorized);
     };
     if scheme.eq_ignore_ascii_case("bearer") {
