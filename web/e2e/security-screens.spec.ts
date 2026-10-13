@@ -108,42 +108,48 @@ for (const size of SIZES) {
       await signInAs(page, 'admin', server.adminPassword);
 
       await page.goto('/admin/repository/selectors');
-      await shoot(page, `selectors-${tag}`, 'Content selectors');
+      await shoot(page, `selectors-${tag}`, 'Content Selectors');
       await page.goto('/admin/repository/selectors/shot-docs');
-      await expect(page.getByText('/docs/guide.txt')).toBeVisible();
-      await shoot(page, `selector-edit-${tag}`, 'shot-docs');
+      await page.getByRole('combobox', { name: 'Repository' }).click();
+      await page.getByRole('option', { name: 'shot-files', exact: true }).click();
+      await page.getByRole('button', { name: 'Preview', exact: true }).click();
+      await expect(page.getByRole('cell', { name: /docs\/guide\.txt/ })).toBeVisible();
+      await shoot(page, `selector-edit-${tag}`, 'Edit: shot-docs');
       await page.goto('/admin/repository/selectors/create');
-      await shoot(page, `selector-new-${tag}`, 'Create a content selector');
+      await shoot(page, `selector-new-${tag}`, 'Create Content Selector');
 
       await page.goto('/admin/security/privileges');
       await shoot(page, `privileges-${tag}`, 'Privileges');
       await page.goto('/admin/security/privileges/create');
-      await shoot(page, `privilege-types-${tag}`, 'Create a privilege');
+      await shoot(page, `privilege-types-${tag}`, 'Create Privilege');
       await page.goto('/admin/security/privileges/create/repository-view');
-      await shoot(page, `privilege-new-${tag}`, 'Create a privilege: Repository view');
+      await shoot(page, `privilege-new-${tag}`, 'Create Privilege: Repository View');
       await page.goto('/admin/security/privileges/as-all');
-      await shoot(page, `privilege-builtin-${tag}`, 'as-all');
+      await shoot(page, `privilege-builtin-${tag}`, 'Edit: as-all');
+      await page.goto('/admin/security/privileges/as-all/profile');
+      await shoot(page, `privilege-profile-${tag}`);
 
       await page.goto('/admin/security/roles');
       await shoot(page, `roles-${tag}`, 'Roles');
+      await page.goto('/admin/security/roles/shot-devs/profile');
+      await shoot(page, `role-profile-${tag}`);
       await page.goto('/admin/security/roles/shot-devs');
-      await expect(page.getByText('shot-devs → shot-readers')).toBeVisible();
-      await shoot(page, `role-edit-${tag}`, 'Developers');
+      await shoot(page, `role-edit-${tag}`, 'Edit shot-devs');
       await page.goto('/admin/security/roles/create');
-      await shoot(page, `role-new-${tag}`, 'Create a role');
+      await shoot(page, `role-new-${tag}`, 'Create Role');
 
       await page.goto('/admin/security/users');
       await shoot(page, `users-${tag}`, 'Users');
       await page.goto('/admin/security/users/shot-jane');
-      await shoot(page, `user-edit-${tag}`, 'shot-jane');
-      await page.getByRole('button', { name: 'Change password' }).click();
+      await shoot(page, `user-edit-${tag}`, 'Edit Jane Doe');
+      await page.getByRole('button', { name: 'Change Password' }).click();
       await shoot(page, `user-password-${tag}`);
       await page.keyboard.press('Escape');
       await page.goto('/admin/security/users/create');
-      await shoot(page, `user-new-${tag}`, 'Create a user');
+      await shoot(page, `user-new-${tag}`, 'Create User');
 
       await page.goto('/admin/security/anonymous');
-      await shoot(page, `anonymous-${tag}`, 'Anonymous access');
+      await shoot(page, `anonymous-${tag}`, 'Anonymous Access');
       await page.goto('/admin/security/realms');
       await shoot(page, `realms-${tag}`, 'Realms');
       await page.goto('/admin/security/ssrf-protection');
@@ -154,17 +160,17 @@ for (const size of SIZES) {
       await page.goto('/settings');
       await shoot(page, `settings-${tag}`, 'Settings');
       await page.goto('/user/account');
-      await shoot(page, `account-${tag}`, 'Account');
+      await shoot(page, `account-${tag}`, 'My Account');
       await page.goto('/user/access-tokens');
-      await page.getByRole('textbox', { name: /^Name/ }).fill(`shot-${tag}`);
-      await page.getByRole('button', { name: 'Create token' }).click();
-      const created = page.getByRole('dialog', { name: 'Token created' });
+      await page.getByRole('textbox', { name: 'Name', exact: true }).fill(`shot-${tag}`);
+      await page.getByRole('button', { name: 'Create Token' }).click();
+      const created = page.getByRole('dialog', { name: 'Token Created' });
       await expect(created).toBeVisible();
       const box = await created.boundingBox();
       expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(size.width);
       await shoot(page, `token-created-${tag}`);
       await page.getByRole('button', { name: 'Done' }).click();
-      await shoot(page, `tokens-${tag}`, 'Access tokens');
+      await shoot(page, `tokens-${tag}`, 'Access Tokens');
 
       const fresh = await startServer({
         firstRun: true,
