@@ -87,7 +87,14 @@ test('the header keeps the controls of Astrum One', async ({ page }) => {
 
 test('the settings hub shows the old sections without SSRF and audit tiles', async ({ page }) => {
   await page.goto('/settings');
-  await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Repository', 'Security']);
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Repository', 'Security', 'System']);
+  await expect(page.getByRole('region', { name: 'Repository' }).getByRole('link')).toHaveText([
+    /^Repositories/,
+    /^Blob Stores/,
+    /^Cleanup Policies/,
+    /^Content Selectors/,
+  ]);
+  await expect(page.getByRole('region', { name: 'System' }).getByRole('link')).toHaveText([/^Tasks/]);
   const security = page.getByRole('region', { name: 'Security' });
   await expect(security.getByRole('link')).toHaveText([
     /^Users/,
