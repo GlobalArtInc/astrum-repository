@@ -386,6 +386,54 @@ export function RepositoryForm(props: RepositoryFormProps) {
           </Section>
         )}
 
+        {sections.terraform(spec) && (
+          <Section
+            title={t('repositories.form.sections.terraform')}
+            description={t('repositories.form.sections.terraformText')}
+          >
+            <TextInput
+              {...field('registryHost')}
+              label={t('repositories.form.registryHost')}
+              hint={t('repositories.form.registryHostHint')}
+            />
+            {spec.type === 'proxy' && (
+              <TextInput
+                {...field('upstreamHost')}
+                label={t('repositories.form.upstreamHost')}
+                hint={t('repositories.form.upstreamHostHint')}
+              />
+            )}
+            <CheckInput
+              {...field('requireAuthentication')}
+              label={t('repositories.form.requireAuthentication')}
+              description={t('repositories.form.requireAuthenticationHint')}
+            />
+          </Section>
+        )}
+
+        {sections.terraformSigning(spec) && (
+          <Section
+            title={t('repositories.form.sections.terraformSigning')}
+            description={t('repositories.form.sections.terraformSigningText')}
+          >
+            <TextAreaInput
+              {...field('signingKeypair')}
+              label={t('repositories.form.signingKeypair')}
+              hint={t('repositories.form.signingKeypairHint')}
+            />
+            <SecretInput
+              {...field('signingPassphrase')}
+              label={t('repositories.form.signingPassphrase')}
+              hint={
+                creating
+                  ? t('repositories.form.signingPassphraseHint')
+                  : t('repositories.form.signingPassphraseEditHint')
+              }
+              stored={false}
+            />
+          </Section>
+        )}
+
         <Section title={t('repositories.form.sections.storage')}>
           <SelectInput
             {...field('blobStoreName')}
