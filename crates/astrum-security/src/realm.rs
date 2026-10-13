@@ -15,51 +15,51 @@ pub struct Realm {
 pub const AVAILABLE: [Realm; 12] = [
     Realm {
         id: ACCESS_TOKEN,
-        name: "Access tokens",
+        name: "Access Token Realm",
     },
     Realm {
         id: "CargoToken",
-        name: "Cargo tokens",
+        name: "Cargo Bearer Token Realm",
     },
     Realm {
         id: "ConanToken",
-        name: "Conan tokens",
+        name: "Conan Bearer Token Realm",
     },
     Realm {
         id: DEFAULT_ROLE,
-        name: "Default role",
+        name: "Default Role Realm",
     },
     Realm {
         id: "DockerToken",
-        name: "Docker tokens",
+        name: "Docker Bearer Token Realm",
     },
     Realm {
         id: LDAP,
-        name: "LDAP",
+        name: "LDAP Realm",
     },
     Realm {
         id: LOCAL,
-        name: "Local users",
+        name: "Local Authenticating Realm",
     },
     Realm {
         id: "NpmToken",
-        name: "npm tokens",
+        name: "npm Bearer Token Realm",
     },
     Realm {
         id: "NuGetApiKey",
-        name: "NuGet API keys",
+        name: "NuGet API-Key Realm",
     },
     Realm {
         id: OIDC,
-        name: "OpenID Connect",
+        name: "OpenID Connect Realm",
     },
     Realm {
         id: "RubyGemsApiKey",
-        name: "RubyGems API keys",
+        name: "RubyGems API Key Realm",
     },
     Realm {
         id: "TerraformToken",
-        name: "Terraform tokens",
+        name: "Terraform Bearer Token Realm",
     },
 ];
 
