@@ -12,17 +12,21 @@ import {
 import { Plus, Search, X } from 'lucide-react';
 import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { useSession } from '../../auth/state';
 import { useT } from '../../i18n';
 import { DateTime, FormatBadge, Page } from '../../ui';
 import {
+  BASE_CRITERIA,
   blankCriterion,
-  CRITERIA,
   type Criterion,
   criteriaPath,
   definition,
-  OPERATORS,
+  moreCriteria,
+  OPERATOR_LABELS,
   type Operator,
+  operatorsOf,
   readCriteria,
+  withKey,
   writeCriteria,
 } from './criteria';
 import { lastModified, openPath, SEARCH, type SearchComponent } from './model';
@@ -42,7 +46,11 @@ function CriterionRow({
   onRemove(): void;
 }) {
   const t = useT();
-  const example = definition(criterion.key)?.example ?? '';
+  const { state } = useSession();
+  const found = definition(criterion.key);
+  const example = found?.example;
+  const formats = useMemo(() => state.formats.map((format) => format.id), [state.formats]);
+  const more = moreCriteria(formats, criterion.key);
   const remove = (
     <IconButton
       type="button"
@@ -59,10 +67,16 @@ function CriterionRow({
   );
   return (
     <div className={styles.criterion}>
-      <Select.Root size="2" value={criterion.key} onValueChange={(key) => onChange({ ...criterion, key })}>
+      <Select.Root size="2" value={criterion.key} onValueChange={(key) => onChange(withKey(criterion, key))}>
         <Select.Trigger className={styles.criterionKey} aria-label={t('search.criteria.field')} />
-        <Select.Content position="popper">
-          {CRITERIA.map((candidate) => (
+        <Select.Content>
+          {BASE_CRITERIA.map((candidate) => (
+            <Select.Item key={candidate.key} value={candidate.key}>
+              {t(candidate.label)}
+            </Select.Item>
+          ))}
+          {more.length > 0 && <Select.Separator />}
+          {more.map((candidate) => (
             <Select.Item key={candidate.key} value={candidate.key}>
               {t(candidate.label)}
             </Select.Item>
@@ -75,23 +89,44 @@ function CriterionRow({
         onValueChange={(operator) => onChange({ ...criterion, operator: operator as Operator })}
       >
         <Select.Trigger className={styles.criterionOperator} aria-label={t('search.criteria.operator')} />
-        <Select.Content position="popper">
-          {OPERATORS.map((operator) => (
-            <Select.Item key={operator.value} value={operator.value}>
-              {t(operator.label)}
+        <Select.Content>
+          {operatorsOf(criterion.key).map((operator) => (
+            <Select.Item key={operator} value={operator}>
+              {t(OPERATOR_LABELS[operator])}
             </Select.Item>
           ))}
         </Select.Content>
       </Select.Root>
-      <RadixTextField.Root
-        size="2"
-        className={styles.criterionValue}
-        value={criterion.value}
-        aria-label={t('search.criteria.value')}
-        placeholder={t('search.criteria.example', { example })}
-        autoComplete="off"
-        onChange={(event) => onChange({ ...criterion, value: event.target.value })}
-      />
+      {found?.kind === 'choice' ? (
+        <Select.Root
+          size="2"
+          value={criterion.value || undefined}
+          onValueChange={(value) => onChange({ ...criterion, value })}
+        >
+          <Select.Trigger
+            className={styles.criterionValue}
+            aria-label={t('search.criteria.value')}
+            placeholder={t('search.criteria.choose')}
+          />
+          <Select.Content>
+            {(found.options ?? []).map((option) => (
+              <Select.Item key={option.value} value={option.value}>
+                {t(option.label)}
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Root>
+      ) : (
+        <RadixTextField.Root
+          size="2"
+          className={styles.criterionValue}
+          value={criterion.value}
+          aria-label={t('search.criteria.value')}
+          placeholder={example ? t('search.criteria.example', { example }) : undefined}
+          autoComplete="off"
+          onChange={(event) => onChange({ ...criterion, value: event.target.value })}
+        />
+      )}
       {removable ? (
         remove
       ) : (

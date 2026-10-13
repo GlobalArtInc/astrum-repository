@@ -81,21 +81,17 @@ test('criteria search combines conditions and opens components', async ({ page }
   await expect(page.getByRole('heading', { level: 1, name: 'Advanced Search' })).toBeVisible();
   await expect(page.getByText('Build a query')).toBeVisible();
   await page.getByRole('combobox', { name: 'Field' }).click();
-  await expect(page.getByRole('option')).toHaveText([
-    'Keyword',
-    'Format',
-    'Repository',
-    'Group',
-    'Name',
-    'Version',
-  ]);
-  await page.getByRole('option', { name: 'Group' }).click();
+  await expect(page.getByRole('option').first()).toHaveText('Keyword');
+  await expect(page.getByRole('option').nth(5)).toHaveText('Version');
+  await expect(page.getByRole('option', { name: 'SHA-1 Checksum' })).toBeVisible();
+  await expect(page.getByRole('option', { name: 'Maven Artifact ID' })).toBeAttached();
+  await page.getByRole('option', { name: 'Group', exact: true }).click();
   await page.getByRole('combobox', { name: 'Condition' }).click();
   await page.getByRole('option', { name: 'Starts with' }).click();
   await page.getByRole('textbox', { name: 'Value' }).fill('com.glob');
   await page.getByRole('button', { name: 'Add Condition' }).click();
   await page.getByRole('combobox', { name: 'Field' }).nth(1).click();
-  await page.getByRole('option', { name: 'Version' }).click();
+  await page.getByRole('option', { name: 'Version', exact: true }).click();
   await page.getByRole('textbox', { name: 'Value' }).nth(1).fill('1.3.0');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/\/search\/custom\?group=com\.glob\*&version=1\.3\.0$/);

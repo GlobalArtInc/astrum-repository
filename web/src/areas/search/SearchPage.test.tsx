@@ -201,6 +201,24 @@ describe('the criteria search', () => {
     expect(router.state.location.pathname).toBe('/browse/maven-releases/tools/tool-2');
   });
 
+  it('offers the fields of the known formats with a contains condition', async () => {
+    stub((url) =>
+      url.pathname === '/service/rest/v1/search'
+        ? jsonResponse({ items: [component(2)], continuationToken: null })
+        : undefined,
+    );
+    const { router } = page('/search/custom');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Field' }));
+    expect(screen.queryByRole('option', { name: 'Helm Description' })).toBeNull();
+    await userEvent.click(await screen.findByRole('option', { name: 'Maven Artifact ID' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Condition' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Contains' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Value' }), 'tool');
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await waitFor(() => expect(router.state.location.search).toBe('?maven.artifactId=*tool*'));
+    expect(await screen.findByRole('button', { name: 'Open tool-2 in the repository' })).toBeInTheDocument();
+  });
+
   it('searches everything without conditions and clears them', async () => {
     const calls = stub((url) =>
       url.pathname === '/service/rest/v1/search'

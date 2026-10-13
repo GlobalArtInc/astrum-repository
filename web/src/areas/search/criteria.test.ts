@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { buildValue, CRITERIA, criteriaPath, parseValue, readCriteria, writeCriteria } from './criteria';
+import {
+  BASE_CRITERIA,
+  buildValue,
+  criteriaPath,
+  moreCriteria,
+  operatorsOf,
+  parseValue,
+  readCriteria,
+  withKey,
+  writeCriteria,
+} from './criteria';
 
-const row = (key: string, value: string, operator: 'is' | 'startsWith' = 'is', id = 1) => ({
+const row = (key: string, value: string, operator: 'is' | 'startsWith' | 'contains' = 'is', id = 1) => ({
   id,
   key,
   operator,
@@ -9,8 +19,8 @@ const row = (key: string, value: string, operator: 'is' | 'startsWith' = 'is', i
 });
 
 describe('criteria', () => {
-  it('offer the six fields of the old page', () => {
-    expect(CRITERIA.map((criterion) => criterion.key)).toEqual([
+  it('offer the six fields of the old page first', () => {
+    expect(BASE_CRITERIA.map((criterion) => criterion.key)).toEqual([
       'q',
       'format',
       'repository',
@@ -20,19 +30,41 @@ describe('criteria', () => {
     ]);
   });
 
+  it('add checksums and the fields of the formats the server knows', () => {
+    const keys = moreCriteria(['helm', 'raw'], '').map((criterion) => criterion.key);
+    expect(keys).toContain('sha1');
+    expect(keys).toContain('helm.description');
+    expect(keys).not.toContain('nuget.id');
+    expect(moreCriteria(['raw'], 'nuget.id').map((criterion) => criterion.key)).toContain('nuget.id');
+    expect(operatorsOf('name')).toEqual(['is', 'startsWith']);
+    expect(operatorsOf('helm.keywords')).toEqual(['is', 'startsWith', 'contains']);
+    expect(operatorsOf('sha1')).toEqual(['is']);
+    expect(withKey(row('helm.keywords', 'web', 'contains'), 'name')).toEqual({
+      id: 1,
+      key: 'name',
+      operator: 'is',
+      value: 'web',
+    });
+    expect(withKey(row('name', 'web'), 'docker.artifactKind').value).toBe('');
+  });
+
   it('turn "starts with" into a trailing wildcard', () => {
     expect(buildValue(row('name', ' junit '))).toBe('junit');
     expect(buildValue(row('name', 'junit', 'startsWith'))).toBe('junit*');
     expect(buildValue(row('q', 'spring', 'startsWith'))).toBe('spring*');
     expect(buildValue(row('name', 'junit*', 'startsWith'))).toBe('junit*');
     expect(buildValue(row('name', ' ', 'startsWith'))).toBe('');
+    expect(buildValue(row('helm.keywords', '*web', 'contains'))).toBe('*web*');
+    expect(buildValue(row('sha1', 'abc', 'startsWith'))).toBe('abc');
   });
 
   it('read operators back from the address', () => {
-    expect(parseValue('junit*')).toEqual({ operator: 'startsWith', value: 'junit' });
-    expect(parseValue('ju*it')).toEqual({ operator: 'is', value: 'ju*it' });
-    expect(parseValue('*')).toEqual({ operator: 'is', value: '*' });
-    expect(parseValue('*unit*')).toEqual({ operator: 'is', value: '*unit*' });
+    expect(parseValue('name', 'junit*')).toEqual({ operator: 'startsWith', value: 'junit' });
+    expect(parseValue('name', 'ju*it')).toEqual({ operator: 'is', value: 'ju*it' });
+    expect(parseValue('name', '*')).toEqual({ operator: 'is', value: '*' });
+    expect(parseValue('name', '*unit*')).toEqual({ operator: 'is', value: '*unit*' });
+    expect(parseValue('helm.keywords', '*web*')).toEqual({ operator: 'contains', value: 'web' });
+    expect(parseValue('sha1', 'abc*')).toEqual({ operator: 'is', value: 'abc*' });
   });
 
   it('round-trip through the address and skip empty or repeated fields', () => {
@@ -52,6 +84,9 @@ describe('criteria', () => {
   it('ask the components search', () => {
     expect(criteriaPath(new URLSearchParams('name=junit*&format=maven2'))).toBe(
       '/service/rest/v1/search?format=maven2&name=junit*',
+    );
+    expect(criteriaPath(new URLSearchParams('helm.keywords=*web*'))).toBe(
+      '/service/rest/v1/search?helm.keywords=*web*',
     );
     expect(criteriaPath(new URLSearchParams('mode=assets&unknown=1'))).toBeNull();
   });
