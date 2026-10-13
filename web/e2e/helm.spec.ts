@@ -8,6 +8,10 @@ import { expect, noHorizontalScroll, type Server, signIn, test } from './fixture
 test.describe.configure({ timeout: 120_000 });
 
 const FILE = /^File\*?$/;
+
+function fileInput(page: Page) {
+  return page.getByLabel(FILE).and(page.locator('input[type=file]'));
+}
 const DIR = process.env.ASTRUM_SHOTS_DIR;
 
 function chart(name: string, version: string, description: string): Buffer {
@@ -119,23 +123,24 @@ test('a chart goes up through the upload page and shows in browse with its usage
   await signInAsAdmin(page, server);
   await page.goto('/upload/charts-upload');
   await expect(page.getByRole('heading', { level: 1, name: 'Upload to charts-upload' })).toBeVisible();
-  await page.getByLabel(FILE).setInputFiles({
+  await fileInput(page).setInputFiles({
     name: 'demo-0.5.0.tgz',
     mimeType: 'application/gzip',
     buffer: chart('demo', '0.5.0', 'A chart from the upload page'),
   });
-  await page.getByRole('button', { name: 'Upload', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Open demo 0.5.0' })).toBeVisible();
+  await page.getByRole('button', { name: 'Upload Component' }).click();
+  await expect(page).toHaveURL(/\/upload$/);
+  await expect(page.getByText('Component uploaded to charts-upload').first()).toBeVisible();
   const index = await (await call(server, 'GET', '/repository/charts-upload/index.yaml')).text();
   expect(index).toContain('description: A chart from the upload page');
 
   await page.goto('/upload/charts-upload');
-  await page.getByLabel(FILE).setInputFiles({
+  await fileInput(page).setInputFiles({
     name: 'demo-0.5.0.tgz',
     mimeType: 'application/gzip',
     buffer: chart('demo', '0.5.0', 'Again'),
   });
-  await page.getByRole('button', { name: 'Upload', exact: true }).click();
+  await page.getByRole('button', { name: 'Upload Component' }).click();
   await expect(page.getByText(/redeploy is not allowed/)).toBeVisible();
 
   await page.goto('/browse/charts-upload');
@@ -196,17 +201,18 @@ test('the criteria search finds charts by their metadata', async ({ page, server
   }
   await signInAsAdmin(page, server);
   await page.goto('/search/custom');
-  await page.getByRole('combobox', { name: 'Criterion' }).click();
-  await page.getByRole('option', { name: 'Helm description' }).click();
+  await page.getByRole('combobox', { name: 'Field' }).click();
+  await page.getByRole('option', { name: 'Helm Description' }).click();
   await page.getByRole('combobox', { name: 'Condition' }).click();
-  await page.getByRole('option', { name: 'contains' }).click();
-  await page.getByLabel('Value of Helm description').fill('gateway');
+  await page.getByRole('option', { name: 'Contains' }).click();
+  await page.getByRole('textbox', { name: 'Value' }).fill('gateway');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/\/search\/custom\?helm\.description=\*gateway\*$/);
-  await expect(page.getByRole('table').getByRole('rowheader')).toHaveCount(1);
-  await expect(page.getByRole('table').getByRole('rowheader').first()).toContainText('gateway');
+  const found = page.getByRole('table').getByRole('button', { name: /^Open .* in the repository$/ });
+  await expect(found).toHaveCount(1);
+  await expect(found.first()).toContainText('gateway');
   await page.goto('/search/custom?helm.appVersion=2.4.1&repository=charts-search');
-  await expect(page.getByRole('table').getByRole('rowheader')).toHaveCount(2);
+  await expect(found).toHaveCount(2);
 });
 
 async function shoot(page: Page, name: string) {
@@ -266,7 +272,7 @@ test('helm screens', async ({ page, server }) => {
       await expect(shotPage.getByRole('textbox', { name: 'Name', exact: true })).toBeVisible();
       await shoot(shotPage, `create-group-${suffix}`);
       await shotPage.goto('/upload/charts-shots');
-      await expect(shotPage.getByLabel(FILE)).toBeAttached();
+      await expect(fileInput(shotPage)).toBeAttached();
       await shoot(shotPage, `upload-${suffix}`);
       await shotPage.goto('/browse/charts-shots/demo-0.5.0.tgz');
       await expect(shotPage.getByRole('tab', { name: 'helm repo add' })).toBeVisible();
@@ -277,7 +283,9 @@ test('helm screens', async ({ page, server }) => {
       await expect(shotPage.getByRole('heading', { level: 1, name: 'demo v0.5.0' })).toBeVisible();
       await shoot(shotPage, `component-usage-${suffix}`);
       await shotPage.goto('/search/custom?helm.keywords=*web*');
-      await expect(shotPage.getByRole('link', { name: 'demo', exact: true }).first()).toBeVisible();
+      await expect(
+        shotPage.getByRole('button', { name: 'Open demo in the repository' }).first(),
+      ).toBeVisible();
       await shoot(shotPage, `criteria-${suffix}`);
       await context.close();
     }

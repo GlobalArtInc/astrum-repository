@@ -219,7 +219,7 @@ test('NuGet packages show their usage and are found by their id', async ({ page,
   ).toBeVisible();
 
   await page.goto('/search/custom?nuget.id=Astrum.Probe');
-  await expect(page.getByRole('link', { name: /Astrum\.Probe/ }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open Astrum.Probe in the repository' })).toBeVisible();
 });
 
 test('a NuGet proxy is created with its protocol version and query cache age', async ({
