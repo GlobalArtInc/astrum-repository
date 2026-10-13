@@ -292,3 +292,65 @@ async fn repeated_failures_pause_sign_in() {
         .await;
     assert_eq!(blocked.status, StatusCode::TOO_MANY_REQUESTS);
 }
+
+#[tokio::test]
+async fn sign_ins_and_failures_are_audited_with_the_client_address() {
+    let fixture = Fixture::new().await;
+    let forwarded = [("x-forwarded-for", "203.0.113.9, 10.0.0.1")];
+    let wrong = fixture
+        .send(
+            Method::POST,
+            SESSION,
+            Auth::None,
+            Some(json!({"username": "jane", "password": "nope"})),
+            &forwarded,
+        )
+        .await;
+    assert_eq!(wrong.status, StatusCode::UNAUTHORIZED);
+    let right = fixture
+        .send(
+            Method::POST,
+            SESSION,
+            Auth::None,
+            Some(json!({"username": "admin", "password": fixture.admin_password})),
+            &forwarded,
+        )
+        .await;
+    assert_eq!(right.status, StatusCode::OK);
+    let events = fixture
+        .call(
+            Method::GET,
+            "/service/rest/internal/audit?domain=security.session",
+            Auth::Admin,
+            None,
+        )
+        .await
+        .json();
+    let seen: Vec<(String, String, String)> = events
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|event| {
+            (
+                event["type"].as_str().unwrap().to_owned(),
+                event["context"].as_str().unwrap().to_owned(),
+                event["initiator"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        seen,
+        [
+            (
+                "created".to_owned(),
+                "admin".to_owned(),
+                "admin/203.0.113.9".to_owned()
+            ),
+            (
+                "failed".to_owned(),
+                "jane".to_owned(),
+                "*UNKNOWN/203.0.113.9".to_owned()
+            ),
+        ]
+    );
+}

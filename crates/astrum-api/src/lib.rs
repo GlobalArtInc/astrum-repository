@@ -91,7 +91,11 @@ impl AppState {
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {
-        let event = event.by(caller.initiator());
+        let initiator = match auth::client_address() {
+            Some(address) => format!("{}/{address}", caller.initiator()),
+            None => caller.initiator(),
+        };
+        let event = event.by(initiator);
         if let Err(error) = audit::record(self.db().conn(), event).await {
             tracing::error!(%error, "an audit event was not recorded");
         }

@@ -62,10 +62,13 @@ impl Server {
             .fallback_service(crate::web::router(self.web_dir.clone()))
             .layer(TraceLayer::new_for_http());
         tracing::info!(address = %self.address, version = %version_line(), "serving requests");
-        axum::serve(self.listener, app)
-            .with_graceful_shutdown(shutdown)
-            .await
-            .context("the HTTP server failed")?;
+        axum::serve(
+            self.listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .with_graceful_shutdown(shutdown)
+        .await
+        .context("the HTTP server failed")?;
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");
         }

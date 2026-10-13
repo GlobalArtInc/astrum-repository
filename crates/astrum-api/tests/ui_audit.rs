@@ -205,3 +205,134 @@ async fn audit_facets_list_the_domains_types_and_initiators_in_use() {
         StatusCode::UNAUTHORIZED
     );
 }
+
+async fn log(fixture: &Fixture, query: &str) -> Value {
+    let reply = get(fixture, &format!("{UI}/audit-log?{query}"), Auth::Admin).await;
+    assert_eq!(reply.status, StatusCode::OK, "{query}: {}", reply.text());
+    reply.json()
+}
+
+fn log_contexts(reply: &Value) -> Vec<String> {
+    names(&reply["items"], "context")
+}
+
+#[tokio::test]
+async fn audit_log_pages_and_filters_by_category_type_and_text() {
+    let fixture = history().await;
+    event(
+        &fixture,
+        0,
+        "security.session",
+        "created",
+        "jane",
+        "jane/10.0.0.1",
+        json!({}),
+    )
+    .await;
+    event(
+        &fixture,
+        0,
+        "security.session",
+        "failed",
+        "bob",
+        "*UNKNOWN/10.0.0.2",
+        json!({}),
+    )
+    .await;
+    event(
+        &fixture,
+        0,
+        "security.contentselector",
+        "created",
+        "sel",
+        "admin",
+        json!({}),
+    )
+    .await;
+
+    let all = log(&fixture, "limit=4&page=1").await;
+    assert_eq!(
+        all["pagination"],
+        json!({"totalItems": 9, "totalPages": 3, "currentPage": 1, "itemsPerPage": 4})
+    );
+    assert_eq!(log_contexts(&all), ["sel", "bob", "jane", "/x.txt"]);
+    assert!(all["items"][0]["timestamp"].as_str().unwrap().contains('T'));
+    let last = log(&fixture, "limit=4&page=3").await;
+    assert_eq!(log_contexts(&last), ["files"]);
+
+    assert_eq!(
+        log_contexts(&log(&fixture, "categories=security").await),
+        ["bob", "jane", "jane"]
+    );
+    assert_eq!(
+        log_contexts(&log(&fixture, "categories=repository").await),
+        ["/x.txt", "other", "files", "/a/b.txt", "files"]
+    );
+    assert_eq!(
+        log_contexts(&log(&fixture, "categories=configuration").await),
+        ["sel"]
+    );
+    assert_eq!(
+        log_contexts(&log(&fixture, "categories=protection").await),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        log_contexts(&log(&fixture, "categories=configuration,security").await).len(),
+        4
+    );
+
+    assert_eq!(log_contexts(&log(&fixture, "types=login").await), ["jane"]);
+    assert_eq!(
+        log_contexts(&log(&fixture, "types=created").await),
+        ["sel", "jane", "files"]
+    );
+    assert_eq!(log_contexts(&log(&fixture, "types=failed").await), ["bob"]);
+    assert_eq!(
+        log_contexts(&log(&fixture, "types=updated,deleted").await),
+        ["/x.txt", "other", "files", "/a/b.txt"]
+    );
+
+    assert_eq!(
+        log_contexts(&log(&fixture, "repository=files").await),
+        ["files", "/a/b.txt", "files"]
+    );
+    assert_eq!(
+        log_contexts(&log(&fixture, "initiator=JANE").await),
+        ["jane", "files", "/a/b.txt"]
+    );
+    assert_eq!(log_contexts(&log(&fixture, "q=b.t").await), ["/a/b.txt"]);
+    let since = (Utc::now() - Duration::days(4)).to_rfc3339();
+    let until = (Utc::now() - Duration::days(2)).to_rfc3339();
+    assert_eq!(
+        log_contexts(
+            &log(
+                &fixture,
+                &format!(
+                    "startDate={}&endDate={}",
+                    urlencoding(&since),
+                    urlencoding(&until)
+                )
+            )
+            .await
+        ),
+        ["files", "/a/b.txt"]
+    );
+    let reply = get(
+        &fixture,
+        &format!("{UI}/audit-log?startDate=yesterday"),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::BAD_REQUEST);
+    fixture.add_user("nobody", "password-1", &[]).await;
+    assert_eq!(
+        get(&fixture, &format!("{UI}/audit-log"), user("nobody"))
+            .await
+            .status,
+        StatusCode::FORBIDDEN
+    );
+}
+
+fn urlencoding(value: &str) -> String {
+    value.replace('+', "%2B").replace(':', "%3A")
+}

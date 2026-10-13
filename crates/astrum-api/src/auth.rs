@@ -64,11 +64,35 @@ impl<S: Send + Sync> FromRequestParts<S> for Caller {
     }
 }
 
-pub async fn authenticate(
-    State(state): State<AppState>,
-    mut request: Request,
-    next: Next,
-) -> Response {
+tokio::task_local! {
+    static CLIENT: String;
+}
+
+pub fn client_address() -> Option<String> {
+    CLIENT
+        .try_with(Clone::clone)
+        .ok()
+        .filter(|address| !address.is_empty())
+}
+
+fn peer(request: &Request) -> String {
+    let forwarded = crate::routes::internal::client_ip(request.headers());
+    if !forwarded.is_empty() {
+        return forwarded;
+    }
+    request
+        .extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .map(|info| info.0.ip().to_string())
+        .unwrap_or_default()
+}
+
+pub async fn authenticate(State(state): State<AppState>, request: Request, next: Next) -> Response {
+    let address = peer(&request);
+    CLIENT.scope(address, admit(state, request, next)).await
+}
+
+async fn admit(state: AppState, mut request: Request, next: Next) -> Response {
     let from_ui = is_ui(request.headers());
     let caller = match resolve(&state, request.method(), request.headers()).await {
         Ok(caller) => caller,

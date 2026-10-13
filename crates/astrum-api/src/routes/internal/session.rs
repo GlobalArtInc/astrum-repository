@@ -50,6 +50,12 @@ async fn sign_in(
         Err(astrum_security::AuthError::BadCredentials) => {
             security.sign_in_failed(&user);
             tracing::info!(user, "a sign-in to the user interface failed");
+            state
+                .audit(
+                    &Caller::default(),
+                    Event::new("security.session", "failed", &user),
+                )
+                .await;
             return Ok(refused(
                 StatusCode::UNAUTHORIZED,
                 "the user name or password is wrong",
