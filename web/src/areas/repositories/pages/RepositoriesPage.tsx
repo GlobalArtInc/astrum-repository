@@ -1,149 +1,40 @@
-import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
-import { Database, FolderOpen, Plus, Search, Settings2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { Button, DropdownMenu, IconButton, Select, Text, TextField } from '@radix-ui/themes';
+import { ArrowUpDown, Copy, Ellipsis, Plus, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import type { RepositoryType } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { type Translate, useT } from '../../../i18n';
+import { FileSize, formatName, Page, useToast } from '../../../ui';
+import { CREATE_ADDRESS, editAddress, type UiRepository, useUiRepositories } from '../api';
+import { type AdminColumn, AdminTable, compareText } from '../components/admin/AdminTable';
+import styles from '../components/admin/admin.module.css';
 import {
-  type Column,
-  DataTable,
-  EmptyState,
-  FileSize,
-  FormatBadge,
-  formatName,
-  Page,
-  TypeBadge,
-} from '../../../ui';
-import { browseAddress, CREATE_ADDRESS, editAddress, type UiRepository, useUiRepositories } from '../api';
-import { Count, RepositoryUrl, Status } from '../components/bits';
-import { TYPES } from '../model/spec';
-import styles from '../repositories.module.css';
+  CheckGroup,
+  countBy,
+  type Direction,
+  FilterPanel,
+  ResetFilters,
+  SortGroup,
+  toggled,
+} from '../components/admin/FilterPanel';
+import { HelpCard } from '../components/admin/HelpCard';
+import { Pager } from '../components/admin/Pager';
+import { canInvalidate, canRebuild, useRepositoryActions } from '../components/useRepositoryActions';
 
-const ALL = 'all';
-
-export interface Filters {
-  q: string;
-  format: string;
-  type: string;
-  status: string;
-}
-
-export function filterRepositories(rows: readonly UiRepository[], filters: Filters): UiRepository[] {
-  const wanted = filters.q.trim().toLowerCase();
-  return rows.filter((row) => {
-    if (filters.format !== ALL && row.format !== filters.format) {
-      return false;
-    }
-    if (filters.type !== ALL && row.type !== filters.type) {
-      return false;
-    }
-    if (filters.status !== ALL && (filters.status === 'online') !== row.online) {
-      return false;
-    }
-    if (wanted === '') {
-      return true;
-    }
-    return [row.name, row.url, row.blobStoreName ?? '', row.remoteUrl ?? ''].some((text) =>
-      text.toLowerCase().includes(wanted),
-    );
-  });
-}
-
-function columns(t: Translate): Column<UiRepository>[] {
-  return [
-    {
-      id: 'name',
-      header: t('repositories.list.name'),
-      cell: (row) => <span className={styles.name}>{row.name}</span>,
-      sortValue: (row) => row.name,
-      primary: true,
-    },
-    {
-      id: 'format',
-      header: t('repositories.list.format'),
-      cell: (row) => <FormatBadge format={row.format} />,
-      sortValue: (row) => formatName(row.format),
-    },
-    {
-      id: 'type',
-      header: t('repositories.list.type'),
-      cell: (row) => <TypeBadge type={row.type} />,
-      sortValue: (row) => row.type,
-    },
-    {
-      id: 'status',
-      header: t('repositories.list.status'),
-      cell: (row) => <Status online={row.online} />,
-      sortValue: (row) => (row.online ? 0 : 1),
-    },
-    {
-      id: 'blobStore',
-      header: t('repositories.list.blobStore'),
-      cell: (row) => row.blobStoreName ?? '—',
-      sortValue: (row) => row.blobStoreName,
-      hideOnPhone: true,
-    },
-    {
-      id: 'url',
-      header: t('repositories.list.url'),
-      cell: (row) => <RepositoryUrl name={row.name} url={row.url} compact />,
-    },
-    {
-      id: 'size',
-      header: t('repositories.list.size'),
-      cell: (row) => (row.totalSize === null ? '—' : <FileSize bytes={row.totalSize} />),
-      sortValue: (row) => row.totalSize,
-      align: 'right',
-    },
-    {
-      id: 'components',
-      header: t('repositories.list.components'),
-      cell: (row) => <Count value={row.componentCount} />,
-      sortValue: (row) => row.componentCount,
-      align: 'right',
-      hideOnPhone: true,
-    },
-    {
-      id: 'assets',
-      header: t('repositories.list.assets'),
-      cell: (row) => <Count value={row.assetCount} />,
-      sortValue: (row) => row.assetCount,
-      align: 'right',
-      hideOnPhone: true,
-    },
-  ];
-}
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange(value: string): void;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <Flex direction="column" gap="1" className={styles.filter}>
-      <Text size="1" color="gray" aria-hidden="true">
-        {label}
-      </Text>
-      <Select.Root value={value} onValueChange={onChange}>
-        <Select.Trigger aria-label={label} />
-        <Select.Content position="popper">
-          {options.map((option) => (
-            <Select.Item key={option.value} value={option.value}>
-              {option.label}
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Root>
-    </Flex>
-  );
-}
+export const HEALTH_CHECK_FORMATS = new Set([
+  'maven2',
+  'npm',
+  'nuget',
+  'pypi',
+  'rubygems',
+  'cocoapods',
+  'conan',
+  'conda',
+  'go',
+  'r',
+  'apt',
+]);
 
 const TYPE_LABELS: Record<RepositoryType, string> = {
   hosted: 'ui.repositoryType.hosted',
@@ -151,23 +42,83 @@ const TYPE_LABELS: Record<RepositoryType, string> = {
   group: 'ui.repositoryType.group',
 };
 
+export type SortField = 'name' | 'type' | 'format' | 'status';
+
+export interface Filters {
+  q: string;
+  formats: ReadonlySet<string>;
+  types: ReadonlySet<string>;
+  statuses: ReadonlySet<string>;
+}
+
+function statusOf(row: UiRepository): string {
+  return row.online ? 'online' : 'offline';
+}
+
+export function filterRepositories(rows: readonly UiRepository[], filters: Filters): UiRepository[] {
+  const wanted = filters.q.trim().toLowerCase();
+  return rows.filter(
+    (row) =>
+      (filters.formats.size === 0 || filters.formats.has(row.format)) &&
+      (filters.types.size === 0 || filters.types.has(row.type)) &&
+      (filters.statuses.size === 0 || filters.statuses.has(statusOf(row))) &&
+      (wanted === '' || row.name.toLowerCase().includes(wanted)),
+  );
+}
+
+export function sortRepositories(
+  rows: readonly UiRepository[],
+  field: SortField,
+  direction: Direction,
+  t: Translate,
+): UiRepository[] {
+  const value = (row: UiRepository): string => {
+    switch (field) {
+      case 'type':
+        return t(TYPE_LABELS[row.type]);
+      case 'format':
+        return formatName(row.format);
+      case 'status':
+        return row.online ? t('repositories.status.online') : t('repositories.status.offline');
+      default:
+        return row.name;
+    }
+  };
+  const sign = direction === 'asc' ? 1 : -1;
+  return [...rows].sort(
+    (left, right) => sign * compareText(value(left), value(right)) || compareText(left.name, right.name),
+  );
+}
+
+function listParam(params: URLSearchParams, key: string): Set<string> {
+  return new Set((params.get(key) ?? '').split(',').filter((value) => value !== ''));
+}
+
 export default function RepositoriesPage() {
   const t = useT();
+  const toast = useToast();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const canCreate = useCan({ some: 'astrum:repository-admin:*:*:add' });
   const query = useUiRepositories();
+  const actions = useRepositoryActions();
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [direction, setDirection] = useState<Direction>('asc');
+  const [pageSize, setPageSize] = useState(40);
+  const [page, setPage] = useState(0);
+
   const filters: Filters = {
     q: params.get('q') ?? '',
-    format: params.get('format') ?? ALL,
-    type: params.get('type') ?? ALL,
-    status: params.get('status') ?? ALL,
+    formats: listParam(params, 'format'),
+    types: listParam(params, 'type'),
+    statuses: listParam(params, 'status'),
   };
-  const setFilter = (key: keyof Filters, value: string) => {
+  const update = (key: string, value: string) => {
+    setPage(0);
     setParams(
       (previous) => {
         const next = new URLSearchParams(previous);
-        if (value === '' || value === ALL) {
+        if (value === '') {
           next.delete(key);
         } else {
           next.set(key, value);
@@ -177,13 +128,151 @@ export default function RepositoriesPage() {
       { replace: true },
     );
   };
+  const toggle = (key: 'format' | 'type' | 'status', current: ReadonlySet<string>, value: string) =>
+    update(key, [...toggled(current, value)].join(','));
+
   const administered = useMemo(() => (query.data ?? []).filter((row) => row.permissions.admin), [query.data]);
-  const rows = filterRepositories(administered, filters);
-  const formats = [...new Set(administered.map((row) => row.format))].sort((left, right) =>
-    formatName(left).localeCompare(formatName(right)),
+  const matching = sortRepositories(filterRepositories(administered, filters), sortField, direction, t);
+  const lastPage = Math.max(0, Math.ceil(matching.length / pageSize) - 1);
+  const current = Math.min(page, lastPage);
+  const visible = matching.slice(current * pageSize, (current + 1) * pageSize);
+
+  const sortOptions = [
+    { value: 'name', label: t('repositories.list.name') },
+    { value: 'type', label: t('repositories.list.type') },
+    { value: 'format', label: t('repositories.list.format') },
+    { value: 'status', label: t('repositories.list.status') },
+  ];
+  const sortBy = (column: string) => {
+    if (column === sortField) {
+      setDirection(direction === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(column as SortField);
+      setDirection('asc');
+    }
+  };
+
+  const columns: AdminColumn<UiRepository>[] = [
+    {
+      id: 'name',
+      header: t('repositories.list.name'),
+      sortable: true,
+      cell: (row) => <span className={styles.name}>{row.name}</span>,
+    },
+    { id: 'size', header: t('repositories.list.size'), cell: (row) => <SizeCell row={row} /> },
+    {
+      id: 'type',
+      header: t('repositories.list.type'),
+      sortable: true,
+      cell: (row) => t(TYPE_LABELS[row.type]),
+    },
+    {
+      id: 'format',
+      header: t('repositories.list.ecosystem'),
+      sortable: true,
+      cell: (row) => formatName(row.format),
+    },
+    {
+      id: 'blobStore',
+      header: t('repositories.list.blobStore'),
+      cell: (row) => <span className={styles.muted}>{row.blobStoreName ?? '—'}</span>,
+    },
+    {
+      id: 'status',
+      header: t('repositories.list.status'),
+      sortable: true,
+      cell: (row) => (row.online ? t('repositories.status.online') : t('repositories.status.offline')),
+    },
+    {
+      id: 'url',
+      header: t('repositories.list.url'),
+      cell: (row) => (
+        <IconButton
+          variant="ghost"
+          color="gray"
+          size="1"
+          aria-label={t('repositories.list.copyUrl')}
+          onClick={() => void actions.copyUrl(row)}
+        >
+          <Copy size={16} aria-hidden="true" />
+        </IconButton>
+      ),
+    },
+    {
+      id: 'health',
+      header: t('repositories.list.healthCheck'),
+      cell: (row) =>
+        row.type === 'proxy' && HEALTH_CHECK_FORMATS.has(row.format) ? (
+          <Button
+            size="1"
+            variant="soft"
+            onClick={() => toast.error(t('repositories.list.healthCheckUnavailable'))}
+          >
+            {t('repositories.list.analyze')}
+          </Button>
+        ) : (
+          <span className={styles.small}>{t('repositories.list.notSupported')}</span>
+        ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      label: t('repositories.list.rowActions'),
+      width: '40px',
+      cell: (row) => (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <IconButton
+              variant="ghost"
+              color="gray"
+              size="1"
+              aria-label={t('repositories.list.actionsFor', { name: row.name })}
+            >
+              <Ellipsis size={16} aria-hidden="true" />
+            </IconButton>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="end">
+            <DropdownMenu.Item onSelect={() => navigate(editAddress(row.name))}>
+              {t('repositories.actions.edit')}
+            </DropdownMenu.Item>
+            {canRebuild(row) && (
+              <DropdownMenu.Item onSelect={() => void actions.maintain(row, 'rebuild-index')}>
+                {t('repositories.actions.rebuild')}
+              </DropdownMenu.Item>
+            )}
+            {canInvalidate(row) && (
+              <DropdownMenu.Item onSelect={() => void actions.maintain(row, 'invalidate-cache')}>
+                {t('repositories.actions.invalidate')}
+              </DropdownMenu.Item>
+            )}
+            {row.permissions.adminEdit && (
+              <DropdownMenu.Item onSelect={() => void actions.toggleOnline(row)}>
+                {row.online ? t('repositories.actions.takeOffline') : t('repositories.actions.bringOnline')}
+              </DropdownMenu.Item>
+            )}
+            <DropdownMenu.Item onSelect={() => void actions.copyUrl(row)}>
+              {t('repositories.actions.copyUrl')}
+            </DropdownMenu.Item>
+            {row.permissions.adminDelete && (
+              <DropdownMenu.Item color="red" onSelect={() => actions.remove(row)}>
+                {t('repositories.actions.delete')}
+              </DropdownMenu.Item>
+            )}
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+      ),
+    },
+  ];
+
+  const typeOptions = countBy(
+    administered,
+    (row) => row.type,
+    (type) => t(TYPE_LABELS[type as RepositoryType]),
+    'value',
   );
-  const filtered =
-    filters.q !== '' || filters.format !== ALL || filters.type !== ALL || filters.status !== ALL;
+  const statusOptions = countBy(administered, statusOf, (status) =>
+    status === 'online' ? t('repositories.status.online') : t('repositories.status.offline'),
+  );
 
   return (
     <Page
@@ -204,110 +293,125 @@ export default function RepositoriesPage() {
         )
       }
     >
-      <div className={styles.toolbar} role="search">
-        <TextField.Root
-          className={styles.search}
-          type="search"
-          value={filters.q}
-          placeholder={t('repositories.list.search')}
-          aria-label={t('repositories.list.search')}
-          onChange={(event) => setFilter('q', event.target.value)}
-        >
-          <TextField.Slot>
-            <Search size={16} aria-hidden="true" />
-          </TextField.Slot>
-        </TextField.Root>
-        <FilterSelect
-          label={t('repositories.list.format')}
-          value={filters.format}
-          onChange={(value) => setFilter('format', value)}
-          options={[
-            { value: ALL, label: t('repositories.list.allFormats') },
-            ...formats.map((format) => ({ value: format, label: formatName(format) })),
-          ]}
-        />
-        <FilterSelect
-          label={t('repositories.list.type')}
-          value={filters.type}
-          onChange={(value) => setFilter('type', value)}
-          options={[
-            { value: ALL, label: t('repositories.list.allTypes') },
-            ...TYPES.map((type) => ({ value: type, label: t(TYPE_LABELS[type]) })),
-          ]}
-        />
-        <FilterSelect
-          label={t('repositories.list.status')}
-          value={filters.status}
-          onChange={(value) => setFilter('status', value)}
-          options={[
-            { value: ALL, label: t('repositories.list.anyStatus') },
-            { value: 'online', label: t('repositories.status.online') },
-            { value: 'offline', label: t('repositories.status.offline') },
-          ]}
-        />
-      </div>
-      {query.data && (
-        <Text size="2" color="gray" aria-live="polite">
-          {t('repositories.list.count', { count: rows.length })}
-        </Text>
-      )}
-      <DataTable
-        label={t('repositories.list.label')}
-        columns={columns(t)}
-        rows={query.data ? rows : undefined}
-        getRowId={(row) => row.name}
-        loading={query.isPending}
-        error={query.error}
-        onRetry={() => void query.refetch()}
-        rowHref={(row) => editAddress(row.name)}
-        initialSort={{ column: 'name', direction: 'asc' }}
-        pageSize={50}
-        paging="more"
-        rowActions={(row) => [
-          {
-            id: 'edit',
-            label: t('repositories.list.edit'),
-            icon: Settings2,
-            onSelect: () => navigate(editAddress(row.name)),
-          },
-          ...(row.permissions.browse || row.permissions.read
-            ? [
-                {
-                  id: 'browse',
-                  label: t('repositories.list.browse'),
-                  icon: FolderOpen,
-                  onSelect: () => navigate(browseAddress(row.name)),
-                },
-              ]
-            : []),
-        ]}
-        empty={
-          filtered ? (
-            <EmptyState
-              icon={Search}
-              title={t('repositories.list.noMatches')}
-              action={
-                <Button variant="soft" onClick={() => setParams(new URLSearchParams(), { replace: true })}>
-                  {t('repositories.list.clear')}
-                </Button>
-              }
-            />
+      <div className={styles.layout}>
+        <FilterPanel>
+          <ResetFilters
+            onReset={() => {
+              setParams(new URLSearchParams(), { replace: true });
+              setSortField('name');
+              setDirection('asc');
+            }}
+          />
+          <SortGroup
+            options={sortOptions}
+            value={sortField}
+            direction={direction}
+            onChange={(field, next) => {
+              setSortField(field as SortField);
+              setDirection(next);
+            }}
+          />
+          <CheckGroup
+            title={t('repositories.list.format')}
+            options={countBy(administered, (row) => row.format, formatName)}
+            selected={filters.formats}
+            onToggle={(value) => toggle('format', filters.formats, value)}
+            limit={7}
+          />
+          <CheckGroup
+            title={t('repositories.list.type')}
+            options={typeOptions}
+            selected={filters.types}
+            onToggle={(value) => toggle('type', filters.types, value)}
+          />
+          <CheckGroup
+            title={t('repositories.list.state')}
+            options={statusOptions}
+            selected={filters.statuses}
+            onToggle={(value) => toggle('status', filters.statuses, value)}
+          />
+        </FilterPanel>
+        <div className={styles.main}>
+          <div className={styles.toolbar} role="search">
+            <TextField.Root
+              className={styles.search}
+              type="search"
+              value={filters.q}
+              placeholder={t('repositories.list.search')}
+              aria-label={t('repositories.list.search')}
+              onChange={(event) => update('q', event.target.value)}
+            >
+              <TextField.Slot>
+                <Search size={14} aria-hidden="true" />
+              </TextField.Slot>
+            </TextField.Root>
+            <Select.Root value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
+              <Select.Trigger className={styles.sortButton} aria-label={t('repositories.admin.sortField')}>
+                <span className={styles.sortLabel}>
+                  <ArrowUpDown size={14} aria-hidden="true" />
+                  <span>{t('repositories.admin.sortBy')}</span>
+                  <span>{sortOptions.find((option) => option.value === sortField)?.label}</span>
+                </span>
+              </Select.Trigger>
+              <Select.Content position="popper" align="end">
+                {sortOptions.map((option) => (
+                  <Select.Item key={option.value} value={option.value}>
+                    {option.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
+          </div>
+          {query.data && (
+            <p className={styles.shown} aria-live="polite">
+              {t('repositories.list.shown', { shown: visible.length, total: matching.length })}
+            </p>
+          )}
+          {query.isPending ? (
+            <Text size="2" color="gray">
+              {t('repositories.list.loading')}
+            </Text>
+          ) : query.error ? (
+            <Text size="2" color="red">
+              {t('repositories.list.loadFailed')}
+            </Text>
           ) : (
-            <EmptyState
-              icon={Database}
-              title={t('repositories.list.empty')}
-              description={t('repositories.list.emptyText')}
-              action={
-                canCreate && (
-                  <Button asChild>
-                    <Link to={CREATE_ADDRESS}>{t('repositories.list.create')}</Link>
-                  </Button>
-                )
+            <AdminTable
+              label={t('repositories.list.label')}
+              columns={columns}
+              rows={visible}
+              getRowId={(row) => row.name}
+              sort={{ column: sortField, direction }}
+              onSort={sortBy}
+              onOpen={(row) => navigate(editAddress(row.name))}
+              openLabel={(row) => t('repositories.list.open', { name: row.name })}
+              empty={
+                administered.length === 0 ? t('repositories.list.empty') : t('repositories.list.noMatches')
+              }
+              footer={
+                <Pager
+                  total={matching.length}
+                  page={current}
+                  pageSize={pageSize}
+                  onPage={setPage}
+                  onPageSize={(size) => {
+                    setPageSize(size);
+                    setPage(0);
+                  }}
+                />
               }
             />
-          )
-        }
-      />
+          )}
+          <HelpCard title={t('repositories.list.about')}>{t('repositories.list.aboutText')}</HelpCard>
+        </div>
+      </div>
+      {actions.dialog}
     </Page>
+  );
+}
+
+function SizeCell({ row }: { row: UiRepository }) {
+  return (
+    <span className={styles.muted}>{row.totalSize === null ? '—' : <FileSize bytes={row.totalSize} />}</span>
   );
 }

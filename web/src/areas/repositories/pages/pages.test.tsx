@@ -2,13 +2,14 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UiState } from '../../../api';
+import { makeTranslate } from '../../../i18n';
 import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../../test/render';
 import type { Recipe, UiRepository } from '../api';
 import type { RepositoryDocument } from '../model/document';
 import reference from '../model/reference-documents.json';
 import CreatePickerPage, { groupRecipes } from './CreatePickerPage';
 import CreateRepositoryPage from './CreateRepositoryPage';
-import RepositoriesPage, { filterRepositories } from './RepositoriesPage';
+import RepositoriesPage, { filterRepositories, sortRepositories } from './RepositoriesPage';
 import RepositoryPage from './RepositoryPage';
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -73,46 +74,60 @@ function serve(handlers: Parameters<typeof fakeServer>[0]) {
 }
 
 describe('the repository list', () => {
-  it('filters by text, format, type and status', () => {
-    const all = { q: '', format: 'all', type: 'all', status: 'all' };
+  it('filters by name, format, type and status', () => {
+    const none = new Set<string>();
+    const all = { q: '', formats: none, types: none, statuses: none };
     expect(filterRepositories(ROWS, { ...all, q: 'FILES' }).map((r) => r.name)).toEqual(['raw-files']);
-    expect(filterRepositories(ROWS, { ...all, q: 'remote.example' }).map((r) => r.name)).toEqual([
-      'maven-central',
-    ]);
-    expect(filterRepositories(ROWS, { ...all, format: 'maven2', type: 'group' }).map((r) => r.name)).toEqual([
-      'maven-public',
-    ]);
-    expect(filterRepositories(ROWS, { ...all, status: 'offline' }).map((r) => r.name)).toEqual([
+    expect(
+      filterRepositories(ROWS, { ...all, formats: new Set(['maven2']), types: new Set(['group']) }).map(
+        (r) => r.name,
+      ),
+    ).toEqual(['maven-public']);
+    expect(filterRepositories(ROWS, { ...all, statuses: new Set(['offline']) }).map((r) => r.name)).toEqual([
       'maven-central',
     ]);
   });
 
-  it('shows the repositories the caller administers with links to their settings', async () => {
+  it('sorts by the chosen field in both directions', () => {
+    const names = (field: Parameters<typeof sortRepositories>[1], direction: 'asc' | 'desc') =>
+      sortRepositories(ROWS.slice(0, 4), field, direction, makeTranslate('en')).map((r) => r.name);
+    expect(names('name', 'desc')).toEqual(['raw-files', 'maven-releases', 'maven-public', 'maven-central']);
+    expect(names('type', 'asc')).toEqual(['maven-public', 'maven-releases', 'raw-files', 'maven-central']);
+  });
+
+  it('shows the repositories the caller administers with filters, counts and row actions', async () => {
     serve({ [`GET ${LIST}`]: () => jsonResponse(ROWS) });
     renderWithApp(<RepositoriesPage />, { path: '/admin/repository/repositories?format=maven2' });
-    expect(await screen.findByRole('link', { name: 'maven-central' })).toHaveAttribute(
-      'href',
-      '/admin/repository/repositories/maven-central',
-    );
+    expect(await screen.findByText('Showing 3 of 3')).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: 'Open maven-central' })).toBeInTheDocument();
     expect(screen.queryByText('raw-files')).not.toBeInTheDocument();
     expect(screen.queryByText('npm-seen')).not.toBeInTheDocument();
-    expect(screen.getByText('3 repositories')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Create a repository' })).toHaveAttribute(
+    expect(screen.getByRole('checkbox', { name: 'Maven' })).toBeChecked();
+    expect(screen.getByRole('link', { name: 'Create Repository' })).toHaveAttribute(
       'href',
       '/admin/repository/repositories/create',
     );
-    await userEvent.type(screen.getByRole('searchbox', { name: /Find by name/ }), 'nothing-like-this');
-    expect(await screen.findByText('No repository matches the filters')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Clear the filters' }));
-    expect(await screen.findByRole('link', { name: 'raw-files' })).toBeInTheDocument();
+    expect(screen.getAllByText('Not supported')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Analyze' })).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('searchbox', { name: /Search repositories/ }), 'nothing-like-this');
+    expect(await screen.findByText('No repositories match the current filters')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Reset Filters' }));
+    expect(await screen.findByRole('row', { name: 'Open raw-files' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Actions for raw-files' }));
+    const menu = await screen.findByRole('menu');
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Edit', 'Rebuild Index', 'Take Offline', 'Copy URL', 'Delete']);
   });
 
   it('hides the create button from readers', async () => {
     serve({ [`GET ${LIST}`]: () => jsonResponse(ROWS) });
     const state: UiState = { ...ADMIN_STATE, permissions: ['astrum:repository-admin:*:*:read'] };
     renderWithApp(<RepositoriesPage />, { state });
-    expect(await screen.findByRole('link', { name: 'raw-files' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Create a repository' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('row', { name: 'Open raw-files' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Create Repository' })).not.toBeInTheDocument();
   });
 });
 
