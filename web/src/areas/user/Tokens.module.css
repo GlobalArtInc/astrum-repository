@@ -1,0 +1,303 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  max-width: 1100px;
+  min-width: 0;
+  padding: 32px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.icon {
+  flex: none;
+  color: var(--accent-9);
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
+  letter-spacing: -0.15px;
+  overflow-wrap: anywhere;
+}
+
+.intro {
+  max-width: 760px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-a11);
+}
+
+.card {
+  margin-bottom: 24px;
+}
+
+.cardTitle {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nameField {
+  flex: 1 1 auto;
+  padding-top: 3px;
+}
+
+.scopeField {
+  flex: 0 0 258px;
+}
+
+.daysField {
+  flex: 0 0 218px;
+}
+
+.label {
+  margin-bottom: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.nameField .label {
+  margin-bottom: 4px;
+  line-height: 21px;
+}
+
+.nameInput {
+  width: 100%;
+}
+
+.select {
+  width: 100%;
+}
+
+.hint {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+  color: var(--gray-a11);
+}
+
+.error {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--red-11);
+}
+
+.create {
+  flex: none;
+  margin-top: 24px;
+}
+
+.switch {
+  align-self: flex-start;
+  width: 308px;
+  max-width: 100%;
+  margin-bottom: 12px;
+}
+
+.table {
+  min-width: 0;
+}
+
+.table :global(.rt-TableColumnHeaderCell) {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.table :global(.rt-TableCell),
+.table :global(.rt-TableRowHeaderCell) {
+  vertical-align: middle;
+}
+
+.name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.muted {
+  color: var(--gray-a11);
+}
+
+.actions {
+  width: 18px;
+}
+
+.revoke {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -6px;
+  padding: 6px;
+  border-radius: 4px;
+  color: var(--red-11);
+  cursor: pointer;
+}
+
+.revoke:hover {
+  background: var(--red-a3);
+}
+
+.revoke:focus-visible {
+  outline: 2px solid var(--red-8);
+}
+
+.empty {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--gray-a11);
+}
+
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.dialog {
+  padding: 24px;
+}
+
+.dialogTitle {
+  margin: 0 0 12px;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+
+.once {
+  min-height: 86px;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+}
+
+.secretLabel {
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+  color: var(--gray-a11);
+}
+
+.secret {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 16px;
+}
+
+.token {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.usageTitle {
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.usageText {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-a11);
+}
+
+.tab {
+  padding-top: 12px;
+}
+
+.sample {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sampleCode {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--gray-a5);
+  border-radius: 4px;
+  background: var(--gray-a3);
+  font-family: var(--code-font-family);
+  font-size: 13px;
+  line-height: 19.5px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+@media (max-width: 1023px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .nameField {
+    flex: 1 1 100%;
+  }
+
+  .scopeField,
+  .daysField {
+    flex: 1 1 200px;
+  }
+
+  .create {
+    margin-top: 24px;
+  }
+}
+
+@media (max-width: 639px) {
+  .page {
+    padding: 16px;
+  }
+
+  .table {
+    overflow-x: auto;
+  }
+}

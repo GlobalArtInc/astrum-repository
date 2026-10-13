@@ -1,50 +1,69 @@
-import { Button, Callout, Card, Dialog, Flex, Heading, RadioGroup, Text } from '@radix-ui/themes';
-import { KeyRound, LogOut, Plus, ShieldAlert, Trash2, TriangleAlert } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { api, path, useApi, useInvalidateApi } from '../../api';
-import { useSession } from '../../auth/state';
+import {
+  Badge,
+  Button,
+  Callout,
+  Card,
+  Code,
+  Dialog,
+  Flex,
+  SegmentedControl,
+  Select,
+  Table,
+  Tabs,
+  Text,
+  TextField,
+} from '@radix-ui/themes';
+import { KeyRound, LogOut, ShieldAlert, Trash2, TriangleAlert } from 'lucide-react';
+import { useId, useState } from 'react';
+import { api, path, useApi, useInvalidateApi, withQuery } from '../../api';
+import { useCan, useSession } from '../../auth/state';
 import { useSignOut } from '../../auth/useSignOut';
 import { useT } from '../../i18n';
 import {
-  CodeBlock,
-  type Column,
   ConfirmDialog,
   CopyButton,
-  DataTable,
   DateTime,
-  EmptyState,
-  FieldShell,
-  FormError,
-  NumberField,
-  Page,
-  RelativeTime,
-  StatusBadge,
-  TextField,
+  ErrorState,
+  useDocumentTitle,
   useForm,
   useToast,
 } from '../../ui';
 import {
   type AccessToken,
-  basicExample,
   type CreatedToken,
-  DAY_PRESETS,
-  MAX_DAYS,
-  MIN_DAYS,
+  LIFETIMES,
+  type Lifetime,
   needsPasswordSignIn,
   type Scope,
   TOKENS,
   type TokenValues,
-  tokenExpired,
   toTokenRequest,
+  USAGE_KINDS,
+  type UsageKind,
+  usageExamples,
   validateToken,
 } from './model';
-import styles from './User.module.css';
+import styles from './Tokens.module.css';
 
 const INITIAL: TokenValues = { name: '', scope: 'READ', days: 90 };
+const USAGE_LABELS: Record<UsageKind, string> = {
+  docker: 'Docker',
+  npm: 'npm',
+  maven: 'Maven',
+  pip: 'pip',
+  curl: 'curl',
+};
+
+function lifetimeKey(days: Lifetime): string {
+  return days === null ? 'never' : String(days);
+}
 
 function CreateTokenForm({ onCreated }: { onCreated(token: CreatedToken): void }) {
   const t = useT();
   const invalidate = useInvalidateApi();
+  const nameId = useId();
+  const scopeId = useId();
+  const daysId = useId();
   const form = useForm<TokenValues>({
     initial: INITIAL,
     validate: (values) => validateToken(t, values),
@@ -55,120 +74,154 @@ function CreateTokenForm({ onCreated }: { onCreated(token: CreatedToken): void }
       onCreated(created);
     },
   });
+  const lifetimeLabel = (days: Lifetime) =>
+    days === null
+      ? t('user.tokens.never')
+      : days === 365
+        ? t('user.tokens.year')
+        : t('user.tokens.days', { count: days });
+  const nameError = form.errors.name;
   return (
-    <form className={styles.form} onSubmit={form.submit} noValidate aria-labelledby="tokens-create">
-      <Card size="3">
-        <div className={styles.card}>
-          <Heading as="h2" size="4" id="tokens-create">
-            {t('user.tokens.createTitle')}
-          </Heading>
-          <TextField
-            label={t('user.tokens.name')}
-            hint={t('user.tokens.nameHint')}
-            {...form.field('name')}
-            required
-            maxLength={200}
-            autoComplete="off"
-          />
-          <FieldShell id="token-scope" label={t('user.tokens.scope')} required error={form.errors.scope}>
-            <RadioGroup.Root
-              id="token-scope"
-              name="scope"
+    <Card size="1" className={styles.card}>
+      <form onSubmit={form.submit} noValidate aria-labelledby={`${nameId}-title`}>
+        <h2 id={`${nameId}-title`} className={styles.cardTitle}>
+          {t('user.tokens.createTitle')}
+        </h2>
+        <div className={styles.row}>
+          <div className={`${styles.field} ${styles.nameField}`}>
+            <label htmlFor={nameId} className={styles.label}>
+              {t('user.tokens.name')}
+            </label>
+            <TextField.Root
+              id={nameId}
+              className={styles.nameInput}
+              name="name"
+              value={form.values.name}
+              placeholder={t('user.tokens.namePlaceholder')}
+              maxLength={200}
+              autoComplete="off"
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? `${nameId}-error` : undefined}
+              onChange={(event) => form.set('name', event.target.value)}
+            />
+            {nameError && (
+              <p id={`${nameId}-error`} className={styles.error} role="alert">
+                {nameError}
+              </p>
+            )}
+          </div>
+          <div className={`${styles.field} ${styles.scopeField}`}>
+            <span id={scopeId} className={styles.label}>
+              {t('user.tokens.scope')}
+            </span>
+            <Select.Root
               value={form.values.scope}
               onValueChange={(value) => form.set('scope', value as Scope)}
-              aria-label={t('user.tokens.scope')}
             >
-              <RadioGroup.Item value="READ">
-                <Flex direction="column">
-                  <Text weight="medium">{t('user.tokens.scopeRead')}</Text>
-                  <Text size="1" color="gray">
-                    {t('user.tokens.scopeReadText')}
-                  </Text>
-                </Flex>
-              </RadioGroup.Item>
-              <RadioGroup.Item value="WRITE">
-                <Flex direction="column">
-                  <Text weight="medium">{t('user.tokens.scopeWrite')}</Text>
-                  <Text size="1" color="gray">
-                    {t('user.tokens.scopeWriteText')}
-                  </Text>
-                </Flex>
-              </RadioGroup.Item>
-            </RadioGroup.Root>
-          </FieldShell>
-          <div className={styles.days}>
-            <NumberField
-              label={t('user.tokens.days')}
-              hint={t('user.tokens.daysHint', { min: MIN_DAYS, max: MAX_DAYS })}
-              {...form.field('days')}
-              min={MIN_DAYS}
-              max={MAX_DAYS}
-              step={1}
-              required
-            />
-            <Flex gap="2" wrap="wrap" role="group" aria-label={t('user.tokens.presets')}>
-              {DAY_PRESETS.map((days) => (
-                <Button
-                  key={days}
-                  type="button"
-                  size="1"
-                  variant={form.values.days === days ? 'solid' : 'soft'}
-                  color="gray"
-                  aria-pressed={form.values.days === days}
-                  onClick={() => form.set('days', days)}
-                >
-                  {t('user.tokens.preset', { count: days })}
-                </Button>
-              ))}
-            </Flex>
+              <Select.Trigger
+                className={styles.select}
+                aria-labelledby={scopeId}
+                aria-describedby={`${scopeId}-hint`}
+              />
+              <Select.Content position="popper">
+                <Select.Item value="READ">{t('user.tokens.scopeRead')}</Select.Item>
+                <Select.Item value="WRITE">{t('user.tokens.scopeWrite')}</Select.Item>
+              </Select.Content>
+            </Select.Root>
+            <p id={`${scopeId}-hint`} className={styles.hint}>
+              {form.values.scope === 'WRITE'
+                ? t('user.tokens.scopeWriteText')
+                : t('user.tokens.scopeReadText')}
+            </p>
           </div>
-          <FormError message={form.formError} />
-          <div className={styles.actions}>
-            <Button type="submit" loading={form.submitting}>
-              <Plus size={16} aria-hidden="true" />
-              {t('user.tokens.create')}
-            </Button>
+          <div className={`${styles.field} ${styles.daysField}`}>
+            <span id={daysId} className={styles.label}>
+              {t('user.tokens.expiry')}
+            </span>
+            <Select.Root
+              value={lifetimeKey(form.values.days)}
+              onValueChange={(value) => {
+                const index = LIFETIMES.findIndex((days) => lifetimeKey(days) === value);
+                form.set('days', index >= 0 ? (LIFETIMES[index] ?? null) : 90);
+              }}
+            >
+              <Select.Trigger className={styles.select} aria-labelledby={daysId} />
+              <Select.Content position="popper">
+                {LIFETIMES.map((days) => (
+                  <Select.Item key={lifetimeKey(days)} value={lifetimeKey(days)}>
+                    {lifetimeLabel(days)}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
           </div>
+          <Button type="submit" className={styles.create} loading={form.submitting}>
+            {t('user.tokens.create')}
+          </Button>
         </div>
-      </Card>
-    </form>
+        {form.formError && (
+          <p className={styles.error} role="alert">
+            {form.formError}
+          </p>
+        )}
+      </form>
+    </Card>
+  );
+}
+
+function CodeSample({ code }: { code: string }) {
+  const t = useT();
+  return (
+    <div className={styles.sample}>
+      <pre className={styles.sampleCode}>{code}</pre>
+      <CopyButton text={code} label={t('user.tokens.copy')} />
+    </div>
   );
 }
 
 function CreatedDialog({ token, onClose }: { token: CreatedToken | null; onClose(): void }) {
   const t = useT();
   const { state, user } = useSession();
+  const examples = token ? usageExamples(state.baseUrl, user?.userId ?? token.userId, token.token) : null;
   return (
     <Dialog.Root open={token !== null} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Content maxWidth="640px">
-        <Dialog.Title>{t('user.tokens.createdTitle')}</Dialog.Title>
-        <Dialog.Description size="2" color="gray" mb="3">
+      <Dialog.Content maxWidth="640px" className={styles.dialog}>
+        <Dialog.Title className={styles.dialogTitle}>{t('user.tokens.createdTitle')}</Dialog.Title>
+        <Dialog.Description className={styles.hidden}>
           {t('user.tokens.createdText', { name: token?.name ?? '' })}
         </Dialog.Description>
-        {token && (
-          <div className={styles.dialogBody}>
-            <Callout.Root color="amber" role="alert">
+        {token && examples && (
+          <>
+            <Callout.Root color="amber" role="alert" className={styles.once}>
               <Callout.Icon>
                 <TriangleAlert size={16} />
               </Callout.Icon>
               <Callout.Text>{t('user.tokens.once')}</Callout.Text>
             </Callout.Root>
-            <FieldShell id="created-token" label={t('user.tokens.token')}>
-              <div className={styles.secret}>
-                <code id="created-token" className={styles.token} data-testid="created-token">
-                  {token.token}
-                </code>
-                <CopyButton text={token.token} label={t('user.tokens.copy')} size="2" />
-              </div>
-            </FieldShell>
-            <Text size="2" weight="medium">
-              {t('user.tokens.usage')}
-            </Text>
-            <Text size="2" color="gray">
-              {t('user.tokens.usageText')}
-            </Text>
-            <CodeBlock code={basicExample(state.baseUrl, user?.userId ?? token.userId, token.token)} />
-          </div>
+            <div className={styles.secretLabel}>{t('user.tokens.token')}</div>
+            <div className={styles.secret}>
+              <Code size="3" variant="soft" className={styles.token} data-testid="created-token">
+                {token.token}
+              </Code>
+              <CopyButton text={token.token} label={t('user.tokens.copy')} />
+            </div>
+            <h3 className={styles.usageTitle}>{t('user.tokens.usage')}</h3>
+            <p className={styles.usageText}>{t('user.tokens.usageText')}</p>
+            <Tabs.Root defaultValue="docker">
+              <Tabs.List>
+                {USAGE_KINDS.map((kind) => (
+                  <Tabs.Trigger key={kind} value={kind}>
+                    {USAGE_LABELS[kind]}
+                  </Tabs.Trigger>
+                ))}
+              </Tabs.List>
+              {USAGE_KINDS.map((kind) => (
+                <Tabs.Content key={kind} value={kind} className={styles.tab}>
+                  <CodeSample code={examples[kind]} />
+                </Tabs.Content>
+              ))}
+            </Tabs.Root>
+          </>
         )}
         <Flex justify="end" mt="4">
           <Dialog.Close>
@@ -204,70 +257,96 @@ function PasswordRequired() {
   );
 }
 
+function TokenTable({
+  tokens,
+  everyone,
+  canRevoke,
+  onRevoke,
+}: {
+  tokens: AccessToken[];
+  everyone: boolean;
+  canRevoke(token: AccessToken): boolean;
+  onRevoke(token: AccessToken): void;
+}) {
+  const t = useT();
+  return (
+    <Table.Root variant="surface" className={styles.table} aria-label={t('user.tokens.title')}>
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeaderCell>{t('user.tokens.name')}</Table.ColumnHeaderCell>
+          {everyone && <Table.ColumnHeaderCell>{t('user.tokens.user')}</Table.ColumnHeaderCell>}
+          <Table.ColumnHeaderCell>{t('user.tokens.scope')}</Table.ColumnHeaderCell>
+          <Table.ColumnHeaderCell>{t('user.tokens.token')}</Table.ColumnHeaderCell>
+          <Table.ColumnHeaderCell>{t('user.tokens.created')}</Table.ColumnHeaderCell>
+          <Table.ColumnHeaderCell>{t('user.tokens.lastUsed')}</Table.ColumnHeaderCell>
+          <Table.ColumnHeaderCell>{t('user.tokens.expires')}</Table.ColumnHeaderCell>
+          <Table.ColumnHeaderCell>
+            <span className={styles.hidden}>{t('user.tokens.actions')}</span>
+          </Table.ColumnHeaderCell>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {tokens.map((token) => (
+          <Table.Row key={token.id}>
+            <Table.RowHeaderCell>
+              <span className={styles.name}>{token.name}</span>
+            </Table.RowHeaderCell>
+            {everyone && <Table.Cell>{token.userId}</Table.Cell>}
+            <Table.Cell>
+              <Badge size="1">
+                {token.scope === 'WRITE' ? t('user.tokens.scopeWrite') : t('user.tokens.scopeRead')}
+              </Badge>
+            </Table.Cell>
+            <Table.Cell>
+              <Code variant="ghost">{`${token.hint}…`}</Code>
+            </Table.Cell>
+            <Table.Cell>
+              <DateTime value={token.createdAt} dateOnly />
+            </Table.Cell>
+            <Table.Cell>
+              {token.lastUsedAt ? (
+                <DateTime value={token.lastUsedAt} dateOnly />
+              ) : (
+                <span className={styles.muted}>{t('user.tokens.neverUsed')}</span>
+              )}
+            </Table.Cell>
+            <Table.Cell>
+              {token.expiresAt ? <DateTime value={token.expiresAt} dateOnly /> : t('user.tokens.never')}
+            </Table.Cell>
+            <Table.Cell className={styles.actions}>
+              {canRevoke(token) && (
+                <button
+                  type="button"
+                  className={styles.revoke}
+                  aria-label={t('user.tokens.revokeOne', { name: token.name })}
+                  title={t('user.tokens.revoke')}
+                  onClick={() => onRevoke(token)}
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                </button>
+              )}
+            </Table.Cell>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table.Root>
+  );
+}
+
 export default function AccessTokensPage() {
   const t = useT();
   const toast = useToast();
   const invalidate = useInvalidateApi();
-  const tokens = useApi<AccessToken[]>(TOKENS);
+  const { user } = useSession();
+  const canReadAll = useCan('astrum:accesstokens:read');
+  const canDeleteAll = useCan('astrum:accesstokens:delete');
+  const [everyone, setEveryone] = useState(false);
+  const showAll = everyone && canReadAll;
+  const tokens = useApi<AccessToken[]>(showAll ? withQuery(TOKENS, { userId: '*' }) : TOKENS);
   const [created, setCreated] = useState<CreatedToken | null>(null);
   const [revoking, setRevoking] = useState<AccessToken | null>(null);
-  const now = useMemo(() => new Date(), []);
   const blocked = needsPasswordSignIn(tokens.error);
-
-  const columns: Column<AccessToken>[] = [
-    {
-      id: 'name',
-      header: t('user.tokens.name'),
-      cell: (row) => row.name,
-      sortValue: (row) => row.name,
-      primary: true,
-    },
-    {
-      id: 'scope',
-      header: t('user.tokens.scope'),
-      cell: (row) => (
-        <StatusBadge tone={row.scope === 'WRITE' ? 'warning' : 'info'}>
-          {row.scope === 'WRITE' ? t('user.tokens.scopeWrite') : t('user.tokens.scopeRead')}
-        </StatusBadge>
-      ),
-      sortValue: (row) => row.scope,
-    },
-    {
-      id: 'hint',
-      header: t('user.tokens.hint'),
-      cell: (row) => <code className={styles.mono}>{`${row.hint}…`}</code>,
-      hideOnPhone: true,
-    },
-    {
-      id: 'created',
-      header: t('user.tokens.created'),
-      cell: (row) => <DateTime value={row.createdAt} dateOnly />,
-      sortValue: (row) => new Date(row.createdAt),
-      hideOnPhone: true,
-    },
-    {
-      id: 'expires',
-      header: t('user.tokens.expires'),
-      cell: (row) =>
-        tokenExpired(row, now) ? (
-          <StatusBadge tone="danger">{t('user.tokens.expired')}</StatusBadge>
-        ) : (
-          <DateTime value={row.expiresAt} dateOnly />
-        ),
-      sortValue: (row) => new Date(row.expiresAt),
-    },
-    {
-      id: 'used',
-      header: t('user.tokens.lastUsed'),
-      cell: (row) =>
-        row.lastUsedAt ? (
-          <RelativeTime value={row.lastUsedAt} />
-        ) : (
-          <Text color="gray">{t('user.tokens.neverUsed')}</Text>
-        ),
-      sortValue: (row) => (row.lastUsedAt ? new Date(row.lastUsedAt) : null),
-    },
-  ];
+  useDocumentTitle(t('user.tokens.title'));
 
   const revoke = async () => {
     if (!revoking) {
@@ -279,49 +358,43 @@ export default function AccessTokensPage() {
   };
 
   return (
-    <Page title={t('user.tokens.title')} description={t('user.tokens.intro')}>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.titleRow}>
+          <KeyRound size={24} aria-hidden="true" className={styles.icon} />
+          <h1 className={styles.title}>{t('user.tokens.title')}</h1>
+        </div>
+        <p className={styles.intro}>{t('user.tokens.intro')}</p>
+      </header>
       {blocked ? (
         <PasswordRequired />
       ) : (
         <>
-          <Callout.Root color="gray" variant="surface">
-            <Callout.Icon>
-              <KeyRound size={16} />
-            </Callout.Icon>
-            <Callout.Text>{t('user.tokens.rule')}</Callout.Text>
-          </Callout.Root>
           <CreateTokenForm onCreated={setCreated} />
-          <section className={styles.section} aria-labelledby="tokens-list">
-            <Heading as="h2" size="4" id="tokens-list">
-              {t('user.tokens.listTitle')}
-            </Heading>
-            <DataTable
-              label={t('user.tokens.listTitle')}
-              columns={columns}
-              rows={tokens.data}
-              getRowId={(row) => row.id}
-              loading={tokens.isPending}
-              error={tokens.error}
-              onRetry={() => void tokens.refetch()}
-              initialSort={{ column: 'created', direction: 'desc' }}
-              empty={
-                <EmptyState
-                  icon={KeyRound}
-                  title={t('user.tokens.empty')}
-                  description={t('user.tokens.emptyText')}
-                />
-              }
-              rowActions={() => [
-                {
-                  id: 'revoke',
-                  label: t('user.tokens.revoke'),
-                  icon: Trash2,
-                  danger: true,
-                  onSelect: setRevoking,
-                },
-              ]}
+          {canReadAll && (
+            <SegmentedControl.Root
+              className={styles.switch}
+              value={showAll ? 'all' : 'mine'}
+              onValueChange={(value) => setEveryone(value === 'all')}
+            >
+              <SegmentedControl.Item value="mine">{t('user.tokens.mine')}</SegmentedControl.Item>
+              <SegmentedControl.Item value="all">{t('user.tokens.everyone')}</SegmentedControl.Item>
+            </SegmentedControl.Root>
+          )}
+          {tokens.error ? (
+            <ErrorState error={tokens.error} onRetry={() => void tokens.refetch()} />
+          ) : tokens.data && tokens.data.length > 0 ? (
+            <TokenTable
+              tokens={tokens.data}
+              everyone={showAll}
+              canRevoke={(token) => token.userId === user?.userId || canDeleteAll}
+              onRevoke={setRevoking}
             />
-          </section>
+          ) : (
+            <Card size="1" className={styles.empty}>
+              {tokens.isPending ? '' : showAll ? t('user.tokens.emptyAll') : t('user.tokens.empty')}
+            </Card>
+          )}
         </>
       )}
       <CreatedDialog token={created} onClose={() => setCreated(null)} />
@@ -329,11 +402,11 @@ export default function AccessTokensPage() {
         open={revoking !== null}
         onOpenChange={(open) => !open && setRevoking(null)}
         onConfirm={revoke}
-        title={t('user.tokens.revokeTitle', { name: revoking?.name ?? '' })}
-        description={t('user.tokens.revokeText')}
+        title={t('user.tokens.revokeTitle')}
+        description={t('user.tokens.revokeText', { name: revoking?.name ?? '' })}
         confirmLabel={t('user.tokens.revoke')}
         danger
       />
-    </Page>
+    </div>
   );
 }

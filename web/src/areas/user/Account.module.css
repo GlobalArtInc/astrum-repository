@@ -1,0 +1,179 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  max-width: 800px;
+  min-width: 0;
+  padding: 32px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.icon {
+  flex: none;
+  color: var(--accent-9);
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 500;
+  letter-spacing: -0.15px;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-11);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 736px;
+  min-width: 0;
+}
+
+.heading {
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.intro {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-11);
+}
+
+.infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.infoIcon {
+  display: inline-flex;
+  flex: none;
+  margin-top: 2px;
+  color: var(--gray-9);
+}
+
+.infoText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.infoLabel {
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+  color: var(--gray-11);
+}
+
+.infoValue {
+  line-height: 24px;
+}
+
+.userId {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 500;
+}
+
+.required {
+  color: var(--red-11);
+}
+
+.help {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+  color: var(--gray-11);
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--red-11);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.passwordActions {
+  margin-top: 16px;
+}
+
+.rule {
+  height: 1px;
+  margin: 32px 0;
+  border: 0;
+  background: var(--gray-6);
+}
+
+@media (max-width: 639px) {
+  .page {
+    padding: 16px;
+  }
+
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

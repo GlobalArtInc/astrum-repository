@@ -40,7 +40,7 @@ export interface AccessToken {
   hint: string;
   scope: Scope;
   createdAt: string;
-  expiresAt: string;
+  expiresAt: string | null;
   lastUsedAt: string | null;
 }
 
@@ -51,12 +51,11 @@ export interface CreatedToken extends AccessToken {
 export interface TokenValues {
   name: string;
   scope: Scope;
-  days: number | null;
+  days: Lifetime;
 }
 
-export const MIN_DAYS = 1;
-export const MAX_DAYS = 3650;
-export const DAY_PRESETS = [7, 30, 90, 365] as const;
+export const LIFETIMES = [7, 30, 90, 365, null] as const;
+export type Lifetime = (typeof LIFETIMES)[number];
 
 const EMAIL = /^[^\s@]+@[^\s@]+$/;
 
@@ -132,31 +131,43 @@ export function validateToken(t: Translate, values: TokenValues): Partial<Record
   } else if (values.name.trim().length > 200) {
     errors.name = t('user.tokens.nameTooLong');
   }
-  if (
-    values.days === null ||
-    !Number.isInteger(values.days) ||
-    values.days < MIN_DAYS ||
-    values.days > MAX_DAYS
-  ) {
-    errors.days = t('user.tokens.daysRule', { min: MIN_DAYS, max: MAX_DAYS });
-  }
   return errors;
 }
 
 export function toTokenRequest(values: TokenValues) {
-  return { name: values.name.trim(), scope: values.scope, expiresInDays: values.days ?? 0 };
+  return { name: values.name.trim(), scope: values.scope, expiresInDays: values.days };
 }
 
 export function tokenExpired(token: Pick<AccessToken, 'expiresAt'>, now: Date): boolean {
-  return new Date(token.expiresAt).getTime() <= now.getTime();
+  return token.expiresAt !== null && new Date(token.expiresAt).getTime() <= now.getTime();
 }
 
 export function needsPasswordSignIn(error: unknown): boolean {
   return error instanceof ApiError && error.status === 403 && /password/i.test(error.message);
 }
 
-export function basicExample(baseUrl: string, userId: string, token: string): string {
-  const base = baseUrl.replace(/\/+$/, '');
-  const quoted = `${userId}:${token}`.replace(/'/g, `'\\''`);
-  return `curl -u '${quoted}' ${base}/repository/<repository>/<path>`;
+export type UsageKind = 'docker' | 'npm' | 'maven' | 'pip' | 'curl';
+
+export const USAGE_KINDS: readonly UsageKind[] = ['docker', 'npm', 'maven', 'pip', 'curl'];
+
+function base64(text: string): string {
+  let binary = '';
+  for (const byte of new TextEncoder().encode(text)) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+export function usageExamples(baseUrl: string, userId: string, token: string): Record<UsageKind, string> {
+  const url = new URL(baseUrl.replace(/\/+$/, '') || 'http://localhost');
+  const base = `${url.origin}${url.pathname.replace(/\/+$/, '')}`;
+  const host = `${url.host}${url.pathname.replace(/\/+$/, '')}`;
+  const repository = `${base}/repository/<repository>/`;
+  return {
+    docker: `echo '${token}' | docker login ${url.host} -u ${userId} --password-stdin`,
+    npm: `registry=${repository}\n//${host}/repository/<repository>/:_auth=${base64(`${userId}:${token}`)}`,
+    maven: `<server>\n  <id>astrum</id>\n  <username>${userId}</username>\n  <password>${token}</password>\n</server>`,
+    pip: `pip install --index-url ${url.protocol}//${encodeURIComponent(userId)}:${token}@${host}/repository/<repository>/simple/ <package>`,
+    curl: `curl -u ${userId}:${token} -O ${repository}<path>`,
+  };
 }

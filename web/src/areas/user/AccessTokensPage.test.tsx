@@ -21,8 +21,8 @@ afterEach(() => {
 });
 
 describe('the access tokens page', () => {
-  it('creates a token, shows it once with an example and revokes it', async () => {
-    let tokens = [TOKEN];
+  it('creates a token, shows it once with examples and revokes it', async () => {
+    let tokens: object[] = [TOKEN];
     const server = fakeServer({
       'GET /service/rest/internal/access-tokens': () => jsonResponse(tokens),
       'POST /service/rest/internal/access-tokens': ({ body }) => {
@@ -31,6 +31,7 @@ describe('the access tokens page', () => {
           id: 'new',
           name: (body as { name: string }).name,
           scope: 'WRITE',
+          expiresAt: null,
           token: 'astrum_secret123',
         };
         tokens = [...tokens, created];
@@ -41,27 +42,31 @@ describe('the access tokens page', () => {
     vi.stubGlobal('fetch', server.fetch);
     renderWithApp(<AccessTokensPage />);
     expect(await screen.findByText('ci')).toBeInTheDocument();
-    expect(screen.getByText('Never')).toBeInTheDocument();
-    await userEvent.type(screen.getByRole('textbox', { name: /Name/ }), 'laptop');
-    await userEvent.click(screen.getByRole('radio', { name: /Read and write/ }));
-    await userEvent.click(screen.getByRole('button', { name: '30 days' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Create token' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Token created' });
+    expect(screen.getByText('Not used yet')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'laptop');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Access' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Read and write' }));
+    expect(screen.getByText('Everything you can do yourself, publishing included')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Lifetime' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Never' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Create Token' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Token Created' });
     expect(within(dialog).getByTestId('created-token')).toHaveTextContent('astrum_secret123');
-    expect(within(dialog).getByText(/curl -u 'admin:astrum_secret123'/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/docker login .* -u admin --password-stdin/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('tab', { name: /^curl/ }));
+    expect(within(dialog).getByText(/curl -u admin:astrum_secret123 -O/)).toBeInTheDocument();
     expect(server.calls.find((call) => call.method === 'POST')?.body).toEqual({
       name: 'laptop',
       scope: 'WRITE',
-      expiresInDays: 30,
+      expiresInDays: null,
     });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
     expect(screen.queryByText('astrum_secret123')).toBeNull();
-    const row = (await screen.findByText('ci')).closest('tr') as HTMLElement;
-    await userEvent.click(within(row).getByRole('button', { name: 'Actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Revoke' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Revoke' }),
-    );
+    expect(await screen.findByText('laptop')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Revoke ci' }));
+    const confirm = await screen.findByRole('alertdialog', { name: 'Revoke Token' });
+    expect(confirm).toHaveTextContent('Clients that use “ci” stop working at once.');
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Revoke' }));
     await waitFor(() => expect(server.calls.some((call) => call.method === 'DELETE')).toBe(true));
   }, 20_000);
 
@@ -78,7 +83,7 @@ describe('the access tokens page', () => {
     );
     renderWithApp(<AccessTokensPage />);
     expect(await screen.findByText('Sign in with your password first')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Create token' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Create Token' })).toBeNull();
   });
 });
 
@@ -103,7 +108,9 @@ describe('the account page', () => {
     });
     vi.stubGlobal('fetch', server.fetch);
     renderWithApp(<AccountPage />);
-    const first = await screen.findByRole('textbox', { name: /First name/ });
+    expect(await screen.findByText('Local')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change Password' })).toBeDisabled();
+    const first = screen.getByRole('textbox', { name: /First name/ });
     await userEvent.clear(first);
     await userEvent.type(first, 'Ada');
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -117,11 +124,11 @@ describe('the account page', () => {
         email: 'admin@example.org',
       }),
     );
-    await userEvent.type(screen.getByLabelText(/Current password/), 'not it');
-    await userEvent.type(screen.getByLabelText(/^New password/), 'a better one');
-    await userEvent.type(screen.getByLabelText(/Repeat the new password/), 'a better one');
-    await userEvent.click(screen.getByRole('button', { name: 'Change password' }));
+    await userEvent.type(screen.getByLabelText(/Current Password/), 'not it');
+    await userEvent.type(screen.getByLabelText(/^New Password/), 'a better one');
+    await userEvent.type(screen.getByLabelText(/Repeat New Password/), 'a better one');
+    await userEvent.click(screen.getByRole('button', { name: 'Change Password' }));
     expect(await screen.findByText('The current password is wrong')).toBeInTheDocument();
-    expect(screen.getByLabelText(/Current password/)).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText(/Current Password/)).toHaveAttribute('aria-invalid', 'true');
   }, 20_000);
 });
