@@ -21,6 +21,7 @@ astrum-format-npm.workspace = true
 astrum-format-nuget.workspace = true
 astrum-format-pypi.workspace = true
 astrum-format-raw.workspace = true
+astrum-format-terraform.workspace = true
 astrum-db.workspace = true
 astrum-security.workspace = true
 astrum-tasks.workspace = true

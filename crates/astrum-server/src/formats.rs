@@ -13,6 +13,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
     content.register(Arc::new(astrum_format_pypi::PyPi));
     content.register(Arc::new(astrum_format_raw::Raw));
+    content.register(Arc::new(astrum_format_terraform::Terraform::default()));
 }
 
 pub fn register_tasks(tasks: &Tasks) {
@@ -24,4 +25,5 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(astrum_format_docker::routes())
         .merge(astrum_format_npm::routes())
+        .merge(astrum_format_terraform::routes())
 }
