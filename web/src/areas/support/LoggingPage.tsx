@@ -134,12 +134,14 @@ export default function LoggingPage() {
           />
         }
       >
-        <SearchBox value={query} onChange={setQuery} placeholder={t('support.logging.filter')} />
+        <div className={styles.filterRow}>
+          <SearchBox value={query} onChange={setQuery} placeholder={t('support.logging.filter')} />
+        </div>
         {loggers.error ? (
           <ErrorState error={loggers.error} onRetry={() => void loggers.refetch()} />
         ) : (
           <>
-            <div className={list.count}>
+            <div className={styles.showing}>
               {t('support.logging.showing', { shown: rows.length, total: all.length })}
             </div>
             <ListTable

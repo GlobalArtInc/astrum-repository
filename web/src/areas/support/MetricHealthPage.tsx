@@ -43,7 +43,7 @@ export default function MetricHealthPage() {
   ];
   return (
     <Page
-      gutter="medium"
+      gutter="large"
       title={t('support.health.title')}
       description={t('support.health.intro')}
       breadcrumbs={crumbs}

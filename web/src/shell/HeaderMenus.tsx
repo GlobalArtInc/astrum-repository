@@ -139,7 +139,7 @@ export function StatusBell() {
   const navigate = useNavigate();
   const health = useVisibleSettings().find((tile) => tile.id === STATUS_TILE);
   const allowed = can(STATUS_NEED);
-  const checks = useApi<Record<string, { healthy: boolean }>>(allowed ? STATUS_CHECKS : null, {
+  const checks = useApi<Record<string, { healthy: boolean }>>(allowed && health ? STATUS_CHECKS : null, {
     refetchInterval: STATUS_POLL,
     staleTime: STATUS_POLL / 2,
   });

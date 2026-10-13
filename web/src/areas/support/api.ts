@@ -71,6 +71,29 @@ export function saveJson(name: string, value: unknown) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+const SECTION_ORDER = [
+  'astrum-status',
+  'astrum-node',
+  'astrum-configuration',
+  'astrum-properties',
+  'system-time',
+  'system-runtime',
+  'system-os',
+  'system-database',
+  'system-blobstores',
+  'system-filestores',
+];
+
+export function orderSections(report: Record<string, unknown>): Array<[string, unknown]> {
+  const rank = (key: string) => {
+    const index = SECTION_ORDER.indexOf(key);
+    return index === -1 ? SECTION_ORDER.length : index;
+  };
+  return Object.entries(report).sort(
+    ([left], [right]) => rank(left) - rank(right) || left.localeCompare(right),
+  );
+}
+
 export function sectionTitle(key: string): string {
   return key
     .split('-')
