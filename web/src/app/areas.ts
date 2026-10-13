@@ -1,6 +1,7 @@
 import { auditArea } from '../areas/audit';
 import { blobstoresArea } from '../areas/blobstores';
 import { browseArea } from '../areas/browse';
+import { cleanupArea } from '../areas/cleanup';
 import { dashboardArea } from '../areas/dashboard';
 import { identityArea } from '../areas/identity';
 import { onboardingArea } from '../areas/onboarding';
@@ -23,6 +24,7 @@ export const areas: Area[] = [
   settingsArea,
   repositoriesArea,
   blobstoresArea,
+  cleanupArea,
   selectorsArea,
   securityArea,
   identityArea,
