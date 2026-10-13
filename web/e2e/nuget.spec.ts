@@ -202,8 +202,8 @@ test('the key page stays hidden while the realm is off', async ({ page, request,
 test('NuGet packages show their usage and are found by their id', async ({ page, request, server }) => {
   await seed(request, server.url, server.adminPassword, false);
   await login(page, server.adminPassword);
-  await page.goto(`/search/component/${encodeURIComponent('nuget::Astrum.Probe')}?version=1.0.0&tab=usage`);
-  await expect(page.getByRole('heading', { level: 1, name: 'Astrum.Probe' })).toBeVisible();
+  await page.goto(`/browse/${HOSTED}/Astrum.Probe/1.0.0/`);
+  await expect(page.getByRole('heading', { level: 2, name: 'Astrum.Probe:1.0.0' })).toBeVisible();
   const index = `${server.url}/repository/${HOSTED}/index.json`;
   await expect(
     page.getByText(`dotnet add package Astrum.Probe --version 1.0.0 --source ${index}`),
@@ -277,10 +277,8 @@ test.describe('screens', () => {
         await shoot(page, `nuget-key-reset-${suffix}`);
         await page.keyboard.press('Escape');
 
-        await page.goto(
-          `/search/component/${encodeURIComponent('nuget::Astrum.Probe')}?version=1.0.0&tab=usage`,
-        );
-        await expect(page.getByRole('heading', { level: 1, name: 'Astrum.Probe' })).toBeVisible();
+        await page.goto(`/browse/${HOSTED}/Astrum.Probe/1.0.0/`);
+        await expect(page.getByRole('heading', { level: 2, name: 'Astrum.Probe:1.0.0' })).toBeVisible();
         await shoot(page, `nuget-usage-${suffix}`);
         await page.getByRole('tab', { name: /^dotnet nuget push/ }).click();
         await shoot(page, `nuget-usage-push-${suffix}`);

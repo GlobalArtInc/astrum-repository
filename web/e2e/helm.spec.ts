@@ -139,8 +139,12 @@ test('a chart goes up through the upload page and shows in browse with its usage
   await expect(page.getByText(/redeploy is not allowed/)).toBeVisible();
 
   await page.goto('/browse/charts-upload');
-  await page.getByRole('tree').getByText('demo-0.5.0.tgz').click();
-  await expect(page).toHaveURL(/\/browse\/charts-upload\/demo-0\.5\.0\.tgz$/);
+  const tree = page.getByRole('tree');
+  await tree.getByText('demo', { exact: true }).click();
+  await tree.getByText('0.5.0', { exact: true }).click();
+  await tree.getByText('demo-0.5.0.tgz').click();
+  await expect(page).toHaveURL(/\/browse\/charts-upload\/demo\/0\.5\.0\/demo-0\.5\.0\.tgz$/);
+  await expect(page.getByRole('heading', { level: 2, name: 'demo:0.5.0' })).toBeVisible();
   const repositoryUrl = `${server.url}/repository/charts-upload/`;
   await expect(page.getByRole('tab', { name: 'helm repo add' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByText('Register the repository once, then install charts from it')).toBeVisible();
@@ -155,16 +159,13 @@ test('a chart goes up through the upload page and shows in browse with its usage
   ).toBeVisible();
   await expect(page.getByText('Uploading needs a user with write access to this repository')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Component page' }).click();
-  await expect(page).toHaveURL(/\/search\/component\/helm%3A%3Ademo\?version=0\.5\.0/);
-  await expect(page.getByText('A chart from the upload page').first()).toBeVisible();
-  await page.getByRole('tab', { name: 'Usage' }).click();
-  await expect(page.getByText(`helm repo add charts-upload ${repositoryUrl}`)).toBeVisible();
-  await page.getByRole('tab', { name: 'helm install' }).click();
-  await expect(page.getByText('helm install demo charts-upload/demo --version 0.5.0')).toBeVisible();
+  await page.goto(`/search/component/${encodeURIComponent('helm::demo')}?version=0.5.0`);
+  await expect(page.getByRole('heading', { level: 1, name: 'demo v0.5.0' })).toBeVisible();
+  await expect(page.getByText('charts-upload', { exact: true })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/browse/charts-upload/demo-0.5.0.tgz');
+  await expect(page).toHaveURL(/\/browse\/charts-upload\/demo\/0\.5\.0\/demo-0\.5\.0\.tgz$/);
   await expect(page.getByRole('tab', { name: 'helm repo add' })).toBeVisible();
   await noHorizontalScroll(page);
 });
@@ -272,8 +273,8 @@ test('helm screens', async ({ page, server }) => {
       await shoot(shotPage, `browse-chart-${suffix}`);
       await shotPage.getByRole('tab', { name: 'Chart.yaml' }).click();
       await shoot(shotPage, `browse-chart-dependency-${suffix}`);
-      await shotPage.goto(`/search/component/${encodeURIComponent('helm::demo')}?version=0.5.0&tab=usage`);
-      await expect(shotPage.getByRole('tab', { name: 'helm install' })).toBeVisible();
+      await shotPage.goto(`/search/component/${encodeURIComponent('helm::demo')}?version=0.5.0`);
+      await expect(shotPage.getByRole('heading', { level: 1, name: 'demo v0.5.0' })).toBeVisible();
       await shoot(shotPage, `component-usage-${suffix}`);
       await shotPage.goto('/search/custom?helm.keywords=*web*');
       await expect(shotPage.getByRole('link', { name: 'demo', exact: true }).first()).toBeVisible();
