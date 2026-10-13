@@ -27,6 +27,7 @@ import {
   TextInput,
 } from './fields';
 import styles from './fields.module.css';
+import { SuggestPort } from './SuggestPort';
 
 export interface BlobStoreChoice {
   name: string;
@@ -306,6 +307,13 @@ export function RepositoryForm(props: RepositoryFormProps) {
                   placeholder={t('repositories.form.httpPortPlaceholder')}
                   min={1}
                   max={65535}
+                  footer={
+                    <SuggestPort
+                      other={values.httpsPort}
+                      disabled={readOnly}
+                      onSuggest={(port) => form.set('httpPort', port)}
+                    />
+                  }
                 />
                 <NumberInput
                   {...field('httpsPort')}
@@ -314,6 +322,13 @@ export function RepositoryForm(props: RepositoryFormProps) {
                   placeholder={t('repositories.form.httpsPortPlaceholder')}
                   min={1}
                   max={65535}
+                  footer={
+                    <SuggestPort
+                      other={values.httpPort}
+                      disabled={readOnly}
+                      onSuggest={(port) => form.set('httpsPort', port)}
+                    />
+                  }
                 />
                 <TextInput
                   {...field('subdomain')}

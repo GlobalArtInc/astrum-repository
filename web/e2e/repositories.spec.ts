@@ -104,7 +104,7 @@ function fullDocument(
       forceBasicAuth: false,
       pathEnabled: true,
       subdomain: `${name.replace(/[^a-z0-9]/g, '')}`,
-      ...(type === 'hosted' ? { httpPort: 18348, httpsPort: 18349 } : {}),
+      ...(type === 'hosted' ? { httpPort: 18498, httpsPort: 18499 } : {}),
     };
   }
   if (format.id === 'docker' && type === 'proxy') {

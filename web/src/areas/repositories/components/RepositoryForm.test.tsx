@@ -241,4 +241,34 @@ describe('the repository form', () => {
     renderForm({ document: BY_KEY['raw/group/max'] as RepositoryDocument });
     expect(screen.queryByRole('listbox', { name: 'Available Policies' })).not.toBeInTheDocument();
   });
+
+  it('suggests free ports for the Docker connectors', async () => {
+    const server = fakeServer({
+      'GET /service/rest/internal/ui/docker/suggest-port': () => jsonResponse(8082),
+      'GET /service/rest/internal/ui/docker/suggest-port?exclude=8082': () => jsonResponse(8083),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    const document = structuredClone(BY_KEY['docker/hosted/max'] as RepositoryDocument);
+    const { onSubmit } = renderForm({ document });
+    const links = screen.getAllByRole('button', { name: 'Suggest available port' });
+    expect(links).toHaveLength(2);
+    await userEvent.click(links[0] as HTMLElement);
+    await waitFor(() => expect(screen.getByRole('spinbutton', { name: /HTTP Connector/ })).toHaveValue(8082));
+    await userEvent.click(links[1] as HTMLElement);
+    await waitFor(() =>
+      expect(screen.getByRole('spinbutton', { name: /HTTPS Connector/ })).toHaveValue(8083),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const sent = onSubmit.mock.calls[0]?.[0] as RepositoryDocument;
+    expect(getPath(sent, ['docker', 'httpPort'])).toBe(8082);
+    expect(getPath(sent, ['docker', 'httpsPort'])).toBe(8083);
+  });
+
+  it('keeps readers from asking for a port', () => {
+    renderForm({ document: BY_KEY['docker/hosted/max'] as RepositoryDocument, readOnly: true });
+    for (const link of screen.getAllByRole('button', { name: 'Suggest available port' })) {
+      expect(link).toBeDisabled();
+    }
+  });
 });

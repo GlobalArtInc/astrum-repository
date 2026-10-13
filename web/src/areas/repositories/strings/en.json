@@ -305,6 +305,7 @@
   "repositories.form.sections.routing": "Routing Rule",
   "repositories.form.sections.routingText": "Choose a rule so that this repository does not serve some requests.",
   "repositories.form.subdomainPlaceholder": "for example, docker-hosted",
+  "repositories.form.suggestPort": "Suggest available port",
   "repositories.form.timeToLiveHint": "Minutes to remember that a file is missing from the remote",
   "repositories.form.unsaved": "Unsaved changes",
   "repositories.form.useTrustStore": "Use the Astrum Repository Truststore",

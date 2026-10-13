@@ -115,6 +115,7 @@ export function NumberInput(
     placeholder?: string;
     min?: number;
     max?: number;
+    footer?: ReactNode;
   },
 ) {
   const id = useId();
@@ -138,6 +139,7 @@ export function NumberInput(
           props.onChange(text === '' || !Number.isFinite(value) ? null : value);
         }}
       />
+      {props.footer}
     </Field>
   );
 }

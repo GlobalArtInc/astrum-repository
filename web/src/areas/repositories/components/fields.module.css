@@ -178,3 +178,24 @@
   outline: 2px solid var(--accent-8);
   outline-offset: 2px;
 }
+
+.suggest {
+  margin: 13px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.suggestLink {
+  margin: 0 0 0 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent-9);
+  cursor: pointer;
+}
+
+.suggestLink:disabled {
+  cursor: default;
+  opacity: 0.6;
+}

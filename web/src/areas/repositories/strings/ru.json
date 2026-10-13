@@ -307,6 +307,7 @@
   "repositories.form.sections.routing": "Правило маршрутизации",
   "repositories.form.sections.routingText": "Выберите правило, чтобы этот репозиторий не обслуживал часть запросов.",
   "repositories.form.subdomainPlaceholder": "например, docker-hosted",
+  "repositories.form.suggestPort": "Предложить свободный порт",
   "repositories.form.timeToLiveHint": "Сколько минут помнить, что файл не найден в удалённом репозитории",
   "repositories.form.unsaved": "Несохранённые изменения",
   "repositories.form.useTrustStore": "Использовать хранилище доверенных сертификатов Astrum Repository",
