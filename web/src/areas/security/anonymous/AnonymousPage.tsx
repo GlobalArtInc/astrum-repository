@@ -1,42 +1,34 @@
-import { Button, Callout, Card, Flex, Spinner } from '@radix-ui/themes';
+import { Button, Flex, Select, Spinner } from '@radix-ui/themes';
 import { useQueryClient } from '@tanstack/react-query';
-import { Info } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { useId } from 'react';
 import { api, useApi, useInvalidateApi } from '../../../api';
 import { STATE_KEY, useCan } from '../../../auth/state';
-import { type Translate, useT } from '../../../i18n';
-import {
-  ErrorState,
-  FormError,
-  type Option,
-  Page,
-  SelectField,
-  SwitchField,
-  TextField,
-  UnsavedChangesGuard,
-  useForm,
-  useToast,
-} from '../../../ui';
+import { useT } from '../../../i18n';
+import { ErrorState, FormError, Page, UnsavedChangesGuard, useForm, useToast } from '../../../ui';
+import { Input } from '../../identity/shared/Fields';
+import fields from '../../identity/shared/Fields.module.css';
 import { ANONYMOUS, type Anonymous } from '../api';
-import styles from '../shared/Form.module.css';
+import { HelpCard } from '../shared/AdminList';
+import { EditBar, EditForm, FormSection } from '../shared/Edit';
+import edit from '../shared/Edit.module.css';
 import { explainRefusal } from '../shared/messages';
+import styles from './Anonymous.module.css';
 
 export const AUTHORIZING_REALM = 'AstrumAuthorizingRealm';
 
-const REALM_LABELS: Record<string, string> = {
-  AstrumAuthorizingRealm: 'security.anonymous.realmLocal',
-  LdapRealm: 'security.anonymous.realmLdap',
-  OAuth2Realm: 'security.anonymous.realmOidc',
-};
+const HELP = 'https://help.globalart.dev/en/anonymous-access.html';
 
-export function anonymousRealms(t: Translate, current: string): Option[] {
-  const ids = Object.keys(REALM_LABELS);
-  if (current && !ids.includes(current)) {
-    ids.push(current);
-  }
-  return ids.map((id) => {
-    const key = REALM_LABELS[id];
-    return { value: id, label: key ? t(key) : id };
-  });
+const REALMS: Array<{ value: string; label: string }> = [
+  { value: 'LdapRealm', label: 'LDAP Realm' },
+  { value: AUTHORIZING_REALM, label: 'Local Authorizing Realm' },
+  { value: 'OAuth2Realm', label: 'OpenID Connect Realm' },
+];
+
+export function anonymousRealms(current: string): Array<{ value: string; label: string }> {
+  return current && !REALMS.some((realm) => realm.value === current)
+    ? [...REALMS, { value: current, label: current }]
+    : REALMS;
 }
 
 function AnonymousForm({ settings }: { settings: Anonymous }) {
@@ -45,6 +37,9 @@ function AnonymousForm({ settings }: { settings: Anonymous }) {
   const client = useQueryClient();
   const invalidate = useInvalidateApi();
   const canWrite = useCan('astrum:settings:update');
+  const readOnly = !canWrite;
+  const enabledId = useId();
+  const realmId = useId();
   const form = useForm<Anonymous>({
     initial: settings,
     validate: (values) => {
@@ -64,59 +59,104 @@ function AnonymousForm({ settings }: { settings: Anonymous }) {
         await Promise.all([invalidate(ANONYMOUS), client.invalidateQueries({ queryKey: STATE_KEY })]);
       }),
   });
+  const enabled = form.values.enabled;
   return (
-    <form className={styles.form} onSubmit={form.submit} noValidate>
-      <Card size="3">
-        <div className={styles.card}>
-          <SwitchField
-            label={t('security.anonymous.enabled')}
-            description={t('security.anonymous.enabledText')}
-            {...form.field('enabled')}
-            disabled={!canWrite}
-          />
-          <TextField
-            label={t('security.anonymous.userId')}
-            hint={t('security.anonymous.userIdHint')}
-            {...form.field('userId')}
-            required
-            disabled={!canWrite}
-            autoComplete="off"
-          />
-          <SelectField
-            label={t('security.anonymous.realm')}
-            hint={t('security.anonymous.realmHint')}
-            {...form.field('realmName')}
-            options={anonymousRealms(t, form.values.realmName)}
-            required
-            disabled={!canWrite}
-          />
-        </div>
-      </Card>
-      <Callout.Root color="gray" variant="surface">
-        <Callout.Icon>
-          <Info size={16} />
-        </Callout.Icon>
-        <Callout.Text>{t('security.anonymous.about')}</Callout.Text>
-      </Callout.Root>
-      <FormError message={form.formError} />
-      {canWrite && (
-        <div className={styles.actions}>
-          <Button type="submit" loading={form.submitting} disabled={!form.dirty}>
-            {t('security.form.save')}
-          </Button>
-          <Button
-            type="button"
-            variant="soft"
-            color="gray"
-            disabled={!form.dirty}
-            onClick={() => form.reset()}
+    <EditForm
+      id="anonymous-form"
+      onSubmit={(event) => void form.submit(event)}
+      bar={
+        <EditBar
+          end={
+            !readOnly && (
+              <>
+                <Button type="button" variant="outline" onClick={() => form.reset()}>
+                  {t('security.form.discard')}
+                </Button>
+                <Button type="submit" disabled={!form.dirty} loading={form.submitting}>
+                  {t('security.form.save')}
+                </Button>
+              </>
+            )
+          }
+        />
+      }
+    >
+      <FormSection title={t('security.anonymous.section')}>
+        <p className={styles.intro}>{t('security.anonymous.sectionText')}</p>
+        <label className={styles.check} htmlFor={enabledId} data-disabled={readOnly || undefined}>
+          <span className={enabled ? `${edit.mark} ${edit.markOn}` : edit.mark}>
+            <input
+              id={enabledId}
+              type="checkbox"
+              checked={enabled}
+              disabled={readOnly}
+              aria-labelledby={`${enabledId}-label`}
+              aria-describedby={`${enabledId}-help`}
+              onChange={(event) => form.set('enabled', event.target.checked)}
+            />
+            {enabled && <Check size={14} aria-hidden="true" />}
+          </span>
+          <span className={styles.checkText}>
+            <span id={`${enabledId}-label`} className={styles.checkLabel}>
+              {t('security.anonymous.enabled')}
+            </span>
+            <span id={`${enabledId}-help`} className={styles.checkHelp}>
+              {t('security.anonymous.enabledText')}
+            </span>
+          </span>
+        </label>
+        <Input
+          label={t('security.anonymous.userId')}
+          help={t('security.anonymous.userIdHint')}
+          required
+          placeholder="anonymous"
+          disabled={readOnly}
+          {...form.field('userId')}
+        />
+        <div className={fields.field}>
+          <label htmlFor={realmId} className={fields.label}>
+            {t('security.anonymous.realm')}
+            <span className={fields.required} aria-hidden="true">
+              *
+            </span>
+          </label>
+          <p id={`${realmId}-help`} className={fields.help}>
+            {t('security.anonymous.realmHint')}
+          </p>
+          <Select.Root
+            value={form.values.realmName || undefined}
+            onValueChange={(value) => form.set('realmName', value)}
+            disabled={readOnly}
+            name="realmName"
           >
-            {t('security.form.discard')}
-          </Button>
+            <Select.Trigger
+              id={realmId}
+              className={styles.select}
+              aria-describedby={`${realmId}-help`}
+              aria-invalid={form.errors.realmName ? true : undefined}
+            />
+            <Select.Content position="popper">
+              {anonymousRealms(form.values.realmName).map((realm) => (
+                <Select.Item key={realm.value} value={realm.value}>
+                  {realm.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Root>
+          {form.errors.realmName && (
+            <p className={fields.error} role="alert">
+              {form.errors.realmName}
+            </p>
+          )}
         </div>
-      )}
-      <UnsavedChangesGuard when={form.dirty && canWrite} />
-    </form>
+        <FormError message={form.formError} />
+      </FormSection>
+      <hr className={styles.rule} />
+      <HelpCard flush title={t('security.anonymous.helpTitle')} link={HELP}>
+        {t('security.anonymous.about')}
+      </HelpCard>
+      <UnsavedChangesGuard when={form.dirty && !readOnly} />
+    </EditForm>
   );
 }
 
@@ -125,6 +165,7 @@ export default function AnonymousPage() {
   const settings = useApi<Anonymous>(ANONYMOUS);
   return (
     <Page
+      className={edit.settingsPage}
       title={t('security.anonymous.title')}
       description={t('security.anonymous.intro')}
       breadcrumbs={[

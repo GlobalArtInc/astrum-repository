@@ -232,7 +232,7 @@ test('a user gets roles and a new password and signs in with it', async ({ page,
 
 test('anonymous access is seen from a private browser context', async ({ page, browser, server }) => {
   await page.goto('/admin/security/anonymous');
-  const toggle = page.getByRole('switch', { name: /Allow anonymous access/ });
+  const toggle = page.getByRole('checkbox', { name: 'Let anonymous users access the server' });
   await expect(toggle).not.toBeChecked();
   await toggle.click();
   await page.getByRole('button', { name: 'Save' }).click();
