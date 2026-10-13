@@ -210,13 +210,13 @@ function Header({ repository, onOpen }: { repository: RepositoryItem; onOpen(pat
         <div className={styles.headerActions}>
           <HeaderSearch repository={repository} onOpen={onOpen} />
           <Button variant="surface" color="gray" highContrast onClick={copy}>
-            <Copy size={16} aria-hidden="true" />
+            <Copy size={14} aria-hidden="true" />
             {t('browse.repository.copyUrl')}
           </Button>
           {repository.permissions.admin && (
             <Button asChild variant="surface" color="gray" highContrast>
               <Link to={settingsPath(repository.name)}>
-                <Settings size={16} aria-hidden="true" />
+                <Settings size={14} aria-hidden="true" />
                 {t('browse.repository.settings')}
               </Link>
             </Button>

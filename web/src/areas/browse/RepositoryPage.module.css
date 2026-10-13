@@ -58,6 +58,7 @@
 .title {
   margin: 0;
   font-weight: 650;
+  letter-spacing: -0.56px;
   overflow-wrap: anywhere;
 }
 
