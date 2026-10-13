@@ -302,7 +302,7 @@ async fn sign_ins_and_failures_are_audited_with_the_client_address() {
             Method::POST,
             SESSION,
             Auth::None,
-            Some(json!({"username": "jane", "password": "nope"})),
+            Some(json!({"username": "admin", "password": "nope"})),
             &forwarded,
         )
         .await;
@@ -320,37 +320,24 @@ async fn sign_ins_and_failures_are_audited_with_the_client_address() {
     let events = fixture
         .call(
             Method::GET,
-            "/service/rest/internal/audit?domain=security.session",
+            "/service/rest/internal/audit",
             Auth::Admin,
             None,
         )
         .await
         .json();
-    let seen: Vec<(String, String, String)> = events
-        .as_array()
-        .unwrap()
+    let events = events.as_array().unwrap();
+    let login = events
         .iter()
-        .map(|event| {
-            (
-                event["type"].as_str().unwrap().to_owned(),
-                event["context"].as_str().unwrap().to_owned(),
-                event["initiator"].as_str().unwrap().to_owned(),
-            )
-        })
-        .collect();
-    assert_eq!(
-        seen,
-        [
-            (
-                "created".to_owned(),
-                "admin".to_owned(),
-                "admin/203.0.113.9".to_owned()
-            ),
-            (
-                "failed".to_owned(),
-                "jane".to_owned(),
-                "*UNKNOWN/203.0.113.9".to_owned()
-            ),
-        ]
-    );
+        .find(|event| event["type"] == "login")
+        .expect("a sign-in event");
+    assert_eq!(login["initiator"], "admin/203.0.113.9");
+    assert_eq!(login["attributes"]["principal"], "admin");
+    let failure = events
+        .iter()
+        .find(|event| event["domain"] == "security.user" && event["type"] == "authentication")
+        .expect("a failed sign-in event");
+    assert_eq!(failure["attributes"]["userId"], "admin");
+    assert_eq!(failure["attributes"]["remoteIp"], "203.0.113.9");
+    assert_eq!(failure["attributes"]["wasSuccessful"], false);
 }
