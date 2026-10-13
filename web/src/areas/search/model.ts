@@ -73,3 +73,22 @@ export function lastModified(component: SearchComponent): string | null {
   }
   return newest;
 }
+
+export function displayName(component: { format: string; group?: string | null; name: string }): string {
+  if (component.format === 'npm' && component.group) {
+    return `@${component.group.replace(/^@/, '')}/${component.name}`;
+  }
+  return component.name;
+}
+
+export function groupLine(component: { format: string; group?: string | null }): string | null {
+  if (component.format === 'npm' || !component.group) {
+    return null;
+  }
+  return component.group;
+}
+
+export function openPath(component: SearchComponent): string {
+  const first = [...component.assets].sort((left, right) => left.path.localeCompare(right.path))[0];
+  return browsePath(component.repository, first?.path ?? '');
+}

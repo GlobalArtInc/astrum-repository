@@ -3,6 +3,8 @@ import { useMemo } from 'react';
 import { type ApiError, api, withQuery } from '../../api';
 import type { SearchPage } from './model';
 
+export const BATCH = 50;
+
 export interface PagedSearch<T> {
   items: T[] | undefined;
   loading: boolean;
@@ -13,7 +15,23 @@ export interface PagedSearch<T> {
   retry(): void;
 }
 
-export function usePagedSearch<T>(path: string | null): PagedSearch<T> {
+export async function fetchBatch<T>(
+  path: string,
+  token: string | null,
+  size: number,
+  signal?: AbortSignal,
+): Promise<SearchPage<T>> {
+  const items: T[] = [];
+  let next = token;
+  do {
+    const page = await api.get<SearchPage<T>>(withQuery(path, { continuationToken: next }), { signal });
+    items.push(...page.items);
+    next = page.continuationToken ?? null;
+  } while (next !== null && items.length < size);
+  return { items, continuationToken: next };
+}
+
+export function usePagedSearch<T>(path: string | null, size = 1): PagedSearch<T> {
   const query = useInfiniteQuery<
     SearchPage<T>,
     ApiError,
@@ -21,9 +39,8 @@ export function usePagedSearch<T>(path: string | null): PagedSearch<T> {
     readonly unknown[],
     string | null
   >({
-    queryKey: ['api', path ?? '', 'pages'],
-    queryFn: ({ pageParam, signal }) =>
-      api.get<SearchPage<T>>(withQuery(path ?? '', { continuationToken: pageParam }), { signal }),
+    queryKey: ['api', path ?? '', 'pages', size],
+    queryFn: ({ pageParam, signal }) => fetchBatch<T>(path ?? '', pageParam, size, signal),
     initialPageParam: null,
     getNextPageParam: (last) => last.continuationToken ?? undefined,
     enabled: path !== null,

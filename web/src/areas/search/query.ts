@@ -1,7 +1,7 @@
 import { withQuery } from '../../api';
 import { SEARCH } from './model';
 
-export type SortField = '' | 'name' | 'version' | 'group' | 'repository';
+export type SortField = '' | 'name' | 'repository';
 export type Direction = 'asc' | 'desc';
 
 export interface SearchState {
@@ -12,7 +12,7 @@ export interface SearchState {
   direction: Direction;
 }
 
-export const SORT_FIELDS: readonly SortField[] = ['', 'name', 'version', 'group', 'repository'];
+export const SORT_FIELDS: readonly SortField[] = ['', 'name', 'repository'];
 export const MIN_QUERY = 2;
 
 export const SORT_CHOICES = [
@@ -20,10 +20,6 @@ export const SORT_CHOICES = [
   { value: 'oldest', sort: '', direction: 'asc', label: 'search.sort.oldest' },
   { value: 'name-asc', sort: 'name', direction: 'asc', label: 'search.sort.nameAsc' },
   { value: 'name-desc', sort: 'name', direction: 'desc', label: 'search.sort.nameDesc' },
-  { value: 'version-desc', sort: 'version', direction: 'desc', label: 'search.sort.versionDesc' },
-  { value: 'version-asc', sort: 'version', direction: 'asc', label: 'search.sort.versionAsc' },
-  { value: 'group-asc', sort: 'group', direction: 'asc', label: 'search.sort.groupAsc' },
-  { value: 'group-desc', sort: 'group', direction: 'desc', label: 'search.sort.groupDesc' },
   { value: 'repository-asc', sort: 'repository', direction: 'asc', label: 'search.sort.repositoryAsc' },
   { value: 'repository-desc', sort: 'repository', direction: 'desc', label: 'search.sort.repositoryDesc' },
 ] as const satisfies ReadonlyArray<{ value: string; sort: SortField; direction: Direction; label: string }>;

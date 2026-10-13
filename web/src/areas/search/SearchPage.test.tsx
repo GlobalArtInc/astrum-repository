@@ -77,37 +77,57 @@ describe('the search page', () => {
     );
     const { router } = page('/search');
     expect(screen.getByText('Search all repositories')).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText('Name, group or version'), 'tool');
+    const query = screen.getByRole('textbox', { name: 'Search components' });
+    expect(query).toHaveFocus();
+    expect(query).toHaveAttribute('placeholder', 'Name, group or version; * stands for any characters');
+    await userEvent.type(query, 'tool');
     await waitFor(() => expect(router.state.location.search).toBe('?q=tool'));
-    expect(await screen.findByRole('link', { name: /tool-1/ })).toHaveAttribute(
-      'href',
-      '/search/component/raw%3A%2Ftools%3Atool-1',
-    );
-    expect(screen.getByRole('status')).toHaveTextContent('1 component found');
+    const row = await screen.findByRole('button', { name: 'Open tool-1 in its repository' });
+    expect(within(row).getByText('/tools')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Shown: 1');
     const searched = calls.filter((url) => url.pathname === '/service/rest/v1/search');
     expect(searched.at(-1)?.search).toBe('?q=tool&direction=desc');
+    await userEvent.click(row);
+    expect(router.state.location.pathname).toBe('/browse/raw-files/tools/tool-1');
   });
 
-  it('loads more with the continuation token', async () => {
+  it('opens the versions of a component and prints npm scopes', async () => {
+    stub((url) =>
+      url.pathname === '/service/rest/v1/search'
+        ? jsonResponse({
+            items: [component(2), component(5, { format: 'npm', group: 'team', name: 'kit' })],
+            continuationToken: null,
+          })
+        : undefined,
+    );
+    const { router } = page('/search?q=kit');
+    expect(
+      await screen.findByRole('button', { name: 'Open @team/kit in its repository' }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Versions of tool-2 in all repositories' }));
+    expect(router.state.location.pathname).toBe('/search/component/maven2%3Aorg.example%3Atool-2');
+    expect(router.state.location.search).toBe('?version=1.2.0');
+  });
+
+  it('fetches fifty components at a time and loads more', async () => {
     const calls = stub((url) => {
       if (url.pathname !== '/service/rest/v1/search') {
         return undefined;
       }
-      return url.searchParams.get('continuationToken') === 'page-2'
-        ? jsonResponse({ items: [component(11), component(12)], continuationToken: null })
-        : jsonResponse({
-            items: Array.from({ length: 10 }, (_, index) => component(index + 1)),
-            continuationToken: 'page-2',
-          });
+      const page = Number(url.searchParams.get('continuationToken') ?? '0');
+      return jsonResponse({
+        items: Array.from({ length: 10 }, (_, index) => component(page * 10 + index + 1)),
+        continuationToken: page < 5 ? String(page + 1) : null,
+      });
     });
     page('/search?q=tool&sort=name');
-    expect(await screen.findByText('10 shown, more can be loaded')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Show more' }));
-    expect(await screen.findByText('12 components found')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /tool-12/ })).toBeInTheDocument();
-    const second = calls.find((url) => url.searchParams.get('continuationToken') === 'page-2');
-    expect(second?.searchParams.get('sort')).toBe('name');
-    expect(second?.searchParams.get('direction')).toBe('asc');
+    expect(await screen.findByText('Shown: 50')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Show More' }));
+    expect(await screen.findByText('Shown: 60')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show More' })).toBeNull();
+    const last = calls.find((url) => url.searchParams.get('continuationToken') === '5');
+    expect(last?.searchParams.get('sort')).toBe('name');
+    expect(last?.searchParams.get('direction')).toBe('asc');
   });
 
   it('keeps filters and sort in the address and clears a repository of another format', async () => {
@@ -122,9 +142,11 @@ describe('the search page', () => {
     await userEvent.click(await screen.findByRole('option', { name: 'Maven' }));
     await waitFor(() => expect(router.state.location.search).toBe('?q=tool&format=maven2'));
     await userEvent.click(screen.getByRole('combobox', { name: 'Sort' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Version, descending' }));
+    const sorts = await screen.findByRole('listbox');
+    expect(within(sorts).getAllByRole('option')).toHaveLength(6);
+    await userEvent.click(within(sorts).getByRole('option', { name: 'Name, Z to A' }));
     await waitFor(() =>
-      expect(router.state.location.search).toBe('?q=tool&format=maven2&sort=version&direction=desc'),
+      expect(router.state.location.search).toBe('?q=tool&format=maven2&sort=name&direction=desc'),
     );
     await userEvent.click(screen.getByRole('combobox', { name: 'Repository' }));
     const listbox = await screen.findByRole('listbox');
@@ -141,7 +163,7 @@ describe('the search page', () => {
     );
     page('/search?q=tool');
     expect(await screen.findByRole('alert')).toHaveTextContent('broken');
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try Again' })).toBeInTheDocument();
   });
 });
 

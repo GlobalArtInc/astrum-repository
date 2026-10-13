@@ -41,7 +41,7 @@ for (const size of SIZES) {
       await expect(page.getByText('Search all repositories')).toBeVisible();
       await shoot(page, `search-start-${suffix}`);
       await page.goto('/search?q=tool');
-      await expect(page.getByText('10 shown, more can be loaded')).toBeVisible();
+      await expect(page.getByText(/^Shown: \d+$/)).toBeVisible();
       await shoot(page, `search-results-${suffix}`);
       await page.goto('/search?q=nothing-like-this');
       await expect(page.getByText('Nothing found')).toBeVisible();

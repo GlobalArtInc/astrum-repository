@@ -24,7 +24,11 @@ describe('the search address', () => {
         new URLSearchParams('q=junit&format=maven2&repository=central&sort=name&direction=desc'),
       ),
     ).toEqual({ q: 'junit', format: 'maven2', repository: 'central', sort: 'name', direction: 'desc' });
-    expect(readSearchState(new URLSearchParams('sort=version')).direction).toBe('asc');
+    expect(readSearchState(new URLSearchParams('sort=repository')).direction).toBe('asc');
+    expect(readSearchState(new URLSearchParams('sort=version'))).toMatchObject({
+      sort: '',
+      direction: 'desc',
+    });
     expect(readSearchState(new URLSearchParams('sort=size&direction=up'))).toMatchObject({
       sort: '',
       direction: 'desc',
@@ -54,7 +58,14 @@ describe('the search address', () => {
       expect(sortChoice(fromSortChoice(choice.value))).toBe(choice.value);
     }
     expect(fromSortChoice('newest')).toEqual({ sort: '', direction: 'desc' });
-    expect(fromSortChoice('version-desc')).toEqual({ sort: 'version', direction: 'desc' });
+    expect(SORT_CHOICES.map((choice) => choice.value)).toEqual([
+      'newest',
+      'oldest',
+      'name-asc',
+      'name-desc',
+      'repository-asc',
+      'repository-desc',
+    ]);
     expect(fromSortChoice('nonsense')).toEqual({ sort: '', direction: 'desc' });
   });
 

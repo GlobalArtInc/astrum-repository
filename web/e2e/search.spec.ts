@@ -12,56 +12,72 @@ function firstRowName(page: import('@playwright/test').Page) {
   return page.getByRole('table').getByRole('rowheader').first();
 }
 
-test('search finds components as you type and loads more', async ({ page }) => {
+function results(page: import('@playwright/test').Page) {
+  return page
+    .getByRole('region', { name: 'Search results' })
+    .getByRole('button', { name: /^Open .* in its repository$/ });
+}
+
+test('search finds components as you type and opens them', async ({ page }) => {
   await page.getByRole('navigation', { name: 'Main menu' }).getByRole('link', { name: 'Search' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible();
   await expect(page.getByText('Search all repositories')).toBeVisible();
-  await page.getByLabel('Name, group or version').fill('tool');
+  const query = page.getByRole('textbox', { name: 'Search components' });
+  await expect(query).toBeFocused();
+  await query.fill('tool');
   await expect(page).toHaveURL(/\/search\?q=tool$/);
-  await expect(page.getByText('10 shown, more can be loaded')).toBeVisible();
-  await page.getByRole('button', { name: 'Show more' }).click();
-  await expect(page.getByText(`${TOOLS + 2} components found`)).toBeVisible();
-  await expect(page.getByRole('link', { name: /\/tools\/1\/tool-1\.bin/ })).toBeVisible();
-  const component = page.getByRole('link', { name: 'astrum-tools' }).first();
-  await expect(component).toHaveAttribute(
-    'href',
-    /^\/search\/component\/pypi%3A%3Aastrum-tools\?version=1\.1\.0$/,
-  );
-  await page.reload();
-  await expect(page.getByLabel('Name, group or version')).toHaveValue('tool');
-  await page.getByLabel('Name, group or version').fill('tool-1*.bin');
+  await expect(page.getByText(`Shown: ${TOOLS + 2}`)).toBeVisible();
+  await expect(results(page)).toHaveCount(TOOLS + 2);
+  await expect(page.getByRole('button', { name: 'Show More' })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Open /tools/1/tool-1.bin in its repository' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Versions of astrum-tools in all repositories' }).first().click();
+  await expect(page).toHaveURL(/\/search\/component\/pypi%3A%3Aastrum-tools\?version=1\.1\.0$/);
+  await page.goBack();
+  await expect(query).toHaveValue('tool');
+  await page.getByRole('button', { name: 'Open /tools/1/tool-1.bin in its repository' }).click();
+  await expect(page).toHaveURL(/\/browse\/search-raw\/tools\/1\/tool-1\.bin$/);
+  await page.goBack();
+  await query.fill('tool-1*.bin');
   await expect(page).toHaveURL(/q=tool-1\*\.bin/);
-  await expect(page.getByText('4 components found')).toBeVisible();
-  await page.getByLabel('Name, group or version').fill('no-such-thing');
+  await expect(page.getByText('Shown: 4')).toBeVisible();
+  await query.fill('no-such-thing');
   await expect(page.getByText('Nothing found')).toBeVisible();
 });
 
 test('search filters by format and repository and sorts on the server', async ({ page }) => {
   await page.goto('/search?format=maven2');
-  await expect(page.getByText('4 components found')).toBeVisible();
-  await expect(firstRowName(page)).toContainText('ledger');
+  await expect(page.getByText('Shown: 4')).toBeVisible();
+  await expect(results(page).first()).toContainText('ledger');
   await page.getByRole('combobox', { name: 'Sort' }).click();
+  await expect(page.getByRole('option')).toHaveText([
+    'Newest first',
+    'Oldest first',
+    'Name, A to Z',
+    'Name, Z to A',
+    'Repository, A to Z',
+    'Repository, Z to A',
+  ]);
   await page.getByRole('option', { name: 'Name, A to Z' }).click();
   await expect(page).toHaveURL(/format=maven2&sort=name$/);
-  await expect(firstRowName(page)).toContainText('astrum-client');
+  await expect(results(page).first()).toContainText('astrum-client');
   await page.getByRole('combobox', { name: 'Sort' }).click();
-  await page.getByRole('option', { name: 'Version, descending' }).click();
-  await expect(page).toHaveURL(/sort=version&direction=desc$/);
-  await expect(firstRowName(page)).toContainText('ledger');
-  await expect(page.getByRole('table').getByRole('row').nth(2)).toContainText('1.4.0');
+  await page.getByRole('option', { name: 'Name, Z to A' }).click();
+  await expect(page).toHaveURL(/sort=name&direction=desc$/);
+  await expect(results(page).first()).toContainText('ledger');
   await page.getByRole('combobox', { name: 'Repository' }).click();
   await expect(page.getByRole('option', { name: SEARCH_REPOSITORIES.npm })).toHaveCount(0);
   await page.getByRole('option', { name: SEARCH_REPOSITORIES.maven }).click();
   await expect(page).toHaveURL(new RegExp(`repository=${SEARCH_REPOSITORIES.maven}`));
   await page.getByRole('combobox', { name: 'Format' }).click();
   await page.getByRole('option', { name: 'npm' }).click();
-  await expect(page).toHaveURL(/\?format=npm&sort=version&direction=desc$/);
-  await expect(page.getByText('4 components found')).toBeVisible();
+  await expect(page).toHaveURL(/\?format=npm&sort=name&direction=desc$/);
+  await expect(page.getByText('Shown: 4')).toBeVisible();
   await page.getByRole('combobox', { name: 'Sort' }).click();
   await page.getByRole('option', { name: 'Oldest first' }).click();
-  await expect(firstRowName(page)).toContainText('ui-kit');
-  await expect(page.getByRole('table').getByRole('row').nth(1)).toContainText('4.2.0');
-  await expect(page.getByRole('table').getByRole('row').nth(1)).toContainText('globalart');
+  await expect(results(page).first()).toContainText('@globalart/ui-kit');
+  await expect(results(page).first()).toContainText('4.2.0');
 });
 
 test('criteria search uses format keys and finds files with download links', async ({ page, server }) => {
@@ -133,7 +149,7 @@ test('the header search panel works with the keyboard', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(panel).toHaveCount(0);
   await expect(page).toHaveURL(/\/search\?q=astrum$/);
-  await expect(page.getByText('5 components found')).toBeVisible();
+  await expect(page.getByText('Shown: 5')).toBeVisible();
 
   await page.keyboard.press('Control+k');
   await expect(panel.getByRole('group', { name: 'Recent searches' }).getByRole('option')).toHaveText([
@@ -156,7 +172,7 @@ test('the header search panel works with the keyboard', async ({ page }) => {
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/search\?q=kit&repository=search-npm$/);
-  await expect(page.getByText('2 components found')).toBeVisible();
+  await expect(page.getByText('Shown: 2')).toBeVisible();
 
   await page.keyboard.press('Control+k');
   await input.fill('ledger');
@@ -167,7 +183,8 @@ test('the header search panel works with the keyboard', async ({ page }) => {
 test('search pages fit a phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/search?q=tool');
-  await expect(page.getByText('10 shown, more can be loaded')).toBeVisible();
+  await expect(page.getByText(`Shown: ${TOOLS + 2}`)).toBeVisible();
+  await expect(results(page)).toHaveCount(TOOLS + 2);
   await noHorizontalScroll(page);
   await page.goto('/search/custom?maven.groupId=com.*&mode=assets');
   await expect(page.getByRole('link', { name: /\.jar$/ }).first()).toBeVisible();
