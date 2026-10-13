@@ -29,11 +29,14 @@ async fn main() -> ExitCode {
             }
         },
         Command::Serve | Command::Migrate => {
-            if let Err(error) = telemetry::init(&config.log) {
-                eprintln!("astrum: cannot set up logging: {error:#}");
-                return ExitCode::FAILURE;
-            }
-            match run(command, &config).await {
+            let logging = match telemetry::init(&config.log, &config.data_dir) {
+                Ok(logging) => logging,
+                Err(error) => {
+                    eprintln!("astrum: cannot set up logging: {error:#}");
+                    return ExitCode::FAILURE;
+                }
+            };
+            match run(command, &config, logging).await {
                 Ok(()) => ExitCode::SUCCESS,
                 Err(error) => {
                     tracing::error!(error = format!("{error:#}"), "astrum stopped with an error");
@@ -45,7 +48,11 @@ async fn main() -> ExitCode {
     }
 }
 
-async fn run(command: Command, config: &Config) -> anyhow::Result<()> {
+async fn run(
+    command: Command,
+    config: &Config,
+    logging: astrum_logging::Logging,
+) -> anyhow::Result<()> {
     tracing::info!(
         version = %version_line(),
         data_dir = %config.data_dir.display(),
@@ -55,6 +62,12 @@ async fn run(command: Command, config: &Config) -> anyhow::Result<()> {
     );
     match command {
         Command::Migrate => migrate(config).await.map(|_| ()),
-        _ => Server::start(config).await?.run(shutdown_signal()).await,
+        _ => {
+            Server::start(config)
+                .await?
+                .with_logging(logging)
+                .run(shutdown_signal())
+                .await
+        }
     }
 }

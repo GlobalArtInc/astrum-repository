@@ -90,8 +90,11 @@ impl Tasks {
                         tracing::warn!(%error, "abandoned task runs could not be checked");
                     }
                 }
-                if let Err(error) = tasks.tick().await {
-                    tracing::warn!(%error, "the task scheduler could not look for work");
+                match tasks.tick().await {
+                    Ok(_) => tasks.ticked(),
+                    Err(error) => {
+                        tracing::warn!(%error, "the task scheduler could not look for work")
+                    }
                 }
                 tokio::select! {
                     () = tokio::time::sleep(POLL) => {}

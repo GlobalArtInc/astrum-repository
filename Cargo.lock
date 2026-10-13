@@ -219,6 +219,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-pypi",
  "astrum-format-raw",
+ "astrum-logging",
  "astrum-repo",
  "astrum-security",
  "astrum-tasks",
@@ -234,6 +235,7 @@ dependencies = [
  "md-5 0.10.6",
  "percent-encoding",
  "reqwest",
+ "rustix",
  "sea-orm",
  "serde",
  "serde_json",
@@ -245,6 +247,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tokio-util",
  "tower",
  "tracing",
  "url",
@@ -513,6 +516,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-logging"
+version = "3.0.0-dev"
+dependencies = [
+ "chrono",
+ "serde",
+ "tempfile",
+ "thiserror",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "astrum-repo"
 version = "3.0.0-dev"
 dependencies = [
@@ -582,6 +596,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-pypi",
  "astrum-format-raw",
+ "astrum-logging",
  "astrum-security",
  "astrum-tasks",
  "astrum-testkit",

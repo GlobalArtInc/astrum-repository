@@ -154,6 +154,38 @@ impl Origin<'_> {
     }
 }
 
+pub fn summary(config: &Config) -> Vec<(String, String)> {
+    let mut entries = vec![
+        ("configFile".to_owned(), config.file.display().to_string()),
+        ("configFileFound".to_owned(), config.file_found.to_string()),
+        ("listen".to_owned(), config.listen.to_string()),
+        ("dataDir".to_owned(), config.data_dir.display().to_string()),
+        ("webDir".to_owned(), config.web_dir.display().to_string()),
+        (
+            "secretsKeyFile".to_owned(),
+            config.secrets_key.display().to_string(),
+        ),
+        (
+            "ldapCacheTtl".to_owned(),
+            format!("{}s", config.ldap_cache_ttl.as_secs()),
+        ),
+        ("log.configuredFilter".to_owned(), config.log.filter.clone()),
+        (
+            "log.format".to_owned(),
+            format!("{:?}", config.log.format).to_lowercase(),
+        ),
+    ];
+    if let Some(database) = &config.database {
+        entries.push(("database.url".to_owned(), database.url.to_string()));
+        entries.push(("database.schema".to_owned(), database.schema.clone()));
+        entries.push((
+            "database.maxConnections".to_owned(),
+            database.max_connections.to_string(),
+        ));
+    }
+    entries
+}
+
 pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, ConfigError> {
     let env = |name: &str| env(name).filter(|value| !value.trim().is_empty());
 

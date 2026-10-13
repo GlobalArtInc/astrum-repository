@@ -10,7 +10,7 @@ pub mod store;
 pub mod validate;
 
 use std::collections::{BTreeMap, HashMap};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
 use astrum_content::Content;
@@ -73,6 +73,7 @@ struct Inner {
     permits: Arc<Semaphore>,
     stopping: AtomicBool,
     node: String,
+    last_tick: AtomicI64,
 }
 
 impl std::fmt::Debug for Tasks {
@@ -93,6 +94,7 @@ impl Tasks {
                 permits: Arc::new(Semaphore::new(MAX_CONCURRENT_RUNS)),
                 stopping: AtomicBool::new(false),
                 node: node_name(),
+                last_tick: AtomicI64::new(0),
             }),
         };
         kinds::register_builtin(&tasks);
@@ -156,6 +158,19 @@ impl Tasks {
 
     pub fn wake(&self) {
         self.inner.wake.notify_one();
+    }
+
+    pub fn last_tick(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        match self.inner.last_tick.load(Ordering::Relaxed) {
+            0 => None,
+            millis => chrono::DateTime::from_timestamp_millis(millis),
+        }
+    }
+
+    fn ticked(&self) {
+        self.inner
+            .last_tick
+            .store(chrono::Utc::now().timestamp_millis(), Ordering::Relaxed);
     }
 }
 

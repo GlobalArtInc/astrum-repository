@@ -13,6 +13,7 @@ use crate::config::Config;
 use crate::version_line;
 
 const TASK_SHUTDOWN: std::time::Duration = std::time::Duration::from_secs(10);
+const LOGGING_SYNC: std::time::Duration = std::time::Duration::from_secs(30);
 
 pub struct Server {
     listener: TcpListener,
@@ -31,6 +32,7 @@ impl Server {
         astrum_tasks::bootstrap(db.conn()).await?;
         let secrets = SecretBox::load_or_create(&config.secrets_key)?;
         let state = AppState::load(db, config.data_dir.clone(), secrets).await?;
+        state.set_configuration(crate::config::summary(config));
         state.security().ldap().set_cache_ttl(config.ldap_cache_ttl);
         crate::formats::register(state.content());
         crate::formats::register_tasks(state.tasks());
@@ -50,12 +52,18 @@ impl Server {
         self.address
     }
 
+    pub fn with_logging(self, logging: astrum_logging::Logging) -> Self {
+        self.state.set_logging(logging);
+        self
+    }
+
     pub async fn run(
         self,
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> anyhow::Result<()> {
         self.state.content().spawn_background();
         let scheduler = self.state.tasks().spawn();
+        let logging = spawn_logging_sync(self.state.clone());
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(
@@ -76,6 +84,7 @@ impl Server {
         .context("the HTTP server failed")?;
         self.state.tasks().shutdown(TASK_SHUTDOWN).await;
         scheduler.abort();
+        logging.abort();
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");
         }
@@ -83,6 +92,17 @@ impl Server {
         tracing::info!("stopped");
         Ok(())
     }
+}
+
+fn spawn_logging_sync(state: AppState) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        loop {
+            if let Err(error) = astrum_api::routes::support::sync_logging(&state).await {
+                tracing::warn!(%error, "the stored log levels could not be applied");
+            }
+            tokio::time::sleep(LOGGING_SYNC).await;
+        }
+    })
 }
 
 pub async fn migrate(config: &Config) -> anyhow::Result<Vec<String>> {
