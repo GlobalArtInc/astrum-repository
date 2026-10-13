@@ -231,6 +231,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-pypi",
  "astrum-format-raw",
+ "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-repo",
  "astrum-security",
@@ -546,6 +547,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-swift"
+version = "3.0.0-dev"
+dependencies = [
+ "anyhow",
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "hex",
+ "multer",
+ "sea-orm",
+ "semver",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-terraform"
 version = "3.0.0-dev"
 dependencies = [
@@ -651,6 +678,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-pypi",
  "astrum-format-raw",
+ "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-security",
  "astrum-tasks",
