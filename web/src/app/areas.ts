@@ -6,6 +6,7 @@ import { dashboardArea } from '../areas/dashboard';
 import { identityArea } from '../areas/identity';
 import { onboardingArea } from '../areas/onboarding';
 import { repositoriesArea } from '../areas/repositories';
+import { routingArea } from '../areas/routing';
 import { searchArea } from '../areas/search';
 import { securityArea } from '../areas/security';
 import { selectorsArea } from '../areas/selectors';
@@ -25,6 +26,7 @@ export const areas: Area[] = [
   repositoriesArea,
   blobstoresArea,
   cleanupArea,
+  routingArea,
   selectorsArea,
   securityArea,
   identityArea,
