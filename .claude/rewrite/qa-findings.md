@@ -1,0 +1,578 @@
+# Astrum UI parity: ranked findings
+
+Old: Astrum One 2.0.0 (Java, `http://127.0.0.1:8081`); new: web UI of the Rust server 3.0.0-dev (`http://127.0.0.1:18501`). Every difference counts. Screenshots: `shots/<page>/<side>-<variant>.jpg` next to `index.html`.
+
+| Severity | Count |
+|---|---|
+| blocker | 5 |
+| major | 58 |
+| minor | 39 |
+| cosmetic | 9 |
+| total | 111 |
+
+## Blocker
+
+- **F021** Dashboard: period and repository pickers, chart and two cards are missing (page: Dashboard)
+  - Old: Header row: segmented "7 дней / 30 дней / 90 дней" and a select "Все репозитории". Six KPI tiles in a 3x2 grid: Скачивания (today and average per day), Компоненты (downloaded in the period), Файлы, Хранилище (proxy cache share), Репозитории (hosted/proxy/group), "Простаивают 90 дней" (orange, freeable size). Card "Скачивания по дням" with a bar chart, weekday/weekend legend, peak label. "Самые скачиваемые" as a table (#, Компонент, Репозиторий, Скачивания with bar) and toggle "Последние 30 дней / За всё время", link "Все компоненты в поиске →". "Репозитории" ranked by downloads or size (toggle "По скачиваниям / По объёму"). "Недавно опубликованные" with format logos. "Не скачивались 90 дней" with a size and the button "Настроить политики очистки".
+  - New: Subtitle "Как используются репозитории этого сервера", three quick buttons (Репозитории, Поиск, Загрузка) instead of the pickers; five tiles in one row (Репозитории, Компоненты, Файлы, Хранилище, Скачивания "за всё время"); no chart; "Самые скачиваемые" is a ranked list with a "Компоненты / Файлы" toggle; "Недавно загруженные" uses a generic box icon; extra cards "Репозитории по форматам" and "Хранилища blob-объектов"; no unused-components card, no repositories ranking.
+  - Fix: Rebuild the dashboard to the old layout: period picker and repository select in the header (subtitle "Как использовались репозитории за последние N дней"), the 3x2 KPI grid with the old texts, the downloads-per-day chart, the old top-components table and toggles, the repositories ranking, "Недавно опубликованные" with format logos and the unused card with its cleanup button. Drop the quick buttons and the two extra cards. Needs the downloads-over-time API.
+  - Screenshots: `shots/dashboard/{old,new}-desktop-dark.jpg`, `shots/dashboard/{old,new}-phone-dark.jpg`, `shots/dashboard/{old,new}-desktop-light.jpg`
+- **F060** Settings hub: most tiles and two sections missing (page: Settings hub)
+  - Old: Four sections. Репозиторий: Репозитории, Хранилища блобов, Политики очистки, Правила маршрутизации, Селекторы содержимого, Собственные компоненты. Безопасность: Пользователи, Роли, Привилегии, Realms, LDAP, OpenID Connect, Анонимный доступ, SSL-сертификаты. Поддержка: Информация о системе, Журналы, Настройка журналирования, Метрики и состояние, ZIP-архив для поддержки. Система: Задачи, Эл. почта, HTTP, API, Возможности, Уведомления, Узлы.
+  - New: Two sections. Репозитории: Репозитории, Хранилища блобов, Селекторы содержимого. Безопасность: Привилегии, Роли, Пользователи, Анонимный доступ, Realms, Защита от SSRF, Журнал аудита. 20 old tiles have no page yet; two tiles (SSRF, Журнал аудита) do not exist in the old hub.
+  - Fix: Keep the old sections, order and tiles; add pages for the missing ones as their backends land (M4 is building tasks, cleanup, LDAP, OIDC); move SSRF and Audit out of the hub or ask the owner.
+  - Screenshots: `shots/settings/{old,new}-desktop-dark.jpg`, `shots/settings/{old,new}-phone-dark.jpg`
+- **F029** Docker, npm and PyPI trees show storage paths instead of the component tree (page: Repository tree: docker tag qa/hello:1.0 selected)
+  - Old: Docker: "qa > hello > latest, 1.0" with tag icons (no v2, manifests, blobs or digests). npm: "@qa > scoped-pkg > tarball" and "qa-pkg > tarballs" (no "-" folder, no package metadata asset). PyPI: "qa-pkg > 1.0.0, 1.1.0 > wheel" (no "packages" folder, no ".metadata").
+  - New: Docker: "v2 > -, qa > hello > manifests > 1.0, latest, sha256:…" including the blob folder "-". npm: "qa-pkg > - > tarballs" plus a "qa-pkg" metadata asset. PyPI: "packages > qa-pkg > version > wheel and wheel.metadata".
+  - Fix: Build the browse tree per format from components the way the old UI shows it (docker by image and tag, npm by scope and package, pypi by project and version) and hide internal assets (docker blobs and digest manifests, npm package roots, PEP 658 metadata).
+  - Screenshots: `shots/tree-docker/{old,new}-desktop-dark.jpg`, `shots/tree-npm/{old,new}-desktop-dark.jpg`, `shots/tree-pypi/{old,new}-desktop-dark.jpg`
+- **F054** API explorer page and menu item missing (page: API explorer (menu item in old UI))
+  - Old: `#browse/api`: breadcrumb "Настройки > API", subtitle "Документация, разрешения и инструменты доступа"; left list of endpoints grouped by tag with method badges and green availability dots, search "Поиск по пути или описанию…", filters Метод / Тег, checkbox "Только недоступные мне конечные точки"; right panel "Выберите конечную точку" (Попробовать, У кого есть доступ, Выдать доступ); card "О документации API". Also a Settings tile "API" under Система.
+  - New: `/api` shows the 404 page; there is no menu item and no tile.
+  - Fix: Build the API page (needs an OpenAPI document of the Rust REST API and the access-check endpoint) and add its menu item and tile.
+  - Screenshots: `shots/api/{old,new}-desktop-dark.jpg`
+- **F072** Repository profile page missing (redirects to the edit form) (page: Repository profile qa-maven-releases)
+  - Old: `…/qa-maven-releases/profile`: header with "URL: …" line and a refresh icon, tabs Репозиторий, Участие в группах, Использование, Аудит, Доступ и безопасность, Система, Настройки экземпляра; "Конфигурация репозитория" card (ИМЯ, ФОРМАТ with logo, ТИП, В СЕТИ, URL, Хранение и очистка) and "Хранилище блобов: default" card (ИМЯ, ТИП, СТАТУС, ОБЩИЙ ОБЪЁМ, СВОБОДНО, ЧИСЛО БЛОБОВ, РАСПОЛОЖЕНИЕ) with "Настроить ›" links. Also reachable as `#browse/repository-profile/<name>` from the browse page.
+  - New: The profile URL opens the edit form.
+  - Fix: Build the read-only profile page with its seven tabs.
+  - Screenshots: `shots/repo-profile/{old,new}-desktop-dark.jpg`, `shots/repo-edit-membership/{old,new}-desktop-dark.jpg`
+
+## Major
+
+- **F008** Header: refresh button and status bell are missing (page: Dashboard)
+  - Old: Header right side: refresh (re-fetches the current page data), theme, language, status bell with a red dot when health checks fail (opens Metric Health), help, avatar.
+  - New: Only theme, language, help and avatar.
+  - Fix: Add the refresh icon button (desktop only) and the status bell with the red failed-checks dot in the same order; the bell can open a health page once it exists.
+  - Screenshots: `shots/dashboard/{old,new}-desktop-dark.jpg`, `shots/dashboard/{old,new}-desktop-light.jpg`
+- **F022** Browse list: page layout, columns and row actions differ (page: Browse: repository list)
+  - Old: Filter column on the left from the very top ("Сбросить фильтры" outline button, Сортировка with two selects, Формат with counts and "Показать все", Тип, Состояние); title "Репозитории" with the count "всего 30" inline, then a filter input and the table: Имя ↑, Формат, Тип, Состояние, URL (path with copy icon), and a "…" row menu.
+  - New: Title and subtitle "7 репозиториев доступны вам" span the page above the filter column; filter input next to a "Таблица / Карточки" switch; a "Показано 7 из 7" line; columns Имя, Формат, Тип, Состояние, Компоненты, Размер, Последняя загрузка; no URL column, no row menu.
+  - Fix: Move the title into the right column with the inline count "всего N", restore the URL column with its copy button and the "…" row menu, drop Компоненты/Размер/Последняя загрузка, the view switch and the "Показано" line.
+  - Screenshots: `shots/browse-list/{old,new}-desktop-dark.jpg`, `shots/browse-list/{old,new}-desktop-light.jpg`
+- **F069** Edit repository: header actions, tabs and form differ (page: Edit qa-maven-releases: settings tab)
+  - Old: Badges under the title in the order "● В сети", "Размещённый", "Maven"; buttons "Обзор репозитория", "Перестроить индекс", "Отключить", "Удалить" (red solid); tabs with icons Сводка, Настройки (default), Аудит, Задачи и возможности, Доступ и безопасность; the form is the create form (Имя read-only, В сети, Maven 2 with the inline-HTML warning callout, Хранилище, Размещённый with Собственные компоненты, Очистка transfer list), buttons "Отмена" and "Сохранить изменения".
+  - New: Badges Maven, Размещённый, В сети; buttons "Обзор" (violet soft), "Отключить" and a "…" menu; a summary card (URL, Хранилище блобов, Размер, Компоненты, Файлы, Последняя загрузка) above tabs without icons Настройки, Участие в группах, Аудит; a two-column form with Хранение and Maven only, the note "Политики очистки, правила маршрутизации и настройки других форматов сохраняются без изменений.", buttons "Отменить изменения" and "Сохранить".
+  - Fix: Restore the old header (four buttons, badge order), the five icon tabs, the old form sections including Имя, В сети, the inline warning, Собственные компоненты and Очистка, and the old button texts; move the summary numbers into the Сводка tab.
+  - Screenshots: `shots/repo-edit-settings/{old,new}-desktop-dark.jpg`, `shots/repo-edit-summary/{old,new}-desktop-dark.jpg`
+- **F001** Login form: placeholders, disabled submit and password toggle differ (page: Login page)
+  - Old: Inputs carry placeholders "Имя пользователя" and "Пароль"; "Войти" is grey and disabled (bg rgba(0,0,51,0.06), text rgba(0,4,47,0.275)) until both fields are filled; no show-password button.
+  - New: Inputs are empty without placeholders; "Войти" is always an enabled violet button (rgb(91,71,224)); the password field has an eye toggle.
+  - Fix: Add the same placeholders, disable "Войти" until both fields have text (grey soft style as in the old UI), and drop the eye toggle (or keep it only if the owner accepts the difference).
+  - Screenshots: `shots/login/{old,new}-desktop-light.jpg`, `shots/login/{old,new}-phone-light.jpg`
+- **F009** Left menu: "API" item missing (page: Dashboard)
+  - Old: Menu: Обзор, Поиск, Репозитории, Загрузка, API, divider, Настройки.
+  - New: Menu: Обзор, Поиск, Репозитории, Загрузка, divider, Настройки (no API; `/api` shows the 404 page).
+  - Fix: Add the API page and its menu item (icon file-code, label "API") between Загрузка and the divider.
+  - Screenshots: `shots/dashboard/{old,new}-desktop-dark.jpg`, `shots/phone-drawer/{old,new}-phone-dark.jpg`
+- **F015** Header search: dropdown under the field vs centered dialog (page: Header search panel with "qa")
+  - Old: Typing turns the header field into the input (violet focus ring) and a 560px dropdown opens directly below it; sections "Искать «qa» в…" (sentence case), "Репозитории" rows with format and a type pill ("Размещённый", "Группа", "Прокси"), "Компоненты" rows "name version group" with repository and format; inside a repository it offers "этом репозитории" too.
+  - New: A separate dialog opens over the page (wider, with its own input, clear and close buttons); section titles are uppercase ("ИСКАТЬ «QA» В…", "РЕПОЗИТОРИИ", "КОМПОНЕНТЫ"); repository rows show the format only (no type pill); a footer explains the keys ("↑↓ — перемещение, Enter — открыть, Esc — закрыть"); component order differs (docker then pypi instead of docker then maven).
+  - Fix: Render the results as a popover anchored to the header field with the same width, keep typing in the header field, sentence-case section titles, add the type pill and the group after the version, drop the key-hint footer, use the old result order.
+  - Screenshots: `shots/header-search/{old,new}-desktop-dark.jpg`, `shots/header-search-phone/{old,new}-phone-dark.jpg`
+- **F026** Repository page header: buttons, URL and search placement differ (page: Repository tree: qa-raw, nothing selected)
+  - Old: Breadcrumb "Репозитории / qa-raw" (slash); title with lowercase badges and "● В сети"; on the right an in-repository search field "Поиск в qa-raw…", "Копировать URL" and "Настройки репозитория" (for long names these drop to a second row).
+  - New: Breadcrumb with a chevron; the repository URL is printed under the title with a copy icon; buttons "Использование" (violet soft) and "Настройки репозитория"; the in-repository search replaces the tree filter inside the tree card.
+  - Fix: Restore the old header: slash breadcrumb, search field plus "Копировать URL" and "Настройки репозитория" buttons, no inline URL and no "Использование" button.
+  - Screenshots: `shots/tree-root/{old,new}-desktop-dark.jpg`, `shots/tree-component/{old,new}-desktop-dark.jpg`
+- **F031** Asset panel: two cards, title, buttons and fields differ (page: Repository tree: raw asset docs/readme.txt selected)
+  - Old: Two cards. First: path with copy icon, title "readme.txt" (24px), buttons "Скачать" (grey soft) and "Удалить файл" (red outline); "Использование" with segmented pill tabs (curl / wget / Загрузка), hint "Добавьте -u <user>, если репозиторий требует входа", code block with a text button "Копировать". Second card "Сведения": Репозиторий, Формат, Группа, Компонент, Загрузил, Тип содержимого, Размер, Создан, Последнее скачивание, Скачиваний, MD5, SHA-1, SHA-256, SHA-512, Ссылка на blob.
+  - New: One card. File icon plus title (20px); buttons "Скачать" (violet soft), "Копировать URL", "Удалить файл" (red soft); small underline tabs; hint ends with a period; icon-only copy button; "Сведения": Репозиторий, Формат (badge), Размер, Тип содержимого, Загрузил, Создан, Изменён, Последнее скачивание, Скачиваний, Хранилище blob-объектов; a separate "Контрольные суммы" block (SHA-1, SHA-256, SHA-512, MD5 with copy icons). No Группа, Компонент, Ссылка на blob.
+  - Fix: Split into the two old cards, use the old title size, button set and styles, segmented tabs, the text "Копировать" button, and the old field list and order (checksums inside Сведения starting with MD5, plus Группа, Компонент and Ссылка на blob).
+  - Screenshots: `shots/tree-asset/{old,new}-desktop-dark.jpg`, `shots/tree-maven-asset/{old,new}-desktop-dark.jpg`
+- **F040** Component page header: title, breadcrumb, buttons and version picker differ (page: Component page: overview (qa-lib 2.0.0))
+  - Old: Breadcrumb "Поиск > qa-lib > 2.0.0"; title "qa-lib v2.0.0"; buttons "Путь" (copy), "Реестр" (open in repository), "Изучить в Guide"; no version select (the version is part of the breadcrumb and the Versions tab).
+  - New: Breadcrumb "Поиск > com.example:qa-lib"; title "com.example:qa-lib" with a format badge and "3 версии"; a version select on the right; no buttons.
+  - Fix: Title "<name> v<version>", the old breadcrumb with the version, the three buttons; remove the version select (or move version switching to the Versions tab as in the old UI).
+  - Screenshots: `shots/component-overview/{old,new}-desktop-dark.jpg`, `shots/component-docker/{old,new}-desktop-dark.jpg`
+- **F041** Component tabs: set, order, counters and routing differ (page: Component page: overview (qa-lib 2.0.0))
+  - Old: Tabs Обзор, Версии [3], Репозитории [1], Файлы [6], Безопасность — counters as small badges; each tab is its own route (`/versions`, `/repos`, `/files`, `/security`).
+  - New: Tabs Обзор, Файлы (2), Использование, Версии (3) — counters in parentheses; tabs are a `?tab=` parameter; no Репозитории and Безопасность tabs.
+  - Fix: Use the old five tabs in the old order with badge counters (Использование content goes back into Обзор); keep `legacy.ts` mapping the old routes.
+  - Screenshots: `shots/component-overview/{old,new}-desktop-dark.jpg`, `shots/component-security/{old,new}-desktop-dark.jpg`
+- **F042** Component overview: two cards with snippet vs plain sections (page: Component page: overview (qa-lib 2.0.0))
+  - Old: Two cards side by side: "Зависимости" (select of the client, e.g. "Apache Maven", a copy button, hint "Вставьте этот фрагмент в pom.xml", the snippet) and "Сведения о компоненте" (Изменён, Формат, Группа, Имя, Версия, Репозиторий).
+  - New: No cards: "Сводка" (Формат badge, Группа, Имя, Версия, Репозитории, Изменён) and "Атрибуты Maven" (artifactId, baseVersion, extension, groupId, version); the snippets live in a separate "Использование" tab with underline sub-tabs.
+  - Fix: Rebuild Обзор as the two old cards (client select + snippet, details list); drop the attributes section from Обзор.
+  - Screenshots: `shots/component-overview/{old,new}-desktop-dark.jpg`, `shots/component-docker/{old,new}-desktop-dark.jpg`
+- **F047** Search results: page size, counters, links and row icon differ (page: Search "qa")
+  - Old: All 11 results at once, "Показано: 11"; a history icon at the end of each row; clicking a row opens the asset in the repository tree (e.g. `#browse/qa-docker/v2/qa/hello/manifests/latest`); npm scope shown as "@qa/scoped-pkg".
+  - New: Ten rows, "Показано: 10, можно загрузить ещё" above and "Показано 10" plus "Показать ещё" below; no row icon; rows link to the component page; scoped npm shown as "scoped-pkg" with "qa" on a second line.
+  - Fix: Use the old page size and counter text, the history icon, navigate to the tree like the old UI, print scoped names as "@scope/name".
+  - Screenshots: `shots/search/{old,new}-desktop-dark.jpg`, `shots/search/{old,new}-phone-dark.jpg`
+- **F055** Upload form: layout, toolbar and texts differ (page: Upload to qa-raw)
+  - Old: Narrow single column (≈370px) without cards; title "Загрузка в qa-raw" with the format badge at the right; a toolbar right under the title: "Файлы не выбраны", "Назад к загрузке" (outline) and "Загрузить компонент" (disabled until a file is chosen); sections Репозиторий, "Сведения о файле Raw" (Каталог, hint "Путь к целевому каталогу (например, /path/to/file)", placeholder "/path/to/directory"), Файлы (dropzone "Перетащите файлы сюда", "Опишите этот файл в полях ниже.", Имя файла hint "Имя файла (необязательно, по умолчанию имя загруженного файла)"); full-width violet "+ Добавить ещё файл".
+  - New: Wider column of three cards (Репозиторий, "Атрибуты компонента", Файлы with "Файл 1" sub-card); subtitle "Опишите компонент и добавьте его файлы"; the action bar is at the bottom with an enabled "Загрузить"; section title "Атрибуты компонента" instead of "Сведения о файле Raw"; hints "Путь к целевому каталогу (например, /tools/linux)", "Берётся из выбранного файла; может содержать подкаталоги"; dropzone "Перетащите файл сюда"; small "+ Добавить ещё файл".
+  - Fix: Rebuild the upload page as the old single column with the top toolbar, the old section names, hints, placeholders and button texts ("Загрузить компонент" disabled until files are chosen).
+  - Screenshots: `shots/upload-raw/{old,new}-desktop-dark.jpg`, `shots/upload-maven/{old,new}-desktop-dark.jpg`
+- **F057** Audit log: filter column vs filter card, columns and paging (page: Audit log)
+  - Old: Left filter column: "Сбросить фильтры", Период (select "За последние 30 дней"), Категории (Безопасность, Репозиторий, Настройка, Защита), Формат, Репозиторий, Типы событий (Создание, Изменение, Удаление, Запуск, Завершение, Сбой, Вход, Выход, Удалённое вредоносное ПО), Инициатор; title with "3 596 событий"; search "Поиск по контексту (например, пользователю или имени репозитория)…"; table with expand chevron: Время, Категория (coloured badge), Событие, Сводка (sentence, e.g. "Пользователь «admin»: вход"), Инициатор ("admin/127.0.0.1"); numbered pager.
+  - New: Subtitle "Изменения в Astrum Repository, сначала новые"; a filter card on top: Поиск, Домен, Тип, Инициатор, Репозиторий, date fields С / По; "15 событий"; table Время, Домен (text), Тип, Контекст, Инициатор (no IP), Атрибуты ("▶ 2 атрибута"); no pager visible.
+  - Fix: Rebuild with the old filter column, the category badges, the human-readable Сводка column, initiator with IP, expandable rows and the numbered pager.
+  - Screenshots: `shots/audit/{old,new}-desktop-dark.jpg`, `shots/audit-repo/{old,new}-desktop-dark.jpg`
+- **F064** Repositories admin list: filter column vs filter row, columns differ (page: Repositories list)
+  - Old: Subtitle "Управление размещёнными, прокси- и групповыми репозиториями"; filter column (Сбросить фильтры, Сортировка, Формат with counts and "Показать все", Тип, Состояние); search "Поиск репозиториев по имени..."; a "сортировка: Имя" button; "Показано 30 из 30"; columns Имя ↑, Размер, Тип, Экосистема, Хранилище блобов, Статус, URL (copy icon only), Проверка состояния ("Не поддерживается" / "Анализировать" button) and a row menu; plain-text type and format.
+  - New: Subtitle "Здесь хранятся компоненты, кэшируются компоненты удалённых репозиториев и объединяются репозитории под одним адресом."; three selects (Формат, Тип, Состояние) next to the search "Найти по имени, URL или хранилищу блобов"; "7 репозиториев"; columns Имя, Формат (badge), Тип (badge), Состояние (badge), Хранилище блобов, URL (full URL and copy), Размер, Компоненты…; no health-check column.
+  - Fix: Use the old filter column, column set, names ("Экосистема", "Статус"), plain text cells, the URL copy icon, the health-check column and the counters.
+  - Screenshots: `shots/repos-list/{old,new}-desktop-dark.jpg`, `shots/repos-list/{old,new}-desktop-light.jpg`
+- **F067** Create repository: three-step wizard vs one page of cards (page: Create repository: format/type picker)
+  - Old: Wizard with Отмена/Назад/Продолжить buttons and a five-segment progress bar: step 1 "Выбор формата 23" grid of 23 format tiles with logos and a search "Поиск технологии (например, Docker, npm, Maven)..."; step 2 "Выберите тип 3" with the format logo, description ("Стандарт для разработки на Java. Поддерживает снапшоты и релизы.") and three large cards Прокси / Размещённый / Группа with long descriptions; step 3 the form. Title "Создать репозиторий", subtitle "Настройте новый репозиторий".
+  - New: One page: title "Создание репозитория", subtitle "Выберите формат и то, откуда репозиторий берёт компоненты.", search "Найти формат", cards for the five served formats, each listing Размещённый / Прокси / Группа links with one-line descriptions; no logos, no wizard, no progress bar.
+  - Fix: Rebuild the wizard: format grid with logos and count, type step with the old cards and texts, progress bar and step buttons (only the formats this server serves, until the others land).
+  - Screenshots: `shots/repo-create-picker/{old,new}-desktop-dark.jpg`, `shots/repo-create-type/{old,new}-desktop-dark.jpg`
+- **F068** Create form: section order, field layout and controls differ (page: Create repository form: maven2 hosted)
+  - Old: Title "Создание репозитория Maven (Размещённый)"; step "Настройка" with sections in this order: "Настройки репозитория" (Имя with hint "Уникальный идентификатор репозитория" above the field, "В сети" checkbox), "Maven 2" (subtitle "Настройки репозитория для Maven"; Политика версий, Политика структуры, Content-Disposition default Attachment), "Хранилище" (Хранилище блобов, "Строгая проверка типа содержимого" checkbox), "Размещённый" (Политика публикации, "Собственные компоненты" checkbox), "Очистка" (two-list transfer of cleanup policies); one column 880px; hints above the inputs; buttons Назад / Продолжить at the top.
+  - New: Title "Новый размещённый репозиторий Maven"; sections Общие (Имя with hint below, "В сети" switch), Хранение (blob store and write policy side by side, strict check switch), Maven (two columns, Content-Disposition default Inline); no Собственные компоненты, no Очистка; switches instead of checkboxes; hints below inputs; Отмена / Создать репозиторий at the bottom.
+  - Fix: Use the old order, section names, hints above fields, checkboxes, one column, Content-Disposition default "Attachment", and add the cleanup transfer list and Собственные компоненты.
+  - Screenshots: `shots/repo-create-form/{old,new}-desktop-dark.jpg`
+- **F084** Privileges list: filter column, columns, paging and texts differ (page: Privileges list)
+  - Old: Subtitle "Управление привилегиями и их разрешениями"; left "Фильтры" column (Статус: Заблокирована / Не заблокирована, Тип with counts, footer "Фильтры применяются автоматически"); search "Поиск привилегий по имени, описанию или разрешению..."; columns: lock icon + Имя, Описание, Тип (plain text), Разрешение (code chip), eye icon; pager "Привилегии 1–25 из 572 · Страница 1 из 23"; help card "Что такое привилегии?".
+  - New: Subtitle "Привилегии — отдельные разрешения. Роли объединяют их, а пользователи получают роли."; a type select next to the search; columns Имя, Тип (badge), Разрешение, Описание, Встроенная (lock); every privilege on one very long page (no pager), no help card.
+  - Fix: Rebuild with the filter column, old column order and styles, 25-row pager and the help card.
+  - Screenshots: `shots/privileges/{old,new}-desktop-dark.jpg`, `shots/privileges-filtered/{old,new}-desktop-dark.jpg`
+- **F106** Phone header for anonymous visitors: wordmark collides with the search button (page: anon-browse)
+  - Old: Production at 390: hamburger, star only, search, theme, a person icon to sign in.
+  - New: next.astrum at 390: hamburger, star and "astrum repository", search and a wide "Войти" button; the wordmark runs under the search button ("repositor…" is cut).
+  - Fix: Show only the star on phones (as the old UI) and use the old icon-only sign-in button.
+  - Screenshots: `shots/anon-browse/{old,new}-phone-dark.jpg`, `shots/anon-dashboard/{old,new}-phone-dark.jpg`
+- **F002** Wrong password: error placement and field reset differ (page: Login page, wrong password)
+  - Old: The error "Неверное имя пользователя или пароль" appears under the password field as red text with an icon; the password field is cleared and "Войти" becomes disabled again.
+  - New: The error appears as a pink callout above the fields; the typed password stays in the field and the button stays enabled.
+  - Fix: Render the error as inline red text with the alert icon below the password input, clear the password after a failed attempt and disable the button again.
+  - Screenshots: `shots/login-error/{old,new}-desktop-light.jpg`
+- **F007** 404 page: completely different content and layout (page: 404 page)
+  - Old: Centered vertically: ghost icon (about 64px), huge "404" (≈80px, grey), heading "Ресурс не найден" with a short violet underline, text "Этот ресурс недоступен. Возможно, он перемещён или удалён, либо у вас нет к нему доступа.", "Что можно сделать:", buttons "Вернуться к обзору" (solid, home icon) and "Открыть документацию" (soft, book icon).
+  - New: Top-aligned: small crossed-pin icon, heading "Страница не найдена", text "По адресу /nonexistent ничего нет. Возможно, ссылка устарела или в ней опечатка.", one small button "На главную".
+  - Fix: Rebuild the 404 page as in the old UI: same icon, big "404", heading, underline, texts and the two buttons; center it vertically.
+  - Screenshots: `shots/not-found/{old,new}-desktop-dark.jpg`, `shots/not-found/{old,new}-phone-dark.jpg`
+- **F020** Phones: old keeps tables, new turns every table into cards (page: Privileges list)
+  - Old: At 390 px admin lists (privileges, audit, repositories, roles, users, blob stores) stay tables inside their card and scroll sideways; only Browse and Search use compact list rows.
+  - New: At 390 px every DataTable becomes a stack of cards with label/value rows (much longer pages: the privileges list is several screens of cards).
+  - Fix: Keep tables on phones for admin lists as the old UI does (horizontal scroll inside the card), and use the old compact rows for Browse and Search.
+  - Screenshots: `shots/privileges/{old,new}-phone-dark.jpg`, `shots/audit/{old,new}-phone-dark.jpg`, `shots/repos-list/{old,new}-phone-light.jpg`
+- **F025** Browse list on phones: card content differs (page: Browse: repository list)
+  - Old: Compact cards: status dot, name, format and type badges, a large copy-URL button on the right; header "Репозитории всего 30"; "Фильтры" button next to the filter input.
+  - New: Tall cards with Компоненты, Размер, Последняя загрузка, the full URL with copy icon and a settings icon; subtitle and "Показано 7 из 7".
+  - Fix: Use the old compact card (dot, name, badges, copy button) and header.
+  - Screenshots: `shots/browse-list/{old,new}-phone-dark.jpg`
+- **F027** Tree card: title, filter, icons and counts differ (page: Repository tree: qa-raw, nothing selected)
+  - Old: Card titled by format ("Файлы" raw, "Артефакты" maven, "Образы" docker, "Пакеты" npm/pypi) with a "Фильтр" input; grey outline folder icons; no child counts; the selected folder gets a violet outline, a selected file a filled row.
+  - New: No title; the input is "Поиск в qa-raw…" (a search, not a filter); yellow filled folder icons; child counts on the right; every selection is a filled row.
+  - Fix: Add the per-format title and the filter input, grey outline folder icons, remove the counts, use the old selection styles.
+  - Screenshots: `shots/tree-folder/{old,new}-desktop-dark.jpg`, `shots/tree-root/{old,new}-desktop-light.jpg`
+- **F028** Selecting a folder does not expand it; files and folders order differs (page: Repository tree: folder docs selected)
+  - Old: Selecting "docs" expands it in the tree; files come before sub-folders ("readme.txt", then "guide").
+  - New: Selecting "docs" highlights it but leaves it collapsed; sub-folders come before files.
+  - Fix: Expand a folder on selection and list files before folders as the old tree does.
+  - Screenshots: `shots/tree-folder/{old,new}-desktop-dark.jpg`, `shots/tree-asset/{old,new}-desktop-dark.jpg`
+- **F030** Maven tree: checksum files missing, component not expanded (page: Repository tree: maven component qa-lib 1.0.0 selected)
+  - Old: Component "1.0.0" expands to six files: jar, jar.md5, jar.sha1, pom, pom.md5, pom.sha1.
+  - New: Component "1.0.0" shows the count 2 and only jar and pom when expanded (the Rust server does not keep uploaded .md5/.sha1 as assets); selecting the component does not expand it.
+  - Fix: Decide on the server side whether uploaded checksum files are kept as assets (the old server keeps them and the tree, files tab and counts show them); expand the component on selection.
+  - Screenshots: `shots/tree-component/{old,new}-desktop-dark.jpg`, `shots/tree-maven-asset/{old,new}-desktop-dark.jpg`
+- **F032** Asset title and attributes block differ for format assets (page: Repository tree: maven POM selected)
+  - Old: Title shows the component coordinates with the version in violet ("qa-lib:1.0.0", "qa-pkg@1.1.0", "qa-pkg:1.1.0", "qa/hello:1.0"); "Изучить в Guide" button (opens guide.globalart.dev); a third card "Атрибуты" with a collapsible section per format ("Maven2", "Docker", "Npm", "Pypi") listing the raw attributes (e.g. asset_kind).
+  - New: Title is the file name ("qa-lib-1.0.0.pom", "qa-pkg-1.1.0.tgz", wheel name) except docker; "Страница компонента" button inside Сведения instead of "Изучить в Guide"; an always-open "Атрибуты Maven/npm/PyPI/Docker" section with a different attribute set (artifactKind, tag, packaging…).
+  - Fix: Use the component coordinates as title, restore "Изучить в Guide", render attributes as the old collapsible card per format with the old keys.
+  - Screenshots: `shots/tree-maven-asset/{old,new}-desktop-dark.jpg`, `shots/tree-npm/{old,new}-desktop-dark.jpg`, `shots/tree-docker/{old,new}-desktop-dark.jpg`
+- **F038** Phone: tree and details stacked (old) vs master-detail (new) (page: Repository tree: raw asset docs/readme.txt selected)
+  - Old: At 390 px the page shows the header, the tree card and then the detail cards below it on one scrolling page.
+  - New: At 390 px the tree disappears when something is selected; the details come with a "Назад к дереву" button.
+  - Fix: Stack the tree and the details on phones as the old UI does.
+  - Screenshots: `shots/tree-asset/{old,new}-phone-dark.jpg`, `shots/tree-folder/{old,new}-phone-dark.jpg`
+- **F043** Versions tab: filters, sorting, export and paging missing (page: Component page: versions tab)
+  - Old: Left column "Сбросить фильтры" and Сортировка (Версия / По убыванию); filter input "Фильтр по версии", "Экспорт страницы"; table Версия ↓, Репозитории (badge "1 репозиторий"), Изменена (date); the open version has a violet left bar; pager "Показано 20 из 3, Страница 1 из 1".
+  - New: A plain table Версия (with "(открыта)" after the open one), Репозитории (names), Изменён (date and time); nothing else.
+  - Fix: Add the filter column, filter input, export button, the old columns and the pager.
+  - Screenshots: `shots/component-versions/{old,new}-desktop-dark.jpg`
+- **F044** Files tab: filters, columns, export and row menu missing (page: Component page: files tab)
+  - Old: Filter column (Сортировка, Тип: jar, md5, pom, sha1), "Фильтр", "Экспорт в CSV"; table Файл (name plus repository badge), Тип, Размер, Изменён, "…" menu; pager.
+  - New: A table Файл (full path), Репозиторий, Размер, Изменён, Скачать (icon); two files only (no checksum assets on this server).
+  - Fix: Rebuild with the old filter column, columns, CSV export, row menu and pager.
+  - Screenshots: `shots/component-files/{old,new}-desktop-dark.jpg`
+- **F053** Upload list: layout, columns and repository set differ (page: Upload: repository list)
+  - Old: Filter column (Сбросить фильтры, Сортировка, Формат with counts, "Показать ещё"); title "Загрузка" with "16 репозиториев"; filter input; table Имя ↑, Формат (plain text, e.g. "RubyGems"), "…" menu. npm repositories are not listed (no npm upload in the old UI).
+  - New: Title plus subtitle "Выберите размещённый репозиторий, в который нужно загрузить компоненты"; "Имя" and "Формат" filters in a row above the table; columns Репозиторий, Формат (badge), Компоненты, Последняя загрузка; qa-npm is listed.
+  - Fix: Use the old filter column, title with count, the two old columns and the row menu; decide with the owner whether npm upload stays.
+  - Screenshots: `shots/upload-list/{old,new}-desktop-dark.jpg`
+- **F070** Edit repository: "Задачи и возможности" and "Доступ и безопасность" tabs missing (page: Edit qa-maven-releases: tasks and capabilities tab (old only))
+  - Old: "Задачи и возможности": cards "Запланированные задачи 0 задач" and "Возможности 0 возможностей" with empty texts. "Доступ и безопасность": "Привилегии репозитория 17 привилегий" (list with action badges), "Роли с доступом", "Пользователи с доступом", "Анонимный доступ ○ Отключён".
+  - New: No such tabs.
+  - Fix: Add both tabs (privileges, roles and users with access can be computed from the security API today; tasks/capabilities when M4 lands).
+  - Screenshots: `shots/repo-edit-tasks/{old,new}-desktop-dark.jpg`, `shots/repo-edit-security/{old,new}-desktop-dark.jpg`
+- **F074** Proxy repository form: sections, labels and options differ (page: Edit qa-maven-proxy: settings)
+  - Old: Extra tabs "Firewall" and "Проверка состояния", extra button "Сбросить кэш". Sections after Maven 2: Хранилище; Прокси ("Удалённое хранилище", checkbox "Сохранять закодированные символы", Блокировка with "Заблокировано" and "Автоблокировка", Максимальный возраст компонента / метаданных stacked); "Правило маршрутизации" (select "Нет (разрешать все запросы)"); Негативный кэш ("Кэш отсутствующих файлов", TTL); Очистка; HTTP (Тип аутентификации, collapsible "Параметры HTTP-запросов": Суффикс User-Agent, Повторы подключения, Тайм-аут подключения, "Разрешить циклические перенаправления", "Разрешить cookie").
+  - New: Sections Прокси ("URL удалённого хранилища", ages side by side with "(мин)"), Хранение, Maven, Негативный кэш ("Запоминать отсутствующие пути"), HTTP-клиент ("Блокировать исходящие подключения", "Блокировать автоматически, пока удалённый репозиторий недоступен", Повторы, Тайм-аут, User-Agent, "Разрешить циклические перенаправления", "Сохранять cookie удалённого репозитория"), Аутентификация; no "Сохранять закодированные символы", no routing rule select, no cleanup; summary card shows "Удалённый репозиторий".
+  - Fix: Use the old section order, labels and checkboxes, add the encoded-characters option, routing rule select and cleanup list, put HTTP auth and the collapsible request parameters into one "HTTP" section, add the Firewall/Проверка состояния tabs and "Сбросить кэш".
+  - Screenshots: `shots/repo-edit-proxy/{old,new}-desktop-dark.jpg`
+- **F077** Blob stores list: columns and help card differ (page: Blob stores list)
+  - Old: Subtitle "Настройка локального и облачного хранения блобов"; filter "Фильтр по имени..."; columns Имя ↑ (with icon), Путь, Тип ("File"), Состояние ("● Работает"), Число блобов, Общий объём, Свободно, chevron; a side card "Что такое хранилище блобов?" with text and "Документация ↗".
+  - New: Subtitle "Файлы компонентов лежат в хранилищах блобов. Репозиторий хранит файлы в хранилище, выбранном при его создании."; no filter; columns Имя, Тип ("Файловое"), Состояние (badge "Доступно"), Блобы, Размер, Свободно, Мягкая квота, Используется, "…"; no side card.
+  - Fix: Use the old columns, texts, filter, chevron rows and the help card.
+  - Screenshots: `shots/blobstores/{old,new}-desktop-dark.jpg`
+- **F079** Create blob store: wizard with five types vs three cards (page: Create blob store: type picker)
+  - Old: Wizard (Отмена / Продолжить, progress bar); "Выберите тип" / "Выберите тип хранилища" with a vertical list of five cards with brand icons: Файл, Amazon S3, Azure Blob, Google Cloud, Группа; step "Основное" with Имя (placeholder "my-blob-store") and Путь ("/path/to/blob/storage").
+  - New: One page "Создание хранилища блобов" with three horizontal cards Файловое, S3, Групповое; the File form "Новое файловое хранилище блобов" has Имя and Путь side by side, the soft quota switch and Отмена / Создать хранилище at the bottom.
+  - Fix: Rebuild the wizard and the type list with icons and the old names (Azure and Google can show as unavailable until supported).
+  - Screenshots: `shots/blobstore-create/{old,new}-desktop-dark.jpg`, `shots/blobstore-create-file/{old,new}-desktop-dark.jpg`
+- **F081** Content selector edit: structure, preview and usage notice differ (page: Content selector qa-selector with preview)
+  - Old: Title "Изменение: qa-selector"; top bar Удалить / Отменить изменения / Сохранить; violet notice "Селектор используется в 1 привилегии: qa-privilege"; Имя and Тип as read-only text; "Выражение поиска" textarea, a green bar "✓ Выражение корректно", a "Предпросмотр выражения" callout that explains the expression in words; "Примеры выражений" chips; collapsible "Справочник по CSEL"; "Предпросмотр результатов селектора содержимого" with a repository select, a "Предпросмотр" button, a result filter and a one-column table (Имя).
+  - New: Title "qa-selector" with the description below; one card with Имя (disabled input), Описание, Выражение, hint, "✓ Выражение корректно" as plain text, an always-open syntax table and examples list; buttons Сохранить / Отмена / Удалить under the card; a live "Предпросмотр" table (Путь as link, Репозиторий, Формат) with "Все репозитории".
+  - Fix: Use the old layout: top bar, usage notice, read-only name/type, expression explanation callout, chips, collapsible reference, preview with the explicit button and filter.
+  - Screenshots: `shots/selector-edit/{old,new}-desktop-dark.jpg`, `shots/selector-create/{old,new}-desktop-dark.jpg`
+- **F083** Repository "Сводка" tab missing; numbers moved above the tabs (page: Edit qa-maven-releases: Сводка tab (old) / default tab (new))
+  - Old: Tab "Сводка" (first tab, the page opens on "Настройки"): card with СТАТУС, ФОРМАТ (logo), ТИП (badge), URL (external link), ХРАНИЛИЩЕ БЛОБОВ; card "Хранилище блобов" (Имя, Тип, Общий объём, Свободно, Число блобов, Статус "Доступно"); card "Показатели репозитория" (Компоненты, Файлы — shows 0 here, an old defect).
+  - New: No Сводка tab; a summary card (URL, Хранилище блобов, Размер, Компоненты, Файлы, Последняя загрузка) is always shown above the tabs.
+  - Fix: Add the Сводка tab with the three old cards (correct counts) and remove the always-visible summary card.
+  - Screenshots: `shots/repo-edit-summary/{old,new}-desktop-dark.jpg`
+- **F087** Create privilege: wizard with six typed cards vs one page (page: Create privilege: type picker)
+  - Old: Title "Создать привилегию", subtitle "Шаг 1: выберите тип привилегии", progress bar, Отмена / Продолжить; "Выбор типа" with six cards in two columns, each with a coloured icon: Приложение, Администрирование репозитория, Селектор содержимого репозитория, Просмотр репозитория, Скрипт, С подстановкой. Step 3 "Настройка" (Имя, Описание as textarea) and later steps for the content.
+  - New: Title "Создание привилегии", subtitle "Выберите, что даст новая привилегия"; five cards in three columns without icons, with chevrons, in another order (no Скрипт); the form is one page with all fields and a "Даёт разрешение" preview.
+  - Fix: Rebuild the wizard and the type cards with icons in the old order (Скрипт is dropped by decision; leave its slot out).
+  - Screenshots: `shots/privilege-create/{old,new}-desktop-dark.jpg`, `shots/privilege-create-form/{old,new}-desktop-dark.jpg`
+- **F088** Privilege profile page missing (page: Privilege qa-privilege: profile (old) / page (new))
+  - Old: `…/qa-privilege/profile`: title, subtitle with the type, buttons "Изменить привилегию" and "← К списку", tabs Обзор / Роли с этой привилегией / Пользователи с доступом; "Сведения о привилегии", "Настройка" with action chips, "Конечные точки API, которым нужно это разрешение". Clicking a row in the list opens this profile.
+  - New: Clicking a row opens the edit form directly; no profile, no roles/users tabs.
+  - Fix: Add the profile page with its three tabs and make the list open it.
+  - Screenshots: `shots/privilege-profile/{old,new}-desktop-dark.jpg`
+- **F090** Roles list: filter column, columns and row actions differ (page: Roles list)
+  - Old: Subtitle "Управление ролями и назначенными им привилегиями"; "Фильтры" column (Управление: Пользовательские, Системные); search "Поиск ролей по имени, ID или описанию..."; columns Имя ↑ (lock icon for built-in), ID, Описание, and eye/edit/delete icons per row; "Роли 1–4 из 4"; help card "О ролях".
+  - New: Subtitle "Роли объединяют привилегии и другие роли, а пользователи получают роли"; search "Поиск по ID, названию или описанию"; columns ID ↑, Название, Описание, Привилегии, Роли, Встроенная, "…" menu; no filters, counter or help card.
+  - Fix: Rebuild with the old filter column, columns, inline row icons, counter and help card.
+  - Screenshots: `shots/roles/{old,new}-desktop-dark.jpg`
+- **F091** Role profile page missing; role edit is a wizard in the old UI (page: Role qa-role: profile (old) / page (new))
+  - Old: Profile `…/qa-role/profile`: subtitle "Панель роли и анализ её влияния", buttons "Изменить роль" and "← К списку", tabs Обзор, Дерево безопасности, Действующие разрешения, Назначенные пользователи. Edit `…/qa-role`: wizard "Изменение: qa-role", "Шаг 1: Настройка (источник: Default)", buttons Отмена, "Удалить роль" (red), Продолжить; step fields ID, Имя, Описание (textarea) with hints above.
+  - New: One page: title with description, a card with ID роли / Название side by side, Описание, Привилегии (chips plus a checkbox list "Ещё 256 вариантов…"), Вложенные роли; buttons Сохранить / Отмена / Удалить; a "Действующие привилегии" table.
+  - Fix: Add the profile page with four tabs and rebuild edit/create as the old wizard (field label "Имя", not "Название").
+  - Screenshots: `shots/role-profile/{old,new}-desktop-dark.jpg`, `shots/role-edit/{old,new}-desktop-dark.jpg`
+- **F093** Users list: filter column, columns and texts differ (page: Users list)
+  - Old: Subtitle "Управление пользователями и назначенными им ролями"; button "Создать локального пользователя"; "Фильтры" column (Источник: Локальный; Статус: Активен / Неактивен); search "Поиск по ID пользователя..."; columns ID пользователя ↑, Имя, Фамилия, Эл. почта, Источник, Статус; "Показано пользователей: 5"; help card "О пользователях".
+  - New: Subtitle "Учётные записи, которые могут входить, и их роли"; button "Создать пользователя"; a source select ("Локальные") next to the search; columns ID пользователя, Имя (full name), Эл. почта, Статус, Роли, "…"; no counter, no help card.
+  - Fix: Copy the old filter column, columns (separate Имя/Фамилия, Источник), counter, button text and help card.
+  - Screenshots: `shots/users/{old,new}-desktop-dark.jpg`, `shots/users/{old,new}-desktop-dark-en.jpg`
+- **F094** User edit: layout, roles control and privileges tree differ (page: User qa-user: edit)
+  - Old: Title "Изменение: QA User", subtitle "Изменение профиля, ролей и действующих разрешений пользователя."; an "Активен" switch at the top right; top bar "Удалить пользователя", "Отменить изменения", "Сохранить"; "Сведения" (ID read-only, Имя, Фамилия, Эл. почта, hints above) and a "Сменить пароль" button; "Роли" as a two-list transfer (Доступные / Выданные); "Привилегии / дерево безопасности" as an expandable tree table (Имя, Разрешения, Ресурс, Описание).
+  - New: Title "qa-user", subtitle "QA User" with badges Активен and Локальные; one card with Имя/Фамилия side by side, Эл. почта, a Статус select, Роли as chips plus a checkbox list; buttons Сохранить / Отмена / Сменить пароль / Удалить below; "Действующие привилегии" as a flat table (Привилегия, Тип, Разрешение, Через).
+  - Fix: Rebuild with the old header switch, top bar, sections, transfer list and the security tree.
+  - Screenshots: `shots/user-edit/{old,new}-desktop-dark.jpg`
+- **F100** Access tokens: create form and table differ; "Все пользователи" missing (page: Access tokens (one token qa-token))
+  - Old: Key icon + title; description "Используйте токен вместо пароля в Docker, npm, Maven, pip и других клиентах. Его можно отозвать в любой момент, не меняя пароль."; card "Новый токен" in one row: Название (placeholder "например, GitLab CI для herald"), Доступ select ("Только чтение", hint "Скачивание пакетов и образов"), Срок действия select ("90 дней"), "Создать токен"; segmented "Мои токены / Все пользователи" (admins see everyone's tokens); table Название, Доступ, Токен, Создан, Последнее использование ("Не использовался"), Действует до, red trash icon.
+  - New: Subtitle "Токены, которые клиенты и скрипты используют вместо вашего пароля" and an info callout; a tall card with Название, radio Доступ (Только чтение / Чтение и запись with descriptions), "Срок действия в днях" number field plus preset chips; "Ваши токены" table: Название, Доступ, Начало, Создан, Истекает, Последнее использование ("Никогда"), "…" menu; no all-users view.
+  - Fix: Rebuild the one-row form with selects, the "Мои токены / Все пользователи" switch and the old columns and texts.
+  - Screenshots: `shots/access-tokens/{old,new}-desktop-dark.jpg`
+- **F108** Login: SSO button, divider and "Продолжить без входа" placement (page: anon-login)
+  - Old: With OpenID Connect configured (production): "Продолжить через SSO" (solid violet) above the form, an "или" divider, the form, a second divider, then the link "Продолжить без входа" at the bottom of the card; the disabled "Войти" is an outline button here.
+  - New: next.astrum has no SSO yet; "Продолжить без входа" sits right under "Войти" without a divider; "Войти" is always solid violet.
+  - Fix: When OIDC lands, add the SSO button and "или" divider; put "Продолжить без входа" below a divider at the bottom of the card; match the disabled style.
+  - Screenshots: `shots/anon-login/{old,new}-desktop-dark.jpg`, `shots/anon-login/{old,new}-phone-light.jpg`
+- **F033** Folder panel: fields and texts differ (page: Repository tree: folder docs selected)
+  - Old: Path "/docs" (no trailing slash), title "docs", text "Вместе с папкой удаляется всё её содержимое.", "Удалить папку" as a red outline button; second card "Сведения": Репозиторий, Путь, Глубина, Элементов, Папки, Файлы.
+  - New: Path "/docs/" with a trailing slash, folder icon before the title, no warning text, "Удалить папку" red soft; "Сведения" only Репозиторий, Путь, Элементов.
+  - Fix: Match the old texts, path format, button style and the six fields.
+  - Screenshots: `shots/tree-folder/{old,new}-desktop-dark.jpg`
+- **F034** Nothing selected: the new panel adds repository details and usage (page: Repository tree: qa-raw, nothing selected)
+  - Old: Panel only says "Ничего не выбрано" / "Выберите элемент в дереве, чтобы увидеть, как его использовать, и сведения о нём." (no icon).
+  - New: Icon, "Ничего не выбрано", "Выберите папку, компонент или файл в дереве, чтобы увидеть сведения о нём и как его использовать.", plus "О репозитории" (Формат, Компоненты, Файлы, Размер, Последняя загрузка, Хранилище blob-объектов) and an "Использование" block.
+  - Fix: Show only the old empty state and text.
+  - Screenshots: `shots/tree-root/{old,new}-desktop-dark.jpg`, `shots/tree-root/{old,new}-desktop-light.jpg`
+- **F035** Component panel: buttons and sections differ (page: Repository tree: maven component qa-lib 1.0.0 selected)
+  - Old: Buttons "Изучить в Guide" and "Удалить компонент" (red outline); "Сведения": Репозиторий, Формат, Группа, Имя, Версия, Скачиваний; no file list.
+  - New: Buttons "Страница компонента" and "Удалить компонент" (red soft); "Сведения" without Скачиваний; extra "Файлы" list with sizes.
+  - Fix: Restore "Изучить в Guide", the downloads field, and drop the extra file list (or ask the owner).
+  - Screenshots: `shots/tree-component/{old,new}-desktop-dark.jpg`
+- **F045** Component "Репозитории" tab missing (page: Component page: repositories tab (old) / usage tab (new))
+  - Old: Tab with a filter column (Сортировка, Тип: Размещённый, Прокси, Группа), "Экспорт в CSV", table Репозиторий, Тип, Версий в репозитории ("3 версии").
+  - New: No such tab (the URL lands on the Использование tab in this comparison).
+  - Fix: Add the tab.
+  - Screenshots: `shots/component-repos/{old,new}-desktop-dark.jpg`
+- **F050** Search on phones: list rows vs cards (page: Search "qa")
+  - Old: At 390 px the results are compact rows inside one card: name, version, format badge and repository, history icon.
+  - New: Each result is a separate card with "Версия / Формат / Репозиторий" label rows.
+  - Fix: Use the old compact list on phones.
+  - Screenshots: `shots/search/{old,new}-phone-dark.jpg`
+- **F058** Audit does not record sign-ins, failed sign-ins and downloads (page: Audit log)
+  - Old: The log has "Вход" (Безопасность), "Blocked" for a failed sign-in, and "Скачивание" for every download (repository category).
+  - New: Only configuration changes and session creation are listed; downloads and failed sign-ins do not appear.
+  - Fix: Server side: emit audit events for sign-in, sign-in failure and downloads as the old server does (or confirm the owner wants fewer events).
+  - Screenshots: `shots/audit/{old,new}-desktop-dark.jpg`
+- **F075** Docker repository form: routing mode select vs switches (page: Edit qa-docker: settings)
+  - Old: Section "Поддержка Docker Registry API" ("Коннекторы и аутентификация реестра Docker"): select "Режим маршрутизации" ("Использовать маршрутизацию по пути"; ports/subdomain only appear for the matching mode), checkbox "Принудительная базовая аутентификация" ("Требовать аутентификацию даже при анонимном доступе (для pull нужен docker login)"), checkbox "Включить Docker V1 API"; placed right after "Настройки репозитория".
+  - New: Section "Docker" after Хранение: switch "Маршрутизация по пути", inputs Порт HTTP, Порт HTTPS, Поддомен always visible, switch "Требовать вход", switch "Включить Docker V1 API"; plus a "Разрешить повторную публикацию тега latest" switch in Хранение.
+  - Fix: Use the old select-driven routing mode, the old texts and checkboxes, and the old section position.
+  - Screenshots: `shots/repo-edit-docker/{old,new}-desktop-dark.jpg`
+- **F078** Blob store edit: header, callouts and summary differ (page: Blob store default (edit))
+  - Old: Title "Изменение: default", subtitle "Хранилище блобов File"; top bar "Удалить" (left), "Отменить изменения", "Сохранить"; violet callout "При изменении конфигурации хранилище блобов ненадолго станет недоступным…"; section "Настройка файлового хранилища" with folder icon and an orange warning "Смена пути не переносит существующие данные…"; Путь; Мягкая квота checkbox.
+  - New: Title "default", subtitle "Файловое"; disabled "Удалить" at the right; summary card (Состояние, Блобы, Размер, Свободно, Мягкая квота, Используется with the repository list); callout "Пока хранилище используется, удалить его нельзя…"; sections Общие and Мягкая квота (switch); buttons at the bottom; footer note "Изменения вступают в силу сразу…".
+  - Fix: Use the old title pattern, top bar, callouts, section names and checkbox; drop the summary card or move it below.
+  - Screenshots: `shots/blobstore-edit/{old,new}-desktop-dark.jpg`
+- **F080** Content selectors list: help card position, Тип column and filter differ (page: Content selectors list)
+  - Old: Subtitle "Определение содержимого, доступного пользователям, с помощью языка выражений CSEL"; help card "Что такое селектор содержимого?" above the table with "Подробнее ↗"; a right-aligned "Фильтр по имени или описанию…"; columns Имя ↑, Тип (CSEL), Описание, Выражение, chevron.
+  - New: Subtitle "Выражения, выбирающие содержимое репозиториев для привилегий"; full-width search "Поиск по имени, описанию или выражению"; columns Имя, Описание, Выражение (monospace), "…"; an info callout below the table with different text.
+  - Fix: Copy the old layout and texts.
+  - Screenshots: `shots/selectors/{old,new}-desktop-dark.jpg`
+- **F089** Privilege edit form: sections, labels and an extra Формат field (page: Privilege qa-privilege: edit form)
+  - Old: Title "Изменение: qa-privilege", subtitle "Тип: Селектор содержимого репозитория"; top bar "Удалить" (red solid), "Отменить изменения", "Сохранить"; sections "Настройка привилегии" (Имя, Описание textarea), "Содержимое" (Селектор содержимого), "Репозиторий" (hint "* — все репозитории"), "Действия" (Обзор, Чтение, Изменить, Добавление, Удалить).
+  - New: Title "qa-privilege"; one card with "Тип: …", Имя, Описание (single line), Селектор содержимого, an extra Формат select, Репозиторий, Действия (Просмотр, Чтение, Изменение, Добавление, Удаление, Все), a "Даёт разрешение" box; buttons Сохранить / Отмена / Удалить below.
+  - Fix: Use the old title, top bar, sections, textarea and action labels; drop the Формат select (derive it) or ask the owner.
+  - Screenshots: `shots/privilege-edit/{old,new}-desktop-dark.jpg`
+- **F102** Help menu: five links and the version line missing (page: Header: help menu open)
+  - Old: Документация ↗, Примечания к выпуску ↗, База знаний ↗, Руководства GlobalArt ↗, divider, Сообщество ↗, Трекер задач ↗, divider, "Версия: 2.0.0".
+  - New: Документация and a greyed "Astrum Repository 3.0.0-dev".
+  - Fix: Add the old links (links.globalart.dev targets) and the "Версия: X" line.
+  - Screenshots: `shots/help-menu/{old,new}-desktop-dark.jpg`
+- **F104** Status bell and Metric Health page missing (page: Header: status bell (old only) clicked)
+  - Old: The bell opens "Метрики и состояние": counters "в норме: 11 / с проблемами: 1", a filterable list of checks, the selected check with message, duration and last run, "Обновить" and "Скачать", help card "О состоянии".
+  - New: No bell, no health page.
+  - Fix: Add the bell (red dot when a check fails) and the health page once the server exposes status checks.
+  - Screenshots: `shots/status-bell/{old,new}-desktop-dark.jpg`
+- **F065** Repositories admin list on phones: table vs cards (page: Repositories list)
+  - Old: At 390 px the old page keeps the table (scrolls sideways inside the card) with a "сортировка: Имя" button.
+  - New: At 390 px each repository is a card with label/value rows.
+  - Fix: Match the old phone layout (or confirm with the owner that cards are acceptable).
+  - Screenshots: `shots/repos-list/{old,new}-phone-light.jpg`
+
+## Minor
+
+- **F010** Left menu typography, active colours and radius differ (page: Dashboard)
+  - Old: Item labels 14px/21px weight 400 (active 600, color rgb(207,199,255), background rgba(147,110,254,0.18)), radius 8px; full-width divider.
+  - New: Item labels 16px/24px weight 400 (active 500, color rgb(234,230,255), background rgba(136,107,253,0.263)), radius 6px; inset divider.
+  - Fix: Set menu labels to 14px/21px, active weight 600 and the old active colours, radius 8px, divider from x=20 to the menu edge.
+  - Screenshots: `shots/dashboard/{old,new}-desktop-dark.jpg`, `shots/dashboard/{old,new}-desktop-light.jpg`
+- **F012** Theme control: toggle vs menu, and the icon meaning is inverted (page: Header: theme control clicked)
+  - Old: One click switches between dark and light; the icon shows the target theme (sun in dark, moon in light); aria-label "Включить светлую тему"/"Включить тёмную тему".
+  - New: Opens a menu with Светлая / Тёмная / Как в системе; the icon shows the current theme (moon in dark, sun in light).
+  - Fix: Make the header button a direct toggle with the old icon logic; if "system" is needed, keep it out of the header as the old UI did.
+  - Screenshots: `shots/theme-control/{old,new}-desktop-dark.jpg`, `shots/dashboard/{old,new}-desktop-light.jpg`
+- **F014** Phone header and drawer differ (page: Phone: navigation drawer open)
+  - Old: Phone header: borderless hamburger, star only, search icon, theme toggle, bell, avatar. Drawer: 304px wide, items 16px with 52px row height, API item, footer with language and help buttons and the version.
+  - New: Phone header: bordered hamburger, star plus "astrum repository", bordered search icon, avatar. Drawer: about 300px, items 16px with 44px rows, no API, footer with theme, language and help.
+  - Fix: Show only the star on phones, keep theme and bell in the phone header, make the hamburger borderless, use the old row height and drawer footer (language, help).
+  - Screenshots: `shots/phone-drawer/{old,new}-phone-dark.jpg`, `shots/dashboard/{old,new}-phone-dark.jpg`
+- **F023** Format and type badges: case and style differ (page: Browse: repository list)
+  - Old: Format badge lowercase ("docker", "maven", "raw") in format colours; type as a lowercase grey pill ("размещённый", "группа", "прокси").
+  - New: Format badge capitalised ("Docker", "Maven", "Raw"); type as a coloured outlined capitalised pill ("Размещённый", "Группа", "Прокси").
+  - Fix: Use the format id in lowercase and the grey lowercase type pill everywhere (browse list, repository header, search).
+  - Screenshots: `shots/browse-list/{old,new}-desktop-dark.jpg`, `shots/tree-root/{old,new}-desktop-dark.jpg`
+- **F037** Long usage commands are cut instead of wrapped (page: Repository tree: pypi wheel)
+  - Old: The pip command wraps inside the code block, everything readable.
+  - New: The code block keeps one line and cuts the command at the right edge ("…--trusted-h").
+  - Fix: Wrap long commands (white-space: pre-wrap; word-break: break-all) as the old block does.
+  - Screenshots: `shots/tree-pypi/{old,new}-desktop-dark.jpg`, `shots/tree-asset/{old,new}-phone-dark.jpg`
+- **F039** Light theme: code blocks are dark in the old UI (page: Repository tree: raw asset docs/readme.txt selected)
+  - Old: In the light theme the usage code block stays dark (near-black background, light monospace text) with a light "Копировать" button.
+  - New: In the light theme the code block is light grey with dark text.
+  - Fix: Keep code blocks dark in both themes as the old UI does.
+  - Screenshots: `shots/tree-asset/{old,new}-desktop-light.jpg`, `shots/tree-component/{old,new}-desktop-light.jpg`
+- **F061** Settings hub: texts, tile order and tile typography differ (page: Settings hub)
+  - Old: Subtitle "Настройка безопасности, репозиториев, системы и поддержки"; search "Поиск настроек..."; section "Репозиторий" (singular); security order Пользователи, Роли, Привилегии; descriptions e.g. "Управление репозиториями Maven, npm, Docker и другими", "Права пользователей и управление доступом", "Детальная настройка разрешений"; tile title 14px semibold, description 13px, 20px padding, icons user-group/user-cog/key.
+  - New: Subtitle "Репозитории, хранилища и безопасность этого сервера"; search "Найти настройку"; section "Репозитории"; order Привилегии, Роли, Пользователи; descriptions "Размещённые, прокси- и групповые репозитории всех форматов", "Наборы привилегий для пользователей и групп", "Отдельные разрешения, которые выдают роли"; tile title 16px regular, 16px padding, Roles icon is a shield.
+  - Fix: Copy the old texts (Russian strings are ours and may be reused), order and icons; tile title 14px/600.
+  - Screenshots: `shots/settings/{old,new}-desktop-dark.jpg`, `shots/settings/{old,new}-desktop-light.jpg`
+- **F107** Anonymous header: sign-in control differs (page: anon-dashboard)
+  - Old: A round icon button with a person icon at the right end of the header (refresh, theme, language, help, person).
+  - New: A violet soft button "→ Войти" with text (theme, language, help, Войти); no refresh.
+  - Fix: Use the old icon button and keep the refresh button.
+  - Screenshots: `shots/anon-dashboard/{old,new}-desktop-dark.jpg`
+- **F003** Login card typography and spacing differ (page: Login page)
+  - Old: Card 400x428 at y=267 (vertically centered), radius 12px, two-layer shadow; star logo about 40px; title "Добро пожаловать" 24px weight 650; subtitle 16px/24px; label-to-input gap 8px; input height 40 with radius 10.
+  - New: Card 400x396 at y=283, radius 8px, Radix ring shadow; star about 28px; title weight 700; subtitle 14px/20px; inputs radius 6.
+  - Fix: Use 12px card radius and the old shadow `0 1px 2px rgba(0,0,0,.05), 0 12px 32px -16px rgba(0,0,0,.15)`, a 40px star, 650 title weight, 16px/24px subtitle with 16px gap below it.
+  - Screenshots: `shots/login/{old,new}-desktop-light.jpg`
+- **F011** Header search box: placeholder and styling differ (page: Dashboard)
+  - Old: Placeholder "Поиск компонентов или CVE..." (three dots), transparent field inside a 439x38 box starting at x=480 after the icon, radius 10px.
+  - New: Placeholder "Поиск компонентов…" (ellipsis), 560x40 button with a 1px border and radius 6px.
+  - Fix: Use the old placeholder text and the 10px radius; keep the Ctrl K hint as both have it.
+  - Screenshots: `shots/dashboard/{old,new}-desktop-dark.jpg`
+- **F013** User menu header and avatar initials differ (page: Header: user menu open)
+  - Old: Avatar "AD" (first letters of the user id); the menu header shows a small avatar plus the user id "admin".
+  - New: Avatar "AU" (initials of "Administrator User"); the menu header shows the full name in bold and the user id below, without an avatar.
+  - Fix: Compute initials from the user id as the old UI does and show the small avatar plus the user id in the menu header.
+  - Screenshots: `shots/user-menu/{old,new}-desktop-dark.jpg`, `shots/user-menu/{old,new}-phone-light.jpg`
+- **F036** Usage tabs per format differ (page: Repository tree: docker tag qa/hello:1.0 selected)
+  - Old: Docker: docker pull, docker login, Dockerfile, Compose, Kubernetes, docker push. PyPI: pip, pip.conf, requirements.txt, twine.
+  - New: Docker: docker pull, docker login, Dockerfile, docker push, daemon.json (no Compose, no Kubernetes). PyPI adds .pypirc.
+  - Fix: Use the old tab sets and order per format (the snippets are our own code, see usage/*).
+  - Screenshots: `shots/tree-docker/{old,new}-desktop-dark.jpg`, `shots/tree-pypi/{old,new}-desktop-dark.jpg`
+- **F048** Search form: labels, placeholder and the criteria-search button differ (page: Search "qa")
+  - Old: The query field has no label, placeholder "Имя, группа или версия, * — любые символы"; no button in the page header.
+  - New: Label "Имя, группа или версия" above the field, placeholder "Например, commons-lang; * — любые символы"; a "Расширенный поиск" button in the header.
+  - Fix: Remove the label and the header button, use the old placeholder.
+  - Screenshots: `shots/search-empty/{old,new}-desktop-dark.jpg`, `shots/search/{old,new}-desktop-dark.jpg`
+- **F052** Criteria search: operator select, subtitle and mode switch differ (page: Criteria search (empty))
+  - Old: No breadcrumb; subtitle "Поиск компонентов сразу по нескольким условиям"; hint "Компоненты должны подходить под все условия."; each row: field select, operator select ("Равно"), value "например, spring-boot", remove; "Найти" alone at the bottom right.
+  - New: Breadcrumb "Поиск > Расширенный поиск"; subtitle "Поиск компонентов или файлов сразу по нескольким условиям"; hint "Результаты должны подходить под все условия. * — любые символы."; static word "содержит" instead of the operator select; value "например, commons"; a "Компоненты / Файлы" switch next to "Найти".
+  - Fix: Match the old texts, add the operator select, drop the breadcrumb and the files mode switch.
+  - Screenshots: `shots/search-custom/{old,new}-desktop-dark.jpg`
+- **F056** Maven upload: field order and Упаковка control differ (page: Upload to qa-maven-releases)
+  - Old: Group ID, Artifact ID, Версия, Упаковка (select, default "jar") in a 2x2 grid with hints and placeholders ("com.example", "my-library", "1.0.0"), then the "Создать POM" checkbox ("Автоматически создать POM-файл"); per file: Классификатор and Расширение stacked.
+  - New: Group ID, Artifact ID, Версия, then "Создать POM" ("Автоматически создаст POM-файл с указанными координатами"), then Упаковка as a free text field ("Например, jar, war или pom"); hints under the fields instead of placeholders; Классификатор and Расширение side by side; an extra explanation under "Файлы".
+  - Fix: Use the old order, the Упаковка select with "jar", placeholders, hints and texts.
+  - Screenshots: `shots/upload-maven/{old,new}-desktop-dark.jpg`
+- **F062** Settings hub on phones: list rows with chevron vs icon tiles (page: Settings hub)
+  - Old: At 390 px each tile becomes a full-width row without the icon and with a ">" chevron on the right.
+  - New: At 390 px tiles keep the icon on the left and have no chevron.
+  - Fix: Use the old phone list style.
+  - Screenshots: `shots/settings/{old,new}-phone-dark.jpg`
+- **F071** Repository audit tab: columns and button differ (page: Edit qa-maven-releases: audit tab)
+  - Old: Card "Последние события 1 событие (30 дней)" with a violet "Весь журнал аудита ↗" button; columns Время, Категория (badge), Событие, Сводка (sentence), Инициатор ("admin/127.0.0.1").
+  - New: Heading "Последние события" and an outline "Открыть журнал аудита" button; columns Время, Событие, Объект ("repository: qa-maven-releases"), Инициатор ("admin").
+  - Fix: Use the old card, counter, button and columns.
+  - Screenshots: `shots/repo-edit-audit/{old,new}-desktop-dark.jpg`
+- **F076** Group repository form: member list control and order differ (page: Edit qa-maven-group: settings)
+  - Old: Sections Настройки репозитория, Хранилище, Группа: "Репозитории-участники *" with a select "Добавить репозиторий-участник..." and a numbered list with up/down/delete icons; header buttons include "Сбросить кэш".
+  - New: Группа first ("Участники", drag handles, type and status badges, arrows and a red x; texts "Других репозиториев Maven для добавления нет." and "На запрос отвечает первый участник…"), then Хранение; no add select when nothing is left.
+  - Fix: Use the old order, label, add select and plain rows.
+  - Screenshots: `shots/repo-edit-group/{old,new}-desktop-dark.jpg`
+- **F085** Built-in privilege descriptions and permission strings differ (server texts) (page: Privileges list)
+  - Old: Descriptions "All permissions for Accesstokens", "Create permission for Accesstokens", "All privileges for qa-docker repository administration"; permissions "astrum:accesstokens:all", "astrum:accesstokens:add,read", "…:qa-docker:all".
+  - New: Descriptions "Every action on access tokens", "Create access tokens", "Do everything with the configuration of the repository qa-docker"; permissions "astrum:accesstokens:*", "astrum:accesstokens:create,read", "…:qa-docker:*"; role descriptions "Administrator role" (old "Administrator Role").
+  - Fix: Use the old built-in names, descriptions and action words where the API allows (they are visible in the UI and in role trees).
+  - Screenshots: `shots/privileges/{old,new}-desktop-dark.jpg`, `shots/roles/{old,new}-desktop-dark.jpg`
+- **F092** Create role: first step "Тип роли" missing (page: Create role)
+  - Old: Wizard step 1 "Тип": "Тип роли" select ("Роль Astrum" or mapping of an external role), Продолжить.
+  - New: Single form without a role type.
+  - Fix: Add the type step (mapping external roles arrives with LDAP/OIDC).
+  - Screenshots: `shots/role-create/{old,new}-desktop-dark.jpg`
+- **F095** Create user: placeholders, labels and the role requirement differ (page: Create user)
+  - Old: Subtitle "Добавление новой локальной учётной записи."; top bar "Отменить изменения" / "Создать"; one column with placeholders (jsmith, Иван, Иванов, jsmith@example.com) and hints above; "Подтверждение пароля"; roles transfer list with the red "Назначьте хотя бы одну роль"; "Привилегии / дерево безопасности".
+  - New: No subtitle; fields in two columns without placeholders; "Повторите пароль" with eye toggles; Статус select; roles optional; "Создать пользователя" / "Отмена" at the bottom.
+  - Fix: Copy the old texts, placeholders, one-column layout, the role requirement and the tree preview.
+  - Screenshots: `shots/user-create/{old,new}-desktop-dark.jpg`
+- **F096** Anonymous access page: texts, control kinds and realm name differ (page: Anonymous access)
+  - Old: Subtitle "Настройка доступа анонимных пользователей"; top bar Отменить изменения / Сохранить; section "Настройка анонимного доступа" with an explanation; checkbox "Разрешить анонимным пользователям доступ к серверу"; "Имя пользователя"; Realm "Local Authorizing Realm"; help card "Об анонимном доступе" with "Документация ↗".
+  - New: Subtitle "Можно ли пользоваться сервером без учётных данных и от имени какого пользователя"; a card with a switch "Разрешить анонимный доступ", "Анонимный пользователь", Realm "Локальные пользователи"; an info callout; buttons at the bottom.
+  - Fix: Copy the old texts, checkbox, top bar and help card; show realm names as the old UI does.
+  - Screenshots: `shots/anonymous/{old,new}-desktop-dark.jpg`
+- **F097** Realms page: transfer list vs two cards, English names vs Russian (page: Realms)
+  - Old: Subtitle "Активные Realms безопасности и их порядок"; a transfer list "Доступные (10 Realms)" / "Активные (2 Realms)" with filters, arrow buttons between and up/down at the side; realm names in English ("Access Token Realm", "Local Authenticating Realm", "Cargo Bearer Token Realm"…); help card "О Realms". Active order here: Access Token Realm, Local Authenticating Realm.
+  - New: Subtitle "Какие Realms проверяют учётные данные и в каком порядке"; cards "Активные" and "Доступные" with Russian names plus ids ("Локальные пользователи / AstrumAuthenticatingRealm", "Токены доступа"), + buttons, x and arrows; an info callout; buttons at the bottom.
+  - Fix: Use the old transfer list, names and help card.
+  - Screenshots: `shots/realms/{old,new}-desktop-dark.jpg`
+- **F099** Account page: layout, fields and password section differ (page: Account)
+  - Old: Header with a user icon, title "Учётная запись", subtitle "Настройки вашей учётной записи"; no cards; "Сведения об учётной записи" (Имя пользователя with icon, Источник badge "Локальная"), Имя / Фамилия, Эл. почта, buttons "Сохранить изменения" and "Отменить изменения" left-aligned; "Сменить пароль" section ("Смена пароля учётной записи. Пароль должен содержать не меньше 8 символов."), three stacked fields, "Сменить пароль" disabled until filled plus "Отменить изменения".
+  - New: No icon; subtitle "Ваше имя, почта и пароль"; two cards: "Учётная запись" (ID пользователя, Источник, Роли badge, Имя / Фамилия, Эл. почта) and "Пароль" ("Введите текущий пароль, чтобы выбрать новый. Остальные сеансы учётной записи завершатся, этот останется."), new/repeat side by side with eye toggles, "Сменить пароль" enabled.
+  - Fix: Copy the old layout without cards, icons, texts, stacked fields and disabled buttons; drop the Роли row.
+  - Screenshots: `shots/account/{old,new}-desktop-dark.jpg`, `shots/account/{old,new}-desktop-dark-en.jpg`
+- **F109** Empty repository state differs (page: anon-tree)
+  - Old: Tree card "Артефакты" with the filter, an open-folder icon, "Репозиторий пуст", "Загрузите компоненты, а для прокси запросите их через него, и они появятся здесь." and a violet "Повторить" button; header has the search field and "Копировать URL".
+  - New: No card title; inbox icon, "Репозиторий пуст", "Загрузите или опубликуйте компоненты, и они появятся здесь.", no button; header has only "Использование".
+  - Fix: Copy the old empty state, texts and header buttons.
+  - Screenshots: `shots/anon-tree/{old,new}-desktop-dark.jpg`
+- **F024** Filter column: order of type options and reset button state (page: Browse: repository list)
+  - Old: Type options Группа, Прокси, Размещённый (alphabetical); "Сбросить фильтры" is an outline button at the top of the column, always enabled.
+  - New: Type options Размещённый, Прокси, Группа; the reset button is full width and disabled until a filter is set.
+  - Fix: Sort type options alphabetically and render the reset button as in the old UI.
+  - Screenshots: `shots/browse-list/{old,new}-desktop-dark.jpg`
+- **F046** Component "Безопасность" tab missing (page: Component page: security tab (old only))
+  - Old: Tab showing a shield icon, "Анализ безопасности недоступен" and "В этой установке нет интеграции с IQ Server, поэтому данные о нарушениях политик для этого компонента показать нельзя."
+  - New: No such tab.
+  - Fix: Add the tab with the same empty state (or ask the owner to drop it; it never shows data in this edition).
+  - Screenshots: `shots/component-security/{old,new}-desktop-dark.jpg`
+- **F049** Search empty state: card and text differ (page: Search, no query)
+  - Old: A bordered card with the icon in a violet circle, "Поиск по всем репозиториям" and "Введите не меньше двух символов имени, группы или версии. Выберите формат, чтобы искать только в его репозиториях."
+  - New: No card, plain icon, same title, text "Введите не меньше двух символов имени, группы или версии или выберите формат либо репозиторий, чтобы увидеть его содержимое."
+  - Fix: Use the old card and text.
+  - Screenshots: `shots/search-empty/{old,new}-desktop-dark.jpg`
+- **F059** Date filters render as unlocalised native inputs (page: Audit log)
+  - Old: Period is a select ("За последние 30 дней").
+  - New: Native date inputs show "mm/dd/yyyy" in the Russian UI.
+  - Fix: Use the old period select (and, if dates stay, a localised date picker).
+  - Screenshots: `shots/audit/{old,new}-desktop-dark.jpg`
+- **F073** Group membership: location and look differ (page: qa-maven-releases: group membership)
+  - Old: On the profile page tab "Участие в группах": violet info callout "Групповые репозитории, в которые входит qa-maven-releases.", then a card "Групповой репозиторий" with the group row, an external-link icon and a chevron.
+  - New: Edit page tab "Участие в группах": heading "Группы, в которые он входит", text "Эти группы отдают содержимое репозитория по своему адресу.", a row with badges Maven, Группа, В сети.
+  - Fix: Rebuild as in the old profile tab.
+  - Screenshots: `shots/repo-edit-membership/{old,new}-desktop-dark.jpg`
+- **F082** Create content selector: texts and button placement (page: Create content selector)
+  - Old: Subtitle "Определите новый селектор содержимого с помощью выражений CSEL"; buttons "Отменить изменения" and "Создать" at the top; Имя hint "Уникальное имя селектора содержимого. После создания изменить нельзя."; Тип CSEL; placeholder "Введите выражение CSEL (например, format == "maven2")".
+  - New: Subtitle "Опишите содержимое выражением; предпросмотр покажет, что под него подходит"; "Создать селектор" and "Отмена" at the bottom; hint "Изменить потом нельзя. Буквы, цифры, дефисы, подчёркивания и точки."; no Тип; placeholder `format == "maven2" and path =^ "/org/"`; preview section on the create page.
+  - Fix: Copy the old texts and top buttons.
+  - Screenshots: `shots/selector-create/{old,new}-desktop-dark.jpg`
+- **F086** Permission strings break in the middle of words (page: Privileges list)
+  - Old: Long permission strings wrap at ":" boundaries inside a code chip.
+  - New: Strings wrap anywhere ("astrum:accesstokens:create,r / ead").
+  - Fix: Use `overflow-wrap: anywhere` only after ":"/"," (insert <wbr>) or keep the old chip style.
+  - Screenshots: `shots/privileges/{old,new}-desktop-dark.jpg`
+- **F098** SSRF protection page exists only in the new UI (page: SSRF protection (new only; old has no page))
+  - Old: No page: `#admin/security/ssrf-protection` falls back to the dashboard; SSRF settings are changed through the REST API only.
+  - New: A page "Защита от SSRF" with a switch, allowed addresses and domains, and a hub tile.
+  - Fix: Ask the owner whether to keep it; for strict parity hide the tile and the page.
+  - Screenshots: `shots/ssrf/{old,new}-desktop-dark.jpg`
+- **F105** English texts: Title Case in the old UI vs sentence case in the new (page: Dashboard)
+  - Old: English uses Title Case widely: "Blob Stores", "Cleanup Policies", "Repository Settings", "Browse Repository", "Rebuild Index", "Take Offline", "Tasks & Capabilities", "Access & Security", "Create Local User", "User Account", "Change Password", "Resource Not Found", "Return to Dashboard"; search placeholder "Search components or CVEs..."; dates "Oct 12, 2026, 07:55 PM"; "Shown: 11".
+  - New: Sentence case: "Blob stores", "Take offline", "Create user", "Account", "Page not found", "Go to the dashboard"; "Search components..."; dates "Oct 12, 2026, 7:55 PM"; "10 shown, more can be loaded".
+  - Fix: If English must match too, align the English dictionary with the old wording (texts must still be written afresh per the clean-room rules, so agree the wording with the owner).
+  - Screenshots: `shots/settings/{old,new}-desktop-dark-en.jpg`, `shots/repo-edit-settings/{old,new}-desktop-dark-en.jpg`, `shots/not-found/{old,new}-desktop-dark-en.jpg`
+- **F111** Browse list pager missing (page: anon-browse)
+  - Old: Under the table: "Показано 40 из 13, Страница 1 из 1" with first/prev/page/next/last buttons.
+  - New: No pager; a "Показан 1 из 1" line above the table.
+  - Fix: Add the old pager under the table and drop the line above.
+  - Screenshots: `shots/anon-browse/{old,new}-desktop-dark.jpg`
+- **F004** Login header: logo position and size (page: Login page)
+  - Old: Login header logo at x=20 with a 26px star; language button at the right edge (x=1380).
+  - New: Logo at x=26 with a smaller star; language button at x=1376.
+  - Fix: Align the login header with the old one (20px side padding, same star size).
+  - Screenshots: `shots/login/{old,new}-desktop-light.jpg`
+- **F101** Onboarding wizard is reachable only in the new UI here (page: Onboarding (first run))
+  - Old: Old onboarding (change admin password, anonymous access, EULA) shows only on a fresh install; the comparison server was already set up, so it could not be captured.
+  - New: New: "Давайте всё настроим" with steps Пароль / Анонимный доступ / Готово, the generated-password file path, three password fields, "Отложить" and "Сохранить пароль".
+  - Fix: Compare on a fresh Java install before signing off (old wizard texts are in the Russian dictionaries).
+  - Screenshots: `shots/onboarding/{old,new}-desktop-dark.jpg`
+- **F016** Document titles differ (page: Dashboard)
+  - Old: "Главная - GlobalArt Astrum Repository" (dashboard), "Login - GlobalArt Astrum Repository" (login, untranslated).
+  - New: "Обзор - Astrum Repository", "Вход - Astrum Repository".
+  - Fix: Use the old route titles and the " - GlobalArt Astrum Repository" suffix (or the configured UI title).
+  - Screenshots: `shots/dashboard/{old,new}-desktop-dark.jpg`
+- **F006** Return address encoding on the login page differs (page: Protected page while signed out (redirect to login))
+  - Old: Protected page while signed out goes to `#/login?returnTo=<base64 of the hash>` (e.g. `I2FkbWluL3JlcG9zaXRvcnkvcmVwb3NpdG9yaWVz`).
+  - New: Goes to `/login?returnTo=%2Fadmin%2Frepository%2Frepositories` (URL-encoded path).
+  - Fix: Only matters for bookmarks and links shared from the old UI: `legacy.ts` already maps `#/login?returnTo=<b64>`; keep it, no visual change needed. Listed for completeness.
+  - Screenshots: `shots/login-return/{old,new}-desktop-dark.jpg`
+
+## Cosmetic
+
+- **F017** Global radius scale: large (old) vs medium (new) (page: Dashboard)
+  - Old: Buttons and inputs radius 10px, cards 12px, menu items 8px, icon buttons 10px.
+  - New: Buttons and inputs 6px, cards 8px, menu items 6px.
+  - Fix: Set the Radix Theme `radius="large"` (and the matching CSS tokens) once; it fixes every page.
+  - Screenshots: `shots/repos-list/{old,new}-desktop-dark.jpg`, `shots/login/{old,new}-desktop-light.jpg`
+- **F066** Both repository tables are wider than the page at 1440 (page: Repositories list)
+  - Old: The last column(s) are cut off on the right inside the table card.
+  - New: The last column ("Компоненты") is cut off as well.
+  - Fix: Fit the old column set into 1144px (old defect; keep it fixed in the new UI).
+  - Screenshots: `shots/repos-list/{old,new}-desktop-dark.jpg`
+- **F110** Version line in the menu footer shows the revision (page: anon-dashboard)
+  - Old: "Astrum Repository 2.0.0".
+  - New: "Astrum Repository 3.0.0-dev (89404fd)" on two lines.
+  - Fix: Print the version only, on one line (revision can go into the help menu).
+  - Screenshots: `shots/anon-dashboard/{old,new}-desktop-dark.jpg`
+- **F005** Old login overflows at 390 px (do not copy) (page: Login page)
+  - Old: At 390 px the page is 1366 px wide: the header and the card are cut on the right and the language button is off screen (old defect).
+  - New: No horizontal scroll; the whole card and the language button are visible.
+  - Fix: Keep the new behaviour; match everything else of the phone login (placeholders, disabled button, sizes).
+  - Screenshots: `shots/login/{old,new}-phone-light.jpg`
+- **F051** Old search ignores `format=` in the URL (page: Search "qa" filtered to maven2)
+  - Old: Opening `#browse/search?q=qa&format=maven2` keeps "Все форматы" and lists all 11 results.
+  - New: Applies the format (Maven, 4 results, "Найдено 4 компонента").
+  - Fix: Nothing to copy; the result counter text "Найдено 4 компонента" vs "Показано: N" still differs (see the search finding).
+  - Screenshots: `shots/search-maven/{old,new}-desktop-dark.jpg`
+- **F063** "Настройки" menu item not highlighted on the hub in the old UI (page: Settings hub)
+  - Old: On `#settings` no menu item is active (on the admin pages "Настройки" is active).
+  - New: On `/settings` "Настройки" is active.
+  - Fix: Do not copy (old quirk); listed because every difference counts.
+  - Screenshots: `shots/settings/{old,new}-desktop-dark.jpg`
+- **F103** Language menu has an extra group label (page: Header: language menu open)
+  - Old: Two items: "English", "✓ Русский".
+  - New: Group label "Язык" above the two items.
+  - Fix: Drop the label.
+  - Screenshots: `shots/language-menu/{old,new}-desktop-dark.jpg`
+- **F018** Console errors on every old page (telemetry 404) — do not copy (page: Dashboard)
+  - Old: Each page logs `404 GET /service/rest/v1/user-telemetry/javascript` and a refused-script error (known defect).
+  - New: No console errors on normal pages.
+  - Fix: Nothing to copy; listed so the follow-up does not add the telemetry script.
+  - Screenshots: `shots/dashboard/{old,new}-desktop-dark.jpg`
+- **F019** Old rate-limit message is English in the Russian UI (do not copy) (page: Login page, wrong password)
+  - Old: After several failed sign-ins for one user the old form says "Too many failed login attempts. Please wait 28 seconds before trying again." in English.
+  - New: Not triggered in this run (the new server answers 429 with its own message after repeated failures).
+  - Fix: Translate the new message; nothing to copy.
+  - Screenshots: `shots/login-error/{old,new}-desktop-light.jpg`

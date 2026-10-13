@@ -44,6 +44,13 @@ secrets.
   support zip, API explorer; Nexus 2 URLs, docker ports/subdomains/port suggestion, M2 leftovers.
 - Owner to decide: SSRF page (exists only in the new UI), storing uploaded maven checksum files, the formats of
   production repositories hidden from anonymous users, the database layout question below.
+- Agent briefs are in `.claude/rewrite/briefs/` (M1-M4, PARITY; they name this container's paths: in a new
+  environment put worktrees, the shared target dir and scratch files wherever fits and adjust the paths), the
+  old/new UI findings in `.claude/rewrite/qa-findings.md`.
+- A fresh environment needs: the Rust toolchain of `rust-toolchain.toml`, PostgreSQL 16 for tests
+  (`ASTRUM_TEST_DATABASE_URL`), Node 22 with corepack pnpm for `web/`, Chromium for Playwright, and for UI
+  parity checks the Java server built from `public/` (JDK 21+, Maven, see "Build and test") running locally with
+  PostgreSQL as the reference; infra and gitops repositories for deploys to next.
 - Local services after a container restart: PostgreSQL 16 `su postgres -s /bin/sh -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/tmp/astrum-pg/data -l /var/tmp/astrum-pg/pg.log -o '-p 5433 -k /tmp' start"`;
   reference Java server `bash <session scratchpad>/e2e/astrum-pg.sh start` (port 8081).
 
