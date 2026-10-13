@@ -1,4 +1,4 @@
-import { call, SEARCH_REPOSITORIES, seedSearch, TOOLS } from './content';
+import { SEARCH_REPOSITORIES, seedSearch, TOOLS } from './content';
 import { expect, noHorizontalScroll, signIn, test } from './fixtures';
 
 test.beforeEach(async ({ page, server }) => {
@@ -7,10 +7,6 @@ test.beforeEach(async ({ page, server }) => {
   await signIn(page, server.adminPassword);
   await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
 });
-
-function firstRowName(page: import('@playwright/test').Page) {
-  return page.getByRole('table').getByRole('rowheader').first();
-}
 
 function results(page: import('@playwright/test').Page) {
   return page
@@ -80,57 +76,44 @@ test('search filters by format and repository and sorts on the server', async ({
   await expect(results(page).first()).toContainText('4.2.0');
 });
 
-test('criteria search uses format keys and finds files with download links', async ({ page, server }) => {
-  await page.goto('/search');
-  await page.getByRole('link', { name: 'Search by criteria' }).click();
-  await expect(page).toHaveURL(/\/search\/custom$/);
-  await page.getByRole('combobox', { name: 'Criterion' }).click();
-  await page.getByRole('option', { name: 'Maven group ID' }).click();
+test('criteria search combines conditions and opens components', async ({ page }) => {
+  await page.goto('/search/custom');
+  await expect(page.getByRole('heading', { level: 1, name: 'Advanced Search' })).toBeVisible();
+  await expect(page.getByText('Build a query')).toBeVisible();
+  await page.getByRole('combobox', { name: 'Field' }).click();
+  await expect(page.getByRole('option')).toHaveText([
+    'Keyword',
+    'Format',
+    'Repository',
+    'Group',
+    'Name',
+    'Version',
+  ]);
+  await page.getByRole('option', { name: 'Group' }).click();
   await page.getByRole('combobox', { name: 'Condition' }).click();
-  await page.getByRole('option', { name: 'starts with' }).click();
-  await page.getByLabel('Value of Maven group ID').fill('com.glob');
-  await page.getByRole('button', { name: 'Add a criterion' }).click();
-  await page.getByRole('combobox', { name: 'Criterion' }).nth(1).click();
-  await page.getByRole('option', { name: 'Maven extension' }).click();
-  await page.getByLabel('Value of Maven extension').fill('pom');
+  await page.getByRole('option', { name: 'Starts with' }).click();
+  await page.getByRole('textbox', { name: 'Value' }).fill('com.glob');
+  await page.getByRole('button', { name: 'Add Condition' }).click();
+  await page.getByRole('combobox', { name: 'Field' }).nth(1).click();
+  await page.getByRole('option', { name: 'Version' }).click();
+  await page.getByRole('textbox', { name: 'Value' }).nth(1).fill('1.3.0');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
-  await expect(page).toHaveURL(/\/search\/custom\?maven\.groupId=com\.glob\*&maven\.extension=pom$/);
-  await expect(page.getByRole('table').getByRole('rowheader')).toHaveCount(3);
-  await expect(firstRowName(page)).toContainText('astrum-client');
+  await expect(page).toHaveURL(/\/search\/custom\?group=com\.glob\*&version=1\.3\.0$/);
+  await expect(page.getByText('1 component found')).toBeVisible();
+  const row = page.getByRole('button', { name: 'Open astrum-client in the repository' });
+  await expect(row).toContainText('com.globalart');
+  await row.click();
+  await expect(page).toHaveURL(
+    /\/browse\/search-maven\/com\/globalart\/astrum-client\/1\.3\.0\/astrum-client-1\.3\.0\.jar$/,
+  );
 
-  await page.getByRole('radio', { name: 'Files' }).click();
+  await page.goto('/search/custom?name=report*');
+  await expect(page.getByRole('combobox', { name: 'Condition' })).toHaveText('Starts with');
+  await expect(page.getByRole('button', { name: 'Open report-builder in the repository' })).toBeVisible();
+  await page.getByRole('button', { name: 'Clear All' }).click();
+  await expect(page).toHaveURL(/\/search\/custom$/);
   await page.getByRole('button', { name: 'Search', exact: true }).click();
-  await expect(page).toHaveURL(/mode=assets$/);
-  const links = page.getByRole('table').getByRole('link', { name: /\.pom$/ });
-  await expect(links).toHaveCount(3);
-  const href = await links.first().getAttribute('href');
-  expect(href).toMatch(
-    /\/repository\/search-maven\/com\/globalart\/astrum-client\/1\.\d\.0\/astrum-client-1\.\d\.0\.pom$/,
-  );
-  const download = await page.request.get(href ?? '');
-  expect(download.status()).toBe(200);
-  expect(await download.text()).toContain('<artifactId>astrum-client</artifactId>');
-  await expect(page.getByRole('table').getByRole('link', { name: 'search-maven' }).first()).toHaveAttribute(
-    'href',
-    /^\/browse\/search-maven\/com\/globalart\/astrum-client\/1\.\d\.0$/,
-  );
-
-  await page.goto('/search/custom?npm.scope=globalart&version=*.1*');
-  await expect(page.getByLabel('Value of npm scope')).toHaveValue('globalart');
-  await expect(page.getByRole('table').getByRole('rowheader')).toHaveCount(2);
-  await page.goto('/search/custom?pypi.summary=*reports*');
-  await expect(page.getByRole('combobox', { name: 'Condition' })).toHaveText('contains');
-  await expect(page.getByRole('table').getByRole('rowheader')).toHaveCount(1);
-  await expect(firstRowName(page)).toContainText('report-builder');
-
-  const reply = await call(
-    server,
-    'GET',
-    '/service/rest/v1/search?repository=search-raw&name=/tools/3/tool-3.bin',
-  );
-  const sha1 = (await reply.json()).items[0].assets[0].checksum.sha1 as string;
-  await page.goto(`/search/custom?sha1=${sha1}&mode=assets`);
-  await expect(page.getByRole('link', { name: '/tools/3/tool-3.bin' })).toBeVisible();
+  await expect(page.getByText(/^\d+ components found$/)).toBeVisible();
 });
 
 test('the header search panel works with the keyboard', async ({ page }) => {
@@ -186,8 +169,8 @@ test('search pages fit a phone', async ({ page }) => {
   await expect(page.getByText(`Shown: ${TOOLS + 2}`)).toBeVisible();
   await expect(results(page)).toHaveCount(TOOLS + 2);
   await noHorizontalScroll(page);
-  await page.goto('/search/custom?maven.groupId=com.*&mode=assets');
-  await expect(page.getByRole('link', { name: /\.jar$/ }).first()).toBeVisible();
+  await page.goto('/search/custom?group=com.*');
+  await expect(page.getByRole('button', { name: /^Open astrum-client/ }).first()).toBeVisible();
   await noHorizontalScroll(page);
   await page.getByRole('banner').getByRole('button', { name: 'Search', exact: true }).click();
   const panel = page.getByRole('dialog', { name: 'Search' });

@@ -48,14 +48,11 @@ for (const size of SIZES) {
       await shoot(page, `search-empty-${suffix}`);
 
       await page.goto('/search/custom');
-      await expect(page.getByText('Build your search')).toBeVisible();
+      await expect(page.getByText('Build a query')).toBeVisible();
       await shoot(page, `criteria-start-${suffix}`);
-      await page.goto('/search/custom?maven.groupId=com.*&maven.extension=pom');
-      await expect(page.getByRole('link', { name: 'astrum-client' }).first()).toBeVisible();
+      await page.goto('/search/custom?group=com.*');
+      await expect(page.getByRole('button', { name: /^Open astrum-client/ }).first()).toBeVisible();
       await shoot(page, `criteria-components-${suffix}`);
-      await page.goto('/search/custom?maven.groupId=com.*&mode=assets');
-      await expect(page.getByRole('link', { name: /\.jar$/ }).first()).toBeVisible();
-      await shoot(page, `criteria-files-${suffix}`);
 
       await page.goto('/browse/search-npm');
       await page.keyboard.press('Control+k');

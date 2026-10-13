@@ -208,74 +208,80 @@
   border-radius: var(--radius-1);
 }
 
+.criteriaPage.criteriaPage.criteriaPage {
+  gap: 10px;
+}
+
 .criteria {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--gray-a5);
-  border-radius: var(--radius-4);
-  background: var(--color-panel-solid);
+  gap: 16px;
+}
+
+.criteriaHead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .criteriaList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  gap: 8px;
 }
 
 .criterion {
-  display: grid;
-  grid-template-columns: minmax(10rem, 14rem) minmax(8rem, 10rem) minmax(0, 1fr) auto;
-  grid-template-areas: "key operator value remove";
-  align-items: start;
-  gap: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .criterionKey {
-  grid-area: key;
-  min-width: 0;
+  min-width: 140px;
 }
 
 .criterionOperator {
-  grid-area: operator;
-  min-width: 0;
-}
-
-.criterionRemove {
-  grid-area: remove;
-}
-
-.operator {
-  display: flex;
-  align-items: center;
-  min-height: var(--space-6);
-  padding: 0 var(--space-2);
-  color: var(--gray-11);
-  font-size: var(--font-size-2);
+  min-width: 120px;
 }
 
 .criterionValue {
-  grid-area: value;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  flex: 1 1 200px;
   min-width: 0;
+}
+
+.criterionRemoveWrap {
+  display: inline-flex;
+}
+
+.criteriaAdd {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .criteriaActions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
-.full {
-  width: 100%;
+.criteriaTableWrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.notice .noticeBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .recentItem {
@@ -335,16 +341,6 @@
   .query,
   .choice {
     flex-basis: 100%;
-  }
-
-  .criterion {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "key remove"
-      "operator operator"
-      "value value";
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--gray-a4);
   }
 
   .itemMeta .repositoryName {

@@ -175,50 +175,49 @@ describe('the criteria search', () => {
         : undefined,
     );
     const { router } = page('/search/custom');
-    expect(screen.getByText('Build your search')).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText('Value of Keyword'), 'tool');
-    await userEvent.click(screen.getByRole('button', { name: 'Add a criterion' }));
-    await userEvent.click(screen.getAllByRole('combobox', { name: 'Criterion' })[1] as HTMLElement);
-    await userEvent.click(await screen.findByRole('option', { name: 'Maven group ID' }));
-    await userEvent.click(screen.getByRole('combobox', { name: 'Condition' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'starts with' }));
-    await userEvent.type(screen.getByLabelText('Value of Maven group ID'), 'org.ex');
+    expect(screen.getByText('Build a query')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove condition' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Clear All' })).toBeNull();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Value' }), 'tool');
+    await userEvent.click(screen.getByRole('button', { name: 'Add Condition' }));
+    await userEvent.click(screen.getAllByRole('combobox', { name: 'Field' })[1] as HTMLElement);
+    await userEvent.click(await screen.findByRole('option', { name: 'Group' }));
+    await userEvent.click(screen.getAllByRole('combobox', { name: 'Condition' })[1] as HTMLElement);
+    await userEvent.click(await screen.findByRole('option', { name: 'Starts with' }));
+    expect(screen.getAllByRole('textbox', { name: 'Value' })[1]).toHaveAttribute(
+      'placeholder',
+      'for example, org.apache.commons',
+    );
+    await userEvent.type(screen.getAllByRole('textbox', { name: 'Value' })[1] as HTMLElement, 'org.ex');
     await userEvent.click(screen.getByRole('button', { name: 'Search' }));
-    await waitFor(() => expect(router.state.location.search).toBe('?q=tool&maven.groupId=org.ex*'));
-    expect(await screen.findByRole('link', { name: /tool-2/ })).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.search).toBe('?q=tool&group=org.ex*'));
+    const row = await screen.findByRole('button', { name: 'Open tool-2 in the repository' });
+    expect(within(row).getByText('1.2.0')).toBeInTheDocument();
+    expect(screen.getByText('1 component found')).toBeInTheDocument();
+    expect(screen.getAllByRole('combobox', { name: 'Field' })).toHaveLength(2);
     const searched = calls.filter((url) => url.pathname === '/service/rest/v1/search');
-    expect(searched.at(-1)?.searchParams.get('maven.groupId')).toBe('org.ex*');
+    expect(searched.at(-1)?.searchParams.get('group')).toBe('org.ex*');
+    await userEvent.click(row);
+    expect(router.state.location.pathname).toBe('/browse/maven-releases/tools/tool-2');
   });
 
-  it('refuses empty searches and bad checksums', async () => {
-    stub(() => undefined);
-    const { router } = page('/search/custom');
-    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
-    expect(await screen.findByText('Give at least one criterion a value.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('combobox', { name: 'Criterion' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'SHA-1 checksum' }));
-    await userEvent.type(screen.getByLabelText('Value of SHA-1 checksum'), 'abc');
-    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
-    expect(
-      await screen.findByText('A checksum of this kind has 40 hexadecimal characters.'),
-    ).toBeInTheDocument();
-    expect(router.state.location.search).toBe('');
-  });
-
-  it('lists files with download links in the assets mode', async () => {
-    stub((url) =>
-      url.pathname === '/service/rest/v1/search/assets'
-        ? jsonResponse({ items: component(3).assets, continuationToken: null })
+  it('searches everything without conditions and clears them', async () => {
+    const calls = stub((url) =>
+      url.pathname === '/service/rest/v1/search'
+        ? jsonResponse({ items: [], continuationToken: null })
         : undefined,
     );
-    page('/search/custom?name=tool*&mode=assets');
-    const link = await screen.findByRole('link', { name: '/tools/tool-3' });
-    expect(link).toHaveAttribute('href', 'http://localhost/repository/raw-files/tools/tool-3');
-    expect(link).toHaveAttribute('download');
-    expect(screen.getByRole('link', { name: 'raw-files' })).toHaveAttribute(
-      'href',
-      '/browse/raw-files/tools',
+    const { router } = page('/search/custom?name=tool*');
+    expect(screen.getByRole('textbox', { name: 'Value' })).toHaveValue('tool');
+    expect(screen.getByRole('combobox', { name: 'Condition' })).toHaveTextContent('Starts with');
+    expect(await screen.findByText('No components found')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Clear All' }));
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+    expect(screen.getByRole('textbox', { name: 'Value' })).toHaveValue('');
+    expect(screen.getByText('Build a query')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await waitFor(() =>
+      expect(calls.some((url) => url.pathname === '/service/rest/v1/search' && url.search === '')).toBe(true),
     );
-    expect(screen.getByLabelText('Value of Name')).toHaveValue('tool');
   });
 });
