@@ -519,11 +519,13 @@ dependencies = [
  "astrum-db",
  "astrum-testkit",
  "chrono",
+ "regex",
  "sea-orm",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
+ "tracing",
  "url",
 ]
 

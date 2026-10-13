@@ -1,5 +1,6 @@
 pub mod config;
 pub mod format;
+pub mod routing;
 pub mod store;
 
 pub use config::{Problem, Repository, Request, Section, Spec};

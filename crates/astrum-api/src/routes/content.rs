@@ -90,5 +90,24 @@ async fn dispatch(
         parts.headers,
         body,
     )?;
-    format.handle(ctx, request).await
+    let rule_path = astrum_repo::routing::request_path(&path);
+    if !state
+        .content()
+        .routing_allows(&ctx.repository, &rule_path)
+        .await?
+    {
+        return Ok(blocked());
+    }
+    format
+        .handle(ctx.with_request_path(&rule_path), request)
+        .await
+}
+
+fn blocked() -> Response {
+    (
+        axum::http::StatusCode::FORBIDDEN,
+        [(axum::http::header::CONTENT_TYPE, "text/plain;charset=utf-8")],
+        astrum_content::routing::BLOCKED,
+    )
+        .into_response()
 }

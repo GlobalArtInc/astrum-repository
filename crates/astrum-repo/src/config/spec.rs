@@ -56,7 +56,12 @@ impl Spec {
             Section::Proxy | Section::NegativeCache | Section::HttpClient => {
                 when(kind == Proxy, Required)
             }
-            Section::RoutingRuleName | Section::Firewall => when(kind == Proxy, Nullable),
+            Section::RoutingRuleName => match kind {
+                Proxy => Some(Nullable),
+                Group => Some(Omitted),
+                Hosted => None,
+            },
+            Section::Firewall => when(kind == Proxy, Nullable),
             Section::Replication => when(kind == Proxy, Defaulted),
             Section::Group => when(kind == Group, Required),
             Section::Maven => when(format == "maven2" && kind != Group, Required),
