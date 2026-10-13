@@ -10,6 +10,7 @@ use astrum_blob::BlobStores;
 use astrum_content::Content;
 use astrum_db::Database;
 use astrum_db::audit::{self, Event};
+use astrum_notify::Notifier;
 use astrum_security::{SecretBox, Security};
 use astrum_tasks::Tasks;
 use axum::Router;
@@ -36,6 +37,7 @@ struct Inner {
     blob_stores: Arc<BlobStores>,
     content: Content,
     tasks: Tasks,
+    notifier: Notifier,
 }
 
 impl AppState {
@@ -48,6 +50,7 @@ impl AppState {
         ));
         let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
         let tasks = Tasks::new(content.clone());
+        let notifier = Notifier::new(db.conn().clone(), secrets.clone());
         Self {
             inner: Arc::new(Inner {
                 db,
@@ -57,6 +60,7 @@ impl AppState {
                 blob_stores,
                 content,
                 tasks,
+                notifier,
             }),
         }
     }
@@ -96,6 +100,10 @@ impl AppState {
 
     pub fn tasks(&self) -> &Tasks {
         &self.inner.tasks
+    }
+
+    pub fn notifier(&self) -> &Notifier {
+        &self.inner.notifier
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {

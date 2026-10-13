@@ -3,6 +3,7 @@ mod config;
 pub mod entity;
 pub mod read_only;
 pub mod setting;
+pub mod system;
 
 use std::time::Duration;
 

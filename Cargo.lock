@@ -219,10 +219,12 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-pypi",
  "astrum-format-raw",
+ "astrum-notify",
  "astrum-repo",
  "astrum-security",
  "astrum-tasks",
  "astrum-testkit",
+ "async-trait",
  "axum",
  "base64 0.22.1",
  "bytes",
@@ -510,6 +512,30 @@ dependencies = [
  "async-trait",
  "axum",
  "serde_json",
+]
+
+[[package]]
+name = "astrum-notify"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-content",
+ "astrum-db",
+ "astrum-security",
+ "async-trait",
+ "chrono",
+ "hex",
+ "hmac 0.12.1",
+ "percent-encoding",
+ "reqwest",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
 ]
 
 [[package]]

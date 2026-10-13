@@ -21,6 +21,7 @@ astrum-format-nuget = { path = "crates/astrum-format-nuget" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
 astrum-db = { path = "crates/astrum-db" }
+astrum-notify = { path = "crates/astrum-notify" }
 astrum-repo = { path = "crates/astrum-repo" }
 astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }
@@ -59,7 +60,7 @@ rand = "0.9"
 rcgen = "0.14"
 regex = "1"
 regex-syntax = "0.8"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "stream", "http2"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "stream", "http2", "socks"] }
 ring = "0.17"
 rustix = { version = "1", features = ["fs"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
