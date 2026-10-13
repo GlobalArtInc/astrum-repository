@@ -447,3 +447,15 @@
     padding: 0 4px;
   }
 }
+
+.brandingHeader {
+  padding: 4px 16px;
+  background: var(--color-panel-solid);
+  border-bottom: 1px solid var(--gray-a5);
+  overflow: hidden;
+}
+
+.brandingFooter {
+  padding: 16px 24px;
+  overflow: hidden;
+}

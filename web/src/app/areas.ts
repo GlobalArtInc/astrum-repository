@@ -4,6 +4,7 @@ import { browseArea } from '../areas/browse';
 import { cleanupArea } from '../areas/cleanup';
 import { dashboardArea } from '../areas/dashboard';
 import { identityArea } from '../areas/identity';
+import { notifyArea } from '../areas/notify';
 import { onboardingArea } from '../areas/onboarding';
 import { repositoriesArea } from '../areas/repositories';
 import { searchArea } from '../areas/search';
@@ -31,4 +32,5 @@ export const areas: Area[] = [
   tasksArea,
   userArea,
   onboardingArea,
+  notifyArea,
 ];

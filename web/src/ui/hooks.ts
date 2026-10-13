@@ -21,8 +21,24 @@ export function useMediaQuery(query: string): boolean {
   );
 }
 
+let titleSuffix = TITLE_SUFFIX;
+
 export function documentTitle(title?: string): string {
-  return title ? `${title} - ${TITLE_SUFFIX}` : TITLE_SUFFIX;
+  return title ? `${title} - ${titleSuffix}` : titleSuffix;
+}
+
+export function replaceTitleSuffix(next?: string | null): void {
+  const wanted = next?.trim() ? next.trim() : TITLE_SUFFIX;
+  if (wanted === titleSuffix) {
+    return;
+  }
+  const previous = titleSuffix;
+  titleSuffix = wanted;
+  if (document.title === previous) {
+    document.title = wanted;
+  } else if (document.title.endsWith(` - ${previous}`)) {
+    document.title = `${document.title.slice(0, -previous.length)}${wanted}`;
+  }
 }
 
 export function useDocumentTitle(title?: string): void {

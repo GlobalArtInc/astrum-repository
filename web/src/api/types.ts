@@ -26,4 +26,6 @@ export interface UiState {
   oidcEnabled?: boolean;
   defaultRole?: { id: string; name: string } | null;
   nugetApiKeyRealm?: boolean;
+  uiSettings?: { title: string; debugAllowed: boolean };
+  branding?: { headerHtml: string | null; footerHtml: string | null };
 }
