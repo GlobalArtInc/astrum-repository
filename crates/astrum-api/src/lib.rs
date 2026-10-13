@@ -124,6 +124,7 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
         .merge(routes::internal::routes())
         .merge(routes::oidc::routes())
         .merge(routes::content::routes())
+        .merge(routes::legacy::routes())
         .merge(routes::components::routes())
         .merge(routes::tasks::routes())
         .merge(routes::cleanup_policies::routes())

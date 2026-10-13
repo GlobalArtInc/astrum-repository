@@ -3,6 +3,7 @@ pub mod cleanup_policies;
 pub mod components;
 pub mod content;
 pub mod internal;
+pub mod legacy;
 pub mod oidc;
 pub mod repositories;
 pub mod security;

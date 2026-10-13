@@ -74,7 +74,7 @@ pub async fn context(
     Ok((ctx, format))
 }
 
-async fn dispatch(
+pub(crate) async fn dispatch(
     state: AppState,
     caller: Caller,
     name: String,
