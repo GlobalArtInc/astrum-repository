@@ -17,8 +17,8 @@ mod xml;
 use astrum_content::format::{SearchKey, SearchTarget};
 use astrum_content::store::{self};
 use astrum_content::{
-    Asset, ContentError, ContentRequest, Ctx, Format, Serve, UploadField, UploadForm, UploadSpec,
-    View, serve,
+    Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Serve, UploadField, UploadForm,
+    UploadSpec, View, serve,
 };
 use astrum_repo::RepositoryType;
 use async_trait::async_trait;
@@ -424,6 +424,15 @@ impl Format for Nuget {
 
     async fn upload(&self, ctx: Ctx, form: UploadForm) -> Result<(), ContentError> {
         hosted::upload(&ctx, form).await
+    }
+
+    fn browse_layout(&self) -> BrowseLayout {
+        BrowseLayout {
+            path: Some(
+                "CASE WHEN c.id IS NOT NULL THEN '/' || c.name || '/' || c.version || regexp_replace(a.path, '^.*/', '/') END",
+            ),
+            generated: &[],
+        }
     }
 
     fn search_keys(&self) -> &'static [SearchKey] {

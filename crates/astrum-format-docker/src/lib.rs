@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use astrum_content::format::SearchTarget;
 use astrum_content::store::{self, Asset};
 use astrum_content::{
-    ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, View, group, serve,
+    BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, View, group, serve,
 };
 use astrum_repo::RepositoryType;
 use astrum_repo::config::WritePolicy;
@@ -1408,6 +1408,15 @@ impl Format for Docker {
                 .map(|(_, asset)| asset))
             }
             _ => self.leaf_get(ctx, path).await,
+        }
+    }
+
+    fn browse_layout(&self) -> BrowseLayout {
+        BrowseLayout {
+            path: Some(
+                "CASE WHEN a.kind = 'tag' THEN regexp_replace(a.path, '^/v2(/.+)/manifests/([^/]+)$', '\\1/\\2') END",
+            ),
+            generated: &[],
         }
     }
 

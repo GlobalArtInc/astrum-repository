@@ -93,42 +93,6 @@ pub(super) fn compare(left: &str, right: &str) -> Ordering {
     left.cmp(right)
 }
 
-pub(super) fn natural(left: &str, right: &str) -> Ordering {
-    let mut a = left.chars().peekable();
-    let mut b = right.chars().peekable();
-    loop {
-        match (a.peek().copied(), b.peek().copied()) {
-            (None, None) => return left.cmp(right),
-            (None, Some(_)) => return Ordering::Less,
-            (Some(_), None) => return Ordering::Greater,
-            (Some(x), Some(y)) if x.is_ascii_digit() && y.is_ascii_digit() => {
-                let mut first = String::new();
-                while let Some(c) = a.peek().copied().filter(char::is_ascii_digit) {
-                    first.push(c);
-                    a.next();
-                }
-                let mut second = String::new();
-                while let Some(c) = b.peek().copied().filter(char::is_ascii_digit) {
-                    second.push(c);
-                    b.next();
-                }
-                let ordering = numbers(&first, &second);
-                if ordering != Ordering::Equal {
-                    return ordering;
-                }
-            }
-            (Some(x), Some(y)) => {
-                let ordering = x.to_lowercase().cmp(y.to_lowercase());
-                if ordering != Ordering::Equal {
-                    return ordering;
-                }
-                a.next();
-                b.next();
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,12 +163,5 @@ mod tests {
                 "1.1"
             ]
         );
-    }
-
-    #[test]
-    fn names_sort_naturally() {
-        let mut names = vec!["file10.txt", "File2.txt", "file1.txt", "a", "B"];
-        names.sort_by(|a, b| natural(a, b));
-        assert_eq!(names, ["a", "B", "file1.txt", "File2.txt", "file10.txt"]);
     }
 }

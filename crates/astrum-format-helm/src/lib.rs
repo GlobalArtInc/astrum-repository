@@ -8,8 +8,8 @@ mod remote;
 use astrum_content::format::SearchTarget;
 use astrum_content::store;
 use astrum_content::{
-    Asset, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField, UploadForm,
-    UploadSpec, View, group, serve,
+    Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField,
+    UploadForm, UploadSpec, View, group, serve,
 };
 use astrum_repo::RepositoryType;
 use async_trait::async_trait;
@@ -347,6 +347,15 @@ impl Format for Helm {
             .ok_or_else(|| ContentError::BadRequest("helm.asset is required".to_owned()))?;
         hosted::upload_chart(&ctx, UploadForm::stream(file).await?).await?;
         Ok(())
+    }
+
+    fn browse_layout(&self) -> BrowseLayout {
+        BrowseLayout {
+            path: Some(
+                "CASE WHEN c.id IS NULL THEN a.path ELSE '/' || c.name || '/' || c.version || regexp_replace(a.path, '^.*/', '/') END",
+            ),
+            generated: &[INDEX],
+        }
     }
 
     fn search_keys(&self) -> &'static [SearchKey] {

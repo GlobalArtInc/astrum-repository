@@ -24,7 +24,7 @@ use sea_orm::DatabaseConnection;
 pub use access::{Grant, View};
 pub use downloads::DOWNLOAD_DAYS_KEPT;
 pub use error::{CHALLENGE, ContentError};
-pub use format::{Format, SearchKey, UploadField, UploadForm, UploadSpec, fetch};
+pub use format::{BrowseLayout, Format, SearchKey, UploadField, UploadForm, UploadSpec, fetch};
 pub use proxy::Freshness;
 pub use request::{ContentRequest, normalize};
 pub use serve::{Serve, serve};

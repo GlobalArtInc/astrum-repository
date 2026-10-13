@@ -46,7 +46,7 @@ fn pairs(expected: &[(&str, &str)]) -> Vec<(String, String)> {
 }
 
 #[tokio::test]
-async fn folders_come_before_assets_with_their_details() {
+async fn files_with_components_come_before_folders_with_their_details() {
     let fixture = files().await;
     let root = browse(&fixture, "files", "", Auth::Admin).await;
     assert_eq!(root.status, StatusCode::OK, "{}", root.text());
@@ -58,18 +58,19 @@ async fn folders_come_before_assets_with_their_details() {
     assert_eq!(root["truncated"], false);
     assert_eq!(
         kinds_and_names(&root),
-        pairs(&[("folder", "a"), ("asset", "c.txt")])
+        pairs(&[("asset", "c.txt"), ("folder", "a")])
     );
-    assert_eq!(root["children"][0]["path"], "/a/");
-    assert_eq!(root["children"][0]["childCount"], 2);
+    assert_eq!(root["children"][1]["path"], "/a/");
+    assert_eq!(root["children"][1]["childCount"], 2);
 
     let folder = browse(&fixture, "files", "a", Auth::Admin).await.json();
     assert_eq!(folder["path"], "/a/");
     assert_eq!(
         kinds_and_names(&folder),
-        pairs(&[("folder", "b"), ("asset", "one.txt")])
+        pairs(&[("asset", "one.txt"), ("folder", "b")])
     );
-    let one = &folder["children"][1];
+    let one = &folder["children"][0];
+    assert_eq!(one["assetPath"], "/a/one.txt");
     assert_eq!(one["path"], "/a/one.txt");
     assert_eq!(one["size"], 3);
     assert_eq!(one["contentType"], "text/plain");
@@ -257,7 +258,7 @@ async fn browsing_follows_views_and_content_selectors() {
     assert_eq!(anonymous.status, StatusCode::OK);
     assert_eq!(
         kinds_and_names(&anonymous.json()),
-        pairs(&[("folder", "a"), ("asset", "c.txt")])
+        pairs(&[("asset", "c.txt"), ("folder", "a")])
     );
 }
 

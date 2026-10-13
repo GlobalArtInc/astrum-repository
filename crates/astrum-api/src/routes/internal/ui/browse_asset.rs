@@ -1,16 +1,18 @@
 use std::sync::Arc;
 
-use astrum_content::{View, ids, store};
+use astrum_content::{BrowseLayout, View, ids, store};
+use astrum_db::entity::asset;
 use astrum_repo::{Repository, RepositoryType};
 use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::routing::get;
+use sea_orm::EntityTrait;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
 use super::UI;
-use super::access::{context, reach_of, subject};
-use super::browse::content_error;
+use super::access::{Sql, context, reach_of, subject};
+use super::browse::{content_error, layout_of};
 use crate::routes::components::{asset_json, encode_path};
 use crate::routes::repositories::BaseUrl;
 use crate::{ApiError, AppState, Caller};
@@ -29,6 +31,27 @@ struct AssetQuery {
 
 fn asset_missing(path: &str, repository: &str) -> ApiError {
     ApiError::not_found(format!("{path} is not in the repository {repository}"))
+}
+
+async fn placed(
+    db: &sea_orm::DatabaseConnection,
+    layout: &BrowseLayout,
+    repository: &str,
+    path: &str,
+) -> Result<Option<store::Asset>, ApiError> {
+    let Some(expression) = layout.path else {
+        return Ok(None);
+    };
+    let mut sql = Sql::default();
+    let name = sql.bind(repository.to_owned());
+    let wanted = sql.bind(path.to_owned());
+    let query = format!(
+        "SELECT a.* FROM asset a LEFT JOIN component c ON c.id = a.component_id WHERE a.repository = {name} AND ({expression}) = {wanted} LIMIT 1"
+    );
+    Ok(asset::Entity::find()
+        .from_raw_sql(sql.statement(&query))
+        .one(db)
+        .await?)
 }
 
 async fn asset_details(
@@ -52,9 +75,10 @@ async fn asset_details(
     }
     let path = astrum_content::normalize(query.path.as_deref().unwrap_or_default())
         .map_err(content_error)?;
-    if path.ends_with('/') || !reach.sees(repository.format.id, &path) {
+    if path.ends_with('/') {
         return Err(asset_missing(&path, &repository.name));
     }
+    let layout = layout_of(&state, &repository);
     let readers: Vec<Arc<Repository>> = match repository.kind {
         RepositoryType::Group => astrum_content::group::members(&ctx)
             .await
@@ -64,15 +88,21 @@ async fn asset_details(
     let db = state.db().conn();
     let mut found = None;
     for reader in readers {
-        if let Some(asset) = store::find(db, &reader.name, &path)
+        let stored = match store::find(db, &reader.name, &path)
             .await
             .map_err(content_error)?
         {
+            Some(asset) => Some(asset),
+            None => placed(db, &layout, &reader.name, &path).await?,
+        };
+        if let Some(asset) = stored {
             found = Some((reader, asset));
             break;
         }
     }
-    let (owner, asset) = found.ok_or_else(|| asset_missing(&path, &repository.name))?;
+    let (owner, asset) = found
+        .filter(|(_, asset)| reach.sees(repository.format.id, &asset.path))
+        .ok_or_else(|| asset_missing(&path, &repository.name))?;
     let component = match asset.component_id {
         Some(id) => store::component_by_id(db, id)
             .await

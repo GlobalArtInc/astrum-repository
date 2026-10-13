@@ -12,8 +12,8 @@ mod upload;
 use astrum_content::format::SearchTarget;
 use astrum_content::store;
 use astrum_content::{
-    Asset, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField, UploadForm,
-    UploadSpec, View, group, serve,
+    Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField,
+    UploadForm, UploadSpec, View, group, serve,
 };
 use astrum_repo::RepositoryType;
 use async_trait::async_trait;
@@ -307,6 +307,15 @@ impl Format for PyPi {
         };
         hosted::store_package(&ctx, &package, UploadForm::stream(file).await?).await?;
         Ok(())
+    }
+
+    fn browse_layout(&self) -> BrowseLayout {
+        BrowseLayout {
+            path: Some(
+                "CASE WHEN a.kind <> 'metadata' AND a.path LIKE '/packages/%' THEN substr(a.path, 10) END",
+            ),
+            generated: &[],
+        }
     }
 
     fn search_keys(&self) -> &'static [SearchKey] {

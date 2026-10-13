@@ -116,6 +116,18 @@ impl Drop for UploadForm {
     }
 }
 
+/// How the browse tree of the UI places the assets of a format.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct BrowseLayout {
+    /// SQL expression giving the tree path of an asset, written over `a` (a row of `asset`) and
+    /// `c` (its component, left joined, so its columns are null without one); NULL leaves the asset
+    /// out of the tree. `None` shows every asset under its stored path.
+    pub path: Option<&'static str>,
+    /// Files the format answers without storing them as assets; the tree offers them at the root
+    /// unless an asset of that path exists.
+    pub generated: &'static [&'static str],
+}
+
 #[async_trait]
 pub trait Format: Send + Sync + 'static {
     fn id(&self) -> &'static str;
@@ -137,6 +149,10 @@ pub trait Format: Send + Sync + 'static {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         &[]
+    }
+
+    fn browse_layout(&self) -> BrowseLayout {
+        BrowseLayout::default()
     }
 }
 

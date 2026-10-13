@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex, Weak};
 use astrum_content::format::{SearchKey, SearchTarget};
 use astrum_content::store::PutAsset;
 use astrum_content::{
-    Asset, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadForm, UploadSpec,
-    View, serve,
+    Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadForm,
+    UploadSpec, View, serve,
 };
 use astrum_repo::RepositoryType;
 use async_trait::async_trait;
@@ -257,6 +257,13 @@ impl Format for Npm {
 
     async fn upload(&self, ctx: Ctx, form: UploadForm) -> Result<(), ContentError> {
         upload::upload(self, &ctx, form).await
+    }
+
+    fn browse_layout(&self) -> BrowseLayout {
+        BrowseLayout {
+            path: Some("CASE WHEN a.kind = 'tarball' THEN replace(a.path, '/-/', '/') END"),
+            generated: &[],
+        }
     }
 
     fn search_keys(&self) -> &'static [SearchKey] {
