@@ -12,7 +12,7 @@ pub struct Model {
     pub token_hint: String,
     pub scope: String,
     pub created_at: DateTimeWithTimeZone,
-    pub expires_at: DateTimeWithTimeZone,
+    pub expires_at: Option<DateTimeWithTimeZone>,
     pub last_used_at: Option<DateTimeWithTimeZone>,
 }
 

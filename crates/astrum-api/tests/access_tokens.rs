@@ -126,7 +126,9 @@ async fn expired_tokens_and_inactive_realms_refuse() {
     let id = uuid::Uuid::parse_str(created["id"].as_str().unwrap()).unwrap();
     access_token::Entity::update(access_token::ActiveModel {
         id: ActiveValue::Unchanged(id),
-        expires_at: ActiveValue::Set(chrono::Utc::now().fixed_offset() - chrono::Duration::days(1)),
+        expires_at: ActiveValue::Set(Some(
+            chrono::Utc::now().fixed_offset() - chrono::Duration::days(1),
+        )),
         ..Default::default()
     })
     .exec(fixture.state.db().conn())
@@ -214,12 +216,43 @@ async fn tokens_belong_to_their_owner() {
 }
 
 #[tokio::test]
+async fn a_token_may_never_expire() {
+    let fixture = Fixture::new().await;
+    let reply = fixture
+        .call(
+            Method::POST,
+            TOKENS,
+            Auth::Admin,
+            Some(json!({"name": "forever", "scope": "READ", "expiresInDays": null})),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+    let created = reply.json();
+    assert_eq!(created["expiresAt"], Value::Null);
+    let token = created["token"].as_str().unwrap();
+    assert_eq!(
+        fixture
+            .call(Method::GET, AUDIT, Auth::Basic("admin", token), None)
+            .await
+            .status,
+        StatusCode::OK
+    );
+    let listed = fixture
+        .call(Method::GET, TOKENS, Auth::Admin, None)
+        .await
+        .json();
+    assert_eq!(listed[0]["name"], "forever");
+    assert_eq!(listed[0]["expiresAt"], Value::Null);
+}
+
+#[tokio::test]
 async fn bad_token_requests_are_explained() {
     let fixture = Fixture::new().await;
     for (body, field) in [
         (json!({"name": " ", "expiresInDays": 5}), "name"),
         (json!({"name": "x", "expiresInDays": 0}), "expiresInDays"),
         (json!({"name": "x", "expiresInDays": 3651}), "expiresInDays"),
+        (json!({"name": "x"}), "expiresInDays"),
     ] {
         let reply = fixture
             .call(Method::POST, TOKENS, Auth::Admin, Some(body))

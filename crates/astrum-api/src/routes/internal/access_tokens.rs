@@ -27,7 +27,7 @@ struct TokenView {
     hint: String,
     scope: Scope,
     created_at: String,
-    expires_at: String,
+    expires_at: Option<String>,
     last_used_at: Option<String>,
 }
 
@@ -40,7 +40,7 @@ impl From<TokenInfo> for TokenView {
             hint: token.hint,
             scope: token.scope,
             created_at: token.created_at.to_rfc3339(),
-            expires_at: token.expires_at.to_rfc3339(),
+            expires_at: token.expires_at.map(|at| at.to_rfc3339()),
             last_used_at: token.last_used_at.map(|at| at.to_rfc3339()),
         }
     }
@@ -58,7 +58,12 @@ struct NewToken {
     name: String,
     #[serde(default)]
     scope: Scope,
-    expires_in_days: i64,
+    #[serde(default, deserialize_with = "given")]
+    expires_in_days: Option<Option<i64>>,
+}
+
+fn given<'de, D: serde::Deserializer<'de>>(value: D) -> Result<Option<Option<i64>>, D::Error> {
+    Option::<i64>::deserialize(value).map(Some)
 }
 
 fn owner(caller: &Caller) -> Result<&Subject, ApiError> {
@@ -100,14 +105,15 @@ async fn create(
     Json(body): Json<NewToken>,
 ) -> Result<Response, ApiError> {
     let subject = owner(&caller)?;
+    let days = body.expires_in_days.ok_or_else(|| {
+        ApiError::invalid(
+            "expiresInDays",
+            "give the number of days or null for no expiry",
+        )
+    })?;
     let created = state
         .security()
-        .create_token(
-            &subject.user_id,
-            &body.name,
-            body.scope,
-            body.expires_in_days,
-        )
+        .create_token(&subject.user_id, &body.name, body.scope, days)
         .await;
     let (info, token) = match created {
         Ok(created) => created,

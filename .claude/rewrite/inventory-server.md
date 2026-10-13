@@ -97,7 +97,7 @@ tokens refused). ExtDirect still used: `rapture_Security.getPermissions/authenti
 - Realms: local users (`AstrumAuthenticatingRealm`), authorizing realm, `LdapRealm` (ours; several
   servers, 5 min cache, dynamic/static groups), `OAuth2Realm` (OIDC with discovery, PKCE or confidential,
   groups claim → roles), `AccessTokenRealm` (ours; `astrum_` + 40 chars, SHA-256 stored, scope READ/WRITE,
-  expiry 1–3650 days, ≤100 per user, used as password, not for UI login), `DefaultRole` (capability), format
+  expiry 1–3650 days or never, ≤100 per user, used as password, not for UI login), `DefaultRole` (capability), format
   token realms (`DockerToken`, `NpmToken`, `NuGetApiKey`, `ConanToken`, `CargoToken`, `TerraformToken`,
   `RubyGemsApiKey`).
 - Anonymous `{enabled, userId=anonymous, realmName}`; built-in roles `as-admin`, `as-anonymous`.

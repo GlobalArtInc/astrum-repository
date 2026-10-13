@@ -209,7 +209,7 @@ M0 (2026-10-12): the skeleton runs, builds into an image and is checked by CI; n
   unsafe requests through a session need header `X-Astrum-CSRF` equal to the cookie and a same-origin
   `Sec-Fetch-Site`; 10 failed sign-ins in 5 minutes pause the user's sign-in with 429),
   `GET|POST /access-tokens`, `DELETE /access-tokens/{id}` (`astrum_` + 40 characters, SHA-256 stored, scope
-  READ/WRITE, 1–3650 days, at most 100 per user; usable as the Basic password of its owner or as a Bearer
+  READ/WRITE, 1–3650 days or no expiry (`expiresInDays: null`), at most 100 per user; usable as the Basic password of its owner or as a Bearer
   token while `AccessTokenRealm` is active; managed only after signing in with a password; other users'
   tokens need `astrum:accesstokens:read|delete`), `GET /audit?limit&before&domain` (`astrum:audit:read`).
 

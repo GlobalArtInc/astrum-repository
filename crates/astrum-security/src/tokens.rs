@@ -24,7 +24,7 @@ pub struct TokenInfo {
     pub hint: String,
     pub scope: Scope,
     pub created_at: DateTime<FixedOffset>,
-    pub expires_at: DateTime<FixedOffset>,
+    pub expires_at: Option<DateTime<FixedOffset>>,
     pub last_used_at: Option<DateTime<FixedOffset>>,
 }
 
@@ -32,7 +32,7 @@ pub struct TokenInfo {
 pub enum TokenError {
     #[error("a token needs a name")]
     Name,
-    #[error("a token lives between {MIN_DAYS} and {MAX_DAYS} days")]
+    #[error("a token lives between {MIN_DAYS} and {MAX_DAYS} days, or never expires")]
     Days,
     #[error("a user can hold at most {MAX_PER_USER} tokens")]
     TooMany,
@@ -88,13 +88,13 @@ impl Security {
         user_id: &str,
         name: &str,
         scope: Scope,
-        days: i64,
+        days: Option<i64>,
     ) -> Result<(TokenInfo, String), TokenError> {
         let name = name.trim();
         if name.is_empty() || name.len() > 200 {
             return Err(TokenError::Name);
         }
-        if !(MIN_DAYS..=MAX_DAYS).contains(&days) {
+        if days.is_some_and(|days| !(MIN_DAYS..=MAX_DAYS).contains(&days)) {
             return Err(TokenError::Days);
         }
         let held = access_token::Entity::find()
@@ -121,7 +121,7 @@ impl Security {
                 .to_owned(),
             ),
             created_at: ActiveValue::Set(now),
-            expires_at: ActiveValue::Set(now + Duration::days(days)),
+            expires_at: ActiveValue::Set(days.map(|days| now + Duration::days(days))),
             last_used_at: ActiveValue::Set(None),
         };
         let stored = access_token::Entity::insert(row)
@@ -176,7 +176,7 @@ impl Security {
             .map_err(Error::from)?
             .ok_or(AuthError::BadCredentials)?;
         let now = Utc::now().fixed_offset();
-        if row.expires_at <= now {
+        if row.expires_at.is_some_and(|expires| expires <= now) {
             return Err(AuthError::BadCredentials);
         }
         if user_id.is_some_and(|user_id| user_id != row.user_id) {
