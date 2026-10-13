@@ -59,6 +59,19 @@ impl Security {
         Ok(deleted.rows_affected)
     }
 
+    pub async fn revoke_format_tokens_of_realm(
+        &self,
+        user_id: &str,
+        realm: &str,
+    ) -> Result<u64, Error> {
+        let deleted = format_token::Entity::delete_many()
+            .filter(format_token::Column::UserId.eq(user_id))
+            .filter(format_token::Column::Realm.eq(realm))
+            .exec(&self.db)
+            .await?;
+        Ok(deleted.rows_affected)
+    }
+
     pub async fn authenticate_format_token(&self, token: &str) -> Result<Subject, AuthError> {
         let Some(realm) = looks_like_format_token(token) else {
             return Err(AuthError::BadCredentials);

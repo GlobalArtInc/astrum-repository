@@ -20,6 +20,7 @@ astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-nuget = { path = "crates/astrum-format-nuget" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
+astrum-format-terraform = { path = "crates/astrum-format-terraform" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-logging = { path = "crates/astrum-logging" }
 astrum-repo = { path = "crates/astrum-repo" }
@@ -55,8 +56,10 @@ migrator = { package = "sqlmig", version = "0.2.1" }
 mime_guess = "2"
 multer = "3"
 percent-encoding = "2"
+pgp = { version = "0.21", default-features = false }
 quick-xml = "0.42"
 rand = "0.9"
+rand_core06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }
 rcgen = "0.14"
 regex = "1"
 regex-syntax = "0.8"
