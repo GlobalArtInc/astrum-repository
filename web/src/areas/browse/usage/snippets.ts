@@ -80,18 +80,6 @@ function mavenExtras(attributes: Record<string, unknown> | undefined) {
   };
 }
 
-function mavenServers(id: string): string {
-  return [
-    '  <servers>',
-    '    <server>',
-    `      <id>${id}</id>`,
-    `      <username>\${env.ASTRUM_USERNAME}</username>`,
-    `      <password>\${env.ASTRUM_PASSWORD}</password>`,
-    '    </server>',
-    '  </servers>',
-  ].join('\n');
-}
-
 function mavenSettings(context: UsageContext, url: string): Snippet {
   const id = xml(context.repositoryName);
   const hosted = context.repositoryType === 'hosted';
@@ -124,7 +112,7 @@ function mavenSettings(context: UsageContext, url: string): Snippet {
   return {
     id: 'settings',
     label: 'settings.xml',
-    code: ['<settings>', ...body, mavenServers(id), '</settings>'].join('\n'),
+    code: ['<settings>', ...body, '</settings>'].join('\n'),
     hint: hosted ? 'browse.usage.hint.mavenSettingsHosted' : 'browse.usage.hint.mavenSettingsMirror',
   };
 }
@@ -283,27 +271,12 @@ function pypi(context: UsageContext): Snippet[] {
     },
   ];
   if (context.repositoryType === 'hosted') {
-    snippets.push(
-      {
-        id: 'pypirc',
-        label: '.pypirc',
-        code: [
-          '[distutils]',
-          `index-servers = ${context.repositoryName}`,
-          '',
-          `[${context.repositoryName}]`,
-          `repository = ${url}`,
-          'username = <user>',
-        ].join('\n'),
-        hint: 'browse.usage.hint.pypirc',
-      },
-      {
-        id: 'twine',
-        label: 'twine',
-        code: `twine upload --repository ${context.repositoryName} dist/*`,
-        hint: 'browse.usage.hint.twine',
-      },
-    );
+    snippets.push({
+      id: 'twine',
+      label: 'twine',
+      code: `twine upload --repository-url ${url} dist/*`,
+      hint: 'browse.usage.hint.twine',
+    });
   }
   return snippets;
 }
@@ -385,6 +358,11 @@ function docker(context: UsageContext): Snippet[] {
   const reference = target?.reference ?? '<tag>';
   const digest = /^[a-z0-9]+:/.test(reference);
   const ref = `${registry}/${image}${digest ? '@' : ':'}${reference}`;
+  const service =
+    image
+      .split('/')
+      .pop()
+      ?.replace(/[^a-z0-9-]/gi, '') || 'app';
   const snippets: Snippet[] = [
     { id: 'pull', label: 'docker pull', code: `docker pull ${ref}` },
     {
@@ -399,6 +377,16 @@ function docker(context: UsageContext): Snippet[] {
       code: `FROM ${ref}`,
       hint: 'browse.usage.hint.dockerfile',
     },
+    {
+      id: 'compose',
+      label: 'Compose',
+      code: `services:\n  ${service}:\n    image: ${ref}`,
+    },
+    {
+      id: 'kubernetes',
+      label: 'Kubernetes',
+      code: `spec:\n  containers:\n  - name: ${service}\n    image: ${ref}`,
+    },
   ];
   if (context.repositoryType === 'hosted' && !digest) {
     snippets.push({
@@ -406,14 +394,6 @@ function docker(context: UsageContext): Snippet[] {
       label: 'docker push',
       code: `docker tag ${image}:${reference} ${ref}\ndocker push ${ref}`,
       hint: 'browse.usage.hint.dockerPush',
-    });
-  }
-  if (plainHttp(context.baseUrl)) {
-    snippets.push({
-      id: 'insecure',
-      label: 'daemon.json',
-      code: `{\n  "insecure-registries": ["${host}"]\n}`,
-      hint: 'browse.usage.hint.dockerInsecure',
     });
   }
   return snippets;

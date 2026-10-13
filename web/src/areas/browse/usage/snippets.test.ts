@@ -41,7 +41,7 @@ describe('maven usage', () => {
     expect(code(snippets, 'gradle-kotlin')).toContain('implementation("org.acme:lib:1.0")');
     expect(code(snippets, 'gradle-groovy')).toContain("implementation 'org.acme:lib:1.0'");
     expect(code(snippets, 'settings')).toContain('<activeProfile>releases</activeProfile>');
-    expect(code(snippets, 'settings')).toContain(`<username>\${env.ASTRUM_USERNAME}</username>`);
+    expect(code(snippets, 'settings')).not.toContain('<servers>');
     expect(code(snippets, 'deploy')).toContain('<repository>');
   });
 
@@ -114,8 +114,10 @@ describe('pypi usage', () => {
     expect(code(snippets, 'pip')).toBe(
       'pip install --index-url https://repo.example.org/repository/py/simple/ tool==0.3.0',
     );
-    expect(code(snippets, 'pypirc')).toContain('repository = https://repo.example.org/repository/py/');
-    expect(code(snippets, 'twine')).toBe('twine upload --repository py dist/*');
+    expect(ids(snippets)).not.toContain('pypirc');
+    expect(code(snippets, 'twine')).toBe(
+      'twine upload --repository-url https://repo.example.org/repository/py/ dist/*',
+    );
   });
 
   it('trusts a plain HTTP host and uploads nothing through a proxy', () => {
@@ -165,7 +167,7 @@ describe('docker usage', () => {
     );
     expect(code(snippets, 'pull')).toBe('docker pull 127.0.0.1:18321/docker-hosted/app@sha256:abc');
     expect(ids(snippets)).not.toContain('push');
-    expect(code(snippets, 'insecure')).toContain('"insecure-registries": ["127.0.0.1:18321"]');
+    expect(ids(snippets)).not.toContain('insecure');
   });
 
   it('shows placeholders for a whole proxy', () => {
@@ -173,7 +175,7 @@ describe('docker usage', () => {
       context({ format: 'docker', repositoryName: 'hub', repositoryType: 'proxy' }),
     );
     expect(code(snippets, 'pull')).toBe('docker pull repo.example.org/hub/<image>:<tag>');
-    expect(ids(snippets)).toEqual(['pull', 'login', 'dockerfile']);
+    expect(ids(snippets)).toEqual(['pull', 'login', 'dockerfile', 'compose', 'kubernetes']);
   });
 });
 
