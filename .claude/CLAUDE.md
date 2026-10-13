@@ -33,6 +33,20 @@ secrets.
   texts (capability, task, realm, privilege descriptions) are English only; Docker `subdomain` routing is
   stored but not implemented; group blob stores cannot be managed from Astrum One.
 
+## Where the work stopped (2026-10-13)
+- Done and on next (revision 9bf1c13): M0-M3, helm, nuget, LDAP/OIDC/default role, and the UI parity work
+  (shell, dashboard, browse with per-format trees, repository and blob store pages, search/upload/audit,
+  security pages); the QA report of the old/new UI is in the session scratchpad `qa/report/findings.md`.
+- In progress: tasks and cleanup policies (worktree `/home/user/wt/m4-tasks`, branch `m4/tasks`).
+- Prepared, not started (limits ran out): worktrees `/home/user/wt/m4-{outbound,notify,support,compat}` from main
+  with web dependencies; their scope is in the M4 brief wave 2 and was: routing rules + HTTP + SSL truststore +
+  email; notifications + base URL/branding/UI settings + nodes; logs, logging, system info, health + bell,
+  support zip, API explorer; Nexus 2 URLs, docker ports/subdomains/port suggestion, M2 leftovers.
+- Owner to decide: SSRF page (exists only in the new UI), storing uploaded maven checksum files, the formats of
+  production repositories hidden from anonymous users, the database layout question below.
+- Local services after a container restart: PostgreSQL 16 `su postgres -s /bin/sh -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/tmp/astrum-pg/data -l /var/tmp/astrum-pg/pg.log -o '-p 5433 -k /tmp' start"`;
+  reference Java server `bash <session scratchpad>/e2e/astrum-pg.sh start` (port 8081).
+
 ## Working rules
 - Commits: author and committer Roman Khabarov <roman@globalart.dev>
   (`git -c user.name="Roman Khabarov" -c user.email=roman@globalart.dev commit ...`, also for
