@@ -28,13 +28,12 @@ test('the repository list filters by format, type, status and name', async ({ pa
   await filters.getByRole('button', { name: 'Reset filters' }).click();
   await page.getByRole('searchbox', { name: 'Filter repositories by name' }).fill('maven');
   await expect(table.getByRole('rowheader')).toHaveText([SEED.maven]);
-  await page.getByRole('radio', { name: 'Cards' }).click();
-  await expect(page.getByRole('list', { name: 'Repositories' }).getByRole('listitem')).toHaveCount(1);
-  await page.reload();
-  await expect(
-    page.getByRole('list', { name: 'Repositories' }).getByRole('link', { name: SEED.maven, exact: true }),
-  ).toBeVisible();
-  await page.getByRole('radio', { name: 'Table' }).click();
+  await expect(page.getByText(`total ${8}`)).toBeVisible();
+  await expect(table.getByText(`/repository/${SEED.maven}/`)).toBeVisible();
+  await table.getByRole('button', { name: `Actions for ${SEED.maven}` }).click();
+  await expect(page.getByRole('menuitem', { name: 'Repository Settings' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('navigation', { name: 'Pages' })).toBeVisible();
   await table.getByRole('link', { name: SEED.maven, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/browse/${SEED.maven}$`));
   await expect(page.getByRole('heading', { level: 1, name: SEED.maven })).toBeVisible();

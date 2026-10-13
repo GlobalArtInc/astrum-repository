@@ -2,7 +2,7 @@ import type { RepositoryType } from '../../../api';
 import type { RepositoryItem } from '../types';
 
 export type Status = 'online' | 'offline';
-export type SortKey = 'name' | 'format' | 'type' | 'status' | 'components' | 'size' | 'uploaded';
+export type SortKey = 'name' | 'format' | 'type' | 'status';
 export type Direction = 'asc' | 'desc';
 
 export interface ListFilters {
@@ -14,7 +14,7 @@ export interface ListFilters {
   direction: Direction;
 }
 
-export const SORT_KEYS: SortKey[] = ['name', 'format', 'type', 'status', 'components', 'size', 'uploaded'];
+export const SORT_KEYS: SortKey[] = ['name', 'format', 'type', 'status'];
 const TYPES: RepositoryType[] = ['hosted', 'proxy', 'group'];
 const STATUSES: Status[] = ['online', 'offline'];
 
@@ -109,12 +109,6 @@ function sortValue(item: RepositoryItem, key: SortKey): string | number | null {
       return item.type;
     case 'status':
       return item.online ? 0 : 1;
-    case 'components':
-      return item.componentCount;
-    case 'size':
-      return item.totalSize;
-    case 'uploaded':
-      return item.lastUploaded ? Date.parse(item.lastUploaded) : null;
   }
 }
 

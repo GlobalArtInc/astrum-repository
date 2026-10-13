@@ -67,7 +67,7 @@ describe('repository list filters', () => {
   it('read and write the address without defaults', () => {
     const read = readFilters(
       new URLSearchParams(
-        'q=mav&format=maven2,npm&type=hosted&type=bogus&status=offline&sort=size&direction=desc',
+        'q=mav&format=maven2,npm&type=hosted&type=bogus&status=offline&sort=type&direction=desc',
       ),
     );
     expect(read).toEqual({
@@ -75,11 +75,11 @@ describe('repository list filters', () => {
       formats: ['maven2', 'npm'],
       types: ['hosted'],
       statuses: ['offline'],
-      sort: 'size',
+      sort: 'type',
       direction: 'desc',
     });
     expect(writeFilters(read).toString()).toBe(
-      'q=mav&format=maven2%2Cnpm&type=hosted&status=offline&sort=size&direction=desc',
+      'q=mav&format=maven2%2Cnpm&type=hosted&status=offline&sort=type&direction=desc',
     );
     expect(readFilters(new URLSearchParams('sort=nope'))).toEqual(DEFAULT_FILTERS);
     expect(writeFilters(DEFAULT_FILTERS).toString()).toBe('');
@@ -101,18 +101,7 @@ describe('repository list filters', () => {
     ).toEqual(['maven-releases', 'npm-internal']);
   });
 
-  it('sort by numbers and dates with unknown values last', () => {
-    expect(names(applyFilters(ITEMS, filters({ sort: 'components', direction: 'desc' }), collator))).toEqual([
-      'npm-internal',
-      'maven-releases',
-      'maven-central',
-      'Maven-public',
-      'raw-offline',
-    ]);
-    expect(names(applyFilters(ITEMS, filters({ sort: 'size' }), collator))[4]).toBe('raw-offline');
-    expect(names(applyFilters(ITEMS, filters({ sort: 'uploaded', direction: 'desc' }), collator))[0]).toBe(
-      'npm-internal',
-    );
+  it('sort by status with offline repositories last', () => {
     expect(names(applyFilters(ITEMS, filters({ sort: 'status' }), collator))[4]).toBe('raw-offline');
   });
 

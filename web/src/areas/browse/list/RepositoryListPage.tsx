@@ -3,76 +3,71 @@ import {
   Button,
   Checkbox,
   Dialog,
+  DropdownMenu,
   Flex,
+  Heading,
   IconButton,
-  SegmentedControl,
   Select,
   Skeleton,
   Table,
   Text,
   TextField,
-  Tooltip,
 } from '@radix-ui/themes';
 import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Ellipsis,
   FolderOpen,
-  LayoutGrid,
-  ListFilter,
   RotateCcw,
-  Rows3,
   Search,
-  Settings2,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { type ReactNode, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useApi } from '../../../api';
 import { formatNumber, useI18n, useT } from '../../../i18n';
 import {
   COMPACT,
+  CopyButton,
+  copyText,
   EmptyState,
   ErrorState,
-  FileSize,
   FormatBadge,
   formatName,
-  Page,
   PHONE,
-  RelativeTime,
-  readStored,
   TypeBadge,
+  useDocumentTitle,
   useMediaQuery,
-  writeStored,
+  useToast,
 } from '../../../ui';
-import { OnlineStatus, UrlLine } from '../parts';
+import { Pager, pageCount, pageSlice } from '../Pager';
+import { OnlineStatus } from '../parts';
 import { browseUrl } from '../tree/model';
 import { REPOSITORIES_PATH, type RepositoryItem } from '../types';
 import {
-  activeFilterCount,
   applyFilters,
   DEFAULT_FILTERS,
   type Direction,
   facetCounts,
   type ListFilters,
   readFilters,
+  SORT_KEYS,
   type SortKey,
   toggle,
   writeFilters,
 } from './filters';
 import styles from './RepositoryList.module.css';
 
-export const VIEW_KEY = 'astrum.browse.view';
-type View = 'cards' | 'table';
-
 const SORT_LABELS: Record<SortKey, string> = {
   name: 'browse.list.sort.name',
   format: 'browse.list.sort.format',
   type: 'browse.list.sort.type',
   status: 'browse.list.sort.status',
-  components: 'browse.list.sort.components',
-  size: 'browse.list.sort.size',
-  uploaded: 'browse.list.sort.uploaded',
 };
 
 const TYPE_LABELS = {
@@ -82,6 +77,9 @@ const TYPE_LABELS = {
 } as const;
 
 const STATUS_LABELS = { online: 'browse.status.online', offline: 'browse.status.offline' } as const;
+
+const FORMATS_SHOWN = 7;
+const DEFAULT_PAGE_SIZE = 40;
 
 export function settingsPath(name: string): string {
   return `/admin/repository/repositories/${encodeURIComponent(name)}`;
@@ -99,20 +97,26 @@ function FacetGroup<T extends string>({
   chosen,
   label,
   onToggle,
+  limit,
 }: {
   title: string;
   entries: Array<[T, number]>;
   chosen: readonly T[];
   label: (value: T) => string;
   onToggle: (value: T) => void;
+  limit?: number;
 }) {
+  const t = useT();
+  const [all, setAll] = useState(false);
   if (entries.length === 0) {
     return null;
   }
+  const folded = limit !== undefined && entries.length > limit;
+  const shown = folded && !all ? entries.slice(0, limit) : entries;
   return (
     <fieldset className={styles.facet}>
       <legend>{title}</legend>
-      {entries.map(([value, count]) => (
+      {shown.map(([value, count]) => (
         <Text as="label" size="2" key={value} className={styles.facetOption}>
           <Checkbox checked={chosen.includes(value)} onCheckedChange={() => onToggle(value)} />
           <span className={styles.facetLabel}>{label(value)}</span>
@@ -121,6 +125,12 @@ function FacetGroup<T extends string>({
           </Badge>
         </Text>
       ))}
+      {folded && (
+        <Button variant="ghost" size="1" className={styles.more} onClick={() => setAll(!all)}>
+          {all ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />}
+          {all ? t('browse.list.seeLess') : t('browse.list.seeMore')}
+        </Button>
+      )}
     </fieldset>
   );
 }
@@ -135,20 +145,24 @@ function FilterPanel({
   onChange: (next: ListFilters) => void;
 }) {
   const t = useT();
+  const { language } = useI18n();
   const counts = useMemo(() => facetCounts(items, filters), [items, filters]);
+  const collator = useMemo(() => new Intl.Collator(language, { sensitivity: 'base' }), [language]);
+  const formats = [...counts.formats].sort(([a], [b]) => collator.compare(formatName(a), formatName(b)));
+  const types = [...counts.types].sort(([a], [b]) => collator.compare(t(TYPE_LABELS[a]), t(TYPE_LABELS[b])));
   return (
     <div className={styles.filters}>
       <Button
         variant="outline"
         color="gray"
         size="2"
-        disabled={activeFilterCount(filters) === 0 && filters.q === ''}
-        onClick={() => onChange({ ...DEFAULT_FILTERS, sort: filters.sort, direction: filters.direction })}
+        className={styles.reset}
+        onClick={() => onChange({ ...DEFAULT_FILTERS })}
       >
         <RotateCcw size={14} aria-hidden="true" />
         {t('browse.list.reset')}
       </Button>
-      <fieldset className={styles.facet}>
+      <fieldset className={`${styles.facet} ${styles.sortFacet}`}>
         <legend>{t('browse.list.sortBy')}</legend>
         <Select.Root
           value={filters.sort}
@@ -156,7 +170,7 @@ function FilterPanel({
         >
           <Select.Trigger aria-label={t('browse.list.sortBy')} />
           <Select.Content>
-            {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+            {SORT_KEYS.map((key) => (
               <Select.Item key={key} value={key}>
                 {t(SORT_LABELS[key])}
               </Select.Item>
@@ -176,14 +190,15 @@ function FilterPanel({
       </fieldset>
       <FacetGroup
         title={t('browse.list.format')}
-        entries={counts.formats}
+        entries={formats}
         chosen={filters.formats}
         label={formatName}
+        limit={FORMATS_SHOWN}
         onToggle={(value) => onChange({ ...filters, formats: toggle(filters.formats, value) })}
       />
       <FacetGroup
         title={t('browse.list.type')}
-        entries={counts.types}
+        entries={types}
         chosen={filters.types}
         label={(value) => t(TYPE_LABELS[value])}
         onToggle={(value) => onChange({ ...filters, types: toggle(filters.types, value) })}
@@ -199,85 +214,102 @@ function FilterPanel({
   );
 }
 
-function shownCount(item: RepositoryItem, value: number | null): number | null {
-  return item.type === 'group' ? null : value;
-}
-
-function relativeUrl(url: string): string {
+export function repositoryPath(url: string): string {
+  let path = url;
   try {
-    return new URL(url).pathname;
+    path = new URL(url).pathname;
   } catch {
-    return url;
+    path = url;
   }
+  return path.endsWith('/') ? path : `${path}/`;
 }
 
-function Count({ value }: { value: number | null }) {
-  const { language } = useI18n();
-  return value === null ? <Text color="gray">—</Text> : <span>{formatNumber(language, value)}</span>;
+function withSlash(url: string): string {
+  return url.endsWith('/') ? url : `${url}/`;
 }
 
-function Size({ value }: { value: number | null }) {
-  return value === null ? <Text color="gray">—</Text> : <FileSize bytes={value} />;
-}
-
-function SettingsLink({ item }: { item: RepositoryItem }) {
+function RowMenu({ item }: { item: RepositoryItem }) {
   const t = useT();
-  if (!item.permissions.admin) {
-    return null;
-  }
-  const label = t('browse.list.settingsOf', { name: item.name });
+  const toast = useToast();
+  const navigate = useNavigate();
+  const copy = async () => {
+    try {
+      await copyText(withSlash(item.url));
+      toast.success(t('browse.list.urlCopied'));
+    } catch {
+      toast.error(t('browse.list.urlCopyFailed'));
+    }
+  };
   return (
-    <Tooltip content={label}>
-      <IconButton asChild variant="ghost" color="gray" size="1">
-        <Link to={settingsPath(item.name)} aria-label={label}>
-          <Settings2 size={15} aria-hidden="true" />
-        </Link>
-      </IconButton>
-    </Tooltip>
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        <IconButton
+          variant="ghost"
+          color="gray"
+          size="1"
+          aria-label={t('browse.list.rowActions', { name: item.name })}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <Ellipsis size={16} aria-hidden="true" />
+        </IconButton>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="end" onClick={(event) => event.stopPropagation()}>
+        <DropdownMenu.Item onSelect={() => navigate(browseUrl(item.name))}>
+          {t('browse.list.open')}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item onSelect={copy}>{t('browse.list.copyUrl')}</DropdownMenu.Item>
+        {item.permissions.admin && (
+          <DropdownMenu.Item onSelect={() => navigate(settingsPath(item.name))}>
+            {t('browse.list.settings')}
+          </DropdownMenu.Item>
+        )}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   );
 }
 
 function RepositoryCards({ items }: { items: RepositoryItem[] }) {
   const t = useT();
+  const toast = useToast();
+  const copy = async (item: RepositoryItem) => {
+    try {
+      await copyText(withSlash(item.url));
+      toast.success(t('browse.list.urlCopied'));
+    } catch {
+      toast.error(t('browse.list.urlCopyFailed'));
+    }
+  };
   return (
     <ul className={styles.cards} aria-label={t('browse.list.results')}>
       {items.map((item) => (
         <li key={item.name} className={styles.card}>
-          <div className={styles.cardHead}>
-            <Link to={browseUrl(item.name)} className={styles.name}>
-              {item.name}
-            </Link>
-            <SettingsLink item={item} />
+          <div className={styles.cardMain}>
+            <div className={styles.cardHead}>
+              <span
+                className={styles.cardDot}
+                data-online={item.online}
+                role="img"
+                aria-label={item.online ? t('browse.status.online') : t('browse.status.offline')}
+              />
+              <Link to={browseUrl(item.name)} className={styles.cardName}>
+                {item.name}
+              </Link>
+            </div>
+            <Flex gap="2" align="center" wrap="wrap">
+              <FormatBadge format={item.format} />
+              <TypeBadge type={item.type} />
+            </Flex>
           </div>
-          <Flex gap="2" align="center" wrap="wrap">
-            <FormatBadge format={item.format} />
-            <TypeBadge type={item.type} />
-            <OnlineStatus online={item.online} />
-          </Flex>
-          <dl className={styles.stats}>
-            <div>
-              <dt>{t('browse.list.components')}</dt>
-              <dd>
-                <Count value={shownCount(item, item.componentCount)} />
-              </dd>
-            </div>
-            <div>
-              <dt>{t('browse.list.size')}</dt>
-              <dd>
-                <Size value={shownCount(item, item.totalSize)} />
-              </dd>
-            </div>
-            <div>
-              <dt>{t('browse.list.uploaded')}</dt>
-              <dd>{item.lastUploaded ? <RelativeTime value={item.lastUploaded} /> : '—'}</dd>
-            </div>
-          </dl>
-          {item.type === 'group' && item.members && (
-            <Text size="1" color="gray">
-              {t('browse.list.members', { count: item.members.length })}
-            </Text>
-          )}
-          <UrlLine url={item.url} label={t('browse.list.copyUrlOf', { name: item.name })} />
+          <IconButton
+            variant="outline"
+            color="gray"
+            size="4"
+            className={styles.cardCopy}
+            aria-label={t('browse.list.copyUrlOf', { name: item.name })}
+            onClick={() => copy(item)}
+          >
+            <Copy size={16} aria-hidden="true" />
+          </IconButton>
         </li>
       ))}
     </ul>
@@ -288,19 +320,16 @@ function SortHeader({
   column,
   filters,
   onChange,
-  align,
 }: {
   column: SortKey;
   filters: ListFilters;
   onChange: (next: ListFilters) => void;
-  align?: 'right';
 }) {
   const t = useT();
   const active = filters.sort === column;
   const Arrow = !active ? ArrowUpDown : filters.direction === 'asc' ? ArrowUp : ArrowDown;
   return (
     <Table.ColumnHeaderCell
-      align={align}
       aria-sort={active ? (filters.direction === 'asc' ? 'ascending' : 'descending') : undefined}
     >
       <button
@@ -315,7 +344,7 @@ function SortHeader({
         }
       >
         {t(SORT_LABELS[column])}
-        <Arrow size={13} aria-hidden="true" opacity={active ? 1 : 0.4} />
+        <Arrow size={14} aria-hidden="true" opacity={active ? 1 : 0.6} />
       </button>
     </Table.ColumnHeaderCell>
   );
@@ -331,65 +360,74 @@ function RepositoryTable({
   onChange: (next: ListFilters) => void;
 }) {
   const t = useT();
+  const navigate = useNavigate();
   return (
-    <div className={styles.tableWrap}>
-      <Table.Root variant="ghost" size="2">
-        <caption className="visually-hidden">{t('browse.list.results')}</caption>
-        <Table.Header>
-          <Table.Row>
-            <SortHeader column="name" filters={filters} onChange={onChange} />
-            <SortHeader column="format" filters={filters} onChange={onChange} />
-            <SortHeader column="type" filters={filters} onChange={onChange} />
-            <SortHeader column="status" filters={filters} onChange={onChange} />
-            <SortHeader column="components" filters={filters} onChange={onChange} align="right" />
-            <SortHeader column="size" filters={filters} onChange={onChange} align="right" />
-            <SortHeader column="uploaded" filters={filters} onChange={onChange} />
-            <Table.ColumnHeaderCell>{t('browse.list.url')}</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell width="44px">
-              <span className="visually-hidden">{t('browse.list.actions')}</span>
-            </Table.ColumnHeaderCell>
+    <Table.Root variant="surface" size="2" className={styles.table}>
+      <caption className="visually-hidden">{t('browse.list.results')}</caption>
+      <Table.Header>
+        <Table.Row>
+          <SortHeader column="name" filters={filters} onChange={onChange} />
+          <SortHeader column="format" filters={filters} onChange={onChange} />
+          <SortHeader column="type" filters={filters} onChange={onChange} />
+          <SortHeader column="status" filters={filters} onChange={onChange} />
+          <Table.ColumnHeaderCell>{t('browse.list.url')}</Table.ColumnHeaderCell>
+          <Table.ColumnHeaderCell width="56px">
+            <span className="visually-hidden">{t('browse.list.actions')}</span>
+          </Table.ColumnHeaderCell>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {items.map((item) => (
+          <Table.Row
+            key={item.name}
+            align="center"
+            className={styles.row}
+            onClick={(event) => {
+              if (!(event.target as HTMLElement).closest('a, button, [role=menu]')) {
+                navigate(browseUrl(item.name));
+              }
+            }}
+          >
+            <Table.RowHeaderCell>
+              <Link to={browseUrl(item.name)} className={styles.name}>
+                {item.name}
+              </Link>
+            </Table.RowHeaderCell>
+            <Table.Cell>
+              <FormatBadge format={item.format} />
+            </Table.Cell>
+            <Table.Cell>
+              <TypeBadge type={item.type} />
+            </Table.Cell>
+            <Table.Cell>
+              <OnlineStatus online={item.online} />
+            </Table.Cell>
+            <Table.Cell className={styles.urlCell}>
+              <span className={styles.url}>
+                <span className={styles.urlText} title={withSlash(item.url)}>
+                  {repositoryPath(item.url)}
+                </span>
+                <CopyButton text={withSlash(item.url)} label={t('browse.list.copyUrl')} />
+              </span>
+            </Table.Cell>
+            <Table.Cell align="right">
+              <RowMenu item={item} />
+            </Table.Cell>
           </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {items.map((item) => (
-            <Table.Row key={item.name} align="center">
-              <Table.RowHeaderCell>
-                <Link to={browseUrl(item.name)} className={`${styles.name} ${styles.nowrap}`}>
-                  {item.name}
-                </Link>
-              </Table.RowHeaderCell>
-              <Table.Cell>
-                <FormatBadge format={item.format} />
-              </Table.Cell>
-              <Table.Cell>
-                <TypeBadge type={item.type} />
-              </Table.Cell>
-              <Table.Cell>
-                <OnlineStatus online={item.online} />
-              </Table.Cell>
-              <Table.Cell align="right">
-                <Count value={shownCount(item, item.componentCount)} />
-              </Table.Cell>
-              <Table.Cell align="right">
-                <Size value={shownCount(item, item.totalSize)} />
-              </Table.Cell>
-              <Table.Cell>
-                {item.lastUploaded ? <RelativeTime value={item.lastUploaded} /> : <Text color="gray">—</Text>}
-              </Table.Cell>
-              <Table.Cell className={styles.urlCell}>
-                <UrlLine
-                  url={item.url}
-                  shown={relativeUrl(item.url)}
-                  label={t('browse.list.copyUrlOf', { name: item.name })}
-                />
-              </Table.Cell>
-              <Table.Cell align="right">
-                <SettingsLink item={item} />
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+        ))}
+      </Table.Body>
+    </Table.Root>
+  );
+}
+
+function Title({ count }: { count: ReactNode }) {
+  const t = useT();
+  return (
+    <div className={styles.titleRow}>
+      <Heading as="h1" size="7" weight="bold" className={styles.title}>
+        {t('browse.list.title')}
+      </Heading>
+      {count}
     </div>
   );
 }
@@ -397,11 +435,13 @@ function RepositoryTable({
 export default function RepositoryListPage() {
   const t = useT();
   const { language } = useI18n();
+  useDocumentTitle(t('browse.list.title'));
   const phone = useMediaQuery(PHONE);
   const compact = useMediaQuery(COMPACT);
   const [filters, setFilters] = useFilters();
-  const [view, setView] = useState<View>(() => (readStored(VIEW_KEY) === 'cards' ? 'cards' : 'table'));
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const query = useApi<RepositoryItem[]>(REPOSITORIES_PATH);
   const collator = useMemo(
     () => new Intl.Collator(language, { numeric: true, sensitivity: 'base' }),
@@ -409,44 +449,43 @@ export default function RepositoryListPage() {
   );
   const items = query.data ?? [];
   const shown = useMemo(() => applyFilters(items, filters, collator), [items, filters, collator]);
-  const shownView: View = phone ? 'cards' : view;
-  const active = activeFilterCount(filters);
-
-  const changeView = (next: string) => {
-    const value: View = next === 'cards' ? 'cards' : 'table';
-    writeStored(VIEW_KEY, value);
-    setView(value);
+  const lastPage = pageCount(shown.length, pageSize) - 1;
+  const currentPage = Math.min(page, lastPage);
+  const visible = pageSlice(shown, currentPage, pageSize);
+  const change = (next: ListFilters) => {
+    setPage(0);
+    setFilters(next);
   };
 
-  const panel = <FilterPanel items={items} filters={filters} onChange={setFilters} />;
+  const panel = <FilterPanel items={items} filters={filters} onChange={change} />;
+  const count = query.data ? (
+    <Text size="2" color="gray">
+      {t('browse.list.total', { count: formatNumber(language, items.length) })}
+    </Text>
+  ) : null;
 
   return (
-    <Page
-      size="large"
-      gutter="large"
-      title={t('browse.list.title')}
-      description={
-        query.data ? t('browse.list.count', { count: items.length }) : t('browse.list.description')
-      }
-    >
+    <div className={styles.page}>
       <div className={styles.layout}>
-        {!compact && items.length > 0 && (
+        {!compact && (
           <aside className={styles.aside} aria-label={t('browse.list.filters')}>
             {panel}
           </aside>
         )}
         <div className={styles.content}>
+          <Title count={count} />
           <div className={styles.toolbar}>
             <TextField.Root
               className={styles.filterText}
+              size="3"
               type="search"
               value={filters.q}
               placeholder={t('browse.list.filterPlaceholder')}
               aria-label={t('browse.list.filterLabel')}
-              onChange={(event) => setFilters({ ...filters, q: event.target.value })}
+              onChange={(event) => change({ ...filters, q: event.target.value })}
             >
               <TextField.Slot>
-                <Search size={15} aria-hidden="true" />
+                <Search size={16} aria-hidden="true" />
               </TextField.Slot>
               {filters.q !== '' && (
                 <TextField.Slot>
@@ -455,21 +494,19 @@ export default function RepositoryListPage() {
                     variant="ghost"
                     color="gray"
                     aria-label={t('browse.list.clearFilter')}
-                    onClick={() => setFilters({ ...filters, q: '' })}
+                    onClick={() => change({ ...filters, q: '' })}
                   >
                     <X size={14} aria-hidden="true" />
                   </IconButton>
                 </TextField.Slot>
               )}
             </TextField.Root>
-            {compact && items.length > 0 && (
+            {compact && (
               <Dialog.Root open={filtersOpen} onOpenChange={setFiltersOpen}>
                 <Dialog.Trigger>
-                  <Button variant="soft" color="gray">
-                    <ListFilter size={15} aria-hidden="true" />
-                    {active > 0
-                      ? t('browse.list.filtersActive', { count: active })
-                      : t('browse.list.filters')}
+                  <Button variant="outline" color="gray" size="3">
+                    <SlidersHorizontal size={16} aria-hidden="true" />
+                    {t('browse.list.filters')}
                   </Button>
                 </Dialog.Trigger>
                 <Dialog.Content maxWidth="420px">
@@ -485,73 +522,43 @@ export default function RepositoryListPage() {
                     {t('browse.list.filtersDescription')}
                   </Dialog.Description>
                   {panel}
-                  <Flex justify="end" mt="4">
-                    <Dialog.Close>
-                      <Button>{t('browse.list.showResults', { count: shown.length })}</Button>
-                    </Dialog.Close>
-                  </Flex>
                 </Dialog.Content>
               </Dialog.Root>
-            )}
-            {!phone && (
-              <SegmentedControl.Root
-                value={view}
-                onValueChange={changeView}
-                aria-label={t('browse.list.view')}
-              >
-                <SegmentedControl.Item value="table" aria-label={t('browse.list.viewTable')}>
-                  <Flex align="center" gap="1">
-                    <Rows3 size={15} aria-hidden="true" />
-                    <span className={styles.viewText}>{t('browse.list.viewTable')}</span>
-                  </Flex>
-                </SegmentedControl.Item>
-                <SegmentedControl.Item value="cards" aria-label={t('browse.list.viewCards')}>
-                  <Flex align="center" gap="1">
-                    <LayoutGrid size={15} aria-hidden="true" />
-                    <span className={styles.viewText}>{t('browse.list.viewCards')}</span>
-                  </Flex>
-                </SegmentedControl.Item>
-              </SegmentedControl.Root>
             )}
           </div>
           {query.isPending ? (
             <div className={styles.loading} aria-busy="true">
               {[0, 1, 2, 3].map((index) => (
-                <Skeleton key={index} height="56px" />
+                <Skeleton key={index} height="45px" />
               ))}
             </div>
           ) : query.isError ? (
             <ErrorState error={query.error} onRetry={() => query.refetch()} />
           ) : items.length === 0 ? (
-            <EmptyState
-              icon={FolderOpen}
-              title={t('browse.list.emptyTitle')}
-              description={t('browse.list.emptyText')}
-            />
+            <EmptyState icon={FolderOpen} title={t('browse.list.emptyText')} />
           ) : shown.length === 0 ? (
-            <EmptyState
-              icon={Search}
-              title={t('browse.list.noMatches')}
-              action={
-                <Button variant="soft" onClick={() => setFilters({ ...DEFAULT_FILTERS })}>
-                  {t('browse.list.reset')}
-                </Button>
-              }
-            />
+            <EmptyState icon={Search} title={t('browse.list.noMatches')} />
           ) : (
             <>
-              <Text as="p" size="2" color="gray" role="status">
-                {t('browse.list.shown', { count: shown.length, total: items.length })}
-              </Text>
-              {shownView === 'cards' ? (
-                <RepositoryCards items={shown} />
+              {phone ? (
+                <RepositoryCards items={visible} />
               ) : (
-                <RepositoryTable items={shown} filters={filters} onChange={setFilters} />
+                <RepositoryTable items={visible} filters={filters} onChange={change} />
               )}
+              <Pager
+                total={shown.length}
+                page={currentPage}
+                size={pageSize}
+                onPage={setPage}
+                onSize={(size) => {
+                  setPage(0);
+                  setPageSize(size);
+                }}
+              />
             </>
           )}
         </div>
       </div>
-    </Page>
+    </div>
   );
 }

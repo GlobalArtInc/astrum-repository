@@ -44,11 +44,7 @@ for (const size of SIZES) {
       await expect(page.getByRole('heading', { level: 1, name: 'Repositories' })).toBeVisible();
       await expect(page.getByRole('link', { name: SEED.maven, exact: true })).toBeVisible();
       await shoot(page, `browse-list-${suffix}`);
-      if (size.width >= 1024) {
-        await page.getByRole('radio', { name: 'Cards' }).click();
-        await shoot(page, `browse-cards-${suffix}`);
-        await page.getByRole('radio', { name: 'Table' }).click();
-      } else {
+      if (size.width < 1024) {
         await page.getByRole('button', { name: 'Filters' }).click();
         await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
         await shoot(page, `browse-filters-${suffix}`);

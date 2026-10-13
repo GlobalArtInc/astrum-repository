@@ -5,7 +5,7 @@ import { ANONYMOUS_STATE, fakeServer, jsonResponse, renderWithApp } from '../../
 import { setMedia } from '../../../test/setup';
 import { COMPACT, PHONE } from '../../../ui';
 import { FLAGS, repository } from '../test-fixtures';
-import RepositoryListPage, { VIEW_KEY } from './RepositoryListPage';
+import RepositoryListPage from './RepositoryListPage';
 
 const ITEMS = [
   repository('maven-releases', 'maven2', 'hosted', { componentCount: 12, totalSize: 4096 }),
@@ -48,54 +48,62 @@ describe('the repository list', { timeout: 20_000 }, () => {
     expect(names()).toEqual(['maven-releases']);
   });
 
-  it('filters by status and name', async () => {
+  it('filters by status and name and shows the total beside the title', async () => {
     serve();
     page('/browse?status=offline');
     await screen.findByRole('table');
+    expect(screen.getByText('total 4')).toBeInTheDocument();
     expect(names()).toEqual(['raw-old']);
     const filters = screen.getByRole('complementary', { name: 'Filters' });
     await userEvent.click(within(filters).getByRole('button', { name: 'Reset filters' }));
     await userEvent.type(screen.getByRole('searchbox', { name: 'Filter repositories by name' }), 'npm');
     expect(names()).toEqual(['npm-all']);
-    expect(screen.getByRole('status')).toHaveTextContent('1 of 4 shown');
   });
 
-  it('reads filters and order from the address', async () => {
+  it('shows the URL, a row menu and the pager', async () => {
     serve();
-    page('/browse?type=hosted,proxy&sort=components&direction=desc');
+    page('/browse?type=hosted,proxy&sort=type&direction=desc');
     await screen.findByRole('table');
-    expect(names()).toEqual(['maven-releases', 'maven-central', 'raw-old']);
-    expect(screen.getByRole('columnheader', { name: /Components/ })).toHaveAttribute(
-      'aria-sort',
-      'descending',
-    );
+    expect(names()).toEqual(['maven-central', 'maven-releases', 'raw-old']);
+    expect(screen.getByRole('columnheader', { name: /Type/ })).toHaveAttribute('aria-sort', 'descending');
+    expect(screen.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
+      'Name',
+      'Format',
+      'Type',
+      'Status',
+      'URL',
+      'Actions',
+    ]);
+    expect(screen.getByText('/repository/maven-central/')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Actions for raw-old' }));
+    const menu = await screen.findByRole('menu');
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Open Repository', 'Copy URL']);
+    await userEvent.keyboard('{Escape}');
+    const pager = screen.getByRole('navigation', { name: 'Pages' });
+    expect(within(pager).getByText('of 3')).toBeInTheDocument();
+    expect(within(pager).getByRole('button', { name: 'Page 1' })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('switches to cards and remembers it', async () => {
-    serve();
-    page();
-    await screen.findByRole('table');
-    await userEvent.click(screen.getByRole('radio', { name: 'Cards' }));
-    const cards = screen.getByRole('list', { name: 'Repositories' });
-    expect(within(cards).getAllByRole('listitem')).toHaveLength(4);
-    expect(window.localStorage.getItem(VIEW_KEY)).toBe('cards');
-    expect(within(cards).getByText('Groups 1 repository')).toBeInTheDocument();
-    expect(within(cards).getAllByRole('link', { name: /Settings of/ })).toHaveLength(3);
-  });
-
-  it('shows only cards on a phone', async () => {
+  it('shows compact cards on a phone', async () => {
     setMedia(PHONE, true);
     setMedia(COMPACT, true);
     serve();
     page();
-    expect(await screen.findByRole('list', { name: 'Repositories' })).toBeInTheDocument();
+    const cards = await screen.findByRole('list', { name: 'Repositories' });
+    expect(within(cards).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(cards).getAllByRole('button', { name: /Copy the URL of/ })).toHaveLength(4);
     expect(screen.queryByRole('table')).toBeNull();
-    expect(screen.queryByRole('radio', { name: 'Table' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
     const dialog = await screen.findByRole('dialog', { name: 'Filters' });
     await userEvent.click(within(dialog).getByRole('checkbox', { name: /Proxy/ }));
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Show 1 repository' }));
-    expect(screen.getByRole('button', { name: 'Filters: 1' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(within(screen.getByRole('list', { name: 'Repositories' })).getAllByRole('listitem')).toHaveLength(
+      1,
+    );
   });
 
   it('explains an empty list', async () => {
@@ -105,6 +113,8 @@ describe('the repository list', { timeout: 20_000 }, () => {
       state: ANONYMOUS_STATE,
       routes: [{ path: 'browse', element: <RepositoryListPage /> }],
     });
-    expect(await screen.findByRole('heading', { name: 'No repositories to show' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /There are no repositories you may open/ }),
+    ).toBeInTheDocument();
   });
 });
