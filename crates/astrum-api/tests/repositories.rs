@@ -209,6 +209,16 @@ fn renamed(mut document: Value, name: &str) -> Value {
     document
 }
 
+fn with_own_hosts(mut document: Value, name: &str) -> Value {
+    if document["docker"]["subdomain"].is_string() {
+        document["docker"]["subdomain"] = json!(format!("{name}-sub"));
+    }
+    if document["terraform"]["registryHost"].is_string() {
+        document["terraform"]["registryHost"] = json!(format!("{name}.example.org"));
+    }
+    document
+}
+
 #[tokio::test]
 async fn every_format_and_type_round_trips_through_get_post_and_put() {
     let fixture = ready().await;
@@ -239,7 +249,7 @@ async fn every_format_and_type_round_trips_through_get_post_and_put() {
         assert_eq!(document["online"], false);
 
         let second = format!("{}-{}-b", spec.format.id, spec.kind);
-        let mut copy = renamed(document.clone(), &second);
+        let mut copy = with_own_hosts(renamed(document.clone(), &second), &second);
         for signing in [
             "aptSigning",
             "yumSigning",
@@ -252,7 +262,7 @@ async fn every_format_and_type_round_trips_through_get_post_and_put() {
             }
         }
         created(&fixture, spec, copy).await;
-        let expected = renamed(document.clone(), &second);
+        let expected = with_own_hosts(renamed(document.clone(), &second), &second);
         assert_eq!(
             get(&fixture, spec, &second).await.json(),
             expected,

@@ -4,7 +4,7 @@ pub mod json;
 pub mod routes;
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use astrum_blob::BlobStores;
 use astrum_content::Content;
@@ -36,6 +36,8 @@ struct Inner {
     blob_stores: Arc<BlobStores>,
     content: Content,
     tasks: Tasks,
+    application_port: OnceLock<u16>,
+    repository_changes: tokio::sync::Notify,
 }
 
 impl AppState {
@@ -57,6 +59,8 @@ impl AppState {
                 blob_stores,
                 content,
                 tasks,
+                application_port: OnceLock::new(),
+                repository_changes: tokio::sync::Notify::new(),
             }),
         }
     }
@@ -96,6 +100,18 @@ impl AppState {
 
     pub fn tasks(&self) -> &Tasks {
         &self.inner.tasks
+    }
+
+    pub fn set_application_port(&self, port: u16) {
+        let _ = self.inner.application_port.set(port);
+    }
+
+    pub fn application_port(&self) -> Option<u16> {
+        self.inner.application_port.get().copied()
+    }
+
+    pub fn repository_changes(&self) -> &tokio::sync::Notify {
+        &self.inner.repository_changes
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {

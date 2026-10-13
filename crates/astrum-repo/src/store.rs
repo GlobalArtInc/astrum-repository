@@ -59,6 +59,62 @@ pub async fn find(db: &impl ConnectionTrait, name: &str) -> Result<Option<Reposi
         .transpose()
 }
 
+pub async fn docker_on_port(
+    db: &impl ConnectionTrait,
+    port: u16,
+) -> Result<Option<Repository>, Error> {
+    repository::Entity::find()
+        .filter(Expr::col(repository::Column::Format).eq("docker"))
+        .filter(Expr::cust_with_values(
+            "(attributes #>> $1::text[] = $3 OR attributes #>> $2::text[] = $3)",
+            [
+                "{docker,httpPort}".to_owned(),
+                "{docker,httpsPort}".to_owned(),
+                port.to_string(),
+            ],
+        ))
+        .order_by_asc(repository::Column::Name)
+        .one(db)
+        .await?
+        .map(read)
+        .transpose()
+}
+
+pub async fn docker_on_subdomain(
+    db: &impl ConnectionTrait,
+    subdomain: &str,
+) -> Result<Option<Repository>, Error> {
+    repository::Entity::find()
+        .filter(Expr::col(repository::Column::Format).eq("docker"))
+        .filter(Expr::cust_with_values(
+            "lower(attributes #>> $1::text[]) = $2",
+            ["{docker,subdomain}".to_owned(), subdomain.to_lowercase()],
+        ))
+        .order_by_asc(repository::Column::Name)
+        .one(db)
+        .await?
+        .map(read)
+        .transpose()
+}
+
+type HostOf = fn(&Repository) -> Option<&str>;
+
+fn subdomain_of(repository: &Repository) -> Option<&str> {
+    repository
+        .attributes
+        .docker
+        .as_ref()
+        .and_then(|docker| docker.subdomain.as_deref())
+}
+
+fn registry_host_of(repository: &Repository) -> Option<&str> {
+    repository
+        .attributes
+        .terraform
+        .as_ref()
+        .and_then(|terraform| terraform.registry_host.as_deref())
+}
+
 fn read(row: repository::Model) -> Result<Repository, Error> {
     let name = row.name.clone();
     Repository::from_stored(
@@ -79,6 +135,7 @@ pub struct Writer {
     grouped: BTreeMap<String, String>,
     cleanup_policies: BTreeMap<String, String>,
     routing_rules: BTreeSet<String>,
+    reserved_ports: Vec<u16>,
 }
 
 impl Writer {
@@ -124,7 +181,13 @@ impl Writer {
             grouped,
             cleanup_policies: cleanup_policies.into_iter().collect(),
             routing_rules: BTreeSet::new(),
+            reserved_ports: Vec::new(),
         })
+    }
+
+    pub fn reserving(mut self, ports: impl IntoIterator<Item = u16>) -> Self {
+        self.reserved_ports.extend(ports);
+        self
     }
 
     pub fn find(&self, name: &str) -> Option<&Repository> {
@@ -312,6 +375,32 @@ impl Writer {
         }
         self.check_group(candidate, problems);
         self.check_ports(candidate, problems);
+        self.check_hosts(candidate, problems);
+    }
+
+    fn check_hosts(&self, candidate: &Repository, problems: &mut Problems) {
+        let checks: [(&str, &str, HostOf); 2] = [
+            ("subdomain", "subdomain", subdomain_of),
+            ("registryHost", "registry host", registry_host_of),
+        ];
+        for (field, label, value) in checks {
+            let Some(wanted) = value(candidate) else {
+                continue;
+            };
+            let taken = self.repositories.iter().find(|other| {
+                !other.is_named(&candidate.name)
+                    && value(other).is_some_and(|used| used.eq_ignore_ascii_case(wanted))
+            });
+            if let Some(other) = taken {
+                problems.add(
+                    field,
+                    format!(
+                        "the {label} {wanted} is used by the repository \"{}\"",
+                        other.name
+                    ),
+                );
+            }
+        }
     }
 
     fn check_group(&self, candidate: &Repository, problems: &mut Problems) {
@@ -387,6 +476,13 @@ impl Writer {
             return;
         };
         for (field, port) in docker.ports() {
+            if u16::try_from(port).is_ok_and(|port| self.reserved_ports.contains(&port)) {
+                problems.add(
+                    field,
+                    format!("Port {port} is already used by the application"),
+                );
+                continue;
+            }
             let taken = self.repositories.iter().find(|other| {
                 !other.is_named(&candidate.name)
                     && other

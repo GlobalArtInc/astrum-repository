@@ -45,7 +45,7 @@ hex = "0.4"
 hmac = "0.12"
 http-body-util = "0.1"
 httpdate = "1"
-hyper-util = { version = "0.1", features = ["server-auto", "tokio"] }
+hyper-util = { version = "0.1", features = ["server-auto", "service", "tokio"] }
 infer = "0.19"
 ldap3_lber = "=0.8.1"
 ldap3_proto = "0.8.1"

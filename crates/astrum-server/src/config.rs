@@ -27,6 +27,8 @@ pub const ENV_LOG_FORMAT: &str = "ASTRUM_LOG_FORMAT";
 pub const ENV_SECRETS_KEY_FILE: &str = "ASTRUM_SECRETS_KEY_FILE";
 pub const ENV_WEB_DIR: &str = "ASTRUM_WEB_DIR";
 pub const ENV_LDAP_CACHE_TTL: &str = "ASTRUM_LDAP_CACHE_TTL";
+pub const ENV_CONNECTOR_TLS_CERTIFICATE: &str = "ASTRUM_CONNECTOR_TLS_CERTIFICATE";
+pub const ENV_CONNECTOR_TLS_KEY: &str = "ASTRUM_CONNECTOR_TLS_KEY";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Config {
@@ -37,8 +39,15 @@ pub struct Config {
     pub secrets_key: PathBuf,
     pub web_dir: PathBuf,
     pub ldap_cache_ttl: Duration,
+    pub connectors: ConnectorConfig,
     pub file: PathBuf,
     pub file_found: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ConnectorConfig {
+    pub tls_certificate: Option<PathBuf>,
+    pub tls_key: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -107,6 +116,15 @@ struct FileConfig {
     web: FileWeb,
     #[serde(default)]
     ldap: FileLdap,
+    #[serde(default)]
+    connectors: FileConnectors,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FileConnectors {
+    tls_certificate: Option<PathBuf>,
+    tls_key: Option<PathBuf>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -208,6 +226,20 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         (None, None) => astrum_security::ldap::DEFAULT_CACHE_TTL,
     };
 
+    let connectors = ConnectorConfig {
+        tls_certificate: env(ENV_CONNECTOR_TLS_CERTIFICATE)
+            .map(PathBuf::from)
+            .or(parsed.connectors.tls_certificate),
+        tls_key: env(ENV_CONNECTOR_TLS_KEY)
+            .map(PathBuf::from)
+            .or(parsed.connectors.tls_key),
+    };
+    if connectors.tls_certificate.is_some() != connectors.tls_key.is_some() {
+        return Err(Origin::File("connectors").fail(format!(
+            "set both the certificate and the key ({ENV_CONNECTOR_TLS_CERTIFICATE} and {ENV_CONNECTOR_TLS_KEY}, or connectors.tls_certificate and connectors.tls_key) or neither"
+        )));
+    }
+
     let filter = match (env(ENV_LOG), parsed.log.filter) {
         (Some(value), _) => check_filter(value, Origin::Env(ENV_LOG))?,
         (None, Some(value)) => check_filter(value, Origin::File("log.filter"))?,
@@ -227,6 +259,7 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         secrets_key,
         web_dir,
         ldap_cache_ttl,
+        connectors,
         file,
         file_found,
     })
@@ -380,6 +413,29 @@ mod tests {
         assert_eq!(config.ldap_cache_ttl, Duration::ZERO);
         assert!(load(&Cli::default(), &env(&[(ENV_LDAP_CACHE_TTL, "soon")])).is_err());
         assert!(load(&Cli::default(), &env(&[(ENV_LDAP_CACHE_TTL, "5x")])).is_err());
+    }
+
+    #[test]
+    fn connector_certificates_come_in_pairs() {
+        let config = load(&Cli::default(), &env(&[])).unwrap();
+        assert_eq!(config.connectors, ConnectorConfig::default());
+        let config = load(
+            &Cli::default(),
+            &env(&[
+                (ENV_CONNECTOR_TLS_CERTIFICATE, "/tls/chain.pem"),
+                (ENV_CONNECTOR_TLS_KEY, "/tls/key.pem"),
+            ]),
+        )
+        .unwrap();
+        assert_eq!(
+            config.connectors.tls_certificate,
+            Some(PathBuf::from("/tls/chain.pem"))
+        );
+        let dir = data_dir_with("[connectors]\ntls_certificate = \"/tls/chain.pem\"\n");
+        let error = load(&cli_in(dir.path()), &env(&[]))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains(ENV_CONNECTOR_TLS_KEY), "{error}");
     }
 
     #[test]

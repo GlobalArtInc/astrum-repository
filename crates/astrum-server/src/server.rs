@@ -19,11 +19,13 @@ pub struct Server {
     address: SocketAddr,
     state: AppState,
     web_dir: PathBuf,
+    tls: Option<std::sync::Arc<rustls::ServerConfig>>,
 }
 
 impl Server {
     pub async fn start(config: &Config) -> anyhow::Result<Self> {
         prepare_data_dir(&config.data_dir)?;
+        let tls = crate::connectors::tls(&config.connectors)?;
         let db = connect(config).await?;
         db.migrate().await?;
         astrum_security::bootstrap(db.conn(), &config.data_dir).await?;
@@ -38,11 +40,13 @@ impl Server {
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;
         let address = listener.local_addr()?;
+        state.set_application_port(address.port());
         Ok(Self {
             listener,
             address,
             state,
             web_dir: config.web_dir.clone(),
+            tls,
         })
     }
 
@@ -66,6 +70,13 @@ impl Server {
         let app = astrum_api::router_with(self.state.clone(), crate::formats::routes())
             .fallback_service(crate::web::router(self.web_dir.clone()))
             .layer(TraceLayer::new_for_http());
+        let connectors = crate::connectors::Connectors::new(
+            self.state.clone(),
+            app.clone(),
+            self.address.ip(),
+            self.tls.clone(),
+        );
+        let connector_loop = connectors.spawn();
         tracing::info!(address = %self.address, version = %version_line(), "serving requests");
         axum::serve(
             self.listener,
@@ -74,6 +85,8 @@ impl Server {
         .with_graceful_shutdown(shutdown)
         .await
         .context("the HTTP server failed")?;
+        connector_loop.abort();
+        connectors.close().await;
         self.state.tasks().shutdown(TASK_SHUTDOWN).await;
         scheduler.abort();
         if let Err(error) = self.state.content().flush_downloads().await {

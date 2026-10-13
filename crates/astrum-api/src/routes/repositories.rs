@@ -128,6 +128,7 @@ async fn create(
     )?;
     let created = Writer::begin(state.db().conn())
         .await?
+        .reserving(state.application_port())
         .create(repository)
         .await?;
     changed(&state, &caller, "created", &created).await
@@ -142,7 +143,9 @@ async fn update(
     let subject = signed(&caller)?;
     let spec = spec(&format, &kind)?;
     let crate::Json(request) = body?;
-    let writer = Writer::begin(state.db().conn()).await?;
+    let writer = Writer::begin(state.db().conn())
+        .await?
+        .reserving(state.application_port());
     let existing = writer.find(&name).cloned().ok_or_else(|| missing(&name))?;
     require(subject, &admin(&existing, "edit"))?;
     store::unchanged(&existing, spec, request.name.as_deref())?;
@@ -233,6 +236,7 @@ async fn changed(
     repository: &Repository,
 ) -> Result<StatusCode, ApiError> {
     state.security().reload().await?;
+    state.repository_changes().notify_one();
     let event = Event::new(AUDIT_DOMAIN, kind, &repository.name).with(json!({
         "format": repository.format.id,
         "type": repository.kind.as_str(),

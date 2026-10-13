@@ -25,7 +25,7 @@ use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
 
 pub use auth::REALM;
-pub use routes::routes;
+pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes};
 
 use crate::error::RegistryError;
 use crate::manifest::Manifest;
@@ -74,6 +74,7 @@ const SEARCH_KEYS: &[SearchKey] = &[
 pub enum Mount {
     Repository(String),
     Path(String),
+    Root,
 }
 
 impl Mount {
@@ -81,19 +82,20 @@ impl Mount {
         match self {
             Mount::Repository(repository) => format!("/repository/{repository}/v2/{image}"),
             Mount::Path(repository) => format!("/v2/{repository}/{image}"),
+            Mount::Root => format!("/v2/{image}"),
         }
     }
 
     fn catalog(&self) -> String {
         match self {
             Mount::Repository(repository) => format!("/repository/{repository}/v2/_catalog"),
-            Mount::Path(_) => "/v2/_catalog".to_owned(),
+            Mount::Path(_) | Mount::Root => "/v2/_catalog".to_owned(),
         }
     }
 
     fn name(&self, image: &str) -> String {
         match self {
-            Mount::Repository(_) => image.to_owned(),
+            Mount::Repository(_) | Mount::Root => image.to_owned(),
             Mount::Path(repository) => format!("{repository}/{image}"),
         }
     }
@@ -912,7 +914,7 @@ impl Docker {
                 Some((repository, image)) => vec![(repository.to_owned(), Some(image.to_owned()))],
                 None => Vec::new(),
             },
-            (Some(_), Mount::Repository(_)) => Vec::new(),
+            (Some(_), Mount::Repository(_) | Mount::Root) => Vec::new(),
             (None, _) => storage::repositories_holding(target, digest)
                 .await?
                 .into_iter()

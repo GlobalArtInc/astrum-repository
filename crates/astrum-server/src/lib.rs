@@ -1,6 +1,7 @@
 pub mod check;
 pub mod cli;
 pub mod config;
+pub mod connectors;
 pub mod formats;
 mod server;
 pub mod telemetry;

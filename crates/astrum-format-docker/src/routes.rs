@@ -4,7 +4,7 @@ use std::sync::Arc;
 use astrum_api::{AppState, Caller};
 use astrum_content::ContentRequest;
 use axum::Router;
-use axum::extract::{Path, Query, Request, State};
+use axum::extract::{Path, Request, State};
 use axum::http::{HeaderMap, StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get};
@@ -13,23 +13,28 @@ use serde_json::json;
 use crate::error::RegistryError;
 use crate::{Docker, ID, Mount, admit, auth, insert, json_response, link, paginate};
 
+pub const FIRST_SUGGESTED_PORT: u16 = 8082;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Connector(pub u16);
+
 pub fn routes() -> Router<AppState> {
     let docker = Arc::new(Docker::default());
     let catalog_docker = docker.clone();
     Router::new()
+        .route(
+            "/service/rest/internal/ui/docker/suggest-port",
+            get(suggest_port),
+        )
         .route("/v2", get(auth::ping))
         .route("/v2/", get(auth::ping))
         .route("/v2/token", get(auth::token).post(auth::oauth))
         .route(
             "/v2/_catalog",
             get(
-                move |state: State<AppState>,
-                      caller: Caller,
-                      headers: HeaderMap,
-                      uri: Uri,
-                      query: Query<HashMap<String, String>>| {
+                move |state: State<AppState>, caller: Caller, request: Request| {
                     let docker = catalog_docker.clone();
-                    async move { catalog(docker, state, caller, headers, uri, query).await }
+                    async move { catalog(docker, state, caller, request).await }
                 },
             ),
         )
@@ -65,6 +70,76 @@ fn unreachable_name(name: &str) -> RegistryError {
     )
 }
 
+fn subdomain_of(headers: &HeaderMap, uri: &Uri) -> Option<String> {
+    let base = astrum_api::routes::repositories::base_url(headers, uri);
+    let host = auth::service(&base);
+    let host = match host.strip_prefix('[') {
+        Some(_) => return None,
+        None => host.rsplit_once(':').map_or(host, |(host, _)| host),
+    };
+    if host.parse::<std::net::IpAddr>().is_ok() {
+        return None;
+    }
+    let (label, rest) = host.split_once('.')?;
+    (!label.is_empty() && !rest.is_empty()).then(|| label.to_ascii_lowercase())
+}
+
+pub async fn dedicated(
+    state: &AppState,
+    connector: Option<Connector>,
+    headers: &HeaderMap,
+    uri: &Uri,
+) -> Result<Option<astrum_repo::config::Repository>, RegistryError> {
+    let db = state.db().conn();
+    let internal = |error| RegistryError::from(astrum_content::ContentError::internal(error));
+    if let Some(Connector(port)) = connector {
+        return match astrum_repo::store::docker_on_port(db, port)
+            .await
+            .map_err(internal)?
+        {
+            Some(repository) => Ok(Some(repository)),
+            None => Err(RegistryError::new(
+                StatusCode::NOT_FOUND,
+                "NAME_UNKNOWN",
+                format!("no Docker repository answers on the port {port}"),
+            )),
+        };
+    }
+    let Some(subdomain) = subdomain_of(headers, uri) else {
+        return Ok(None);
+    };
+    astrum_repo::store::docker_on_subdomain(db, &subdomain)
+        .await
+        .map_err(internal)
+}
+
+async fn suggest_port(State(state): State<AppState>, caller: Caller, uri: Uri) -> Response {
+    if caller.subject().is_none_or(|subject| subject.anonymous) {
+        return astrum_api::ApiError::Unauthorized.into_response();
+    }
+    let repositories = match astrum_repo::store::list(state.db().conn()).await {
+        Ok(repositories) => repositories,
+        Err(error) => return astrum_api::ApiError::internal(error).into_response(),
+    };
+    let mut used: std::collections::BTreeSet<i32> = repositories
+        .iter()
+        .filter_map(|repository| repository.attributes.docker.as_ref())
+        .flat_map(|docker| docker.ports().map(|(_, port)| port).collect::<Vec<_>>())
+        .collect();
+    used.extend(state.application_port().map(i32::from));
+    used.extend(
+        url::form_urlencoded::parse(uri.query().unwrap_or_default().as_bytes())
+            .filter(|(key, _)| key == "exclude")
+            .filter_map(|(_, value)| value.parse::<i32>().ok()),
+    );
+    let port =
+        (i32::from(FIRST_SUGGESTED_PORT)..=i32::from(u16::MAX)).find(|port| !used.contains(port));
+    match port {
+        Some(port) => axum::Json(port).into_response(),
+        None => astrum_api::ApiError::NotFound("every port is taken".to_owned()).into_response(),
+    }
+}
+
 async fn routed(
     docker: Arc<Docker>,
     State(state): State<AppState>,
@@ -75,21 +150,37 @@ async fn routed(
     let (parts, body) = request.into_parts();
     let base = astrum_api::routes::repositories::base_url(&parts.headers, &parts.uri);
     let model = state.security().model();
-    let (name, remainder) = rest.split_once('/').unwrap_or((rest.as_str(), ""));
-    let found = match state.content().repository(name).await {
-        Ok(found) => found,
-        Err(error) => {
-            return auth::with_challenge(
-                RegistryError::from(error).into_response(),
-                &model,
-                &base,
-                None,
-            );
+    let connector = parts.extensions.get::<Connector>().copied();
+    let dedicated = match dedicated(&state, connector, &parts.headers, &parts.uri).await {
+        Ok(dedicated) => dedicated,
+        Err(error) => return auth::with_challenge(error.into_response(), &model, &base, None),
+    };
+    let (name, remainder, mount) = match &dedicated {
+        Some(repository) => (repository.name.as_str(), rest.as_str(), Mount::Root),
+        None => {
+            let (name, remainder) = rest.split_once('/').unwrap_or((rest.as_str(), ""));
+            let found = match state.content().repository(name).await {
+                Ok(found) => found,
+                Err(error) => {
+                    return auth::with_challenge(
+                        RegistryError::from(error).into_response(),
+                        &model,
+                        &base,
+                        None,
+                    );
+                }
+            };
+            if !found.as_deref().is_some_and(path_enabled) {
+                return auth::with_challenge(
+                    unreachable_name(name).into_response(),
+                    &model,
+                    &base,
+                    None,
+                );
+            }
+            (name, remainder, Mount::Path(name.to_owned()))
         }
     };
-    if !found.as_deref().is_some_and(path_enabled) {
-        return auth::with_challenge(unreachable_name(name).into_response(), &model, &base, None);
-    }
     let context =
         astrum_api::routes::content::context(&state, caller, name, &parts.headers, &parts.uri)
             .await;
@@ -121,21 +212,68 @@ async fn routed(
             );
         }
     };
-    docker
-        .serve(ctx, request, Mount::Path(name.to_owned()))
-        .await
+    docker.serve(ctx, request, mount).await
 }
 
 async fn catalog(
     docker: Arc<Docker>,
     State(state): State<AppState>,
     caller: Caller,
-    headers: HeaderMap,
-    uri: Uri,
-    Query(params): Query<HashMap<String, String>>,
+    request: Request,
 ) -> Response {
-    let base = astrum_api::routes::repositories::base_url(&headers, &uri);
+    let (parts, _) = request.into_parts();
+    let (headers, uri) = (&parts.headers, &parts.uri);
+    let base = astrum_api::routes::repositories::base_url(headers, uri);
     let model = state.security().model();
+    let connector = parts.extensions.get::<Connector>().copied();
+    match dedicated(&state, connector, headers, uri).await {
+        Ok(Some(repository)) => {
+            let context = astrum_api::routes::content::context(
+                &state,
+                caller,
+                &repository.name,
+                headers,
+                uri,
+            )
+            .await;
+            let request = context.and_then(|(ctx, _)| {
+                ContentRequest::new(
+                    parts.method.clone(),
+                    "/_catalog",
+                    uri.query().map(str::to_owned),
+                    headers.clone(),
+                    axum::body::Body::empty(),
+                )
+                .map(|request| (ctx, request))
+            });
+            return match request {
+                Ok((ctx, request)) => docker.serve(ctx, request, Mount::Root).await,
+                Err(error) => auth::with_challenge(
+                    RegistryError::from(error).into_response(),
+                    &model,
+                    &base,
+                    Some("registry:catalog:*"),
+                ),
+            };
+        }
+        Ok(None) => {}
+        Err(error) => {
+            return auth::with_challenge(
+                error.into_response(),
+                &model,
+                &base,
+                Some("registry:catalog:*"),
+            );
+        }
+    }
+    let params: HashMap<String, String> = uri
+        .query()
+        .map(|query| {
+            url::form_urlencoded::parse(query.as_bytes())
+                .into_owned()
+                .collect()
+        })
+        .unwrap_or_default();
     let result = async {
         if caller.subject().is_none() {
             return Err(RegistryError::unauthorized());
