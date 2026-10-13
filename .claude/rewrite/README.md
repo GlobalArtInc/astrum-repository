@@ -1,8 +1,9 @@
 # Rewriting Astrum Repository in Rust
 
 Status: decided (owner's answers of 2026-10-12 are recorded below); M0, M1, M2 and M3 are done (2026-10-12);
-M4 is in progress (wave 1: helm, nuget, tasks and cleanup, LDAP/OIDC/default role). The Rust server runs at
-https://next.astrum.globalart.hu.
+M4 is in progress: wave 1 (helm, nuget, tasks and cleanup, LDAP/OIDC/default role) is done; wave 2 and the
+remaining own formats are on six unmerged branches `m4-*`, see `briefs/M4-WAVE2-TRACKS.md`. The Rust server
+runs at https://next.astrum.globalart.hu.
 See "Where the Rust server stands" at the end for the code that exists.
 
 ## Why

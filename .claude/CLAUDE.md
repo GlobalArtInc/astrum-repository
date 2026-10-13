@@ -17,9 +17,9 @@ secrets.
   pub and Ansible Galaxy were stopped; they will be written in Rust.
 - Rust rewrite: M0-M3 done (security, sessions, access tokens, audit, blob stores, repository
   configuration, the content engine with raw, maven2, npm, pypi and docker/OCI, the REST API, and the web UI in
-  `web/` with every page whose backend exists); M4 wave 1 in progress (helm, nuget, tasks and cleanup,
-  LDAP/OIDC/default role, worktrees `/home/user/wt/m4-*`). Agent briefs: `/home/user/wt/M{1,2,3,4}-BRIEF.md`; shared Rust build dir `/home/user/wt/m1-target`
-  (`CARGO_INCREMENTAL=0`). Test instance live at https://next.astrum.globalart.hu (since 2026-10-12): the
+  `web/` with every page whose backend exists); M4 wave 1 done (helm, nuget, tasks and cleanup,
+  LDAP/OIDC/default role); M4 wave 2 and the remaining own formats are on six unmerged branches `m4-*` (see
+  "Where the work stopped"). Agent briefs: `.claude/rewrite/briefs/`. Test instance live at https://next.astrum.globalart.hu (since 2026-10-12): the
   `Server` workflow publishes `globalartltd/astrum-repository:next-<YYYYMMDDHHMMSS>-<sha7>` on pushes to main
   (line `published ...` in the "container image" job); to deploy, set `astrum_next_version` in infra
   `infralive/ansible/roles/astrum/defaults/main.yaml`, commit `Update astrum_next_version to <tag>` as Roman,
@@ -33,26 +33,41 @@ secrets.
   texts (capability, task, realm, privilege descriptions) are English only; Docker `subdomain` routing is
   stored but not implemented; group blob stores cannot be managed from Astrum One.
 
-## Where the work stopped (2026-10-13)
-- Done and on next (revision 9b6cff4): M0-M3, helm, nuget, LDAP/OIDC/default role, tasks and cleanup
-  policies, and the UI parity work
-  (shell, dashboard, browse with per-format trees, repository and blob store pages, search/upload/audit,
-  security pages); the QA report of the old/new UI is in the session scratchpad `qa/report/findings.md`.
-- Prepared, not started (limits ran out): worktrees `/home/user/wt/m4-{outbound,notify,support,compat}` from main
-  with web dependencies; their scope is in the M4 brief wave 2 and was: routing rules + HTTP + SSL truststore +
-  email; notifications + base URL/branding/UI settings + nodes; logs, logging, system info, health + bell,
-  support zip, API explorer; Nexus 2 URLs, docker ports/subdomains/port suggestion, M2 leftovers.
+## Where the work stopped (2026-10-13, 18:40 UTC)
+- Done and on next (revision 31e33ae): M0-M3, helm, nuget, LDAP/OIDC/default role, tasks and cleanup
+  policies, the UI parity work (shell, dashboard, browse with per-format trees, repository and blob store pages,
+  search/upload/audit, security pages), and the fix for deleting a blob store in use on PostgreSQL 18
+  (it reports RESTRICT violations as 23001, which sea-orm does not map).
+- M4 wave 2 and the own formats were in progress on six branches, all pushed and NOT merged into main:
+  `m4-outbound` (routing rules, HTTP, SSL truststore, email), `m4-notify` (notifications, base URL, UI settings,
+  branding, nodes), `m4-support` (logs, log levels, system info, health + bell, support ZIP, API explorer),
+  `m4-compat` (Nexus 2 URLs, docker connector ports/subdomains/port suggestion, M2 leftovers), `m4-fmt-a`
+  (yum, rubygems, gitlfs), `m4-fmt-b` (terraform, huggingface, swift). The owner stopped the agents to save the
+  usage limit. Per track: scope, finished commits, the unchecked "Keep the unfinished ..." commits, what is
+  left and how to continue: `.claude/rewrite/briefs/M4-WAVE2-TRACKS.md`; the agent brief:
+  `.claude/rewrite/briefs/M4-WAVE2-TASK.md`.
+- Anonymous users see only raw, maven2, npm, docker, helm and nuget repositories on production; the Rust server
+  has all of them. Formats of hidden repositories are unknown.
 - Owner to decide: SSRF page (exists only in the new UI), storing uploaded maven checksum files, the formats of
-  production repositories hidden from anonymous users, the database layout question below.
-- Agent briefs are in `.claude/rewrite/briefs/` (M1-M4, PARITY; they name this container's paths: in a new
-  environment put worktrees, the shared target dir and scratch files wherever fits and adjust the paths), the
-  old/new UI findings in `.claude/rewrite/qa-findings.md`.
-- A fresh environment needs: the Rust toolchain of `rust-toolchain.toml`, PostgreSQL 16 for tests
-  (`ASTRUM_TEST_DATABASE_URL`), Node 22 with corepack pnpm for `web/`, Chromium for Playwright, and for UI
-  parity checks the Java server built from `public/` (JDK 21+, Maven, see "Build and test") running locally with
-  PostgreSQL as the reference; infra and gitops repositories for deploys to next.
-- Local services after a container restart: PostgreSQL 16 `su postgres -s /bin/sh -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/tmp/astrum-pg/data -l /var/tmp/astrum-pg/pg.log -o '-p 5433 -k /tmp' start"`;
-  reference Java server `bash <session scratchpad>/e2e/astrum-pg.sh start` (port 8081).
+  production repositories hidden from anonymous users, the database layout question above.
+- Agent briefs are in `.claude/rewrite/briefs/` (M1-M4, PARITY, M4-WAVE2-*; they name the paths of the
+  container they were written in: put worktrees, target dirs and scratch files wherever fits and adjust the
+  paths), the old/new UI findings in `.claude/rewrite/qa-findings.md`.
+- A fresh environment needs: the Rust toolchain of `rust-toolchain.toml`; PostgreSQL for tests
+  (`ASTRUM_TEST_DATABASE_URL`; 16 or 18 both work since 31e33ae); Node 22 with corepack pnpm for `web/`;
+  Chromium for Playwright at `/opt/pw-browsers/chromium` or `ASTRUM_E2E_CHROMIUM` (on Ubuntu 26.04
+  `playwright install` refuses the OS, but its downloaded chromium-1140 runs: symlink
+  `~/.cache/ms-playwright/chromium-1140/chrome-linux/chrome`); `gh` logged in for workflow dispatch; for UI
+  parity the Java server built from `public/` running locally with PostgreSQL as the reference; infra and gitops
+  repositories for deploys to next.
+- Building the Java reference server from scratch: use JDK 25 (with JDK 21 the test compilation of conan,
+  conda and others fails) and `mvn -B -q -Ppublic -DskipTests -Dnpm.skipTests=true -Denforcer.skip=true install`
+  from the root (not `-Dmaven.test.skip`, which skips the test jars other modules need). Then a data dir with
+  `etc/astrum.properties` and `etc/fabric/astrum-store.properties` as in "Build and test", started with
+  JDK 25 from `public/selfhosted/assemblies/astrum-repository-core/target/assembly`.
+- Local services after a restart: PostgreSQL `pg_ctl -D /var/tmp/astrum-pg/data -l /var/tmp/astrum-pg/pg.log
+  -o '-p 5433 -k /tmp' start` as `postgres` (`/usr/lib/postgresql/<16|18>/bin`); the reference Java server on
+  port 8081 with its own start script next to its data dir.
 
 ## Working rules
 - Commits: author and committer Roman Khabarov <roman@globalart.dev>
