@@ -126,6 +126,7 @@ async fn create(
         subject,
         &permission(spec.format.id, &repository.name, "add"),
     )?;
+    reachable(&state, &repository).await?;
     let created = Writer::begin(state.db().conn())
         .await?
         .reserving(state.application_port())
@@ -151,6 +152,7 @@ async fn update(
     store::unchanged(&existing, spec, request.name.as_deref())?;
     let seal = |plain: &str| state.secrets().seal(plain);
     let repository = Repository::prepare(spec, request, Some(&existing), &seal).map_err(invalid)?;
+    reachable(&state, &repository).await?;
     let updated = writer.update(&existing.name, repository).await?;
     state.content().forget_repository(&updated.name);
     changed(&state, &caller, "updated", &updated).await
@@ -309,6 +311,29 @@ fn visible(subject: &Subject, repository: &Repository) -> bool {
     subject.is_permitted(&view("browse"))
         || subject.is_permitted(&view("read"))
         || subject.is_permitted(&admin(repository, "read"))
+}
+
+async fn reachable(state: &AppState, repository: &Repository) -> Result<(), ApiError> {
+    let Some(remote) = repository
+        .attributes
+        .proxy
+        .as_ref()
+        .and_then(|proxy| proxy.remote_url.as_deref())
+    else {
+        return Ok(());
+    };
+    let settings: astrum_security::ssrf::SsrfProtection =
+        astrum_db::setting::get(state.db().conn(), astrum_security::ssrf::SSRF_KEY)
+            .await
+            .map_err(ApiError::internal)?
+            .unwrap_or_default();
+    match astrum_security::ssrf::blocked_destination(&settings, remote).await {
+        Some(message) => Err(ApiError::Invalid(vec![FieldError {
+            id: "PARAMETER remoteUrl".to_owned(),
+            message: format!("Proxy URL blocked: {message}"),
+        }])),
+        None => Ok(()),
+    }
 }
 
 fn invalid(problems: Vec<Problem>) -> ApiError {

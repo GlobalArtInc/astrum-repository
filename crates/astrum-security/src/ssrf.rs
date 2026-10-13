@@ -215,6 +215,52 @@ impl Resolve for GuardedResolver {
     }
 }
 
+pub const ADVICE: &str = "To allow connections, update the SSRF protection settings via the API at /v1/security/ssrf-protection.";
+
+fn kind_of(ip: IpAddr) -> &'static str {
+    match canonical(ip) {
+        IpAddr::V4(v4) if v4.is_loopback() => "loopback address",
+        IpAddr::V6(v6) if v6.is_loopback() => "loopback address",
+        IpAddr::V4(v4) if v4.is_private() => "private network address",
+        IpAddr::V6(v6) if (v6.segments()[0] & 0xfe00) == 0xfc00 => "private network address",
+        _ => "restricted address",
+    }
+}
+
+pub async fn blocked_destination(settings: &SsrfProtection, address: &str) -> Option<String> {
+    let url = url::Url::parse(address.trim()).ok()?;
+    let host = url.host_str()?.trim_matches(|c| c == '[' || c == ']').to_owned();
+    let guard = Guard::new(settings);
+    let host_allowed = guard.host_allowed(&host);
+    let addresses: Vec<IpAddr> = match url.host()? {
+        url::Host::Ipv4(ip) => vec![IpAddr::V4(ip)],
+        url::Host::Ipv6(ip) => vec![IpAddr::V6(ip)],
+        url::Host::Domain(domain) => {
+            let port = url.port_or_known_default().unwrap_or(80);
+            tokio::net::lookup_host((domain, port))
+                .await
+                .ok()?
+                .map(|found| found.ip())
+                .collect()
+        }
+    };
+    let mut blocked: Vec<String> = Vec::new();
+    for ip in addresses {
+        if !guard.ip_allowed(ip, host_allowed) {
+            let shown = format!("{} ({})", canonical(ip), kind_of(ip));
+            if !blocked.contains(&shown) {
+                blocked.push(shown);
+            }
+        }
+    }
+    (!blocked.is_empty()).then(|| {
+        format!(
+            "Host resolves to private/local IP address(es): {}. {ADVICE}",
+            blocked.join(", ")
+        )
+    })
+}
+
 pub fn literal_allowed(guard: &Guard, url: &url::Url) -> bool {
     match url.host() {
         Some(url::Host::Ipv4(ip)) => guard.ip_allowed(IpAddr::V4(ip), false),
@@ -346,6 +392,38 @@ mod tests {
         assert!(domains.host_allowed("a.b.svc.local"));
         assert!(!domains.host_allowed("svc.local"));
         assert!(!domains.host_allowed("evilnexus.corp"));
+    }
+
+    #[tokio::test]
+    async fn destinations_are_judged_like_the_old_server() {
+        let on = SsrfProtection::default();
+        let blocked = blocked_destination(&on, "http://127.0.0.1:9/x/").await.unwrap();
+        assert_eq!(
+            blocked,
+            format!("Host resolves to private/local IP address(es): 127.0.0.1 (loopback address). {ADVICE}")
+        );
+        for (url, kind) in [
+            ("http://10.1.2.3/", "10.1.2.3 (private network address)"),
+            ("http://169.254.169.254/", "169.254.169.254 (restricted address)"),
+            ("http://[::1]:8081/", "::1 (loopback address)"),
+        ] {
+            let blocked = blocked_destination(&on, url).await.unwrap();
+            assert!(blocked.contains(kind), "{blocked}");
+        }
+        assert!(blocked_destination(&on, "https://93.184.215.14/").await.is_none());
+        assert!(blocked_destination(&on, "http://no-such-host.invalid/").await.is_none());
+        assert!(blocked_destination(&on, "not a url").await.is_none());
+        let allowed = SsrfProtection {
+            allowed_ips: vec!["127.0.0.1".to_owned()],
+            ..SsrfProtection::default()
+        };
+        assert!(blocked_destination(&allowed, "http://127.0.0.1:9/").await.is_none());
+        let off = SsrfProtection {
+            enabled: false,
+            ..SsrfProtection::default()
+        };
+        assert!(blocked_destination(&off, "http://10.1.2.3/").await.is_none());
+        assert!(blocked_destination(&off, "http://169.254.169.254/").await.is_some());
     }
 
     #[test]
