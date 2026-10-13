@@ -61,6 +61,11 @@ export interface RepositoryValues {
   excludedQueryParameters: string;
   nugetVersion: string;
   queryCacheItemMaxAge: number | null;
+  registryHost: string;
+  requireAuthentication: boolean;
+  upstreamHost: string;
+  signingKeypair: string;
+  signingPassphrase: string;
   proprietaryComponents: boolean;
   preserveEncodedCharacters: boolean;
   routingRuleName: string;
@@ -134,6 +139,11 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'excludedQueryParameters', path: ['raw', 'excludedQueryParameters'], kind: 'lines' },
   { key: 'nugetVersion', path: ['nugetProxy', 'nugetVersion'], kind: 'enum' },
   { key: 'queryCacheItemMaxAge', path: ['nugetProxy', 'queryCacheItemMaxAge'], kind: 'int' },
+  { key: 'registryHost', path: ['terraform', 'registryHost'], kind: 'text' },
+  { key: 'requireAuthentication', path: ['terraform', 'requireAuthentication'], kind: 'bool' },
+  { key: 'upstreamHost', path: ['terraform', 'upstreamHost'], kind: 'text' },
+  { key: 'signingKeypair', path: ['terraformSigning', 'keypair'], kind: 'secret' },
+  { key: 'signingPassphrase', path: ['terraformSigning', 'passphrase'], kind: 'secret' },
   { key: 'proprietaryComponents', path: ['component', 'proprietaryComponents'], kind: 'bool' },
   { key: 'preserveEncodedCharacters', path: ['proxy', 'preserveEncodedCharacters'], kind: 'bool' },
   { key: 'routingRuleName', path: ['routingRuleName'], kind: 'enum' },
@@ -297,6 +307,9 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
   if (sections.nugetProxy(spec)) {
     document.nugetProxy = { nugetVersion: 'V3', queryCacheItemMaxAge: 3600 };
   }
+  if (sections.terraform(spec)) {
+    document.terraform = { requireAuthentication: false };
+  }
   if (sections.raw(spec)) {
     document.raw = sections.rawQuery(spec)
       ? { contentDisposition: 'ATTACHMENT', forwardQueryParameters: false, excludedQueryParameters: [] }
@@ -304,6 +317,8 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
   }
   return document;
 }
+
+const TERRAFORM_HOST = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::[0-9]{1,5})?$/;
 
 export const NAME_PATTERN = /^[A-Za-z0-9-][A-Za-z0-9._-]*$/;
 export const MAX_NAME_LENGTH = 200;
@@ -382,6 +397,13 @@ export function validate(values: RepositoryValues, context: ValidationContext, t
   }
   if (sections.nugetProxy(spec) && !between(values.queryCacheItemMaxAge, 0, 2_147_483_647)) {
     errors.queryCacheItemMaxAge = t('repositories.form.errors.queryCacheItemMaxAge');
+  }
+  if (sections.terraform(spec)) {
+    for (const key of ['registryHost', 'upstreamHost'] as const) {
+      if (values[key].trim() !== '' && !TERRAFORM_HOST.test(values[key].trim())) {
+        errors[key] = t('repositories.form.errors.terraformHost');
+      }
+    }
   }
   if (sections.group(spec) && values.memberNames.length === 0) {
     errors.memberNames = t('repositories.form.errors.membersRequired');

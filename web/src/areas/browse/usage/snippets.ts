@@ -1,4 +1,5 @@
 import type { RepositoryType } from '../../../api';
+import { terraform } from './terraform';
 
 export interface UsageComponent {
   group: string;
@@ -25,7 +26,16 @@ export interface Snippet {
   hintVars?: Record<string, string>;
 }
 
-export const USAGE_FORMATS = ['maven2', 'npm', 'nuget', 'pypi', 'docker', 'raw', 'helm'] as const;
+export const USAGE_FORMATS = [
+  'maven2',
+  'npm',
+  'nuget',
+  'pypi',
+  'docker',
+  'raw',
+  'helm',
+  'terraform',
+] as const;
 
 export function supportsUsage(format: string): boolean {
   return (USAGE_FORMATS as readonly string[]).includes(format);
@@ -475,6 +485,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   docker,
   raw,
   helm,
+  terraform: (context) =>
+    terraform(context, repositoryUrl(context.baseUrl, context.repositoryName), hostOf(context.baseUrl)),
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

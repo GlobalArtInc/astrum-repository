@@ -39,4 +39,6 @@ export const sections = {
   raw: (spec: Spec) => spec.format === 'raw',
   rawQuery: (spec: Spec) => spec.format === 'raw' && spec.type === 'proxy',
   nugetProxy: (spec: Spec) => spec.format === 'nuget' && spec.type === 'proxy',
+  terraform: (spec: Spec) => spec.format === 'terraform',
+  terraformSigning: (spec: Spec) => spec.format === 'terraform' && spec.type === 'hosted',
 };

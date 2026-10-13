@@ -203,6 +203,11 @@
   "browse.usage.hint.rawUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
   "browse.usage.hint.helmRepo": "Один раз подключите репозиторий, затем ставьте из него чарты",
   "browse.usage.hint.helmUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
+  "browse.usage.hint.terraformCredentials": "Добавьте в ~/.terraformrc; первая строка один раз получает токен под вашим пользователем",
+  "browse.usage.hint.terraformMirror": "Добавьте в ~/.terraformrc, чтобы устанавливать все провайдеры через этот репозиторий",
+  "browse.usage.hint.terraformProviderProxy": "Добавьте в файл .tf и устанавливайте провайдеры через этот репозиторий как сетевое зеркало",
+  "browse.usage.hint.terraformRegistry": "Добавьте в файл .tf. Terraform ищет реестр по адресу https://{host}/.well-known/terraform.json, поэтому {host} должен быть хостом реестра этого репозитория или группы, в которую он входит",
+  "browse.usage.hint.terraformUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
 
   "browse.component.search": "Поиск",
   "browse.component.invalidTitle": "Неизвестный компонент",
