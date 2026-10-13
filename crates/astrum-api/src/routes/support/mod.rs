@@ -1,6 +1,7 @@
 pub mod health;
 mod logging;
 mod logs;
+pub mod openapi;
 pub mod sysinfo;
 mod zip;
 
@@ -17,4 +18,5 @@ pub fn routes() -> Router<AppState> {
         .merge(health::routes())
         .merge(sysinfo::routes())
         .merge(zip::routes())
+        .merge(openapi::routes())
 }
