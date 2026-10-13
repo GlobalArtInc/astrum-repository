@@ -75,51 +75,37 @@ function page(path: string, state: UiState = ADMIN_STATE) {
 }
 
 describe('the blob store list', () => {
-  it('shows usage, quotas and links', async () => {
-    serve({});
-    page('/admin/repository/blobstores');
-    expect(await screen.findByRole('link', { name: 'pool' })).toHaveAttribute(
-      'href',
-      '/admin/repository/blobstores/group/pool',
-    );
-    const pool = screen.getByRole('link', { name: 'pool' }).closest('tr') as HTMLElement;
-    expect(within(pool).getByText('Exceeded')).toBeInTheDocument();
-    const def = screen.getByRole('link', { name: 'default' }).closest('tr') as HTMLElement;
-    expect(within(def).getByText('1 repository')).toBeInTheDocument();
-    const one = screen.getByRole('link', { name: 'one' }).closest('tr') as HTMLElement;
-    expect(within(one).getByText('member of pool')).toBeInTheDocument();
-    await userEvent.click(within(one).getByRole('button', { name: 'Actions' }));
-    expect(await screen.findByRole('menuitem', { name: 'Delete' })).toHaveAttribute('data-disabled');
-  });
-
-  it('deletes an unused store after asking', async () => {
-    const server = serve({
-      'DELETE /service/rest/v1/blobstores/spare': () => new Response(null, { status: 204 }),
+  it('shows the old columns and opens a store from its row', async () => {
+    serve({
+      'GET /service/rest/v1/blobstores/group/pool': () =>
+        jsonResponse({ name: 'pool', softQuota: null, members: ['one'], fillPolicy: 'writeToFirst' }),
     });
     page('/admin/repository/blobstores');
-    const spare = (await screen.findByRole('link', { name: 'spare' })).closest('tr') as HTMLElement;
-    await userEvent.click(within(spare).getByRole('button', { name: 'Actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
-    expect(await screen.findByText('Blob store spare deleted')).toBeInTheDocument();
-    expect(server.calls.some((call) => call.method === 'DELETE')).toBe(true);
+    const pool = await screen.findByRole('row', { name: 'Open pool' });
+    expect(within(pool).getByText('Group')).toBeInTheDocument();
+    const def = screen.getByRole('row', { name: 'Open default' });
+    expect(within(def).getByText('Started')).toBeInTheDocument();
+    expect(within(def).getByText('File')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'What is a blob store?' })).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Filter by name...' }), 'spa');
+    expect(screen.queryByRole('row', { name: 'Open pool' })).not.toBeInTheDocument();
+    await userEvent.clear(screen.getByRole('searchbox', { name: 'Filter by name...' }));
+    await userEvent.click(screen.getByRole('row', { name: 'Open pool' }));
+    expect(await screen.findByRole('heading', { name: 'Edit: pool' })).toBeInTheDocument();
   });
 });
 
 describe('a blob store page', () => {
-  it('explains why a used store cannot be deleted', async () => {
+  it('refuses to delete a used store', async () => {
     serve({
       'GET /service/rest/v1/blobstores/file/default': () =>
         jsonResponse({ softQuota: null, path: 'default' }),
     });
     page('/admin/repository/blobstores/file/default');
     expect(await screen.findByRole('button', { name: 'Delete' })).toBeDisabled();
-    expect(
-      screen.getByText('It cannot be deleted while it is in use. The repositories raw-files use it.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('File Blob Store')).toBeInTheDocument();
     expect(await screen.findByRole('textbox', { name: /Path/ })).toHaveValue('default');
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
   it('shows the refusal of a member removal on the members field', async () => {
@@ -138,10 +124,15 @@ describe('a blob store page', () => {
         ),
     });
     page('/admin/repository/blobstores/group/pool');
-    await userEvent.click(await screen.findByRole('button', { name: 'Remove one' }));
-    await userEvent.click(screen.getByRole('combobox', { name: 'Add a blob store…' }));
-    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['one', 'spare']);
-    await userEvent.click(screen.getByRole('option', { name: 'spare' }));
+    const members = await screen.findByRole('list', { name: 'Member stores' });
+    const first = within(members).getAllByRole('listitem')[0] as HTMLElement;
+    await userEvent.click(within(first).getByRole('button', { name: 'Remove' }));
+    await userEvent.click(screen.getByRole('combobox', { name: /Member stores/ }));
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'one (File)',
+      'spare (File)',
+    ]);
+    await userEvent.click(screen.getByRole('option', { name: 'spare (File)' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(
       await screen.findByText('one holds 3 blobs of the group; removing it would lose them'),
@@ -171,24 +162,27 @@ describe('a blob store page', () => {
 });
 
 describe('creating a blob store', () => {
-  it('fills the path from the name and opens the new store', async () => {
+  it('walks through the basic, credential and advanced steps', async () => {
     const server = serve({
       'POST /service/rest/v1/blobstores/file': () => new Response(null, { status: 204 }),
-      'GET /service/rest/v1/blobstores/file/archive': () =>
-        jsonResponse({ softQuota: null, path: 'archive' }),
     });
     page('/admin/repository/blobstores/create/file');
+    const next = await screen.findByRole('button', { name: 'Continue' });
+    expect(next).toBeDisabled();
     await userEvent.type(await screen.findByRole('textbox', { name: /Name/ }), 'archive');
-    expect(screen.getByRole('textbox', { name: /Path/ })).toHaveValue('archive');
-    await userEvent.click(screen.getByRole('switch', { name: 'Enable a soft quota' }));
-    await userEvent.type(screen.getByRole('spinbutton', { name: /Limit/ }), '2');
-    await userEvent.click(screen.getByRole('button', { name: 'Create blob store' }));
+    await userEvent.type(screen.getByRole('textbox', { name: /Path/ }), 'archive');
+    await userEvent.click(next);
+    expect(await screen.findByText('No Credentials Needed')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Enable Soft Quota' }));
+    await userEvent.type(screen.getByRole('spinbutton', { name: /Constraint Limit/ }), '2');
+    await userEvent.click(screen.getByRole('button', { name: 'Create Blob Store' }));
     await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
     expect(server.calls.find((call) => call.method === 'POST')?.body).toEqual({
       name: 'archive',
       path: 'archive',
       softQuota: { type: 'spaceUsedQuota', limit: 2 * 1024 * 1024 },
     });
-    expect(await screen.findByText('Blob store archive created')).toBeInTheDocument();
+    expect(await screen.findByText('Blob store "archive" created')).toBeInTheDocument();
   });
 });

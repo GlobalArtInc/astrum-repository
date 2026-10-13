@@ -1,10 +1,12 @@
-import { Button, Callout, Card, Flex, Spinner, Text, Tooltip } from '@radix-ui/themes';
+import { Button, Callout, Flex, Spinner, Tooltip } from '@radix-ui/themes';
 import { CircleAlert, HardDrive, Info, Trash2 } from 'lucide-react';
+import { useId, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, useApi, useInvalidateApi } from '../../../api';
 import { useCan } from '../../../auth/state';
-import { formatNumber, useI18n } from '../../../i18n';
-import { describeError, EmptyState, ErrorState, FileSize, Page, useConfirm, useToast } from '../../../ui';
+import { useI18n } from '../../../i18n';
+import { describeError, EmptyState, ErrorState, Page, useConfirm, useToast } from '../../../ui';
+import { storeTypeName } from '../../repositories/components/EditTabs';
 import {
   configPath,
   deletePath,
@@ -16,7 +18,6 @@ import {
 } from '../api';
 import styles from '../blobstores.module.css';
 import { BlobStoreForm } from '../components/BlobStoreForm';
-import { QuotaBadge, StateBadge, typeLabel, usedBy } from '../components/bits';
 import type { StoreDocument } from '../model';
 
 function Loading() {
@@ -24,61 +25,6 @@ function Loading() {
     <Flex justify="center" py="9">
       <Spinner size="3" />
     </Flex>
-  );
-}
-
-function Summary({ store }: { store: UiBlobStore }) {
-  const { t, language } = useI18n();
-  return (
-    <Card size="2">
-      <dl className={styles.summary} aria-label={t('blobstores.edit.summary')}>
-        <div>
-          <dt>{t('blobstores.list.state')}</dt>
-          <dd>
-            <StateBadge store={store} />
-          </dd>
-        </div>
-        <div>
-          <dt>{t('blobstores.list.blobCount')}</dt>
-          <dd>{formatNumber(language, store.blobCount)}</dd>
-        </div>
-        <div>
-          <dt>{t('blobstores.list.size')}</dt>
-          <dd>
-            <FileSize bytes={store.totalSize} />
-          </dd>
-        </div>
-        <div>
-          <dt>{t('blobstores.list.available')}</dt>
-          <dd>
-            {store.availableSpace === null ? (
-              t('blobstores.list.unlimited')
-            ) : (
-              <FileSize bytes={store.availableSpace} />
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>{t('blobstores.list.quota')}</dt>
-          <dd>
-            <QuotaBadge store={store} />
-          </dd>
-        </div>
-        {store.quotaStatus && (
-          <div className={styles.summaryWide}>
-            <dt>{t('blobstores.edit.quotaStatus')}</dt>
-            <dd>{store.quotaStatus.message}</dd>
-          </div>
-        )}
-        <div className={styles.summaryWide}>
-          <dt>{t('blobstores.list.usedBy')}</dt>
-          <dd>
-            {usedBy(t, store)}
-            {store.repositories.length > 0 && `: ${store.repositories.join(', ')}`}
-          </dd>
-        </div>
-      </dl>
-    </Card>
   );
 }
 
@@ -115,6 +61,9 @@ export default function BlobStorePage() {
   const store = list.data?.find((candidate) => candidate.name === name);
   const configAddress = type ? configPath(type, name) : null;
   const config = useApi<StoreDocument>(configAddress);
+  const formId = useId();
+  const [dirty, setDirty] = useState(false);
+  const [version, setVersion] = useState(0);
   const crumbs = [
     { label: t('blobstores.crumbs.settings'), to: '/settings' },
     { label: t('blobstores.crumbs.list'), to: LIST_ADDRESS },
@@ -184,7 +133,7 @@ export default function BlobStorePage() {
     }
   };
   const deleteButton = (
-    <Button color="red" variant="soft" disabled={refusal !== null} onClick={() => void remove()}>
+    <Button color="gray" variant="soft" size="3" disabled={refusal !== null} onClick={() => void remove()}>
       <Trash2 size={16} aria-hidden="true" />
       {t('blobstores.edit.delete')}
     </Button>
@@ -192,59 +141,71 @@ export default function BlobStorePage() {
 
   return (
     <Page
-      title={name}
+      title={t('blobstores.edit.title', { name })}
       breadcrumbs={crumbs}
-      description={typeLabel(t, store.type)}
-      actions={canDelete && (refusal ? <Tooltip content={refusal}>{deleteButton}</Tooltip> : deleteButton)}
+      description={t('blobstores.edit.subtitle', { type: storeTypeName(store.type) })}
     >
-      {store.unavailable && (
-        <Callout.Root color="red" role="status">
-          <Callout.Icon>
-            <CircleAlert size={16} />
-          </Callout.Icon>
-          <Callout.Text>{t('blobstores.edit.unavailable')}</Callout.Text>
-        </Callout.Root>
-      )}
-      <Summary store={store} />
-      {canDelete && refusal && (
-        <Callout.Root color="gray" variant="surface">
+      <div className={styles.bar}>
+        <span>
+          {canDelete && (refusal ? <Tooltip content={refusal}>{deleteButton}</Tooltip> : deleteButton)}
+        </span>
+        {canUpdate && (
+          <span className={styles.barRight}>
+            <Button variant="outline" highContrast onClick={() => setVersion(version + 1)}>
+              {t('blobstores.form.discard')}
+            </Button>
+            <Button type="submit" form={formId} disabled={!dirty}>
+              {t('blobstores.form.save')}
+            </Button>
+          </span>
+        )}
+      </div>
+      <div className={styles.body}>
+        {store.unavailable && (
+          <Callout.Root color="red" role="status" className={styles.callout}>
+            <Callout.Icon>
+              <CircleAlert size={16} />
+            </Callout.Icon>
+            <Callout.Text>{t('blobstores.edit.unavailable')}</Callout.Text>
+          </Callout.Root>
+        )}
+        <Callout.Root className={styles.callout} variant="surface">
           <Callout.Icon>
             <Info size={16} />
           </Callout.Icon>
-          <Callout.Text>{refusal}</Callout.Text>
+          <Callout.Text>{t('blobstores.edit.warning')}</Callout.Text>
         </Callout.Root>
-      )}
-      {config.error ? (
-        <ErrorState error={config.error} onRetry={() => void config.refetch()} />
-      ) : !config.data ? (
-        <Loading />
-      ) : (
-        <BlobStoreForm
-          key={config.dataUpdatedAt}
-          type={type}
-          creating={false}
-          storeName={name}
-          document={config.data}
-          readOnly={!canUpdate}
-          stores={list.data ?? []}
-          submitLabel={t('blobstores.form.save')}
-          onSubmit={async (body) => {
-            if (configAddress) {
-              await api.put(configAddress, body);
-            }
-          }}
-          onSaved={() => {
-            toast.success(t('blobstores.form.saved', { name }));
-            void invalidate(UI_BLOB_STORES);
-            if (configAddress) {
-              void invalidate(configAddress);
-            }
-          }}
-        />
-      )}
-      <Text as="p" size="1" color="gray">
-        {t('blobstores.edit.note')}
-      </Text>
+        {config.error ? (
+          <ErrorState error={config.error} onRetry={() => void config.refetch()} />
+        ) : !config.data ? (
+          <Loading />
+        ) : (
+          <BlobStoreForm
+            key={`${config.dataUpdatedAt}-${version}`}
+            type={type}
+            creating={false}
+            storeName={name}
+            document={config.data}
+            readOnly={!canUpdate}
+            stores={list.data ?? []}
+            submitLabel={t('blobstores.form.save')}
+            formId={formId}
+            onDirtyChange={setDirty}
+            onSubmit={async (body) => {
+              if (configAddress) {
+                await api.put(configAddress, body);
+              }
+            }}
+            onSaved={() => {
+              toast.success(t('blobstores.form.saved', { name }));
+              void invalidate(UI_BLOB_STORES);
+              if (configAddress) {
+                void invalidate(configAddress);
+              }
+            }}
+          />
+        )}
+      </div>
     </Page>
   );
 }

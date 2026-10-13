@@ -21,14 +21,23 @@ export function MembersInput({
   candidates,
   error,
   disabled,
+  label,
+  hint,
+  placeholder,
+  empty,
 }: {
   value: string[];
   onChange(value: string[]): void;
   candidates: Array<{ name: string; type: string }>;
   error?: string;
   disabled?: boolean;
+  label?: string;
+  hint?: string;
+  placeholder?: string;
+  empty?: string;
 }) {
   const t = useT();
+  const title = label ?? t('repositories.form.members');
   const id = useId();
   const free = candidates.filter((candidate) => !value.includes(candidate.name));
   const move = (index: number, by: number) => {
@@ -40,13 +49,7 @@ export function MembersInput({
     }
   };
   return (
-    <Field
-      id={id}
-      label={t('repositories.form.members')}
-      hint={t('repositories.form.membersHint')}
-      required
-      error={error}
-    >
+    <Field id={id} label={title} hint={hint ?? t('repositories.form.membersHint')} required error={error}>
       <Select.Root
         value=""
         disabled={disabled || free.length === 0}
@@ -55,7 +58,7 @@ export function MembersInput({
         <Select.Trigger
           id={id}
           className={styles.add}
-          placeholder={t('repositories.form.addMember')}
+          placeholder={placeholder ?? t('repositories.form.addMember')}
           aria-invalid={error ? true : undefined}
         />
         <Select.Content position="popper">
@@ -67,9 +70,9 @@ export function MembersInput({
         </Select.Content>
       </Select.Root>
       {value.length === 0 ? (
-        <p className={styles.membersEmpty}>{t('repositories.form.noMembers')}</p>
+        <p className={styles.membersEmpty}>{empty ?? t('repositories.form.noMembers')}</p>
       ) : (
-        <ol className={styles.members} aria-label={t('repositories.form.members')}>
+        <ol className={styles.members} aria-label={title}>
           {value.map((name, index) => (
             <li key={name} className={styles.member}>
               <span className={styles.position}>{index + 1}</span>

@@ -1,19 +1,16 @@
-import { Button, Callout, Heading, Text } from '@radix-ui/themes';
-import { Info } from 'lucide-react';
+import { Callout } from '@radix-ui/themes';
+import { Folder, Info, TriangleAlert } from 'lucide-react';
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useT } from '../../../i18n';
+import { FormError, UnsavedChangesGuard, useForm } from '../../../ui';
+import { MembersInput } from '../../repositories/components/FormParts';
 import {
-  FileSize,
-  FormError,
-  NumberField,
-  OrderedListField,
-  SecretField,
-  SelectField,
-  SwitchField,
-  TextField,
-  UnsavedChangesGuard,
-  useForm,
-} from '../../../ui';
+  CheckInput,
+  NumberInput,
+  SecretInput,
+  SelectInput,
+  TextInput,
+} from '../../repositories/components/fields';
 import type { StoreType, UiBlobStore } from '../api';
 import styles from '../blobstores.module.css';
 import {
@@ -31,6 +28,28 @@ import {
 import { typeLabel } from './bits';
 
 const NONE = '_none';
+
+export type Step = 'basic' | 'credentials' | 'advanced';
+export const STEPS: readonly Step[] = ['basic', 'credentials', 'advanced'];
+
+const STEP_OF: Partial<Record<keyof StoreValues, Step>> = {
+  name: 'basic',
+  path: 'basic',
+  bucket: 'basic',
+  region: 'basic',
+  prefix: 'basic',
+  expiration: 'basic',
+  members: 'basic',
+  fillPolicy: 'basic',
+  accessKeyId: 'credentials',
+  secretAccessKey: 'credentials',
+  role: 'credentials',
+  sessionToken: 'credentials',
+};
+
+export function stepOf(key: string): Step {
+  return STEP_OF[key as keyof StoreValues] ?? 'advanced';
+}
 
 const QUOTA_LABELS: Record<(typeof QUOTA_TYPES)[number], string> = {
   spaceUsedQuota: 'blobstores.quota.spaceUsedQuota',
@@ -55,39 +74,40 @@ export interface BlobStoreFormProps {
   readOnly?: boolean;
   stores: readonly UiBlobStore[];
   submitLabel: string;
+  formId?: string;
+  step?: Step;
+  onStepChange?(step: Step): void;
+  onReadyChange?(ready: Record<Step, boolean>): void;
+  onDirtyChange?(dirty: boolean): void;
   onSubmit(document: StoreDocument): Promise<void>;
   onSaved?(document: StoreDocument): void;
-  onCancel?(): void;
 }
 
 function Section({
   title,
   description,
+  icon,
   children,
+  hidden,
 }: {
   title: string;
   description?: string;
+  icon?: ReactNode;
   children: ReactNode;
+  hidden?: boolean;
 }) {
   return (
-    <section className={styles.section} aria-label={title}>
+    <section className={styles.section} aria-label={title} hidden={hidden}>
       <div className={styles.sectionHead}>
-        <Heading as="h2" size="4">
-          {title}
-        </Heading>
-        {description && (
-          <Text as="p" size="2" color="gray">
-            {description}
-          </Text>
-        )}
+        {icon}
+        <span>
+          <h2 className={styles.sectionTitle}>{title}</h2>
+          {description && <p className={styles.sectionText}>{description}</p>}
+        </span>
       </div>
-      <div className={styles.fields}>{children}</div>
+      {children}
     </section>
   );
-}
-
-function Wide({ children }: { children: ReactNode }) {
-  return <div className={styles.wide}>{children}</div>;
 }
 
 export function memberChoices(stores: readonly UiBlobStore[], self: string): UiBlobStore[] {
@@ -120,29 +140,44 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
     },
   });
   const { values } = form;
-  const onSaved = props.onSaved;
+  const { onSaved, onDirtyChange, onReadyChange, onStepChange } = props;
   useEffect(() => {
     if (saved && !form.dirty) {
       setSaved(null);
       onSaved?.(saved);
     }
   }, [saved, form.dirty, onSaved]);
+  useEffect(() => {
+    onDirtyChange?.(form.dirty);
+  }, [form.dirty, onDirtyChange]);
+  const basicReady =
+    values.name.trim() !== '' &&
+    (type !== 'file' || values.path.trim() !== '') &&
+    (type !== 's3' || (values.bucket.trim() !== '' && values.region.trim() !== '')) &&
+    (type !== 'group' || values.members.length > 0);
+  useEffect(() => {
+    onReadyChange?.({ basic: basicReady, credentials: true, advanced: true });
+  }, [basicReady, onReadyChange]);
 
   const field = <K extends keyof StoreValues>(name: K) => ({ ...form.field(name), disabled: readOnly });
   const self = creating ? values.name.trim() : (props.storeName ?? '');
-  const byName = new Map(props.stores.map((store) => [store.name, store]));
-  const choices = memberChoices(props.stores, self);
-  const memberOptions = [
-    ...choices.map((store) => ({ value: store.name, label: store.name })),
-    ...values.members
-      .filter((name) => !choices.some((store) => store.name === name))
-      .map((name) => ({ value: name, label: name })),
-  ];
+  const choices = memberChoices(props.stores, self).map((store) => ({
+    name: store.name,
+    type: typeLabel(t, store.type),
+  }));
   const keepsSecret = storedKeyId !== null && values.accessKeyId.trim() === storedKeyId;
+  const step = props.step;
+  const shows = (part: Step) => step === undefined || step === part;
 
   const formElement = useRef<HTMLFormElement>(null);
   const submit = async (event: FormEvent) => {
-    await form.submit(event);
+    event.preventDefault();
+    const errors = validate(values, { type, creating, storedKeyId }, t);
+    const first = Object.keys(errors)[0];
+    if (first && step !== undefined) {
+      onStepChange?.(stepOf(first));
+    }
+    await form.submit();
     window.requestAnimationFrame(() => {
       formElement.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
     });
@@ -150,13 +185,14 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
 
   return (
     <form
+      id={props.formId}
       ref={formElement}
       className={styles.form}
       onSubmit={(event) => void submit(event)}
       noValidate
       aria-label={props.submitLabel}
     >
-      <UnsavedChangesGuard when={form.dirty && !readOnly} />
+      <UnsavedChangesGuard when={form.dirty && !readOnly && !creating} />
       {readOnly && (
         <Callout.Root color="gray" variant="surface">
           <Callout.Icon>
@@ -165,83 +201,111 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
           <Callout.Text>{t('blobstores.form.readOnly')}</Callout.Text>
         </Callout.Root>
       )}
-      {(creating || type === 'file') && (
-        <Section title={t('blobstores.form.general')}>
-          {creating && (
-            <TextField
-              {...field('name')}
-              onChange={(name) => {
-                if (type === 'file' && (values.path === '' || values.path === values.name)) {
-                  form.set('path', name);
-                }
-                form.set('name', name);
-              }}
-              label={t('blobstores.form.name')}
-              hint={t('blobstores.form.nameHint')}
-              required
-              autoFocus
-            />
-          )}
+
+      {creating && (
+        <Section
+          title={t('blobstores.form.basic')}
+          description={t('blobstores.form.basicText')}
+          hidden={!shows('basic')}
+        >
+          <TextInput
+            {...field('name')}
+            label={t('blobstores.form.name')}
+            hint={t('blobstores.form.nameHint')}
+            placeholder="my-blob-store"
+            required
+            autoFocus
+          />
           {type === 'file' && (
-            <TextField
+            <TextInput
               {...field('path')}
               label={t('blobstores.file.path')}
               hint={t('blobstores.file.pathHint')}
+              placeholder="/path/to/blob/storage"
               required
             />
           )}
         </Section>
       )}
 
+      {!creating && type === 'file' && (
+        <Section
+          title={t('blobstores.file.section')}
+          description={t('blobstores.file.sectionText')}
+          icon={<Folder size={20} aria-hidden="true" />}
+        >
+          <Callout.Root color="amber" variant="surface">
+            <Callout.Icon>
+              <TriangleAlert size={16} />
+            </Callout.Icon>
+            <Callout.Text>{t('blobstores.file.pathWarning')}</Callout.Text>
+          </Callout.Root>
+          <TextInput
+            {...field('path')}
+            label={t('blobstores.file.path')}
+            hint={t('blobstores.file.pathHint')}
+            required
+          />
+        </Section>
+      )}
+
       {type === 's3' && (
         <>
-          <Section title={t('blobstores.s3.bucketSection')} description={t('blobstores.s3.bucketText')}>
-            <TextField
+          <Section
+            title={t('blobstores.s3.bucketSection')}
+            description={t('blobstores.s3.bucketText')}
+            hidden={!shows('basic')}
+          >
+            <TextInput
               {...field('bucket')}
               label={t('blobstores.s3.bucket')}
               hint={t('blobstores.s3.bucketHint')}
               required
             />
-            <TextField
+            <TextInput
               {...field('region')}
               label={t('blobstores.s3.region')}
               hint={t('blobstores.s3.regionHint')}
               required
             />
-            <TextField
+            <TextInput
               {...field('prefix')}
               label={t('blobstores.s3.prefix')}
               hint={t('blobstores.s3.prefixHint')}
             />
-            <NumberField
+            <NumberInput
               {...field('expiration')}
               label={t('blobstores.s3.expiration')}
               hint={t('blobstores.s3.expirationHint')}
               min={-1}
             />
           </Section>
-          <Section title={t('blobstores.s3.credentials')} description={t('blobstores.s3.credentialsText')}>
-            <TextField {...field('accessKeyId')} label={t('blobstores.s3.accessKeyId')} autoComplete="off" />
-            <SecretField
+          <Section
+            title={t('blobstores.s3.credentials')}
+            description={t('blobstores.s3.credentialsText')}
+            hidden={!shows('credentials')}
+          >
+            <TextInput {...field('accessKeyId')} label={t('blobstores.s3.accessKeyId')} autoComplete="off" />
+            <SecretInput
               {...field('secretAccessKey')}
               label={t('blobstores.s3.secretAccessKey')}
               stored={keepsSecret}
               required={values.accessKeyId.trim() !== ''}
             />
-            <TextField
+            <TextInput
               {...field('role')}
               label={t('blobstores.s3.role')}
               hint={t('blobstores.s3.roleHint')}
               autoComplete="off"
             />
-            <SecretField
+            <SecretInput
               {...field('sessionToken')}
               label={t('blobstores.s3.sessionToken')}
               hint={t('blobstores.s3.sessionTokenHint')}
             />
           </Section>
-          <Section title={t('blobstores.s3.encryption')}>
-            <SelectField
+          <Section title={t('blobstores.s3.encryption')} hidden={!shows('advanced')}>
+            <SelectInput
               {...field('encryptionType')}
               value={values.encryptionType === '' ? NONE : values.encryptionType}
               onChange={(value) => form.set('encryptionType', value === NONE ? '' : value)}
@@ -252,56 +316,47 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
               ]}
             />
             {values.encryptionType === 'kmsManagedEncryption' && (
-              <TextField
+              <TextInput
                 {...field('encryptionKey')}
                 label={t('blobstores.s3.kmsKey')}
                 hint={t('blobstores.s3.kmsKeyHint')}
               />
             )}
           </Section>
-          <Section title={t('blobstores.s3.connection')}>
-            <Wide>
-              <TextField
-                {...field('endpoint')}
-                type="url"
-                label={t('blobstores.s3.endpoint')}
-                hint={t('blobstores.s3.endpointHint')}
-              />
-            </Wide>
-            <Wide>
-              <SwitchField
-                {...field('forcePathStyle')}
-                label={t('blobstores.s3.pathStyle')}
-                description={t('blobstores.s3.pathStyleHint')}
-              />
-            </Wide>
+          <Section title={t('blobstores.s3.connection')} hidden={!shows('advanced')}>
+            <TextInput
+              {...field('endpoint')}
+              type="url"
+              label={t('blobstores.s3.endpoint')}
+              hint={t('blobstores.s3.endpointHint')}
+            />
+            <CheckInput
+              {...field('forcePathStyle')}
+              label={t('blobstores.s3.pathStyle')}
+              description={t('blobstores.s3.pathStyleHint')}
+            />
           </Section>
         </>
       )}
 
       {type === 'group' && (
-        <Section title={t('blobstores.group.section')} description={t('blobstores.group.text')}>
-          <Wide>
-            <OrderedListField
-              {...field('members')}
-              label={t('blobstores.group.members')}
-              hint={t('blobstores.group.membersHint')}
-              options={memberOptions}
-              addPlaceholder={t('blobstores.group.addMember')}
-              empty={t('blobstores.group.noMembers')}
-              noOptions={t('blobstores.group.noCandidates')}
-              describe={(name) => {
-                const store = byName.get(name);
-                return store ? (
-                  <Text size="1" color="gray">
-                    {typeLabel(t, store.type)} · {t('blobstores.list.blobs', { count: store.blobCount })} ·{' '}
-                    <FileSize bytes={store.totalSize} />
-                  </Text>
-                ) : null;
-              }}
-            />
-          </Wide>
-          <SelectField
+        <Section
+          title={t('blobstores.group.section')}
+          description={t('blobstores.group.text')}
+          hidden={!shows('basic')}
+        >
+          <MembersInput
+            value={values.members}
+            onChange={(next) => form.set('members', next)}
+            candidates={choices}
+            error={form.errors.members}
+            disabled={readOnly}
+            label={t('blobstores.group.members')}
+            hint={t('blobstores.group.membersHint')}
+            placeholder={t('blobstores.group.addMember')}
+            empty={t('blobstores.group.noMembers')}
+          />
+          <SelectInput
             {...field('fillPolicy')}
             label={t('blobstores.group.fillPolicy')}
             hint={t('blobstores.group.fillPolicyHint')}
@@ -310,18 +365,30 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
         </Section>
       )}
 
-      <Section title={t('blobstores.quota.title')} description={t('blobstores.quota.text')}>
-        <Wide>
-          <SwitchField {...field('quotaEnabled')} label={t('blobstores.quota.enable')} />
-        </Wide>
+      {step === 'credentials' && type !== 's3' && (
+        <Section title={t('blobstores.wizard.noCredentials')}>
+          <p className={styles.sectionText}>
+            {type === 'file'
+              ? t('blobstores.wizard.noCredentialsFile')
+              : t('blobstores.wizard.noCredentialsGroup')}
+          </p>
+        </Section>
+      )}
+
+      <Section
+        title={t('blobstores.quota.title')}
+        description={t('blobstores.quota.text')}
+        hidden={!shows('advanced')}
+      >
+        <CheckInput {...field('quotaEnabled')} label={t('blobstores.quota.enable')} />
         {values.quotaEnabled && (
           <>
-            <SelectField
+            <SelectInput
               {...field('quotaType')}
               label={t('blobstores.quota.type')}
               options={QUOTA_TYPES.map((value) => ({ value, label: t(QUOTA_LABELS[value]) }))}
             />
-            <NumberField
+            <NumberInput
               {...field('quotaLimit')}
               label={t('blobstores.quota.limit')}
               hint={
@@ -337,28 +404,6 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
       </Section>
 
       <FormError message={form.formError} />
-      {!readOnly && (
-        <div className={styles.footer}>
-          {creating ? (
-            <Button type="button" variant="soft" color="gray" onClick={props.onCancel}>
-              {t('blobstores.form.cancel')}
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="soft"
-              color="gray"
-              disabled={!form.dirty || form.submitting}
-              onClick={() => form.reset()}
-            >
-              {t('blobstores.form.discard')}
-            </Button>
-          )}
-          <Button type="submit" loading={form.submitting} disabled={!creating && !form.dirty}>
-            {props.submitLabel}
-          </Button>
-        </div>
-      )}
     </form>
   );
 }
