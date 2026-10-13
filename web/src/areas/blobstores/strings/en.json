@@ -109,7 +109,7 @@
   "blobstores.delete.title": "Delete the blob store {name}?",
   "blobstores.delete.text": "Its configuration is removed. A file store's folder is removed when it is empty; an S3 bucket is left as it is. This cannot be undone.",
   "blobstores.delete.confirm": "Delete",
-  "blobstores.delete.deleted": "Blob store {name} deleted",
+  "blobstores.delete.deleted": "Blob store \"{name}\" deleted",
   "blobstores.list.path": "Path",
   "blobstores.list.filter": "Filter by name...",
   "blobstores.list.open": "Open",

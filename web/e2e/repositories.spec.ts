@@ -139,25 +139,25 @@ test('each format gets hosted, proxy and group repositories through the forms', 
     for (const type of ['hosted', 'proxy', 'group'] as const) {
       const name = `ui-${format.id}-${type}`;
       await page.goto('/admin/repository/repositories');
-      await page.getByRole('link', { name: 'Create a repository' }).first().click();
-      await page.getByRole('link', { name: chooseLabel(format, type) }).click();
+      await page.getByRole('link', { name: 'Create Repository' }).first().click();
+      await page.getByRole('button', { name: format.name, exact: true }).click();
+      await page.getByRole('button', { name: chooseLabel(format, type) }).click();
       await page.getByRole('textbox', { name: 'Name', exact: true }).fill(name);
       if (type === 'proxy') {
         await page
-          .getByRole('textbox', { name: 'Remote storage URL', exact: true })
+          .getByRole('textbox', { name: 'Remote Storage', exact: true })
           .fill(`https://upstream.example.invalid/${format.id}/`);
       }
       if (type === 'group') {
-        await pick(page, 'Add a repository…', `ui-${format.id}-hosted`);
-        await pick(page, 'Add a repository…', `ui-${format.id}-proxy`);
+        await pick(page, 'Member Repositories', `ui-${format.id}-hosted (hosted)`);
+        await pick(page, 'Member Repositories', `ui-${format.id}-proxy (proxy)`);
         if (format.id === 'docker') {
-          await pick(page, 'Writable member', `ui-${format.id}-hosted`);
+          await pick(page, 'Writable Repository', `ui-${format.id}-hosted`);
         }
       }
-      await page.getByRole('button', { name: 'Create repository' }).click();
-      await expect(page).toHaveURL(new RegExp(`/admin/repository/repositories/${name}$`));
-      await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
-      await expect(page.getByText(`Repository ${name} created`, { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Continue' }).click();
+      await expect(page).toHaveURL(/\/admin\/repository\/repositories$/);
+      await expect(page.getByText(`Repository "${name}" created`, { exact: true })).toBeVisible();
       const document = await admin.repository(format.api, type, name);
       expect(document.online).toBe(true);
       expect((document.storage as Json).blobStoreName).toBe('default');
@@ -183,9 +183,9 @@ test('each format gets hosted, proxy and group repositories through the forms', 
   }
   await page.goto('/admin/repository/repositories?type=group');
   for (const format of FORMATS) {
-    await expect(page.getByRole('link', { name: `ui-${format.id}-group` })).toBeVisible();
+    await expect(page.getByRole('row', { name: `Open ui-${format.id}-group` })).toBeVisible();
   }
-  await expect(page.getByRole('link', { name: 'ui-raw-hosted' })).toHaveCount(0);
+  await expect(page.getByRole('row', { name: 'Open ui-raw-hosted' })).toHaveCount(0);
 });
 
 test('saving a form unchanged keeps every field, and an edit changes only its field', async ({
@@ -210,7 +210,7 @@ test('saving a form unchanged keeps every field, and an edit changes only its fi
       const name = `rt-${format.id}-${type}`;
       const before = await admin.repository(format.api, type, name);
       await page.goto(`/admin/repository/repositories/${name}`);
-      const form = page.getByRole('form', { name: 'Save' });
+      const form = page.getByRole('form', { name: 'Save Changes' });
       await expect(form).toBeVisible();
       const saved = page.waitForResponse(
         (response) => response.request().method() === 'PUT' && response.url().endsWith(`/${type}/${name}`),
@@ -226,8 +226,9 @@ test('saving a form unchanged keeps every field, and an edit changes only its fi
   const proxy = 'rt-raw-proxy';
   const before = await admin.repository('raw', 'proxy', proxy);
   await page.goto(`/admin/repository/repositories/${proxy}`);
-  await page.getByRole('spinbutton', { name: 'Connection timeout (seconds)' }).fill('45');
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'HTTP Request Settings' }).click();
+  await page.getByRole('spinbutton', { name: 'Connection Timeout' }).fill('45');
+  await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
   await expect(page.getByText(`Changes to ${proxy} saved`, { exact: true })).toBeVisible();
   const after = await admin.repository('raw', 'proxy', proxy);
   expect(differences(before, after)).toEqual(['httpClient.connection.timeout']);
@@ -236,9 +237,14 @@ test('saving a form unchanged keeps every field, and an edit changes only its fi
   const group = 'rt-docker-group';
   const groupBefore = await admin.repository('docker', 'group', group);
   await page.goto(`/admin/repository/repositories/${group}`);
-  await pick(page, 'Add a repository…', 'rt-docker-proxy');
-  await page.getByRole('button', { name: 'Move rt-docker-proxy up' }).click();
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await pick(page, 'Member Repositories', 'rt-docker-proxy (proxy)');
+  await page
+    .getByRole('list', { name: 'Member Repositories' })
+    .getByRole('listitem')
+    .filter({ hasText: 'rt-docker-proxy' })
+    .getByRole('button', { name: 'Move Up' })
+    .click();
+  await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
   await expect(page.getByText(`Changes to ${group} saved`, { exact: true })).toBeVisible();
   const groupAfter = await admin.repository('docker', 'group', group);
   expect(differences(groupBefore, groupAfter)).toEqual(['group.memberNames']);
@@ -251,7 +257,7 @@ test('server problems land on their fields and leaving asks first', async ({ pag
   await signInAsAdmin(page, server.adminPassword);
   await page.goto('/admin/repository/repositories/create/raw/hosted');
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill('TAKEN-name');
-  await page.getByRole('button', { name: 'Create repository' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
   await expect(
     page.getByText('is already used by another repository (names ignore case)', { exact: true }),
   ).toBeVisible();
@@ -272,27 +278,25 @@ test('a repository goes offline and online, and its cache and index can be refre
   await admin.createRepository('raw', 'proxy', fullDocument(FORMATS[0], 'proxy', 'switch-proxy', ''));
   await signInAsAdmin(page, server.adminPassword);
   await page.goto('/admin/repository/repositories/switch-hosted');
-  await page.getByRole('button', { name: 'Take offline' }).click();
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Take offline' }).click();
-  await expect(page.getByText('switch-hosted is offline', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Bring online' })).toBeVisible();
+  await page.getByRole('button', { name: 'Take Offline' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Take Offline' }).click();
+  await expect(page.getByText('Repository "switch-hosted" is offline', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Bring Online' })).toBeVisible();
   expect((await admin.repository('raw', 'hosted', 'switch-hosted')).online).toBe(false);
-  await page.getByRole('button', { name: 'Bring online' }).click();
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Bring online' }).click();
-  await expect(page.getByText('switch-hosted is online', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Bring Online' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Bring Online' }).click();
+  await expect(page.getByText('Repository "switch-hosted" is online', { exact: true })).toBeVisible();
   expect((await admin.repository('raw', 'hosted', 'switch-hosted')).online).toBe(true);
 
-  await page.getByRole('button', { name: 'More actions' }).click();
-  await expect(page.getByRole('menuitem', { name: 'Invalidate cache' })).toHaveCount(0);
-  await page.getByRole('menuitem', { name: 'Rebuild index' }).click();
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Rebuild index' }).click();
-  await expect(page.getByText('The index of switch-hosted is being rebuilt', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Invalidate Cache' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Rebuild Index' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Rebuild Index' }).click();
+  await expect(page.getByText('Index rebuild of "switch-hosted" started', { exact: true })).toBeVisible();
 
   await page.goto('/admin/repository/repositories/switch-proxy');
-  await page.getByRole('button', { name: 'More actions' }).click();
-  await page.getByRole('menuitem', { name: 'Invalidate cache' }).click();
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Invalidate cache' }).click();
-  await expect(page.getByText('The cache of switch-proxy was invalidated', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Invalidate Cache' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Invalidate Cache' }).click();
+  await expect(page.getByText('The cache of "switch-proxy" was invalidated', { exact: true })).toBeVisible();
 });
 
 test('deleting asks for the name and takes the repository out of its groups', async ({
@@ -314,10 +318,10 @@ test('deleting asks for the name and takes the repository out of its groups', as
   });
   await admin.upload('doomed', 'docs/readme.txt', 'goodbye');
   await signInAsAdmin(page, server.adminPassword);
-  await page.goto('/admin/repository/repositories/doomed?tab=membership');
-  await expect(page.getByRole('list', { name: 'Groups that contain it' })).toContainText('doomed-group');
-  await page.getByRole('button', { name: 'More actions' }).click();
-  await page.getByRole('menuitem', { name: 'Delete' }).click();
+  await page.goto('/admin/repository/repositories/doomed/profile?tab=membership');
+  await expect(page.getByRole('link', { name: 'doomed-group' })).toBeVisible();
+  await page.goto('/admin/repository/repositories/doomed');
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
   const dialog = page.getByRole('alertdialog', { name: 'Delete doomed?' });
   await expect(dialog).toContainText('every component and asset published to it');
   await expect(dialog).toContainText('doomed-group');
@@ -328,8 +332,8 @@ test('deleting asks for the name and takes the repository out of its groups', as
   await dialog.getByRole('textbox', { name: 'Type doomed to confirm' }).fill('doomed');
   await confirm.click();
   await expect(page).toHaveURL(/\/admin\/repository\/repositories$/);
-  await expect(page.getByText('Repository doomed deleted', { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'doomed', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Repository "doomed" deleted', { exact: true })).toBeVisible();
+  await expect(page.getByRole('row', { name: 'Open doomed', exact: true })).toHaveCount(0);
   expect(await admin.status('/v1/repositories/doomed')).toBe(404);
   expect(((await admin.repository('raw', 'group', 'doomed-group')).group as Json).memberNames).toEqual([
     'survivor',
@@ -346,21 +350,24 @@ test('the profile shows membership and recent audit events', async ({ page, requ
     group: { memberNames: ['profile-hosted'] },
   });
   await signInAsAdmin(page, server.adminPassword);
-  await page.goto('/admin/repository/repositories/profile-group/profile?tab=membership');
-  await expect(page).toHaveURL(/\/admin\/repository\/repositories\/profile-group\?tab=membership$/);
-  await expect(page.getByRole('list', { name: 'Members' })).toContainText('profile-hosted');
+  await page.goto('/admin/repository/repositories/profile-group/profile');
+  await expect(page.getByRole('region', { name: 'Repository Configuration' })).toContainText(
+    'profile-hosted',
+  );
   await page.getByRole('tab', { name: /Audit/ }).click();
   await expect(page.getByRole('cell', { name: 'Created' }).first()).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open the audit log' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Full Audit Log' })).toHaveAttribute(
     'href',
     '/audit?repositoryName=profile-group',
   );
   await page.goto('/#browse/repository-profile/profile-hosted');
-  await expect(page).toHaveURL(/\/admin\/repository\/repositories\/profile-hosted$/);
+  await expect(page).toHaveURL(/\/admin\/repository\/repositories\/profile-hosted\/profile$/);
+  await page.getByRole('tab', { name: /Group Membership/ }).click();
+  await expect(page.getByRole('link', { name: 'profile-group' })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await noHorizontalScroll(page);
   await page.goto('/admin/repository/repositories');
-  await expect(page.getByRole('link', { name: 'profile-group' })).toBeVisible();
+  await expect(page.getByRole('row', { name: 'Open profile-group' })).toBeVisible();
   await noHorizontalScroll(page);
 });
 
@@ -374,18 +381,18 @@ test('an administrator who may only read sees disabled forms', async ({ page, re
   await page.goto('/settings');
   await expect(page.getByRole('link', { name: /Repositories/ })).toBeVisible();
   await page.goto('/admin/repository/repositories');
-  await expect(page.getByRole('link', { name: 'read-only-proxy' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Create a repository' })).toHaveCount(0);
-  await page.getByRole('link', { name: 'read-only-proxy' }).click();
+  await expect(page.getByRole('row', { name: 'Open read-only-proxy' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Create Repository' })).toHaveCount(0);
+  await page.getByRole('row', { name: 'Open read-only-proxy' }).click();
   await expect(
     page.getByText('You can read these settings but not change them.', { exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('textbox', { name: 'Remote storage URL' })).toBeDisabled();
-  await expect(page.getByRole('switch', { name: 'Block outbound connections' })).toBeDisabled();
-  await expect(page.getByRole('combobox', { name: 'Version policy' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Take offline' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'More actions' })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Remote Storage' })).toBeDisabled();
+  await expect(page.getByRole('checkbox', { name: 'Blocked' })).toBeDisabled();
+  await expect(page.getByRole('combobox', { name: 'Version Policy' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save Changes' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Take Offline' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0);
   await page.goto('/admin/repository/repositories/create');
   await expect(page.getByRole('heading', { name: 'You cannot open this page' })).toBeVisible();
 });

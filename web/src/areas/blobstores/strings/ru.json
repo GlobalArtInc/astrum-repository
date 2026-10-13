@@ -111,7 +111,7 @@
   "blobstores.delete.title": "Удалить хранилище блобов {name}?",
   "blobstores.delete.text": "Удаляется его конфигурация. Каталог файлового хранилища удаляется, если он пуст; бакет S3 остаётся как есть. Это действие нельзя отменить.",
   "blobstores.delete.confirm": "Удалить",
-  "blobstores.delete.deleted": "Хранилище блобов {name} удалено",
+  "blobstores.delete.deleted": "Хранилище блобов «{name}» удалено",
   "blobstores.list.path": "Путь",
   "blobstores.list.filter": "Фильтр по имени...",
   "blobstores.list.open": "Открыть",

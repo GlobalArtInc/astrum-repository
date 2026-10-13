@@ -82,11 +82,16 @@ export default function CreateBlobStorePage() {
         onBack={() => (index === 0 ? navigate(CREATE_ADDRESS) : setStep(STEPS[index - 1] as Step))}
         next={
           last ? (
-            <Button type="submit" form={formId}>
+            <Button key="create" type="submit" form={formId}>
               {t('blobstores.create.submit')}
             </Button>
           ) : (
-            <Button disabled={!ready[step]} onClick={() => setStep(STEPS[index + 1] as Step)}>
+            <Button
+              key="next"
+              type="button"
+              disabled={!ready[step]}
+              onClick={() => setStep(STEPS[index + 1] as Step)}
+            >
               {t('repositories.create.next')}
             </Button>
           )

@@ -233,7 +233,7 @@ export function RepositoryForm(props: RepositoryFormProps) {
       noValidate
       aria-label={props.submitLabel}
     >
-      <UnsavedChangesGuard when={form.dirty && !readOnly && !creating} />
+      <UnsavedChangesGuard when={form.dirty && !readOnly} />
       <div className={styles.content}>
         {readOnly && (
           <Callout.Root color="gray" variant="surface" mb="5">

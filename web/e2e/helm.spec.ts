@@ -51,13 +51,14 @@ async function pick(page: Page, combobox: string, option: string) {
 
 async function createThroughForm(page: Page, label: string, name: string, fill?: () => Promise<void>) {
   await page.goto('/admin/repository/repositories');
-  await page.getByRole('link', { name: 'Create a repository' }).first().click();
-  await page.getByRole('link', { name: label }).click();
+  await page.getByRole('link', { name: 'Create Repository' }).first().click();
+  await page.getByRole('button', { name: 'Helm', exact: true }).click();
+  await page.getByRole('button', { name: label }).click();
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill(name);
   await fill?.();
-  await page.getByRole('button', { name: 'Create repository' }).click();
-  await expect(page).toHaveURL(new RegExp(`/admin/repository/repositories/${name}$`));
-  await expect(page.getByText(`Repository ${name} created`, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(/\/admin\/repository\/repositories$/);
+  await expect(page.getByText(`Repository "${name}" created`, { exact: true })).toBeVisible();
 }
 
 async function allowLoopback(server: Server) {
@@ -78,12 +79,12 @@ test('helm repositories are made through the forms and serve one index', async (
   await createThroughForm(page, 'Create a hosted Helm repository', 'charts');
   await createThroughForm(page, 'Create a Helm proxy repository', 'charts-mirror', async () => {
     await page
-      .getByRole('textbox', { name: 'Remote storage URL', exact: true })
+      .getByRole('textbox', { name: 'Remote Storage', exact: true })
       .fill(`${server.url}/repository/charts/`);
   });
   await createThroughForm(page, 'Create a Helm group repository', 'charts-all', async () => {
-    await pick(page, 'Add a repository…', 'charts');
-    await pick(page, 'Add a repository…', 'charts-mirror');
+    await pick(page, 'Member Repositories', 'charts (hosted)');
+    await pick(page, 'Member Repositories', 'charts-mirror (proxy)');
   });
   const group = await call(server, 'GET', '/service/rest/v1/repositories/helm/group/charts-all');
   expect((await group.json()).group.memberNames).toEqual(['charts', 'charts-mirror']);

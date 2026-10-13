@@ -108,42 +108,54 @@ for (const size of SIZES) {
       const suffix = `${size.name}-${theme}`;
 
       await page.goto('/admin/repository/repositories');
-      await expect(page.getByRole('link', { name: 'maven-central' })).toBeVisible();
+      await expect(page.getByRole('row', { name: 'Open maven-central' })).toBeVisible();
       await shoot(page, `repositories-${suffix}`);
 
       await page.goto('/admin/repository/repositories/create');
-      await expect(page.getByRole('link', { name: 'Create a Maven proxy repository' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Maven', exact: true })).toBeVisible();
       await shoot(page, `repositories-create-${suffix}`);
+      await page.getByRole('button', { name: 'Maven', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Create a Maven proxy repository' })).toBeVisible();
+      await shoot(page, `repositories-create-type-${suffix}`);
 
       await page.goto('/admin/repository/repositories/create/maven2/proxy');
       await page.getByRole('textbox', { name: 'Name', exact: true }).fill('maven-google');
-      await page.getByRole('button', { name: 'Create repository' }).click();
+      await page.getByRole('button', { name: 'Continue' }).click();
       await expect(
         page.getByText('Enter the address of the remote repository', { exact: true }),
       ).toBeVisible();
       await shoot(page, `repository-create-form-${suffix}`);
 
       await page.goto('/admin/repository/repositories/maven-central');
-      await expect(page.getByRole('textbox', { name: 'Remote storage URL', exact: true })).toBeVisible();
+      await expect(page.getByRole('textbox', { name: 'Remote Storage', exact: true })).toBeVisible();
       await shoot(page, `repository-proxy-${suffix}`);
-      await page.getByRole('textbox', { name: 'User-Agent suffix' }).scrollIntoViewIfNeeded();
-      await page.getByRole('combobox', { name: 'Authentication type' }).scrollIntoViewIfNeeded();
+      await page.getByRole('button', { name: 'HTTP Request Settings' }).click();
+      await page.getByRole('textbox', { name: 'User-Agent Suffix' }).scrollIntoViewIfNeeded();
       await shoot(page, `repository-proxy-client-${suffix}`);
 
       await page.goto('/admin/repository/repositories/maven-public');
-      await page.getByRole('list', { name: 'Members' }).scrollIntoViewIfNeeded();
+      await page.getByRole('list', { name: 'Member Repositories' }).scrollIntoViewIfNeeded();
       await shoot(page, `repository-group-${suffix}`);
 
-      await page.goto('/admin/repository/repositories/maven-releases?tab=membership');
-      await expect(page.getByRole('list', { name: 'Groups that contain it' })).toBeVisible();
+      await page.goto('/admin/repository/repositories/maven-releases/profile');
+      await expect(page.getByRole('region', { name: 'Repository Configuration' })).toBeVisible();
+      await shoot(page, `repository-profile-${suffix}`);
+      await page.goto('/admin/repository/repositories/maven-releases/profile?tab=membership');
+      await expect(page.getByRole('link', { name: 'maven-public' })).toBeVisible();
       await shoot(page, `repository-membership-${suffix}`);
+      await page.goto('/admin/repository/repositories/maven-releases?tab=summary');
+      await expect(page.getByRole('region', { name: 'Repository Metrics' })).toBeVisible();
+      await shoot(page, `repository-summary-${suffix}`);
+      await page.goto('/admin/repository/repositories/maven-releases?tab=access');
+      await expect(page.getByRole('region', { name: 'Repository Privileges' })).toBeVisible();
+      await shoot(page, `repository-access-${suffix}`);
 
       await page.goto('/admin/repository/repositories/maven-releases?tab=audit');
       await expect(page.getByText('Created', { exact: true }).first()).toBeVisible();
       await shoot(page, `repository-audit-${suffix}`);
 
-      await page.goto('/admin/repository/repositories/raw-files');
-      await page.getByRole('button', { name: 'More actions' }).click();
+      await page.goto('/admin/repository/repositories');
+      await page.getByRole('button', { name: 'Actions for raw-files' }).click();
       await shoot(page, `repository-actions-${suffix}`);
       await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.getByRole('textbox', { name: 'Type raw-files to confirm' }).fill('raw-fi');
@@ -151,14 +163,14 @@ for (const size of SIZES) {
       await page.keyboard.press('Escape');
 
       await page.goto('/admin/repository/blobstores');
-      await expect(page.getByRole('link', { name: 'archive', exact: true })).toBeVisible();
+      await expect(page.getByRole('row', { name: 'Open archive', exact: true })).toBeVisible();
       await shoot(page, `blobstores-${suffix}`);
 
       await page.goto('/admin/repository/blobstores/create');
       await shoot(page, `blobstores-create-${suffix}`);
 
       await page.goto('/admin/repository/blobstores/create/s3');
-      await expect(page.getByRole('textbox', { name: 'Bucket name' })).toBeVisible();
+      await expect(page.getByRole('textbox', { name: /^Bucket/ })).toBeVisible();
       await shoot(page, `blobstore-create-s3-${suffix}`);
 
       await page.goto('/admin/repository/blobstores/create/group');

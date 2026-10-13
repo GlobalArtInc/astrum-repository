@@ -233,13 +233,13 @@ test('a NuGet proxy is created with its protocol version and query cache age', a
   await expect(section.getByText('NuGet proxy repository configuration')).toBeVisible();
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill('nuget-org');
   await page
-    .getByRole('textbox', { name: 'Remote storage URL', exact: true })
+    .getByRole('textbox', { name: 'Remote Storage', exact: true })
     .fill('https://api.nuget.invalid/v3/index.json');
-  await section.getByRole('combobox', { name: 'Protocol version' }).click();
+  await section.getByRole('combobox', { name: 'Protocol Version' }).click();
   await page.getByRole('option', { name: 'NuGet V2', exact: true }).click();
-  await section.getByRole('spinbutton', { name: /^Metadata query cache age/ }).fill('600');
-  await page.getByRole('button', { name: 'Create repository' }).click();
-  await expect(page).toHaveURL(/\/admin\/repository\/repositories\/nuget-org$/);
+  await section.getByRole('spinbutton', { name: /^Metadata Query Cache Age/ }).fill('600');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(/\/admin\/repository\/repositories$/);
   const response = await request.get(`${server.url}/service/rest/v1/repositories/nuget/proxy/nuget-org`, {
     headers: { Authorization: basic(server.adminPassword) },
   });
