@@ -1,39 +1,31 @@
-import { Badge, Button, Card, Flex, Heading, Spinner, Text } from '@radix-ui/themes';
-import { KeySquare, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Button, Flex, Spinner, Switch } from '@radix-ui/themes';
+import { Key, Trash2 } from 'lucide-react';
+import { type FormEvent, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { api, path, useApi, useInvalidateApi, withQuery } from '../../../api';
 import { useCan, useRefreshSession, useSession } from '../../../auth/state';
 import { useT } from '../../../i18n';
-import {
-  ConfirmDialog,
-  ErrorState,
-  FormError,
-  Page,
-  PasswordField,
-  SelectField,
-  StatusBadge,
-  TextField,
-  UnsavedChangesGuard,
-  useForm,
-  useToast,
-} from '../../../ui';
+import { ConfirmDialog, ErrorState, FormError, Page, UnsavedChangesGuard, useToast } from '../../../ui';
+import { Input, Password } from '../../identity/shared/Fields';
 import {
   ASSIGNABLE_ROLES,
+  type ContentSelector,
   DEFAULT_SOURCE,
+  PRIVILEGES,
+  type Privilege,
   ROLES,
   type Role,
+  SELECTORS,
   USER_SOURCES,
   USERS,
   type User,
   type UserSource,
 } from '../api';
-import { roleOptions } from '../roles/model';
-import { ChipPicker } from '../shared/ChipPicker';
-import { EffectivePrivileges } from '../shared/EffectivePrivileges';
-import styles from '../shared/Form.module.css';
-import { USERS_PAGE, userHref } from '../shared/links';
-import { explainRefusal } from '../shared/messages';
+import { EditBar, EditForm, FormSection } from '../shared/Edit';
+import { USERS_PAGE } from '../shared/links';
+import { refusedBy } from '../shared/messages';
+import { SecurityTree, userTree } from '../shared/SecurityTree';
+import { TransferList } from '../shared/TransferList';
 import { useLeave } from '../shared/useLeave';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import {
@@ -41,22 +33,51 @@ import {
   EMPTY_USER,
   fromUser,
   fullName,
-  STATUS_TONES,
-  STATUSES,
   sourceLabel,
-  statusLabel,
   toCreateRequest,
   toUpdateRequest,
   type UserValues,
   validateUser,
 } from './model';
+import styles from './Users.module.css';
 
-function UserForm({ user, leaving, leave }: { user?: User; leaving: boolean; leave(to: string): void }) {
+function Tree({ user, roleIds, source }: { user: string; roleIds: readonly string[]; source: string }) {
+  const t = useT();
+  const canSelectors = useCan('astrum:selectors:read');
+  const roles = useApi<Role[]>(ROLES);
+  const privileges = useApi<Privilege[]>(PRIVILEGES);
+  const selectors = useApi<ContentSelector[]>(canSelectors ? SELECTORS : null);
+  const nodes = useMemo(
+    () =>
+      userTree(
+        t('security.user.treeRoot', { id: user, source }),
+        roleIds,
+        new Map((roles.data ?? []).map((role) => [role.id, role])),
+        new Map((privileges.data ?? []).map((privilege) => [privilege.name, privilege])),
+        new Map((selectors.data ?? []).map((selector) => [selector.name, selector])),
+      ),
+    [t, user, source, roleIds, roles.data, privileges.data, selectors.data],
+  );
+  if (roles.isPending || privileges.isPending) {
+    return (
+      <Flex justify="center" py="4">
+        <Spinner />
+      </Flex>
+    );
+  }
+  return (
+    <SecurityTree key={roleIds.join('|')} label={t('security.user.treeLabel')} nodes={nodes} framed={false} />
+  );
+}
+
+function UserForm({ user }: { user?: User }) {
   const t = useT();
   const toast = useToast();
+  const navigate = useNavigate();
   const invalidate = useInvalidateApi();
   const refresh = useRefreshSession();
   const { user: me } = useSession();
+  const { leaving, leave } = useLeave();
   const creating = user === undefined;
   const local = creating || user.source === DEFAULT_SOURCE;
   const canWrite = useCan(creating ? 'astrum:users:create' : 'astrum:users:update');
@@ -64,38 +85,59 @@ function UserForm({ user, leaving, leave }: { user?: User; leaving: boolean; lea
   const canChangePassword = useCan('astrum:userschangepw:create');
   const readOnly = !canWrite;
   const isMe = !creating && me !== null && me.userId === user.userId && me.source === user.source;
+  const initial = useMemo(() => (user ? fromUser(user) : EMPTY_USER), [user]);
+  const [values, setValues] = useState<UserValues>(initial);
+  const [shown, setShown] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [failure, setFailure] = useState<string | undefined>();
   const [deleting, setDeleting] = useState(false);
   const [changing, setChanging] = useState(false);
   const roles = useApi<Role[]>(ROLES);
   const assignable = useApi<Role[]>(readOnly ? null : ASSIGNABLE_ROLES);
   const sources = useApi<UserSource[]>(creating ? null : USER_SOURCES);
-
-  const form = useForm<UserValues>({
-    initial: user ? fromUser(user) : EMPTY_USER,
-    validate: (values) => validateUser(t, values, { creating, local }),
-    onSubmit: (values) =>
-      explainRefusal(t, async () => {
-        if (creating) {
-          const body = toCreateRequest(values);
-          await api.post(USERS, body);
-          toast.success(t('security.user.created', { id: body.userId }));
-          await invalidate(USERS);
-          leave(userHref(body.userId));
-          return;
-        }
-        await api.put(`${USERS}${path`/${user.userId}`}`, toUpdateRequest(values, user));
-        toast.success(t('security.user.saved', { id: user.userId }));
-        await invalidate(USERS);
-        if (isMe) {
-          await refresh();
-        }
-      }),
-  });
+  const set = (patch: Partial<UserValues>) => setValues((current) => ({ ...current, ...patch }));
+  const errors = validateUser(t, values, { creating, local });
+  const noRoles = values.roles.length === 0;
+  const dirty = JSON.stringify(values) !== JSON.stringify(initial);
+  const detailsLocked = readOnly || !local;
+  const sourceName = (source: string) =>
+    source === DEFAULT_SOURCE ? t('security.users.sourceLocal') : sourceLabel(t, source);
 
   const roleChoices = useMemo(
-    () => roleOptions(assignable.data ?? roles.data ?? [], roles.data ?? [], form.values.roles),
-    [assignable.data, roles.data, form.values.roles],
+    () => (assignable.data ?? roles.data ?? []).map((role) => ({ value: role.id, label: role.id })),
+    [assignable.data, roles.data],
   );
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (Object.keys(errors).length > 0 || (creating && noRoles)) {
+      setShown(true);
+      return;
+    }
+    setSubmitting(true);
+    setFailure(undefined);
+    try {
+      if (creating) {
+        const body = toCreateRequest(values);
+        await api.post(USERS, body);
+        toast.success(t('security.user.created', { id: body.userId }));
+        await invalidate(USERS);
+        leave(USERS_PAGE);
+        return;
+      }
+      await api.put(`${USERS}${path`/${user.userId}`}`, toUpdateRequest(values, user));
+      toast.success(t('security.user.saved', { id: user.userId }));
+      await invalidate(USERS);
+      if (isMe) {
+        await refresh();
+      }
+    } catch (error) {
+      const refused = refusedBy(t, error);
+      setFailure(refused instanceof Error ? refused.message : String(refused));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const remove = async () => {
     if (!user) {
@@ -107,130 +149,192 @@ function UserForm({ user, leaving, leave }: { user?: User; leaving: boolean; lea
     await invalidate(USERS);
   };
 
-  const detailsLocked = readOnly || !local;
-
+  const shownErrors = shown ? errors : {};
+  const title = creating
+    ? t('security.user.createTitle')
+    : t('security.user.editTitle', { name: fullName(user) || user.userId });
+  const active = values.status === 'active';
   return (
-    <>
-      <form className={styles.form} onSubmit={form.submit} noValidate>
-        <Card size="3">
-          <div className={styles.card}>
-            {creating && (
-              <TextField
-                label={t('security.user.userId')}
-                {...form.field('userId')}
-                required
-                autoFocus
-                autoComplete="off"
-                hint={t('security.user.userIdHint')}
-              />
-            )}
-            {!local && (
-              <StatusBadge tone="info">
-                {t('security.user.external', { source: sourceLabel(t, user?.source ?? '') })}
-              </StatusBadge>
-            )}
-            <div className={styles.pair}>
-              <TextField
-                label={t('security.user.firstName')}
-                {...form.field('firstName')}
-                required={local}
-                disabled={detailsLocked}
-                autoComplete="off"
-              />
-              <TextField
-                label={t('security.user.lastName')}
-                {...form.field('lastName')}
-                required={local}
-                disabled={detailsLocked}
-                autoComplete="off"
-              />
-            </div>
-            <TextField
-              label={t('security.user.email')}
-              type="email"
-              {...form.field('emailAddress')}
-              required={local}
-              disabled={detailsLocked}
-              autoComplete="off"
+    <Page
+      gutter="small"
+      title={title}
+      description={creating ? t('security.user.createIntro') : t('security.user.editIntro')}
+      breadcrumbs={[
+        { label: t('security.crumbs.settings'), to: '/settings' },
+        { label: t('security.users.title'), to: USERS_PAGE },
+        { label: creating ? t('security.user.create') : user.userId },
+      ]}
+      actions={
+        !creating &&
+        local && (
+          // biome-ignore lint/a11y/noLabelWithoutControl: the Radix switch inside is the control
+          <label className={styles.status}>
+            <Switch
+              size="2"
+              checked={active}
+              disabled={readOnly || isMe}
+              aria-label={t('security.user.toggleStatus', {
+                status: active ? t('security.user.active') : t('security.user.inactive'),
+              })}
+              onCheckedChange={(on) => set({ status: on ? 'active' : 'disabled' })}
             />
-            {creating && (
-              <div className={styles.pair}>
-                <PasswordField
-                  label={t('security.user.password')}
-                  {...form.field('password')}
-                  required
-                  hint={t('security.password.hint')}
-                />
-                <PasswordField label={t('security.user.confirm')} {...form.field('confirm')} required />
-              </div>
-            )}
-            <SelectField
-              label={t('security.user.status')}
-              {...form.field('status')}
-              onChange={(value) => form.set('status', value as UserValues['status'])}
-              options={STATUSES.map((status) => ({ value: status, label: statusLabel(t, status) }))}
-              required
-              disabled={detailsLocked}
-              hint={t('security.user.statusHint')}
-            />
-            <ChipPicker
-              label={t('security.user.roles')}
-              name="roles"
-              value={form.values.roles}
-              onChange={(value) => form.set('roles', value)}
-              options={roleChoices}
-              loading={roles.isPending}
-              error={form.errors.roles}
-              disabled={readOnly}
-              hint={readOnly ? undefined : t('security.user.rolesHint')}
-            />
-            {!local && user && (
-              <div className={styles.section}>
-                <Text as="p" size="2" weight="medium">
-                  {t('security.user.externalRoles')}
-                </Text>
-                {user.externalRoles.length > 0 ? (
-                  <Flex gap="1" wrap="wrap">
-                    {user.externalRoles.map((role) => (
-                      <Badge key={role} color="gray" variant="soft">
-                        {role}
-                      </Badge>
-                    ))}
-                  </Flex>
-                ) : (
-                  <Text as="p" size="2" color="gray">
-                    {t('security.user.externalRolesNone', { source: sourceLabel(t, user.source) })}
-                  </Text>
+            <span>{active ? t('security.user.active') : t('security.user.inactive')}</span>
+          </label>
+        )
+      }
+    >
+      <EditForm
+        id="user-form"
+        onSubmit={submit}
+        bar={
+          <EditBar
+            start={
+              !creating &&
+              canDelete &&
+              !isMe && (
+                <Button type="button" color="red" variant="soft" onClick={() => setDeleting(true)}>
+                  <Trash2 size={16} aria-hidden="true" />
+                  {t('security.user.delete')}
+                </Button>
+              )
+            }
+            end={
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => (dirty ? setValues(initial) : navigate(USERS_PAGE))}
+                >
+                  {t('security.form.discard')}
+                </Button>
+                {!readOnly && (
+                  <Button type="submit" disabled={!creating && !dirty} loading={submitting}>
+                    {creating ? t('security.user.createSubmit') : t('security.form.save')}
+                  </Button>
                 )}
-              </div>
-            )}
-          </div>
-        </Card>
-        <FormError message={form.formError} />
-        <div className={styles.actions}>
-          {!readOnly && (
-            <Button type="submit" loading={form.submitting} disabled={!creating && !form.dirty}>
-              {creating ? t('security.user.createSubmit') : t('security.form.save')}
-            </Button>
+              </>
+            }
+          />
+        }
+      >
+        <FormSection title={t('security.user.details')}>
+          <Input
+            label={t('security.user.id')}
+            name="userId"
+            required
+            help={t('security.user.idHelp')}
+            placeholder={creating ? t('security.user.idPlaceholder') : undefined}
+            value={values.userId}
+            disabled={!creating || readOnly}
+            autoFocus={creating}
+            error={shownErrors.userId}
+            onChange={(userId) => set({ userId })}
+          />
+          <Input
+            label={t('security.user.firstName')}
+            name="firstName"
+            required
+            help={t('security.user.firstNameHelp')}
+            placeholder={creating ? t('security.user.firstNamePlaceholder') : undefined}
+            value={values.firstName}
+            disabled={detailsLocked}
+            error={shownErrors.firstName}
+            onChange={(firstName) => set({ firstName })}
+          />
+          <Input
+            label={t('security.user.lastName')}
+            name="lastName"
+            required
+            help={t('security.user.lastNameHelp')}
+            placeholder={creating ? t('security.user.lastNamePlaceholder') : undefined}
+            value={values.lastName}
+            disabled={detailsLocked}
+            error={shownErrors.lastName}
+            onChange={(lastName) => set({ lastName })}
+          />
+          <Input
+            label={t('security.user.email')}
+            name="emailAddress"
+            required
+            help={t('security.user.emailHelp')}
+            placeholder={creating ? t('security.user.emailPlaceholder') : undefined}
+            value={values.emailAddress}
+            disabled={detailsLocked}
+            error={shownErrors.emailAddress}
+            onChange={(emailAddress) => set({ emailAddress })}
+          />
+          {creating && (
+            <>
+              <Password
+                label={t('security.user.password')}
+                name="password"
+                required
+                help={t('security.user.passwordHelp')}
+                value={values.password}
+                error={shownErrors.password}
+                onChange={(password) => set({ password })}
+              />
+              <Password
+                label={t('security.user.confirm')}
+                name="confirm"
+                required
+                help={t('security.user.confirmHelp')}
+                value={values.confirm}
+                error={shownErrors.confirm}
+                onChange={(confirm) => set({ confirm })}
+              />
+            </>
           )}
-          <Button asChild variant="soft" color="gray">
-            <Link to={USERS_PAGE}>{readOnly ? t('security.form.back') : t('security.form.cancel')}</Link>
-          </Button>
           {!creating && local && canChangePassword && (
-            <Button type="button" variant="soft" onClick={() => setChanging(true)}>
-              <KeySquare size={16} aria-hidden="true" />
-              {t('security.password.open')}
-            </Button>
+            <div className={styles.passwordRow}>
+              <Button
+                type="button"
+                size="3"
+                variant="outline"
+                color="gray"
+                className={styles.passwordButton}
+                onClick={() => setChanging(true)}
+              >
+                <Key size={16} aria-hidden="true" />
+                {t('security.password.open')}
+              </Button>
+            </div>
           )}
-          {!creating && canDelete && !isMe && (
-            <Button type="button" variant="soft" color="red" onClick={() => setDeleting(true)}>
-              <Trash2 size={16} aria-hidden="true" />
-              {t('security.form.delete')}
-            </Button>
+        </FormSection>
+        <FormSection title={t('security.user.roles')}>
+          <TransferList
+            label={t('security.user.roles')}
+            available={t('security.user.available')}
+            chosen={t('security.user.granted')}
+            options={roleChoices}
+            value={values.roles}
+            disabled={readOnly}
+            onChange={(next) => set({ roles: next })}
+            countLabel={(count) => t('security.transfer.items', { count })}
+            emptyLabel={t('security.user.nothingChosen')}
+          />
+          {noRoles ? (
+            <p className={styles.required}>{t('security.user.rolesRequired')}</p>
+          ) : (
+            <p className={styles.granted}>
+              {t('security.user.rolesGranted', { count: values.roles.length })}
+            </p>
           )}
-        </div>
-        <UnsavedChangesGuard when={form.dirty && !leaving && !readOnly} />
-      </form>
+        </FormSection>
+        <FormSection title={t('security.user.tree')}>
+          {noRoles ? (
+            <p className={styles.treeEmpty}>{t('security.user.treeEmpty')}</p>
+          ) : (
+            <Tree
+              user={values.userId || '—'}
+              roleIds={values.roles}
+              source={sourceName(user?.source ?? DEFAULT_SOURCE)}
+            />
+          )}
+        </FormSection>
+        <FormError message={failure} />
+      </EditForm>
+      <UnsavedChangesGuard when={dirty && !leaving && !readOnly && !submitting} />
       {user && <ChangePasswordDialog userId={user.userId} open={changing} onOpenChange={setChanging} />}
       <ConfirmDialog
         open={deleting}
@@ -241,60 +345,31 @@ function UserForm({ user, leaving, leave }: { user?: User; leaving: boolean; lea
         confirmLabel={t('security.form.delete')}
         danger
       />
-    </>
+    </Page>
   );
 }
 
 export default function UserPage() {
   const t = useT();
   const { userId, source = DEFAULT_SOURCE } = useParams();
-  const { leaving, leave } = useLeave();
-  const creating = userId === undefined;
-  const users = useApi<User[]>(creating ? null : withQuery(USERS, { source, userId }));
+  const users = useApi<User[]>(userId === undefined ? null : withQuery(USERS, { source, userId }));
+  if (userId === undefined) {
+    return <UserForm key="create" />;
+  }
   const user = users.data?.find((candidate) => candidate.userId === userId && candidate.source === source);
-  const breadcrumbs = [
-    { label: t('security.crumbs.settings'), to: '/settings' },
-    { label: t('security.users.title'), to: USERS_PAGE },
-    { label: creating ? t('security.user.create') : (userId ?? '') },
-  ];
-  const name = user ? fullName(user) : '';
-  return (
-    <Page
-      title={creating ? t('security.user.createTitle') : (userId ?? '')}
-      breadcrumbs={breadcrumbs}
-      description={
-        user ? (
-          <Flex as="span" gap="2" align="center" wrap="wrap">
-            {name && <span>{name}</span>}
-            <StatusBadge tone={STATUS_TONES[user.status] ?? 'neutral'}>
-              {statusLabel(t, user.status)}
-            </StatusBadge>
-            <StatusBadge tone="neutral">{sourceLabel(t, user.source)}</StatusBadge>
-          </Flex>
-        ) : undefined
-      }
-    >
-      {creating ? (
-        <UserForm key="create" leaving={leaving} leave={leave} />
-      ) : users.isPending ? (
-        <Flex justify="center" py="8">
-          <Spinner size="3" />
-        </Flex>
-      ) : users.error ? (
-        <ErrorState error={users.error} />
-      ) : !user ? (
-        <ErrorState error={new Error(t('security.user.notFound', { id: userId ?? '' }))} />
-      ) : (
-        <>
-          <UserForm key={`${user.source}/${user.userId}`} user={user} leaving={leaving} leave={leave} />
-          <section aria-labelledby="user-effective" className={styles.section}>
-            <Heading as="h2" size="4" id="user-effective">
-              {t('security.user.effective')}
-            </Heading>
-            <EffectivePrivileges roleIds={user.roles} label={t('security.user.effective')} />
-          </section>
-        </>
-      )}
-    </Page>
-  );
+  if (users.isPending) {
+    return (
+      <Flex justify="center" py="8">
+        <Spinner size="3" />
+      </Flex>
+    );
+  }
+  if (users.error || !user) {
+    return (
+      <Page gutter="small" title={userId}>
+        <ErrorState error={users.error ?? new Error(t('security.user.notFound', { id: userId }))} />
+      </Page>
+    );
+  }
+  return <UserForm key={`${user.source}/${user.userId}`} user={user} />;
 }

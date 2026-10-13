@@ -12,6 +12,7 @@ import {
   toUpdateRequest,
   validateUser,
 } from './model';
+import { filterUsers } from './UsersPage';
 
 const t = makeTranslate('en');
 const user = (overrides: Partial<User> = {}): User => ({
@@ -114,5 +115,26 @@ describe('the user form', () => {
     expect(fullName(user({ lastName: null }))).toBe('Jane');
     expect(sourceLabel(t, 'default')).toBe('Local');
     expect(sourceLabel(t, 'Crowd')).toBe('Crowd');
+  });
+});
+
+describe('the user list', () => {
+  const user = (userId: string, status: 'active' | 'disabled') => ({
+    userId,
+    firstName: null,
+    lastName: null,
+    emailAddress: null,
+    source: 'default',
+    status,
+    readOnly: false,
+    roles: [],
+    externalRoles: [],
+  });
+
+  it('filters by status and by the user ID', () => {
+    const users = [user('jane', 'active'), user('joe', 'disabled')];
+    expect(filterUsers(users, { status: ['inactive'] }, '').map((item) => item.userId)).toEqual(['joe']);
+    expect(filterUsers(users, {}, 'JA').map((item) => item.userId)).toEqual(['jane']);
+    expect(filterUsers(users, { source: ['LDAP'] }, '')).toEqual([]);
   });
 });

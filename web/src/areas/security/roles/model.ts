@@ -1,6 +1,5 @@
 import type { Translate } from '../../../i18n';
 import { DEFAULT_SOURCE, type Role } from '../api';
-import type { PickerOption } from '../shared/ChipPicker';
 
 export type RoleType = 'astrum' | 'external';
 
@@ -58,31 +57,4 @@ export function validateId(t: Translate, value: string): string | undefined {
     return t('security.form.idColon');
   }
   return undefined;
-}
-
-export function roleOptions(
-  assignable: readonly Role[],
-  all: readonly Role[],
-  chosen: readonly string[],
-  self?: string,
-): PickerOption[] {
-  const byId = new Map(all.map((role) => [role.id, role]));
-  const ids = new Set(assignable.map((role) => role.id));
-  for (const id of chosen) {
-    ids.add(id);
-  }
-  if (self) {
-    ids.delete(self);
-  }
-  return [...ids]
-    .sort((left, right) => left.localeCompare(right))
-    .map((id) => {
-      const role = byId.get(id) ?? assignable.find((candidate) => candidate.id === id);
-      const name = role?.name && role.name !== id ? role.name : '';
-      return {
-        value: id,
-        label: id,
-        detail: [name, role?.description].filter(Boolean).join(' · ') || undefined,
-      };
-    });
 }

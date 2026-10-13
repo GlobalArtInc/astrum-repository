@@ -93,6 +93,27 @@ export function buildTree(
   return roots.map((id) => roleNode(id, '', false, []));
 }
 
+export function userTree(
+  label: string,
+  roleIds: readonly string[],
+  roles: ReadonlyMap<string, Role>,
+  privileges: ReadonlyMap<string, Privilege>,
+  selectors: ReadonlyMap<string, ContentSelector>,
+): TreeNode[] {
+  return [
+    {
+      key: 'user',
+      kind: 'role',
+      name: label,
+      inherited: false,
+      children: buildTree(roleIds, roles, privileges, selectors).map((node) => ({
+        ...node,
+        key: `user${node.key}`,
+      })),
+    },
+  ];
+}
+
 function matches(node: TreeNode, words: string): boolean {
   return [node.name, node.permission, node.resource]
     .filter(Boolean)
@@ -115,7 +136,15 @@ function allKeys(nodes: TreeNode[]): string[] {
 
 const ICONS = { role: Shield, privilege: Key, selector: Filter };
 
-export function SecurityTree({ label, nodes }: { label: string; nodes: TreeNode[] }) {
+export function SecurityTree({
+  label,
+  nodes,
+  framed = true,
+}: {
+  label: string;
+  nodes: TreeNode[];
+  framed?: boolean;
+}) {
   const t = useT();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set(nodes.map((node) => node.key)));
@@ -182,8 +211,8 @@ export function SecurityTree({ label, nodes }: { label: string; nodes: TreeNode[
   };
 
   return (
-    <div className={styles.outer}>
-      <div className={styles.inner}>
+    <div className={framed ? styles.outer : undefined}>
+      <div className={framed ? styles.inner : `${styles.inner} ${styles.plain}`}>
         <div className={styles.toolbar}>
           <TextField.Root
             size="2"

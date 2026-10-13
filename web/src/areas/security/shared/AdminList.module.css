@@ -380,8 +380,11 @@
 }
 
 .count {
-  padding: 24px 0;
+  margin: 0;
+  padding: 16px 0;
   text-align: center;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--gray-a11);
 }
 
@@ -394,4 +397,18 @@
   .tableCard {
     min-height: 0;
   }
+}
+
+.bigButton {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 8px;
+}
+
+.tight {
+  margin-top: -16px;
+  min-height: calc(100dvh - 193px);
 }

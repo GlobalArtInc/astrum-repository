@@ -159,9 +159,17 @@ export function FilterPanel({
   );
 }
 
-export function ListLayout({ filters, children }: { filters?: ReactNode; children: ReactNode }) {
+export function ListLayout({
+  filters,
+  tight,
+  children,
+}: {
+  filters?: ReactNode;
+  tight?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <div className={styles.layout}>
+    <div className={tight ? `${styles.layout} ${styles.tight}` : styles.layout}>
       {filters}
       <div className={styles.main}>{children}</div>
     </div>

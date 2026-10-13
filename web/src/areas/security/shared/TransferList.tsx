@@ -18,7 +18,9 @@ function Pane({
   onActivate,
   disabled,
   count,
+  empty,
 }: {
+  empty?: string;
   title: string;
   options: TransferOption[];
   selected: readonly string[];
@@ -51,6 +53,7 @@ function Pane({
         </TextField.Root>
       </div>
       <div className={styles.list} role="listbox" aria-label={title} aria-multiselectable="true">
+        {options.length === 0 && empty && <span className={styles.empty}>{empty}</span>}
         {shown.map((option) => {
           const on = selected.includes(option.value);
           return (
@@ -96,7 +99,9 @@ export function TransferList({
   disabled,
   ordered,
   countLabel,
+  emptyLabel,
 }: {
+  emptyLabel?: string;
   label: string;
   available: string;
   chosen: string;
@@ -195,6 +200,7 @@ export function TransferList({
       <Pane
         title={chosen}
         options={picked}
+        empty={emptyLabel}
         selected={right}
         count={countLabel(picked.length)}
         disabled={disabled}

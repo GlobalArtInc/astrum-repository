@@ -14,6 +14,10 @@
   overflow-x: auto;
 }
 
+.plain {
+  min-height: 0;
+}
+
 .toolbar {
   display: flex;
   align-items: center;

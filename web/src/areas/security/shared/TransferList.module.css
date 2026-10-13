@@ -152,3 +152,13 @@
     height: 220px;
   }
 }
+
+.empty {
+  display: block;
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+  color: var(--gray-a11);
+}

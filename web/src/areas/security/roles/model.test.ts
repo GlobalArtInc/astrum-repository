@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeTranslate } from '../../../i18n';
 import type { Role } from '../api';
-import { EMPTY_ROLE, fromRole, roleOptions, toRoleRequest } from './model';
+import { EMPTY_ROLE, fromRole, toRoleRequest } from './model';
 import { setupErrors } from './RolePage';
 import { filterRoles } from './RolesPage';
 
@@ -47,18 +47,6 @@ describe('the role form', () => {
     expect(setupErrors(t, { ...EMPTY_ROLE, id: ' a', name: 'x' })).toEqual({
       id: 'Must not start or end with a space',
     });
-  });
-
-  it('offers assignable roles plus the chosen ones, without the role itself', () => {
-    const all = [
-      role('a', { description: 'A role' }),
-      role('b'),
-      role('c', { name: 'Charlie' }),
-      role('self'),
-    ];
-    const options = roleOptions([role('a'), role('self')], all, ['c'], 'self');
-    expect(options.map((option) => option.value)).toEqual(['a', 'c']);
-    expect(options[1]?.detail).toBe('Charlie');
   });
 
   it('filters the list by id, name and description', () => {
