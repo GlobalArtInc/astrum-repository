@@ -221,9 +221,11 @@ dependencies = [
  "astrum-format-raw",
  "astrum-repo",
  "astrum-security",
+ "astrum-tasks",
  "astrum-testkit",
  "axum",
  "base64 0.22.1",
+ "bytes",
  "chrono",
  "flate2",
  "futures-util",
@@ -337,6 +339,7 @@ dependencies = [
  "astrum-db",
  "astrum-repo",
  "astrum-security",
+ "astrum-tasks",
  "async-trait",
  "axum",
  "base64 0.22.1",
@@ -580,6 +583,7 @@ dependencies = [
  "astrum-format-pypi",
  "astrum-format-raw",
  "astrum-security",
+ "astrum-tasks",
  "astrum-testkit",
  "axum",
  "clap",
@@ -595,6 +599,31 @@ dependencies = [
  "tower-http 0.7.1",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "astrum-tasks"
+version = "3.0.0-dev"
+dependencies = [
+ "anyhow",
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "astrum-security",
+ "astrum-testkit",
+ "async-trait",
+ "chrono",
+ "futures-util",
+ "regex",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

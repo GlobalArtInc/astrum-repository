@@ -23,6 +23,7 @@ astrum-format-pypi.workspace = true
 astrum-format-raw.workspace = true
 astrum-db.workspace = true
 astrum-security.workspace = true
+astrum-tasks.workspace = true
 axum.workspace = true
 clap.workspace = true
 mime_guess.workspace = true

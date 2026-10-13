@@ -11,6 +11,7 @@ use astrum_content::Content;
 use astrum_db::Database;
 use astrum_db::audit::{self, Event};
 use astrum_security::{SecretBox, Security};
+use astrum_tasks::Tasks;
 use axum::Router;
 use axum::http::StatusCode;
 use axum::middleware;
@@ -34,6 +35,7 @@ struct Inner {
     secrets: SecretBox,
     blob_stores: Arc<BlobStores>,
     content: Content,
+    tasks: Tasks,
 }
 
 impl AppState {
@@ -45,6 +47,7 @@ impl AppState {
             secrets.clone(),
         ));
         let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
+        let tasks = Tasks::new(content.clone());
         Self {
             inner: Arc::new(Inner {
                 db,
@@ -53,6 +56,7 @@ impl AppState {
                 secrets,
                 blob_stores,
                 content,
+                tasks,
             }),
         }
     }
@@ -90,6 +94,10 @@ impl AppState {
         &self.inner.content
     }
 
+    pub fn tasks(&self) -> &Tasks {
+        &self.inner.tasks
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
@@ -117,6 +125,8 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
         .merge(routes::oidc::routes())
         .merge(routes::content::routes())
         .merge(routes::components::routes())
+        .merge(routes::tasks::routes())
+        .merge(routes::cleanup_policies::routes())
         .fallback(not_found)
         .layer(middleware::from_fn_with_state(
             state.clone(),

@@ -616,6 +616,18 @@ fn compile(source: &str) -> Result<Pattern, String> {
     })
 }
 
+pub fn portable_pattern(source: &str) -> Result<(), String> {
+    let body = source.strip_prefix("(?i)").unwrap_or(source);
+    let tree = ast::parse::Parser::new()
+        .parse(body)
+        .map_err(|error| format!("the regular expression is not valid: {}", error.kind()))?;
+    ast::visit(&tree, Portable).map_err(|what| {
+        format!(
+            "the regular expression uses {what}, which the database cannot evaluate the same way"
+        )
+    })
+}
+
 struct Portable;
 
 impl ast::Visitor for Portable {

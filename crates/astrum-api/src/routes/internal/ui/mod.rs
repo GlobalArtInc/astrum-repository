@@ -4,12 +4,14 @@ mod audit;
 mod blobstores;
 mod browse;
 mod browse_asset;
+mod cleanup_policies;
 pub(crate) mod identity;
 mod nuget_api_key;
 mod privileges;
 mod repositories;
 mod search;
 mod selectors;
+mod tasks;
 mod usage;
 mod versions;
 
@@ -34,6 +36,8 @@ pub fn routes() -> Router<AppState> {
         .merge(audit::routes())
         .merge(identity::routes())
         .merge(nuget_api_key::routes())
+        .merge(tasks::routes())
+        .merge(cleanup_policies::routes())
 }
 
 fn time(value: DateTime<FixedOffset>) -> String {

@@ -24,6 +24,7 @@ astrum-db = { path = "crates/astrum-db" }
 astrum-repo = { path = "crates/astrum-repo" }
 astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }
+astrum-tasks = { path = "crates/astrum-tasks" }
 astrum-testkit = { path = "crates/astrum-testkit" }
 
 aes-gcm = "0.10"

@@ -1,4 +1,5 @@
 pub mod blobstores;
+pub mod cleanup_policies;
 pub mod components;
 pub mod content;
 pub mod internal;
@@ -6,3 +7,4 @@ pub mod oidc;
 pub mod repositories;
 pub mod security;
 pub mod status;
+pub mod tasks;

@@ -12,6 +12,8 @@ use tower_http::trace::TraceLayer;
 use crate::config::Config;
 use crate::version_line;
 
+const TASK_SHUTDOWN: std::time::Duration = std::time::Duration::from_secs(10);
+
 pub struct Server {
     listener: TcpListener,
     address: SocketAddr,
@@ -26,10 +28,12 @@ impl Server {
         db.migrate().await?;
         astrum_security::bootstrap(db.conn(), &config.data_dir).await?;
         astrum_blob::bootstrap(db.conn(), &config.data_dir).await?;
+        astrum_tasks::bootstrap(db.conn()).await?;
         let secrets = SecretBox::load_or_create(&config.secrets_key)?;
         let state = AppState::load(db, config.data_dir.clone(), secrets).await?;
         state.security().ldap().set_cache_ttl(config.ldap_cache_ttl);
         crate::formats::register(state.content());
+        crate::formats::register_tasks(state.tasks());
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;
@@ -51,6 +55,7 @@ impl Server {
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> anyhow::Result<()> {
         self.state.content().spawn_background();
+        let scheduler = self.state.tasks().spawn();
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(
@@ -69,6 +74,8 @@ impl Server {
         .with_graceful_shutdown(shutdown)
         .await
         .context("the HTTP server failed")?;
+        self.state.tasks().shutdown(TASK_SHUTDOWN).await;
+        scheduler.abort();
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");
         }

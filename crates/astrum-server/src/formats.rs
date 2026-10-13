@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use astrum_api::AppState;
 use astrum_content::Content;
+use astrum_tasks::Tasks;
 use axum::Router;
 
 pub fn register(content: &Content) {
@@ -12,6 +13,11 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
     content.register(Arc::new(astrum_format_pypi::PyPi));
     content.register(Arc::new(astrum_format_raw::Raw));
+}
+
+pub fn register_tasks(tasks: &Tasks) {
+    tasks.register(Arc::new(astrum_format_docker::gc::Gc));
+    tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
 }
 
 pub fn routes() -> Router<AppState> {

@@ -12,8 +12,10 @@ astrum-content.workspace = true
 astrum-db.workspace = true
 astrum-repo.workspace = true
 astrum-security.workspace = true
+astrum-tasks.workspace = true
 axum = { workspace = true, features = ["multipart"] }
 base64.workspace = true
+bytes.workspace = true
 chrono.workspace = true
 futures-util.workspace = true
 percent-encoding.workspace = true

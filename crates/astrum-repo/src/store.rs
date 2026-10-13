@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use astrum_db::entity::{blob_store, repository};
+use astrum_db::entity::{blob_store, cleanup_policy, repository};
 use sea_orm::sea_query::{Expr, Func};
 use sea_orm::{
     ActiveValue, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
@@ -77,7 +77,7 @@ pub struct Writer {
     repositories: Vec<Repository>,
     blob_stores: BTreeSet<String>,
     grouped: BTreeMap<String, String>,
-    cleanup_policies: BTreeSet<String>,
+    cleanup_policies: BTreeMap<String, String>,
     routing_rules: BTreeSet<String>,
 }
 
@@ -110,12 +110,19 @@ impl Writer {
             }
         }
         let blob_stores = stores.into_iter().map(|(name, _, _)| name).collect();
+        let cleanup_policies: Vec<(String, String)> = cleanup_policy::Entity::find()
+            .select_only()
+            .column(cleanup_policy::Column::Name)
+            .column(cleanup_policy::Column::Format)
+            .into_tuple()
+            .all(&txn)
+            .await?;
         Ok(Self {
             txn,
             repositories,
             blob_stores,
             grouped,
-            cleanup_policies: BTreeSet::new(),
+            cleanup_policies: cleanup_policies.into_iter().collect(),
             routing_rules: BTreeSet::new(),
         })
     }
@@ -210,6 +217,48 @@ impl Writer {
         Ok(existing)
     }
 
+    pub async fn forget_cleanup_policy(
+        self,
+        name: &str,
+    ) -> Result<Option<Vec<String>>, WriteError> {
+        let deleted = cleanup_policy::Entity::delete_by_id(name.to_owned())
+            .exec(&self.txn)
+            .await?;
+        if deleted.rows_affected == 0 {
+            return Ok(None);
+        }
+        let mut changed = Vec::new();
+        for repository in &self.repositories {
+            let Some(names) = repository
+                .attributes
+                .cleanup
+                .as_ref()
+                .and_then(|cleanup| cleanup.policy_names.as_ref())
+            else {
+                continue;
+            };
+            if !names.iter().any(|known| known == name) {
+                continue;
+            }
+            let mut updated = repository.clone();
+            let kept: Vec<String> = names
+                .iter()
+                .filter(|known| *known != name)
+                .cloned()
+                .collect();
+            updated.attributes.cleanup = match kept.is_empty() {
+                true => None,
+                false => Some(crate::config::Cleanup {
+                    policy_names: Some(kept),
+                }),
+            };
+            self.save(&updated).await?;
+            changed.push(repository.name.clone());
+        }
+        self.txn.commit().await?;
+        Ok(Some(changed))
+    }
+
     async fn save(&self, repository: &Repository) -> Result<(), WriteError> {
         repository::Entity::update(repository::ActiveModel {
             name: ActiveValue::Unchanged(repository.name.clone()),
@@ -238,11 +287,19 @@ impl Writer {
             .into_iter()
             .flatten()
         {
-            if !self.cleanup_policies.contains(policy) {
-                problems.add(
+            match self.cleanup_policies.get(policy) {
+                None => problems.add(
                     "policyNames",
                     format!("the cleanup policy \"{policy}\" does not exist"),
-                );
+                ),
+                Some(format) if format != "*" && format != candidate.format.id => problems.add(
+                    "policyNames",
+                    format!(
+                        "the cleanup policy \"{policy}\" is for {format} repositories, not {}",
+                        candidate.format.id
+                    ),
+                ),
+                Some(_) => {}
             }
         }
         if let Some(rule) = &candidate.attributes.routing_rule_name

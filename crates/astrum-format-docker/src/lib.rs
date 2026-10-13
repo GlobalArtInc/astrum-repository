@@ -1,5 +1,6 @@
 mod auth;
 mod error;
+pub mod gc;
 mod manifest;
 mod reference;
 mod routes;
@@ -9,7 +10,6 @@ mod upstream;
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 
 use astrum_content::format::SearchTarget;
 use astrum_content::store::{self, Asset};
@@ -34,7 +34,6 @@ use crate::upstream::Upstreams;
 
 pub const ID: &str = "docker";
 pub const MANIFEST_LIMIT: usize = 4 * 1024 * 1024;
-const SWEEP_EVERY: Duration = Duration::from_secs(600);
 const CONTENT_DIGEST: &str = "docker-content-digest";
 const UPLOAD_UUID: &str = "docker-upload-uuid";
 
@@ -103,7 +102,6 @@ impl Mount {
 #[derive(Default)]
 pub struct Docker {
     upstreams: Upstreams,
-    last_sweep: Mutex<Option<Instant>>,
 }
 
 enum BlobHit {
@@ -277,33 +275,11 @@ fn wants_range_backwards(headers: &HeaderMap) -> bool {
         .unwrap_or(false)
 }
 
+pub async fn expire_uploads(content: &astrum_content::Content) -> Result<u64, ContentError> {
+    upload::sweep(content).await
+}
+
 impl Docker {
-    pub async fn sweep_uploads(
-        &self,
-        content: &astrum_content::Content,
-    ) -> Result<u64, ContentError> {
-        upload::sweep(content).await
-    }
-
-    fn maybe_sweep(&self, content: &astrum_content::Content) {
-        let mut last = self
-            .last_sweep
-            .lock()
-            .expect("the sweep lock is never poisoned");
-        if last.is_some_and(|at| at.elapsed() < SWEEP_EVERY) {
-            return;
-        }
-        *last = Some(Instant::now());
-        let content = content.clone();
-        tokio::spawn(async move {
-            match upload::sweep(&content).await {
-                Ok(0) => {}
-                Ok(count) => tracing::info!(count, "expired Docker uploads were removed"),
-                Err(error) => tracing::warn!(%error, "expired Docker uploads were not removed"),
-            }
-        });
-    }
-
     pub async fn serve(&self, ctx: Ctx, request: ContentRequest, mount: Mount) -> Response {
         let ctx = admit(ctx);
         let base = ctx.base_url.clone();
@@ -903,7 +879,6 @@ impl Docker {
             storage::adopt_blob(&target, &digest, written).await?;
             return Ok(created(format!("{prefix}/blobs/{digest}"), &digest));
         }
-        self.maybe_sweep(&target.content);
         let session = upload::create(&target, image).await?;
         let mut response = StatusCode::ACCEPTED.into_response();
         let headers = response.headers_mut();

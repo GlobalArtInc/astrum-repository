@@ -1277,8 +1277,7 @@ async fn abandoned_uploads_and_expired_tokens_are_swept() {
         )
         .await
         .unwrap();
-    let swept = astrum_format_docker::Docker::default()
-        .sweep_uploads(registry.fixture.state.content())
+    let swept = astrum_format_docker::expire_uploads(registry.fixture.state.content())
         .await
         .unwrap();
     assert!(swept <= 1);
