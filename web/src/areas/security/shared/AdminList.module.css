@@ -253,7 +253,7 @@
   line-height: 20px;
   vertical-align: middle;
   box-shadow: inset 0 -1px 0 0 var(--gray-a5);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .clickable {
