@@ -1,51 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { makeTranslate } from '../../../i18n';
-import type { Privilege, PrivilegeType } from '../api';
+import type { Privilege } from '../api';
+import { EMPTY_VALUES, fromPrivilege, permissionOf } from './model';
 import {
-  EMPTY_VALUES,
-  fromPrivilege,
-  permissionOf,
-  toggleAction,
-  toRequest,
-  validatePrivilege,
-} from './model';
-import { formatOptions, repositoryOptions } from './PrivilegePage';
+  contentErrors,
+  formatOptions,
+  fromSelectorTarget,
+  repositoryOptions,
+  requestOf,
+  selectorTarget,
+  selectorTargetOptions,
+  settingsErrors,
+  stepsOf,
+} from './PrivilegePage';
 import { filterPrivileges } from './PrivilegesPage';
 
 const t = makeTranslate('en');
-
-const text = (id: string, required = true) => ({ id, kind: 'text' as const, required, any: false });
-
-const TYPES: Record<string, PrivilegeType> = {
-  application: {
-    id: 'application',
-    fields: [
-      text('name'),
-      text('description', false),
-      text('domain'),
-      { id: 'actions', kind: 'actions', required: true, values: ['READ', 'EDIT', 'ALL'], any: false },
-    ],
-  },
-  wildcard: {
-    id: 'wildcard',
-    fields: [
-      text('name'),
-      text('description', false),
-      { id: 'pattern', kind: 'permission', required: true, any: false },
-    ],
-  },
-  'repository-content-selector': {
-    id: 'repository-content-selector',
-    fields: [
-      text('name'),
-      text('description', false),
-      { id: 'contentSelector', kind: 'contentSelector', required: true, any: false },
-      { id: 'format', kind: 'format', required: true, values: ['*', 'raw', 'maven2'], any: true },
-      { id: 'repository', kind: 'repository', required: true, any: true },
-      { id: 'actions', kind: 'actions', required: true, values: ['BROWSE', 'READ', 'ALL'], any: false },
-    ],
-  },
-};
 
 const privilege = (overrides: Partial<Privilege>): Privilege => ({
   type: 'application',
@@ -56,14 +26,14 @@ const privilege = (overrides: Partial<Privilege>): Privilege => ({
 });
 
 describe('the permission of a privilege', () => {
-  it('maps application actions to the server names, sorted', () => {
-    expect(permissionOf(privilege({ domain: 'users', actions: ['EDIT', 'READ', 'ADD'] }))).toBe(
-      'astrum:users:create,read,update',
+  it('writes the actions as the old pages did, in their order', () => {
+    expect(permissionOf(privilege({ domain: 'accesstokens', actions: ['ADD', 'READ'] }))).toBe(
+      'astrum:accesstokens:add,read',
     );
-    expect(permissionOf(privilege({ domain: 'users', actions: ['READ', 'ALL'] }))).toBe('astrum:users:*');
+    expect(permissionOf(privilege({ domain: 'users', actions: ['ALL'] }))).toBe('astrum:users:all');
   });
 
-  it('maps repository actions to their own names', () => {
+  it('names repository actions in the same way', () => {
     expect(
       permissionOf(
         privilege({
@@ -76,10 +46,10 @@ describe('the permission of a privilege', () => {
     ).toBe('astrum:repository-view:maven2:central:add,edit');
     expect(
       permissionOf(privilege({ type: 'repository-admin', format: '*', repository: '*', actions: ['ALL'] })),
-    ).toBe('astrum:repository-admin:*:*:*');
+    ).toBe('astrum:repository-admin:*:*:all');
   });
 
-  it('includes the selector of a content selector privilege', () => {
+  it('puts the selector of a content selector privilege after the repository', () => {
     expect(
       permissionOf(
         privilege({
@@ -90,7 +60,7 @@ describe('the permission of a privilege', () => {
           actions: ['READ', 'BROWSE'],
         }),
       ),
-    ).toBe('astrum:repository-content-selector:team:raw:files:browse,read');
+    ).toBe('astrum:repository-content-selector:raw:files:team:read,browse');
   });
 
   it('shows a wildcard as written and nothing for incomplete privileges', () => {
@@ -103,6 +73,12 @@ describe('the permission of a privilege', () => {
 });
 
 describe('the privilege form', () => {
+  const repositories = [
+    { name: 'b-raw', format: 'raw', type: 'hosted' },
+    { name: 'a-raw', format: 'raw', type: 'hosted' },
+    { name: 'central', format: 'maven2', type: 'proxy' },
+  ];
+
   it('sends only the fields of the type', () => {
     const values = {
       ...EMPTY_VALUES,
@@ -114,7 +90,7 @@ describe('the privilege form', () => {
       repository: 'files',
       actions: ['READ' as const],
     };
-    expect(toRequest(TYPES['repository-content-selector'] as PrivilegeType, values)).toEqual({
+    expect(requestOf('repository-content-selector', values)).toEqual({
       name: 'team-read',
       description: 'Team files',
       contentSelector: 'team',
@@ -122,7 +98,7 @@ describe('the privilege form', () => {
       repository: 'files',
       actions: ['READ'],
     });
-    expect(toRequest(TYPES.wildcard as PrivilegeType, { ...values, pattern: 'astrum:*' })).toEqual({
+    expect(requestOf('wildcard', { ...values, pattern: 'astrum:*' })).toEqual({
       name: 'team-read',
       description: 'Team files',
       pattern: 'astrum:*',
@@ -138,59 +114,70 @@ describe('the privilege form', () => {
     });
   });
 
-  it('keeps All apart from the other actions', () => {
-    expect(toggleAction(['READ', 'EDIT'], 'ALL', true)).toEqual(['ALL']);
-    expect(toggleAction(['ALL'], 'READ', true)).toEqual(['READ']);
-    expect(toggleAction(['READ'], 'EDIT', true)).toEqual(['READ', 'EDIT']);
-    expect(toggleAction(['READ', 'EDIT'], 'READ', false)).toEqual(['EDIT']);
-  });
-
-  it('asks for the required fields of the type and checks the name', () => {
-    expect(validatePrivilege(t, TYPES.application as PrivilegeType, EMPTY_VALUES)).toEqual({
-      name: 'Fill this in',
+  it('asks for the name first and then for the fields of the type', () => {
+    expect(settingsErrors(t, EMPTY_VALUES)).toEqual({ name: 'Fill this in' });
+    expect(settingsErrors(t, { ...EMPTY_VALUES, name: '.bad' })).toEqual({
+      name: expect.stringContaining('letters'),
+    });
+    expect(contentErrors(t, 'application', EMPTY_VALUES)).toEqual({
       domain: 'Fill this in',
       actions: 'Choose at least one action',
     });
-    expect(
-      validatePrivilege(t, TYPES.wildcard as PrivilegeType, {
-        ...EMPTY_VALUES,
-        name: '.bad',
-        pattern: 'astrum:*',
-      }),
-    ).toEqual({ name: expect.stringContaining('letters') });
+    expect(contentErrors(t, 'wildcard', { ...EMPTY_VALUES, pattern: 'astrum:*' })).toEqual({});
+    expect(stepsOf('repository-content-selector')).toEqual(['settings', 'content', 'preview']);
+    expect(stepsOf('repository-view')).toEqual(['settings', 'content']);
   });
 
-  it('offers all formats and the repositories of the chosen format', () => {
-    expect(formatOptions(t, ['*', 'maven2']).map((option) => option.label)).toEqual(['All formats', 'Maven']);
-    const repositories = [
-      { name: 'b-raw', format: 'raw', type: 'hosted' },
-      { name: 'a-raw', format: 'raw', type: 'hosted' },
-      { name: 'central', format: 'maven2', type: 'proxy' },
-    ];
+  it('offers the formats in use and the repositories of the chosen format', () => {
+    expect(formatOptions(t, repositories).map((option) => option.value)).toEqual(['*', 'maven2', 'raw']);
     expect(repositoryOptions(t, repositories, 'raw', '*').map((option) => option.value)).toEqual([
       '*',
-      'a-raw',
       'b-raw',
+      'a-raw',
     ]);
     expect(repositoryOptions(t, repositories, 'raw', 'gone').map((option) => option.value)).toEqual([
       '*',
       'gone',
-      'a-raw',
       'b-raw',
+      'a-raw',
     ]);
+  });
+
+  it('picks the format of a content selector privilege with its repository', () => {
+    expect(selectorTargetOptions(t, repositories, '*').map((option) => option.label)).toEqual([
+      '(All Repositories)',
+      '(All maven2 Repositories)',
+      '(All raw Repositories)',
+      'b-raw',
+      'a-raw',
+      'central',
+    ]);
+    expect(fromSelectorTarget('format:raw', repositories)).toEqual({ format: 'raw', repository: '*' });
+    expect(fromSelectorTarget('central', repositories)).toEqual({ format: 'maven2', repository: 'central' });
+    expect(selectorTarget({ format: 'npm', repository: '*' })).toBe('format:npm');
+    expect(selectorTarget({ format: 'npm', repository: 'npmjs' })).toBe('npmjs');
   });
 });
 
 describe('the privilege list filter', () => {
   const list = [
-    privilege({ name: 'as-users-read', domain: 'users', actions: ['READ'], description: 'Read users' }),
+    privilege({
+      name: 'as-users-read',
+      domain: 'users',
+      actions: ['READ'],
+      description: 'Read users',
+      readOnly: true,
+    }),
     privilege({ name: 'team', type: 'wildcard', pattern: 'astrum:search:read' }),
   ];
+  const names = (items: Privilege[]) => items.map((item) => item.name);
 
-  it('filters by type and by words in name, description and permission', () => {
-    expect(filterPrivileges(list, 'wildcard', '').map((item) => item.name)).toEqual(['team']);
-    expect(filterPrivileges(list, 'all', 'astrum:users').map((item) => item.name)).toEqual(['as-users-read']);
-    expect(filterPrivileges(list, 'all', 'read USERS').map((item) => item.name)).toEqual(['as-users-read']);
-    expect(filterPrivileges(list, 'application', 'search')).toEqual([]);
+  it('filters by type, by status and by words in name, description and permission', () => {
+    expect(names(filterPrivileges(list, { type: ['wildcard'] }, ''))).toEqual(['team']);
+    expect(names(filterPrivileges(list, { status: ['locked'] }, ''))).toEqual(['as-users-read']);
+    expect(names(filterPrivileges(list, { status: ['locked', 'unlocked'] }, ''))).toHaveLength(2);
+    expect(names(filterPrivileges(list, {}, 'astrum:users'))).toEqual(['as-users-read']);
+    expect(names(filterPrivileges(list, {}, 'read USERS'))).toEqual(['as-users-read']);
+    expect(filterPrivileges(list, { type: ['application'] }, 'search')).toEqual([]);
   });
 });

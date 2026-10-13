@@ -165,6 +165,7 @@ export function Choice<V extends string>(props: ChoiceProps<V>) {
 }
 
 export interface AreaProps extends ShellProps {
+  mono?: boolean;
   value: string;
   onChange(value: string): void;
   name?: string;
@@ -180,7 +181,7 @@ export function Area(props: AreaProps) {
       <TextArea
         id={id}
         size="2"
-        className={styles.textarea}
+        className={props.mono === false ? styles.plainArea : styles.textarea}
         name={props.name}
         rows={props.rows ?? 4}
         value={props.value}

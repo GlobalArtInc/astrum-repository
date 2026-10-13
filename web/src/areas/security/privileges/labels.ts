@@ -17,25 +17,6 @@ const TYPE_DESCRIPTIONS: Record<string, string> = {
   'repository-content-selector': 'security.privilegeType.repositoryContentSelectorText',
 };
 
-const FIELD_LABELS: Record<string, string> = {
-  name: 'security.privilegeField.name',
-  description: 'security.privilegeField.description',
-  domain: 'security.privilegeField.domain',
-  pattern: 'security.privilegeField.pattern',
-  format: 'security.privilegeField.format',
-  repository: 'security.privilegeField.repository',
-  contentSelector: 'security.privilegeField.contentSelector',
-  actions: 'security.privilegeField.actions',
-};
-
-const FIELD_HINTS: Record<string, string> = {
-  name: 'security.privilegeField.nameHint',
-  domain: 'security.privilegeField.domainHint',
-  pattern: 'security.privilegeField.patternHint',
-  repository: 'security.privilegeField.repositoryHint',
-  contentSelector: 'security.privilegeField.contentSelectorHint',
-};
-
 const ACTION_LABELS: Record<Action, string> = {
   READ: 'security.action.read',
   BROWSE: 'security.action.browse',
@@ -58,16 +39,6 @@ export function typeLabel(t: Translate, type: string): string {
 export function typeDescription(t: Translate, type: string): string {
   const key = TYPE_DESCRIPTIONS[type];
   return key ? t(key) : '';
-}
-
-export function fieldLabel(t: Translate, id: string): string {
-  const key = FIELD_LABELS[id];
-  return key ? t(key) : id;
-}
-
-export function fieldHint(t: Translate, id: string): string | undefined {
-  const key = FIELD_HINTS[id];
-  return key ? t(key) : undefined;
 }
 
 export function actionLabel(t: Translate, action: string): string {

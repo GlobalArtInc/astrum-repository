@@ -29,6 +29,11 @@ export const securityArea: Area = {
       load: () => import('./privileges/PrivilegePage'),
       need: PRIVILEGES_READ,
     },
+    {
+      path: 'admin/security/privileges/:name/profile',
+      load: () => import('./privileges/PrivilegeProfilePage'),
+      need: PRIVILEGES_READ,
+    },
     { path: 'admin/security/roles', load: () => import('./roles/RolesPage'), need: ROLES_NEED },
     {
       path: 'admin/security/roles/create',

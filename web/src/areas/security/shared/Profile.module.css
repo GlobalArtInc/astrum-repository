@@ -1,0 +1,287 @@
+.bigButton {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 8px;
+}
+
+.backButton {
+  height: 40px;
+  margin: 0;
+  padding: 0 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 8px;
+  color: var(--gray-11);
+}
+
+.root {
+  margin-top: -16px;
+}
+
+.tabsScroll {
+  overflow-x: auto;
+  margin: 0 0 8px;
+}
+
+.tabList {
+  box-shadow: inset 0 -1px 0 0 var(--gray-a5);
+}
+
+.tab {
+  height: 40px;
+  padding: 0 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.tabInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.panel {
+  padding-top: 16px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--gray-a5);
+}
+
+.row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.rowLabel {
+  flex: 0 0 140px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.rowValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+
+.separator {
+  display: block;
+  height: 1px;
+  margin: 32px 0;
+  background: var(--gray-6);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--gray-3);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-a9);
+}
+
+.chipOn {
+  background: var(--blue-3);
+  color: var(--gray-12);
+}
+
+.box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--gray-7);
+  border-radius: 3px;
+}
+
+.boxOn {
+  border: 0;
+  background: var(--accent-9);
+  color: #fff;
+}
+
+.card {
+  min-height: 400px;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid var(--gray-4);
+  border-radius: 6px;
+  background: var(--gray-1);
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid color-mix(in oklab, var(--gray-a5), var(--gray-6));
+  border-radius: 8px;
+  background: var(--gray-a2);
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.table th {
+  padding: 12px;
+  background: var(--gray-2);
+  box-shadow: 0 1px 0 0 var(--gray-6);
+  text-align: left;
+  font-weight: 500;
+}
+
+.table th:first-child {
+  border-top-left-radius: 7px;
+}
+
+.table th:last-child {
+  border-top-right-radius: 7px;
+}
+
+.table td {
+  padding: 12px;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.table tbody tr + tr td {
+  box-shadow: inset 0 1px 0 0 var(--gray-a5);
+}
+
+.table a {
+  color: var(--accent-9);
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.chevronCell {
+  width: 24px;
+  text-align: right;
+  color: var(--gray-9);
+}
+
+.empty {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-a11);
+}
+
+.sourceBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--accent-a3);
+  color: var(--accent-11);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.03px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.03px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gray-9);
+}
+
+.dotOn {
+  background: var(--green-9);
+}
+
+.apiLink {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.apiLink a {
+  color: var(--gray-12);
+  text-decoration: none;
+}
+
+.apiLink a:hover {
+  text-decoration: underline;
+}
+
+.apiHint {
+  margin-left: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.03px;
+  color: var(--gray-a11);
+}
+
+.apiHint code {
+  font-family: var(--code-font-family);
+}
+
+@media (max-width: 639px) {
+  .row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .rowLabel {
+    flex-basis: auto;
+  }
+}

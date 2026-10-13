@@ -116,3 +116,13 @@ h2 + .section {
 .textarea textarea {
   font-family: var(--code-font-family);
 }
+
+.plainArea {
+  min-height: 80px;
+  border-radius: 6px;
+}
+
+.plainArea textarea {
+  padding: 8px 12px;
+  font-size: var(--font-size-2);
+}

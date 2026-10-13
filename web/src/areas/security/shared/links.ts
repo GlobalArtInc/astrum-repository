@@ -18,3 +18,11 @@ export function userHref(userId: string, source: string = DEFAULT_SOURCE): strin
     ? path`/admin/security/users/${userId}`
     : path`/admin/security/users/${userId}/${source}`;
 }
+
+export function privilegeProfileHref(name: string): string {
+  return path`/admin/security/privileges/${name}/profile`;
+}
+
+export function roleProfileHref(id: string): string {
+  return path`/admin/security/roles/${id}/profile`;
+}
