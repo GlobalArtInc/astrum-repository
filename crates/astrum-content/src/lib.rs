@@ -8,6 +8,7 @@ pub mod ids;
 pub mod mime;
 pub mod proxy;
 mod request;
+pub mod routing;
 mod serve;
 pub mod store;
 
@@ -45,6 +46,7 @@ struct Inner {
     secrets: SecretBox,
     formats: RwLock<HashMap<&'static str, Arc<dyn Format>>>,
     proxy: proxy::ProxyState,
+    routing: routing::RoutingCache,
     downloads: downloads::Downloads,
 }
 
@@ -63,6 +65,7 @@ impl Content {
                 secrets,
                 formats: RwLock::new(HashMap::new()),
                 proxy: proxy::ProxyState::default(),
+                routing: routing::RoutingCache::default(),
                 downloads: downloads::Downloads::default(),
             }),
         }
@@ -134,8 +137,21 @@ impl Content {
             subject,
             base_url: base_url.into(),
             client_ip: client_ip.into(),
+            request_path: None,
             trusted: false,
         }
+    }
+
+    pub async fn routing_allows(
+        &self,
+        repository: &Repository,
+        path: &str,
+    ) -> Result<bool, ContentError> {
+        self.inner.routing.allows(self.db(), repository, path).await
+    }
+
+    pub fn forget_routing_rules(&self) {
+        self.inner.routing.forget();
     }
 
     pub fn note_download(&self, asset_id: i64) {
@@ -215,6 +231,7 @@ pub struct Ctx {
     pub subject: Option<Subject>,
     pub base_url: String,
     pub client_ip: String,
+    request_path: Option<Arc<str>>,
     trusted: bool,
 }
 
@@ -237,6 +254,15 @@ impl Ctx {
 
     pub fn repository_url(&self) -> String {
         format!("{}/repository/{}", self.base_url, self.repository.name)
+    }
+
+    pub fn with_request_path(mut self, path: &str) -> Self {
+        self.request_path = Some(Arc::from(astrum_repo::routing::request_path(path)));
+        self
+    }
+
+    pub fn request_path(&self) -> Option<&str> {
+        self.request_path.as_deref()
     }
 
     pub fn is_trusted(&self) -> bool {

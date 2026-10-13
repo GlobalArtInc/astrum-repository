@@ -180,6 +180,7 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
         .merge(routes::cleanup_policies::routes())
         .merge(routes::support::routes())
         .merge(routes::capabilities::routes())
+        .merge(routes::routing_rules::routes())
         .fallback(not_found)
         .layer(middleware::from_fn_with_state(
             state.clone(),

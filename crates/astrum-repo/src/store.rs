@@ -1,14 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use astrum_db::entity::{blob_store, cleanup_policy, repository};
+use astrum_db::entity::{blob_store, cleanup_policy, repository, routing_rule};
 use sea_orm::sea_query::{Expr, Func};
 use sea_orm::{
-    ActiveValue, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
-    QueryFilter, QueryOrder, QuerySelect, SqlErr, TransactionTrait,
+    ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr,
+    EntityTrait, QueryFilter, QueryOrder, QuerySelect, SqlErr, TransactionTrait,
 };
 
 use crate::RepositoryType;
 use crate::config::{Problem, Problems, Repository, Spec};
+use crate::routing::RoutingRule;
 
 const WRITE_LOCK: i64 = i64::from_be_bytes(*b"astrrepo");
 
@@ -117,13 +118,19 @@ impl Writer {
             .into_tuple()
             .all(&txn)
             .await?;
+        let routing_rules: Vec<String> = routing_rule::Entity::find()
+            .select_only()
+            .column(routing_rule::Column::Name)
+            .into_tuple()
+            .all(&txn)
+            .await?;
         Ok(Self {
             txn,
             repositories,
             blob_stores,
             grouped,
             cleanup_policies: cleanup_policies.into_iter().collect(),
-            routing_rules: BTreeSet::new(),
+            routing_rules: routing_rules.into_iter().collect(),
         })
     }
 
@@ -257,6 +264,105 @@ impl Writer {
         }
         self.txn.commit().await?;
         Ok(Some(changed))
+    }
+
+    pub fn rule_users(&self, rule: &str) -> Vec<String> {
+        self.repositories
+            .iter()
+            .filter(|repository| repository.attributes.routing_rule_name.as_deref() == Some(rule))
+            .map(|repository| repository.name.clone())
+            .collect()
+    }
+
+    fn rule_named(&self, name: &str) -> Option<&String> {
+        self.routing_rules
+            .iter()
+            .find(|known| known.eq_ignore_ascii_case(name))
+    }
+
+    pub async fn create_rule(self, rule: RoutingRule) -> Result<RoutingRule, WriteError> {
+        if self.rule_named(&rule.name).is_some() {
+            return Err(rule_name_taken());
+        }
+        let now = chrono::Utc::now().fixed_offset();
+        routing_rule::Entity::insert(routing_rule::ActiveModel {
+            name: ActiveValue::Set(rule.name.clone()),
+            description: ActiveValue::Set(rule.description.clone()),
+            mode: ActiveValue::Set(rule.mode.as_str().to_owned()),
+            matchers: ActiveValue::Set(serde_json::json!(rule.matchers)),
+            created_at: ActiveValue::Set(now),
+            updated_at: ActiveValue::Set(now),
+        })
+        .exec(&self.txn)
+        .await
+        .map_err(rule_refusal)?;
+        self.txn.commit().await?;
+        Ok(rule)
+    }
+
+    pub async fn update_rule(
+        self,
+        name: &str,
+        rule: RoutingRule,
+    ) -> Result<(RoutingRule, Vec<String>), WriteError> {
+        if !self.routing_rules.contains(name) {
+            return Err(WriteError::NotFound(name.to_owned()));
+        }
+        if rule.name != name
+            && self
+                .rule_named(&rule.name)
+                .is_some_and(|other| other != name)
+        {
+            return Err(rule_name_taken());
+        }
+        let now = chrono::Utc::now().fixed_offset();
+        routing_rule::Entity::update_many()
+            .col_expr(routing_rule::Column::Name, Expr::value(rule.name.clone()))
+            .col_expr(
+                routing_rule::Column::Description,
+                Expr::value(rule.description.clone()),
+            )
+            .col_expr(routing_rule::Column::Mode, Expr::value(rule.mode.as_str()))
+            .col_expr(
+                routing_rule::Column::Matchers,
+                Expr::value(serde_json::json!(rule.matchers)),
+            )
+            .col_expr(routing_rule::Column::UpdatedAt, Expr::value(now))
+            .filter(routing_rule::Column::Name.eq(name))
+            .exec(&self.txn)
+            .await
+            .map_err(rule_refusal)?;
+        let mut renamed = Vec::new();
+        if rule.name != name {
+            for user in self.rule_users(name) {
+                if let Some(found) = self.find(&user) {
+                    let mut changed = found.clone();
+                    changed.attributes.routing_rule_name = Some(rule.name.clone());
+                    self.save(&changed).await?;
+                    renamed.push(user);
+                }
+            }
+        }
+        self.txn.commit().await?;
+        Ok((rule, renamed))
+    }
+
+    pub async fn delete_rule(self, name: &str) -> Result<(), WriteError> {
+        if !self.routing_rules.contains(name) {
+            return Err(WriteError::NotFound(name.to_owned()));
+        }
+        let users = self.rule_users(name);
+        if !users.is_empty() {
+            return Err(WriteError::Refused(format!(
+                "Routing rule is still in use by {} repositories.",
+                users.len()
+            )));
+        }
+        routing_rule::Entity::delete_by_id(name.to_owned())
+            .exec(&self.txn)
+            .await?;
+        self.txn.commit().await?;
+        Ok(())
     }
 
     async fn save(&self, repository: &Repository) -> Result<(), WriteError> {
@@ -421,6 +527,20 @@ pub fn unchanged(existing: &Repository, spec: Spec, name: Option<&str>) -> Resul
         ));
     }
     Ok(())
+}
+
+fn rule_name_taken() -> WriteError {
+    WriteError::Invalid(vec![Problem::new(
+        "name",
+        "is already used by another routing rule (names ignore case)",
+    )])
+}
+
+fn rule_refusal(error: DbErr) -> WriteError {
+    match error.sql_err() {
+        Some(SqlErr::UniqueConstraintViolation(_)) => rule_name_taken(),
+        _ => error.into(),
+    }
 }
 
 fn refusal(error: DbErr) -> WriteError {

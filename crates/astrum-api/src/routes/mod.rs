@@ -6,6 +6,7 @@ pub mod content;
 pub mod internal;
 pub mod oidc;
 pub mod repositories;
+pub mod routing_rules;
 pub mod security;
 pub mod status;
 pub mod support;

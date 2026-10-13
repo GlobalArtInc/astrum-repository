@@ -28,6 +28,11 @@ pub async fn members(ctx: &Ctx) -> Result<Vec<Arc<Repository>>, ContentError> {
         if !member.online || member.format.id != ctx.format_id() {
             continue;
         }
+        if let Some(path) = ctx.request_path()
+            && !ctx.content.routing_allows(&member, path).await?
+        {
+            continue;
+        }
         match member.kind {
             RepositoryType::Group => {
                 stack.extend(
