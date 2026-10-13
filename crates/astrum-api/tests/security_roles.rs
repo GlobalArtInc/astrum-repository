@@ -25,7 +25,7 @@ async fn built_in_roles_are_listed_and_read() {
             "id": "as-admin",
             "source": "default",
             "name": "as-admin",
-            "description": "Administrator role",
+            "description": "Administrator Role",
             "readOnly": true,
             "privileges": ["as-all"],
             "roles": [],

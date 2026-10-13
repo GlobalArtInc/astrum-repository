@@ -50,7 +50,7 @@ async fn built_in_and_repository_privileges_are_listed() {
         json!({
             "type": "repository-view",
             "name": "as-repository-view-*-*-read",
-            "description": "Read the content of every repository",
+            "description": "Read access to the content of all repositories",
             "readOnly": true,
             "actions": ["READ"],
             "format": "*",

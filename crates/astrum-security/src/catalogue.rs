@@ -180,12 +180,6 @@ const APPLICATION: &[Application] = &[
         "Change data stores",
     ),
     (
-        "as-healthcheck-read",
-        "healthcheck",
-        &[Action::Read],
-        "Read the health check",
-    ),
-    (
         "as-ldap-all",
         "ldap",
         &[Action::All],
@@ -476,12 +470,12 @@ pub struct BuiltinRole {
 pub const ROLES: [BuiltinRole; 2] = [
     BuiltinRole {
         id: ADMIN_ROLE,
-        description: "Administrator role",
+        description: "Administrator Role",
         privileges: &[ALL],
     },
     BuiltinRole {
         id: ANONYMOUS_ROLE,
-        description: "Anonymous role",
+        description: "Anonymous Role",
         privileges: &[
             "as-healthcheck-read",
             "as-repository-view-*-*-browse",
@@ -516,7 +510,7 @@ pub fn builtin_privileges<'a>(formats: impl IntoIterator<Item = &'a str>) -> Vec
     for (action, name) in VIEW_ACTIONS {
         privileges.push(Privilege {
             id: format!("as-repository-admin-*-*-{name}"),
-            description: format!("{} the configuration of every repository", verb(action)),
+            description: format!("{} the settings of all repositories", verb(action)),
             read_only: true,
             kind: PrivilegeKind::RepositoryAdmin {
                 format: "*".to_owned(),
@@ -524,7 +518,7 @@ pub fn builtin_privileges<'a>(formats: impl IntoIterator<Item = &'a str>) -> Vec
                 actions: vec![action],
             },
         });
-        privileges.push(view("*", "*", action, name, "every repository".to_owned()));
+        privileges.push(view("*", "*", action, name, "all repositories".to_owned()));
     }
     for format in formats {
         for (action, name) in VIEW_ACTIONS {
@@ -533,7 +527,7 @@ pub fn builtin_privileges<'a>(formats: impl IntoIterator<Item = &'a str>) -> Vec
                 "*",
                 action,
                 name,
-                format!("every {format} repository"),
+                format!("all '{format}' repositories"),
             ));
         }
     }
@@ -549,7 +543,7 @@ pub fn repository_privileges(format: &str, repository: &str) -> Vec<Privilege> {
                 repository,
                 action,
                 name,
-                format!("the repository {repository}"),
+                format!("the {repository} repository"),
             )
         })
         .collect();
@@ -559,7 +553,7 @@ pub fn repository_privileges(format: &str, repository: &str) -> Vec<Privilege> {
             .map(|(action, name)| Privilege {
                 id: format!("as-repository-admin-{format}-{repository}-{name}"),
                 description: format!(
-                    "{} the configuration of the repository {repository}",
+                    "{} the settings of the {repository} repository",
                     verb(action)
                 ),
                 read_only: true,
@@ -588,13 +582,13 @@ fn view(format: &str, repository: &str, action: Action, name: &str, target: Stri
 
 fn verb(action: Action) -> &'static str {
     match action {
-        Action::All => "Do everything with",
-        Action::Add => "Add to",
-        Action::Browse => "Browse",
-        Action::Delete => "Delete from",
-        Action::Edit => "Change",
-        Action::Read => "Read",
-        _ => "Use",
+        Action::All => "Full access to",
+        Action::Add => "Add access to",
+        Action::Browse => "Browse access to",
+        Action::Delete => "Delete access to",
+        Action::Edit => "Edit access to",
+        Action::Read => "Read access to",
+        _ => "Access to",
     }
 }
 
@@ -618,7 +612,6 @@ mod tests {
             "as-users-read",
             "as-userschangepw",
             "as-tasks-run",
-            "as-healthcheck-read",
             "as-repository-view-*-*-read",
             "as-repository-view-*-*-*",
             "as-repository-admin-*-*-add",
@@ -627,7 +620,11 @@ mod tests {
         ] {
             assert!(ids.contains(id), "{id}");
         }
-        assert_eq!(privileges.len(), 1 + 77 + 12 + 12);
+        assert!(
+            !ids.contains("as-healthcheck-read"),
+            "the old server names it in the anonymous role but does not list it"
+        );
+        assert_eq!(privileges.len(), 1 + 76 + 12 + 12);
         assert!(
             privileges
                 .iter()
@@ -642,15 +639,87 @@ mod tests {
     }
 
     #[test]
-    fn built_in_roles_name_existing_privileges() {
+    fn built_in_roles_name_the_privileges_of_the_old_server() {
         let ids: BTreeSet<String> = builtin_privileges(["raw"])
             .into_iter()
             .map(|privilege| privilege.id)
             .collect();
         for role in ROLES {
             for privilege in role.privileges {
-                assert!(ids.contains(*privilege), "{} -> {privilege}", role.id);
+                assert!(
+                    ids.contains(*privilege) || *privilege == "as-healthcheck-read",
+                    "{} -> {privilege}",
+                    role.id
+                );
             }
+        }
+    }
+
+    #[test]
+    fn descriptions_follow_the_old_wording() {
+        let privileges = builtin_privileges(["alpine"]);
+        let describe = |id: &str| {
+            privileges
+                .iter()
+                .find(|privilege| privilege.id == id)
+                .map(|privilege| privilege.description.clone())
+                .unwrap()
+        };
+        assert_eq!(
+            describe("as-repository-view-alpine-*-browse"),
+            "Browse access to the content of all 'alpine' repositories"
+        );
+        assert_eq!(
+            describe("as-repository-admin-*-*-*"),
+            "Full access to the settings of all repositories"
+        );
+        let docker = repository_privileges("docker", "docker-internal");
+        assert_eq!(
+            docker[0].description,
+            "Full access to the content of the docker-internal repository"
+        );
+        assert_eq!(ROLES[0].description, "Administrator Role");
+        assert_eq!(ROLES[1].description, "Anonymous Role");
+    }
+
+    #[test]
+    fn the_catalogue_matches_the_old_server() {
+        let reference: Vec<serde_json::Value> = serde_json::from_str(include_str!(
+            "../../../.claude/rewrite/reference/builtin-privileges.json"
+        ))
+        .unwrap();
+        let formats: BTreeSet<&str> = reference
+            .iter()
+            .filter_map(|privilege| privilege["format"].as_str())
+            .filter(|format| *format != "*")
+            .collect();
+        let shape = |privilege: &serde_json::Value| {
+            let mut privilege = privilege.clone();
+            if let Some(map) = privilege.as_object_mut() {
+                map.remove("description");
+            }
+            privilege
+        };
+        let ours: Vec<serde_json::Value> = builtin_privileges(formats)
+            .iter()
+            .map(|privilege| {
+                let mut value = privilege.kind.properties();
+                let map = value.as_object_mut().unwrap();
+                map.insert("type".into(), privilege.kind.type_id().into());
+                map.insert("name".into(), privilege.id.clone().into());
+                map.insert("readOnly".into(), true.into());
+                value
+            })
+            .collect();
+        let mut expected: Vec<serde_json::Value> = reference.iter().map(shape).collect();
+        let mut actual = ours;
+        let by_name =
+            |privilege: &serde_json::Value| privilege["name"].as_str().unwrap().to_owned();
+        expected.sort_by_key(by_name);
+        actual.sort_by_key(by_name);
+        assert_eq!(actual.len(), expected.len());
+        for (actual, expected) in actual.iter().zip(&expected) {
+            assert_eq!(actual, expected);
         }
     }
 
