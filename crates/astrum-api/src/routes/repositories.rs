@@ -347,6 +347,9 @@ impl<S: Send + Sync> FromRequestParts<S> for BaseUrl {
 }
 
 pub fn base_url(headers: &HeaderMap, uri: &Uri) -> String {
+    if let Some(configured) = crate::base_url::configured() {
+        return configured;
+    }
     let first = |name: &str| {
         headers
             .get(name)

@@ -35,6 +35,56 @@ struct UiState {
     oidc_enabled: bool,
     default_role: Option<UiRole>,
     nuget_api_key_realm: bool,
+    ui_settings: UiSettingsXo,
+    branding: BrandingXo,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UiSettingsXo {
+    title: String,
+    debug_allowed: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BrandingXo {
+    header_html: Option<String>,
+    footer_html: Option<String>,
+}
+
+async fn look(state: &AppState, base_url: &str) -> (UiSettingsXo, BrandingXo) {
+    use astrum_db::setting;
+    use astrum_db::system::{BRANDING_KEY, Branding, UI_SETTINGS_KEY, UiSettings};
+    let db = state.db().conn();
+    let ui = setting::get::<UiSettings>(db, UI_SETTINGS_KEY)
+        .await
+        .ok()
+        .flatten()
+        .filter(|ui| ui.enabled)
+        .unwrap_or_default();
+    let branding = setting::get::<Branding>(db, BRANDING_KEY)
+        .await
+        .ok()
+        .flatten()
+        .filter(|branding| branding.enabled);
+    let snippet = |shown: bool, html: &str| {
+        (shown && !html.trim().is_empty()).then(|| html.replace("$baseUrl", base_url))
+    };
+    (
+        UiSettingsXo {
+            title: ui.title,
+            debug_allowed: ui.debug_allowed,
+        },
+        BrandingXo {
+            header_html: branding
+                .as_ref()
+                .and_then(|branding| snippet(branding.header_enabled, &branding.header_html)),
+            footer_html: branding
+                .as_ref()
+                .and_then(|branding| snippet(branding.footer_enabled, &branding.footer_html)),
+        },
+    )
 }
 
 #[derive(Serialize)]
@@ -75,6 +125,7 @@ async fn ui_state(
     let admin_password_file = (may_see_password_file
         && tokio::fs::try_exists(&password_file).await.unwrap_or(false))
     .then(|| password_file.display().to_string());
+    let (ui_settings, branding) = look(&state, &base_url).await;
     axum::Json(UiState {
         version: VERSION,
         revision: REVISION.filter(|revision| !revision.is_empty()),
@@ -94,6 +145,8 @@ async fn ui_state(
                 name: role.name.clone(),
             }),
         nuget_api_key_realm: model.realm_active(astrum_security::api_keys::NUGET),
+        ui_settings,
+        branding,
     })
 }
 

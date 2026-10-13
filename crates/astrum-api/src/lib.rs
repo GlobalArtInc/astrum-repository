@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod base_url;
 pub mod error;
 pub mod json;
 pub mod routes;
@@ -21,6 +22,7 @@ use axum::middleware;
 pub use auth::Caller;
 pub use error::{ApiError, FieldError, Validation};
 pub use json::Json;
+pub use routes::internal::ui::nodes;
 pub use routes::status::{STATUS, STATUS_WRITABLE};
 
 pub const REST: &str = "/service/rest";
@@ -42,6 +44,9 @@ struct Inner {
     configuration: OnceLock<Vec<(String, String)>>,
     started: chrono::DateTime<chrono::Utc>,
     notifier: Notifier,
+    base_url: base_url::Cache,
+    node_id: uuid::Uuid,
+    started_at: chrono::DateTime<chrono::FixedOffset>,
 }
 
 impl AppState {
@@ -68,6 +73,9 @@ impl AppState {
                 configuration: OnceLock::new(),
                 started: chrono::Utc::now(),
                 notifier,
+                base_url: base_url::Cache::default(),
+                node_id: uuid::Uuid::new_v4(),
+                started_at: chrono::Utc::now().fixed_offset(),
             }),
         }
     }
@@ -133,6 +141,14 @@ impl AppState {
         &self.inner.notifier
     }
 
+    pub fn node_id(&self) -> uuid::Uuid {
+        self.inner.node_id
+    }
+
+    pub fn started_at(&self) -> chrono::DateTime<chrono::FixedOffset> {
+        self.inner.started_at
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
@@ -163,10 +179,15 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
         .merge(routes::tasks::routes())
         .merge(routes::cleanup_policies::routes())
         .merge(routes::support::routes())
+        .merge(routes::capabilities::routes())
         .fallback(not_found)
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth::authenticate,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            base_url::scope,
         ))
         .with_state(state)
 }
