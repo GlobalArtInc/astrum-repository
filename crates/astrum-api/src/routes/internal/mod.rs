@@ -1,7 +1,7 @@
 mod access_tokens;
 mod audit;
 pub(crate) mod session;
-pub(crate) mod ui;
+pub mod ui;
 mod ui_state;
 
 use axum::Router;

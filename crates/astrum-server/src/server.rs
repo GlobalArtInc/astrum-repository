@@ -57,6 +57,7 @@ impl Server {
         self.state.content().spawn_background();
         let scheduler = self.state.tasks().spawn();
         let notifier = self.state.notifier().spawn();
+        let heartbeat = astrum_api::nodes::spawn(self.state.clone());
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(
@@ -79,6 +80,8 @@ impl Server {
         scheduler.abort();
         self.state.notifier().stop();
         let _ = notifier.await;
+        heartbeat.abort();
+        astrum_api::nodes::leave(&self.state).await;
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");
         }

@@ -1,4 +1,5 @@
 pub mod blobstores;
+pub mod capabilities;
 pub mod cleanup_policies;
 pub mod components;
 pub mod content;
