@@ -34,10 +34,10 @@ secrets.
   stored but not implemented; group blob stores cannot be managed from Astrum One.
 
 ## Where the work stopped (2026-10-13)
-- Done and on next (revision 9bf1c13): M0-M3, helm, nuget, LDAP/OIDC/default role, and the UI parity work
+- Done and on next (revision 9b6cff4): M0-M3, helm, nuget, LDAP/OIDC/default role, tasks and cleanup
+  policies, and the UI parity work
   (shell, dashboard, browse with per-format trees, repository and blob store pages, search/upload/audit,
   security pages); the QA report of the old/new UI is in the session scratchpad `qa/report/findings.md`.
-- In progress: tasks and cleanup policies (worktree `/home/user/wt/m4-tasks`, branch `m4/tasks`).
 - Prepared, not started (limits ran out): worktrees `/home/user/wt/m4-{outbound,notify,support,compat}` from main
   with web dependencies; their scope is in the M4 brief wave 2 and was: routing rules + HTTP + SSL truststore +
   email; notifications + base URL/branding/UI settings + nodes; logs, logging, system info, health + bell,
