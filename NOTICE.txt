@@ -1,0 +1,74 @@
+Astrum Repository
+Copyright (c) 2026 GlobalArt, Inc.
+
+The terms under which Astrum Repository is distributed are in LICENSE.txt.
+Its source code is available at https://github.com/GlobalArtInc/astrum-repository.
+
+The following part was written for Astrum Repository by GlobalArt, Inc. and is
+also available under the MIT License below:
+
+  tools/i18n
+
+-------------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 GlobalArt, Inc
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+
+Third-party software
+
+The server and the web UI are built from open source libraries. Their licence
+texts and copyright notices are part of the packages they come from; this is
+an overview of what the container image and a build of this repository carry.
+
+Server (Rust crates linked into the astrum binary; exact versions in
+Cargo.lock; a full list comes from `cargo tree -p astrum-server -e normal
+--format "{p} {l}"`):
+
+  - MIT License, Apache License 2.0, or both: the large majority of the
+    crates, among them tokio, axum, hyper, reqwest, rustls, sea-orm, sqlx,
+    serde and tracing.
+  - BSD-3-Clause: curve25519-dalek, ed25519-dalek, x25519-dalek, cx448,
+    subtle, and matchit (with MIT).
+  - ISC License: ring (with Apache-2.0), rustls-webpki, untrusted, sqlmig.
+  - Zlib License: foldhash, zlib-rs. bzip2-1.0.6 licence: libbz2-rs-sys.
+  - 0BSD, Unlicense or MIT: adler2, memchr, aho-corasick, byteorder.
+  - Unicode License v3: the Unicode data crates (icu_*, unicode-ident, zerovec
+    and the crates around them).
+  - CDLA-Permissive-2.0: webpki-roots, the list of root certificates of the
+    Mozilla CA Certificate Program.
+  - Mozilla Public License 2.0: ldap3_proto, used unmodified. Its source code
+    is available at https://github.com/kanidm/ldap3.
+
+Web UI (npm packages bundled into web/dist; exact versions in
+web/pnpm-lock.yaml; a full list comes from `pnpm licenses list --prod` in
+web/):
+
+  - MIT License: React, React DOM, React Router, TanStack Query, Radix UI and
+    Radix Themes, Floating UI.
+  - ISC License: lucide-react. Copyright (c) Lucide Icons and Contributors.
+  - 0BSD: tslib.
+  - SIL Open Font License 1.1: the Geist and Geist Mono fonts served with the
+    UI (@fontsource-variable/geist, @fontsource-variable/geist-mono).
+    Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font).
+    The licence is at https://openfontlicense.org/open-font-license-official-text/.
