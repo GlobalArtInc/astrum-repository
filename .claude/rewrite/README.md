@@ -459,3 +459,22 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   archives, identifiers, login; proxies answer 503). Web: usage blocks, the Terraform settings and signing
   sections, search keys and the old remote examples. Checked with terraform 1.16.2 and 1.9.8, huggingface_hub
   2.2.0 and replayed SE-0292 requests.
+- Notifications, settings and nodes (M4 wave 2, track notify): `crates/astrum-notify`, ported from our
+  `astrum-notifications-plugin`: channels (Telegram, Slack-compatible webhook, JSON webhook with
+  `X-Astrum-Event`, `X-Astrum-Delivery` and an optional HMAC-SHA256 `X-Astrum-Signature`, and email) with
+  repositories, events, message language and a proxy mode per channel; secrets sealed, audit domain
+  `system.notifications`; REST `GET|POST /internal/ui/notifications`, `PUT|DELETE .../{id}`,
+  `POST .../test` and `.../{id}/test` (`astrum:settings:read|update`). Triggers on `component` and `asset`
+  capture changes in the writing transaction; one replica at a time (advisory lock) folds the buffer after
+  10 s of quiet (60 s at most) into an outbox and delivers it with 4 attempts and backoff, so replicas
+  neither lose nor double messages. Webhooks pass the SSRF protection for the host and every resolved
+  address. Email goes through the `MailSender` trait (`Notifier::set_mail_sender`); without one, email
+  deliveries fail with "Email is not set up". `ASTRUM_NOTIFICATIONS_TELEGRAM_API_URL` points Telegram at
+  a local server in tests. Base URL, UI settings and branding are plain settings (`system.baseUrl`,
+  `ui.settings`, `ui.branding`, audit domain `capability`) served under the Nexus capability paths
+  (`/v1/capabilities[/types|/{id}]`, types `baseurl`, `rapture.settings`, `rapture.branding`); a set base
+  URL wins over the request's address (cached a few seconds per replica); the UI state carries the title
+  and the branding snippets, which the shell sanitizes against an allow list. Every replica writes a
+  heartbeat into `node` (`GET /internal/ui/nodes`). Pages `/admin/system/notifications`,
+  `/admin/system/capabilities[/create|/<type>]`, `/admin/system/nodes` match Astrum One; the capability
+  list offers only the three types above, and email is a fourth messenger the old page did not have.
