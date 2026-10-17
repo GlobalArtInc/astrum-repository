@@ -31,6 +31,7 @@ const CHOOSE: Record<RepositoryType, string> = {
 
 const FORMAT_TEXTS: Record<string, string> = {
   docker: 'repositories.formats.docker',
+  gitlfs: 'repositories.formats.gitlfs',
   helm: 'repositories.formats.helm',
   maven2: 'repositories.formats.maven2',
   npm: 'repositories.formats.npm',

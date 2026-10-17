@@ -202,6 +202,9 @@
   "browse.usage.hint.bundleMirror": "Run it once; Bundler then fetches every gem from rubygems.org through this repository",
   "browse.usage.hint.gemSources": "Add the repository once as a source of the gem command",
   "browse.usage.hint.gemPush": "RUBYGEMS_HOST sends gem signin, push and yank to this repository; sign in once as a user of this server to get an API key",
+  "browse.usage.hint.lfsConfig": "Run it in the git repository and commit .lfsconfig, so that every clone keeps its large files here",
+  "browse.usage.hint.lfsLocalConfig": "Run it in a clone to keep its large files in this repository without committing anything",
+  "browse.usage.hint.lfsObject": "Downloads the object by its SHA-256, as git lfs does when it checks out a file",
 
   "browse.component.search": "Search",
   "browse.component.invalidTitle": "Unknown component",

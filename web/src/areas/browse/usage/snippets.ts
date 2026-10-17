@@ -41,6 +41,7 @@ export const USAGE_FORMATS = [
   'terraform',
   'yum',
   'rubygems',
+  'gitlfs',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -580,6 +581,37 @@ function rubygems(context: UsageContext): Snippet[] {
   return snippets;
 }
 
+const LFS_OID = /^[0-9a-f]{64}$/;
+
+function gitlfs(context: UsageContext): Snippet[] {
+  const api = `${repositoryUrl(context.baseUrl, context.repositoryName)}info/lfs`;
+  const file = (context.path ?? '').split('/').pop() ?? '';
+  const oid = [context.component?.name, file].find((candidate) => candidate && LFS_OID.test(candidate));
+  const snippets: Snippet[] = [
+    {
+      id: 'lfsconfig',
+      label: '.lfsconfig',
+      code: `git config -f .lfsconfig lfs.url ${api}\ngit add .lfsconfig`,
+      hint: 'browse.usage.hint.lfsConfig',
+    },
+    {
+      id: 'git-config',
+      label: 'git config',
+      code: `git config lfs.url ${api}`,
+      hint: 'browse.usage.hint.lfsLocalConfig',
+    },
+  ];
+  if (oid) {
+    snippets.push({
+      id: 'curl',
+      label: 'curl',
+      code: `curl -u <user> -fL -o ${oid} ${api}/objects/${oid}`,
+      hint: 'browse.usage.hint.lfsObject',
+    });
+  }
+  return snippets;
+}
+
 const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   maven2: maven,
   npm,
@@ -595,6 +627,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
     terraform(context, repositoryUrl(context.baseUrl, context.repositoryName), hostOf(context.baseUrl)),
   yum,
   rubygems,
+  gitlfs,
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

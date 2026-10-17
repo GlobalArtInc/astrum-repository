@@ -417,6 +417,7 @@
   "repositories.create.configure": "Configuration",
   "repositories.create.formTitle": "Create {format} Repository ({type})",
   "repositories.formats.docker": "Container images and any other OCI artifacts: Helm charts, signatures, SBOMs, Wasm modules, AI models.",
+  "repositories.formats.gitlfs": "Git Large File Storage for versioning large files.",
   "repositories.formats.helm": "Package manager for Kubernetes applications.",
   "repositories.formats.maven2": "The standard of Java development, with snapshots and releases.",
   "repositories.formats.npm": "Package manager for JavaScript and Node.js.",

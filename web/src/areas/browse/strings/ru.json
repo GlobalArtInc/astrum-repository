@@ -223,6 +223,9 @@
   "browse.usage.hint.bundleMirror": "Выполните один раз; затем Bundler будет получать все gem с rubygems.org через этот репозиторий",
   "browse.usage.hint.gemSources": "Один раз добавьте репозиторий как источник команды gem",
   "browse.usage.hint.gemPush": "RUBYGEMS_HOST направляет gem signin, push и yank в этот репозиторий; войдите один раз пользователем этого сервера, чтобы получить API-ключ",
+  "browse.usage.hint.lfsConfig": "Выполните в git-репозитории и закоммитьте .lfsconfig, чтобы каждый клон хранил большие файлы здесь",
+  "browse.usage.hint.lfsLocalConfig": "Выполните в клоне, чтобы хранить его большие файлы в этом репозитории, ничего не коммитя",
+  "browse.usage.hint.lfsObject": "Скачивает объект по его SHA-256, как это делает git lfs при извлечении файла",
 
   "browse.component.search": "Поиск",
   "browse.component.invalidTitle": "Неизвестный компонент",

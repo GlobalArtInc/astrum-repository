@@ -431,6 +431,7 @@
   "repositories.create.configure": "Настройка",
   "repositories.create.formTitle": "Создание репозитория {format} ({type})",
   "repositories.formats.docker": "Образы контейнеров и любые другие OCI-артефакты: чарты Helm, подписи, SBOM, модули Wasm, ИИ-модели.",
+  "repositories.formats.gitlfs": "Git Large File Storage для версионирования больших файлов.",
   "repositories.formats.helm": "Менеджер пакетов для приложений Kubernetes.",
   "repositories.formats.maven2": "Стандарт для разработки на Java. Поддерживает снапшоты и релизы.",
   "repositories.formats.npm": "Менеджер пакетов для JavaScript и Node.js.",

@@ -348,3 +348,35 @@ describe('rubygems usage', () => {
     expect(code(hosted, 'push')).toContain('gem push <name>-<version>.gem');
   });
 });
+
+describe('git lfs usage', () => {
+  const oid = 'ffc3a223711122b05d9924078a85f112f36e97c1dd987ebf1a2f44a39817380e';
+
+  it('points git at the API and downloads a selected object', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'gitlfs',
+        repositoryName: 'lfs',
+        component: { group: '', name: oid, version: '' },
+        path: `/objects/ff/c3/${oid}`,
+      }),
+    );
+    expect(ids(snippets)).toEqual(['lfsconfig', 'git-config', 'curl']);
+    expect(code(snippets, 'lfsconfig')).toBe(
+      'git config -f .lfsconfig lfs.url https://repo.example.org/repository/lfs/info/lfs\ngit add .lfsconfig',
+    );
+    expect(code(snippets, 'git-config')).toBe(
+      'git config lfs.url https://repo.example.org/repository/lfs/info/lfs',
+    );
+    expect(code(snippets, 'curl')).toBe(
+      `curl -u <user> -fL -o ${oid} https://repo.example.org/repository/lfs/info/lfs/objects/${oid}`,
+    );
+  });
+
+  it('leaves the download out without an object', () => {
+    expect(ids(usageSnippets(context({ format: 'gitlfs', repositoryName: 'lfs' })))).toEqual([
+      'lfsconfig',
+      'git-config',
+    ]);
+  });
+});
