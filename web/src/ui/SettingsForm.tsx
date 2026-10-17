@@ -34,34 +34,36 @@ export function SettingsForm({
   };
   return (
     <form className={classes} aria-label={label} noValidate onSubmit={submit}>
-      <div className={styles.top}>
-        <div className={styles.bar}>
-          {start && <div className={styles.barStart}>{start}</div>}
-          <div className={styles.barEnd}>
-            {unsaved && <span className={styles.unsaved}>{unsaved}</span>}
-            {end}
+      {(start || end || unsaved || progress) && (
+        <div className={styles.top}>
+          <div className={styles.bar}>
+            {start && <div className={styles.barStart}>{start}</div>}
+            <div className={styles.barEnd}>
+              {unsaved && <span className={styles.unsaved}>{unsaved}</span>}
+              {end}
+            </div>
           </div>
+          {progress && (
+            <div
+              className={styles.progress}
+              role="progressbar"
+              aria-label={progress.label}
+              aria-valuemin={1}
+              aria-valuemax={progress.steps}
+              aria-valuenow={progress.step}
+            >
+              <span style={{ width: `${(progress.step / progress.steps) * 100}%` }} />
+              {Array.from({ length: progress.steps - 1 }, (_, index) => index + 1).map((position) => (
+                <i
+                  key={position}
+                  className={styles.divider}
+                  style={{ left: `${(position / progress.steps) * 100}%` }}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        {progress && (
-          <div
-            className={styles.progress}
-            role="progressbar"
-            aria-label={progress.label}
-            aria-valuemin={1}
-            aria-valuemax={progress.steps}
-            aria-valuenow={progress.step}
-          >
-            <span style={{ width: `${(progress.step / progress.steps) * 100}%` }} />
-            {Array.from({ length: progress.steps - 1 }, (_, index) => index + 1).map((position) => (
-              <i
-                key={position}
-                className={styles.divider}
-                style={{ left: `${(position / progress.steps) * 100}%` }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      )}
       <div className={styles.inner}>{children}</div>
     </form>
   );
