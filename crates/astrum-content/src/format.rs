@@ -151,6 +151,10 @@ pub trait Format: Send + Sync + 'static {
         &[]
     }
 
+    fn keyword_attributes(&self) -> &'static [&'static [&'static str]] {
+        &[]
+    }
+
     fn browse_layout(&self) -> BrowseLayout {
         BrowseLayout::default()
     }

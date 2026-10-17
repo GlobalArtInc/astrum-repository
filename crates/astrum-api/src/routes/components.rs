@@ -222,16 +222,21 @@ impl Filters {
 
     fn like_attribute(&mut self, alias: &str, path: &str, pattern: &str) {
         let parameter = self.bind(like_pattern(pattern));
-        let node = format!("({alias}.attributes #> '{path}')");
-        self.clauses.push(format!(
-            "(CASE WHEN jsonb_typeof({node}) = 'array' THEN EXISTS (SELECT 1 FROM jsonb_array_elements_text({node}) AS element(value) WHERE element.value ILIKE {parameter}) ELSE ({alias}.attributes #>> '{path}') ILIKE {parameter} END)"
-        ));
+        self.clauses
+            .push(attribute_matches(alias, path, &parameter));
     }
 
     fn equals(&mut self, column: &str, value: &str) {
         let parameter = self.bind(value.to_owned());
         self.clauses.push(format!("{column} = {parameter}"));
     }
+}
+
+fn attribute_matches(alias: &str, path: &str, parameter: &str) -> String {
+    let node = format!("({alias}.attributes #> '{path}')");
+    format!(
+        "(CASE WHEN jsonb_typeof({node}) = 'array' THEN EXISTS (SELECT 1 FROM jsonb_array_elements_text({node}) AS element(value) WHERE element.value ILIKE {parameter}) ELSE ({alias}.attributes #>> '{path}') ILIKE {parameter} END)"
+    )
 }
 
 fn like_pattern(pattern: &str) -> String {
@@ -285,8 +290,22 @@ fn search_filters(
                         .replace('*', "%")
                 );
                 let parameter = filters.bind(escaped);
+                let keywords: String = formats
+                    .iter()
+                    .flat_map(|format| format.keyword_attributes().iter())
+                    .map(|pointer| {
+                        format!(
+                            " OR {}",
+                            attribute_matches(
+                                prefix,
+                                &format!("{{{}}}", pointer.join(",")),
+                                &parameter
+                            )
+                        )
+                    })
+                    .collect();
                 filters.clauses.push(format!(
-                    "({prefix}.name ILIKE {parameter} OR {prefix}.namespace ILIKE {parameter} OR {prefix}.version ILIKE {parameter} OR EXISTS (SELECT 1 FROM asset q WHERE q.component_id = {prefix}.id AND q.path ILIKE {parameter}))"
+                    "({prefix}.name ILIKE {parameter} OR {prefix}.namespace ILIKE {parameter} OR {prefix}.version ILIKE {parameter} OR EXISTS (SELECT 1 FROM asset q WHERE q.component_id = {prefix}.id AND q.path ILIKE {parameter}){keywords})"
                 ));
             }
             "format" => filters.equals(&format!("{prefix}.format"), value),

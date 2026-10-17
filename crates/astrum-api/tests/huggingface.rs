@@ -297,6 +297,19 @@ async fn files_are_cached_per_commit_with_hub_headers() {
     assert_eq!(items[0]["group"], "models");
     assert_eq!(items[0]["name"], "acme/tiny");
     assert_eq!(items[0]["version"], COMMIT);
+    for (query, found) in [("main", 1), ("release-*", 0)] {
+        let keyword = fixture
+            .call(
+                Method::GET,
+                &format!("/service/rest/v1/search?format=huggingface&q={query}"),
+                Auth::Admin,
+                None,
+            )
+            .await
+            .json();
+        let items = keyword["items"].as_array().unwrap();
+        assert_eq!(items.len(), found, "{query}: {keyword}");
+    }
     let anonymous = fixture
         .call(
             Method::GET,

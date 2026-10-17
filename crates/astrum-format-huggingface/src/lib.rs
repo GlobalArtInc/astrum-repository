@@ -661,4 +661,8 @@ impl Format for HuggingFace {
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
     }
+
+    fn keyword_attributes(&self) -> &'static [&'static [&'static str]] {
+        &[&["huggingface", "revisions"]]
+    }
 }
