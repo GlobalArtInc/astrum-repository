@@ -9,6 +9,7 @@ pub mod component;
 pub mod content_selector;
 pub mod docker_upload;
 pub mod format_token;
+pub mod gitlfs_lock;
 pub mod repository;
 pub mod routing_rule;
 pub mod security_oidc_user;

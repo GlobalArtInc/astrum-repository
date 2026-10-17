@@ -15,6 +15,7 @@ astrum-api.workspace = true
 astrum-blob.workspace = true
 astrum-content.workspace = true
 astrum-format-docker.workspace = true
+astrum-format-gitlfs.workspace = true
 astrum-format-helm.workspace = true
 astrum-format-huggingface.workspace = true
 astrum-format-maven.workspace = true

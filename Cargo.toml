@@ -14,6 +14,7 @@ astrum-api = { path = "crates/astrum-api" }
 astrum-blob = { path = "crates/astrum-blob" }
 astrum-content = { path = "crates/astrum-content" }
 astrum-format-docker = { path = "crates/astrum-format-docker" }
+astrum-format-gitlfs = { path = "crates/astrum-format-gitlfs" }
 astrum-format-helm = { path = "crates/astrum-format-helm" }
 astrum-format-huggingface = { path = "crates/astrum-format-huggingface" }
 astrum-format-maven = { path = "crates/astrum-format-maven" }

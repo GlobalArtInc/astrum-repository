@@ -525,3 +525,13 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   browse by gem name and version with the index files at the root, cleanup pre-releases (a letter in the
   version). Real clients: gem 3.5.22 (signin, push, yank, install from hosted, proxy, group and a proxy of the
   Java server) and Bundler 4.0.18 (install through a group, as a mirror of rubygems.org, incremental update).
+- Git LFS (M4 wave 2, `crates/astrum-format-gitlfs`, ported from our Java module; hosted only, as there): the
+  batch API (basic transfer, sha256, at most 1000 objects, per-object errors and permissions: read to download,
+  add to upload), upload `PUT .../objects/<oid>` checked against the SHA-256 (an object already held is kept),
+  verify, download by id or at the asset path `/objects/<2>/<2>/<oid>`, all under `<repository>/info/lfs` or
+  the repository root; the lock API (create with the "already created lock" conflict, list with path, id,
+  cursor and limit, verify ours/theirs, unlock, `force` needs delete) in table `gitlfs_lock` (one lock per path,
+  dropped with the repository); API errors are `application/vnd.git-lfs+json` `{message}`, a stranger gets the
+  Basic challenge git-lfs needs. Objects are components named by their id; upload spec `asset` stores a file
+  under its SHA-256; browse by asset path; cleanup by age and last download. Real client: git-lfs 3.4.1 (push,
+  clone, fetch, lock/locks/unlock, `locksverify` refusing another user's locked file).

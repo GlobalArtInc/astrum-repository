@@ -224,6 +224,7 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-format-docker",
+ "astrum-format-gitlfs",
  "astrum-format-helm",
  "astrum-format-huggingface",
  "astrum-format-maven",
@@ -381,6 +382,25 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "astrum-format-gitlfs"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "chrono",
+ "futures-util",
+ "sea-orm",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -827,6 +847,7 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-format-docker",
+ "astrum-format-gitlfs",
  "astrum-format-helm",
  "astrum-format-huggingface",
  "astrum-format-maven",
