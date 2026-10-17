@@ -1,4 +1,4 @@
-import { Button, DropdownMenu, IconButton, TextField as RadixTextField, Tooltip } from '@radix-ui/themes';
+import { Button, DropdownMenu, Tooltip } from '@radix-ui/themes';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -217,7 +217,8 @@ export function MatcherList({
             <span className={styles.matcherNumber} aria-hidden="true">
               {number}
             </span>
-            <RadixTextField.Root
+            <input
+              type="text"
               className={styles.matcherInput}
               value={entry.text}
               placeholder={t(PLACEHOLDERS[entry.kind])}
@@ -232,16 +233,14 @@ export function MatcherList({
             </span>
             {!disabled && (
               <Tooltip content={t('routing.matcher.remove', { number })}>
-                <IconButton
+                <button
                   type="button"
-                  variant="ghost"
-                  color="gray"
                   className={styles.remove}
                   aria-label={t('routing.matcher.remove', { number })}
                   onClick={() => onChange(matchers.filter((other) => other.id !== entry.id))}
                 >
                   <Trash2 size={16} aria-hidden="true" />
-                </IconButton>
+                </button>
               </Tooltip>
             )}
           </div>
@@ -262,19 +261,18 @@ export function MatcherList({
           {t('routing.matcher.testTitle')}
         </h3>
         <p className={styles.boxText}>{t('routing.matcher.testText')}</p>
-        <RadixTextField.Root
-          className={styles.testInput}
-          size="3"
-          value={path}
-          placeholder={t('routing.matcher.testPlaceholder')}
-          aria-label={t('routing.matcher.testTitle')}
-          spellCheck={false}
-          onChange={(event) => onPathChange(event.target.value)}
-        >
-          <RadixTextField.Slot>
-            <Search size={16} aria-hidden="true" />
-          </RadixTextField.Slot>
-        </RadixTextField.Root>
+        <div className={styles.testField}>
+          <Search size={16} aria-hidden="true" className={styles.testIcon} />
+          <input
+            type="text"
+            className={styles.testInput}
+            value={path}
+            placeholder={t('routing.matcher.testPlaceholder')}
+            aria-label={t('routing.matcher.testTitle')}
+            spellCheck={false}
+            onChange={(event) => onPathChange(event.target.value)}
+          />
+        </div>
         {tested && test.ready && test.allowed !== null && (
           <div className={styles.result} data-allowed={test.allowed} role="status">
             {test.allowed ? (

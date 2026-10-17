@@ -1,10 +1,10 @@
-import { Button, TextField as RadixTextField, Spinner, Tooltip } from '@radix-ui/themes';
+import { Button, Spinner, Tooltip } from '@radix-ui/themes';
 import {
-  ArrowDown,
-  ArrowUp,
   Ban,
   Check,
+  ChevronDown,
   ChevronsUpDown,
+  ChevronUp,
   CircleHelp,
   ExternalLink,
   Eye,
@@ -111,9 +111,9 @@ export default function RoutingRulesPage() {
           }
         >
           {label}
-          {sorted === 'asc' && <ArrowUp size={14} aria-hidden="true" />}
-          {sorted === 'desc' && <ArrowDown size={14} aria-hidden="true" />}
-          {!sorted && <ChevronsUpDown size={12} aria-hidden="true" className={styles.sortIcon} />}
+          {sorted === 'asc' && <ChevronUp size={14} aria-hidden="true" className={styles.sortIcon} />}
+          {sorted === 'desc' && <ChevronDown size={14} aria-hidden="true" className={styles.sortIcon} />}
+          {!sorted && <ChevronsUpDown size={14} aria-hidden="true" className={styles.sortIcon} />}
         </button>
       </th>
     );
@@ -152,17 +152,17 @@ export default function RoutingRulesPage() {
       }
     >
       <div className={styles.stack}>
-        <RadixTextField.Root
-          className={styles.filter}
-          value={filter}
-          placeholder={t('routing.list.filter')}
-          aria-label={t('routing.list.filter')}
-          onChange={(event) => search(event.target.value)}
-        >
-          <RadixTextField.Slot>
-            <Search size={16} aria-hidden="true" />
-          </RadixTextField.Slot>
-        </RadixTextField.Root>
+        <div className={styles.filter}>
+          <Search size={16} aria-hidden="true" className={styles.filterIcon} />
+          <input
+            type="text"
+            className={styles.filterInput}
+            value={filter}
+            placeholder={t('routing.list.filter')}
+            aria-label={t('routing.list.filter')}
+            onChange={(event) => search(event.target.value)}
+          />
+        </div>
         {rules.error ? (
           <ErrorState error={rules.error} onRetry={() => void rules.refetch()} />
         ) : (
@@ -200,7 +200,7 @@ export default function RoutingRulesPage() {
                         <ModeLabel mode={rule.mode} />
                       </td>
                       <td className={styles.countCell}>{rule.assignedRepositoryCount}</td>
-                      <td>
+                      <td className={styles.editCell}>
                         <Tooltip content={t('routing.list.edit', { name: rule.name })}>
                           <Link
                             className={styles.edit}

@@ -193,8 +193,7 @@ function RuleForm({
     <Button
       type="button"
       size="3"
-      variant="soft"
-      color="gray"
+      color="red"
       className={`${settingsButton} ${styles.deleteButton}`}
       disabled={assignedCount > 0}
       onClick={() => setDeleting(true)}
@@ -241,18 +240,20 @@ function RuleForm({
             value={values.name}
             onChange={(value) => set('name', value)}
             error={problems.name}
-            autoFocus={creating}
+            disabled={!creating}
             maxLength={200}
           />
-          <TextAreaField
-            label={t('routing.form.description')}
-            hint={t('routing.form.descriptionHint')}
-            placeholder={t('routing.form.descriptionPlaceholder')}
-            value={values.description}
-            onChange={(value) => set('description', value)}
-            error={problems.description}
-            rows={3}
-          />
+          <div className={styles.description}>
+            <TextAreaField
+              label={t('routing.form.description')}
+              hint={t('routing.form.descriptionHint')}
+              placeholder={t('routing.form.descriptionPlaceholder')}
+              value={values.description}
+              onChange={(value) => set('description', value)}
+              error={problems.description}
+              rows={3}
+            />
+          </div>
           <SelectField
             label={t('routing.form.mode')}
             hint={hint}

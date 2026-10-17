@@ -19,7 +19,8 @@
 
 .outlineButton:global(.rt-variant-outline) {
   color: var(--gray-12);
-  box-shadow: inset 0 0 0 1px var(--gray-a7);
+  border: 1px solid var(--gray-6);
+  box-shadow: none;
 }
 
 .stack {
@@ -30,17 +31,47 @@
 }
 
 .filter {
+  position: relative;
   width: 454px;
   max-width: 100%;
 }
 
-.filter :global(.rt-TextFieldInput) {
+.filterIcon {
+  position: absolute;
+  top: 9px;
+  left: 12px;
+  color: var(--gray-9);
+  pointer-events: none;
+}
+
+.filterInput {
+  box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  margin: 0;
+  padding: 8px 12px 8px 40px;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background: var(--gray-2);
+  color: var(--gray-12);
+  font-family: Arial, sans-serif;
   font-size: 14px;
+  outline: none;
+  appearance: none;
+}
+
+.filterInput::placeholder {
+  color: var(--gray-9);
+}
+
+.filterInput:focus {
+  border-color: var(--accent-8);
+  box-shadow: 0 0 0 1px var(--accent-8);
 }
 
 .listCard {
   border: 1px solid var(--gray-a5);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--gray-a2);
   min-width: 0;
 }
@@ -62,16 +93,16 @@
   font-weight: 500;
   color: var(--gray-11);
   background: var(--gray-2);
-  border-bottom: 1px solid var(--gray-a5);
+  border-bottom: 1px solid var(--gray-6);
   white-space: nowrap;
 }
 
 .table th:first-child {
-  border-top-left-radius: 7px;
+  border-top-left-radius: 5px;
 }
 
 .table th:last-child {
-  border-top-right-radius: 7px;
+  border-top-right-radius: 5px;
 }
 
 .table td {
@@ -79,6 +110,10 @@
   border-bottom: 1px solid var(--gray-a5);
   vertical-align: middle;
   overflow-wrap: anywhere;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .row {
@@ -97,7 +132,9 @@
 
 .sort {
   all: unset;
-  display: inline-flex;
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
   align-items: center;
   gap: 4px;
   cursor: pointer;
@@ -114,7 +151,7 @@
 }
 
 .nameCell {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--gray-12);
 }
 
@@ -122,22 +159,27 @@
   color: var(--gray-11);
 }
 
-.modeColumn {
-  width: 132px;
+.table .modeColumn {
+  width: 100px;
 }
 
-.countColumn {
-  width: 132px;
+.table .countColumn {
+  width: 120px;
   text-align: center;
 }
 
 .table td.countCell {
   text-align: center;
-  padding-right: 16px;
+  color: var(--gray-11);
 }
 
-.editColumn {
-  width: 48px;
+.table .editColumn {
+  width: 40px;
+}
+
+.table td.editCell {
+  padding: 12px 16px;
+  text-align: right;
 }
 
 .mode {
@@ -246,10 +288,14 @@
   min-height: 40px;
 }
 
+.matchersHead + * {
+  margin-top: 4px;
+}
+
 .matchersLabel {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .matchersTitle {
@@ -260,7 +306,7 @@
 }
 
 .required {
-  color: var(--red-9);
+  color: var(--red-11);
   margin-left: 2px;
 }
 
@@ -275,6 +321,7 @@
   margin: 0;
   height: 40px;
   padding: 0 16px;
+  gap: 8px;
   font-size: 14px;
   font-weight: 500;
   color: var(--gray-11);
@@ -322,7 +369,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border: 1px solid var(--gray-a4);
+  border: 1px solid var(--gray-5);
   border-radius: 8px;
   background: var(--gray-2);
 }
@@ -338,32 +385,59 @@
 
 .matcherNumber {
   flex: 0 0 auto;
-  width: 16px;
+  width: 20px;
   text-align: center;
   font-family: var(--code-font-family);
   font-size: 12px;
+  line-height: 16px;
   color: var(--gray-11);
+}
+
+.matcherInput,
+.testInput {
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--gray-6);
+  border-radius: 6px;
+  background: var(--gray-3);
+  color: var(--gray-12);
+  font-family: var(--code-font-family);
+  font-size: 14px;
+  outline: none;
+  appearance: none;
 }
 
 .matcherInput {
   flex: 1 1 auto;
-  min-width: 0;
+  height: 36px;
+  padding: 8px 12px;
+}
+
+.matcherInput::placeholder,
+.testInput::placeholder {
+  color: var(--gray-9);
+}
+
+.matcherInput:focus,
+.testInput:focus {
+  border-color: var(--accent-8);
+  box-shadow: 0 0 0 1px var(--accent-8);
+}
+
+.matcherInput[aria-invalid="true"] {
+  border-color: var(--red-8);
+}
+
+.matcherInput:disabled {
+  opacity: 0.6;
 }
 
 .badgeSlot {
   display: flex;
   flex: 0 0 auto;
   justify-content: flex-end;
-  min-width: 88px;
-}
-
-.matcherInput :global(.rt-TextFieldInput) {
-  font-family: var(--code-font-family);
-  font-size: 14px;
-}
-
-.matcherInput:global(.rt-TextFieldRoot) {
-  height: 36px;
+  width: 80px;
 }
 
 .badge {
@@ -394,10 +468,29 @@
   background: var(--red-a3);
 }
 
-.remove:global(.rt-IconButton) {
+.remove {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
   flex: 0 0 auto;
-  margin: 0 8px 0 16px;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 6px;
   color: var(--gray-11);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--gray-a3);
+  color: var(--gray-12);
+}
+
+.remove:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
 }
 
 .problem {
@@ -417,9 +510,9 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 8px;
+  margin: 8px 0 16px;
   padding: 16px;
-  border: 1px solid var(--gray-a4);
+  border: 1px solid var(--gray-5);
   border-radius: 8px;
   background: var(--gray-2);
 }
@@ -433,19 +526,44 @@
 }
 
 .boxText {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   font-size: 12px;
   line-height: 16px;
   color: var(--gray-11);
 }
 
-.testInput:global(.rt-TextFieldRoot) {
-  height: 40px;
+.testField {
+  position: relative;
 }
 
-.testInput :global(.rt-TextFieldInput) {
-  font-family: var(--code-font-family);
+.testIcon {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  color: var(--gray-9);
+  pointer-events: none;
+}
+
+.testInput {
+  width: 100%;
+  height: 40px;
+  padding: 10px 12px 10px 40px;
+}
+
+.description :global(.rt-TextAreaRoot) {
+  min-height: 80px;
+  height: 80px;
+  padding: 0;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--gray-6);
+}
+
+.description :global(.rt-TextAreaInput) {
+  height: 100%;
+  min-height: 0;
+  padding: 8px 12px;
   font-size: 14px;
+  line-height: normal;
 }
 
 .result {
@@ -490,7 +608,7 @@
 }
 
 .summary {
-  margin-top: 16px;
+  margin: 0 0 16px;
   padding: 16px;
   border: 1px solid var(--accent-6);
   border-radius: 8px;
@@ -523,12 +641,12 @@
 .or {
   display: inline-block;
   margin-right: 8px;
-  padding: 0 6px;
+  padding: 2px 6px;
   border-radius: 4px;
-  background: var(--gray-a4);
+  background: var(--gray-4);
   font-size: 10px;
-  line-height: 18px;
-  font-weight: 500;
+  line-height: 15px;
+  font-weight: 600;
   color: var(--gray-11);
   vertical-align: middle;
 }
@@ -595,10 +713,16 @@
   border-top: 1px solid var(--gray-a5);
 }
 
-.deleteButton:global(.rt-variant-soft) {
+.deleteButton:global(.rt-Button) {
   height: 40px;
   padding: 0 16px;
   gap: 8px;
+}
+
+.deleteButton:global(.rt-Button):disabled {
+  background: var(--red-9);
+  color: #fff;
+  opacity: 0.5;
 }
 
 .dangerBox {
@@ -618,8 +742,20 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
+}
+
+.previewField {
+  position: relative;
+}
+
+.previewIcon {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  color: var(--gray-9);
+  pointer-events: none;
 }
 
 .previewFilter {
@@ -636,13 +772,33 @@
   color: var(--gray-12);
 }
 
-.previewInput:global(.rt-TextFieldRoot) {
-  height: 36px;
+.previewFilter .previewLabel {
+  line-height: 21px;
 }
 
-.previewInput :global(.rt-TextFieldInput) {
+.previewInput {
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  margin: 0;
+  padding: 8px 12px 8px 40px;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background: var(--gray-2);
+  color: var(--gray-12);
   font-family: var(--code-font-family);
   font-size: 14px;
+  outline: none;
+  appearance: none;
+}
+
+.previewInput::placeholder {
+  color: var(--gray-9);
+}
+
+.previewInput:focus {
+  border-color: var(--accent-8);
+  box-shadow: 0 0 0 1px var(--accent-8);
 }
 
 .previewFilter :global(.rt-SelectTrigger) {
@@ -657,6 +813,16 @@
   font-weight: 500;
 }
 
+.testButton:global(.rt-Button):disabled {
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+  opacity: 0.5;
+}
+
+.how .helpTitle {
+  margin-bottom: 8px;
+}
+
 .how {
   padding: 16px;
   border-radius: 4px;
@@ -665,11 +831,12 @@
 
 .exampleCode {
   padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--gray-a4);
+  border-radius: 3px;
+  background: var(--gray-4);
   font-family: var(--code-font-family);
   font-size: 12px;
-  color: var(--gray-12);
+  line-height: 18px;
+  color: var(--gray-11);
 }
 
 .counts {

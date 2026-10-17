@@ -1,19 +1,23 @@
+import { Button, Dialog, Flex, IconButton, Select, Spinner } from '@radix-ui/themes';
 import {
-  Button,
-  Dialog,
-  Flex,
-  IconButton,
-  TextField as RadixTextField,
-  Select,
-  Spinner,
-} from '@radix-ui/themes';
-import { Ban, Check, ChevronDown, ChevronRight, Database, Info, ListTree, Search, X } from 'lucide-react';
+  Ban,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Database,
+  ExternalLink,
+  Info,
+  ListTree,
+  Search,
+  X,
+} from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { ApiError, api, path, useApi, withQuery } from '../../api';
 import { useT } from '../../i18n';
 import { describeError, Page } from '../../ui';
 import {
   countNodes,
+  DOCS,
   type Filter,
   LIST_PAGE,
   normalizePath,
@@ -233,18 +237,18 @@ export default function PreviewPage() {
             <label htmlFor="routing-preview-path" className={styles.previewLabel}>
               {t('routing.preview.path')}
             </label>
-            <RadixTextField.Root
-              id="routing-preview-path"
-              className={styles.previewInput}
-              value={input}
-              placeholder={t('routing.preview.pathPlaceholder')}
-              spellCheck={false}
-              onChange={(event) => setInput(event.target.value)}
-            >
-              <RadixTextField.Slot>
-                <Search size={16} aria-hidden="true" />
-              </RadixTextField.Slot>
-            </RadixTextField.Root>
+            <div className={styles.previewField}>
+              <Search size={16} aria-hidden="true" className={styles.previewIcon} />
+              <input
+                id="routing-preview-path"
+                type="text"
+                className={styles.previewInput}
+                value={input}
+                placeholder={t('routing.preview.pathPlaceholder')}
+                spellCheck={false}
+                onChange={(event) => setInput(event.target.value)}
+              />
+            </div>
           </div>
           <div className={styles.previewFilter}>
             <span id="routing-preview-filter" className={styles.previewLabel}>
@@ -289,7 +293,11 @@ export default function PreviewPage() {
                     {EXAMPLE}
                   </code>
                 ),
-              })}
+              })}{' '}
+              <a className={styles.helpLink} href={DOCS} target="_blank" rel="noreferrer">
+                {t('routing.form.learnMore')}
+                <ExternalLink size={12} aria-hidden="true" />
+              </a>
             </p>
           </section>
         ) : (
