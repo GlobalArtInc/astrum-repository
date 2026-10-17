@@ -511,3 +511,17 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   upload spec with `directory`, search keys `yum.name|version|release|architecture`, the visible task
   `repository.yum.rebuild.metadata`, cleanup pre-releases (`~` in the version or a release starting `0.`).
   Real clients: dnf 4.24 (hosted, depth 2 with `repo_gpgcheck`, proxy, group), createrepo_c output compared.
+- RubyGems (M4 wave 2, `crates/astrum-format-rubygems`, ported from our Java module): hosted repositories take
+  `gem push` (`POST /api/v1/gems`) and `gem yank` (`DELETE /api/v1/gems/yank`) and answer the compact index
+  (`/versions`, `/names`, `/info/<gem>`, ETag = MD5 as Bundler expects), the legacy Marshal indexes
+  (`specs`, `latest_specs`, `prerelease_specs.4.8.gz`), quick gemspecs and the dependency API, all built on
+  request from the stored gems (the Java module stores them as assets; building them keeps deletes through the
+  REST API, browse or cleanup visible at once); proxies cache indexes as metadata and gems/gemspecs as content
+  (cached gems get their specification and component); groups merge `/versions` like the Java module (names in
+  one member pass through, shared names are merged from `/info`) and keep the merged `/versions` and specs as
+  assets of the group under a signature of the members' files. `GET|POST|DELETE /api/v1/api_key` gives each
+  user one kept key `RubyGemsApiKey.<secret>` (table `api_key`, sealed) while the realm is active; Basic
+  credentials work as a key too. Upload spec `asset`, search keys `rubygems.platform|summary|description`,
+  browse by gem name and version with the index files at the root, cleanup pre-releases (a letter in the
+  version). Real clients: gem 3.5.22 (signin, push, yank, install from hosted, proxy, group and a proxy of the
+  Java server) and Bundler 4.0.18 (install through a group, as a mirror of rubygems.org, incremental update).

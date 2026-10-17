@@ -231,6 +231,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-pypi",
  "astrum-format-raw",
+ "astrum-format-rubygems",
  "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-format-yum",
@@ -557,6 +558,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-rubygems"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "astrum-security",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "hex",
+ "md-5 0.10.6",
+ "regex",
+ "sea-orm",
+ "serde_json",
+ "serde_norway",
+ "tar",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-swift"
 version = "3.0.0-dev"
 dependencies = [
@@ -805,6 +834,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-pypi",
  "astrum-format-raw",
+ "astrum-format-rubygems",
  "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-format-yum",

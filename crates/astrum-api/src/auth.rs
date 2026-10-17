@@ -149,6 +149,16 @@ async fn resolve(
                 String::new(),
                 security.authenticate_token(None, &token).await,
             ),
+            Credentials::FormatToken(token)
+                if looks_like_format_token(&token) == Some(api_keys::RUBYGEMS) =>
+            {
+                (
+                    String::new(),
+                    security
+                        .authenticate_api_key(api_keys::RUBYGEMS, &token)
+                        .await,
+                )
+            }
             Credentials::FormatToken(token) => (
                 String::new(),
                 security.authenticate_format_token(&token).await,
@@ -250,6 +260,9 @@ fn credentials(headers: &HeaderMap) -> Result<Option<Credentials>, ApiError> {
         return Err(ApiError::Unauthorized);
     };
     let Some((scheme, encoded)) = value.trim().split_once(' ') else {
+        if looks_like_format_token(value.trim()).is_some() {
+            return Ok(Some(Credentials::FormatToken(value.trim().to_owned())));
+        }
         return Err(ApiError::Unauthorized);
     };
     if scheme.eq_ignore_ascii_case("bearer") {

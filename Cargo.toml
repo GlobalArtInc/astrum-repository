@@ -25,6 +25,7 @@ astrum-format-swift = { path = "crates/astrum-format-swift" }
 astrum-format-terraform = { path = "crates/astrum-format-terraform" }
 astrum-mail = { path = "crates/astrum-mail" }
 astrum-outbound = { path = "crates/astrum-outbound" }
+astrum-format-rubygems = { path = "crates/astrum-format-rubygems" }
 astrum-format-yum = { path = "crates/astrum-format-yum" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-logging = { path = "crates/astrum-logging" }

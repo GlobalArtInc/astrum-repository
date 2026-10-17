@@ -12,6 +12,7 @@ pub struct Serve {
     pub disposition: Option<&'static str>,
     pub content_type: Option<String>,
     pub count_download: bool,
+    pub etag: Option<String>,
 }
 
 impl Serve {
@@ -24,6 +25,11 @@ impl Serve {
 
     pub fn disposition(mut self, disposition: &'static str) -> Self {
         self.disposition = Some(disposition);
+        self
+    }
+
+    pub fn etag(mut self, etag: impl Into<String>) -> Self {
+        self.etag = Some(etag.into());
         self
     }
 }
@@ -124,7 +130,10 @@ pub async fn serve(
     options: Serve,
 ) -> Result<Response, ContentError> {
     let size = asset.size.max(0) as u64;
-    let etag = format!("\"{}\"", asset.sha1);
+    let etag = format!(
+        "\"{}\"",
+        options.etag.as_deref().unwrap_or(asset.sha1.as_str())
+    );
     let last_modified =
         truncate_to_second(asset.blob_updated_at.with_timezone(&chrono::Utc).into());
     let mut builder = Response::builder()

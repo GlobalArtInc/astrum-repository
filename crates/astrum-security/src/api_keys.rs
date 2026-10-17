@@ -1,7 +1,7 @@
 use astrum_db::entity::api_key;
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use sea_orm::sea_query::OnConflict;
-use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::secrets::SecretBox;
@@ -11,6 +11,7 @@ use crate::{AuthError, Error, Security};
 
 pub const NUGET: &str = "NuGetApiKey";
 pub const NUGET_HEADER: &str = "x-nuget-apikey";
+pub const RUBYGEMS: &str = "RubyGemsApiKey";
 const TOUCH_EVERY: Duration = Duration::seconds(60);
 const MAX_LENGTH: usize = 256;
 
@@ -33,6 +34,68 @@ pub fn looks_like_api_key(value: &str) -> bool {
             8 | 13 | 18 | 23 => c == '-',
             _ => c.is_ascii_hexdigit(),
         })
+}
+
+pub async fn kept_api_key(
+    db: &DatabaseConnection,
+    secrets: &SecretBox,
+    realm: &str,
+    user_id: &str,
+    fresh: impl FnOnce() -> String,
+) -> Result<ApiKey, Error> {
+    if let Some(row) = find(realm, user_id).one(db).await? {
+        return Ok(ApiKey {
+            key: secrets.open(&row.sealed_key)?,
+            created_at: row.created_at,
+            created: false,
+        });
+    }
+    let fresh = fresh();
+    let now = Utc::now().fixed_offset();
+    let inserted = api_key::Entity::insert(api_key::ActiveModel {
+        realm: ActiveValue::Set(realm.to_owned()),
+        user_id: ActiveValue::Set(user_id.to_owned()),
+        key_hash: ActiveValue::Set(hash(&fresh)),
+        sealed_key: ActiveValue::Set(secrets.seal(&fresh)),
+        created_at: ActiveValue::Set(now),
+        last_used_at: ActiveValue::Set(None),
+    })
+    .on_conflict(
+        OnConflict::columns([api_key::Column::Realm, api_key::Column::UserId])
+            .do_nothing()
+            .to_owned(),
+    )
+    .exec_without_returning(db)
+    .await?;
+    if inserted == 1 {
+        return Ok(ApiKey {
+            key: fresh,
+            created_at: now,
+            created: true,
+        });
+    }
+    let row = find(realm, user_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| Error::Query(sea_orm::DbErr::RecordNotFound("api key".to_owned())))?;
+    Ok(ApiKey {
+        key: secrets.open(&row.sealed_key)?,
+        created_at: row.created_at,
+        created: false,
+    })
+}
+
+pub async fn delete_kept_api_key(
+    db: &DatabaseConnection,
+    realm: &str,
+    user_id: &str,
+) -> Result<bool, Error> {
+    let deleted = api_key::Entity::delete_many()
+        .filter(api_key::Column::Realm.eq(realm))
+        .filter(api_key::Column::UserId.eq(user_id))
+        .exec(db)
+        .await?;
+    Ok(deleted.rows_affected > 0)
 }
 
 fn find(realm: &str, user_id: &str) -> sea_orm::Select<api_key::Entity> {
@@ -62,55 +125,14 @@ impl Security {
         realm: &str,
         user_id: &str,
     ) -> Result<ApiKey, Error> {
-        if let Some(row) = find(realm, user_id).one(&self.db).await? {
-            return Ok(ApiKey {
-                key: secrets.open(&row.sealed_key)?,
-                created_at: row.created_at,
-                created: false,
-            });
-        }
-        let fresh = Uuid::new_v4().to_string();
-        let now = Utc::now().fixed_offset();
-        let inserted = api_key::Entity::insert(api_key::ActiveModel {
-            realm: ActiveValue::Set(realm.to_owned()),
-            user_id: ActiveValue::Set(user_id.to_owned()),
-            key_hash: ActiveValue::Set(hash(&fresh)),
-            sealed_key: ActiveValue::Set(secrets.seal(&fresh)),
-            created_at: ActiveValue::Set(now),
-            last_used_at: ActiveValue::Set(None),
+        kept_api_key(&self.db, secrets, realm, user_id, || {
+            Uuid::new_v4().to_string()
         })
-        .on_conflict(
-            OnConflict::columns([api_key::Column::Realm, api_key::Column::UserId])
-                .do_nothing()
-                .to_owned(),
-        )
-        .exec_without_returning(&self.db)
-        .await?;
-        if inserted == 1 {
-            return Ok(ApiKey {
-                key: fresh,
-                created_at: now,
-                created: true,
-            });
-        }
-        let row = find(realm, user_id)
-            .one(&self.db)
-            .await?
-            .ok_or_else(|| Error::Query(sea_orm::DbErr::RecordNotFound("api key".to_owned())))?;
-        Ok(ApiKey {
-            key: secrets.open(&row.sealed_key)?,
-            created_at: row.created_at,
-            created: false,
-        })
+        .await
     }
 
     pub async fn delete_api_key(&self, realm: &str, user_id: &str) -> Result<bool, Error> {
-        let deleted = api_key::Entity::delete_many()
-            .filter(api_key::Column::Realm.eq(realm))
-            .filter(api_key::Column::UserId.eq(user_id))
-            .exec(&self.db)
-            .await?;
-        Ok(deleted.rows_affected > 0)
+        delete_kept_api_key(&self.db, realm, user_id).await
     }
 
     pub async fn delete_api_keys_of(&self, user_id: &str) -> Result<u64, Error> {

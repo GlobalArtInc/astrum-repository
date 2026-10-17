@@ -48,6 +48,7 @@ astrum-format-pypi.workspace = true
 astrum-format-raw.workspace = true
 astrum-format-swift.workspace = true
 astrum-format-terraform.workspace = true
+astrum-format-rubygems.workspace = true
 astrum-format-yum.workspace = true
 astrum-testkit.workspace = true
 hex.workspace = true
