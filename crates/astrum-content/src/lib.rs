@@ -44,6 +44,7 @@ struct Inner {
     db: DatabaseConnection,
     blob_stores: Arc<BlobStores>,
     secrets: SecretBox,
+    outbound: astrum_outbound::Outbound,
     formats: RwLock<HashMap<&'static str, Arc<dyn Format>>>,
     proxy: proxy::ProxyState,
     routing: routing::RoutingCache,
@@ -60,6 +61,7 @@ impl Content {
     pub fn new(db: DatabaseConnection, blob_stores: Arc<BlobStores>, secrets: SecretBox) -> Self {
         Self {
             inner: Arc::new(Inner {
+                outbound: astrum_outbound::Outbound::new(db.clone(), secrets.clone()),
                 db,
                 blob_stores,
                 secrets,
@@ -81,6 +83,10 @@ impl Content {
 
     pub fn secrets(&self) -> &SecretBox {
         &self.inner.secrets
+    }
+
+    pub fn outbound(&self) -> &astrum_outbound::Outbound {
+        &self.inner.outbound
     }
 
     pub fn register(&self, format: Arc<dyn Format>) {

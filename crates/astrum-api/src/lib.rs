@@ -113,6 +113,10 @@ impl AppState {
         &self.inner.content
     }
 
+    pub fn mailer(&self) -> astrum_mail::Mailer {
+        astrum_mail::Mailer::new(self.content().outbound().clone())
+    }
+
     pub fn tasks(&self) -> &Tasks {
         &self.inner.tasks
     }
@@ -181,6 +185,8 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
         .merge(routes::support::routes())
         .merge(routes::capabilities::routes())
         .merge(routes::routing_rules::routes())
+        .merge(routes::outbound::routes())
+        .merge(routes::email::routes())
         .fallback(not_found)
         .layer(middleware::from_fn_with_state(
             state.clone(),

@@ -234,7 +234,9 @@ dependencies = [
  "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-logging",
+ "astrum-mail",
  "astrum-notify",
+ "astrum-outbound",
  "astrum-repo",
  "astrum-security",
  "astrum-tasks",
@@ -263,6 +265,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tokio-rustls",
  "tokio-util",
  "tower",
  "tracing",
@@ -306,6 +309,7 @@ dependencies = [
  "anyhow",
  "astrum-blob",
  "astrum-db",
+ "astrum-outbound",
  "astrum-repo",
  "astrum-security",
  "astrum-testkit",
@@ -624,6 +628,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-mail"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-db",
+ "astrum-outbound",
+ "astrum-security",
+ "astrum-testkit",
+ "base64 0.22.1",
+ "chrono",
+ "rustls",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "astrum-notify"
 version = "3.0.0-dev"
 dependencies = [
@@ -645,6 +670,32 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "astrum-outbound"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-db",
+ "astrum-security",
+ "astrum-testkit",
+ "base64 0.22.1",
+ "chrono",
+ "hex",
+ "rcgen",
+ "reqwest",
+ "rustls",
+ "rustls-native-certs",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha1 0.10.7",
+ "thiserror",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+ "url",
+ "x509-parser",
 ]
 
 [[package]]

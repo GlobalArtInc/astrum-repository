@@ -23,6 +23,8 @@ astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
 astrum-format-swift = { path = "crates/astrum-format-swift" }
 astrum-format-terraform = { path = "crates/astrum-format-terraform" }
+astrum-mail = { path = "crates/astrum-mail" }
+astrum-outbound = { path = "crates/astrum-outbound" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-logging = { path = "crates/astrum-logging" }
 astrum-notify = { path = "crates/astrum-notify" }
@@ -94,6 +96,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 url = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
+x509-parser = "0.18"
 
 [profile.dev]
 debug = "line-tables-only"
