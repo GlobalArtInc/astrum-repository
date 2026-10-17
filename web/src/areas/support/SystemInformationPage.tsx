@@ -38,6 +38,7 @@ export default function SystemInformationPage() {
   return (
     <Page
       gutter="large"
+      className={`${styles.wide} ${styles.sysinfo}`}
       title={t('support.sysinfo.title')}
       description={t('support.sysinfo.intro')}
       breadcrumbs={[
@@ -162,7 +163,7 @@ export default function SystemInformationPage() {
             })}
           </>
         )}
-        <HelpCard title={t('support.sysinfo.helpTitle')} link={DOCS} linkLabel={t('support.common.docs')}>
+        <HelpCard title={t('support.sysinfo.helpTitle')} link={DOCS} linkLabel={t('support.common.docsMore')}>
           {t('support.sysinfo.helpText')}
         </HelpCard>
       </div>

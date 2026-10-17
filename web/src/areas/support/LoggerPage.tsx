@@ -78,6 +78,7 @@ export default function LoggerPage() {
   return (
     <Page
       gutter="small"
+      className={styles.ruled}
       title={title}
       description={creating ? undefined : t('support.logger.editIntro')}
       breadcrumbs={[
@@ -89,75 +90,83 @@ export default function LoggerPage() {
       {logger.error ? (
         <ErrorState error={logger.error} onRetry={() => void logger.refetch()} />
       ) : (
-        <EditForm
-          id="logger-form"
-          onSubmit={submit}
-          bar={
-            <EditBar
-              start={
-                !creating &&
-                canUpdate &&
-                logger.data?.override && (
-                  <Button type="button" size="3" color="red" onClick={() => setDeleting(true)}>
-                    <Trash2 size={16} aria-hidden="true" />
-                    {t('support.logger.delete')}
-                  </Button>
-                )
-              }
-              end={
-                <>
-                  <Button type="button" variant="outline" onClick={() => navigate(LOGGING_PAGE)}>
-                    {t('support.logger.cancel')}
-                  </Button>
-                  {canUpdate && (
-                    <Button type="submit" disabled={!dirty} loading={saving}>
-                      {creating ? t('support.logger.createTitle') : t('support.logger.save')}
+        <div className={styles.loggerForm}>
+          <EditForm
+            id="logger-form"
+            onSubmit={submit}
+            bar={
+              <EditBar
+                start={
+                  !creating &&
+                  canUpdate &&
+                  logger.data?.override && (
+                    <Button
+                      type="button"
+                      size="3"
+                      color="red"
+                      className={styles.large}
+                      onClick={() => setDeleting(true)}
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                      {t('support.logger.delete')}
                     </Button>
-                  )}
-                </>
-              }
-            />
-          }
-        >
-          <FormSection>
-            <FormError message={failure === null ? null : describeError(t, failure)} />
-            <Input
-              label={t('support.logger.name')}
-              name="name"
-              required
-              help={t('support.logger.nameHelp')}
-              placeholder={t('support.logger.namePlaceholder')}
-              value={name}
-              disabled={!creating}
-              autoFocus={creating}
-              error={nameError}
-              onChange={(value) => {
-                setName(value);
-                setTouched(true);
-              }}
-            />
-            <div className={styles.levelField}>
-              <Choice
-                label={t('support.logger.level')}
-                name="level"
-                help={t('support.logger.levelHelp')}
-                value={level}
-                disabled={!canUpdate}
-                options={CHOICES.map((option) => ({ value: option, label: option }))}
-                onChange={(value) => setLevel(value as Level)}
-              />
-              <p className={styles.fieldNote}>
-                {t('support.logger.overrides')}
-                {!creating && logger.data?.override && (
+                  )
+                }
+                end={
                   <>
-                    <br />
-                    {t('support.logger.deleteToRevert')}
+                    <Button type="button" variant="outline" onClick={() => navigate(LOGGING_PAGE)}>
+                      {t('support.logger.cancel')}
+                    </Button>
+                    {canUpdate && (
+                      <Button type="submit" disabled={!dirty} loading={saving}>
+                        {creating ? t('support.logger.createTitle') : t('support.logger.save')}
+                      </Button>
+                    )}
                   </>
-                )}
-              </p>
-            </div>
-          </FormSection>
-        </EditForm>
+                }
+              />
+            }
+          >
+            <FormSection>
+              <FormError message={failure === null ? null : describeError(t, failure)} />
+              <Input
+                label={t('support.logger.name')}
+                name="name"
+                required
+                help={t('support.logger.nameHelp')}
+                placeholder={t('support.logger.namePlaceholder')}
+                value={name}
+                disabled={!creating}
+                autoFocus={creating}
+                error={nameError}
+                onChange={(value) => {
+                  setName(value);
+                  setTouched(true);
+                }}
+              />
+              <div className={styles.levelField}>
+                <Choice
+                  label={t('support.logger.level')}
+                  name="level"
+                  help={t('support.logger.levelHelp')}
+                  value={level}
+                  disabled={!canUpdate}
+                  options={CHOICES.map((option) => ({ value: option, label: option }))}
+                  onChange={(value) => setLevel(value as Level)}
+                />
+                <p className={styles.fieldNote}>
+                  {t('support.logger.overrides')}
+                  {!creating && logger.data?.override && (
+                    <>
+                      <br />
+                      {t('support.logger.deleteToRevert')}
+                    </>
+                  )}
+                </p>
+              </div>
+            </FormSection>
+          </EditForm>
+        </div>
       )}
       <ConfirmDialog
         open={deleting}

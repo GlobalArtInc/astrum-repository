@@ -59,7 +59,7 @@ describe('the logs', () => {
     });
     const { router } = page('/admin/support/logs');
     expect(await screen.findByRole('button', { name: 'Open astrum-a.log' })).toBeInTheDocument();
-    expect(screen.getByText('About logs')).toBeInTheDocument();
+    expect(screen.getByText('About Logs')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('textbox', { name: 'Filter by file name' }), '.1');
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Open astrum-a.log' })).toBeNull());
     await userEvent.click(screen.getByRole('button', { name: 'Open astrum-a.log.1' }));

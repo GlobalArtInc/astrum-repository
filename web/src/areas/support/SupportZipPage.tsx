@@ -94,7 +94,7 @@ export default function SupportZipPage() {
               <dd className={styles.mono}>{created.file}</dd>
             </div>
           </dl>
-          <Button asChild size="3" className={styles.zipDownload}>
+          <Button asChild size="3" className={`${styles.large} ${styles.zipDownload}`}>
             <a href={`${DOWNLOAD}${path`/${created.name}`}`} download={created.name}>
               <Download size={16} aria-hidden="true" />
               {t('support.common.download')}
@@ -154,7 +154,7 @@ export default function SupportZipPage() {
               message={failure === null ? null : `${t('support.zip.failed')}: ${describeError(t, failure)}`}
             />
             <div>
-              <Button type="submit" size="3" loading={creating}>
+              <Button type="submit" size="3" className={styles.large} loading={creating}>
                 {creating ? t('support.zip.creating') : t('support.zip.create')}
               </Button>
             </div>

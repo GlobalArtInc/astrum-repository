@@ -63,6 +63,7 @@ export default function LogsPage() {
   return (
     <Page
       gutter="small"
+      className={styles.ruled}
       title={t('support.logs.title')}
       description={t('support.logs.intro')}
       breadcrumbs={[

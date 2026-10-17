@@ -102,6 +102,7 @@ export default function LoggingPage() {
   return (
     <Page
       gutter="small"
+      className={styles.ruled}
       title={t('support.logging.title')}
       description={t('support.logging.intro')}
       breadcrumbs={[
@@ -111,11 +112,17 @@ export default function LoggingPage() {
       actions={
         canUpdate && (
           <div className={styles.actions}>
-            <Button size="3" variant="outline" color="gray" onClick={() => setResetting(true)}>
+            <Button
+              size="3"
+              variant="outline"
+              color="gray"
+              className={styles.large}
+              onClick={() => setResetting(true)}
+            >
               <RotateCcw size={16} aria-hidden="true" />
               {t('support.logging.reset')}
             </Button>
-            <Button asChild size="3">
+            <Button asChild size="3" className={styles.large}>
               <Link to={`${LOGGING_PAGE}/create`}>
                 <Plus size={16} aria-hidden="true" />
                 {t('support.logging.create')}

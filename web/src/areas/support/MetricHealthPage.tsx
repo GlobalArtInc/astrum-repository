@@ -44,6 +44,7 @@ export default function MetricHealthPage() {
   return (
     <Page
       gutter="large"
+      className={`${styles.wide} ${styles.healthPage}`}
       title={t('support.health.title')}
       description={t('support.health.intro')}
       breadcrumbs={crumbs}
@@ -168,7 +169,7 @@ export default function MetricHealthPage() {
             </section>
           </div>
         )}
-        <HelpCard title={t('support.health.helpTitle')} link={DOCS} linkLabel={t('support.common.docs')}>
+        <HelpCard title={t('support.health.helpTitle')} link={DOCS} linkLabel={t('support.common.docsMore')}>
           {t('support.health.helpText')}
         </HelpCard>
       </div>

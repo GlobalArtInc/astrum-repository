@@ -62,6 +62,7 @@ export default function LogViewerPage() {
   return (
     <Page
       gutter="small"
+      className={styles.ruled}
       title={t('support.viewer.title')}
       description={file}
       breadcrumbs={[
@@ -73,7 +74,7 @@ export default function LogViewerPage() {
       <div className={styles.stack}>
         <div className={styles.viewerHeader}>
           <h2 className={styles.viewerTitle}>{t('support.viewer.viewing', { file })}</h2>
-          <Button asChild size="3">
+          <Button asChild size="3" className={styles.large}>
             <a href={source} download={file}>
               <Download size={16} aria-hidden="true" />
               {t('support.common.download')}
@@ -100,7 +101,14 @@ export default function LogViewerPage() {
                 placeholder={t('support.viewer.markPlaceholder')}
                 onChange={(event) => setMark(event.target.value)}
               />
-              <Button type="submit" size="3" variant="outline" color="gray" loading={marking}>
+              <Button
+                type="submit"
+                size="3"
+                variant="outline"
+                color="gray"
+                className={styles.large}
+                loading={marking}
+              >
                 <Stamp size={16} aria-hidden="true" />
                 {t('support.viewer.insert')}
               </Button>
