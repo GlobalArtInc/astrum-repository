@@ -478,3 +478,25 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   heartbeat into `node` (`GET /internal/ui/nodes`). Pages `/admin/system/notifications`,
   `/admin/system/capabilities[/create|/<type>]`, `/admin/system/nodes` match Astrum One; the capability
   list offers only the three types above, and email is a fourth messenger the old page did not have.
+- Outbound (M4 wave 2, 2026-10-17): routing rules (`astrum-repo::routing`, table `routing_rule`; public
+  `/v1/routing-rules` with the Nexus shape, renames move repositories along, a rule in use cannot be deleted;
+  internal `/internal/ui/routing-rules` list/get, `test` (per-matcher, whole-path match) and `preview` tree;
+  proxies and groups, also through docker `/v2/<repo>/...` path routing, answer a blocked path with 403 and
+  the reference text, groups skip blocked members; the API accepts `routingRuleName` on groups, the form offers
+  it only for proxies like the old one). `astrum-outbound`: global HTTP settings (setting `http.client`,
+  `GET/PUT /v1/http`, passwords sealed and masked as `#~ASTRUM~PLACEHOLDER~PASSWORD~#`, used by every proxy
+  client: user agent, timeout, retries, HTTP/HTTPS proxies with Basic auth (NTLM fields stored, not spoken) and
+  non-proxy host globs; proxy hosts pass the SSRF guard, proxied targets are still checked when they resolve),
+  the SSL truststore (table `ssl_certificate`, `GET /v1/security/ssl?host&port&protocolHint` through the SSRF
+  guard with SMTP STARTTLS for 25/587, `GET/POST /v1/security/ssl/truststore` (PEM text), `DELETE .../{id}`,
+  internal `POST /internal/ui/ssl/certificate-details`; a stored certificate is trusted as an authority and,
+  like a Java truststore, as the server's own leaf, names are still checked; used by proxies with
+  `useTrustStore` and by mail). Saving SSRF settings now reaches proxies at once. `astrum-mail`: email settings
+  (setting `email`, `GET/PUT/DELETE /v1/email`, `POST /v1/email/verify` with the address as the body, 400 with
+  `{success:false, reason}` on failure) and an SMTP client of our own (SSL on connect, STARTTLS
+  optional/required, AUTH PLAIN/LOGIN, identity check, truststore); other code sends mail with
+  `state.mailer().send(&astrum_mail::Message { to, subject, text })` (`Mailer::new(outbound)` outside the API;
+  `MailError::Disabled` while email is off). Web areas `routing` and `outbound` (System -> HTTP, Email Server;
+  Security -> SSL Certificates with add, details and a certificate dialog also used by the proxy form),
+  matched to the old pages by measurement; e2e `web/e2e/routing.spec.ts` and `outbound.spec.ts` (local proxy,
+  SMTP sink and HTTPS server).
