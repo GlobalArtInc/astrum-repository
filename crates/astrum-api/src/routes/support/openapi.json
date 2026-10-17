@@ -228,6 +228,68 @@
         ],
         "type": "object"
       },
+      "ApiEmailConfiguration": {
+        "properties": {
+          "astrumTrustStoreEnabled": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "fromAddress": {
+            "example": "astrum@example.org",
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "host": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "port": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "sslOnConnectEnabled": {
+            "type": "boolean"
+          },
+          "sslServerIdentityCheckEnabled": {
+            "type": "boolean"
+          },
+          "startTlsEnabled": {
+            "type": "boolean"
+          },
+          "startTlsRequired": {
+            "type": "boolean"
+          },
+          "subjectPrefix": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fromAddress",
+          "host",
+          "port"
+        ],
+        "type": "object"
+      },
+      "ApiEmailValidation": {
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "ApiPrivilegeApplication": {
         "properties": {
           "actions": {
@@ -2378,6 +2440,81 @@
         ],
         "type": "object"
       },
+      "HttpSettingsApiXO": {
+        "properties": {
+          "httpProxy": {
+            "$ref": "#/components/schemas/HttpSettingsProxyXO"
+          },
+          "httpsProxy": {
+            "$ref": "#/components/schemas/HttpSettingsProxyXO"
+          },
+          "nonProxyHosts": {
+            "example": [
+              "*.example.com",
+              "localhost"
+            ],
+            "items": {
+              "example": "[\"*.example.com\",\"localhost\"]",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "retries": {
+            "example": 2,
+            "format": "int32",
+            "type": "integer"
+          },
+          "timeout": {
+            "example": 20,
+            "format": "int32",
+            "type": "integer"
+          },
+          "userAgent": {
+            "example": "MyCompany/1.0",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "HttpSettingsAuthXO": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "ntlmDomain": {
+            "type": "string"
+          },
+          "ntlmHost": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "HttpSettingsProxyXO": {
+        "properties": {
+          "authInfo": {
+            "$ref": "#/components/schemas/HttpSettingsAuthXO"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "host": {
+            "example": "proxy.example.com",
+            "type": "string"
+          },
+          "port": {
+            "example": "3128",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "HuggingFaceProxyRepositoryApiRequest": {
         "properties": {
           "cleanup": {
@@ -3417,6 +3554,28 @@
             "uniqueItems": true
           },
           "source": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RoutingRuleXO": {
+        "properties": {
+          "matchers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "ALLOW",
+              "BLOCK"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
             "type": "string"
           }
         },
@@ -4906,6 +5065,99 @@
         ]
       }
     },
+    "/v1/email": {
+      "delete": {
+        "operationId": "deleteV1Email",
+        "responses": {
+          "204": {}
+        },
+        "summary": "Delete email",
+        "tags": [
+          "Email"
+        ]
+      },
+      "get": {
+        "operationId": "getV1Email",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmailConfiguration"
+                }
+              }
+            }
+          },
+          "403": {}
+        },
+        "summary": "List email",
+        "tags": [
+          "Email"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1Email",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiEmailConfiguration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "403": {}
+        },
+        "summary": "Update email",
+        "tags": [
+          "Email"
+        ]
+      }
+    },
+    "/v1/email/verify": {
+      "post": {
+        "operationId": "postV1EmailVerify",
+        "requestBody": {
+          "content": {
+            "*/*": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmailValidation"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEmailValidation"
+                }
+              }
+            }
+          },
+          "403": {}
+        },
+        "summary": "Create email verify",
+        "tags": [
+          "Email"
+        ]
+      }
+    },
     "/v1/formats/upload-specs": {
       "get": {
         "operationId": "getV1FormatsUploadSpecs",
@@ -4956,6 +5208,58 @@
         "summary": "List formats upload specs",
         "tags": [
           "Formats"
+        ]
+      }
+    },
+    "/v1/http": {
+      "get": {
+        "operationId": "getV1Http",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpSettingsApiXO"
+                }
+              }
+            }
+          },
+          "401": {},
+          "403": {}
+        },
+        "summary": "List HTTP",
+        "tags": [
+          "HTTP settings"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1Http",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HttpSettingsApiXO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpSettingsApiXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update HTTP",
+        "tags": [
+          "HTTP settings"
         ]
       }
     },
@@ -10145,6 +10449,139 @@
         ]
       }
     },
+    "/v1/routing-rules": {
+      "get": {
+        "operationId": "getV1RoutingRules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RoutingRuleXO"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "403": {}
+        },
+        "summary": "List routing rules",
+        "tags": [
+          "Routing rules"
+        ]
+      },
+      "post": {
+        "operationId": "postV1RoutingRules",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutingRuleXO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "403": {}
+        },
+        "summary": "Create routing rules",
+        "tags": [
+          "Routing rules"
+        ]
+      }
+    },
+    "/v1/routing-rules/{name}": {
+      "delete": {
+        "operationId": "deleteV1RoutingRulesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Delete routing rules",
+        "tags": [
+          "Routing rules"
+        ]
+      },
+      "get": {
+        "operationId": "getV1RoutingRulesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingRuleXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get routing rules",
+        "tags": [
+          "Routing rules"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RoutingRulesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutingRuleXO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Update routing rules",
+        "tags": [
+          "Routing rules"
+        ]
+      }
+    },
     "/v1/search": {
       "get": {
         "operationId": "getV1Search",
@@ -12956,10 +13393,19 @@
       "name": "Content selectors"
     },
     {
+      "name": "Email"
+    },
+    {
       "name": "Formats"
     },
     {
+      "name": "HTTP settings"
+    },
+    {
       "name": "Repository Management"
+    },
+    {
+      "name": "Routing rules"
     },
     {
       "name": "Search"
