@@ -325,6 +325,7 @@
   "repositories.form.unsaved": "Unsaved changes",
   "repositories.form.useTrustStore": "Use the Astrum Repository Truststore",
   "repositories.form.useTrustStoreHint": "Use certificates from the Astrum Repository truststore for connections to external systems",
+  "repositories.form.viewCertificate": "View Certificate",
   "repositories.form.v1EnabledHint": "Let clients use this repository through the V1 API",
   "repositories.edit.tabs.summary": "Summary",
   "repositories.edit.tabs.tasks": "Tasks & Capabilities",

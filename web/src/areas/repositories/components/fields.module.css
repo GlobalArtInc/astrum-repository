@@ -178,3 +178,37 @@
   outline: 2px solid var(--accent-8);
   outline-offset: 2px;
 }
+
+.certificateRow {
+  margin: 8px 0 0 32px;
+}
+
+.certificateButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--gray-6);
+  border-radius: 6px;
+  color: var(--gray-12);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.certificateButton:hover:not(:disabled) {
+  background: var(--gray-a3);
+}
+
+.certificateButton:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+}
+
+.certificateButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
