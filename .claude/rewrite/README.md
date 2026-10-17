@@ -445,4 +445,5 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   `GET /service/rest/swagger.json` (the routed subset of `crates/astrum-api/tests/data/openapi-reference.json`;
   the `openapi` test fails when routes and document differ, `ASTRUM_WRITE_OPENAPI=1` rewrites it). Pages under
   `/admin/support/...` and `/api`, the header bell shows a red dot while a check fails. Per node: logs, marks and
-  support ZIPs live on the replica that served the request.
+  support ZIPs live on the replica that served the request. The new UI loads no user-telemetry script (the old
+  UI's 404 on every page); `e2e/support.spec.ts` fails on any failing request or console error on the main pages.
