@@ -106,7 +106,13 @@ test('the settings hub shows the old sections without SSRF and audit tiles', asy
     /^Metrics and Health/,
     /^Support ZIP/,
   ]);
-  await expect(page.getByRole('region', { name: 'System' }).getByRole('link')).toHaveText([/^Tasks/, /^API/]);
+  await expect(page.getByRole('region', { name: 'System' }).getByRole('link')).toHaveText([
+    /^Tasks/,
+    /^API/,
+    /^Capabilities/,
+    /^Notifications/,
+    /^Nodes/,
+  ]);
   const security = page.getByRole('region', { name: 'Security' });
   await expect(security.getByRole('link')).toHaveText([
     /^Users/,
