@@ -205,6 +205,7 @@ async fn set_ssrf(
         allowed_domains: dedup(domains),
     };
     setting::put(state.db().conn(), SSRF_KEY, &settings).await?;
+    state.content().forget_ssrf_settings();
     state
         .audit(
             &caller,

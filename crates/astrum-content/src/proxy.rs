@@ -76,6 +76,10 @@ impl ProxyState {
             .lock()
             .expect("the block lock is never poisoned")
             .remove(repository);
+        self.forget_ssrf();
+    }
+
+    pub(crate) fn forget_ssrf(&self) {
         *self
             .ssrf
             .lock()
@@ -438,11 +442,26 @@ pub async fn send(
                     ctx.content.proxy_state().failed(ctx.name());
                 }
                 return Err(ContentError::BadGateway(format!(
-                    "the remote did not answer: {error}"
+                    "the remote did not answer: {}",
+                    with_causes(&error)
                 )));
             }
         }
     }
+}
+
+fn with_causes(error: &(dyn std::error::Error + 'static)) -> String {
+    let mut text = error.to_string();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        let cause_text = cause.to_string();
+        if !text.contains(&cause_text) {
+            text.push_str(": ");
+            text.push_str(&cause_text);
+        }
+        source = cause.source();
+    }
+    text
 }
 
 fn max_age(ctx: &Ctx, freshness: Freshness) -> Option<chrono::Duration> {

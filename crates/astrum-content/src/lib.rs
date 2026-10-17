@@ -220,6 +220,10 @@ impl Content {
         self.inner.proxy.forget(name);
     }
 
+    pub fn forget_ssrf_settings(&self) {
+        self.inner.proxy.forget_ssrf();
+    }
+
     pub async fn purge_blobs(&self, blobs: Vec<(String, uuid::Uuid)>) {
         store::delete_blobs(self, blobs).await;
     }

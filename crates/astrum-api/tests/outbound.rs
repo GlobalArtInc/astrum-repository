@@ -422,3 +422,41 @@ async fn certificates_are_checked_and_ssrf_protection_applies_to_retrieval() {
         .await;
     assert_eq!(denied.status, StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn changed_ssrf_settings_apply_to_proxies_at_once() {
+    let fixture = ready(false).await;
+    let (port, _) = plain_server("loopback content").await;
+    create_proxy(
+        &fixture,
+        proxy("loopback", &format!("http://localhost:{port}/"), false),
+    )
+    .await;
+    let blocked = fixture
+        .call(Method::GET, "/repository/loopback/a.txt", Auth::Admin, None)
+        .await;
+    assert_eq!(blocked.status, StatusCode::BAD_GATEWAY);
+    assert!(
+        blocked.text().contains("SSRF protection"),
+        "{}",
+        blocked.text()
+    );
+    let allowed = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/ssrf-protection",
+            Auth::Admin,
+            Some(
+                json!({"enabled": true, "allowedIPs": ["127.0.0.1", "::1"], "allowedDomains": []}),
+            ),
+        )
+        .await;
+    assert_eq!(allowed.status, StatusCode::OK, "{}", allowed.text());
+    let fetched = fixture
+        .call(Method::GET, "/repository/loopback/b.txt", Auth::Admin, None)
+        .await;
+    assert_eq!(
+        (fetched.status, fetched.text()),
+        (StatusCode::OK, "loopback content".to_owned())
+    );
+}
