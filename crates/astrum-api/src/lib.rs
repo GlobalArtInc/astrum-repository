@@ -2,6 +2,7 @@ pub mod auth;
 pub mod base_url;
 pub mod error;
 pub mod json;
+mod notify_mail;
 pub mod routes;
 
 use std::path::{Path, PathBuf};
@@ -60,6 +61,9 @@ impl AppState {
         let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
         let tasks = Tasks::new(content.clone());
         let notifier = Notifier::new(db.conn().clone(), secrets.clone());
+        notifier.set_mail_sender(Arc::new(notify_mail::NotificationMail(
+            astrum_mail::Mailer::new(content.outbound().clone()),
+        )));
         Self {
             inner: Arc::new(Inner {
                 db,

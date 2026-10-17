@@ -257,3 +257,57 @@ async fn starttls_uses_the_truststore_when_asked() {
     assert!(sink.lock().unwrap().secure);
     assert_eq!(sink.lock().unwrap().data.len(), 1);
 }
+
+#[tokio::test]
+async fn notification_emails_go_through_the_email_server() {
+    let fixture = Fixture::new().await;
+    let channel = json!({
+        "name": "Mail",
+        "type": "email",
+        "recipients": ["team@example.invalid"],
+        "events": ["published"],
+        "language": "en",
+    });
+    let test = "/service/rest/internal/ui/notifications/test";
+    let refused = fixture
+        .call(Method::POST, test, Auth::Admin, Some(channel.clone()))
+        .await
+        .json();
+    assert_eq!(refused["success"], false);
+    assert!(
+        refused["message"]
+            .as_str()
+            .unwrap()
+            .contains("Email is not set up"),
+        "{refused}"
+    );
+
+    let (port, sink) = smtp_sink(None).await;
+    let saved = fixture
+        .call(
+            Method::PUT,
+            EMAIL,
+            Auth::Admin,
+            Some(json!({"enabled": true, "host": "127.0.0.1", "port": port,
+                "fromAddress": "repo@example.invalid", "subjectPrefix": "[Astrum]"})),
+        )
+        .await;
+    assert_eq!(saved.status, StatusCode::NO_CONTENT, "{}", saved.text());
+    let sent = fixture
+        .call(Method::POST, test, Auth::Admin, Some(channel))
+        .await
+        .json();
+    assert_eq!(sent["success"], true, "{sent}");
+    let received = sink.lock().unwrap();
+    assert!(
+        received
+            .commands
+            .contains(&"RCPT TO:<team@example.invalid>".to_owned())
+    );
+    assert_eq!(received.data.len(), 1);
+    assert!(
+        received.data[0].contains("Subject: [Astrum] "),
+        "{}",
+        received.data[0]
+    );
+}

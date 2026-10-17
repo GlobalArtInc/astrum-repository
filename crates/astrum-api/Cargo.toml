@@ -17,6 +17,7 @@ astrum-outbound.workspace = true
 astrum-repo.workspace = true
 astrum-security.workspace = true
 astrum-tasks.workspace = true
+async-trait.workspace = true
 axum = { workspace = true, features = ["multipart"] }
 base64.workspace = true
 bytes.workspace = true
@@ -37,7 +38,6 @@ url.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
-async-trait.workspace = true
 astrum-format-docker.workspace = true
 astrum-format-gitlfs.workspace = true
 astrum-format-helm.workspace = true
