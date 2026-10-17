@@ -70,6 +70,51 @@ test('logs list, view, mark and download', async ({ page, server }) => {
   expect(telemetry).toEqual([]);
 });
 
+test('pages load without failing requests, console errors or a telemetry script', async ({
+  page,
+  server,
+}) => {
+  const problems: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      problems.push(`console: ${message.text()}`);
+    }
+  });
+  page.on('pageerror', (error) => problems.push(`page: ${error.message}`));
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      problems.push(`${response.status()} ${response.request().method()} ${response.url()}`);
+    }
+  });
+  page.on('request', (request) => {
+    if (request.url().includes('user-telemetry')) {
+      problems.push(`telemetry: ${request.url()}`);
+    }
+  });
+  await signInAsAdmin(page, server.adminPassword);
+  const paths = [
+    '/',
+    '/browse',
+    '/search',
+    '/upload',
+    '/api',
+    '/settings',
+    '/admin/support/logs',
+    '/admin/support/logging',
+    '/admin/support/system-information',
+    '/admin/support/metric-health',
+    '/admin/support/support-zip',
+    '/admin/repository/repositories',
+    '/admin/security/users',
+    '/user/account',
+  ];
+  for (const path of paths) {
+    await page.goto(path);
+    await page.waitForLoadState('networkidle');
+  }
+  expect(problems).toEqual([]);
+});
+
 test('logging levels are created, changed and removed', async ({ page, server }) => {
   await signInAsAdmin(page, server.adminPassword);
   await page.goto('/admin/support/logging');
