@@ -5,6 +5,7 @@ import { loginPath } from '../auth/returnTo';
 import { useSession } from '../auth/state';
 import { useT } from '../i18n';
 import { COMPACT, readStored, useMediaQuery, writeStored } from '../ui/hooks';
+import { BrandingSnippet, useConfiguredTitle } from './Branding';
 import { Header } from './Header';
 import { MobileDrawer } from './MobileDrawer';
 import styles from './Shell.module.css';
@@ -24,6 +25,7 @@ export function Shell() {
   const { watchers } = useRegistry();
   const toggleSearch = useCallback(() => setSearchOpen((open) => !open), []);
   useSearchShortcut(toggleSearch);
+  useConfiguredTitle();
 
   if (!user && !anonymousAccess) {
     return <Navigate to={loginPath(location.pathname + location.search + location.hash)} replace />;
@@ -44,6 +46,7 @@ export function Shell() {
       <a href="#main" className={styles.skip}>
         {t('shell.main.skipToContent')}
       </a>
+      <BrandingSnippet html={state.branding?.headerHtml} place="header" />
       <Header
         compact={compact}
         collapsed={!sidebarOpen}
@@ -57,6 +60,7 @@ export function Shell() {
           <Outlet />
         </main>
       </div>
+      <BrandingSnippet html={state.branding?.footerHtml} place="footer" />
       {compact && <MobileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} version={state.version} />}
       {watchers.map((Watcher) => (
         <Watcher key={Watcher.displayName ?? Watcher.name} />

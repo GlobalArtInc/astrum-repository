@@ -462,3 +462,8 @@
     padding: 0 4px;
   }
 }
+
+.brandingHeader,
+.brandingFooter {
+  overflow: hidden;
+}
