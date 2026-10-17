@@ -447,3 +447,15 @@ Agent brief template for formats: `/home/user/wt/M2-BRIEF.md`.
   `/admin/support/...` and `/api`, the header bell shows a red dot while a check fails. Per node: logs, marks and
   support ZIPs live on the replica that served the request. The new UI loads no user-telemetry script (the old
   UI's 404 on every page); `e2e/support.spec.ts` fails on any failing request or console error on the main pages.
+- Own formats (M4 wave 2, branch `m4-fmt-b`), ported from our Java modules: terraform
+  (`crates/astrum-format-terraform`: module and provider registry protocols and the provider network mirror for
+  hosted, proxy and group; `/.well-known/terraform.json` at the host root for the repository whose `registryHost`
+  matches the request's host; package locations signed with an HMAC for 15 minutes, the secret in the settings
+  table; SHA256SUMS written and signed with the repository key when uploads bring none; TerraformToken bearer tokens
+  at `/repository/<name>/token`), huggingface (proxy only: revision info, trees and paths-info from the cached
+  revision, files stored once per commit as `<type>/<repo>/<commit>/<file>` with the Hub's headers and
+  `X-Error-Code`; search keys `huggingface.revision` and `huggingface.file`, and the revisions also match `q`
+  through `Format::keyword_attributes`), swift (SE-0292 hosted and group: publish, releases, metadata, manifests,
+  archives, identifiers, login; proxies answer 503). Web: usage blocks, the Terraform settings and signing
+  sections, search keys and the old remote examples. Checked with terraform 1.16.2 and 1.9.8, huggingface_hub
+  2.2.0 and replayed SE-0292 requests.
