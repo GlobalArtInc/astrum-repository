@@ -5,7 +5,7 @@ import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../../t
 import { repository } from '../test-fixtures';
 import type { SearchAsset, SearchComponent } from '../types';
 import ComponentPage, { keyFromPath, locate, mainAsset } from './ComponentPage';
-import { componentSnippets } from './snippets';
+import { componentGuideUrl, componentSnippets } from './snippets';
 import { csv } from './tables';
 
 const VERSIONS = '/service/rest/internal/ui/search/versions?format=maven2&group=org.acme&name=lib';
@@ -120,6 +120,12 @@ describe('the component page', { timeout: 20_000 }, () => {
       'docker pull r.example/x/team/app:2.0',
     );
     expect(componentSnippets({ ...context, format: 'helm' })).toEqual([]);
+    expect(componentSnippets({ ...context, format: 'rubygems', group: '', name: 'hola' })).toEqual([
+      { id: 'install', label: 'Install', code: 'gem install hola -v 2.0' },
+    ]);
+    expect(componentGuideUrl('rubygems', '', 'hola', '2.0')).toBe(
+      'https://guide.globalart.dev/component/gem/hola/2.0?referrer=search-component-detail',
+    );
     expect(
       csv([
         ['a,b', 'c"d'],

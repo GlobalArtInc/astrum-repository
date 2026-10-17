@@ -219,6 +219,10 @@
   "browse.usage.hint.terraformUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
   "browse.usage.hint.yumRepo": "Сохраните в /etc/yum.repos.d/{name}.repo и устанавливайте пакеты через dnf или yum",
   "browse.usage.hint.yumUpload": "Для загрузки нужен пользователь с правом записи в этот репозиторий",
+  "browse.usage.hint.gemfile": "Добавьте в начало Gemfile проекта",
+  "browse.usage.hint.bundleMirror": "Выполните один раз; затем Bundler будет получать все gem с rubygems.org через этот репозиторий",
+  "browse.usage.hint.gemSources": "Один раз добавьте репозиторий как источник команды gem",
+  "browse.usage.hint.gemPush": "RUBYGEMS_HOST направляет gem signin, push и yank в этот репозиторий; войдите один раз пользователем этого сервера, чтобы получить API-ключ",
 
   "browse.component.search": "Поиск",
   "browse.component.invalidTitle": "Неизвестный компонент",

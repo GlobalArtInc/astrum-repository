@@ -45,6 +45,7 @@ const GUIDE_FORMATS: Record<string, string> = {
   helm: 'helm',
   nuget: 'nuget',
   yum: 'yum',
+  rubygems: 'gem',
 };
 
 export function guideUrl(

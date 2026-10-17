@@ -423,6 +423,8 @@
   "repositories.formats.nuget": "Package manager for .NET development.",
   "repositories.formats.pypi": "The official third-party software repository for Python.",
   "repositories.formats.raw": "Files of any format, without metadata requirements.",
+  "repositories.formats.rubygems": "The standard package manager for Ruby.",
+  "repositories.formats.yum": "The main package manager of RPM-based Linux distributions.",
   "repositories.formats.other": "Manage {format} components.",
   "repositories.crumbs.dashboard": "Overview",
   "repositories.profile.urlLabel": "URL:",

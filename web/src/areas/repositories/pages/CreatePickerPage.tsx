@@ -37,6 +37,8 @@ const FORMAT_TEXTS: Record<string, string> = {
   nuget: 'repositories.formats.nuget',
   pypi: 'repositories.formats.pypi',
   raw: 'repositories.formats.raw',
+  rubygems: 'repositories.formats.rubygems',
+  yum: 'repositories.formats.yum',
 };
 
 const TYPE_ORDER: RepositoryType[] = ['proxy', 'hosted', 'group'];

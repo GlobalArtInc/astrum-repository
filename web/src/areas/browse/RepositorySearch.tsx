@@ -14,7 +14,7 @@ import type { RepositoryItem, SearchComponent, SearchPage } from './types';
 
 export const SEARCH_PATH = '/service/rest/v1/search';
 
-const LAYOUT_FORMATS = ['docker', 'npm', 'pypi', 'helm', 'nuget'];
+const LAYOUT_FORMATS = ['docker', 'npm', 'pypi', 'helm', 'nuget', 'rubygems'];
 
 export function searchedRepositories(repository: RepositoryItem): string[] {
   return repository.type === 'group' ? (repository.members ?? []) : [repository.name];

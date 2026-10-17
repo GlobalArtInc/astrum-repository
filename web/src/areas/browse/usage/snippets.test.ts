@@ -304,3 +304,47 @@ describe('yum usage', () => {
     );
   });
 });
+
+describe('rubygems usage', () => {
+  const component = { group: '', name: 'hola', version: '1.1.0' };
+
+  it('installs, adds the source and pushes to a hosted repository', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'rubygems',
+        repositoryName: 'gems',
+        component,
+        path: '/gems/hola-1.1.0-x86_64-linux.gem',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['install', 'gemfile', 'sources', 'push']);
+    expect(code(snippets, 'install')).toBe(
+      'gem install hola -v 1.1.0 --clear-sources --source https://repo.example.org/repository/gems/',
+    );
+    expect(code(snippets, 'gemfile')).toBe(
+      'source "https://repo.example.org/repository/gems/"\n\ngem "hola", "1.1.0"',
+    );
+    expect(code(snippets, 'sources')).toBe('gem sources --add https://repo.example.org/repository/gems/');
+    expect(code(snippets, 'push')).toBe(
+      'export RUBYGEMS_HOST=https://repo.example.org/repository/gems\ngem signin\ngem push hola-1.1.0-x86_64-linux.gem',
+    );
+    expect(snippets.find((snippet) => snippet.id === 'push')?.hint).toBe('browse.usage.hint.gemPush');
+  });
+
+  it('mirrors rubygems.org through a proxy and only reads from groups', () => {
+    const proxy = usageSnippets(
+      context({ format: 'rubygems', repositoryName: 'gems-proxy', repositoryType: 'proxy' }),
+    );
+    expect(ids(proxy)).toEqual(['gemfile', 'mirror']);
+    expect(code(proxy, 'gemfile')).toBe('source "https://repo.example.org/repository/gems-proxy/"');
+    expect(code(proxy, 'mirror')).toBe(
+      'bundle config set --global mirror.https://rubygems.org https://repo.example.org/repository/gems-proxy/',
+    );
+    const group = usageSnippets(
+      context({ format: 'rubygems', repositoryName: 'all', repositoryType: 'group', component }),
+    );
+    expect(ids(group)).toEqual(['install', 'gemfile', 'sources']);
+    const hosted = usageSnippets(context({ format: 'rubygems', repositoryName: 'gems' }));
+    expect(code(hosted, 'push')).toContain('gem push <name>-<version>.gem');
+  });
+});

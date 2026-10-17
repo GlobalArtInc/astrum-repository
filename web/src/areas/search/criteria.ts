@@ -176,6 +176,27 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'module',
   },
   {
+    key: 'rubygems.platform',
+    label: 'search.criterion.rubygemsPlatform',
+    kind: 'text',
+    format: 'rubygems',
+    example: 'x86_64-linux',
+  },
+  {
+    key: 'rubygems.summary',
+    label: 'search.criterion.rubygemsSummary',
+    kind: 'text',
+    format: 'rubygems',
+    example: 'rack',
+  },
+  {
+    key: 'rubygems.description',
+    label: 'search.criterion.rubygemsDescription',
+    kind: 'text',
+    format: 'rubygems',
+    example: 'web server',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

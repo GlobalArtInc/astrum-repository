@@ -122,6 +122,10 @@ function nuget(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
+  return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
+}
+
 export function componentSnippets(context: ComponentSnippetContext): ComponentSnippet[] {
   switch (context.format) {
     case 'maven2':
@@ -134,6 +138,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return docker(context);
     case 'nuget':
       return nuget(context);
+    case 'rubygems':
+      return rubygems(context);
     default:
       return [];
   }
@@ -153,7 +159,13 @@ export function registryUrl(format: string, group: string, name: string): string
   return format === 'maven2' ? `https://central.globalart.dev/artifact/${group}/${name}` : null;
 }
 
-const GUIDE_FORMATS: Record<string, string> = { maven2: 'maven', npm: 'npm', pypi: 'pypi', nuget: 'nuget' };
+const GUIDE_FORMATS: Record<string, string> = {
+  maven2: 'maven',
+  npm: 'npm',
+  pypi: 'pypi',
+  nuget: 'nuget',
+  rubygems: 'gem',
+};
 
 export function componentGuideUrl(
   format: string,

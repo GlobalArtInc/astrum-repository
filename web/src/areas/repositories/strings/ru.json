@@ -437,6 +437,8 @@
   "repositories.formats.nuget": "Менеджер пакетов для разработки на .NET.",
   "repositories.formats.pypi": "Официальный репозиторий стороннего ПО для Python.",
   "repositories.formats.raw": "Хранение файлов любого формата без требований к метаданным.",
+  "repositories.formats.rubygems": "Стандартный менеджер пакетов Ruby.",
+  "repositories.formats.yum": "Основной менеджер пакетов для дистрибутивов Linux на базе RPM.",
   "repositories.formats.other": "Управление компонентами {format}.",
   "repositories.crumbs.dashboard": "Обзор",
   "repositories.profile.urlLabel": "URL:",

@@ -40,6 +40,7 @@ export const USAGE_FORMATS = [
   'swift',
   'terraform',
   'yum',
+  'rubygems',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -529,6 +530,56 @@ function yum(context: UsageContext): Snippet[] {
   return snippets;
 }
 
+function rubygems(context: UsageContext): Snippet[] {
+  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const name = context.component?.name ?? '';
+  const version = context.component?.version ?? '';
+  const snippets: Snippet[] = [];
+  if (name) {
+    snippets.push({
+      id: 'install',
+      label: 'gem install',
+      code: `gem install ${name}${version ? ` -v ${version}` : ''} --clear-sources --source ${url}`,
+    });
+  }
+  snippets.push({
+    id: 'gemfile',
+    label: 'Gemfile',
+    code: `source "${url}"${name ? `\n\ngem "${name}"${version ? `, "${version}"` : ''}` : ''}`,
+    hint: 'browse.usage.hint.gemfile',
+  });
+  if (context.repositoryType === 'proxy') {
+    snippets.push({
+      id: 'mirror',
+      label: 'bundle config',
+      code: `bundle config set --global mirror.https://rubygems.org ${url}`,
+      hint: 'browse.usage.hint.bundleMirror',
+    });
+  } else {
+    snippets.push({
+      id: 'sources',
+      label: 'gem sources',
+      code: `gem sources --add ${url}`,
+      hint: 'browse.usage.hint.gemSources',
+    });
+  }
+  if (context.repositoryType === 'hosted') {
+    const stored = (context.path ?? '').split('/').pop() ?? '';
+    const file = stored.endsWith('.gem')
+      ? stored
+      : name && version
+        ? `${name}-${version}.gem`
+        : '<name>-<version>.gem';
+    snippets.push({
+      id: 'push',
+      label: 'gem push',
+      code: `export RUBYGEMS_HOST=${url.replace(/\/+$/, '')}\ngem signin\ngem push ${file}`,
+      hint: 'browse.usage.hint.gemPush',
+    });
+  }
+  return snippets;
+}
+
 const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   maven2: maven,
   npm,
@@ -543,6 +594,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   terraform: (context) =>
     terraform(context, repositoryUrl(context.baseUrl, context.repositoryName), hostOf(context.baseUrl)),
   yum,
+  rubygems,
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {
