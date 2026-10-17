@@ -87,14 +87,26 @@ test('the header keeps the controls of Astrum One', async ({ page }) => {
 
 test('the settings hub shows the old sections without SSRF and audit tiles', async ({ page }) => {
   await page.goto('/settings');
-  await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Repository', 'Security', 'System']);
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText([
+    'Repository',
+    'Security',
+    'Support',
+    'System',
+  ]);
   await expect(page.getByRole('region', { name: 'Repository' }).getByRole('link')).toHaveText([
     /^Repositories/,
     /^Blob Stores/,
     /^Cleanup Policies/,
     /^Content Selectors/,
   ]);
-  await expect(page.getByRole('region', { name: 'System' }).getByRole('link')).toHaveText([/^Tasks/]);
+  await expect(page.getByRole('region', { name: 'Support' }).getByRole('link')).toHaveText([
+    /^System Information/,
+    /^Logs/,
+    /^Logging/,
+    /^Metrics and Health/,
+    /^Support ZIP/,
+  ]);
+  await expect(page.getByRole('region', { name: 'System' }).getByRole('link')).toHaveText([/^Tasks/, /^API/]);
   const security = page.getByRole('region', { name: 'Security' });
   await expect(security.getByRole('link')).toHaveText([
     /^Users/,
@@ -114,8 +126,10 @@ test('the settings hub shows the old sections without SSRF and audit tiles', asy
 
 test('a phone gets a drawer that keeps the focus', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  const open = page.getByRole('button', { name: 'Open the menu' });
+  await expect(open).toBeVisible();
   await noHorizontalScroll(page);
-  await page.getByRole('button', { name: 'Open the menu' }).click();
+  await open.click();
   const drawer = page.getByRole('dialog', { name: 'Main menu' });
   await expect(drawer).toBeVisible();
   for (let step = 0; step < 8; step += 1) {
