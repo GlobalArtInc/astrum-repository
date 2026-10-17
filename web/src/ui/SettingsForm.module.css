@@ -164,7 +164,7 @@
   font-size: var(--font-size-2);
 }
 
-.large:global(.rt-variant-outline)[data-accent-color="gray"] {
+.large:global(.rt-variant-outline)[data-accent-color="gray"]:not(:disabled) {
   color: var(--gray-12);
 }
 
