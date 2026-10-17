@@ -88,7 +88,7 @@
   "search.criterion.helmKeywords": "Helm: ключевые слова",
   "search.criterion.swiftDescription": "Swift: описание",
   "search.criterion.swiftRepositoryUrl": "Swift: URL репозитория",
-  "search.criterion.huggingfaceFile": "Hugging Face: файл",
+  "search.criterion.huggingfaceFile": "Hugging Face: путь к файлу",
   "search.criterion.huggingfaceRevision": "Hugging Face: ветка или тег",
   "search.criterion.terraformKind": "Terraform: вид",
   "search.criterion.terraformName": "Terraform: имя",

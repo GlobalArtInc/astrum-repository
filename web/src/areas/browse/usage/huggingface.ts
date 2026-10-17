@@ -7,7 +7,7 @@ const REPO_TYPES: Readonly<Record<string, string>> = {
 };
 
 function fileOf(context: UsageContext): string | null {
-  const stored = (context.attributes?.huggingface as Record<string, unknown> | undefined)?.file;
+  const stored = context.attributes?.file;
   if (typeof stored === 'string' && stored) {
     return stored;
   }

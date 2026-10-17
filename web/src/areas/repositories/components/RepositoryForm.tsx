@@ -105,8 +105,10 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   pypi: 'https://pypi.org/',
   docker: 'https://registry-1.docker.io',
   helm: 'https://charts.helm.sh/stable/',
-  huggingface: 'https://huggingface.co',
+  huggingface: 'https://huggingface.co/',
   raw: 'https://example.org/files/',
+  swift: 'https://packages.example.com/',
+  terraform: 'https://registry.terraform.io',
 };
 
 export function sameName(left: string, right: string): boolean {

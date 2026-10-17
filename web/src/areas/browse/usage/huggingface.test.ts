@@ -37,4 +37,15 @@ describe('huggingface usage', () => {
       'endpoint',
     ]);
   });
+
+  it('names the file the asset details carry for the repository', () => {
+    const snippets = usageSnippets({
+      ...base,
+      component: { group: 'spaces', name: 'acme/demo', version: commit },
+      attributes: { file: 'app.py', revisions: ['main'] },
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['endpoint', 'cli', 'python']);
+    expect(snippets[1]?.code).toBe(`hf download acme/demo app.py --repo-type space --revision ${commit}`);
+    expect(snippets[2]?.code).toContain('filename="app.py",\n    repo_type="space",');
+  });
 });

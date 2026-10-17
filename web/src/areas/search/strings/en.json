@@ -86,7 +86,7 @@
   "search.criterion.helmKeywords": "Helm Keywords",
   "search.criterion.swiftDescription": "Swift Description",
   "search.criterion.swiftRepositoryUrl": "Swift Repository URL",
-  "search.criterion.huggingfaceFile": "Hugging Face File",
+  "search.criterion.huggingfaceFile": "Hugging Face File Path",
   "search.criterion.huggingfaceRevision": "Hugging Face Branch or Tag",
   "search.criterion.terraformKind": "Terraform Kind",
   "search.criterion.terraformName": "Terraform Name",

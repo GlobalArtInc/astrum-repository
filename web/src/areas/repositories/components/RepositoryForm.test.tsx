@@ -186,6 +186,18 @@ describe('the repository form', () => {
     expect(getPath(sent, ['dockerProxy', 'indexType'])).toBe('REGISTRY');
   });
 
+  it.each([
+    ['huggingface', 'https://huggingface.co/'],
+    ['swift', 'https://packages.example.com/'],
+    ['terraform', 'https://registry.terraform.io'],
+  ])('suggests the remote of %s proxies that the old form named', (format, remote) => {
+    const spec: Spec = { format, type: 'proxy' };
+    renderForm({ spec, creating: true, document: template(spec, 'default') });
+    expect(
+      screen.getByText(`Address of the remote repository to proxy. for example, ${remote}`),
+    ).toBeInTheDocument();
+  });
+
   it('applies cleanup policies of the format with the transfer list', async () => {
     const server = fakeServer({
       'GET /service/rest/internal/ui/cleanup-policies/names?format=raw': () =>

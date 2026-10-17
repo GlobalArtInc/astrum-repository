@@ -29,7 +29,7 @@ test('a hugging face proxy is made through the form and offers its criteria', as
   await page.goto('/search/custom');
   await page.getByRole('combobox', { name: 'Field' }).click();
   await expect(page.getByRole('option', { name: 'Hugging Face Branch or Tag' })).toBeVisible();
-  await page.getByRole('option', { name: 'Hugging Face File' }).click();
+  await page.getByRole('option', { name: 'Hugging Face File Path' }).click();
   await page.getByRole('combobox', { name: 'Condition' }).click();
   await page.getByRole('option', { name: 'Contains' }).click();
   await page.getByRole('textbox', { name: 'Value' }).fill('config');
