@@ -75,8 +75,9 @@ export async function signIn(page: Page, password: string, user = ADMIN): Promis
 }
 
 export async function noHorizontalScroll(page: Page): Promise<void> {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(overflow).toBeLessThanOrEqual(0);
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
+    .toBeLessThanOrEqual(0);
 }
 
 export { expect };
