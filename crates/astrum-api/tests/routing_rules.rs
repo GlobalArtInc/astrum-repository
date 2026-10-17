@@ -416,3 +416,73 @@ async fn routing_rules_need_an_administrator() {
         .await;
     assert_eq!(anonymous.status, StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn docker_path_routing_applies_the_rule_too() {
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    let fixture = ready().await;
+    fixture
+        .state
+        .content()
+        .register(Arc::new(astrum_format_docker::Docker::default()));
+    create_rule(&fixture, "no-library", "BLOCK", &["/v2/library/.*"]).await;
+    let reply = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/repositories/docker/proxy",
+            Auth::Admin,
+            Some(json!({
+                "name": "hub",
+                "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
+                "proxy": {"remoteUrl": upstream().await, "contentMaxAge": 1440, "metadataMaxAge": 1440},
+                "negativeCache": {"enabled": false, "timeToLive": 1},
+                "httpClient": {"blocked": false, "autoBlock": false},
+                "routingRuleName": "no-library",
+                "docker": {"v1Enabled": false, "forceBasicAuth": true, "pathEnabled": true},
+                "dockerProxy": {"indexType": "REGISTRY"}
+            })),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+    let app = astrum_api::router_with(fixture.state.clone(), astrum_format_docker::routes());
+    let credentials = base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        format!("admin:{}", fixture.admin_password),
+    );
+    for (path, blocked) in [
+        ("/v2/hub/library/alpine/manifests/latest", true),
+        ("/repository/hub/v2/library/alpine/manifests/latest", true),
+        ("/v2/hub/team/app/manifests/latest", false),
+    ] {
+        let response = app
+            .clone()
+            .oneshot(
+                axum::http::Request::get(path)
+                    .header("authorization", format!("Basic {credentials}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status();
+        let text = String::from_utf8(
+            response
+                .into_body()
+                .collect()
+                .await
+                .unwrap()
+                .to_bytes()
+                .to_vec(),
+        )
+        .unwrap();
+        assert_eq!(status == StatusCode::FORBIDDEN, blocked, "{path}: {text}");
+        assert_eq!(
+            text == astrum_content::routing::BLOCKED,
+            blocked,
+            "{path}: {text}"
+        );
+    }
+}

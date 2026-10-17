@@ -103,7 +103,7 @@ async fn dispatch(
         .await
 }
 
-fn blocked() -> Response {
+pub fn blocked() -> Response {
     (
         axum::http::StatusCode::FORBIDDEN,
         [(axum::http::header::CONTENT_TYPE, "text/plain;charset=utf-8")],

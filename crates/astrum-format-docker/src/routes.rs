@@ -104,6 +104,17 @@ async fn routed(
             );
         }
     };
+    let rule_path = format!("/v2/{remainder}");
+    match state
+        .content()
+        .routing_allows(&ctx.repository, &rule_path)
+        .await
+    {
+        Ok(true) => {}
+        Ok(false) => return astrum_api::routes::content::blocked(),
+        Err(error) => return RegistryError::from(error).into_response(),
+    }
+    let ctx = ctx.with_request_path(&rule_path);
     let request = match ContentRequest::new(
         parts.method,
         &format!("/{remainder}"),
