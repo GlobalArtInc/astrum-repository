@@ -688,6 +688,88 @@ async fn components_assets_and_search_answer_like_the_reference() {
         )
         .await;
     assert!(root.text().contains("guides/"), "{}", root.text());
+    assert!(
+        root.text()
+            .contains("href=\"/service/rest/repository/browse/docs/guides/\""),
+        "{}",
+        root.text()
+    );
+    assert!(
+        root.text().contains("href=\"/browse/docs\""),
+        "{}",
+        root.text()
+    );
+    assert!(
+        page.text()
+            .contains("href=\"/service/rest/repository/browse/docs/\">Parent Directory"),
+        "{}",
+        page.text()
+    );
+    let bare = fixture
+        .call(
+            Method::GET,
+            "/service/rest/repository/browse/docs",
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(bare.status, StatusCode::FOUND);
+    assert_eq!(
+        bare.headers[header::LOCATION],
+        "/service/rest/repository/browse/docs/"
+    );
+
+    let browser = [
+        ("accept", "text/html,application/xhtml+xml,*/*;q=0.8"),
+        ("sec-fetch-mode", "navigate"),
+    ];
+    for address in ["/repository/docs", "/repository/docs/guides/"] {
+        let visit = fixture
+            .send(Method::GET, address, Auth::Admin, None, &browser)
+            .await;
+        assert_eq!(visit.status, StatusCode::NOT_FOUND, "{address}");
+        assert!(
+            visit.headers[header::CONTENT_TYPE]
+                .to_str()
+                .unwrap()
+                .starts_with("text/html"),
+            "{address}"
+        );
+        assert!(
+            visit
+                .text()
+                .contains("/service/rest/repository/browse/docs/"),
+            "{}",
+            visit.text()
+        );
+    }
+    fixture.add_user("stranger", "stranger-pass", &[]).await;
+    let stranger = fixture
+        .send(
+            Method::GET,
+            "/repository/docs/",
+            Auth::Basic("stranger", "stranger-pass"),
+            None,
+            &browser,
+        )
+        .await;
+    assert!(!stranger.text().contains("<html"), "{}", stranger.text());
+    let tool = fixture
+        .call(Method::GET, "/repository/docs/", Auth::Admin, None)
+        .await;
+    assert_eq!(tool.status, StatusCode::NOT_FOUND);
+    assert_eq!(tool.text(), "You can't browse this way");
+    let file = fixture
+        .send(
+            Method::GET,
+            "/repository/docs/guides/missing.txt",
+            Auth::Admin,
+            None,
+            &browser,
+        )
+        .await;
+    assert_eq!(file.status, StatusCode::NOT_FOUND);
+    assert!(!file.text().contains("<html"), "{}", file.text());
 }
 
 #[tokio::test]

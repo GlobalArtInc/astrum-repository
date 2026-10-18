@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { INTERNAL, useApi, withQuery } from '../../../api';
+import { INTERNAL, REST, useApi, withQuery } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { type Translate, useT } from '../../../i18n';
 import { DateTime, FileSize, FormatLogo, formatName } from '../../../ui';
@@ -80,6 +80,10 @@ function Item({
   );
 }
 
+function htmlIndex(name: string): string {
+  return `${REST}/repository/browse/${encodeURIComponent(name)}/`;
+}
+
 export function SummaryTab({ repository, online }: { repository: UiRepository; online: boolean }) {
   const t = useT();
   const stores = useUiBlobStores();
@@ -109,6 +113,17 @@ export function SummaryTab({ repository, online }: { repository: UiRepository; o
               rel="noreferrer"
             >
               {repository.url}
+            </a>
+            <ExternalLink size={14} aria-hidden="true" />
+          </Item>
+          <Item term={t('repositories.summary.htmlIndex')} upper>
+            <a
+              className={`${styles.link} ${styles.ellipsis}`}
+              href={htmlIndex(repository.name)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {htmlIndex(repository.name)}
             </a>
             <ExternalLink size={14} aria-hidden="true" />
           </Item>

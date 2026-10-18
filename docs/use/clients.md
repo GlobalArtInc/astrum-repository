@@ -13,6 +13,11 @@ The formats this server supports are Alpine, Ansible Galaxy, APT, Cargo, CocoaPo
 artifacts, Git LFS, Go, Helm, Hugging Face, Maven, npm, NuGet, P2, pub, PyPI, R, RubyGems, Swift, Terraform,
 Yum and raw files.
 
+That address belongs to the clients and has no page of its own: a browser opening it gets a page that
+links to the HTML index of the repository at `https://<host>/service/rest/repository/browse/<repository
+name>/` and to the repository in the web interface, provided the user may browse it. The HTML index lists
+folders and files with links to download them; the summary of the repository in Settings links to it too.
+
 ## Maven
 
 `~/.m2/settings.xml`:

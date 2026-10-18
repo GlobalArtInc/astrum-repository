@@ -18,6 +18,7 @@ use serde_json::{Value, json};
 use tokio::io::AsyncWriteExt;
 
 use crate::routes::content::context;
+use crate::routes::html::{self, escape};
 use crate::routes::repositories::base_url;
 use crate::{ApiError, AppState, Caller, REST};
 
@@ -1133,7 +1134,11 @@ async fn browse_root(
     State(state): State<AppState>,
     caller: Caller,
     Path(name): Path<String>,
+    uri: Uri,
 ) -> Response {
+    if let Some(redirect) = with_slash(&uri) {
+        return redirect;
+    }
     browse_page(state, caller, name, String::new())
         .await
         .unwrap_or_else(IntoResponse::into_response)
@@ -1143,17 +1148,48 @@ async fn browse(
     State(state): State<AppState>,
     caller: Caller,
     Path((name, path)): Path<(String, String)>,
+    uri: Uri,
 ) -> Response {
+    if let Some(redirect) = with_slash(&uri) {
+        return redirect;
+    }
     browse_page(state, caller, name, path)
         .await
         .unwrap_or_else(IntoResponse::into_response)
 }
 
-fn escape(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
+fn with_slash(uri: &Uri) -> Option<Response> {
+    let path = uri.path();
+    if path.ends_with('/') {
+        return None;
+    }
+    let target = match uri.query() {
+        Some(query) => format!("{path}/?{query}"),
+        None => format!("{path}/"),
+    };
+    Some((StatusCode::FOUND, [(header::LOCATION, target)]).into_response())
+}
+
+pub(crate) async fn browsable(state: &AppState, caller: &Caller, name: &str) -> bool {
+    permitted(state, caller, Some(&BTreeSet::from([name.to_owned()])))
+        .await
+        .is_ok_and(|visibility| visibility.holds(name))
+}
+
+pub(crate) fn browse_address(name: &str, prefix: &str) -> String {
+    format!(
+        "{REST}/repository/browse/{}{}",
+        encode_path(name),
+        encode_path(prefix)
+    )
+}
+
+pub(crate) fn interface_address(name: &str, prefix: &str) -> String {
+    format!(
+        "/browse/{}{}",
+        encode_path(name),
+        encode_path(prefix.trim_end_matches('/'))
+    )
 }
 
 async fn browse_page(
@@ -1208,18 +1244,24 @@ async fn browse_page(
     }
     let mut rows = String::new();
     if prefix != "/" {
-        rows.push_str("<tr><td><a href=\"../\">Parent Directory</a></td><td></td></tr>\n");
+        let parent = match prefix.trim_end_matches('/').rsplit_once('/') {
+            Some((parent, _)) => format!("{parent}/"),
+            None => "/".to_owned(),
+        };
+        rows.push_str(&format!(
+            "<tr><td><a href=\"{}\">Parent Directory</a></td><td></td></tr>\n",
+            browse_address(&name, &parent)
+        ));
     }
     for (child, size) in &children {
-        let href = encode_path(child);
         let target = match size {
             Some(_) => format!(
                 "/repository/{}{}{}",
-                escape(&name),
+                encode_path(&name),
                 encode_path(&prefix),
-                href
+                encode_path(child)
             ),
-            None => href,
+            None => browse_address(&name, &format!("{prefix}{child}")),
         };
         let size = size.map(|size| size.to_string()).unwrap_or_default();
         rows.push_str(&format!(
@@ -1228,8 +1270,9 @@ async fn browse_page(
         ));
     }
     let title = format!("Index of /{}{}", escape(&name), escape(&prefix));
-    Ok(Html(format!(
-        "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><title>{title}</title></head>\n<body>\n<h1>{title}</h1>\n<table>\n<tr><th>Name</th><th>Size</th></tr>\n{rows}</table>\n</body>\n</html>\n"
-    ))
-    .into_response())
+    let body = format!(
+        "<p><a href=\"{}\">Open in the web interface</a></p>\n<table>\n<thead><tr><th>Name</th><th>Size</th></tr></thead>\n<tbody>\n{rows}</tbody>\n</table>\n",
+        interface_address(&name, &prefix)
+    );
+    Ok(Html(html::page(&title, &body)).into_response())
 }

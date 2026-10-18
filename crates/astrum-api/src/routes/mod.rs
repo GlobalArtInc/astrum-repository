@@ -4,6 +4,7 @@ pub mod cleanup_policies;
 pub mod components;
 pub mod content;
 pub mod email;
+pub(crate) mod html;
 pub mod internal;
 pub mod legacy;
 pub mod oidc;

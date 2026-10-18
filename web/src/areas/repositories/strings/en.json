@@ -385,6 +385,7 @@
   "repositories.summary.format": "Format",
   "repositories.summary.type": "Type",
   "repositories.summary.url": "URL",
+  "repositories.summary.htmlIndex": "HTML Index",
   "repositories.summary.blobStore": "Blob Store",
   "repositories.summary.blobStoreCard": "Blob Store",
   "repositories.summary.name": "Name",

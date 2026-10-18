@@ -1,10 +1,13 @@
 use axum::Router;
 use axum::extract::{Path, Request, State};
-use axum::response::{IntoResponse, Response};
+use axum::http::{StatusCode, header};
+use axum::response::{Html, IntoResponse, Response};
 use axum::routing::any;
 
 use astrum_content::{ContentError, ContentRequest, Ctx};
 
+use crate::routes::components::{browsable, browse_address, interface_address};
+use crate::routes::html::{self, escape};
 use crate::routes::internal::client_ip;
 use crate::routes::repositories::base_url;
 use crate::{AppState, Caller};
@@ -22,9 +25,7 @@ async fn root(
     Path(name): Path<String>,
     request: Request,
 ) -> Response {
-    dispatch(state, caller, name, String::new(), request)
-        .await
-        .unwrap_or_else(IntoResponse::into_response)
+    serve(state, caller, name, String::new(), request).await
 }
 
 async fn content(
@@ -33,9 +34,55 @@ async fn content(
     Path((name, path)): Path<(String, String)>,
     request: Request,
 ) -> Response {
-    dispatch(state, caller, name, path, request)
-        .await
-        .unwrap_or_else(IntoResponse::into_response)
+    serve(state, caller, name, path, request).await
+}
+
+async fn serve(
+    state: AppState,
+    caller: Caller,
+    name: String,
+    path: String,
+    request: Request,
+) -> Response {
+    let directory = path.is_empty() || path.ends_with('/');
+    let navigation = directory && html::browser_navigation(request.method(), request.headers());
+    let response = dispatch(
+        state.clone(),
+        caller.clone(),
+        name.clone(),
+        path.clone(),
+        request,
+    )
+    .await
+    .unwrap_or_else(IntoResponse::into_response);
+    if !navigation
+        || !matches!(
+            response.status(),
+            StatusCode::NOT_FOUND | StatusCode::BAD_REQUEST
+        )
+    {
+        return response;
+    }
+    let Ok(Some(repository)) = state.content().repository(&name).await else {
+        return response;
+    };
+    if !browsable(&state, &caller, &repository.name).await {
+        return response;
+    }
+    let prefix = format!("/{}", path.trim_start_matches('/'));
+    let body = format!(
+        "<p>This is the address the clients of the {} {} repository use; it has no page of its own. Look at its content in the <a href=\"{}\">HTML index</a> or in the <a href=\"{}\">web interface</a>.</p>\n",
+        escape(repository.format.id),
+        repository.kind,
+        browse_address(&name, &prefix),
+        interface_address(&name, &prefix),
+    );
+    (
+        response.status(),
+        [(header::CACHE_CONTROL, "no-store")],
+        Html(html::page(&escape(&name), &body)),
+    )
+        .into_response()
 }
 
 pub async fn context(

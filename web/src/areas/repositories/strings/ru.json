@@ -387,6 +387,7 @@
   "repositories.summary.format": "Формат",
   "repositories.summary.type": "Тип",
   "repositories.summary.url": "URL",
+  "repositories.summary.htmlIndex": "HTML-индекс",
   "repositories.summary.blobStore": "Хранилище блобов",
   "repositories.summary.blobStoreCard": "Хранилище блобов",
   "repositories.summary.name": "Имя",

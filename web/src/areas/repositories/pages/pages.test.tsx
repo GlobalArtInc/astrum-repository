@@ -401,6 +401,9 @@ describe('the repository page', () => {
     );
     await userEvent.click(await screen.findByRole('tab', { name: /Summary/ }));
     expect(await screen.findByRole('region', { name: 'Repository Metrics' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '/service/rest/repository/browse/maven-public/' }),
+    ).toHaveAttribute('href', '/service/rest/repository/browse/maven-public/');
     await userEvent.click(screen.getByRole('tab', { name: /Audit/ }));
     expect(
       await screen.findByText('Repository "maven-public": created (initiator: admin)'),
