@@ -17,9 +17,9 @@ export const TRUSTSTORE_DELETE = 'astrum:ssl-truststore:delete';
 
 export const PLACEHOLDER = '#~ASTRUM~PLACEHOLDER~PASSWORD~#';
 
-export const HTTP_DOCS = 'http://links.globalart.dev/products/astrum/docs/http-request-and-proxy-settings';
+export const HTTP_DOCS = 'https://links.globalart.dev/products/astrum/docs/http-request-and-proxy-settings';
 export const EMAIL_DOCS = 'https://help.globalart.dev/en/email-server-configuration.html';
-export const SSL_DOCS = 'http://links.globalart.dev/products/astrum/docs/ssl-certificates';
+export const SSL_DOCS = 'https://links.globalart.dev/products/astrum/docs/ssl-certificates';
 
 export const SSL_LIST = '/admin/security/ssl-certificates';
 export const SSL_ADD = '/admin/security/ssl-certificates/add';

@@ -13,7 +13,7 @@ export const ROLES = `${V1}/security/roles`;
 export const EXTERNAL_ROLES = `${INTERNAL}/ui/roles`;
 export const ROLE_SOURCES = `${INTERNAL}/ui/roles/sources`;
 
-export const LDAP_DOCS = 'http://links.globalart.dev/products/astrum/docs/ldap';
+export const LDAP_DOCS = 'https://links.globalart.dev/products/astrum/docs/ldap';
 export const LDAP_HELP = 'https://help.globalart.dev/en/ldap.html';
 
 export type Protocol = 'LDAP' | 'LDAPS';

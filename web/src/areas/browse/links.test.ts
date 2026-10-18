@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { componentKey, componentPageUrl, componentTitle, parseComponentKey } from './links';
+import {
+  componentKey,
+  componentPageUrl,
+  componentTitle,
+  guideComponentName,
+  parseComponentKey,
+} from './links';
 
 describe('component addresses', () => {
   it('encode format, group and name and read them back', () => {
@@ -23,5 +29,17 @@ describe('component addresses', () => {
     expect(componentTitle('npm', 'team', 'tool')).toBe('@team/tool');
     expect(componentTitle('npm', '', 'tool')).toBe('tool');
     expect(componentTitle('raw', '/docs', '/docs/a.txt')).toBe('/docs/a.txt');
+  });
+});
+
+describe('guide names', () => {
+  it('name a package the way its public registry does', () => {
+    expect(guideComponentName('maven2', 'org.acme', 'lib')).toBe('org.acme:lib');
+    expect(guideComponentName('npm', 'babel', 'core')).toBe('@babel/core');
+    expect(guideComponentName('npm', '@babel', 'core')).toBe('@babel/core');
+    expect(guideComponentName('npm', '', 'react')).toBe('react');
+    expect(guideComponentName('composer', 'symfony', 'console')).toBe('symfony/console');
+    expect(guideComponentName('conan', 'stable', 'zlib')).toBe('zlib');
+    expect(guideComponentName('go', '', 'github.com/gin-gonic/gin')).toBe('github.com/gin-gonic/gin');
   });
 });

@@ -1,3 +1,4 @@
+import { guideComponentName } from '../links';
 import { installCommand, requirementsFile } from '../usage/ansible';
 import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
@@ -328,6 +329,6 @@ export function componentGuideUrl(
   if (!id || version === '') {
     return null;
   }
-  const shown = group ? `${group}:${name}` : name;
+  const shown = guideComponentName(format, group, name);
   return `https://guide.globalart.dev/component/${id}/${encodeURIComponent(shown)}/${encodeURIComponent(version)}?referrer=search-component-detail`;
 }

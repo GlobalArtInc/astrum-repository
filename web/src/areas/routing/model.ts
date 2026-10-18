@@ -8,7 +8,7 @@ export const PREVIEW = `${UI_RULES}/preview`;
 export const LIST_PAGE = '/admin/repository/routing-rules';
 export const PREVIEW_PAGE = `${LIST_PAGE}/preview`;
 export const CREATE_PAGE = `${LIST_PAGE}/create`;
-export const DOCS = 'http://links.globalart.dev/products/astrum/docs/routing-rules';
+export const DOCS = 'https://links.globalart.dev/products/astrum/docs/routing-rules';
 export const NAME_PATTERN = /^[A-Za-z0-9-][A-Za-z0-9_.-]*$/;
 export const MAX_NAME = 200;
 

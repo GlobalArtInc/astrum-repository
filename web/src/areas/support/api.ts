@@ -7,7 +7,7 @@ export const CHECKS = `${INTERNAL}/ui/status-check`;
 export const SYSTEM_INFORMATION = `${REST}/atlas/system-information`;
 export const SUPPORT_ZIP = `${V1}/support/supportzippath`;
 export const DOWNLOAD = `${REST}/wonderland/download`;
-export const DOCS = 'http://links.globalart.dev/products/astrum/docs';
+export const DOCS = 'https://links.globalart.dev/products/astrum/docs';
 
 export const LOGS_PAGE = '/admin/support/logs';
 export const LOGGING_PAGE = '/admin/support/logging';

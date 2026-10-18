@@ -480,4 +480,4 @@ export function countBy<T>(rows: readonly T[], key: (row: T) => string): Map<str
   return counts;
 }
 
-export const DOCS = 'http://links.globalart.dev/products/astrum/docs';
+export const DOCS = 'https://links.globalart.dev/products/astrum/docs';

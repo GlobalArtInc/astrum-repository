@@ -112,6 +112,15 @@ describe('component snippets of the M4c formats', () => {
     );
     expect(componentGuideUrl('go', '', 'example.com/m', 'v1.0.0')).toBeNull();
   });
+
+  it('give scoped npm packages and maven artifacts their registry names in the guide', () => {
+    expect(componentGuideUrl('npm', 'babel', 'core', '7.24.0')).toBe(
+      'https://guide.globalart.dev/component/npm/%40babel%2Fcore/7.24.0?referrer=search-component-detail',
+    );
+    expect(componentGuideUrl('maven2', 'org.acme', 'lib', '2.0')).toBe(
+      'https://guide.globalart.dev/component/maven/org.acme%3Alib/2.0?referrer=search-component-detail',
+    );
+  });
 });
 
 describe('component snippets of Alpine', () => {

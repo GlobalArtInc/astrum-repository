@@ -1,6 +1,6 @@
 export const READ = 'astrum:settings:read';
 export const DOCUMENT = '/service/rest/swagger.json';
-export const DOCS = 'http://links.globalart.dev/products/astrum/docs/rest-api';
+export const DOCS = 'https://links.globalart.dev/products/astrum/docs/rest-api';
 export const METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as const;
 export const ALL = '*';
 

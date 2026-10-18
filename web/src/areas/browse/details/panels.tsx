@@ -6,7 +6,7 @@ import { api, apiKey, path, useApi, useInvalidateApi, withQuery } from '../../..
 import { useSession } from '../../../auth/state';
 import { formatNumber, useI18n, useT } from '../../../i18n';
 import { CopyButton, DateTime, ErrorState, FileSize, formatName, useToast } from '../../../ui';
-import { componentTitle } from '../links';
+import { componentTitle, guideComponentName } from '../links';
 import { parentOf } from '../tree/model';
 import {
   type AssetDetails,
@@ -62,7 +62,7 @@ export function guideUrl(
   if (!id || component.version === '') {
     return null;
   }
-  const name = format === 'maven2' ? `${component.group}:${component.name}` : component.name;
+  const name = guideComponentName(format, component.group, component.name);
   return `${GUIDE}/${id}/${encodeURIComponent(name)}/${encodeURIComponent(component.version)}?referrer=${referrer}`;
 }
 

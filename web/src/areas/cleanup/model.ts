@@ -17,7 +17,7 @@ export const PAGE_SIZE = 25;
 
 export type ReleaseType = 'RELEASES' | 'PRERELEASES';
 export const ANY_RELEASE = 'ANY';
-export const DOCS = 'http://links.globalart.dev/products/astrum/docs/cleanup-policy';
+export const DOCS = 'https://links.globalart.dev/products/astrum/docs/cleanup-policy';
 
 export interface Policy {
   name: string;

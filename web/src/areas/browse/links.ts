@@ -45,3 +45,19 @@ export function componentTitle(format: string, group: string, name: string): str
   }
   return `${group}:${name}`;
 }
+
+export function guideComponentName(format: string, group: string, name: string): string {
+  if (group === '') {
+    return name;
+  }
+  switch (format) {
+    case 'maven2':
+      return `${group}:${name}`;
+    case 'npm':
+      return `@${group.replace(/^@/, '')}/${name}`;
+    case 'composer':
+      return `${group}/${name}`;
+    default:
+      return name;
+  }
+}
