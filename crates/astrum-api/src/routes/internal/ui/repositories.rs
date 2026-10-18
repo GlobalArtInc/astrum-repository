@@ -52,6 +52,35 @@ struct RepositoryXo {
     last_uploaded: Option<String>,
     limited: bool,
     permissions: Flags,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    domain: Option<DomainXo>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DomainXo {
+    host: String,
+    routing: astrum_repo::config::DomainRouting,
+    path: Option<String>,
+    url: String,
+}
+
+fn domain_of(repository: &astrum_repo::config::Repository, base: &str) -> Option<DomainXo> {
+    let (host, routing) = repository.domain()?;
+    let scheme = base.split_once("://").map_or("https", |(scheme, _)| scheme);
+    let url = match routing {
+        astrum_repo::config::DomainRouting::Root => format!("{scheme}://{host}/"),
+        astrum_repo::config::DomainRouting::Path => {
+            format!("{scheme}://{host}/{}/", repository.domain_path())
+        }
+    };
+    Some(DomainXo {
+        host: host.to_owned(),
+        routing,
+        path: (routing == astrum_repo::config::DomainRouting::Path)
+            .then(|| repository.domain_path().to_owned()),
+        url,
+    })
 }
 
 #[derive(Serialize)]
@@ -156,6 +185,7 @@ async fn list(
                 last_uploaded: found.and_then(|stats| stats.last).map(time),
                 limited: seen.limited,
                 permissions: seen.flags,
+                domain: domain_of(repository, &base.0),
             }
         })
         .collect();

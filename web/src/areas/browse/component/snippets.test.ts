@@ -130,3 +130,26 @@ describe('component snippets of Alpine', () => {
     ).toEqual([{ id: 'apk', label: 'apk', code: 'apk add hello=1.0-r0' }]);
   });
 });
+
+describe('component snippets on a repository domain', () => {
+  it('pull images from the domain', () => {
+    const image = { ...base, format: 'docker', group: '', name: 'team/app', version: '1.2' };
+    expect(componentSnippets(image)[0]?.code).toBe('docker pull repo.example.org/r/team/app:1.2');
+    const root = {
+      host: 'docker-prem.example.org',
+      routing: 'ROOT' as const,
+      url: 'https://docker-prem.example.org/',
+    };
+    expect(componentSnippets({ ...image, domain: root })[0]?.code).toBe(
+      'docker pull docker-prem.example.org/team/app:1.2',
+    );
+    const shared = {
+      host: 'images.example.org',
+      routing: 'PATH' as const,
+      url: 'https://images.example.org/r/',
+    };
+    expect(componentSnippets({ ...image, domain: shared })[1]?.code).toBe(
+      'podman pull images.example.org/r/team/app:1.2',
+    );
+  });
+});

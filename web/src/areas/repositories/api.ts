@@ -1,4 +1,4 @@
-import { INTERNAL, path, type RepositoryType, useApi, V1, withQuery } from '../../api';
+import { INTERNAL, path, type RepositoryDomain, type RepositoryType, useApi, V1, withQuery } from '../../api';
 
 export const UI_REPOSITORIES = `${INTERNAL}/ui/repositories`;
 export const RECIPES = `${INTERNAL}/ui/repositories/recipes`;
@@ -32,6 +32,7 @@ export interface UiRepository {
   lastUploaded: string | null;
   limited: boolean;
   permissions: RepositoryFlags;
+  domain?: RepositoryDomain;
 }
 
 export interface Recipe {

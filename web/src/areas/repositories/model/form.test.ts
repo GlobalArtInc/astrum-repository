@@ -5,6 +5,7 @@ import { canonical, clone, getPath, type RepositoryDocument } from './document';
 import {
   changedPaths,
   documentMembers,
+  domainAddress,
   formField,
   fromDocument,
   onFormFields,
@@ -449,5 +450,71 @@ describe('the Alpine format', () => {
     expect(formField('PARAMETER alpineSigning', spec)).toBe('alpineKeypair');
     expect(formField('PARAMETER yumSigning.keypair', { format: 'yum', type: 'hosted' })).toBe('yumKeypair');
     expect(formField('PARAMETER keypair', { format: 'raw', type: 'hosted' })).toBeNull();
+  });
+});
+
+describe('repository domains', () => {
+  const spec: Spec = { format: 'docker', type: 'hosted' };
+  const document: RepositoryDocument = { ...template(spec, 'default'), name: 'docker-onprem' };
+  const errors = (change: Partial<RepositoryValues>) =>
+    validate(
+      { ...fromDocument(document), ...change },
+      { spec, creating: false, stored: storedSecrets(document) },
+      t,
+    );
+
+  it('are written to the domain section and left out when not set', () => {
+    expect(edit(document, {}).domain).toBeUndefined();
+    expect(edit(document, { domainHost: ' Docker-Prem.example.org ' }).domain).toEqual({
+      host: 'Docker-Prem.example.org',
+    });
+    const shared = edit(document, {
+      domainHost: 'images.example.org',
+      domainRouting: 'PATH',
+      domainPath: 'prod',
+    });
+    expect(shared.domain).toEqual({ host: 'images.example.org', routing: 'PATH', path: 'prod' });
+    expect(fromDocument(shared)).toMatchObject({
+      domainHost: 'images.example.org',
+      domainRouting: 'PATH',
+      domainPath: 'prod',
+    });
+    expect(getPath(edit(shared, { domainHost: '' }), ['domain', 'host'])).toBeNull();
+  });
+
+  it('take a domain name and one path segment', () => {
+    expect(errors({ domainHost: 'docker-prem.example.org' })).toEqual({});
+    for (const host of [
+      'https://images.example.org',
+      'localhost',
+      'images.example.org:8443',
+      '10.0.0.1',
+      'a_b.example.org',
+    ]) {
+      expect(errors({ domainHost: host }).domainHost, host).toBeDefined();
+    }
+    expect(errors({ domainHost: 'images.example.org', domainRouting: 'PATH', domainPath: '/prod/' })).toEqual(
+      {},
+    );
+    for (const path of ['a/b', 'v2', 'Repository', '..']) {
+      expect(
+        errors({ domainHost: 'images.example.org', domainRouting: 'PATH', domainPath: path }).domainPath,
+        path,
+      ).toBeDefined();
+    }
+    expect(errors({ domainHost: 'images.example.org', domainPath: 'a/b' })).toEqual({});
+    expect(formField('PARAMETER domainPath', spec)).toBe('domainPath');
+  });
+
+  it('show the address on the domain', () => {
+    const values = { ...fromDocument(document), domainHost: 'Images.example.org.' };
+    expect(domainAddress(values)).toBe('https://images.example.org/');
+    expect(domainAddress({ ...values, domainRouting: 'PATH' })).toBe(
+      'https://images.example.org/docker-onprem/',
+    );
+    expect(domainAddress({ ...values, domainRouting: 'PATH', domainPath: 'prod' }, 'http:')).toBe(
+      'http://images.example.org/prod/',
+    );
+    expect(domainAddress({ ...values, domainHost: 'nope' })).toBeNull();
   });
 });

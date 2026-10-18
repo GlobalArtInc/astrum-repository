@@ -77,9 +77,10 @@ impl Server {
                 "the user interface is not installed; the REST API and repositories work without it"
             ),
         }
-        let app = astrum_api::router_with(self.state.clone(), crate::formats::routes())
-            .fallback_service(crate::web::router(self.web_dir.clone()))
-            .layer(TraceLayer::new_for_http());
+        let routes = astrum_api::routes_with(self.state.clone(), crate::formats::routes())
+            .fallback_service(crate::web::router(self.web_dir.clone()));
+        let app =
+            astrum_api::on_domains(self.state.clone(), routes).layer(TraceLayer::new_for_http());
         let connectors = crate::connectors::Connectors::new(
             self.state.clone(),
             app.clone(),

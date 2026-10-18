@@ -149,6 +149,54 @@ certificate and key in PEM format, given to the server with `connectors.tls_cert
 `connectors.tls_key` (see [runtime configuration](runtime.md#configuration-file)); one pair serves all
 HTTPS connectors.
 
+## A domain of its own for a repository
+
+Any repository can also be reached on a domain of its own, set under **Domain** in its settings (or as
+the `domain` section of the repository over the REST API). Its address under `/repository/<name>/` on
+the server keeps working. The domain must point to the proxy, and the proxy must send its requests to
+the server with the original `Host` (or `X-Forwarded-Host`) and `X-Forwarded-Proto`, as in the examples
+above; the server picks the repository from the host. While
+a request comes in on a repository domain, the links the server writes (Docker token realms, npm
+tarballs, index pages) use that domain.
+
+There are two ways to use a domain:
+
+- **Whole domain** (`ROOT`): the domain belongs to one repository and serves it from its root.
+  `docker-prem.example.com` for the Docker repository `docker-onprem`:
+
+  ```shell
+  docker login docker-prem.example.com
+  docker pull docker-prem.example.com/team/app:1.0
+  ```
+
+  For other formats the domain root is the repository URL: `https://files.example.com/tools/1.0/install.sh`
+  is `/repository/files/tools/1.0/install.sh`.
+
+- **Path on a shared domain** (`PATH`): several repositories share the domain, each under its own first
+  path segment, which is the repository name unless **Path** says otherwise. With `images.example.com`,
+  `docker-onprem` under the path `prod` and `docker-dev` without a path:
+
+  ```shell
+  docker pull images.example.com/prod/team/app:1.0
+  docker pull images.example.com/docker-dev/team/tool:2.0
+  ```
+
+  The catalogue of the domain (`/v2/_catalog`) lists the images of its Docker repositories under their
+  paths.
+
+The settings refuse a domain that another repository uses as a whole domain, a whole domain on a
+domain that other repositories share, a path that is already taken on the same domain, the server's own
+host, and paths `v2`, `repository` and `service`. Before saving, the form looks up the A record of the
+domain and says whether it points to this server; the repository is saved either way, so a domain can be
+set up before its DNS. On a repository domain, `/service/` is still the REST API, and other repositories
+are not reachable.
+
+Over REST the section reads:
+
+```json
+"domain": { "host": "images.example.com", "routing": "PATH", "path": "prod" }
+```
+
 ## Serving a repository under another host or path
 
 A proxy can expose a single repository under a product-specific address by rewriting the path, for

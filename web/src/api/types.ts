@@ -1,5 +1,12 @@
 export type RepositoryType = 'hosted' | 'proxy' | 'group';
 
+export interface RepositoryDomain {
+  host: string;
+  routing: 'ROOT' | 'PATH';
+  path?: string | null;
+  url: string;
+}
+
 export interface UiUser {
   userId: string;
   name: string;

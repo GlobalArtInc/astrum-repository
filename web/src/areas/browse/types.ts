@@ -1,4 +1,4 @@
-import type { RepositoryType } from '../../api';
+import type { RepositoryDomain, RepositoryType } from '../../api';
 
 export const UI_PATH = '/service/rest/internal/ui';
 export const REPOSITORIES_PATH = `${UI_PATH}/repositories`;
@@ -32,6 +32,7 @@ export interface RepositoryItem {
   lastUploaded: string | null;
   limited: boolean;
   permissions: RepositoryFlags;
+  domain?: RepositoryDomain;
 }
 
 export interface Coordinates {

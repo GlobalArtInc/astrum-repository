@@ -85,7 +85,17 @@ function Dependencies({
   const t = useT();
   const toast = useToast();
   const { state } = useSession();
-  const snippets = componentSnippets({ format, group, name, version, repository, baseUrl: state.baseUrl });
+  const repositories = useApi<RepositoryItem[]>(REPOSITORIES_PATH);
+  const domain = repositories.data?.find((candidate) => candidate.name === repository)?.domain;
+  const snippets = componentSnippets({
+    format,
+    group,
+    name,
+    version,
+    repository,
+    baseUrl: state.baseUrl,
+    domain,
+  });
   const [chosen, setChosen] = useState<string | undefined>(undefined);
   const current = snippets.find((snippet) => snippet.id === chosen) ?? snippets[0];
   if (!current) {

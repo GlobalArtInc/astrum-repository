@@ -82,6 +82,7 @@ impl Spec {
             Section::Cargo => when(format == "cargo", Defaulted),
             Section::ConanProxy => when(format == "conan" && kind == Proxy, Defaulted),
             Section::AlpineSigning => when(format == "alpine", Nullable),
+            Section::Domain => Some(Omitted),
         }
     }
 

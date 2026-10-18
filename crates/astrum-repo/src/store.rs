@@ -8,7 +8,7 @@ use sea_orm::{
 };
 
 use crate::RepositoryType;
-use crate::config::{Problem, Problems, Repository, Spec};
+use crate::config::{DomainRouting, Problem, Problems, Repository, Spec};
 use crate::routing::RoutingRule;
 
 const WRITE_LOCK: i64 = i64::from_be_bytes(*b"astrrepo");
@@ -482,6 +482,45 @@ impl Writer {
         self.check_group(candidate, problems);
         self.check_ports(candidate, problems);
         self.check_hosts(candidate, problems);
+        self.check_domain(candidate, problems);
+    }
+
+    fn check_domain(&self, candidate: &Repository, problems: &mut Problems) {
+        let Some((host, routing)) = candidate.domain() else {
+            return;
+        };
+        let others = || {
+            self.repositories.iter().filter(|other| {
+                !other.is_named(&candidate.name)
+                    && other.domain().is_some_and(|(used, _)| used == host)
+            })
+        };
+        let exclusive = others().find(|other| {
+            routing == DomainRouting::Root
+                || other
+                    .domain()
+                    .is_some_and(|(_, other_routing)| other_routing == DomainRouting::Root)
+        });
+        if let Some(other) = exclusive {
+            problems.add(
+                "domainHost",
+                format!(
+                    "the domain {host} is used by the repository \"{}\"; a domain is shared only when every repository on it uses path routing",
+                    other.name
+                ),
+            );
+            return;
+        }
+        let path = candidate.domain_path();
+        if let Some(other) = others().find(|other| other.domain_path().eq_ignore_ascii_case(path)) {
+            problems.add(
+                "domainPath",
+                format!(
+                    "{host}/{path} already leads to the repository \"{}\"",
+                    other.name
+                ),
+            );
+        }
     }
 
     fn check_hosts(&self, candidate: &Repository, problems: &mut Problems) {

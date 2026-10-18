@@ -5,6 +5,7 @@ mod blobstores;
 mod browse;
 mod browse_asset;
 mod cleanup_policies;
+mod domains;
 pub(crate) mod identity;
 pub mod nodes;
 mod notifications;
@@ -27,6 +28,7 @@ pub const UI: &str = "/service/rest/internal/ui";
 pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(repositories::routes())
+        .merge(domains::routes())
         .merge(browse::routes())
         .merge(browse_asset::routes())
         .merge(search::routes())

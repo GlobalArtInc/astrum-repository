@@ -52,6 +52,9 @@ impl AppState {
 }
 
 pub async fn scope(State(state): State<AppState>, request: Request, next: Next) -> Response {
-    let configured = state.configured_base_url().await;
+    let configured = match request.extensions().get::<crate::domains::DomainRoute>() {
+        Some(route) => Some(route.origin().to_owned()),
+        None => state.configured_base_url().await,
+    };
     CONFIGURED.scope(configured, next.run(request)).await
 }
