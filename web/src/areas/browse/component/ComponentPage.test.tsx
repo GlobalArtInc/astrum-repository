@@ -119,6 +119,11 @@ describe('the component page', { timeout: 20_000 }, () => {
     expect(componentSnippets({ ...context, format: 'docker', group: '', name: 'team/app' })[0]?.code).toBe(
       'docker pull r.example/x/team/app:2.0',
     );
+    expect(componentSnippets({ ...context, format: 'docker', group: '', name: 'team/app' })[1]).toEqual({
+      id: 'podman',
+      label: 'Podman',
+      code: 'podman pull r.example/x/team/app:2.0',
+    });
     expect(componentSnippets({ ...context, format: 'helm' })).toEqual([]);
     expect(componentSnippets({ ...context, format: 'conda', group: 'main', name: 'hello' })[0]?.code).toBe(
       'conda install -c https://r.example/repository/x/main hello=2.0',

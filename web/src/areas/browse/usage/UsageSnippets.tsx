@@ -70,12 +70,36 @@ export function UsageTabs({ snippets }: UsageTabsProps) {
         aria-labelledby={`${id}-tab-${current.id}`}
         className={styles.panel}
       >
-        {current.hint && (
-          <Text as="p" size="2" color="gray" className={styles.hint}>
-            {t(current.hint, current.hintVars)}
-          </Text>
+        {current.blocks ? (
+          current.blocks.map((block) => {
+            const title = block.labelKey ? t(block.labelKey) : block.label;
+            return (
+              <section key={block.id} className={styles.block} aria-label={title}>
+                <Text as="p" size="2" weight="medium" className={styles.blockTitle}>
+                  {title}
+                </Text>
+                {block.hint && (
+                  <Text as="p" size="2" color="gray" className={styles.hint}>
+                    {t(block.hint)}
+                  </Text>
+                )}
+                <CodeBlock
+                  code={block.code}
+                  copyLabel={t('browse.usage.copy', { label: `${label(current)} ${title}` })}
+                />
+              </section>
+            );
+          })
+        ) : (
+          <>
+            {current.hint && (
+              <Text as="p" size="2" color="gray" className={styles.hint}>
+                {t(current.hint, current.hintVars)}
+              </Text>
+            )}
+            <CodeBlock code={current.code} copyLabel={t('browse.usage.copy', { label: label(current) })} />
+          </>
         )}
-        <CodeBlock code={current.code} copyLabel={t('browse.usage.copy', { label: label(current) })} />
       </div>
     </div>
   );

@@ -87,6 +87,7 @@ describe('access tokens', () => {
   it('shows how each client uses the token as the password', () => {
     const examples = usageExamples('http://repo.example:8081/', 'jane', 'astrum_x');
     expect(examples.docker).toBe("echo 'astrum_x' | docker login repo.example:8081 -u jane --password-stdin");
+    expect(examples.podman).toBe("echo 'astrum_x' | podman login repo.example:8081 -u jane --password-stdin");
     expect(examples.npm).toBe(
       `registry=http://repo.example:8081/repository/<repository>/\n//repo.example:8081/repository/<repository>/:_auth=${btoa('jane:astrum_x')}`,
     );

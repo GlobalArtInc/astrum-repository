@@ -54,6 +54,17 @@
   min-width: 0;
 }
 
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.blockTitle {
+  margin: 0;
+}
+
 .hint {
   margin: 0;
 }

@@ -146,9 +146,9 @@ export function needsPasswordSignIn(error: unknown): boolean {
   return error instanceof ApiError && error.status === 403 && /password/i.test(error.message);
 }
 
-export type UsageKind = 'docker' | 'npm' | 'maven' | 'pip' | 'curl';
+export type UsageKind = 'docker' | 'podman' | 'npm' | 'maven' | 'pip' | 'curl';
 
-export const USAGE_KINDS: readonly UsageKind[] = ['docker', 'npm', 'maven', 'pip', 'curl'];
+export const USAGE_KINDS: readonly UsageKind[] = ['docker', 'podman', 'npm', 'maven', 'pip', 'curl'];
 
 function base64(text: string): string {
   let binary = '';
@@ -165,6 +165,7 @@ export function usageExamples(baseUrl: string, userId: string, token: string): R
   const repository = `${base}/repository/<repository>/`;
   return {
     docker: `echo '${token}' | docker login ${url.host} -u ${userId} --password-stdin`,
+    podman: `echo '${token}' | podman login ${url.host} -u ${userId} --password-stdin`,
     npm: `registry=${repository}\n//${host}/repository/<repository>/:_auth=${base64(`${userId}:${token}`)}`,
     maven: `<server>\n  <id>astrum</id>\n  <username>${userId}</username>\n  <password>${token}</password>\n</server>`,
     pip: `pip install --index-url ${url.protocol}//${encodeURIComponent(userId)}:${token}@${host}/repository/<repository>/simple/ <package>`,

@@ -102,6 +102,7 @@ function docker(context: ComponentSnippetContext): ComponentSnippet[] {
   const service = context.name.split('/').pop() ?? context.name;
   return [
     { id: 'docker', label: 'Docker', code: `docker pull ${image}` },
+    { id: 'podman', label: 'Podman', code: `podman pull ${image}` },
     { id: 'dockerfile', label: 'Dockerfile', code: `FROM ${image}` },
     { id: 'compose', label: 'Compose', code: `services:\n  ${service}:\n    image: ${image}` },
     {

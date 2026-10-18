@@ -48,6 +48,7 @@ import styles from './Tokens.module.css';
 const INITIAL: TokenValues = { name: '', scope: 'READ', days: 90 };
 const USAGE_LABELS: Record<UsageKind, string> = {
   docker: 'Docker',
+  podman: 'Podman',
   npm: 'npm',
   maven: 'Maven',
   pip: 'pip',

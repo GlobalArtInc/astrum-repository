@@ -24,6 +24,14 @@ export interface UsageContext {
   alpineKey?: string;
 }
 
+export interface SnippetBlock {
+  id: string;
+  label: string;
+  labelKey?: string;
+  code: string;
+  hint?: string;
+}
+
 export interface Snippet {
   id: string;
   label: string;
@@ -31,6 +39,7 @@ export interface Snippet {
   code: string;
   hint?: string;
   hintVars?: Record<string, string>;
+  blocks?: SnippetBlock[];
 }
 
 export const USAGE_FORMATS = [
@@ -397,14 +406,32 @@ function docker(context: UsageContext): Snippet[] {
       .split('/')
       .pop()
       ?.replace(/[^a-z0-9-]/gi, '') || 'app';
-  const snippets: Snippet[] = [
-    { id: 'pull', label: 'docker pull', code: `docker pull ${ref}` },
-    {
-      id: 'login',
-      label: 'docker login',
-      code: `docker login ${host}`,
-      hint: 'browse.usage.hint.dockerLogin',
-    },
+  const push = context.repositoryType === 'hosted' && !digest;
+  const client = (id: string, label: string): Snippet => {
+    const blocks: SnippetBlock[] = [
+      { id: 'pull', label: 'Pull', labelKey: 'browse.usage.label.pull', code: `${id} pull ${ref}` },
+      {
+        id: 'login',
+        label: 'Login',
+        labelKey: 'browse.usage.label.login',
+        code: `${id} login ${host}`,
+        hint: 'browse.usage.hint.dockerLogin',
+      },
+    ];
+    if (push) {
+      blocks.push({
+        id: 'push',
+        label: 'Push',
+        labelKey: 'browse.usage.label.push',
+        code: `${id} tag ${image}:${reference} ${ref}\n${id} push ${ref}`,
+        hint: 'browse.usage.hint.dockerPush',
+      });
+    }
+    return { id, label, code: blocks.map((block) => block.code).join('\n'), blocks };
+  };
+  return [
+    client('docker', 'Docker'),
+    client('podman', 'Podman'),
     {
       id: 'dockerfile',
       label: 'Dockerfile',
@@ -422,15 +449,6 @@ function docker(context: UsageContext): Snippet[] {
       code: `spec:\n  containers:\n  - name: ${service}\n    image: ${ref}`,
     },
   ];
-  if (context.repositoryType === 'hosted' && !digest) {
-    snippets.push({
-      id: 'push',
-      label: 'docker push',
-      code: `docker tag ${image}:${reference} ${ref}\ndocker push ${ref}`,
-      hint: 'browse.usage.hint.dockerPush',
-    });
-  }
-  return snippets;
 }
 
 function raw(context: UsageContext): Snippet[] {

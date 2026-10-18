@@ -152,12 +152,20 @@ describe('docker usage', () => {
         component: { group: '', name: 'team/app', version: '1.2' },
       }),
     );
-    expect(code(snippets, 'pull')).toBe('docker pull repo.example.org:8443/docker-hosted/team/app:1.2');
-    expect(code(snippets, 'login')).toBe('docker login repo.example.org:8443');
-    expect(code(snippets, 'dockerfile')).toBe('FROM repo.example.org:8443/docker-hosted/team/app:1.2');
-    expect(code(snippets, 'push')).toBe(
-      'docker tag team/app:1.2 repo.example.org:8443/docker-hosted/team/app:1.2\ndocker push repo.example.org:8443/docker-hosted/team/app:1.2',
-    );
+    const image = 'repo.example.org:8443/docker-hosted/team/app:1.2';
+    const blocks = (id: string) =>
+      snippets.find((snippet) => snippet.id === id)?.blocks?.map((block) => [block.label, block.code]);
+    expect(blocks('docker')).toEqual([
+      ['Pull', `docker pull ${image}`],
+      ['Login', 'docker login repo.example.org:8443'],
+      ['Push', `docker tag team/app:1.2 ${image}\ndocker push ${image}`],
+    ]);
+    expect(blocks('podman')).toEqual([
+      ['Pull', `podman pull ${image}`],
+      ['Login', 'podman login repo.example.org:8443'],
+      ['Push', `podman tag team/app:1.2 ${image}\npodman push ${image}`],
+    ]);
+    expect(code(snippets, 'dockerfile')).toBe(`FROM ${image}`);
     expect(ids(snippets)).not.toContain('insecure');
   });
 
@@ -172,8 +180,10 @@ describe('docker usage', () => {
         ...digest,
       }),
     );
-    expect(code(snippets, 'pull')).toBe('docker pull 127.0.0.1:18321/docker-hosted/app@sha256:abc');
-    expect(ids(snippets)).not.toContain('push');
+    expect(snippets[0]?.blocks?.map((block) => block.code)).toEqual([
+      'docker pull 127.0.0.1:18321/docker-hosted/app@sha256:abc',
+      'docker login 127.0.0.1:18321',
+    ]);
     expect(ids(snippets)).not.toContain('insecure');
   });
 
@@ -181,8 +191,9 @@ describe('docker usage', () => {
     const snippets = usageSnippets(
       context({ format: 'docker', repositoryName: 'hub', repositoryType: 'proxy' }),
     );
-    expect(code(snippets, 'pull')).toBe('docker pull repo.example.org/hub/<image>:<tag>');
-    expect(ids(snippets)).toEqual(['pull', 'login', 'dockerfile', 'compose', 'kubernetes']);
+    expect(snippets[1]?.blocks?.map((block) => block.id)).toEqual(['pull', 'login']);
+    expect(snippets[1]?.blocks?.[0]?.code).toBe('podman pull repo.example.org/hub/<image>:<tag>');
+    expect(ids(snippets)).toEqual(['docker', 'podman', 'dockerfile', 'compose', 'kubernetes']);
   });
 });
 
