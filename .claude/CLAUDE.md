@@ -17,6 +17,10 @@ with existing clients, and follow its clean-room rules. This repository is publi
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.
+- A repository can answer on a domain of its own (`domain` section: `ROOT` whole domain, `PATH` a path on a
+  shared domain; `crates/astrum-api/src/domains.rs`, `docs/configure/reverse-proxy.md`). No production
+  repository uses one yet: the owner wants `docker-onprem` on `docker-prem.globalart.hu` later, and gitops
+  (a route for the host) and DNS are not set up for it.
 - Production since 2026-10-18 06:02 UTC: gitops `clusters/prod1/platform/astrum/httproute.yaml` sends
   https://astrum.globalart.hu to the service `astrum-next:8082`, which is `astrum-next.service` on
   `prod1-astrum1` (rootless podman of the user `podman`, port 8082, data `/opt/astrum-next/data`, database
@@ -74,12 +78,18 @@ with existing clients, and follow its clean-room rules. This repository is publi
   -o '-p 5433 -k /tmp' start` as `postgres` (`/usr/lib/postgresql/<16|18>/bin`).
 
 ## Working rules
-- Commits: author and committer Roman Khabarov <roman@globalart.dev>
-  (`git -c user.name="Roman Khabarov" -c user.email=roman@globalart.dev commit ...`, also for
-  cherry-pick and rebase). Plain English, imperative subject, a body that says why. No mention of AI
-  tools, no Co-Authored-By or other trailers.
-- Push straight to `main` (no pull requests unless asked); keep the session's assigned branch in sync
-  with `main` when there is one.
+- Commits: author Roman Khabarov <roman@globalart.dev>
+  (`git -c user.name="Roman Khabarov" -c user.email=roman@globalart.dev -c commit.gpgsign=false commit ...`,
+  also for cherry-pick and rebase). Plain English, imperative subject, a body that says why. No mention of
+  AI tools, no Co-Authored-By or other trailers.
+- Commits on `main` must show as Verified (owner, 2026-10-18), and only commits GitHub creates itself do:
+  the cloud container signs with a key GitHub does not know (Unverified), an unsigned push shows no badge,
+  and the session proxy refuses GraphQL and REST writes of commits. So push the work to the session's
+  branch, open a pull request into `main` with the GitHub MCP tools and squash-merge it at once
+  (`merge_method: squash`, the commit's own title and body, `expectedHeadSha` the full branch sha); the
+  squash commit has Roman as author, GitHub as committer and a valid signature. Then restart the session
+  branch from `main` (`git checkout -B <branch> origin/main`, push with `--force-with-lease`). The same for
+  infra and gitops. Pull requests are only this vehicle: open, merge, no review.
 - Deploy after every change that reaches `main` and touches the Rust server, the web UI, the Dockerfile or
   `LICENSE.txt`/`NOTICE.txt` (the `Server` workflow does not run for other changes, so documentation needs no
   deploy):
@@ -88,7 +98,8 @@ with existing clients, and follow its clean-room rules. This repository is publi
      `YYYYMMDDHHMMSS-<sha7>`, then the same image as `next-YYYYMMDDHHMMSS-<sha7>`. It also moves `edge`; a
      pushed `v*` tag publishes `<version>` and `latest`.
   2. In `GlobalArtInc/infra`, set `astrum_next_version` in `infralive/ansible/roles/astrum/defaults/main.yaml`
-     to the production tag, commit `Update astrum_next_version to <tag>` as Roman, push to `main`. Never put
+     to the production tag, commit `Update astrum_next_version to <tag>` as Roman, land it on `main` as
+     above. Never put
      a Rust tag into `astrum_version`: that variable still deploys the Java container.
   3. Dispatch `provision.yml` on `main` with inputs `command=apply`, `filter=name=prod1-astrum1`; it runs
      on the self-hosted runners of the private infra repository (7–13 minutes). If OpenTofu init times out,
