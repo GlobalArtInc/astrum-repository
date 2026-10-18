@@ -156,6 +156,13 @@ describe('the component page', { timeout: 20_000 }, () => {
     expect(mainAsset('docker', [blob, manifest])?.path).toBe('/v2/app/manifests/1.0');
   });
 
+  it('offers the guide only when a version came from a proxy', async () => {
+    serve();
+    page(`${URL}?version=1.0`);
+    expect(await screen.findByRole('heading', { level: 1, name: 'lib v1.0' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Research in Guide' })).not.toBeInTheDocument();
+  });
+
   it('shows the newest version with its dependency snippet and details', async () => {
     serve();
     page(URL);

@@ -3,6 +3,7 @@ import {
   componentKey,
   componentPageUrl,
   componentTitle,
+  fromProxy,
   guideComponentName,
   parseComponentKey,
 } from './links';
@@ -41,5 +42,22 @@ describe('guide names', () => {
     expect(guideComponentName('composer', 'symfony', 'console')).toBe('symfony/console');
     expect(guideComponentName('conan', 'stable', 'zlib')).toBe('zlib');
     expect(guideComponentName('go', '', 'github.com/gin-gonic/gin')).toBe('github.com/gin-gonic/gin');
+  });
+});
+
+describe('guide visibility', () => {
+  const repositories = [
+    { name: 'docker-onprem', type: 'hosted' as const },
+    { name: 'docker-hub', type: 'proxy' as const },
+    { name: 'docker-all', type: 'group' as const },
+  ];
+
+  it('offers the guide only for components that came from a public registry', () => {
+    expect(fromProxy(repositories, ['docker-onprem'])).toBe(false);
+    expect(fromProxy(repositories, ['docker-hub'])).toBe(true);
+    expect(fromProxy(repositories, ['docker-all'])).toBe(false);
+    expect(fromProxy(repositories, ['docker-onprem', 'docker-hub'])).toBe(true);
+    expect(fromProxy(repositories, [undefined])).toBe(false);
+    expect(fromProxy(undefined, ['docker-hub'])).toBe(false);
   });
 });

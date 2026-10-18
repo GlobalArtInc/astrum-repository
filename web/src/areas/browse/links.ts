@@ -1,3 +1,5 @@
+import type { RepositoryItem } from './types';
+
 export function componentKey(format: string, group: string, name: string): string {
   return `${format}:${group}:${name}`;
 }
@@ -60,4 +62,14 @@ export function guideComponentName(format: string, group: string, name: string):
     default:
       return name;
   }
+}
+
+export function fromProxy(
+  repositories: Pick<RepositoryItem, 'name' | 'type'>[] | undefined,
+  names: (string | undefined)[],
+): boolean {
+  return names.some(
+    (name) =>
+      name !== undefined && (repositories ?? []).some((item) => item.name === name && item.type === 'proxy'),
+  );
 }

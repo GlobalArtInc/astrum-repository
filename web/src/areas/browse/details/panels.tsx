@@ -6,12 +6,13 @@ import { api, apiKey, path, useApi, useInvalidateApi, withQuery } from '../../..
 import { useSession } from '../../../auth/state';
 import { formatNumber, useI18n, useT } from '../../../i18n';
 import { CopyButton, DateTime, ErrorState, FileSize, formatName, useToast } from '../../../ui';
-import { componentTitle, guideComponentName } from '../links';
+import { componentTitle, fromProxy, guideComponentName } from '../links';
 import { parentOf } from '../tree/model';
 import {
   type AssetDetails,
   type FolderDeleted,
   formatAttributes,
+  REPOSITORIES_PATH,
   type RepositoryItem,
   type TreeListing,
   type TreeNode,
@@ -162,6 +163,11 @@ function Usage({ context }: { context: UsageContext }) {
   );
 }
 
+function useFromProxy(name: string | undefined): boolean {
+  const repositories = useApi<RepositoryItem[]>(REPOSITORIES_PATH);
+  return fromProxy(repositories.data, [name]);
+}
+
 function GuideButton({ href }: { href: string | null }) {
   const t = useT();
   if (!href) {
@@ -284,6 +290,7 @@ export function ComponentPanel({ repository, node, onNavigate }: PanelProps & { 
   const component = node.component ?? { group: '', name: node.name, version: '' };
   const deletable = repository.permissions.delete && repository.type !== 'group' && node.componentId;
   const title = componentTitle(repository.format, component.group, component.name);
+  const proxied = useFromProxy(node.repository ?? repository.name);
   const downloads = (listing.data?.children ?? []).reduce(
     (sum, child) => sum + (child.downloadCount ?? 0),
     0,
@@ -308,7 +315,9 @@ export function ComponentPanel({ repository, node, onNavigate }: PanelProps & { 
           }
           actions={
             <>
-              <GuideButton href={guideUrl(repository.format, component, 'browse-tree-component')} />
+              <GuideButton
+                href={proxied ? guideUrl(repository.format, component, 'browse-tree-component') : null}
+              />
               {deletable && (
                 <DeleteButton
                   label={t('browse.details.deleteComponent')}
@@ -484,6 +493,7 @@ function StoredAssetPanel({ repository, node, onNavigate }: PanelProps & { node:
   const { state } = useSession();
   const key = assetPath(repository.name, node.assetPath ?? node.path);
   const query = useApi<AssetDetails>(key);
+  const proxied = useFromProxy(query.data?.repository ?? node.repository ?? repository.name);
   if (query.isPending) {
     return (
       <div className={styles.panel} aria-busy="true">
@@ -547,7 +557,9 @@ function StoredAssetPanel({ repository, node, onNavigate }: PanelProps & { node:
           title={assetTitle(details, fileName)}
           actions={
             <>
-              {component && <GuideButton href={guideUrl(details.format, component, 'repo-browse-asset')} />}
+              {component && proxied && (
+                <GuideButton href={guideUrl(details.format, component, 'repo-browse-asset')} />
+              )}
               <Button asChild variant="soft" color="gray">
                 <a href={details.downloadUrl} download={fileName}>
                   <Download size={16} aria-hidden="true" />

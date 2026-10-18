@@ -16,7 +16,7 @@ import {
   useDocumentTitle,
   useToast,
 } from '../../../ui';
-import { componentKey, parseComponentKey } from '../links';
+import { componentKey, fromProxy, parseComponentKey } from '../links';
 import {
   REPOSITORIES_PATH,
   type RepositoryItem,
@@ -233,16 +233,18 @@ function Actions({
   group,
   name,
   version,
+  proxied,
 }: {
   format: string;
   group: string;
   name: string;
   version: string;
+  proxied: boolean;
 }) {
   const t = useT();
   const copied = componentPath(format, group, name, version);
   const registry = registryUrl(format, group, name);
-  const guide = componentGuideUrl(format, group, name, version);
+  const guide = proxied ? componentGuideUrl(format, group, name, version) : null;
   if (!copied && !registry && !guide) {
     return null;
   }
@@ -407,7 +409,13 @@ export default function ComponentPage() {
   ];
   return (
     <Frame crumbs={crumbs} title={title}>
-      <Actions format={format} group={group} name={name} version={entry.version} />
+      <Actions
+        format={format}
+        group={group}
+        name={name}
+        version={entry.version}
+        proxied={fromProxy(repositories.data, entry.repositories)}
+      />
       <TabNav.Root className={styles.tabs} aria-label={t('browse.component.tabs')}>
         {tabs.map((item) => (
           <TabNav.Link key={item.id} asChild active={tab === item.id}>
