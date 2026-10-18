@@ -40,6 +40,9 @@
           "alpineSigning": {
             "$ref": "#/components/schemas/AlpineSigningAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -76,6 +79,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -104,6 +110,9 @@
           },
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -180,6 +189,9 @@
       },
       "AnsibleGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -213,6 +225,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -238,6 +253,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -990,6 +1008,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -1043,6 +1064,9 @@
           },
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -1244,6 +1268,9 @@
           "cargo": {
             "$ref": "#/components/schemas/CargoAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -1280,6 +1307,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -1308,6 +1338,9 @@
           },
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -1366,6 +1399,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -1454,6 +1490,9 @@
       },
       "ComposerGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -1487,6 +1526,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -1512,6 +1554,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -1557,6 +1602,9 @@
       },
       "ConanGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -1589,6 +1637,9 @@
           },
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "name": {
             "example": "internal",
@@ -1631,6 +1682,9 @@
           },
           "conanProxy": {
             "$ref": "#/components/schemas/ConanProxyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -1676,6 +1730,9 @@
       },
       "CondaGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -1709,6 +1766,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -1734,6 +1794,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -1860,6 +1923,9 @@
           "docker": {
             "$ref": "#/components/schemas/DockerAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupDeployAttributes"
           },
@@ -1895,6 +1961,9 @@
           },
           "docker": {
             "$ref": "#/components/schemas/DockerAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "name": {
             "example": "internal",
@@ -1954,6 +2023,9 @@
           "dockerProxy": {
             "$ref": "#/components/schemas/DockerProxyAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
           },
@@ -1994,6 +2066,29 @@
           "proxy",
           "storage"
         ],
+        "type": "object"
+      },
+      "DomainAttributes": {
+        "properties": {
+          "host": {
+            "description": "A domain name of its own for the repository, such as docker.example.com; it must point to this server",
+            "example": "docker.example.com",
+            "type": "string"
+          },
+          "path": {
+            "description": "With PATH routing, the first path segment that leads to the repository on the domain; the repository name when left out",
+            "example": "prod",
+            "type": "string"
+          },
+          "routing": {
+            "description": "ROOT serves the repository at the top of the domain, which then belongs to it alone; PATH shares the domain between repositories, each under its own path segment",
+            "enum": [
+              "ROOT",
+              "PATH"
+            ],
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "FileBlobStoreApiCreateRequest": {
@@ -2153,6 +2248,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -2176,6 +2274,9 @@
       },
       "GoGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -2209,6 +2310,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -2234,6 +2338,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -2318,6 +2425,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -2343,6 +2453,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -2623,6 +2736,9 @@
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
           },
@@ -2693,6 +2809,9 @@
       },
       "MavenGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -2726,6 +2845,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "maven": {
             "$ref": "#/components/schemas/MavenAttributes"
           },
@@ -2755,6 +2877,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -2835,6 +2960,9 @@
       },
       "NpmGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -2868,6 +2996,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -2893,6 +3024,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -2959,6 +3093,9 @@
       },
       "NugetGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -2992,6 +3129,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -3017,6 +3157,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -3067,6 +3210,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -3197,6 +3343,9 @@
       },
       "PubGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -3230,6 +3379,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -3255,6 +3407,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -3300,6 +3455,9 @@
       },
       "PypiGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -3333,6 +3491,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -3358,6 +3519,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -3403,6 +3567,9 @@
       },
       "RGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -3436,6 +3603,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -3461,6 +3631,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -3536,6 +3709,9 @@
       },
       "RawGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -3572,6 +3748,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -3600,6 +3779,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -3789,6 +3971,9 @@
       },
       "RubygemsGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -3822,6 +4007,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -3847,6 +4035,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -4156,6 +4347,9 @@
       },
       "SwiftGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -4189,6 +4383,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -4214,6 +4411,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -4480,6 +4680,9 @@
       },
       "TerraformGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -4516,6 +4719,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -4547,6 +4753,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"
@@ -4675,6 +4884,9 @@
       },
       "YumGroupRepositoryApiRequest": {
         "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "group": {
             "$ref": "#/components/schemas/GroupAttributes"
           },
@@ -4711,6 +4923,9 @@
           "component": {
             "$ref": "#/components/schemas/ComponentAttributes"
           },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
           "name": {
             "example": "internal",
             "minLength": 1,
@@ -4742,6 +4957,9 @@
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
           },
           "firewall": {
             "$ref": "#/components/schemas/FirewallAttributes"

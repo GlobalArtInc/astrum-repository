@@ -1,8 +1,9 @@
+import type { RepositoryDomain } from '../../../api';
 import { guideComponentName } from '../links';
 import { installCommand, requirementsFile } from '../usage/ansible';
 import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
-import { repositoryUrl } from '../usage/snippets';
+import { dockerRegistry, repositoryAddress } from '../usage/snippets';
 
 export interface ComponentSnippet {
   id: string;
@@ -18,14 +19,7 @@ export interface ComponentSnippetContext {
   version: string;
   baseUrl: string;
   repository: string;
-}
-
-function host(baseUrl: string): string {
-  try {
-    return new URL(baseUrl).host;
-  } catch {
-    return baseUrl.replace(/^[a-z]+:\/\//i, '').replace(/\/.*$/, '');
-  }
+  domain?: RepositoryDomain;
 }
 
 function maven({ group, name, version }: ComponentSnippetContext): ComponentSnippet[] {
@@ -99,7 +93,8 @@ function pypi({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
 }
 
 function docker(context: ComponentSnippetContext): ComponentSnippet[] {
-  const image = `${host(context.baseUrl)}/${context.repository}/${context.name}:${context.version}`;
+  const { registry } = dockerRegistry(context.baseUrl, context.repository, context.domain);
+  const image = `${registry}/${context.name}:${context.version}`;
   const service = context.name.split('/').pop() ?? context.name;
   return [
     { id: 'docker', label: 'Docker', code: `docker pull ${image}` },
@@ -116,7 +111,7 @@ function docker(context: ComponentSnippetContext): ComponentSnippet[] {
 
 function nuget(context: ComponentSnippetContext): ComponentSnippet[] {
   const { name, version } = context;
-  const source = `${context.baseUrl.replace(/\/+$/, '')}/repository/${context.repository}/`;
+  const source = repositoryAddress(context.baseUrl, context.repository, context.domain);
   return [
     { id: 'package-manager', label: 'Package Manager', code: `Install-Package ${name} -Version ${version}` },
     { id: 'dotnet', label: '.NET CLI', code: `dotnet add package ${name} --version ${version}` },
@@ -198,7 +193,7 @@ function r({ name, version, baseUrl, repository }: ComponentSnippetContext): Com
 }
 
 function p2(context: ComponentSnippetContext): ComponentSnippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repository);
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain);
   const unit = installableUnit(context);
   if (!unit) {
     return [];
@@ -224,7 +219,7 @@ function alpine({ name, version }: ComponentSnippetContext): ComponentSnippet[] 
 }
 
 function pub(context: ComponentSnippetContext): ComponentSnippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repository).replace(/\/+$/, '');
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
   return [
     {
       id: 'add',
@@ -242,7 +237,7 @@ function pub(context: ComponentSnippetContext): ComponentSnippet[] {
 }
 
 function ansible(context: ComponentSnippetContext): ComponentSnippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repository);
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain);
   const collection = context.group ? `${context.group}.${context.name}` : context.name;
   return [
     { id: 'install', label: 'ansible-galaxy', code: installCommand(url, collection, context.version) },

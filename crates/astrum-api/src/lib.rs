@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod base_url;
+pub mod domains;
 pub mod error;
 pub mod json;
 mod notify_mail;
@@ -46,6 +47,7 @@ struct Inner {
     started: chrono::DateTime<chrono::Utc>,
     notifier: Notifier,
     base_url: base_url::Cache,
+    domains: domains::Cache,
     node_id: uuid::Uuid,
     started_at: chrono::DateTime<chrono::FixedOffset>,
     application_port: OnceLock<u16>,
@@ -80,6 +82,7 @@ impl AppState {
                 started: chrono::Utc::now(),
                 notifier,
                 base_url: base_url::Cache::default(),
+                domains: domains::Cache::default(),
                 node_id: uuid::Uuid::new_v4(),
                 started_at: chrono::Utc::now().fixed_offset(),
                 application_port: OnceLock::new(),
@@ -190,6 +193,16 @@ pub fn router(state: AppState) -> Router {
 }
 
 pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
+    on_domains(state.clone(), routes_with(state, extra))
+}
+
+pub fn on_domains(state: AppState, app: Router) -> Router {
+    Router::new()
+        .fallback_service(app)
+        .layer(middleware::from_fn_with_state(state, domains::route))
+}
+
+pub fn routes_with(state: AppState, extra: Router<AppState>) -> Router {
     Router::new()
         .merge(extra)
         .merge(routes::status::routes())

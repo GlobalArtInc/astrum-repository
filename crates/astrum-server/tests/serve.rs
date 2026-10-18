@@ -78,9 +78,13 @@ fn the_version_line_names_the_product() {
 }
 
 async fn fetch(address: std::net::SocketAddr, path: &str) -> (u16, String) {
+    fetch_on(address, &address.to_string(), path).await
+}
+
+async fn fetch_on(address: std::net::SocketAddr, host: &str, path: &str) -> (u16, String) {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     let mut stream = tokio::net::TcpStream::connect(address).await.unwrap();
-    let request = format!("GET {path} HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n");
+    let request = format!("GET {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n");
     stream.write_all(request.as_bytes()).await.unwrap();
     let mut reply = String::new();
     stream.read_to_string(&mut reply).await.unwrap();
@@ -139,6 +143,52 @@ async fn the_server_serves_the_ui_next_to_the_api() {
         assert!(status >= 400, "{path}: {status}");
         assert!(!reply.contains("astrum-ui-marker"), "{path}");
     }
+
+    let password = std::fs::read_to_string(config.data_dir.join("admin.password")).unwrap();
+    let client = reqwest::Client::new();
+    let created = client
+        .post(format!("http://{address}/service/rest/v1/repositories/raw/hosted"))
+        .basic_auth("admin", Some(&password))
+        .header("content-type", "application/json")
+        .body(serde_json::json!({
+            "name": "files",
+            "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+            "raw": {"contentDisposition": "INLINE"},
+            "domain": {"host": "files.example.org"},
+        }).to_string())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(created.status(), 201);
+    let uploaded = client
+        .put(format!("http://{address}/repository/files/tool/install.sh"))
+        .basic_auth("admin", Some(&password))
+        .body("echo domain-marker")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(uploaded.status(), 201);
+    let on_domain = |path: &'static str| {
+        client
+            .get(format!("http://{address}{path}"))
+            .header("host", "files.example.org")
+            .basic_auth("admin", Some(&password))
+            .send()
+    };
+    eventually("the domain is served", async || {
+        match on_domain("/tool/install.sh").await {
+            Ok(reply) => reply.text().await.unwrap_or_default() == "echo domain-marker",
+            Err(_) => false,
+        }
+    })
+    .await;
+    let (status, reply) = fetch_on(address, "files.example.org", "/browse/files").await;
+    assert!(status >= 400, "{status}");
+    assert!(!reply.contains("astrum-ui-marker"));
+    let (status, reply) = fetch(address, "/browse/files").await;
+    assert_eq!(status, 200);
+    assert!(reply.contains("astrum-ui-marker"));
 
     stop.send(()).unwrap();
     running.await.unwrap().unwrap();

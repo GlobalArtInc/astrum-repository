@@ -1,4 +1,4 @@
-import type { RepositoryType } from '../../../api';
+import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { ansible } from './ansible';
 import { huggingface } from './huggingface';
 import { p2 } from './p2';
@@ -22,6 +22,7 @@ export interface UsageContext {
   attributes?: Record<string, unknown>;
   distribution?: string;
   alpineKey?: string;
+  domain?: RepositoryDomain;
 }
 
 export interface SnippetBlock {
@@ -76,6 +77,25 @@ export function supportsUsage(format: string): boolean {
 
 export function repositoryUrl(baseUrl: string, repository: string): string {
   return `${baseUrl.replace(/\/+$/, '')}/repository/${encodeURIComponent(repository)}/`;
+}
+
+export function repositoryAddress(baseUrl: string, repository: string, domain?: RepositoryDomain): string {
+  return domain?.url ?? repositoryUrl(baseUrl, repository);
+}
+
+export function dockerRegistry(
+  baseUrl: string,
+  repository: string,
+  domain?: RepositoryDomain,
+): { host: string; registry: string } {
+  if (!domain) {
+    const host = hostOf(baseUrl);
+    return { host, registry: `${host}/${repository}` };
+  }
+  return {
+    host: domain.host,
+    registry: domain.routing === 'PATH' ? `${domain.host}/${domain.path ?? repository}` : domain.host,
+  };
 }
 
 export function encodePath(path: string): string {
@@ -208,7 +228,7 @@ function gradle(context: UsageContext, url: string, kotlin: boolean): Snippet {
 }
 
 function maven(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const id = xml(context.repositoryName);
   const snippets: Snippet[] = [];
   const component = context.component;
@@ -251,7 +271,7 @@ function maven(context: UsageContext): Snippet[] {
 }
 
 function npm(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const component = context.component;
   const scope = component?.group ? `@${component.group.replace(/^@/, '')}` : '';
   const pkg = component ? (scope ? `${scope}/${component.name}` : component.name) : '<package>';
@@ -286,7 +306,7 @@ function npm(context: UsageContext): Snippet[] {
 }
 
 function pypi(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const index = `${url}simple/`;
   const trusted = plainHttp(context.baseUrl) ? hostnameOf(context.baseUrl) : '';
   const component = context.component;
@@ -325,7 +345,7 @@ function pypi(context: UsageContext): Snippet[] {
 }
 
 function nuget(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const index = `${url}index.json`;
   const name = context.repositoryName;
   const component = context.component;
@@ -394,8 +414,7 @@ export function dockerImage(context: UsageContext): { image: string; reference: 
 }
 
 function docker(context: UsageContext): Snippet[] {
-  const host = hostOf(context.baseUrl);
-  const registry = `${host}/${context.repositoryName}`;
+  const { host, registry } = dockerRegistry(context.baseUrl, context.repositoryName, context.domain);
   const target = dockerImage(context);
   const image = target?.image ?? '<image>';
   const reference = target?.reference ?? '<tag>';
@@ -452,7 +471,7 @@ function docker(context: UsageContext): Snippet[] {
 }
 
 function raw(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const path = context.path ?? (context.component ? context.component.name : '');
   const known = path !== '' && !path.endsWith('/');
   const fileUrl = known ? `${url}${encodePath(path)}` : `${url}path/to/file.txt`;
@@ -479,7 +498,7 @@ function raw(context: UsageContext): Snippet[] {
 }
 
 function helm(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const repository = context.repositoryName;
   const name = context.component?.name || '<chart>';
   const version = context.component?.version ?? '';
@@ -529,7 +548,7 @@ function yumBase(context: UsageContext): string[] {
 }
 
 function yum(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const name = context.repositoryName;
   const base = yumBase(context);
   const baseUrl = base.length > 0 ? `${url}${encodePath(base.join('/'))}/` : url;
@@ -567,7 +586,7 @@ function yum(context: UsageContext): Snippet[] {
 }
 
 function rubygems(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const name = context.component?.name ?? '';
   const version = context.component?.version ?? '';
   const snippets: Snippet[] = [];
@@ -617,7 +636,7 @@ function rubygems(context: UsageContext): Snippet[] {
 }
 
 function cargo(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const repository = context.repositoryName;
   const name = context.component?.name ?? '';
   const version = context.component?.version ?? '';
@@ -665,7 +684,7 @@ function escapeGoPath(text: string): string {
 }
 
 function go(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName).replace(/\/+$/, '');
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain).replace(/\/+$/, '');
   const module = context.component?.name || '<module>';
   const version = context.component?.version || '<version>';
   const snippets: Snippet[] = [
@@ -705,7 +724,7 @@ function go(context: UsageContext): Snippet[] {
 }
 
 function apt(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const name = context.component?.name ?? '';
   const version = context.component?.version ?? '';
   const distribution = context.distribution || '<distribution>';
@@ -740,7 +759,7 @@ function apt(context: UsageContext): Snippet[] {
 }
 
 function composer(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const vendor = context.component?.group ?? '';
   const project = context.component?.name ?? '';
   const version = context.component?.version ?? '';
@@ -777,7 +796,7 @@ function composer(context: UsageContext): Snippet[] {
 }
 
 function conan(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const repository = context.repositoryName;
   const name = context.component?.name ?? '';
   const version = context.component?.version ?? '';
@@ -807,7 +826,7 @@ function conan(context: UsageContext): Snippet[] {
 }
 
 function cocoapods(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const name = context.component?.name ?? '';
   const version = context.component?.version ?? '';
   const pod = name ? `pod '${name}'${version ? `, '${version}'` : ''}` : "pod '<pod>'";
@@ -859,7 +878,7 @@ function condaPlace(context: UsageContext): { channel: string; subdir?: string; 
 }
 
 function conda(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const place = condaPlace(context);
   const channel = `${url}${encodePath(place.channel)}`.replace(/\/+$/, '');
   const name = context.component?.name ?? '';
@@ -904,7 +923,7 @@ function rString(value: string): string {
 }
 
 function r(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName).replace(/\/+$/, '');
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain).replace(/\/+$/, '');
   const name = context.component?.name ?? '';
   const version = context.component?.version ?? '';
   const repos = rString(url);
@@ -950,7 +969,7 @@ function r(context: UsageContext): Snippet[] {
 }
 
 function alpine(context: UsageContext): Snippet[] {
-  const url = repositoryUrl(context.baseUrl, context.repositoryName);
+  const url = repositoryAddress(context.baseUrl, context.repositoryName, context.domain);
   const segments = (context.path ?? '').split('/').filter((segment) => segment !== '');
   const stored = segments[segments.length - 1] ?? '';
   const placed = stored.endsWith('.apk') && segments.length >= 2;
@@ -997,7 +1016,7 @@ function alpine(context: UsageContext): Snippet[] {
 const LFS_OID = /^[0-9a-f]{64}$/;
 
 function gitlfs(context: UsageContext): Snippet[] {
-  const api = `${repositoryUrl(context.baseUrl, context.repositoryName)}info/lfs`;
+  const api = `${repositoryAddress(context.baseUrl, context.repositoryName, context.domain)}info/lfs`;
   const file = (context.path ?? '').split('/').pop() ?? '';
   const oid = [context.component?.name, file].find((candidate) => candidate && LFS_OID.test(candidate));
   const snippets: Snippet[] = [
@@ -1035,7 +1054,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   helm,
   swift: (context) =>
     swift(context, repositoryUrl(context.baseUrl, context.repositoryName), hostnameOf(context.baseUrl)),
-  huggingface: (context) => huggingface(context, repositoryUrl(context.baseUrl, context.repositoryName)),
+  huggingface: (context) =>
+    huggingface(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   terraform: (context) =>
     terraform(context, repositoryUrl(context.baseUrl, context.repositoryName), hostOf(context.baseUrl)),
   yum,
@@ -1049,10 +1069,11 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   cocoapods,
   conda,
   r,
-  p2: (context) => p2(context, repositoryUrl(context.baseUrl, context.repositoryName)),
+  p2: (context) => p2(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   alpine,
-  pub: (context) => pub(context, repositoryUrl(context.baseUrl, context.repositoryName)),
-  ansible: (context) => ansible(context, repositoryUrl(context.baseUrl, context.repositoryName)),
+  pub: (context) => pub(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  ansible: (context) =>
+    ansible(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

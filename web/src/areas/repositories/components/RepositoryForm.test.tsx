@@ -348,6 +348,44 @@ describe('the repository form', () => {
     expect(getPath(sent, ['docker', 'httpsPort'])).toBe(8083);
   });
 
+  it('looks up a new domain before saving and saves it even without an A record', async () => {
+    const check = vi.fn(() =>
+      jsonResponse({
+        host: 'docker-prem.example.org',
+        status: 'missing',
+        addresses: [],
+        serverAddresses: ['10.0.0.1'],
+      }),
+    );
+    const server = fakeServer({
+      'GET /service/rest/internal/ui/domains/check?host=docker-prem.example.org': check,
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    const document = structuredClone(BY_KEY['docker/hosted/max'] as RepositoryDocument);
+    const { onSubmit } = renderForm({ document });
+    await userEvent.type(screen.getByRole('textbox', { name: 'Domain' }), 'Docker-Prem.example.org');
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'docker-prem.example.org has no A record yet',
+    );
+    expect(screen.getByText('Address on the domain: docker-prem.example.org/<image>')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(getPath(onSubmit.mock.calls[0]?.[0] as RepositoryDocument, ['domain', 'host'])).toBe(
+      'Docker-Prem.example.org',
+    );
+    expect(await screen.findByText('Saved, but the domain does not lead here yet')).toBeInTheDocument();
+    expect(check).toHaveBeenCalledTimes(2);
+  });
+
+  it('refuses a domain that is not a domain name before asking the server', async () => {
+    const document = structuredClone(BY_KEY['raw/hosted/max'] as RepositoryDocument);
+    const { onSubmit } = renderForm({ document });
+    await userEvent.type(screen.getByRole('textbox', { name: 'Domain' }), 'https://files.example.org');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText(/Enter a domain name such as docker.example.com/)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('keeps readers from asking for a port', () => {
     renderForm({ document: BY_KEY['docker/hosted/max'] as RepositoryDocument, readOnly: true });
     for (const link of screen.getAllByRole('button', { name: 'Suggest available port' })) {

@@ -341,6 +341,7 @@ export function ComponentPanel({ repository, node, onNavigate }: PanelProps & { 
             component,
             distribution: repository.distribution ?? undefined,
             alpineKey: repository.alpineKey ?? undefined,
+            domain: repository.domain,
           }}
         />
       </Card>
@@ -589,6 +590,7 @@ function StoredAssetPanel({ repository, node, onNavigate }: PanelProps & { node:
             attributes,
             distribution: repository.distribution ?? undefined,
             alpineKey: repository.alpineKey ?? undefined,
+            domain: repository.domain,
           }}
         />
       </Card>

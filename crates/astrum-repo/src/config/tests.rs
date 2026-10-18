@@ -460,3 +460,25 @@ fn summaries_show_the_remote_of_proxies_only() {
     .unwrap();
     assert_eq!(hosted.summary("http://h")["attributes"], json!({}));
 }
+
+#[test]
+fn a_domain_is_kept_when_given_and_left_out_otherwise() {
+    let spec = spec("raw", "hosted");
+    let mut request = minimal(spec, "files");
+    request["domain"] = json!({"host": "Files.GlobalArt.hu", "routing": "path"});
+    let repository = prepare(spec, request, None).unwrap();
+    assert_eq!(
+        repository.domain(),
+        Some(("files.globalart.hu", crate::config::DomainRouting::Path))
+    );
+    assert_eq!(
+        repository.document("http://h")["domain"],
+        json!({"host": "files.globalart.hu", "routing": "PATH"})
+    );
+
+    let mut blank = minimal(spec, "files");
+    blank["domain"] = json!({"host": " "});
+    let repository = prepare(spec, blank, None).unwrap();
+    assert_eq!(repository.domain(), None);
+    assert!(repository.document("http://h").get("domain").is_none());
+}

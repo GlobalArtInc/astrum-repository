@@ -11,6 +11,8 @@ import { CertificateDialog } from '../../outbound/ssl/CertificateDialog';
 import type { UiRepository } from '../api';
 import type { RepositoryDocument } from '../model/document';
 import {
+  domainAddress,
+  domainHost,
   fromDocument,
   hasSection,
   onFormFields,
@@ -20,6 +22,7 @@ import {
   validate,
 } from '../model/form';
 import { type Spec, sections } from '../model/spec';
+import { checkDomain, DomainStatus, domainWarning, useDomainCheck } from './DomainCheck';
 import { CleanupPolicies, MembersInput } from './FormParts';
 import {
   CheckInput,
@@ -129,6 +132,11 @@ const CONAN_VERSIONS = [
   { value: 'V2', label: 'repositories.form.conanVersions.V2' },
 ];
 
+const DOMAIN_ROUTINGS = [
+  { value: 'ROOT', label: 'repositories.form.domainRoutings.ROOT' },
+  { value: 'PATH', label: 'repositories.form.domainRoutings.PATH' },
+];
+
 const INDEX_TYPES = [
   { value: 'REGISTRY', label: 'repositories.form.indexTypes.REGISTRY' },
   { value: 'HUB', label: 'repositories.form.indexTypes.HUB' },
@@ -191,6 +199,11 @@ export function RepositoryForm(props: RepositoryFormProps) {
     validate: (values) => validate(values, { spec, creating, stored }, t),
     onSubmit: async (values) => {
       const next = toDocument(values, document);
+      const host = domainHost(values.domainHost);
+      const dns =
+        host !== '' && host !== domainHost(fromDocument(document).domainHost)
+          ? await checkDomain(host)
+          : null;
       setFailure(null);
       onFailure?.(null);
       refused.current = false;
@@ -205,6 +218,10 @@ export function RepositoryForm(props: RepositoryFormProps) {
         throw onFormFields(error, spec);
       }
       setSaved(next);
+      const warning = domainWarning(dns, t);
+      if (warning) {
+        toast.show({ tone: 'info', title: t('repositories.form.domainCheck.saved'), description: warning });
+      }
     },
   });
   const footer = !readOnly && !creating;
@@ -213,6 +230,12 @@ export function RepositoryForm(props: RepositoryFormProps) {
   const canManagePolicies = useCan('astrum:cleanup-policies:read');
   const cleanupOptions = useCleanupOptions(spec.format, values.cleanupPolicies, !sections.group(spec));
   const routingRules = useRoutingOptions(values.routingRuleName, sections.proxy(spec));
+  const domainCheck = useDomainCheck(values.domainHost);
+  const address = domainAddress(values, window.location.protocol);
+  const shownAddress =
+    address && spec.format === 'docker'
+      ? `${address.replace(/^[a-z]+:\/\//, '').replace(/\/$/, '')}/<image>`
+      : address;
 
   useEffect(() => {
     onDirtyChange?.(form.dirty);
@@ -414,6 +437,44 @@ export function RepositoryForm(props: RepositoryFormProps) {
             />
           </Section>
         )}
+
+        <Section
+          title={t('repositories.form.sections.domain')}
+          description={t('repositories.form.sections.domainText')}
+        >
+          <TextInput
+            {...field('domainHost')}
+            label={t('repositories.form.domainHost')}
+            hint={t('repositories.form.domainHostHint')}
+            placeholder={spec.format === 'docker' ? 'docker.example.com' : 'packages.example.com'}
+            autoComplete="off"
+          />
+          {values.domainHost.trim() !== '' && !form.errors.domainHost && <DomainStatus check={domainCheck} />}
+          {values.domainHost.trim() !== '' && (
+            <SelectInput
+              name="domainRouting"
+              error={form.errors.domainRouting}
+              value={values.domainRouting === 'PATH' ? 'PATH' : 'ROOT'}
+              onChange={(value) => form.set('domainRouting', value)}
+              disabled={readOnly}
+              label={t('repositories.form.domainRouting')}
+              hint={t('repositories.form.domainRoutingHint')}
+              options={options(DOMAIN_ROUTINGS)}
+            />
+          )}
+          {values.domainHost.trim() !== '' && values.domainRouting === 'PATH' && (
+            <TextInput
+              {...field('domainPath')}
+              label={t('repositories.form.domainPath')}
+              hint={t('repositories.form.domainPathHint')}
+              placeholder={values.name.trim() || 'prod'}
+              autoComplete="off"
+            />
+          )}
+          {shownAddress && (
+            <p className={styles.hint}>{t('repositories.form.domainAddress', { address: shownAddress })}</p>
+          )}
+        </Section>
 
         {sections.maven(spec) && (
           <Section

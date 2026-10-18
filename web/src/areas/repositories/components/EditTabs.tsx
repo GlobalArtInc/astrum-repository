@@ -127,6 +127,19 @@ export function SummaryTab({ repository, online }: { repository: UiRepository; o
             </a>
             <ExternalLink size={14} aria-hidden="true" />
           </Item>
+          {repository.domain && (
+            <Item term={t('repositories.summary.domain')} upper>
+              <a
+                className={`${styles.link} ${styles.ellipsis}`}
+                href={repository.domain.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {repository.domain.url}
+              </a>
+              <ExternalLink size={14} aria-hidden="true" />
+            </Item>
+          )}
           {repository.blobStoreName && (
             <Item term={t('repositories.summary.blobStore')} upper>
               <HardDrive size={14} aria-hidden="true" />

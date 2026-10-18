@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use astrum_api::domains::DomainRoute;
 use astrum_api::{AppState, Caller};
 use astrum_content::ContentRequest;
 use axum::Router;
@@ -87,11 +88,24 @@ fn subdomain_of(headers: &HeaderMap, uri: &Uri) -> Option<String> {
 pub async fn dedicated(
     state: &AppState,
     connector: Option<Connector>,
+    route: Option<&DomainRoute>,
     headers: &HeaderMap,
     uri: &Uri,
 ) -> Result<Option<astrum_repo::config::Repository>, RegistryError> {
     let db = state.db().conn();
     let internal = |error| RegistryError::from(astrum_content::ContentError::internal(error));
+    if let Some(DomainRoute::Root { repository, .. }) = route {
+        return match astrum_repo::store::find(db, repository)
+            .await
+            .map_err(internal)?
+        {
+            Some(found) if found.format.id == ID => Ok(Some(found)),
+            _ => Err(unreachable_name(repository)),
+        };
+    }
+    if route.is_some() {
+        return Ok(None);
+    }
     if let Some(Connector(port)) = connector {
         return match astrum_repo::store::docker_on_port(db, port)
             .await
@@ -151,14 +165,37 @@ async fn routed(
     let base = astrum_api::routes::repositories::base_url(&parts.headers, &parts.uri);
     let model = state.security().model();
     let connector = parts.extensions.get::<Connector>().copied();
-    let dedicated = match dedicated(&state, connector, &parts.headers, &parts.uri).await {
+    let route = parts.extensions.get::<DomainRoute>().cloned();
+    let dedicated = match dedicated(
+        &state,
+        connector,
+        route.as_ref(),
+        &parts.headers,
+        &parts.uri,
+    )
+    .await
+    {
         Ok(dedicated) => dedicated,
         Err(error) => return auth::with_challenge(error.into_response(), &model, &base, None),
     };
     let (name, remainder, mount) = match &dedicated {
         Some(repository) => (repository.name.as_str(), rest.as_str(), Mount::Root),
         None => {
-            let (name, remainder) = rest.split_once('/').unwrap_or((rest.as_str(), ""));
+            let (segment, remainder) = rest.split_once('/').unwrap_or((rest.as_str(), ""));
+            let name = match &route {
+                Some(route) => match route.repository_for(segment) {
+                    Some(name) => name,
+                    None => {
+                        return auth::with_challenge(
+                            unreachable_name(segment).into_response(),
+                            &model,
+                            &base,
+                            None,
+                        );
+                    }
+                },
+                None => segment,
+            };
             let found = match state.content().repository(name).await {
                 Ok(found) => found,
                 Err(error) => {
@@ -170,7 +207,13 @@ async fn routed(
                     );
                 }
             };
-            if !found.as_deref().is_some_and(path_enabled) {
+            let reachable = match &route {
+                Some(_) => found
+                    .as_deref()
+                    .is_some_and(|repository| repository.format.id == ID),
+                None => found.as_deref().is_some_and(path_enabled),
+            };
+            if !reachable {
                 return auth::with_challenge(
                     unreachable_name(name).into_response(),
                     &model,
@@ -178,7 +221,7 @@ async fn routed(
                     None,
                 );
             }
-            (name, remainder, Mount::Path(name.to_owned()))
+            (name, remainder, Mount::Path(segment.to_owned()))
         }
     };
     let context =
@@ -237,7 +280,8 @@ async fn catalog(
     let base = astrum_api::routes::repositories::base_url(headers, uri);
     let model = state.security().model();
     let connector = parts.extensions.get::<Connector>().copied();
-    match dedicated(&state, connector, headers, uri).await {
+    let route = parts.extensions.get::<DomainRoute>().cloned();
+    match dedicated(&state, connector, route.as_ref(), headers, uri).await {
         Ok(Some(repository)) => {
             let context = astrum_api::routes::content::context(
                 &state,
@@ -294,7 +338,11 @@ async fn catalog(
             .map_err(|error| RegistryError::from(astrum_content::ContentError::internal(error)))?;
         let mut names = Vec::new();
         for repository in repositories {
-            if !repository.online || !path_enabled(&repository) {
+            let listed = match &route {
+                Some(route) => route.admits(&repository.name) && repository.format.id == ID,
+                None => path_enabled(&repository),
+            };
+            if !repository.online || !listed {
                 continue;
             }
             let name = repository.name.clone();
@@ -308,8 +356,13 @@ async fn catalog(
             if ctx.subject.is_none() {
                 continue;
             }
+            let shown = route
+                .as_ref()
+                .and_then(|route| route.segment_of(&name))
+                .unwrap_or(&name)
+                .to_owned();
             for image in docker.images_of(&ctx).await? {
-                names.push(format!("{name}/{image}"));
+                names.push(format!("{shown}/{image}"));
             }
         }
         let (repositories, next) = paginate(

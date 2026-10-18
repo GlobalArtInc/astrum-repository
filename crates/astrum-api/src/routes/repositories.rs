@@ -170,6 +170,8 @@ async fn create(
     State(state): State<AppState>,
     caller: Caller,
     Path((format, kind)): Path<(String, String)>,
+    headers: HeaderMap,
+    uri: Uri,
     body: Result<crate::Json<Incoming>, ApiError>,
 ) -> Result<StatusCode, ApiError> {
     let subject = signed(&caller)?;
@@ -177,6 +179,7 @@ async fn create(
     let request = body?.0.into_request();
     let seal = |plain: &str| state.secrets().seal(plain);
     let repository = Repository::prepare(spec, request, None, &seal).map_err(invalid)?;
+    foreign_domain(&repository, &headers, &uri)?;
     require(
         subject,
         &permission(spec.format.id, &repository.name, "add"),
@@ -194,6 +197,8 @@ async fn update(
     State(state): State<AppState>,
     caller: Caller,
     Path((format, kind, name)): Path<(String, String, String)>,
+    headers: HeaderMap,
+    uri: Uri,
     body: Result<crate::Json<Incoming>, ApiError>,
 ) -> Result<StatusCode, ApiError> {
     let subject = signed(&caller)?;
@@ -207,6 +212,7 @@ async fn update(
     store::unchanged(&existing, spec, request.name.as_deref())?;
     let seal = |plain: &str| state.secrets().seal(plain);
     let repository = Repository::prepare(spec, request, Some(&existing), &seal).map_err(invalid)?;
+    foreign_domain(&repository, &headers, &uri)?;
     check_remote(&state, &repository, Some(&existing)).await?;
     let updated = writer.update(&existing.name, repository).await?;
     state.content().forget_repository(&updated.name);
@@ -294,6 +300,7 @@ async fn changed(
 ) -> Result<StatusCode, ApiError> {
     state.security().reload().await?;
     state.repository_changes().notify_one();
+    state.forget_domains();
     let event = Event::new(AUDIT_DOMAIN, kind, &repository.name).with(json!({
         "format": repository.format.id,
         "type": repository.kind.as_str(),
@@ -394,6 +401,28 @@ async fn check_remote(
         )),
         None => Ok(()),
     }
+}
+
+fn foreign_domain(repository: &Repository, headers: &HeaderMap, uri: &Uri) -> Result<(), ApiError> {
+    let Some((host, _)) = repository.domain() else {
+        return Ok(());
+    };
+    let base = base_url(headers, uri);
+    let configured = base
+        .split_once("://")
+        .map(|(_, rest)| rest.split('/').next().unwrap_or_default())
+        .map(crate::domains::bare_host);
+    let requested = headers
+        .get(header::HOST)
+        .and_then(|value| value.to_str().ok())
+        .map(crate::domains::bare_host);
+    if configured.as_deref() == Some(host) || requested.as_deref() == Some(host) {
+        return Err(invalid(vec![Problem::new(
+            "domainHost",
+            format!("{host} is the address of this server, not a domain of its own"),
+        )]));
+    }
+    Ok(())
 }
 
 fn invalid(problems: Vec<Problem>) -> ApiError {

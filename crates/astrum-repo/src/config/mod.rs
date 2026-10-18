@@ -1,4 +1,5 @@
 mod document;
+mod domain;
 mod formats;
 mod group;
 mod problems;
@@ -11,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::format::{Format, RepositoryType};
 
+pub use domain::{Domain, DomainRouting, normalize_host, valid_host, valid_path};
 pub use formats::{
     Apt, Cargo, ConanProxy, ConanVersion, ContentDisposition, DeployPolicy, Docker, DockerProxy,
     IndexType, LayoutPolicy, Maven, Npm, NugetProxy, NugetVersion, Raw, Terraform, VersionPolicy,
@@ -153,6 +155,7 @@ sections! {
     Cargo: cargo: Cargo = "cargo",
     ConanProxy: conan_proxy: ConanProxy = "conanProxy",
     AlpineSigning: alpine_signing: Signing = "alpineSigning",
+    Domain: domain: Domain = "domain",
 }
 
 impl Attributes {
@@ -242,6 +245,13 @@ impl Repository {
             .map(|stored| &stored.attributes);
         attributes.check_sections(&Context::new(spec, seal), stored, &mut problems);
         attributes.settle_signing(spec, &mut problems);
+        if attributes
+            .domain
+            .as_ref()
+            .is_some_and(|domain| domain.host.is_none())
+        {
+            attributes.domain = None;
+        }
         problems.finish()?;
         Ok(Self {
             name: request.name.unwrap_or_default(),
@@ -268,6 +278,21 @@ impl Repository {
 
     pub fn group(&self) -> Option<&Group> {
         self.attributes.group.as_ref()
+    }
+
+    pub fn domain(&self) -> Option<(&str, DomainRouting)> {
+        self.attributes
+            .domain
+            .as_ref()
+            .and_then(|domain| Some((domain.host.as_deref()?, domain.routing())))
+    }
+
+    pub fn domain_path(&self) -> &str {
+        self.attributes
+            .domain
+            .as_ref()
+            .and_then(|domain| domain.path.as_deref())
+            .unwrap_or(&self.name)
     }
 
     pub fn is_named(&self, name: &str) -> bool {

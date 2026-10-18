@@ -84,6 +84,9 @@ export interface RepositoryValues {
   deployPolicy: string;
   yumKeypair: string;
   yumPassphrase: string;
+  domainHost: string;
+  domainRouting: string;
+  domainPath: string;
 }
 
 export type FieldKey = keyof RepositoryValues;
@@ -175,6 +178,9 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'deployPolicy', path: ['yum', 'deployPolicy'], kind: 'enum' },
   { key: 'yumKeypair', path: ['yumSigning', 'keypair'], kind: 'secret' },
   { key: 'yumPassphrase', path: ['yumSigning', 'passphrase'], kind: 'secret' },
+  { key: 'domainHost', path: ['domain', 'host'], kind: 'text' },
+  { key: 'domainRouting', path: ['domain', 'routing'], kind: 'enum' },
+  { key: 'domainPath', path: ['domain', 'path'], kind: 'text' },
 ];
 
 function read(def: FieldDef, value: Json | undefined): RepositoryValues[FieldKey] {
@@ -371,6 +377,46 @@ export function isWebUrl(text: string): boolean {
   }
 }
 
+const DOMAIN_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const DOMAIN_PATH = /^[A-Za-z0-9._-]{1,100}$/;
+const RESERVED_PATHS: ReadonlySet<string> = new Set(['.', '..', 'v2', 'repository', 'service']);
+
+export function domainHost(text: string): string {
+  return text.trim().replace(/\.+$/, '').toLowerCase();
+}
+
+export function isDomainHost(text: string): boolean {
+  const host = domainHost(text);
+  const labels = host.split('.');
+  return (
+    host.length <= 253 &&
+    labels.length >= 2 &&
+    labels.every((label) => DOMAIN_LABEL.test(label)) &&
+    !/^[0-9]+$/.test(labels[labels.length - 1] ?? '')
+  );
+}
+
+export function domainSegment(text: string): string {
+  return text.trim().replace(/^\/+|\/+$/g, '');
+}
+
+export function isDomainSegment(text: string): boolean {
+  const segment = domainSegment(text);
+  return DOMAIN_PATH.test(segment) && !RESERVED_PATHS.has(segment.toLowerCase());
+}
+
+export function domainAddress(values: RepositoryValues, scheme = 'https:'): string | null {
+  if (!isDomainHost(values.domainHost)) {
+    return null;
+  }
+  const host = domainHost(values.domainHost);
+  if (values.domainRouting !== 'PATH') {
+    return `${scheme}//${host}/`;
+  }
+  const segment = domainSegment(values.domainPath) || values.name.trim();
+  return segment === '' ? null : `${scheme}//${host}/${segment}/`;
+}
+
 export interface ValidationContext {
   spec: Spec;
   creating: boolean;
@@ -467,6 +513,16 @@ export function validate(values: RepositoryValues, context: ValidationContext, t
     if (!errors.httpsPort && values.httpPort !== null && values.httpPort === values.httpsPort) {
       errors.httpsPort = t('repositories.form.errors.portsDiffer');
     }
+  }
+  if (values.domainHost.trim() !== '' && !isDomainHost(values.domainHost)) {
+    errors.domainHost = t('repositories.form.errors.domainHost');
+  }
+  if (
+    values.domainRouting === 'PATH' &&
+    domainSegment(values.domainPath) !== '' &&
+    !isDomainSegment(values.domainPath)
+  ) {
+    errors.domainPath = t('repositories.form.errors.domainPath');
   }
   if (sections.dockerProxy(spec) && values.indexType !== 'REGISTRY') {
     if (values.indexType === 'CUSTOM' && values.indexUrl.trim() === '') {

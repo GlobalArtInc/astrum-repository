@@ -197,6 +197,40 @@ describe('docker usage', () => {
   });
 });
 
+describe('repository domains', () => {
+  const root = {
+    host: 'docker-prem.example.org',
+    routing: 'ROOT' as const,
+    url: 'https://docker-prem.example.org/',
+  };
+  const shared = {
+    host: 'images.example.org',
+    routing: 'PATH' as const,
+    path: 'prod',
+    url: 'https://images.example.org/prod/',
+  };
+
+  it('name images by the domain of the repository', () => {
+    const component = { group: '', name: 'team/app', version: '1.2' };
+    const pulls = (domain: typeof root | typeof shared) =>
+      usageSnippets(
+        context({ format: 'docker', repositoryName: 'docker-onprem', component, domain }),
+      )[0]?.blocks?.map((block) => block.code);
+    expect(pulls(root)).toEqual([
+      'docker pull docker-prem.example.org/team/app:1.2',
+      'docker login docker-prem.example.org',
+      'docker tag team/app:1.2 docker-prem.example.org/team/app:1.2\ndocker push docker-prem.example.org/team/app:1.2',
+    ]);
+    expect(pulls(shared)?.[0]).toBe('docker pull images.example.org/prod/team/app:1.2');
+    expect(pulls(shared)?.[1]).toBe('docker login images.example.org');
+  });
+
+  it('give other formats the address on the domain', () => {
+    const snippets = usageSnippets(context({ path: '/docs/a.txt', domain: shared }));
+    expect(code(snippets, 'curl')).toBe('curl -fLO https://images.example.org/prod/docs/a.txt');
+  });
+});
+
 describe('raw usage', () => {
   it('downloads and uploads a known file', () => {
     const snippets = usageSnippets(context({ path: '/docs/read me.txt' }));
