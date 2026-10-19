@@ -17,6 +17,11 @@ with existing clients, and follow its clean-room rules. This repository is publi
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.
+- Blob stores are file, S3, remote and group (`crates/astrum-blob`). A remote store keeps blobs on another
+  server through `astrum-blob-agent` (`crates/astrum-blob-agent`, a second binary in the same image; HTTP
+  under `/v1`, bearer token); a group grows a store onto it, with the fill policy `mostFreeSpace`, and
+  `POST /service/rest/v1/blobstores/group/convert/{name}/{newNameForOriginal}` turns a store that
+  repositories use into a group. No production store uses an agent yet (`docs/configure/blob-stores.md`).
 - A repository can answer on a domain of its own (`domain` section: `ROOT` whole domain, `PATH` a path on a
   shared domain; `crates/astrum-api/src/domains.rs`, `docs/configure/reverse-proxy.md`). No production
   repository uses one yet: the owner wants `docker-onprem` on `docker-prem.globalart.hu` later, and gitops

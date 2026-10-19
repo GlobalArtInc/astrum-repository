@@ -3,13 +3,13 @@ use std::fmt;
 use astrum_db::entity::blob_store;
 use sea_orm::sea_query::{Expr, Func};
 use sea_orm::{
-    ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, QueryOrder,
-    RuntimeErr, SqlErr, sqlx,
+    ActiveValue, ColumnTrait, ConnectionTrait, DbBackend, DbErr, EntityTrait, QueryFilter,
+    QueryOrder, RuntimeErr, SqlErr, Statement, TransactionTrait, sqlx,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{Error, S3Settings, SoftQuota};
+use crate::{Error, RemoteSettings, S3Settings, SoftQuota};
 
 const RESTRICT_VIOLATION: &str = "23001";
 
@@ -17,6 +17,7 @@ const RESTRICT_VIOLATION: &str = "23001";
 pub enum StoreKind {
     File,
     S3,
+    Remote,
     Group,
 }
 
@@ -25,6 +26,7 @@ impl StoreKind {
         match self {
             StoreKind::File => "File",
             StoreKind::S3 => "S3",
+            StoreKind::Remote => "Remote",
             StoreKind::Group => "Group",
         }
     }
@@ -33,6 +35,7 @@ impl StoreKind {
         match value {
             "File" => Some(StoreKind::File),
             "S3" => Some(StoreKind::S3),
+            "Remote" => Some(StoreKind::Remote),
             "Group" => Some(StoreKind::Group),
             _ => None,
         }
@@ -56,6 +59,7 @@ pub enum FillPolicy {
     #[default]
     WriteToFirst,
     RoundRobin,
+    MostFreeSpace,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,6 +74,7 @@ pub struct GroupSettings {
 pub enum Settings {
     File(FileSettings),
     S3(Box<S3Settings>),
+    Remote(RemoteSettings),
     Group(GroupSettings),
 }
 
@@ -78,6 +83,7 @@ impl Settings {
         match self {
             Settings::File(_) => StoreKind::File,
             Settings::S3(_) => StoreKind::S3,
+            Settings::Remote(_) => StoreKind::Remote,
             Settings::Group(_) => StoreKind::Group,
         }
     }
@@ -97,6 +103,8 @@ struct Attributes {
     file: Option<FileSettings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     s3: Option<S3Settings>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    remote: Option<RemoteSettings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     group: Option<GroupSettings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -122,6 +130,13 @@ impl StoreConfig {
         }
     }
 
+    pub fn remote(&self) -> Option<&RemoteSettings> {
+        match &self.settings {
+            Settings::Remote(remote) => Some(remote),
+            _ => None,
+        }
+    }
+
     pub fn group(&self) -> Option<&GroupSettings> {
         match &self.settings {
             Settings::Group(group) => Some(group),
@@ -137,6 +152,7 @@ impl StoreConfig {
         match &self.settings {
             Settings::File(file) => attributes.file = Some(file.clone()),
             Settings::S3(s3) => attributes.s3 = Some((**s3).clone()),
+            Settings::Remote(remote) => attributes.remote = Some(remote.clone()),
             Settings::Group(group) => attributes.group = Some(group.clone()),
         }
         serde_json::to_value(attributes).expect("blob store attributes always serialize")
@@ -155,6 +171,7 @@ impl StoreConfig {
         let settings = match kind {
             StoreKind::File => Settings::File(attributes.file.ok_or_else(missing)?),
             StoreKind::S3 => Settings::S3(Box::new(attributes.s3.ok_or_else(missing)?)),
+            StoreKind::Remote => Settings::Remote(attributes.remote.ok_or_else(missing)?),
             StoreKind::Group => Settings::Group(attributes.group.ok_or_else(missing)?),
         };
         Ok(Self {
@@ -246,6 +263,61 @@ pub async fn delete(db: &impl ConnectionTrait, name: &str) -> Result<bool, Error
         Err(error) if still_referenced(&error) => Err(Error::InUse(name.to_owned())),
         Err(error) => Err(error.into()),
     }
+}
+
+pub async fn promote(
+    db: &impl TransactionTrait,
+    name: &str,
+    member: &str,
+) -> Result<StoreConfig, Error> {
+    let txn = db.begin().await?;
+    let current = find(&txn, name)
+        .await?
+        .ok_or_else(|| Error::UnknownStore(name.to_owned()))?;
+    if current.kind() == StoreKind::Group {
+        return Err(Error::Config {
+            store: name.to_owned(),
+            message: "it is a group already".to_owned(),
+        });
+    }
+    let moved = StoreConfig {
+        name: member.to_owned(),
+        settings: current.settings.clone(),
+        soft_quota: None,
+    };
+    insert(&txn, &moved).await?;
+    let group = StoreConfig {
+        name: current.name.clone(),
+        settings: Settings::Group(GroupSettings {
+            members: vec![member.to_owned()],
+            fill_policy: FillPolicy::WriteToFirst,
+        }),
+        soft_quota: current.soft_quota,
+    };
+    blob_store::Entity::update_many()
+        .col_expr(
+            blob_store::Column::Kind,
+            Expr::value(StoreKind::Group.as_str()),
+        )
+        .col_expr(
+            blob_store::Column::Attributes,
+            Expr::value(group.attributes()),
+        )
+        .col_expr(
+            blob_store::Column::UpdatedAt,
+            Expr::value(chrono::Utc::now().fixed_offset()),
+        )
+        .filter(blob_store::Column::Name.eq(name))
+        .exec(&txn)
+        .await?;
+    txn.execute(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "UPDATE blob_store_metrics SET store = $2, updated_at = now() WHERE store = $1",
+        [name.into(), member.into()],
+    ))
+    .await?;
+    txn.commit().await?;
+    Ok(group)
 }
 
 fn still_referenced(error: &DbErr) -> bool {

@@ -1,5 +1,5 @@
 import { Button } from '@radix-ui/themes';
-import { ChevronRight, Cloud, HardDrive, Layers, PaintBucket } from 'lucide-react';
+import { ChevronRight, Cloud, HardDrive, Layers, Network, PaintBucket } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -43,6 +43,13 @@ export default function CreatePickerPage() {
       name: t('blobstores.types.s3'),
       text: t('blobstores.picker.s3'),
       icon: <PaintBucket size={28} color="#f59e0b" />,
+    },
+    {
+      id: 'remote',
+      type: 'remote',
+      name: t('blobstores.picker.remoteName'),
+      text: t('blobstores.picker.remote'),
+      icon: <Network size={28} color="var(--accent-11)" />,
     },
     {
       id: 'azure',

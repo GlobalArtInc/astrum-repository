@@ -17,34 +17,46 @@ const RESET: &str = "INSERT INTO blob_store_metrics (store, blob_count, total_by
 
 #[derive(Clone, Debug)]
 pub struct Metrics {
-    db: DatabaseConnection,
+    db: Option<DatabaseConnection>,
     store: String,
 }
 
 impl Metrics {
     pub fn new(db: DatabaseConnection, store: impl Into<String>) -> Self {
         Self {
-            db,
+            db: Some(db),
+            store: store.into(),
+        }
+    }
+
+    pub fn detached(store: impl Into<String>) -> Self {
+        Self {
+            db: None,
             store: store.into(),
         }
     }
 
     pub async fn totals(&self) -> Result<Totals, Error> {
-        Ok(read(&self.db, &self.store).await?)
+        let Some(db) = &self.db else {
+            return Ok(Totals::default());
+        };
+        Ok(read(db, &self.store).await?)
     }
 
     pub async fn reset(&self, totals: Totals) -> Result<(), Error> {
-        self.db
-            .execute(Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                RESET,
-                [
-                    self.store.clone().into(),
-                    (totals.blob_count as i64).into(),
-                    (totals.total_bytes as i64).into(),
-                ],
-            ))
-            .await?;
+        let Some(db) = &self.db else {
+            return Ok(());
+        };
+        db.execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            RESET,
+            [
+                self.store.clone().into(),
+                (totals.blob_count as i64).into(),
+                (totals.total_bytes as i64).into(),
+            ],
+        ))
+        .await?;
         Ok(())
     }
 
@@ -57,12 +69,15 @@ impl Metrics {
     }
 
     async fn change(&self, count: i64, bytes: i64) {
+        let Some(db) = &self.db else {
+            return;
+        };
         let statement = Statement::from_sql_and_values(
             DbBackend::Postgres,
             ADD,
             [self.store.clone().into(), count.into(), bytes.into()],
         );
-        if let Err(error) = self.db.execute(statement).await {
+        if let Err(error) = db.execute(statement).await {
             tracing::warn!(store = %self.store, %error, "the blob store totals were not updated");
         }
     }

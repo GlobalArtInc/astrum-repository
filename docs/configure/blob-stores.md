@@ -4,9 +4,10 @@ A blob store is where the files of components are kept. Every repository writes 
 store, chosen when the repository is created. The database only holds the metadata, so a blob store and
 the database belong together: see [backup and restore](../operate/backup-restore.md).
 
-On a new installation the server creates one file blob store called `default` in
-`<data>/blobs/default`. Manage the stores under **Settings → Repository → Blob Stores**, or with the
-REST API under `/service/rest/v1/blobstores`. A store that repositories use cannot be deleted.
+There are file, S3, remote and group blob stores. On a new installation the server creates one file blob
+store called `default` in `<data>/blobs/default`. Manage the stores under **Settings → Repository →
+Blob Stores**, or with the REST API under `/service/rest/v1/blobstores`. A store that repositories use
+cannot be deleted.
 
 ## File blob stores
 
@@ -64,13 +65,92 @@ the configuration, but the server does not act on them yet; use bucket lifecycle
 The outgoing connection to the endpoint is subject to the SSRF protection: an endpoint on an internal
 address has to be allowed first, see [runtime configuration](runtime.md#outbound-http-proxy).
 
+## Remote blob stores
+
+A remote blob store keeps its blobs on the disk of another server. That server runs the blob agent,
+`astrum-blob-agent`, which ships in the same container image as the server. The agent keeps the blobs
+in one directory, in the same layout as a file blob store, and answers the server over HTTP or HTTPS.
+The server keeps the metadata and the totals of the store in its database, as for every other store.
+
+| Setting | Meaning |
+|---|---|
+| **Agent address** | `http://` or `https://` address of the agent, such as `https://storage1.internal:8090`, without a path |
+| **Agent token** | The token the agent was started with, at least 32 characters; stored sealed, see the [secrets key](runtime.md#secrets-key) |
+| **Trusted certificate** | PEM certificate of the agent or of its CA, when the agent uses a certificate the public authorities did not sign |
+
+The server checks that the agent answers, with the token, before it saves the store. A stored token is
+kept when the address stays the same and the field is left empty; a new address needs the token again.
+Changing the address does not move blobs: point it at the same agent under a new address, or at a copy
+of its directory. The connection is subject to the SSRF protection like an S3 endpoint, so an agent on
+an internal address has to be allowed first, see [runtime configuration](runtime.md#outbound-http-proxy).
+
+A remote store is meant to be a member of a group (see below): that is how a store that repositories
+already use gets the space of another server.
+
+### Running the agent
+
+Create a token and a directory owned by uid 200, the user of the image, then start the agent from the
+image of the server:
+
+```sh
+openssl rand -hex 32 > /etc/astrum-agent/token
+chmod 600 /etc/astrum-agent/token
+mkdir -p /srv/astrum-blobs && chown 200:200 /srv/astrum-blobs
+podman run -d --name astrum-blob-agent --restart=always \
+  --entrypoint astrum-blob-agent \
+  -v /srv/astrum-blobs:/astrum-agent \
+  -v /etc/astrum-agent/token:/run/secrets/astrum-agent-token:ro \
+  -e ASTRUM_AGENT_TOKEN_FILE=/run/secrets/astrum-agent-token \
+  -p 8090:8090 \
+  globalartltd/astrum-repository:<tag>
+```
+
+Use the same tag as the server. Outside a container the binary takes the same settings as flags:
+
+| Flag | Variable | Default | Meaning |
+|---|---|---|---|
+| `--dir` | `ASTRUM_AGENT_DIR` | `/astrum-agent` | Directory that holds the blobs |
+| `--listen` | `ASTRUM_AGENT_LISTEN` | `0.0.0.0:8090` | Address to listen on |
+| `--token-file` | `ASTRUM_AGENT_TOKEN_FILE` | | File with the token; `ASTRUM_AGENT_TOKEN` takes the token itself |
+| `--tls-certificate`, `--tls-key` | `ASTRUM_AGENT_TLS_CERTIFICATE`, `ASTRUM_AGENT_TLS_KEY` | | PEM certificate chain and key; with both the agent speaks HTTPS |
+| | `ASTRUM_AGENT_LOG` | `info` | Log filter |
+
+Every request needs the token as a bearer token. Let only the server reach the port, and use HTTPS
+whenever the traffic leaves a private network. The agent writes each blob to a temporary name, flushes
+it and renames it, and the server compares the size and SHA-256 the agent reports with what it sent, so
+a broken upload leaves nothing behind.
+
 ## Group blob stores
 
 A group presents several stores as one. Reads look in every member; a new blob goes to the member chosen
-by the **Fill policy**: the first member that can take it (`writeToFirst`) or each member in turn
-(`roundRobin`). A group is a way to add disks without moving files. Members must be existing file or S3
-stores that are not in another group and not used by repositories directly; a member that holds blobs
-cannot be removed from the group.
+by the **Fill policy**:
+
+| Fill policy | New blobs go to |
+|---|---|
+| `writeToFirst` | The first member |
+| `roundRobin` | Each member in turn |
+| `mostFreeSpace` | The member with the most free space; members that do not answer are left out, and a member with no limit of its own, such as S3, counts as the roomiest |
+
+A group is a way to add disks and servers without moving files. Members must be existing file, S3 or
+remote stores that are not in another group and not used by repositories directly; a member that holds
+blobs cannot be removed from the group. A read that does not find a blob in a member that answers goes
+on to the next member, so a member that is down only makes its own blobs unavailable.
+
+### Growing a store that repositories use
+
+The blob store of a repository cannot change, and a store that repositories use cannot join a group.
+Convert such a store into a group instead: under **Blob Stores**, open the store and choose
+**Convert to Group**, or call
+
+```
+POST /service/rest/v1/blobstores/group/convert/<name>/<new name of the store>
+```
+
+The store keeps its settings and its blobs under the new name and becomes the only member of a group
+that takes over its name, so the repositories keep writing to `<name>`. The soft quota stays with the
+group. Then add stores to the group, for example a remote store on another server, and choose the fill
+policy `mostFreeSpace` or put the new store first with `writeToFirst`. A store that is a member of a
+group, or a group, cannot be converted.
 
 ## Soft quotas
 

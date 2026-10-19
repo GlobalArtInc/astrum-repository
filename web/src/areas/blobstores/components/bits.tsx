@@ -4,6 +4,7 @@ import { type StoreType, storeType } from '../api';
 const TYPE_LABELS: Record<StoreType, string> = {
   file: 'blobstores.types.file',
   s3: 'blobstores.types.s3',
+  remote: 'blobstores.types.remote',
   group: 'blobstores.types.group',
 };
 

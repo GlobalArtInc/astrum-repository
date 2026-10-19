@@ -146,6 +146,36 @@ describe('a blob store page', () => {
     });
   });
 
+  it('turns a store into a group under a new name', async () => {
+    const server = serve({
+      'GET /service/rest/v1/blobstores/file/spare': () => jsonResponse({ softQuota: null, path: 'spare' }),
+      'POST /service/rest/v1/blobstores/group/convert/spare/spare-disk': () =>
+        new Response(null, { status: 204 }),
+    });
+    page('/admin/repository/blobstores/file/spare');
+    await userEvent.click(await screen.findByRole('button', { name: 'Convert to Group' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Convert spare to a group?' });
+    const member = within(dialog).getByRole('textbox', { name: /New name of the current store/ });
+    expect(member).toHaveValue('spare-original');
+    await userEvent.clear(member);
+    await userEvent.type(member, '_bad');
+    expect(within(dialog).getByRole('button', { name: 'Convert' })).toBeDisabled();
+    await userEvent.clear(member);
+    await userEvent.type(member, 'spare-disk');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Convert' }));
+    expect(await screen.findByText('Blob store "spare" is now a group')).toBeInTheDocument();
+    expect(server.calls.some((call) => call.method === 'POST')).toBe(true);
+  });
+
+  it('offers no conversion for groups and their members', async () => {
+    serve({
+      'GET /service/rest/v1/blobstores/file/one': () => jsonResponse({ softQuota: null, path: 'one' }),
+    });
+    page('/admin/repository/blobstores/file/one');
+    expect(await screen.findByRole('textbox', { name: /Path/ })).toHaveValue('one');
+    expect(screen.queryByRole('button', { name: 'Convert to Group' })).not.toBeInTheDocument();
+  });
+
   it('is read only without the update permission', async () => {
     serve({
       'GET /service/rest/v1/blobstores/file/spare': () => jsonResponse({ softQuota: null, path: 'spare' }),
@@ -162,6 +192,28 @@ describe('a blob store page', () => {
 });
 
 describe('creating a blob store', () => {
+  it('asks a remote store for its agent and token', async () => {
+    const server = serve({
+      'POST /service/rest/v1/blobstores/remote': () => new Response(null, { status: 201 }),
+    });
+    page('/admin/repository/blobstores/create/remote');
+    const next = await screen.findByRole('button', { name: 'Continue' });
+    await userEvent.type(await screen.findByRole('textbox', { name: /Name/ }), 'far');
+    await userEvent.type(screen.getByRole('textbox', { name: /Agent address/ }), 'https://storage1:8090');
+    await userEvent.click(next);
+    await userEvent.type(await screen.findByLabelText(/Agent token/), 't'.repeat(40));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Create Blob Store' }));
+    await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
+    expect(server.calls.find((call) => call.method === 'POST')?.body).toEqual({
+      name: 'far',
+      url: 'https://storage1:8090',
+      token: 't'.repeat(40),
+      certificate: null,
+      softQuota: null,
+    });
+  });
+
   it('walks through the basic, credential and advanced steps', async () => {
     const server = serve({
       'POST /service/rest/v1/blobstores/file': () => new Response(null, { status: 204 }),

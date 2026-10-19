@@ -38,6 +38,8 @@ struct StoreXo {
     #[serde(skip_serializing_if = "Option::is_none")]
     prefix: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     members: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     fill_policy: Option<FillPolicy>,
@@ -101,6 +103,7 @@ async fn list(
                 bucket: None,
                 region: None,
                 prefix: None,
+                url: None,
                 members: None,
                 fill_policy: None,
                 unavailable: measured.unavailable,
@@ -126,6 +129,7 @@ async fn list(
                     item.region = Some(s3.bucket.region.clone());
                     item.prefix = Some(s3.bucket.prefix.clone());
                 }
+                Settings::Remote(remote) => item.url = Some(remote.url.clone()),
                 Settings::Group(group) => {
                     item.members = Some(group.members.clone());
                     item.fill_policy = Some(group.fill_policy);

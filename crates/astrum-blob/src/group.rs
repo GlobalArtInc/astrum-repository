@@ -1,18 +1,25 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
+use futures_util::FutureExt;
+use futures_util::future::{BoxFuture, join_all};
 
 use crate::{
     BlobId, BlobStore, Content, ContentStream, Error, FillPolicy, StoreKind, StoredBlob, Totals,
     Written,
 };
 
+const SPACE_TTL: Duration = Duration::from_secs(5);
+const SPACE_TIMEOUT: Duration = Duration::from_secs(5);
+
 pub struct GroupBlobStore {
     name: String,
     members: Vec<Arc<dyn BlobStore>>,
     policy: FillPolicy,
     next: AtomicUsize,
+    roomiest: Mutex<Option<(Instant, usize)>>,
 }
 
 impl GroupBlobStore {
@@ -33,6 +40,7 @@ impl GroupBlobStore {
             members,
             policy,
             next: AtomicUsize::new(0),
+            roomiest: Mutex::new(None),
         })
     }
 
@@ -40,14 +48,85 @@ impl GroupBlobStore {
         &self.members
     }
 
-    fn writer(&self) -> &Arc<dyn BlobStore> {
+    async fn writer(&self) -> Result<&Arc<dyn BlobStore>, Error> {
         let index = match self.policy {
             FillPolicy::WriteToFirst => 0,
             FillPolicy::RoundRobin => {
                 self.next.fetch_add(1, Ordering::Relaxed) % self.members.len()
             }
+            FillPolicy::MostFreeSpace => self.roomiest().await?,
         };
-        &self.members[index]
+        Ok(&self.members[index])
+    }
+
+    fn cached_roomiest(&self) -> std::sync::MutexGuard<'_, Option<(Instant, usize)>> {
+        self.roomiest
+            .lock()
+            .expect("the group space cache lock is never poisoned")
+    }
+
+    async fn roomiest(&self) -> Result<usize, Error> {
+        if let Some((measured, index)) = *self.cached_roomiest()
+            && measured.elapsed() < SPACE_TTL
+        {
+            return Ok(index);
+        }
+        let spaces = join_all(
+            self.members
+                .iter()
+                .map(|member| tokio::time::timeout(SPACE_TIMEOUT, member.available_space())),
+        )
+        .await;
+        let mut best: Option<(usize, u64)> = None;
+        let mut failure = None;
+        for (index, space) in spaces.into_iter().enumerate() {
+            let member = self.members[index].name();
+            let space = match space {
+                Ok(Ok(Some(space))) => space,
+                Ok(Ok(None)) => u64::MAX,
+                Ok(Err(error)) => {
+                    tracing::warn!(group = %self.name, member, %error, "a member of a group is left out of writes");
+                    failure.get_or_insert(error);
+                    continue;
+                }
+                Err(_) => {
+                    tracing::warn!(group = %self.name, member, "a member of a group did not report its free space in time");
+                    continue;
+                }
+            };
+            if best.is_none_or(|(_, most)| space > most) {
+                best = Some((index, space));
+            }
+        }
+        let Some((index, _)) = best else {
+            return Err(failure.unwrap_or_else(|| Error::Config {
+                store: self.name.clone(),
+                message: "none of its members reported its free space".to_owned(),
+            }));
+        };
+        *self.cached_roomiest() = Some((Instant::now(), index));
+        Ok(index)
+    }
+
+    async fn first_found<'a, T: Send>(
+        &'a self,
+        probe: impl Fn(&'a Arc<dyn BlobStore>) -> BoxFuture<'a, Result<Option<T>, Error>>,
+    ) -> Result<Option<T>, Error> {
+        let mut failure = None;
+        for member in &self.members {
+            match probe(member).await {
+                Ok(Some(found)) => return Ok(Some(found)),
+                Ok(None) => {}
+                Err(error) => {
+                    tracing::warn!(group = %self.name, member = member.name(), %error, "a member of a group cannot be searched");
+                    failure.get_or_insert(error);
+                }
+            }
+        }
+        match failure {
+            Some(error) => Err(error),
+            None => Ok(None),
+        }
     }
 }
 
@@ -62,16 +141,11 @@ impl BlobStore for GroupBlobStore {
     }
 
     async fn put(&self, content: ContentStream) -> Result<Written, Error> {
-        self.writer().put(content).await
+        self.writer().await?.put(content).await
     }
 
     async fn read(&self, id: BlobId) -> Result<Option<Content>, Error> {
-        for member in &self.members {
-            if let Some(content) = member.read(id).await? {
-                return Ok(Some(content));
-            }
-        }
-        Ok(None)
+        self.first_found(|member| member.read(id).boxed()).await
     }
 
     async fn read_range(
@@ -80,29 +154,30 @@ impl BlobStore for GroupBlobStore {
         offset: u64,
         length: u64,
     ) -> Result<Option<Content>, Error> {
-        for member in &self.members {
-            if let Some(content) = member.read_range(id, offset, length).await? {
-                return Ok(Some(content));
-            }
-        }
-        Ok(None)
+        self.first_found(|member| member.read_range(id, offset, length).boxed())
+            .await
     }
 
     async fn size(&self, id: BlobId) -> Result<Option<u64>, Error> {
-        for member in &self.members {
-            if let Some(size) = member.size(id).await? {
-                return Ok(Some(size));
-            }
-        }
-        Ok(None)
+        self.first_found(|member| member.size(id).boxed()).await
     }
 
     async fn delete(&self, id: BlobId) -> Result<bool, Error> {
         let mut deleted = false;
+        let mut failure = None;
         for member in &self.members {
-            deleted |= member.delete(id).await?;
+            match member.delete(id).await {
+                Ok(gone) => deleted |= gone,
+                Err(error) => {
+                    tracing::warn!(group = %self.name, member = member.name(), %error, "a member of a group cannot delete");
+                    failure.get_or_insert(error);
+                }
+            }
         }
-        Ok(deleted)
+        match (deleted, failure) {
+            (false, Some(error)) => Err(error),
+            _ => Ok(deleted),
+        }
     }
 
     async fn list(&self, after: Option<BlobId>, limit: usize) -> Result<Vec<StoredBlob>, Error> {

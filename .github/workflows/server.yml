@@ -149,6 +149,7 @@ jobs:
             --build-arg GIT_REVISION="$REVISION" \
             -t astrum-server:ci .
           docker run --rm astrum-server:ci version
+          docker run --rm --entrypoint astrum-blob-agent astrum-server:ci --version
 
       - name: Start it against PostgreSQL
         run: |

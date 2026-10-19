@@ -8,7 +8,7 @@ export type StoreDocument = JsonObject;
 
 export const MB = 1024 * 1024;
 export const QUOTA_TYPES = ['spaceUsedQuota', 'spaceRemainingQuota'] as const;
-export const FILL_POLICIES = ['writeToFirst', 'roundRobin'] as const;
+export const FILL_POLICIES = ['writeToFirst', 'roundRobin', 'mostFreeSpace'] as const;
 export const ENCRYPTION_TYPES = ['s3ManagedEncryption', 'kmsManagedEncryption'] as const;
 
 export interface StoreValues {
@@ -29,6 +29,9 @@ export interface StoreValues {
   encryptionKey: string;
   endpoint: string;
   forcePathStyle: boolean;
+  url: string;
+  token: string;
+  certificate: string;
   members: string[];
   fillPolicy: string;
 }
@@ -47,7 +50,7 @@ const BUCKET = ['bucketConfiguration', 'bucket'] as const;
 const SECURITY = ['bucketConfiguration', 'bucketSecurity'] as const;
 const ENCRYPTION = ['bucketConfiguration', 'encryption'] as const;
 const CONNECTION = ['bucketConfiguration', 'advancedBucketConnection'] as const;
-const ALL: readonly StoreType[] = ['file', 's3', 'group'];
+const ALL: readonly StoreType[] = ['file', 's3', 'remote', 'group'];
 
 const FIELDS: readonly FieldDef[] = [
   { key: 'name', path: ['name'], kind: 'name', types: ALL },
@@ -64,6 +67,9 @@ const FIELDS: readonly FieldDef[] = [
   { key: 'encryptionKey', path: [...ENCRYPTION, 'encryptionKey'], kind: 'text', types: ['s3'] },
   { key: 'endpoint', path: [...CONNECTION, 'endpoint'], kind: 'text', types: ['s3'] },
   { key: 'forcePathStyle', path: [...CONNECTION, 'forcePathStyle'], kind: 'bool', types: ['s3'] },
+  { key: 'url', path: ['url'], kind: 'text', types: ['remote'] },
+  { key: 'token', path: ['token'], kind: 'secret', types: ['remote'] },
+  { key: 'certificate', path: ['certificate'], kind: 'text', types: ['remote'] },
   { key: 'members', path: ['members'], kind: 'list', types: ['group'] },
   { key: 'fillPolicy', path: ['fillPolicy'], kind: 'enum', types: ['group'] },
 ];
@@ -211,6 +217,8 @@ export function template(type: StoreType): StoreDocument {
           advancedBucketConnection: null,
         },
       };
+    case 'remote':
+      return { name: '', url: '', token: '', certificate: null, softQuota: null };
     case 'group':
       return { name: '', softQuota: null, members: [], fillPolicy: 'writeToFirst' };
   }
@@ -223,11 +231,13 @@ export function storedSecret(document: StoreDocument): string | null {
 
 export const NAME_PATTERN = /^[A-Za-z0-9-][A-Za-z0-9._-]*$/;
 export const BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
+export const MIN_TOKEN_LENGTH = 32;
 
 export interface StoreContext {
   type: StoreType;
   creating: boolean;
   storedKeyId: string | null;
+  storedUrl?: string | null;
 }
 
 function isWebUrl(text: string): boolean {
@@ -237,6 +247,10 @@ function isWebUrl(text: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function sameAddress(left: string, right: string | null): boolean {
+  return right !== null && left.trim().replace(/\/+$/, '') === right.trim().replace(/\/+$/, '');
 }
 
 export function validate(
@@ -285,6 +299,24 @@ export function validate(
       errors.endpoint = t('blobstores.form.errors.endpoint');
     }
   }
+  if (context.type === 'remote') {
+    const url = values.url.trim();
+    if (url === '') {
+      errors.url = t('blobstores.form.errors.urlRequired');
+    } else if (!isWebUrl(url)) {
+      errors.url = t('blobstores.form.errors.endpoint');
+    }
+    const keepsToken = !context.creating && sameAddress(url, context.storedUrl ?? null);
+    if (values.token === '' && !keepsToken) {
+      errors.token = t('blobstores.form.errors.tokenRequired');
+    } else if (values.token !== '' && values.token.trim().length < MIN_TOKEN_LENGTH) {
+      errors.token = t('blobstores.form.errors.tokenLength', { length: MIN_TOKEN_LENGTH });
+    }
+    const certificate = values.certificate.trim();
+    if (certificate !== '' && !certificate.includes('-----BEGIN CERTIFICATE-----')) {
+      errors.certificate = t('blobstores.form.errors.certificate');
+    }
+  }
   if (context.type === 'group' && values.members.length === 0) {
     errors.members = t('blobstores.form.errors.membersRequired');
   }
@@ -305,6 +337,9 @@ const FIELD_IDS: Record<string, Key> = {
   encryptionType: 'encryptionType',
   encryptionKey: 'encryptionKey',
   endpoint: 'endpoint',
+  url: 'url',
+  token: 'token',
+  certificate: 'certificate',
   members: 'members',
   fillPolicy: 'fillPolicy',
 };
