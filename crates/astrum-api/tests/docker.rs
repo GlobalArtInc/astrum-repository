@@ -1309,3 +1309,55 @@ async fn abandoned_uploads_and_expired_tokens_are_swept() {
         .unwrap();
     assert_eq!(tokens, 0);
 }
+
+#[tokio::test]
+async fn agents_list_the_tags_of_an_image_over_mcp() {
+    let registry = Registry::new().await;
+    registry.hosted("hosted", "ALLOW").await;
+    registry
+        .push_image("/v2/hosted/team/app", "1.0", b"layer-one")
+        .await;
+    registry
+        .push_image("/v2/hosted/team/app", "2.0", b"layer-two")
+        .await;
+    registry
+        .push_image("/v2/hosted/team/other", "1.0", b"layer-three")
+        .await;
+    let body = json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": "list_docker_tags", "arguments": {"repository": "hosted", "image": "team/app"}},
+    });
+    let reply = registry
+        .send(
+            Method::POST,
+            "/mcp",
+            Some(&registry.admin),
+            &[
+                ("content-type", "application/json"),
+                ("host", "astrum.example"),
+            ],
+            serde_json::to_vec(&body).unwrap(),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+    let listed = &reply.json()["result"]["structuredContent"];
+    assert_eq!(listed["count"], 2, "{listed}");
+    let mut tags: Vec<&str> = listed["tags"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tag| tag["tag"].as_str().unwrap())
+        .collect();
+    tags.sort();
+    assert_eq!(tags, ["1.0", "2.0"]);
+    let newer = listed["tags"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tag| tag["tag"] == "2.0")
+        .unwrap();
+    assert_eq!(newer["pull"], "astrum.example/hosted/team/app:2.0");
+    assert!(newer["manifestBytes"].as_u64().unwrap() > 0, "{newer}");
+}

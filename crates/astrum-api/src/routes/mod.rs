@@ -7,6 +7,7 @@ pub mod email;
 pub(crate) mod html;
 pub mod internal;
 pub mod legacy;
+pub mod mcp;
 pub mod oidc;
 pub mod outbound;
 pub mod repositories;
