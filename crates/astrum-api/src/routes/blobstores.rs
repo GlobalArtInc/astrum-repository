@@ -1,5 +1,6 @@
 mod file;
 mod group;
+mod remote;
 mod s3;
 
 use std::time::Duration;
@@ -38,6 +39,15 @@ pub fn routes() -> Router<AppState> {
             get(file::read).put(file::update),
         )
         .route(&format!("{BLOBSTORES}/group"), post(group::create))
+        .route(
+            &format!("{BLOBSTORES}/group/convert/{{name}}/{{member}}"),
+            post(group::convert),
+        )
+        .route(&format!("{BLOBSTORES}/remote"), post(remote::create))
+        .route(
+            &format!("{BLOBSTORES}/remote/{{name}}"),
+            get(remote::read).put(remote::update),
+        )
         .route(
             &format!("{BLOBSTORES}/group/{{name}}"),
             get(group::read).put(group::update),
@@ -207,10 +217,14 @@ pub(crate) async fn measure(state: &AppState, config: &StoreConfig) -> Measured 
         tracing::warn!(store = %config.name, %error, "the totals of a blob store cannot be read");
         Totals::default()
     });
-    let available = match store.available_space().await {
-        Ok(available) => available,
-        Err(error) => {
+    let available = match tokio::time::timeout(CHECK_TIMEOUT, store.available_space()).await {
+        Ok(Ok(available)) => available,
+        Ok(Err(error)) => {
             tracing::warn!(store = %config.name, %error, "the free space of a blob store is unknown");
+            None
+        }
+        Err(_) => {
+            tracing::warn!(store = %config.name, "a blob store did not report its free space in time");
             None
         }
     };

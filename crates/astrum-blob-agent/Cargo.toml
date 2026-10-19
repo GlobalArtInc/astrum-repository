@@ -1,0 +1,33 @@
+[package]
+name = "astrum-blob-agent"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "astrum-blob-agent"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+astrum-blob.workspace = true
+axum.workspace = true
+clap = { workspace = true, features = ["env"] }
+futures-util.workspace = true
+hyper-util.workspace = true
+rustls.workspace = true
+serde.workspace = true
+subtle.workspace = true
+tokio.workspace = true
+tokio-rustls.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+astrum-db.workspace = true
+astrum-testkit.workspace = true
+bytes.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true

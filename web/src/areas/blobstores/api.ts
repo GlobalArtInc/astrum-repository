@@ -4,8 +4,8 @@ export const UI_BLOB_STORES = `${INTERNAL}/ui/blobstores`;
 export const LIST_ADDRESS = '/admin/repository/blobstores';
 export const CREATE_ADDRESS = '/admin/repository/blobstores/create';
 
-export type StoreType = 'file' | 's3' | 'group';
-export const STORE_TYPES: readonly StoreType[] = ['file', 's3', 'group'];
+export type StoreType = 'file' | 's3' | 'remote' | 'group';
+export const STORE_TYPES: readonly StoreType[] = ['file', 's3', 'remote', 'group'];
 
 export interface SoftQuota {
   type: string;
@@ -19,6 +19,7 @@ export interface UiBlobStore {
   bucket?: string;
   region?: string;
   prefix?: string;
+  url?: string;
   members?: string[];
   fillPolicy?: string;
   unavailable: boolean;
@@ -54,6 +55,10 @@ export function configPath(type: StoreType, name?: string): string {
   return name === undefined
     ? path`/service/rest/v1/blobstores/${type}`
     : path`/service/rest/v1/blobstores/${type}/${name}`;
+}
+
+export function convertPath(name: string, member: string): string {
+  return path`/service/rest/v1/blobstores/group/convert/${name}/${member}`;
 }
 
 export function deletePath(name: string): string {

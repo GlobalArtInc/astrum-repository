@@ -205,3 +205,70 @@ describe('blob store checks', () => {
     ]);
   });
 });
+
+describe('remote stores', () => {
+  const REMOTE: StoreDocument = {
+    name: 'far',
+    type: 'Remote',
+    softQuota: null,
+    url: 'https://storage1:8090',
+    certificate: null,
+  };
+  const TOKEN = 'a'.repeat(32);
+
+  it('sends the address, the token and the certificate of a new store', () => {
+    const values: StoreValues = {
+      ...fromDocument(template('remote')),
+      name: 'far',
+      url: ' https://storage1:8090 ',
+      token: TOKEN,
+    };
+    expect(toDocument(values, template('remote'), 'remote')).toEqual({
+      name: 'far',
+      url: 'https://storage1:8090',
+      token: TOKEN,
+      certificate: null,
+      softQuota: null,
+    });
+  });
+
+  it('asks for the token when the store is new or moves', () => {
+    const fresh = { ...fromDocument(template('remote')), name: 'far' };
+    expect(validate(fresh, { type: 'remote', creating: true, storedKeyId: null }, t)).toEqual({
+      url: 'Enter the address of the agent',
+      token: 'Enter the token of the agent',
+    });
+    const short = { ...fresh, url: 'ftp://x', token: 'short', certificate: 'nonsense' };
+    expect(validate(short, { type: 'remote', creating: true, storedKeyId: null }, t)).toEqual({
+      url: 'Enter an http:// or https:// address with a host',
+      token: 'Use at least 32 characters',
+      certificate: 'Paste one or more PEM certificates',
+    });
+    const stored = fromDocument(REMOTE);
+    const context = {
+      type: 'remote' as StoreType,
+      creating: false,
+      storedKeyId: null,
+      storedUrl: REMOTE.url as string,
+    };
+    expect(validate({ ...stored, url: 'https://storage1:8090/' }, context, t)).toEqual({});
+    expect(validate({ ...stored, url: 'https://storage2:8090' }, context, t)).toEqual({
+      token: 'Enter the token of the agent',
+    });
+    expect(validate({ ...stored, url: 'https://storage2:8090', token: TOKEN }, context, t)).toEqual({});
+  });
+
+  it('leaves the stored token alone when it is not typed again', () => {
+    const values = { ...fromDocument(REMOTE), certificate: '-----BEGIN CERTIFICATE-----\nx' };
+    expect(toDocument(values, REMOTE, 'remote')).toEqual({
+      ...REMOTE,
+      certificate: '-----BEGIN CERTIFICATE-----\nx',
+    });
+  });
+
+  it('places the errors of the agent on their fields', () => {
+    expect(formField('url')).toBe('url');
+    expect(formField('token')).toBe('token');
+    expect(formField('certificate')).toBe('certificate');
+  });
+});

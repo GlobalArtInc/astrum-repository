@@ -24,8 +24,9 @@ COPY crates crates
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/src/target,sharing=locked \
-    ASTRUM_GIT_REVISION="${GIT_REVISION}" cargo build --release --locked --bin astrum \
- && install -D -m 0755 target/release/astrum /out/astrum
+    ASTRUM_GIT_REVISION="${GIT_REVISION}" cargo build --release --locked --bin astrum --bin astrum-blob-agent \
+ && install -D -m 0755 target/release/astrum /out/astrum \
+ && install -D -m 0755 target/release/astrum-blob-agent /out/astrum-blob-agent
 
 FROM debian:trixie-slim
 
@@ -44,10 +45,11 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 200 astrum \
  && useradd --system --uid 200 --gid 200 --home-dir /astrum-data --no-create-home --shell /usr/sbin/nologin astrum \
- && mkdir -p /astrum-data \
- && chown 200:200 /astrum-data
+ && mkdir -p /astrum-data /astrum-agent \
+ && chown 200:200 /astrum-data /astrum-agent
 
 COPY --from=build /out/astrum /usr/local/bin/astrum
+COPY --from=build /out/astrum-blob-agent /usr/local/bin/astrum-blob-agent
 COPY --from=web /src/web/dist /usr/share/astrum/web
 COPY LICENSE.txt NOTICE.txt /usr/share/doc/astrum/
 

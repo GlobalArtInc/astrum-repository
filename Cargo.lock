@@ -221,6 +221,7 @@ version = "3.0.0-dev"
 dependencies = [
  "anyhow",
  "astrum-blob",
+ "astrum-blob-agent",
  "astrum-content",
  "astrum-db",
  "astrum-format-alpine",
@@ -304,6 +305,7 @@ dependencies = [
  "futures-util",
  "hex",
  "md-5 0.10.6",
+ "reqwest",
  "rustix",
  "sea-orm",
  "serde",
@@ -315,6 +317,31 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "astrum-blob-agent"
+version = "3.0.0-dev"
+dependencies = [
+ "anyhow",
+ "astrum-blob",
+ "astrum-db",
+ "astrum-testkit",
+ "axum",
+ "bytes",
+ "clap",
+ "futures-util",
+ "hyper-util",
+ "reqwest",
+ "rustls",
+ "serde",
+ "serde_json",
+ "subtle",
+ "tempfile",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -6,6 +6,7 @@ mod id;
 mod metrics;
 pub mod quota;
 mod registry;
+pub mod remote;
 pub mod s3;
 mod stream;
 
@@ -26,6 +27,7 @@ pub use id::BlobId;
 pub use metrics::Metrics;
 pub use quota::{QuotaKind, QuotaStatus, SoftQuota};
 pub use registry::{BLOBS_DIR, BlobStores, DEFAULT_STORE, bootstrap};
+pub use remote::{RemoteBlobStore, RemoteSettings};
 pub use s3::{
     S3BlobStore, S3Bucket, S3Connection, S3Encryption, S3EncryptionKind, S3FailoverBucket, S3Keys,
     S3Security, S3Settings,
@@ -49,6 +51,12 @@ pub enum Error {
     Content(#[source] io::Error),
     #[error("S3 refused {operation}: {message}")]
     S3 {
+        operation: &'static str,
+        message: String,
+    },
+    #[error("the blob store agent of \"{store}\" failed to {operation}: {message}")]
+    Remote {
+        store: String,
         operation: &'static str,
         message: String,
     },

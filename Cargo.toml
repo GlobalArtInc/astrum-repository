@@ -12,6 +12,7 @@ repository = "https://github.com/GlobalArtInc/astrum-repository"
 [workspace.dependencies]
 astrum-api = { path = "crates/astrum-api" }
 astrum-blob = { path = "crates/astrum-blob" }
+astrum-blob-agent = { path = "crates/astrum-blob-agent" }
 astrum-content = { path = "crates/astrum-content" }
 astrum-format-alpine = { path = "crates/astrum-format-alpine" }
 astrum-format-ansible = { path = "crates/astrum-format-ansible" }

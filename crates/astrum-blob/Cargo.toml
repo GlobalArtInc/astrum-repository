@@ -17,6 +17,7 @@ chrono.workspace = true
 futures-util.workspace = true
 hex.workspace = true
 md-5.workspace = true
+reqwest.workspace = true
 rustix.workspace = true
 sea-orm.workspace = true
 serde.workspace = true

@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use astrum_blob::config::{GroupSettings, Settings, StoreConfig};
+use astrum_blob::config::{self, GroupSettings, Settings, StoreConfig};
 use astrum_blob::{FillPolicy, SoftQuota, StoreKind};
 use astrum_db::audit::Event;
 use astrum_db::entity::repository;
@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use super::{
-    CREATE, DOMAIN, QuotaInput, READ, UPDATE, check_name, check_quota, ensure_unique, find, insert,
-    internal, refuse_type_change, save,
+    CREATE, DOMAIN, QuotaInput, READ, UPDATE, check_name, check_quota, duplicate, ensure_unique,
+    find, insert, internal, refuse_type_change, save, valid_name,
 };
 use crate::{ApiError, AppState, Caller, Json, Validation};
 
@@ -40,10 +40,13 @@ fn check_policy(validation: &mut Validation, value: Option<&str>) -> FillPolicy 
     match value.map(str::trim).filter(|value| !value.is_empty()) {
         None | Some("writeToFirst") => FillPolicy::WriteToFirst,
         Some("roundRobin") => FillPolicy::RoundRobin,
+        Some("mostFreeSpace") => FillPolicy::MostFreeSpace,
         Some(other) => {
             validation.add(
                 "fillPolicy",
-                format!("{other} is not a fill policy; use writeToFirst or roundRobin"),
+                format!(
+                    "{other} is not a fill policy; use writeToFirst, roundRobin or mostFreeSpace"
+                ),
             );
             FillPolicy::WriteToFirst
         }
@@ -244,6 +247,54 @@ pub(super) async fn update(
             &caller,
             Event::new(DOMAIN, "updated", &config.name)
                 .with(json!({"type": "Group", "members": members, "fillPolicy": fill_policy})),
+        )
+        .await;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub(super) async fn convert(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path((name, member)): Path<(String, String)>,
+) -> Result<StatusCode, ApiError> {
+    caller.require(CREATE)?;
+    caller.require(UPDATE)?;
+    let current = find(&state, &name).await?;
+    let member = member.trim().to_owned();
+    if !valid_name(&member) {
+        return Err(ApiError::invalid(
+            "PARAMETER newNameForOriginal",
+            "may hold only letters, digits, '-', '_' and '.', and must start with a letter, a digit or '-'",
+        ));
+    }
+    if current.kind() == StoreKind::Group {
+        return Err(ApiError::BadRequest(format!(
+            "Blob store {name} is a group blob store already"
+        )));
+    }
+    let configs = state.blob_stores().configs().await.map_err(internal)?;
+    if let Some(group) = configs.iter().find(|config| {
+        config
+            .group()
+            .is_some_and(|group| group.members.contains(&current.name))
+    }) {
+        return Err(ApiError::BadRequest(format!(
+            "Blob store {name} is a member of the group {}; add stores to that group instead",
+            group.name
+        )));
+    }
+    ensure_unique(&state, &member).await?;
+    let group = match config::promote(state.db().conn(), &current.name, &member).await {
+        Ok(group) => group,
+        Err(astrum_blob::Error::Duplicate(_)) => return Err(duplicate()),
+        Err(error) => return Err(internal(error)),
+    };
+    state.blob_stores().forget();
+    state
+        .audit(
+            &caller,
+            Event::new(DOMAIN, "converted", &group.name)
+                .with(json!({"type": "Group", "members": [member]})),
         )
         .await;
     Ok(StatusCode::NO_CONTENT)

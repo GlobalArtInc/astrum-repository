@@ -38,6 +38,7 @@ url.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+astrum-blob-agent.workspace = true
 astrum-format-alpine.workspace = true
 astrum-format-ansible.workspace = true
 astrum-format-apt.workspace = true

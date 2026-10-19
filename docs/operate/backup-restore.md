@@ -5,7 +5,7 @@ A complete backup has three parts that belong together:
 | Part | Where | Holds |
 |---|---|---|
 | Database | PostgreSQL | Repositories, components and assets metadata, users, roles, settings, tasks, sessions, the audit log |
-| Blob stores | `<data>/blobs/<name>`, the configured path or S3 bucket | The artifact files |
+| Blob stores | `<data>/blobs/<name>`, the configured path, S3 bucket or agent directory | The artifact files |
 | Secrets key | `<data>/etc/secrets.key`, or the file named by `secrets_key_file` | The key that opens the stored passwords and keys |
 
 Back up the configuration file (`<data>/etc/astrum.toml` or the file named by `ASTRUM_CONFIG`) as well. The
@@ -37,7 +37,9 @@ rsync -a --delete /srv/astrum/data/blobs/ /backup/astrum/blobs/
 ```
 
 File system or volume snapshots taken right after the database backup are faster and consistent.
-For S3 blob stores enable bucket versioning or replication instead.
+For S3 blob stores enable bucket versioning or replication instead. A remote blob store keeps its
+blobs in the directory of its agent on another server, laid out like a file blob store: back it up there
+the same way.
 
 ## Secrets key
 

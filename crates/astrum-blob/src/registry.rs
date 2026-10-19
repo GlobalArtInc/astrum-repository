@@ -11,7 +11,8 @@ use sea_orm::DatabaseConnection;
 use crate::config::{self, FileSettings, Settings, StoreConfig};
 use crate::s3::S3Security;
 use crate::{
-    BlobStore, Error, FileBlobStore, GroupBlobStore, Metrics, S3BlobStore, S3Keys, S3Settings,
+    BlobStore, Error, FileBlobStore, GroupBlobStore, Metrics, RemoteBlobStore, RemoteSettings,
+    S3BlobStore, S3Keys, S3Settings,
 };
 
 pub const BLOBS_DIR: &str = "blobs";
@@ -77,6 +78,27 @@ impl BlobStores {
         S3BlobStore::open(name, settings, keys, self.metrics(name)).await
     }
 
+    pub fn open_remote(
+        &self,
+        name: &str,
+        settings: &RemoteSettings,
+    ) -> Result<RemoteBlobStore, Error> {
+        let sealed = settings
+            .token
+            .as_deref()
+            .filter(|token| !token.trim().is_empty())
+            .ok_or_else(|| Error::Config {
+                store: name.to_owned(),
+                message: "the agent token is missing".to_owned(),
+            })?;
+        RemoteBlobStore::open(
+            name,
+            settings,
+            self.secrets.open(sealed)?,
+            self.metrics(name),
+        )
+    }
+
     pub fn metrics(&self, name: &str) -> Metrics {
         Metrics::new(self.db.clone(), name)
     }
@@ -139,6 +161,7 @@ impl BlobStores {
                 Arc::new(FileBlobStore::attach(name, self.resolve(path), self.metrics(name)).await?)
             }
             Settings::S3(settings) => Arc::new(self.open_s3(name, settings).await?),
+            Settings::Remote(settings) => Arc::new(self.open_remote(name, settings)?),
             Settings::Group(group) => {
                 if depth >= MAX_GROUP_DEPTH {
                     return Err(Error::Config {

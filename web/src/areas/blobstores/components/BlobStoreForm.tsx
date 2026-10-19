@@ -1,5 +1,5 @@
 import { Callout } from '@radix-ui/themes';
-import { Folder, Info, TriangleAlert } from 'lucide-react';
+import { Folder, Info, Network, TriangleAlert } from 'lucide-react';
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useT } from '../../../i18n';
 import { FormError, UnsavedChangesGuard, useForm } from '../../../ui';
@@ -9,6 +9,7 @@ import {
   NumberInput,
   SecretInput,
   SelectInput,
+  TextAreaInput,
   TextInput,
 } from '../../repositories/components/fields';
 import type { StoreType, UiBlobStore } from '../api';
@@ -21,6 +22,7 @@ import {
   QUOTA_TYPES,
   type StoreDocument,
   type StoreValues,
+  sameAddress,
   storedSecret,
   toDocument,
   validate,
@@ -41,6 +43,9 @@ const STEP_OF: Partial<Record<keyof StoreValues, Step>> = {
   expiration: 'basic',
   members: 'basic',
   fillPolicy: 'basic',
+  url: 'basic',
+  token: 'credentials',
+  certificate: 'credentials',
   accessKeyId: 'credentials',
   secretAccessKey: 'credentials',
   role: 'credentials',
@@ -59,6 +64,7 @@ const QUOTA_LABELS: Record<(typeof QUOTA_TYPES)[number], string> = {
 const FILL_LABELS: Record<(typeof FILL_POLICIES)[number], string> = {
   writeToFirst: 'blobstores.group.writeToFirst',
   roundRobin: 'blobstores.group.roundRobin',
+  mostFreeSpace: 'blobstores.group.mostFreeSpace',
 };
 
 const ENCRYPTION_LABELS: Record<(typeof ENCRYPTION_TYPES)[number], string> = {
@@ -125,10 +131,11 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
   const { type, creating, document } = props;
   const readOnly = props.readOnly === true;
   const storedKeyId = creating ? null : storedSecret(document);
+  const storedUrl = creating || typeof document.url !== 'string' ? null : document.url;
   const [saved, setSaved] = useState<StoreDocument | null>(null);
   const form = useForm<StoreValues>({
     initial: fromDocument(document),
-    validate: (values) => validate(values, { type, creating, storedKeyId }, t),
+    validate: (values) => validate(values, { type, creating, storedKeyId, storedUrl }, t),
     onSubmit: async (values) => {
       const next = toDocument(values, document, type);
       try {
@@ -154,7 +161,8 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
     values.name.trim() !== '' &&
     (type !== 'file' || values.path.trim() !== '') &&
     (type !== 's3' || (values.bucket.trim() !== '' && values.region.trim() !== '')) &&
-    (type !== 'group' || values.members.length > 0);
+    (type !== 'group' || values.members.length > 0) &&
+    (type !== 'remote' || values.url.trim() !== '');
   useEffect(() => {
     onReadyChange?.({ basic: basicReady, credentials: true, advanced: true });
   }, [basicReady, onReadyChange]);
@@ -166,13 +174,14 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
     type: typeLabel(t, store.type),
   }));
   const keepsSecret = storedKeyId !== null && values.accessKeyId.trim() === storedKeyId;
+  const keepsToken = !creating && sameAddress(values.url, storedUrl);
   const step = props.step;
   const shows = (part: Step) => step === undefined || step === part;
 
   const formElement = useRef<HTMLFormElement>(null);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const errors = validate(values, { type, creating, storedKeyId }, t);
+    const errors = validate(values, { type, creating, storedKeyId, storedUrl }, t);
     const first = Object.keys(errors)[0];
     if (first && step !== undefined) {
       onStepChange?.(stepOf(first));
@@ -339,6 +348,45 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
         </>
       )}
 
+      {type === 'remote' && (
+        <>
+          <Section
+            title={t('blobstores.remote.section')}
+            description={t('blobstores.remote.sectionText')}
+            icon={creating ? undefined : <Network size={20} aria-hidden="true" />}
+            hidden={!shows('basic')}
+          >
+            <TextInput
+              {...field('url')}
+              type="url"
+              label={t('blobstores.remote.url')}
+              hint={t('blobstores.remote.urlHint')}
+              placeholder="https://storage1.internal:8090"
+              required
+            />
+          </Section>
+          <Section
+            title={t('blobstores.remote.credentials')}
+            description={t('blobstores.remote.credentialsText')}
+            hidden={!shows('credentials')}
+          >
+            <SecretInput
+              {...field('token')}
+              label={t('blobstores.remote.token')}
+              hint={t('blobstores.remote.tokenHint')}
+              stored={keepsToken}
+              required
+            />
+            <TextAreaInput
+              {...field('certificate')}
+              label={t('blobstores.remote.certificate')}
+              hint={t('blobstores.remote.certificateHint')}
+              rows={4}
+            />
+          </Section>
+        </>
+      )}
+
       {type === 'group' && (
         <Section
           title={t('blobstores.group.section')}
@@ -365,7 +413,7 @@ export function BlobStoreForm(props: BlobStoreFormProps) {
         </Section>
       )}
 
-      {step === 'credentials' && type !== 's3' && (
+      {step === 'credentials' && type !== 's3' && type !== 'remote' && (
         <Section title={t('blobstores.wizard.noCredentials')}>
           <p className={styles.sectionText}>
             {type === 'file'

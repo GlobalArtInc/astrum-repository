@@ -1,5 +1,5 @@
 import { Button, Callout, Flex, Spinner, Tooltip } from '@radix-ui/themes';
-import { CircleAlert, HardDrive, Info, Trash2 } from 'lucide-react';
+import { CircleAlert, HardDrive, Info, Layers, Trash2 } from 'lucide-react';
 import { useId, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, useApi, useInvalidateApi } from '../../../api';
@@ -9,8 +9,10 @@ import { describeError, EmptyState, ErrorState, Page, useConfirm, useToast } fro
 import { storeTypeName } from '../../repositories/components/EditTabs';
 import {
   configPath,
+  convertPath,
   deletePath,
   LIST_ADDRESS,
+  storeAddress,
   storeType,
   UI_BLOB_STORES,
   type UiBlobStore,
@@ -18,6 +20,7 @@ import {
 } from '../api';
 import styles from '../blobstores.module.css';
 import { BlobStoreForm } from '../components/BlobStoreForm';
+import { ConvertDialog } from '../components/ConvertDialog';
 import type { StoreDocument } from '../model';
 
 function Loading() {
@@ -57,6 +60,8 @@ export default function BlobStorePage() {
   const type = storeType(params.type ?? '');
   const canUpdate = useCan('astrum:blobstores:update');
   const canDelete = useCan('astrum:blobstores:delete');
+  const canCreate = useCan('astrum:blobstores:create');
+  const [converting, setConverting] = useState(false);
   const list = useUiBlobStores();
   const store = list.data?.find((candidate) => candidate.name === name);
   const configAddress = type ? configPath(type, name) : null;
@@ -132,6 +137,13 @@ export default function BlobStorePage() {
       toast.error(describeError(t, error));
     }
   };
+  const convertible = canCreate && canUpdate && type !== 'group' && store.groups.length === 0;
+  const convert = async (member: string) => {
+    await api.post(convertPath(name, member));
+    toast.success(t('blobstores.convert.done', { name }));
+    await invalidate(UI_BLOB_STORES);
+    navigate(storeAddress('group', name), { replace: true });
+  };
   const deleteButton = (
     <Button color="gray" variant="soft" size="3" disabled={refusal !== null} onClick={() => void remove()}>
       <Trash2 size={16} aria-hidden="true" />
@@ -146,8 +158,14 @@ export default function BlobStorePage() {
       description={t('blobstores.edit.subtitle', { type: storeTypeName(store.type) })}
     >
       <div className={styles.bar}>
-        <span>
+        <span className={styles.barRight}>
           {canDelete && (refusal ? <Tooltip content={refusal}>{deleteButton}</Tooltip> : deleteButton)}
+          {convertible && (
+            <Button variant="soft" size="3" onClick={() => setConverting(true)}>
+              <Layers size={16} aria-hidden="true" />
+              {t('blobstores.convert.action')}
+            </Button>
+          )}
         </span>
         {canUpdate && (
           <span className={styles.barRight}>
@@ -160,6 +178,9 @@ export default function BlobStorePage() {
           </span>
         )}
       </div>
+      {convertible && (
+        <ConvertDialog name={name} open={converting} onOpenChange={setConverting} onConvert={convert} />
+      )}
       <div className={styles.body}>
         {store.unavailable && (
           <Callout.Root color="red" role="status" className={styles.callout}>
