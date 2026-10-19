@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
-pub const LATEST_VERSION: &str = "2025-06-18";
-pub const VERSIONS: [&str; 2] = [LATEST_VERSION, "2025-03-26"];
+pub const LATEST_VERSION: &str = "2025-11-25";
+pub const VERSIONS: [&str; 3] = [LATEST_VERSION, "2025-06-18", "2025-03-26"];
 pub const VERSION_HEADER: &str = "mcp-protocol-version";
 
 const PARSE_ERROR: i64 = -32700;
@@ -94,6 +94,15 @@ pub enum Reply {
 
 pub fn supported(version: &str) -> bool {
     VERSIONS.contains(&version)
+}
+
+pub fn opens_session(body: &[u8]) -> bool {
+    match serde_json::from_slice::<Value>(body) {
+        Ok(Value::Object(message)) => {
+            message.get("method").and_then(Value::as_str) == Some("initialize")
+        }
+        _ => false,
+    }
 }
 
 pub async fn handle_body(server: &ServerInfo, handler: &dyn Handler, body: &[u8]) -> Reply {
