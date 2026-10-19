@@ -3,6 +3,7 @@ pub mod base_url;
 pub mod domains;
 pub mod error;
 pub mod json;
+pub mod limits;
 mod notify_mail;
 pub mod routes;
 
@@ -52,6 +53,7 @@ struct Inner {
     started_at: chrono::DateTime<chrono::FixedOffset>,
     application_port: OnceLock<u16>,
     repository_changes: tokio::sync::Notify,
+    limits: limits::Limiter,
 }
 
 impl AppState {
@@ -87,6 +89,7 @@ impl AppState {
                 started_at: chrono::Utc::now().fixed_offset(),
                 application_port: OnceLock::new(),
                 repository_changes: tokio::sync::Notify::new(),
+                limits: limits::Limiter::default(),
             }),
         }
     }
@@ -176,12 +179,26 @@ impl AppState {
         &self.inner.repository_changes
     }
 
+    pub fn limits(&self) -> &limits::Limiter {
+        &self.inner.limits
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
             None => caller.initiator(),
         };
-        let event = event.by(initiator);
+        let mut event = event.by(initiator);
+        if let Some(client) = routes::mcp::client() {
+            let mut attributes = match std::mem::take(&mut event.attributes) {
+                serde_json::Value::Object(attributes) => attributes,
+                serde_json::Value::Null => serde_json::Map::new(),
+                other => serde_json::Map::from_iter([("details".to_owned(), other)]),
+            };
+            attributes.insert("via".to_owned(), serde_json::Value::from("mcp"));
+            attributes.insert("client".to_owned(), serde_json::Value::from(client));
+            event.attributes = serde_json::Value::Object(attributes);
+        }
         if let Err(error) = audit::record(self.db().conn(), event).await {
             tracing::error!(%error, "an audit event was not recorded");
         }
@@ -239,6 +256,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::outbound::routes())
         .merge(routes::email::routes())
         .merge(routes::mcp::routes())
+        .merge(routes::oauth::routes())
         .fallback(not_found)
 }
 

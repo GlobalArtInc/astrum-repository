@@ -4,6 +4,7 @@ pub mod catalogue;
 pub mod format_tokens;
 pub mod ldap;
 pub mod model;
+pub mod oauth;
 pub mod oidc;
 pub mod password;
 pub mod permission;

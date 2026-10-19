@@ -70,6 +70,37 @@ describe('the access tokens page', () => {
     await waitFor(() => expect(server.calls.some((call) => call.method === 'DELETE')).toBe(true));
   }, 20_000);
 
+  it('lists connected agents and disconnects one', async () => {
+    const server = fakeServer({
+      'GET /service/rest/internal/access-tokens': () => jsonResponse([]),
+      'GET /service/rest/internal/ui/oauth/grants': () =>
+        jsonResponse([
+          {
+            id: 'g1',
+            clientName: 'Claude Code',
+            scope: 'WRITE',
+            createdAt: '2026-10-19T10:00:00Z',
+            lastUsedAt: null,
+            expiresAt: '2026-11-18T10:00:00Z',
+          },
+        ]),
+      'DELETE /service/rest/internal/ui/oauth/grants/g1': () => new Response(null, { status: 204 }),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    renderWithApp(<AccessTokensPage />);
+    const agents = await screen.findByRole('region', { name: 'Connected Agents' });
+    expect(await within(agents).findByText('Claude Code')).toBeInTheDocument();
+    expect(within(agents).getByText('Read and write')).toBeInTheDocument();
+    await userEvent.click(within(agents).getByRole('button', { name: 'Disconnect Claude Code' }));
+    const confirm = await screen.findByRole('alertdialog', { name: 'Disconnect this agent?' });
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Disconnect' }));
+    await waitFor(() =>
+      expect(
+        server.calls.some((call) => call.method === 'DELETE' && call.path.endsWith('/oauth/grants/g1')),
+      ).toBe(true),
+    );
+  });
+
   it('explains that tokens need a password sign-in', async () => {
     vi.stubGlobal(
       'fetch',

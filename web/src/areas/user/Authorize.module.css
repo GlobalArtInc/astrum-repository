@@ -1,0 +1,27 @@
+.page {
+  display: flex;
+  justify-content: center;
+  padding: 48px 16px;
+}
+
+.card {
+  width: 100%;
+  max-width: 560px;
+}
+
+.write {
+  display: block;
+  padding: 12px;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+}
+
+.writeLabel {
+  display: block;
+  font-weight: 500;
+}
+
+.writeText {
+  display: block;
+  color: var(--gray-11);
+}
