@@ -8,6 +8,7 @@ pub(crate) mod html;
 pub mod internal;
 pub mod legacy;
 pub mod mcp;
+pub mod oauth;
 pub mod oidc;
 pub mod outbound;
 pub mod repositories;

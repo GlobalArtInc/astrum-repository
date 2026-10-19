@@ -28,6 +28,7 @@ import {
   useForm,
   useToast,
 } from '../../ui';
+import { AgentGrants } from './AgentGrants';
 import {
   type AccessToken,
   type CreatedToken,
@@ -398,6 +399,7 @@ export default function AccessTokensPage() {
           )}
         </>
       )}
+      <AgentGrants />
       <CreatedDialog token={created} onClose={() => setCreated(null)} />
       <ConfirmDialog
         open={revoking !== null}

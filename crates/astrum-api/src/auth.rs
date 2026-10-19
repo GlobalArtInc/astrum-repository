@@ -8,6 +8,7 @@ use base64::engine::general_purpose::STANDARD;
 
 use astrum_security::api_keys;
 use astrum_security::format_tokens::looks_like_format_token;
+use astrum_security::oauth::looks_like_access_token;
 use astrum_security::tokens::looks_like_token;
 use astrum_security::{AuthError, Subject};
 use axum::http::Method;
@@ -24,6 +25,9 @@ pub const CSRF_HEADER: &str = "x-astrum-csrf";
 
 #[derive(Clone, Debug, Default)]
 pub struct Caller(pub Option<Subject>);
+
+#[derive(Clone, Debug)]
+pub struct AgentClient(pub String);
 
 impl Caller {
     pub fn subject(&self) -> Option<&Subject> {
@@ -95,7 +99,12 @@ pub async fn authenticate(State(state): State<AppState>, request: Request, next:
 
 async fn admit(state: AppState, mut request: Request, next: Next) -> Response {
     let from_ui = is_ui(request.headers());
-    let caller = match resolve(
+    if crate::routes::oauth::is_endpoint(request.uri().path()) {
+        request.extensions_mut().insert(Caller(None));
+        return next.run(request).await;
+    }
+    let for_agents = request.uri().path() == crate::routes::mcp::PATH;
+    let (caller, client) = match resolve(
         &state,
         request.method(),
         request.uri().path(),
@@ -105,10 +114,16 @@ async fn admit(state: AppState, mut request: Request, next: Next) -> Response {
     {
         Ok(caller) => caller,
         Err(ApiError::Unauthorized) if is_sign_in(request.uri().path()) => {
-            Caller(state.security().anonymous())
+            (Caller(state.security().anonymous()), None)
+        }
+        Err(ApiError::Unauthorized) if for_agents => {
+            return crate::routes::mcp::challenge(request.headers(), request.uri(), true);
         }
         Err(error) => return without_challenge(error.into_response(), from_ui),
     };
+    if let Some(client) = client {
+        request.extensions_mut().insert(AgentClient(client));
+    }
     request.extensions_mut().insert(caller);
     without_challenge(next.run(request).await, from_ui)
 }
@@ -117,6 +132,7 @@ enum Credentials {
     Basic(String, String),
     Token(String),
     FormatToken(String),
+    OAuth(String),
 }
 
 async fn resolve(
@@ -124,8 +140,17 @@ async fn resolve(
     method: &Method,
     path: &str,
     headers: &HeaderMap,
-) -> Result<Caller, ApiError> {
+) -> Result<(Caller, Option<String>), ApiError> {
     if let Some(credentials) = credentials(headers)? {
+        if let Credentials::OAuth(token) = &credentials {
+            if path != crate::routes::mcp::PATH {
+                return Err(ApiError::Unauthorized);
+            }
+            return match state.security().authenticate_oauth(token).await? {
+                Some(found) => Ok((Caller(Some(found.subject)), Some(found.client_name))),
+                None => Err(ApiError::Unauthorized),
+            };
+        }
         let security = state.security();
         let password_given =
             matches!(&credentials, Credentials::Basic(_, password) if !looks_like_token(password));
@@ -165,9 +190,10 @@ async fn resolve(
                 String::new(),
                 security.authenticate_format_token(&token).await,
             ),
+            Credentials::OAuth(_) => (String::new(), Err(AuthError::BadCredentials)),
         };
         return match result {
-            Ok(subject) => Ok(Caller(Some(subject))),
+            Ok(subject) => Ok((Caller(Some(subject)), None)),
             Err(AuthError::BadCredentials) => {
                 tracing::info!(user, "a sign-in failed");
                 if password_given {
@@ -187,7 +213,7 @@ async fn resolve(
             .authenticate_api_key(api_keys::NUGET, key)
             .await
         {
-            Ok(subject) => return Ok(Caller(Some(subject))),
+            Ok(subject) => return Ok((Caller(Some(subject)), None)),
             Err(AuthError::BadCredentials) => {
                 tracing::debug!("a NuGet API key was not accepted");
             }
@@ -200,9 +226,9 @@ async fn resolve(
         if !is_safe(method) {
             check_csrf(headers, &session.csrf)?;
         }
-        return Ok(Caller(Some(session.subject)));
+        return Ok((Caller(Some(session.subject)), None));
     }
-    Ok(Caller(state.security().anonymous()))
+    Ok((Caller(state.security().anonymous()), None))
 }
 
 fn audit_path(path: &str) -> String {
@@ -272,6 +298,9 @@ fn credentials(headers: &HeaderMap) -> Result<Option<Credentials>, ApiError> {
     };
     if scheme.eq_ignore_ascii_case("bearer") || scheme.eq_ignore_ascii_case("token") {
         let token = encoded.trim();
+        if looks_like_access_token(token) {
+            return Ok(Some(Credentials::OAuth(token.to_owned())));
+        }
         if looks_like_token(token) {
             return Ok(Some(Credentials::Token(token.to_owned())));
         }

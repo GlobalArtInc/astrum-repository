@@ -2,18 +2,28 @@ mod loopback;
 mod tools;
 
 use astrum_mcp::{Reply, ServerInfo, VERSION_HEADER};
-use axum::Router;
 use axum::body::Bytes;
 use axum::extract::State;
-use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
+use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
+use axum::{Extension, Router};
 use serde_json::json;
 
+use crate::auth::AgentClient;
+use crate::limits;
 use crate::{AppState, Caller};
 
 pub const PATH: &str = "/mcp";
-const CHALLENGE: &str = "Bearer realm=\"Astrum Repository\"";
+pub const RESOURCE_METADATA: &str = "/.well-known/oauth-protected-resource/mcp";
+
+tokio::task_local! {
+    static CLIENT: String;
+}
+
+pub fn client() -> Option<String> {
+    CLIENT.try_with(Clone::clone).ok()
+}
 const INSTRUCTIONS: &str = "Astrum Repository keeps build artifacts: Maven, npm, Docker, Helm, PyPI, NuGet and other formats. \
 Find artifacts with search_components and list_versions, Docker tags with list_docker_tags, and read small text files such as \
 pom.xml or Chart.yaml with read_text_asset. list_blob_stores shows where blobs are kept and how much room is left; tasks run \
@@ -35,7 +45,9 @@ fn server_info() -> ServerInfo {
 async fn serve(
     State(state): State<AppState>,
     caller: Caller,
+    agent: Option<Extension<AgentClient>>,
     headers: HeaderMap,
+    uri: Uri,
     body: Bytes,
 ) -> Response {
     if !origin_allowed(&headers) {
@@ -55,24 +67,57 @@ async fn serve(
         );
     }
     let Ok(subject) = caller.signed_in() else {
+        return challenge(&headers, &uri, false);
+    };
+    if let Err(wait) = state
+        .limits()
+        .take(&format!("mcp:{}", subject.user_id), limits::AGENT_CALLS)
+    {
         let mut response = refuse(
-            StatusCode::UNAUTHORIZED,
-            "sign in with a user token: Authorization: Bearer astrum_...",
+            StatusCode::TOO_MANY_REQUESTS,
+            "too many requests; slow down and try again later",
         );
-        response.headers_mut().insert(
-            header::WWW_AUTHENTICATE,
-            HeaderValue::from_static(CHALLENGE),
-        );
+        if let Ok(value) = HeaderValue::from_str(&wait.as_secs().to_string()) {
+            response.headers_mut().insert(header::RETRY_AFTER, value);
+        }
         return response;
+    }
+    let client = match agent {
+        Some(Extension(AgentClient(name))) => name,
+        None => "access token".to_owned(),
     };
     let handler = tools::AstrumTools::new(
         loopback::Loopback::new(&state, caller.clone(), &headers),
         subject.clone(),
     );
-    match astrum_mcp::handle_body(&server_info(), &handler, &body).await {
+    let info = server_info();
+    let reply = CLIENT
+        .scope(client, astrum_mcp::handle_body(&info, &handler, &body))
+        .await;
+    match reply {
         Reply::Message(message) => axum::Json(message).into_response(),
         Reply::Accepted => StatusCode::ACCEPTED.into_response(),
     }
+}
+
+pub fn challenge(headers: &HeaderMap, uri: &Uri, rejected: bool) -> Response {
+    let base = crate::routes::repositories::base_url(headers, uri);
+    let mut value = format!(
+        "Bearer realm=\"Astrum Repository\", resource_metadata=\"{base}{RESOURCE_METADATA}\", scope=\"read write\""
+    );
+    if rejected {
+        value.push_str(", error=\"invalid_token\"");
+    }
+    let mut response = refuse(
+        StatusCode::UNAUTHORIZED,
+        "sign in through OAuth or with an access token: Authorization: Bearer astrum_...",
+    );
+    if let Ok(value) = HeaderValue::from_str(&value) {
+        response
+            .headers_mut()
+            .insert(header::WWW_AUTHENTICATE, value);
+    }
+    response
 }
 
 async fn not_allowed() -> Response {

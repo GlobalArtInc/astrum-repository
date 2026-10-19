@@ -25,7 +25,9 @@ with existing clients, and follow its clean-room rules. This repository is publi
 - MCP for agents at `POST /mcp` (`crates/astrum-mcp` is the JSON-RPC protocol, `crates/astrum-api/src/routes/mcp`
   the tools; `docs/use/mcp.md`): stateless Streamable HTTP, access tokens as bearer, the tools call the REST
   routes in process (`crate::loopback`) with the caller already resolved, so rights, validation and audit are
-  those of REST. No OAuth yet: clients that need it (claude.ai connectors) cannot connect.
+  those of REST. OAuth 2.1 for agents (`crates/astrum-security/src/oauth.rs`, `crates/astrum-api/src/routes/oauth.rs`,
+  consent page `web/src/areas/user/AuthorizePage.tsx`): dynamic registration, PKCE S256, tokens `astrum_at_`/`astrum_rt_`
+  accepted only on `/mcp`; rate limits in `crates/astrum-api/src/limits.rs`; MCP changes carry `via: mcp` in audit.
 - A repository can answer on a domain of its own (`domain` section: `ROOT` whole domain, `PATH` a path on a
   shared domain; `crates/astrum-api/src/domains.rs`, `docs/configure/reverse-proxy.md`). No production
   repository uses one yet: the owner wants `docker-onprem` on `docker-prem.globalart.hu` later, and gitops
