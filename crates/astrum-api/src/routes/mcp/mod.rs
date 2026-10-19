@@ -1,7 +1,7 @@
 mod loopback;
 mod tools;
 
-use astrum_mcp::{Reply, ServerInfo, VERSION_HEADER};
+use astrum_mcp::{Icon, Reply, ServerInfo, VERSION_HEADER};
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri, header};
@@ -33,12 +33,23 @@ pub fn routes() -> Router<AppState> {
     Router::new().route(PATH, post(serve).get(not_allowed).delete(not_allowed))
 }
 
-fn server_info() -> ServerInfo {
+fn server_info(base: &str) -> ServerInfo {
+    let icon = |file: &str, mime_type: &str, size: &str| Icon {
+        src: format!("{base}/{file}"),
+        mime_type: mime_type.to_owned(),
+        sizes: vec![size.to_owned()],
+    };
     ServerInfo {
         name: "astrum-repository".to_owned(),
         title: "Astrum Repository".to_owned(),
         version: env!("CARGO_PKG_VERSION").to_owned(),
         instructions: INSTRUCTIONS.to_owned(),
+        website_url: Some(base.to_owned()),
+        icons: vec![
+            icon("favicon.svg", "image/svg+xml", "any"),
+            icon("icon-512.png", "image/png", "512x512"),
+            icon("icon-192.png", "image/png", "192x192"),
+        ],
     }
 }
 
@@ -91,7 +102,7 @@ async fn serve(
         loopback::Loopback::new(&state, caller.clone(), &headers),
         subject.clone(),
     );
-    let info = server_info();
+    let info = server_info(&crate::routes::repositories::base_url(&headers, &uri));
     let reply = CLIENT
         .scope(client, astrum_mcp::handle_body(&info, &handler, &body))
         .await;

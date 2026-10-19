@@ -190,6 +190,14 @@ async fn a_read_token_sees_only_the_reading_tools() {
         initialized["result"]["serverInfo"]["name"],
         "astrum-repository"
     );
+    assert_eq!(
+        initialized["result"]["serverInfo"]["icons"][0]["src"],
+        "http://astrum.example/favicon.svg"
+    );
+    assert_eq!(
+        initialized["result"]["serverInfo"]["websiteUrl"],
+        "http://astrum.example"
+    );
     assert!(
         initialized["result"]["instructions"]
             .as_str()
