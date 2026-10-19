@@ -31,6 +31,7 @@ keeps its data in PostgreSQL and in blob stores on disk or in S3.
 
 - [Connect build tools to repositories](use/clients.md)
 - [Interface language](use/language.md)
+- [Agents over MCP](use/mcp.md)
 
 ## Move from another installation
 

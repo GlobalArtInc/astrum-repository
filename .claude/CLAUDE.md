@@ -22,6 +22,10 @@ with existing clients, and follow its clean-room rules. This repository is publi
   under `/v1`, bearer token); a group grows a store onto it, with the fill policy `mostFreeSpace`, and
   `POST /service/rest/v1/blobstores/group/convert/{name}/{newNameForOriginal}` turns a store that
   repositories use into a group. No production store uses an agent yet (`docs/configure/blob-stores.md`).
+- MCP for agents at `POST /mcp` (`crates/astrum-mcp` is the JSON-RPC protocol, `crates/astrum-api/src/routes/mcp`
+  the tools; `docs/use/mcp.md`): stateless Streamable HTTP, access tokens as bearer, the tools call the REST
+  routes in process (`crate::loopback`) with the caller already resolved, so rights, validation and audit are
+  those of REST. No OAuth yet: clients that need it (claude.ai connectors) cannot connect.
 - A repository can answer on a domain of its own (`domain` section: `ROOT` whole domain, `PATH` a path on a
   shared domain; `crates/astrum-api/src/domains.rs`, `docs/configure/reverse-proxy.md`). No production
   repository uses one yet: the owner wants `docker-onprem` on `docker-prem.globalart.hu` later, and gitops

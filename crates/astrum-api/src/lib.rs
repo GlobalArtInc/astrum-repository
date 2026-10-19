@@ -203,6 +203,23 @@ pub fn on_domains(state: AppState, app: Router) -> Router {
 }
 
 pub fn routes_with(state: AppState, extra: Router<AppState>) -> Router {
+    endpoints(extra)
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::authenticate,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            base_url::scope,
+        ))
+        .with_state(state)
+}
+
+pub(crate) fn loopback(state: &AppState) -> Router {
+    endpoints(Router::new()).with_state(state.clone())
+}
+
+fn endpoints(extra: Router<AppState>) -> Router<AppState> {
     Router::new()
         .merge(extra)
         .merge(routes::status::routes())
@@ -221,16 +238,8 @@ pub fn routes_with(state: AppState, extra: Router<AppState>) -> Router {
         .merge(routes::routing_rules::routes())
         .merge(routes::outbound::routes())
         .merge(routes::email::routes())
+        .merge(routes::mcp::routes())
         .fallback(not_found)
-        .layer(middleware::from_fn_with_state(
-            state.clone(),
-            auth::authenticate,
-        ))
-        .layer(middleware::from_fn_with_state(
-            state.clone(),
-            base_url::scope,
-        ))
-        .with_state(state)
 }
 
 async fn not_found() -> StatusCode {

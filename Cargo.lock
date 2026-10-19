@@ -251,6 +251,7 @@ dependencies = [
  "astrum-format-yum",
  "astrum-logging",
  "astrum-mail",
+ "astrum-mcp",
  "astrum-notify",
  "astrum-outbound",
  "astrum-repo",
@@ -1086,6 +1087,17 @@ dependencies = [
  "tokio-rustls",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "astrum-mcp"
+version = "3.0.0-dev"
+dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

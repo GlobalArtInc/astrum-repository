@@ -1,0 +1,158 @@
+mod loopback;
+mod tools;
+
+use astrum_mcp::{Reply, ServerInfo, VERSION_HEADER};
+use axum::Router;
+use axum::body::Bytes;
+use axum::extract::State;
+use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
+use axum::response::{IntoResponse, Response};
+use axum::routing::post;
+use serde_json::json;
+
+use crate::{AppState, Caller};
+
+pub const PATH: &str = "/mcp";
+const CHALLENGE: &str = "Bearer realm=\"Astrum Repository\"";
+const INSTRUCTIONS: &str = "Astrum Repository keeps build artifacts: Maven, npm, Docker, Helm, PyPI, NuGet and other formats. \
+Find artifacts with search_components and list_versions, Docker tags with list_docker_tags, and read small text files such as \
+pom.xml or Chart.yaml with read_text_asset. list_blob_stores shows where blobs are kept and how much room is left; tasks run \
+cleanups and compactions. Writing tools change the server for everyone: say what you are about to change before you call them.";
+
+pub fn routes() -> Router<AppState> {
+    Router::new().route(PATH, post(serve).get(not_allowed).delete(not_allowed))
+}
+
+fn server_info() -> ServerInfo {
+    ServerInfo {
+        name: "astrum-repository".to_owned(),
+        title: "Astrum Repository".to_owned(),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
+        instructions: INSTRUCTIONS.to_owned(),
+    }
+}
+
+async fn serve(
+    State(state): State<AppState>,
+    caller: Caller,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Response {
+    if !origin_allowed(&headers) {
+        return refuse(
+            StatusCode::FORBIDDEN,
+            "requests from another origin are refused",
+        );
+    }
+    if let Some(version) = headers
+        .get(VERSION_HEADER)
+        .and_then(|value| value.to_str().ok())
+        && !astrum_mcp::supported(version)
+    {
+        return refuse(
+            StatusCode::BAD_REQUEST,
+            &format!("the protocol version {version} is not supported"),
+        );
+    }
+    let Ok(subject) = caller.signed_in() else {
+        let mut response = refuse(
+            StatusCode::UNAUTHORIZED,
+            "sign in with a user token: Authorization: Bearer astrum_...",
+        );
+        response.headers_mut().insert(
+            header::WWW_AUTHENTICATE,
+            HeaderValue::from_static(CHALLENGE),
+        );
+        return response;
+    };
+    let handler = tools::AstrumTools::new(
+        loopback::Loopback::new(&state, caller.clone(), &headers),
+        subject.clone(),
+    );
+    match astrum_mcp::handle_body(&server_info(), &handler, &body).await {
+        Reply::Message(message) => axum::Json(message).into_response(),
+        Reply::Accepted => StatusCode::ACCEPTED.into_response(),
+    }
+}
+
+async fn not_allowed() -> Response {
+    let mut response = StatusCode::METHOD_NOT_ALLOWED.into_response();
+    response
+        .headers_mut()
+        .insert(header::ALLOW, HeaderValue::from_static("POST"));
+    response
+}
+
+fn refuse(status: StatusCode, message: &str) -> Response {
+    (
+        status,
+        axum::Json(json!({
+            "jsonrpc": "2.0",
+            "id": null,
+            "error": { "code": -32000, "message": message },
+        })),
+    )
+        .into_response()
+}
+
+fn origin_allowed(headers: &HeaderMap) -> bool {
+    let Some(origin) = headers
+        .get(header::ORIGIN)
+        .and_then(|value| value.to_str().ok())
+    else {
+        return true;
+    };
+    let Ok(origin) = url::Url::parse(origin) else {
+        return false;
+    };
+    let Some(origin_host) = origin.host_str() else {
+        return false;
+    };
+    let origin_authority = match origin.port() {
+        Some(port) => format!("{origin_host}:{port}"),
+        None => origin_host.to_owned(),
+    };
+    [header::HOST.as_str(), "x-forwarded-host"]
+        .iter()
+        .filter_map(|name| headers.get(*name).and_then(|value| value.to_str().ok()))
+        .flat_map(|value| value.split(','))
+        .map(str::trim)
+        .any(|host| {
+            host.eq_ignore_ascii_case(&origin_authority) || host.eq_ignore_ascii_case(origin_host)
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn headers(pairs: &[(&'static str, &'static str)]) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        for (name, value) in pairs {
+            headers.insert(*name, HeaderValue::from_static(value));
+        }
+        headers
+    }
+
+    #[test]
+    fn only_the_own_origin_is_let_in() {
+        assert!(origin_allowed(&headers(&[("host", "astrum.example")])));
+        assert!(origin_allowed(&headers(&[
+            ("host", "astrum.example"),
+            ("origin", "https://astrum.example")
+        ])));
+        assert!(origin_allowed(&headers(&[
+            ("host", "10.0.0.1:8082"),
+            ("x-forwarded-host", "astrum.example"),
+            ("origin", "https://astrum.example")
+        ])));
+        assert!(!origin_allowed(&headers(&[
+            ("host", "astrum.example"),
+            ("origin", "https://evil.example")
+        ])));
+        assert!(!origin_allowed(&headers(&[
+            ("host", "astrum.example"),
+            ("origin", "null")
+        ])));
+    }
+}
