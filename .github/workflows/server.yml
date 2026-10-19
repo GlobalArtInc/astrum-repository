@@ -176,6 +176,8 @@ jobs:
           curl -fs "http://127.0.0.1:$port/service/rest/v1/status/writable" >/dev/null
           curl -fs "http://127.0.0.1:$port/" | grep -q '<div id="root">'
           curl -fs "http://127.0.0.1:$port/browse/x" | grep -q '<div id="root">'
+          curl -fsI "http://127.0.0.1:$port/favicon.ico" | grep -qi "^content-type: image/"
+          curl -fsI "http://127.0.0.1:$port/icon-512.png" | grep -qi "^content-type: image/png"
           curl -fsI "http://127.0.0.1:$port/browse/x" | grep -qi "^content-security-policy: default-src 'self'"
           test "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/service/rest/v1/nothing")" = 404
           docker exec astrum-ci astrum check

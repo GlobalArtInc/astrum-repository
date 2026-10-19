@@ -11,12 +11,22 @@ const INVALID_REQUEST: i64 = -32600;
 const METHOD_NOT_FOUND: i64 = -32601;
 const INVALID_PARAMS: i64 = -32602;
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Icon {
+    pub src: String,
+    pub mime_type: String,
+    pub sizes: Vec<String>,
+}
+
 #[derive(Clone, Debug)]
 pub struct ServerInfo {
     pub name: String,
     pub title: String,
     pub version: String,
     pub instructions: String,
+    pub website_url: Option<String>,
+    pub icons: Vec<Icon>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -202,6 +212,8 @@ fn initialize(server: &ServerInfo, params: &Map<String, Value>) -> Value {
             "name": server.name,
             "title": server.title,
             "version": server.version,
+            "websiteUrl": server.website_url,
+            "icons": server.icons,
         },
         "instructions": server.instructions,
     })
@@ -380,6 +392,12 @@ mod tests {
             title: "Astrum Repository".to_owned(),
             version: "1.0".to_owned(),
             instructions: "Use the tools".to_owned(),
+            website_url: Some("https://astrum.example".to_owned()),
+            icons: vec![Icon {
+                src: "https://astrum.example/icon.png".to_owned(),
+                mime_type: "image/png".to_owned(),
+                sizes: vec!["512x512".to_owned()],
+            }],
         }
     }
 
@@ -396,6 +414,14 @@ mod tests {
         assert_eq!(reply["result"]["protocolVersion"], "2025-03-26");
         assert_eq!(reply["result"]["serverInfo"]["name"], "astrum");
         assert_eq!(reply["result"]["instructions"], "Use the tools");
+        assert_eq!(
+            reply["result"]["serverInfo"]["icons"][0]["mimeType"],
+            "image/png"
+        );
+        assert_eq!(
+            reply["result"]["serverInfo"]["websiteUrl"],
+            "https://astrum.example"
+        );
         assert!(reply["result"]["capabilities"]["tools"].is_object());
         let reply = send(json!({"jsonrpc": "2.0", "id": 2, "method": "initialize", "params": {"protocolVersion": "2099-01-01"}})).await;
         assert_eq!(reply["result"]["protocolVersion"], LATEST_VERSION);
