@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Table, Tooltip } from '@radix-ui/themes';
+import { Badge, Button, Card, Table } from '@radix-ui/themes';
 import {
   ChevronRight,
   CircleCheckBig,
@@ -15,7 +15,7 @@ import { Link, useNavigate } from 'react-router';
 import { useApi } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
-import { EmptyState, ErrorState, Page } from '../../../ui';
+import { EmptyState, ErrorState, Page, Tooltip } from '../../../ui';
 import { PHONE, useMediaQuery } from '../../../ui/hooks';
 import { settingsButton } from '../../../ui/SettingsForm';
 import styles from './Capabilities.module.css';

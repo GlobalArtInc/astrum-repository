@@ -1,4 +1,4 @@
-import { Button, IconButton, Spinner, Tooltip } from '@radix-ui/themes';
+import { Button, IconButton, Spinner } from '@radix-ui/themes';
 import {
   ArrowUpDown,
   CircleHelp,
@@ -16,7 +16,7 @@ import { Link } from 'react-router';
 import { api, path, useApi, useInvalidateApi } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
-import { ConfirmDialog, ErrorState, Page, useToast } from '../../../ui';
+import { ConfirmDialog, ErrorState, Page, Tooltip, useToast } from '../../../ui';
 import { LDAP, LDAP_CACHE, LDAP_DOCS, LDAP_HELP, LDAP_ORDER, type LdapServer } from '../api';
 import layout from '../shared/Layout.module.css';
 import { ChangeOrderDialog } from './ChangeOrderDialog';

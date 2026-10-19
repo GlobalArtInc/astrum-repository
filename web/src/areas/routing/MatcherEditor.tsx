@@ -1,4 +1,4 @@
-import { Button, DropdownMenu, Tooltip } from '@radix-ui/themes';
+import { Button, DropdownMenu } from '@radix-ui/themes';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../api';
 import { useT } from '../../i18n';
+import { Tooltip } from '../../ui';
 import { useDebounced } from '../security/shared/useDebounced';
 import {
   describePattern,

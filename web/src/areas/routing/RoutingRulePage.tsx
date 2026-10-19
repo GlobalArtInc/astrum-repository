@@ -1,4 +1,4 @@
-import { AlertDialog, Button, Flex, Spinner, Text, Tooltip } from '@radix-ui/themes';
+import { AlertDialog, Button, Flex, Spinner, Text } from '@radix-ui/themes';
 import { ExternalLink, Info, Trash2, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -12,6 +12,7 @@ import {
   SelectField,
   TextAreaField,
   TextField,
+  Tooltip,
   UnsavedChangesGuard,
   useToast,
 } from '../../ui';

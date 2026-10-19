@@ -34,4 +34,5 @@ export {
 export { Breadcrumbs, type Crumb, Page, type PageProps } from './Page';
 export { QueryTabs, type TabDefinition } from './QueryTabs';
 export { Toaster, type Toasts, useToast } from './Toaster';
+export { Tooltip } from './Tooltip';
 export { UnsavedChangesGuard } from './UnsavedChangesGuard';
