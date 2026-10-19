@@ -56,19 +56,20 @@ async fn serve(
             "requests from another origin are refused",
         );
     }
+    let Ok(subject) = caller.signed_in() else {
+        return challenge(&headers, &uri, false);
+    };
     if let Some(version) = headers
         .get(VERSION_HEADER)
         .and_then(|value| value.to_str().ok())
         && !astrum_mcp::supported(version)
+        && !astrum_mcp::opens_session(&body)
     {
         return refuse(
             StatusCode::BAD_REQUEST,
             &format!("the protocol version {version} is not supported"),
         );
     }
-    let Ok(subject) = caller.signed_in() else {
-        return challenge(&headers, &uri, false);
-    };
     if let Err(wait) = state
         .limits()
         .take(&format!("mcp:{}", subject.user_id), limits::AGENT_CALLS)

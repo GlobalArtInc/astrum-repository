@@ -133,6 +133,27 @@ async fn the_endpoint_wants_a_signed_in_caller_from_its_own_origin() {
     )
     .await;
     assert_eq!(future.status, StatusCode::BAD_REQUEST);
+    let opening = json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25", "capabilities": {}}});
+    let unsigned = fixture
+        .send(
+            Method::POST,
+            MCP,
+            Auth::None,
+            Some(opening.clone()),
+            &[("mcp-protocol-version", "2099-01-01")],
+        )
+        .await;
+    assert_eq!(unsigned.status, StatusCode::UNAUTHORIZED);
+    assert!(unsigned.headers.contains_key(header::WWW_AUTHENTICATE));
+    let negotiated = post(
+        &fixture,
+        &token,
+        opening,
+        &[("mcp-protocol-version", "2099-01-01")],
+    )
+    .await;
+    assert_eq!(negotiated.status, StatusCode::OK, "{}", negotiated.text());
+    assert_eq!(negotiated.json()["result"]["protocolVersion"], "2025-11-25");
     let notified = post(
         &fixture,
         &token,

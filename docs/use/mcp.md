@@ -50,8 +50,8 @@ claude mcp add --transport http astrum https://astrum.example.org/mcp \
 
 Any client that speaks the Streamable HTTP transport connects the same way: `POST` requests to
 `https://<server>/mcp` with `Authorization: Bearer <token>`. The server is stateless: it gives no session
-id and keeps no event stream, so `GET /mcp` answers `405`. It speaks the protocol versions `2025-06-18`
-and `2025-03-26`, and refuses requests whose `Origin` is not the server's own host.
+id and keeps no event stream, so `GET /mcp` answers `405`. It speaks the protocol versions `2025-11-25`,
+`2025-06-18` and `2025-03-26`, and refuses requests whose `Origin` is not the server's own host.
 
 ### Limits and audit
 
