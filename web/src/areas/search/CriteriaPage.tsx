@@ -7,14 +7,13 @@ import {
   Select,
   Table,
   Text,
-  Tooltip,
 } from '@radix-ui/themes';
 import { Plus, Search, X } from 'lucide-react';
 import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useSession } from '../../auth/state';
 import { useT } from '../../i18n';
-import { DateTime, FormatBadge, Page } from '../../ui';
+import { DateTime, FormatBadge, Page, Tooltip } from '../../ui';
 import {
   BASE_CRITERIA,
   blankCriterion,

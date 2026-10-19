@@ -1,11 +1,11 @@
-import { Button, Table, Tooltip } from '@radix-ui/themes';
+import { Button, Table } from '@radix-ui/themes';
 import { ArrowDown, ArrowUp, ChevronRight, Play, Plus, Square, Trash2 } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api, path, useApi, useInvalidateApi } from '../../api';
 import { useCan } from '../../auth/state';
 import { useT } from '../../i18n';
-import { describeError, ErrorState, Page, useToast } from '../../ui';
+import { describeError, ErrorState, Page, Tooltip, useToast } from '../../ui';
 import { FilterPanel, SearchBox, sortList, useCollator } from '../security/shared/AdminList';
 import list from '../security/shared/AdminList.module.css';
 import {

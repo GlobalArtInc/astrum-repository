@@ -1,7 +1,7 @@
-import { Tooltip } from '@radix-ui/themes';
 import { Menu } from 'lucide-react';
 import { Link } from 'react-router';
 import { useT } from '../i18n';
+import { Tooltip } from '../ui';
 import { PHONE, useMediaQuery } from '../ui/hooks';
 import {
   HeaderButton,

@@ -1,10 +1,10 @@
-import { IconButton, Select, Text, TextField, Tooltip } from '@radix-ui/themes';
+import { IconButton, Select, Text, TextField } from '@radix-ui/themes';
 import { CircleHelp, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useApi } from '../../api';
 import { useT } from '../../i18n';
-import { ErrorState, Page } from '../../ui';
+import { ErrorState, Page, Tooltip } from '../../ui';
 import styles from './Api.module.css';
 import { EndpointPanel, MethodBadge } from './EndpointPanel';
 import {

@@ -1,4 +1,4 @@
-import { DropdownMenu, Text, Tooltip } from '@radix-ui/themes';
+import { DropdownMenu, Text } from '@radix-ui/themes';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
@@ -22,6 +22,7 @@ import { loginPath } from '../auth/returnTo';
 import { useSession } from '../auth/state';
 import { useSignOut } from '../auth/useSignOut';
 import { LANGUAGES, type Language, useI18n } from '../i18n';
+import { Tooltip } from '../ui';
 import styles from './Shell.module.css';
 import { useTheme } from './theme';
 

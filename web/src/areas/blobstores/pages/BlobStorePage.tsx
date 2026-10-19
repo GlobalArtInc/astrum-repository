@@ -1,11 +1,11 @@
-import { Button, Callout, Flex, Spinner, Tooltip } from '@radix-ui/themes';
+import { Button, Callout, Flex, Spinner } from '@radix-ui/themes';
 import { CircleAlert, HardDrive, Info, Layers, Trash2 } from 'lucide-react';
 import { useId, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, useApi, useInvalidateApi } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useI18n } from '../../../i18n';
-import { describeError, EmptyState, ErrorState, Page, useConfirm, useToast } from '../../../ui';
+import { describeError, EmptyState, ErrorState, Page, Tooltip, useConfirm, useToast } from '../../../ui';
 import { storeTypeName } from '../../repositories/components/EditTabs';
 import {
   configPath,

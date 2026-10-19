@@ -1,10 +1,10 @@
-import { Badge, Button, Card, IconButton, Switch, Table, Tooltip } from '@radix-ui/themes';
+import { Badge, Button, Card, IconButton, Switch, Table } from '@radix-ui/themes';
 import { Bell, BellRing, Hash, Mail, Network, Pencil, Plus, Send, Trash2, Webhook } from 'lucide-react';
 import { useState } from 'react';
 import { api, useApi, useInvalidateApi } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
-import { ConfirmDialog, describeError, EmptyState, ErrorState, Page, useToast } from '../../../ui';
+import { ConfirmDialog, describeError, EmptyState, ErrorState, Page, Tooltip, useToast } from '../../../ui';
 import styles from '../Notify.module.css';
 import { ChannelDialog } from './ChannelDialog';
 import {

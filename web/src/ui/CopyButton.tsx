@@ -1,9 +1,10 @@
-import { Button, IconButton, Tooltip } from '@radix-ui/themes';
+import { Button, IconButton } from '@radix-ui/themes';
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useT } from '../i18n';
 import { copyText } from './copy';
 import { useToast } from './Toaster';
+import { Tooltip } from './Tooltip';
 
 export interface CopyButtonProps {
   text: string;

@@ -1,4 +1,4 @@
-import { Button, Spinner, Tooltip } from '@radix-ui/themes';
+import { Button, Spinner } from '@radix-ui/themes';
 import {
   Ban,
   Check,
@@ -16,7 +16,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useApi } from '../../api';
 import { useT } from '../../i18n';
-import { ErrorState, Page } from '../../ui';
+import { ErrorState, Page, Tooltip } from '../../ui';
 import { useCollator } from '../security/shared/AdminList';
 import { MODES } from './MatcherEditor';
 import {

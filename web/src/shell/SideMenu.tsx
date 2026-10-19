@@ -1,9 +1,9 @@
-import { Tooltip } from '@radix-ui/themes';
 import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router';
 import type { MenuEntry } from '../app/area';
 import { useVisibleMenu } from '../app/registry';
 import { useT } from '../i18n';
+import { Tooltip } from '../ui';
 import styles from './Shell.module.css';
 
 export function isActive(entry: MenuEntry, pathname: string): boolean {

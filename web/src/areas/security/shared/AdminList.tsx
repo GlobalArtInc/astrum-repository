@@ -1,13 +1,4 @@
-import {
-  Checkbox,
-  Dialog,
-  IconButton,
-  Table,
-  Text,
-  TextField,
-  Tooltip,
-  VisuallyHidden,
-} from '@radix-ui/themes';
+import { Checkbox, Dialog, IconButton, Table, Text, TextField, VisuallyHidden } from '@radix-ui/themes';
 import {
   ArrowDown,
   ArrowUp,
@@ -23,6 +14,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 import { useI18n, useT } from '../../../i18n';
+import { Tooltip } from '../../../ui';
 import { PHONE, useMediaQuery } from '../../../ui/hooks';
 import styles from './AdminList.module.css';
 

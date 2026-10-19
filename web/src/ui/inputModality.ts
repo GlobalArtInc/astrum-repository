@@ -14,6 +14,11 @@ const MODIFIERS = new Set([
 
 export type Modality = 'keyboard' | 'pointer';
 
+export function currentModality(): Modality | undefined {
+  const value = document.documentElement.dataset.input;
+  return value === 'keyboard' || value === 'pointer' ? value : undefined;
+}
+
 export function modalityOf(
   event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey'>,
 ): Modality | null {
