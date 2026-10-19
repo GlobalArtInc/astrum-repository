@@ -127,6 +127,16 @@
   "browse.details.path": "Путь",
   "browse.details.children": "Элементов",
   "browse.details.size": "Размер",
+  "browse.details.imageSize": "Размер образа",
+  "browse.details.imageSizeUnknown": "Неизвестен",
+  "browse.details.layers": {
+    "one": "{count} слой",
+    "few": "{count} слоя",
+    "many": "{count} слоёв",
+    "other": "{count} слоя"
+  },
+  "browse.details.manifestSize": "Размер манифеста",
+  "browse.details.platformSize": "Размер образа, {platform}",
   "browse.details.contentType": "Тип содержимого",
   "browse.details.uploader": "Загрузил",
   "browse.details.created": "Создан",

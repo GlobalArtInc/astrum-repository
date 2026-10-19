@@ -4,7 +4,7 @@ import { ChevronDown, Download, ExternalLink } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { api, apiKey, path, useApi, useInvalidateApi, withQuery } from '../../../api';
 import { useSession } from '../../../auth/state';
-import { formatNumber, useI18n, useT } from '../../../i18n';
+import { formatNumber, type Translate, useI18n, useT } from '../../../i18n';
 import { CopyButton, DateTime, ErrorState, FileSize, formatName, useToast } from '../../../ui';
 import { componentTitle, fromProxy, guideComponentName } from '../links';
 import { parentOf } from '../tree/model';
@@ -369,6 +369,32 @@ export function ComponentPanel({ repository, node, onNavigate }: PanelProps & { 
   );
 }
 
+function imageFields(t: Translate, details: AssetDetails): Field[] {
+  const image = details.image;
+  if (!image) {
+    return [];
+  }
+  const weighed = (size: number | null | undefined, layers: number | null | undefined) =>
+    size === null || size === undefined ? (
+      t('browse.details.imageSizeUnknown')
+    ) : (
+      <>
+        <FileSize bytes={size} />
+        {layers !== null && layers !== undefined && ` · ${t('browse.details.layers', { count: layers })}`}
+      </>
+    );
+  if (image.platforms) {
+    return image.platforms.map((platform) => ({
+      id: `image-${platform.platform}`,
+      label: t('browse.details.platformSize', { platform: platform.platform }),
+      value: weighed(platform.size, platform.layers),
+    }));
+  }
+  return [
+    { id: 'imageSize', label: t('browse.details.imageSize'), value: weighed(image.size, image.layers) },
+  ];
+}
+
 function checksumFields(details: AssetDetails): Field[] {
   const { md5, sha1, sha256, sha512 } = details.checksum;
   const entries: Array<[string, string, string | null | undefined]> =
@@ -532,7 +558,12 @@ function StoredAssetPanel({ repository, node, onNavigate }: PanelProps & { node:
   items.push(
     { id: 'uploader', label: t('browse.details.uploader'), value: details.uploader },
     { id: 'contentType', label: t('browse.details.contentType'), value: details.contentType, mono: true },
-    { id: 'size', label: t('browse.details.size'), value: <FileSize bytes={details.fileSize} /> },
+    ...imageFields(t, details),
+    {
+      id: 'size',
+      label: details.image ? t('browse.details.manifestSize') : t('browse.details.size'),
+      value: <FileSize bytes={details.fileSize} />,
+    },
     { id: 'created', label: t('browse.details.created'), value: <DateTime value={details.blobCreated} /> },
     {
       id: 'lastDownloaded',

@@ -82,6 +82,19 @@ export interface AssetComponent extends Coordinates {
   repository: string;
 }
 
+export interface PlatformSize {
+  platform: string;
+  digest: string;
+  size: number | null;
+  layers: number | null;
+}
+
+export interface ImageSize {
+  size?: number;
+  layers?: number;
+  platforms?: PlatformSize[];
+}
+
 export interface AssetDetails {
   id: string;
   path: string;
@@ -105,6 +118,7 @@ export interface AssetDetails {
   canDelete: boolean;
   treePath?: string | null;
   blobRef?: string;
+  image?: ImageSize;
   [format: string]: unknown;
 }
 
