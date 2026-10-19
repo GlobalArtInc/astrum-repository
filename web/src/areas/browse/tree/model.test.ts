@@ -4,6 +4,7 @@ import {
   ancestorsOf,
   browseUrl,
   commonFolder,
+  expandAlone,
   findNode,
   flatten,
   keyAction,
@@ -159,5 +160,21 @@ describe('search results in the tree', () => {
     expect(searchTarget('1.0.0', ['/left-pad/-/left-pad-1.0.0.tgz'])).toBe('/left-pad/-/left-pad-1.0.0.tgz');
     expect(searchTarget('', ['/docs/a.txt'])).toBe('/docs/a.txt');
     expect(searchTarget('1.0', [])).toBe('');
+  });
+});
+
+describe('opening a folder', () => {
+  it('closes the folders beside it and keeps its ancestors open', () => {
+    const open = new Set([
+      '/',
+      '/herald-api/',
+      '/herald-websocket/',
+      '/herald-websocket/0.1.0/',
+      '/team/',
+      '/team/a/',
+    ]);
+    expect([...expandAlone(open, '/herald-migrations/')].sort()).toEqual(['/', '/herald-migrations/']);
+    expect([...expandAlone(open, '/team/b/')].sort()).toEqual(['/', '/team/', '/team/b/']);
+    expect([...expandAlone(open, '/team/a/')].sort()).toEqual(['/', '/team/', '/team/a/']);
   });
 });

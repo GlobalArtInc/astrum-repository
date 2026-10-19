@@ -21,7 +21,7 @@
 }
 
 .splitter:hover .grip,
-.splitter:focus-visible .grip {
+:global(:root:not([data-input="pointer"])) .splitter:focus-visible .grip {
   background: var(--accent-8);
 }
 

@@ -31,6 +31,13 @@ body {
   outline-offset: 2px;
 }
 
+:root[data-input="pointer"] :focus-visible:not(input, textarea, select, [contenteditable]),
+:root[data-input="pointer"] :focus-visible:not(input, textarea, select, [contenteditable])::before,
+:root[data-input="pointer"] :focus-visible:not(input, textarea, select, [contenteditable])::after,
+:root[data-input="pointer"] :focus-visible .rt-BaseTabListTriggerInner {
+  outline: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
