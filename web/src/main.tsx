@@ -14,11 +14,13 @@ import { areas } from './app/areas';
 import { legacyPath } from './app/legacy';
 import { createAppRouter } from './app/router';
 import { readPreference, resolveAppearance } from './shell/theme';
+import { watchInputModality } from './ui/inputModality';
 
 const legacy = legacyPath(window.location.hash);
 if (legacy) {
   window.history.replaceState(null, '', legacy);
 }
+watchInputModality();
 document.documentElement.dataset.theme = resolveAppearance(
   readPreference(),
   window.matchMedia('(prefers-color-scheme: light)').matches,

@@ -260,7 +260,11 @@
   box-sizing: border-box;
   background: var(--astrum-chrome-bg);
   border-right: 1px solid var(--gray-a5);
+  overflow-x: hidden;
   overflow-y: auto;
+  transition:
+    flex-basis 200ms ease,
+    width 200ms ease;
 }
 
 .side[data-collapsed="true"] {
@@ -304,6 +308,7 @@
   line-height: 21px;
   text-decoration: none;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .itemIcon {
@@ -320,6 +325,16 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  animation: menu-label-in 200ms ease;
+}
+
+@keyframes menu-label-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .item:hover {
@@ -339,9 +354,7 @@
 }
 
 .side[data-collapsed="true"] .item {
-  justify-content: center;
   width: 40px;
-  padding: 0;
 }
 
 .divider {
@@ -353,6 +366,19 @@
 
 .sideFoot {
   padding: 12px 20px 16px;
+  white-space: nowrap;
+  animation: menu-label-in 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side {
+    transition: none;
+  }
+
+  .itemText,
+  .sideFoot {
+    animation: none;
+  }
 }
 
 .version {

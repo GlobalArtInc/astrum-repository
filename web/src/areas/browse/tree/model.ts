@@ -77,6 +77,11 @@ export function ancestorsOf(path: string): string[] {
   }
 }
 
+export function expandAlone(expanded: ReadonlySet<string>, path: string): Set<string> {
+  const kept = [...expanded].filter((open) => open === path || path.startsWith(open));
+  return new Set([...kept, path]);
+}
+
 export function sameNode(node: TreeNode, selection: string): boolean {
   if (selection === '') {
     return false;

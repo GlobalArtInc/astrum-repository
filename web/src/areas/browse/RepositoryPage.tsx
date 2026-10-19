@@ -26,6 +26,7 @@ import { RepositorySearch } from './RepositorySearch';
 import {
   ancestorsOf,
   browseUrl,
+  expandAlone,
   findNode,
   flatten,
   type Loaded,
@@ -383,14 +384,13 @@ function Browser({ repository }: { repository: RepositoryItem }) {
   const select = (selected: TreeNode) => navigate(browseUrl(repository.name, selected.path));
   const toggle = (path: string, isOpen: boolean) => {
     setExpanded((current) => {
-      const next = new Set(current);
       if (isOpen) {
-        next.add(path);
-      } else {
-        for (const known of current) {
-          if (known.startsWith(path)) {
-            next.delete(known);
-          }
+        return expandAlone(current, path);
+      }
+      const next = new Set(current);
+      for (const known of current) {
+        if (known.startsWith(path)) {
+          next.delete(known);
         }
       }
       return next;

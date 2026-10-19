@@ -41,7 +41,7 @@
   background: var(--gray-a3);
 }
 
-.container:focus-visible > .item {
+:global(:root:not([data-input="pointer"])) .container:focus-visible > .item {
   outline: 2px solid var(--accent-8);
   outline-offset: -2px;
 }
