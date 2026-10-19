@@ -85,6 +85,30 @@ describe('the repository page', { timeout: 20_000 }, () => {
     expect(router.state.location.pathname).toBe('/browse/files/a/b/two.txt');
   });
 
+  it('shows the size of an image next to the size of its manifest', async () => {
+    server({
+      [`GET ${TREE}/asset?path=%2Fc.txt`]: () =>
+        jsonResponse(
+          details('/c.txt', {
+            fileSize: 949,
+            image: {
+              platforms: [
+                { platform: 'linux/amd64', digest: 'sha256:a', size: 30_000_000, layers: 3 },
+                { platform: 'linux/arm64', digest: 'sha256:b', size: null, layers: null },
+              ],
+            },
+          }),
+        ),
+    });
+    page('/browse/files/c.txt');
+    expect(await screen.findByText('Image size, linux/amd64')).toBeInTheDocument();
+    expect(screen.getByText(/3 layers/)).toBeInTheDocument();
+    expect(screen.getByText('Image size, linux/arm64')).toBeInTheDocument();
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('Manifest size')).toBeInTheDocument();
+    expect(screen.queryByText('Size')).toBeNull();
+  });
+
   it('moves through the tree with the keyboard and selects with Enter', async () => {
     server();
     const { router } = page('/browse/files');

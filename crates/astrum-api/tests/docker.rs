@@ -1361,3 +1361,48 @@ async fn agents_list_the_tags_of_an_image_over_mcp() {
     assert_eq!(newer["pull"], "astrum.example/hosted/team/app:2.0");
     assert!(newer["manifestBytes"].as_u64().unwrap() > 0, "{newer}");
 }
+
+#[tokio::test]
+async fn tags_show_the_size_of_their_image() {
+    let registry = Registry::new().await;
+    registry.hosted("hosted", "ALLOW").await;
+    let prefix = "/v2/hosted/team/app";
+    let (amd, _) = registry.push_image(prefix, "amd", b"layer-amd").await;
+    let (arm, _) = registry.push_image(prefix, "arm", b"layer-arm").await;
+    let index = json!({
+        "schemaVersion": 2,
+        "mediaType": OCI_INDEX,
+        "manifests": [
+            {"mediaType": OCI_MANIFEST, "digest": amd, "size": 10, "platform": {"os": "linux", "architecture": "amd64"}},
+            {"mediaType": OCI_MANIFEST, "digest": arm, "size": 10, "platform": {"os": "linux", "architecture": "arm64", "variant": "v8"}},
+            {"mediaType": OCI_MANIFEST, "digest": amd, "size": 10, "platform": {"os": "unknown", "architecture": "unknown"}, "annotations": {"vnd.docker.reference.type": "attestation-manifest"}},
+        ],
+    });
+    let pushed = registry.push_manifest(prefix, "multi", &index).await;
+    assert_eq!(pushed.status, StatusCode::CREATED, "{}", pushed.text());
+
+    let details = |reference: &str| {
+        format!(
+            "/service/rest/internal/ui/browse/hosted/asset?path=/v2/team/app/manifests/{reference}"
+        )
+    };
+    let single = registry.admin(Method::GET, &details("amd")).await;
+    assert_eq!(single.status, StatusCode::OK, "{}", single.text());
+    assert_eq!(single.json()["image"], json!({"size": 15, "layers": 1}));
+
+    let multi = registry.admin(Method::GET, &details("multi")).await.json();
+    let platforms = multi["image"]["platforms"].as_array().unwrap();
+    assert_eq!(platforms.len(), 2, "{multi}");
+    assert_eq!(platforms[0]["platform"], "linux/amd64");
+    assert_eq!(platforms[0]["size"], 15);
+    assert_eq!(platforms[1]["platform"], "linux/arm64/v8");
+    assert_eq!(platforms[1]["layers"], 1);
+
+    let blob = registry
+        .admin(
+            Method::GET,
+            "/service/rest/internal/ui/browse/hosted/asset?path=/v2/-/blobs/x",
+        )
+        .await;
+    assert_ne!(blob.status, StatusCode::INTERNAL_SERVER_ERROR);
+}

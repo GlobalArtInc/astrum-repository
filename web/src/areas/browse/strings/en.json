@@ -115,6 +115,14 @@
   "browse.details.path": "Path",
   "browse.details.children": "Items",
   "browse.details.size": "Size",
+  "browse.details.imageSize": "Image size",
+  "browse.details.imageSizeUnknown": "Unknown",
+  "browse.details.layers": {
+    "one": "{count} layer",
+    "other": "{count} layers"
+  },
+  "browse.details.manifestSize": "Manifest size",
+  "browse.details.platformSize": "Image size, {platform}",
   "browse.details.contentType": "Content type",
   "browse.details.uploader": "Uploaded by",
   "browse.details.created": "Created",
