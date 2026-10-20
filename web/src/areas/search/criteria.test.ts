@@ -49,6 +49,9 @@ describe('criteria', () => {
       value: 'web',
     });
     expect(withKey(row('name', 'web'), 'docker.artifactKind').value).toBe('');
+    const vagrant = moreCriteria(['vagrant'], '').map((criterion) => criterion.key);
+    expect(vagrant).toContain('vagrant.provider');
+    expect(vagrant).toContain('vagrant.architecture');
   });
 
   it('turn "starts with" into a trailing wildcard', () => {

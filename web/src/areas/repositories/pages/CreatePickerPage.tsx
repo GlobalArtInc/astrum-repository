@@ -50,6 +50,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   r: 'repositories.formats.r',
   raw: 'repositories.formats.raw',
   rubygems: 'repositories.formats.rubygems',
+  vagrant: 'repositories.formats.vagrant',
   yum: 'repositories.formats.yum',
 };
 

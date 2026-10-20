@@ -6,6 +6,7 @@ import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
 import { forgeUrl, puppetfileLine, installCommand as puppetInstall } from '../usage/puppet';
 import { dockerRegistry, repositoryAddress } from '../usage/snippets';
+import { boxAdd, vagrantfile } from '../usage/vagrant';
 
 export interface ComponentSnippet {
   id: string;
@@ -285,6 +286,20 @@ function puppet(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function vagrant(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  const box = `${context.group}/${context.name}`;
+  return [
+    { id: 'add', label: 'vagrant box add', code: boxAdd(url, box, context.version) },
+    {
+      id: 'vagrantfile',
+      label: 'Vagrantfile',
+      hint: 'browse.component.snippet.vagrantfile',
+      code: vagrantfile(url, box, context.version),
+    },
+  ];
+}
+
 function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
   return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
 }
@@ -325,6 +340,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return chef(context);
     case 'puppet':
       return puppet(context);
+    case 'vagrant':
+      return vagrant(context);
     default:
       return [];
   }

@@ -296,6 +296,20 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'Apache-2.0',
   },
   {
+    key: 'vagrant.provider',
+    label: 'search.criterion.vagrantProvider',
+    kind: 'text',
+    format: 'vagrant',
+    example: 'virtualbox',
+  },
+  {
+    key: 'vagrant.architecture',
+    label: 'search.criterion.vagrantArchitecture',
+    kind: 'text',
+    format: 'vagrant',
+    example: 'amd64',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

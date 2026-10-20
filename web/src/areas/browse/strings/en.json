@@ -259,6 +259,9 @@
   "browse.usage.hint.puppetfile": "librarian-puppet reads the forge line; r10k keeps its own Forge setting unless allow_puppetfile_override is on",
   "browse.usage.hint.puppetPublish": "Run it in the module directory; publishing needs an access token of a user with write access to this repository",
   "browse.usage.hint.puppetCurl": "Sends an archive built with pdk build or puppet module build, as puppet-blacksmith does",
+  "browse.usage.hint.vagrantServer": "Vagrant then looks up short box names here and sends the token to every address of this host; the token is an access token of this server and can be left out when the repository allows anonymous reading",
+  "browse.usage.hint.vagrantBoxUrl": "box_url points Vagrant at the metadata of the box, so vagrant box outdated and vagrant box update look for new versions here",
+  "browse.usage.hint.vagrantUpload": "The path names the version, provider and architecture of the box; the repository computes its SHA-256 checksum and adds it to the metadata of the box",
 
   "browse.component.search": "Search",
   "browse.component.invalidTitle": "Unknown component",
@@ -292,6 +295,7 @@
   "browse.component.snippet.chefBerksfile": "Add the cookbook to the Berksfile and run berks install:",
   "browse.component.snippet.chefPolicyfile": "Add the cookbook to Policyfile.rb and run chef install:",
   "browse.component.snippet.puppetfile": "Add the module to the Puppetfile of your control repository:",
+  "browse.component.snippet.vagrantfile": "Add the box to the Vagrantfile of your project:",
   "browse.component.securityTitle": "Security Analysis Unavailable",
   "browse.component.securityText": "This installation has no IQ Server integration, so policy violations for this component cannot be shown.",
   "browse.component.versionModified": "Changed",

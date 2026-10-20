@@ -167,6 +167,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   raw: 'https://example.org/files/',
   swift: 'https://packages.example.com/',
   terraform: 'https://registry.terraform.io',
+  vagrant: 'https://vagrantcloud.com',
 };
 
 export function sameName(left: string, right: string): boolean {

@@ -29,6 +29,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   rubygems: { name: 'RubyGems', color: 'red' },
   swift: { name: 'Swift', color: 'orange' },
   terraform: { name: 'Terraform', color: 'purple' },
+  vagrant: { name: 'Vagrant', color: 'blue' },
   yum: { name: 'Yum', color: 'green' },
 };
 

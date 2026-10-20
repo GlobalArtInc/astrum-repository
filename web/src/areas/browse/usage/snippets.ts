@@ -7,6 +7,7 @@ import { pub } from './pub';
 import { puppet } from './puppet';
 import { swift } from './swift';
 import { terraform } from './terraform';
+import { vagrant } from './vagrant';
 
 export interface UsageComponent {
   group: string;
@@ -73,6 +74,7 @@ export const USAGE_FORMATS = [
   'ansible',
   'chef',
   'puppet',
+  'vagrant',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1082,6 +1084,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
     chef(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   puppet: (context) =>
     puppet(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  vagrant: (context) =>
+    vagrant(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

@@ -141,6 +141,24 @@ describe('component snippets of the M4c formats', () => {
     ]);
   });
 
+  it('give vagrant box add and a Vagrantfile for Vagrant boxes', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'vagrant',
+      group: 'acme',
+      name: 'base',
+      version: '1.2.0',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['add', 'vagrantfile']);
+    expect(snippets[0]?.code).toBe(
+      'vagrant box add https://repo.example.org/repository/r/acme/base --box-version 1.2.0',
+    );
+    expect(snippets[1]?.code).toBe(
+      'Vagrant.configure("2") do |config|\n  config.vm.box = "acme/base"\n  config.vm.box_url = "https://repo.example.org/repository/r/acme/base"\n  config.vm.box_version = "1.2.0"\nend',
+    );
+    expect(snippets[1]?.hint).toBe('browse.component.snippet.vagrantfile');
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',

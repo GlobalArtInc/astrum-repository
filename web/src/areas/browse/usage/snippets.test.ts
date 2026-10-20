@@ -921,3 +921,56 @@ describe('puppet usage', () => {
     expect(code(hosted, 'curl')).toContain('file=@pkg/<owner>-<name>-<version>.tar.gz');
   });
 });
+
+describe('vagrant usage', () => {
+  it('points Vagrant at the server, names the box in a Vagrantfile and uploads to a hosted repository', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'vagrant',
+        repositoryName: 'boxes',
+        component: { group: 'acme', name: 'base', version: '1.2.0' },
+        path: '/acme/base/1.2.0/virtualbox/amd64.box',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['server', 'vagrantfile', 'upload']);
+    const url = 'https://repo.example.org/repository/boxes';
+    expect(code(snippets, 'server')).toBe(
+      `export VAGRANT_SERVER_URL=${url}\nexport VAGRANT_CLOUD_TOKEN=<access token>\nvagrant box add acme/base --box-version 1.2.0`,
+    );
+    expect(code(snippets, 'vagrantfile')).toBe(
+      [
+        'Vagrant.configure("2") do |config|',
+        '  config.vm.box = "acme/base"',
+        `  config.vm.box_url = "${url}/acme/base"`,
+        '  config.vm.box_version = "1.2.0"',
+        'end',
+      ].join('\n'),
+    );
+    expect(code(snippets, 'upload')).toBe(
+      `curl -u <user> --upload-file package.box ${url}/acme/base/1.2.0/virtualbox/amd64.box`,
+    );
+    expect(supportsUsage('vagrant')).toBe(true);
+  });
+
+  it('reads from proxies and groups without a component and offers no upload', () => {
+    const snippets = usageSnippets(
+      context({ format: 'vagrant', repositoryName: 'vagrant-all', repositoryType: 'group' }),
+    );
+    expect(ids(snippets)).toEqual(['server', 'vagrantfile']);
+    expect(code(snippets, 'server').endsWith('vagrant box add <org>/<name>')).toBe(true);
+    expect(code(snippets, 'vagrantfile')).not.toContain('box_version');
+    const fromPath = usageSnippets(
+      context({
+        format: 'vagrant',
+        repositoryName: 'cache',
+        repositoryType: 'proxy',
+        path: '/hashicorp/bionic64/1.0.282/virtualbox/unknown.box',
+      }),
+    );
+    expect(code(fromPath, 'vagrantfile')).toContain('config.vm.box = "hashicorp/bionic64"');
+    const hosted = usageSnippets(context({ format: 'vagrant', repositoryName: 'own' }));
+    expect(code(hosted, 'upload')).toBe(
+      'curl -u <user> --upload-file package.box https://repo.example.org/repository/own/<org>/<name>/<version>/<provider>/<architecture>.box',
+    );
+  });
+});
