@@ -14,4 +14,3 @@ node_modules/
 # Local Claude Code worktrees
 .claude/*
 !.claude/CLAUDE.md
-!.claude/rewrite/

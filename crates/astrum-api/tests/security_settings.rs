@@ -36,10 +36,8 @@ async fn realms_are_listed_and_activated_in_order() {
             "TerraformToken",
         ]
     );
-    let reference: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../.claude/rewrite/reference/realms-available.json"
-    ))
-    .unwrap();
+    let reference: serde_json::Value =
+        serde_json::from_str(include_str!("data/realms-available.json")).unwrap();
     assert_eq!(reply.json(), reference, "the names of the old server");
     let reply = fixture
         .call(Method::GET, &path("realms/active"), Auth::Admin, None)

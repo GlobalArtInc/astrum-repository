@@ -684,10 +684,8 @@ mod tests {
 
     #[test]
     fn the_catalogue_matches_the_old_server() {
-        let reference: Vec<serde_json::Value> = serde_json::from_str(include_str!(
-            "../../../.claude/rewrite/reference/builtin-privileges.json"
-        ))
-        .unwrap();
+        let reference: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../tests/data/builtin-privileges.json")).unwrap();
         let formats: BTreeSet<&str> = reference
             .iter()
             .filter_map(|privilege| privilege["format"].as_str())

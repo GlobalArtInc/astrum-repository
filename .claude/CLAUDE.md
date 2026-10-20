@@ -5,9 +5,9 @@ https://astrum.globalart.hu. It is a Rust server (Cargo workspace in `crates/`) 
 `web/`, written from scratch to replace the earlier Java server, a modified upstream repository manager
 with the Astrum One UI. M6 removed that server and its attribution; its code is in the git history before the commit
 "Remove the Java server and its build" (find it with `git log --diff-filter=D --oneline -- pom.xml`). The
-decisions, the clean-room rules, the milestones and the history of the rewrite are in
-`.claude/rewrite/README.md`: read it before work on a new format or on anything that must stay compatible
-with existing clients, and follow its clean-room rules. This repository is public: never commit secrets.
+decisions, the clean-room rules, the milestones and the history of the rewrite were kept in `.claude/rewrite/`,
+removed on 2026-10-20 (find it with `git log --diff-filter=D --oneline -- .claude/rewrite/README.md`). This
+repository is public: never commit secrets.
 
 ## State
 - The server is version `3.0.0-dev` in `Cargo.toml` (the Java line was 2.x). It serves the 23 formats
@@ -47,8 +47,7 @@ with existing clients, and follow its clean-room rules. This repository is publi
   import is in images up to `next-20261018054030-290bcf3` only.
 
 ## Where the work stands
-- Done: M0-M4 (their scope and history: `.claude/rewrite/briefs/`, the six M4 wave 2 branches `m4-*` are
-  history, do not continue on them), M4c (apt, cargo, composer, conan, go; then alpine, cocoapods, conda, p2, r, pub and Ansible Galaxy,
+- Done: M0-M4 (the six M4 wave 2 branches `m4-*` are history, do not continue on them), M4c (apt, cargo, composer, conan, go; then alpine, cocoapods, conda, p2, r, pub and Ansible Galaxy,
   one agent and branch `m4c-<fmt>` each, brief `/home/user/wt/M4C2-ENV.md` of that container), M5 (the
   migration, three rehearsals and the production switch of 2026-10-18) and M6 (removal of the Java tree and,
   after the switch, of the Java import; licence MIT; since 2026-10-18 the tree names neither the upstream
@@ -67,10 +66,6 @@ with existing clients, and follow its clean-room rules. This repository is publi
   offers none; Swift proxies answer 503; the HTTP client of the server does not use the environment proxy
   (`HTTPS_PROXY`), only the HTTP settings; the SSRF page exists only in the new UI and is kept out of the
   settings hub; storing uploaded maven checksum files.
-- Agent briefs are in `.claude/rewrite/briefs/` (M1-M4, PARITY, M4-WAVE2-*; they name the paths of the
-  container they were written in: put worktrees, target dirs and scratch files wherever fits and adjust the
-  paths, and read "public/" and "Astrum One" in them as the removed Java tree and UI), the old/new UI findings
-  in `.claude/rewrite/qa-findings.md`.
 - A fresh environment needs: the Rust toolchain of `rust-toolchain.toml`; PostgreSQL for tests
   (`ASTRUM_TEST_DATABASE_URL`; 16 or 18 both work); Node 22 with corepack pnpm for `web/`; Chromium for
   Playwright at `/opt/pw-browsers/chromium` or `ASTRUM_E2E_CHROMIUM` (on Ubuntu 26.04 `playwright install`
@@ -137,8 +132,6 @@ with existing clients, and follow its clean-room rules. This repository is publi
 - Docs: `docs/` (install, configure, operate, use, migrate). Tools: `tools/i18n` (Ownlate tooling),
   `tools/repository-copy` (moving data from another server, and the copy back of a rollback), `tools/side-by-side`
   (compares a reference server with this one).
-- `.claude/rewrite/`: decisions and history, inventories, `reference/` (captures the Rust tests read),
-  briefs, `qa-findings.md`.
 - CI: `.github/workflows/server.yml` (fmt, clippy, tests against PostgreSQL 16, the web checks, then the
   image is built, started against PostgreSQL, checked and published) and `i18n.yml`, on `ubuntu-latest`.
 
