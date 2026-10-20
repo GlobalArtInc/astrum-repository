@@ -14,3 +14,9 @@ node_modules/
 # Local Claude Code worktrees
 .claude/*
 !.claude/CLAUDE.md
+
+# Translations come from Ownlate at image build (node tools/i18n/i18n.mjs pull), never from git
+web/src/*/strings/*.json
+web/src/*/*/strings/*.json
+!web/src/*/strings/en.json
+!web/src/*/*/strings/en.json

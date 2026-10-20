@@ -2,6 +2,10 @@
 
 FROM node:22-bookworm-slim AS web
 
+# The translations are pulled from Ownlate here, so the image carries them and git does not.
+# The token is a build secret: docker build --secret id=ownlate_token,env=ASTRUM_OWNLATE_TOKEN
+ARG ASTRUM_OWNLATE_PROJECT=f1f93c0e-4902-434d-a551-e94ba7e1e304
+
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     CI=true
 
@@ -11,6 +15,10 @@ RUN --mount=type=cache,target=/root/.cache/node/corepack,sharing=locked \
     --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
     corepack pnpm install --frozen-lockfile
 COPY web ./
+COPY tools/i18n /src/tools/i18n
+RUN --mount=type=secret,id=ownlate_token,env=ASTRUM_OWNLATE_TOKEN \
+    node /src/tools/i18n/i18n.mjs pull \
+ && node /src/tools/i18n/i18n.mjs check
 RUN --mount=type=cache,target=/root/.cache/node/corepack,sharing=locked \
     corepack pnpm build
 

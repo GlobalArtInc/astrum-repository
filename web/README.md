@@ -91,7 +91,8 @@ Write the Russian text next to the English one in the same change.
 The dictionaries live in Ownlate (`tools/i18n/README.md`): keys
 `web.<key>`, plural forms `web.<key>#<form>`. `en.json` is the source; `ru.json` is what
 `node tools/i18n/i18n.mjs pull` writes (key order and blank lines of `en.json`). After changing a text,
-upload the English and the Russian to Ownlate and pull, or the `i18n` workflow fails once it pulls.
+upload the English and the Russian to Ownlate. The translations are not in git: the image pulls them when it
+is built, and `pnpm i18n:check` checks only the English source unless `pull` has written the others.
 
 ## Permissions and API
 

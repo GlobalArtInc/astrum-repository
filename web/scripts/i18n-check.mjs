@@ -48,8 +48,8 @@ export function checkDictionaries(dictionaries) {
     const english = byLanguage.en ?? {};
     for (const language of LANGUAGES) {
       const dictionary = byLanguage[language];
+      // translations are pulled from Ownlate at image build and are not in git, so a missing one is not a problem here
       if (!dictionary) {
-        problems.push(`${namespace}: ${language}.json is missing`);
         continue;
       }
       const categories = new Intl.PluralRules(language).resolvedOptions().pluralCategories;

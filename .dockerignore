@@ -4,6 +4,7 @@
 !crates/
 crates/**/target
 !web/
+!tools/i18n/
 web/node_modules
 web/dist
 web/test-results

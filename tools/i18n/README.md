@@ -2,8 +2,9 @@
 
 The texts of the web UI live in `web/src/**/strings/en.json` and `ru.json`, one pair per area (see
 [`web/README.md`](../../web/README.md)). Their translations are managed in [Ownlate](https://ownlate.com)
-and committed to this repository as JSON dictionaries, which the build packs into the web UI. A running
-server does not talk to Ownlate.
+and pulled into the JSON dictionaries of the web UI while the image is built (the `web` stage of the
+`Dockerfile`). The translations are not in git: only the English source is. A running server does not talk
+to Ownlate.
 
 ## Dictionaries
 
@@ -11,7 +12,7 @@ server does not talk to Ownlate.
 `en.json` a dictionary with the Ownlate prefix `web`. Each one holds:
 
 - `en.json`: the English source, written by hand (it is the source itself);
-- `<lang>.json`: a translation, written by `pull` (never edited by hand).
+- `<lang>.json`: a translation, written by `pull` (never edited by hand, never committed; git ignores them).
 
 In Ownlate one project holds all dictionaries:
 
@@ -29,7 +30,7 @@ In Ownlate one project holds all dictionaries:
 
 Developers write the Russian text next to the English one. Upload both after a change: the source texts
 first, then the translations as approved (`catalogue en` and `catalogue ru` print them under their Ownlate
-keys); then `pull` and commit what it changes.
+keys); then `pull` to check them locally.
 
 `import <lang> <file>` rewrites each dictionary with only the keys in the file, so build the file from
 `catalogue <lang>` plus the new keys.
@@ -62,8 +63,16 @@ Add the language to the Ownlate project, translate, and pull. The web UI lists i
 plural forms the others lack, upload `catalogue en` again once its `<lang>.json` files exist, so that
 Ownlate offers those forms.
 
-## CI
+## CI and the image
 
 The `i18n` workflow runs `check` on every change. When the repository has the `ASTRUM_OWNLATE_TOKEN`
-secret and the `ASTRUM_OWNLATE_PROJECT` variable, it also pulls and fails if the committed translations
-differ from Ownlate.
+secret and the `ASTRUM_OWNLATE_PROJECT` variable, it also pulls and checks the translations.
+
+The `Dockerfile` pulls them in the `web` stage, so the token must be passed as a build secret, and the
+build fails without it:
+
+```bash
+docker build --secret id=ownlate_token,env=ASTRUM_OWNLATE_TOKEN -t astrum-server:local .
+```
+
+The project id defaults to the `ASTRUM_OWNLATE_PROJECT` build argument.
