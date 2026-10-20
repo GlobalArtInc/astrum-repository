@@ -1,5 +1,8 @@
 .page {
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 32px;
   min-width: 0;
 }
@@ -16,7 +19,7 @@
 }
 
 .aside {
-  padding: 16px 4px 0;
+  min-width: 0;
 }
 
 .content {

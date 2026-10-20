@@ -470,6 +470,7 @@ export default function RepositoryListPage() {
 
   return (
     <div className={styles.page}>
+      <Title count={count} />
       <div className={styles.layout}>
         {!compact && (
           <aside className={styles.aside} aria-label={t('browse.list.filters')}>
@@ -477,7 +478,6 @@ export default function RepositoryListPage() {
           </aside>
         )}
         <div className={styles.content}>
-          <Title count={count} />
           <div className={styles.toolbar}>
             <TextField.Root
               className={styles.filterText}

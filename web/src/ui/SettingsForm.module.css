@@ -23,7 +23,7 @@
   align-items: center;
   gap: var(--space-3);
   min-height: 56px;
-  padding: var(--space-3) var(--space-6);
+  padding: var(--space-3) 0;
 }
 
 .barStart,
@@ -48,7 +48,7 @@
 .progress {
   position: relative;
   display: flex;
-  margin: var(--space-4) var(--space-6);
+  margin: var(--space-4) 0;
   height: 8px;
   border-radius: 9999px;
   overflow: hidden;
@@ -72,7 +72,7 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding: var(--space-6);
+  padding: var(--space-6) 0;
   min-width: 0;
 }
 

@@ -1,7 +1,4 @@
 .hub[data-gutter] {
-  width: 100%;
-  max-width: 1168px;
-  margin: 0 auto;
   padding: 16px 16px 32px;
   gap: 16px;
 }

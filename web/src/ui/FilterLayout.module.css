@@ -1,8 +1,13 @@
 .layout {
   display: grid;
   grid-template-columns: var(--filter-width) minmax(0, 1fr);
-  gap: var(--filter-gap);
+  column-gap: var(--filter-gap);
   align-items: start;
+  min-width: 0;
+}
+
+.header {
+  grid-column: 1 / -1;
   min-width: 0;
 }
 
