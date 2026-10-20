@@ -4,7 +4,7 @@
   flex-direction: column;
   gap: var(--space-4);
   max-width: 640px;
-  padding: var(--space-6);
+  padding: var(--space-6) var(--page-gutter);
   min-width: 0;
 }
 

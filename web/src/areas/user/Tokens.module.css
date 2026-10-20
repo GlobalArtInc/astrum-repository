@@ -4,7 +4,7 @@
   box-sizing: border-box;
   max-width: 1100px;
   min-width: 0;
-  padding: 32px;
+  padding: 32px var(--page-gutter);
 }
 
 .header {

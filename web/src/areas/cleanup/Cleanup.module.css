@@ -230,7 +230,7 @@
 }
 
 .page[data-gutter] {
-  padding: 32px;
+  padding: 32px var(--page-gutter);
 }
 
 @media (max-width: 639px) {

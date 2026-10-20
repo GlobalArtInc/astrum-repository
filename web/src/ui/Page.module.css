@@ -3,16 +3,16 @@
   flex-direction: column;
   gap: 16px;
   box-sizing: border-box;
-  padding: 24px;
+  padding: 24px var(--page-gutter);
   min-width: 0;
 }
 
 .page[data-gutter="small"] {
-  padding: 16px;
+  padding: 16px var(--page-gutter);
 }
 
 .page[data-gutter="large"] {
-  padding: 24px 32px 32px;
+  padding: 24px var(--page-gutter) 32px;
 }
 
 .top {

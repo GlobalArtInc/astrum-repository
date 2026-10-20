@@ -32,7 +32,7 @@
 
 @media (min-width: 640px) {
   div.wide[data-gutter] {
-    padding: 32px 40px 32px 32px;
+    padding: 32px 40px 32px var(--page-gutter);
   }
 
   div.sysinfo[data-gutter] {

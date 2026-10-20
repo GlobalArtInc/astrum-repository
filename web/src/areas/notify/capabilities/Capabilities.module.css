@@ -423,7 +423,7 @@
   flex-direction: column;
   gap: 32px;
   box-sizing: border-box;
-  padding: 24px;
+  padding: 24px var(--page-gutter);
   min-width: 0;
 }
 
@@ -576,7 +576,7 @@
 @media (max-width: 639px) {
   .page.page[data-gutter],
   .createPage {
-    padding: 24px;
+    padding: 16px;
   }
 
   .typeFilter {

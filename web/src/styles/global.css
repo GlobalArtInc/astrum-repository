@@ -4,6 +4,10 @@ body,
   height: 100%;
 }
 
+:root {
+  --page-gutter: 32px;
+}
+
 html {
   color-scheme: dark;
   -webkit-text-size-adjust: 100%;

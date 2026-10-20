@@ -1,5 +1,5 @@
 .hub[data-gutter] {
-  padding: 16px 16px 32px;
+  padding: 16px var(--page-gutter) 32px;
   gap: 16px;
 }
 
