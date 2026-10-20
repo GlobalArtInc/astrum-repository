@@ -6026,6 +6026,244 @@
     ]
    }
   },
+  "/v1/repositories/vagrant/group": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VagrantGroupRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/vagrant/group/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VagrantGroupRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/vagrant/hosted": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VagrantHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/vagrant/hosted/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VagrantHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/vagrant/proxy": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VagrantProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/vagrant/proxy/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VagrantProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
   "/v1/repositories/yum/group": {
    "post": {
     "requestBody": {
@@ -15210,6 +15448,118 @@
       "type": "string"
      }
     },
+    "type": "object"
+   },
+   "VagrantGroupRepositoryApiRequest": {
+    "properties": {
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "group": {
+      "$ref": "#/components/schemas/GroupAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "group",
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "VagrantHostedRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "component": {
+      "$ref": "#/components/schemas/ComponentAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/HostedStorageAttributes"
+     }
+    },
+    "required": [
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "VagrantProxyRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "firewall": {
+      "$ref": "#/components/schemas/FirewallAttributes"
+     },
+     "httpClient": {
+      "$ref": "#/components/schemas/HttpClientAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "negativeCache": {
+      "$ref": "#/components/schemas/NegativeCacheAttributes"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "proxy": {
+      "$ref": "#/components/schemas/ProxyAttributes"
+     },
+     "replication": {
+      "$ref": "#/components/schemas/ReplicationAttributes"
+     },
+     "routingRuleName": {
+      "type": "string"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "httpClient",
+     "name",
+     "negativeCache",
+     "online",
+     "proxy",
+     "storage"
+    ],
     "type": "object"
    },
    "YumAttributes": {

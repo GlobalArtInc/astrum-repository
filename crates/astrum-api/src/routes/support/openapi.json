@@ -5086,6 +5086,118 @@
         },
         "type": "object"
       },
+      "VagrantGroupRepositoryApiRequest": {
+        "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "group": {
+            "$ref": "#/components/schemas/GroupAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "group",
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "VagrantHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "VagrantProxyRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "firewall": {
+            "$ref": "#/components/schemas/FirewallAttributes"
+          },
+          "httpClient": {
+            "$ref": "#/components/schemas/HttpClientAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "negativeCache": {
+            "$ref": "#/components/schemas/NegativeCacheAttributes"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "proxy": {
+            "$ref": "#/components/schemas/ProxyAttributes"
+          },
+          "replication": {
+            "$ref": "#/components/schemas/ReplicationAttributes"
+          },
+          "routingRuleName": {
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "httpClient",
+          "name",
+          "negativeCache",
+          "online",
+          "proxy",
+          "storage"
+        ],
+        "type": "object"
+      },
       "YumAttributes": {
         "properties": {
           "deployPolicy": {
@@ -11727,6 +11839,262 @@
           "403": {}
         },
         "summary": "Update repositories terraform proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/vagrant/group": {
+      "post": {
+        "operationId": "postV1RepositoriesVagrantGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VagrantGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories vagrant group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/vagrant/group/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesVagrantGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get repositories vagrant group",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesVagrantGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VagrantGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories vagrant group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/vagrant/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesVagrantHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VagrantHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories vagrant hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/vagrant/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesVagrantHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories vagrant hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesVagrantHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VagrantHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories vagrant hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/vagrant/proxy": {
+      "post": {
+        "operationId": "postV1RepositoriesVagrantProxy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VagrantProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories vagrant proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/vagrant/proxy/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesVagrantProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories vagrant proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesVagrantProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VagrantProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories vagrant proxy",
         "tags": [
           "Repository Management"
         ]

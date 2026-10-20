@@ -39,6 +39,7 @@ astrum-format-r = { path = "crates/astrum-format-r" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
 astrum-format-swift = { path = "crates/astrum-format-swift" }
 astrum-format-terraform = { path = "crates/astrum-format-terraform" }
+astrum-format-vagrant = { path = "crates/astrum-format-vagrant" }
 astrum-mail = { path = "crates/astrum-mail" }
 astrum-mcp = { path = "crates/astrum-mcp" }
 astrum-outbound = { path = "crates/astrum-outbound" }

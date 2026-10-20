@@ -132,7 +132,7 @@ pub fn prerelease_rule(format: &str) -> Option<&'static str> {
             "(c.version LIKE '%-SNAPSHOT' OR c.attributes #>> '{maven2,baseVersion}' LIKE '%-SNAPSHOT')",
         ),
         "nuget" | "pub" | "puppet" => Some("(split_part(c.version, '+', 1) LIKE '%-%')"),
-        "rubygems" => Some("(c.version ~ '[A-Za-z]')"),
+        "rubygems" | "vagrant" => Some("(c.version ~ '[A-Za-z]')"),
         "yum" => Some(
             "(c.version ~ '~[^-]*-[^-]*$' OR (c.version !~ '-' AND c.version LIKE '%~%') OR c.version ~ '-0\\.[^-]*$')",
         ),
@@ -547,6 +547,10 @@ mod tests {
         );
         assert_eq!(
             criteria_of("ansible"),
+            [REGEX, RELEASE_TYPE, LAST_DOWNLOADED, LAST_BLOB_UPDATED]
+        );
+        assert_eq!(
+            criteria_of("vagrant"),
             [REGEX, RELEASE_TYPE, LAST_DOWNLOADED, LAST_BLOB_UPDATED]
         );
     }

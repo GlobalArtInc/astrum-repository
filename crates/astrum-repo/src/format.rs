@@ -182,6 +182,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "vagrant",
+        api_name: "vagrant",
+        types: HPG,
+    },
+    Format {
         id: "yum",
         api_name: "yum",
         types: HPG,
