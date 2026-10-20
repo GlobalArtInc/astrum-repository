@@ -49,8 +49,9 @@ Tokens** after signing in with a password:
 
 Clients use a token wherever they would use the password: as the password of Basic authentication
 (`mvn`, `pip`, `docker login`, `curl -u user:astrum_...`), or as `Authorization: Bearer astrum_...`
-(`dart pub token add` stores it for that), or as `Authorization: Token astrum_...`, the way
-`ansible-galaxy` sends its token.
+(`dart pub token add` stores it for that; r10k, Bolt and `pdk release` send their Forge token so), or
+as `Authorization: Token astrum_...`, the way `ansible-galaxy` sends its token. A bare
+`Authorization: astrum_...` works too, so `forge_authorization` in `puppet.conf` can hold the token alone.
 Tokens work while the Access Token Realm is active. They are the way for OpenID Connect users, who
 have no password, to use command-line tools, and they keep directory passwords out of CI for LDAP users.
 A token cannot create or revoke tokens; that needs a sign-in with the password. A read-only token cannot
