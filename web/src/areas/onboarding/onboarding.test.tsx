@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UiState } from '../../api';
@@ -10,6 +10,13 @@ import { onboardingArea } from '.';
 
 const AREAS = [dashboardArea, settingsArea, onboardingArea];
 const FRESH: UiState = { ...ADMIN_STATE, anonymousAccess: false, adminPasswordFile: '/data/admin.password' };
+const WITH_FORMATS: UiState = {
+  ...FRESH,
+  formats: [
+    { id: 'raw', apiName: 'raw', types: ['hosted', 'proxy', 'group'] },
+    { id: 'npm', apiName: 'npm', types: ['hosted', 'proxy', 'group'] },
+  ],
+};
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -51,10 +58,16 @@ describe('onboarding', () => {
       'GET /service/rest/v1/security/anonymous': () =>
         jsonResponse({ enabled: true, userId: 'anonymous', realmName: 'AstrumAuthorizingRealm' }),
       'PUT /service/rest/v1/security/anonymous': ({ body }) => jsonResponse(body),
-      'GET /service/rest/internal/ui/state': () => jsonResponse({ ...FRESH, adminPasswordFile: null }),
+      'GET /service/rest/internal/ui/state': () => jsonResponse({ ...WITH_FORMATS, adminPasswordFile: null }),
+      'GET /service/rest/v1/repositories': () => jsonResponse([{ name: 'npm-hosted' }]),
+      'GET /service/rest/internal/ui/blobstores': () => jsonResponse([{ name: 'default' }]),
+      'POST /service/rest/v1/repositories/raw/hosted': () => new Response(null, { status: 201 }),
+      'POST /service/rest/v1/repositories/npm/proxy': () => new Response(null, { status: 201 }),
+      'POST /service/rest/v1/repositories/npm/group': () =>
+        jsonResponse([{ id: '*', message: 'The server refused' }], 400),
     });
     vi.stubGlobal('fetch', server.fetch);
-    const { router } = app('/onboarding', FRESH);
+    const { router } = app('/onboarding', WITH_FORMATS);
     await userEvent.type(
       await screen.findByLabelText(/Current password/, {}, { timeout: 5000 }),
       'first-password',
@@ -71,6 +84,24 @@ describe('onboarding', () => {
     expect(await screen.findByRole('heading', { name: 'Anonymous access' })).toBeInTheDocument();
     expect(server.calls[0]?.body).toEqual({ currentPassword: 'first-password', newPassword: 'a new secret' });
     await userEvent.click(screen.getByRole('radio', { name: /Require sign-in/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByRole('heading', { name: 'Repositories' })).toBeInTheDocument();
+    const create = screen.getByRole('button', { name: 'Create repositories' });
+    expect(create).toBeDisabled();
+    await userEvent.click(await screen.findByRole('checkbox', { name: /npm/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /Raw/ }));
+    await userEvent.click(create);
+    const results = await screen.findByRole('list', { name: 'Created repositories' });
+    await waitFor(() => expect(within(results).getAllByRole('listitem')).toHaveLength(4));
+    expect(within(results).getByText('npm-hosted').closest('li')).toHaveTextContent('Already exists');
+    expect(within(results).getByText('raw-hosted').closest('li')).toHaveTextContent('Created');
+    expect(within(results).getByText('npm').closest('li')).toHaveTextContent('Not created');
+    const raw = server.calls.find((call) => call.path === '/service/rest/v1/repositories/raw/hosted');
+    expect(raw?.body).toMatchObject({
+      name: 'raw-hosted',
+      storage: { blobStoreName: 'default', writePolicy: 'ALLOW' },
+    });
+    expect(server.calls.some((call) => call.path === '/service/rest/v1/repositories/npm/hosted')).toBe(false);
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByRole('heading', { name: 'All set' })).toBeInTheDocument();
     expect(

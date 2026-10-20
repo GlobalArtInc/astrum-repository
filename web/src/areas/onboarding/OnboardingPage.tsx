@@ -1,6 +1,16 @@
-import { Button, Callout, Card, Flex, Heading, RadioCards, Spinner, Text } from '@radix-ui/themes';
+import {
+  Button,
+  Callout,
+  Card,
+  CheckboxCards,
+  Flex,
+  Heading,
+  RadioCards,
+  Spinner,
+  Text,
+} from '@radix-ui/themes';
 import { useQueryClient } from '@tanstack/react-query';
-import { CircleCheck, Globe, Info, Lock } from 'lucide-react';
+import { CircleCheck, CircleMinus, CircleX, Globe, Info, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ApiError, api, INTERNAL, path, useApi, V1 } from '../../api';
@@ -16,7 +26,10 @@ import {
   useToast,
   writeStored,
 } from '../../ui';
+import { createPath, REPOSITORIES } from '../repositories/api';
+import { useBlobStoreChoices } from '../repositories/components/useBlobStoreChoices';
 import styles from './Onboarding.module.css';
+import { availablePresets, plan } from './presets';
 import { OFFERED_KEY, sessionMarker } from './watcher';
 
 const ACCOUNT_PASSWORD = `${INTERNAL}/ui/user/password`;
@@ -25,8 +38,8 @@ const ANONYMOUS = `${V1}/security/anonymous`;
 const ADMIN = 'admin';
 const MIN_PASSWORD = 8;
 
-type Step = 'password' | 'anonymous' | 'done';
-const STEPS: Step[] = ['password', 'anonymous', 'done'];
+type Step = 'password' | 'anonymous' | 'repositories' | 'done';
+const STEPS: Step[] = ['password', 'anonymous', 'repositories', 'done'];
 
 interface Anonymous {
   enabled: boolean;
@@ -81,6 +94,7 @@ function StepList({ current }: { current: Step }) {
   const labels: Record<Step, string> = {
     password: t('onboarding.steps.password'),
     anonymous: t('onboarding.steps.anonymous'),
+    repositories: t('onboarding.steps.repositories'),
     done: t('onboarding.steps.done'),
   };
   const index = STEPS.indexOf(current);
@@ -288,6 +302,167 @@ function AnonymousStep({ onDone, onSkip }: { onDone(): void; onSkip(): void }) {
   );
 }
 
+interface Outcome {
+  name: string;
+  status: 'created' | 'exists' | 'failed';
+  message?: string;
+}
+
+const TYPE_LABELS = {
+  hosted: 'browse.list.type.hosted',
+  proxy: 'browse.list.type.proxy',
+  group: 'browse.list.type.group',
+} as const;
+
+function OutcomeLine({ outcome }: { outcome: Outcome }) {
+  const t = useT();
+  const Icon =
+    outcome.status === 'created' ? CircleCheck : outcome.status === 'exists' ? CircleMinus : CircleX;
+  const color =
+    outcome.status === 'created'
+      ? 'var(--green-9)'
+      : outcome.status === 'exists'
+        ? 'var(--gray-9)'
+        : 'var(--red-9)';
+  const text =
+    outcome.status === 'created'
+      ? t('onboarding.repositories.created')
+      : outcome.status === 'exists'
+        ? t('onboarding.repositories.exists')
+        : t('onboarding.repositories.failed', { message: outcome.message ?? '' });
+  return (
+    <li className={styles.outcome}>
+      <Icon size={16} color={color} aria-hidden="true" />
+      <Text size="2" className={styles.repositoryName}>
+        {outcome.name}
+      </Text>
+      <Text size="2" color={outcome.status === 'failed' ? 'red' : 'gray'}>
+        {text}
+      </Text>
+    </li>
+  );
+}
+
+function RepositoriesStep({ onDone }: { onDone(): void }) {
+  const t = useT();
+  const client = useQueryClient();
+  const { state } = useSession();
+  const presets = availablePresets(state.formats);
+  const stores = useBlobStoreChoices();
+  const existing = useApi<{ name: string }[]>(REPOSITORIES);
+  const [chosen, setChosen] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [outcomes, setOutcomes] = useState<Outcome[] | null>(null);
+  const blobStore =
+    stores.choices?.find((store) => store.name === 'default')?.name ?? stores.choices?.[0]?.name ?? 'default';
+
+  const create = async () => {
+    setBusy(true);
+    const known = new Set((existing.data ?? []).map((repository) => repository.name.toLowerCase()));
+    const results: Outcome[] = [];
+    const planned = plan(
+      presets.filter((preset) => chosen.includes(preset.id)),
+      state.formats,
+      blobStore,
+    );
+    for (const repository of planned) {
+      if (known.has(repository.name.toLowerCase())) {
+        results.push({ name: repository.name, status: 'exists' });
+      } else {
+        try {
+          await api.post(createPath(repository.apiFormat, repository.type), repository.body);
+          results.push({ name: repository.name, status: 'created' });
+        } catch (failure) {
+          results.push({
+            name: repository.name,
+            status: 'failed',
+            message: failure instanceof Error ? failure.message : String(failure),
+          });
+        }
+      }
+      setOutcomes([...results]);
+    }
+    await client.invalidateQueries();
+    setBusy(false);
+  };
+
+  return (
+    <div className={styles.body}>
+      <Flex direction="column" gap="1">
+        <Heading as="h2" size="5" id="onboarding-repositories">
+          {t('onboarding.repositories.title')}
+        </Heading>
+        <Text size="2" color="gray">
+          {t('onboarding.repositories.intro')}
+        </Text>
+      </Flex>
+      {outcomes === null ? (
+        existing.isPending || !stores.ready ? (
+          <Flex justify="center" py="4">
+            <Spinner />
+          </Flex>
+        ) : existing.error ? (
+          <ErrorState error={existing.error} onRetry={() => void existing.refetch()} />
+        ) : (
+          <CheckboxCards.Root
+            value={chosen}
+            onValueChange={setChosen}
+            columns={{ initial: '1', sm: '2' }}
+            aria-labelledby="onboarding-repositories"
+          >
+            {presets.map((preset) => (
+              <CheckboxCards.Item key={preset.id} value={preset.id}>
+                <Flex direction="column" gap="1" width="100%">
+                  <Text weight="bold">{preset.label}</Text>
+                  <ul className={styles.repositories}>
+                    {preset.repositories.map((repository) => (
+                      <li key={repository.name}>
+                        <Text size="1" className={styles.repositoryName}>
+                          {repository.name}
+                        </Text>
+                        <Text size="1" color="gray">
+                          {t(TYPE_LABELS[repository.type])}
+                        </Text>
+                      </li>
+                    ))}
+                  </ul>
+                </Flex>
+              </CheckboxCards.Item>
+            ))}
+          </CheckboxCards.Root>
+        )
+      ) : (
+        <ul className={styles.outcomes} aria-label={t('onboarding.repositories.results')}>
+          {outcomes.map((outcome) => (
+            <OutcomeLine key={outcome.name} outcome={outcome} />
+          ))}
+        </ul>
+      )}
+      <div className={styles.actions}>
+        {outcomes === null ? (
+          <>
+            <Button type="button" variant="ghost" color="gray" onClick={onDone}>
+              {t('onboarding.actions.skip')}
+            </Button>
+            <Button
+              type="button"
+              loading={busy}
+              disabled={chosen.length === 0 || existing.isPending || !stores.ready}
+              onClick={() => void create()}
+            >
+              {t('onboarding.repositories.submit')}
+            </Button>
+          </>
+        ) : (
+          <Button type="button" loading={busy} onClick={onDone} className={styles.alone}>
+            {t('onboarding.repositories.continue')}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DoneStep({ onFinish }: { onFinish(): void }) {
   const t = useT();
   return (
@@ -338,7 +513,7 @@ export default function OnboardingPage() {
           {t('onboarding.page.title')}
         </Heading>
         <Text size="2" color="gray">
-          {t('onboarding.page.intro')}
+          {t('onboarding.page.lead')}
         </Text>
       </Flex>
       <StepList current={step} />
@@ -351,10 +526,11 @@ export default function OnboardingPage() {
             onSkip={leave}
           />
         )}
-        {step === 'anonymous' && <AnonymousStep onDone={() => setStep('done')} onSkip={leave} />}
+        {step === 'anonymous' && <AnonymousStep onDone={() => setStep('repositories')} onSkip={leave} />}
+        {step === 'repositories' && <RepositoriesStep onDone={() => setStep('done')} />}
         {step === 'done' && <DoneStep onFinish={leave} />}
       </Card>
-      {step !== 'done' && (
+      {step === 'password' && (
         <Text as="p" size="1" color="gray" mt="3">
           {t('onboarding.page.later')}
         </Text>
