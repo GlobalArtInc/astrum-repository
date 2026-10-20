@@ -1,7 +1,9 @@
 import type { Language } from './translate';
 
-const UNITS: Record<Language, readonly string[]> = {
-  en: ['B', 'KB', 'MB', 'GB', 'TB', 'PB'],
+const ENGLISH_UNITS: readonly string[] = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+
+const UNITS: Partial<Record<Language, readonly string[]>> = {
+  en: ENGLISH_UNITS,
   ru: ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ', 'ПБ'],
 };
 
@@ -10,7 +12,7 @@ export function formatNumber(language: Language, value: number): string {
 }
 
 export function formatBytes(language: Language, bytes: number): string {
-  const units = UNITS[language];
+  const units = UNITS[language] ?? ENGLISH_UNITS;
   let value = Math.max(0, bytes);
   let unit = 0;
   while (value >= 1024 && unit < units.length - 1) {

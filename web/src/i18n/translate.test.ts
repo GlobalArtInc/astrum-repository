@@ -3,7 +3,7 @@ import { collect } from './dictionaries';
 import { detectLanguage, LANGUAGE_COOKIE, readCookie, rememberLanguage } from './language';
 import { type Dictionaries, interpolate, pluralCategory, splitRich, translate } from './translate';
 
-const dictionaries: Dictionaries = {
+const dictionaries = {
   en: {
     'x.page.hello': 'Hello, {name}',
     'x.page.files': { one: '{count} file', other: '{count} files' },
@@ -18,7 +18,7 @@ const dictionaries: Dictionaries = {
       other: '{count} файла',
     },
   },
-};
+} as unknown as Dictionaries;
 
 describe('translation', () => {
   it('fills placeholders', () => {
@@ -67,8 +67,9 @@ describe('the language', () => {
   it('comes from the cookie, then from the browser', () => {
     expect(detectLanguage(`${LANGUAGE_COOKIE}=ru`, ['en-US'])).toBe('ru');
     expect(detectLanguage('other=1', ['ru-RU', 'en'])).toBe('ru');
-    expect(detectLanguage('', ['de-DE', 'en-GB'])).toBe('en');
-    expect(detectLanguage(`${LANGUAGE_COOKIE}=de`, ['fr'])).toBe('en');
+    expect(detectLanguage('', ['sv-SE', 'en-GB'])).toBe('en');
+    expect(detectLanguage(`${LANGUAGE_COOKIE}=sv`, ['fr'])).toBe('fr');
+    expect(detectLanguage('', ['sr-Latn'])).toBe('sr-Latn');
   });
 
   it('is remembered in its cookie', () => {

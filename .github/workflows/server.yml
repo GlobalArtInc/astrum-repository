@@ -106,6 +106,12 @@ jobs:
       - name: Typecheck
         run: corepack pnpm typecheck
 
+      - name: Pull the translations from Ownlate
+        env:
+          ASTRUM_OWNLATE_TOKEN: ${{ secrets.ASTRUM_OWNLATE_TOKEN }}
+          ASTRUM_OWNLATE_PROJECT: ${{ vars.ASTRUM_OWNLATE_PROJECT }}
+        run: node ../tools/i18n/i18n.mjs pull
+
       - name: Test
         run: corepack pnpm test
 
