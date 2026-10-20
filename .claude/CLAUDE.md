@@ -13,7 +13,9 @@ repository is public: never commit secrets.
 - The server is version `3.0.0-dev` in `Cargo.toml` (the Java line was 2.x). It serves the 23 formats
   of the Java server: alpine, apt, cargo, cocoapods, composer, conan, conda, docker (with OCI Distribution 1.1),
   gitlfs, go, helm, huggingface, maven2, npm, nuget, p2, pypi, r, raw, rubygems, swift, terraform and yum, and
-  two new ones, pub and Ansible Galaxy (`ansible`), in English and Russian.
+  two new ones, pub and Ansible Galaxy (`ansible`); since 2026-10-21 also Open VSX (`openvsx`), pacman,
+  Vagrant, Nix (binary cache), Hex, Puppet Forge (`puppet`) and Chef Supermarket (`chef`), built in parallel
+  from one brief, one worktree each. The web interface speaks twelve languages, pulled from Ownlate at build.
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.
@@ -87,6 +89,9 @@ repository is public: never commit secrets.
   copy or the builds wait on each other; and rustc rewrites some outputs in place, so the artifacts of the
   workspace crates leak between copies that build different branches: delete everything matching
   `*astrum*` under the copy's `debug/` (and `debug/incremental`) before its first build.
+  One `CARGO_TARGET_DIR` shared by several worktrees leaks the same way, because cargo names workspace
+  artifacts by their path inside the workspace: give every worktree its own target directory (and
+  `CARGO_BUILD_JOBS=3` on the 16 GB Mac), never a shared one.
 - Local services after a restart: PostgreSQL `pg_ctl -D /var/tmp/astrum-pg/data -l /var/tmp/astrum-pg/pg.log
   -o '-p 5433 -k /tmp' start` as `postgres` (`/usr/lib/postgresql/<16|18>/bin`).
 

@@ -227,7 +227,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 26);
+        assert_eq!(ids.len(), 32);
     }
 
     #[test]
