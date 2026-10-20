@@ -13,6 +13,7 @@
   "shell.help.version": "Version: {version}",
   "shell.language.en": "English",
   "shell.language.label": "Language",
+  "shell.language.helpTranslate": "Help translate",
   "shell.language.ru": "Русский",
   "shell.language.de": "Deutsch",
   "shell.language.es": "Español",

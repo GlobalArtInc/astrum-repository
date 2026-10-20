@@ -240,6 +240,14 @@
   color: var(--gray-11);
 }
 
+.languages {
+  display: grid;
+  grid-template-rows: repeat(var(--language-rows), auto);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
 .versionLabel {
   color: var(--gray-a11);
 }
@@ -395,6 +403,10 @@
   inset: 0;
   z-index: 50;
   background: rgb(0 0 0 / 0.6);
+}
+
+.overDrawer {
+  z-index: 60;
 }
 
 .drawer {

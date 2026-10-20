@@ -3,7 +3,7 @@
 Astrum Repository is GlobalArt's artifact repository manager. It hosts, proxies and groups Alpine,
 Ansible Galaxy, APT, Cargo, CocoaPods, Composer, Conan, Conda, Docker and other OCI artifacts, Git LFS, Go, Helm, Hugging Face, Maven,
 npm, NuGet, P2, pub, PyPI, R, RubyGems, Swift, Terraform, Yum and raw repositories. It is one server written in
-Rust, with a web interface in English and Russian, that keeps its data in PostgreSQL and in blob stores on
+Rust, with a web interface in twelve languages, that keeps its data in PostgreSQL and in blob stores on
 disk or in S3.
 
 <picture>
@@ -82,6 +82,11 @@ tests of the web interface are described in [web/README.md](web/README.md).
 | `docs/` | Installation, configuration, operation, client setup and migration guides |
 | `tools/` | `i18n` for the translations of the interface, `repository-copy` for moving data from another repository server, `side-by-side` for comparing two servers |
 | `Dockerfile` | Builds the container image from the two above |
+
+## Translations
+
+The web interface is translated in Ownlate: see the [progress of every language and help translate](https://platform.ownlate.com/workspaces/c08d5107-8ec7-4c80-9f46-e36fa7eeab3a/projects/f1f93c0e-4902-434d-a551-e94ba7e1e304/progress).
+The image takes the approved translations when it is built; `tools/i18n` holds the tooling.
 
 ## License
 
