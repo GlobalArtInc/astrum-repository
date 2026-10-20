@@ -324,6 +324,20 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'sha256:0xfhhhb46a15v23pvkw97a5h578d1qkl34w351p5xxh52f1jbhyl',
   },
   {
+    key: 'hex.license',
+    label: 'search.criterion.hexLicense',
+    kind: 'text',
+    format: 'hex',
+    example: 'Apache-2.0',
+  },
+  {
+    key: 'hex.buildTool',
+    label: 'search.criterion.hexBuildTool',
+    kind: 'text',
+    format: 'hex',
+    example: 'mix',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

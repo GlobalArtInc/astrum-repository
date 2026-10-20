@@ -164,6 +164,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   r: 'https://cloud.r-project.org/',
   docker: 'https://registry-1.docker.io',
   helm: 'https://charts.helm.sh/stable/',
+  hex: 'https://repo.hex.pm',
   huggingface: 'https://huggingface.co/',
   raw: 'https://example.org/files/',
   swift: 'https://packages.example.com/',
@@ -682,6 +683,23 @@ export function RepositoryForm(props: RepositoryFormProps) {
               {...field('alpinePassphrase')}
               label={t('repositories.form.alpinePassphrase')}
               hint={t('repositories.form.alpinePassphraseHint')}
+            />
+          </Section>
+        )}
+
+        {sections.hexSigning(spec) && (
+          <Section
+            title={t('repositories.form.sections.hexSigning')}
+            description={t('repositories.form.sections.hexSigningText')}
+          >
+            <TextAreaInput
+              {...field('hexKeypair')}
+              label={t('repositories.form.hexKeypair')}
+              hint={
+                !creating && hasSection(document, 'hexSigning')
+                  ? t('repositories.form.hexKeypairStored')
+                  : t('repositories.form.hexKeypairHint')
+              }
             />
           </Section>
         )}

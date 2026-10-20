@@ -178,6 +178,42 @@ describe('component snippets of the M4c formats', () => {
     expect(componentSnippets({ ...base, format: 'nix', group: '', name: 'x', version: '' })).toEqual([]);
   });
 
+  it('give mix.exs and rebar.config dependencies for Hex packages', () => {
+    const hosted = componentSnippets({
+      ...base,
+      repository: 'hex-local',
+      repositoryType: 'hosted',
+      format: 'hex',
+      group: '',
+      name: 'hello',
+      version: '1.4.2',
+    });
+    expect(hosted).toEqual([
+      {
+        id: 'mix',
+        label: 'mix.exs',
+        hint: 'browse.component.snippet.mixDeps',
+        code: '{:hello, "~> 1.4", repo: "hex-local"}',
+      },
+      {
+        id: 'rebar',
+        label: 'rebar.config',
+        hint: 'browse.component.snippet.rebarDeps',
+        code: '{hello, "1.4.2"}',
+      },
+    ]);
+    const proxied = componentSnippets({
+      ...base,
+      repository: 'hexpm',
+      repositoryType: 'proxy',
+      format: 'hex',
+      group: '',
+      name: 'jason',
+      version: '1.4.4',
+    });
+    expect(proxied[0]?.code).toBe('{:jason, "~> 1.4"}');
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',

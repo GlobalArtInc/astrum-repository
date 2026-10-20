@@ -444,6 +444,21 @@ describe('the Alpine format', () => {
     }
   });
 
+  it('offers the registry key of Hex hosted and group repositories and keeps a stored one', () => {
+    expect(sections.hexSigning({ format: 'hex', type: 'hosted' })).toBe(true);
+    expect(sections.hexSigning({ format: 'hex', type: 'group' })).toBe(true);
+    expect(sections.hexSigning({ format: 'hex', type: 'proxy' })).toBe(false);
+    const spec: Spec = { format: 'hex', type: 'hosted' };
+    const stored: RepositoryDocument = { ...template(spec, 'default'), name: 'hex-local', hexSigning: {} };
+    const kept = toDocument(fromDocument(stored), stored);
+    expect(kept.hexSigning).toEqual({});
+    const written = toDocument({ ...fromDocument(stored), hexKeypair: 'PEM' }, stored);
+    expect(getPath(written, ['hexSigning', 'keypair'])).toBe('PEM');
+    expect(formField('PARAMETER hexSigning.keypair', spec)).toBe('hexKeypair');
+    expect(formField('PARAMETER hexSigning.passphrase', spec)).toBe('hexKeypair');
+    expect(formField('PARAMETER hexSigning', spec)).toBe('hexKeypair');
+  });
+
   it('maps signing problems onto the Alpine fields', () => {
     const spec: Spec = { format: 'alpine', type: 'hosted' };
     expect(formField('PARAMETER alpineSigning.keypair', spec)).toBe('alpineKeypair');

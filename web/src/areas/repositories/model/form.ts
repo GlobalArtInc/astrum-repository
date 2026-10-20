@@ -71,6 +71,7 @@ export interface RepositoryValues {
   aptPassphrase: string;
   alpineKeypair: string;
   alpinePassphrase: string;
+  hexKeypair: string;
   conanVersion: string;
   nixStoreDir: string;
   nixPriority: number | null;
@@ -168,6 +169,7 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'aptPassphrase', path: ['aptSigning', 'passphrase'], kind: 'secret' },
   { key: 'alpineKeypair', path: ['alpineSigning', 'keypair'], kind: 'secret' },
   { key: 'alpinePassphrase', path: ['alpineSigning', 'passphrase'], kind: 'secret' },
+  { key: 'hexKeypair', path: ['hexSigning', 'keypair'], kind: 'secret' },
   { key: 'conanVersion', path: ['conanProxy', 'conanVersion'], kind: 'enum' },
   { key: 'nixStoreDir', path: ['nix', 'storeDir'], kind: 'text' },
   { key: 'nixPriority', path: ['nix', 'priority'], kind: 'int' },
@@ -568,6 +570,7 @@ const SAME_NAME: ReadonlySet<string> = new Set(FIELDS.map((def) => def.key));
 const SIGNING_FIELDS: Record<string, readonly [FieldKey, FieldKey]> = {
   alpine: ['alpineKeypair', 'alpinePassphrase'],
   apt: ['aptKeypair', 'aptPassphrase'],
+  hex: ['hexKeypair', 'hexKeypair'],
   yum: ['yumKeypair', 'yumPassphrase'],
 };
 
@@ -607,6 +610,8 @@ export function formField(id: string, spec: Spec): FieldKey | null {
       return 'nixPriority';
     case 'wantMassQuery':
       return 'nixWantMassQuery';
+    case 'hexSigning':
+      return 'hexKeypair';
     default:
       return SAME_NAME.has(last) ? (last as FieldKey) : null;
   }

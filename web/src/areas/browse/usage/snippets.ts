@@ -1,6 +1,7 @@
 import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { ansible } from './ansible';
 import { chef } from './chef';
+import { hex } from './hex';
 import { huggingface } from './huggingface';
 import { nix } from './nix';
 import { p2 } from './p2';
@@ -77,6 +78,7 @@ export const USAGE_FORMATS = [
   'puppet',
   'vagrant',
   'nix',
+  'hex',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1089,6 +1091,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   vagrant: (context) =>
     vagrant(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   nix: (context) => nix(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

@@ -1015,3 +1015,49 @@ describe('nix usage', () => {
     );
   });
 });
+
+describe('hex usage', () => {
+  const component = { group: '', name: 'hello', version: '1.2.0' };
+
+  it('adds a hosted repository with its key, names it in mix.exs and rebar.config and publishes', () => {
+    const snippets = usageSnippets(
+      context({ format: 'hex', repositoryName: 'hex-local', component, path: '/tarballs/hello-1.2.0.tar' }),
+    );
+    expect(ids(snippets)).toEqual(['repo', 'dependency', 'rebar3', 'publish']);
+    const url = 'https://repo.example.org/repository/hex-local';
+    expect(code(snippets, 'repo')).toBe(
+      `curl -fsS -o hex-local.pem ${url}/public_key\nmix hex.repo add hex-local ${url} --public-key hex-local.pem`,
+    );
+    expect(code(snippets, 'dependency')).toBe('{:hello, "~> 1.2", repo: "hex-local"}');
+    expect(code(snippets, 'rebar3')).toContain(`repo_url => <<"${url}">>`);
+    expect(code(snippets, 'rebar3')).toContain(`api_url => <<"${url}/api">>}]}]}.`);
+    expect(code(snippets, 'rebar3')).toContain('{deps, [{hello, "1.2.0"}]}.');
+    expect(code(snippets, 'publish')).toBe(
+      `HEX_API_URL=${url}/api HEX_API_KEY=<access token> mix hex.publish`,
+    );
+    expect(supportsUsage('hex')).toBe(true);
+  });
+
+  it('mirrors hex.pm through a proxy and reads a group without publishing', () => {
+    const proxy = usageSnippets(context({ format: 'hex', repositoryName: 'hexpm', repositoryType: 'proxy' }));
+    expect(ids(proxy)).toEqual(['mirror', 'rebar3', 'dependency']);
+    expect(code(proxy, 'mirror')).toBe(
+      'export HEX_MIRROR=https://repo.example.org/repository/hexpm\nmix deps.get',
+    );
+    expect(code(proxy, 'rebar3')).toBe(
+      'export HEX_CDN=https://repo.example.org/repository/hexpm\nrebar3 get-deps',
+    );
+    expect(code(proxy, 'dependency')).toBe('{:<package>, "~> 1.0"}');
+    const group = usageSnippets(
+      context({
+        format: 'hex',
+        repositoryName: 'hex-all',
+        repositoryType: 'group',
+        component: { group: '', name: 'hello', version: '2.0.0-rc.1' },
+      }),
+    );
+    expect(ids(group)).toEqual(['repo', 'dependency', 'rebar3']);
+    expect(code(group, 'dependency')).toBe('{:hello, "== 2.0.0-rc.1", repo: "hex-all"}');
+    expect(code(group, 'rebar3')).toContain('<<"<contents of hex-all.pem>">>}]}]}.');
+  });
+});

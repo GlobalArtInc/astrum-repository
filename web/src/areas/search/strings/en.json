@@ -104,6 +104,8 @@
   "search.criterion.vagrantArchitecture": "Vagrant Architecture",
   "search.criterion.nixStorePath": "Nix Store Path",
   "search.criterion.nixNarHash": "Nix NAR Hash",
+  "search.criterion.hexLicense": "Hex License",
+  "search.criterion.hexBuildTool": "Hex Build Tool",
   "search.criterion.swiftDescription": "Swift Description",
   "search.criterion.swiftRepositoryUrl": "Swift Repository URL",
   "search.criterion.huggingfaceFile": "Hugging Face File Path",

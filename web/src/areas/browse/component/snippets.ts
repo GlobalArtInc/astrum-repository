@@ -1,7 +1,8 @@
-import type { RepositoryDomain } from '../../../api';
+import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { guideComponentName } from '../links';
 import { installCommand, requirementsFile } from '../usage/ansible';
 import { berksfile, knifeDownload, policyfile } from '../usage/chef';
+import { mixDependency, rebarDependency } from '../usage/hex';
 import { copyFrom, storePath } from '../usage/nix';
 import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
@@ -23,6 +24,7 @@ export interface ComponentSnippetContext {
   version: string;
   baseUrl: string;
   repository: string;
+  repositoryType?: RepositoryType;
   domain?: RepositoryDomain;
 }
 
@@ -317,6 +319,24 @@ function nix(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function hex(context: ComponentSnippetContext): ComponentSnippet[] {
+  const repository = context.repositoryType === 'proxy' ? undefined : context.repository;
+  return [
+    {
+      id: 'mix',
+      label: 'mix.exs',
+      hint: 'browse.component.snippet.mixDeps',
+      code: mixDependency(context.name, context.version, repository),
+    },
+    {
+      id: 'rebar',
+      label: 'rebar.config',
+      hint: 'browse.component.snippet.rebarDeps',
+      code: rebarDependency(context.name, context.version),
+    },
+  ];
+}
+
 function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
   return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
 }
@@ -361,6 +381,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return vagrant(context);
     case 'nix':
       return nix(context);
+    case 'hex':
+      return hex(context);
     default:
       return [];
   }
