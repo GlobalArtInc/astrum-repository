@@ -38,7 +38,7 @@ const TYPE_LIST = [
     id: 'rapture.settings',
     name: 'UI: Settings',
     about: 'Adjusts the user interface.',
-    formFields: [field('title', 'string', 'Title', true, 'GlobalArt Astrum Repository')],
+    formFields: [field('title', 'string', 'Title', true, 'Astrum Repository')],
   },
 ];
 

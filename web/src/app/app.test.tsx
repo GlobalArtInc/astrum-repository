@@ -221,7 +221,7 @@ describe('the shell', () => {
     expect(screen.getByRole('link', { name: 'Back to the Dashboard' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: 'Read the Documentation' })).toHaveAttribute('target', '_blank');
     expect(router.state.location.pathname).toBe('/no/such/page');
-    expect(document.title).toBe('Page Not Found - GlobalArt Astrum Repository');
+    expect(document.title).toBe('Page Not Found - Astrum Repository');
   });
 
   it('sends section addresses to their first page', async () => {

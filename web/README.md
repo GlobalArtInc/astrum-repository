@@ -69,7 +69,7 @@ header bell opens the page of the `metric-health` tile once an area registers it
 Routes are relative paths under the shell. `requiresUser: true` sends anonymous callers to `/login`;
 `need` hides the page (signed-in callers see "You cannot open this page", anonymous ones go to the login
 page). Use `Page` (title, breadcrumbs, actions, description) as the root of every page: it also sets the
-document title `<title> - GlobalArt Astrum Repository`. English texts follow the style of Astrum One:
+document title `<title> - Astrum Repository`. English texts follow the style of Astrum One:
 Title Case for names of pages, tiles, menu items and buttons ("Blob Stores", "Sign Out"), sentence case
 for sentences.
 

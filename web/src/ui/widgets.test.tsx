@@ -91,7 +91,7 @@ describe('small widgets', () => {
         actions={<button type="button">Create</button>}
       />,
     );
-    expect(document.title).toBe('Users - GlobalArt Astrum Repository');
+    expect(document.title).toBe('Users - Astrum Repository');
     expect(screen.getByRole('heading', { level: 1, name: 'Users' })).toBeInTheDocument();
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumbs' });
     expect(crumbs.querySelector('a')).toHaveAttribute('href', '/settings');

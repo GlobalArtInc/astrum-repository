@@ -27,7 +27,7 @@ const UI: CapabilityType = {
   name: 'UI: Settings',
   about: 'Adjusts the user interface.',
   formFields: [
-    field('title', 'string', { initialValue: 'GlobalArt Astrum Repository' }),
+    field('title', 'string', { initialValue: 'Astrum Repository' }),
     field('debugAllowed', 'checkbox', { required: false, initialValue: 'true' }),
     field('requestTimeout', 'number', { initialValue: '60', minValue: '30' }),
     field('url', 'url', { required: false }),
@@ -41,7 +41,7 @@ describe('capability forms', () => {
       enabled: true,
       notes: '',
       properties: {
-        title: 'GlobalArt Astrum Repository',
+        title: 'Astrum Repository',
         debugAllowed: 'true',
         requestTimeout: '60',
         url: '',

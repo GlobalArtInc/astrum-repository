@@ -56,10 +56,7 @@ async fn settings_appear_as_capabilities() {
     assert_eq!(listed.as_array().unwrap().len(), 1);
     assert_eq!(listed[0]["type"], "rapture.settings");
     assert_eq!(listed[0]["typeName"], "UI: Settings");
-    assert_eq!(
-        listed[0]["properties"]["title"],
-        "GlobalArt Astrum Repository"
-    );
+    assert_eq!(listed[0]["properties"]["title"], "Astrum Repository");
     assert_eq!(listed[0]["tags"]["Category"], "UI");
 
     let bad = post(
