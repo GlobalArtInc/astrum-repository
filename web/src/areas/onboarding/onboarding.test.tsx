@@ -15,6 +15,7 @@ const WITH_FORMATS: UiState = {
   formats: [
     { id: 'raw', apiName: 'raw', types: ['hosted', 'proxy', 'group'] },
     { id: 'npm', apiName: 'npm', types: ['hosted', 'proxy', 'group'] },
+    { id: 'maven2', apiName: 'maven', types: ['hosted', 'proxy', 'group'] },
   ],
 };
 
@@ -62,9 +63,10 @@ describe('onboarding', () => {
       'GET /service/rest/v1/repositories': () => jsonResponse([{ name: 'npm-hosted' }]),
       'GET /service/rest/internal/ui/blobstores': () => jsonResponse([{ name: 'default' }]),
       'POST /service/rest/v1/repositories/raw/hosted': () => new Response(null, { status: 201 }),
-      'POST /service/rest/v1/repositories/npm/proxy': () => new Response(null, { status: 201 }),
-      'POST /service/rest/v1/repositories/npm/group': () =>
-        jsonResponse([{ id: '*', message: 'The server refused' }], 400),
+      'POST /service/rest/v1/repositories/maven/hosted': ({ body }) =>
+        (body as { name: string }).name === 'maven-releases'
+          ? jsonResponse([{ id: '*', message: 'The server refused' }], 400)
+          : new Response(null, { status: 201 }),
     });
     vi.stubGlobal('fetch', server.fetch);
     const { router } = app('/onboarding', WITH_FORMATS);
@@ -89,13 +91,16 @@ describe('onboarding', () => {
     const create = screen.getByRole('button', { name: 'Create repositories' });
     expect(create).toBeDisabled();
     await userEvent.click(await screen.findByRole('checkbox', { name: /npm/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /Maven/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /Raw/ }));
     await userEvent.click(create);
     const results = await screen.findByRole('list', { name: 'Created repositories' });
     await waitFor(() => expect(within(results).getAllByRole('listitem')).toHaveLength(4));
     expect(within(results).getByText('npm-hosted').closest('li')).toHaveTextContent('Already exists');
     expect(within(results).getByText('raw-hosted').closest('li')).toHaveTextContent('Created');
-    expect(within(results).getByText('npm').closest('li')).toHaveTextContent('Not created');
+    expect(within(results).getByText('maven-snapshots').closest('li')).toHaveTextContent('Created');
+    expect(within(results).getByText('maven-releases').closest('li')).toHaveTextContent('Not created');
+    expect(server.calls.some((call) => /proxy|group/.test(call.path) && call.method === 'POST')).toBe(false);
     const raw = server.calls.find((call) => call.path === '/service/rest/v1/repositories/raw/hosted');
     expect(raw?.body).toMatchObject({
       name: 'raw-hosted',

@@ -40,7 +40,7 @@
   "onboarding.repositories.created": "Created",
   "onboarding.repositories.exists": "Already exists, left as it is",
   "onboarding.repositories.failed": "Not created: {message}",
-  "onboarding.repositories.intro": "Pick the formats you work with. Each creates the usual repositories with common settings; change them or add others later in the settings.",
+  "onboarding.repositories.intro": "Pick the formats you publish your own components in. Each gets hosted repositories with common settings; add proxies and groups later in the settings.",
   "onboarding.repositories.results": "Created repositories",
   "onboarding.repositories.submit": "Create repositories",
   "onboarding.repositories.title": "Repositories",

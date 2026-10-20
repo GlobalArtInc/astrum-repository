@@ -18,45 +18,35 @@ function preset(id: string) {
 }
 
 describe('repository presets', () => {
-  it('offers only the formats and types the server knows', () => {
-    expect(availablePresets(FORMATS).map((candidate) => candidate.id)).toEqual([
-      'docker',
-      'maven',
-      'helm',
-      'go',
-    ]);
+  it('offers the formats that have hosted repositories on this server', () => {
+    expect(availablePresets(FORMATS).map((candidate) => candidate.id)).toEqual(['docker', 'maven', 'helm']);
   });
 
-  it('creates members before the groups that hold them', () => {
+  it('creates only hosted repositories', () => {
     const planned = plan([preset('maven'), preset('docker')], FORMATS, 'default');
     expect(planned.map((repository) => repository.name)).toEqual([
       'maven-releases',
       'maven-snapshots',
       'docker-hosted',
-      'maven-central',
-      'docker-hub',
-      'maven-public',
-      'docker',
     ]);
-    expect(
-      planned.every(
-        (repository) => (repository.body.storage as { blobStoreName: string }).blobStoreName === 'default',
-      ),
-    ).toBe(true);
+    for (const repository of planned) {
+      expect(repository.body.proxy).toBeUndefined();
+      expect(repository.body.group).toBeUndefined();
+      expect(repository.body.storage).toMatchObject({ blobStoreName: 'default' });
+    }
   });
 
   it('fills the settings each repository needs', () => {
     const planned = plan([preset('maven'), preset('docker')], FORMATS, 'blobs');
     const byName = Object.fromEntries(planned.map((repository) => [repository.name, repository]));
-    expect(byName['maven-central']?.apiFormat).toBe('maven');
-    expect(byName['maven-central']?.body.proxy).toMatchObject({
-      remoteUrl: 'https://repo1.maven.org/maven2/',
-    });
+    expect(byName['maven-releases']?.apiFormat).toBe('maven');
+    expect(byName['maven-releases']?.body.storage).toMatchObject({ writePolicy: 'ALLOW_ONCE' });
     expect(byName['maven-snapshots']?.body.maven).toMatchObject({ versionPolicy: 'SNAPSHOT' });
     expect(byName['maven-snapshots']?.body.storage).toMatchObject({ writePolicy: 'ALLOW' });
-    expect(byName['maven-releases']?.body.storage).toMatchObject({ writePolicy: 'ALLOW_ONCE' });
-    expect(byName['docker-hub']?.body.dockerProxy).toMatchObject({ indexType: 'HUB' });
-    expect(byName.docker?.body.group).toEqual({ memberNames: ['docker-hosted', 'docker-hub'] });
-    expect(byName.docker?.body.name).toBe('docker');
+    expect(byName['docker-hosted']?.body.storage).toMatchObject({
+      writePolicy: 'ALLOW',
+      blobStoreName: 'blobs',
+    });
+    expect(byName['docker-hosted']?.body.name).toBe('docker-hosted');
   });
 });

@@ -308,12 +308,6 @@ interface Outcome {
   message?: string;
 }
 
-const TYPE_LABELS = {
-  hosted: 'browse.list.type.hosted',
-  proxy: 'browse.list.type.proxy',
-  group: 'browse.list.type.group',
-} as const;
-
 function OutcomeLine({ outcome }: { outcome: Outcome }) {
   const t = useT();
   const Icon =
@@ -370,7 +364,7 @@ function RepositoriesStep({ onDone }: { onDone(): void }) {
         results.push({ name: repository.name, status: 'exists' });
       } else {
         try {
-          await api.post(createPath(repository.apiFormat, repository.type), repository.body);
+          await api.post(createPath(repository.apiFormat, 'hosted'), repository.body);
           results.push({ name: repository.name, status: 'created' });
         } catch (failure) {
           results.push({
@@ -417,11 +411,8 @@ function RepositoriesStep({ onDone }: { onDone(): void }) {
                   <ul className={styles.repositories}>
                     {preset.repositories.map((repository) => (
                       <li key={repository.name}>
-                        <Text size="1" className={styles.repositoryName}>
+                        <Text size="1" color="gray" className={styles.repositoryName}>
                           {repository.name}
-                        </Text>
-                        <Text size="1" color="gray">
-                          {t(TYPE_LABELS[repository.type])}
                         </Text>
                       </li>
                     ))}
