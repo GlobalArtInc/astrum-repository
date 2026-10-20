@@ -148,9 +148,11 @@ jobs:
         env:
           VERSION: ${{ steps.tag.outputs.version }}
           REVISION: ${{ steps.tag.outputs.revision }}
+          ASTRUM_OWNLATE_TOKEN: ${{ secrets.ASTRUM_OWNLATE_TOKEN }}
         run: |
           set -eu
           docker build \
+            --secret id=ownlate_token,env=ASTRUM_OWNLATE_TOKEN \
             --build-arg VERSION="$VERSION" \
             --build-arg GIT_REVISION="$REVISION" \
             -t astrum-server:ci .

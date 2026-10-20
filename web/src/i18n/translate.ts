@@ -1,4 +1,17 @@
-export const LANGUAGES = ['en', 'ru', 'de', 'es', 'fr', 'it', 'ja', 'pl', 'pt', 'sr-Latn', 'tr', 'zh'] as const;
+export const LANGUAGES = [
+  'en',
+  'ru',
+  'de',
+  'es',
+  'fr',
+  'it',
+  'ja',
+  'pl',
+  'pt',
+  'sr-Latn',
+  'tr',
+  'zh',
+] as const;
 export type Language = (typeof LANGUAGES)[number];
 export type PluralForms = Partial<Record<Intl.LDMLPluralRule, string>>;
 export type Entry = string | PluralForms;
