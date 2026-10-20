@@ -52,6 +52,9 @@ describe('criteria', () => {
     const vagrant = moreCriteria(['vagrant'], '').map((criterion) => criterion.key);
     expect(vagrant).toContain('vagrant.provider');
     expect(vagrant).toContain('vagrant.architecture');
+    const nix = moreCriteria(['nix'], '').map((criterion) => criterion.key);
+    expect(nix).toContain('nix.storePath');
+    expect(nix).toContain('nix.narHash');
   });
 
   it('turn "starts with" into a trailing wildcard', () => {

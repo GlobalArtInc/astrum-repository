@@ -974,3 +974,44 @@ describe('vagrant usage', () => {
     );
   });
 });
+
+describe('nix usage', () => {
+  const hash = 'mw9ls4zxx884y7yq0a04ildfdjfy1vn2';
+
+  it('configures a substituter and its credentials, copies a store path and publishes to a hosted cache', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'nix',
+        repositoryName: 'nix-hosted',
+        component: { group: hash, name: 'hello', version: '2.12.1' },
+        path: `/${hash}.narinfo`,
+        attributes: { storePath: `/opt/store/${hash}-hello-2.12.1` },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['config', 'netrc', 'copy-from', 'publish']);
+    const url = 'https://repo.example.org/repository/nix-hosted';
+    expect(code(snippets, 'config')).toBe(
+      `substituters = ${url}\ntrusted-public-keys = <key name>:<public key>\nnetrc-file = /etc/nix/netrc`,
+    );
+    expect(code(snippets, 'netrc')).toBe('machine repo.example.org\nlogin <user>\npassword <access token>');
+    expect(code(snippets, 'copy-from')).toBe(`nix copy --from ${url} /opt/store/${hash}-hello-2.12.1`);
+    expect(code(snippets, 'publish')).toContain(`nix copy --to '${url}?secret-key=secret-key' ./result`);
+    expect(supportsUsage('nix')).toBe(true);
+  });
+
+  it('reads through proxies and groups without publishing', () => {
+    const proxy = usageSnippets(context({ format: 'nix', repositoryName: 'nixos', repositoryType: 'proxy' }));
+    expect(ids(proxy)).toEqual(['config', 'netrc']);
+    const group = usageSnippets(
+      context({
+        format: 'nix',
+        repositoryName: 'nix-all',
+        repositoryType: 'group',
+        component: { group: hash, name: 'source', version: '' },
+      }),
+    );
+    expect(code(group, 'copy-from')).toBe(
+      `nix copy --from https://repo.example.org/repository/nix-all /nix/store/${hash}-source`,
+    );
+  });
+});

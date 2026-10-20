@@ -47,4 +47,5 @@ export const sections = {
   apt: (spec: Spec) => spec.format === 'apt',
   alpineSigning: (spec: Spec) => spec.format === 'alpine',
   conanProxy: (spec: Spec) => spec.format === 'conan' && spec.type === 'proxy',
+  nix: (spec: Spec) => spec.format === 'nix',
 };

@@ -159,6 +159,25 @@ describe('component snippets of the M4c formats', () => {
     expect(snippets[1]?.hint).toBe('browse.component.snippet.vagrantfile');
   });
 
+  it('give nix copy for Nix store paths', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'nix',
+      group: 'mw9ls4zxx884y7yq0a04ildfdjfy1vn2',
+      name: 'nix',
+      version: '2.34.9',
+    });
+    expect(snippets).toEqual([
+      {
+        id: 'copy',
+        label: 'nix copy',
+        hint: 'browse.component.snippet.nixCopy',
+        code: 'nix copy --from https://repo.example.org/repository/r /nix/store/mw9ls4zxx884y7yq0a04ildfdjfy1vn2-nix-2.34.9',
+      },
+    ]);
+    expect(componentSnippets({ ...base, format: 'nix', group: '', name: 'x', version: '' })).toEqual([]);
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',

@@ -2,6 +2,7 @@ import type { RepositoryDomain } from '../../../api';
 import { guideComponentName } from '../links';
 import { installCommand, requirementsFile } from '../usage/ansible';
 import { berksfile, knifeDownload, policyfile } from '../usage/chef';
+import { copyFrom, storePath } from '../usage/nix';
 import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
 import { forgeUrl, puppetfileLine, installCommand as puppetInstall } from '../usage/puppet';
@@ -300,6 +301,22 @@ function vagrant(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function nix(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  const path = storePath({ group: context.group, name: context.name, version: context.version });
+  if (!path) {
+    return [];
+  }
+  return [
+    {
+      id: 'copy',
+      label: 'nix copy',
+      hint: 'browse.component.snippet.nixCopy',
+      code: copyFrom(url, path),
+    },
+  ];
+}
+
 function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
   return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
 }
@@ -342,6 +359,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return puppet(context);
     case 'vagrant':
       return vagrant(context);
+    case 'nix':
+      return nix(context);
     default:
       return [];
   }

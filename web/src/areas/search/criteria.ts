@@ -310,6 +310,20 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'amd64',
   },
   {
+    key: 'nix.storePath',
+    label: 'search.criterion.nixStorePath',
+    kind: 'text',
+    format: 'nix',
+    example: '/nix/store/mw9ls4zxx884y7yq0a04ildfdjfy1vn2-nix-2.34.9',
+  },
+  {
+    key: 'nix.narHash',
+    label: 'search.criterion.nixNarHash',
+    kind: 'text',
+    format: 'nix',
+    example: 'sha256:0xfhhhb46a15v23pvkw97a5h578d1qkl34w351p5xxh52f1jbhyl',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

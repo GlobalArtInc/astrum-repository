@@ -102,6 +102,8 @@
   "search.criterion.puppetLicense": "Puppet License",
   "search.criterion.vagrantProvider": "Vagrant Provider",
   "search.criterion.vagrantArchitecture": "Vagrant Architecture",
+  "search.criterion.nixStorePath": "Nix Store Path",
+  "search.criterion.nixNarHash": "Nix NAR Hash",
   "search.criterion.swiftDescription": "Swift Description",
   "search.criterion.swiftRepositoryUrl": "Swift Repository URL",
   "search.criterion.huggingfaceFile": "Hugging Face File Path",

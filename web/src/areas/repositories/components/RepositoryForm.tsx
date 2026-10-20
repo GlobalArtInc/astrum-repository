@@ -155,6 +155,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   apt: 'https://example.com/repository/',
   go: 'https://example.com/repository/',
   maven2: 'https://repo1.maven.org/maven2/',
+  nix: 'https://cache.nixos.org',
   npm: 'https://registry.npmjs.org/',
   p2: 'https://download.eclipse.org/releases/2024-03/',
   pub: 'https://pub.dev',
@@ -563,6 +564,31 @@ export function RepositoryForm(props: RepositoryFormProps) {
               {...field('cargoRequireAuthentication')}
               label={t('repositories.form.requireAuthentication')}
               description={t('repositories.form.requireAuthenticationHint')}
+            />
+          </Section>
+        )}
+
+        {sections.nix(spec) && (
+          <Section
+            title={t('repositories.form.sections.nix')}
+            description={t('repositories.form.sections.nixText')}
+          >
+            <TextInput
+              {...field('nixStoreDir')}
+              label={t('repositories.form.nixStoreDir')}
+              hint={t('repositories.form.nixStoreDirHint')}
+            />
+            <NumberInput
+              {...field('nixPriority')}
+              label={t('repositories.form.nixPriority')}
+              hint={t('repositories.form.nixPriorityHint')}
+              min={0}
+              max={1000}
+            />
+            <CheckInput
+              {...field('nixWantMassQuery')}
+              label={t('repositories.form.nixWantMassQuery')}
+              description={t('repositories.form.nixWantMassQueryHint')}
             />
           </Section>
         )}
