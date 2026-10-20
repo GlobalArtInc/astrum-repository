@@ -83,6 +83,7 @@ impl Spec {
             Section::ConanProxy => when(format == "conan" && kind == Proxy, Defaulted),
             Section::AlpineSigning => when(format == "alpine", Nullable),
             Section::Nix => when(format == "nix", Defaulted),
+            Section::HexSigning => when(format == "hex" && kind != Proxy, Defaulted),
             Section::Domain => Some(Omitted),
         }
     }
@@ -109,7 +110,11 @@ impl Spec {
     }
 
     pub fn pem_signing_keys(&self) -> bool {
-        self.format.id == "alpine"
+        matches!(self.format.id, "alpine" | "hex")
+    }
+
+    pub fn plain_signing_keys(&self) -> bool {
+        self.format.id == "hex"
     }
 }
 
@@ -211,6 +216,15 @@ mod tests {
             );
         }
         assert_eq!(spec("raw", "hosted").presence(Section::Nix), None);
+        assert_eq!(
+            spec("hex", "hosted").presence(Section::HexSigning),
+            Some(Presence::Defaulted)
+        );
+        assert_eq!(
+            spec("hex", "group").presence(Section::HexSigning),
+            Some(Presence::Defaulted)
+        );
+        assert_eq!(spec("hex", "proxy").presence(Section::HexSigning), None);
     }
 
     #[test]
@@ -233,5 +247,8 @@ mod tests {
         assert_eq!(spec("pypi", "proxy").fixed_write_policy(), None);
         assert_eq!(spec("raw", "hosted").fixed_write_policy(), None);
         assert!(spec("alpine", "hosted").pem_signing_keys());
+        assert!(spec("hex", "group").pem_signing_keys());
+        assert!(spec("hex", "hosted").plain_signing_keys());
+        assert!(!spec("alpine", "hosted").plain_signing_keys());
     }
 }

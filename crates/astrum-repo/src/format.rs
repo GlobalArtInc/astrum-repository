@@ -117,6 +117,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "hex",
+        api_name: "hex",
+        types: HPG,
+    },
+    Format {
         id: "huggingface",
         api_name: "huggingface",
         types: &[P],

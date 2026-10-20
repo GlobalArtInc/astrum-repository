@@ -19,6 +19,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_gitlfs::GitLfs));
     content.register(Arc::new(astrum_format_go::Go));
     content.register(Arc::new(astrum_format_helm::Helm::default()));
+    content.register(Arc::new(astrum_format_hex::Hex::default()));
     content.register(Arc::new(astrum_format_huggingface::HuggingFace::default()));
     content.register(Arc::new(astrum_format_maven::Maven));
     content.register(Arc::new(astrum_format_nix::Nix));
@@ -46,6 +47,7 @@ pub fn register_tasks(tasks: &Tasks) {
         astrum_format_conda::task::RebuildMetadata::default(),
     ));
     tasks.register(Arc::new(astrum_format_docker::gc::Gc));
+    tasks.register(Arc::new(astrum_format_hex::task::RebuildMetadata::default()));
     tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
     tasks.register(Arc::new(astrum_format_nix::task::Gc));
     tasks.register(Arc::new(astrum_format_r::task::RebuildMetadata::default()));

@@ -3268,6 +3268,244 @@
     ]
    }
   },
+  "/v1/repositories/hex/group": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HexGroupRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/hex/group/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HexGroupRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/hex/hosted": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HexHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/hex/hosted/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HexHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/hex/proxy": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HexProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/hex/proxy/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HexProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
   "/v1/repositories/huggingface/proxy": {
    "post": {
     "requestBody": {
@@ -12990,6 +13228,132 @@
      "proxy",
      "storage"
     ],
+    "type": "object"
+   },
+   "HexGroupRepositoryApiRequest": {
+    "properties": {
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "group": {
+      "$ref": "#/components/schemas/GroupAttributes"
+     },
+     "hexSigning": {
+      "$ref": "#/components/schemas/HexSigningAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "group",
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "HexHostedRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "component": {
+      "$ref": "#/components/schemas/ComponentAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "hexSigning": {
+      "$ref": "#/components/schemas/HexSigningAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/HostedStorageAttributes"
+     }
+    },
+    "required": [
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "HexProxyRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "firewall": {
+      "$ref": "#/components/schemas/FirewallAttributes"
+     },
+     "httpClient": {
+      "$ref": "#/components/schemas/HttpClientAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "negativeCache": {
+      "$ref": "#/components/schemas/NegativeCacheAttributes"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "proxy": {
+      "$ref": "#/components/schemas/ProxyAttributes"
+     },
+     "replication": {
+      "$ref": "#/components/schemas/ReplicationAttributes"
+     },
+     "routingRuleName": {
+      "type": "string"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "httpClient",
+     "name",
+     "negativeCache",
+     "online",
+     "proxy",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "HexSigningAttributes": {
+    "properties": {
+     "keypair": {
+      "type": "string"
+     }
+    },
     "type": "object"
    },
    "HostedStorageAttributes": {

@@ -29,8 +29,24 @@ impl Check for Signing {
                 false if !is_armored_pgp_key(key) => {
                     problems.add("keypair", "must be an ASCII-armored OpenPGP key")
                 }
+                true if context.spec.plain_signing_keys() && key.contains("ENCRYPTED") => problems
+                    .add(
+                        "keypair",
+                        "must be a PEM-encoded private key without encryption",
+                    ),
                 _ => {}
             }
+        }
+        if context.spec.plain_signing_keys()
+            && self
+                .passphrase
+                .as_deref()
+                .is_some_and(|passphrase| !passphrase.is_empty())
+        {
+            problems.add(
+                "passphrase",
+                "is not used; give the private key without encryption",
+            );
         }
         self.keypair = context.secret(
             self.keypair.take(),
@@ -91,6 +107,16 @@ mod tests {
         assert_eq!(check("yum", json!({"keypair": "garbage"}), None).1, 1);
         assert_eq!(check("alpine", json!({"keypair": PGP}), None).1, 1);
         assert_eq!(check("alpine", json!({"keypair": PEM}), None).1, 0);
+        assert_eq!(check("hex", json!({"keypair": PEM}), None).1, 0);
+        assert_eq!(check("hex", json!({"keypair": PGP}), None).1, 1);
+        let encrypted =
+            "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMII\n-----END ENCRYPTED PRIVATE KEY-----\n";
+        assert_eq!(check("hex", json!({"keypair": encrypted}), None).1, 1);
+        assert_eq!(check("alpine", json!({"keypair": encrypted}), None).1, 0);
+        assert_eq!(
+            check("hex", json!({"keypair": PEM, "passphrase": "p"}), None).1,
+            1
+        );
     }
 
     #[test]
