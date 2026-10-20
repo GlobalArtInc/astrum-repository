@@ -52,7 +52,8 @@ Clients use a token wherever they would use the password: as the password of Bas
 (`dart pub token add` stores it for that; r10k, Bolt and `pdk release` send their Forge token so, and Vagrant
 sends `VAGRANT_CLOUD_TOKEN` so to the host of `VAGRANT_SERVER_URL`), or as `Authorization: Token astrum_...`,
 the way `ansible-galaxy` sends its token. A bare `Authorization: astrum_...` works too, so `forge_authorization`
-in `puppet.conf` can hold the token alone.
+in `puppet.conf` can hold the token alone; Mix and rebar3 send their Hex API key so (`HEX_API_KEY`,
+`mix hex.repo add --auth-key`).
 Tokens work while the Access Token Realm is active. They are the way for OpenID Connect users, who
 have no password, to use command-line tools, and they keep directory passwords out of CI for LDAP users.
 A token cannot create or revoke tokens; that needs a sign-in with the password. A read-only token cannot
