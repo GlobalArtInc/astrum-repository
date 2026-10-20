@@ -64,6 +64,12 @@ and as which user (`anonymous` by default, with the `as-anonymous` role). Turn i
 credentials everywhere, or keep it on and narrow `as-anonymous` to the repositories that should be
 public.
 
+Berkshelf, Policyfiles and the reading `knife supermarket` commands send no credentials to Chef
+Supermarket repositories, so the anonymous user needs read access to them. `knife supermarket share`
+and `unshare` sign their requests with a Chef client key (the `X-Ops-*` headers), which this server does
+not check; they are answered `401`, and cookbooks are published with Basic authentication instead (see
+[Chef Supermarket](../use/clients.md#chef-supermarket)).
+
 ## LDAP
 
 Astrum can authenticate users against one or more LDAP directories. Servers are managed under
