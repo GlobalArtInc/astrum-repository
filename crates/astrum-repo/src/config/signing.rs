@@ -117,6 +117,8 @@ mod tests {
             check("hex", json!({"keypair": PEM, "passphrase": "p"}), None).1,
             1
         );
+        assert_eq!(check("pacman", json!({"keypair": PEM}), None).1, 1);
+        assert_eq!(check("pacman", json!({"keypair": PGP}), None).1, 0);
     }
 
     #[test]

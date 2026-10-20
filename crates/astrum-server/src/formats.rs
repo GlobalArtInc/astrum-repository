@@ -27,6 +27,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
     content.register(Arc::new(astrum_format_openvsx::OpenVsx));
     content.register(Arc::new(astrum_format_p2::P2::default()));
+    content.register(Arc::new(astrum_format_pacman::Pacman::default()));
     content.register(Arc::new(astrum_format_pub::Pub));
     content.register(Arc::new(astrum_format_puppet::Puppet::default()));
     content.register(Arc::new(astrum_format_pypi::PyPi));
@@ -51,6 +52,9 @@ pub fn register_tasks(tasks: &Tasks) {
     tasks.register(Arc::new(astrum_format_hex::task::RebuildMetadata::default()));
     tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
     tasks.register(Arc::new(astrum_format_nix::task::Gc));
+    tasks.register(Arc::new(
+        astrum_format_pacman::task::RebuildMetadata::default(),
+    ));
     tasks.register(Arc::new(astrum_format_r::task::RebuildMetadata::default()));
     tasks.register(Arc::new(astrum_format_yum::task::RebuildMetadata::default()));
 }

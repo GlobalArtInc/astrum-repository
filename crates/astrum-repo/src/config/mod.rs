@@ -157,6 +157,7 @@ sections! {
     AlpineSigning: alpine_signing: Signing = "alpineSigning",
     Nix: nix: Nix = "nix",
     HexSigning: hex_signing: Signing = "hexSigning",
+    PacmanSigning: pacman_signing: Signing = "pacmanSigning",
     Domain: domain: Domain = "domain",
 }
 
@@ -185,6 +186,7 @@ impl Attributes {
             (Section::TerraformSigning, &mut self.terraform_signing),
             (Section::AlpineSigning, &mut self.alpine_signing),
             (Section::HexSigning, &mut self.hex_signing),
+            (Section::PacmanSigning, &mut self.pacman_signing),
         ]
     }
 

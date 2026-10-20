@@ -157,6 +157,11 @@ pub const FORMATS: &[Format] = &[
         types: &[P],
     },
     Format {
+        id: "pacman",
+        api_name: "pacman",
+        types: HPG,
+    },
+    Format {
         id: "pub",
         api_name: "pub",
         types: HPG,

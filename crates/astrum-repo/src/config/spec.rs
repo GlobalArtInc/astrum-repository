@@ -84,6 +84,7 @@ impl Spec {
             Section::AlpineSigning => when(format == "alpine", Nullable),
             Section::Nix => when(format == "nix", Defaulted),
             Section::HexSigning => when(format == "hex" && kind != Proxy, Defaulted),
+            Section::PacmanSigning => when(format == "pacman", Nullable),
             Section::Domain => Some(Omitted),
         }
     }
@@ -225,6 +226,14 @@ mod tests {
             Some(Presence::Defaulted)
         );
         assert_eq!(spec("hex", "proxy").presence(Section::HexSigning), None);
+        assert_eq!(
+            spec("pacman", "proxy").presence(Section::PacmanSigning),
+            Some(Presence::Nullable)
+        );
+        assert_eq!(
+            spec("alpine", "hosted").presence(Section::PacmanSigning),
+            None
+        );
     }
 
     #[test]

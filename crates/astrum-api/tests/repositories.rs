@@ -100,6 +100,7 @@ fn body(spec: Spec, name: &str, member: Option<&str>) -> Value {
     let kind = spec.kind;
     match spec.format.id {
         "alpine" => body["alpineSigning"] = json!({"keypair": PEM, "passphrase": "m1-pass"}),
+        "pacman" => body["pacmanSigning"] = json!({"keypair": PGP, "passphrase": "m1-pass"}),
         "apt" if kind == RepositoryType::Hosted => {
             body["apt"] = json!({"distribution": "bookworm"});
             body["aptSigning"] = json!({"keypair": PGP, "passphrase": "m1-pass"});
@@ -260,6 +261,7 @@ async fn every_format_and_type_round_trips_through_get_post_and_put() {
             "yumSigning",
             "terraformSigning",
             "alpineSigning",
+            "pacmanSigning",
         ] {
             if copy[signing].is_object() {
                 copy[signing]["keypair"] =
