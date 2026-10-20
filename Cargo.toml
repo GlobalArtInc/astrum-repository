@@ -18,6 +18,7 @@ astrum-format-alpine = { path = "crates/astrum-format-alpine" }
 astrum-format-ansible = { path = "crates/astrum-format-ansible" }
 astrum-format-apt = { path = "crates/astrum-format-apt" }
 astrum-format-cargo = { path = "crates/astrum-format-cargo" }
+astrum-format-chef = { path = "crates/astrum-format-chef" }
 astrum-format-cocoapods = { path = "crates/astrum-format-cocoapods" }
 astrum-format-composer = { path = "crates/astrum-format-composer" }
 astrum-format-conan = { path = "crates/astrum-format-conan" }

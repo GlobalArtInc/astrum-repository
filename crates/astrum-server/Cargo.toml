@@ -18,6 +18,7 @@ astrum-format-alpine.workspace = true
 astrum-format-ansible.workspace = true
 astrum-format-apt.workspace = true
 astrum-format-cargo.workspace = true
+astrum-format-chef.workspace = true
 astrum-format-cocoapods.workspace = true
 astrum-format-composer.workspace = true
 astrum-format-conan.workspace = true
