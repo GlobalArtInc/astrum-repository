@@ -48,4 +48,5 @@ administrators:
   by `astrum.toml` and environment variables, see [runtime configuration](../configure/runtime.md). The
   container listens on 8081, runs as uid 200 and keeps its data in `/astrum-data`, as before.
 - The scripting API (`/service/rest/v1/script`) and Groovy tasks are gone.
-- Prometheus metrics at `/service/metrics/prometheus` are gone; see [monitoring](monitoring.md).
+- Prometheus metrics at `/service/metrics/prometheus` are off until the capability **Metrics:
+  Prometheus** is created, and their names are new; see [monitoring](monitoring.md#prometheus-metrics).

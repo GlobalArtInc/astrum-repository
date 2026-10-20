@@ -37,7 +37,16 @@ async fn settings_appear_as_capabilities() {
         .iter()
         .map(|kind| kind["id"].as_str().unwrap())
         .collect();
-    assert_eq!(ids, ["baseurl", "rapture.settings", "rapture.branding"]);
+    assert_eq!(
+        ids,
+        [
+            "baseurl",
+            "rapture.settings",
+            "rapture.branding",
+            "metrics.prometheus",
+            "blobstores.space"
+        ]
+    );
     assert_eq!(types[0]["formFields"][0]["id"], "url");
 
     let listed = fixture

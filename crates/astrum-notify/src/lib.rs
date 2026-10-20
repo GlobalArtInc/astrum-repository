@@ -1,3 +1,4 @@
+pub mod alerts;
 pub mod channel;
 mod entity;
 pub mod mail;
