@@ -234,9 +234,14 @@ async function pull() {
   }
   for (const [language, messages] of Object.entries(byLanguage)) {
     if (language !== CONFIG.source && !language.startsWith(`${CONFIG.source}_`)) {
-      distribute(language, messages);
+      distribute(localeOf(language), messages);
     }
   }
+}
+
+// Ownlate names a language with a locale code (es_ES, zh_CN); the web names it with a tag it can give to Intl.
+function localeOf(language) {
+  return CONFIG.languages?.[language] ?? language;
 }
 
 // A plural entry is taken only with every form its language needs; otherwise the page shows the English text.

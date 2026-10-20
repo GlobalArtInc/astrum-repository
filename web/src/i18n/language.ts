@@ -22,7 +22,12 @@ export function detectLanguage(
     return stored;
   }
   for (const tag of preferred) {
-    const base = tag.toLowerCase().split('-')[0];
+    const lower = tag.toLowerCase();
+    const whole = LANGUAGES.find((language) => language.toLowerCase() === lower);
+    if (whole) {
+      return whole;
+    }
+    const base = lower.split('-')[0];
     if (isLanguage(base)) {
       return base;
     }

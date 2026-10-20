@@ -8,5 +8,11 @@
       "web": "web/src",
       "prefix": "web"
     }
-  ]
+  ],
+  "languages": {
+    "sr_CS": "sr-Latn",
+    "es_ES": "es",
+    "pt_BR": "pt",
+    "zh_CN": "zh"
+  }
 }
