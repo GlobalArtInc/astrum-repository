@@ -5,7 +5,7 @@
 @media (max-width: 639px) {
   .page[data-gutter],
   .gutter[data-gutter] {
-    padding: 24px;
+    padding: 16px;
   }
 
   .createButton.createButton {

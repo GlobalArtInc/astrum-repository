@@ -1,5 +1,5 @@
 .page[data-gutter] {
-  padding: 32px;
+  padding: 32px var(--page-gutter);
 }
 
 .actions {
@@ -77,6 +77,7 @@
 }
 
 .tableScroll {
+  position: relative;
   overflow-x: auto;
 }
 

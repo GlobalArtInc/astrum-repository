@@ -1,6 +1,6 @@
 .page {
   box-sizing: border-box;
-  padding: 32px;
+  padding: 32px var(--page-gutter);
   min-width: 0;
 }
 

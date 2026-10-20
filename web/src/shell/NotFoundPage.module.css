@@ -5,7 +5,7 @@
   justify-content: center;
   box-sizing: border-box;
   min-height: calc(100dvh - 61px);
-  padding: 32px;
+  padding: 32px var(--page-gutter);
 }
 
 .content {
