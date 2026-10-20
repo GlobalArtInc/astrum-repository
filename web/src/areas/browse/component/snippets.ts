@@ -225,6 +225,10 @@ function alpine({ name, version }: ComponentSnippetContext): ComponentSnippet[] 
   return [{ id: 'apk', label: 'apk', code: `apk add ${name}=${version}` }];
 }
 
+function pacman({ name }: ComponentSnippetContext): ComponentSnippet[] {
+  return [{ id: 'pacman', label: 'pacman', code: `sudo pacman -S ${name}` }];
+}
+
 function pub(context: ComponentSnippetContext): ComponentSnippet[] {
   const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
   return [
@@ -384,6 +388,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return p2(context);
     case 'alpine':
       return alpine(context);
+    case 'pacman':
+      return pacman(context);
     case 'pub':
       return pub(context);
     case 'ansible':

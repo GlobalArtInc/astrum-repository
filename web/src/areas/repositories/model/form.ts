@@ -72,6 +72,8 @@ export interface RepositoryValues {
   alpineKeypair: string;
   alpinePassphrase: string;
   hexKeypair: string;
+  pacmanKeypair: string;
+  pacmanPassphrase: string;
   conanVersion: string;
   nixStoreDir: string;
   nixPriority: number | null;
@@ -170,6 +172,8 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'alpineKeypair', path: ['alpineSigning', 'keypair'], kind: 'secret' },
   { key: 'alpinePassphrase', path: ['alpineSigning', 'passphrase'], kind: 'secret' },
   { key: 'hexKeypair', path: ['hexSigning', 'keypair'], kind: 'secret' },
+  { key: 'pacmanKeypair', path: ['pacmanSigning', 'keypair'], kind: 'secret' },
+  { key: 'pacmanPassphrase', path: ['pacmanSigning', 'passphrase'], kind: 'secret' },
   { key: 'conanVersion', path: ['conanProxy', 'conanVersion'], kind: 'enum' },
   { key: 'nixStoreDir', path: ['nix', 'storeDir'], kind: 'text' },
   { key: 'nixPriority', path: ['nix', 'priority'], kind: 'int' },
@@ -571,6 +575,7 @@ const SIGNING_FIELDS: Record<string, readonly [FieldKey, FieldKey]> = {
   alpine: ['alpineKeypair', 'alpinePassphrase'],
   apt: ['aptKeypair', 'aptPassphrase'],
   hex: ['hexKeypair', 'hexKeypair'],
+  pacman: ['pacmanKeypair', 'pacmanPassphrase'],
   yum: ['yumKeypair', 'yumPassphrase'],
 };
 
@@ -612,6 +617,8 @@ export function formField(id: string, spec: Spec): FieldKey | null {
       return 'nixWantMassQuery';
     case 'hexSigning':
       return 'hexKeypair';
+    case 'pacmanSigning':
+      return 'pacmanKeypair';
     default:
       return SAME_NAME.has(last) ? (last as FieldKey) : null;
   }

@@ -252,6 +252,9 @@ describe('component snippets of Alpine', () => {
     expect(
       componentSnippets({ ...base, format: 'alpine', group: 'x86_64', name: 'hello', version: '1.0-r0' }),
     ).toEqual([{ id: 'apk', label: 'apk', code: 'apk add hello=1.0-r0' }]);
+    expect(
+      componentSnippets({ ...base, format: 'pacman', group: 'x86_64', name: 'hello', version: '1:1.0-2' }),
+    ).toEqual([{ id: 'pacman', label: 'pacman', code: 'sudo pacman -S hello' }]);
   });
 });
 

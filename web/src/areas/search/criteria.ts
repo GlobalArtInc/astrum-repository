@@ -352,6 +352,27 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'linux-x64',
   },
   {
+    key: 'pacman.architecture',
+    label: 'search.criterion.pacmanArchitecture',
+    kind: 'text',
+    format: 'pacman',
+    example: 'x86_64',
+  },
+  {
+    key: 'pacman.base',
+    label: 'search.criterion.pacmanBase',
+    kind: 'text',
+    format: 'pacman',
+    example: 'python-requests',
+  },
+  {
+    key: 'pacman.license',
+    label: 'search.criterion.pacmanLicense',
+    kind: 'text',
+    format: 'pacman',
+    example: 'MIT',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

@@ -274,6 +274,9 @@
   "browse.usage.hint.openvsxProduct": "Merge it into the product.json of VSCodium or another VS Code based editor, or into the product.json in its user data folder, and restart the editor; editors send no credentials, so the repository must allow anonymous reading",
   "browse.usage.hint.openvsxEnvironment": "Editors such as VSCodium also take the gallery from these variables; set them before starting the editor",
   "browse.usage.hint.openvsxPublish": "Package the extension with vsce package or let ovsx package it; the token is an access token of this server",
+  "browse.usage.hint.pacmanConf": "Add the section to /etc/pacman.conf and refresh with pacman -Sy; pacman puts the architecture in place of $arch and asks for the database named after the section",
+  "browse.usage.hint.pacmanMirror": "Add a section per repository of the mirror to /etc/pacman.conf; pacman puts the section name in place of $repo and the architecture in place of $arch",
+  "browse.usage.hint.pacmanUpload": "Uploading needs a user with write access to this repository; upload the detached signature next to its package when the package is signed",
 
   "browse.component.search": "Search",
   "browse.component.invalidTitle": "Unknown component",

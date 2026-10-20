@@ -57,6 +57,12 @@ describe('criteria', () => {
     expect(nix).toContain('nix.narHash');
   });
 
+  it('offer the pacman fields for pacman repositories', () => {
+    const keys = moreCriteria(['pacman'], '').map((criterion) => criterion.key);
+    expect(keys).toEqual(expect.arrayContaining(['pacman.architecture', 'pacman.base', 'pacman.license']));
+    expect(moreCriteria(['raw'], '').map((criterion) => criterion.key)).not.toContain('pacman.base');
+  });
+
   it('turn "starts with" into a trailing wildcard', () => {
     expect(buildValue(row('name', ' junit '))).toBe('junit');
     expect(buildValue(row('name', 'junit', 'startsWith'))).toBe('junit*');

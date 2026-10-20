@@ -508,6 +508,30 @@ describe('the Nix format', () => {
   });
 });
 
+describe('the pacman format', () => {
+  it('starts without a signing key and writes an OpenPGP key and passphrase when given', () => {
+    for (const type of ['hosted', 'proxy', 'group'] as const) {
+      const spec: Spec = { format: 'pacman', type };
+      const document = template(spec, 'default');
+      expect(document.pacmanSigning).toBeUndefined();
+      const values = fromDocument(document);
+      const written = toDocument(
+        { ...values, name: 'pkgs', pacmanKeypair: 'PGP', pacmanPassphrase: 'secret' },
+        document,
+      );
+      expect(getPath(written, ['pacmanSigning', 'keypair'])).toBe('PGP');
+      expect(getPath(written, ['pacmanSigning', 'passphrase'])).toBe('secret');
+    }
+  });
+
+  it('maps signing problems onto the pacman fields', () => {
+    const spec: Spec = { format: 'pacman', type: 'group' };
+    expect(formField('PARAMETER pacmanSigning.keypair', spec)).toBe('pacmanKeypair');
+    expect(formField('PARAMETER pacmanSigning.passphrase', spec)).toBe('pacmanPassphrase');
+    expect(formField('PARAMETER pacmanSigning', spec)).toBe('pacmanKeypair');
+  });
+});
+
 describe('repository domains', () => {
   const spec: Spec = { format: 'docker', type: 'hosted' };
   const document: RepositoryDocument = { ...template(spec, 'default'), name: 'docker-onprem' };

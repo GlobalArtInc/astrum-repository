@@ -159,6 +159,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   npm: 'https://registry.npmjs.org/',
   openvsx: 'https://open-vsx.org',
   p2: 'https://download.eclipse.org/releases/2024-03/',
+  pacman: 'https://geo.mirror.pkgbuild.com/',
   pub: 'https://pub.dev',
   puppet: 'https://forgeapi.puppet.com',
   pypi: 'https://pypi.org/',
@@ -661,6 +662,32 @@ export function RepositoryForm(props: RepositoryFormProps) {
           </Section>
         )}
 
+        {sections.pacmanSigning(spec) && (
+          <Section
+            title={t('repositories.form.sections.pacmanSigning')}
+            description={t(
+              spec.type === 'group'
+                ? 'repositories.form.sections.pacmanSigningGroupText'
+                : 'repositories.form.sections.pacmanSigningText',
+              { key: `${values.name.trim() || '<name>'}.key` },
+            )}
+          >
+            <TextAreaInput
+              {...field('pacmanKeypair')}
+              label={t('repositories.form.pacmanKeypair')}
+              hint={
+                !creating && hasSection(document, 'pacmanSigning')
+                  ? t('repositories.form.pacmanKeypairStored')
+                  : t('repositories.form.pacmanKeypairHint')
+              }
+            />
+            <SecretInput
+              {...field('pacmanPassphrase')}
+              label={t('repositories.form.pacmanPassphrase')}
+              hint={t('repositories.form.pacmanPassphraseHint')}
+            />
+          </Section>
+        )}
         {sections.alpineSigning(spec) && (
           <Section
             title={t('repositories.form.sections.alpineSigning')}

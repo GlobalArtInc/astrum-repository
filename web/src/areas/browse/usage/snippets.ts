@@ -6,6 +6,7 @@ import { huggingface } from './huggingface';
 import { nix } from './nix';
 import { openvsx } from './openvsx';
 import { p2 } from './p2';
+import { pacman } from './pacman';
 import { pub } from './pub';
 import { puppet } from './puppet';
 import { swift } from './swift';
@@ -81,6 +82,7 @@ export const USAGE_FORMATS = [
   'nix',
   'hex',
   'openvsx',
+  'pacman',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1096,6 +1098,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  pacman: (context) =>
+    pacman(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

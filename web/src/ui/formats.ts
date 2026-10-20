@@ -24,6 +24,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   nuget: { name: 'NuGet', color: 'purple' },
   openvsx: { name: 'Open VSX', color: 'violet' },
   p2: { name: 'P2', color: 'gray' },
+  pacman: { name: 'pacman', color: 'blue' },
   pub: { name: 'pub (Dart)', color: 'sky' },
   puppet: { name: 'Puppet Forge', color: 'amber' },
   pypi: { name: 'PyPI', color: 'amber' },
