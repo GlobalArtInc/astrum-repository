@@ -147,6 +147,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "openvsx",
+        api_name: "openvsx",
+        types: HPG,
+    },
+    Format {
         id: "p2",
         api_name: "p2",
         types: &[P],

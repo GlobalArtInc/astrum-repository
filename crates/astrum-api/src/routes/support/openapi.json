@@ -3583,6 +3583,118 @@
         ],
         "type": "object"
       },
+      "OpenVsxGroupRepositoryApiRequest": {
+        "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "group": {
+            "$ref": "#/components/schemas/GroupAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "group",
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "OpenVsxHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "OpenVsxProxyRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "firewall": {
+            "$ref": "#/components/schemas/FirewallAttributes"
+          },
+          "httpClient": {
+            "$ref": "#/components/schemas/HttpClientAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "negativeCache": {
+            "$ref": "#/components/schemas/NegativeCacheAttributes"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "proxy": {
+            "$ref": "#/components/schemas/ProxyAttributes"
+          },
+          "replication": {
+            "$ref": "#/components/schemas/ReplicationAttributes"
+          },
+          "routingRuleName": {
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "httpClient",
+          "name",
+          "negativeCache",
+          "online",
+          "proxy",
+          "storage"
+        ],
+        "type": "object"
+      },
       "P2ProxyRepositoryApiRequest": {
         "properties": {
           "cleanup": {
@@ -10508,6 +10620,262 @@
           "403": {}
         },
         "summary": "Update repositories nuget proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/openvsx/group": {
+      "post": {
+        "operationId": "postV1RepositoriesOpenvsxGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenVsxGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories openvsx group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/openvsx/group/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesOpenvsxGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get repositories openvsx group",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesOpenvsxGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenVsxGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories openvsx group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/openvsx/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesOpenvsxHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenVsxHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories openvsx hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/openvsx/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesOpenvsxHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories openvsx hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesOpenvsxHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenVsxHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories openvsx hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/openvsx/proxy": {
+      "post": {
+        "operationId": "postV1RepositoriesOpenvsxProxy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenVsxProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories openvsx proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/openvsx/proxy/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesOpenvsxProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories openvsx proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesOpenvsxProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenVsxProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories openvsx proxy",
         "tags": [
           "Repository Management"
         ]

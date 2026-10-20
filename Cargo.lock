@@ -243,6 +243,7 @@ dependencies = [
  "astrum-format-nix",
  "astrum-format-npm",
  "astrum-format-nuget",
+ "astrum-format-openvsx",
  "astrum-format-p2",
  "astrum-format-pub",
  "astrum-format-puppet",
@@ -908,6 +909,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-openvsx"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-api",
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "astrum-security",
+ "async-trait",
+ "axum",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "hex",
+ "http-body-util",
+ "percent-encoding",
+ "quick-xml",
+ "sea-orm",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "astrum-format-p2"
 version = "3.0.0-dev"
 dependencies = [
@@ -1369,6 +1401,7 @@ dependencies = [
  "astrum-format-nix",
  "astrum-format-npm",
  "astrum-format-nuget",
+ "astrum-format-openvsx",
  "astrum-format-p2",
  "astrum-format-pub",
  "astrum-format-puppet",

@@ -33,6 +33,7 @@ astrum-format-maven = { path = "crates/astrum-format-maven" }
 astrum-format-nix = { path = "crates/astrum-format-nix" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-nuget = { path = "crates/astrum-format-nuget" }
+astrum-format-openvsx = { path = "crates/astrum-format-openvsx" }
 astrum-format-p2 = { path = "crates/astrum-format-p2" }
 astrum-format-pub = { path = "crates/astrum-format-pub" }
 astrum-format-puppet = { path = "crates/astrum-format-puppet" }

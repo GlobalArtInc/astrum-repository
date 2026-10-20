@@ -25,6 +25,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_nix::Nix));
     content.register(Arc::new(astrum_format_npm::Npm::default()));
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
+    content.register(Arc::new(astrum_format_openvsx::OpenVsx));
     content.register(Arc::new(astrum_format_p2::P2::default()));
     content.register(Arc::new(astrum_format_pub::Pub));
     content.register(Arc::new(astrum_format_puppet::Puppet::default()));
@@ -59,5 +60,6 @@ pub fn routes() -> Router<AppState> {
         .merge(astrum_format_conan::routes())
         .merge(astrum_format_docker::routes())
         .merge(astrum_format_npm::routes())
+        .merge(astrum_format_openvsx::routes())
         .merge(astrum_format_terraform::routes())
 }
