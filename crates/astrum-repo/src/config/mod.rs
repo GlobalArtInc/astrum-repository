@@ -14,9 +14,9 @@ use crate::format::{Format, RepositoryType};
 
 pub use domain::{Domain, DomainRouting, normalize_host, valid_host, valid_path};
 pub use formats::{
-    Apt, Cargo, ConanProxy, ConanVersion, ContentDisposition, DeployPolicy, Docker, DockerProxy,
-    IndexType, LayoutPolicy, Maven, Npm, NugetProxy, NugetVersion, Raw, Terraform, VersionPolicy,
-    Yum,
+    Apt, Cargo, ConanProxy, ConanVersion, ContentDisposition, DEFAULT_NIX_PRIORITY,
+    DEFAULT_NIX_STORE_DIR, DeployPolicy, Docker, DockerProxy, IndexType, LayoutPolicy, Maven, Nix,
+    Npm, NugetProxy, NugetVersion, Raw, Terraform, VersionPolicy, Yum, valid_store_dir,
 };
 pub use group::Group;
 pub use problems::{Problem, Problems};
@@ -155,6 +155,7 @@ sections! {
     Cargo: cargo: Cargo = "cargo",
     ConanProxy: conan_proxy: ConanProxy = "conanProxy",
     AlpineSigning: alpine_signing: Signing = "alpineSigning",
+    Nix: nix: Nix = "nix",
     Domain: domain: Domain = "domain",
 }
 

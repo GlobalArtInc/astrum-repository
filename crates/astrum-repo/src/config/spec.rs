@@ -82,6 +82,7 @@ impl Spec {
             Section::Cargo => when(format == "cargo", Defaulted),
             Section::ConanProxy => when(format == "conan" && kind == Proxy, Defaulted),
             Section::AlpineSigning => when(format == "alpine", Nullable),
+            Section::Nix => when(format == "nix", Defaulted),
             Section::Domain => Some(Omitted),
         }
     }
@@ -203,6 +204,13 @@ mod tests {
             Some(Presence::Defaulted)
         );
         assert_eq!(spec("docker", "group").presence(Section::DockerProxy), None);
+        for kind in ["hosted", "proxy", "group"] {
+            assert_eq!(
+                spec("nix", kind).presence(Section::Nix),
+                Some(Presence::Defaulted)
+            );
+        }
+        assert_eq!(spec("raw", "hosted").presence(Section::Nix), None);
     }
 
     #[test]

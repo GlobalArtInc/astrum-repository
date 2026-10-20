@@ -29,6 +29,7 @@ astrum-format-go = { path = "crates/astrum-format-go" }
 astrum-format-helm = { path = "crates/astrum-format-helm" }
 astrum-format-huggingface = { path = "crates/astrum-format-huggingface" }
 astrum-format-maven = { path = "crates/astrum-format-maven" }
+astrum-format-nix = { path = "crates/astrum-format-nix" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-nuget = { path = "crates/astrum-format-nuget" }
 astrum-format-p2 = { path = "crates/astrum-format-p2" }

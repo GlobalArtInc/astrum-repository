@@ -21,6 +21,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_helm::Helm::default()));
     content.register(Arc::new(astrum_format_huggingface::HuggingFace::default()));
     content.register(Arc::new(astrum_format_maven::Maven));
+    content.register(Arc::new(astrum_format_nix::Nix));
     content.register(Arc::new(astrum_format_npm::Npm::default()));
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
     content.register(Arc::new(astrum_format_p2::P2::default()));
@@ -46,6 +47,7 @@ pub fn register_tasks(tasks: &Tasks) {
     ));
     tasks.register(Arc::new(astrum_format_docker::gc::Gc));
     tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
+    tasks.register(Arc::new(astrum_format_nix::task::Gc));
     tasks.register(Arc::new(astrum_format_r::task::RebuildMetadata::default()));
     tasks.register(Arc::new(astrum_format_yum::task::RebuildMetadata::default()));
 }

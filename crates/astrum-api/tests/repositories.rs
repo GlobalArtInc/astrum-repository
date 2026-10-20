@@ -124,6 +124,10 @@ fn body(spec: Spec, name: &str, member: Option<&str>) -> Value {
         "maven2" if kind != RepositoryType::Group => {
             body["maven"] = json!({"versionPolicy": "MIXED", "layoutPolicy": "PERMISSIVE", "contentDisposition": "INLINE"});
         }
+        "nix" => {
+            body["nix"] =
+                json!({"storeDir": "/opt/nix/store", "priority": 25, "wantMassQuery": false})
+        }
         "npm" if kind == RepositoryType::Proxy => {
             body["npm"] = json!({"removeQuarantined": true, "removeNonCataloged": true})
         }

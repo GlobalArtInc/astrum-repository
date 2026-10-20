@@ -29,6 +29,7 @@ astrum-format-go.workspace = true
 astrum-format-helm.workspace = true
 astrum-format-huggingface.workspace = true
 astrum-format-maven.workspace = true
+astrum-format-nix.workspace = true
 astrum-format-npm.workspace = true
 astrum-format-nuget.workspace = true
 astrum-format-p2.workspace = true

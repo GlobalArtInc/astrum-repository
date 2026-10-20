@@ -7,6 +7,9 @@ use crate::config::{Check, Context};
 pub const MAX_PORT: i32 = 65535;
 pub const MAX_REPODATA_DEPTH: i32 = 5;
 pub const DEFAULT_QUERY_CACHE_MAX_AGE: i32 = 3600;
+pub const DEFAULT_NIX_STORE_DIR: &str = "/nix/store";
+pub const DEFAULT_NIX_PRIORITY: i32 = 40;
+pub const MAX_NIX_PRIORITY: i32 = 1000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -285,6 +288,53 @@ impl Check for ConanProxy {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Nix {
+    pub store_dir: Option<String>,
+    pub priority: Option<i32>,
+    pub want_mass_query: Option<bool>,
+}
+
+impl Nix {
+    pub fn store_dir(&self) -> &str {
+        self.store_dir.as_deref().unwrap_or(DEFAULT_NIX_STORE_DIR)
+    }
+}
+
+pub fn valid_store_dir(dir: &str) -> bool {
+    dir.len() > 1
+        && dir.len() <= 256
+        && dir.starts_with('/')
+        && !dir.ends_with('/')
+        && dir[1..]
+            .split('/')
+            .all(|segment| !segment.is_empty() && segment != "." && segment != "..")
+        && dir
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "/+-._".contains(c))
+}
+
+impl Check for Nix {
+    fn check(&mut self, _context: &Context<'_>, _stored: Option<&Self>, problems: &mut Problems) {
+        blank_to_none(&mut self.store_dir);
+        if let Some(dir) = &mut self.store_dir {
+            *dir = dir.trim().to_owned();
+            if !valid_store_dir(dir) {
+                problems.add(
+                    "storeDir",
+                    "must be an absolute directory without a trailing slash, such as /nix/store",
+                );
+            }
+        }
+        self.store_dir
+            .get_or_insert_with(|| DEFAULT_NIX_STORE_DIR.to_owned());
+        problems.range("priority", self.priority, 0, MAX_NIX_PRIORITY);
+        self.priority.get_or_insert(DEFAULT_NIX_PRIORITY);
+        self.want_mass_query.get_or_insert(true);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::{Value, json};
@@ -444,6 +494,39 @@ mod tests {
         assert_eq!(
             check::<ConanProxy>("conan", "proxy", json!({})).0,
             json!({"conanVersion": "V2"})
+        );
+    }
+
+    #[test]
+    fn nix_fills_the_cache_info_and_checks_the_store_directory() {
+        assert_eq!(
+            check::<Nix>("nix", "group", json!({"storeDir": " "})).0,
+            json!({"storeDir": "/nix/store", "priority": 40, "wantMassQuery": true})
+        );
+        let (nix, messages) = check::<Nix>(
+            "nix",
+            "hosted",
+            json!({"storeDir": " /opt/nix/store ", "priority": 30, "wantMassQuery": false}),
+        );
+        assert!(messages.is_empty(), "{messages:?}");
+        assert_eq!(
+            nix,
+            json!({"storeDir": "/opt/nix/store", "priority": 30, "wantMassQuery": false})
+        );
+        for bad in [
+            "nix/store",
+            "/nix/store/",
+            "/nix//store",
+            "/nix/../store",
+            "/nix store",
+        ] {
+            let (_, messages) = check::<Nix>("nix", "proxy", json!({"storeDir": bad}));
+            assert_eq!(messages.len(), 1, "{bad}");
+        }
+        let (_, messages) = check::<Nix>("nix", "proxy", json!({"priority": -1}));
+        assert_eq!(
+            messages,
+            ["PARAMETER priority: must be greater than or equal to 0"]
         );
     }
 }

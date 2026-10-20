@@ -127,6 +127,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "nix",
+        api_name: "nix",
+        types: HPG,
+    },
+    Format {
         id: "npm",
         api_name: "npm",
         types: HPG,
