@@ -28,7 +28,7 @@ describe('the login page', () => {
     expect(await screen.findByRole('heading', { name: 'Welcome' })).toBeInTheDocument();
     expect(screen.getByText('/astrum-data/admin.password')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Continue without signing in' })).toBeNull();
-    expect(document.title).toBe('Sign in - GlobalArt Astrum Repository');
+    expect(document.title).toBe('Sign in - Astrum Repository');
     const submit = screen.getByRole('button', { name: 'Sign in' });
     expect(screen.getByLabelText('User name')).toHaveAttribute('placeholder', 'User name');
     expect(screen.getByLabelText('Password')).toHaveAttribute('placeholder', 'Password');

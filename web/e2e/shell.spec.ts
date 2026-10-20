@@ -175,7 +175,7 @@ test('a missing page keeps its address', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Page Not Found' })).toBeVisible();
   await expect(page.getByText('404')).toBeVisible();
   await expect(page).toHaveURL(/\/no\/such\/page\?x=1$/);
-  await expect(page).toHaveTitle('Page Not Found - GlobalArt Astrum Repository');
+  await expect(page).toHaveTitle('Page Not Found - Astrum Repository');
   await page.getByRole('link', { name: 'Back to the Dashboard' }).click();
   await expect(page).toHaveURL(/\/$/);
 });

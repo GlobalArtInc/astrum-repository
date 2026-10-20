@@ -168,3 +168,32 @@ async fn a_schema_of_another_name_is_created_on_connect() {
     assert_eq!(db.schema(), "astrum_side");
     assert!(tables(&db).await.contains(&"setting".to_owned()));
 }
+
+#[tokio::test]
+async fn the_old_default_title_loses_globalart_and_own_titles_stay() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    for (stored, expected) in [
+        ("GlobalArt Astrum Repository", "Astrum Repository"),
+        ("Our repository", "Our repository"),
+    ] {
+        MIGRATIONS.revert(conn, 1).await.unwrap();
+        setting::put(
+            conn,
+            astrum_db::system::UI_SETTINGS_KEY,
+            &serde_json::json!({"title": stored, "debugAllowed": true}),
+        )
+        .await
+        .unwrap();
+        assert_eq!(db.migrate().await.unwrap().len(), 1);
+        let ui: astrum_db::system::UiSettings =
+            setting::get(conn, astrum_db::system::UI_SETTINGS_KEY)
+                .await
+                .unwrap()
+                .unwrap();
+        assert_eq!(ui.title, expected);
+        assert!(ui.debug_allowed);
+    }
+    assert_eq!(astrum_db::system::DEFAULT_TITLE, "Astrum Repository");
+}

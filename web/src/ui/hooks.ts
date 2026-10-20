@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 export const PRODUCT = 'Astrum Repository';
-export const TITLE_SUFFIX = 'GlobalArt Astrum Repository';
+export const TITLE_SUFFIX = 'Astrum Repository';
 export const PHONE = '(max-width: 639px)';
 export const COMPACT = '(max-width: 1023px)';
 

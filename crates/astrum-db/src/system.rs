@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 pub const BASE_URL_KEY: &str = "system.baseUrl";
 pub const UI_SETTINGS_KEY: &str = "ui.settings";
 pub const BRANDING_KEY: &str = "ui.branding";
-pub const DEFAULT_TITLE: &str = "GlobalArt Astrum Repository";
+pub const DEFAULT_TITLE: &str = "Astrum Repository";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
