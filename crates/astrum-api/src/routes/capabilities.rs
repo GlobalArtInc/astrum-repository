@@ -1,7 +1,8 @@
 use astrum_db::audit::Event;
 use astrum_db::setting;
 use astrum_db::system::{
-    BASE_URL_KEY, BRANDING_KEY, BaseUrl, Branding, DEFAULT_TITLE, UI_SETTINGS_KEY, UiSettings,
+    BASE_URL_KEY, BRANDING_KEY, BaseUrl, Branding, DEFAULT_TITLE, PROMETHEUS_KEY, Prometheus,
+    SPACE_ALERT_KEY, SpaceAlert, UI_SETTINGS_KEY, UiSettings,
 };
 use astrum_security::sessions::TIMEOUT_KEY;
 use axum::extract::{Path, State};
@@ -24,7 +25,9 @@ const DOMAIN: &str = "capability";
 pub const BASE_URL: &str = "baseurl";
 pub const UI_SETTINGS: &str = "rapture.settings";
 pub const BRANDING: &str = "rapture.branding";
-const TYPES: [&str; 3] = [BASE_URL, UI_SETTINGS, BRANDING];
+pub const PROMETHEUS: &str = "metrics.prometheus";
+pub const SPACE_ALERT: &str = "blobstores.space";
+const TYPES: [&str; 5] = [BASE_URL, UI_SETTINGS, BRANDING, PROMETHEUS, SPACE_ALERT];
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -40,6 +43,8 @@ fn type_name(kind: &str) -> &'static str {
     match kind {
         BASE_URL => "Base URL",
         UI_SETTINGS => "UI: Settings",
+        PROMETHEUS => "Metrics: Prometheus",
+        SPACE_ALERT => "Blob Stores: Space Alert",
         _ => "UI: Branding",
     }
 }
@@ -47,6 +52,7 @@ fn type_name(kind: &str) -> &'static str {
 fn category(kind: &str) -> &'static str {
     match kind {
         BASE_URL => "Core",
+        PROMETHEUS | SPACE_ALERT => "Monitoring",
         _ => "UI",
     }
 }
@@ -150,6 +156,86 @@ fn type_json(kind: &str) -> Value {
                 ),
             ],
         ),
+        PROMETHEUS => (
+            "Serves metrics in the Prometheus text format at <code>/service/metrics/prometheus</code>: requests by area and repository, response times, blob stores, health checks, tasks and the database pool.\n\n<p>The scraper signs in like any client, with a user or an access token that holds the privilege <code>as-metrics-all</code> (read access to metrics). Grant it to the anonymous role only when the address cannot be reached from outside.</p>",
+            vec![field(
+                "repositories",
+                "checkbox",
+                "Report every repository",
+                "Requests and the online state of each repository; turn it off when there are very many repositories",
+                false,
+                Some("true"),
+                None,
+            )],
+        ),
+        SPACE_ALERT => (
+            "Watches the free space of the blob stores and sends a message to notification channels when a store runs low, passes its soft quota or cannot be reached, and again when the problem is over.\n\n<p>File, remote and group stores tell their free space; S3 stores only take part through their quota and their reachability.</p>",
+            vec![
+                field(
+                    "minimumFree",
+                    "number",
+                    "Minimum free space (GB)",
+                    "Alert when a blob store has fewer gigabytes free than this",
+                    true,
+                    Some("10"),
+                    Some("1"),
+                ),
+                field(
+                    "channels",
+                    "string",
+                    "Notification channels",
+                    "Names of the channels under Settings, System, Notifications that get the alerts, separated by commas",
+                    true,
+                    None,
+                    None,
+                ),
+                field(
+                    "interval",
+                    "number",
+                    "Check interval (minutes)",
+                    "Minutes between two checks",
+                    true,
+                    Some("5"),
+                    Some("1"),
+                ),
+                field(
+                    "repeat",
+                    "number",
+                    "Repeat after (hours)",
+                    "Hours after which a problem that lasts is reported again; 0 reports it once",
+                    true,
+                    Some("24"),
+                    Some("0"),
+                ),
+                field(
+                    "quota",
+                    "checkbox",
+                    "Alert when a blob store passes its soft quota",
+                    "Uses the soft quota set on the blob store",
+                    false,
+                    Some("true"),
+                    None,
+                ),
+                field(
+                    "unavailable",
+                    "checkbox",
+                    "Alert when a blob store cannot be reached",
+                    "A remote store whose agent does not answer, or a store whose directory is gone",
+                    false,
+                    Some("true"),
+                    None,
+                ),
+                field(
+                    "recovery",
+                    "checkbox",
+                    "Send a message when a problem is over",
+                    "Reports the stores that are fine again",
+                    false,
+                    Some("true"),
+                    None,
+                ),
+            ],
+        ),
         _ => (
             "Adds your own header and footer to the user interface.",
             vec![
@@ -200,6 +286,7 @@ struct Stored {
     notes: String,
     properties: Map<String, Value>,
     description: Option<String>,
+    status: Option<String>,
 }
 
 fn text(value: impl ToString) -> Value {
@@ -221,6 +308,7 @@ async fn load(state: &AppState, kind: &str) -> Result<Option<Stored>, ApiError> 
                 enabled: base.enabled,
                 notes: base.notes,
                 description: Some(base.url.clone()).filter(|url| !url.is_empty()),
+                status: None,
                 properties: Map::from_iter([("url".to_owned(), text(base.url))]),
             }),
         UI_SETTINGS => {
@@ -231,6 +319,7 @@ async fn load(state: &AppState, kind: &str) -> Result<Option<Stored>, ApiError> 
                 enabled: ui.enabled,
                 notes: ui.notes,
                 description: None,
+                status: None,
                 properties: Map::from_iter([
                     ("title".to_owned(), text(ui.title)),
                     ("debugAllowed".to_owned(), text(ui.debug_allowed)),
@@ -260,6 +349,7 @@ async fn load(state: &AppState, kind: &str) -> Result<Option<Stored>, ApiError> 
                 enabled: brand.enabled,
                 notes: brand.notes,
                 description: None,
+                status: None,
                 properties: Map::from_iter([
                     ("headerEnabled".to_owned(), text(brand.header_enabled)),
                     ("headerHtml".to_owned(), text(brand.header_html)),
@@ -267,6 +357,51 @@ async fn load(state: &AppState, kind: &str) -> Result<Option<Stored>, ApiError> 
                     ("footerHtml".to_owned(), text(brand.footer_html)),
                 ]),
             }),
+        PROMETHEUS => setting::get::<Prometheus>(db, PROMETHEUS_KEY)
+            .await?
+            .map(|metrics| Stored {
+                enabled: metrics.enabled,
+                notes: metrics.notes,
+                description: Some(crate::metrics::PATH.to_owned()),
+                status: Some(match metrics.enabled {
+                    true => format!(
+                        "Metrics are served at {} to callers with the privilege as-metrics-all.",
+                        crate::metrics::PATH
+                    ),
+                    false => "The metrics endpoint answers 404 while the capability is disabled."
+                        .to_owned(),
+                }),
+                properties: Map::from_iter([(
+                    "repositories".to_owned(),
+                    text(metrics.repositories),
+                )]),
+            }),
+        SPACE_ALERT => match setting::get::<SpaceAlert>(db, SPACE_ALERT_KEY).await? {
+            Some(alert) => Some(Stored {
+                enabled: alert.enabled,
+                notes: alert.notes,
+                description: Some(format!(
+                    "Below {} GB free; {}",
+                    alert.minimum_free_gigabytes,
+                    alert.channels.join(", ")
+                )),
+                status: Some(match alert.enabled {
+                    true => crate::space::status(&crate::space::watch(state).await?),
+                    false => "The blob stores are not watched while the capability is disabled."
+                        .to_owned(),
+                }),
+                properties: Map::from_iter([
+                    ("minimumFree".to_owned(), text(alert.minimum_free_gigabytes)),
+                    ("channels".to_owned(), text(alert.channels.join(", "))),
+                    ("interval".to_owned(), text(alert.interval_minutes)),
+                    ("repeat".to_owned(), text(alert.repeat_hours)),
+                    ("quota".to_owned(), text(alert.quota)),
+                    ("unavailable".to_owned(), text(alert.unavailable)),
+                    ("recovery".to_owned(), text(alert.recovery)),
+                ]),
+            }),
+            None => None,
+        },
         _ => None,
     })
 }
@@ -282,7 +417,7 @@ fn capability_json(kind: &str, stored: &Stored) -> Value {
         "description": stored.description,
         "state": if stored.enabled { "active" } else { "disabled" },
         "stateDescription": if stored.enabled { "Active" } else { "Disabled" },
-        "status": null,
+        "status": stored.status,
         "typeName": type_name(kind),
         "tags": {"Category": category(kind)},
         "disableWarningMessage": null,
@@ -476,7 +611,7 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
             setting::put(db, TIMEOUT_KEY, &timeout).await?;
             state.security().reload().await?;
         }
-        _ => {
+        BRANDING => {
             let defaults = Branding::default();
             let limit = |name: &str| -> Result<String, ApiError> {
                 let html = property(properties, name).unwrap_or_default();
@@ -498,8 +633,97 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
             };
             setting::put(db, BRANDING_KEY, &branding).await?;
         }
+        PROMETHEUS => {
+            let defaults = Prometheus::default();
+            let metrics = Prometheus {
+                repositories: flag(properties, "repositories", defaults.repositories),
+                enabled,
+                notes,
+            };
+            setting::put(db, PROMETHEUS_KEY, &metrics).await?;
+        }
+        SPACE_ALERT => {
+            let defaults = SpaceAlert::default();
+            let alert = SpaceAlert {
+                minimum_free_gigabytes: number(
+                    properties,
+                    "minimumFree",
+                    "Minimum free space",
+                    defaults.minimum_free_gigabytes,
+                    1,
+                )?,
+                interval_minutes: number(
+                    properties,
+                    "interval",
+                    "Check interval",
+                    defaults.interval_minutes,
+                    1,
+                )?,
+                repeat_hours: number(
+                    properties,
+                    "repeat",
+                    "Repeat after",
+                    defaults.repeat_hours,
+                    0,
+                )?,
+                quota: flag(properties, "quota", defaults.quota),
+                unavailable: flag(properties, "unavailable", defaults.unavailable),
+                recovery: flag(properties, "recovery", defaults.recovery),
+                channels: channels(state, properties).await?,
+                enabled,
+                notes,
+            };
+            setting::put(db, SPACE_ALERT_KEY, &alert).await?;
+            match alert.enabled {
+                true => crate::space::recheck_soon(state).await?,
+                false => crate::space::forget(state).await?,
+            }
+        }
+        _ => return Err(ApiError::not_found("Capability not found")),
     }
     Ok(())
+}
+
+async fn channels(
+    state: &AppState,
+    properties: &Map<String, Value>,
+) -> Result<Vec<String>, ApiError> {
+    let mut wanted: Vec<String> = Vec::new();
+    for name in property(properties, "channels")
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+    {
+        if !wanted.iter().any(|known| known.eq_ignore_ascii_case(name)) {
+            wanted.push(name.to_owned());
+        }
+    }
+    if wanted.is_empty() {
+        return Err(ApiError::invalid(
+            "properties.channels",
+            "Name at least one notification channel",
+        ));
+    }
+    let existing = astrum_notify::store::list(state.db().conn()).await?;
+    let mut named = Vec::new();
+    let mut unknown = Vec::new();
+    for name in wanted {
+        match existing
+            .iter()
+            .find(|channel| channel.name.eq_ignore_ascii_case(&name))
+        {
+            Some(channel) => named.push(channel.name.clone()),
+            None => unknown.push(name),
+        }
+    }
+    if !unknown.is_empty() {
+        return Err(ApiError::invalid(
+            "properties.channels",
+            format!("No notification channel is named {}", unknown.join(", ")),
+        ));
+    }
+    Ok(named)
 }
 
 fn audit(kind_of_change: &str, kind: &str, stored: Option<&Stored>) -> Event {
@@ -577,6 +801,8 @@ async fn remove(
     let key = match kind {
         BASE_URL => BASE_URL_KEY,
         UI_SETTINGS => UI_SETTINGS_KEY,
+        PROMETHEUS => PROMETHEUS_KEY,
+        SPACE_ALERT => SPACE_ALERT_KEY,
         _ => BRANDING_KEY,
     };
     if !setting::delete(state.db().conn(), key).await? {
@@ -584,6 +810,9 @@ async fn remove(
     }
     if kind == BASE_URL {
         state.forget_base_url();
+    }
+    if kind == SPACE_ALERT {
+        crate::space::forget(&state).await?;
     }
     state.audit(&caller, audit("deleted", kind, None)).await;
     Ok(StatusCode::NO_CONTENT)

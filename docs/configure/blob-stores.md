@@ -156,7 +156,9 @@ group, or a group, cannot be converted.
 
 A store can have a **soft quota**: either a limit on the space it uses, or a minimum of free space.
 Passing the quota does not stop writes; the check **Blob Stores Quota** under
-**Settings → Support → Metrics and Health** turns red, which is what you alert on.
+**Settings → Support → Metrics and Health** turns red, which is what you alert on. The capability
+**Blob Stores: Space Alert** sends that, a low free space and an unreachable store to notification
+channels; see [monitoring](../operate/monitoring.md#blob-store-space-alerts).
 
 ## Reclaiming space
 

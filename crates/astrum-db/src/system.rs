@@ -74,3 +74,55 @@ impl Default for Branding {
         }
     }
 }
+
+pub const PROMETHEUS_KEY: &str = "monitoring.prometheus";
+pub const SPACE_ALERT_KEY: &str = "monitoring.blobStoreSpace";
+pub const SPACE_ALERT_STATE_KEY: &str = "monitoring.blobStoreSpace.state";
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Prometheus {
+    pub repositories: bool,
+    pub enabled: bool,
+    pub notes: String,
+}
+
+impl Default for Prometheus {
+    fn default() -> Self {
+        Self {
+            repositories: true,
+            enabled: true,
+            notes: String::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SpaceAlert {
+    pub minimum_free_gigabytes: u32,
+    pub interval_minutes: u32,
+    pub repeat_hours: u32,
+    pub quota: bool,
+    pub unavailable: bool,
+    pub recovery: bool,
+    pub channels: Vec<String>,
+    pub enabled: bool,
+    pub notes: String,
+}
+
+impl Default for SpaceAlert {
+    fn default() -> Self {
+        Self {
+            minimum_free_gigabytes: 10,
+            interval_minutes: 5,
+            repeat_hours: 24,
+            quota: true,
+            unavailable: true,
+            recovery: true,
+            channels: Vec::new(),
+            enabled: true,
+            notes: String::new(),
+        }
+    }
+}

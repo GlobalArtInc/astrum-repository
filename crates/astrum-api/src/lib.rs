@@ -4,8 +4,10 @@ pub mod domains;
 pub mod error;
 pub mod json;
 pub mod limits;
+pub mod metrics;
 mod notify_mail;
 pub mod routes;
+pub mod space;
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
@@ -54,6 +56,7 @@ struct Inner {
     application_port: OnceLock<u16>,
     repository_changes: tokio::sync::Notify,
     limits: limits::Limiter,
+    metrics: metrics::Registry,
 }
 
 impl AppState {
@@ -90,6 +93,7 @@ impl AppState {
                 application_port: OnceLock::new(),
                 repository_changes: tokio::sync::Notify::new(),
                 limits: limits::Limiter::default(),
+                metrics: metrics::Registry::default(),
             }),
         }
     }
@@ -183,6 +187,10 @@ impl AppState {
         &self.inner.limits
     }
 
+    pub fn metrics(&self) -> &metrics::Registry {
+        &self.inner.metrics
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
@@ -216,6 +224,10 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
 pub fn on_domains(state: AppState, app: Router) -> Router {
     Router::new()
         .fallback_service(app)
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            metrics::track,
+        ))
         .layer(middleware::from_fn_with_state(state, domains::route))
 }
 
@@ -257,6 +269,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::email::routes())
         .merge(routes::mcp::routes())
         .merge(routes::oauth::routes())
+        .merge(metrics::routes())
         .fallback(not_found)
 }
 

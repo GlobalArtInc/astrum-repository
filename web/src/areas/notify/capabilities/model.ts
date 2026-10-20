@@ -1,4 +1,14 @@
-import { Calendar, FileSearch, Globe, Palette, Puzzle, Server, Settings } from 'lucide-react';
+import {
+  Activity,
+  Calendar,
+  FileSearch,
+  Globe,
+  HardDrive,
+  Palette,
+  Puzzle,
+  Server,
+  Settings,
+} from 'lucide-react';
 import type { Translate } from '../../../i18n';
 
 export const CAPABILITIES = '/service/rest/v1/capabilities';
@@ -14,12 +24,15 @@ export const CATEGORY_ICONS: Record<string, typeof Puzzle> = {
   ui: Settings,
   audit: FileSearch,
   scheduling: Calendar,
+  monitoring: Activity,
 };
 
 export const TYPE_ICONS: Record<string, typeof Puzzle> = {
   baseurl: Globe,
   'rapture.settings': Settings,
   'rapture.branding': Palette,
+  'metrics.prometheus': Activity,
+  'blobstores.space': HardDrive,
 };
 
 export function categoryIcon(category: string | undefined): typeof Puzzle {
@@ -77,6 +90,8 @@ export function categoryLabel(t: Translate, category: string | undefined): strin
       return t('notify.capabilities.categories.scheduling');
     case 'security':
       return t('notify.capabilities.categories.security');
+    case 'monitoring':
+      return t('notify.capabilities.categories.monitoring');
     default:
       return category && category.length > 0 ? category : t('notify.capabilities.categories.other');
   }

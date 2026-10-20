@@ -137,6 +137,7 @@
   "notify.capabilities.categories.audit": "Audit",
   "notify.capabilities.categories.scheduling": "Scheduling",
   "notify.capabilities.categories.security": "Security",
+  "notify.capabilities.categories.monitoring": "Monitoring",
   "notify.capabilities.categories.other": "Other",
   "notify.capabilities.columns.type": "Type",
   "notify.capabilities.columns.description": "Description",

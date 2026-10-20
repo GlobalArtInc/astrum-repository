@@ -67,14 +67,14 @@ const EN: Texts = Texts {
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Markup {
+pub(crate) enum Markup {
     Html,
     Mrkdwn,
     Plain,
 }
 
 impl Markup {
-    fn of(channel: &Channel) -> Self {
+    pub(crate) fn of(channel: &Channel) -> Self {
         match channel.kind {
             ChannelType::Telegram => Markup::Html,
             ChannelType::Email => Markup::Plain,
@@ -82,7 +82,7 @@ impl Markup {
         }
     }
 
-    fn escape(self, text: &str) -> String {
+    pub(crate) fn escape(self, text: &str) -> String {
         match self {
             Markup::Html => text
                 .replace('&', "&amp;")
@@ -97,7 +97,7 @@ impl Markup {
         }
     }
 
-    fn bold(self, text: &str) -> String {
+    pub(crate) fn bold(self, text: &str) -> String {
         match self {
             Markup::Html => format!("<b>{}</b>", self.escape(text)),
             Markup::Mrkdwn => format!("*{}*", self.escape(text)),
@@ -105,7 +105,7 @@ impl Markup {
         }
     }
 
-    fn strong(self, text: &str) -> String {
+    pub(crate) fn strong(self, text: &str) -> String {
         match self {
             Markup::Html => self.bold(text),
             Markup::Mrkdwn => self.code(text),
@@ -113,7 +113,7 @@ impl Markup {
         }
     }
 
-    fn code(self, text: &str) -> String {
+    pub(crate) fn code(self, text: &str) -> String {
         match self {
             Markup::Html => format!("<code>{}</code>", self.escape(text)),
             Markup::Mrkdwn => format!("`{}`", self.escape(&text.replace('`', "'"))),
@@ -121,7 +121,7 @@ impl Markup {
         }
     }
 
-    fn link(self, url: &str, text: &str) -> String {
+    pub(crate) fn link(self, url: &str, text: &str) -> String {
         match self {
             Markup::Html => format!("<a href=\"{}\">{}</a>", self.escape(url), self.escape(text)),
             Markup::Mrkdwn => format!(
@@ -373,6 +373,9 @@ pub fn subject(channel: &Channel, rendered: &Rendered) -> String {
     match &rendered.notice {
         Some(notice) => format!("{}: {}", title(texts, notice.action), coordinates(notice)),
         None if rendered.event == TEST => texts.test_title.to_owned(),
+        None if crate::alerts::is_alert(&rendered.event) => {
+            crate::alerts::title(channel, &rendered.event).to_owned()
+        }
         None => texts.summary.replace("{}", "…"),
     }
 }

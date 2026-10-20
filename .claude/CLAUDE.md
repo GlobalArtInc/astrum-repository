@@ -28,6 +28,13 @@ repository is public: never commit secrets.
   those of REST. OAuth 2.1 for agents (`crates/astrum-security/src/oauth.rs`, `crates/astrum-api/src/routes/oauth.rs`,
   consent page `web/src/areas/user/AuthorizePage.tsx`): dynamic registration, PKCE S256, tokens `astrum_at_`/`astrum_rt_`
   accepted only on `/mcp`; rate limits in `crates/astrum-api/src/limits.rs`; MCP changes carry `via: mcp` in audit.
+- Monitoring capabilities (`crates/astrum-api/src/routes/capabilities.rs`, `docs/operate/monitoring.md`):
+  `metrics.prometheus` serves `GET /service/metrics/prometheus` (`crates/astrum-api/src/metrics.rs`, a
+  hand-written text exposition; request counters come from a layer in `on_domains`, the rest is measured
+  per scrape) to callers with `as-metrics-all`, 404 while off; `blobstores.space` (`crates/astrum-api/src/space.rs`)
+  checks free space, soft quotas and reachability on one node at a time (advisory lock `astrspac`), keeps
+  what it reported in the setting `monitoring.blobStoreSpace.state` and queues messages in
+  `notification_delivery` for the channels it names (texts in `crates/astrum-notify/src/alerts.rs`).
 - A repository can answer on a domain of its own (`domain` section: `ROOT` whole domain, `PATH` a path on a
   shared domain; `crates/astrum-api/src/domains.rs`, `docs/configure/reverse-proxy.md`). No production
   repository uses one yet: the owner wants `docker-onprem` on `docker-prem.globalart.hu` later, and gitops
@@ -86,8 +93,13 @@ repository is public: never commit secrets.
 ## Working rules
 - Commits: author Roman Khabarov <roman@globalart.dev>
   (`git -c user.name="Roman Khabarov" -c user.email=roman@globalart.dev -c commit.gpgsign=false commit ...`,
-  also for cherry-pick and rebase). Plain English, imperative subject, a body that says why. No mention of
+  also for cherry-pick and rebase). Plain English, a body that says why. No mention of
   AI tools, no Co-Authored-By or other trailers.
+- Commit and pull request titles follow Conventional Commits (owner, 2026-10-20): `type(scope): summary`,
+  with `type` one of `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `scope` the
+  part of the tree (`web`, `api`, `blob`, `mcp`, `monitoring`, `docker`, ...) and the summary imperative and
+  lowercase, without a final period, e.g. `feat(monitoring): serve prometheus metrics`. The squash commit
+  takes the title of its pull request.
 - Commits on `main` must show as Verified (owner, 2026-10-18), and only commits GitHub creates itself do:
   the cloud container signs with a key GitHub does not know (Unverified), an unsigned push shows no badge,
   and the session proxy refuses GraphQL and REST writes of commits. So push the work to the session's
@@ -104,7 +116,7 @@ repository is public: never commit secrets.
      `YYYYMMDDHHMMSS-<sha7>`, then the same image as `next-YYYYMMDDHHMMSS-<sha7>`. It also moves `edge`; a
      pushed `v*` tag publishes `<version>` and `latest`.
   2. In `GlobalArtInc/infra`, set `astrum_next_version` in `infralive/ansible/roles/astrum/defaults/main.yaml`
-     to the production tag, commit `Update astrum_next_version to <tag>` as Roman, land it on `main` as
+     to the production tag, commit `chore(astrum): update astrum_next_version to <tag>` as Roman, land it on `main` as
      above. Never put
      a Rust tag into `astrum_version`: that variable still deploys the Java container.
   3. Dispatch `provision.yml` on `main` with inputs `command=apply`, `filter=name=prod1-astrum1`; it runs
