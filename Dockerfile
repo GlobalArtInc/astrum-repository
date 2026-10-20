@@ -16,8 +16,8 @@ RUN --mount=type=cache,target=/root/.cache/node/corepack,sharing=locked \
     corepack pnpm install --frozen-lockfile
 COPY web ./
 COPY tools/i18n /src/tools/i18n
-RUN --mount=type=secret,id=ownlate_token,env=ASTRUM_OWNLATE_TOKEN \
-    node /src/tools/i18n/i18n.mjs pull \
+RUN --mount=type=secret,id=ownlate_token \
+    ASTRUM_OWNLATE_TOKEN="$(cat /run/secrets/ownlate_token)" node /src/tools/i18n/i18n.mjs pull \
  && node /src/tools/i18n/i18n.mjs check
 RUN --mount=type=cache,target=/root/.cache/node/corepack,sharing=locked \
     corepack pnpm build
