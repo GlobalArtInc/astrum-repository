@@ -4,6 +4,7 @@ import { chef } from './chef';
 import { huggingface } from './huggingface';
 import { p2 } from './p2';
 import { pub } from './pub';
+import { puppet } from './puppet';
 import { swift } from './swift';
 import { terraform } from './terraform';
 
@@ -71,6 +72,7 @@ export const USAGE_FORMATS = [
   'pub',
   'ansible',
   'chef',
+  'puppet',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1078,6 +1080,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
     ansible(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   chef: (context) =>
     chef(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  puppet: (context) =>
+    puppet(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

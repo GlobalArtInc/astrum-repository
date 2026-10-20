@@ -4,6 +4,7 @@ import { installCommand, requirementsFile } from '../usage/ansible';
 import { berksfile, knifeDownload, policyfile } from '../usage/chef';
 import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
+import { forgeUrl, puppetfileLine, installCommand as puppetInstall } from '../usage/puppet';
 import { dockerRegistry, repositoryAddress } from '../usage/snippets';
 
 export interface ComponentSnippet {
@@ -270,6 +271,20 @@ function chef(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function puppet(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = forgeUrl(repositoryAddress(context.baseUrl, context.repository, context.domain));
+  const slug = context.group ? `${context.group}-${context.name}` : context.name;
+  return [
+    { id: 'install', label: 'puppet module install', code: puppetInstall(url, slug, context.version) },
+    {
+      id: 'puppetfile',
+      label: 'Puppetfile',
+      hint: 'browse.component.snippet.puppetfile',
+      code: puppetfileLine(slug, context.version),
+    },
+  ];
+}
+
 function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
   return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
 }
@@ -308,6 +323,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return ansible(context);
     case 'chef':
       return chef(context);
+    case 'puppet':
+      return puppet(context);
     default:
       return [];
   }

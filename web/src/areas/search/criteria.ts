@@ -282,6 +282,20 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'Web Servers',
   },
   {
+    key: 'puppet.tag',
+    label: 'search.criterion.puppetTag',
+    kind: 'text',
+    format: 'puppet',
+    example: 'firewall',
+  },
+  {
+    key: 'puppet.license',
+    label: 'search.criterion.puppetLicense',
+    kind: 'text',
+    format: 'puppet',
+    example: 'Apache-2.0',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

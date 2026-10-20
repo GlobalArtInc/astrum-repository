@@ -35,6 +35,9 @@ describe('criteria', () => {
     expect(keys).toContain('sha1');
     expect(keys).toContain('helm.description');
     expect(keys).not.toContain('nuget.id');
+    expect(moreCriteria(['puppet'], '').map((criterion) => criterion.key)).toEqual(
+      expect.arrayContaining(['puppet.tag', 'puppet.license']),
+    );
     expect(moreCriteria(['raw'], 'nuget.id').map((criterion) => criterion.key)).toContain('nuget.id');
     expect(operatorsOf('name')).toEqual(['is', 'startsWith']);
     expect(operatorsOf('helm.keywords')).toEqual(['is', 'startsWith', 'contains']);

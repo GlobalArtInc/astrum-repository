@@ -123,6 +123,24 @@ describe('component snippets of the M4c formats', () => {
     expect(snippets[2]?.code).toBe(`knife supermarket download nginx 12.3.4 -m ${url}`);
   });
 
+  it('give puppet module install and the Puppetfile line for Puppet modules', () => {
+    expect(
+      componentSnippets({ ...base, format: 'puppet', group: 'puppetlabs', name: 'stdlib', version: '9.6.0' }),
+    ).toEqual([
+      {
+        id: 'install',
+        label: 'puppet module install',
+        code: 'puppet module install puppetlabs-stdlib --version 9.6.0 --module_repository https://repo.example.org/repository/r',
+      },
+      {
+        id: 'puppetfile',
+        label: 'Puppetfile',
+        hint: 'browse.component.snippet.puppetfile',
+        code: "mod 'puppetlabs-stdlib', '9.6.0'",
+      },
+    ]);
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',

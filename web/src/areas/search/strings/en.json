@@ -98,6 +98,8 @@
   "search.criterion.chefLicense": "Chef License",
   "search.criterion.chefMaintainer": "Chef Maintainer",
   "search.criterion.chefCategory": "Chef Category",
+  "search.criterion.puppetTag": "Puppet Tag",
+  "search.criterion.puppetLicense": "Puppet License",
   "search.criterion.swiftDescription": "Swift Description",
   "search.criterion.swiftRepositoryUrl": "Swift Repository URL",
   "search.criterion.huggingfaceFile": "Hugging Face File Path",

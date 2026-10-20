@@ -158,6 +158,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   npm: 'https://registry.npmjs.org/',
   p2: 'https://download.eclipse.org/releases/2024-03/',
   pub: 'https://pub.dev',
+  puppet: 'https://forgeapi.puppet.com',
   pypi: 'https://pypi.org/',
   r: 'https://cloud.r-project.org/',
   docker: 'https://registry-1.docker.io',

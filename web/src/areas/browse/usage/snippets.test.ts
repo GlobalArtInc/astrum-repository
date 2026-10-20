@@ -873,3 +873,51 @@ describe('chef usage', () => {
     expect(code(hosted, 'publish')).toContain('tarball=@<name>.tgz');
   });
 });
+
+describe('puppet usage', () => {
+  it('configures the clients, installs a module and publishes to a hosted repository', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'puppet',
+        repositoryName: 'forge-hosted',
+        component: { group: 'acme', name: 'tools', version: '1.2.0' },
+        path: '/acme/tools/1.2.0/acme-tools-1.2.0.tar.gz',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['config', 'install', 'r10k', 'bolt', 'puppetfile', 'publish', 'curl']);
+    const url = 'https://repo.example.org/repository/forge-hosted';
+    expect(code(snippets, 'config')).toBe(
+      `[main]\nmodule_repository = ${url}\nforge_authorization = <access token>`,
+    );
+    expect(code(snippets, 'install')).toBe(
+      `puppet module install acme-tools --version 1.2.0 --module_repository ${url}`,
+    );
+    expect(code(snippets, 'r10k')).toBe(
+      `forge:\n  baseurl: '${url}'\n  authorization_token: 'Bearer <access token>'`,
+    );
+    expect(code(snippets, 'bolt')).toBe(
+      `module-install:\n  forge:\n    baseurl: ${url}\n    authorization_token: Bearer <access token>`,
+    );
+    expect(code(snippets, 'puppetfile')).toBe(`forge '${url}'\n\nmod 'acme-tools', '1.2.0'`);
+    expect(code(snippets, 'publish')).toBe(
+      `pdk build\npdk release publish --forge-upload-url ${url}/v3/releases --forge-token <access token>`,
+    );
+    expect(code(snippets, 'curl')).toBe(
+      `curl -H "Authorization: Bearer <access token>" -F file=@pkg/acme-tools-1.2.0.tar.gz ${url}/v3/releases`,
+    );
+    expect(supportsUsage('puppet')).toBe(true);
+  });
+
+  it('reads from proxies and groups without a component and offers no publishing', () => {
+    const snippets = usageSnippets(
+      context({ format: 'puppet', repositoryName: 'forge', repositoryType: 'group', path: '/v3/' }),
+    );
+    expect(ids(snippets)).toEqual(['config', 'install', 'r10k', 'bolt', 'puppetfile']);
+    expect(code(snippets, 'install')).toBe(
+      'puppet module install <owner>-<name> --module_repository https://repo.example.org/repository/forge',
+    );
+    expect(code(snippets, 'puppetfile')).toContain("mod '<owner>-<name>'");
+    const hosted = usageSnippets(context({ format: 'puppet', repositoryName: 'own' }));
+    expect(code(hosted, 'curl')).toContain('file=@pkg/<owner>-<name>-<version>.tar.gz');
+  });
+});

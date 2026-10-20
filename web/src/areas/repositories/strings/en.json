@@ -486,6 +486,7 @@
   "repositories.formats.npm": "Package manager for JavaScript and Node.js.",
   "repositories.formats.nuget": "Package manager for .NET development.",
   "repositories.formats.pub": "Packages for Dart and Flutter, served to dart pub and flutter pub.",
+  "repositories.formats.puppet": "Modules of Puppet code, served through the Forge API to puppet module install, r10k and Bolt.",
   "repositories.formats.pypi": "The official third-party software repository for Python.",
   "repositories.formats.r": "Packages for R, served in the layout of CRAN.",
   "repositories.formats.raw": "Files of any format, without metadata requirements.",

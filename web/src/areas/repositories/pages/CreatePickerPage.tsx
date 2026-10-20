@@ -45,6 +45,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   npm: 'repositories.formats.npm',
   nuget: 'repositories.formats.nuget',
   pub: 'repositories.formats.pub',
+  puppet: 'repositories.formats.puppet',
   pypi: 'repositories.formats.pypi',
   r: 'repositories.formats.r',
   raw: 'repositories.formats.raw',
