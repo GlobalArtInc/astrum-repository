@@ -11,7 +11,7 @@
 .filters {
   display: flex;
   flex-direction: column;
-  padding: 0 4px 4px;
+  padding: 0 0 4px;
 }
 
 .filterSections {

@@ -21,7 +21,7 @@
   flex-direction: column;
   box-sizing: border-box;
   min-height: 52px;
-  padding: 12px 32px;
+  padding: 12px 0;
   border-bottom: 1px solid var(--gray-6);
   background: var(--gray-1);
 }
@@ -73,7 +73,7 @@
   width: 736px;
   max-width: 100%;
   box-sizing: content-box;
-  padding: 32px;
+  padding: 32px 0;
 }
 
 .wide {

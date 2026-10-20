@@ -390,31 +390,33 @@ export default function AuditPage() {
         width={280}
         gap={16}
         filters={filterColumn}
+        header={
+          <div className={styles.head}>
+            <div className={styles.heading}>
+              <Heading as="h1" size="6" weight="bold">
+                {t('audit.page.title')}
+              </Heading>
+              <Text as="p" size="2" className={styles.gray}>
+                {data ? t('audit.page.count', { count: total }) : ' '}
+              </Text>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setNow(new Date());
+                void query.refetch();
+              }}
+            >
+              <RefreshCw size={16} aria-hidden="true" />
+              {t('audit.page.refresh')}
+            </Button>
+          </div>
+        }
         sheetOpen={sheet}
         onSheetOpenChange={setSheet}
         onResetAll={reset}
       >
-        <div className={styles.head}>
-          <div className={styles.heading}>
-            <Heading as="h1" size="6" weight="bold">
-              {t('audit.page.title')}
-            </Heading>
-            <Text as="p" size="2" className={styles.gray}>
-              {data ? t('audit.page.count', { count: total }) : ' '}
-            </Text>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setNow(new Date());
-              void query.refetch();
-            }}
-          >
-            <RefreshCw size={16} aria-hidden="true" />
-            {t('audit.page.refresh')}
-          </Button>
-        </div>
         <div className={styles.toolbar} role="toolbar" aria-label={t('audit.page.toolbar')}>
           <RadixTextField.Root
             className={styles.search}

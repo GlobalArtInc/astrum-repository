@@ -13,6 +13,7 @@ export interface FilterLayoutProps {
   width: number;
   gap: number;
   filters: ReactNode;
+  header?: ReactNode;
   sheetOpen: boolean;
   onSheetOpenChange(open: boolean): void;
   onResetAll(): void;
@@ -26,6 +27,7 @@ export function FilterLayout({
   width,
   gap,
   filters,
+  header,
   sheetOpen,
   onSheetOpenChange,
   onResetAll,
@@ -37,6 +39,7 @@ export function FilterLayout({
   const style = { '--filter-width': `${width}px`, '--filter-gap': `${gap}px` } as CSSProperties;
   return (
     <div className={className ? `${styles.layout} ${className}` : styles.layout} style={style}>
+      {header && <div className={styles.header}>{header}</div>}
       {!narrow && (
         <aside className={styles.aside} aria-label={label}>
           {filters}

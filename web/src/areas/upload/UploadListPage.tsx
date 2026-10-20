@@ -184,20 +184,22 @@ export default function UploadListPage() {
         width={250}
         gap={32}
         filters={filters}
+        header={
+          <div className={styles.listHead}>
+            <Heading as="h1" size="6" weight="bold">
+              {t('upload.list.title')}
+            </Heading>
+            {!loading && !error && (
+              <Text as="p" size="2" className={styles.gray}>
+                {t('upload.list.count', { count: shown.length })}
+              </Text>
+            )}
+          </div>
+        }
         sheetOpen={sheet}
         onSheetOpenChange={setSheet}
         onResetAll={resetAll}
       >
-        <div className={styles.listHead}>
-          <Heading as="h1" size="6" weight="bold">
-            {t('upload.list.title')}
-          </Heading>
-          {!loading && !error && (
-            <Text as="p" size="2" className={styles.gray}>
-              {t('upload.list.count', { count: shown.length })}
-            </Text>
-          )}
-        </div>
         <div className={styles.toolbar} role="toolbar" aria-label={t('upload.list.toolbar')}>
           <RadixTextField.Root
             className={styles.filterInput}
