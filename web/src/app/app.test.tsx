@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UiState } from '../api';
 import { dashboardArea } from '../areas/dashboard';
 import { settingsArea } from '../areas/settings';
+import { TRANSLATE_URL } from '../shell/HeaderMenus';
 import { SearchGroup, SearchItem } from '../shell/search';
 import { ADMIN_STATE, ANONYMOUS_STATE, fakeServer, jsonResponse, renderWithApp } from '../test/render';
 import { setMedia } from '../test/setup';
@@ -241,6 +242,9 @@ describe('the shell', () => {
   it('switches the language and keeps it in a cookie', async () => {
     app('/');
     await userEvent.click(await screen.findByRole('button', { name: 'Language' }));
+    const help = await screen.findByRole('menuitem', { name: 'Help translate' });
+    expect(help).toHaveAttribute('href', TRANSLATE_URL);
+    expect(help).toHaveAttribute('target', '_blank');
     await userEvent.click(await screen.findByRole('menuitemradio', { name: 'Русский' }));
     const russian = await screen.findByRole('navigation', { name: 'Основное меню' });
     expect(within(russian).getByRole('link', { name: 'Обзор' })).toBeInTheDocument();

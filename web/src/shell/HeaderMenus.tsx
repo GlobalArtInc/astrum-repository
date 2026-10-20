@@ -14,7 +14,7 @@ import {
   Sun,
   UserRound,
 } from 'lucide-react';
-import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode, Ref } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { INTERNAL, useApi } from '../api';
 import { useVisibleSettings } from '../app/registry';
@@ -39,6 +39,9 @@ export function documentationUrl(version: string): string {
 }
 
 export const DOCUMENTATION_URL = documentationUrl('3.0.0');
+
+export const TRANSLATE_URL =
+  'https://platform.ownlate.com/workspaces/c08d5107-8ec7-4c80-9f46-e36fa7eeab3a/projects/f1f93c0e-4902-434d-a551-e94ba7e1e304/progress';
 
 export const STATUS_TILE = 'metric-health';
 export const STATUS_NEED = 'astrum:metrics:read';
@@ -131,14 +134,21 @@ export function LanguageMenu() {
           </HeaderButton>
         </DropdownMenu.Trigger>
       </WithTooltip>
-      <DropdownMenu.Content align="end">
-        <DropdownMenu.RadioGroup value={language} onValueChange={(value) => setLanguage(value as Language)}>
+      <DropdownMenu.Content align="end" className={`${styles.spaced} ${styles.overDrawer}`}>
+        <DropdownMenu.RadioGroup
+          value={language}
+          onValueChange={(value) => setLanguage(value as Language)}
+          className={styles.languages}
+          style={{ '--language-rows': Math.ceil(LANGUAGES.length / 2) } as CSSProperties}
+        >
           {LANGUAGES.map((value) => (
             <DropdownMenu.RadioItem key={value} value={value} lang={value}>
               {t(LANGUAGE_NAMES[value])}
             </DropdownMenu.RadioItem>
           ))}
         </DropdownMenu.RadioGroup>
+        <DropdownMenu.Separator />
+        <ExternalItem href={TRANSLATE_URL}>{t('shell.language.helpTranslate')}</ExternalItem>
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   );
@@ -222,7 +232,7 @@ export function HelpMenu() {
           </HeaderButton>
         </DropdownMenu.Trigger>
       </WithTooltip>
-      <DropdownMenu.Content align="end" className={styles.spaced}>
+      <DropdownMenu.Content align="end" className={`${styles.spaced} ${styles.overDrawer}`}>
         <ExternalItem href={documentationUrl(state.version)}>{t('shell.help.documentation')}</ExternalItem>
         {HELP_LINKS[0]?.map((link) => (
           <ExternalItem key={link.id} href={helpLink(link.path, link.campaign)}>
