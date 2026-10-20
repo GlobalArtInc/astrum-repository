@@ -243,6 +243,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-p2",
  "astrum-format-pub",
+ "astrum-format-puppet",
  "astrum-format-pypi",
  "astrum-format-r",
  "astrum-format-raw",
@@ -899,6 +900,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-puppet"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "multer",
+ "sea-orm",
+ "semver",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-pypi"
 version = "3.0.0-dev"
 dependencies = [
@@ -1262,6 +1289,7 @@ dependencies = [
  "astrum-format-nuget",
  "astrum-format-p2",
  "astrum-format-pub",
+ "astrum-format-puppet",
  "astrum-format-pypi",
  "astrum-format-r",
  "astrum-format-raw",

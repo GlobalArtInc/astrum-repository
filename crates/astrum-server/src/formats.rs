@@ -25,6 +25,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
     content.register(Arc::new(astrum_format_p2::P2::default()));
     content.register(Arc::new(astrum_format_pub::Pub));
+    content.register(Arc::new(astrum_format_puppet::Puppet::default()));
     content.register(Arc::new(astrum_format_pypi::PyPi));
     content.register(Arc::new(astrum_format_r::R::default()));
     content.register(Arc::new(astrum_format_raw::Raw));

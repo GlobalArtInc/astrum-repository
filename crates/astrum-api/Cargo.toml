@@ -60,6 +60,7 @@ astrum-format-npm.workspace = true
 astrum-format-nuget.workspace = true
 astrum-format-p2.workspace = true
 astrum-format-pub.workspace = true
+astrum-format-puppet.workspace = true
 astrum-format-pypi.workspace = true
 astrum-format-r.workspace = true
 astrum-format-raw.workspace = true

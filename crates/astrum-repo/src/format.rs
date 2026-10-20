@@ -147,6 +147,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "puppet",
+        api_name: "puppet",
+        types: HPG,
+    },
+    Format {
         id: "pypi",
         api_name: "pypi",
         types: HPG,

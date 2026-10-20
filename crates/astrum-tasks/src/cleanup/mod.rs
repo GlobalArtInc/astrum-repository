@@ -131,7 +131,7 @@ pub fn prerelease_rule(format: &str) -> Option<&'static str> {
         "maven2" => Some(
             "(c.version LIKE '%-SNAPSHOT' OR c.attributes #>> '{maven2,baseVersion}' LIKE '%-SNAPSHOT')",
         ),
-        "nuget" | "pub" => Some("(split_part(c.version, '+', 1) LIKE '%-%')"),
+        "nuget" | "pub" | "puppet" => Some("(split_part(c.version, '+', 1) LIKE '%-%')"),
         "rubygems" => Some("(c.version ~ '[A-Za-z]')"),
         "yum" => Some(
             "(c.version ~ '~[^-]*-[^-]*$' OR (c.version !~ '-' AND c.version LIKE '%~%') OR c.version ~ '-0\\.[^-]*$')",
