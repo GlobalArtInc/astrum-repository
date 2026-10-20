@@ -10,7 +10,7 @@
   "onboarding.done.finish": "Go to the dashboard",
   "onboarding.done.text": "Astrum Repository is ready. Create repositories and users from the settings.",
   "onboarding.done.title": "All set",
-  "onboarding.page.intro": "Two quick steps make this new server safe to use.",
+  "onboarding.page.lead": "A few quick steps make this new server safe and ready to use.",
   "onboarding.page.later": "If you skip, this setup comes back at your next sign-in until the administrator password is changed.",
   "onboarding.page.title": "Set up Astrum Repository",
   "onboarding.password.changed": "The administrator password is changed",
@@ -36,8 +36,17 @@
   "onboarding.password.title": "Administrator password",
   "onboarding.password.tooMany": "Too many wrong passwords. Wait a few minutes and try again.",
   "onboarding.password.wrong": "The current password is wrong",
+  "onboarding.repositories.continue": "Continue",
+  "onboarding.repositories.created": "Created",
+  "onboarding.repositories.exists": "Already exists, left as it is",
+  "onboarding.repositories.failed": "Not created: {message}",
+  "onboarding.repositories.intro": "Pick the formats you work with. Each creates the usual repositories with common settings; change them or add others later in the settings.",
+  "onboarding.repositories.results": "Created repositories",
+  "onboarding.repositories.submit": "Create repositories",
+  "onboarding.repositories.title": "Repositories",
   "onboarding.steps.anonymous": "Anonymous access",
   "onboarding.steps.done": "Done",
   "onboarding.steps.label": "Setup steps",
-  "onboarding.steps.password": "Password"
+  "onboarding.steps.password": "Password",
+  "onboarding.steps.repositories": "Repositories"
 }

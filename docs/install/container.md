@@ -44,7 +44,23 @@ podman exec astrum cat /astrum-data/admin.password
 ```
 
 Sign in at `http://<host>:8081` as `admin` with that password. The setup page asks for a new password,
-deletes the file and lets you decide whether anonymous users may read repositories.
+deletes the file, lets you decide whether anonymous users may read repositories and offers to create the
+usual repositories of the formats you pick:
+
+| Format | Repositories |
+|---|---|
+| Docker | `docker-hosted` (redeploy allowed), `docker-hub` (proxy of Docker Hub), `docker` (group of both) |
+| Maven | `maven-releases`, `maven-snapshots`, `maven-central` (proxy of Maven Central), `maven-public` (group) |
+| npm | `npm-hosted`, `npm-proxy` (proxy of registry.npmjs.org), `npm` (group) |
+| PyPI | `pypi-hosted`, `pypi-proxy` (proxy of pypi.org), `pypi` (group) |
+| NuGet | `nuget-hosted`, `nuget.org-proxy` (proxy of the NuGet v3 feed), `nuget-group` (group) |
+| Helm | `helm-hosted` |
+| Go | `go-proxy` (proxy of proxy.golang.org) |
+| Raw | `raw-hosted` (redeploy allowed) |
+
+They land in the `default` blob store, and repositories with those names that exist already are left as
+they are. Proxy repositories need the server to reach the internet, through **Settings → System → HTTP**
+when it goes through a proxy.
 
 ## Configuration
 
