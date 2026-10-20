@@ -261,6 +261,27 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'GPL-3.0-or-later',
   },
   {
+    key: 'chef.license',
+    label: 'search.criterion.chefLicense',
+    kind: 'text',
+    format: 'chef',
+    example: 'Apache-2.0',
+  },
+  {
+    key: 'chef.maintainer',
+    label: 'search.criterion.chefMaintainer',
+    kind: 'text',
+    format: 'chef',
+    example: 'Sous Chefs',
+  },
+  {
+    key: 'chef.category',
+    label: 'search.criterion.chefCategory',
+    kind: 'text',
+    format: 'chef',
+    example: 'Web Servers',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

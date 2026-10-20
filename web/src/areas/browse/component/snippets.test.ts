@@ -106,6 +106,23 @@ describe('component snippets of the M4c formats', () => {
     expect(snippets[1]?.hint).toBe('browse.component.snippet.ansibleRequirements');
   });
 
+  it('give Berksfile, Policyfile and knife lines for Chef cookbooks', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'chef',
+      group: '',
+      name: 'nginx',
+      version: '12.3.4',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['berksfile', 'policyfile', 'knife']);
+    const url = 'https://repo.example.org/repository/r';
+    expect(snippets[0]?.code).toBe(`source "${url}"\n\ncookbook "nginx", "= 12.3.4"`);
+    expect(snippets[0]?.hint).toBe('browse.component.snippet.chefBerksfile');
+    expect(snippets[1]?.code).toContain(`default_source :supermarket, "${url}"`);
+    expect(snippets[1]?.hint).toBe('browse.component.snippet.chefPolicyfile');
+    expect(snippets[2]?.code).toBe(`knife supermarket download nginx 12.3.4 -m ${url}`);
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',

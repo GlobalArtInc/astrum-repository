@@ -1,6 +1,7 @@
 import type { RepositoryDomain } from '../../../api';
 import { guideComponentName } from '../links';
 import { installCommand, requirementsFile } from '../usage/ansible';
+import { berksfile, knifeDownload, policyfile } from '../usage/chef';
 import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
 import { dockerRegistry, repositoryAddress } from '../usage/snippets';
@@ -250,6 +251,25 @@ function ansible(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function chef(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  return [
+    {
+      id: 'berksfile',
+      label: 'Berksfile',
+      hint: 'browse.component.snippet.chefBerksfile',
+      code: berksfile(url, context.name, context.version),
+    },
+    {
+      id: 'policyfile',
+      label: 'Policyfile.rb',
+      hint: 'browse.component.snippet.chefPolicyfile',
+      code: policyfile(url, context.name, context.version),
+    },
+    { id: 'knife', label: 'knife', code: knifeDownload(url, context.name, context.version) },
+  ];
+}
+
 function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
   return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
 }
@@ -286,6 +306,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return pub(context);
     case 'ansible':
       return ansible(context);
+    case 'chef':
+      return chef(context);
     default:
       return [];
   }

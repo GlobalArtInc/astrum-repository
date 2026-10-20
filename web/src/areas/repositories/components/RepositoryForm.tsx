@@ -147,6 +147,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   alpine: 'https://dl-cdn.alpinelinux.org/alpine/',
   ansible: 'https://galaxy.ansible.com',
   cargo: 'https://index.crates.io',
+  chef: 'https://supermarket.chef.io',
   cocoapods: 'https://cdn.cocoapods.org/',
   composer: 'https://repo.packagist.org',
   conda: 'https://conda.anaconda.org/conda-forge/',

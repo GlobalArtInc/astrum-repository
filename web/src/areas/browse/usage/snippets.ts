@@ -1,5 +1,6 @@
 import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { ansible } from './ansible';
+import { chef } from './chef';
 import { huggingface } from './huggingface';
 import { p2 } from './p2';
 import { pub } from './pub';
@@ -69,6 +70,7 @@ export const USAGE_FORMATS = [
   'alpine',
   'pub',
   'ansible',
+  'chef',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1074,6 +1076,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   pub: (context) => pub(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   ansible: (context) =>
     ansible(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  chef: (context) =>
+    chef(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

@@ -7,6 +7,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   ansible: { name: 'Ansible Galaxy', color: 'ruby' },
   apt: { name: 'APT', color: 'green' },
   cargo: { name: 'Cargo (Rust)', color: 'orange' },
+  chef: { name: 'Chef Supermarket', color: 'orange' },
   cocoapods: { name: 'CocoaPods', color: 'red' },
   composer: { name: 'Composer', color: 'purple' },
   conan: { name: 'Conan', color: 'cyan' },

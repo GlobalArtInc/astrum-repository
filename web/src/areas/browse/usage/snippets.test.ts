@@ -830,3 +830,46 @@ describe('ansible usage', () => {
     expect(code(hosted, 'publish')).toContain('publish <namespace>-<name>-<version>.tar.gz');
   });
 });
+
+describe('chef usage', () => {
+  it('points Berkshelf, Policyfiles and knife at the repository and publishes with curl', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'chef',
+        repositoryName: 'chef-hosted',
+        component: { group: '', name: 'acme', version: '1.2.0' },
+        path: '/cookbooks/acme/1.2.0/acme-1.2.0.tar.gz',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['berksfile', 'policyfile', 'knife', 'publish']);
+    const url = 'https://repo.example.org/repository/chef-hosted';
+    expect(code(snippets, 'berksfile')).toBe(`source "${url}"\n\ncookbook "acme", "= 1.2.0"`);
+    expect(code(snippets, 'policyfile')).toBe(
+      `default_source :supermarket, "${url}"\n\nrun_list "acme::default"\ncookbook "acme", "= 1.2.0"`,
+    );
+    expect(code(snippets, 'knife')).toBe(`knife supermarket download acme 1.2.0 -m ${url}`);
+    expect(code(snippets, 'publish')).toBe(
+      [
+        'knife cookbook metadata from file acme/metadata.rb',
+        'tar -czf acme.tgz acme',
+        `curl -u <user> -F 'cookbook={"category":"Other"}' -F tarball=@acme.tgz ${url}/api/v1/cookbooks`,
+      ].join('\n'),
+    );
+    expect(supportsUsage('chef')).toBe(true);
+  });
+
+  it('names no cookbook without one and offers no publishing outside hosted repositories', () => {
+    const snippets = usageSnippets(
+      context({ format: 'chef', repositoryName: 'supermarket', repositoryType: 'proxy', path: '/universe' }),
+    );
+    expect(ids(snippets)).toEqual(['berksfile', 'policyfile', 'knife']);
+    expect(code(snippets, 'berksfile')).toBe(
+      'source "https://repo.example.org/repository/supermarket"\n\ncookbook "<cookbook>"',
+    );
+    expect(code(snippets, 'knife')).toBe(
+      'knife supermarket download <cookbook> -m https://repo.example.org/repository/supermarket',
+    );
+    const hosted = usageSnippets(context({ format: 'chef', repositoryName: 'own' }));
+    expect(code(hosted, 'publish')).toContain('tarball=@<name>.tgz');
+  });
+});
