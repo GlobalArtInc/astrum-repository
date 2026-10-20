@@ -24,7 +24,7 @@ jobs:
       - name: Check the dictionaries
         run: node tools/i18n/i18n.mjs check
 
-      - name: Check the translations are pulled from Ownlate
+      - name: Pull the translations from Ownlate and check them
         env:
           ASTRUM_OWNLATE_TOKEN: ${{ secrets.ASTRUM_OWNLATE_TOKEN }}
           ASTRUM_OWNLATE_PROJECT: ${{ vars.ASTRUM_OWNLATE_PROJECT }}
@@ -35,11 +35,4 @@ jobs:
             exit 0
           fi
           node tools/i18n/i18n.mjs pull
-          dictionaries=('web/src/*/strings/*')
-          changes="$(git status --porcelain -- "${dictionaries[@]}")"
-          if [ -n "$changes" ]; then
-            echo "$changes"
-            git diff --stat -- "${dictionaries[@]}"
-            echo "::error::Ownlate has translations that are not committed: run node tools/i18n/i18n.mjs pull"
-            exit 1
-          fi
+          node tools/i18n/i18n.mjs check

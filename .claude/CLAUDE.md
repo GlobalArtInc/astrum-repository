@@ -163,16 +163,16 @@ repository is public: never commit secrets.
 - Image: `docker build -t astrum-server:local .` from the root.
 
 ## Translations (Ownlate)
-- User-visible texts live in `web/src/**/strings/{en,ru}.json`; `en.json` is the source and is written by
-  hand, `ru.json` is written by `node tools/i18n/i18n.mjs pull`. Run `corepack pnpm i18n:check` in `web/` and
-  `node tools/i18n/i18n.mjs check` after changing them.
+- User-visible texts live in `web/src/**/strings/`; `en.json` is the source and is written by hand and committed.
+  The other `<lang>.json` files are written by `node tools/i18n/i18n.mjs pull` at image build (the `Dockerfile`'s
+  `web` stage, token as build secret `ownlate_token`), git ignores them and they must never be committed.
+  Run `corepack pnpm i18n:check` in `web/` and `node tools/i18n/i18n.mjs check` after changing them.
 - The Ownlate keys are `web.<key>`, plural forms `web.<key>#<form>`. `import ru <file>` rewrites each
   dictionary with only the keys in the file: build the file from `node tools/i18n/i18n.mjs catalogue ru` plus
   the new keys, then import.
 - Ownlate project `f1f93c0e-4902-434d-a551-e94ba7e1e304`, file `119d5931-d6cc-4e49-aaa6-ce23ad9b6257`.
   Write source texts first (no language), then Russian with approve=true; keep batches under ~150; a
-  "session expired" error may still have applied the write. The CI check pulls from Ownlate and fails if
-  the committed translations differ.
+  "session expired" error may still have applied the write. The CI workflow pulls and checks them when the secrets are set.
 
 ## Parallel agents (how it worked)
 - One worktree per task: `git worktree add -b <branch> /home/user/wt/<name> origin/main`; install

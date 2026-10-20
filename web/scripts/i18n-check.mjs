@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { basename, join, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const LANGUAGES = ['en', 'ru'];
+export const LANGUAGES = ['en', 'ru', 'de', 'es', 'fr', 'it', 'ja', 'pl', 'pt', 'sr-Latn', 'tr', 'zh'];
 const PLACEHOLDER = /\{(\w+)\}/g;
 const SOURCE = /\.(ts|tsx)$/;
 const TEST = /\.test\.(ts|tsx)$/;
@@ -48,8 +48,8 @@ export function checkDictionaries(dictionaries) {
     const english = byLanguage.en ?? {};
     for (const language of LANGUAGES) {
       const dictionary = byLanguage[language];
+      // translations are pulled from Ownlate at image build and are not in git, so a missing one is not a problem here
       if (!dictionary) {
-        problems.push(`${namespace}: ${language}.json is missing`);
         continue;
       }
       const categories = new Intl.PluralRules(language).resolvedOptions().pluralCategories;
@@ -112,9 +112,9 @@ export function usedKeys(text, namespaces) {
 
 export function loadDictionaries(root) {
   const dictionaries = {};
-  for (const file of walk(root).filter((path) => /[/\\]strings[/\\](en|ru)\.json$/.test(path))) {
+  for (const file of walk(root).filter((path) => /[/\\]strings[/\\][^/\\]+\.json$/.test(path))) {
     const namespace = namespaceOf(file, root);
-    const language = file.endsWith('en.json') ? 'en' : 'ru';
+    const language = basename(file, '.json');
     if (!namespace) {
       throw new Error(`${relative(root, file)} is not in <area>/strings or areas/<area>/strings`);
     }

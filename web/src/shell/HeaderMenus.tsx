@@ -48,6 +48,16 @@ const STATUS_POLL = 60_000;
 const LANGUAGE_NAMES: Record<Language, string> = {
   en: 'shell.language.en',
   ru: 'shell.language.ru',
+  de: 'shell.language.de',
+  es: 'shell.language.es',
+  fr: 'shell.language.fr',
+  it: 'shell.language.it',
+  ja: 'shell.language.ja',
+  pl: 'shell.language.pl',
+  pt: 'shell.language.pt',
+  'sr-Latn': 'shell.language.srLatn',
+  tr: 'shell.language.tr',
+  zh: 'shell.language.zh',
 };
 
 type HeaderButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
