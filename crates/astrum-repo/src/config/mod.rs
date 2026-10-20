@@ -179,7 +179,7 @@ impl Attributes {
         attributes
     }
 
-    fn signing_mut(&mut self) -> [(Section, &mut Option<Signing>); 5] {
+    fn signing_mut(&mut self) -> [(Section, &mut Option<Signing>); 6] {
         [
             (Section::AptSigning, &mut self.apt_signing),
             (Section::YumSigning, &mut self.yum_signing),
