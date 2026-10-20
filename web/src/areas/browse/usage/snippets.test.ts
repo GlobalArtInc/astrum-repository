@@ -1061,3 +1061,47 @@ describe('hex usage', () => {
     expect(code(group, 'rebar3')).toContain('<<"<contents of hex-all.pem>">>}]}]}.');
   });
 });
+
+describe('openvsx usage', () => {
+  const url = 'https://repo.example.org/repository/vsx-hosted';
+
+  it('points editors at the gallery and publishes with ovsx to a hosted repository', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'openvsx',
+        repositoryName: 'vsx-hosted',
+        component: { group: 'acme', name: 'hello', version: '1.2.0' },
+        path: '/acme/hello/1.2.0/acme.hello-1.2.0.vsix',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['product', 'environment', 'get', 'publish']);
+    expect(JSON.parse(code(snippets, 'product'))).toEqual({
+      extensionsGallery: {
+        serviceUrl: `${url}/vscode/gallery`,
+        itemUrl: `${url}/vscode/item`,
+        resourceUrlTemplate: `${url}/vscode/unpkg/{publisher}/{name}/{version}/{path}`,
+        extensionUrlTemplate: `${url}/vscode/gallery/{publisher}/{name}/latest`,
+      },
+    });
+    expect(code(snippets, 'environment')).toContain(
+      `export VSCODE_GALLERY_SERVICE_URL='${url}/vscode/gallery'`,
+    );
+    expect(code(snippets, 'get')).toBe(`npx ovsx get acme.hello -v 1.2.0 -r ${url}`);
+    expect(code(snippets, 'publish')).toBe(
+      `npx ovsx publish acme.hello-1.2.0.vsix -r ${url} -p <access token>`,
+    );
+  });
+
+  it('reads from proxies and groups without a component and offers no publishing', () => {
+    const snippets = usageSnippets(
+      context({ format: 'openvsx', repositoryName: 'vsx-group', repositoryType: 'group' }),
+    );
+    expect(ids(snippets)).toEqual(['product', 'environment', 'get']);
+    expect(code(snippets, 'get')).toBe(
+      'npx ovsx get <namespace>.<name> -r https://repo.example.org/repository/vsx-group',
+    );
+    const hosted = usageSnippets(context({ format: 'openvsx', repositoryName: 'own' }));
+    expect(code(hosted, 'publish')).toContain('publish <extension>.vsix');
+    expect(supportsUsage('openvsx')).toBe(true);
+  });
+});

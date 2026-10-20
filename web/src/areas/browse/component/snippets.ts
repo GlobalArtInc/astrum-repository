@@ -4,6 +4,7 @@ import { installCommand, requirementsFile } from '../usage/ansible';
 import { berksfile, knifeDownload, policyfile } from '../usage/chef';
 import { mixDependency, rebarDependency } from '../usage/hex';
 import { copyFrom, storePath } from '../usage/nix';
+import { getCommand } from '../usage/openvsx';
 import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
 import { forgeUrl, puppetfileLine, installCommand as puppetInstall } from '../usage/puppet';
@@ -337,6 +338,20 @@ function hex(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function openvsx(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  const id = context.group ? `${context.group}.${context.name}` : context.name;
+  return [
+    {
+      id: 'install',
+      label: 'codium',
+      hint: 'browse.component.snippet.openvsxInstall',
+      code: `codium --install-extension ${id}@${context.version}`,
+    },
+    { id: 'get', label: 'ovsx get', code: getCommand(url, id, context.version) },
+  ];
+}
+
 function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
   return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
 }
@@ -383,6 +398,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return nix(context);
     case 'hex':
       return hex(context);
+    case 'openvsx':
+      return openvsx(context);
     default:
       return [];
   }

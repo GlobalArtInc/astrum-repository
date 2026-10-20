@@ -338,6 +338,20 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'mix',
   },
   {
+    key: 'openvsx.category',
+    label: 'search.criterion.openvsxCategory',
+    kind: 'text',
+    format: 'openvsx',
+    example: 'Linters',
+  },
+  {
+    key: 'openvsx.targetPlatform',
+    label: 'search.criterion.openvsxTargetPlatform',
+    kind: 'text',
+    format: 'openvsx',
+    example: 'linux-x64',
+  },
+  {
     key: 'docker.imageName',
     label: 'search.criterion.dockerImageName',
     kind: 'text',

@@ -157,6 +157,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   maven2: 'https://repo1.maven.org/maven2/',
   nix: 'https://cache.nixos.org',
   npm: 'https://registry.npmjs.org/',
+  openvsx: 'https://open-vsx.org',
   p2: 'https://download.eclipse.org/releases/2024-03/',
   pub: 'https://pub.dev',
   puppet: 'https://forgeapi.puppet.com',

@@ -502,6 +502,7 @@
   "repositories.formats.nix": "Binary cache for Nix: store paths pushed with nix copy and fetched by substituters.",
   "repositories.formats.npm": "Package manager for JavaScript and Node.js.",
   "repositories.formats.nuget": "Package manager for .NET development.",
+  "repositories.formats.openvsx": "VS Code extensions for VSCodium and other editors, served through the Open VSX and gallery APIs.",
   "repositories.formats.pub": "Packages for Dart and Flutter, served to dart pub and flutter pub.",
   "repositories.formats.puppet": "Modules of Puppet code, served through the Forge API to puppet module install, r10k and Bolt.",
   "repositories.formats.pypi": "The official third-party software repository for Python.",

@@ -271,6 +271,9 @@
   "browse.usage.hint.hexPublish": "Run it in the project directory with an access token of a user with write access to this repository; it publishes the package and its documentation",
   "browse.usage.hint.hexMirror": "Mix then fetches the packages of hex.pm through this repository and still checks their registry with the key of hex.pm",
   "browse.usage.hint.hexCdn": "rebar3 then fetches the packages of hex.pm through this repository",
+  "browse.usage.hint.openvsxProduct": "Merge it into the product.json of VSCodium or another VS Code based editor, or into the product.json in its user data folder, and restart the editor; editors send no credentials, so the repository must allow anonymous reading",
+  "browse.usage.hint.openvsxEnvironment": "Editors such as VSCodium also take the gallery from these variables; set them before starting the editor",
+  "browse.usage.hint.openvsxPublish": "Package the extension with vsce package or let ovsx package it; the token is an access token of this server",
 
   "browse.component.search": "Search",
   "browse.component.invalidTitle": "Unknown component",
@@ -308,6 +311,7 @@
   "browse.component.snippet.puppetfile": "Add the module to the Puppetfile of your control repository:",
   "browse.component.snippet.vagrantfile": "Add the box to the Vagrantfile of your project:",
   "browse.component.snippet.nixCopy": "Copy the store path into the local Nix store; it has to be signed by a key in trusted-public-keys:",
+  "browse.component.snippet.openvsxInstall": "Install it into an editor that uses this repository as its gallery:",
   "browse.component.securityTitle": "Security Analysis Unavailable",
   "browse.component.securityText": "This installation has no IQ Server integration, so policy violations for this component cannot be shown.",
   "browse.component.versionModified": "Changed",

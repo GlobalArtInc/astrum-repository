@@ -22,6 +22,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   nix: { name: 'Nix', color: 'blue' },
   npm: { name: 'npm', color: 'red' },
   nuget: { name: 'NuGet', color: 'purple' },
+  openvsx: { name: 'Open VSX', color: 'violet' },
   p2: { name: 'P2', color: 'gray' },
   pub: { name: 'pub (Dart)', color: 'sky' },
   puppet: { name: 'Puppet Forge', color: 'amber' },

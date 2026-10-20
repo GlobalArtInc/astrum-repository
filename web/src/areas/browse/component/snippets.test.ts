@@ -214,6 +214,22 @@ describe('component snippets of the M4c formats', () => {
     expect(proxied[0]?.code).toBe('{:jason, "~> 1.4"}');
   });
 
+  it('give the editor command and ovsx get for Open VSX extensions', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'openvsx',
+      group: 'acme',
+      name: 'hello',
+      version: '1.2.0',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['install', 'get']);
+    expect(snippets[0]?.code).toBe('codium --install-extension acme.hello@1.2.0');
+    expect(snippets[0]?.hint).toBe('browse.component.snippet.openvsxInstall');
+    expect(snippets[1]?.code).toBe(
+      'npx ovsx get acme.hello -v 1.2.0 -r https://repo.example.org/repository/r',
+    );
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',
