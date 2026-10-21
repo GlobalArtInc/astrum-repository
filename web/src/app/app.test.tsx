@@ -130,6 +130,7 @@ describe('the shell', () => {
       .map((button) => button.getAttribute('aria-label'));
     expect(names).toEqual([
       'Collapse the menu',
+      'Search',
       'Refresh',
       'Switch to the light theme',
       'Language',
@@ -138,8 +139,7 @@ describe('the shell', () => {
       'Account menu of Administrator User',
     ]);
     expect(within(header).getByRole('button', { name: /Account menu/ })).toHaveTextContent('AD');
-    expect(within(header).getByRole('combobox', { name: 'Search components' })).toHaveAttribute(
-      'placeholder',
+    expect(within(header).getByRole('button', { name: 'Search' })).toHaveTextContent(
       'Search for components or CVEs...',
     );
   });
@@ -270,15 +270,15 @@ describe('the shell', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('focuses the header search with Ctrl+K and moves through the dropdown', async () => {
+  it('opens the search over a dimmed page with Ctrl+K and moves through the results', async () => {
     const { router } = app('/');
     await screen.findByRole('navigation', { name: 'Main menu' });
     await userEvent.keyboard('{Control>}k{/Control}');
-    const input = screen.getByRole('combobox', { name: 'Search components' });
+    const dialog = await screen.findByRole('dialog', { name: 'Search' });
+    const input = within(dialog).getByRole('combobox', { name: 'Search components' });
     expect(input).toHaveFocus();
-    expect(input).toHaveAttribute('aria-expanded', 'true');
     await userEvent.type(input, 'react');
-    const list = screen.getByRole('listbox', { name: 'Search suggestions' });
+    const list = within(dialog).getByRole('listbox', { name: 'Search suggestions' });
     expect(within(list).getByRole('group', { name: 'Things' })).toBeInTheDocument();
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
     const second = within(list).getByRole('option', { name: 'Second' });
@@ -286,39 +286,50 @@ describe('the shell', () => {
     expect(input).toHaveAttribute('aria-activedescendant', second.id);
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(router.state.location.pathname).toBe('/user/account'));
-    expect(screen.queryByRole('listbox')).toBeNull();
-    expect(input).toHaveValue('');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull());
   });
 
-  it('closes the dropdown with Escape and keeps the text', async () => {
+  it('opens from the header field and closes with Escape', async () => {
     app('/');
-    const input = await screen.findByRole('combobox', { name: 'Search components' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Search' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Search' });
+    const input = within(dialog).getByRole('combobox', { name: 'Search components' });
     await userEvent.type(input, 'react');
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-    await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('listbox')).toBeNull();
-    expect(input).toHaveValue('react');
-    await userEvent.click(screen.getByRole('button', { name: 'Clear the search' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Clear the search' }));
     expect(input).toHaveValue('');
+    await userEvent.type(input, 'vue');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(await screen.findByRole('combobox', { name: 'Search components' })).toHaveValue('');
+  });
+
+  it('closes from its own button', async () => {
+    app('/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Search' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Search' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Close search' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull());
   });
 
   it('submits a search when no result is chosen', async () => {
     const { router } = app('/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Search' }));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Search components' }), 'lodash{Enter}');
     await waitFor(() => expect(router.state.location.search).toBe('?q=lodash'));
   });
 
-  it('turns the phone header into a search bar', async () => {
+  it('opens the same search from the phone header', async () => {
     setMedia(COMPACT, true);
     const { router } = app('/');
     expect(screen.queryByRole('combobox', { name: 'Search components' })).toBeNull();
     await userEvent.click(await screen.findByRole('button', { name: 'Search' }));
-    const layer = await screen.findByRole('dialog', { name: 'Search' });
-    const input = within(layer).getByRole('combobox', { name: 'Search components' });
+    const dialog = await screen.findByRole('dialog', { name: 'Search' });
+    const input = within(dialog).getByRole('combobox', { name: 'Search components' });
     expect(input).toHaveFocus();
     await userEvent.type(input, 'vue{Enter}');
     await waitFor(() => expect(router.state.location.search).toBe('?q=vue'));
-    expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search' })).toBeNull());
   });
 });
 

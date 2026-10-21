@@ -40,6 +40,9 @@
   "shell.search.clear": "Clear the search",
   "shell.search.close": "Close search",
   "shell.search.hint": "Search for components by name, group or version, or open a repository by its name.",
+  "shell.search.keysClose": "to close",
+  "shell.search.keysMove": "to move",
+  "shell.search.keysOpen": "to open",
   "shell.search.label": "Search components",
   "shell.search.open": "Search",
   "shell.search.placeholder": "Search for components or CVEs...",
@@ -47,8 +50,12 @@
   "shell.search.title": "Search",
   "shell.startup.failed": "Astrum Repository did not start",
   "shell.startup.loading": "Loading Astrum Repository",
+  "shell.startup.progress": "Loading ...",
   "shell.status.label": "System status",
-  "shell.status.failing": { "one": "{count} health check fails", "other": "{count} health checks fail" },
+  "shell.status.failing": {
+    "one": "{count} health check fails",
+    "other": "{count} health checks fail"
+  },
   "shell.theme.toDark": "Switch to the dark theme",
   "shell.theme.toLight": "Switch to the light theme",
   "shell.user.accessTokens": "Access Tokens",

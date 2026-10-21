@@ -172,8 +172,7 @@ test('search pages fit a phone', async ({ page }) => {
   const panel = page.getByRole('dialog', { name: 'Search' });
   await expect(panel).toBeVisible();
   const box = await panel.boundingBox();
-  expect(box?.width).toBe(390);
-  expect(box?.height).toBe(844);
+  expect(box?.width).toBeLessThanOrEqual(390);
   await panel.getByRole('combobox', { name: 'Search components' }).fill('left');
   await expect(panel.getByRole('option', { name: /left-pad/ })).toBeVisible();
   await noHorizontalScroll(page);

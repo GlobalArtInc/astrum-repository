@@ -8,9 +8,120 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>Astrum Repository</title>
+    <script src="/theme.js"></script>
+    <style>
+      html {
+        background: #0e1015;
+      }
+      html[data-theme="light"] {
+        background: #f6faf8;
+      }
+      body {
+        margin: 0;
+      }
+      .boot {
+        --astrum-logo-text: #1c1f2a;
+        --astrum-logo-accent: #6d5ef5;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 16px;
+        color: #1c1f2a;
+        font-family: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        background-color: #f6faf8;
+        background-image:
+          radial-gradient(60% 80% at 78% 28%, rgb(184 232 208 / 0.95) 0%, rgb(184 232 208 / 0) 70%),
+          radial-gradient(45% 65% at 96% 88%, rgb(196 237 218 / 0.9) 0%, rgb(196 237 218 / 0) 70%),
+          linear-gradient(100deg, #fafbfb 0%, #eef8f3 45%, #d3f0e2 100%);
+      }
+      [data-theme="dark"] .boot {
+        --astrum-logo-text: #ffffff;
+        --astrum-logo-accent: #a99bff;
+        color: #c5cad6;
+        background-color: #0e1015;
+        background-image:
+          radial-gradient(60% 80% at 78% 28%, rgb(46 160 112 / 0.16) 0%, rgb(46 160 112 / 0) 70%),
+          radial-gradient(45% 65% at 96% 88%, rgb(109 94 245 / 0.12) 0%, rgb(109 94 245 / 0) 70%),
+          linear-gradient(100deg, #0e1015 0%, #0f1519 50%, #0f1c19 100%);
+      }
+      .boot-logo {
+        display: block;
+        width: min(356px, 80vw);
+      }
+      .boot-logo svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .boot-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 15px;
+        line-height: 20px;
+      }
+      .boot-spinner {
+        box-sizing: border-box;
+        width: 16px;
+        height: 16px;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        opacity: 0.75;
+        animation: boot-spin 0.8s linear infinite;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-spinner {
+          animation-duration: 2.4s;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status" aria-label="Loading Astrum Repository">
+        <span class="boot-logo">
+        <svg width="357" height="44" viewBox="0 0 300 37" fill="none" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="boot-mark" x1="1" y1="3" x2="34" y2="36" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#8B5CF6" />
+              <stop offset="1" stop-color="#3B82F6" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M17.5 3C19.02 13.28 23.72 17.98 34 19.5C23.72 21.02 19.02 25.72 17.5 36C15.98 25.72 11.28 21.02 1 19.5C11.28 17.98 15.98 13.28 17.5 3Z"
+            fill="url(#boot-mark)"
+          />
+          <path
+            d="M33.5 1C33.95 4.01 34.98 5.05 38 5.5C34.98 5.95 33.95 6.99 33.5 10C33.05 6.99 32.02 5.95 29 5.5C32.02 5.05 33.05 4.01 33.5 1Z"
+            fill="var(--astrum-logo-accent)"
+          />
+          <text
+            x="45"
+            y="27.5"
+            font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+            font-size="27"
+            font-weight="700"
+            letter-spacing="-0.4"
+            fill="var(--astrum-logo-text)"
+          >
+            astrum <tspan font-weight="600" fill="var(--astrum-logo-accent)">repository</tspan>
+          </text>
+        </svg>
+        </span>
+        <span class="boot-status"><span class="boot-spinner" aria-hidden="true"></span>Loading ...</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
