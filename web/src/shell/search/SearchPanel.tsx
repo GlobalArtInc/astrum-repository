@@ -1,4 +1,5 @@
-import { ArrowLeft, Search, X } from 'lucide-react';
+import { Dialog, VisuallyHidden } from '@radix-ui/themes';
+import { Search, X } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useVisibleSearch } from '../../app/registry';
@@ -47,23 +48,54 @@ function markActive(container: HTMLElement | null, index: number): string | unde
   return chosen?.id;
 }
 
-export interface SearchPanelProps {
-  open: boolean;
-  onOpenChange(open: boolean): void;
-  layer?: boolean;
+export interface SearchTriggerProps {
+  onOpen(): void;
 }
 
-export function SearchPanel({ open, onOpenChange, layer = false }: SearchPanelProps) {
+export function SearchTrigger({ onOpen }: SearchTriggerProps) {
+  const t = useT();
+  return (
+    <button
+      type="button"
+      className={styles.trigger}
+      aria-haspopup="dialog"
+      aria-label={t('shell.search.open')}
+      onClick={onOpen}
+    >
+      <span className={styles.slot} aria-hidden="true">
+        <Search size={16} />
+      </span>
+      <span className={styles.placeholder}>{t('shell.search.placeholder')}</span>
+      <span className={styles.slot} aria-hidden="true">
+        <kbd className={styles.kbd}>{isMac() ? '⌘ K' : 'Ctrl K'}</kbd>
+      </span>
+    </button>
+  );
+}
+
+export interface SearchDialogProps {
+  open: boolean;
+  onOpenChange(open: boolean): void;
+}
+
+export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const t = useT();
   const navigate = useNavigate();
   const providers = useVisibleSearch();
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(-1);
   const [activeId, setActiveId] = useState<string | undefined>();
-  const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
   const listId = useId();
+
+  useEffect(() => {
+    if (!open) {
+      setQuery('');
+      setActive(-1);
+      setActiveId(undefined);
+    }
+  }, [open]);
 
   const resetActive = () => {
     markActive(results.current, -1);
@@ -71,35 +103,7 @@ export function SearchPanel({ open, onOpenChange, layer = false }: SearchPanelPr
     setActiveId(undefined);
   };
 
-  const finish = () => {
-    setQuery('');
-    resetActive();
-    input.current?.blur();
-    onOpenChange(false);
-  };
-
-  useEffect(() => {
-    if (open && document.activeElement !== input.current) {
-      input.current?.focus();
-    }
-    if (!open) {
-      setActive(-1);
-      setActiveId(undefined);
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || layer) {
-      return;
-    }
-    const outside = (event: PointerEvent) => {
-      if (container.current && !container.current.contains(event.target as Node)) {
-        onOpenChange(false);
-      }
-    };
-    document.addEventListener('pointerdown', outside);
-    return () => document.removeEventListener('pointerdown', outside);
-  }, [open, layer, onOpenChange]);
+  const close = () => onOpenChange(false);
 
   const move = (step: number) => {
     const count = items(results.current).length;
@@ -114,20 +118,7 @@ export function SearchPanel({ open, onOpenChange, layer = false }: SearchPanelPr
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      if (!open) {
-        onOpenChange(true);
-        return;
-      }
       move(event.key === 'ArrowDown' ? 1 : -1);
-      return;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      if (layer || !open) {
-        finish();
-      } else {
-        onOpenChange(false);
-      }
       return;
     }
     if (event.key === 'Enter') {
@@ -141,7 +132,7 @@ export function SearchPanel({ open, onOpenChange, layer = false }: SearchPanelPr
       for (const provider of providers) {
         const target = text ? provider.submit?.(text) : null;
         if (target) {
-          finish();
+          close();
           navigate(target);
           return;
         }
@@ -149,113 +140,97 @@ export function SearchPanel({ open, onOpenChange, layer = false }: SearchPanelPr
     }
   };
 
-  const shown = open || layer;
-  const field = (
-    <div className={styles.field} data-focused={shown || undefined}>
-      <span className={styles.slot} aria-hidden="true">
-        <Search size={16} />
-      </span>
-      <input
-        ref={input}
-        className={styles.input}
-        type="text"
-        role="combobox"
-        autoComplete="off"
-        spellCheck={false}
-        aria-expanded={shown}
-        aria-controls={listId}
-        aria-autocomplete="list"
-        aria-activedescendant={shown ? activeId : undefined}
-        aria-label={t('shell.search.label')}
-        placeholder={t('shell.search.placeholder')}
-        value={query}
-        onFocus={() => {
-          if (!open) {
-            onOpenChange(true);
-          }
-        }}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          resetActive();
-          if (!open) {
-            onOpenChange(true);
-          }
-        }}
-        onKeyDown={onKeyDown}
-      />
-      {query !== '' ? (
-        <button
-          type="button"
-          className={styles.clear}
-          aria-label={t('shell.search.clear')}
-          onClick={() => {
-            setQuery('');
-            resetActive();
-            input.current?.focus();
-          }}
-        >
-          <X size={14} aria-hidden="true" />
-        </button>
-      ) : (
-        !layer && (
-          <span className={styles.slot} aria-hidden="true">
-            <kbd className={styles.kbd}>{isMac() ? '⌘ K' : 'Ctrl K'}</kbd>
-          </span>
-        )
-      )}
-    </div>
-  );
-
-  const dropdown = shown && (
-    <SearchPanelContext.Provider value={{ close: finish }}>
-      <div className={styles.dropdown}>
-        <div
-          ref={results}
-          id={listId}
-          role="listbox"
-          aria-label={t('shell.search.results')}
-          className={styles.results}
-        >
-          {providers.length === 0 || query.trim() === '' ? (
-            <div className={styles.hint}>{t('shell.search.hint')}</div>
-          ) : null}
-          {providers.map((provider) => (
-            <provider.Results key={provider.id} query={query.trim()} close={finish} />
-          ))}
-        </div>
-      </div>
-    </SearchPanelContext.Provider>
-  );
-
-  if (layer) {
-    return (
-      <div className={styles.layer} role="dialog" aria-modal="true" aria-label={t('shell.search.title')}>
-        <div className={styles.bar}>
-          <button type="button" className={styles.back} aria-label={t('shell.search.close')} onClick={finish}>
-            <ArrowLeft size={20} aria-hidden="true" />
-          </button>
-          <div ref={container} className={styles.container}>
-            {field}
-            {dropdown}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div
-      ref={container}
-      role="search"
-      className={styles.container}
-      onBlur={(event) => {
-        if (open && !event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          onOpenChange(false);
-        }
-      }}
-    >
-      {field}
-      {dropdown}
-    </div>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Content
+        align="start"
+        maxWidth="720px"
+        className={styles.dialog}
+        aria-describedby={undefined}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          input.current?.focus();
+        }}
+      >
+        <VisuallyHidden>
+          <Dialog.Title>{t('shell.search.title')}</Dialog.Title>
+        </VisuallyHidden>
+        <SearchPanelContext.Provider value={{ close }}>
+          <div className={styles.field}>
+            <span className={styles.slot} aria-hidden="true">
+              <Search size={18} />
+            </span>
+            <input
+              ref={input}
+              className={styles.input}
+              type="text"
+              role="combobox"
+              autoComplete="off"
+              spellCheck={false}
+              aria-expanded="true"
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={activeId}
+              aria-label={t('shell.search.label')}
+              placeholder={t('shell.search.placeholder')}
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                resetActive();
+              }}
+              onKeyDown={onKeyDown}
+            />
+            {query !== '' && (
+              <button
+                type="button"
+                className={styles.clear}
+                aria-label={t('shell.search.clear')}
+                onClick={() => {
+                  setQuery('');
+                  resetActive();
+                  input.current?.focus();
+                }}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            )}
+            <Dialog.Close>
+              <button type="button" className={styles.escape} aria-label={t('shell.search.close')}>
+                Esc
+              </button>
+            </Dialog.Close>
+          </div>
+          <div
+            ref={results}
+            id={listId}
+            role="listbox"
+            aria-label={t('shell.search.results')}
+            className={styles.results}
+          >
+            {providers.length === 0 || query.trim() === '' ? (
+              <div className={styles.hint}>{t('shell.search.hint')}</div>
+            ) : null}
+            {providers.map((provider) => (
+              <provider.Results key={provider.id} query={query.trim()} close={close} />
+            ))}
+          </div>
+          <div className={styles.footer} aria-hidden="true">
+            <span className={styles.key}>
+              <kbd className={styles.kbd}>↑</kbd>
+              <kbd className={styles.kbd}>↓</kbd>
+              {t('shell.search.keysMove')}
+            </span>
+            <span className={styles.key}>
+              <kbd className={styles.kbd}>Enter</kbd>
+              {t('shell.search.keysOpen')}
+            </span>
+            <span className={styles.key}>
+              <kbd className={styles.kbd}>Esc</kbd>
+              {t('shell.search.keysClose')}
+            </span>
+          </div>
+        </SearchPanelContext.Provider>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 }

@@ -47,17 +47,19 @@ test('the menu collapses and remembers it', async ({ page }) => {
   await expect(menu.getByRole('link', { name: 'Dashboard' })).toBeVisible();
 });
 
-test('the header search opens a dropdown under its field', async ({ page }) => {
-  await page.keyboard.press('Control+k');
-  const input = page.getByRole('combobox', { name: 'Search components' });
+test('the header search opens a dialog over the dimmed page', async ({ page }) => {
+  await page.getByRole('banner').getByRole('button', { name: 'Search', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Search' });
+  await expect(dialog).toBeVisible();
+  const input = dialog.getByRole('combobox', { name: 'Search components' });
   await expect(input).toBeFocused();
-  const panel = page.getByRole('listbox', { name: 'Search suggestions' });
-  await expect(panel).toBeVisible();
-  const field = await input.boundingBox();
-  const dropdown = await panel.boundingBox();
-  expect(dropdown && field && dropdown.y > field.y + field.height).toBe(true);
+  await expect(dialog.getByRole('listbox', { name: 'Search suggestions' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(panel).toHaveCount(0);
+  await expect(dialog).toHaveCount(0);
+  await page.keyboard.press('Control+k');
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Control+k');
+  await expect(dialog).toHaveCount(0);
 });
 
 test('the header keeps the controls of Astrum One', async ({ page }) => {
@@ -67,6 +69,7 @@ test('the header keeps the controls of Astrum One', async ({ page }) => {
     .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')));
   expect(names).toEqual([
     'Collapse the menu',
+    'Search',
     'Refresh',
     'Switch to the light theme',
     'Language',

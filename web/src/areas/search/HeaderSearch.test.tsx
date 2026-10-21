@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { SearchPanel } from '../../shell/search';
+import { SearchDialog } from '../../shell/search';
 import { ADMIN_STATE, ANONYMOUS_STATE, jsonResponse, renderWithApp } from '../../test/render';
 import { searchArea } from '.';
 import { RECENT_KEY } from './recent';
@@ -47,7 +47,7 @@ function panel(path: string, state = ADMIN_STATE) {
     state,
     path,
     areas: [searchArea],
-    routes: [{ path: '*', element: <SearchPanel open onOpenChange={() => {}} /> }],
+    routes: [{ path: '*', element: <SearchDialog open onOpenChange={() => {}} /> }],
   });
 }
 

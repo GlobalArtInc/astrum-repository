@@ -15,7 +15,7 @@ import {
 } from './HeaderMenus';
 import { Logo } from './Logo';
 import styles from './Shell.module.css';
-import { SearchPanel } from './search';
+import { SearchDialog, SearchTrigger } from './search';
 
 export { isMac } from './search/SearchPanel';
 
@@ -52,7 +52,7 @@ export function Header({ compact, collapsed, onToggleMenu, searchOpen, onSearchO
         </Link>
       </div>
       <div className={styles.headerSearch}>
-        {!compact && <SearchPanel open={searchOpen} onOpenChange={onSearchOpenChange} />}
+        {!compact && <SearchTrigger onOpen={() => onSearchOpenChange(true)} />}
       </div>
       <div className={styles.headerEnd}>
         {compact ? <SearchButton onClick={() => onSearchOpenChange(true)} /> : <RefreshButton />}
@@ -62,7 +62,7 @@ export function Header({ compact, collapsed, onToggleMenu, searchOpen, onSearchO
         {!phone && <HelpMenu />}
         <UserMenu />
       </div>
-      {compact && searchOpen && <SearchPanel open onOpenChange={onSearchOpenChange} layer />}
+      <SearchDialog open={searchOpen} onOpenChange={onSearchOpenChange} />
     </header>
   );
 }
