@@ -4,6 +4,7 @@ import { chef } from './chef';
 import { hex } from './hex';
 import { huggingface } from './huggingface';
 import { nix } from './nix';
+import { nx } from './nx';
 import { openvsx } from './openvsx';
 import { p2 } from './p2';
 import { pacman } from './pacman';
@@ -85,6 +86,7 @@ export const USAGE_FORMATS = [
   'openvsx',
   'pacman',
   'turbo',
+  'nx',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1098,6 +1100,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
     vagrant(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   nix: (context) => nix(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   turbo: (context) => turbo(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  nx: (context) => nx(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),

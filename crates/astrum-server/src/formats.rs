@@ -25,6 +25,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_nix::Nix));
     content.register(Arc::new(astrum_format_npm::Npm::default()));
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
+    content.register(Arc::new(astrum_format_nx::Nx));
     content.register(Arc::new(astrum_format_openvsx::OpenVsx));
     content.register(Arc::new(astrum_format_p2::P2::default()));
     content.register(Arc::new(astrum_format_pacman::Pacman::default()));

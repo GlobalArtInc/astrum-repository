@@ -2,7 +2,7 @@ import { File } from 'lucide-react';
 import styles from './FormatLogo.module.css';
 import { FORMAT_LOGOS } from './formatLogos';
 
-const DARK_LOGOS = new Set(['cargo', 'helm', 'nuget', 'p2']);
+const DARK_LOGOS = new Set(['cargo', 'helm', 'nuget', 'nx', 'p2']);
 
 export function FormatLogo({ format }: { format: string }) {
   const logo = FORMAT_LOGOS[format];

@@ -147,6 +147,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "nx",
+        api_name: "nx",
+        types: &[H],
+    },
+    Format {
         id: "openvsx",
         api_name: "openvsx",
         types: HPG,
@@ -237,7 +242,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 33);
+        assert_eq!(ids.len(), 34);
     }
 
     #[test]
