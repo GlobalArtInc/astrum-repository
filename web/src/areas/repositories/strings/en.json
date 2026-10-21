@@ -552,6 +552,7 @@
   "repositories.formats.r": "Packages for R, served in the layout of CRAN.",
   "repositories.formats.raw": "Files of any format, without metadata requirements.",
   "repositories.formats.rubygems": "The standard package manager for Ruby.",
+  "repositories.formats.turbo": "A remote cache for Turborepo: task outputs that turbo run uploads and restores, kept apart per team.",
   "repositories.formats.vagrant": "Boxes for Vagrant, with the version metadata that vagrant box add, outdated and update read.",
   "repositories.formats.yum": "The main package manager of RPM-based Linux distributions.",
   "repositories.formats.other": "Manage {format} components.",

@@ -1105,3 +1105,21 @@ describe('openvsx usage', () => {
     expect(supportsUsage('openvsx')).toBe(true);
   });
 });
+
+describe('turbo usage', () => {
+  it('points Turborepo at the cache by environment, turbo.json and CI', () => {
+    const snippets = usageSnippets(context({ format: 'turbo', repositoryName: 'turbo-cache' }));
+    expect(ids(snippets)).toEqual(['environment', 'config', 'ci', 'run']);
+    const url = 'https://repo.example.org/repository/turbo-cache';
+    expect(code(snippets, 'environment')).toBe(
+      `export TURBO_API=${url}\nexport TURBO_TOKEN=<access token>\nexport TURBO_TEAM=<team>`,
+    );
+    expect(JSON.parse(code(snippets, 'config'))).toEqual({
+      $schema: 'https://turborepo.dev/schema.json',
+      remoteCache: { apiUrl: url, teamSlug: '<team>', signature: true },
+    });
+    expect(code(snippets, 'ci')).toContain(`TURBO_API: ${url}`);
+    expect(code(snippets, 'ci')).toContain('TURBO_TOKEN: $' + '{{ secrets.ASTRUM_TOKEN }}');
+    expect(supportsUsage('turbo')).toBe(true);
+  });
+});
