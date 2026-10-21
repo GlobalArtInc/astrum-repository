@@ -254,6 +254,7 @@ dependencies = [
  "astrum-format-rubygems",
  "astrum-format-swift",
  "astrum-format-terraform",
+ "astrum-format-turbo",
  "astrum-format-vagrant",
  "astrum-format-yum",
  "astrum-logging",
@@ -1206,6 +1207,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-turbo"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-content",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "serde_json",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-vagrant"
 version = "3.0.0-dev"
 dependencies = [
@@ -1446,6 +1460,7 @@ dependencies = [
  "astrum-format-rubygems",
  "astrum-format-swift",
  "astrum-format-terraform",
+ "astrum-format-turbo",
  "astrum-format-vagrant",
  "astrum-format-yum",
  "astrum-logging",

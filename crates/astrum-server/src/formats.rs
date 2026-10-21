@@ -36,6 +36,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_swift::Swift));
     content.register(Arc::new(astrum_format_terraform::Terraform::default()));
     content.register(Arc::new(astrum_format_rubygems::Rubygems));
+    content.register(Arc::new(astrum_format_turbo::Turbo));
     content.register(Arc::new(astrum_format_vagrant::Vagrant));
     content.register(Arc::new(astrum_format_yum::Yum::default()));
 }

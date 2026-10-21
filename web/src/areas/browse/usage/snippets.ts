@@ -11,6 +11,7 @@ import { pub } from './pub';
 import { puppet } from './puppet';
 import { swift } from './swift';
 import { terraform } from './terraform';
+import { turbo } from './turbo';
 import { vagrant } from './vagrant';
 
 export interface UsageComponent {
@@ -83,6 +84,7 @@ export const USAGE_FORMATS = [
   'hex',
   'openvsx',
   'pacman',
+  'turbo',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1095,6 +1097,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   vagrant: (context) =>
     vagrant(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   nix: (context) => nix(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  turbo: (context) => turbo(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
