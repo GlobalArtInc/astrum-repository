@@ -15,8 +15,8 @@ repository is public: never commit secrets.
   gitlfs, go, helm, huggingface, maven2, npm, nuget, p2, pypi, r, raw, rubygems, swift, terraform and yum, and
   two new ones, pub and Ansible Galaxy (`ansible`); since 2026-10-21 also Open VSX (`openvsx`), pacman,
   Vagrant, Nix (binary cache), Hex, Puppet Forge (`puppet`) and Chef Supermarket (`chef`), built in parallel
-  from one brief, one worktree each, and a hosted-only Turborepo remote cache (`turbo`,
-  `crates/astrum-format-turbo`). The web interface speaks twelve languages, pulled from Ownlate at build.
+  from one brief, one worktree each, and hosted-only remote caches for Turborepo (`turbo`, `crates/astrum-format-turbo`)
+  and Nx (`nx`, `crates/astrum-format-nx`). The web interface speaks twelve languages, pulled from Ownlate at build.
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.

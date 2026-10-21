@@ -33,6 +33,7 @@ astrum-format-maven.workspace = true
 astrum-format-nix.workspace = true
 astrum-format-npm.workspace = true
 astrum-format-nuget.workspace = true
+astrum-format-nx.workspace = true
 astrum-format-openvsx.workspace = true
 astrum-format-p2.workspace = true
 astrum-format-pacman.workspace = true

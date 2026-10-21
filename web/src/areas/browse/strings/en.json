@@ -249,6 +249,8 @@
   "browse.usage.hint.turboEnvironment": "Turborepo reads and writes its remote cache here. Create an access token on your account page: a read token only restores outputs, a write token also uploads them. TURBO_TEAM keeps the caches of teams apart",
   "browse.usage.hint.turboConfig": "Put the cache address into turbo.json instead of the environment; keep the token in TURBO_TOKEN. With signature on, set TURBO_REMOTE_CACHE_SIGNATURE_KEY so that Turborepo signs what it uploads and checks what it downloads",
   "browse.usage.hint.turboCi": "Store the access token and the signing key as secrets of the repository and pass them to the steps that run turbo",
+  "browse.usage.hint.nxEnvironment": "Nx 20.8 and later read and write their remote cache here. Create an access token on your account page: a read token only restores task outputs, a write token also uploads them. Leave Nx Cloud unconnected in nx.json",
+  "browse.usage.hint.nxCi": "Store the access token as a secret of the repository and pass it to the steps that run nx",
   "browse.usage.hint.p2Eclipse": "Add the repository as a software site; Eclipse then installs and updates through it",
   "browse.usage.hint.p2Tycho": "Put into pom.xml of the Tycho build; it then resolves its target platform through this repository",
   "browse.usage.hint.p2Director": "Installs into the Eclipse that runs the command; add -destination to install into another one",

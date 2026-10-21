@@ -1123,3 +1123,18 @@ describe('turbo usage', () => {
     expect(supportsUsage('turbo')).toBe(true);
   });
 });
+
+describe('nx usage', () => {
+  it('points Nx at the self-hosted cache by environment and CI', () => {
+    const snippets = usageSnippets(context({ format: 'nx', repositoryName: 'nx-cache' }));
+    expect(ids(snippets)).toEqual(['environment', 'ci', 'run']);
+    const url = 'https://repo.example.org/repository/nx-cache';
+    expect(code(snippets, 'environment')).toBe(
+      `export NX_SELF_HOSTED_REMOTE_CACHE_SERVER=${url}\nexport NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN=<access token>`,
+    );
+    expect(code(snippets, 'ci')).toContain(
+      'NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN: $' + '{{ secrets.ASTRUM_TOKEN }}',
+    );
+    expect(supportsUsage('nx')).toBe(true);
+  });
+});

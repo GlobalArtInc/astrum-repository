@@ -5,7 +5,7 @@ import { useT } from '../../../i18n';
 import { FORMAT_LOGOS } from '../../../ui/formatLogos';
 import styles from './Wizard.module.css';
 
-const DARK_LOGOS = new Set(['cargo', 'helm', 'nuget', 'p2']);
+const DARK_LOGOS = new Set(['cargo', 'helm', 'nuget', 'nx', 'p2']);
 
 export function Logo({ format, size = 24 }: { format: string; size?: number }) {
   const logo = FORMAT_LOGOS[format];
