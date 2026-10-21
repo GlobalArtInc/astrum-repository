@@ -151,6 +151,34 @@
   font-size: 12px;
 }
 
+.inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.chipRemove {
+  margin: -2px -4px -2px 0;
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--gray-a5);
+}
+
 .empty {
   display: flex;
   flex-direction: column;

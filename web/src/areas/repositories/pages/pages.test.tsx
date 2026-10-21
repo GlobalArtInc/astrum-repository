@@ -415,10 +415,11 @@ describe('the repository page', () => {
     await userEvent.click(screen.getByRole('tab', { name: /Access & Security/ }));
     expect(await screen.findByText('view-public')).toBeInTheDocument();
     expect(screen.queryByText('view-other')).not.toBeInTheDocument();
-    expect(screen.getByText('readers')).toBeInTheDocument();
-    expect(screen.getByText('nested')).toBeInTheDocument();
-    expect(screen.getByText('jane')).toBeInTheDocument();
-    expect(screen.getByText('Anonymous users cannot reach this repository.')).toBeInTheDocument();
+    const roles = screen.getByRole('region', { name: 'Roles with Access' });
+    expect(within(roles).getByRole('link', { name: 'readers' })).toBeInTheDocument();
+    expect(within(roles).getByRole('link', { name: 'nested' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'jane' })).toHaveAttribute('href', '/admin/security/users/jane');
+    expect(screen.getByText('Anonymous access is turned off for the whole server.')).toBeInTheDocument();
   });
 
   it('gives readers the settings without actions', async () => {

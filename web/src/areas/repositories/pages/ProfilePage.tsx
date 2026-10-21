@@ -33,20 +33,14 @@ import {
   useUiRepositories,
 } from '../api';
 import { Count } from '../components/bits';
-import {
-  AuditCard,
-  Card,
-  repositoryPrivileges,
-  rolesWith,
-  storeTypeName,
-  TypeChip,
-} from '../components/EditTabs';
+import { AuditCard, Card, storeTypeName, TypeChip } from '../components/EditTabs';
 import { ProfileTabs } from '../components/ProfileTabs';
 import styles from '../components/profile.module.css';
 import { RepositoryBadges, RepositoryButtons } from '../components/RepositoryHeader';
 import tabs from '../components/tabs.module.css';
 import { useRepositoryActions } from '../components/useRepositoryActions';
 import { Logo } from '../components/Wizard';
+import { type PrivilegeRow, type RoleRow, repositoryPrivileges, rolesWith } from '../model/access';
 import type { RepositoryDocument } from '../model/document';
 import { cleanupPolicies, fromDocument } from '../model/form';
 import { apiFormat } from '../model/spec';
@@ -339,12 +333,8 @@ function SecurityTab({ repository }: { repository: UiRepository }) {
   const canRoles = useCan('astrum:roles:read');
   const canUsers = useCan('astrum:users:read');
   const canAnonymous = useCan('astrum:settings:read');
-  const privileges = useApi<Parameters<typeof repositoryPrivileges>[0][number][]>(
-    canPrivileges ? '/service/rest/v1/security/privileges' : null,
-  );
-  const roles = useApi<Parameters<typeof rolesWith>[0][number][]>(
-    canRoles ? '/service/rest/v1/security/roles' : null,
-  );
+  const privileges = useApi<PrivilegeRow[]>(canPrivileges ? '/service/rest/v1/security/privileges' : null);
+  const roles = useApi<RoleRow[]>(canRoles ? '/service/rest/v1/security/roles' : null);
   const users = useApi<Array<{ userId: string; roles: string[] }>>(
     canUsers ? '/service/rest/v1/security/users' : null,
   );
