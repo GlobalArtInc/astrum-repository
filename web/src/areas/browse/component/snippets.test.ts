@@ -106,6 +106,130 @@ describe('component snippets of the M4c formats', () => {
     expect(snippets[1]?.hint).toBe('browse.component.snippet.ansibleRequirements');
   });
 
+  it('give Berksfile, Policyfile and knife lines for Chef cookbooks', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'chef',
+      group: '',
+      name: 'nginx',
+      version: '12.3.4',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['berksfile', 'policyfile', 'knife']);
+    const url = 'https://repo.example.org/repository/r';
+    expect(snippets[0]?.code).toBe(`source "${url}"\n\ncookbook "nginx", "= 12.3.4"`);
+    expect(snippets[0]?.hint).toBe('browse.component.snippet.chefBerksfile');
+    expect(snippets[1]?.code).toContain(`default_source :supermarket, "${url}"`);
+    expect(snippets[1]?.hint).toBe('browse.component.snippet.chefPolicyfile');
+    expect(snippets[2]?.code).toBe(`knife supermarket download nginx 12.3.4 -m ${url}`);
+  });
+
+  it('give puppet module install and the Puppetfile line for Puppet modules', () => {
+    expect(
+      componentSnippets({ ...base, format: 'puppet', group: 'puppetlabs', name: 'stdlib', version: '9.6.0' }),
+    ).toEqual([
+      {
+        id: 'install',
+        label: 'puppet module install',
+        code: 'puppet module install puppetlabs-stdlib --version 9.6.0 --module_repository https://repo.example.org/repository/r',
+      },
+      {
+        id: 'puppetfile',
+        label: 'Puppetfile',
+        hint: 'browse.component.snippet.puppetfile',
+        code: "mod 'puppetlabs-stdlib', '9.6.0'",
+      },
+    ]);
+  });
+
+  it('give vagrant box add and a Vagrantfile for Vagrant boxes', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'vagrant',
+      group: 'acme',
+      name: 'base',
+      version: '1.2.0',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['add', 'vagrantfile']);
+    expect(snippets[0]?.code).toBe(
+      'vagrant box add https://repo.example.org/repository/r/acme/base --box-version 1.2.0',
+    );
+    expect(snippets[1]?.code).toBe(
+      'Vagrant.configure("2") do |config|\n  config.vm.box = "acme/base"\n  config.vm.box_url = "https://repo.example.org/repository/r/acme/base"\n  config.vm.box_version = "1.2.0"\nend',
+    );
+    expect(snippets[1]?.hint).toBe('browse.component.snippet.vagrantfile');
+  });
+
+  it('give nix copy for Nix store paths', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'nix',
+      group: 'mw9ls4zxx884y7yq0a04ildfdjfy1vn2',
+      name: 'nix',
+      version: '2.34.9',
+    });
+    expect(snippets).toEqual([
+      {
+        id: 'copy',
+        label: 'nix copy',
+        hint: 'browse.component.snippet.nixCopy',
+        code: 'nix copy --from https://repo.example.org/repository/r /nix/store/mw9ls4zxx884y7yq0a04ildfdjfy1vn2-nix-2.34.9',
+      },
+    ]);
+    expect(componentSnippets({ ...base, format: 'nix', group: '', name: 'x', version: '' })).toEqual([]);
+  });
+
+  it('give mix.exs and rebar.config dependencies for Hex packages', () => {
+    const hosted = componentSnippets({
+      ...base,
+      repository: 'hex-local',
+      repositoryType: 'hosted',
+      format: 'hex',
+      group: '',
+      name: 'hello',
+      version: '1.4.2',
+    });
+    expect(hosted).toEqual([
+      {
+        id: 'mix',
+        label: 'mix.exs',
+        hint: 'browse.component.snippet.mixDeps',
+        code: '{:hello, "~> 1.4", repo: "hex-local"}',
+      },
+      {
+        id: 'rebar',
+        label: 'rebar.config',
+        hint: 'browse.component.snippet.rebarDeps',
+        code: '{hello, "1.4.2"}',
+      },
+    ]);
+    const proxied = componentSnippets({
+      ...base,
+      repository: 'hexpm',
+      repositoryType: 'proxy',
+      format: 'hex',
+      group: '',
+      name: 'jason',
+      version: '1.4.4',
+    });
+    expect(proxied[0]?.code).toBe('{:jason, "~> 1.4"}');
+  });
+
+  it('give the editor command and ovsx get for Open VSX extensions', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'openvsx',
+      group: 'acme',
+      name: 'hello',
+      version: '1.2.0',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['install', 'get']);
+    expect(snippets[0]?.code).toBe('codium --install-extension acme.hello@1.2.0');
+    expect(snippets[0]?.hint).toBe('browse.component.snippet.openvsxInstall');
+    expect(snippets[1]?.code).toBe(
+      'npx ovsx get acme.hello -v 1.2.0 -r https://repo.example.org/repository/r',
+    );
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',
@@ -128,6 +252,9 @@ describe('component snippets of Alpine', () => {
     expect(
       componentSnippets({ ...base, format: 'alpine', group: 'x86_64', name: 'hello', version: '1.0-r0' }),
     ).toEqual([{ id: 'apk', label: 'apk', code: 'apk add hello=1.0-r0' }]);
+    expect(
+      componentSnippets({ ...base, format: 'pacman', group: 'x86_64', name: 'hello', version: '1:1.0-2' }),
+    ).toEqual([{ id: 'pacman', label: 'pacman', code: 'sudo pacman -S hello' }]);
   });
 });
 

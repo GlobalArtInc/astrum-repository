@@ -1,9 +1,15 @@
-import type { RepositoryDomain } from '../../../api';
+import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { guideComponentName } from '../links';
 import { installCommand, requirementsFile } from '../usage/ansible';
+import { berksfile, knifeDownload, policyfile } from '../usage/chef';
+import { mixDependency, rebarDependency } from '../usage/hex';
+import { copyFrom, storePath } from '../usage/nix';
+import { getCommand } from '../usage/openvsx';
 import { directorCommand, installableUnit } from '../usage/p2';
 import { pubAdd, pubDependency } from '../usage/pub';
+import { forgeUrl, puppetfileLine, installCommand as puppetInstall } from '../usage/puppet';
 import { dockerRegistry, repositoryAddress } from '../usage/snippets';
+import { boxAdd, vagrantfile } from '../usage/vagrant';
 
 export interface ComponentSnippet {
   id: string;
@@ -19,6 +25,7 @@ export interface ComponentSnippetContext {
   version: string;
   baseUrl: string;
   repository: string;
+  repositoryType?: RepositoryType;
   domain?: RepositoryDomain;
 }
 
@@ -218,6 +225,10 @@ function alpine({ name, version }: ComponentSnippetContext): ComponentSnippet[] 
   return [{ id: 'apk', label: 'apk', code: `apk add ${name}=${version}` }];
 }
 
+function pacman({ name }: ComponentSnippetContext): ComponentSnippet[] {
+  return [{ id: 'pacman', label: 'pacman', code: `sudo pacman -S ${name}` }];
+}
+
 function pub(context: ComponentSnippetContext): ComponentSnippet[] {
   const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
   return [
@@ -247,6 +258,101 @@ function ansible(context: ComponentSnippetContext): ComponentSnippet[] {
       hint: 'browse.component.snippet.ansibleRequirements',
       code: requirementsFile(url, collection, context.version),
     },
+  ];
+}
+
+function chef(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  return [
+    {
+      id: 'berksfile',
+      label: 'Berksfile',
+      hint: 'browse.component.snippet.chefBerksfile',
+      code: berksfile(url, context.name, context.version),
+    },
+    {
+      id: 'policyfile',
+      label: 'Policyfile.rb',
+      hint: 'browse.component.snippet.chefPolicyfile',
+      code: policyfile(url, context.name, context.version),
+    },
+    { id: 'knife', label: 'knife', code: knifeDownload(url, context.name, context.version) },
+  ];
+}
+
+function puppet(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = forgeUrl(repositoryAddress(context.baseUrl, context.repository, context.domain));
+  const slug = context.group ? `${context.group}-${context.name}` : context.name;
+  return [
+    { id: 'install', label: 'puppet module install', code: puppetInstall(url, slug, context.version) },
+    {
+      id: 'puppetfile',
+      label: 'Puppetfile',
+      hint: 'browse.component.snippet.puppetfile',
+      code: puppetfileLine(slug, context.version),
+    },
+  ];
+}
+
+function vagrant(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  const box = `${context.group}/${context.name}`;
+  return [
+    { id: 'add', label: 'vagrant box add', code: boxAdd(url, box, context.version) },
+    {
+      id: 'vagrantfile',
+      label: 'Vagrantfile',
+      hint: 'browse.component.snippet.vagrantfile',
+      code: vagrantfile(url, box, context.version),
+    },
+  ];
+}
+
+function nix(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  const path = storePath({ group: context.group, name: context.name, version: context.version });
+  if (!path) {
+    return [];
+  }
+  return [
+    {
+      id: 'copy',
+      label: 'nix copy',
+      hint: 'browse.component.snippet.nixCopy',
+      code: copyFrom(url, path),
+    },
+  ];
+}
+
+function hex(context: ComponentSnippetContext): ComponentSnippet[] {
+  const repository = context.repositoryType === 'proxy' ? undefined : context.repository;
+  return [
+    {
+      id: 'mix',
+      label: 'mix.exs',
+      hint: 'browse.component.snippet.mixDeps',
+      code: mixDependency(context.name, context.version, repository),
+    },
+    {
+      id: 'rebar',
+      label: 'rebar.config',
+      hint: 'browse.component.snippet.rebarDeps',
+      code: rebarDependency(context.name, context.version),
+    },
+  ];
+}
+
+function openvsx(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  const id = context.group ? `${context.group}.${context.name}` : context.name;
+  return [
+    {
+      id: 'install',
+      label: 'codium',
+      hint: 'browse.component.snippet.openvsxInstall',
+      code: `codium --install-extension ${id}@${context.version}`,
+    },
+    { id: 'get', label: 'ovsx get', code: getCommand(url, id, context.version) },
   ];
 }
 
@@ -282,10 +388,24 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return p2(context);
     case 'alpine':
       return alpine(context);
+    case 'pacman':
+      return pacman(context);
     case 'pub':
       return pub(context);
     case 'ansible':
       return ansible(context);
+    case 'chef':
+      return chef(context);
+    case 'puppet':
+      return puppet(context);
+    case 'vagrant':
+      return vagrant(context);
+    case 'nix':
+      return nix(context);
+    case 'hex':
+      return hex(context);
+    case 'openvsx':
+      return openvsx(context);
     default:
       return [];
   }

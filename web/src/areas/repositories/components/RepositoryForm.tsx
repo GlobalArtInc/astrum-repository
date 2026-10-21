@@ -147,6 +147,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   alpine: 'https://dl-cdn.alpinelinux.org/alpine/',
   ansible: 'https://galaxy.ansible.com',
   cargo: 'https://index.crates.io',
+  chef: 'https://supermarket.chef.io',
   cocoapods: 'https://cdn.cocoapods.org/',
   composer: 'https://repo.packagist.org',
   conda: 'https://conda.anaconda.org/conda-forge/',
@@ -154,17 +155,23 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   apt: 'https://example.com/repository/',
   go: 'https://example.com/repository/',
   maven2: 'https://repo1.maven.org/maven2/',
+  nix: 'https://cache.nixos.org',
   npm: 'https://registry.npmjs.org/',
+  openvsx: 'https://open-vsx.org',
   p2: 'https://download.eclipse.org/releases/2024-03/',
+  pacman: 'https://geo.mirror.pkgbuild.com/',
   pub: 'https://pub.dev',
+  puppet: 'https://forgeapi.puppet.com',
   pypi: 'https://pypi.org/',
   r: 'https://cloud.r-project.org/',
   docker: 'https://registry-1.docker.io',
   helm: 'https://charts.helm.sh/stable/',
+  hex: 'https://repo.hex.pm',
   huggingface: 'https://huggingface.co/',
   raw: 'https://example.org/files/',
   swift: 'https://packages.example.com/',
   terraform: 'https://registry.terraform.io',
+  vagrant: 'https://vagrantcloud.com',
 };
 
 export function sameName(left: string, right: string): boolean {
@@ -564,6 +571,31 @@ export function RepositoryForm(props: RepositoryFormProps) {
           </Section>
         )}
 
+        {sections.nix(spec) && (
+          <Section
+            title={t('repositories.form.sections.nix')}
+            description={t('repositories.form.sections.nixText')}
+          >
+            <TextInput
+              {...field('nixStoreDir')}
+              label={t('repositories.form.nixStoreDir')}
+              hint={t('repositories.form.nixStoreDirHint')}
+            />
+            <NumberInput
+              {...field('nixPriority')}
+              label={t('repositories.form.nixPriority')}
+              hint={t('repositories.form.nixPriorityHint')}
+              min={0}
+              max={1000}
+            />
+            <CheckInput
+              {...field('nixWantMassQuery')}
+              label={t('repositories.form.nixWantMassQuery')}
+              description={t('repositories.form.nixWantMassQueryHint')}
+            />
+          </Section>
+        )}
+
         {sections.conanProxy(spec) && (
           <Section
             title={t('repositories.form.sections.conan')}
@@ -630,6 +662,32 @@ export function RepositoryForm(props: RepositoryFormProps) {
           </Section>
         )}
 
+        {sections.pacmanSigning(spec) && (
+          <Section
+            title={t('repositories.form.sections.pacmanSigning')}
+            description={t(
+              spec.type === 'group'
+                ? 'repositories.form.sections.pacmanSigningGroupText'
+                : 'repositories.form.sections.pacmanSigningText',
+              { key: `${values.name.trim() || '<name>'}.key` },
+            )}
+          >
+            <TextAreaInput
+              {...field('pacmanKeypair')}
+              label={t('repositories.form.pacmanKeypair')}
+              hint={
+                !creating && hasSection(document, 'pacmanSigning')
+                  ? t('repositories.form.pacmanKeypairStored')
+                  : t('repositories.form.pacmanKeypairHint')
+              }
+            />
+            <SecretInput
+              {...field('pacmanPassphrase')}
+              label={t('repositories.form.pacmanPassphrase')}
+              hint={t('repositories.form.pacmanPassphraseHint')}
+            />
+          </Section>
+        )}
         {sections.alpineSigning(spec) && (
           <Section
             title={t('repositories.form.sections.alpineSigning')}
@@ -653,6 +711,23 @@ export function RepositoryForm(props: RepositoryFormProps) {
               {...field('alpinePassphrase')}
               label={t('repositories.form.alpinePassphrase')}
               hint={t('repositories.form.alpinePassphraseHint')}
+            />
+          </Section>
+        )}
+
+        {sections.hexSigning(spec) && (
+          <Section
+            title={t('repositories.form.sections.hexSigning')}
+            description={t('repositories.form.sections.hexSigningText')}
+          >
+            <TextAreaInput
+              {...field('hexKeypair')}
+              label={t('repositories.form.hexKeypair')}
+              hint={
+                !creating && hasSection(document, 'hexSigning')
+                  ? t('repositories.form.hexKeypairStored')
+                  : t('repositories.form.hexKeypairHint')
+              }
             />
           </Section>
         )}

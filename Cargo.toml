@@ -18,6 +18,7 @@ astrum-format-alpine = { path = "crates/astrum-format-alpine" }
 astrum-format-ansible = { path = "crates/astrum-format-ansible" }
 astrum-format-apt = { path = "crates/astrum-format-apt" }
 astrum-format-cargo = { path = "crates/astrum-format-cargo" }
+astrum-format-chef = { path = "crates/astrum-format-chef" }
 astrum-format-cocoapods = { path = "crates/astrum-format-cocoapods" }
 astrum-format-composer = { path = "crates/astrum-format-composer" }
 astrum-format-conan = { path = "crates/astrum-format-conan" }
@@ -26,17 +27,23 @@ astrum-format-docker = { path = "crates/astrum-format-docker" }
 astrum-format-gitlfs = { path = "crates/astrum-format-gitlfs" }
 astrum-format-go = { path = "crates/astrum-format-go" }
 astrum-format-helm = { path = "crates/astrum-format-helm" }
+astrum-format-hex = { path = "crates/astrum-format-hex" }
 astrum-format-huggingface = { path = "crates/astrum-format-huggingface" }
 astrum-format-maven = { path = "crates/astrum-format-maven" }
+astrum-format-nix = { path = "crates/astrum-format-nix" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-nuget = { path = "crates/astrum-format-nuget" }
+astrum-format-openvsx = { path = "crates/astrum-format-openvsx" }
 astrum-format-p2 = { path = "crates/astrum-format-p2" }
+astrum-format-pacman = { path = "crates/astrum-format-pacman" }
 astrum-format-pub = { path = "crates/astrum-format-pub" }
+astrum-format-puppet = { path = "crates/astrum-format-puppet" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-r = { path = "crates/astrum-format-r" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
 astrum-format-swift = { path = "crates/astrum-format-swift" }
 astrum-format-terraform = { path = "crates/astrum-format-terraform" }
+astrum-format-vagrant = { path = "crates/astrum-format-vagrant" }
 astrum-mail = { path = "crates/astrum-mail" }
 astrum-mcp = { path = "crates/astrum-mcp" }
 astrum-outbound = { path = "crates/astrum-outbound" }
@@ -83,6 +90,7 @@ mime_guess = "2"
 multer = "3"
 percent-encoding = "2"
 pgp = { version = "0.21", default-features = false }
+prost = "0.14"
 quick-xml = "0.42"
 rand = "0.9"
 rand_core06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }

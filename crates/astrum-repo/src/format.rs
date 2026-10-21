@@ -72,6 +72,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "chef",
+        api_name: "chef",
+        types: HPG,
+    },
+    Format {
         id: "cocoapods",
         api_name: "cocoapods",
         types: &[P],
@@ -112,6 +117,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "hex",
+        api_name: "hex",
+        types: HPG,
+    },
+    Format {
         id: "huggingface",
         api_name: "huggingface",
         types: &[P],
@@ -119,6 +129,11 @@ pub const FORMATS: &[Format] = &[
     Format {
         id: "maven2",
         api_name: "maven",
+        types: HPG,
+    },
+    Format {
+        id: "nix",
+        api_name: "nix",
         types: HPG,
     },
     Format {
@@ -132,13 +147,28 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "openvsx",
+        api_name: "openvsx",
+        types: HPG,
+    },
+    Format {
         id: "p2",
         api_name: "p2",
         types: &[P],
     },
     Format {
+        id: "pacman",
+        api_name: "pacman",
+        types: HPG,
+    },
+    Format {
         id: "pub",
         api_name: "pub",
+        types: HPG,
+    },
+    Format {
+        id: "puppet",
+        api_name: "puppet",
         types: HPG,
     },
     Format {
@@ -172,6 +202,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "vagrant",
+        api_name: "vagrant",
+        types: HPG,
+    },
+    Format {
         id: "yum",
         api_name: "yum",
         types: HPG,
@@ -197,7 +232,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 25);
+        assert_eq!(ids.len(), 32);
     }
 
     #[test]

@@ -71,7 +71,13 @@ export interface RepositoryValues {
   aptPassphrase: string;
   alpineKeypair: string;
   alpinePassphrase: string;
+  hexKeypair: string;
+  pacmanKeypair: string;
+  pacmanPassphrase: string;
   conanVersion: string;
+  nixStoreDir: string;
+  nixPriority: number | null;
+  nixWantMassQuery: boolean;
   upstreamHost: string;
   signingKeypair: string;
   signingPassphrase: string;
@@ -165,7 +171,13 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'aptPassphrase', path: ['aptSigning', 'passphrase'], kind: 'secret' },
   { key: 'alpineKeypair', path: ['alpineSigning', 'keypair'], kind: 'secret' },
   { key: 'alpinePassphrase', path: ['alpineSigning', 'passphrase'], kind: 'secret' },
+  { key: 'hexKeypair', path: ['hexSigning', 'keypair'], kind: 'secret' },
+  { key: 'pacmanKeypair', path: ['pacmanSigning', 'keypair'], kind: 'secret' },
+  { key: 'pacmanPassphrase', path: ['pacmanSigning', 'passphrase'], kind: 'secret' },
   { key: 'conanVersion', path: ['conanProxy', 'conanVersion'], kind: 'enum' },
+  { key: 'nixStoreDir', path: ['nix', 'storeDir'], kind: 'text' },
+  { key: 'nixPriority', path: ['nix', 'priority'], kind: 'int' },
+  { key: 'nixWantMassQuery', path: ['nix', 'wantMassQuery'], kind: 'bool', fallback: true },
   { key: 'upstreamHost', path: ['terraform', 'upstreamHost'], kind: 'text' },
   { key: 'signingKeypair', path: ['terraformSigning', 'keypair'], kind: 'secret' },
   { key: 'signingPassphrase', path: ['terraformSigning', 'passphrase'], kind: 'secret' },
@@ -302,12 +314,13 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
     storage.latestPolicy = false;
   }
   if (sections.proxy(spec)) {
+    const nix = spec.format === 'nix';
     document.proxy = {
       remoteUrl: '',
-      contentMaxAge: spec.format === 'maven2' ? -1 : 1440,
-      metadataMaxAge: 1440,
+      contentMaxAge: spec.format === 'maven2' || nix ? -1 : 1440,
+      metadataMaxAge: nix ? 60 : 1440,
     };
-    document.negativeCache = { enabled: true, timeToLive: 1440 };
+    document.negativeCache = { enabled: true, timeToLive: nix ? 60 : 1440 };
     document.httpClient = {
       blocked: false,
       autoBlock: true,
@@ -351,6 +364,9 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
   if (sections.conanProxy(spec)) {
     document.conanProxy = { conanVersion: 'V2' };
   }
+  if (sections.nix(spec)) {
+    document.nix = { storeDir: '/nix/store', priority: 40, wantMassQuery: true };
+  }
   if (sections.apt(spec)) {
     document.apt =
       spec.type === 'hosted' ? { distribution: '' } : { flat: false, enforceDistribution: false };
@@ -361,6 +377,17 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
       : { contentDisposition: 'ATTACHMENT' };
   }
   return document;
+}
+
+const NIX_STORE_DIR = /^(\/[A-Za-z0-9+._-]+)+$/;
+
+export function isStoreDir(text: string): boolean {
+  const dir = text.trim();
+  return (
+    dir.length <= 256 &&
+    NIX_STORE_DIR.test(dir) &&
+    dir.split('/').every((segment) => segment !== '.' && segment !== '..')
+  );
 }
 
 const TERRAFORM_HOST = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::[0-9]{1,5})?$/;
@@ -501,6 +528,14 @@ export function validate(values: RepositoryValues, context: ValidationContext, t
       }
     }
   }
+  if (sections.nix(spec)) {
+    if (values.nixStoreDir.trim() !== '' && !isStoreDir(values.nixStoreDir)) {
+      errors.nixStoreDir = t('repositories.form.errors.nixStoreDir');
+    }
+    if (values.nixPriority !== null && !between(values.nixPriority, 0, 1000)) {
+      errors.nixPriority = t('repositories.form.errors.nixPriority');
+    }
+  }
   if (sections.group(spec) && values.memberNames.length === 0) {
     errors.memberNames = t('repositories.form.errors.membersRequired');
   }
@@ -539,6 +574,8 @@ const SAME_NAME: ReadonlySet<string> = new Set(FIELDS.map((def) => def.key));
 const SIGNING_FIELDS: Record<string, readonly [FieldKey, FieldKey]> = {
   alpine: ['alpineKeypair', 'alpinePassphrase'],
   apt: ['aptKeypair', 'aptPassphrase'],
+  hex: ['hexKeypair', 'hexKeypair'],
+  pacman: ['pacmanKeypair', 'pacmanPassphrase'],
   yum: ['yumKeypair', 'yumPassphrase'],
 };
 
@@ -572,6 +609,16 @@ export function formField(id: string, spec: Spec): FieldKey | null {
       return 'aptKeypair';
     case 'alpineSigning':
       return 'alpineKeypair';
+    case 'storeDir':
+      return 'nixStoreDir';
+    case 'priority':
+      return 'nixPriority';
+    case 'wantMassQuery':
+      return 'nixWantMassQuery';
+    case 'hexSigning':
+      return 'hexKeypair';
+    case 'pacmanSigning':
+      return 'pacmanKeypair';
     default:
       return SAME_NAME.has(last) ? (last as FieldKey) : null;
   }

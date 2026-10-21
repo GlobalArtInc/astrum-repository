@@ -82,6 +82,9 @@ impl Spec {
             Section::Cargo => when(format == "cargo", Defaulted),
             Section::ConanProxy => when(format == "conan" && kind == Proxy, Defaulted),
             Section::AlpineSigning => when(format == "alpine", Nullable),
+            Section::Nix => when(format == "nix", Defaulted),
+            Section::HexSigning => when(format == "hex" && kind != Proxy, Defaulted),
+            Section::PacmanSigning => when(format == "pacman", Nullable),
             Section::Domain => Some(Omitted),
         }
     }
@@ -108,7 +111,11 @@ impl Spec {
     }
 
     pub fn pem_signing_keys(&self) -> bool {
-        self.format.id == "alpine"
+        matches!(self.format.id, "alpine" | "hex")
+    }
+
+    pub fn plain_signing_keys(&self) -> bool {
+        self.format.id == "hex"
     }
 }
 
@@ -122,7 +129,7 @@ mod tests {
 
     #[test]
     fn every_format_and_type_the_registry_offers_has_a_spec() {
-        assert_eq!(Spec::all().count(), 66);
+        assert_eq!(Spec::all().count(), 87);
         assert!(Spec::from_api("maven", "hosted").is_some());
         assert!(Spec::from_api("maven2", "hosted").is_none());
         assert!(Spec::from_api("apt", "group").is_none());
@@ -203,6 +210,30 @@ mod tests {
             Some(Presence::Defaulted)
         );
         assert_eq!(spec("docker", "group").presence(Section::DockerProxy), None);
+        for kind in ["hosted", "proxy", "group"] {
+            assert_eq!(
+                spec("nix", kind).presence(Section::Nix),
+                Some(Presence::Defaulted)
+            );
+        }
+        assert_eq!(spec("raw", "hosted").presence(Section::Nix), None);
+        assert_eq!(
+            spec("hex", "hosted").presence(Section::HexSigning),
+            Some(Presence::Defaulted)
+        );
+        assert_eq!(
+            spec("hex", "group").presence(Section::HexSigning),
+            Some(Presence::Defaulted)
+        );
+        assert_eq!(spec("hex", "proxy").presence(Section::HexSigning), None);
+        assert_eq!(
+            spec("pacman", "proxy").presence(Section::PacmanSigning),
+            Some(Presence::Nullable)
+        );
+        assert_eq!(
+            spec("alpine", "hosted").presence(Section::PacmanSigning),
+            None
+        );
     }
 
     #[test]
@@ -225,5 +256,8 @@ mod tests {
         assert_eq!(spec("pypi", "proxy").fixed_write_policy(), None);
         assert_eq!(spec("raw", "hosted").fixed_write_policy(), None);
         assert!(spec("alpine", "hosted").pem_signing_keys());
+        assert!(spec("hex", "group").pem_signing_keys());
+        assert!(spec("hex", "hosted").plain_signing_keys());
+        assert!(!spec("alpine", "hosted").plain_signing_keys());
     }
 }

@@ -174,11 +174,21 @@ async fn the_old_default_title_loses_globalart_and_own_titles_stay() {
     let test = TestDatabase::create().await;
     let db = test.migrated().await;
     let conn = db.conn();
+    let all = MIGRATIONS.all().unwrap();
+    let since = all.len()
+        - all
+            .iter()
+            .position(|migration| {
+                migration
+                    .name
+                    .starts_with("DropGlobalartFromTheDefaultTitle")
+            })
+            .unwrap();
     for (stored, expected) in [
         ("GlobalArt Astrum Repository", "Astrum Repository"),
         ("Our repository", "Our repository"),
     ] {
-        MIGRATIONS.revert(conn, 1).await.unwrap();
+        MIGRATIONS.revert(conn, since).await.unwrap();
         setting::put(
             conn,
             astrum_db::system::UI_SETTINGS_KEY,
@@ -186,7 +196,7 @@ async fn the_old_default_title_loses_globalart_and_own_titles_stay() {
         )
         .await
         .unwrap();
-        assert_eq!(db.migrate().await.unwrap().len(), 1);
+        assert_eq!(db.migrate().await.unwrap().len(), since);
         let ui: astrum_db::system::UiSettings =
             setting::get(conn, astrum_db::system::UI_SETTINGS_KEY)
                 .await

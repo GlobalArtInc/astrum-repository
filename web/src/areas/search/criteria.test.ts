@@ -35,6 +35,9 @@ describe('criteria', () => {
     expect(keys).toContain('sha1');
     expect(keys).toContain('helm.description');
     expect(keys).not.toContain('nuget.id');
+    expect(moreCriteria(['puppet'], '').map((criterion) => criterion.key)).toEqual(
+      expect.arrayContaining(['puppet.tag', 'puppet.license']),
+    );
     expect(moreCriteria(['raw'], 'nuget.id').map((criterion) => criterion.key)).toContain('nuget.id');
     expect(operatorsOf('name')).toEqual(['is', 'startsWith']);
     expect(operatorsOf('helm.keywords')).toEqual(['is', 'startsWith', 'contains']);
@@ -46,6 +49,18 @@ describe('criteria', () => {
       value: 'web',
     });
     expect(withKey(row('name', 'web'), 'docker.artifactKind').value).toBe('');
+    const vagrant = moreCriteria(['vagrant'], '').map((criterion) => criterion.key);
+    expect(vagrant).toContain('vagrant.provider');
+    expect(vagrant).toContain('vagrant.architecture');
+    const nix = moreCriteria(['nix'], '').map((criterion) => criterion.key);
+    expect(nix).toContain('nix.storePath');
+    expect(nix).toContain('nix.narHash');
+  });
+
+  it('offer the pacman fields for pacman repositories', () => {
+    const keys = moreCriteria(['pacman'], '').map((criterion) => criterion.key);
+    expect(keys).toEqual(expect.arrayContaining(['pacman.architecture', 'pacman.base', 'pacman.license']));
+    expect(moreCriteria(['raw'], '').map((criterion) => criterion.key)).not.toContain('pacman.base');
   });
 
   it('turn "starts with" into a trailing wildcard', () => {

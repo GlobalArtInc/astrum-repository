@@ -1,0 +1,31 @@
+[package]
+name = "astrum-format-puppet"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+astrum-blob.workspace = true
+astrum-content.workspace = true
+astrum-db.workspace = true
+astrum-repo.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+base64.workspace = true
+chrono.workspace = true
+flate2.workspace = true
+futures-util.workspace = true
+multer.workspace = true
+sea-orm.workspace = true
+semver.workspace = true
+serde_json.workspace = true
+tar.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

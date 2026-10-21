@@ -48,9 +48,14 @@ Tokens** after signing in with a password:
 - at most 100 tokens per user, each revocable at any time without touching the password.
 
 Clients use a token wherever they would use the password: as the password of Basic authentication
-(`mvn`, `pip`, `docker login`, `curl -u user:astrum_...`), or as `Authorization: Bearer astrum_...`
-(`dart pub token add` stores it for that), or as `Authorization: Token astrum_...`, the way
-`ansible-galaxy` sends its token.
+(`mvn`, `pip`, `docker login`, the netrc file of Nix, `curl -u user:astrum_...`), or as `Authorization: Bearer astrum_...`
+(`dart pub token add` stores it for that; r10k, Bolt and `pdk release` send their Forge token so, and Vagrant
+sends `VAGRANT_CLOUD_TOKEN` so to the host of `VAGRANT_SERVER_URL`), or as `Authorization: Token astrum_...`,
+the way `ansible-galaxy` sends its token. A bare `Authorization: astrum_...` works too, so `forge_authorization`
+in `puppet.conf` can hold the token alone; Mix and rebar3 send their Hex API key so (`HEX_API_KEY`,
+`mix hex.repo add --auth-key`). `ovsx` sends its personal access token as `Authorization: Bearer` and,
+depending on its version, as the query parameter `token`; Open VSX repositories take an access token in
+either place, and also `<user>:<password>` in the `token` parameter for users who have no token.
 Tokens work while the Access Token Realm is active. They are the way for OpenID Connect users, who
 have no password, to use command-line tools, and they keep directory passwords out of CI for LDAP users.
 A token cannot create or revoke tokens; that needs a sign-in with the password. A read-only token cannot
@@ -63,6 +68,12 @@ change the account either. Users with the privileges `astrum:accesstokens:read` 
 and as which user (`anonymous` by default, with the `as-anonymous` role). Turn it off to require
 credentials everywhere, or keep it on and narrow `as-anonymous` to the repositories that should be
 public.
+
+Berkshelf, Policyfiles and the reading `knife supermarket` commands send no credentials to Chef
+Supermarket repositories, so the anonymous user needs read access to them. `knife supermarket share`
+and `unshare` sign their requests with a Chef client key (the `X-Ops-*` headers), which this server does
+not check; they are answered `401`, and cookbooks are published with Basic authentication instead (see
+[Chef Supermarket](../use/clients.md#chef-supermarket)).
 
 ## LDAP
 

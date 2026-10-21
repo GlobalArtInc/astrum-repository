@@ -1,10 +1,17 @@
 import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { ansible } from './ansible';
+import { chef } from './chef';
+import { hex } from './hex';
 import { huggingface } from './huggingface';
+import { nix } from './nix';
+import { openvsx } from './openvsx';
 import { p2 } from './p2';
+import { pacman } from './pacman';
 import { pub } from './pub';
+import { puppet } from './puppet';
 import { swift } from './swift';
 import { terraform } from './terraform';
+import { vagrant } from './vagrant';
 
 export interface UsageComponent {
   group: string;
@@ -69,6 +76,13 @@ export const USAGE_FORMATS = [
   'alpine',
   'pub',
   'ansible',
+  'chef',
+  'puppet',
+  'vagrant',
+  'nix',
+  'hex',
+  'openvsx',
+  'pacman',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1074,6 +1088,18 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   pub: (context) => pub(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   ansible: (context) =>
     ansible(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  chef: (context) =>
+    chef(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  puppet: (context) =>
+    puppet(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  vagrant: (context) =>
+    vagrant(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  nix: (context) => nix(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  openvsx: (context) =>
+    openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  pacman: (context) =>
+    pacman(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
 };
 
 export function usageSnippets(context: UsageContext): Snippet[] {

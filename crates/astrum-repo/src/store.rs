@@ -8,7 +8,7 @@ use sea_orm::{
 };
 
 use crate::RepositoryType;
-use crate::config::{DomainRouting, Problem, Problems, Repository, Spec};
+use crate::config::{DomainRouting, Problem, Problems, Repository, Section, Signing, Spec};
 use crate::routing::RoutingRule;
 
 const WRITE_LOCK: i64 = i64::from_be_bytes(*b"astrrepo");
@@ -96,6 +96,48 @@ pub async fn docker_on_subdomain(
         .await?
         .map(read)
         .transpose()
+}
+
+pub async fn keep_signing_key(
+    db: &DatabaseConnection,
+    name: &str,
+    section: Section,
+    sealed: String,
+) -> Result<Option<String>, Error> {
+    let txn = db.begin().await?;
+    txn.execute_unprepared(&format!("SELECT pg_advisory_xact_lock({WRITE_LOCK})"))
+        .await?;
+    let Some(mut repository) = find(&txn, name).await? else {
+        return Ok(None);
+    };
+    if repository.spec().presence(section).is_none() {
+        return Ok(None);
+    }
+    let Some(slot) = repository.attributes.signing_of(section) else {
+        return Ok(None);
+    };
+    if let Some(kept) = slot
+        .as_ref()
+        .and_then(|signing| signing.keypair.clone())
+        .filter(|kept| !kept.is_empty())
+    {
+        txn.commit().await?;
+        return Ok(Some(kept));
+    }
+    *slot = Some(Signing {
+        keypair: Some(sealed.clone()),
+        passphrase: None,
+    });
+    repository::Entity::update(repository::ActiveModel {
+        name: ActiveValue::Unchanged(repository.name.clone()),
+        attributes: ActiveValue::Set(repository.stored_attributes()),
+        updated_at: ActiveValue::Set(chrono::Utc::now().fixed_offset()),
+        ..Default::default()
+    })
+    .exec(&txn)
+    .await?;
+    txn.commit().await?;
+    Ok(Some(sealed))
 }
 
 type HostOf = fn(&Repository) -> Option<&str>;

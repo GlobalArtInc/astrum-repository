@@ -46,5 +46,8 @@ export const sections = {
   cargo: (spec: Spec) => spec.format === 'cargo',
   apt: (spec: Spec) => spec.format === 'apt',
   alpineSigning: (spec: Spec) => spec.format === 'alpine',
+  hexSigning: (spec: Spec) => spec.format === 'hex' && spec.type !== 'proxy',
+  pacmanSigning: (spec: Spec) => spec.format === 'pacman',
   conanProxy: (spec: Spec) => spec.format === 'conan' && spec.type === 'proxy',
+  nix: (spec: Spec) => spec.format === 'nix',
 };

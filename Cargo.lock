@@ -228,6 +228,7 @@ dependencies = [
  "astrum-format-ansible",
  "astrum-format-apt",
  "astrum-format-cargo",
+ "astrum-format-chef",
  "astrum-format-cocoapods",
  "astrum-format-composer",
  "astrum-format-conan",
@@ -236,18 +237,24 @@ dependencies = [
  "astrum-format-gitlfs",
  "astrum-format-go",
  "astrum-format-helm",
+ "astrum-format-hex",
  "astrum-format-huggingface",
  "astrum-format-maven",
+ "astrum-format-nix",
  "astrum-format-npm",
  "astrum-format-nuget",
+ "astrum-format-openvsx",
  "astrum-format-p2",
+ "astrum-format-pacman",
  "astrum-format-pub",
+ "astrum-format-puppet",
  "astrum-format-pypi",
  "astrum-format-r",
  "astrum-format-raw",
  "astrum-format-rubygems",
  "astrum-format-swift",
  "astrum-format-terraform",
+ "astrum-format-vagrant",
  "astrum-format-yum",
  "astrum-logging",
  "astrum-mail",
@@ -522,6 +529,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-chef"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "bytes",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "hex",
+ "multer",
+ "sea-orm",
+ "serde_json",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-cocoapods"
 version = "3.0.0-dev"
 dependencies = [
@@ -710,6 +744,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-hex"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "astrum-security",
+ "astrum-tasks",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "hex",
+ "prost",
+ "rand_core 0.6.4",
+ "rsa",
+ "sea-orm",
+ "semver",
+ "serde_json",
+ "sha2 0.10.9",
+ "tar",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-huggingface"
 version = "3.0.0-dev"
 dependencies = [
@@ -757,6 +823,31 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "astrum-format-nix"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "astrum-security",
+ "astrum-tasks",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "hex",
+ "lzma-rs",
+ "sea-orm",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -819,6 +910,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-openvsx"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-api",
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "astrum-security",
+ "async-trait",
+ "axum",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "hex",
+ "http-body-util",
+ "percent-encoding",
+ "quick-xml",
+ "sea-orm",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "astrum-format-p2"
 version = "3.0.0-dev"
 dependencies = [
@@ -837,6 +959,39 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "uuid",
+]
+
+[[package]]
+name = "astrum-format-pacman"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "astrum-security",
+ "astrum-tasks",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bzip2",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "hex",
+ "lzma-rs",
+ "pgp",
+ "rand 0.8.8",
+ "ruzstd",
+ "sea-orm",
+ "serde_json",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
  "uuid",
 ]
 
@@ -868,6 +1023,32 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "astrum-format-puppet"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "multer",
+ "sea-orm",
+ "semver",
+ "serde_json",
+ "tar",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -1019,6 +1200,26 @@ dependencies = [
  "sha2 0.10.9",
  "subtle",
  "tar",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "astrum-format-vagrant"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "futures-util",
+ "hex",
+ "sea-orm",
+ "serde_json",
+ "sha2 0.10.9",
  "tokio",
  "tracing",
  "url",
@@ -1219,6 +1420,7 @@ dependencies = [
  "astrum-format-ansible",
  "astrum-format-apt",
  "astrum-format-cargo",
+ "astrum-format-chef",
  "astrum-format-cocoapods",
  "astrum-format-composer",
  "astrum-format-conan",
@@ -1227,18 +1429,24 @@ dependencies = [
  "astrum-format-gitlfs",
  "astrum-format-go",
  "astrum-format-helm",
+ "astrum-format-hex",
  "astrum-format-huggingface",
  "astrum-format-maven",
+ "astrum-format-nix",
  "astrum-format-npm",
  "astrum-format-nuget",
+ "astrum-format-openvsx",
  "astrum-format-p2",
+ "astrum-format-pacman",
  "astrum-format-pub",
+ "astrum-format-puppet",
  "astrum-format-pypi",
  "astrum-format-r",
  "astrum-format-raw",
  "astrum-format-rubygems",
  "astrum-format-swift",
  "astrum-format-terraform",
+ "astrum-format-vagrant",
  "astrum-format-yum",
  "astrum-logging",
  "astrum-repo",
@@ -3531,6 +3739,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4478,6 +4695,29 @@ dependencies = [
  "syn 2.0.119",
  "version_check",
  "yansi",
+]
+
+[[package]]
+name = "prost"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "528ac67416ff8646872a3c02cad9cc4ee5dc9f9540c9b10771855c95cb2e5ae1"
+dependencies = [
+ "bytes",
+ "prost-derive",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b570b25f7617e43d59005d0990ccb79e950a423952cea19671b7a876da390adf"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]

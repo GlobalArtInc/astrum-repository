@@ -1,8 +1,9 @@
 # Astrum Repository
 
 Astrum Repository is GlobalArt's artifact repository manager. It hosts, proxies and groups Alpine,
-Ansible Galaxy, APT, Cargo, CocoaPods, Composer, Conan, Conda, Docker and other OCI artifacts, Git LFS, Go, Helm, Hugging Face, Maven,
-npm, NuGet, P2, pub, PyPI, R, RubyGems, Swift, Terraform, Yum and raw repositories. It is one server written in
+Ansible Galaxy, APT, Cargo, Chef Supermarket, CocoaPods, Composer, Conan, Conda, Docker and other OCI artifacts, Git LFS,
+Go, Helm, Hex, Hugging Face, Maven, Nix, npm, NuGet, Open VSX, P2, pacman, pub, Puppet Forge, PyPI, R, RubyGems, Swift,
+Terraform, Vagrant, Yum and raw repositories. It is one server written in
 Rust, with a web interface in twelve languages, that keeps its data in PostgreSQL and in blob stores on
 disk or in S3.
 

@@ -100,6 +100,7 @@ fn body(spec: Spec, name: &str, member: Option<&str>) -> Value {
     let kind = spec.kind;
     match spec.format.id {
         "alpine" => body["alpineSigning"] = json!({"keypair": PEM, "passphrase": "m1-pass"}),
+        "pacman" => body["pacmanSigning"] = json!({"keypair": PGP, "passphrase": "m1-pass"}),
         "apt" if kind == RepositoryType::Hosted => {
             body["apt"] = json!({"distribution": "bookworm"});
             body["aptSigning"] = json!({"keypair": PGP, "passphrase": "m1-pass"});
@@ -123,6 +124,10 @@ fn body(spec: Spec, name: &str, member: Option<&str>) -> Value {
         }
         "maven2" if kind != RepositoryType::Group => {
             body["maven"] = json!({"versionPolicy": "MIXED", "layoutPolicy": "PERMISSIVE", "contentDisposition": "INLINE"});
+        }
+        "nix" => {
+            body["nix"] =
+                json!({"storeDir": "/opt/nix/store", "priority": 25, "wantMassQuery": false})
         }
         "npm" if kind == RepositoryType::Proxy => {
             body["npm"] = json!({"removeQuarantined": true, "removeNonCataloged": true})
@@ -256,6 +261,7 @@ async fn every_format_and_type_round_trips_through_get_post_and_put() {
             "yumSigning",
             "terraformSigning",
             "alpineSigning",
+            "pacmanSigning",
         ] {
             if copy[signing].is_object() {
                 copy[signing]["keypair"] =
@@ -287,9 +293,9 @@ async fn every_format_and_type_round_trips_through_get_post_and_put() {
         .call(Method::GET, REPOSITORIES, Auth::Admin, None)
         .await
         .json();
-    assert_eq!(listed.as_array().unwrap().len(), 66 * 2);
+    assert_eq!(listed.as_array().unwrap().len(), 87 * 2);
     let settings = fixture.call(Method::GET, SETTINGS, Auth::Admin, None).await;
-    assert_eq!(settings.json().as_array().unwrap().len(), 66 * 2);
+    assert_eq!(settings.json().as_array().unwrap().len(), 87 * 2);
 }
 
 #[tokio::test]

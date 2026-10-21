@@ -14,9 +14,9 @@ use crate::format::{Format, RepositoryType};
 
 pub use domain::{Domain, DomainRouting, normalize_host, valid_host, valid_path};
 pub use formats::{
-    Apt, Cargo, ConanProxy, ConanVersion, ContentDisposition, DeployPolicy, Docker, DockerProxy,
-    IndexType, LayoutPolicy, Maven, Npm, NugetProxy, NugetVersion, Raw, Terraform, VersionPolicy,
-    Yum,
+    Apt, Cargo, ConanProxy, ConanVersion, ContentDisposition, DEFAULT_NIX_PRIORITY,
+    DEFAULT_NIX_STORE_DIR, DeployPolicy, Docker, DockerProxy, IndexType, LayoutPolicy, Maven, Nix,
+    Npm, NugetProxy, NugetVersion, Raw, Terraform, VersionPolicy, Yum, valid_store_dir,
 };
 pub use group::Group;
 pub use problems::{Problem, Problems};
@@ -155,6 +155,9 @@ sections! {
     Cargo: cargo: Cargo = "cargo",
     ConanProxy: conan_proxy: ConanProxy = "conanProxy",
     AlpineSigning: alpine_signing: Signing = "alpineSigning",
+    Nix: nix: Nix = "nix",
+    HexSigning: hex_signing: Signing = "hexSigning",
+    PacmanSigning: pacman_signing: Signing = "pacmanSigning",
     Domain: domain: Domain = "domain",
 }
 
@@ -176,13 +179,22 @@ impl Attributes {
         attributes
     }
 
-    fn signing_mut(&mut self) -> [(Section, &mut Option<Signing>); 4] {
+    fn signing_mut(&mut self) -> [(Section, &mut Option<Signing>); 6] {
         [
             (Section::AptSigning, &mut self.apt_signing),
             (Section::YumSigning, &mut self.yum_signing),
             (Section::TerraformSigning, &mut self.terraform_signing),
             (Section::AlpineSigning, &mut self.alpine_signing),
+            (Section::HexSigning, &mut self.hex_signing),
+            (Section::PacmanSigning, &mut self.pacman_signing),
         ]
+    }
+
+    pub fn signing_of(&mut self, section: Section) -> Option<&mut Option<Signing>> {
+        self.signing_mut()
+            .into_iter()
+            .find(|(candidate, _)| *candidate == section)
+            .map(|(_, signing)| signing)
     }
 
     fn settle_signing(&mut self, spec: Spec, problems: &mut Problems) {

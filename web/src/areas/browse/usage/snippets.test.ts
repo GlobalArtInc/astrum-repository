@@ -830,3 +830,278 @@ describe('ansible usage', () => {
     expect(code(hosted, 'publish')).toContain('publish <namespace>-<name>-<version>.tar.gz');
   });
 });
+
+describe('chef usage', () => {
+  it('points Berkshelf, Policyfiles and knife at the repository and publishes with curl', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'chef',
+        repositoryName: 'chef-hosted',
+        component: { group: '', name: 'acme', version: '1.2.0' },
+        path: '/cookbooks/acme/1.2.0/acme-1.2.0.tar.gz',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['berksfile', 'policyfile', 'knife', 'publish']);
+    const url = 'https://repo.example.org/repository/chef-hosted';
+    expect(code(snippets, 'berksfile')).toBe(`source "${url}"\n\ncookbook "acme", "= 1.2.0"`);
+    expect(code(snippets, 'policyfile')).toBe(
+      `default_source :supermarket, "${url}"\n\nrun_list "acme::default"\ncookbook "acme", "= 1.2.0"`,
+    );
+    expect(code(snippets, 'knife')).toBe(`knife supermarket download acme 1.2.0 -m ${url}`);
+    expect(code(snippets, 'publish')).toBe(
+      [
+        'knife cookbook metadata from file acme/metadata.rb',
+        'tar -czf acme.tgz acme',
+        `curl -u <user> -F 'cookbook={"category":"Other"}' -F tarball=@acme.tgz ${url}/api/v1/cookbooks`,
+      ].join('\n'),
+    );
+    expect(supportsUsage('chef')).toBe(true);
+  });
+
+  it('names no cookbook without one and offers no publishing outside hosted repositories', () => {
+    const snippets = usageSnippets(
+      context({ format: 'chef', repositoryName: 'supermarket', repositoryType: 'proxy', path: '/universe' }),
+    );
+    expect(ids(snippets)).toEqual(['berksfile', 'policyfile', 'knife']);
+    expect(code(snippets, 'berksfile')).toBe(
+      'source "https://repo.example.org/repository/supermarket"\n\ncookbook "<cookbook>"',
+    );
+    expect(code(snippets, 'knife')).toBe(
+      'knife supermarket download <cookbook> -m https://repo.example.org/repository/supermarket',
+    );
+    const hosted = usageSnippets(context({ format: 'chef', repositoryName: 'own' }));
+    expect(code(hosted, 'publish')).toContain('tarball=@<name>.tgz');
+  });
+});
+
+describe('puppet usage', () => {
+  it('configures the clients, installs a module and publishes to a hosted repository', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'puppet',
+        repositoryName: 'forge-hosted',
+        component: { group: 'acme', name: 'tools', version: '1.2.0' },
+        path: '/acme/tools/1.2.0/acme-tools-1.2.0.tar.gz',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['config', 'install', 'r10k', 'bolt', 'puppetfile', 'publish', 'curl']);
+    const url = 'https://repo.example.org/repository/forge-hosted';
+    expect(code(snippets, 'config')).toBe(
+      `[main]\nmodule_repository = ${url}\nforge_authorization = <access token>`,
+    );
+    expect(code(snippets, 'install')).toBe(
+      `puppet module install acme-tools --version 1.2.0 --module_repository ${url}`,
+    );
+    expect(code(snippets, 'r10k')).toBe(
+      `forge:\n  baseurl: '${url}'\n  authorization_token: 'Bearer <access token>'`,
+    );
+    expect(code(snippets, 'bolt')).toBe(
+      `module-install:\n  forge:\n    baseurl: ${url}\n    authorization_token: Bearer <access token>`,
+    );
+    expect(code(snippets, 'puppetfile')).toBe(`forge '${url}'\n\nmod 'acme-tools', '1.2.0'`);
+    expect(code(snippets, 'publish')).toBe(
+      `pdk build\npdk release publish --forge-upload-url ${url}/v3/releases --forge-token <access token>`,
+    );
+    expect(code(snippets, 'curl')).toBe(
+      `curl -H "Authorization: Bearer <access token>" -F file=@pkg/acme-tools-1.2.0.tar.gz ${url}/v3/releases`,
+    );
+    expect(supportsUsage('puppet')).toBe(true);
+  });
+
+  it('reads from proxies and groups without a component and offers no publishing', () => {
+    const snippets = usageSnippets(
+      context({ format: 'puppet', repositoryName: 'forge', repositoryType: 'group', path: '/v3/' }),
+    );
+    expect(ids(snippets)).toEqual(['config', 'install', 'r10k', 'bolt', 'puppetfile']);
+    expect(code(snippets, 'install')).toBe(
+      'puppet module install <owner>-<name> --module_repository https://repo.example.org/repository/forge',
+    );
+    expect(code(snippets, 'puppetfile')).toContain("mod '<owner>-<name>'");
+    const hosted = usageSnippets(context({ format: 'puppet', repositoryName: 'own' }));
+    expect(code(hosted, 'curl')).toContain('file=@pkg/<owner>-<name>-<version>.tar.gz');
+  });
+});
+
+describe('vagrant usage', () => {
+  it('points Vagrant at the server, names the box in a Vagrantfile and uploads to a hosted repository', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'vagrant',
+        repositoryName: 'boxes',
+        component: { group: 'acme', name: 'base', version: '1.2.0' },
+        path: '/acme/base/1.2.0/virtualbox/amd64.box',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['server', 'vagrantfile', 'upload']);
+    const url = 'https://repo.example.org/repository/boxes';
+    expect(code(snippets, 'server')).toBe(
+      `export VAGRANT_SERVER_URL=${url}\nexport VAGRANT_CLOUD_TOKEN=<access token>\nvagrant box add acme/base --box-version 1.2.0`,
+    );
+    expect(code(snippets, 'vagrantfile')).toBe(
+      [
+        'Vagrant.configure("2") do |config|',
+        '  config.vm.box = "acme/base"',
+        `  config.vm.box_url = "${url}/acme/base"`,
+        '  config.vm.box_version = "1.2.0"',
+        'end',
+      ].join('\n'),
+    );
+    expect(code(snippets, 'upload')).toBe(
+      `curl -u <user> --upload-file package.box ${url}/acme/base/1.2.0/virtualbox/amd64.box`,
+    );
+    expect(supportsUsage('vagrant')).toBe(true);
+  });
+
+  it('reads from proxies and groups without a component and offers no upload', () => {
+    const snippets = usageSnippets(
+      context({ format: 'vagrant', repositoryName: 'vagrant-all', repositoryType: 'group' }),
+    );
+    expect(ids(snippets)).toEqual(['server', 'vagrantfile']);
+    expect(code(snippets, 'server').endsWith('vagrant box add <org>/<name>')).toBe(true);
+    expect(code(snippets, 'vagrantfile')).not.toContain('box_version');
+    const fromPath = usageSnippets(
+      context({
+        format: 'vagrant',
+        repositoryName: 'cache',
+        repositoryType: 'proxy',
+        path: '/hashicorp/bionic64/1.0.282/virtualbox/unknown.box',
+      }),
+    );
+    expect(code(fromPath, 'vagrantfile')).toContain('config.vm.box = "hashicorp/bionic64"');
+    const hosted = usageSnippets(context({ format: 'vagrant', repositoryName: 'own' }));
+    expect(code(hosted, 'upload')).toBe(
+      'curl -u <user> --upload-file package.box https://repo.example.org/repository/own/<org>/<name>/<version>/<provider>/<architecture>.box',
+    );
+  });
+});
+
+describe('nix usage', () => {
+  const hash = 'mw9ls4zxx884y7yq0a04ildfdjfy1vn2';
+
+  it('configures a substituter and its credentials, copies a store path and publishes to a hosted cache', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'nix',
+        repositoryName: 'nix-hosted',
+        component: { group: hash, name: 'hello', version: '2.12.1' },
+        path: `/${hash}.narinfo`,
+        attributes: { storePath: `/opt/store/${hash}-hello-2.12.1` },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['config', 'netrc', 'copy-from', 'publish']);
+    const url = 'https://repo.example.org/repository/nix-hosted';
+    expect(code(snippets, 'config')).toBe(
+      `substituters = ${url}\ntrusted-public-keys = <key name>:<public key>\nnetrc-file = /etc/nix/netrc`,
+    );
+    expect(code(snippets, 'netrc')).toBe('machine repo.example.org\nlogin <user>\npassword <access token>');
+    expect(code(snippets, 'copy-from')).toBe(`nix copy --from ${url} /opt/store/${hash}-hello-2.12.1`);
+    expect(code(snippets, 'publish')).toContain(`nix copy --to '${url}?secret-key=secret-key' ./result`);
+    expect(supportsUsage('nix')).toBe(true);
+  });
+
+  it('reads through proxies and groups without publishing', () => {
+    const proxy = usageSnippets(context({ format: 'nix', repositoryName: 'nixos', repositoryType: 'proxy' }));
+    expect(ids(proxy)).toEqual(['config', 'netrc']);
+    const group = usageSnippets(
+      context({
+        format: 'nix',
+        repositoryName: 'nix-all',
+        repositoryType: 'group',
+        component: { group: hash, name: 'source', version: '' },
+      }),
+    );
+    expect(code(group, 'copy-from')).toBe(
+      `nix copy --from https://repo.example.org/repository/nix-all /nix/store/${hash}-source`,
+    );
+  });
+});
+
+describe('hex usage', () => {
+  const component = { group: '', name: 'hello', version: '1.2.0' };
+
+  it('adds a hosted repository with its key, names it in mix.exs and rebar.config and publishes', () => {
+    const snippets = usageSnippets(
+      context({ format: 'hex', repositoryName: 'hex-local', component, path: '/tarballs/hello-1.2.0.tar' }),
+    );
+    expect(ids(snippets)).toEqual(['repo', 'dependency', 'rebar3', 'publish']);
+    const url = 'https://repo.example.org/repository/hex-local';
+    expect(code(snippets, 'repo')).toBe(
+      `curl -fsS -o hex-local.pem ${url}/public_key\nmix hex.repo add hex-local ${url} --public-key hex-local.pem`,
+    );
+    expect(code(snippets, 'dependency')).toBe('{:hello, "~> 1.2", repo: "hex-local"}');
+    expect(code(snippets, 'rebar3')).toContain(`repo_url => <<"${url}">>`);
+    expect(code(snippets, 'rebar3')).toContain(`api_url => <<"${url}/api">>}]}]}.`);
+    expect(code(snippets, 'rebar3')).toContain('{deps, [{hello, "1.2.0"}]}.');
+    expect(code(snippets, 'publish')).toBe(
+      `HEX_API_URL=${url}/api HEX_API_KEY=<access token> mix hex.publish`,
+    );
+    expect(supportsUsage('hex')).toBe(true);
+  });
+
+  it('mirrors hex.pm through a proxy and reads a group without publishing', () => {
+    const proxy = usageSnippets(context({ format: 'hex', repositoryName: 'hexpm', repositoryType: 'proxy' }));
+    expect(ids(proxy)).toEqual(['mirror', 'rebar3', 'dependency']);
+    expect(code(proxy, 'mirror')).toBe(
+      'export HEX_MIRROR=https://repo.example.org/repository/hexpm\nmix deps.get',
+    );
+    expect(code(proxy, 'rebar3')).toBe(
+      'export HEX_CDN=https://repo.example.org/repository/hexpm\nrebar3 get-deps',
+    );
+    expect(code(proxy, 'dependency')).toBe('{:<package>, "~> 1.0"}');
+    const group = usageSnippets(
+      context({
+        format: 'hex',
+        repositoryName: 'hex-all',
+        repositoryType: 'group',
+        component: { group: '', name: 'hello', version: '2.0.0-rc.1' },
+      }),
+    );
+    expect(ids(group)).toEqual(['repo', 'dependency', 'rebar3']);
+    expect(code(group, 'dependency')).toBe('{:hello, "== 2.0.0-rc.1", repo: "hex-all"}');
+    expect(code(group, 'rebar3')).toContain('<<"<contents of hex-all.pem>">>}]}]}.');
+  });
+});
+
+describe('openvsx usage', () => {
+  const url = 'https://repo.example.org/repository/vsx-hosted';
+
+  it('points editors at the gallery and publishes with ovsx to a hosted repository', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'openvsx',
+        repositoryName: 'vsx-hosted',
+        component: { group: 'acme', name: 'hello', version: '1.2.0' },
+        path: '/acme/hello/1.2.0/acme.hello-1.2.0.vsix',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['product', 'environment', 'get', 'publish']);
+    expect(JSON.parse(code(snippets, 'product'))).toEqual({
+      extensionsGallery: {
+        serviceUrl: `${url}/vscode/gallery`,
+        itemUrl: `${url}/vscode/item`,
+        resourceUrlTemplate: `${url}/vscode/unpkg/{publisher}/{name}/{version}/{path}`,
+        extensionUrlTemplate: `${url}/vscode/gallery/{publisher}/{name}/latest`,
+      },
+    });
+    expect(code(snippets, 'environment')).toContain(
+      `export VSCODE_GALLERY_SERVICE_URL='${url}/vscode/gallery'`,
+    );
+    expect(code(snippets, 'get')).toBe(`npx ovsx get acme.hello -v 1.2.0 -r ${url}`);
+    expect(code(snippets, 'publish')).toBe(
+      `npx ovsx publish acme.hello-1.2.0.vsix -r ${url} -p <access token>`,
+    );
+  });
+
+  it('reads from proxies and groups without a component and offers no publishing', () => {
+    const snippets = usageSnippets(
+      context({ format: 'openvsx', repositoryName: 'vsx-group', repositoryType: 'group' }),
+    );
+    expect(ids(snippets)).toEqual(['product', 'environment', 'get']);
+    expect(code(snippets, 'get')).toBe(
+      'npx ovsx get <namespace>.<name> -r https://repo.example.org/repository/vsx-group',
+    );
+    const hosted = usageSnippets(context({ format: 'openvsx', repositoryName: 'own' }));
+    expect(code(hosted, 'publish')).toContain('publish <extension>.vsix');
+    expect(supportsUsage('openvsx')).toBe(true);
+  });
+});

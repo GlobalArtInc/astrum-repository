@@ -32,6 +32,7 @@ const CHOOSE: Record<RepositoryType, string> = {
 const FORMAT_TEXTS: Record<string, string> = {
   ansible: 'repositories.formats.ansible',
   apt: 'repositories.formats.apt',
+  chef: 'repositories.formats.chef',
   cocoapods: 'repositories.formats.cocoapods',
   composer: 'repositories.formats.composer',
   conan: 'repositories.formats.conan',
@@ -40,14 +41,20 @@ const FORMAT_TEXTS: Record<string, string> = {
   gitlfs: 'repositories.formats.gitlfs',
   go: 'repositories.formats.go',
   helm: 'repositories.formats.helm',
+  hex: 'repositories.formats.hex',
   maven2: 'repositories.formats.maven2',
+  nix: 'repositories.formats.nix',
   npm: 'repositories.formats.npm',
   nuget: 'repositories.formats.nuget',
+  openvsx: 'repositories.formats.openvsx',
+  pacman: 'repositories.formats.pacman',
   pub: 'repositories.formats.pub',
+  puppet: 'repositories.formats.puppet',
   pypi: 'repositories.formats.pypi',
   r: 'repositories.formats.r',
   raw: 'repositories.formats.raw',
   rubygems: 'repositories.formats.rubygems',
+  vagrant: 'repositories.formats.vagrant',
   yum: 'repositories.formats.yum',
 };
 

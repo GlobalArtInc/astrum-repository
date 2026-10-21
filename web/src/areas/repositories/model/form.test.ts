@@ -8,6 +8,7 @@ import {
   domainAddress,
   formField,
   fromDocument,
+  isStoreDir,
   onFormFields,
   type RepositoryValues,
   storedSecrets,
@@ -443,6 +444,21 @@ describe('the Alpine format', () => {
     }
   });
 
+  it('offers the registry key of Hex hosted and group repositories and keeps a stored one', () => {
+    expect(sections.hexSigning({ format: 'hex', type: 'hosted' })).toBe(true);
+    expect(sections.hexSigning({ format: 'hex', type: 'group' })).toBe(true);
+    expect(sections.hexSigning({ format: 'hex', type: 'proxy' })).toBe(false);
+    const spec: Spec = { format: 'hex', type: 'hosted' };
+    const stored: RepositoryDocument = { ...template(spec, 'default'), name: 'hex-local', hexSigning: {} };
+    const kept = toDocument(fromDocument(stored), stored);
+    expect(kept.hexSigning).toEqual({});
+    const written = toDocument({ ...fromDocument(stored), hexKeypair: 'PEM' }, stored);
+    expect(getPath(written, ['hexSigning', 'keypair'])).toBe('PEM');
+    expect(formField('PARAMETER hexSigning.keypair', spec)).toBe('hexKeypair');
+    expect(formField('PARAMETER hexSigning.passphrase', spec)).toBe('hexKeypair');
+    expect(formField('PARAMETER hexSigning', spec)).toBe('hexKeypair');
+  });
+
   it('maps signing problems onto the Alpine fields', () => {
     const spec: Spec = { format: 'alpine', type: 'hosted' };
     expect(formField('PARAMETER alpineSigning.keypair', spec)).toBe('alpineKeypair');
@@ -450,6 +466,69 @@ describe('the Alpine format', () => {
     expect(formField('PARAMETER alpineSigning', spec)).toBe('alpineKeypair');
     expect(formField('PARAMETER yumSigning.keypair', { format: 'yum', type: 'hosted' })).toBe('yumKeypair');
     expect(formField('PARAMETER keypair', { format: 'raw', type: 'hosted' })).toBeNull();
+  });
+});
+
+describe('the Nix format', () => {
+  it('starts with the cache info of cache.nixos.org and short proxy ages', () => {
+    for (const type of ['hosted', 'proxy', 'group'] as const) {
+      expect(template({ format: 'nix', type }).nix).toEqual({
+        storeDir: '/nix/store',
+        priority: 40,
+        wantMassQuery: true,
+      });
+    }
+    const proxy = template({ format: 'nix', type: 'proxy' });
+    expect(proxy.proxy).toEqual({ remoteUrl: '', contentMaxAge: -1, metadataMaxAge: 60 });
+    expect(proxy.negativeCache).toEqual({ enabled: true, timeToLive: 60 });
+    expect(template({ format: 'raw', type: 'hosted' }).nix).toBeUndefined();
+  });
+
+  it('checks the store directory and the priority and writes them', () => {
+    const spec: Spec = { format: 'nix', type: 'hosted' };
+    const document = template(spec, 'default');
+    const values = fromDocument(document);
+    const context = { spec, creating: true, stored: { password: false, bearerToken: false } };
+    expect(validate({ ...values, name: 'cache' }, context, t)).toEqual({});
+    const errors = validate(
+      { ...values, name: 'cache', nixStoreDir: 'nix/store/', nixPriority: 2000 },
+      context,
+      t,
+    );
+    expect(Object.keys(errors).sort()).toEqual(['nixPriority', 'nixStoreDir']);
+    expect(isStoreDir('/opt/nix/store')).toBe(true);
+    expect(isStoreDir('/nix/../store')).toBe(false);
+    const written = toDocument(
+      { ...values, name: 'cache', nixStoreDir: '/opt/nix/store', nixPriority: 30, nixWantMassQuery: false },
+      document,
+    );
+    expect(written.nix).toEqual({ storeDir: '/opt/nix/store', priority: 30, wantMassQuery: false });
+    expect(formField('PARAMETER storeDir', spec)).toBe('nixStoreDir');
+    expect(formField('PARAMETER nix.priority', spec)).toBe('nixPriority');
+  });
+});
+
+describe('the pacman format', () => {
+  it('starts without a signing key and writes an OpenPGP key and passphrase when given', () => {
+    for (const type of ['hosted', 'proxy', 'group'] as const) {
+      const spec: Spec = { format: 'pacman', type };
+      const document = template(spec, 'default');
+      expect(document.pacmanSigning).toBeUndefined();
+      const values = fromDocument(document);
+      const written = toDocument(
+        { ...values, name: 'pkgs', pacmanKeypair: 'PGP', pacmanPassphrase: 'secret' },
+        document,
+      );
+      expect(getPath(written, ['pacmanSigning', 'keypair'])).toBe('PGP');
+      expect(getPath(written, ['pacmanSigning', 'passphrase'])).toBe('secret');
+    }
+  });
+
+  it('maps signing problems onto the pacman fields', () => {
+    const spec: Spec = { format: 'pacman', type: 'group' };
+    expect(formField('PARAMETER pacmanSigning.keypair', spec)).toBe('pacmanKeypair');
+    expect(formField('PARAMETER pacmanSigning.passphrase', spec)).toBe('pacmanPassphrase');
+    expect(formField('PARAMETER pacmanSigning', spec)).toBe('pacmanKeypair');
   });
 });
 
