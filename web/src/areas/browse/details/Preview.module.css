@@ -1,0 +1,94 @@
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note {
+  margin: 0;
+}
+
+.body {
+  max-height: 640px;
+  overflow: auto;
+  border: 1px solid var(--gray-a5);
+  border-radius: 8px;
+  background: var(--gray-1);
+}
+
+.body[data-rendered="true"] {
+  max-height: none;
+}
+
+.body > :not(.source) {
+  padding: 16px 20px;
+}
+
+.source {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  min-width: 0;
+}
+
+.numbers,
+.text {
+  margin: 0;
+  padding: 12px 0;
+  font-family: var(--code-font-family);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre;
+}
+
+.numbers {
+  position: sticky;
+  left: 0;
+  padding-right: 12px;
+  padding-left: 12px;
+  border-right: 1px solid var(--gray-a4);
+  background: var(--gray-1);
+  color: var(--gray-a9);
+  text-align: right;
+  user-select: none;
+}
+
+.text {
+  padding-right: 16px;
+  padding-left: 16px;
+  color: var(--gray-12);
+}
+
+.image {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  border: 1px solid var(--gray-a5);
+  border-radius: 8px;
+  background-color: var(--gray-2);
+  background-image:
+    linear-gradient(45deg, var(--gray-a3) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--gray-a3) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--gray-a3) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--gray-a3) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+}
+
+.image img {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+}

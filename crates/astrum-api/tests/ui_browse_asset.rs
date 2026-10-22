@@ -226,3 +226,110 @@ async fn missing_and_hidden_assets_answer_like_the_tree() {
     assert_eq!(fallback["repository"], "second");
     assert_eq!(fallback["fileSize"], json!(13));
 }
+
+async fn preview(fixture: &Fixture, repository: &str, path: &str, auth: Auth<'_>) -> Reply {
+    get(
+        fixture,
+        &format!("{BROWSE}/{repository}/content?path={path}"),
+        auth,
+    )
+    .await
+}
+
+fn header<'a>(reply: &'a Reply, name: &str) -> &'a str {
+    reply
+        .headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+}
+
+#[tokio::test]
+async fn previews_show_content_without_counting_downloads() {
+    let fixture = shared().await;
+    let shown = preview(&fixture, "first", "docs/same.txt", Auth::Admin).await;
+    assert_eq!(shown.status, StatusCode::OK, "{}", shown.text());
+    assert_eq!(shown.body, b"first");
+    assert_eq!(header(&shown, "content-type"), "text/plain; charset=utf-8");
+    assert_eq!(header(&shown, "x-content-type-options"), "nosniff");
+    assert!(header(&shown, "content-security-policy").starts_with("sandbox"));
+    assert_eq!(header(&shown, "cache-control"), "private, no-store");
+    fixture.state.content().flush_downloads().await.unwrap();
+    let counted = |reply: Reply| reply.json()["downloadCount"].clone();
+    assert_eq!(
+        counted(details(&fixture, "first", "docs/same.txt", Auth::Admin).await),
+        0
+    );
+    let download = get(&fixture, "/repository/first/docs/same.txt", Auth::Admin).await;
+    assert_eq!(download.status, StatusCode::OK);
+    fixture.state.content().flush_downloads().await.unwrap();
+    assert_eq!(
+        counted(details(&fixture, "first", "docs/same.txt", Auth::Admin).await),
+        1
+    );
+
+    let pixel = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
+    put(&fixture, "/repository/first/docs/pixel.png", pixel.clone()).await;
+    let image = preview(&fixture, "first", "docs/pixel.png", Auth::Admin).await;
+    assert_eq!(image.status, StatusCode::OK, "{}", image.text());
+    assert_eq!(header(&image, "content-type"), "image/png");
+    assert_eq!(image.body, pixel);
+}
+
+#[tokio::test]
+async fn previews_need_the_right_to_read() {
+    let fixture = shared().await;
+    user_with(
+        &fixture,
+        "reader",
+        &[
+            "as-repository-view-raw-both-browse",
+            "as-repository-view-raw-both-read",
+        ],
+    )
+    .await;
+    user_with(&fixture, "browser", &["as-repository-view-raw-both-browse"]).await;
+    let through_group = preview(&fixture, "both", "docs/same.txt", user("reader")).await;
+    assert_eq!(
+        through_group.status,
+        StatusCode::OK,
+        "{}",
+        through_group.text()
+    );
+    assert_eq!(through_group.body, b"first");
+    assert_eq!(
+        details(&fixture, "both", "docs/same.txt", user("browser"))
+            .await
+            .status,
+        StatusCode::OK
+    );
+    assert_eq!(
+        preview(&fixture, "both", "docs/same.txt", user("browser"))
+            .await
+            .status,
+        StatusCode::FORBIDDEN
+    );
+    let cases: [(&str, &str, Auth<'_>, StatusCode); 4] = [
+        ("first", "docs/none.txt", Auth::Admin, StatusCode::NOT_FOUND),
+        ("first", "docs/", Auth::Admin, StatusCode::NOT_FOUND),
+        (
+            "missing",
+            "docs/same.txt",
+            Auth::Admin,
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            "first",
+            "docs/same.txt",
+            Auth::None,
+            StatusCode::UNAUTHORIZED,
+        ),
+    ];
+    for (repository, path, auth, status) in cases {
+        assert_eq!(
+            preview(&fixture, repository, path, auth).await.status,
+            status,
+            "{repository} {path}"
+        );
+    }
+}
