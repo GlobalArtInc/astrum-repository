@@ -21,6 +21,7 @@ import {
 import { supportsUsage, type UsageContext, UsageSnippets } from '../usage';
 import { DeleteButton } from './DeleteButton';
 import styles from './Details.module.css';
+import { FilePreview } from './FilePreview';
 
 export const SEARCH_READ = 'astrum:search:read';
 
@@ -625,6 +626,13 @@ function StoredAssetPanel({ repository, node, onNavigate }: PanelProps & { node:
           }}
         />
       </Card>
+      <FilePreview
+        repository={repository.name}
+        file={details.path}
+        name={fileName}
+        contentType={details.contentType}
+        size={details.fileSize}
+      />
       <DetailsCard items={items} />
       <AttributesCard format={details.format} attributes={attributes} />
     </div>

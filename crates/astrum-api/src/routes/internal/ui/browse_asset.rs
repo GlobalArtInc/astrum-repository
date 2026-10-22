@@ -4,8 +4,12 @@ use astrum_blob::BlobId;
 use astrum_content::{BrowseLayout, View, ids, store};
 use astrum_db::entity::asset;
 use astrum_repo::{Repository, RepositoryType};
+use astrum_security::Subject;
 use axum::Router;
+use axum::body::Body;
 use axum::extract::{Path, Query, State};
+use axum::http::header;
+use axum::response::Response;
 use axum::routing::get;
 use futures_util::StreamExt;
 use sea_orm::{ConnectionTrait, EntityTrait};
@@ -20,10 +24,15 @@ use crate::routes::repositories::BaseUrl;
 use crate::{ApiError, AppState, Caller};
 
 pub fn routes() -> Router<AppState> {
-    Router::new().route(
-        &format!("{UI}/browse/{{repository}}/asset"),
-        get(asset_details),
-    )
+    Router::new()
+        .route(
+            &format!("{UI}/browse/{{repository}}/asset"),
+            get(asset_details),
+        )
+        .route(
+            &format!("{UI}/browse/{{repository}}/content"),
+            get(asset_content),
+        )
 }
 
 #[derive(Deserialize)]
@@ -32,6 +41,18 @@ struct AssetQuery {
 }
 
 const MANIFEST_LIMIT: usize = 4 * 1024 * 1024;
+const PREVIEW_LIMIT: i64 = 8 * 1024 * 1024;
+const PREVIEW_IMAGES: [&str; 8] = [
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
+    "image/avif",
+    "image/bmp",
+    "image/x-icon",
+    "image/svg+xml",
+];
+const PREVIEW_POLICY: &str = "sandbox; default-src 'none'; style-src 'unsafe-inline'";
 const IMAGE_MANIFESTS: [&str; 2] = [
     "application/vnd.docker.distribution.manifest.v2+json",
     "application/vnd.oci.image.manifest.v1+json",
@@ -178,31 +199,36 @@ async fn placed_at(
     })
 }
 
-async fn asset_details(
-    State(state): State<AppState>,
-    caller: Caller,
-    base: BaseUrl,
-    Path(name): Path<String>,
-    Query(query): Query<AssetQuery>,
-) -> Result<axum::Json<Value>, ApiError> {
-    let subject = subject(&caller)?;
+struct Located {
+    subject: Subject,
+    repository: Arc<Repository>,
+    owner: Arc<Repository>,
+    asset: store::Asset,
+}
+
+async fn locate(
+    state: &AppState,
+    caller: &Caller,
+    name: &str,
+    path: Option<&str>,
+) -> Result<Located, ApiError> {
+    let subject = subject(caller)?;
     let repository = state
         .content()
-        .repository(&name)
+        .repository(name)
         .await
         .map_err(content_error)?
         .ok_or_else(|| ApiError::not_found(format!("Repository not found: {name}")))?;
-    let ctx = context(&state, &subject, repository.clone());
+    let ctx = context(state, &subject, repository.clone());
     let reach = reach_of(&ctx);
     if !reach.visible() {
         return Err(ApiError::not_found(format!("Repository not found: {name}")));
     }
-    let path = astrum_content::normalize(query.path.as_deref().unwrap_or_default())
-        .map_err(content_error)?;
+    let path = astrum_content::normalize(path.unwrap_or_default()).map_err(content_error)?;
     if path.ends_with('/') {
         return Err(asset_missing(&path, &repository.name));
     }
-    let layout = layout_of(&state, &repository);
+    let layout = layout_of(state, &repository);
     let readers: Vec<Arc<Repository>> = match repository.kind {
         RepositoryType::Group => astrum_content::group::members(&ctx)
             .await
@@ -227,6 +253,29 @@ async fn asset_details(
     let (owner, asset) = found
         .filter(|(_, asset)| reach.sees(repository.format.id, &asset.path))
         .ok_or_else(|| asset_missing(&path, &repository.name))?;
+    Ok(Located {
+        subject,
+        repository,
+        owner,
+        asset,
+    })
+}
+
+async fn asset_details(
+    State(state): State<AppState>,
+    caller: Caller,
+    base: BaseUrl,
+    Path(name): Path<String>,
+    Query(query): Query<AssetQuery>,
+) -> Result<axum::Json<Value>, ApiError> {
+    let Located {
+        subject,
+        repository,
+        owner,
+        asset,
+    } = locate(&state, &caller, &name, query.path.as_deref()).await?;
+    let db = state.db().conn();
+    let layout = layout_of(&state, &repository);
     let component = match asset.component_id {
         Some(id) => store::component_by_id(db, id)
             .await
@@ -266,6 +315,62 @@ async fn asset_details(
         asset.created_at.format("%Y-%m-%dT%H:%M")
     ));
     Ok(axum::Json(value))
+}
+
+fn preview_type(content_type: &str) -> &'static str {
+    let essence = content_type
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    PREVIEW_IMAGES
+        .into_iter()
+        .find(|image| *image == essence)
+        .unwrap_or("text/plain; charset=utf-8")
+}
+
+async fn asset_content(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(name): Path<String>,
+    Query(query): Query<AssetQuery>,
+) -> Result<Response, ApiError> {
+    let Located {
+        subject,
+        repository,
+        owner,
+        asset,
+    } = locate(&state, &caller, &name, query.path.as_deref()).await?;
+    let readable = context(&state, &subject, repository).allowed(View::Read, &asset.path)
+        || context(&state, &subject, owner).allowed(View::Read, &asset.path);
+    if !readable {
+        return Err(ApiError::forbidden());
+    }
+    if asset.size > PREVIEW_LIMIT {
+        return Err(ApiError::BadRequest(format!(
+            "{} is larger than the {} bytes a preview shows",
+            asset.path, PREVIEW_LIMIT
+        )));
+    }
+    let store = state
+        .blob_stores()
+        .get(&asset.blob_store)
+        .await
+        .map_err(ApiError::internal)?;
+    let content = store
+        .read(BlobId::from(asset.blob_id))
+        .await
+        .map_err(ApiError::internal)?
+        .ok_or_else(|| asset_missing(&asset.path, &asset.repository))?;
+    Response::builder()
+        .header(header::CONTENT_TYPE, preview_type(&asset.content_type))
+        .header(header::CONTENT_LENGTH, content.size)
+        .header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")
+        .header(header::CONTENT_SECURITY_POLICY, PREVIEW_POLICY)
+        .header(header::CACHE_CONTROL, "private, no-store")
+        .body(Body::from_stream(content.stream))
+        .map_err(ApiError::internal)
 }
 
 #[cfg(test)]

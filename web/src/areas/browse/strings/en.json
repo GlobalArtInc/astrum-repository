@@ -366,5 +366,14 @@
   "browse.component.rowActions": "Actions for {name}",
   "browse.component.openInRepository": "Open in Repository",
   "browse.component.repositories": "Repositories",
-  "browse.component.file": "File"
+  "browse.component.file": "File",
+  "browse.preview.title": "Preview",
+  "browse.preview.mode": "Show the file as",
+  "browse.preview.rendered": "Rendered",
+  "browse.preview.source": "Source",
+  "browse.preview.copy": "Copy the content",
+  "browse.preview.empty": "The file is empty.",
+  "browse.preview.binary": "This file is binary and has no preview. Download it to open it.",
+  "browse.preview.large": "The file is larger than {limit}, too large to preview. Download it to open it.",
+  "browse.preview.imageFailed": "The image could not be shown. Download it to open it."
 }

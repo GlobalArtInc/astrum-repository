@@ -19,6 +19,7 @@ export interface RequestOptions {
   headers?: HeadersInit;
   signal?: AbortSignal;
   quietUnauthorized?: boolean;
+  bytes?: boolean;
 }
 
 export function onUnauthorized(listener: () => void): () => void {
@@ -62,7 +63,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const headers = new Headers(options.headers);
   headers.set(UI_HEADER, 'true');
   if (!headers.has('Accept')) {
-    headers.set('Accept', 'application/json');
+    headers.set('Accept', options.bytes ? '*/*' : 'application/json');
   }
   if (!SAFE_METHODS.has(method)) {
     const csrf = readCookie(CSRF_COOKIE);
@@ -96,6 +97,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
   if (response.status === 204 || method === 'HEAD') {
     return undefined as T;
+  }
+  if (options.bytes) {
+    return (await response.arrayBuffer()) as T;
   }
   return (await readBody(response)) as T;
 }
