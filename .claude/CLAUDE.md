@@ -22,7 +22,10 @@ repository is public: never commit secrets.
   (`jetbrains`, `crates/astrum-format-jetbrains`; hosted, proxy and group: hosted ones generate `updatePlugins.xml`, take
   `POST api/updates/upload` and PUT, and all three answer the `idea.plugins.host` requests `plugins/list`, `pluginManager`
   and `plugin/download`, so a proxy of https://plugins.jetbrains.com can replace Marketplace in a closed network).
-  The web interface speaks twelve languages, pulled from Ownlate at build.
+  Also a hosted-only Buf Schema Registry for Protobuf modules (`protobuf`, `crates/astrum-format-protobuf`: Connect
+  services `buf.registry.module.v1` and `buf.registry.owner.v1.OwnerService`, checked with buf 1.75.0; it needs a
+  repository domain with `ROOT` routing because buf sends no path prefix, and has no proxy, group or `v1beta1`
+  federation yet). The web interface speaks twelve languages, pulled from Ownlate at build.
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.

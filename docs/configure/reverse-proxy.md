@@ -170,7 +170,8 @@ There are two ways to use a domain:
   ```
 
   For other formats the domain root is the repository URL: `https://files.example.com/tools/1.0/install.sh`
-  is `/repository/files/tools/1.0/install.sh`.
+  is `/repository/files/tools/1.0/install.sh`. A Protobuf repository needs a whole domain, because buf sends
+  its calls to the host of the module name with no path in front.
 
 - **Path on a shared domain** (`PATH`): several repositories share the domain, each under its own first
   path segment, which is the repository name unless **Path** says otherwise. With `images.example.com`,

@@ -10,6 +10,7 @@ import { nx } from './nx';
 import { openvsx } from './openvsx';
 import { p2 } from './p2';
 import { pacman } from './pacman';
+import { protobuf } from './protobuf';
 import { pub } from './pub';
 import { puppet } from './puppet';
 import { swift } from './swift';
@@ -91,6 +92,7 @@ export const USAGE_FORMATS = [
   'nx',
   'bazel',
   'jetbrains',
+  'protobuf',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1109,6 +1111,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
     bazel(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   jetbrains: (context) =>
     jetbrains(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  protobuf: (context) => protobuf(context),
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),

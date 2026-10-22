@@ -249,6 +249,7 @@ dependencies = [
  "astrum-format-openvsx",
  "astrum-format-p2",
  "astrum-format-pacman",
+ "astrum-format-protobuf",
  "astrum-format-pub",
  "astrum-format-puppet",
  "astrum-format-pypi",
@@ -280,6 +281,7 @@ dependencies = [
  "http-body-util",
  "md-5 0.10.6",
  "percent-encoding",
+ "prost",
  "reqwest",
  "rustix",
  "sea-orm",
@@ -1059,6 +1061,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-protobuf"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "hex",
+ "prost",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sha3",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "astrum-format-pub"
 version = "3.0.0-dev"
 dependencies = [
@@ -1517,6 +1546,7 @@ dependencies = [
  "astrum-format-openvsx",
  "astrum-format-p2",
  "astrum-format-pacman",
+ "astrum-format-protobuf",
  "astrum-format-pub",
  "astrum-format-puppet",
  "astrum-format-pypi",

@@ -39,6 +39,7 @@ astrum-format-nx = { path = "crates/astrum-format-nx" }
 astrum-format-openvsx = { path = "crates/astrum-format-openvsx" }
 astrum-format-p2 = { path = "crates/astrum-format-p2" }
 astrum-format-pacman = { path = "crates/astrum-format-pacman" }
+astrum-format-protobuf = { path = "crates/astrum-format-protobuf" }
 astrum-format-pub = { path = "crates/astrum-format-pub" }
 astrum-format-puppet = { path = "crates/astrum-format-puppet" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
@@ -118,6 +119,7 @@ serde_json = "1"
 serde_norway = "0.9"
 sha1 = "0.10"
 sha2 = "0.10"
+sha3 = "0.10"
 subtle = "2"
 tar = { version = "0.4", default-features = false }
 tempfile = "3"

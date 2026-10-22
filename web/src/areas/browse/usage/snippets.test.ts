@@ -1242,3 +1242,47 @@ describe('nx usage', () => {
     expect(supportsUsage('nx')).toBe(true);
   });
 });
+
+describe('protobuf usage', () => {
+  const root = {
+    host: 'protos.example.org',
+    routing: 'ROOT' as const,
+    url: 'https://protos.example.org/',
+  };
+
+  it('names modules with the host of the root domain', () => {
+    const snippets = usageSnippets(context({ format: 'protobuf', repositoryName: 'protos', domain: root }));
+    expect(ids(snippets)).toEqual(['login', 'module', 'push', 'dependency', 'export']);
+    expect(code(snippets, 'login')).toBe(
+      'export BUF_TOKEN=<access token>\nbuf registry login protos.example.org --username <user name> --token-stdin',
+    );
+    expect(code(snippets, 'module')).toBe(
+      'version: v2\nmodules:\n  - path: .\n    name: protos.example.org/<owner>/<module>',
+    );
+    expect(code(snippets, 'push')).toBe('buf push --create --create-visibility private');
+    expect(code(snippets, 'dependency')).toBe(
+      'version: v2\ndeps:\n  - protos.example.org/<owner>/<module>\n\nbuf dep update',
+    );
+    expect(supportsUsage('protobuf')).toBe(true);
+  });
+
+  it('fills in the module and its commit from the selected component', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'protobuf',
+        repositoryName: 'protos',
+        domain: root,
+        component: { group: 'acme', name: 'greeter', version: '6a090573654a1f33d295b69095b5612c' },
+      }),
+    );
+    expect(code(snippets, 'dependency')).toContain('  - protos.example.org/acme/greeter\n');
+    expect(code(snippets, 'export')).toBe(
+      'buf export protos.example.org/acme/greeter:6a090573654a1f33d295b69095b5612c --output proto',
+    );
+  });
+
+  it('asks for the registry host while the repository has no root domain', () => {
+    const snippets = usageSnippets(context({ format: 'protobuf', repositoryName: 'protos' }));
+    expect(code(snippets, 'module')).toContain('name: <registry host>/<owner>/<module>');
+  });
+});

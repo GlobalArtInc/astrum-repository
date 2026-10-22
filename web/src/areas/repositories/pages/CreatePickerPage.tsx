@@ -51,6 +51,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   nx: 'repositories.formats.nx',
   openvsx: 'repositories.formats.openvsx',
   pacman: 'repositories.formats.pacman',
+  protobuf: 'repositories.formats.protobuf',
   pub: 'repositories.formats.pub',
   puppet: 'repositories.formats.puppet',
   pypi: 'repositories.formats.pypi',
