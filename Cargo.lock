@@ -227,6 +227,7 @@ dependencies = [
  "astrum-format-alpine",
  "astrum-format-ansible",
  "astrum-format-apt",
+ "astrum-format-bazel",
  "astrum-format-cargo",
  "astrum-format-chef",
  "astrum-format-cocoapods",
@@ -501,6 +502,28 @@ dependencies = [
  "tar",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "astrum-format-bazel"
+version = "3.0.0-dev"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bytes",
+ "futures-util",
+ "hex",
+ "sea-orm",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -1444,6 +1467,7 @@ dependencies = [
  "astrum-format-alpine",
  "astrum-format-ansible",
  "astrum-format-apt",
+ "astrum-format-bazel",
  "astrum-format-cargo",
  "astrum-format-chef",
  "astrum-format-cocoapods",

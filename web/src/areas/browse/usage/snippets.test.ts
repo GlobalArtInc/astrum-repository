@@ -1124,6 +1124,70 @@ describe('turbo usage', () => {
   });
 });
 
+describe('bazel usage', () => {
+  const url = 'https://repo.example.org/repository/modules';
+
+  it('points Bazel at a hosted registry next to the central one and publishes with curl', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'bazel',
+        repositoryName: 'modules',
+        component: { group: '', name: 'rules_demo', version: '1.2.0' },
+        path: '/modules/rules_demo/1.2.0/MODULE.bazel',
+      }),
+    );
+    expect(ids(snippets)).toEqual(['registry', 'netrc', 'dependency', 'upload', 'metadata']);
+    expect(code(snippets, 'registry')).toBe(
+      `common --registry=${url}\ncommon --registry=https://bcr.bazel.build`,
+    );
+    expect(code(snippets, 'netrc')).toBe('machine repo.example.org login <user> password <access token>');
+    expect(code(snippets, 'dependency')).toBe('bazel_dep(name = "rules_demo", version = "1.2.0")');
+    expect(code(snippets, 'upload')).toBe(
+      [
+        `curl -u <user> -T MODULE.bazel ${url}/modules/rules_demo/1.2.0/MODULE.bazel`,
+        `curl -u <user> -T source.json ${url}/modules/rules_demo/1.2.0/source.json`,
+      ].join('\n'),
+    );
+    expect(code(snippets, 'metadata')).toBe(
+      `curl -u <user> -T metadata.json ${url}/modules/rules_demo/metadata.json`,
+    );
+    expect(supportsUsage('bazel')).toBe(true);
+  });
+
+  it('names the module from the path of a file and keeps placeholders without one', () => {
+    const fromPath = usageSnippets(
+      context({
+        format: 'bazel',
+        repositoryName: 'modules',
+        path: '/modules/zlib/1.3.1/patches/fix.patch',
+      }),
+    );
+    expect(code(fromPath, 'dependency')).toBe('bazel_dep(name = "zlib", version = "1.3.1")');
+    const fromMetadata = usageSnippets(
+      context({ format: 'bazel', repositoryName: 'modules', path: '/modules/zlib/metadata.json' }),
+    );
+    expect(code(fromMetadata, 'dependency')).toBe('bazel_dep(name = "zlib", version = "<version>")');
+    const bare = usageSnippets(context({ format: 'bazel', repositoryName: 'modules' }));
+    expect(code(bare, 'dependency')).toBe('bazel_dep(name = "<module>", version = "<version>")');
+    expect(code(bare, 'upload')).toContain(`${url}/modules/<module>/<version>/MODULE.bazel`);
+  });
+
+  it('needs a single registry line for proxies and groups and offers no upload', () => {
+    for (const repositoryType of ['proxy', 'group'] as const) {
+      const snippets = usageSnippets(
+        context({ format: 'bazel', repositoryName: 'bazel-all', repositoryType }),
+      );
+      expect(ids(snippets)).toEqual(['registry', 'netrc', 'dependency']);
+      expect(code(snippets, 'registry')).toBe(
+        'common --registry=https://repo.example.org/repository/bazel-all',
+      );
+      expect(snippets.find((snippet) => snippet.id === 'registry')?.hint).toBe(
+        'browse.usage.hint.bazelRegistry',
+      );
+    }
+  });
+});
+
 describe('nx usage', () => {
   it('points Nx at the self-hosted cache by environment and CI', () => {
     const snippets = usageSnippets(context({ format: 'nx', repositoryName: 'nx-cache' }));

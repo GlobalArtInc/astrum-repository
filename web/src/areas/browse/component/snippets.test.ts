@@ -159,6 +159,30 @@ describe('component snippets of the M4c formats', () => {
     expect(snippets[1]?.hint).toBe('browse.component.snippet.vagrantfile');
   });
 
+  it('give the dependency and the registry line for Bazel modules', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'bazel',
+      group: '',
+      name: 'rules_demo',
+      version: '1.2.0',
+    });
+    expect(snippets).toEqual([
+      {
+        id: 'dependency',
+        label: 'MODULE.bazel',
+        hint: 'browse.component.snippet.bazelDependency',
+        code: 'bazel_dep(name = "rules_demo", version = "1.2.0")',
+      },
+      {
+        id: 'registry',
+        label: '.bazelrc',
+        hint: 'browse.component.snippet.bazelRegistry',
+        code: 'common --registry=https://repo.example.org/repository/r',
+      },
+    ]);
+  });
+
   it('give nix copy for Nix store paths', () => {
     const snippets = componentSnippets({
       ...base,

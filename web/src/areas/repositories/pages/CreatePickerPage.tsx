@@ -32,6 +32,7 @@ const CHOOSE: Record<RepositoryType, string> = {
 const FORMAT_TEXTS: Record<string, string> = {
   ansible: 'repositories.formats.ansible',
   apt: 'repositories.formats.apt',
+  bazel: 'repositories.formats.bazel',
   chef: 'repositories.formats.chef',
   cocoapods: 'repositories.formats.cocoapods',
   composer: 'repositories.formats.composer',
