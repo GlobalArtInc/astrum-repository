@@ -134,6 +134,9 @@ pub fn prerelease_rule(format: &str) -> Option<&'static str> {
         "bazel" | "hex" | "nuget" | "pub" | "puppet" => {
             Some("(split_part(c.version, '+', 1) LIKE '%-%')")
         }
+        "jetbrains" => Some(
+            "(COALESCE(c.attributes #>> '{jetbrains,channel}', '') <> '' OR c.version ~* '(^|[^a-z])(alpha|beta|rc|eap|snapshot|nightly|preview|pre|dev)([^a-z]|$)')",
+        ),
         "openvsx" => Some(
             "(c.attributes #>> '{openvsx,preRelease}' = 'true' OR split_part(c.version, '+', 1) LIKE '%-%')",
         ),
@@ -568,6 +571,10 @@ mod tests {
         );
         assert_eq!(
             criteria_of("openvsx"),
+            [REGEX, RELEASE_TYPE, LAST_DOWNLOADED, LAST_BLOB_UPDATED]
+        );
+        assert_eq!(
+            criteria_of("jetbrains"),
             [REGEX, RELEASE_TYPE, LAST_DOWNLOADED, LAST_BLOB_UPDATED]
         );
     }

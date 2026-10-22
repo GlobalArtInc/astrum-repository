@@ -3131,6 +3131,118 @@
         ],
         "type": "object"
       },
+      "JetbrainsGroupRepositoryApiRequest": {
+        "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "group": {
+            "$ref": "#/components/schemas/GroupAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "group",
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "JetbrainsHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "JetbrainsProxyRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "firewall": {
+            "$ref": "#/components/schemas/FirewallAttributes"
+          },
+          "httpClient": {
+            "$ref": "#/components/schemas/HttpClientAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "negativeCache": {
+            "$ref": "#/components/schemas/NegativeCacheAttributes"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "proxy": {
+            "$ref": "#/components/schemas/ProxyAttributes"
+          },
+          "replication": {
+            "$ref": "#/components/schemas/ReplicationAttributes"
+          },
+          "routingRuleName": {
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "httpClient",
+          "name",
+          "negativeCache",
+          "online",
+          "proxy",
+          "storage"
+        ],
+        "type": "object"
+      },
       "MavenAttributes": {
         "properties": {
           "contentDisposition": {
@@ -10155,6 +10267,262 @@
           "403": {}
         },
         "summary": "Update repositories huggingface proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jetbrains/group": {
+      "post": {
+        "operationId": "postV1RepositoriesJetbrainsGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JetbrainsGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories jetbrains group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jetbrains/group/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesJetbrainsGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get repositories jetbrains group",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesJetbrainsGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JetbrainsGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories jetbrains group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jetbrains/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesJetbrainsHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JetbrainsHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories jetbrains hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jetbrains/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesJetbrainsHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories jetbrains hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesJetbrainsHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JetbrainsHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories jetbrains hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jetbrains/proxy": {
+      "post": {
+        "operationId": "postV1RepositoriesJetbrainsProxy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JetbrainsProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories jetbrains proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jetbrains/proxy/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesJetbrainsProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories jetbrains proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesJetbrainsProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JetbrainsProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories jetbrains proxy",
         "tags": [
           "Repository Management"
         ]

@@ -169,6 +169,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   helm: 'https://charts.helm.sh/stable/',
   hex: 'https://repo.hex.pm',
   huggingface: 'https://huggingface.co/',
+  jetbrains: 'https://plugins.jetbrains.com',
   raw: 'https://example.org/files/',
   swift: 'https://packages.example.com/',
   terraform: 'https://registry.terraform.io',

@@ -4,6 +4,7 @@ import { bazel } from './bazel';
 import { chef } from './chef';
 import { hex } from './hex';
 import { huggingface } from './huggingface';
+import { jetbrains } from './jetbrains';
 import { nix } from './nix';
 import { nx } from './nx';
 import { openvsx } from './openvsx';
@@ -89,6 +90,7 @@ export const USAGE_FORMATS = [
   'turbo',
   'nx',
   'bazel',
+  'jetbrains',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1105,6 +1107,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   nx: (context) => nx(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   bazel: (context) =>
     bazel(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  jetbrains: (context) =>
+    jetbrains(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),

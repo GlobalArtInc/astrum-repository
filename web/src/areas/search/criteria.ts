@@ -338,6 +338,27 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'mix',
   },
   {
+    key: 'jetbrains.vendor',
+    label: 'search.criterion.jetbrainsVendor',
+    kind: 'text',
+    format: 'jetbrains',
+    example: 'JetBrains',
+  },
+  {
+    key: 'jetbrains.category',
+    label: 'search.criterion.jetbrainsCategory',
+    kind: 'text',
+    format: 'jetbrains',
+    example: 'Tools',
+  },
+  {
+    key: 'jetbrains.channel',
+    label: 'search.criterion.jetbrainsChannel',
+    kind: 'text',
+    format: 'jetbrains',
+    example: 'eap',
+  },
+  {
     key: 'openvsx.category',
     label: 'search.criterion.openvsxCategory',
     kind: 'text',

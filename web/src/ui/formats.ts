@@ -19,6 +19,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   helm: { name: 'Helm', color: 'sky' },
   hex: { name: 'Hex', color: 'violet' },
   huggingface: { name: 'Hugging Face', color: 'amber' },
+  jetbrains: { name: 'JetBrains', color: 'pink' },
   maven2: { name: 'Maven', color: 'orange', label: 'maven' },
   nix: { name: 'Nix', color: 'blue' },
   npm: { name: 'npm', color: 'red' },
