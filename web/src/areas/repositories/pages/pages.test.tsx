@@ -406,8 +406,9 @@ describe('the repository page', () => {
     ).toHaveAttribute('href', '/service/rest/repository/browse/maven-public/');
     await userEvent.click(screen.getByRole('tab', { name: /Audit/ }));
     expect(
-      await screen.findByText('Repository "maven-public": created (initiator: admin)'),
+      await screen.findByText('Repository “maven-public” was created (initiator: admin)'),
     ).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: 'Created' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Full Audit Log' })).toHaveAttribute(
       'href',
       '/audit?repositoryName=maven-public',

@@ -164,7 +164,10 @@ function text(value: unknown): string | null {
   return typeof value === 'string' && value !== '' ? value : null;
 }
 
-export function summaryOf(t: Translate, event: AuditEvent): string {
+export function summaryOf(
+  t: Translate,
+  event: Pick<AuditEvent, 'domain' | 'type' | 'context' | 'initiator' | 'attributes'>,
+): string {
   const kind = shownKind(event);
   const context = text(event.context);
   const attributes = event.attributes ?? {};

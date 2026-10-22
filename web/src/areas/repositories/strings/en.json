@@ -286,9 +286,6 @@
   "repositories.audit.initiator": "Initiator",
   "repositories.audit.empty": "No Audit Events",
   "repositories.audit.openLog": "Open the Full Audit Log",
-  "repositories.audit.kinds.created": "Created",
-  "repositories.audit.kinds.updated": "Changed",
-  "repositories.audit.kinds.deleted": "Deleted",
   "repositories.admin.filters": "Filters Panel",
   "repositories.admin.reset": "Reset Filters",
   "repositories.admin.sorting": "Sorting",
@@ -449,8 +446,6 @@
   "repositories.audit.emptyText": "Nothing about this repository was audited in the last 30 days.",
   "repositories.audit.category": "Category",
   "repositories.audit.summary": "Summary",
-  "repositories.audit.repositoryCategory": "Repository",
-  "repositories.audit.sentence": "Repository \"{name}\": {event} (initiator: {initiator})",
   "repositories.tasks.title": "Scheduled Tasks",
   "repositories.tasks.count": {
     "one": "{count} task",
