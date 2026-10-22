@@ -55,7 +55,7 @@ export interface AuditEvent {
   type: string;
   context: string;
   initiator: string;
-  attributes: unknown;
+  attributes: Record<string, unknown> | null;
 }
 
 export function useUiRepositories() {

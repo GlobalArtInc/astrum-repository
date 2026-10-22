@@ -49,8 +49,8 @@
   border-radius: 4px;
   background: var(--gray-a3);
   color: var(--gray-a11);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 400;
 }
 
@@ -77,8 +77,8 @@
 
 .term {
   margin: 0 0 6px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-11);
 }
 
@@ -148,7 +148,7 @@
 
 .muted {
   color: var(--gray-a11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .inline {
@@ -200,32 +200,12 @@
   color: var(--gray-11);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--gray-a5);
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 18px;
+.nowrap {
+  white-space: nowrap;
 }
 
-.table th {
-  padding: 10px 8px;
-  text-align: left;
-  font-weight: 700;
-  font-size: 14px;
-  background: var(--gray-a2);
-  border-bottom: 1px solid var(--gray-a5);
-}
-
-.table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--gray-a4);
-  vertical-align: top;
-}
-
-.tableWrap {
-  overflow-x: auto;
+.summary {
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 767px) {

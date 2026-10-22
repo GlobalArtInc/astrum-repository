@@ -446,8 +446,8 @@
 
 .fingerprint {
   font-family: var(--code-font-family);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-11);
   white-space: nowrap;
 }
@@ -550,8 +550,8 @@
 
 .infoFingerprint {
   font-family: var(--code-font-family);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
 }
 
 .rows {
@@ -664,8 +664,8 @@
 }
 
 .radioText {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-11);
 }
 

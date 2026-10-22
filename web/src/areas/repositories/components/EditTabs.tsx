@@ -1,4 +1,4 @@
-import { Badge, Button } from '@radix-ui/themes';
+import { Badge, Button, Table, Text } from '@radix-ui/themes';
 import {
   CircleCheck,
   CircleX,
@@ -15,8 +15,9 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { INTERNAL, REST, useApi, withQuery } from '../../../api';
 import { useCan } from '../../../auth/state';
-import { type Translate, useT } from '../../../i18n';
+import { useT } from '../../../i18n';
 import { DateTime, FileSize, FormatLogo, formatName } from '../../../ui';
+import { CATEGORY_COLORS, CATEGORY_LABELS, categoryOf, kindLabel, summaryOf } from '../../audit/events';
 import { useUiBlobStores } from '../../blobstores/api';
 import type { AuditEvent, UiRepository } from '../api';
 import { Count } from './bits';
@@ -90,9 +91,7 @@ export function SummaryTab({ repository, online }: { repository: UiRepository; o
         <dl className={styles.grid} style={{ margin: 0 }}>
           <Item term={t('repositories.summary.status')} upper>
             <OnlineDot online={online} />
-            <span style={{ fontSize: 12 }}>
-              {online ? t('repositories.status.online') : t('repositories.status.offline')}
-            </span>
+            <span>{online ? t('repositories.status.online') : t('repositories.status.offline')}</span>
           </Item>
           <Item term={t('repositories.summary.format')} upper>
             <FormatLogo format={repository.format} />
@@ -225,17 +224,6 @@ export function TypeChip({ type }: { type: UiRepository['type'] }) {
   );
 }
 
-const KINDS: Record<string, string> = {
-  created: 'repositories.audit.kinds.created',
-  updated: 'repositories.audit.kinds.updated',
-  deleted: 'repositories.audit.kinds.deleted',
-};
-
-export function eventLabel(t: Translate, kind: string): string {
-  const key = KINDS[kind];
-  return key ? t(key) : kind;
-}
-
 export function auditLogAddress(name: string): string {
   return withQuery('/audit', { repositoryName: name });
 }
@@ -279,43 +267,44 @@ export function AuditCard({ name }: { name: string }) {
         </Button>
       }
     >
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <caption className="visually-hidden">{t('repositories.audit.label')}</caption>
-          <thead>
-            <tr>
-              <th>{t('repositories.audit.time')}</th>
-              <th>{t('repositories.audit.category')}</th>
-              <th>{t('repositories.audit.event')}</th>
-              <th>{t('repositories.audit.summary')}</th>
-              <th>{t('repositories.audit.initiator')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event) => (
-              <tr key={event.id}>
-                <td className={styles.muted}>
-                  <DateTime value={event.at} />
-                </td>
-                <td>
-                  <Badge color="purple" variant="soft" radius="small">
-                    {t('repositories.audit.repositoryCategory')}
+      <Table.Root variant="surface" size="2">
+        <caption className="visually-hidden">{t('repositories.audit.label')}</caption>
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeaderCell>{t('repositories.audit.time')}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{t('repositories.audit.category')}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{t('repositories.audit.event')}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{t('repositories.audit.summary')}</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>{t('repositories.audit.initiator')}</Table.ColumnHeaderCell>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {events.map((event) => {
+            const category = categoryOf(event);
+            return (
+              <Table.Row key={event.id}>
+                <Table.Cell className={styles.nowrap}>
+                  <Text color="gray">
+                    <DateTime value={event.at} />
+                  </Text>
+                </Table.Cell>
+                <Table.Cell>
+                  <Badge size="1" color={CATEGORY_COLORS[category]}>
+                    {t(CATEGORY_LABELS[category])}
                   </Badge>
-                </td>
-                <td>{eventLabel(t, event.type)}</td>
-                <td>
-                  {t('repositories.audit.sentence', {
-                    name: event.context,
-                    event: eventLabel(t, event.type).toLowerCase(),
-                    initiator: event.initiator,
-                  })}
-                </td>
-                <td className={styles.muted}>{event.initiator}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </Table.Cell>
+                <Table.Cell className={styles.nowrap}>
+                  <Text weight="medium">{kindLabel(t, event)}</Text>
+                </Table.Cell>
+                <Table.Cell className={styles.summary}>{summaryOf(t, event)}</Table.Cell>
+                <Table.Cell>
+                  <Text color="gray">{event.initiator}</Text>
+                </Table.Cell>
+              </Table.Row>
+            );
+          })}
+        </Table.Body>
+      </Table.Root>
     </Card>
   );
 }

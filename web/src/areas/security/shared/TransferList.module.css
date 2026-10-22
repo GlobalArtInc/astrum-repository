@@ -26,8 +26,8 @@
   padding: 8px 12px;
   border-bottom: 1px solid var(--gray-6);
   background: var(--gray-2);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
 }
 
@@ -78,8 +78,8 @@
 }
 
 .detail {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-11);
 }
 
@@ -157,8 +157,8 @@
   display: block;
   padding: 16px 12px;
   text-align: center;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--gray-a11);
 }

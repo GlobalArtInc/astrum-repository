@@ -224,4 +224,6 @@
     monospace;
   --code-font-family: var(--font-family-mono);
   --font-mono: var(--font-family-mono);
+  --font-size-1: calc(13px * var(--scaling, 1));
+  --line-height-1: calc(18px * var(--scaling, 1));
 }

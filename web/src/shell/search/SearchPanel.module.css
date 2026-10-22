@@ -52,8 +52,8 @@
   background: var(--color-panel-solid);
   color: var(--gray-11);
   font-family: var(--code-font-family);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
 }
 
 .dialog {
@@ -127,8 +127,8 @@
   background: var(--color-panel-solid);
   color: var(--gray-11);
   font-family: var(--code-font-family);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   cursor: pointer;
 }
 
@@ -156,8 +156,8 @@
   padding: 10px 16px;
   border-top: 1px solid var(--gray-a5);
   color: var(--gray-11);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
 }
 
 .key {
@@ -184,8 +184,8 @@
 
 .groupTitle {
   padding: 8px 8px 4px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 600;
   color: var(--gray-11);
 }

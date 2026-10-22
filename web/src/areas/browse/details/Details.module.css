@@ -39,8 +39,8 @@
 .path code {
   min-width: 0;
   font-family: var(--code-font-family);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-11);
   overflow-wrap: anywhere;
 }

@@ -112,7 +112,7 @@
   flex: 0 0 auto;
   min-width: 20px;
   text-align: right;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
   color: var(--gray-11);
 }

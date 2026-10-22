@@ -138,8 +138,8 @@
 }
 
 .logicLabel {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 600;
   letter-spacing: 0.03px;
   text-transform: uppercase;
@@ -166,7 +166,7 @@
   border-radius: 4px;
   background: var(--gray-2);
   font-family: var(--code-font-family);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -177,7 +177,7 @@
   padding: 0;
   list-style: none;
   font-family: var(--code-font-family);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 20px;
 }
 

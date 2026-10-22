@@ -60,7 +60,7 @@
 .showing {
   margin: -4px 0 0;
   color: var(--gray-11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .fileName {
@@ -149,7 +149,7 @@
   background: var(--color-panel-solid);
   color: var(--gray-12);
   font-family: var(--code-font-family);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -159,7 +159,7 @@
   display: inline-block;
   padding: 1px 6px;
   border-radius: 3px;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   line-height: 18px;
 }
@@ -207,8 +207,8 @@
 .fieldNote {
   margin: 0;
   color: var(--gray-11);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
 }
 
 .jumpBar {
@@ -266,7 +266,7 @@
 
 .infoCount {
   color: var(--gray-11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .infoRows {
@@ -329,7 +329,7 @@
   padding: 12px 16px;
   border-bottom: 1px solid var(--gray-a5);
   color: var(--gray-11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .counters span {
@@ -416,7 +416,7 @@
   flex: none;
   padding: 2px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
 }
 
@@ -466,7 +466,7 @@
 .lastChecked {
   margin: 0;
   color: var(--gray-11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .zipForm,

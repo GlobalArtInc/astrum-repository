@@ -56,8 +56,8 @@
   max-width: 600px;
   margin-right: auto;
   color: var(--red-11);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 500;
   overflow-wrap: anywhere;
 }

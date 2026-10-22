@@ -88,8 +88,8 @@
 
 .hint {
   margin: 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-a11);
 }
 
@@ -101,7 +101,7 @@
 
 .error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--red-11);
 }
 
@@ -138,19 +138,19 @@
 }
 
 .help {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .steps {
   margin: 4px 0 0;
   padding-left: 16px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
 }
 
 .example summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-1);
   margin-top: 6px;
 }
 
@@ -221,8 +221,8 @@
 
 .checkText {
   display: block;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-a11);
 }
 

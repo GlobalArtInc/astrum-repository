@@ -66,8 +66,8 @@
   margin: 0;
   padding: 4px 8px;
   border-radius: 3px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
 }
 
@@ -96,8 +96,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 500;
   letter-spacing: 0.03px;
   color: var(--accent-11);
@@ -129,8 +129,8 @@
 
 .examplesTitle span {
   margin-left: 8px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 400;
   letter-spacing: 0.03px;
   color: var(--gray-a11);
@@ -163,8 +163,8 @@
 
 .example code {
   font-family: var(--code-font-family);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
 }
 
 .example:hover:not(:disabled) {
@@ -238,7 +238,7 @@
 
 .referenceTable code {
   font-family: var(--code-font-family);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .previewRow {

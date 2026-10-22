@@ -63,9 +63,9 @@
   border-radius: 9999px;
   background: var(--gray-a3);
   color: var(--gray-a11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
-  line-height: 16px;
+  line-height: var(--line-height-1);
 }
 
 .clear {

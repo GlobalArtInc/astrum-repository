@@ -417,7 +417,7 @@
 
 .optionDescription {
   color: var(--gray-11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 15.6px;
 }
 
@@ -452,7 +452,7 @@
   border-radius: 6px;
   background: var(--accent-9);
   color: var(--accent-contrast);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 600;
   line-height: 18px;
 }

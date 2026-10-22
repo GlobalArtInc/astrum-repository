@@ -17,7 +17,7 @@
   border-radius: 3px;
   background: var(--gray-3);
   font-family: var(--code-font-family);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 20px;
   color: var(--gray-12);
   overflow-wrap: normal;

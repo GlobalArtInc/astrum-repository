@@ -115,7 +115,7 @@
 
 .fact dd[data-mono="true"] {
   font-family: var(--code-font-family);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 400;
 }
 
