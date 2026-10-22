@@ -48,7 +48,7 @@ Tokens** after signing in with a password:
 - at most 100 tokens per user, each revocable at any time without touching the password.
 
 Clients use a token wherever they would use the password: as the password of Basic authentication
-(`mvn`, `pip`, `docker login`, the netrc file of Nix, `curl -u user:astrum_...`), or as `Authorization: Bearer astrum_...`
+(`mvn`, `pip`, `docker login`, the netrc file of Nix or of Bazel, `curl -u user:astrum_...`), or as `Authorization: Bearer astrum_...`
 (`dart pub token add` stores it for that; r10k, Bolt and `pdk release` send their Forge token so, and Vagrant
 sends `VAGRANT_CLOUD_TOKEN` so to the host of `VAGRANT_SERVER_URL`), or as `Authorization: Token astrum_...`,
 the way `ansible-galaxy` sends its token. A bare `Authorization: astrum_...` works too, so `forge_authorization`

@@ -1,5 +1,6 @@
 import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { ansible } from './ansible';
+import { bazel } from './bazel';
 import { chef } from './chef';
 import { hex } from './hex';
 import { huggingface } from './huggingface';
@@ -87,6 +88,7 @@ export const USAGE_FORMATS = [
   'pacman',
   'turbo',
   'nx',
+  'bazel',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1101,6 +1103,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   nix: (context) => nix(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   turbo: (context) => turbo(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   nx: (context) => nx(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  bazel: (context) =>
+    bazel(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),

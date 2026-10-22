@@ -1194,6 +1194,118 @@
         },
         "type": "object"
       },
+      "BazelGroupRepositoryApiRequest": {
+        "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "group": {
+            "$ref": "#/components/schemas/GroupAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "group",
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "BazelHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "BazelProxyRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "firewall": {
+            "$ref": "#/components/schemas/FirewallAttributes"
+          },
+          "httpClient": {
+            "$ref": "#/components/schemas/HttpClientAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "negativeCache": {
+            "$ref": "#/components/schemas/NegativeCacheAttributes"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "proxy": {
+            "$ref": "#/components/schemas/ProxyAttributes"
+          },
+          "replication": {
+            "$ref": "#/components/schemas/ReplicationAttributes"
+          },
+          "routingRuleName": {
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "httpClient",
+          "name",
+          "negativeCache",
+          "online",
+          "proxy",
+          "storage"
+        ],
+        "type": "object"
+      },
       "BlobStoreApiSoftQuota": {
         "properties": {
           "limit": {
@@ -7304,6 +7416,262 @@
           "404": {}
         },
         "summary": "Update repositories apt proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/bazel/group": {
+      "post": {
+        "operationId": "postV1RepositoriesBazelGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BazelGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories bazel group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/bazel/group/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesBazelGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get repositories bazel group",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesBazelGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BazelGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories bazel group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/bazel/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesBazelHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BazelHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories bazel hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/bazel/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesBazelHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories bazel hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesBazelHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BazelHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories bazel hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/bazel/proxy": {
+      "post": {
+        "operationId": "postV1RepositoriesBazelProxy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BazelProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories bazel proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/bazel/proxy/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesBazelProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories bazel proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesBazelProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BazelProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories bazel proxy",
         "tags": [
           "Repository Management"
         ]

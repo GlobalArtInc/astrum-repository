@@ -9,6 +9,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_alpine::Alpine::default()));
     content.register(Arc::new(astrum_format_ansible::Ansible::default()));
     content.register(Arc::new(astrum_format_apt::Apt::default()));
+    content.register(Arc::new(astrum_format_bazel::Bazel));
     content.register(Arc::new(astrum_format_cargo::Cargo::default()));
     content.register(Arc::new(astrum_format_chef::Chef::default()));
     content.register(Arc::new(astrum_format_cocoapods::CocoaPods));

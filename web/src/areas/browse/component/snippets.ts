@@ -1,6 +1,7 @@
 import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { guideComponentName } from '../links';
 import { installCommand, requirementsFile } from '../usage/ansible';
+import { bazelDep, registryLine } from '../usage/bazel';
 import { berksfile, knifeDownload, policyfile } from '../usage/chef';
 import { mixDependency, rebarDependency } from '../usage/hex';
 import { copyFrom, storePath } from '../usage/nix';
@@ -294,6 +295,24 @@ function puppet(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function bazel(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
+  return [
+    {
+      id: 'dependency',
+      label: 'MODULE.bazel',
+      hint: 'browse.component.snippet.bazelDependency',
+      code: bazelDep(context.name, context.version),
+    },
+    {
+      id: 'registry',
+      label: '.bazelrc',
+      hint: 'browse.component.snippet.bazelRegistry',
+      code: registryLine(url),
+    },
+  ];
+}
+
 function vagrant(context: ComponentSnippetContext): ComponentSnippet[] {
   const url = repositoryAddress(context.baseUrl, context.repository, context.domain).replace(/\/+$/, '');
   const box = `${context.group}/${context.name}`;
@@ -400,6 +419,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return puppet(context);
     case 'vagrant':
       return vagrant(context);
+    case 'bazel':
+      return bazel(context);
     case 'nix':
       return nix(context);
     case 'hex':

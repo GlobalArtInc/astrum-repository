@@ -146,6 +146,7 @@ const INDEX_TYPES = [
 const REMOTE_EXAMPLES: Record<string, string> = {
   alpine: 'https://dl-cdn.alpinelinux.org/alpine/',
   ansible: 'https://galaxy.ansible.com',
+  bazel: 'https://bcr.bazel.build',
   cargo: 'https://index.crates.io',
   chef: 'https://supermarket.chef.io',
   cocoapods: 'https://cdn.cocoapods.org/',

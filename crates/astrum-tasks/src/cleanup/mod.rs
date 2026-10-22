@@ -131,7 +131,9 @@ pub fn prerelease_rule(format: &str) -> Option<&'static str> {
         "maven2" => Some(
             "(c.version LIKE '%-SNAPSHOT' OR c.attributes #>> '{maven2,baseVersion}' LIKE '%-SNAPSHOT')",
         ),
-        "hex" | "nuget" | "pub" | "puppet" => Some("(split_part(c.version, '+', 1) LIKE '%-%')"),
+        "bazel" | "hex" | "nuget" | "pub" | "puppet" => {
+            Some("(split_part(c.version, '+', 1) LIKE '%-%')")
+        }
         "openvsx" => Some(
             "(c.attributes #>> '{openvsx,preRelease}' = 'true' OR split_part(c.version, '+', 1) LIKE '%-%')",
         ),
@@ -554,6 +556,10 @@ mod tests {
         );
         assert_eq!(
             criteria_of("vagrant"),
+            [REGEX, RELEASE_TYPE, LAST_DOWNLOADED, LAST_BLOB_UPDATED]
+        );
+        assert_eq!(
+            criteria_of("bazel"),
             [REGEX, RELEASE_TYPE, LAST_DOWNLOADED, LAST_BLOB_UPDATED]
         );
         assert_eq!(

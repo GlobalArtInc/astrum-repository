@@ -530,6 +530,7 @@
   "repositories.create.dismissError": "Dismiss",
   "repositories.formats.ansible": "Collections of Ansible modules, plugins and roles, served through the Galaxy API.",
   "repositories.formats.apt": "The package tool of Debian and Ubuntu distributions.",
+  "repositories.formats.bazel": "Module registry for Bazel: the modules that Bzlmod resolves through --registry.",
   "repositories.formats.chef": "Chef Infra cookbooks, served through the Supermarket API to Berkshelf, Policyfiles and knife.",
   "repositories.formats.cocoapods": "Dependency manager for Swift and Objective-C projects.",
   "repositories.formats.composer": "Dependency manager for PHP.",
