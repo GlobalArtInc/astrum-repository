@@ -214,6 +214,9 @@ async fn a_read_token_sees_only_the_reading_tools() {
         "list_docker_tags",
         "list_blob_stores",
         "list_tasks",
+        "list_users",
+        "list_roles",
+        "list_privileges",
     ] {
         assert!(reading.contains(&name.to_owned()), "{name}: {reading:?}");
     }
@@ -221,6 +224,9 @@ async fn a_read_token_sees_only_the_reading_tools() {
         "run_task",
         "convert_blob_store_to_group",
         "set_repository_online",
+        "create_role",
+        "update_role",
+        "set_user_roles",
     ] {
         assert!(!reading.contains(&name.to_owned()), "{name}: {reading:?}");
     }
@@ -523,6 +529,121 @@ async fn blob_stores_tasks_and_repositories_are_managed() {
     )
     .await;
     assert_eq!(online["online"], true);
+}
+
+#[tokio::test]
+async fn roles_and_users_are_managed() {
+    let fixture = ready().await;
+    raw_hosted(&fixture, "files").await;
+    fixture.add_user("ci", "ci-password-0123", &[]).await;
+    let token = token(&fixture, "WRITE").await;
+
+    let privileges = ok(
+        &fixture,
+        &token,
+        "list_privileges",
+        json!({"repository": "files"}),
+    )
+    .await;
+    let names: Vec<&str> = privileges["privileges"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|privilege| privilege["name"].as_str().unwrap())
+        .collect();
+    for action in ["browse", "read", "add", "edit", "delete"] {
+        let name = format!("as-repository-view-raw-files-{action}");
+        assert!(names.contains(&name.as_str()), "{name}: {names:?}");
+    }
+
+    let created = ok(
+        &fixture,
+        &token,
+        "create_role",
+        json!({
+            "id": "files-publisher",
+            "description": "Publishes to files",
+            "privileges": ["as-repository-view-raw-files-read", "as-repository-view-raw-files-add"],
+        }),
+    )
+    .await;
+    assert_eq!(created["name"], "files-publisher");
+    assert_eq!(created["privileges"].as_array().unwrap().len(), 2);
+
+    let changed = ok(
+        &fixture,
+        &token,
+        "update_role",
+        json!({
+            "id": "files-publisher",
+            "addPrivileges": ["as-repository-view-raw-files-edit", "as-repository-view-raw-files-add"],
+            "removePrivileges": ["as-repository-view-raw-files-read"],
+        }),
+    )
+    .await;
+    assert_eq!(
+        changed["privileges"],
+        json!([
+            "as-repository-view-raw-files-add",
+            "as-repository-view-raw-files-edit"
+        ])
+    );
+    assert_eq!(changed["description"], "Publishes to files");
+
+    let user = ok(
+        &fixture,
+        &token,
+        "set_user_roles",
+        json!({"userId": "ci", "add": ["files-publisher"]}),
+    )
+    .await;
+    assert_eq!(user["roles"], json!(["files-publisher"]));
+    let again = ok(
+        &fixture,
+        &token,
+        "set_user_roles",
+        json!({"userId": "ci", "add": ["files-publisher"]}),
+    )
+    .await;
+    assert_eq!(again["roles"], json!(["files-publisher"]));
+
+    let users = ok(&fixture, &token, "list_users", json!({"query": "CI"})).await;
+    assert_eq!(users["users"][0]["userId"], "ci");
+    let holders = ok(
+        &fixture,
+        &token,
+        "list_roles",
+        json!({"privilege": "as-repository-view-raw-files-edit"}),
+    )
+    .await;
+    assert_eq!(holders["roles"].as_array().unwrap().len(), 1);
+    assert_eq!(holders["roles"][0]["id"], "files-publisher");
+
+    let built_in = failed(
+        &fixture,
+        &token,
+        "update_role",
+        json!({"id": "as-admin", "addPrivileges": ["as-repository-view-raw-files-read"]}),
+    )
+    .await;
+    assert!(built_in.contains("built-in"), "{built_in}");
+    let missing = failed(
+        &fixture,
+        &token,
+        "set_user_roles",
+        json!({"userId": "nobody"}),
+    )
+    .await;
+    assert!(missing.contains("no user nobody"), "{missing}");
+
+    let taken = ok(
+        &fixture,
+        &token,
+        "set_user_roles",
+        json!({"userId": "ci", "remove": ["files-publisher"]}),
+    )
+    .await;
+    assert_eq!(taken["roles"], json!([]));
 }
 
 #[tokio::test]

@@ -78,6 +78,9 @@ connecting and disconnecting an agent are audited as `oauth` events.
 | `convert_blob_store_to_group` | Turns a store into a group of the same name | `astrum:blobstores:create` and `update` |
 | `update_group_blob_store` | Sets the members or the fill policy of a group | `astrum:blobstores:update` |
 | `set_repository_online` | Takes a repository offline or back online | edit rights on the repository |
+| `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
+| `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
+| `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |
 
 The tools that change the server are only offered to Write tokens, and every tool is only listed when the
 user holds the rights it needs; the server checks those rights again on every call. Nothing deletes

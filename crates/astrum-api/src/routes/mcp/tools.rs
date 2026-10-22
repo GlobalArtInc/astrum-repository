@@ -310,6 +310,119 @@ fn defs() -> Vec<Def> {
             write: true,
             idempotent: true,
         },
+        Def {
+            name: "list_users",
+            title: "List users",
+            description: "Users with their source, status and roles. query matches any part of the user id, name or email.",
+            schema: || {
+                schema(
+                    json!({
+                        "query": string("Part of the user id, name or email"),
+                        "source": string("User source: default for local users (the default), or LDAP"),
+                    }),
+                    &[],
+                )
+            },
+            need: Need::Permissions(&["astrum:users:read"]),
+            write: false,
+            idempotent: true,
+        },
+        Def {
+            name: "list_roles",
+            title: "List roles",
+            description: "Roles with the privileges and roles they hold. query matches any part of the id, name or description; privilege keeps the roles that hold that privilege.",
+            schema: || {
+                schema(
+                    json!({
+                        "query": string("Part of the role id, name or description"),
+                        "privilege": string("Name of a privilege the role holds, such as as-repository-view-npm-npm-hosted-read"),
+                    }),
+                    &[],
+                )
+            },
+            need: Need::Permissions(&["astrum:roles:read"]),
+            write: false,
+            idempotent: true,
+        },
+        Def {
+            name: "list_privileges",
+            title: "List privileges",
+            description: "Privileges with their type, format, repository and actions. Every repository has view privileges named as-repository-view-<format>-<repository>-<action> for browse, read, edit, add and delete, and one for all actions (*); format-wide ones use * as the repository.",
+            schema: || {
+                schema(
+                    json!({
+                        "repository": string("Repository the privileges are about"),
+                        "format": string("Format id, such as npm or protobuf"),
+                        "query": string("Part of the privilege name or description"),
+                    }),
+                    &[],
+                )
+            },
+            need: Need::Permissions(&["astrum:privileges:read"]),
+            write: false,
+            idempotent: true,
+        },
+        Def {
+            name: "create_role",
+            title: "Create a role",
+            description: "Create a role that holds privileges and other roles. Give it to users with set_user_roles.",
+            schema: || {
+                schema(
+                    json!({
+                        "id": string("Role id"),
+                        "name": string("Name shown in the interface; the id when omitted"),
+                        "description": string("What the role is for"),
+                        "privileges": { "type": "array", "items": { "type": "string" }, "description": "Privilege names" },
+                        "roles": { "type": "array", "items": { "type": "string" }, "description": "Ids of roles it includes" },
+                    }),
+                    &["id"],
+                )
+            },
+            need: Need::Permissions(&["astrum:roles:create"]),
+            write: true,
+            idempotent: false,
+        },
+        Def {
+            name: "update_role",
+            title: "Change a role",
+            description: "Add privileges and included roles to a role or take them away, or change its name and description. Built-in roles cannot be changed.",
+            schema: || {
+                schema(
+                    json!({
+                        "id": string("Role id"),
+                        "addPrivileges": { "type": "array", "items": { "type": "string" }, "description": "Privilege names to add" },
+                        "removePrivileges": { "type": "array", "items": { "type": "string" }, "description": "Privilege names to take away" },
+                        "addRoles": { "type": "array", "items": { "type": "string" }, "description": "Role ids to include" },
+                        "removeRoles": { "type": "array", "items": { "type": "string" }, "description": "Role ids to stop including" },
+                        "name": string("New name"),
+                        "description": string("New description"),
+                    }),
+                    &["id"],
+                )
+            },
+            need: Need::Permissions(&["astrum:roles:update"]),
+            write: true,
+            idempotent: true,
+        },
+        Def {
+            name: "set_user_roles",
+            title: "Give or take roles of a user",
+            description: "Add roles to a user or take them away. Giving a role needs the right to grant it; the other details of the user stay as they are.",
+            schema: || {
+                schema(
+                    json!({
+                        "userId": string("User id"),
+                        "source": string("User source: default for local users (the default), or LDAP"),
+                        "add": { "type": "array", "items": { "type": "string" }, "description": "Role ids to give" },
+                        "remove": { "type": "array", "items": { "type": "string" }, "description": "Role ids to take away" },
+                    }),
+                    &["userId"],
+                )
+            },
+            need: Need::Permissions(&["astrum:users:update"]),
+            write: true,
+            idempotent: true,
+        },
     ]
 }
 
@@ -412,6 +525,12 @@ impl Handler for AstrumTools {
             }
             "update_group_blob_store" => update_group(api, &arguments).await,
             "set_repository_online" => set_online(api, &arguments).await,
+            "list_users" => list_users(api, &arguments).await,
+            "list_roles" => list_roles(api, &arguments).await,
+            "list_privileges" => list_privileges(api, &arguments).await,
+            "create_role" => create_role(api, &arguments).await,
+            "update_role" => update_role(api, &arguments).await,
+            "set_user_roles" => set_user_roles(api, &arguments).await,
             other => Err(ToolError::Unknown(other.to_owned())),
         }
     }
@@ -1065,6 +1184,272 @@ async fn set_online(api: &Loopback, arguments: &Map<String, Value>) -> Result<Va
     Ok(json!({ "name": name, "online": saved["online"] }))
 }
 
+const USERS: &str = "/service/rest/v1/security/users";
+const ROLES: &str = "/service/rest/v1/security/roles";
+const PRIVILEGES: &str = "/service/rest/v1/security/privileges";
+
+fn list_argument(arguments: &Map<String, Value>, key: &str) -> Result<Vec<String>, ToolError> {
+    match arguments.get(key) {
+        None | Some(Value::Null) => Ok(Vec::new()),
+        Some(Value::Array(items)) => items
+            .iter()
+            .map(|item| {
+                item.as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| ToolError::invalid(format!("{key} must be a list of names")))
+            })
+            .collect(),
+        Some(_) => Err(ToolError::invalid(format!("{key} must be a list of names"))),
+    }
+}
+
+fn names_of(value: &Value) -> Vec<String> {
+    value
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn changed(current: Vec<String>, add: &[String], remove: &[String]) -> Vec<String> {
+    let mut kept: Vec<String> = current
+        .into_iter()
+        .filter(|name| !remove.contains(name))
+        .collect();
+    for name in add {
+        if !kept.contains(name) {
+            kept.push(name.clone());
+        }
+    }
+    kept
+}
+
+fn mentions(fields: &[&Value], wanted: &str) -> bool {
+    let wanted = wanted.to_lowercase();
+    fields.iter().any(|field| {
+        field
+            .as_str()
+            .is_some_and(|text| text.to_lowercase().contains(&wanted))
+    })
+}
+
+fn source_of(arguments: &Map<String, Value>) -> String {
+    text_argument(arguments, "source").unwrap_or_else(|| "default".to_owned())
+}
+
+fn user_view(user: &Value) -> Value {
+    json!({
+        "userId": user["userId"],
+        "firstName": user["firstName"],
+        "lastName": user["lastName"],
+        "emailAddress": user["emailAddress"],
+        "source": user["source"],
+        "status": user["status"],
+        "roles": user["roles"],
+    })
+}
+
+fn role_view(role: &Value) -> Value {
+    json!({
+        "id": role["id"],
+        "name": role["name"],
+        "description": role["description"],
+        "readOnly": role["readOnly"],
+        "privileges": role["privileges"],
+        "roles": role["roles"],
+    })
+}
+
+async fn list_users(api: &Loopback, arguments: &Map<String, Value>) -> Result<Value, ToolError> {
+    let uri = format!("{USERS}?{}", query(&[("source", source_of(arguments))]));
+    let Value::Array(users) = api.get(&uri).await? else {
+        return Err(ToolError::failed("the user list was not a list"));
+    };
+    let wanted = text_argument(arguments, "query");
+    let users: Vec<Value> = users
+        .iter()
+        .filter(|user| {
+            wanted.as_deref().is_none_or(|wanted| {
+                mentions(
+                    &[
+                        &user["userId"],
+                        &user["firstName"],
+                        &user["lastName"],
+                        &user["emailAddress"],
+                    ],
+                    wanted,
+                )
+            })
+        })
+        .map(user_view)
+        .collect();
+    Ok(json!({ "users": users }))
+}
+
+async fn list_roles(api: &Loopback, arguments: &Map<String, Value>) -> Result<Value, ToolError> {
+    let Value::Array(roles) = api.get(ROLES).await? else {
+        return Err(ToolError::failed("the role list was not a list"));
+    };
+    let wanted = text_argument(arguments, "query");
+    let privilege = text_argument(arguments, "privilege");
+    let roles: Vec<Value> = roles
+        .iter()
+        .filter(|role| {
+            wanted.as_deref().is_none_or(|wanted| {
+                mentions(&[&role["id"], &role["name"], &role["description"]], wanted)
+            })
+        })
+        .filter(|role| {
+            privilege.as_deref().is_none_or(|privilege| {
+                names_of(&role["privileges"])
+                    .iter()
+                    .any(|held| held == privilege)
+            })
+        })
+        .map(role_view)
+        .collect();
+    Ok(json!({ "roles": roles }))
+}
+
+async fn list_privileges(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let Value::Array(privileges) = api.get(PRIVILEGES).await? else {
+        return Err(ToolError::failed("the privilege list was not a list"));
+    };
+    let repository = text_argument(arguments, "repository");
+    let format = text_argument(arguments, "format");
+    let wanted = text_argument(arguments, "query");
+    let privileges: Vec<Value> = privileges
+        .iter()
+        .filter(|privilege| {
+            repository
+                .as_deref()
+                .is_none_or(|repository| privilege["repository"].as_str() == Some(repository))
+        })
+        .filter(|privilege| {
+            format
+                .as_deref()
+                .is_none_or(|format| privilege["format"].as_str() == Some(format))
+        })
+        .filter(|privilege| {
+            wanted.as_deref().is_none_or(|wanted| {
+                mentions(&[&privilege["name"], &privilege["description"]], wanted)
+            })
+        })
+        .map(|privilege| {
+            json!({
+                "name": privilege["name"],
+                "type": privilege["type"],
+                "format": privilege["format"],
+                "repository": privilege["repository"],
+                "actions": privilege["actions"],
+                "description": privilege["description"],
+            })
+        })
+        .collect();
+    Ok(json!({ "privileges": privileges }))
+}
+
+async fn create_role(api: &Loopback, arguments: &Map<String, Value>) -> Result<Value, ToolError> {
+    let id = required_text(arguments, "id")?;
+    let body = json!({
+        "id": id,
+        "name": text_argument(arguments, "name").unwrap_or_else(|| id.clone()),
+        "description": text_argument(arguments, "description").unwrap_or_default(),
+        "privileges": list_argument(arguments, "privileges")?,
+        "roles": list_argument(arguments, "roles")?,
+    });
+    api.json(Method::POST, ROLES, Some(&body)).await?;
+    let saved = api.get(&format!("{ROLES}/{}", segment(&id))).await?;
+    Ok(role_view(&saved))
+}
+
+async fn update_role(api: &Loopback, arguments: &Map<String, Value>) -> Result<Value, ToolError> {
+    let id = required_text(arguments, "id")?;
+    let uri = format!("{ROLES}/{}", segment(&id));
+    let role = api.get(&uri).await?;
+    if role["readOnly"].as_bool() == Some(true) {
+        return Err(ToolError::invalid(format!(
+            "{id} is a built-in role and cannot be changed"
+        )));
+    }
+    let privileges = changed(
+        names_of(&role["privileges"]),
+        &list_argument(arguments, "addPrivileges")?,
+        &list_argument(arguments, "removePrivileges")?,
+    );
+    let roles = changed(
+        names_of(&role["roles"]),
+        &list_argument(arguments, "addRoles")?,
+        &list_argument(arguments, "removeRoles")?,
+    );
+    let body = json!({
+        "id": id,
+        "name": text_argument(arguments, "name").map_or_else(|| role["name"].clone(), Value::String),
+        "description": text_argument(arguments, "description")
+            .map_or_else(|| role["description"].clone(), Value::String),
+        "privileges": privileges,
+        "roles": roles,
+    });
+    api.json(Method::PUT, &uri, Some(&body)).await?;
+    Ok(role_view(&api.get(&uri).await?))
+}
+
+async fn set_user_roles(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let user_id = required_text(arguments, "userId")?;
+    let source = source_of(arguments);
+    let listed = format!(
+        "{USERS}?{}",
+        query(&[("userId", user_id.clone()), ("source", source.clone())])
+    );
+    let find = |users: Value| -> Option<Value> {
+        users
+            .as_array()?
+            .iter()
+            .find(|user| user["userId"].as_str() == Some(user_id.as_str()))
+            .cloned()
+    };
+    let Some(user) = find(api.get(&listed).await?) else {
+        return Err(ToolError::failed(format!(
+            "there is no user {user_id} in the source {source}"
+        )));
+    };
+    let roles = changed(
+        names_of(&user["roles"]),
+        &list_argument(arguments, "add")?,
+        &list_argument(arguments, "remove")?,
+    );
+    let body = json!({
+        "userId": user["userId"],
+        "firstName": user["firstName"],
+        "lastName": user["lastName"],
+        "emailAddress": user["emailAddress"],
+        "source": user["source"],
+        "status": user["status"],
+        "roles": roles,
+    });
+    api.json(
+        Method::PUT,
+        &format!("{USERS}/{}", segment(&user_id)),
+        Some(&body),
+    )
+    .await?;
+    let Some(saved) = find(api.get(&listed).await?) else {
+        return Err(ToolError::failed(format!("the user {user_id} is gone")));
+    };
+    Ok(user_view(&saved))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1110,6 +1495,21 @@ mod tests {
     }
 
     #[test]
+    fn lists_change_by_adding_and_taking_away() {
+        let current = vec!["a".to_owned(), "b".to_owned(), "c".to_owned()];
+        assert_eq!(
+            changed(
+                current,
+                &["d".to_owned(), "a".to_owned()],
+                &["b".to_owned()]
+            ),
+            ["a", "c", "d"]
+        );
+        assert!(mentions(&[&json!("ci-globalart")], "GLOBAL"));
+        assert!(!mentions(&[&Value::Null], "x"));
+    }
+
+    #[test]
     fn read_tokens_see_no_writing_tools() {
         let writes: Vec<&str> = defs()
             .iter()
@@ -1124,7 +1524,10 @@ mod tests {
                 "create_remote_blob_store",
                 "convert_blob_store_to_group",
                 "update_group_blob_store",
-                "set_repository_online"
+                "set_repository_online",
+                "create_role",
+                "update_role",
+                "set_user_roles"
             ]
         );
     }
