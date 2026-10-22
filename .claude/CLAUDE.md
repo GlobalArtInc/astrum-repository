@@ -10,7 +10,8 @@ removed on 2026-10-20 (find it with `git log --diff-filter=D --oneline -- .claud
 repository is public: never commit secrets.
 
 ## State
-- The server is version `3.0.0-dev` in `Cargo.toml` (the Java line was 2.x). It serves the 23 formats
+- The server is version `3.0.1` in `Cargo.toml`, the first release of the Rust line (tag `v3.0.1`, 2026-10-22;
+  the Java line was 2.x, its tags `v3.96.4-*` are older and unrelated). It serves the 23 formats
   of the Java server: alpine, apt, cargo, cocoapods, composer, conan, conda, docker (with OCI Distribution 1.1),
   gitlfs, go, helm, huggingface, maven2, npm, nuget, p2, pypi, r, raw, rubygems, swift, terraform and yum, and
   two new ones, pub and Ansible Galaxy (`ansible`); since 2026-10-21 also Open VSX (`openvsx`), pacman,
@@ -137,6 +138,12 @@ repository is public: never commit secrets.
   3. Dispatch `provision.yml` on `main` with inputs `command=apply`, `filter=name=prod1-astrum1`; it runs
      on the self-hosted runners of the private infra repository (7–13 minutes). If OpenTofu init times out,
      re-run the failed jobs once.
+- Releases (owner, 2026-10-22: versions start at 3.0.1): a pull request sets the version in `Cargo.toml`
+  (`[workspace.package]`, then `cargo update --workspace --offline` for `Cargo.lock`) and `web/package.json`;
+  after its squash merge, tag the merge commit `vX.Y.Z` as Roman (annotated) and push the tag. The `Server`
+  workflow then publishes `globalartltd/astrum-repository:X.Y.Z` and `latest`; create the GitHub release with
+  notes for the changes since the previous tag, and deploy production with `astrum_next_version: "X.Y.Z"`.
+  Main keeps the released version until the next release pull request raises it.
 - Never ask for, print or store passwords, tokens or keys. Clients under test must not reach public hosts
   with credentials (cut them off from the internet).
 - Licence attribution lives only in LICENSE/NOTICE, never in file headers. Never copy code from other
