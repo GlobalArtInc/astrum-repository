@@ -38,6 +38,9 @@ describe('criteria', () => {
     expect(moreCriteria(['puppet'], '').map((criterion) => criterion.key)).toEqual(
       expect.arrayContaining(['puppet.tag', 'puppet.license']),
     );
+    expect(moreCriteria(['jetbrains'], '').map((criterion) => criterion.key)).toEqual(
+      expect.arrayContaining(['jetbrains.vendor', 'jetbrains.category', 'jetbrains.channel']),
+    );
     expect(moreCriteria(['raw'], 'nuget.id').map((criterion) => criterion.key)).toContain('nuget.id');
     expect(operatorsOf('name')).toEqual(['is', 'startsWith']);
     expect(operatorsOf('helm.keywords')).toEqual(['is', 'startsWith', 'contains']);

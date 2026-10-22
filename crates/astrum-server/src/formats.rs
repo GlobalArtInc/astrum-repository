@@ -22,6 +22,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_helm::Helm::default()));
     content.register(Arc::new(astrum_format_hex::Hex::default()));
     content.register(Arc::new(astrum_format_huggingface::HuggingFace::default()));
+    content.register(Arc::new(astrum_format_jetbrains::Jetbrains::default()));
     content.register(Arc::new(astrum_format_maven::Maven));
     content.register(Arc::new(astrum_format_nix::Nix));
     content.register(Arc::new(astrum_format_npm::Npm::default()));

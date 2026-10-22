@@ -132,6 +132,11 @@ pub const FORMATS: &[Format] = &[
         types: &[P],
     },
     Format {
+        id: "jetbrains",
+        api_name: "jetbrains",
+        types: HPG,
+    },
+    Format {
         id: "maven2",
         api_name: "maven",
         types: HPG,
@@ -247,7 +252,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 35);
+        assert_eq!(ids.len(), 36);
     }
 
     #[test]

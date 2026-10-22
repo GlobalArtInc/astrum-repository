@@ -1106,6 +1106,46 @@ describe('openvsx usage', () => {
   });
 });
 
+describe('jetbrains usage', () => {
+  const url = 'https://repo.example.org/repository/plugins';
+
+  it('adds a hosted repository to the IDE and uploads plugins to it', () => {
+    const snippets = usageSnippets(context({ format: 'jetbrains', repositoryName: 'plugins' }));
+    expect(ids(snippets)).toEqual(['repository', 'properties', 'upload', 'put']);
+    expect(code(snippets, 'repository')).toBe(`${url}/updatePlugins.xml`);
+    expect(code(snippets, 'properties')).toBe(`idea.plugin.hosts=${url}/updatePlugins.xml`);
+    expect(code(snippets, 'upload')).toBe(
+      `curl -i -H "Authorization: Bearer <access token>" -F xmlId=<plugin id> -F file=@<plugin>.zip ${url}/api/updates/upload`,
+    );
+    expect(code(snippets, 'put')).toContain(`-T <plugin>.zip ${url}/<plugin>.zip`);
+  });
+
+  it('replaces the marketplace by a proxy and offers no upload there', () => {
+    const snippets = usageSnippets(
+      context({ format: 'jetbrains', repositoryName: 'plugins', repositoryType: 'proxy' }),
+    );
+    expect(ids(snippets)).toEqual(['host', 'vmoptions']);
+    expect(code(snippets, 'host')).toBe(`idea.plugins.host=${url}`);
+    expect(code(snippets, 'vmoptions')).toBe(`-Didea.plugins.host=${url}`);
+  });
+
+  it('gives a group both ways and downloads the chosen component', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'jetbrains',
+        repositoryName: 'plugins',
+        repositoryType: 'group',
+        component: { group: '', name: 'org.acme.tool', version: '1.2.3' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['repository', 'properties', 'host', 'vmoptions', 'download']);
+    expect(code(snippets, 'download')).toBe(
+      `curl -fLOJ '${url}/plugin/download?pluginId=org.acme.tool&version=1.2.3'`,
+    );
+    expect(supportsUsage('jetbrains')).toBe(true);
+  });
+});
+
 describe('turbo usage', () => {
   it('points Turborepo at the cache by environment, turbo.json and CI', () => {
     const snippets = usageSnippets(context({ format: 'turbo', repositoryName: 'turbo-cache' }));

@@ -2,7 +2,7 @@
 
 Astrum Repository is a self-hosted artifact repository manager. One server hosts, proxies and groups
 repositories for Alpine, Ansible Galaxy, APT, Bazel, Cargo, Chef Supermarket, CocoaPods, Composer, Conan, Conda, Docker and
-other OCI artifacts, Git LFS, Go, Helm, Hex, Hugging Face, Maven, Nix, npm, NuGet, Open VSX, P2, pacman, pub, Puppet
+other OCI artifacts, Git LFS, Go, Helm, Hex, Hugging Face, JetBrains plugins, Maven, Nix, npm, NuGet, Open VSX, P2, pacman, pub, Puppet
 Forge, PyPI, R, RubyGems, Swift, Terraform, Vagrant, Yum and raw files, and remote caches for Nx and Turborepo, with users, roles, content selectors, cleanup
 policies, LDAP and OpenID Connect sign-in, and a web interface in twelve languages. It is a single program that
 keeps its data in PostgreSQL and in blob stores on disk or in S3.

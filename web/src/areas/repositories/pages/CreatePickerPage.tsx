@@ -43,6 +43,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   go: 'repositories.formats.go',
   helm: 'repositories.formats.helm',
   hex: 'repositories.formats.hex',
+  jetbrains: 'repositories.formats.jetbrains',
   maven2: 'repositories.formats.maven2',
   nix: 'repositories.formats.nix',
   npm: 'repositories.formats.npm',

@@ -18,7 +18,11 @@ repository is public: never commit secrets.
   from one brief, one worktree each, a Bazel module registry (`bazel`, `crates/astrum-format-bazel`: hosted, proxy
   of bcr.bazel.build and group, where a module name a hosted member knows is never asked of the proxies), and
   hosted-only remote caches for Turborepo (`turbo`, `crates/astrum-format-turbo`) and Nx (`nx`,
-  `crates/astrum-format-nx`). The web interface speaks twelve languages, pulled from Ownlate at build.
+  `crates/astrum-format-nx`); since 2026-10-22 also plugin repositories for IntelliJ Platform IDEs
+  (`jetbrains`, `crates/astrum-format-jetbrains`; hosted, proxy and group: hosted ones generate `updatePlugins.xml`, take
+  `POST api/updates/upload` and PUT, and all three answer the `idea.plugins.host` requests `plugins/list`, `pluginManager`
+  and `plugin/download`, so a proxy of https://plugins.jetbrains.com can replace Marketplace in a closed network).
+  The web interface speaks twelve languages, pulled from Ownlate at build.
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.

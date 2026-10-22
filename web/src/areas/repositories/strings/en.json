@@ -541,6 +541,7 @@
   "repositories.formats.gitlfs": "Git Large File Storage for versioning large files.",
   "repositories.formats.helm": "Package manager for Kubernetes applications.",
   "repositories.formats.hex": "Packages for Elixir and Erlang, served to Mix and rebar3 with a signed registry.",
+  "repositories.formats.jetbrains": "Plugins for IntelliJ Platform IDEs such as IntelliJ IDEA, GoLand and RustRover, served as a custom plugin repository or in place of JetBrains Marketplace.",
   "repositories.formats.maven2": "The standard of Java development, with snapshots and releases.",
   "repositories.formats.nix": "Binary cache for Nix: store paths pushed with nix copy and fetched by substituters.",
   "repositories.formats.npm": "Package manager for JavaScript and Node.js.",

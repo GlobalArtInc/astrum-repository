@@ -4,6 +4,7 @@ import { installCommand, requirementsFile } from '../usage/ansible';
 import { bazelDep, registryLine } from '../usage/bazel';
 import { berksfile, knifeDownload, policyfile } from '../usage/chef';
 import { mixDependency, rebarDependency } from '../usage/hex';
+import { downloadCommand as jetbrainsDownload } from '../usage/jetbrains';
 import { copyFrom, storePath } from '../usage/nix';
 import { getCommand } from '../usage/openvsx';
 import { directorCommand, installableUnit } from '../usage/p2';
@@ -375,6 +376,18 @@ function openvsx(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function jetbrains(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain);
+  return [
+    {
+      id: 'download',
+      label: 'curl',
+      hint: 'browse.component.snippet.jetbrainsDownload',
+      code: jetbrainsDownload(url, context.name, context.version),
+    },
+  ];
+}
+
 function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
   return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
 }
@@ -427,6 +440,8 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return hex(context);
     case 'openvsx':
       return openvsx(context);
+    case 'jetbrains':
+      return jetbrains(context);
     default:
       return [];
   }

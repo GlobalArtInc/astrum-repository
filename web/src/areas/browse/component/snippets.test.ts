@@ -254,6 +254,21 @@ describe('component snippets of the M4c formats', () => {
     );
   });
 
+  it('download JetBrains plugins by id and version', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'jetbrains',
+      group: '',
+      name: 'Acme Tool',
+      version: '1.2.0+b1',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['download']);
+    expect(snippets[0]?.code).toBe(
+      "curl -fLOJ 'https://repo.example.org/repository/r/plugin/download?pluginId=Acme%20Tool&version=1.2.0%2Bb1'",
+    );
+    expect(snippets[0]?.hint).toBe('browse.component.snippet.jetbrainsDownload');
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',
