@@ -9,16 +9,16 @@
 
 .required {
   margin: 8px 0 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--red-11);
 }
 
 .granted {
   margin: 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--gray-11);
 }

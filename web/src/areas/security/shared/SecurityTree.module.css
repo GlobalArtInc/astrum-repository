@@ -97,8 +97,8 @@
   padding: 8px;
   border-bottom: 1px solid var(--gray-a5);
   background: var(--gray-3);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 700;
   letter-spacing: 0.03px;
   text-transform: uppercase;
@@ -182,8 +182,8 @@
 }
 
 .inherited {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-style: italic;
   letter-spacing: 0.03px;
   color: var(--gray-a11);
@@ -202,8 +202,8 @@
   border: 1px solid;
   border-radius: 3px;
   font-family: var(--code-font-family);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   white-space: nowrap;
   overflow: hidden;
@@ -223,7 +223,7 @@
 }
 
 .description {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 16.8px;
   letter-spacing: 0.03px;
   color: var(--gray-a11);

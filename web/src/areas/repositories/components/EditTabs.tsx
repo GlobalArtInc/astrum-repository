@@ -91,9 +91,7 @@ export function SummaryTab({ repository, online }: { repository: UiRepository; o
         <dl className={styles.grid} style={{ margin: 0 }}>
           <Item term={t('repositories.summary.status')} upper>
             <OnlineDot online={online} />
-            <span style={{ fontSize: 12 }}>
-              {online ? t('repositories.status.online') : t('repositories.status.offline')}
-            </span>
+            <span>{online ? t('repositories.status.online') : t('repositories.status.offline')}</span>
           </Item>
           <Item term={t('repositories.summary.format')} upper>
             <FormatLogo format={repository.format} />

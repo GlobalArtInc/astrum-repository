@@ -7,8 +7,8 @@
 }
 
 .count {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-11);
 }
 
@@ -90,7 +90,7 @@
   margin: 4px 0 0;
   padding: 8px 12px 4px;
   border-top: 1px solid var(--gray-a5);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
   font-weight: 600;
   letter-spacing: 0.6px;
@@ -142,7 +142,7 @@
 }
 
 .description {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 15.6px;
   color: var(--gray-11);
 }
@@ -171,7 +171,7 @@
   border: 1px solid var(--accent-a7);
   border-radius: 3px;
   background: var(--accent-a3);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
   color: var(--gray-12);
 }

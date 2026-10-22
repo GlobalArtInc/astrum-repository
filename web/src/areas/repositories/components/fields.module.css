@@ -70,16 +70,16 @@
 
 .hint {
   margin: 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--gray-11);
 }
 
 .error {
   margin: 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--red-11);
 }
 
@@ -113,7 +113,7 @@
 }
 
 .checkText {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
   letter-spacing: 0.03px;
   color: var(--gray-11);
@@ -194,7 +194,7 @@
   border: 1px solid var(--gray-6);
   border-radius: 6px;
   color: var(--gray-12);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   font-weight: 500;
   cursor: pointer;
 }
@@ -215,8 +215,8 @@
 
 .suggest {
   margin: 13px 0 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
 }
 
 .suggestLink {

@@ -95,8 +95,8 @@
   background: var(--gray-3);
   cursor: pointer;
   text-align: center;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 500;
   letter-spacing: 0.03px;
   color: var(--gray-12);

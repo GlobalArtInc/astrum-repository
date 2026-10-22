@@ -85,8 +85,8 @@
 
 .infoLabel {
   margin-bottom: 4px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--gray-11);
 }
@@ -137,16 +137,16 @@
 
 .help {
   margin: 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--gray-11);
 }
 
 .error {
   margin: 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--red-11);
 }
 

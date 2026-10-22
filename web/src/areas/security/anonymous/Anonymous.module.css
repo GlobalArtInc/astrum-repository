@@ -36,7 +36,7 @@
 }
 
 .checkHelp {
-  font-size: 12px;
+  font-size: var(--font-size-1);
   line-height: 18px;
   letter-spacing: 0.03px;
   color: var(--gray-11);

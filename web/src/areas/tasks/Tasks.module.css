@@ -157,8 +157,8 @@
   align-items: center;
   gap: 8px;
   color: var(--gray-11);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.24px;

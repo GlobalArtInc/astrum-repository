@@ -109,8 +109,8 @@
 }
 
 .caption {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--gray-a11);
 }
@@ -160,8 +160,8 @@
   margin: 5px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--gray-a11);
 }
@@ -257,8 +257,8 @@
 .emptyHint {
   max-width: 420px;
   margin: 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   color: var(--gray-a11);
 }
 
@@ -362,7 +362,7 @@
 .version {
   flex-shrink: 0;
   font-family: var(--code-font-family);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--gray-11);
 }
 
@@ -500,8 +500,8 @@
 
 .when {
   flex-shrink: 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.03px;
   color: var(--gray-a11);
 }

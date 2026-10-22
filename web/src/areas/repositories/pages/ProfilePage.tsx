@@ -457,7 +457,7 @@ function InstanceTab() {
             {t('repositories.profile.notConfigured')}
           </Badge>
         </div>
-        <p className={tabs.text} style={{ fontSize: 12 }}>
+        <p className={tabs.text} style={{ fontSize: 'var(--font-size-1)' }}>
           {t('repositories.profile.healthCheckText')}
         </p>
         <div className={styles.featureRow}>
@@ -466,7 +466,7 @@ function InstanceTab() {
             {t('repositories.profile.licenseNeeded')}
           </Badge>
         </div>
-        <p className={tabs.text} style={{ fontSize: 12 }}>
+        <p className={tabs.text} style={{ fontSize: 'var(--font-size-1)' }}>
           {t('repositories.profile.firewallText')}
         </p>
         <p className={styles.note}>

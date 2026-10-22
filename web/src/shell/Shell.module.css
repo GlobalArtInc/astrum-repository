@@ -392,8 +392,8 @@
 .version {
   display: block;
   padding: 4px 11px 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
   letter-spacing: 0.0025em;
   color: var(--gray-11);
 }

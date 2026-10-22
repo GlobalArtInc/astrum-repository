@@ -91,7 +91,7 @@
 .criterionText {
   margin: 3px 0 var(--space-3);
   font-size: var(--font-size-1);
-  line-height: 16px;
+  line-height: var(--line-height-1);
   color: var(--gray-a11);
 }
 

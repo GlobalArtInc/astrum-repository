@@ -305,13 +305,13 @@
   gap: 6px;
   flex-shrink: 0;
   color: var(--gray-11);
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .version {
   margin-left: 8px;
   font-family: var(--code-font-family);
-  font-size: 12px;
+  font-size: var(--font-size-1);
   color: var(--gray-11);
 }
 
@@ -325,7 +325,7 @@
 }
 
 .repositoryName {
-  font-size: 12px;
+  font-size: var(--font-size-1);
 }
 
 .panelNote {
