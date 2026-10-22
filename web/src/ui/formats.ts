@@ -28,6 +28,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   openvsx: { name: 'Open VSX', color: 'violet' },
   p2: { name: 'P2', color: 'gray' },
   pacman: { name: 'pacman', color: 'blue' },
+  protobuf: { name: 'Protobuf', color: 'blue' },
   pub: { name: 'pub (Dart)', color: 'sky' },
   puppet: { name: 'Puppet Forge', color: 'amber' },
   pypi: { name: 'PyPI', color: 'amber' },

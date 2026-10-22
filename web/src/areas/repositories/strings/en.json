@@ -549,6 +549,7 @@
   "repositories.formats.nx": "A self-hosted remote cache for Nx: task outputs that nx uploads and restores instead of running the tasks again.",
   "repositories.formats.openvsx": "VS Code extensions for VSCodium and other editors, served through the Open VSX and gallery APIs.",
   "repositories.formats.pacman": "The package manager of Arch Linux and the distributions built on it.",
+  "repositories.formats.protobuf": "A Buf Schema Registry compatible registry of Protobuf modules for buf push, buf dep update and buf build. It answers on a domain of its own.",
   "repositories.formats.pub": "Packages for Dart and Flutter, served to dart pub and flutter pub.",
   "repositories.formats.puppet": "Modules of Puppet code, served through the Forge API to puppet module install, r10k and Bolt.",
   "repositories.formats.pypi": "The official third-party software repository for Python.",

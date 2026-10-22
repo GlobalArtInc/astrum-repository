@@ -177,6 +177,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "protobuf",
+        api_name: "protobuf",
+        types: &[H],
+    },
+    Format {
         id: "pub",
         api_name: "pub",
         types: HPG,
@@ -252,7 +257,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 36);
+        assert_eq!(ids.len(), 37);
     }
 
     #[test]

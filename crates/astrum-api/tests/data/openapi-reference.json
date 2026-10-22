@@ -5658,6 +5658,87 @@
     ]
    }
   },
+  "/v1/repositories/protobuf/hosted": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProtobufHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/protobuf/hosted/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProtobufHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
   "/v1/repositories/pub/group": {
    "post": {
     "requestBody": {
@@ -15946,6 +16027,38 @@
       "type": "string"
      }
     }
+   },
+   "ProtobufHostedRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "component": {
+      "$ref": "#/components/schemas/ComponentAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/HostedStorageAttributes"
+     }
+    },
+    "required": [
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
    },
    "ProxyAttributes": {
     "properties": {
