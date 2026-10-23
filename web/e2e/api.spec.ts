@@ -18,36 +18,38 @@ async function signInAsAdmin(page: Page, password: string) {
   await expect(page.getByRole('button', { name: /Account menu of/ })).toBeVisible();
 }
 
-test('the API page lists, filters and runs the REST API', async ({ page, server }) => {
-  const telemetry: string[] = [];
+async function openOperation(page: Page, tag: string, path: string) {
+  await page.getByPlaceholder('Filter by tag').fill(tag);
+  const summary = page.locator(`.opblock-summary-path[data-path="${path}"]`).first();
+  await summary.click();
+  await page.getByRole('button', { name: 'Try it out' }).click();
+  await page.getByRole('button', { name: 'Execute' }).click();
+  return page.locator('.opblock.is-open .live-responses-table').first();
+}
+
+test('the API page shows the REST API in Swagger UI and runs it', async ({ page, server }) => {
+  const outside: string[] = [];
   page.on('request', (request) => {
-    if (request.url().includes('user-telemetry')) {
-      telemetry.push(request.url());
+    if (!request.url().startsWith(server.url) && !request.url().startsWith('data:')) {
+      outside.push(request.url());
     }
   });
   await signInAsAdmin(page, server.adminPassword);
   await page.getByRole('link', { name: 'API', exact: true }).first().click();
   await expect(page).toHaveURL(/\/api$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'API' })).toBeVisible();
-  const list = page.getByRole('navigation', { name: 'Endpoints' });
-  await expect(list.getByText('/service/rest/v1/repositories', { exact: true }).first()).toBeVisible();
-  await page.getByRole('textbox', { name: 'Search by path or summary…' }).fill('v1/status');
-  await page.getByRole('combobox', { name: 'Method' }).click();
-  await page.getByRole('option', { name: 'GET', exact: true }).click();
-  await expect(list.getByRole('button')).toHaveCount(3);
-  await list.getByRole('button', { name: /\/service\/rest\/v1\/status$/ }).click();
-  await expect(page).toHaveURL(/method=GET&path=%2Fv1%2Fstatus$/);
-  await expect(page.getByRole('heading', { level: 2, name: '/service/rest/v1/status' })).toBeVisible();
-  await page.getByRole('button', { name: 'Execute' }).click();
-  await expect(page.getByText(/^200/).first()).toBeVisible();
-  await expect(page.getByText('The response has no body')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'API', exact: true })).toBeVisible();
+  await expect(page.locator('.swagger-ui .opblock-tag').first()).toBeVisible();
 
-  await page.goto('/api?method=GET&path=%2Fv1%2Fsecurity%2Fusers');
-  await page.getByRole('button', { name: 'Execute' }).click();
-  await expect(page.getByText(/"userId": "admin"/)).toBeVisible();
+  const status = await openOperation(page, 'Status', '/v1/status');
+  await expect(status.locator('tbody .response-col_status').first()).toHaveText('200');
+
+  await page.goto('/api');
+  const users = await openOperation(page, 'Security management: users', '/v1/security/users');
+  await expect(users).toContainText('"userId": "admin"');
+
   await page.goto('/#browse/api');
   await expect(page).toHaveURL(/\/api$/);
-  expect(telemetry).toEqual([]);
+  expect(outside).toEqual([]);
 });
 
 test.describe('screenshots', () => {
@@ -70,12 +72,11 @@ test.describe('screenshots', () => {
         );
         await signInAsAdmin(page, server.adminPassword);
         await page.goto('/api');
-        await expect(page.getByRole('heading', { level: 1, name: 'API' })).toBeVisible();
-        await expect(page.getByText('/service/rest/v1/assets', { exact: true }).first()).toBeVisible();
+        await expect(page.getByRole('heading', { level: 1, name: 'API', exact: true })).toBeVisible();
+        await expect(page.locator('.swagger-ui .opblock-tag').first()).toBeVisible();
         await shoot('api');
-        await page.goto('/api?method=GET&path=%2Fv1%2Fblobstores');
-        await page.getByRole('button', { name: 'Execute' }).click();
-        await expect(page.getByText(/^200/).first()).toBeVisible();
+        const response = await openOperation(page, 'Blob store', '/v1/blobstores');
+        await expect(response.locator('tbody .response-col_status').first()).toHaveText('200');
         await shoot('api-endpoint');
       });
     }

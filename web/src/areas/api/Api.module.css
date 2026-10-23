@@ -1,322 +1,296 @@
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
+.swagger {
   min-width: 0;
 }
 
-.layout {
-  display: grid;
-  grid-template-columns: 380px auto minmax(0, 1fr);
-  align-items: start;
-  gap: 12px;
-  min-width: 0;
-}
-
-.layout[data-collapsed] {
-  grid-template-columns: auto minmax(0, 1fr);
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-width: 0;
-  height: calc(100vh - 220px);
-  min-height: 420px;
-  padding: 12px;
-  border: 1px solid var(--gray-a5);
-  border-radius: var(--radius-3);
-  background: var(--color-panel-solid);
-}
-
-.filters {
-  display: flex;
-  gap: 12px;
-}
-
-.filter {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  width: 116px;
-}
-
-.trigger {
-  align-self: flex-start;
-  min-width: 64px;
-}
-
-.scroller {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.group + .group {
-  margin-top: var(--space-3);
-}
-
-.tag {
-  margin-bottom: var(--space-2);
-  color: var(--gray-a11);
-}
-
-.rows {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: 38px;
-  padding: 8px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-2);
-  background: transparent;
+.swagger :global(.swagger-ui) {
+  font-family: var(--default-font-family);
   color: var(--gray-12);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
-.row:hover {
+.swagger :global(.swagger-ui .wrapper) {
+  max-width: none;
+  padding: 0;
+}
+
+.swagger :global(.swagger-ui .information-container .info) {
+  margin: 0 0 16px;
+}
+
+.swagger :global(.swagger-ui .scheme-container) {
+  display: none;
+}
+
+.swagger
+  :global(
+    .swagger-ui
+      :is(
+        .opblock-tag,
+        .parameter__name,
+        .opblock .opblock-section-header > label,
+        .opblock .opblock-section-header h4,
+        .opblock .opblock-summary-operation-id,
+        .opblock .opblock-summary-path,
+        .opblock .opblock-summary-path__deprecated,
+        .opblock .opblock-summary-description,
+        .tab li,
+        .opblock-description-wrapper,
+        .opblock-description-wrapper :is(h4, p),
+        .opblock-external-docs-wrapper,
+        .opblock-external-docs-wrapper :is(h4, p),
+        .opblock-title_normal,
+        .opblock-title_normal :is(h4, p),
+        .responses-inner :is(h4, h5),
+        .response-col_status,
+        .response-col_links,
+        .response-col_description,
+        section h3,
+        label,
+        .checkbox p,
+        .model,
+        .servers > label,
+        table.headers td,
+        table thead tr :is(td, th),
+        .info :is(h1, h2, h3, h4, h5, li, p, table),
+        .info .title,
+        .errors-wrapper .errors h4,
+        .errors-wrapper hgroup h4,
+        .dialog-ux .modal-ux-content :is(h4, p),
+        .dialog-ux .modal-ux-header h3,
+        .markdown,
+        .renderedMarkdown,
+        .loading-container .loading::after,
+        .btn,
+        select,
+        textarea
+      )
+  ) {
+  color: var(--gray-12);
+}
+
+.swagger
+  :global(
+    .swagger-ui
+      :is(
+        .opblock-tag small,
+        .parameter__type,
+        .parameter__in,
+        .prop-format,
+        .model-title,
+        section.models h4,
+        .info .base-url
+      )
+  ) {
+  color: var(--gray-11);
+}
+
+.swagger :global(.swagger-ui .opblock-tag) {
+  border-bottom-color: var(--gray-a5);
+}
+
+.swagger :global(.swagger-ui .opblock-tag:hover) {
+  background: var(--gray-a2);
+}
+
+.swagger :global(.swagger-ui .opblock) {
+  box-shadow: none;
+}
+
+.swagger :global(.swagger-ui .opblock .opblock-section-header) {
+  background: var(--gray-a2);
+  box-shadow: none;
+}
+
+.swagger :global(.swagger-ui table thead tr :is(td, th)) {
+  border-bottom-color: var(--gray-a5);
+}
+
+.swagger :global(.swagger-ui section.models) {
+  border-color: var(--gray-a5);
+}
+
+.swagger :global(.swagger-ui section.models .model-container) {
+  background: var(--gray-a2);
+}
+
+.swagger :global(.swagger-ui section.models .model-container:hover) {
   background: var(--gray-a3);
 }
 
-.row:focus-visible {
-  outline: 2px solid var(--focus-8);
-  outline-offset: -1px;
+.swagger :global(.swagger-ui :is(.markdown, .renderedMarkdown) code) {
+  background: var(--gray-a3);
+  color: var(--gray-12);
 }
 
-.row[aria-current] {
-  border-color: var(--accent-a7);
-  background: var(--accent-a3);
+.swagger
+  :global(
+    .swagger-ui
+      :is(
+        input[type="email"],
+        input[type="file"],
+        input[type="password"],
+        input[type="search"],
+        input[type="text"],
+        textarea,
+        select
+      )
+  ) {
+  border: 1px solid var(--gray-a7);
+  background-color: var(--color-surface);
+  color: var(--gray-12);
 }
 
-.method {
-  flex: none;
-  text-transform: uppercase;
+.swagger :global(.swagger-ui :is(input, select, textarea)[disabled]) {
+  background-color: var(--gray-a2);
+  color: var(--gray-11);
 }
 
-.path {
-  min-width: 0;
-  overflow: hidden;
-  font-size: var(--font-size-2);
-  line-height: var(--line-height-2);
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.swagger :global(.swagger-ui .btn) {
+  border-color: var(--gray-a7);
+  background: transparent;
+  box-shadow: none;
 }
 
-.toggle {
-  padding-top: 0;
+.swagger :global(.swagger-ui .btn.execute) {
+  border-color: var(--accent-9);
+  background: var(--accent-9);
+  color: var(--accent-contrast);
 }
 
-.detail {
-  min-width: 0;
-}
-
-.intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: 16px;
-}
-
-.introTitle {
-  margin-bottom: 0;
-}
-
-.introList {
-  margin: var(--space-2) 0 0;
-  padding-left: 42px;
-}
-
-.introList li + li {
-  margin-top: 4px;
-}
-
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
-.panelHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
-.panelPath {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: 18px;
-  line-height: 24px;
-}
-
-.summary {
-  margin: 0;
-}
-
-.tab {
-  padding-top: var(--space-4);
-}
-
-.try {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  min-width: 0;
-}
-
-.sectionTitle {
-  margin-bottom: var(--space-2);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-2);
-}
-
-.table th {
-  padding: 8px 12px 8px 0;
-  border-bottom: 1px solid var(--gray-a5);
-  color: var(--gray-a11);
-  font-weight: 500;
-  font-size: var(--font-size-1);
-  text-align: left;
-}
-
-.table td {
-  padding: 8px 12px 8px 0;
-  border-bottom: 1px solid var(--gray-a3);
-  vertical-align: top;
-}
-
-.table td:first-child {
-  width: 40%;
-}
-
-.paramName {
-  font-family: var(--code-font-family);
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
-.required {
-  margin-left: 2px;
+.swagger :global(.swagger-ui .btn.cancel) {
+  border-color: var(--red-8);
   color: var(--red-11);
 }
 
-.bodyInput {
-  font-family: var(--code-font-family);
+.swagger
+  :global(.swagger-ui :is(.expand-methods, .expand-operation, .opblock-control-arrow, .authorization__btn)) {
+  color: var(--gray-11);
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
+.swagger :global(.swagger-ui :is(.expand-methods, .expand-operation, .opblock-control-arrow, .arrow) svg),
+.swagger :global(.swagger-ui svg.arrow) {
+  fill: currentColor;
 }
 
-.result {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.status {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.code {
-  font-family: var(--code-font-family);
-}
-
-.schema {
-  font-family: var(--code-font-family);
-  overflow-wrap: anywhere;
-}
-
-.help {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--gray-a5);
-  border-radius: var(--radius-3);
+.swagger :global(.swagger-ui .dialog-ux .modal-ux) {
+  border-color: var(--gray-a5);
   background: var(--color-panel-solid);
 }
 
-.helpTitle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+:global(.dark) .swagger :global(.swagger-ui select) {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23b0b4ba' d='M13.418 7.859a.695.695 0 0 1 .978 0 .68.68 0 0 1 0 .969l-3.908 3.83a.697.697 0 0 1-.979 0l-3.908-3.83a.68.68 0 0 1 0-.969.695.695 0 0 1 .978 0L10 11z'/%3E%3C/svg%3E");
 }
 
-.helpTitle svg {
-  color: var(--gray-9);
+:global(.dark)
+  .swagger
+  :global(.swagger-ui :is(.model-toggle::after, .json-schema-2020-12-accordion__icon svg)) {
+  filter: invert(0.8);
 }
 
-.helpText {
-  margin: 0;
-  line-height: 1.75;
-  color: var(--gray-a11);
+.swagger
+  :global(
+    .swagger-ui
+      :is(
+        button,
+        input,
+        optgroup,
+        select,
+        textarea,
+        .opblock-tag,
+        .opblock-tag small,
+        .opblock .opblock-section-header > label,
+        .opblock .opblock-section-header h4,
+        .opblock .opblock-summary-method,
+        .opblock .opblock-summary-description,
+        .tab li,
+        .opblock-description-wrapper,
+        .opblock-external-docs-wrapper,
+        .opblock-title_normal,
+        .opblock-description-wrapper h4,
+        .opblock-external-docs-wrapper h4,
+        .opblock-title_normal h4,
+        .opblock-description-wrapper p,
+        .opblock-external-docs-wrapper p,
+        .opblock-title_normal p,
+        .responses-inner h4,
+        .responses-inner h5,
+        .response-col_status,
+        .response-col_links,
+        .download-contents,
+        .scheme-container .schemes > .schemes-server-container > label,
+        .loading-container .loading:after,
+        section h3,
+        .btn,
+        .btn.cancel,
+        label,
+        .dialog-ux .modal-ux-content p,
+        .dialog-ux .modal-ux-content h4,
+        .dialog-ux .modal-ux-header h3,
+        section.models h4,
+        section.models h5,
+        .model-title,
+        .model-deprecated-warning,
+        .servers > label,
+        table thead tr td,
+        table thead tr th,
+        .parameter__name,
+        .topbar a,
+        .topbar .download-url-wrapper .download-url-button,
+        .info h1,
+        .info h2,
+        .info h3,
+        .info h4,
+        .info h5,
+        .info li,
+        .info p,
+        .info table,
+        .info a,
+        .info .title,
+        .info .title small pre,
+        .scopes h2,
+        .errors-wrapper hgroup h4,
+        .json-schema-2020-12__title,
+        .json-schema-2020-12-expand-deep-button
+      )
+  ) {
+  font-family: var(--default-font-family);
 }
 
-.external {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--gray-12);
-  text-decoration: none;
-}
-
-.external:hover {
-  text-decoration: underline;
-}
-
-@media (max-width: 1023px) {
-  .layout {
-    grid-template-columns: 320px auto minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 767px) {
-  .layout,
-  .layout[data-collapsed] {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .list {
-    height: 60vh;
-  }
-
-  .toggle {
-    display: none;
-  }
-
-  .intro {
-    padding: 0;
-  }
-
-  .table td:first-child {
-    width: 45%;
-  }
+.swagger
+  :global(
+    .swagger-ui
+      :is(
+        pre,
+        code,
+        kbd,
+        samp,
+        .code,
+        .parameter__type,
+        .opblock .opblock-summary-operation-id,
+        .opblock .opblock-summary-path,
+        .opblock .opblock-summary-path__deprecated,
+        .response-col_status .response-undocumented,
+        .response-col_links .response-undocumented,
+        .opblock-body pre.microlight,
+        textarea,
+        textarea.curl,
+        .checkbox p,
+        .model,
+        table.headers td,
+        .parameter__extension,
+        .parameter__in,
+        .parameter__deprecated,
+        .response__extension,
+        .info .base-url,
+        .auth-container .errors,
+        .errors-wrapper .errors h4,
+        .markdown code,
+        .renderedMarkdown code,
+        .json-schema-2020-12__constraint,
+        .json-schema-2020-12-property .json-schema-2020-12__title,
+        .json-schema-2020-12-keyword__value--warning,
+        .json-schema-2020-12__attribute,
+        .json-schema-2020-12-json-viewer__value--warning
+      )
+  ) {
+  font-family: var(--code-font-family);
 }
