@@ -1,10 +1,13 @@
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use astrum_security::SecretBox;
 use astrum_security::ldap::{
     Check, Directory, Draft, Ldap, LdapAuthError, LdapServer, Outcome, TlsClient, config,
 };
+use astrum_security::tls::{Certificates, TrustStore};
 use astrum_testkit::ldap::{BASE, LdapTestServer, SYSTEM_DN, SYSTEM_PASSWORD, SYSTEM_USER};
+use rustls::pki_types::CertificateDer;
 
 fn secrets() -> SecretBox {
     SecretBox::from_key([3; 32])
@@ -409,4 +412,75 @@ async fn a_short_cache_asks_again() {
         .search_groups(&servers, Some(&secrets), Some("adm"), 10)
         .await;
     assert_eq!(groups, ["admins"]);
+}
+
+struct Stored(Mutex<Vec<CertificateDer<'static>>>);
+
+impl TrustStore for Stored {
+    fn certificates(&self) -> Certificates<'_> {
+        let certificates = self.0.lock().unwrap().clone();
+        Box::pin(async move { Ok(certificates) })
+    }
+}
+
+#[tokio::test]
+async fn the_truststore_is_trusted_only_by_servers_that_ask_for_it() {
+    let test = LdapTestServer::start().await;
+    let store = Arc::new(Stored(Mutex::new(vec![test.ca()])));
+    let ldap = Ldap::new();
+    ldap.set_trust_store(store.clone());
+    let secrets = secrets();
+    let ldaps = |use_trust_store: bool| {
+        server(Draft {
+            protocol: Some("LDAPS".to_owned()),
+            host: Some("localhost".to_owned()),
+            use_trust_store: Some(use_trust_store),
+            ..draft(test.ldaps_port)
+        })
+    };
+    let refused = ldap
+        .authenticate(&[ldaps(false)], Some(&secrets), "alice", "alice-secret")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&refused, LdapAuthError::Unavailable(error) if error.0.contains("TLS handshake")),
+        "{refused:?}"
+    );
+    let untrusted = verify(
+        &ldaps(false),
+        Some(SYSTEM_PASSWORD),
+        &ldap.tls_for(&ldaps(false)).await,
+    )
+    .await
+    .unwrap_err();
+    assert!(untrusted.contains("TLS handshake"), "{untrusted}");
+
+    let alice = ldap
+        .authenticate(&[ldaps(true)], Some(&secrets), "alice", "alice-secret")
+        .await
+        .unwrap();
+    assert_eq!(alice.username, "alice");
+    let start_tls = server(Draft {
+        host: Some("localhost".to_owned()),
+        use_start_tls: Some(true),
+        use_trust_store: Some(true),
+        ..draft(test.port)
+    });
+    verify(
+        &start_tls,
+        Some(SYSTEM_PASSWORD),
+        &ldap.tls_for(&start_tls).await,
+    )
+    .await
+    .unwrap();
+
+    store.0.lock().unwrap().clear();
+    let removed = ldap
+        .authenticate(&[ldaps(true)], Some(&secrets), "alice", "alice-secret")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&removed, LdapAuthError::Unavailable(error) if error.0.contains("TLS handshake")),
+        "a certificate taken out of the truststore also ends the cached sign-in: {removed:?}"
+    );
 }

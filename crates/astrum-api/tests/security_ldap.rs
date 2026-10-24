@@ -2,6 +2,7 @@ mod support;
 
 use astrum_security::ldap::TlsClient;
 use astrum_testkit::ldap::{BASE, LdapTestServer, SYSTEM_DN, SYSTEM_PASSWORD};
+use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
@@ -14,6 +15,7 @@ const USERS: &str = "/service/rest/v1/security/users";
 const ROLES: &str = "/service/rest/v1/security/roles";
 const SESSION: &str = "/service/rest/internal/session";
 const STATE: &str = "/service/rest/internal/ui/state";
+const TRUSTSTORE: &str = "/service/rest/v1/security/ssl/truststore";
 
 fn server(port: u16) -> Value {
     json!({
@@ -813,5 +815,108 @@ async fn the_default_role_reaches_every_signed_in_user() {
             .await
             .json(),
         json!({"role": null, "enabled": false, "missing": false})
+    );
+}
+
+#[tokio::test]
+async fn a_directory_is_trusted_through_the_truststore_when_asked() {
+    let fixture = Fixture::new().await;
+    let directory = LdapTestServer::start().await;
+    let secure = |use_trust_store: bool| {
+        let mut body = server(directory.ldaps_port);
+        body["protocol"] = json!("ldaps");
+        body["host"] = json!("localhost");
+        body["useTrustStore"] = json!(use_trust_store);
+        body
+    };
+    let verify = |body: Value| {
+        let fixture = &fixture;
+        async move {
+            fixture
+                .call(
+                    Method::POST,
+                    &format!("{LDAP}/verify-connection"),
+                    Auth::Admin,
+                    Some(body),
+                )
+                .await
+        }
+    };
+    let untrusted = verify(secure(true)).await;
+    assert_eq!(untrusted.status, StatusCode::BAD_REQUEST);
+    assert!(
+        untrusted.json()[0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("TLS handshake"),
+        "{}",
+        untrusted.text()
+    );
+
+    let added = fixture
+        .send_body(
+            Method::POST,
+            TRUSTSTORE,
+            Auth::Admin,
+            Body::from(directory.certificates.ca_pem.clone()),
+            &[("content-type", "text/plain")],
+        )
+        .await;
+    assert_eq!(added.status, StatusCode::CREATED, "{}", added.text());
+    let id = added.json()["id"].as_str().unwrap().to_owned();
+    assert_eq!(
+        verify(secure(false)).await.status,
+        StatusCode::BAD_REQUEST,
+        "without the option only the system certificates count"
+    );
+    let trusted = verify(secure(true)).await;
+    assert_eq!(trusted.status, StatusCode::NO_CONTENT, "{}", trusted.text());
+    let mut start_tls = server(directory.port);
+    start_tls["host"] = json!("localhost");
+    start_tls["useStartTls"] = json!(true);
+    start_tls["useTrustStore"] = json!(true);
+    let reply = verify(start_tls).await;
+    assert_eq!(reply.status, StatusCode::NO_CONTENT, "{}", reply.text());
+
+    assert_eq!(
+        create(&fixture, secure(true)).await.status,
+        StatusCode::CREATED
+    );
+    create_role(
+        &fixture,
+        json!({"id": "admins", "name": "Admins", "source": "LDAP", "privileges": ["as-all"]}),
+    )
+    .await;
+    let alice = fixture
+        .call(
+            Method::GET,
+            USERS,
+            Auth::Basic("alice", "alice-secret"),
+            None,
+        )
+        .await;
+    assert_eq!(alice.status, StatusCode::OK, "{}", alice.text());
+
+    let removed = fixture
+        .call(
+            Method::DELETE,
+            &format!("{TRUSTSTORE}/{id}"),
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(removed.status, StatusCode::NO_CONTENT);
+    let refused = fixture
+        .call(
+            Method::GET,
+            USERS,
+            Auth::Basic("alice", "alice-secret"),
+            None,
+        )
+        .await;
+    assert_eq!(
+        refused.status,
+        StatusCode::UNAUTHORIZED,
+        "taking the certificate out ends the cached sign-in at once"
     );
 }

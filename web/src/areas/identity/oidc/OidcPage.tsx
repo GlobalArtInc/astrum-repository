@@ -6,6 +6,9 @@ import { ApiError, api, fieldName, useApi, useInvalidateApi } from '../../../api
 import { STATE_KEY, useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import { describeError, ErrorState, FormError, Page, UnsavedChangesGuard, useToast } from '../../../ui';
+import { TRUSTSTORE_READ } from '../../outbound/api';
+import { remoteServer } from '../../outbound/model';
+import { CertificateDialog } from '../../outbound/ssl/CertificateDialog';
 import { OIDC, type OidcSettings } from '../api';
 import { Area, Check, Input, Password, Section } from '../shared/Fields';
 import layout from '../shared/Layout.module.css';
@@ -25,6 +28,7 @@ function OidcForm({ settings }: { settings: OidcSettings }) {
   const client = useQueryClient();
   const invalidate = useInvalidateApi();
   const canWrite = useCan('astrum:settings:update');
+  const canViewCertificate = useCan(TRUSTSTORE_READ);
   const redirectId = useId();
   const initial = useMemo(() => fromSettings(settings), [settings]);
   const [baseline, setBaseline] = useState(initial);
@@ -33,6 +37,7 @@ function OidcForm({ settings }: { settings: OidcSettings }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [secretStored, setSecretStored] = useState(settings.clientSecretSet);
+  const [viewingCertificate, setViewingCertificate] = useState(false);
   const dirty = JSON.stringify(values) !== JSON.stringify(baseline);
   const readOnly = !canWrite;
   const labels = {
@@ -61,9 +66,9 @@ function OidcForm({ settings }: { settings: OidcSettings }) {
     disabled: readOnly,
   });
 
-  const trustable = [values.issuerUrl, values.idpTokenUrl, values.idpJwksUrl].some(
-    (url) => url.trim() !== '' && secureUrl(url),
-  );
+  const endpoints = [values.issuerUrl, values.idpTokenUrl, values.idpJwksUrl];
+  const trustable = endpoints.some((url) => url.trim() !== '' && secureUrl(url));
+  const provider = endpoints.map(remoteServer).find((server) => server !== null) ?? null;
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -198,18 +203,29 @@ function OidcForm({ settings }: { settings: OidcSettings }) {
             disabled={readOnly || (!trustable && !values.useTrustStore)}
             onChange={(checked) => set('useTrustStore', checked)}
           >
-            <Button
-              type="button"
-              size="1"
-              variant="outline"
-              color="gray"
-              className={styles.certificate}
-              disabled
-            >
-              <ShieldCheck size={16} aria-hidden="true" />
-              {t('identity.oidc.viewCertificate')}
-            </Button>
+            {canViewCertificate && (
+              <Button
+                type="button"
+                size="1"
+                variant="outline"
+                color="gray"
+                className={styles.certificate}
+                disabled={provider === null}
+                onClick={() => setViewingCertificate(true)}
+              >
+                <ShieldCheck size={16} aria-hidden="true" />
+                {t('identity.oidc.viewCertificate')}
+              </Button>
+            )}
           </Check>
+          {viewingCertificate && provider && (
+            <CertificateDialog
+              open={viewingCertificate}
+              onOpenChange={setViewingCertificate}
+              host={provider.host}
+              port={provider.port}
+            />
+          )}
         </Section>
         <Section title={t('identity.oidc.claimMappings')} id="oidc-claims">
           <Input

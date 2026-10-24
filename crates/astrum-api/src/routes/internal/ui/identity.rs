@@ -124,11 +124,26 @@ async fn read_oidc(
     }))
 }
 
-pub(crate) async fn http(state: &AppState) -> Result<oidc::Http, ApiError> {
+pub(crate) async fn http(
+    state: &AppState,
+    settings: &OidcSettings,
+) -> Result<oidc::Http, ApiError> {
     let ssrf: SsrfProtection = setting::get(state.db().conn(), SSRF_KEY)
         .await?
         .unwrap_or_default();
-    oidc::Http::new(&ssrf).map_err(|error| ApiError::internal(anyhow::anyhow!(error.message)))
+    let trust_store = match settings.use_trust_store {
+        true => Some(
+            state
+                .content()
+                .outbound()
+                .trust_roots()
+                .await
+                .map_err(ApiError::internal)?,
+        ),
+        false => None,
+    };
+    oidc::Http::new(&ssrf, trust_store.as_deref())
+        .map_err(|error| ApiError::internal(anyhow::anyhow!(error.message)))
 }
 
 async fn activate(
@@ -179,7 +194,7 @@ async fn save_oidc(
                 .collect(),
         )
     })?;
-    let http = http(&state).await?;
+    let http = http(&state, &settings).await?;
     if let Err(error) = oidc::OidcProvider::resolve(&settings, &http).await {
         let message = format!(
             "Could not load the identity provider configuration: {}",

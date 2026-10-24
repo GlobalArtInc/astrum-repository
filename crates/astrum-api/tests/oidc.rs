@@ -1,6 +1,8 @@
 mod support;
 
 use astrum_testkit::oidc::MockProvider;
+use astrum_testkit::tls::TestCertificates;
+use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
@@ -10,6 +12,7 @@ use support::{Auth, Fixture, Reply};
 const SETTINGS: &str = "/service/rest/internal/ui/oauth2";
 const STATE: &str = "/service/rest/internal/ui/state";
 const USERS: &str = "/service/rest/v1/security/users";
+const TRUSTSTORE: &str = "/service/rest/v1/security/ssl/truststore";
 
 async fn allow_loopback(fixture: &Fixture) {
     let reply = fixture
@@ -88,6 +91,7 @@ impl Login {
 async fn follow(url: &str) -> String {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
+        .danger_accept_invalid_certs(true)
         .no_proxy()
         .build()
         .unwrap();
@@ -453,4 +457,68 @@ async fn refused_sign_ins_return_to_the_login_page() {
     let before = provider.token_requests();
     failed_with(&fixture, "failed").await;
     assert_eq!(provider.token_requests(), before + 1);
+}
+
+#[tokio::test]
+async fn a_provider_with_a_private_certificate_is_trusted_through_the_truststore() {
+    let fixture = Fixture::new().await;
+    allow_loopback(&fixture).await;
+    let certificates = TestCertificates::generate(&["127.0.0.1"]);
+    let provider = MockProvider::start_tls("astrum", Some("s3cret"), &certificates).await;
+    let untrusted = configure(&fixture, &provider, json!({"useTrustStore": true})).await;
+    assert_eq!(untrusted.status, StatusCode::BAD_REQUEST);
+    assert_eq!(untrusted.json()[0]["id"], "issuerUrl");
+    assert!(
+        untrusted.json()[0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("certificate"),
+        "{}",
+        untrusted.text()
+    );
+
+    let added = fixture
+        .send_body(
+            Method::POST,
+            TRUSTSTORE,
+            Auth::Admin,
+            Body::from(certificates.ca_pem.clone()),
+            &[("content-type", "text/plain")],
+        )
+        .await;
+    assert_eq!(added.status, StatusCode::CREATED, "{}", added.text());
+    let id = added.json()["id"].as_str().unwrap().to_owned();
+    assert_eq!(
+        configure(&fixture, &provider, json!({"useTrustStore": false}))
+            .await
+            .status,
+        StatusCode::BAD_REQUEST,
+        "without the option only the system certificates count"
+    );
+    let trusted = configure(&fixture, &provider, json!({"useTrustStore": true})).await;
+    assert_eq!(trusted.status, StatusCode::NO_CONTENT, "{}", trusted.text());
+
+    provider.sign_in_as(json!({"sub": "u-7", "preferred_username": "tess"}));
+    let login = sign_in(&fixture, None).await;
+    assert_eq!(location(&login.callback), "/", "{}", login.callback.text());
+    assert!(login.cookies().contains("astrum_session="));
+    assert_eq!(provider.token_requests(), 1);
+
+    let removed = fixture
+        .call(
+            Method::DELETE,
+            &format!("{TRUSTSTORE}/{id}"),
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(removed.status, StatusCode::NO_CONTENT);
+    let refused = fixture
+        .call(Method::GET, "/oidc/login", Auth::None, None)
+        .await;
+    assert_eq!(
+        location(&refused),
+        "/login?sso=failed",
+        "taking the certificate out applies at once"
+    );
 }

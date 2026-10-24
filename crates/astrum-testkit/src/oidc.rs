@@ -9,12 +9,18 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use base64::Engine;
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use hyper_util::server::conn::auto::Builder;
+use hyper_util::service::TowerToHyperService;
 use ring::rand::SystemRandom;
 use ring::signature::{ECDSA_P256_SHA256_FIXED_SIGNING, EcdsaKeyPair, KeyPair};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
+use tokio_rustls::TlsAcceptor;
+
+use crate::tls::TestCertificates;
 
 pub const KEY_ID: &str = "mock-key";
 
@@ -55,11 +61,33 @@ impl Drop for MockProvider {
 
 impl MockProvider {
     pub async fn start(client_id: &str, client_secret: Option<&str>) -> Self {
+        Self::launch(client_id, client_secret, None).await
+    }
+
+    pub async fn start_tls(
+        client_id: &str,
+        client_secret: Option<&str>,
+        certificates: &TestCertificates,
+    ) -> Self {
+        Self::launch(
+            client_id,
+            client_secret,
+            Some(TlsAcceptor::from(certificates.server_config())),
+        )
+        .await
+    }
+
+    async fn launch(
+        client_id: &str,
+        client_secret: Option<&str>,
+        tls: Option<TlsAcceptor>,
+    ) -> Self {
         let listener = TcpListener::bind(("127.0.0.1", 0))
             .await
             .expect("the mock provider can listen");
         let url = format!(
-            "http://127.0.0.1:{}",
+            "{}://127.0.0.1:{}",
+            if tls.is_some() { "https" } else { "http" },
             listener.local_addr().expect("a bound port").port()
         );
         let random = SystemRandom::new();
@@ -89,9 +117,25 @@ impl MockProvider {
             .route("/token", post(token))
             .route("/userinfo", get(user_info))
             .with_state(inner.clone());
-        let task = tokio::spawn(async move {
-            let _ = axum::serve(listener, app).await;
-        });
+        let task = match tls {
+            None => tokio::spawn(async move {
+                let _ = axum::serve(listener, app).await;
+            }),
+            Some(acceptor) => tokio::spawn(async move {
+                while let Ok((stream, _)) = listener.accept().await {
+                    let acceptor = acceptor.clone();
+                    let app = app.clone();
+                    tokio::spawn(async move {
+                        let Ok(stream) = acceptor.accept(stream).await else {
+                            return;
+                        };
+                        let _ = Builder::new(TokioExecutor::new())
+                            .serve_connection(TokioIo::new(stream), TowerToHyperService::new(app))
+                            .await;
+                    });
+                }
+            }),
+        };
         Self { url, inner, task }
     }
 

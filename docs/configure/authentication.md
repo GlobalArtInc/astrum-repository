@@ -82,10 +82,12 @@ Astrum can authenticate users against one or more LDAP directories. Servers are 
 **Settings → Security → LDAP**, which needs the `as-ldap-*` privileges (`as-admin` has them).
 
 1. Click **Create connection** and fill in the connection:
-   - **Protocol**, **Host** and **Port**: `ldap` (389) or `ldaps` (636). For `ldaps` the server
-     certificate must be trusted by the certificate store of the host (the container image uses the
-     one of Debian). Certificates added under **Settings → Security → SSL Certificates** are not used
-     for LDAP, whatever **Use Astrum SSL Trust Store** says. The host name must match the certificate.
+   - **Protocol**, **Host** and **Port**: `ldap` (389), `ldaps (SSL)` (636) or `ldap (StartTLS)` (389).
+     Over `ldaps` and StartTLS the server certificate must be trusted by the certificate store of the
+     host (the container image uses the one of Debian). Tick **Use Astrum SSL Trust Store** to also
+     trust the certificates added under **Settings → Security → SSL Certificates**, for a directory
+     whose certificate comes from a private CA or is self-signed; see
+     [SSL certificates](ssl-certificates.md). The host name must match the certificate.
    - **Search base DN**, for example `dc=example,dc=com`.
    - **Authentication method**: **Simple Authentication** with the DN and password of a service account
      that may search the directory (recommended), **Anonymous Authentication**, **DIGEST-MD5** or
@@ -162,7 +164,7 @@ Optional settings:
 | JWT Signature Algorithm | Accept only one of RS256, RS384, RS512, ES256, ES384, ES512 |
 | Exact Match Claims | JSON object of claims that must have the given value, for example `{"hd": "example.com"}` |
 | Authorization / Token Request Custom Parameters | Extra request parameters as a JSON object, for example `{"prompt": "login"}` or a different `scope` |
-| Use the Astrum truststore | Saved, but not used yet: the provider's certificate must be trusted by the certificate store of the host |
+| Use the Astrum Repository Truststore | Also trust the certificates added under **Settings → Security → SSL Certificates** for the discovery, token, user info and JWKS requests, for a provider whose certificate comes from a private CA or is self-signed. Offered when one of the issuer, token or JWKS URLs starts with `https://`; **View Certificate** shows the certificate the provider presents. Without it, the provider's certificate must be trusted by the certificate store of the host |
 
 ### Roles for OpenID Connect users
 

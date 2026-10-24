@@ -7,10 +7,11 @@ pub mod passwords;
 pub mod sasl;
 
 use std::collections::HashMap;
-use std::sync::{Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
 use rand::RngCore;
+use rustls::pki_types::CertificateDer;
 use sha2::{Digest, Sha256};
 use subtle::ConstantTimeEq;
 
@@ -22,6 +23,7 @@ pub use config::{
 pub use directory::{Directory, LdapServerError, LdapUser, Outcome};
 
 use crate::SecretBox;
+use crate::tls::TrustStore;
 
 pub const SOURCE: &str = "LDAP";
 pub const DEFAULT_CACHE_TTL: Duration = Duration::from_secs(300);
@@ -55,9 +57,26 @@ struct Health {
     skip_until: Option<Instant>,
 }
 
+#[derive(Clone)]
+struct Clients {
+    system: TlsClient,
+    certificates: Vec<CertificateDer<'static>>,
+    trusted: TlsClient,
+}
+
+impl Clients {
+    fn of(&self, server: &LdapServer) -> &TlsClient {
+        match server.use_trust_store {
+            true => &self.trusted,
+            false => &self.system,
+        }
+    }
+}
+
 pub struct Ldap {
     ttl: RwLock<Duration>,
-    tls: RwLock<TlsClient>,
+    tls: RwLock<Clients>,
+    trust_store: RwLock<Option<Arc<dyn TrustStore>>>,
     users: Mutex<HashMap<String, CachedUser>>,
     logins: Mutex<HashMap<String, CachedLogin>>,
     health: Mutex<HashMap<String, Health>>,
@@ -119,7 +138,12 @@ impl Ldap {
     pub fn new() -> Self {
         Self {
             ttl: RwLock::new(DEFAULT_CACHE_TTL),
-            tls: RwLock::new(TlsClient::system()),
+            tls: RwLock::new(Clients {
+                system: TlsClient::system(),
+                certificates: Vec::new(),
+                trusted: TlsClient::system(),
+            }),
+            trust_store: RwLock::new(None),
             users: Mutex::new(HashMap::new()),
             logins: Mutex::new(HashMap::new()),
             health: Mutex::new(HashMap::new()),
@@ -136,14 +160,71 @@ impl Ldap {
     }
 
     pub fn set_tls(&self, tls: TlsClient) {
-        *self.tls.write().expect("the LDAP lock is never poisoned") = tls;
+        let mut clients = self.tls.write().expect("the LDAP lock is never poisoned");
+        clients.trusted = tls.trusting(&clients.certificates);
+        clients.system = tls;
     }
 
     pub fn tls(&self) -> TlsClient {
+        self.clients().system
+    }
+
+    pub fn set_trust_store(&self, store: Arc<dyn TrustStore>) {
+        *self
+            .trust_store
+            .write()
+            .expect("the LDAP lock is never poisoned") = Some(store);
+    }
+
+    pub async fn refresh_trust_store(&self) -> bool {
+        let store = self
+            .trust_store
+            .read()
+            .expect("the LDAP lock is never poisoned")
+            .clone();
+        let Some(store) = store else {
+            return false;
+        };
+        let certificates = match store.certificates().await {
+            Ok(certificates) => certificates,
+            Err(error) => {
+                tracing::warn!(%error, "the truststore cannot be read; LDAP keeps the certificates it had");
+                return false;
+            }
+        };
+        let current = self.clients();
+        if current.certificates == certificates {
+            return false;
+        }
+        let trusted = current.system.trusting(&certificates);
+        {
+            let mut clients = self.tls.write().expect("the LDAP lock is never poisoned");
+            clients.certificates = certificates;
+            clients.trusted = trusted;
+        }
+        self.clear();
+        true
+    }
+
+    pub async fn tls_for(&self, server: &LdapServer) -> TlsClient {
+        self.clients_for(std::slice::from_ref(server))
+            .await
+            .of(server)
+            .clone()
+    }
+
+    fn clients(&self) -> Clients {
         self.tls
             .read()
             .expect("the LDAP lock is never poisoned")
             .clone()
+    }
+
+    async fn clients_for(&self, servers: &[LdapServer]) -> Clients {
+        if servers.iter().any(|server| server.use_trust_store) {
+            self.refresh_trust_store().await;
+        }
+        self.clients()
     }
 
     pub fn clear(&self) {
@@ -184,10 +265,10 @@ impl Ldap {
             return Err(LdapAuthError::NotFound);
         }
         let key = key(user_id);
+        let tls = self.clients_for(servers).await;
         if let Some(user) = self.cached_login(&key, password) {
             return Ok(user);
         }
-        let tls = self.tls();
         let mut failure = None;
         for server in servers {
             if !self.available(server) {
@@ -204,7 +285,7 @@ impl Ldap {
             let directory = Directory {
                 server,
                 bind_password: bind.as_deref(),
-                tls: &tls,
+                tls: tls.of(server),
             };
             match directory.authenticate(user_id, password).await {
                 Ok(Outcome::Authenticated(user)) => {
@@ -240,6 +321,7 @@ impl Ldap {
             return Ok(None);
         }
         let key = key(user_id);
+        let tls = self.clients_for(servers).await;
         let stale = {
             let users = self.users.lock().expect("the LDAP lock is never poisoned");
             match users.get(&key) {
@@ -248,7 +330,7 @@ impl Ldap {
                 None => None,
             }
         };
-        match self.lookup(servers, secrets, user_id).await {
+        match self.lookup(servers, secrets, user_id, &tls).await {
             Ok(user) => {
                 self.remember_user(&key, user.clone());
                 Ok(user)
@@ -268,8 +350,8 @@ impl Ldap {
         servers: &[LdapServer],
         secrets: Option<&SecretBox>,
         user_id: &str,
+        tls: &Clients,
     ) -> Result<Option<LdapUser>, LdapServerError> {
-        let tls = self.tls();
         let mut failure = None;
         for server in servers {
             if !self.available(server) {
@@ -286,7 +368,7 @@ impl Ldap {
             let directory = Directory {
                 server,
                 bind_password: bind.as_deref(),
-                tls: &tls,
+                tls: tls.of(server),
             };
             match directory.find_user(user_id).await {
                 Ok(Some(user)) => {
@@ -313,7 +395,7 @@ impl Ldap {
         prefix: Option<&str>,
         limit: usize,
     ) -> Vec<LdapUser> {
-        let tls = self.tls();
+        let tls = self.clients_for(servers).await;
         let mut found: Vec<LdapUser> = Vec::new();
         for server in servers {
             if !self.available(server) {
@@ -325,7 +407,7 @@ impl Ldap {
             let directory = Directory {
                 server,
                 bind_password: bind.as_deref(),
-                tls: &tls,
+                tls: tls.of(server),
             };
             match directory.search_users(prefix, limit).await {
                 Ok(users) => {
@@ -352,7 +434,7 @@ impl Ldap {
         query: Option<&str>,
         limit: usize,
     ) -> Vec<String> {
-        let tls = self.tls();
+        let tls = self.clients_for(servers).await;
         let mut groups: Vec<String> = Vec::new();
         for server in servers.iter().filter(|server| server.maps_groups()) {
             if !self.available(server) {
@@ -364,7 +446,7 @@ impl Ldap {
             let directory = Directory {
                 server,
                 bind_password: bind.as_deref(),
-                tls: &tls,
+                tls: tls.of(server),
             };
             match directory.search_groups(query, limit).await {
                 Ok(names) => {
@@ -391,7 +473,7 @@ impl Ldap {
         secrets: Option<&SecretBox>,
         group: &str,
     ) -> Result<bool, LdapServerError> {
-        let tls = self.tls();
+        let tls = self.clients_for(servers).await;
         let mut failure = None;
         for server in servers.iter().filter(|server| server.maps_groups()) {
             if !self.available(server) {
@@ -408,7 +490,7 @@ impl Ldap {
             let directory = Directory {
                 server,
                 bind_password: bind.as_deref(),
-                tls: &tls,
+                tls: tls.of(server),
             };
             match directory.group_exists(group).await {
                 Ok(true) => {

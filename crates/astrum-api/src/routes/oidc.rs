@@ -80,7 +80,7 @@ async fn login(
     else {
         return Ok(not_enabled());
     };
-    let http = http(&state).await?;
+    let http = http(&state, &settings).await?;
     let metadata = match state.security().oidc().metadata(&settings, &http).await {
         Ok(metadata) => metadata,
         Err(error) => return Ok(failed(&headers, &error)),
@@ -142,7 +142,7 @@ async fn callback(
         Ok(checked) => checked,
         Err(error) => return Ok(failed(&headers, &error)),
     };
-    let http = http(&state).await?;
+    let http = http(&state, &settings).await?;
     let provider = state.security().oidc();
     let secret = match settings.client_secret.as_deref() {
         Some(sealed) => match state.secrets().open(sealed) {

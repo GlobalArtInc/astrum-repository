@@ -15,6 +15,7 @@ pub mod selector;
 pub mod sessions;
 pub mod ssrf;
 pub mod subject;
+pub mod tls;
 pub mod tokens;
 
 use std::collections::HashMap;
@@ -110,6 +111,11 @@ impl Security {
         self
     }
 
+    pub fn with_trust_store(self, store: Arc<dyn tls::TrustStore>) -> Self {
+        self.ldap.set_trust_store(store);
+        self
+    }
+
     pub fn secrets(&self) -> Option<&SecretBox> {
         self.secrets.as_ref()
     }
@@ -168,10 +174,11 @@ impl Security {
                 .expect("the security model lock is never poisoned"),
             Arc::new(model),
         );
+        let trust_store_changed = self.ldap.refresh_trust_store().await;
         if previous.ldap_servers != self.model().ldap_servers {
             self.ldap.clear();
         }
-        if previous.oidc != self.model().oidc {
+        if trust_store_changed || previous.oidc != self.model().oidc {
             self.oidc.reset();
         }
         self.verified

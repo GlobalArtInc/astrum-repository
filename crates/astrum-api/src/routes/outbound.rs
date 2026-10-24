@@ -207,6 +207,7 @@ async fn add_certificate(
     match truststore::add(state.db().conn(), &text).await {
         Ok(added) => {
             state.content().outbound().forget();
+            state.security().reload().await?;
             state
                 .audit(
                     &caller,
@@ -242,6 +243,7 @@ async fn remove_certificate(
         )));
     };
     state.content().outbound().forget();
+    state.security().reload().await?;
     state
         .audit(
             &caller,
