@@ -140,7 +140,7 @@ repository is public: never commit secrets.
   infra and gitops. Pull requests are only this vehicle: open, merge, no review.
 - Deploy after every change that reaches `main` and touches the Rust server, the web UI, the Dockerfile or
   `LICENSE.txt`/`NOTICE.txt` (the `Server` workflow does not run for other changes, so documentation needs no
-  deploy):
+  server deploy; the `Docs` workflow publishes `docs/` to https://astrum.globalart.dev on its own):
   1. Wait for the `Server` workflow (GitHub-hosted runners). Its "container image" job prints one line
      `published globalartltd/astrum-repository:<tag>` per tag: first the production tag
      `YYYYMMDDHHMMSS-<sha7>`, then the same image as `next-YYYYMMDDHHMMSS-<sha7>`. It also moves `edge`; a
@@ -177,11 +177,18 @@ repository is public: never commit secrets.
   layer, `src/i18n`, `src/styles` tokens, `src/areas/<area>/` pages with their `strings/`, `e2e/`
   Playwright specs); `web/README.md` is the how-to for page authors.
 - `Dockerfile` and `.dockerignore` at the root build the web UI and the server into the image.
-- Docs: `docs/` (install, configure, operate, use, migrate). Tools: `tools/i18n` (Ownlate tooling),
+- Docs: `docs/` (install, configure, repositories, formats with one page per format, use, operate, migrate),
+  also the VitePress site at https://astrum.globalart.dev (GitHub Pages, DNS CNAME to `globalartinc.github.io`):
+  `docs/.vitepress/config.mts` holds the sidebar, `docs/index.md` the home page, `docs/README.md` the index on
+  GitHub (excluded from the site); a new page goes into both. Build with `corepack pnpm install --frozen-lockfile
+  && corepack pnpm build` in `docs/`; dead links fail the build. The in-app help links go through
+  `links.globalart.dev` (the links service in GlobalArtInc/globalart, `platform/links`), whose targets point at the
+  site. Tools: `tools/i18n` (Ownlate tooling),
   `tools/repository-copy` (moving data from another server, and the copy back of a rollback), `tools/side-by-side`
   (compares a reference server with this one).
 - CI: `.github/workflows/server.yml` (fmt, clippy, tests against PostgreSQL 16, the web checks, then the
-  image is built, started against PostgreSQL, checked and published) and `i18n.yml`, on `ubuntu-latest`.
+  image is built, started against PostgreSQL, checked and published), `docs.yml` (builds the site, publishes it
+  to GitHub Pages from `main`) and `i18n.yml`, on `ubuntu-latest`.
 
 ## Build and test
 - Rust, from the root: `cargo fmt --all --check`,

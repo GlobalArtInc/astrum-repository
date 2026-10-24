@@ -16,7 +16,7 @@ they are tried in the listed order.
 | NuGet API-Key Realm | `nuget push` with the user's API key |
 | RubyGems API Key Realm | `gem signin` and `gem push` with the user's API key |
 | Terraform Bearer Token Realm | Tokens in `credentials` blocks of the Terraform CLI configuration |
-| Default Role Realm | Grants one role to every signed-in user, configured as a capability |
+| Default Role Realm | Grants one role to every signed-in user, chosen under **Settings → Security → Default Role** |
 
 ## Users, roles and privileges
 
@@ -74,7 +74,7 @@ Berkshelf, Policyfiles and the reading `knife supermarket` commands send no cred
 Supermarket repositories, so the anonymous user needs read access to them. `knife supermarket share`
 and `unshare` sign their requests with a Chef client key (the `X-Ops-*` headers), which this server does
 not check; they are answered `401`, and cookbooks are published with Basic authentication instead (see
-[Chef Supermarket](../use/clients.md#chef-supermarket)).
+[Chef Supermarket](../formats/chef.md)).
 
 ## LDAP
 
@@ -84,8 +84,8 @@ Astrum can authenticate users against one or more LDAP directories. Servers are 
 1. Click **Create connection** and fill in the connection:
    - **Protocol**, **Host** and **Port**: `ldap` (389) or `ldaps` (636). For `ldaps` the server
      certificate must be trusted by the certificate store of the host (the container image uses the
-     one of Debian), or added under **Settings → Security → SSL Certificates** with
-     **Use the Astrum Repository truststore** checked. The host name must match the certificate.
+     one of Debian). Certificates added under **Settings → Security → SSL Certificates** are not used
+     for LDAP, whatever **Use Astrum SSL Trust Store** says. The host name must match the certificate.
    - **Search base DN**, for example `dc=example,dc=com`.
    - **Authentication method**: **Simple Authentication** with the DN and password of a service account
      that may search the directory (recommended), **Anonymous Authentication**, **DIGEST-MD5** or
@@ -162,7 +162,7 @@ Optional settings:
 | JWT Signature Algorithm | Accept only one of RS256, RS384, RS512, ES256, ES384, ES512 |
 | Exact Match Claims | JSON object of claims that must have the given value, for example `{"hd": "example.com"}` |
 | Authorization / Token Request Custom Parameters | Extra request parameters as a JSON object, for example `{"prompt": "login"}` or a different `scope` |
-| Use the Astrum truststore | Trust the provider's certificate from **Settings → Security → SSL Certificates** |
+| Use the Astrum truststore | Saved, but not used yet: the provider's certificate must be trusted by the certificate store of the host |
 
 ### Roles for OpenID Connect users
 
@@ -187,4 +187,4 @@ or a token; they cannot follow the OpenID Connect browser flow. LDAP users can u
 password with them, and OpenID Connect users use an [access token](#access-tokens). For CI and scripts
 create a local service user with only the roles it needs, give it an access token and store the token
 in the CI system's secret store. Format-specific tokens (npm, Docker, NuGet, RubyGems, Terraform) can
-be issued for these users as described in [connect build tools](../use/clients.md).
+be issued for these users as described on the page of each [format](../formats/README.md).
