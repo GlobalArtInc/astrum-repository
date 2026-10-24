@@ -31,6 +31,19 @@ Stop the server, restore the backup taken in step 2 and start the previous versi
 
 ## Upgrade notes
 
+### 3.0.2
+
+The update needs no steps of its own; the server adds one table to the database at start. Some settings
+that were saved before but had no effect now work, which can change what an existing installation does:
+
+- A task with a **Notification Email** sends email after its runs, as its **Send Notification** setting
+  says, once an email server is set up; see [tasks](tasks.md).
+- LDAP servers and OpenID Connect with the truststore option on trust the certificates under
+  **Settings → Security → SSL Certificates** besides those of the system; see
+  [SSL certificates](../configure/ssl-certificates.md).
+- Servers that share a database pick up changes of users, roles, realms and blob stores made on another
+  server within seconds instead of at their next start; see [nodes](nodes.md).
+
 ### 3.0
 
 Version 3.0 is a new server written in Rust, with a new web interface. It replaces the 2.x line, which

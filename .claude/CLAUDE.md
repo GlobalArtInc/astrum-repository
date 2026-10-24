@@ -10,7 +10,8 @@ removed on 2026-10-20 (find it with `git log --diff-filter=D --oneline -- .claud
 repository is public: never commit secrets.
 
 ## State
-- The server is version `3.0.1` in `Cargo.toml`, the first release of the Rust line (tag `v3.0.1`, 2026-10-22;
+- The server is version `3.0.2` in `Cargo.toml` (tag `v3.0.2`, 2026-10-25); the first release of the Rust line was
+  3.0.1 (tag `v3.0.1`, 2026-10-22;
   the Java line was 2.x, its tags `v3.96.4-*` are older and unrelated). It serves the 23 formats
   of the Java server: alpine, apt, cargo, cocoapods, composer, conan, conda, docker (with OCI Distribution 1.1),
   gitlfs, go, helm, huggingface, maven2, npm, nuget, p2, pypi, r, raw, rubygems, swift, terraform and yum, and
