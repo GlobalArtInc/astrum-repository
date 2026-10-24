@@ -109,10 +109,7 @@ test('a file shows its details and how to fetch it', async ({ page, server }) =>
     'href',
     `${server.url}/repository/${SEED.npm}/%40team/tool/-/tool-1.0.0.tgz`,
   );
-  await expect(details.getByRole('link', { name: 'Research in Guide' })).toHaveAttribute(
-    'href',
-    'https://guide.globalart.dev/component/npm/tool/1.0.0?referrer=repo-browse-asset',
-  );
+  await expect(details.getByRole('link', { name: 'Research in Guide' })).toHaveCount(0);
 });
 
 test('folders, components and files are deleted after a confirmation', async ({ page, server }) => {
