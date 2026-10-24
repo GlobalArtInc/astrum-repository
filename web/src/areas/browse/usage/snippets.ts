@@ -2,6 +2,8 @@ import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { ansible } from './ansible';
 import { bazel } from './bazel';
 import { chef } from './chef';
+import { chrome } from './chrome';
+import { firefox } from './firefox';
 import { hex } from './hex';
 import { huggingface } from './huggingface';
 import { jetbrains } from './jetbrains';
@@ -93,6 +95,8 @@ export const USAGE_FORMATS = [
   'bazel',
   'jetbrains',
   'protobuf',
+  'chrome',
+  'firefox',
 ] as const;
 
 export function supportsUsage(format: string): boolean {
@@ -1112,6 +1116,10 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   jetbrains: (context) =>
     jetbrains(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   protobuf: (context) => protobuf(context),
+  chrome: (context) =>
+    chrome(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  firefox: (context) =>
+    firefox(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),

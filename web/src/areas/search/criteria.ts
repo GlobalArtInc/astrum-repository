@@ -282,6 +282,20 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'Web Servers',
   },
   {
+    key: 'chrome.name',
+    label: 'search.criterion.chromeName',
+    kind: 'text',
+    format: 'chrome',
+    example: 'Acme Helper',
+  },
+  {
+    key: 'chrome.manifestVersion',
+    label: 'search.criterion.chromeManifestVersion',
+    kind: 'text',
+    format: 'chrome',
+    example: '3',
+  },
+  {
     key: 'puppet.tag',
     label: 'search.criterion.puppetTag',
     kind: 'text',
@@ -357,6 +371,30 @@ const MORE: readonly CriterionDefinition[] = [
     kind: 'text',
     format: 'jetbrains',
     example: 'eap',
+  },
+  {
+    key: 'firefox.name',
+    label: 'search.criterion.firefoxName',
+    kind: 'text',
+    format: 'firefox',
+    example: 'uBlock Origin',
+  },
+  {
+    key: 'firefox.signed',
+    label: 'search.criterion.firefoxSigned',
+    kind: 'choice',
+    format: 'firefox',
+    options: [
+      { value: 'true', label: 'search.signed.yes' },
+      { value: 'false', label: 'search.signed.no' },
+    ],
+  },
+  {
+    key: 'firefox.minVersion',
+    label: 'search.criterion.firefoxMinVersion',
+    kind: 'text',
+    format: 'firefox',
+    example: '115.0',
   },
   {
     key: 'openvsx.category',

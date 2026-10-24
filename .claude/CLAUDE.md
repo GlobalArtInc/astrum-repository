@@ -26,7 +26,21 @@ repository is public: never commit secrets.
   Also a hosted-only Buf Schema Registry for Protobuf modules (`protobuf`, `crates/astrum-format-protobuf`: Connect
   services `buf.registry.module.v1` and `buf.registry.owner.v1.OwnerService`, checked with buf 1.75.0; it needs a
   repository domain with `ROOT` routing because buf sends no path prefix, and has no proxy, group or `v1beta1`
-  federation yet). The web interface speaks twelve languages, pulled from Ownlate at build.
+  federation yet). Since 2026-10-24 also Chromium extensions (`chrome`, `crates/astrum-format-chrome`: hosted,
+  proxy of the update service of the Chrome Web Store, https://clients2.google.com/service/update2/crx, and group;
+  all three answer the update protocol at `updates.xml` and at the repository root, packages are CRX3 files at
+  `<id>/<version>/<id>-<version>.crx`, and browsers are pointed at a repository by the `ExtensionSettings` policy).
+  Also Firefox add-ons (`firefox`, `crates/astrum-format-firefox`; hosted, proxy of
+  https://addons.mozilla.org through its API v5, and group): `.xpi` files are kept as `<id>/<version>/<name>-<version>.xpi`,
+  installed through the `ExtensionSettings` policy from `<id>/latest.xpi`, and updated through `<id>/updates.json`
+  (the add-on's `update_url`) or `update/VersionCheck.php?id=` (the `extensions.update.url` preference); the server
+  records whether a file is signed but never signs. Both browser formats were checked on 2026-10-24 with real browsers
+  through their managed policies on Linux (Google Chrome in `selenium/standalone-chrome` with
+  `/etc/opt/chrome/policies/managed/`, Firefox 158 Release in `selenium/standalone-firefox` with
+  `/etc/firefox/policies/policies.json`): Chrome installed a Web Store extension through the proxy and a CRX packed with
+  `chrome --pack-extension` through hosted, Firefox installed AMO-signed add-ons through the proxy (by slug) and hosted,
+  all through a group. On an unmanaged Mac (or Windows) Chrome marks an off-store `update_url` `[BLOCKED]`, so such a
+  check needs Linux or a managed machine. The web interface speaks twelve languages, pulled from Ownlate at build.
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.

@@ -269,6 +269,51 @@ describe('component snippets of the M4c formats', () => {
     expect(snippets[0]?.hint).toBe('browse.component.snippet.jetbrainsDownload');
   });
 
+  it('install Chromium extensions by policy and download their packages', () => {
+    const id = 'abcdefghijklmnopabcdefghijklmnop';
+    const snippets = componentSnippets({ ...base, format: 'chrome', group: '', name: id, version: '2.0.1' });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['policy', 'download']);
+    expect(JSON.parse(snippets[0]?.code ?? '')).toEqual({
+      ExtensionSettings: {
+        [id]: {
+          installation_mode: 'force_installed',
+          update_url: 'https://repo.example.org/repository/r/updates.xml',
+          override_update_url: true,
+        },
+      },
+    });
+    expect(snippets[0]?.hint).toBe('browse.component.snippet.chromePolicy');
+    expect(snippets[1]?.code).toBe(
+      `curl -fLO 'https://repo.example.org/repository/r/${id}/2.0.1/${id}-2.0.1.crx'`,
+    );
+  });
+
+  it('install Firefox add-ons by policy and download one version', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'firefox',
+      group: '',
+      name: 'name@example.org',
+      version: '1.0+b1',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['policy', 'download']);
+    expect(JSON.parse(snippets[0]?.code ?? '')).toEqual({
+      policies: {
+        ExtensionSettings: {
+          'name@example.org': {
+            installation_mode: 'force_installed',
+            install_url: 'https://repo.example.org/repository/r/name@example.org/latest.xpi',
+          },
+        },
+      },
+    });
+    expect(snippets[0]?.hint).toBe('browse.component.snippet.firefoxPolicy');
+    expect(snippets[1]?.code).toBe(
+      "curl -fLo 'name-1.0+b1.xpi' 'https://repo.example.org/repository/r/name@example.org/1.0%2Bb1.xpi'",
+    );
+    expect(snippets[1]?.hint).toBe('browse.component.snippet.firefoxDownload');
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',

@@ -230,11 +230,13 @@ dependencies = [
  "astrum-format-bazel",
  "astrum-format-cargo",
  "astrum-format-chef",
+ "astrum-format-chrome",
  "astrum-format-cocoapods",
  "astrum-format-composer",
  "astrum-format-conan",
  "astrum-format-conda",
  "astrum-format-docker",
+ "astrum-format-firefox",
  "astrum-format-gitlfs",
  "astrum-format-go",
  "astrum-format-helm",
@@ -584,6 +586,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-chrome"
+version = "3.0.1"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "chrono",
+ "quick-xml",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-cocoapods"
 version = "3.0.1"
 dependencies = [
@@ -699,6 +723,27 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "astrum-format-firefox"
+version = "3.0.1"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "futures-util",
+ "percent-encoding",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -1527,11 +1572,13 @@ dependencies = [
  "astrum-format-bazel",
  "astrum-format-cargo",
  "astrum-format-chef",
+ "astrum-format-chrome",
  "astrum-format-cocoapods",
  "astrum-format-composer",
  "astrum-format-conan",
  "astrum-format-conda",
  "astrum-format-docker",
+ "astrum-format-firefox",
  "astrum-format-gitlfs",
  "astrum-format-go",
  "astrum-format-helm",

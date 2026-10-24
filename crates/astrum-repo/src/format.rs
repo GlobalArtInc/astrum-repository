@@ -82,6 +82,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "chrome",
+        api_name: "chrome",
+        types: HPG,
+    },
+    Format {
         id: "cocoapods",
         api_name: "cocoapods",
         types: &[P],
@@ -104,6 +109,11 @@ pub const FORMATS: &[Format] = &[
     Format {
         id: "docker",
         api_name: "docker",
+        types: HPG,
+    },
+    Format {
+        id: "firefox",
+        api_name: "firefox",
         types: HPG,
     },
     Format {
@@ -257,7 +267,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 37);
+        assert_eq!(ids.len(), 39);
     }
 
     #[test]

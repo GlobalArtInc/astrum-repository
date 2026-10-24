@@ -12,11 +12,13 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_bazel::Bazel));
     content.register(Arc::new(astrum_format_cargo::Cargo::default()));
     content.register(Arc::new(astrum_format_chef::Chef::default()));
+    content.register(Arc::new(astrum_format_chrome::Chrome::default()));
     content.register(Arc::new(astrum_format_cocoapods::CocoaPods));
     content.register(Arc::new(astrum_format_composer::Composer));
     content.register(Arc::new(astrum_format_conan::Conan));
     content.register(Arc::new(astrum_format_conda::Conda));
     content.register(Arc::new(astrum_format_docker::Docker::default()));
+    content.register(Arc::new(astrum_format_firefox::Firefox::default()));
     content.register(Arc::new(astrum_format_gitlfs::GitLfs));
     content.register(Arc::new(astrum_format_go::Go));
     content.register(Arc::new(astrum_format_helm::Helm::default()));

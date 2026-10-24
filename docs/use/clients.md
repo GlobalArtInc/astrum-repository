@@ -9,8 +9,8 @@ Clients authenticate with the user name and password of a user, with an
 [access token](../configure/authentication.md#access-tokens) in place of the password (the way for CI
 and for users who sign in through OpenID Connect), or with a token of their format where it has one.
 See [users, realms and sign-in](../configure/authentication.md) for the realms that tokens need.
-The formats this server supports are Alpine, Ansible Galaxy, APT, Bazel, Cargo, Chef Supermarket, CocoaPods, Composer,
-Conan, Conda, Docker and other OCI artifacts, Git LFS, Go, Helm, Hex, Hugging Face, JetBrains plugins, Maven, Nix, npm, NuGet,
+The formats this server supports are Alpine, Ansible Galaxy, APT, Bazel, Cargo, Chef Supermarket, Chromium extensions, CocoaPods, Composer,
+Conan, Conda, Docker and other OCI artifacts, Firefox add-ons, Git LFS, Go, Helm, Hex, Hugging Face, JetBrains plugins, Maven, Nix, npm, NuGet,
 Open VSX, P2, pacman, Protobuf, pub, Puppet Forge, PyPI, R, RubyGems, Swift, Terraform, Vagrant, Yum and raw files,
 and remote caches for Nx and Turborepo.
 
@@ -695,6 +695,174 @@ once, also when components are deleted in the web interface or by a cleanup poli
 Search and the cookbook list of a proxy are passed on to its remote. Tools, users, followers,
 collaborators and ratings of the Supermarket are not served, and hosted cookbooks are never deprecated.
 
+## Chromium extensions
+
+Repositories of the format `chrome` serve extensions to Google Chrome, Chromium, Microsoft Edge, Brave,
+Vivaldi and the other browsers built on Chromium. These browsers install and update extensions from an
+*update URL* that speaks the update protocol of the Chrome Web Store: the browser asks
+`<update URL>?response=updatecheck&prodversion=<browser version>&x=id%3D<id>%26v%3D<version>%26uc`, with one
+`x` per extension, and the XML answer names the newest version of each extension, the address of its CRX
+package, its SHA-256 and its size. A hosted repository keeps CRX3 packages that you upload; a proxy caches the
+Chrome Web Store (remote URL `https://clients2.google.com/service/update2/crx`), Edge Add-ons
+(`https://edge.microsoft.com/extensionwebstorebase/v1/crx`) or any other server that speaks the protocol,
+such as a repository of another Astrum server; a group asks its members in order and takes each extension from
+the first member that knows it.
+
+The update URL of a repository is
+
+```text
+https://astrum.example.com/repository/chrome-group/updates.xml
+```
+
+and the repository itself answers the same query, so `https://astrum.example.com/repository/chrome-group` works
+as an update URL too. Every repository serves:
+
+- `updates.xml?response=updatecheck&…` (or the repository root with that query): the update answer. An
+  extension the repository has is offered with its newest version, a `codebase` that points at this
+  repository, `hash_sha256` and `size`; `status="noupdate"` answers a browser that already has that version or
+  a newer one; an extension the repository does not know, or that the user may not read, gets
+  `status="error-unknownApplication"`.
+- `updates.xml?response=redirect&acceptformat=crx3&x=id%3D<id>%26uc`: `302 Found` to the package of the
+  newest version, the form that direct download links use.
+- `<id>/latest.crx`: `302 Found` to the package of the newest version.
+- `<id>/<version>/<id>-<version>.crx`: the package itself (`application/x-chrome-extension`).
+
+Browsers send no credentials with update checks and downloads, so let the anonymous user read the
+repositories they use (see [anonymous access](../configure/authentication.md#anonymous-access)), or let only
+your network reach them.
+
+### Browser policy
+
+Extensions from an update URL outside the stores are installed through browser policy. The
+`ExtensionSettings` policy force-installs an extension and keeps it updated from the repository. On Linux,
+save it as a JSON file in the managed policy directory, `/etc/opt/chrome/policies/managed/astrum.json` for
+Chrome (`/etc/chromium/policies/managed/` for Chromium, `/etc/opt/edge/policies/managed/` for Edge,
+`/etc/brave/policies/managed/` for Brave), readable by every user and writable only by root:
+
+```json
+{
+  "ExtensionSettings": {
+    "abcdefghijklmnopabcdefghijklmnop": {
+      "installation_mode": "force_installed",
+      "update_url": "https://astrum.example.com/repository/chrome-group/updates.xml",
+      "override_update_url": true
+    }
+  }
+}
+```
+
+Open `chrome://policy` (`edge://policy`, `brave://policy`) and click **Reload policies**, or restart the
+browser. `installation_mode` is `force_installed` (installed, and the user cannot remove or disable it) or
+`normal_installed` (installed, and the user can disable it). Without `override_update_url` the browser uses the
+update URL of the policy only for the first installation and then follows the `update_url` of the extension's
+manifest; every extension from the Chrome Web Store names the Web Store there, so a proxy of the Web Store in a
+network without internet access needs `"override_update_url": true`. An entry
+`"*": {"installation_mode": "blocked"}` in the same policy blocks every extension that the policy does not
+list.
+
+The older `ExtensionInstallForcelist` policy does the same with one string per extension, the id and the update
+URL separated by a semicolon; it never overrides the update URL of the manifest:
+
+```json
+{
+  "ExtensionInstallForcelist": [
+    "abcdefghijklmnopabcdefghijklmnop;https://astrum.example.com/repository/chrome-group/updates.xml"
+  ]
+}
+```
+
+On Windows the policies live in the registry, set by Group Policy with the administrative templates of the
+browser or directly. `ExtensionInstallForcelist` is a key with one string value per extension, named `1`, `2`
+and so on; `ExtensionSettings` is a string value that holds the JSON on one line:
+
+```shell
+reg add HKLM\SOFTWARE\Policies\Google\Chrome\ExtensionInstallForcelist /v 1 /t REG_SZ /d "abcdefghijklmnopabcdefghijklmnop;https://astrum.example.com/repository/chrome-group/updates.xml" /f
+```
+
+Edge reads `HKLM\SOFTWARE\Policies\Microsoft\Edge`, Brave `HKLM\SOFTWARE\Policies\BraveSoftware\Brave` and
+Chromium `HKLM\SOFTWARE\Policies\Chromium`. On macOS the policies come in a configuration profile installed by
+MDM, with the payload type `com.google.Chrome` (`com.microsoft.Edge` for Edge, `com.brave.Browser` for Brave)
+and `ExtensionSettings` as a dictionary:
+
+```xml
+<key>ExtensionSettings</key>
+<dict>
+  <key>abcdefghijklmnopabcdefghijklmnop</key>
+  <dict>
+    <key>installation_mode</key>
+    <string>force_installed</string>
+    <key>update_url</key>
+    <string>https://astrum.example.com/repository/chrome-group/updates.xml</string>
+    <key>override_update_url</key>
+    <true/>
+  </dict>
+</dict>
+```
+
+On Windows and macOS, Chrome and Edge install extensions from an update URL outside their stores only on
+machines that are joined to a domain, managed by MDM or enrolled in the cloud management of the browser;
+Linux has no such condition. `chrome://extensions` with **Developer mode** on has an **Update** button that
+checks for updates at once.
+
+### Publishing extensions
+
+A hosted repository takes CRX3 packages. Pack the extension with **Pack extension** on `chrome://extensions`
+or on the command line, and keep the private key: the id of the extension comes from it, so every version has
+to be packed with the same key.
+
+```shell
+chrome --pack-extension=acme-extension --pack-extension-key=acme-extension.pem
+curl -i -X PUT -H "Authorization: Bearer $ASTRUM_TOKEN" -T acme-extension.crx \
+  https://astrum.example.com/repository/chrome-hosted/acme-extension.crx
+```
+
+Any path that ends in `.crx` will do, and the form of the upload page and the components API take the file in
+the field `chrome.asset`:
+
+```shell
+curl -u "ci-deployer:$ASTRUM_PASSWORD" -F chrome.asset=@acme-extension.crx \
+  "https://astrum.example.com/service/rest/v1/components?repository=chrome-hosted"
+```
+
+The server reads the id from the CRX3 header (it has to belong to one of the RSA keys in the header) and the
+version, name, description, `manifest_version` and `update_url` from `manifest.json`, resolving names such as
+`__MSG_appName__` from `_locales/<default_locale>/messages.json`. It stores the package as
+`<id>/<version>/<id>-<version>.crx`, whatever path it was put to, as a component named by the id, with the
+attributes `chrome.id`, `chrome.name`, `chrome.version` and `chrome.manifestVersion`, and answers `201 Created`
+with the id, name, version and address. Unless the write policy allows redeploying, a version that is already
+there is refused with 409. CRX2 packages, which Chromium no longer installs, and files that are not CRX
+packages are refused with 400. The server does not check the signatures of a package (the browser checks them
+when it installs it) and never signs anything again. Search finds extensions by `chrome.name` and
+`chrome.manifestVersion`, and by keywords in their name and description.
+
+The `update_url` in the manifest is not used by the server. If you rely on `ExtensionInstallForcelist`, or on
+`ExtensionSettings` without `override_update_url`, set it to the update URL of the repository so that updates
+come from there.
+
+### Proxies and groups
+
+A proxy asks its remote for the newest version of each extension a browser checks (with `v=0.0.0.0` and
+`acceptformat=crx3`, the `prodversion` of the browser or `156.0.0.0` when it sent none, and up to 50
+extensions in a request) and keeps the answer of each extension as metadata, reused for the metadata maximum
+age (24 hours by default). An extension the remote does not know is remembered for the time to live of the
+negative cache. In the answer it gives, every `codebase` points at the proxy, at
+`<id>/<version>/<id>-<version>.crx`, and the remote address is kept with the cached answer. The first
+download of a version fetches that address (following redirects, such as the one of the Chrome Web Store to
+its download host), checks it against the `hash_sha256` and `size` of the remote answer and checks that it is a
+CRX3 package of that id and version, then caches it as a component; later downloads are served from the cache.
+The addresses of the last 16 versions of an extension are kept, so a browser that is still offered an older
+version can download it. When the remote cannot be reached or is blocked, the cached answers are served; an
+update check that has nothing cached fails with 502. The SSRF protection and the HTTP settings of the
+repository apply to the remote and to every download address it names.
+
+A group asks its members in order with the extensions no member before has answered, so a hosted member wins
+over a proxy for the same id; its answers and redirects point at the group, and a package comes from the first
+member that has it. Proxies and groups take no uploads.
+
+Extension versions are numbers only, so cleanup policies have no release type criterion for this format; the
+other criteria work as for every format. When a component is deleted, by hand or by a cleanup policy, the next
+update check offers the newest version that is left.
+
 ## CocoaPods
 
 CocoaPods repositories are proxies of a CocoaPods CDN source, such as trunk at `https://cdn.cocoapods.org/`.
@@ -782,6 +950,139 @@ curl -u "ci-deployer:$ASTRUM_PASSWORD" --upload-file tool-1.4.0-h1_0.conda \
 Clients sign in with the user name and password in the channel address
 (`https://user:password@host/...`) or through `~/.netrc`. Sharded repodata and JLAP patches are not
 served, so clients read the whole `repodata.json`.
+
+## Firefox add-ons
+
+Repositories of the format `firefox` keep Firefox add-ons (`.xpi` files: zip archives with a `manifest.json`)
+and serve them to the Firefox installations an administrator manages with enterprise policies. A hosted
+repository holds your own add-ons and writes the update manifests Firefox asks for; a proxy caches add-ons
+of addons.mozilla.org through its API (`https://addons.mozilla.org` is the remote URL); a group merges its
+members, each add-on coming from the first member that knows it.
+
+Release and Beta builds of Firefox install only add-ons signed by Mozilla, that is listed on
+addons.mozilla.org or signed there as unlisted for distribution of your own, and this holds for add-ons
+installed through policies too. ESR, Developer Edition and Nightly builds can turn the check off with the
+preference `xpinstall.signatures.required` set to `false`. The server neither signs nor re-signs: it stores
+each file as it is, takes signed and unsigned files alike, and records in the attribute `firefox.signed`
+whether a file carries a signature (`META-INF/mozilla.rsa` or `META-INF/cose.sig`). Sign an add-on of your
+own as unlisted (`web-ext sign --channel=unlisted`) before you upload it for Release builds.
+
+Put an `.xpi` to any path of a hosted repository that ends in `.xpi`, with an
+[access token](../configure/authentication.md#access-tokens) or a password, or send it through the upload
+form or the components API in the field `firefox.asset`:
+
+```shell
+curl -i -X PUT -H "Authorization: Bearer $ASTRUM_TOKEN" -T web-ext-artifacts/tool-1.2.3.xpi \
+  https://astrum.example.com/repository/firefox-hosted/tool-1.2.3.xpi
+curl -u "ci-deployer:$ASTRUM_PASSWORD" -F firefox.asset=@tool-1.2.3.xpi \
+  "https://astrum.example.com/service/rest/v1/components?repository=firefox-hosted"
+```
+
+The server reads `manifest.json` for the id (`browser_specific_settings.gecko.id`, or `applications.gecko.id`
+in older add-ons; in a signed file that has neither, the id its signing certificate names), the version,
+the name (a `__MSG_<key>__` name is looked up in `_locales/<default_locale>/messages.json`) and
+`strict_min_version` and `strict_max_version`. Ids look like `tool@example.org` or a UUID in braces,
+`{11111111-2222-3333-4444-555555555555}`. The file is stored as `<id>/<version>/<name>-<version>.xpi`,
+where `<name>` is the part of the id before `@` or the UUID without braces, whatever path it was put to.
+Putting the same file again changes nothing; another file for a version that is already there is refused
+with 409 unless the write policy allows redeploying. Cleanup policies count versions with letters, such
+as `1.0b2` or `2.0pre1`, as pre-releases.
+
+Firefox reads the policies from `policies.json`:
+
+- Linux: `/etc/firefox/policies/policies.json`, or `distribution/policies.json` in the installation
+  directory, such as `/usr/lib/firefox/distribution/policies.json` (distribution packages may install
+  Firefox elsewhere);
+- Windows: `distribution\policies.json` in the installation directory, such as
+  `C:\Program Files\Mozilla Firefox\distribution\policies.json`; Group Policy with the Firefox ADMX
+  templates sets the same policies;
+- macOS: `/Applications/Firefox.app/Contents/Resources/distribution/policies.json`; a configuration
+  profile sets the same policies.
+
+`about:policies` shows what Firefox has read. The `ExtensionSettings` policy installs an add-on from the
+repository; `<id>/latest.xpi` downloads its newest version, and `<id>/<version>.xpi` a given one:
+
+```json
+{
+  "policies": {
+    "ExtensionSettings": {
+      "tool@example.org": {
+        "installation_mode": "force_installed",
+        "install_url": "https://astrum.example.com/repository/firefox-group/tool@example.org/latest.xpi"
+      }
+    }
+  }
+}
+```
+
+In addresses the braces of a UUID id are written as `%7B` and `%7D`
+(`.../firefox-group/%7B11111111-2222-3333-4444-555555555555%7D/latest.xpi`), while the key in
+`ExtensionSettings` keeps them. `normal_installed` instead of `force_installed` lets users disable the
+add-on.
+
+Firefox looks for the updates of an add-on at the `update_url` of its manifest. The author of an add-on
+that is distributed this way sets it, as an `https` address, before signing:
+
+```json
+{
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tool@example.org",
+      "update_url": "https://astrum.example.com/repository/firefox-group/tool@example.org/updates.json"
+    }
+  }
+}
+```
+
+The repository answers with an update manifest that lists every version with its `update_link`, its
+`update_hash` (`sha256:<hex>`) and the `strict_min_version` and `strict_max_version` of its manifest, and
+Firefox installs the newest version that fits. `updates.json` at the root of a hosted repository or a group
+lists all its add-ons, and `updates.json?id=<id>` one of them.
+
+Add-ons from addons.mozilla.org have no `update_url`: Firefox asks the address in the preference
+`extensions.update.url` for them, and `extensions.update.background.url` in its background checks. Both
+point at addons.mozilla.org by default. To take their updates from a proxy, or from a group that holds one,
+set both through the `Preferences` policy; Firefox fills in `%ITEM_ID%` and the other placeholders. The
+install address takes the slug of the add-on on addons.mozilla.org as well as its id:
+
+```json
+{
+  "policies": {
+    "ExtensionSettings": {
+      "uBlock0@raymondhill.net": {
+        "installation_mode": "force_installed",
+        "install_url": "https://astrum.example.com/repository/firefox-group/ublock-origin/latest.xpi"
+      }
+    },
+    "Preferences": {
+      "extensions.update.url": {
+        "Value": "https://astrum.example.com/repository/firefox-group/update/VersionCheck.php?id=%ITEM_ID%&version=%ITEM_VERSION%&appVersion=%APP_VERSION%",
+        "Status": "locked"
+      },
+      "extensions.update.background.url": {
+        "Value": "https://astrum.example.com/repository/firefox-group/update/VersionCheck.php?id=%ITEM_ID%&version=%ITEM_VERSION%&appVersion=%APP_VERSION%",
+        "Status": "locked"
+      }
+    }
+  }
+}
+```
+
+`update/VersionCheck.php?id=<id>` answers the same update manifest as `<id>/updates.json`, and an empty one,
+`{"addons": {}}`, for an add-on the repository does not know. Firefox downloads policy add-ons and checks
+for updates without credentials, so a repository it reads should be readable anonymously: keep anonymous
+access on and narrow `as-anonymous` to that repository, or let only your network reach it.
+
+A proxy looks up `<slug or id>/latest.xpi` and `<slug or id>/<version>.xpi` with
+`api/v5/addons/addon/<slug or id>/` of its remote (and `.../versions/<version>/` for a version that is not
+the current one), downloads the file the answer names, following the redirect to the CDN, checks it against
+the SHA-256 hash of the answer and keeps it as `<id>/<version>/<name>-<version>.xpi`, the layout of a hosted
+repository. Its update manifests name the current version of the add-on, with an `update_link` into the
+proxy. The answers of the API are kept as metadata (the metadata maximum age decides how long they are
+reused, 24 hours by default), ids the remote does not know go into the negative cache, a version once
+downloaded is not asked for again, and while the remote is unreachable the proxy serves what it has cached.
+A proxy has no `updates.json` for all add-ons. Search, collections, ratings and the other pages of
+addons.mozilla.org are not served.
 
 ## Go
 

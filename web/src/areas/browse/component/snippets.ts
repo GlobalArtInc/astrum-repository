@@ -3,6 +3,8 @@ import { guideComponentName } from '../links';
 import { installCommand, requirementsFile } from '../usage/ansible';
 import { bazelDep, registryLine } from '../usage/bazel';
 import { berksfile, knifeDownload, policyfile } from '../usage/chef';
+import { downloadCommand as chromeDownload, extensionSettings } from '../usage/chrome';
+import { downloadCommand as firefoxDownload, policiesJson } from '../usage/firefox';
 import { mixDependency, rebarDependency } from '../usage/hex';
 import { downloadCommand as jetbrainsDownload } from '../usage/jetbrains';
 import { copyFrom, storePath } from '../usage/nix';
@@ -388,6 +390,42 @@ function jetbrains(context: ComponentSnippetContext): ComponentSnippet[] {
   ];
 }
 
+function chrome(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain);
+  return [
+    {
+      id: 'policy',
+      label: 'ExtensionSettings',
+      hint: 'browse.component.snippet.chromePolicy',
+      code: extensionSettings(url, context.name),
+    },
+    {
+      id: 'download',
+      label: 'curl',
+      hint: 'browse.component.snippet.chromeDownload',
+      code: chromeDownload(url, context.name, context.version),
+    },
+  ];
+}
+
+function firefox(context: ComponentSnippetContext): ComponentSnippet[] {
+  const url = repositoryAddress(context.baseUrl, context.repository, context.domain);
+  return [
+    {
+      id: 'policy',
+      label: 'policies.json',
+      hint: 'browse.component.snippet.firefoxPolicy',
+      code: policiesJson(url, context.name, false),
+    },
+    {
+      id: 'download',
+      label: 'curl',
+      hint: 'browse.component.snippet.firefoxDownload',
+      code: firefoxDownload(url, context.name, context.version),
+    },
+  ];
+}
+
 function rubygems({ name, version }: ComponentSnippetContext): ComponentSnippet[] {
   return [{ id: 'install', label: 'Install', code: `gem install ${name} -v ${version}` }];
 }
@@ -442,6 +480,10 @@ export function componentSnippets(context: ComponentSnippetContext): ComponentSn
       return openvsx(context);
     case 'jetbrains':
       return jetbrains(context);
+    case 'chrome':
+      return chrome(context);
+    case 'firefox':
+      return firefox(context);
     default:
       return [];
   }

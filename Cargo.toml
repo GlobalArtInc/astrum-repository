@@ -20,11 +20,13 @@ astrum-format-apt = { path = "crates/astrum-format-apt" }
 astrum-format-bazel = { path = "crates/astrum-format-bazel" }
 astrum-format-cargo = { path = "crates/astrum-format-cargo" }
 astrum-format-chef = { path = "crates/astrum-format-chef" }
+astrum-format-chrome = { path = "crates/astrum-format-chrome" }
 astrum-format-cocoapods = { path = "crates/astrum-format-cocoapods" }
 astrum-format-composer = { path = "crates/astrum-format-composer" }
 astrum-format-conan = { path = "crates/astrum-format-conan" }
 astrum-format-conda = { path = "crates/astrum-format-conda" }
 astrum-format-docker = { path = "crates/astrum-format-docker" }
+astrum-format-firefox = { path = "crates/astrum-format-firefox" }
 astrum-format-gitlfs = { path = "crates/astrum-format-gitlfs" }
 astrum-format-go = { path = "crates/astrum-format-go" }
 astrum-format-helm = { path = "crates/astrum-format-helm" }
