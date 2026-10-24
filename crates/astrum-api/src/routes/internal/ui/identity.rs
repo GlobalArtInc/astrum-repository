@@ -124,11 +124,26 @@ async fn read_oidc(
     }))
 }
 
-pub(crate) async fn http(state: &AppState) -> Result<oidc::Http, ApiError> {
+pub(crate) async fn http(
+    state: &AppState,
+    settings: &OidcSettings,
+) -> Result<oidc::Http, ApiError> {
     let ssrf: SsrfProtection = setting::get(state.db().conn(), SSRF_KEY)
         .await?
         .unwrap_or_default();
-    oidc::Http::new(&ssrf).map_err(|error| ApiError::internal(anyhow::anyhow!(error.message)))
+    let trust_store = match settings.use_trust_store {
+        true => Some(
+            state
+                .content()
+                .outbound()
+                .trust_roots()
+                .await
+                .map_err(ApiError::internal)?,
+        ),
+        false => None,
+    };
+    oidc::Http::new(&ssrf, trust_store.as_deref())
+        .map_err(|error| ApiError::internal(anyhow::anyhow!(error.message)))
 }
 
 async fn activate(
@@ -179,7 +194,7 @@ async fn save_oidc(
                 .collect(),
         )
     })?;
-    let http = http(&state).await?;
+    let http = http(&state, &settings).await?;
     if let Err(error) = oidc::OidcProvider::resolve(&settings, &http).await {
         let message = format!(
             "Could not load the identity provider configuration: {}",
@@ -200,7 +215,7 @@ async fn save_oidc(
     };
     setting::put(state.db().conn(), oidc::SETTINGS_KEY, &settings).await?;
     let realms = activate(&state, realm::OIDC, true).await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state.security().oidc().reset();
     state
         .audit(
@@ -239,7 +254,7 @@ async fn remove_oidc(
         return Err(ApiError::not_found("OpenID Connect is not configured"));
     }
     let realms = activate(&state, realm::OIDC, false).await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state.security().oidc().reset();
     state
         .audit(&caller, Event::new("security.oidc", "deleted", "oidc"))
@@ -309,7 +324,7 @@ async fn save_default_role(
     .await?;
     let enabled = body.enabled.unwrap_or(true);
     let realms = activate(&state, realm::DEFAULT_ROLE, enabled).await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state
         .audit(
             &caller,
@@ -329,7 +344,7 @@ async fn remove_default_role(
     let previous = state.security().model().default_role.clone();
     setting::delete(state.db().conn(), DEFAULT_ROLE_KEY).await?;
     let realms = activate(&state, realm::DEFAULT_ROLE, false).await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state
         .audit(
             &caller,

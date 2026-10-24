@@ -2,6 +2,7 @@ pub mod audit;
 mod config;
 pub mod entity;
 pub mod read_only;
+pub mod revision;
 pub mod setting;
 pub mod system;
 

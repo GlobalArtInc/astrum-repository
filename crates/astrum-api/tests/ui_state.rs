@@ -165,7 +165,7 @@ async fn the_session_timeout_setting_is_reported() {
     )
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
     let body = state(&fixture, Auth::None).await;
     assert_eq!(body["sessionTimeoutMinutes"], 45);
 }

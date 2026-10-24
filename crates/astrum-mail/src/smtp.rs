@@ -121,7 +121,7 @@ async fn wrap(
         &[]
     };
     let config =
-        astrum_outbound::tls::client_config(extra, settings.ssl_server_identity_check_enabled)
+        astrum_security::tls::client_config(extra, settings.ssl_server_identity_check_enabled)
             .map_err(|error| MailError::Tls(error.to_string()))?;
     let name = ServerName::try_from(settings.host.clone())
         .map_err(|_| MailError::Tls(format!("{} is not a valid TLS server name", settings.host)))?;

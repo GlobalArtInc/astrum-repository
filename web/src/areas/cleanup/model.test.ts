@@ -109,8 +109,11 @@ describe('cleanup policy values', () => {
       'days',
     );
     expect(
-      validate(values({ name: 'ok', format: 'raw', usageOn: true, usage: '24856' }), raw, true, TEXTS).usage,
+      validate(values({ name: 'ok', format: 'raw', usageOn: true, usage: '36501' }), raw, true, TEXTS).usage,
     ).toBe('days');
+    expect(
+      validate(values({ name: 'ok', format: 'raw', usageOn: true, usage: '36500' }), raw, true, TEXTS).usage,
+    ).toBeUndefined();
     expect(
       validate(values({ name: 'ok', format: 'raw', regexOn: true, regex: '(' }), raw, true, TEXTS).regex,
     ).toBe('regexInvalid');

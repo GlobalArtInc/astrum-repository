@@ -206,7 +206,7 @@ pub async fn anonymous(fixture: &Fixture, enabled: bool) {
     )
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
 }
 
 pub fn user(name: &str) -> Auth<'_> {

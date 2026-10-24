@@ -248,7 +248,7 @@ async fn locked(state: &AppState) -> Result<(DatabaseTransaction, Vec<LdapServer
 }
 
 async fn changed(state: &AppState, caller: &Caller, event: Event) -> Result<(), ApiError> {
-    state.security().reload().await?;
+    state.security().changed().await?;
     state.security().ldap().clear();
     state.audit(caller, event).await;
     Ok(())
@@ -513,7 +513,7 @@ async fn verify_connection(
         &draft,
         query.existing_server_name.as_deref(),
     )?;
-    let tls = state.security().ldap().tls();
+    let tls = state.security().ldap().tls_for(&server).await;
     Directory {
         server: &server,
         bind_password: bind.as_deref(),
@@ -540,7 +540,7 @@ async fn verify_user_mapping(
         &draft,
         query.existing_server_name.as_deref(),
     )?;
-    let tls = state.security().ldap().tls();
+    let tls = state.security().ldap().tls_for(&server).await;
     let users = Directory {
         server: &server,
         bind_password: bind.as_deref(),
@@ -595,7 +595,7 @@ async fn verify_login(
         &draft,
         query.existing_server_name.as_deref(),
     )?;
-    let tls = state.security().ldap().tls();
+    let tls = state.security().ldap().tls_for(&server).await;
     let outcome = Directory {
         server: &server,
         bind_password: bind.as_deref(),

@@ -7,12 +7,13 @@ use ldap3_proto::proto::{
     LdapBindCred, LdapBindRequest, LdapDerefAliases, LdapExtendedRequest, LdapFilter, LdapMsg,
     LdapOp, LdapResult, LdapResultCode, LdapSearchRequest, LdapSearchScope, SaslCredentials,
 };
-use rustls::RootCertStore;
 use rustls::pki_types::{CertificateDer, ServerName};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
 use tokio_util::codec::Framed;
+
+use crate::tls;
 
 const STARTTLS: &str = "1.3.6.1.4.1.1466.20037";
 const MAX_MESSAGE: usize = 16 * 1024 * 1024;
@@ -46,7 +47,8 @@ impl ClientError {
 
 #[derive(Clone)]
 pub struct TlsClient {
-    config: Arc<rustls::ClientConfig>,
+    roots: Vec<CertificateDer<'static>>,
+    config: Result<Arc<rustls::ClientConfig>, String>,
 }
 
 impl std::fmt::Debug for TlsClient {
@@ -62,31 +64,30 @@ impl TlsClient {
     }
 
     pub fn with_roots(extra: Vec<CertificateDer<'static>>) -> Self {
-        let mut roots = RootCertStore::empty();
-        let native = rustls_native_certs::load_native_certs();
-        for error in &native.errors {
-            tracing::debug!(%error, "a system certificate could not be loaded");
-        }
-        roots.add_parsable_certificates(native.certs);
-        roots.add_parsable_certificates(extra);
-        let provider = Arc::new(rustls::crypto::ring::default_provider());
-        let config = rustls::ClientConfig::builder_with_provider(provider)
-            .with_safe_default_protocol_versions()
-            .expect("the ring provider supports the default TLS versions")
-            .with_root_certificates(roots)
-            .with_no_client_auth();
+        let config = tls::client_config(&extra, true)
+            .map(Arc::new)
+            .map_err(|error| format!("no certificate can be trusted: {error}"));
         Self {
-            config: Arc::new(config),
+            roots: extra,
+            config,
         }
+    }
+
+    pub fn trusting(&self, more: &[CertificateDer<'static>]) -> Self {
+        if more.is_empty() {
+            return self.clone();
+        }
+        Self::with_roots(self.roots.iter().chain(more).cloned().collect())
     }
 
     async fn wrap<S>(&self, host: &str, stream: S) -> Result<Box<dyn Io>, String>
     where
         S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
+        let config = self.config.clone()?;
         let name = ServerName::try_from(host.to_owned())
             .map_err(|_| format!("{host} is not a valid TLS server name"))?;
-        let stream = TlsConnector::from(self.config.clone())
+        let stream = TlsConnector::from(config)
             .connect(name, stream)
             .await
             .map_err(|error| error.to_string())?;

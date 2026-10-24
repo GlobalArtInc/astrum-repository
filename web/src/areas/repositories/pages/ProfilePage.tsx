@@ -1,7 +1,6 @@
 import { Badge, Button, IconButton } from '@radix-ui/themes';
 import {
   ChevronRight,
-  CircleX,
   Clock,
   Database,
   ExternalLink,
@@ -12,7 +11,6 @@ import {
   Info,
   KeyRound,
   RefreshCw,
-  Shield,
   User,
   Users,
   Zap,
@@ -419,65 +417,6 @@ function SystemTab() {
   );
 }
 
-function InstanceTab() {
-  const t = useT();
-  return (
-    <div className={styles.instance}>
-      <Card icon={<Shield size={18} />} title={t('repositories.profile.iqServer')}>
-        <div className={styles.featureRow}>
-          <span>{t('repositories.profile.status')}</span>
-          <Badge color="red" variant="soft" radius="small">
-            <CircleX size={12} aria-hidden="true" />
-            {t('repositories.profile.disconnected')}
-          </Badge>
-        </div>
-        <div className={styles.featureRow}>
-          <span>{t('repositories.profile.url')}</span>
-          <span className={tabs.mono}>{t('repositories.profile.notConfigured')}</span>
-        </div>
-        <span className={tabs.cardTitle} style={{ fontSize: 14, fontWeight: 500 }}>
-          {t('repositories.profile.licenseFeatures')}
-        </span>
-        <div className={styles.features}>
-          {['Lifecycle', 'Firewall'].map((feature) => (
-            <div key={feature} className={styles.feature}>
-              {feature}
-              <span className={styles.featureValue}>
-                <CircleX size={12} aria-hidden="true" />
-                {t('repositories.profile.notAvailable')}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
-      <Card icon={<Zap size={18} />} title={t('repositories.profile.globalCapabilities')}>
-        <div className={styles.featureRow}>
-          <strong style={{ fontWeight: 500 }}>{t('repositories.profile.healthCheck')}</strong>
-          <Badge color="gray" variant="soft" radius="small">
-            {t('repositories.profile.notConfigured')}
-          </Badge>
-        </div>
-        <p className={tabs.text} style={{ fontSize: 'var(--font-size-1)' }}>
-          {t('repositories.profile.healthCheckText')}
-        </p>
-        <div className={styles.featureRow}>
-          <strong style={{ fontWeight: 500 }}>{t('repositories.profile.firewall')}</strong>
-          <Badge color="gray" variant="soft" radius="small">
-            {t('repositories.profile.licenseNeeded')}
-          </Badge>
-        </div>
-        <p className={tabs.text} style={{ fontSize: 'var(--font-size-1)' }}>
-          {t('repositories.profile.firewallText')}
-        </p>
-        <p className={styles.note}>
-          <Info size={12} aria-hidden="true" />
-          {t('repositories.profile.instanceNote')}
-        </p>
-      </Card>
-    </div>
-  );
-}
-
 export default function ProfilePage() {
   const t = useT();
   const navigate = useNavigate();
@@ -604,11 +543,6 @@ export default function ProfilePage() {
             content: <SecurityTab repository={repository} />,
           },
           { value: 'system', label: t('repositories.profile.tabs.system'), content: <SystemTab /> },
-          {
-            value: 'instance-config',
-            label: t('repositories.profile.tabs.instance'),
-            content: <InstanceTab />,
-          },
         ]}
       />
       {actions.dialog}

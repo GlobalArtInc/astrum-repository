@@ -22,33 +22,39 @@ The page needs the privilege `as-settings-read`.
 
 ## What the servers share
 
-Whatever is stored in the database is shared: repositories and their content, blob store
-configurations, cleanup policies and routing rules, tasks and their runs, capabilities, the email server,
-notification channels and the notifications waiting to be sent, web sessions and the audit log. Settings
-that are read often are kept for a few seconds by each server, so a change made through one server
-reaches the others after at most:
+Whatever is stored in the database is shared: repositories and their content, users and security
+settings, blob store configurations, cleanup policies and routing rules, tasks and their runs,
+capabilities, the email server, notification channels and the notifications waiting to be sent, web
+sessions and the audit log. Settings that are read often are kept in memory by each server, so a change
+made through one server reaches the others after at most:
 
 | Setting | Delay |
 |---|---|
+| Users, roles, privileges, role mappings, content selectors, realms, anonymous access, the session timeout, the LDAP servers, OpenID Connect and the default role; blob store configurations | 2 seconds |
 | Base URL, domains of repositories | 5 seconds |
 | [HTTP settings](../configure/outbound-http.md), [SSL certificates](../configure/ssl-certificates.md), SSRF protection, routing rules | 10 seconds |
 | Log levels set under **Settings → Support → Logging** | 30 seconds |
+
+Users and security settings and blob store configurations are kept in memory until they change: every
+change made through a server raises a revision counter in the database, every server reads that counter
+every two seconds and loads the changed part again when it moved. The server that made the change applies
+it at once. Until the others have caught up they may still show the previous state in lists and forms,
+and a password that was just changed may still be accepted by them for those two seconds. A sign-in or a
+web session that one of them does not recognise is checked against the database before it is refused or
+ended, so a user created or a password changed through one server can sign in, and stays signed in,
+through any other at once.
 
 A web session works on every server, so a load balancer needs no sticky sessions. Use
 `GET /service/rest/v1/status/writable` as its health check, see [monitoring](monitoring.md#health-endpoints).
 
 ## What each server keeps for itself
 
-- **Users and security settings.** Each server loads users, roles, privileges, role mappings, content
-  selectors, realms, anonymous access, the session timeout, the LDAP servers, OpenID Connect and the
-  default role into memory when it starts, and loads them again when they are changed through that
-  server. The other servers keep what they loaded until they restart: a user created, a role changed or a
-  password changed through one server is unknown or outdated on the others, and the web session of such a
-  user can be ended when one of its requests reaches another server. Make such changes through one server
-  and restart the others afterwards, one at a time.
 - **Caches.** The LDAP cache (`ldap.cache_ttl`), the cache of answers a remote did not have and the
   automatic blocking of proxy repositories whose remote fails are kept per server; **Clear Cache** on the
-  LDAP page clears the cache of the server that serves the request.
+  LDAP page clears the cache of the server that serves the request. Saving a proxy repository or
+  **Invalidate cache** clears its negative cache and its automatic block only on the server that serves
+  the request (cached content is marked for revalidation on every server); the other servers keep the
+  answers the remote did not have for the negative cache time of the repository.
 - **Failed sign-ins.** Ten failed sign-ins within five minutes block a user on the server that counted
   them, not on the others.
 - **Logs, support ZIPs and metrics** belong to the server that wrote them or served the request; see
@@ -67,9 +73,10 @@ PostgreSQL makes sure that a task runs on one server at a time. Each server runs
 once.
 
 - **Stop** reaches the server running the task through the database, within a few seconds.
+- The [notification email](tasks.md#notification-email) of a run is sent by the server that ran it.
 - When a server stops in the middle of a run, another server, or the same one after its restart, marks the
   run failed once the database has closed the stopped server's connection; every server checks for such
-  runs every 30 seconds. The task can then run again.
+  runs every 30 seconds, and sends the notification email of the failed run. The task can then run again.
 - The health check **Scheduler** and the metric `astrum_scheduler_last_tick_timestamp_seconds` describe the
   server that answers.
 

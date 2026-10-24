@@ -24,7 +24,7 @@ pub fn builtin() -> Vec<NewTask> {
         enabled: true,
         schedule,
         alert_email: None,
-        notification_condition: "FAILURE".to_owned(),
+        notification_condition: crate::notification::FAILURE.to_owned(),
         properties: properties(pairs),
     };
     let soon = Utc::now() + Duration::minutes(5);

@@ -106,7 +106,7 @@ async fn expired_tokens_and_inactive_realms_refuse() {
     )
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
     assert_eq!(
         fixture
             .call(Method::GET, AUDIT, Auth::Basic("admin", &token), None)
@@ -121,7 +121,7 @@ async fn expired_tokens_and_inactive_realms_refuse() {
     )
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
 
     let id = uuid::Uuid::parse_str(created["id"].as_str().unwrap()).unwrap();
     access_token::Entity::update(access_token::ActiveModel {

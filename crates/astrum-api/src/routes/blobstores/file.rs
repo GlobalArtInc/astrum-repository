@@ -47,7 +47,7 @@ pub(super) async fn create(
     };
     prepare(&state, &config).await?;
     insert(&state, &config).await?;
-    state.blob_stores().forget();
+    state.blob_stores().changed().await.map_err(internal)?;
     state
         .audit(&caller, Event::new(DOMAIN, "created", &config.name))
         .await;

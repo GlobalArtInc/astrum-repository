@@ -273,7 +273,7 @@ async fn a_root_domain_serves_one_repository_and_the_old_path_still_works() {
     )
     .await
     .unwrap();
-    server.fixture.state.security().reload().await.unwrap();
+    server.fixture.state.security().changed().await.unwrap();
     let anonymous = server
         .send(
             Method::GET,

@@ -4,12 +4,14 @@ use std::time::{Duration, Instant};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+use rustls::pki_types::CertificateDer;
 use serde_json::{Map, Value};
 
 use super::OidcError;
 use super::config::OidcSettings;
 use super::jwt::{self, Key};
 use crate::ssrf::{Guard, GuardedResolver, SsrfProtection, literal_allowed};
+use crate::tls;
 
 const METADATA_TTL: Duration = Duration::from_secs(3600);
 const JWKS_REFRESH: Duration = Duration::from_secs(60);
@@ -65,7 +67,10 @@ pub struct Http {
 }
 
 impl Http {
-    pub fn new(ssrf: &SsrfProtection) -> Result<Self, OidcError> {
+    pub fn new(
+        ssrf: &SsrfProtection,
+        trust_store: Option<&[CertificateDer<'static>]>,
+    ) -> Result<Self, OidcError> {
         let guard = Arc::new(Guard::new(ssrf));
         let redirect_guard = guard.clone();
         let redirects = reqwest::redirect::Policy::custom(move |attempt| {
@@ -77,13 +82,22 @@ impl Http {
                 attempt.follow()
             }
         });
-        let client = reqwest::Client::builder()
+        let mut builder = reqwest::Client::builder()
             .user_agent(format!("Astrum/{}", env!("CARGO_PKG_VERSION")))
             .connect_timeout(TIMEOUT)
             .timeout(TIMEOUT)
             .redirect(redirects)
             .no_proxy()
-            .dns_resolver(Arc::new(GuardedResolver::new(guard.clone())))
+            .dns_resolver(Arc::new(GuardedResolver::new(guard.clone())));
+        if let Some(certificates) = trust_store {
+            match tls::http_client_config(certificates) {
+                Ok(config) => builder = builder.use_preconfigured_tls(config),
+                Err(error) => {
+                    tracing::warn!(%error, "the truststore cannot be used; the system roots apply")
+                }
+            }
+        }
+        let client = builder
             .build()
             .map_err(|error| OidcError::failed(format!("cannot build an HTTP client: {error}")))?;
         Ok(Self { client, guard })

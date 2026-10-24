@@ -206,7 +206,7 @@ async fn a_store_turns_into_a_group_that_keeps_its_blobs() {
     let group = config::promote(db.db.conn(), "store", "store-disk")
         .await
         .unwrap();
-    stores.forget();
+    stores.changed().await.unwrap();
     let settings = group.group().unwrap();
     assert_eq!(settings.members, vec!["store-disk".to_owned()]);
     assert_eq!(settings.fill_policy, FillPolicy::WriteToFirst);

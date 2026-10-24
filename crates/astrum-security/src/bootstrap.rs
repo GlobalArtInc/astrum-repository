@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use astrum_db::entity::{security_role, security_user, security_user_role};
-use astrum_db::setting;
+use astrum_db::{revision, setting};
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{ActiveValue, ConnectionTrait, EntityTrait, PaginatorTrait, TransactionTrait};
 use serde_json::json;
@@ -95,6 +95,7 @@ where
         result.admin_password_file = Some(path);
     }
 
+    revision::bump(&txn, revision::SECURITY).await?;
     txn.commit().await?;
     Ok(result)
 }

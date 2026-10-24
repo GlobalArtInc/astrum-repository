@@ -1,6 +1,5 @@
 pub mod certificate;
 pub mod settings;
-pub mod tls;
 pub mod truststore;
 
 use std::sync::{Arc, Mutex};
@@ -9,6 +8,7 @@ use std::time::{Duration, Instant};
 use astrum_db::setting;
 use astrum_security::SecretBox;
 use astrum_security::ssrf::SsrfProtection;
+use astrum_security::tls::{self, Certificates, TrustStore};
 use rustls::pki_types::CertificateDer;
 use sea_orm::DatabaseConnection;
 
@@ -140,6 +140,12 @@ impl Outbound {
     }
 }
 
+impl TrustStore for Outbound {
+    fn certificates(&self) -> Certificates<'_> {
+        Box::pin(async move { self.trust_roots().await.map_err(|error| error.to_string()) })
+    }
+}
+
 impl Snapshot {
     pub fn retries(&self, own: Option<i32>) -> usize {
         own.or(self.http.retries)
@@ -266,11 +272,8 @@ impl Snapshot {
             builder = builder.proxy(proxy);
         }
         if options.use_trust_store {
-            match tls::client_config(&self.trust, true) {
-                Ok(mut config) => {
-                    config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
-                    builder = builder.use_preconfigured_tls(config);
-                }
+            match tls::http_client_config(&self.trust) {
+                Ok(config) => builder = builder.use_preconfigured_tls(config),
                 Err(error) => {
                     tracing::warn!(%error, "the truststore cannot be used; the system roots apply")
                 }

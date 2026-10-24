@@ -294,7 +294,7 @@ async fn external_users_only_get_role_mappings() {
     .exec(fixture.state.db().conn())
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
 
     let reply = fixture
         .call(
@@ -411,7 +411,7 @@ async fn deleting_users_follows_the_reference_server() {
     )
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
     let reply = fixture
         .call(
             Method::DELETE,

@@ -1,12 +1,14 @@
 mod support;
 
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use astrum_testkit::tls::TestCertificates;
 use axum::body::Body;
 use axum::http::{Method, StatusCode};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
+use sea_orm::ConnectionTrait;
 use serde_json::{Value, json};
 use support::{Auth, Fixture};
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader};
@@ -309,5 +311,163 @@ async fn notification_emails_go_through_the_email_server() {
         received.data[0].contains("Subject: [Astrum] "),
         "{}",
         received.data[0]
+    );
+}
+
+struct Probe;
+
+#[async_trait::async_trait]
+impl astrum_tasks::TaskKind for Probe {
+    fn id(&self) -> &'static str {
+        "test.probe"
+    }
+
+    fn name(&self) -> &'static str {
+        "Test - Probe"
+    }
+
+    fn fields(&self) -> Vec<astrum_tasks::Field> {
+        vec![astrum_tasks::Field::new(
+            "fail",
+            astrum_tasks::FieldType::Checkbox,
+            "Fail",
+        )]
+    }
+
+    fn describe(&self, _: &astrum_tasks::Properties) -> String {
+        "probes the scheduler".to_owned()
+    }
+
+    async fn run(&self, run: &astrum_tasks::Run) -> Result<String, astrum_tasks::TaskError> {
+        match run.flag("fail") {
+            true => Err(astrum_tasks::TaskError::Failed(
+                "the probe failed on purpose".to_owned(),
+            )),
+            false => Ok("the probe passed".to_owned()),
+        }
+    }
+}
+
+fn body(data: &str) -> String {
+    let encoded = data.split("\r\n\r\n").nth(1).unwrap().replace("\r\n", "");
+    String::from_utf8(STANDARD.decode(encoded).unwrap()).unwrap()
+}
+
+async fn delivered(sink: &Sink, count: usize) -> Vec<String> {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while sink.lock().unwrap().data.len() < count && Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    sink.lock().unwrap().data.clone()
+}
+
+#[tokio::test]
+async fn a_failed_task_run_mails_its_notification_address() {
+    let fixture = Fixture::new().await;
+    fixture.state.tasks().register(Arc::new(Probe));
+    let (port, sink) = smtp_sink(None).await;
+    let saved = fixture
+        .call(
+            Method::PUT,
+            EMAIL,
+            Auth::Admin,
+            Some(json!({"enabled": true, "host": "127.0.0.1", "port": port,
+                "fromAddress": "repo@example.invalid", "subjectPrefix": "[Astrum]"})),
+        )
+        .await;
+    assert_eq!(saved.status, StatusCode::NO_CONTENT, "{}", saved.text());
+    let base = json!({"type": "baseurl", "enabled": true, "properties": {"url": "https://repo.example.com/"}});
+    let base = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/capabilities",
+            Auth::Admin,
+            Some(base),
+        )
+        .await;
+    assert_eq!(base.status, StatusCode::CREATED, "{}", base.text());
+    let mut ids = Vec::new();
+    for (name, fail) in [("Probe passing", "false"), ("Probe failing", "true")] {
+        let task = json!({"type": "test.probe", "name": name, "alertEmail": "ops@example.invalid",
+            "notificationCondition": "FAILURE", "properties": {"fail": fail}});
+        let created = fixture
+            .call(
+                Method::POST,
+                "/service/rest/v1/tasks",
+                Auth::Admin,
+                Some(task),
+            )
+            .await;
+        assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+        ids.push(created.json()["id"].as_str().unwrap().to_owned());
+    }
+    for id in &ids {
+        let started = fixture
+            .call(
+                Method::POST,
+                &format!("/service/rest/v1/tasks/{id}/run"),
+                Auth::Admin,
+                None,
+            )
+            .await;
+        assert_eq!(started.status, StatusCode::NO_CONTENT, "{}", started.text());
+        fixture.state.tasks().run_pending().await.unwrap();
+    }
+    let data = delivered(&sink, 1).await;
+    assert_eq!(data.len(), 1, "only the failed run is mailed");
+    assert!(
+        sink.lock()
+            .unwrap()
+            .commands
+            .contains(&"RCPT TO:<ops@example.invalid>".to_owned())
+    );
+    assert!(
+        data[0].contains("Subject: [Astrum] Task failed: Probe failing\r\n"),
+        "{}",
+        data[0]
+    );
+    let text = body(&data[0]);
+    for wanted in [
+        "The task \"Probe failing\" failed.".to_owned(),
+        "Type: Test - Probe (test.probe)\r\n".to_owned(),
+        "Result: Failed\r\n".to_owned(),
+        "Started by: admin\r\n".to_owned(),
+        format!("Server: {}\r\n", fixture.state.tasks().node()),
+        "Error: the probe failed on purpose\r\n".to_owned(),
+        format!(
+            "Open the task: https://repo.example.com/admin/system/tasks/{}\r\n",
+            ids[1]
+        ),
+    ] {
+        assert!(text.contains(&wanted), "{wanted:?} in {text}");
+    }
+
+    let orphan = format!(
+        "INSERT INTO task_run (task_id, state, trigger, initiator, node, started_at) \
+         VALUES ('{}', 'running', 'schedule', '*TASK', 'gone:1', now())",
+        ids[0]
+    );
+    fixture
+        .state
+        .db()
+        .conn()
+        .execute_unprepared(&orphan)
+        .await
+        .unwrap();
+    assert_eq!(fixture.state.tasks().fail_orphans().await.unwrap(), 1);
+    let data = delivered(&sink, 2).await;
+    assert_eq!(data.len(), 2, "the abandoned run is mailed once");
+    assert!(
+        data[1].contains("Subject: [Astrum] Task failed: Probe passing\r\n"),
+        "{}",
+        data[1]
+    );
+    let text = body(&data[1]);
+    assert!(text.contains("Server: gone:1\r\n"), "{text}");
+    assert!(text.contains("Started by: the schedule\r\n"), "{text}");
+    assert!(
+        text.contains("Error: the server running the task stopped before it finished\r\n"),
+        "{text}"
     );
 }

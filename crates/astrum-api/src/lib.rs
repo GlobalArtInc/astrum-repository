@@ -6,6 +6,7 @@ pub mod json;
 pub mod limits;
 pub mod metrics;
 mod notify_mail;
+pub mod revisions;
 pub mod routes;
 pub mod space;
 
@@ -61,13 +62,15 @@ struct Inner {
 
 impl AppState {
     pub fn new(db: Database, data_dir: PathBuf, security: Security, secrets: SecretBox) -> Self {
-        let security = security.with_secrets(secrets.clone());
         let blob_stores = Arc::new(BlobStores::new(
             db.conn().clone(),
             &data_dir,
             secrets.clone(),
         ));
         let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
+        let security = security
+            .with_secrets(secrets.clone())
+            .with_trust_store(Arc::new(content.outbound().clone()));
         let tasks = Tasks::new(content.clone());
         let notifier = Notifier::new(db.conn().clone(), secrets.clone());
         notifier.set_mail_sender(Arc::new(notify_mail::NotificationMail(

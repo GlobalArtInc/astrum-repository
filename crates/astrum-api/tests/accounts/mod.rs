@@ -66,7 +66,7 @@ pub async fn create_repository(fixture: &Fixture, name: &str, format: &str) {
     .exec(fixture.state.db().conn())
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
 }
 
 pub async fn send_raw(

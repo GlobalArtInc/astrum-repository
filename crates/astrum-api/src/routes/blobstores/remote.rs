@@ -66,7 +66,7 @@ pub(super) async fn create(
     };
     connect(&state, &config).await?;
     insert(&state, &config).await?;
-    state.blob_stores().forget();
+    state.blob_stores().changed().await.map_err(internal)?;
     state.audit(&caller, audit_event("created", &config)).await;
     Ok(StatusCode::CREATED)
 }

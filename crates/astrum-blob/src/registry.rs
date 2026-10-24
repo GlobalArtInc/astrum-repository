@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
+use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use astrum_db::setting;
+use astrum_db::{revision, setting};
 use astrum_security::SecretBox;
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
@@ -25,6 +26,8 @@ pub struct BlobStores {
     blobs_dir: PathBuf,
     secrets: SecretBox,
     open: Mutex<HashMap<String, Arc<dyn BlobStore>>>,
+    generation: AtomicU64,
+    revision: AtomicI64,
 }
 
 impl std::fmt::Debug for BlobStores {
@@ -42,6 +45,8 @@ impl BlobStores {
             blobs_dir: data_dir.join(BLOBS_DIR),
             secrets,
             open: Mutex::new(HashMap::new()),
+            generation: AtomicU64::new(0),
+            revision: AtomicI64::new(0),
         }
     }
 
@@ -103,8 +108,25 @@ impl BlobStores {
         Metrics::new(self.db.clone(), name)
     }
 
-    pub fn forget(&self) {
-        self.cache().clear();
+    pub async fn changed(&self) -> Result<(), Error> {
+        let revision = revision::bump(&self.db, revision::BLOB_STORES).await?;
+        self.forget();
+        self.revision.store(revision, Ordering::SeqCst);
+        Ok(())
+    }
+
+    pub fn catch_up(&self, revision: i64) -> bool {
+        if self.revision.swap(revision, Ordering::SeqCst) == revision {
+            return false;
+        }
+        self.forget();
+        true
+    }
+
+    fn forget(&self) {
+        let mut cache = self.cache();
+        cache.clear();
+        self.generation.fetch_add(1, Ordering::SeqCst);
     }
 
     pub async fn overlapping(
@@ -140,12 +162,17 @@ impl BlobStores {
             if let Some(store) = self.cache().get(&name) {
                 return Ok(store.clone());
             }
+            let generation = self.generation.load(Ordering::SeqCst);
             let config = self
                 .config(&name)
                 .await?
                 .ok_or_else(|| Error::UnknownStore(name.clone()))?;
             let store = self.open_at(&config, depth).await?;
-            Ok(self.cache().entry(name).or_insert(store).clone())
+            let mut cache = self.cache();
+            if self.generation.load(Ordering::SeqCst) != generation {
+                return Ok(store);
+            }
+            Ok(cache.entry(name).or_insert(store).clone())
         }
         .boxed()
     }

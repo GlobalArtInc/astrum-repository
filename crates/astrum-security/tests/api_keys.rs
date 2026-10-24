@@ -38,7 +38,7 @@ async fn api_keys_are_kept_revealed_reset_and_checked_against_the_realm() {
     astrum_db::setting::put(db.conn(), REALMS_KEY, &["AstrumAuthenticatingRealm", NUGET])
         .await
         .unwrap();
-    security.reload().await.unwrap();
+    security.changed().await.unwrap();
     let subject = security
         .authenticate_api_key(NUGET, &first.key)
         .await

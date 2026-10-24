@@ -70,7 +70,7 @@ impl Fixture {
         .exec(self.state.db().conn())
         .await
         .unwrap();
-        self.state.security().reload().await.unwrap();
+        self.state.security().changed().await.unwrap();
     }
 
     pub async fn new() -> Self {

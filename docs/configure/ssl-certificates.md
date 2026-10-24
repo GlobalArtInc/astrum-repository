@@ -39,9 +39,10 @@ What to add:
 - the server's own certificate, which is what **Load from server** takes, when it is self-signed: only
   that certificate is trusted, until the server gets a new one.
 
-Next to the trust options of a proxy repository and of **Settings → System → Email Server**,
-**View Certificate** shows the certificate the configured server presents, with
-**Add Certificate to Truststore** or **Remove Certificate from Truststore**.
+Next to the trust options of a proxy repository, of **Settings → System → Email Server** and of
+**Settings → Security → OpenID Connect**, **View Certificate** shows the certificate the configured
+server presents, with **Add Certificate to Truststore** or **Remove Certificate from Truststore**. For an
+LDAP server, use **Load from server** with its `host:port`.
 
 ## The list
 
@@ -61,11 +62,18 @@ The truststore applies where a connection has its option turned on:
 |---|---|
 | A [proxy repository](../repositories/overview.md#proxy-repositories) whose **Remote Storage** starts with `https://` | **Use the Astrum Repository Truststore** in the **Proxy** section of the repository |
 | The email server | **Use Astrum Trust Store** under **Settings → System → Email Server** |
+| An [LDAP server](authentication.md#ldap) over `ldaps` or StartTLS | **Use Astrum SSL Trust Store** on the connection of the server |
+| The [OpenID Connect](authentication.md#openid-connect) provider: discovery, token, user info and JWKS requests | **Use the Astrum Repository Truststore** under **Settings → Security → OpenID Connect** |
 
 With the option on, the stored certificates are trusted in addition to the system certificates; with it
-off, only the system certificates count. Proxy repositories always check that the certificate names the
-host of the remote, also for a stored certificate. The email server checks the name only with
-**Server Identity Check** on.
+off, only the system certificates count. Proxy repositories, LDAP servers and the OpenID Connect provider
+always check that the certificate names the host they connect to, also for a stored certificate. The
+email server checks the name only with **Server Identity Check** on.
+
+Adding or removing a certificate applies to LDAP and OpenID Connect at once: the server drops its cache
+of LDAP sign-ins and users and reads the provider's discovery document again, so a sign-in that relied on
+a removed certificate fails from then on. Other servers on the same database pick the change up within
+ten seconds, for LDAP at the next sign-in or lookup through a server that has the option on.
 
 The system certificates are the CA bundle of the operating system; in the container image that is the
 `ca-certificates` package of Debian. The environment variables `SSL_CERT_FILE` (a PEM file) and
@@ -74,9 +82,6 @@ public CAs too.
 
 Other connections do not use the truststore:
 
-- the LDAP page has **Use Astrum SSL Trust Store** and the OpenID Connect page
-  **Use the Astrum Repository Truststore**; both are saved, but in this version those connections are
-  checked against the system certificates only;
 - a remote blob store trusts the certificate in its own **Trusted certificate** field, see
   [blob stores](blob-stores.md#remote-blob-stores);
 - S3 blob stores and notification channels use the system certificates.

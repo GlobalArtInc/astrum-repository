@@ -298,7 +298,7 @@ async fn changed(
     kind: &str,
     repository: &Repository,
 ) -> Result<StatusCode, ApiError> {
-    state.security().reload().await?;
+    state.security().changed().await?;
     state.repository_changes().notify_one();
     state.forget_domains();
     let event = Event::new(AUDIT_DOMAIN, kind, &repository.name).with(json!({

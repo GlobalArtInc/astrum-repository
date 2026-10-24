@@ -562,7 +562,7 @@ async fn pushes_need_rights_and_take_nuget_api_keys() {
     )
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
     let state = get_json(&fixture, "/service/rest/internal/ui/state").await;
     assert_eq!(state["nugetApiKeyRealm"], true);
     let with_key = push_with(

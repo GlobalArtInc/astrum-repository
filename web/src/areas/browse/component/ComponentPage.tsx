@@ -1,6 +1,6 @@
 import { Badge, Button, Heading, IconButton, Select, Skeleton, TabNav, Text } from '@radix-ui/themes';
 import { useQueries } from '@tanstack/react-query';
-import { Copy, ExternalLink, PackageSearch, ShieldOff } from 'lucide-react';
+import { Copy, ExternalLink, PackageSearch } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { api, apiKey, path, useApi, withQuery } from '../../../api';
@@ -31,7 +31,7 @@ import { componentGuideUrl, componentPath, componentSnippets, registryUrl } from
 import { type FileRow, FilesTab, RepositoriesTab, VersionsTab } from './tables';
 
 const PREFIX = '/search/component/';
-const TABS = ['versions', 'repos', 'files', 'security'] as const;
+const TABS = ['versions', 'repos', 'files'] as const;
 type Tab = 'overview' | (typeof TABS)[number];
 
 export function locate(pathname: string): { key: string; tab: Tab } {
@@ -228,17 +228,6 @@ function Overview({
   );
 }
 
-function Security() {
-  const t = useT();
-  return (
-    <EmptyState
-      icon={ShieldOff}
-      title={t('browse.component.securityTitle')}
-      description={t('browse.component.securityText')}
-    />
-  );
-}
-
 function Actions({
   format,
   group,
@@ -416,7 +405,6 @@ export default function ComponentPage() {
     { id: 'versions', label: t('browse.component.versionsTab'), count: list.length },
     { id: 'repos', label: t('browse.component.repositoriesTab'), count: repositoryCount },
     { id: 'files', label: t('browse.component.files'), count: loadingFiles ? undefined : files.length },
-    { id: 'security', label: t('browse.component.security') },
   ];
   return (
     <Frame crumbs={crumbs} title={title}>
@@ -459,7 +447,6 @@ export default function ComponentPage() {
         ) : (
           <FilesTab rows={files} />
         ))}
-      {tab === 'security' && <Security />}
     </Frame>
   );
 }

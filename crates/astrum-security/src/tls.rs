@@ -1,3 +1,5 @@
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::{Arc, OnceLock};
 
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
@@ -5,6 +7,13 @@ use rustls::client::{WebPkiServerVerifier, verify_server_name};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 use rustls::server::ParsedCertificate;
 use rustls::{CertificateError, DigitallySignedStruct, RootCertStore, SignatureScheme};
+
+pub type Certificates<'a> =
+    Pin<Box<dyn Future<Output = Result<Vec<CertificateDer<'static>>, String>> + Send + 'a>>;
+
+pub trait TrustStore: Send + Sync {
+    fn certificates(&self) -> Certificates<'_>;
+}
 
 fn native() -> &'static Vec<CertificateDer<'static>> {
     static NATIVE: OnceLock<Vec<CertificateDer<'static>>> = OnceLock::new();
@@ -104,6 +113,14 @@ pub fn client_config(
             check_identity,
         }))
         .with_no_client_auth())
+}
+
+pub fn http_client_config(
+    extra: &[CertificateDer<'static>],
+) -> Result<rustls::ClientConfig, rustls::Error> {
+    let mut config = client_config(extra, true)?;
+    config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+    Ok(config)
 }
 
 #[cfg(test)]

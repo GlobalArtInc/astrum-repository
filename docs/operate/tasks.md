@@ -147,9 +147,32 @@ The **Tasks & Capabilities** tab of a repository lists the tasks whose **Reposit
 
 ### Notification email
 
-A task has **Email** (**Notification Email** once it exists) and **Send Notification**, with
-**Only when a run fails** or **After every run**. Both are saved with the task, but this version sends no
-email about task runs. To hear about failed runs, alert on `astrum_task_last_run_success == 0`, see
+A task has **Email** (**Notification Email** once it exists) and **Send Notification**, with **Only when a
+run fails** (`FAILURE` in the REST API, the default) or **After every run** (`SUCCESS_FAILURE`). When a run
+of a task with an address ends, the server sends a plain-text email to that address through the mail server
+under **Settings → System → Email Server**:
+
+| Send Notification | Failed run | Successful run | Stopped run |
+|---|---|---|---|
+| **Only when a run fails** | Email | None | None |
+| **After every run** | Email | Email | Email |
+
+- A run started with **Run Now**, over the REST API or through MCP notifies like a scheduled one.
+- The server that ran the task sends the email, so with several servers on one database a run is reported
+  once. A run whose server stopped or crashed counts as failed and is reported by the server that marks it
+  failed.
+- A queued run that is stopped before it starts sends nothing.
+
+The subject is `Task failed: <name>`, `Task finished: <name>` or `Task canceled: <name>`, after the subject
+prefix of the email server. The message names the task and its type, the result, when the run started and
+finished, who started it (the schedule or a user), the server that ran it, and the error of a failed run or
+the summary of any other. With a [base URL](../configure/runtime.md#base-url) set, it links to the task in
+the web interface; without one there is no request to build the link from, so the email has none.
+
+Sending never fails or delays the task: the email goes out after the run is recorded. When the email
+server is disabled or not set up, or the mail server cannot be reached or refuses the message, the server
+writes the warning "the notification of a task run was not sent" to the application log, and the email is
+not tried again. So keep alerting on the metric `astrum_task_last_run_success == 0` as well, see
 [monitoring](monitoring.md#what-to-watch).
 
 ## Privileges

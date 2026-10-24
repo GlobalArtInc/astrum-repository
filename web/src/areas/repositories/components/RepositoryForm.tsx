@@ -828,13 +828,6 @@ export function RepositoryForm(props: RepositoryFormProps) {
               hint={t('repositories.form.writePolicyHint')}
               options={options(WRITE_POLICIES)}
             />
-            {spec.format !== 'docker' && (
-              <CheckInput
-                {...field('proprietaryComponents')}
-                label={t('repositories.form.proprietary')}
-                description={t('repositories.form.proprietaryHint')}
-              />
-            )}
           </Section>
         )}
 

@@ -145,7 +145,7 @@ async fn update(
     })
     .exec(state.db().conn())
     .await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state
         .audit(
             &caller,
@@ -204,7 +204,7 @@ async fn change_password(
         .get(&user_id)
         .ok_or_else(|| ApiError::not_found(format!("User '{user_id}' not found.")))?;
     store_password(&state, user, new).await?;
-    security.reload().await?;
+    security.changed().await?;
     let keep = match headers.contains_key(header::AUTHORIZATION) {
         true => None,
         false => cookie(&headers, SESSION_COOKIE),

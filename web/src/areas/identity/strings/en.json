@@ -210,7 +210,7 @@
   "identity.oidc.jwksUrl": "IDP JWKS URL",
   "identity.oidc.jwksUrlHelp": "The JWKS endpoint for token verification",
   "identity.oidc.trustStore": "Use the Astrum Repository Truststore",
-  "identity.oidc.trustStoreInsecure": "You cannot enable this feature because your remote storage is not using a secure URL; there is no SSL certificate available.",
+  "identity.oidc.trustStoreInsecure": "Available once the issuer, token or JWKS address uses HTTPS: an address without HTTPS has no certificate to trust.",
   "identity.oidc.trustStoreHelp": "Validate the identity provider's certificate with the Astrum Repository truststore",
   "identity.oidc.viewCertificate": "View Certificate",
   "identity.oidc.claimMappings": "Claim Mappings",

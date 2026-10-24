@@ -1163,7 +1163,7 @@ async fn groups_read_through_their_members_in_order() {
         )
         .await;
     assert!(role.status.is_success(), "{}", role.text());
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
     assert_eq!(
         fixture
             .call(
