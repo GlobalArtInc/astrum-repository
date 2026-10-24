@@ -16,7 +16,7 @@ use crate::gupdate::{self, RemoteApp};
 use crate::hosted::{component_key, read_package};
 use crate::{ARTIFACT, CRX_TYPE, ID};
 
-pub const DEFAULT_PRODVERSION: &str = "142.0.0.0";
+pub const DEFAULT_PRODVERSION: &str = "156.0.0.0";
 const RECORD: &str = "update";
 const RECORD_FILE: &str = "updatecheck.json";
 const BATCH: usize = 50;

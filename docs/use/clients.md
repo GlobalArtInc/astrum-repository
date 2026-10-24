@@ -842,7 +842,7 @@ come from there.
 ### Proxies and groups
 
 A proxy asks its remote for the newest version of each extension a browser checks (with `v=0.0.0.0` and
-`acceptformat=crx3`, the `prodversion` of the browser or `142.0.0.0` when it sent none, and up to 50
+`acceptformat=crx3`, the `prodversion` of the browser or `156.0.0.0` when it sent none, and up to 50
 extensions in a request) and keeps the answer of each extension as metadata, reused for the metadata maximum
 age (24 hours by default). An extension the remote does not know is remembered for the time to live of the
 negative cache. In the answer it gives, every `codebase` points at the proxy, at
