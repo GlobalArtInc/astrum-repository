@@ -26,7 +26,11 @@ repository is public: never commit secrets.
   Also a hosted-only Buf Schema Registry for Protobuf modules (`protobuf`, `crates/astrum-format-protobuf`: Connect
   services `buf.registry.module.v1` and `buf.registry.owner.v1.OwnerService`, checked with buf 1.75.0; it needs a
   repository domain with `ROOT` routing because buf sends no path prefix, and has no proxy, group or `v1beta1`
-  federation yet). The web interface speaks twelve languages, pulled from Ownlate at build.
+  federation yet). Since 2026-10-24 also Chromium extensions (`chrome`, `crates/astrum-format-chrome`: hosted,
+  proxy of the update service of the Chrome Web Store, https://clients2.google.com/service/update2/crx, and group;
+  all three answer the update protocol at `updates.xml` and at the repository root, packages are CRX3 files at
+  `<id>/<version>/<id>-<version>.crx`, and browsers are pointed at a repository by the `ExtensionSettings` policy).
+  The web interface speaks twelve languages, pulled from Ownlate at build.
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.

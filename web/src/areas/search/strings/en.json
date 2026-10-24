@@ -98,6 +98,8 @@
   "search.criterion.chefLicense": "Chef License",
   "search.criterion.chefMaintainer": "Chef Maintainer",
   "search.criterion.chefCategory": "Chef Category",
+  "search.criterion.chromeName": "Chromium Extension Name",
+  "search.criterion.chromeManifestVersion": "Chromium Extension Manifest Version",
   "search.criterion.puppetTag": "Puppet Tag",
   "search.criterion.puppetLicense": "Puppet License",
   "search.criterion.vagrantProvider": "Vagrant Provider",

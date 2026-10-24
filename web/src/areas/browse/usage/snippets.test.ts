@@ -1146,6 +1146,52 @@ describe('jetbrains usage', () => {
   });
 });
 
+describe('chrome usage', () => {
+  const url = 'https://repo.example.org/repository/extensions';
+  const id = 'abcdefghijklmnopabcdefghijklmnop';
+
+  it('installs extensions by policy and uploads packages to a hosted repository', () => {
+    const snippets = usageSnippets(context({ format: 'chrome', repositoryName: 'extensions' }));
+    expect(ids(snippets)).toEqual(['settings', 'forcelist', 'registry', 'check', 'put']);
+    expect(JSON.parse(code(snippets, 'settings'))).toEqual({
+      ExtensionSettings: {
+        '<extension id>': {
+          installation_mode: 'force_installed',
+          update_url: `${url}/updates.xml`,
+          override_update_url: true,
+        },
+      },
+    });
+    expect(JSON.parse(code(snippets, 'forcelist'))).toEqual({
+      ExtensionInstallForcelist: [`<extension id>;${url}/updates.xml`],
+    });
+    expect(code(snippets, 'registry')).toBe(
+      `reg add HKLM\\SOFTWARE\\Policies\\Google\\Chrome\\ExtensionInstallForcelist /v 1 /t REG_SZ /d "<extension id>;${url}/updates.xml" /f`,
+    );
+    expect(code(snippets, 'put')).toBe(
+      `curl -i -X PUT -H "Authorization: Bearer <access token>" -T <extension>.crx ${url}/<extension>.crx`,
+    );
+    expect(supportsUsage('chrome')).toBe(true);
+  });
+
+  it('names the chosen extension and offers no upload through a proxy', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'chrome',
+        repositoryName: 'extensions',
+        repositoryType: 'proxy',
+        component: { group: '', name: id, version: '1.2.3' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['settings', 'forcelist', 'registry', 'check', 'download']);
+    expect(code(snippets, 'forcelist')).toContain(`"${id};${url}/updates.xml"`);
+    expect(code(snippets, 'check')).toBe(
+      `curl '${url}/updates.xml?response=updatecheck&acceptformat=crx3&x=id%3D${id}%26uc'`,
+    );
+    expect(code(snippets, 'download')).toBe(`curl -fLO '${url}/${id}/1.2.3/${id}-1.2.3.crx'`);
+  });
+});
+
 describe('turbo usage', () => {
   it('points Turborepo at the cache by environment, turbo.json and CI', () => {
     const snippets = usageSnippets(context({ format: 'turbo', repositoryName: 'turbo-cache' }));

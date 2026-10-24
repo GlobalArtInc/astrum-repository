@@ -20,6 +20,7 @@ astrum-format-apt.workspace = true
 astrum-format-bazel.workspace = true
 astrum-format-cargo.workspace = true
 astrum-format-chef.workspace = true
+astrum-format-chrome.workspace = true
 astrum-format-cocoapods.workspace = true
 astrum-format-composer.workspace = true
 astrum-format-conan.workspace = true

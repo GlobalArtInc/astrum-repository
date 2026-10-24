@@ -527,6 +527,7 @@
   "repositories.formats.apt": "The package tool of Debian and Ubuntu distributions.",
   "repositories.formats.bazel": "Module registry for Bazel: the modules that Bzlmod resolves through --registry.",
   "repositories.formats.chef": "Chef Infra cookbooks, served through the Supermarket API to Berkshelf, Policyfiles and knife.",
+  "repositories.formats.chrome": "Extensions for Chromium browsers such as Chrome, Edge and Brave, installed and updated by browser policy from your own packages or a cache of the Chrome Web Store.",
   "repositories.formats.cocoapods": "Dependency manager for Swift and Objective-C projects.",
   "repositories.formats.composer": "Dependency manager for PHP.",
   "repositories.formats.conan": "Open-source package manager for C and C++ development.",

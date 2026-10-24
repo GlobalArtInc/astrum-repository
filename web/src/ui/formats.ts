@@ -9,6 +9,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   bazel: { name: 'Bazel', color: 'green' },
   cargo: { name: 'Cargo (Rust)', color: 'orange' },
   chef: { name: 'Chef Supermarket', color: 'orange' },
+  chrome: { name: 'Chromium Extensions', color: 'blue' },
   cocoapods: { name: 'CocoaPods', color: 'red' },
   composer: { name: 'Composer', color: 'purple' },
   conan: { name: 'Conan', color: 'cyan' },

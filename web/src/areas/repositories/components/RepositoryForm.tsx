@@ -149,6 +149,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   bazel: 'https://bcr.bazel.build',
   cargo: 'https://index.crates.io',
   chef: 'https://supermarket.chef.io',
+  chrome: 'https://clients2.google.com/service/update2/crx',
   cocoapods: 'https://cdn.cocoapods.org/',
   composer: 'https://repo.packagist.org',
   conda: 'https://conda.anaconda.org/conda-forge/',

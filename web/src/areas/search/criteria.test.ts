@@ -41,6 +41,9 @@ describe('criteria', () => {
     expect(moreCriteria(['jetbrains'], '').map((criterion) => criterion.key)).toEqual(
       expect.arrayContaining(['jetbrains.vendor', 'jetbrains.category', 'jetbrains.channel']),
     );
+    expect(moreCriteria(['chrome'], '').map((criterion) => criterion.key)).toEqual(
+      expect.arrayContaining(['chrome.name', 'chrome.manifestVersion']),
+    );
     expect(moreCriteria(['raw'], 'nuget.id').map((criterion) => criterion.key)).toContain('nuget.id');
     expect(operatorsOf('name')).toEqual(['is', 'startsWith']);
     expect(operatorsOf('helm.keywords')).toEqual(['is', 'startsWith', 'contains']);

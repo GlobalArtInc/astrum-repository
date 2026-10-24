@@ -230,6 +230,7 @@ dependencies = [
  "astrum-format-bazel",
  "astrum-format-cargo",
  "astrum-format-chef",
+ "astrum-format-chrome",
  "astrum-format-cocoapods",
  "astrum-format-composer",
  "astrum-format-conan",
@@ -577,6 +578,28 @@ dependencies = [
  "sha2 0.10.9",
  "tar",
  "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "astrum-format-chrome"
+version = "3.0.1"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "chrono",
+ "quick-xml",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
  "thiserror",
  "tokio",
  "tracing",
@@ -1527,6 +1550,7 @@ dependencies = [
  "astrum-format-bazel",
  "astrum-format-cargo",
  "astrum-format-chef",
+ "astrum-format-chrome",
  "astrum-format-cocoapods",
  "astrum-format-composer",
  "astrum-format-conan",

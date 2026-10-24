@@ -282,6 +282,20 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'Web Servers',
   },
   {
+    key: 'chrome.name',
+    label: 'search.criterion.chromeName',
+    kind: 'text',
+    format: 'chrome',
+    example: 'Acme Helper',
+  },
+  {
+    key: 'chrome.manifestVersion',
+    label: 'search.criterion.chromeManifestVersion',
+    kind: 'text',
+    format: 'chrome',
+    example: '3',
+  },
+  {
     key: 'puppet.tag',
     label: 'search.criterion.puppetTag',
     kind: 'text',

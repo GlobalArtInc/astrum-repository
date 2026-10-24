@@ -34,6 +34,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   apt: 'repositories.formats.apt',
   bazel: 'repositories.formats.bazel',
   chef: 'repositories.formats.chef',
+  chrome: 'repositories.formats.chrome',
   cocoapods: 'repositories.formats.cocoapods',
   composer: 'repositories.formats.composer',
   conan: 'repositories.formats.conan',
