@@ -67,9 +67,10 @@ PostgreSQL makes sure that a task runs on one server at a time. Each server runs
 once.
 
 - **Stop** reaches the server running the task through the database, within a few seconds.
+- The [notification email](tasks.md#notification-email) of a run is sent by the server that ran it.
 - When a server stops in the middle of a run, another server, or the same one after its restart, marks the
   run failed once the database has closed the stopped server's connection; every server checks for such
-  runs every 30 seconds. The task can then run again.
+  runs every 30 seconds, and sends the notification email of the failed run. The task can then run again.
 - The health check **Scheduler** and the metric `astrum_scheduler_last_tick_timestamp_seconds` describe the
   server that answers.
 

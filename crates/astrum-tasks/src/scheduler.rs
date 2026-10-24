@@ -16,7 +16,7 @@ use uuid::Uuid;
 use crate::Tasks;
 use crate::kind::TaskError;
 use crate::run::{INITIATOR, Run};
-use crate::store::{self, RunState};
+use crate::store::{self, RunState, TaskRun};
 
 pub const POLL: Duration = Duration::from_secs(5);
 pub const CANCEL_POLL: Duration = Duration::from_secs(2);
@@ -226,18 +226,24 @@ impl Tasks {
     ) -> Result<(), DbErr> {
         let started = Utc::now();
         let Some(task) = store::find(self.db(), task_id).await? else {
-            return finish(
+            finish(
                 self,
                 run_id,
                 RunState::Failed,
                 "the task was deleted",
                 json!({}),
             )
-            .await;
+            .await?;
+            return Ok(());
         };
         let Some(kind) = self.kind(&task.kind) else {
             let message = format!("this server cannot run tasks of the type {}", task.kind);
-            return finish(self, run_id, RunState::Failed, &message, json!({})).await;
+            if let Some(finished) =
+                finish(self, run_id, RunState::Failed, &message, json!({})).await?
+            {
+                self.notify(finished);
+            }
+            return Ok(());
         };
         let run = Arc::new(
             Run::new(
@@ -301,7 +307,9 @@ impl Tasks {
         run.note_dropped();
         run.flush().await;
         let counts = json!(run.counts());
-        finish(self, run_id, state, &message, counts.clone()).await?;
+        if let Some(finished) = finish(self, run_id, state, &message, counts.clone()).await? {
+            self.notify(finished);
+        }
         let kind_name = match state {
             RunState::Done => "finished",
             RunState::Cancelled => "cancelled",
@@ -340,18 +348,20 @@ impl Tasks {
             let Some(lock) = Lock::try_take(self, run.task_id).await? else {
                 continue;
             };
-            let changed = self
-                .db()
-                .execute(Statement::from_sql_and_values(
-                    DbBackend::Postgres,
-                    "UPDATE task_run SET state = 'failed', finished_at = now(), \
-                     message = 'the server running the task stopped before it finished' \
-                     WHERE id = $1 AND state = 'running'",
-                    [run.id.into()],
-                ))
-                .await?;
+            let changed = TaskRun::find_by_statement(Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                "UPDATE task_run SET state = 'failed', finished_at = now(), \
+                 message = 'the server running the task stopped before it finished' \
+                 WHERE id = $1 AND state = 'running' RETURNING *",
+                [run.id.into()],
+            ))
+            .one(self.db())
+            .await?;
             lock.release().await;
-            failed += changed.rows_affected();
+            if let Some(changed) = changed {
+                failed += 1;
+                self.notify(changed);
+            }
         }
         Ok(failed)
     }
@@ -399,23 +409,21 @@ async fn finish(
     state: RunState,
     message: &str,
     counts: serde_json::Value,
-) -> Result<(), DbErr> {
+) -> Result<Option<TaskRun>, DbErr> {
     let message: String = message.chars().take(2000).collect();
-    tasks
-        .db()
-        .execute(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            "UPDATE task_run SET state = $2, message = $3, counts = $4, finished_at = now() \
-             WHERE id = $1",
-            [
-                run_id.into(),
-                state.as_str().into(),
-                message.into(),
-                counts.into(),
-            ],
-        ))
-        .await?;
-    Ok(())
+    TaskRun::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "UPDATE task_run SET state = $2, message = $3, counts = $4, finished_at = now() \
+         WHERE id = $1 RETURNING *",
+        [
+            run_id.into(),
+            state.as_str().into(),
+            message.into(),
+            counts.into(),
+        ],
+    ))
+    .one(tasks.db())
+    .await
 }
 
 pub fn describe(duration: chrono::Duration) -> String {

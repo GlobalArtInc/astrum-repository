@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use astrum_db::audit::Event;
+use astrum_tasks::notification::{CONDITIONS, FAILURE};
 use astrum_tasks::schedule::{FrequencyRequest, Schedule, public_time};
 use astrum_tasks::store::{self, NewTask, Requested, Runs, Stopped, StoreError, Task};
 use astrum_tasks::{Problem, Problems, TaskKind, Tasks, validate};
@@ -25,7 +26,6 @@ pub const UPDATE: &str = "astrum:tasks:update";
 pub const DELETE: &str = "astrum:tasks:delete";
 pub const START: &str = "astrum:tasks:start";
 pub const STOP: &str = "astrum:tasks:stop";
-pub const CONDITIONS: [&str; 2] = ["FAILURE", "SUCCESS_FAILURE"];
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -199,7 +199,7 @@ pub fn template(kind: &dyn TaskKind) -> Value {
         "name": kind.name(),
         "enabled": true,
         "alertEmail": null,
-        "notificationCondition": "FAILURE",
+        "notificationCondition": FAILURE,
         "frequency": {
             "schedule": "manual",
             "startDate": null,
@@ -311,7 +311,7 @@ async fn prepare(
     let condition = match (&request.notification_condition, stored) {
         (Some(condition), _) => condition.trim().to_uppercase(),
         (None, Some(stored)) => stored.notification_condition.clone(),
-        (None, None) => "FAILURE".to_owned(),
+        (None, None) => FAILURE.to_owned(),
     };
     if !CONDITIONS.contains(&condition.as_str()) {
         problems.add("notificationCondition", "use FAILURE or SUCCESS_FAILURE");

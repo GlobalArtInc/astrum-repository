@@ -1640,6 +1640,7 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-mail",
  "astrum-repo",
  "astrum-security",
  "astrum-testkit",

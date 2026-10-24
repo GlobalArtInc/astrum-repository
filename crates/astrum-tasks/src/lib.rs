@@ -3,6 +3,7 @@ pub mod cleanup;
 pub mod cron;
 pub mod kind;
 pub mod kinds;
+pub mod notification;
 pub mod run;
 pub mod schedule;
 pub mod scheduler;
@@ -14,6 +15,7 @@ use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
 use astrum_content::Content;
+use astrum_mail::Mailer;
 use sea_orm::DatabaseConnection;
 use serde::Serialize;
 use tokio::sync::{Notify, Semaphore};
@@ -66,6 +68,7 @@ pub struct Tasks {
 
 struct Inner {
     content: Content,
+    mailer: Mailer,
     kinds: RwLock<BTreeMap<&'static str, Arc<dyn TaskKind>>>,
     expiries: RwLock<Vec<Arc<dyn Expiry>>>,
     wake: Notify,
@@ -86,6 +89,7 @@ impl Tasks {
     pub fn new(content: Content) -> Self {
         let tasks = Self {
             inner: Arc::new(Inner {
+                mailer: Mailer::new(content.outbound().clone()),
                 content,
                 kinds: RwLock::new(BTreeMap::new()),
                 expiries: RwLock::new(Vec::new()),
@@ -107,6 +111,10 @@ impl Tasks {
 
     pub fn db(&self) -> &DatabaseConnection {
         self.inner.content.db()
+    }
+
+    pub(crate) fn mailer(&self) -> &Mailer {
+        &self.inner.mailer
     }
 
     pub fn node(&self) -> &str {
