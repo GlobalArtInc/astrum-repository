@@ -609,7 +609,7 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
             let timeout = number(properties, "sessionTimeout", "Session timeout", 0, 0)?;
             setting::put(db, UI_SETTINGS_KEY, &settings).await?;
             setting::put(db, TIMEOUT_KEY, &timeout).await?;
-            state.security().reload().await?;
+            state.security().changed().await?;
         }
         BRANDING => {
             let defaults = Branding::default();

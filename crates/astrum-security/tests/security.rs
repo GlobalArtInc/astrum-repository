@@ -1,4 +1,5 @@
 use astrum_db::entity::{repository, security_user};
+use astrum_db::revision;
 use astrum_security::bootstrap::ADMIN_PASSWORD_FILE;
 use astrum_security::catalogue::{ADMIN_USER, ANONYMOUS_USER};
 use astrum_security::model::{ANONYMOUS_KEY, AnonymousSettings};
@@ -68,9 +69,9 @@ async fn anonymous_access_is_off_until_switched_on() {
     .unwrap();
     assert!(
         security.anonymous().is_none(),
-        "the model changes on reload only"
+        "the model changes when a change is announced"
     );
-    security.reload().await.unwrap();
+    security.changed().await.unwrap();
     let anonymous = security.anonymous().unwrap();
     assert!(anonymous.anonymous);
     assert!(anonymous.is_permitted("astrum:repository-view:npm:npm-proxy:read"));
@@ -154,4 +155,93 @@ async fn every_repository_brings_its_own_privileges() {
             .contains_key("as-repository-view-yum-*-browse")
     );
     assert_eq!(model.roles.len(), 2);
+}
+
+async fn put_user(db: &astrum_db::Database, user_id: &str, password: &str) {
+    let now = chrono::Utc::now().fixed_offset();
+    security_user::Entity::insert(security_user::ActiveModel {
+        id: ActiveValue::Set(user_id.to_owned()),
+        first_name: ActiveValue::Set(user_id.to_owned()),
+        last_name: ActiveValue::Set("Tester".to_owned()),
+        email: ActiveValue::Set(format!("{user_id}@example.org")),
+        password_hash: ActiveValue::Set(Some(password::hash(password))),
+        status: ActiveValue::Set("active".to_owned()),
+        created_at: ActiveValue::Set(now),
+        updated_at: ActiveValue::Set(now),
+    })
+    .on_conflict(
+        sea_orm::sea_query::OnConflict::column(security_user::Column::Id)
+            .update_column(security_user::Column::PasswordHash)
+            .to_owned(),
+    )
+    .exec(db.conn())
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn a_change_announced_by_one_server_reaches_another_once() {
+    let (_test, db, data) = ready().await;
+    bootstrap(db.conn(), data.path()).await.unwrap();
+    let here = Security::load(db.conn().clone()).await.unwrap();
+    let there = Security::load(db.conn().clone()).await.unwrap();
+    assert!(!there.sync().await.unwrap(), "nothing changed yet");
+
+    put_user(&db, "carol", "first-secret").await;
+    here.changed().await.unwrap();
+    assert!(here.model().users.contains_key("carol"));
+    assert!(!there.model().users.contains_key("carol"));
+    let announced = revision::current(db.conn(), revision::SECURITY)
+        .await
+        .unwrap();
+
+    assert!(there.sync().await.unwrap(), "the other server reloads");
+    assert!(there.model().users.contains_key("carol"));
+    assert!(!there.sync().await.unwrap(), "and only once");
+    assert!(
+        !here.sync().await.unwrap(),
+        "the server that announced it knows"
+    );
+    assert_eq!(
+        revision::current(db.conn(), revision::SECURITY)
+            .await
+            .unwrap(),
+        announced,
+        "catching up announces nothing"
+    );
+}
+
+#[tokio::test]
+async fn a_server_that_missed_a_change_checks_before_it_refuses() {
+    let (_test, db, data) = ready().await;
+    bootstrap(db.conn(), data.path()).await.unwrap();
+    let here = Security::load(db.conn().clone()).await.unwrap();
+    let there = Security::load(db.conn().clone()).await.unwrap();
+
+    put_user(&db, "dave", "first-secret").await;
+    here.changed().await.unwrap();
+    let dave = there
+        .authenticate("dave", "first-secret")
+        .await
+        .expect("a user created through another server can sign in at once");
+    assert_eq!(dave.user_id, "dave");
+
+    put_user(&db, "dave", "second-secret").await;
+    here.changed().await.unwrap();
+    let subject = here.authenticate("dave", "second-secret").await.unwrap();
+    let session = here
+        .open_session(&subject, "127.0.0.1", "test")
+        .await
+        .unwrap();
+    let kept = there
+        .session(&session.token)
+        .await
+        .unwrap()
+        .expect("the session opened after the password change stays valid");
+    assert_eq!(kept.subject.user_id, "dave");
+    assert!(here.session(&session.token).await.unwrap().is_some());
+    assert!(matches!(
+        there.authenticate("dave", "first-secret").await,
+        Err(AuthError::BadCredentials)
+    ));
 }

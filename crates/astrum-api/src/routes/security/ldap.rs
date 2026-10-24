@@ -248,7 +248,7 @@ async fn locked(state: &AppState) -> Result<(DatabaseTransaction, Vec<LdapServer
 }
 
 async fn changed(state: &AppState, caller: &Caller, event: Event) -> Result<(), ApiError> {
-    state.security().reload().await?;
+    state.security().changed().await?;
     state.security().ldap().clear();
     state.audit(caller, event).await;
     Ok(())

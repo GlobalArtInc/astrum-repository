@@ -71,7 +71,7 @@ async fn anonymous_access_can_be_switched_on() {
     )
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
     let anonymous = fixture.state.security().anonymous().unwrap();
     assert!(anonymous.anonymous);
     assert_eq!(
@@ -111,7 +111,7 @@ async fn format_tokens_work_while_their_realm_is_active() {
     )
     .await
     .unwrap();
-    security.reload().await.unwrap();
+    security.changed().await.unwrap();
     let active = fixture
         .send(
             Method::GET,

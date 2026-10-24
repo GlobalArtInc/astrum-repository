@@ -175,7 +175,7 @@ pub(super) async fn create(
         soft_quota,
     };
     insert(&state, &config).await?;
-    state.blob_stores().forget();
+    state.blob_stores().changed().await.map_err(internal)?;
     state
         .audit(
             &caller,
@@ -289,7 +289,7 @@ pub(super) async fn convert(
         Err(astrum_blob::Error::Duplicate(_)) => return Err(duplicate()),
         Err(error) => return Err(internal(error)),
     };
-    state.blob_stores().forget();
+    state.blob_stores().changed().await.map_err(internal)?;
     state
         .audit(
             &caller,

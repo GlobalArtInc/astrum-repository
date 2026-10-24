@@ -18,10 +18,12 @@ pub mod subject;
 pub mod tokens;
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
 use astrum_db::entity::security_user;
+use astrum_db::revision;
 use sea_orm::{ActiveValue, DatabaseConnection, DbErr, EntityTrait};
 use sha2::{Digest, Sha256};
 
@@ -71,6 +73,8 @@ pub enum AuthError {
 pub struct Security {
     db: DatabaseConnection,
     model: RwLock<Arc<SecurityModel>>,
+    revision: AtomicI64,
+    reloading: tokio::sync::Mutex<()>,
     verified: Mutex<HashMap<[u8; 32], Instant>>,
     failures: Mutex<HashMap<String, (u32, Instant)>>,
     secrets: Option<SecretBox>,
@@ -86,10 +90,13 @@ impl std::fmt::Debug for Security {
 
 impl Security {
     pub async fn load(db: DatabaseConnection) -> Result<Self, Error> {
+        let revision = revision::current(&db, revision::SECURITY).await?;
         let model = SecurityModel::load(&db).await?;
         Ok(Self {
             db,
             model: RwLock::new(Arc::new(model)),
+            revision: AtomicI64::new(revision),
+            reloading: tokio::sync::Mutex::new(()),
             verified: Mutex::new(HashMap::new()),
             failures: Mutex::new(HashMap::new()),
             secrets: None,
@@ -126,7 +133,33 @@ impl Security {
             .clone()
     }
 
-    pub async fn reload(&self) -> Result<(), Error> {
+    pub async fn changed(&self) -> Result<(), Error> {
+        let _reloading = self.reloading.lock().await;
+        let revision = revision::bump(&self.db, revision::SECURITY).await?;
+        self.reload().await?;
+        self.revision.store(revision, Ordering::SeqCst);
+        Ok(())
+    }
+
+    pub async fn sync(&self) -> Result<bool, Error> {
+        let revision = revision::current(&self.db, revision::SECURITY).await?;
+        self.catch_up(revision).await
+    }
+
+    pub async fn catch_up(&self, revision: i64) -> Result<bool, Error> {
+        if self.revision.load(Ordering::SeqCst) == revision {
+            return Ok(false);
+        }
+        let _reloading = self.reloading.lock().await;
+        if self.revision.load(Ordering::SeqCst) == revision {
+            return Ok(false);
+        }
+        self.reload().await?;
+        self.revision.store(revision, Ordering::SeqCst);
+        Ok(true)
+    }
+
+    async fn reload(&self) -> Result<(), Error> {
         let model = SecurityModel::load(&self.db).await?;
         let previous = std::mem::replace(
             &mut *self
@@ -153,6 +186,22 @@ impl Security {
     }
 
     pub async fn authenticate(&self, user_id: &str, password: &str) -> Result<Subject, AuthError> {
+        if let Some(subject) = self.authenticate_in_realms(user_id, password).await? {
+            return Ok(subject);
+        }
+        if self.sync().await?
+            && let Some(subject) = self.authenticate_in_realms(user_id, password).await?
+        {
+            return Ok(subject);
+        }
+        Err(AuthError::BadCredentials)
+    }
+
+    async fn authenticate_in_realms(
+        &self,
+        user_id: &str,
+        password: &str,
+    ) -> Result<Option<Subject>, AuthError> {
         let model = self.model();
         for realm in &model.realms {
             let found = match realm.as_str() {
@@ -160,11 +209,11 @@ impl Security {
                 realm::LDAP => self.authenticate_ldap(&model, user_id, password).await,
                 _ => None,
             };
-            if let Some(subject) = found {
-                return Ok(subject);
+            if found.is_some() {
+                return Ok(found);
             }
         }
-        Err(AuthError::BadCredentials)
+        Ok(None)
     }
 
     async fn authenticate_local(
@@ -321,7 +370,7 @@ impl Security {
         )
         .exec(&self.db)
         .await?;
-        self.reload().await?;
+        self.changed().await?;
         Ok(self.model().oidc_subject(&user.user_id))
     }
 
@@ -339,7 +388,7 @@ impl Security {
             user = user_id,
             "stored the password in the current hash format"
         );
-        self.reload().await
+        self.changed().await
     }
 
     fn recently_verified(&self, key: &[u8; 32]) -> bool {

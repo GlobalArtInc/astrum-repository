@@ -221,7 +221,7 @@ async fn a_new_password_ends_older_sessions() {
     .exec(fixture.state.db().conn())
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
     let after = fixture
         .send(
             Method::GET,
@@ -255,7 +255,7 @@ async fn a_disabled_user_loses_the_session() {
     .exec(fixture.state.db().conn())
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
     let after = fixture
         .send(
             Method::GET,

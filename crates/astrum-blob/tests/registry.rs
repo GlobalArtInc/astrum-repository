@@ -6,6 +6,7 @@ use astrum_blob::config::{self, GroupSettings, Settings, StoreConfig};
 use astrum_blob::{
     BlobStores, DEFAULT_STORE, Error, FillPolicy, S3Security, StoreKind, Totals, bootstrap,
 };
+use astrum_db::revision;
 use astrum_security::SecretBox;
 use support::{Db, S3Server, chunks, file_config, pattern, read_all};
 
@@ -58,11 +59,12 @@ async fn an_installation_with_stores_gets_no_default() {
 }
 
 #[tokio::test]
-async fn stores_open_once_until_forgotten() {
+async fn stores_open_once_until_a_change_is_announced() {
     let db = Db::new().await;
     let data = tempfile::tempdir().unwrap();
     db.register_file("files", "files").await;
     let stores = BlobStores::new(db.db.conn().clone(), data.path(), secrets());
+    let other = BlobStores::new(db.db.conn().clone(), data.path(), secrets());
     assert!(
         matches!(stores.get("files").await, Err(Error::Io { .. })),
         "a missing directory is not created behind the administrator's back"
@@ -73,8 +75,22 @@ async fn stores_open_once_until_forgotten() {
     let first = stores.get("files").await.unwrap();
     let again = stores.get("files").await.unwrap();
     assert!(Arc::ptr_eq(&first, &again));
-    stores.forget();
+    let elsewhere = other.get("files").await.unwrap();
+    stores.changed().await.unwrap();
     assert!(!Arc::ptr_eq(&first, &stores.get("files").await.unwrap()));
+    assert!(Arc::ptr_eq(&elsewhere, &other.get("files").await.unwrap()));
+
+    let current = revision::current(db.db.conn(), revision::BLOB_STORES)
+        .await
+        .unwrap();
+    assert_eq!(current, 1);
+    assert!(
+        other.catch_up(current),
+        "the other server forgets its stores"
+    );
+    assert!(!Arc::ptr_eq(&elsewhere, &other.get("files").await.unwrap()));
+    assert!(!other.catch_up(current), "and does so once per change");
+    assert!(!stores.catch_up(current), "the server that made it knows");
     assert!(data.path().join("blobs/files/content").is_dir());
 
     assert!(matches!(

@@ -200,7 +200,7 @@ async fn save_oidc(
     };
     setting::put(state.db().conn(), oidc::SETTINGS_KEY, &settings).await?;
     let realms = activate(&state, realm::OIDC, true).await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state.security().oidc().reset();
     state
         .audit(
@@ -239,7 +239,7 @@ async fn remove_oidc(
         return Err(ApiError::not_found("OpenID Connect is not configured"));
     }
     let realms = activate(&state, realm::OIDC, false).await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state.security().oidc().reset();
     state
         .audit(&caller, Event::new("security.oidc", "deleted", "oidc"))
@@ -309,7 +309,7 @@ async fn save_default_role(
     .await?;
     let enabled = body.enabled.unwrap_or(true);
     let realms = activate(&state, realm::DEFAULT_ROLE, enabled).await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state
         .audit(
             &caller,
@@ -329,7 +329,7 @@ async fn remove_default_role(
     let previous = state.security().model().default_role.clone();
     setting::delete(state.db().conn(), DEFAULT_ROLE_KEY).await?;
     let realms = activate(&state, realm::DEFAULT_ROLE, false).await?;
-    state.security().reload().await?;
+    state.security().changed().await?;
     state
         .audit(
             &caller,

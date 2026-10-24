@@ -327,7 +327,7 @@ async fn remove(
         .await
         .map_err(policy_error)?;
     if !changed.is_empty() {
-        state.security().reload().await?;
+        state.security().changed().await?;
     }
     state
         .audit(

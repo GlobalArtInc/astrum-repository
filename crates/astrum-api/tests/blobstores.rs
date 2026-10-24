@@ -167,7 +167,7 @@ async fn every_endpoint_needs_the_matching_permission() {
     .exec(fixture.state.db().conn())
     .await
     .unwrap();
-    fixture.state.security().reload().await.unwrap();
+    fixture.state.security().changed().await.unwrap();
 
     let file = json!({"name": "files", "path": "files"});
     let s3 = json!({"name": "objects", "bucketConfiguration": {"bucket": {"region": "DEFAULT", "name": "bucket"}}});

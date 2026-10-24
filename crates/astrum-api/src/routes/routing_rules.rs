@@ -205,7 +205,7 @@ async fn update(
         .map_err(|error| write_error(error, &name))?;
     state.content().forget_routing_rules();
     if !renamed.is_empty() {
-        state.security().reload().await?;
+        state.security().changed().await?;
     }
     let mut attributes = audit_attributes(&rule);
     if rule.name != name {

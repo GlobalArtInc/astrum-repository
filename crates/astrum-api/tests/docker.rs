@@ -125,7 +125,7 @@ impl Registry {
         )
         .await
         .unwrap();
-        self.fixture.state.security().reload().await.unwrap();
+        self.fixture.state.security().changed().await.unwrap();
     }
 
     async fn push_blob(&self, prefix: &str, bytes: &[u8]) -> String {
@@ -311,7 +311,7 @@ async fn the_base_endpoint_challenges_and_the_token_endpoint_issues_tokens() {
             Some(json!({"enabled": true, "userId": "anonymous", "realmName": "AstrumAuthorizingRealm"})),
         )
         .await;
-    registry.fixture.state.security().reload().await.unwrap();
+    registry.fixture.state.security().changed().await.unwrap();
     let anonymous_token = registry
         .send(Method::GET, "/v2/token?scope=x", None, &[], Vec::new())
         .await;

@@ -150,7 +150,7 @@ per line to standard error for log collectors.
 Several servers can run against the same database and the same blob stores (a shared file system or
 S3). They share the database, so repositories, content and settings are the same on all of them, and
 they appear under **Settings → System → Nodes**; users and security settings changed through one server
-reach the others only when they restart, see [nodes](../operate/nodes.md). Give each
+reach the others within two seconds, without a restart, see [nodes](../operate/nodes.md). Give each
 one its own `ASTRUM_NODE_NAME` if the host names are not unique. Logs and support ZIPs belong to the
 server that served the request. Upgrade all servers together, see
 [upgrade](../operate/upgrade.md).

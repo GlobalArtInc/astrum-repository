@@ -1,7 +1,7 @@
 use std::time::{Duration as StdDuration, Instant};
 
 use astrum_db::entity::user_session as session;
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, FixedOffset, Utc};
 use rand::RngCore;
 use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
@@ -28,6 +28,12 @@ pub struct NewSession {
 pub struct ActiveSession {
     pub subject: Subject,
     pub csrf: String,
+}
+
+enum Verdict {
+    Valid(Subject),
+    Ended,
+    Unconfirmed,
 }
 
 fn random_token() -> String {
@@ -92,34 +98,18 @@ impl Security {
         else {
             return Ok(None);
         };
-        let model = self.model();
         let now = Utc::now().fixed_offset();
-        let timed_out = model.session_timeout_minutes > 0
-            && now - row.last_seen_at > Duration::minutes(i64::from(model.session_timeout_minutes));
-        let external_stamp = credential_stamp(None);
-        let (subject, stamp_matches) = match row.realm.as_str() {
-            realm::LDAP => match self.ldap_subject(&row.user_id).await {
-                Ok(subject) => (subject, row.credential_stamp == external_stamp),
-                Err(error) => {
-                    tracing::warn!(user = %row.user_id, %error, "LDAP cannot confirm a session; the request goes on without it");
-                    return Ok(None);
-                }
-            },
-            realm::OIDC => (
-                model.oidc_subject(&row.user_id),
-                row.credential_stamp == external_stamp,
-            ),
-            _ => {
-                let user = model.users.get(&row.user_id);
-                let stamp_matches = user.is_some_and(|user| {
-                    credential_stamp(user.password_hash.as_deref()) == row.credential_stamp
-                });
-                (model.local_subject(&row.user_id, &row.realm), stamp_matches)
+        let mut verdict = self.verdict(&row, now).await;
+        if matches!(verdict, Verdict::Ended) && self.sync().await? {
+            verdict = self.verdict(&row, now).await;
+        }
+        let subject = match verdict {
+            Verdict::Valid(subject) => subject,
+            Verdict::Unconfirmed => return Ok(None),
+            Verdict::Ended => {
+                session::Entity::delete_by_id(hash).exec(&self.db).await?;
+                return Ok(None);
             }
-        };
-        let (Some(subject), true, false) = (subject, stamp_matches, timed_out) else {
-            session::Entity::delete_by_id(hash).exec(&self.db).await?;
-            return Ok(None);
         };
         if now - row.last_seen_at > TOUCH_EVERY {
             session::Entity::update(session::ActiveModel {
@@ -134,6 +124,37 @@ impl Security {
             subject,
             csrf: row.csrf_token,
         }))
+    }
+
+    async fn verdict(&self, row: &session::Model, now: DateTime<FixedOffset>) -> Verdict {
+        let model = self.model();
+        let timed_out = model.session_timeout_minutes > 0
+            && now - row.last_seen_at > Duration::minutes(i64::from(model.session_timeout_minutes));
+        let external_stamp = credential_stamp(None);
+        let (subject, stamp_matches) = match row.realm.as_str() {
+            realm::LDAP => match self.ldap_subject(&row.user_id).await {
+                Ok(subject) => (subject, row.credential_stamp == external_stamp),
+                Err(error) => {
+                    tracing::warn!(user = %row.user_id, %error, "LDAP cannot confirm a session; the request goes on without it");
+                    return Verdict::Unconfirmed;
+                }
+            },
+            realm::OIDC => (
+                model.oidc_subject(&row.user_id),
+                row.credential_stamp == external_stamp,
+            ),
+            _ => {
+                let user = model.users.get(&row.user_id);
+                let stamp_matches = user.is_some_and(|user| {
+                    credential_stamp(user.password_hash.as_deref()) == row.credential_stamp
+                });
+                (model.local_subject(&row.user_id, &row.realm), stamp_matches)
+            }
+        };
+        match (subject, stamp_matches, timed_out) {
+            (Some(subject), true, false) => Verdict::Valid(subject),
+            _ => Verdict::Ended,
+        }
     }
 
     pub async fn close_session(&self, token: &str) -> Result<bool, Error> {

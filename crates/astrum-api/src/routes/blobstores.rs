@@ -171,7 +171,7 @@ async fn remove(
         }
         Err(error) => return Err(internal(error)),
     }
-    state.blob_stores().forget();
+    state.blob_stores().changed().await.map_err(internal)?;
     if let Settings::File(file) = &config.settings {
         let root = state.blob_stores().resolve(&file.path);
         if let Err(error) = astrum_blob::file::remove_if_empty(&root).await {
@@ -314,7 +314,7 @@ async fn save(state: &AppState, config: &StoreConfig) -> Result<(), ApiError> {
     {
         return Err(missing(&config.name));
     }
-    state.blob_stores().forget();
+    state.blob_stores().changed().await.map_err(internal)?;
     Ok(())
 }
 

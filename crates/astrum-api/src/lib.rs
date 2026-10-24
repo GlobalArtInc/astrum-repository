@@ -6,6 +6,7 @@ pub mod json;
 pub mod limits;
 pub mod metrics;
 mod notify_mail;
+pub mod revisions;
 pub mod routes;
 pub mod space;
 
