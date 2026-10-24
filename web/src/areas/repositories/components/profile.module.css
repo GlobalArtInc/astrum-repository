@@ -9,6 +9,8 @@
 }
 
 .code {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 2px 6px;
   border-radius: 3px;
   background: var(--gray-a3);
