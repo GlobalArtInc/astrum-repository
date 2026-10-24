@@ -125,8 +125,10 @@ example `https://astrum.example.com`; a base URL that is set wins over the addre
 
 ## Outbound HTTP proxy
 
-Proxy repositories, OpenID Connect, webhooks and S3 use the outbound proxy configured under
-**Settings → System → HTTP**. The `HTTP_PROXY` and `HTTPS_PROXY` environment variables are not used.
+Proxy repositories use the outbound proxy configured under **Settings → System → HTTP**, see
+[outbound HTTP and proxy](outbound-http.md). OpenID Connect, S3 blob stores and remote blob store agents
+connect directly, and notification channels connect directly unless they name a proxy of their own. The
+`HTTP_PROXY` and `HTTPS_PROXY` environment variables are not used.
 Requests to loopback, private and other internal addresses are refused by the SSRF protection; the
 page `/admin/security/ssrf-protection` (it has no tile in Settings) lists the addresses and domains
 that stay allowed.
@@ -146,7 +148,9 @@ per line to standard error for log collectors.
 ## Several servers on one database
 
 Several servers can run against the same database and the same blob stores (a shared file system or
-S3). They share users, sessions and settings, and appear under **Settings → System → Nodes**. Give each
+S3). They share the database, so repositories, content and settings are the same on all of them, and
+they appear under **Settings → System → Nodes**; users and security settings changed through one server
+reach the others only when they restart, see [nodes](../operate/nodes.md). Give each
 one its own `ASTRUM_NODE_NAME` if the host names are not unique. Logs and support ZIPs belong to the
 server that served the request. Upgrade all servers together, see
 [upgrade](../operate/upgrade.md).

@@ -1,0 +1,66 @@
+:root {
+  --vp-font-family-base: 'Geist Variable', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --vp-font-family-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --vp-c-brand-1: #4434c4;
+  --vp-c-brand-2: #4f3bd2;
+  --vp-c-brand-3: #5b47e0;
+  --vp-c-brand-soft: rgba(91, 71, 224, 0.12);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #4434c4 20%, #8e7dff);
+  --vp-home-hero-image-background-image: radial-gradient(circle, rgba(142, 125, 255, 0.45) 0%, rgba(91, 71, 224, 0) 68%);
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+.dark {
+  --vp-c-brand-1: #b4a9ff;
+  --vp-c-brand-2: #9c8cf2;
+  --vp-c-brand-3: #6c59ea;
+  --vp-c-brand-soft: rgba(142, 125, 255, 0.16);
+
+  --vp-home-hero-name-background: linear-gradient(120deg, #cfc7ff 10%, #8e7dff);
+}
+
+.VPHero .image-src {
+  width: 240px;
+  height: 240px;
+}
+
+.vp-doc table {
+  font-size: 15px;
+}
+
+.vp-doc td code,
+.vp-doc th code {
+  white-space: nowrap;
+}
+
+.VPDocFooter .pager-link .desc,
+.VPDocFooter .edit-info,
+.VPLastUpdated,
+.VPBadge,
+.vp-code-group .tabs label,
+div[class*='language-'] > span.lang {
+  font-size: 13px;
+}
+
+.vp-doc img {
+  border-radius: 10px;
+  border: 1px solid var(--vp-c-divider);
+}
+
+html:not(.dark) .dark-only,
+html.dark .light-only {
+  display: none;
+}
+
+.home-shot {
+  max-width: 1152px;
+  margin: 24px auto 0;
+}
+
+.home-shot img {
+  width: 100%;
+  box-shadow: 0 24px 60px -24px rgba(36, 26, 99, 0.35);
+}

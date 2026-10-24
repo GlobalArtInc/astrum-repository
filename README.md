@@ -25,8 +25,8 @@ podman exec astrum cat /astrum-data/admin.password
 
 Open http://localhost:8081 and sign in as `admin` with that password.
 
-Installation, configuration, operations and client setup are covered in the
-[documentation](docs/README.md).
+Installation, configuration, operations and client setup are covered in the documentation at
+https://astrum.globalart.dev, whose source is [`docs/`](docs/README.md).
 
 ## Build
 

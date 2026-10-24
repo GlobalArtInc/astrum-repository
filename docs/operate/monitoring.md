@@ -111,9 +111,8 @@ checks above:
   Prometheus `json_exporter`, or a script run by your monitoring, turns that into an alert;
 - free space on the volumes of the data directory and the blob stores, and the quota of every blob
   store, or the space alert above;
-- failed scheduled tasks: set the **Notification Email** of a task and **Send Notification** to failures
-  only under **Settings → System → Tasks**, after setting up the mail server under **Settings → System →
-  Email Server**;
+- failed scheduled tasks: alert on `astrum_task_last_run_success == 0`; the **Notification Email** of a
+  task is saved but no email is sent yet, see [tasks](tasks.md);
 - PostgreSQL itself: connections, replication lag, disk, and the slow-query log.
 
 ## Logs
