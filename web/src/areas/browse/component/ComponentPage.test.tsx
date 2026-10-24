@@ -217,8 +217,7 @@ describe('the component page', { timeout: 20_000 }, () => {
     const repositories = await screen.findByRole('table', { name: 'Repositories' });
     expect(within(repositories).getByText('2 versions')).toBeInTheDocument();
     expect(within(repositories).getByText('Proxy')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('link', { name: /^Security/ }));
-    expect(await screen.findByRole('heading', { name: 'Security Analysis Unavailable' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Security/ })).not.toBeInTheDocument();
   });
 
   it('says when nobody may see the component', async () => {

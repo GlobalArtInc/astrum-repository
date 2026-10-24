@@ -12,7 +12,7 @@ export const CREATE = 'astrum:cleanup-policies:create';
 export const UPDATE = 'astrum:cleanup-policies:update';
 export const DELETE = 'astrum:cleanup-policies:delete';
 export const ALL_FORMATS = '*';
-export const MAX_DAYS = 24855;
+export const MAX_DAYS = 36500;
 export const PAGE_SIZE = 25;
 
 export type ReleaseType = 'RELEASES' | 'PRERELEASES';

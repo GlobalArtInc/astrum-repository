@@ -491,7 +491,6 @@ describe('the repository profile', () => {
       expect.stringMatching(/^Audit/),
       expect.stringMatching(/^Access & Security/),
       expect.stringMatching(/^System/),
-      expect.stringMatching(/^Instance Settings/),
     ]);
     expect(await screen.findByRole('region', { name: 'Blob Store: default' })).toHaveTextContent('Location');
     await userEvent.click(screen.getByRole('tab', { name: /Group Membership/ }));

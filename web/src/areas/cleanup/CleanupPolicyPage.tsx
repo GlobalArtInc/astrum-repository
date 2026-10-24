@@ -37,6 +37,7 @@ import {
   formatLabel,
   fromPolicy,
   LIST_PAGE,
+  MAX_DAYS,
   POLICIES,
   type Policy,
   type PolicyValues,
@@ -195,7 +196,7 @@ function PolicyForm({
     criteria: t('cleanup.problems.criteria'),
     age: t('cleanup.problems.age'),
     usage: t('cleanup.problems.usage'),
-    days: t('cleanup.problems.days'),
+    days: t('cleanup.problems.days', { max: MAX_DAYS }),
     regex: t('cleanup.problems.regex'),
     regexInvalid: t('cleanup.problems.regexInvalid'),
   };
@@ -379,7 +380,7 @@ function PolicyForm({
             {criteria.has('lastBlobUpdated') && (
               <Criterion
                 title={t('cleanup.form.age')}
-                description={t('cleanup.form.ageText')}
+                description={t('cleanup.form.ageText', { max: MAX_DAYS })}
                 checked={values.ageOn}
                 onCheckedChange={(checked) => set('ageOn', checked)}
                 disabled={readOnly}
@@ -402,7 +403,7 @@ function PolicyForm({
             {criteria.has('lastDownloaded') && (
               <Criterion
                 title={t('cleanup.form.usage')}
-                description={t('cleanup.form.usageText')}
+                description={t('cleanup.form.usageText', { max: MAX_DAYS })}
                 checked={values.usageOn}
                 onCheckedChange={(checked) => set('usageOn', checked)}
                 disabled={readOnly}

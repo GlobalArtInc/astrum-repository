@@ -31,7 +31,7 @@ A component is deleted when it matches every criterion that is turned on.
 | **Release Type** | `criteriaReleaseType` | it is a release (`RELEASES`) or a pre-release (`PRERELEASES`), for the formats in the table below. The form offers **Releases and pre-releases**, **Releases** and **Pre-Releases/Snapshots** |
 | **Asset Name Pattern** | `criteriaAssetRegex` | at least one of its files has a path that matches the regular expression |
 
-Days are whole numbers from 1 up. The form needs at least one of age, usage and pattern; **Release
+Days are whole numbers from 1 to 36500. The form needs at least one of age, usage and pattern; **Release
 Type** narrows them. Over REST a policy may consist of the release type alone, and then deletes every
 component of that release type. A policy without criteria deletes nothing.
 
