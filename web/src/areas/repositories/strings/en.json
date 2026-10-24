@@ -534,6 +534,7 @@
   "repositories.formats.conda": "Manages packages, dependencies and environments for any language.",
   "repositories.formats.go": "Module proxy and registry for Go.",
   "repositories.formats.docker": "Container images and any other OCI artifacts: Helm charts, signatures, SBOMs, Wasm modules, AI models.",
+  "repositories.formats.firefox": "Firefox add-ons for installation and updates through enterprise policies, private ones or a cache of addons.mozilla.org.",
   "repositories.formats.gitlfs": "Git Large File Storage for versioning large files.",
   "repositories.formats.helm": "Package manager for Kubernetes applications.",
   "repositories.formats.hex": "Packages for Elixir and Erlang, served to Mix and rebar3 with a signed registry.",

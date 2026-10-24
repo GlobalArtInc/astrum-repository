@@ -293,9 +293,9 @@ async fn every_format_and_type_round_trips_through_get_post_and_put() {
         .call(Method::GET, REPOSITORIES, Auth::Admin, None)
         .await
         .json();
-    assert_eq!(listed.as_array().unwrap().len(), 99 * 2);
+    assert_eq!(listed.as_array().unwrap().len(), 102 * 2);
     let settings = fixture.call(Method::GET, SETTINGS, Auth::Admin, None).await;
-    assert_eq!(settings.json().as_array().unwrap().len(), 99 * 2);
+    assert_eq!(settings.json().as_array().unwrap().len(), 102 * 2);
 }
 
 #[tokio::test]

@@ -1192,6 +1192,83 @@ describe('chrome usage', () => {
   });
 });
 
+describe('firefox usage', () => {
+  const url = 'https://repo.example.org/repository/addons';
+  const check = `${url}/update/VersionCheck.php?id=%ITEM_ID%&version=%ITEM_VERSION%&appVersion=%APP_VERSION%`;
+
+  it('installs hosted add-ons by policy, sets their update_url and uploads them', () => {
+    const snippets = usageSnippets(context({ format: 'firefox', repositoryName: 'addons' }));
+    expect(ids(snippets)).toEqual(['policies', 'manifest', 'upload']);
+    expect(JSON.parse(code(snippets, 'policies'))).toEqual({
+      policies: {
+        ExtensionSettings: {
+          '<add-on id>': {
+            installation_mode: 'force_installed',
+            install_url: `${url}/<add-on id>/latest.xpi`,
+          },
+        },
+      },
+    });
+    expect(JSON.parse(code(snippets, 'manifest'))).toEqual({
+      browser_specific_settings: {
+        gecko: { id: '<add-on id>', update_url: `${url}/<add-on id>/updates.json` },
+      },
+    });
+    expect(code(snippets, 'upload')).toBe(
+      `curl -i -X PUT -H "Authorization: Bearer <access token>" -T <add-on>.xpi ${url}/<add-on>.xpi`,
+    );
+  });
+
+  it('points the update checks of Firefox at a proxy and offers no upload there', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'firefox',
+        repositoryName: 'addons',
+        repositoryType: 'proxy',
+        component: { group: '', name: 'uBlock0@raymondhill.net', version: '1.61.2' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['policies', 'download']);
+    const policies = JSON.parse(code(snippets, 'policies')).policies;
+    expect(policies.ExtensionSettings['uBlock0@raymondhill.net'].install_url).toBe(
+      `${url}/uBlock0@raymondhill.net/latest.xpi`,
+    );
+    expect(policies.Preferences['extensions.update.url']).toEqual({ Value: check, Status: 'locked' });
+    expect(policies.Preferences['extensions.update.background.url']).toEqual({
+      Value: check,
+      Status: 'locked',
+    });
+    expect(code(snippets, 'download')).toBe(
+      `curl -fLo 'uBlock0-1.61.2.xpi' '${url}/uBlock0@raymondhill.net/1.61.2.xpi'`,
+    );
+  });
+
+  it('encodes braced ids for a group and gives both ways', () => {
+    const id = '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}';
+    const encoded = '%7Bec8030f7-c20a-464f-9b0e-13a3a9e97384%7D';
+    const snippets = usageSnippets(
+      context({
+        format: 'firefox',
+        repositoryName: 'addons',
+        repositoryType: 'group',
+        component: { group: '', name: id, version: '2.0' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['policies', 'manifest', 'download']);
+    const policies = JSON.parse(code(snippets, 'policies')).policies;
+    expect(policies.ExtensionSettings[id].install_url).toBe(`${url}/${encoded}/latest.xpi`);
+    expect(policies.Preferences['extensions.update.url'].Value).toBe(check);
+    expect(JSON.parse(code(snippets, 'manifest')).browser_specific_settings.gecko).toEqual({
+      id,
+      update_url: `${url}/${encoded}/updates.json`,
+    });
+    expect(code(snippets, 'download')).toBe(
+      `curl -fLo 'ec8030f7-c20a-464f-9b0e-13a3a9e97384-2.0.xpi' '${url}/${encoded}/2.0.xpi'`,
+    );
+    expect(supportsUsage('firefox')).toBe(true);
+  });
+});
+
 describe('turbo usage', () => {
   it('points Turborepo at the cache by environment, turbo.json and CI', () => {
     const snippets = usageSnippets(context({ format: 'turbo', repositoryName: 'turbo-cache' }));

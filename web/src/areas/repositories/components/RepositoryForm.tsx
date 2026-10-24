@@ -167,6 +167,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   pypi: 'https://pypi.org/',
   r: 'https://cloud.r-project.org/',
   docker: 'https://registry-1.docker.io',
+  firefox: 'https://addons.mozilla.org',
   helm: 'https://charts.helm.sh/stable/',
   hex: 'https://repo.hex.pm',
   huggingface: 'https://huggingface.co/',

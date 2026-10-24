@@ -53,6 +53,7 @@ astrum-format-composer.workspace = true
 astrum-format-conan.workspace = true
 astrum-format-conda.workspace = true
 astrum-format-docker.workspace = true
+astrum-format-firefox.workspace = true
 astrum-format-gitlfs.workspace = true
 astrum-format-go.workspace = true
 astrum-format-helm.workspace = true

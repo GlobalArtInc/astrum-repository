@@ -112,6 +112,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "firefox",
+        api_name: "firefox",
+        types: HPG,
+    },
+    Format {
         id: "gitlfs",
         api_name: "gitlfs",
         types: &[H],
@@ -262,7 +267,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 38);
+        assert_eq!(ids.len(), 39);
     }
 
     #[test]

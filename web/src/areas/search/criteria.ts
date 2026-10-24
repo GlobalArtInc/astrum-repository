@@ -373,6 +373,30 @@ const MORE: readonly CriterionDefinition[] = [
     example: 'eap',
   },
   {
+    key: 'firefox.name',
+    label: 'search.criterion.firefoxName',
+    kind: 'text',
+    format: 'firefox',
+    example: 'uBlock Origin',
+  },
+  {
+    key: 'firefox.signed',
+    label: 'search.criterion.firefoxSigned',
+    kind: 'choice',
+    format: 'firefox',
+    options: [
+      { value: 'true', label: 'search.signed.yes' },
+      { value: 'false', label: 'search.signed.no' },
+    ],
+  },
+  {
+    key: 'firefox.minVersion',
+    label: 'search.criterion.firefoxMinVersion',
+    kind: 'text',
+    format: 'firefox',
+    example: '115.0',
+  },
+  {
     key: 'openvsx.category',
     label: 'search.criterion.openvsxCategory',
     kind: 'text',

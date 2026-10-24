@@ -40,6 +40,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   conan: 'repositories.formats.conan',
   conda: 'repositories.formats.conda',
   docker: 'repositories.formats.docker',
+  firefox: 'repositories.formats.firefox',
   gitlfs: 'repositories.formats.gitlfs',
   go: 'repositories.formats.go',
   helm: 'repositories.formats.helm',

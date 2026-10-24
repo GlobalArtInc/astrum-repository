@@ -128,6 +128,7 @@ pub fn prerelease_rule(format: &str) -> Option<&'static str> {
         "ansible" => Some("(split_part(c.version, '+', 1) LIKE '%-%')"),
         "apt" => Some("(c.version LIKE '%~%')"),
         "cocoapods" => Some("(c.version ~ '[A-Za-z-]')"),
+        "firefox" => Some("(c.version ~ '[A-Za-z]')"),
         "maven2" => Some(
             "(c.version LIKE '%-SNAPSHOT' OR c.attributes #>> '{maven2,baseVersion}' LIKE '%-SNAPSHOT')",
         ),
@@ -575,6 +576,10 @@ mod tests {
         );
         assert_eq!(
             criteria_of("jetbrains"),
+            [REGEX, RELEASE_TYPE, LAST_DOWNLOADED, LAST_BLOB_UPDATED]
+        );
+        assert_eq!(
+            criteria_of("firefox"),
             [REGEX, RELEASE_TYPE, LAST_DOWNLOADED, LAST_BLOB_UPDATED]
         );
     }

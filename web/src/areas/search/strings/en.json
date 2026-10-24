@@ -111,6 +111,9 @@
   "search.criterion.jetbrainsVendor": "JetBrains Plugin Vendor",
   "search.criterion.jetbrainsCategory": "JetBrains Plugin Category",
   "search.criterion.jetbrainsChannel": "JetBrains Plugin Channel",
+  "search.criterion.firefoxName": "Firefox Add-on Name",
+  "search.criterion.firefoxSigned": "Firefox Add-on Signature",
+  "search.criterion.firefoxMinVersion": "Firefox Minimum Version",
   "search.criterion.openvsxCategory": "Open VSX Category",
   "search.criterion.openvsxTargetPlatform": "Open VSX Target Platform",
   "search.criterion.pacmanArchitecture": "pacman Architecture",
@@ -145,6 +148,8 @@
   "search.artifactKind.wasm": "WebAssembly Module",
   "search.artifactKind.model": "Model",
   "search.artifactKind.other": "Other",
+  "search.signed.yes": "Signed",
+  "search.signed.no": "Unsigned",
   "search.results.found": {
     "one": "{count} component found",
     "other": "{count} components found"

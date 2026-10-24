@@ -288,6 +288,32 @@ describe('component snippets of the M4c formats', () => {
     );
   });
 
+  it('install Firefox add-ons by policy and download one version', () => {
+    const snippets = componentSnippets({
+      ...base,
+      format: 'firefox',
+      group: '',
+      name: 'name@example.org',
+      version: '1.0+b1',
+    });
+    expect(snippets.map((snippet) => snippet.id)).toEqual(['policy', 'download']);
+    expect(JSON.parse(snippets[0]?.code ?? '')).toEqual({
+      policies: {
+        ExtensionSettings: {
+          'name@example.org': {
+            installation_mode: 'force_installed',
+            install_url: 'https://repo.example.org/repository/r/name@example.org/latest.xpi',
+          },
+        },
+      },
+    });
+    expect(snippets[0]?.hint).toBe('browse.component.snippet.firefoxPolicy');
+    expect(snippets[1]?.code).toBe(
+      "curl -fLo 'name-1.0+b1.xpi' 'https://repo.example.org/repository/r/name@example.org/1.0%2Bb1.xpi'",
+    );
+    expect(snippets[1]?.hint).toBe('browse.component.snippet.firefoxDownload');
+  });
+
   it('link cargo components to the guide', () => {
     expect(componentGuideUrl('cargo', '', 'serde', '1.0.0')).toBe(
       'https://guide.globalart.dev/component/cargo/serde/1.0.0?referrer=search-component-detail',

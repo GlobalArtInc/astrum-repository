@@ -30,7 +30,11 @@ repository is public: never commit secrets.
   proxy of the update service of the Chrome Web Store, https://clients2.google.com/service/update2/crx, and group;
   all three answer the update protocol at `updates.xml` and at the repository root, packages are CRX3 files at
   `<id>/<version>/<id>-<version>.crx`, and browsers are pointed at a repository by the `ExtensionSettings` policy).
-  The web interface speaks twelve languages, pulled from Ownlate at build.
+  Also Firefox add-ons (`firefox`, `crates/astrum-format-firefox`; hosted, proxy of
+  https://addons.mozilla.org through its API v5, and group): `.xpi` files are kept as `<id>/<version>/<name>-<version>.xpi`,
+  installed through the `ExtensionSettings` policy from `<id>/latest.xpi`, and updated through `<id>/updates.json`
+  (the add-on's `update_url`) or `update/VersionCheck.php?id=` (the `extensions.update.url` preference); the server
+  records whether a file is signed but never signs. The web interface speaks twelve languages, pulled from Ownlate at build.
 - Configuration comes from flags, `ASTRUM_*` environment variables and `<data>/etc/astrum.toml`; PostgreSQL
   is the only database; the image runs as uid 200 on port 8081 with its data in `/astrum-data`. The user
   documentation is in `docs/`.

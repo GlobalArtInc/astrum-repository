@@ -15,6 +15,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   conan: { name: 'Conan', color: 'cyan' },
   conda: { name: 'Conda', color: 'grass' },
   docker: { name: 'Docker', color: 'indigo' },
+  firefox: { name: 'Firefox Add-ons', color: 'orange' },
   gitlfs: { name: 'Git LFS', color: 'orange', label: 'git-lfs' },
   go: { name: 'Go', color: 'cyan' },
   helm: { name: 'Helm', color: 'sky' },
