@@ -482,3 +482,22 @@ fn a_domain_is_kept_when_given_and_left_out_otherwise() {
     assert_eq!(repository.domain(), None);
     assert!(repository.document("http://h").get("domain").is_none());
 }
+
+#[test]
+fn only_docker_repositories_force_basic_auth() {
+    let docker = spec("docker", "hosted");
+    assert!(
+        prepare(docker, minimal(docker, "x"), None)
+            .unwrap()
+            .forces_basic_auth()
+    );
+    let mut open = minimal(docker, "y");
+    open["docker"]["forceBasicAuth"] = json!(false);
+    assert!(!prepare(docker, open, None).unwrap().forces_basic_auth());
+    let raw = spec("raw", "hosted");
+    assert!(
+        !prepare(raw, minimal(raw, "z"), None)
+            .unwrap()
+            .forces_basic_auth()
+    );
+}

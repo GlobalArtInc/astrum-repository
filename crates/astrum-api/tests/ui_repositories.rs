@@ -196,3 +196,79 @@ async fn recipes_offer_what_the_server_can_serve() {
         StatusCode::UNAUTHORIZED
     );
 }
+
+fn docker_hosted(name: &str, force_basic_auth: bool) -> Value {
+    serde_json::json!({
+        "name": name,
+        "online": true,
+        "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW", "latestPolicy": true},
+        "docker": {"v1Enabled": false, "forceBasicAuth": force_basic_auth, "pathEnabled": true}
+    })
+}
+
+fn open_to_anonymous(list: &Value) -> Vec<&str> {
+    list.as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| item["anonymousAccess"] == true)
+        .map(|item| item["name"].as_str().unwrap())
+        .collect()
+}
+
+#[tokio::test]
+async fn the_list_tells_which_repositories_anonymous_users_can_read() {
+    let fixture = landscape().await;
+    create(&fixture, "docker", "hosted", docker_hosted("images", false)).await;
+    create(
+        &fixture,
+        "docker",
+        "hosted",
+        docker_hosted("private-images", true),
+    )
+    .await;
+
+    let list = get(&fixture, LIST, Auth::Admin).await.json();
+    assert_eq!(open_to_anonymous(&list), Vec::<&str>::new(), "{list}");
+    assert_eq!(entry(&list, "files")["anonymousAccess"], false);
+
+    anonymous(&fixture, true).await;
+    let list = get(&fixture, LIST, Auth::Admin).await.json();
+    assert_eq!(
+        open_to_anonymous(&list),
+        ["all", "files", "files2", "images", "remote"]
+    );
+
+    role(
+        &fixture,
+        "public-files",
+        &[
+            "as-repository-view-raw-files-browse",
+            "as-repository-view-raw-files-read",
+        ],
+    )
+    .await;
+    selector(&fixture, "a-only", "format == \"raw\" and path =^ \"/a/\"").await;
+    selector_privilege(&fixture, "files2-a", "a-only", "raw", "files2", &["READ"]).await;
+    role(&fixture, "public-files2-a", &["files2-a"]).await;
+    let reply = fixture
+        .call(
+            axum::http::Method::PUT,
+            "/service/rest/v1/security/users/anonymous",
+            Auth::Admin,
+            Some(serde_json::json!({
+                "userId": "anonymous",
+                "source": "default",
+                "status": "active",
+                "roles": ["public-files", "public-files2-a"],
+            })),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::NO_CONTENT, "{}", reply.text());
+    fixture.state.security().changed().await.unwrap();
+    let list = get(&fixture, LIST, Auth::Admin).await.json();
+    assert_eq!(open_to_anonymous(&list), ["files", "files2"]);
+
+    anonymous(&fixture, false).await;
+    let list = get(&fixture, LIST, Auth::Admin).await.json();
+    assert_eq!(open_to_anonymous(&list), Vec::<&str>::new());
+}

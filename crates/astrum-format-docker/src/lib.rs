@@ -167,14 +167,7 @@ pub fn admit(mut ctx: Ctx) -> Ctx {
         .subject
         .as_ref()
         .is_some_and(|subject| subject.anonymous);
-    let force_basic = ctx
-        .repository
-        .attributes
-        .docker
-        .as_ref()
-        .and_then(|docker| docker.force_basic_auth)
-        .unwrap_or(true);
-    if anonymous && force_basic {
+    if anonymous && ctx.repository.forces_basic_auth() {
         ctx.subject = None;
     }
     ctx

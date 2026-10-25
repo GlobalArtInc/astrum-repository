@@ -50,6 +50,7 @@ function row(
     lastUploaded: null,
     limited: false,
     permissions: FLAGS,
+    anonymousAccess: false,
     ...extra,
   };
 }
@@ -58,7 +59,7 @@ const ROWS: UiRepository[] = [
   row('maven-releases', 'maven2', 'hosted', { memberOf: ['maven-public'] }),
   row('maven-central', 'maven2', 'proxy', { memberOf: ['maven-public'], online: false }),
   row('maven-public', 'maven2', 'group', { members: ['maven-releases', 'maven-central'] }),
-  row('raw-files', 'raw', 'hosted', { blobStoreName: 'files' }),
+  row('raw-files', 'raw', 'hosted', { blobStoreName: 'files', anonymousAccess: true }),
   row('npm-seen', 'npm', 'hosted', {
     permissions: { ...FLAGS, admin: false, adminEdit: false, adminDelete: false },
   }),
@@ -75,9 +76,9 @@ function serve(handlers: Parameters<typeof fakeServer>[0]) {
 }
 
 describe('the repository list', () => {
-  it('filters by name, format, type and status', () => {
+  it('filters by name, format, type, status and anonymous access', () => {
     const none = new Set<string>();
-    const all = { q: '', formats: none, types: none, statuses: none };
+    const all = { q: '', formats: none, types: none, statuses: none, anonymous: none };
     expect(filterRepositories(ROWS, { ...all, q: 'FILES' }).map((r) => r.name)).toEqual(['raw-files']);
     expect(
       filterRepositories(ROWS, { ...all, formats: new Set(['maven2']), types: new Set(['group']) }).map(
@@ -87,6 +88,14 @@ describe('the repository list', () => {
     expect(filterRepositories(ROWS, { ...all, statuses: new Set(['offline']) }).map((r) => r.name)).toEqual([
       'maven-central',
     ]);
+    expect(filterRepositories(ROWS, { ...all, anonymous: new Set(['yes']) }).map((r) => r.name)).toEqual([
+      'raw-files',
+    ]);
+    expect(
+      filterRepositories(ROWS, { ...all, anonymous: new Set(['no']), formats: new Set(['raw']) }).map(
+        (r) => r.name,
+      ),
+    ).toEqual([]);
   });
 
   it('sorts by the chosen field in both directions', () => {
@@ -94,6 +103,12 @@ describe('the repository list', () => {
       sortRepositories(ROWS.slice(0, 4), field, direction, makeTranslate('en')).map((r) => r.name);
     expect(names('name', 'desc')).toEqual(['raw-files', 'maven-releases', 'maven-public', 'maven-central']);
     expect(names('type', 'asc')).toEqual(['maven-public', 'maven-releases', 'raw-files', 'maven-central']);
+    expect(names('anonymous', 'desc')).toEqual([
+      'raw-files',
+      'maven-central',
+      'maven-public',
+      'maven-releases',
+    ]);
   });
 
   it('shows the repositories the caller administers with filters, counts and row actions', async () => {
@@ -114,6 +129,16 @@ describe('the repository list', () => {
     expect(await screen.findByText('No repositories match the current filters')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Reset Filters' }));
     expect(await screen.findByRole('row', { name: 'Open raw-files' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Anonymous Access/ })).toBeInTheDocument();
+    expect(within(screen.getByRole('row', { name: 'Open raw-files' })).getByText('Yes')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('row', { name: 'Open maven-central' })).getByText('No'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Yes' }));
+    expect(await screen.findByText('Showing 1 of 1')).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: 'Open maven-central' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Reset Filters' }));
+    expect(await screen.findByRole('row', { name: 'Open maven-central' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Actions for raw-files' }));
     const menu = await screen.findByRole('menu');
     expect(
