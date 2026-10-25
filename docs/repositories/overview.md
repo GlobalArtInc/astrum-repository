@@ -12,6 +12,13 @@ component, while indexes and other metadata files usually belong to none.
 Manage repositories under **Settings → Repository → Repositories**, or with the REST API under
 `/service/rest/v1/repositories`.
 
+The list can be filtered and sorted by format, type, state and **Anonymous Access**. That column says
+**Yes** when a client without credentials can download from the repository: [anonymous
+access](../configure/authentication.md#anonymous-access) is on, the anonymous user may read the
+repository through its roles (a privilege for this repository, one for many repositories, or a content
+selector, which opens only the paths it matches), and, for Docker, **Force Basic Authentication** is off.
+Otherwise it says **No**. Filter by **Yes** to see what is public.
+
 ## Types
 
 | Type | What it does |

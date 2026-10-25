@@ -310,6 +310,16 @@ impl Repository {
     pub fn is_named(&self, name: &str) -> bool {
         self.name.eq_ignore_ascii_case(name)
     }
+
+    pub fn forces_basic_auth(&self) -> bool {
+        self.format.id == "docker"
+            && self
+                .attributes
+                .docker
+                .as_ref()
+                .and_then(|docker| docker.force_basic_auth)
+                .unwrap_or(true)
+    }
 }
 
 pub fn valid_name(name: &str) -> bool {

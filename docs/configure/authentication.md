@@ -68,7 +68,9 @@ change the account either. Users with the privileges `astrum:accesstokens:read` 
 **Settings → Security → Anonymous Access** decides whether requests without credentials are allowed
 and as which user (`anonymous` by default, with the `as-anonymous` role). Turn it off to require
 credentials everywhere, or keep it on and narrow `as-anonymous` to the repositories that should be
-public.
+public. The **Anonymous Access** column of the [list of repositories](../repositories/overview.md)
+shows which repositories are public, and the **Access & Security** tab of a repository opens or closes
+it to anonymous users.
 
 Berkshelf, Policyfiles and the reading `knife supermarket` commands send no credentials to Chef
 Supermarket repositories, so the anonymous user needs read access to them. `knife supermarket share`

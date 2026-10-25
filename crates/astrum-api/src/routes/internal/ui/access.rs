@@ -137,6 +137,20 @@ pub(super) fn seen(state: &AppState, subject: &Subject, repository: Arc<Reposito
     }
 }
 
+pub(super) fn anonymous_reads(
+    state: &AppState,
+    anonymous: Option<&Subject>,
+    repository: &Arc<Repository>,
+) -> bool {
+    let Some(anonymous) = anonymous else {
+        return false;
+    };
+    !repository.forces_basic_auth()
+        && context(state, anonymous, repository.clone())
+            .grant(View::Read)
+            .any()
+}
+
 pub(super) async fn survey(state: &AppState, caller: &Caller) -> Result<Survey, ApiError> {
     let subject = subject(caller)?;
     let all: Vec<Arc<Repository>> = astrum_repo::store::list(state.db().conn())

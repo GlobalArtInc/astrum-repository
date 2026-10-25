@@ -31,6 +31,7 @@ function row(name: string, format: string, type: UiRepository['type'], online = 
     totalSize: 0,
     lastUploaded: null,
     limited: false,
+    anonymousAccess: false,
     permissions: {
       browse: true,
       read: true,

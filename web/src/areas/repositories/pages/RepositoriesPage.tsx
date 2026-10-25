@@ -42,17 +42,26 @@ const TYPE_LABELS: Record<RepositoryType, string> = {
   group: 'ui.repositoryType.group',
 };
 
-export type SortField = 'name' | 'type' | 'format' | 'status';
+export type SortField = 'name' | 'type' | 'format' | 'status' | 'anonymous';
 
 export interface Filters {
   q: string;
   formats: ReadonlySet<string>;
   types: ReadonlySet<string>;
   statuses: ReadonlySet<string>;
+  anonymous: ReadonlySet<string>;
 }
 
 function statusOf(row: UiRepository): string {
   return row.online ? 'online' : 'offline';
+}
+
+function anonymousOf(row: UiRepository): string {
+  return row.anonymousAccess ? 'yes' : 'no';
+}
+
+function anonymousLabel(t: Translate, value: string): string {
+  return value === 'yes' ? t('repositories.list.anonymousYes') : t('repositories.list.anonymousNo');
 }
 
 export function filterRepositories(rows: readonly UiRepository[], filters: Filters): UiRepository[] {
@@ -62,6 +71,7 @@ export function filterRepositories(rows: readonly UiRepository[], filters: Filte
       (filters.formats.size === 0 || filters.formats.has(row.format)) &&
       (filters.types.size === 0 || filters.types.has(row.type)) &&
       (filters.statuses.size === 0 || filters.statuses.has(statusOf(row))) &&
+      (filters.anonymous.size === 0 || filters.anonymous.has(anonymousOf(row))) &&
       (wanted === '' || row.name.toLowerCase().includes(wanted)),
   );
 }
@@ -80,6 +90,8 @@ export function sortRepositories(
         return formatName(row.format);
       case 'status':
         return row.online ? t('repositories.status.online') : t('repositories.status.offline');
+      case 'anonymous':
+        return anonymousLabel(t, anonymousOf(row));
       default:
         return row.name;
     }
@@ -112,6 +124,7 @@ export default function RepositoriesPage() {
     formats: listParam(params, 'format'),
     types: listParam(params, 'type'),
     statuses: listParam(params, 'status'),
+    anonymous: listParam(params, 'anonymous'),
   };
   const update = (key: string, value: string) => {
     setPage(0);
@@ -128,8 +141,11 @@ export default function RepositoriesPage() {
       { replace: true },
     );
   };
-  const toggle = (key: 'format' | 'type' | 'status', current: ReadonlySet<string>, value: string) =>
-    update(key, [...toggled(current, value)].join(','));
+  const toggle = (
+    key: 'format' | 'type' | 'status' | 'anonymous',
+    current: ReadonlySet<string>,
+    value: string,
+  ) => update(key, [...toggled(current, value)].join(','));
 
   const administered = useMemo(() => (query.data ?? []).filter((row) => row.permissions.admin), [query.data]);
   const matching = sortRepositories(filterRepositories(administered, filters), sortField, direction, t);
@@ -142,6 +158,7 @@ export default function RepositoriesPage() {
     { value: 'type', label: t('repositories.list.type') },
     { value: 'format', label: t('repositories.list.format') },
     { value: 'status', label: t('repositories.list.status') },
+    { value: 'anonymous', label: t('repositories.list.anonymous') },
   ];
   const sortBy = (column: string) => {
     if (column === sortField) {
@@ -182,6 +199,16 @@ export default function RepositoriesPage() {
       header: t('repositories.list.status'),
       sortable: true,
       cell: (row) => (row.online ? t('repositories.status.online') : t('repositories.status.offline')),
+    },
+    {
+      id: 'anonymous',
+      header: t('repositories.list.anonymous'),
+      sortable: true,
+      cell: (row) => (
+        <span className={row.anonymousAccess ? undefined : styles.muted}>
+          {anonymousLabel(t, anonymousOf(row))}
+        </span>
+      ),
     },
     {
       id: 'url',
@@ -273,6 +300,12 @@ export default function RepositoriesPage() {
   const statusOptions = countBy(administered, statusOf, (status) =>
     status === 'online' ? t('repositories.status.online') : t('repositories.status.offline'),
   );
+  const anonymousOptions = countBy(
+    administered,
+    anonymousOf,
+    (value) => anonymousLabel(t, value),
+    'value',
+  ).reverse();
 
   return (
     <Page
@@ -329,6 +362,12 @@ export default function RepositoriesPage() {
             options={statusOptions}
             selected={filters.statuses}
             onToggle={(value) => toggle('status', filters.statuses, value)}
+          />
+          <CheckGroup
+            title={t('repositories.list.anonymous')}
+            options={anonymousOptions}
+            selected={filters.anonymous}
+            onToggle={(value) => toggle('anonymous', filters.anonymous, value)}
           />
         </FilterPanel>
         <div className={styles.main}>

@@ -32,6 +32,7 @@ export interface UiRepository {
   lastUploaded: string | null;
   limited: boolean;
   permissions: RepositoryFlags;
+  anonymousAccess: boolean;
   domain?: RepositoryDomain;
 }
 

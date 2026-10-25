@@ -8,7 +8,7 @@ use chrono::{DateTime, FixedOffset};
 use sea_orm::FromQueryResult;
 use serde::Serialize;
 
-use super::access::{Flags, Sql, survey};
+use super::access::{Flags, Sql, anonymous_reads, survey};
 use super::{UI, time};
 use crate::routes::repositories::BaseUrl;
 use crate::{ApiError, AppState, Caller};
@@ -52,6 +52,7 @@ struct RepositoryXo {
     last_uploaded: Option<String>,
     limited: bool,
     permissions: Flags,
+    anonymous_access: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     domain: Option<DomainXo>,
 }
@@ -113,6 +114,7 @@ async fn list(
             stats.insert(row.repository.clone(), row);
         }
     }
+    let anonymous = state.security().anonymous();
     let mut member_of: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for group in &survey.all {
         let Some(members) = group.group() else {
@@ -185,6 +187,7 @@ async fn list(
                 last_uploaded: found.and_then(|stats| stats.last).map(time),
                 limited: seen.limited,
                 permissions: seen.flags,
+                anonymous_access: anonymous_reads(&state, anonymous.as_ref(), repository),
                 domain: domain_of(repository, &base.0),
             }
         })
