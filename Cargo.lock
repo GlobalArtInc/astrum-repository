@@ -217,7 +217,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-api"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-blob",
@@ -307,7 +307,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-blob"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-db",
  "astrum-security",
@@ -337,7 +337,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-blob-agent"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-blob",
@@ -362,7 +362,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-content"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-blob",
@@ -397,7 +397,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-db"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-testkit",
  "chrono",
@@ -413,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-alpine"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "aes",
  "astrum-blob",
@@ -448,7 +448,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-ansible"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -477,7 +477,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-apt"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -511,7 +511,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-bazel"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -533,7 +533,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-cargo"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -560,7 +560,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-chef"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -587,7 +587,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-chrome"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -609,7 +609,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-cocoapods"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-content",
  "astrum-repo",
@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-composer"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -652,7 +652,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-conan"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-api",
  "astrum-content",
@@ -671,7 +671,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-conda"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -698,7 +698,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-docker"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-api",
  "astrum-blob",
@@ -727,7 +727,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-firefox"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -748,7 +748,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-gitlfs"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -767,7 +767,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-go"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -788,7 +788,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-helm"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -818,7 +818,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-hex"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -850,7 +850,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-huggingface"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-blob",
@@ -870,7 +870,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-jetbrains"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -897,7 +897,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-maven"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -927,7 +927,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-nix"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -952,7 +952,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-npm"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-api",
@@ -983,7 +983,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-nuget"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-blob",
@@ -1011,7 +1011,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-nx"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-content",
  "astrum-repo",
@@ -1021,7 +1021,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-openvsx"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-api",
  "astrum-blob",
@@ -1052,7 +1052,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-p2"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1074,7 +1074,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-pacman"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1107,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-protobuf"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1134,7 +1134,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-pub"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1164,7 +1164,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-puppet"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1190,7 +1190,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-pypi"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1218,7 +1218,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-r"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1244,7 +1244,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-raw"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-content",
  "astrum-repo",
@@ -1255,7 +1255,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-rubygems"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1283,7 +1283,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-swift"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-blob",
@@ -1309,7 +1309,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-terraform"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-api",
@@ -1344,7 +1344,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-turbo"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-content",
  "astrum-repo",
@@ -1357,7 +1357,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-vagrant"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1377,7 +1377,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-format-yum"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-blob",
  "astrum-content",
@@ -1410,7 +1410,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-logging"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "chrono",
  "serde",
@@ -1421,7 +1421,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-mail"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-db",
  "astrum-outbound",
@@ -1442,7 +1442,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-mcp"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "async-trait",
  "serde",
@@ -1453,7 +1453,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-notify"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-content",
  "astrum-db",
@@ -1477,7 +1477,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-outbound"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-db",
  "astrum-security",
@@ -1501,7 +1501,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-repo"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-db",
  "astrum-testkit",
@@ -1518,7 +1518,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-security"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -1557,7 +1557,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-server"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-api",
@@ -1632,7 +1632,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-tasks"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "anyhow",
  "astrum-blob",
@@ -1658,7 +1658,7 @@ dependencies = [
 
 [[package]]
 name = "astrum-testkit"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "astrum-db",
  "axum",

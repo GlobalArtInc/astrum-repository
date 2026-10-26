@@ -196,7 +196,7 @@ describe('the system information', () => {
     serve({
       'GET /service/rest/atlas/system-information': () =>
         jsonResponse({
-          'astrum-status': { version: '3.0.0', edition: 'CORE' },
+          'astrum-status': { version: '3.0.0', buildRevision: 'abc1234' },
           'astrum-node': { 'node-id': 'n1' },
           'system-database': { product: 'PostgreSQL', version: '18.0' },
         }),

@@ -25,7 +25,7 @@ Each proxy repository has the same three fields in its **HTTP** section, see
 [proxy repositories](../repositories/overview.md#proxy-repositories). A repository's
 **Connection Retries** and **Connection Timeout** replace the values of this page for that repository;
 its **User-Agent Suffix** is added after the one of this page, so a repository with the suffix
-`maven-central` on a server with the suffix `ExampleCorp` sends `Astrum/3.0.2 ExampleCorp maven-central`.
+`maven-central` on a server with the suffix `ExampleCorp` sends `Astrum/3.0.3 ExampleCorp maven-central`.
 
 ## Proxy server
 
