@@ -11,7 +11,7 @@ they are tried in the listed order.
 | Access Token Realm | [Access tokens](#access-tokens) as passwords and bearer tokens. Active by default |
 | LDAP Realm | Sign-in with a directory account (Active Directory, OpenLDAP and others); activated automatically when the first LDAP server is added |
 | OpenID Connect Realm | Sign-in through an OpenID Connect provider; activated automatically when OpenID Connect is configured |
-| Docker Bearer Token Realm | Anonymous `docker pull` and Docker token authentication |
+| Docker Bearer Token Realm | Makes the Docker registry challenge clients with bearer tokens from `/v2/token` instead of Basic credentials; see [Docker](../formats/docker.md#anonymous-pulls) |
 | npm Bearer Token Realm | `npm login` and `_authToken` in `.npmrc` |
 | NuGet API-Key Realm | `nuget push` with the user's API key |
 | RubyGems API Key Realm | `gem signin` and `gem push` with the user's API key |

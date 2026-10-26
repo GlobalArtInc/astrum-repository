@@ -10,6 +10,10 @@ The image is published on Docker Hub as `globalartltd/astrum-repository`.
 | `latest` | The newest release |
 | `edge` | The newest build of the `main` branch, for testing |
 
+The image is built for `linux/amd64` only; on an ARM machine, such as a Mac with Apple Silicon, add
+`--platform linux/amd64` to `podman run` and `docker run`, or `platform: linux/amd64` to the service in
+Compose, and it runs through emulation.
+
 The image runs the server as uid/gid 200, listens on port 8081 and keeps all state under
 `/astrum-data`. Mount a volume there; without it every restart starts from scratch. The server needs a
 PostgreSQL database, see [PostgreSQL](../configure/postgresql.md).
