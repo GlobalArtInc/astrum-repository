@@ -67,6 +67,8 @@ web/):
   - MIT License: React, React DOM, React Router, TanStack Query, Radix UI and
     Radix Themes, Floating UI.
   - ISC License: lucide-react. Copyright (c) Lucide Icons and Contributors.
+  - MIT License: the GitHub mark in the header (the mark-github icon of Octicons).
+    Copyright (c) GitHub, Inc.
   - Apache License 2.0: Swagger UI (swagger-ui-dist), which shows the REST API
     on the API page; its bundle carries the licences of the libraries inside
     it in swagger-ui-es-bundle.js.LICENSE.txt. Its NOTICE reads:

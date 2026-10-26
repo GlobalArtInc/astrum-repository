@@ -25,7 +25,7 @@ Each proxy repository has the same three fields in its **HTTP** section, see
 [proxy repositories](../repositories/overview.md#proxy-repositories). A repository's
 **Connection Retries** and **Connection Timeout** replace the values of this page for that repository;
 its **User-Agent Suffix** is added after the one of this page, so a repository with the suffix
-`maven-central` on a server with the suffix `ExampleCorp` sends `Astrum/3.0.3 ExampleCorp maven-central`.
+`maven-central` on a server with the suffix `ExampleCorp` sends `Astrum/3.0.4 ExampleCorp maven-central`.
 
 ## Proxy server
 
@@ -84,8 +84,10 @@ one repository reach its remote directly, add the remote's host to **Hosts to Ex
 
 ## What uses these settings
 
-Only proxy repositories use the connection and proxy settings of this page. The other connections the
-server opens go straight to their target:
+Proxy repositories use the connection and proxy settings of this page, and so does the request that
+fetches the number of GitHub stars shown in the [header](../use/web-interface.md#header-and-menu) (the
+[SSRF protection](#ssrf-protection) applies to it too). The other connections the server opens go
+straight to their target:
 
 - OpenID Connect, LDAP and the email server;
 - S3 blob stores and the agents of remote blob stores;

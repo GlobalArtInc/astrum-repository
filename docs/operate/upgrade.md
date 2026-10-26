@@ -31,6 +31,15 @@ Stop the server, restore the backup taken in step 2 and start the previous versi
 
 ## Upgrade notes
 
+### 3.0.4
+
+The update needs no steps of its own and does not change the database. The header of the web interface
+has a link to the project on GitHub with the number of its stars. The server fetches the number from
+`api.github.com` through the [HTTP settings](../configure/outbound-http.md), and the
+[SSRF protection](../configure/outbound-http.md#ssrf-protection) applies to the request. Where the server
+cannot reach GitHub, for example in a closed network, the link shows without a number; nothing else is
+affected.
+
 ### 3.0.3
 
 The update needs no steps of its own and does not change the database. System Information and the

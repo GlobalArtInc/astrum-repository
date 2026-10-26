@@ -45,12 +45,17 @@ The header holds, from left to right:
 - the theme switch and the **Language** menu, see [theme and language](#theme-and-language);
 - **System status**, a bell for users with the privilege `astrum:metrics:read`; a red dot on it means a
   health check fails, and it opens **Metrics and Health**;
+- **GitHub**, a link to the project on GitHub with the number of its stars. The server asks
+  `api.github.com` for the number, through the [HTTP settings](../configure/outbound-http.md), at most
+  once in six hours (once in thirty minutes while the asking fails), so the page costs GitHub nothing
+  per visitor and your browser never talks to GitHub. Where the server cannot reach GitHub, the link
+  shows without a number;
 - **Help and documentation**, with links to this documentation, the release notes and the issue tracker,
   and the version of the server;
 - the account menu: **My Account**, **Access Tokens**, **NuGet API Key** (while the NuGet API-Key Realm is
   active) and **Sign Out**.
 
-On a phone the **Language** and help menus move into the menu drawer.
+On a phone the **Language** and help menus move into the menu drawer, and the GitHub link is left out.
 
 ## Dashboard
 

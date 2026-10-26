@@ -84,7 +84,10 @@ describe('onboarding', () => {
     await userEvent.type(screen.getByLabelText(/Repeat the new password/), 'a new secret');
     await userEvent.click(screen.getByRole('button', { name: 'Change password' }));
     expect(await screen.findByRole('heading', { name: 'Anonymous access' })).toBeInTheDocument();
-    expect(server.calls[0]?.body).toEqual({ currentPassword: 'first-password', newPassword: 'a new secret' });
+    expect(server.calls.find((call) => call.method !== 'GET')?.body).toEqual({
+      currentPassword: 'first-password',
+      newPassword: 'a new secret',
+    });
     await userEvent.click(screen.getByRole('radio', { name: /Require sign-in/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByRole('heading', { name: 'Repositories' })).toBeInTheDocument();

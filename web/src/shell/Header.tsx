@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { useT } from '../i18n';
 import { Tooltip } from '../ui';
 import { PHONE, useMediaQuery } from '../ui/hooks';
+import { GithubLink } from './GithubLink';
 import {
   HeaderButton,
   HelpMenu,
@@ -59,6 +60,7 @@ export function Header({ compact, collapsed, onToggleMenu, searchOpen, onSearchO
         <ThemeToggle />
         {!phone && <LanguageMenu />}
         <StatusBell />
+        {!phone && <GithubLink />}
         {!phone && <HelpMenu />}
         <UserMenu />
       </div>
