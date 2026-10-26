@@ -5,6 +5,7 @@ import { request, type UiState } from '../api';
 import { buildRoutes } from '../app/router';
 import { dashboardArea } from '../areas/dashboard';
 import { settingsArea } from '../areas/settings';
+import { GITHUB_STARS } from '../shell/GithubLink';
 import { ADMIN_STATE, ANONYMOUS_STATE, fakeServer, jsonResponse, renderWithApp } from '../test/render';
 import { openFresh } from './browser';
 import { STATE_KEY } from './state';
@@ -100,9 +101,9 @@ describe('signing out', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Account menu of Administrator User' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign Out' }));
     await waitFor(() => expect(openFresh).toHaveBeenCalledWith('/'));
-    expect(server.calls.map((call) => `${call.method} ${call.path}`)).toEqual([
-      'DELETE /service/rest/internal/session',
-    ]);
+    expect(
+      server.calls.filter((call) => call.path !== GITHUB_STARS).map((call) => `${call.method} ${call.path}`),
+    ).toEqual(['DELETE /service/rest/internal/session']);
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 

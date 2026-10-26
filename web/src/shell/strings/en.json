@@ -1,6 +1,8 @@
 {
   "shell.crash.home": "Go to the dashboard",
   "shell.crash.title": "This page stopped working",
+  "shell.header.github": "Astrum Repository on GitHub",
+  "shell.header.githubStars": "Astrum Repository on GitHub. Stars: {stars}",
   "shell.header.home": "Astrum Repository home",
   "shell.header.refresh": "Refresh",
   "shell.help.community": "Community",

@@ -6,6 +6,7 @@ mod browse;
 mod browse_asset;
 mod cleanup_policies;
 mod domains;
+mod github;
 pub(crate) mod identity;
 pub mod nodes;
 mod notifications;
@@ -29,6 +30,7 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(repositories::routes())
         .merge(domains::routes())
+        .merge(github::routes())
         .merge(browse::routes())
         .merge(browse_asset::routes())
         .merge(search::routes())

@@ -2,6 +2,7 @@ pub mod auth;
 pub mod base_url;
 pub mod domains;
 pub mod error;
+pub mod github;
 pub mod json;
 pub mod limits;
 pub mod metrics;
@@ -58,6 +59,7 @@ struct Inner {
     repository_changes: tokio::sync::Notify,
     limits: limits::Limiter,
     metrics: metrics::Registry,
+    stars: github::Stars,
 }
 
 impl AppState {
@@ -97,6 +99,7 @@ impl AppState {
                 repository_changes: tokio::sync::Notify::new(),
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
+                stars: github::Stars::default(),
             }),
         }
     }
@@ -188,6 +191,10 @@ impl AppState {
 
     pub fn limits(&self) -> &limits::Limiter {
         &self.inner.limits
+    }
+
+    pub fn stars(&self) -> &github::Stars {
+        &self.inner.stars
     }
 
     pub fn metrics(&self) -> &metrics::Registry {

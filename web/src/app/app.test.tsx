@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UiState } from '../api';
 import { dashboardArea } from '../areas/dashboard';
 import { settingsArea } from '../areas/settings';
+import { GITHUB_URL } from '../shell/GithubLink';
 import { TRANSLATE_URL } from '../shell/HeaderMenus';
 import { SearchGroup, SearchItem } from '../shell/search';
 import { ADMIN_STATE, ANONYMOUS_STATE, fakeServer, jsonResponse, renderWithApp } from '../test/render';
@@ -142,6 +143,12 @@ describe('the shell', () => {
     expect(within(header).getByRole('button', { name: 'Search' })).toHaveTextContent(
       'Search for components or CVEs...',
     );
+  });
+
+  it('puts the GitHub link right before the help button', async () => {
+    app('/');
+    const help = await screen.findByRole('button', { name: 'Help and documentation' });
+    expect(help.previousElementSibling).toHaveAttribute('href', GITHUB_URL);
   });
 
   it('opens the health page from the bell once it exists', async () => {
