@@ -353,6 +353,7 @@ async fn system_information_shows_versions_without_secrets() {
     assert_eq!(reply.status, StatusCode::OK);
     let info = reply.json();
     assert_eq!(info["astrum-status"]["version"], env!("CARGO_PKG_VERSION"));
+    assert!(info["astrum-status"].get("edition").is_none());
     assert_eq!(info["astrum-node"]["node-id"], "node-1");
     assert_eq!(info["astrum-properties"]["listen"], "0.0.0.0:8081");
     assert_eq!(info["astrum-properties"]["log.filter"], "info,sqlx=warn");

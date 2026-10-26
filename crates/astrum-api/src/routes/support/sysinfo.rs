@@ -47,7 +47,6 @@ fn status() -> Value {
     json!({
         "version": VERSION,
         "buildRevision": REVISION.filter(|revision| !revision.is_empty()).unwrap_or("unknown"),
-        "edition": "CORE",
         "rustVersion": env!("CARGO_PKG_RUST_VERSION"),
     })
 }

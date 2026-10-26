@@ -31,6 +31,12 @@ Stop the server, restore the backup taken in step 2 and start the previous versi
 
 ## Upgrade notes
 
+### 3.0.3
+
+The update needs no steps of its own and does not change the database. System Information and the
+support ZIP no longer report an `edition`: there is a single edition, and it is open source. A script
+that reads `astrum-status.edition` from `/service/rest/atlas/system-information` gets nothing there now.
+
 ### 3.0.2
 
 The update needs no steps of its own; the server adds one table to the database at start. Some settings

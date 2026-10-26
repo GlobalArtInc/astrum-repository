@@ -1,6 +1,6 @@
 {
   "name": "@globalart/astrum-web",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.18.0",
