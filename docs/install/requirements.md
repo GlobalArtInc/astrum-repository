@@ -30,7 +30,9 @@ the hot artifacts.
 - **PostgreSQL 16 or newer.** It is the only database; there is no embedded one. The server is tested
   against PostgreSQL 16 and 18. See [PostgreSQL](../configure/postgresql.md).
 - A **container runtime** (Docker, podman, Kubernetes) for the published image, or the Rust and Node.js
-  toolchains to build from source; see [build and run without a container](from-source.md).
+  toolchains to build from source; see [build and run without a container](from-source.md). The image is
+  built for `linux/amd64` only; on an ARM machine it runs through emulation (in Compose, `platform:
+  linux/amd64` on the service), or you build the server from source.
 - A **reverse proxy** that terminates TLS (nginx, Envoy, Caddy, HAProxy or a Kubernetes gateway); see
   [reverse proxy and TLS](../configure/reverse-proxy.md).
 

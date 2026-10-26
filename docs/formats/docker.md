@@ -11,8 +11,21 @@ docker tag app:1.0 astrum.example.com/docker-hosted/team/app:1.0
 docker push astrum.example.com/docker-hosted/team/app:1.0
 ```
 
-podman, buildah, skopeo, crane and containerd use the same names. For anonymous pulls activate the
-**Docker Bearer Token Realm** and allow anonymous access.
+podman, buildah, skopeo, crane and containerd use the same names. The [quick start](../getting-started.md)
+walks through a proxy of Docker Hub, a group and a hosted repository with these commands.
+
+## Anonymous pulls
+
+A new Docker repository has **Force Basic Authentication** set: every request must carry credentials, so
+`docker login` is needed even when anonymous access is on. For pulls without a login allow
+[anonymous access](../configure/authentication.md#anonymous-access) and clear that option in the
+repository clients pull from, usually the group; the members of a group can keep it. The
+**Anonymous Access** column of the list of repositories says **Yes** for a repository that an anonymous
+`docker pull` can reach.
+
+The **Docker Bearer Token Realm**, which is off by default, makes the server challenge clients with a
+bearer token from `/v2/token` instead of asking for Basic credentials. Signing in with `docker login`
+works either way.
 
 ## OCI artifacts
 
