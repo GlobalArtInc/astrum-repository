@@ -120,6 +120,10 @@
   margin-top: 24px;
 }
 
+.page > :global(.rt-TextFieldRoot) {
+  margin-bottom: 12px;
+}
+
 .switch {
   align-self: flex-start;
   width: 308px;
