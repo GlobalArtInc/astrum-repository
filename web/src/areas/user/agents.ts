@@ -1,4 +1,5 @@
 import { INTERNAL } from '../../api';
+import { matchesWords, queryWords } from './model';
 
 export const OAUTH = `${INTERNAL}/ui/oauth`;
 export const GRANTS = `${OAUTH}/grants`;
@@ -21,6 +22,14 @@ export interface AuthorizationRequest {
   writeRequested: boolean;
   user: string;
   expiresAt: string;
+}
+
+export function filterGrants(grants: AgentGrant[], query: string): AgentGrant[] {
+  const words = queryWords(query);
+  if (words.length === 0) {
+    return grants;
+  }
+  return grants.filter((grant) => matchesWords(words, grant.clientName, grant.scope));
 }
 
 export function requestPath(id: string, action?: 'approve' | 'deny'): string {

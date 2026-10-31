@@ -142,6 +142,31 @@ export function tokenExpired(token: Pick<AccessToken, 'expiresAt'>, now: Date): 
   return token.expiresAt !== null && new Date(token.expiresAt).getTime() <= now.getTime();
 }
 
+export function queryWords(query: string): string[] {
+  return query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word !== '');
+}
+
+export function matchesWords(words: readonly string[], ...fields: string[]): boolean {
+  const haystack = fields.map((field) => field.toLowerCase());
+  return words.every((word) => haystack.some((field) => field.includes(word)));
+}
+
+export function sortNewestFirst<T extends Pick<AccessToken, 'createdAt'>>(items: readonly T[]): T[] {
+  return [...items].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+}
+
+export function filterTokens(tokens: AccessToken[], query: string): AccessToken[] {
+  const words = queryWords(query);
+  if (words.length === 0) {
+    return tokens;
+  }
+  return tokens.filter((token) => matchesWords(words, token.name, token.userId, token.hint, token.scope));
+}
+
 export function needsPasswordSignIn(error: unknown): boolean {
   return error instanceof ApiError && error.status === 403 && /password/i.test(error.message);
 }

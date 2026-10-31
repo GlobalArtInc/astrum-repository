@@ -14,7 +14,7 @@ import {
   TextField,
 } from '@radix-ui/themes';
 import { KeyRound, LogOut, ShieldAlert, Trash2, TriangleAlert } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { api, path, useApi, useInvalidateApi, withQuery } from '../../api';
 import { useCan, useSession } from '../../auth/state';
 import { useSignOut } from '../../auth/useSignOut';
@@ -28,14 +28,17 @@ import {
   useForm,
   useToast,
 } from '../../ui';
+import { ListPager, SearchBox, usePaging } from '../security/shared/AdminList';
 import { AgentGrants } from './AgentGrants';
 import {
   type AccessToken,
   type CreatedToken,
+  filterTokens,
   LIFETIMES,
   type Lifetime,
   needsPasswordSignIn,
   type Scope,
+  sortNewestFirst,
   TOKENS,
   type TokenValues,
   toTokenRequest,
@@ -46,6 +49,7 @@ import {
 } from './model';
 import styles from './Tokens.module.css';
 
+const TOKENS_PAGE_SIZE = 20;
 const INITIAL: TokenValues = { name: '', scope: 'READ', days: 90 };
 const USAGE_LABELS: Record<UsageKind, string> = {
   docker: 'Docker',
@@ -347,7 +351,10 @@ export default function AccessTokensPage() {
   const tokens = useApi<AccessToken[]>(showAll ? withQuery(TOKENS, { userId: '*' }) : TOKENS);
   const [created, setCreated] = useState<CreatedToken | null>(null);
   const [revoking, setRevoking] = useState<AccessToken | null>(null);
+  const [query, setQuery] = useState('');
   const blocked = needsPasswordSignIn(tokens.error);
+  const rows = useMemo(() => filterTokens(sortNewestFirst(tokens.data ?? []), query), [tokens.data, query]);
+  const paging = usePaging(rows, TOKENS_PAGE_SIZE);
   useDocumentTitle(t('user.tokens.title'));
 
   const revoke = async () => {
@@ -377,7 +384,10 @@ export default function AccessTokensPage() {
             <SegmentedControl.Root
               className={styles.switch}
               value={showAll ? 'all' : 'mine'}
-              onValueChange={(value) => setEveryone(value === 'all')}
+              onValueChange={(value) => {
+                setEveryone(value === 'all');
+                paging.setPage(0);
+              }}
             >
               <SegmentedControl.Item value="mine">{t('user.tokens.mine')}</SegmentedControl.Item>
               <SegmentedControl.Item value="all">{t('user.tokens.everyone')}</SegmentedControl.Item>
@@ -386,12 +396,36 @@ export default function AccessTokensPage() {
           {tokens.error ? (
             <ErrorState error={tokens.error} onRetry={() => void tokens.refetch()} />
           ) : tokens.data && tokens.data.length > 0 ? (
-            <TokenTable
-              tokens={tokens.data}
-              everyone={showAll}
-              canRevoke={(token) => token.userId === user?.userId || canDeleteAll}
-              onRevoke={setRevoking}
-            />
+            <>
+              <SearchBox
+                value={query}
+                onChange={(value) => {
+                  setQuery(value);
+                  paging.setPage(0);
+                }}
+                placeholder={t('user.tokens.search')}
+              />
+              {rows.length > 0 ? (
+                <>
+                  <TokenTable
+                    tokens={paging.visible}
+                    everyone={showAll}
+                    canRevoke={(token) => token.userId === user?.userId || canDeleteAll}
+                    onRevoke={setRevoking}
+                  />
+                  <ListPager
+                    range={t('user.tokens.range', { from: paging.from, to: paging.to, total: paging.total })}
+                    page={paging.page}
+                    pages={paging.pages}
+                    onPage={paging.setPage}
+                  />
+                </>
+              ) : (
+                <Card size="1" className={styles.empty}>
+                  {t('user.tokens.noMatches')}
+                </Card>
+              )}
+            </>
           ) : (
             <Card size="1" className={styles.empty}>
               {tokens.isPending ? '' : showAll ? t('user.tokens.emptyAll') : t('user.tokens.empty')}

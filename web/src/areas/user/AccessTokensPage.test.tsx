@@ -101,6 +101,63 @@ describe('the access tokens page', () => {
     );
   });
 
+  it('pages through the tokens newest first and searches them', async () => {
+    const many = Array.from({ length: 45 }, (_, index) => ({
+      ...TOKEN,
+      id: `t${index + 1}`,
+      name: `token-${index + 1}`,
+      createdAt: new Date(Date.UTC(2026, 0, 1 + index)).toISOString(),
+    }));
+    vi.stubGlobal(
+      'fetch',
+      fakeServer({ 'GET /service/rest/internal/access-tokens': () => jsonResponse(many) }).fetch,
+    );
+    renderWithApp(<AccessTokensPage />);
+    expect(await screen.findByText('token-45')).toBeInTheDocument();
+    expect(screen.getByText('Tokens 1–20 of 45')).toBeInTheDocument();
+    expect(screen.queryByText('token-25')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(screen.getByText('Tokens 21–40 of 45')).toBeInTheDocument();
+    expect(screen.getByText('token-25')).toBeInTheDocument();
+    const search = screen.getByRole('textbox', { name: 'Search access tokens' });
+    await userEvent.type(search, 'token-');
+    expect(screen.getByText('Tokens 1–20 of 45')).toBeInTheDocument();
+    await userEvent.type(search, '4');
+    expect(screen.getByText('Tokens 1–7 of 7')).toBeInTheDocument();
+    expect(screen.queryByText('token-3')).toBeNull();
+    await userEvent.type(search, 'zzz');
+    expect(screen.getByText('No access token matches your search.')).toBeInTheDocument();
+    expect(screen.queryByText(/^Tokens \d/)).toBeNull();
+  });
+
+  it('pages through the connected agents and searches them by client name', async () => {
+    const grants = Array.from({ length: 12 }, (_, index) => ({
+      id: `g${index + 1}`,
+      clientName: `Agent ${String(index + 1).padStart(2, '0')}`,
+      scope: 'READ',
+      createdAt: new Date(Date.UTC(2026, 9, 1 + index)).toISOString(),
+      lastUsedAt: null,
+      expiresAt: '2026-11-18T10:00:00Z',
+    }));
+    vi.stubGlobal(
+      'fetch',
+      fakeServer({
+        'GET /service/rest/internal/access-tokens': () => jsonResponse([]),
+        'GET /service/rest/internal/ui/oauth/grants': () => jsonResponse(grants),
+      }).fetch,
+    );
+    renderWithApp(<AccessTokensPage />);
+    const agents = await screen.findByRole('region', { name: 'Connected Agents' });
+    expect(await within(agents).findByText('Agent 12')).toBeInTheDocument();
+    expect(within(agents).getByText('Agents 1–10 of 12')).toBeInTheDocument();
+    await userEvent.type(
+      within(agents).getByRole('textbox', { name: 'Search connected agents' }),
+      'agent 07',
+    );
+    expect(within(agents).getByText('Agents 1–1 of 1')).toBeInTheDocument();
+    expect(within(agents).getByText('Agent 07')).toBeInTheDocument();
+  });
+
   it('explains that tokens need a password sign-in', async () => {
     vi.stubGlobal(
       'fetch',
