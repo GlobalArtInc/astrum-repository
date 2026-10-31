@@ -1,5 +1,6 @@
 import { posix } from 'node:path';
 import { defineConfig, type DefaultTheme } from 'vitepress';
+import { DISMISSED_CLASS, STORAGE_KEY } from './theme/banner';
 
 const REPOSITORY = 'https://github.com/GlobalArtInc/astrum-repository';
 
@@ -154,6 +155,7 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#5b47e0' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'Astrum Repository' }],
+    ['script', {}, `try{if(localStorage.getItem('${STORAGE_KEY}')==='1')document.documentElement.classList.add('${DISMISSED_CLASS}')}catch{}`],
   ],
   themeConfig: {
     logo: { src: '/favicon.svg', alt: '' },
