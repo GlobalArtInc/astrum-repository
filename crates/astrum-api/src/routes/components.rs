@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
-use astrum_content::format::{SearchTarget, UploadedFile};
+use astrum_content::format::{SearchTarget, UploadSpec, UploadedFile};
 use astrum_content::store::{self, Asset, Component};
 use astrum_content::{ContentError, Ctx, Format, UploadForm, View, ids};
 use astrum_repo::config::Repository;
@@ -1014,9 +1014,38 @@ async fn upload_spec(
     Ok(axum::Json(spec).into_response())
 }
 
-enum Failure {
+pub(crate) enum Failure {
     Api(ApiError),
     Content(ContentError),
+}
+
+pub(crate) fn repository_failure(error: ContentError, repository: &str) -> Failure {
+    match error {
+        ContentError::NotFound(_) => Failure::Api(ApiError::not_found(format!(
+            "Repository not found: {repository}"
+        ))),
+        other => Failure::Content(other),
+    }
+}
+
+pub(crate) fn require_upload_spec(format: &dyn Format) -> Result<UploadSpec, Failure> {
+    format.upload_spec().ok_or_else(|| {
+        Failure::Api(ApiError::BadRequest(format!(
+            "{} repositories do not take uploads",
+            format.id()
+        )))
+    })
+}
+
+pub(crate) async fn submit(ctx: Ctx, format: &dyn Format, form: UploadForm) -> Result<(), Failure> {
+    format.upload(ctx, form).await.map_err(|error| match error {
+        ContentError::Unauthorized => Failure::Api(ApiError::Unauthorized),
+        ContentError::Forbidden => Failure::Api(ApiError::forbidden()),
+        ContentError::BadRequest(message) | ContentError::Conflict(message) => {
+            Failure::Api(ApiError::BadRequest(message))
+        }
+        other => Failure::Content(other),
+    })
 }
 
 impl IntoResponse for Failure {
@@ -1056,18 +1085,8 @@ async fn upload_inner(
     }
     let (ctx, format) = context(&state, caller, &repository, &headers, &uri)
         .await
-        .map_err(|error| match error {
-            ContentError::NotFound(_) => Failure::Api(ApiError::not_found(format!(
-                "Repository not found: {repository}"
-            ))),
-            other => Failure::Content(other),
-        })?;
-    if format.upload_spec().is_none() {
-        return Err(Failure::Api(ApiError::BadRequest(format!(
-            "{} repositories do not take uploads",
-            format.id()
-        ))));
-    }
+        .map_err(|error| repository_failure(error, &repository))?;
+    require_upload_spec(&*format)?;
     let mut form = UploadForm::default();
     let temporary = state.data_dir().join("tmp");
     let _ = tokio::fs::create_dir_all(&temporary).await;
@@ -1116,17 +1135,7 @@ async fn upload_inner(
             }
         }
     }
-    format
-        .upload(ctx, form)
-        .await
-        .map_err(|error| match error {
-            ContentError::Unauthorized => Failure::Api(ApiError::Unauthorized),
-            ContentError::Forbidden => Failure::Api(ApiError::forbidden()),
-            ContentError::BadRequest(message) | ContentError::Conflict(message) => {
-                Failure::Api(ApiError::BadRequest(message))
-            }
-            other => Failure::Content(other),
-        })?;
+    submit(ctx, &*format, form).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

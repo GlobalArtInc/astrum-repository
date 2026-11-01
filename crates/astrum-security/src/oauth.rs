@@ -689,6 +689,10 @@ impl Security {
         })
     }
 
+    pub async fn subject_of(&self, user_id: &str, user_realm: &str) -> Option<Subject> {
+        self.grant_subject(user_id, user_realm).await
+    }
+
     async fn grant_subject(&self, user_id: &str, user_realm: &str) -> Option<Subject> {
         let model = self.model();
         match user_realm {

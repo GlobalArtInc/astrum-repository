@@ -4,7 +4,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::permission::Permission;
-use crate::privilege::SelectorGrant;
+use crate::privilege::{Action, SelectorGrant};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -73,6 +73,27 @@ impl Subject {
             .any(|granted| granted.implies(permission))
     }
 
+    pub fn may_add_content(&self) -> bool {
+        const ADD: [Option<&str>; 5] = [
+            Some("astrum"),
+            Some("repository-view"),
+            None,
+            None,
+            Some("add"),
+        ];
+        self.scope == Scope::Write
+            && (self
+                .permissions
+                .iter()
+                .any(|granted| granted.implies_shape(&ADD))
+                || self.selectors.iter().any(|grant| {
+                    grant
+                        .actions
+                        .iter()
+                        .any(|action| matches!(action, Action::Add | Action::All))
+                }))
+    }
+
     pub fn permissions(&self) -> &[Permission] {
         &self.permissions
     }
@@ -115,6 +136,53 @@ mod tests {
         assert!(!jane.is_permitted("astrum:users:delete"));
         assert!(jane.is_permitted("astrum:repository-view:maven2:central:add"));
         assert!(!jane.is_permitted("not a permission::"));
+    }
+
+    #[test]
+    fn adding_content_needs_an_add_grant_somewhere() {
+        for granted in [
+            "astrum:repository-view:maven2:central:add",
+            "astrum:repository-view:*:*:*",
+            "astrum:repository-view:npm:npm-hosted:read,add",
+            "astrum:*",
+        ] {
+            assert!(subject(&[granted]).may_add_content(), "{granted}");
+        }
+        for granted in [
+            "astrum:repository-view:maven2:central:browse,read,edit,delete",
+            "astrum:blobstores:*",
+            "astrum:users:read",
+        ] {
+            assert!(!subject(&[granted]).may_add_content(), "{granted}");
+        }
+        assert!(
+            !subject(&["astrum:*"])
+                .with_scope(Scope::Read)
+                .may_add_content()
+        );
+        let selected = |actions: Vec<Action>| {
+            Subject::new(
+                "jane",
+                "default",
+                crate::realm::LOCAL,
+                BTreeSet::new(),
+                vec![],
+                vec![SelectorGrant {
+                    selector: "docs".to_owned(),
+                    format: "raw".to_owned(),
+                    repository: "*".to_owned(),
+                    actions,
+                }],
+            )
+        };
+        assert!(selected(vec![Action::Read, Action::Add]).may_add_content());
+        assert!(selected(vec![Action::All]).may_add_content());
+        assert!(!selected(vec![Action::Read, Action::Browse]).may_add_content());
+        assert!(
+            !selected(vec![Action::Add])
+                .with_scope(Scope::Read)
+                .may_add_content()
+        );
     }
 
     #[test]

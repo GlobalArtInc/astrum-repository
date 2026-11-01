@@ -1,12 +1,13 @@
 mod loopback;
 mod tools;
+mod upload;
 
 use astrum_mcp::{Icon, Reply, ServerInfo, VERSION_HEADER};
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
-use axum::routing::post;
+use axum::routing::{post, put};
 use axum::{Extension, Router};
 use serde_json::json;
 
@@ -24,13 +25,22 @@ tokio::task_local! {
 pub fn client() -> Option<String> {
     CLIENT.try_with(Clone::clone).ok()
 }
+
+pub(crate) async fn scoped<F: Future>(client: String, future: F) -> F::Output {
+    CLIENT.scope(client, future).await
+}
+
 const INSTRUCTIONS: &str = "Astrum Repository keeps build artifacts: Maven, npm, Docker, Helm, PyPI, NuGet and other formats. \
 Find artifacts with search_components and list_versions, Docker tags with list_docker_tags, and read small text files such as \
 pom.xml or Chart.yaml with read_text_asset. list_blob_stores shows where blobs are kept and how much room is left; tasks run \
-cleanups and compactions. Writing tools change the server for everyone: say what you are about to change before you call them.";
+cleanups and compactions. To store a file, call request_upload and run the curl command it returns on the machine that holds \
+the file, so the file never passes through this conversation (upload_component is for files up to 64 KiB). \
+Writing tools change the server for everyone: say what you are about to change before you call them.";
 
 pub fn routes() -> Router<AppState> {
-    Router::new().route(PATH, post(serve).get(not_allowed).delete(not_allowed))
+    Router::new()
+        .route(PATH, post(serve).get(not_allowed).delete(not_allowed))
+        .route(upload::PATH, put(upload::receive))
 }
 
 fn server_info(base: &str) -> ServerInfo {
@@ -98,11 +108,14 @@ async fn serve(
         Some(Extension(AgentClient(name))) => name,
         None => "access token".to_owned(),
     };
+    let base = crate::routes::repositories::base_url(&headers, &uri);
     let handler = tools::AstrumTools::new(
         loopback::Loopback::new(&state, caller.clone(), &headers),
         subject.clone(),
+        state.clone(),
+        base.clone(),
     );
-    let info = server_info(&crate::routes::repositories::base_url(&headers, &uri));
+    let info = server_info(&base);
     let reply = CLIENT
         .scope(client, astrum_mcp::handle_body(&info, &handler, &body))
         .await;

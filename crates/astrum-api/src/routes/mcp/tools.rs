@@ -11,6 +11,8 @@ use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use serde_json::{Map, Value, json};
 
 use super::loopback::{Loopback, refusal};
+use super::upload;
+use crate::AppState;
 
 const SEGMENT: &AsciiSet = &CONTROLS
     .add(b' ')
@@ -32,6 +34,7 @@ const TAG_PAGES: usize = 10;
 #[derive(Clone, Copy)]
 enum Need {
     SignedIn,
+    AddContent,
     Permissions(&'static [&'static str]),
 }
 
@@ -423,17 +426,70 @@ fn defs() -> Vec<Def> {
             write: true,
             idempotent: true,
         },
+        Def {
+            name: "request_upload",
+            title: "Upload a file by one-time URL",
+            description: "Upload a file of any size to a hosted repository without passing it through this conversation: you get a one-time PUT URL and a curl command to run on the machine that holds the file. Use it for every file larger than a few KB and never paste file contents into the conversation. The URL works once, for five minutes, with your rights.",
+            schema: || {
+                schema(
+                    json!({
+                        "repository": string("Hosted repository to upload into"),
+                        "fileName": string("Name of the file as it is stored, without a path, such as app-1.0.tgz"),
+                        "fields": {
+                            "type": "object",
+                            "additionalProperties": { "type": "string" },
+                            "description": "Form fields of the format, such as directory for raw or groupId, artifactId, version and extension for maven2; a wrong name is answered with the valid ones",
+                        },
+                        "sizeBytes": { "type": "integer", "minimum": 1, "description": "Size of the file when you know it; a bigger upload is refused" },
+                    }),
+                    &["repository", "fileName"],
+                )
+            },
+            need: Need::AddContent,
+            write: true,
+            idempotent: false,
+        },
+        Def {
+            name: "upload_component",
+            title: "Upload a small file",
+            description: "Upload a file of at most 64 KiB given as base64 to a hosted repository. For a file larger than a few KB use request_upload; do not paste file contents into the conversation.",
+            schema: || {
+                schema(
+                    json!({
+                        "repository": string("Hosted repository to upload into"),
+                        "fileName": string("Name of the file as it is stored, without a path"),
+                        "contentBase64": string("Content of the file in standard base64 without line breaks"),
+                        "fields": {
+                            "type": "object",
+                            "additionalProperties": { "type": "string" },
+                            "description": "Form fields of the format, such as directory for raw or groupId, artifactId, version and extension for maven2; a wrong name is answered with the valid ones",
+                        },
+                    }),
+                    &["repository", "fileName", "contentBase64"],
+                )
+            },
+            need: Need::AddContent,
+            write: true,
+            idempotent: false,
+        },
     ]
 }
 
 pub struct AstrumTools {
     loopback: Loopback,
     subject: Subject,
+    state: AppState,
+    base: String,
 }
 
 impl AstrumTools {
-    pub fn new(loopback: Loopback, subject: Subject) -> Self {
-        Self { loopback, subject }
+    pub fn new(loopback: Loopback, subject: Subject, state: AppState, base: String) -> Self {
+        Self {
+            loopback,
+            subject,
+            state,
+            base,
+        }
     }
 
     fn allowed(&self, def: &Def) -> bool {
@@ -442,6 +498,7 @@ impl AstrumTools {
         }
         match def.need {
             Need::SignedIn => true,
+            Need::AddContent => self.subject.may_add_content(),
             Need::Permissions(permissions) => permissions
                 .iter()
                 .all(|permission| self.subject.is_permitted(permission)),
@@ -531,6 +588,12 @@ impl Handler for AstrumTools {
             "create_role" => create_role(api, &arguments).await,
             "update_role" => update_role(api, &arguments).await,
             "set_user_roles" => set_user_roles(api, &arguments).await,
+            "request_upload" => {
+                upload::request_upload(&self.state, &self.subject, &self.base, &arguments).await
+            }
+            "upload_component" => {
+                upload::upload_component(&self.state, &self.subject, &self.base, &arguments).await
+            }
             other => Err(ToolError::Unknown(other.to_owned())),
         }
     }
@@ -1527,7 +1590,9 @@ mod tests {
                 "set_repository_online",
                 "create_role",
                 "update_role",
-                "set_user_roles"
+                "set_user_roles",
+                "request_upload",
+                "upload_component"
             ]
         );
     }
