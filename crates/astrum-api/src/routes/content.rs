@@ -92,6 +92,23 @@ pub async fn context(
     headers: &axum::http::HeaderMap,
     uri: &axum::http::Uri,
 ) -> Result<(Ctx, std::sync::Arc<dyn astrum_content::Format>), ContentError> {
+    context_at(
+        state,
+        caller,
+        name,
+        base_url(headers, uri),
+        crate::auth::client_address().unwrap_or_else(|| client_ip(headers)),
+    )
+    .await
+}
+
+pub async fn context_at(
+    state: &AppState,
+    caller: Caller,
+    name: &str,
+    base: String,
+    address: String,
+) -> Result<(Ctx, std::sync::Arc<dyn astrum_content::Format>), ContentError> {
     let repository = state
         .content()
         .repository(name)
@@ -115,8 +132,8 @@ pub async fn context(
         repository,
         state.security().model(),
         caller.0,
-        base_url(headers, uri),
-        crate::auth::client_address().unwrap_or_else(|| client_ip(headers)),
+        base,
+        address,
     );
     Ok((ctx, format))
 }

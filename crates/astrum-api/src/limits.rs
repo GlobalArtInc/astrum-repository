@@ -20,6 +20,10 @@ pub const OAUTH_REQUESTS: Rate = Rate {
     burst: 30.0,
     per_second: 0.5,
 };
+pub const UPLOAD_ATTEMPTS: Rate = Rate {
+    burst: 30.0,
+    per_second: 1.0,
+};
 const PRUNE_ABOVE: usize = 50_000;
 const IDLE: Duration = Duration::from_secs(3600);
 

@@ -59,6 +59,24 @@ impl Permission {
             .all(|part| *part == Part::Any)
     }
 
+    pub fn implies_shape(&self, shape: &[Option<&str>]) -> bool {
+        for (index, wanted) in shape.iter().enumerate() {
+            match (self.parts.get(index), wanted) {
+                (None, _) => return true,
+                (Some(Part::Any), _) | (Some(Part::Set(_)), None) => {}
+                (Some(Part::Set(granted)), Some(wanted)) => {
+                    if !granted.contains(*wanted) {
+                        return false;
+                    }
+                }
+            }
+        }
+        self.parts
+            .iter()
+            .skip(shape.len())
+            .all(|part| *part == Part::Any)
+    }
+
     pub fn last_values(&self) -> Option<BTreeSet<&str>> {
         match self.parts.last()? {
             Part::Any => None,
@@ -131,6 +149,27 @@ mod tests {
             "astrum:repository-view:*:*:*",
             "astrum:repository-view:npm:x:delete"
         ));
+    }
+
+    #[test]
+    fn a_shape_leaves_some_parts_to_the_grant() {
+        let shape = [
+            Some("astrum"),
+            Some("repository-view"),
+            None,
+            None,
+            Some("add"),
+        ];
+        let reaches = |granted: &str| Permission::parse(granted).unwrap().implies_shape(&shape);
+        assert!(reaches("astrum:repository-view:maven2:central:add"));
+        assert!(reaches("astrum:repository-view:maven2:central:read,add"));
+        assert!(reaches("astrum:repository-view:maven2"));
+        assert!(reaches("astrum:*"));
+        assert!(reaches("*"));
+        assert!(!reaches("astrum:repository-view:maven2:central:read"));
+        assert!(!reaches("astrum:repository-view:*:*:edit,delete"));
+        assert!(!reaches("astrum:blobstores:*"));
+        assert!(!reaches("astrum:repository-view:maven2:central:add:own"));
     }
 
     #[test]

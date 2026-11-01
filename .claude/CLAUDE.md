@@ -56,6 +56,10 @@ repository is public: never commit secrets.
   those of REST. OAuth 2.1 for agents (`crates/astrum-security/src/oauth.rs`, `crates/astrum-api/src/routes/oauth.rs`,
   consent page `web/src/areas/user/AuthorizePage.tsx`): dynamic registration, PKCE S256, tokens `astrum_at_`/`astrum_rt_`
   accepted only on `/mcp`; rate limits in `crates/astrum-api/src/limits.rs`; MCP changes carry `via: mcp` in audit.
+  Packages do not travel through the agent's context: `request_upload` stores a one-time ticket (table
+  `mcp_upload_ticket`, only the hash of the secret, five minutes) and returns `PUT /mcp/upload/<ticket>`, which
+  the agent calls with `curl -T`; the body goes through the code of the REST component upload
+  (`crates/astrum-api/src/routes/mcp/upload.rs`); `upload_component` is the base64 variant for files up to 64 KiB.
 - Monitoring capabilities (`crates/astrum-api/src/routes/capabilities.rs`, `docs/operate/monitoring.md`):
   `metrics.prometheus` serves `GET /service/metrics/prometheus` (`crates/astrum-api/src/metrics.rs`, a
   hand-written text exposition; request counters come from a layer in `on_domains`, the rest is measured

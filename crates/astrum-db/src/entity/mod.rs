@@ -11,6 +11,7 @@ pub mod content_selector;
 pub mod docker_upload;
 pub mod format_token;
 pub mod gitlfs_lock;
+pub mod mcp_upload_ticket;
 pub mod oauth_authorization;
 pub mod oauth_client;
 pub mod oauth_grant;
