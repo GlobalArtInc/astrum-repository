@@ -426,3 +426,115 @@ async fn groups_refuse_folder_deletes_and_proxies_take_them() {
         .json();
     assert_eq!(kinds_and_names(&lib), pairs(&[("component", "2.0")]));
 }
+
+async fn stamped() -> Fixture {
+    let fixture = ready().await;
+    raw_hosted(&fixture, "stamped").await;
+    for path in [
+        "/alpha/old.txt",
+        "/aaa.txt",
+        "/beta/mid.txt",
+        "/zeta.txt",
+        "/gamma/first.txt",
+        "/gamma/newest.txt",
+    ] {
+        put(&fixture, &format!("/repository/stamped{path}"), "x").await;
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    fixture
+}
+
+async fn listing(fixture: &Fixture, query: &str) -> Reply {
+    get(
+        fixture,
+        &format!("{BROWSE}/stamped?path={query}"),
+        Auth::Admin,
+    )
+    .await
+}
+
+#[tokio::test]
+async fn recent_sort_puts_the_newest_first_inside_each_rank_and_folders_carry_a_date() {
+    let fixture = stamped().await;
+    let recent = listing(&fixture, "&sort=recent").await;
+    assert_eq!(recent.status, StatusCode::OK, "{}", recent.text());
+    let recent = recent.json();
+    assert_eq!(
+        kinds_and_names(&recent),
+        pairs(&[
+            ("asset", "zeta.txt"),
+            ("asset", "aaa.txt"),
+            ("folder", "gamma"),
+            ("folder", "beta"),
+            ("folder", "alpha"),
+        ])
+    );
+    let gamma = browse(&fixture, "stamped", "gamma", Auth::Admin)
+        .await
+        .json();
+    let newest = gamma["children"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|node| node["name"] == "newest.txt")
+        .unwrap();
+    assert!(recent["children"][2]["lastModified"].is_string());
+    assert_eq!(
+        recent["children"][2]["lastModified"],
+        newest["lastModified"]
+    );
+}
+
+#[tokio::test]
+async fn name_sort_is_the_default_and_unchanged_and_folders_carry_a_date() {
+    let fixture = stamped().await;
+    let expected = pairs(&[
+        ("asset", "aaa.txt"),
+        ("asset", "zeta.txt"),
+        ("folder", "alpha"),
+        ("folder", "beta"),
+        ("folder", "gamma"),
+    ]);
+    let default = listing(&fixture, "").await.json();
+    assert_eq!(kinds_and_names(&default), expected);
+    assert!(default["children"][2]["lastModified"].is_string());
+    assert_eq!(
+        kinds_and_names(&listing(&fixture, "&sort=name").await.json()),
+        expected
+    );
+}
+
+#[tokio::test]
+async fn unknown_sort_answers_400() {
+    let fixture = stamped().await;
+    assert_eq!(
+        listing(&fixture, "&sort=bogus").await.status,
+        StatusCode::BAD_REQUEST
+    );
+}
+
+#[tokio::test]
+async fn recent_sort_cuts_to_the_newest_children_before_the_limit() {
+    let fixture = stamped().await;
+    let cut = get(
+        &fixture,
+        &format!("{BROWSE}/stamped?path=gamma&sort=recent&limit=1"),
+        Auth::Admin,
+    )
+    .await
+    .json();
+    assert_eq!(cut["truncated"], true);
+    assert_eq!(kinds_and_names(&cut), pairs(&[("asset", "newest.txt")]));
+    let root = get(
+        &fixture,
+        &format!("{BROWSE}/stamped?path=&sort=recent&limit=1"),
+        Auth::Admin,
+    )
+    .await
+    .json();
+    assert_eq!(root["truncated"], true);
+    assert_eq!(
+        kinds_and_names(&root),
+        pairs(&[("asset", "zeta.txt"), ("folder", "gamma")])
+    );
+}

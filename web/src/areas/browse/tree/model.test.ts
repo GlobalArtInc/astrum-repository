@@ -7,6 +7,7 @@ import {
   expandAlone,
   findNode,
   flatten,
+  isPreRelease,
   keyAction,
   type Loaded,
   nodeRows,
@@ -160,6 +161,26 @@ describe('search results in the tree', () => {
     expect(searchTarget('1.0.0', ['/left-pad/-/left-pad-1.0.0.tgz'])).toBe('/left-pad/-/left-pad-1.0.0.tgz');
     expect(searchTarget('', ['/docs/a.txt'])).toBe('/docs/a.txt');
     expect(searchTarget('1.0', [])).toBe('');
+  });
+});
+
+describe('pre-release versions', () => {
+  const component = (name: string): TreeNode => ({ kind: 'component', name, path: `/${name}/` });
+
+  it('marks the versions whose suffix names a pre-release', () => {
+    expect(isPreRelease(component('0.2.0-rc.1'), 'maven2')).toBe(true);
+    expect(isPreRelease(component('1.0.0-SNAPSHOT'), 'maven2')).toBe(true);
+    expect(isPreRelease(component('2.0.0-beta2'), 'npm')).toBe(true);
+    expect(isPreRelease(component('0.2.0'), 'maven2')).toBe(false);
+    expect(isPreRelease(component('latest'), 'docker')).toBe(false);
+    expect(isPreRelease(component('main'), 'git')).toBe(false);
+    expect(isPreRelease(component('rc-tools'), 'npm')).toBe(false);
+  });
+
+  it('marks only components and docker tags', () => {
+    expect(isPreRelease(asset('/1.0.0-rc.1'), 'docker')).toBe(true);
+    expect(isPreRelease(asset('/1.0.0-rc.1'), 'raw')).toBe(false);
+    expect(isPreRelease(folder('/1.0.0-rc.1/'), 'maven2')).toBe(false);
   });
 });
 

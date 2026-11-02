@@ -9,6 +9,7 @@ use astrum_repo::{Repository, RepositoryType};
 use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::routing::get;
+use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::{
     ColumnTrait, ConnectionTrait, EntityTrait, FromQueryResult, QueryFilter, QuerySelect,
 };
@@ -36,6 +37,16 @@ pub fn routes() -> Router<AppState> {
 struct BrowseQuery {
     path: Option<String>,
     limit: Option<usize>,
+    #[serde(default)]
+    sort: Sort,
+}
+
+#[derive(Clone, Copy, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum Sort {
+    #[default]
+    Name,
+    Recent,
 }
 
 #[derive(Debug, FromQueryResult)]
@@ -45,6 +56,7 @@ struct FolderRow {
     components: i64,
     component: Option<i64>,
     loose: Option<bool>,
+    modified: DateTimeWithTimeZone,
 }
 
 #[derive(Clone, Serialize)]
@@ -192,6 +204,7 @@ async fn tree(
     let (ctx, reach) = located(&state, &caller, &name).await?;
     let prefix = folder(query.path.as_deref())?;
     let limit = query.limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT);
+    let sort = query.sort;
     let repository = ctx.repository.clone();
     let layout = layout_of(&state, &repository);
     let readers: Vec<Arc<Repository>> = match repository.kind {
@@ -205,11 +218,11 @@ async fn tree(
     let mut truncated = false;
     if !reader_names.is_empty() {
         let (folders, more_folders) =
-            folders(&state, &reach, &layout, &reader_names, &prefix, limit).await?;
+            folders(&state, &reach, &layout, &reader_names, &prefix, limit, sort).await?;
         let (assets, more_assets) =
-            assets(&state, &reach, &layout, &reader_names, &prefix, limit).await?;
+            assets(&state, &reach, &layout, &reader_names, &prefix, limit, sort).await?;
         truncated = more_folders || more_assets;
-        children = nodes(&state, &base.0, &repository, &prefix, folders, assets).await?;
+        children = nodes(&state, &base.0, &repository, &prefix, folders, assets, sort).await?;
     }
     if prefix == "/" && reach.visible() {
         for path in layout.generated {
@@ -277,12 +290,20 @@ async fn folders(
     readers: &[String],
     prefix: &str,
     limit: usize,
+    sort: Sort,
 ) -> Result<(Vec<FolderRow>, bool), ApiError> {
     let mut sql = Sql::default();
     let (from, start) = source(&mut sql, reach, layout, readers, prefix);
-    let inner = format!("SELECT {}", from.replace("{columns}", "a.component_id"));
+    let inner = format!(
+        "SELECT {}",
+        from.replace("{columns}", "a.component_id, a.blob_updated_at")
+    );
+    let order = match sort {
+        Sort::Name => "1",
+        Sort::Recent => "max(blob_updated_at) DESC, 1",
+    };
     let query = format!(
-        "SELECT split_part(rest, '/', 1) AS name, count(DISTINCT split_part(rest, '/', 2))::bigint AS children, count(DISTINCT component_id)::bigint AS components, min(component_id) AS component, bool_or(component_id IS NULL) AS loose FROM (SELECT substr(s.tree_path, {start}) AS rest, s.component_id FROM ({inner}) s) x WHERE strpos(rest, '/') > 0 GROUP BY 1 ORDER BY 1 LIMIT {}",
+        "SELECT split_part(rest, '/', 1) AS name, count(DISTINCT split_part(rest, '/', 2))::bigint AS children, count(DISTINCT component_id)::bigint AS components, min(component_id) AS component, bool_or(component_id IS NULL) AS loose, max(blob_updated_at) AS modified FROM (SELECT substr(s.tree_path, {start}) AS rest, s.component_id, s.blob_updated_at FROM ({inner}) s) x WHERE strpos(rest, '/') > 0 GROUP BY 1 ORDER BY {order} LIMIT {}",
         limit + 1
     );
     let mut rows = FolderRow::find_by_statement(sql.statement(&query))
@@ -300,11 +321,16 @@ async fn assets(
     readers: &[String],
     prefix: &str,
     limit: usize,
+    sort: Sort,
 ) -> Result<(Vec<(String, store::Asset)>, bool), ApiError> {
     let mut sql = Sql::default();
     let (from, start) = source(&mut sql, reach, layout, readers, prefix);
+    let order = match sort {
+        Sort::Name => "s.tree_path",
+        Sort::Recent => "s.blob_updated_at DESC, s.tree_path",
+    };
     let query = format!(
-        "SELECT * FROM (SELECT {}) s WHERE strpos(substr(s.tree_path, {start}), '/') = 0 ORDER BY s.tree_path LIMIT {}",
+        "SELECT * FROM (SELECT {}) s WHERE strpos(substr(s.tree_path, {start}), '/') = 0 ORDER BY {order} LIMIT {}",
         from.replace("{columns}", "a.*"),
         limit + 1
     );
@@ -379,6 +405,13 @@ fn tree_order(a: &Node, b: &Node) -> Ordering {
     })
 }
 
+fn recent_order(a: &Node, b: &Node) -> Ordering {
+    rank(a)
+        .cmp(&rank(b))
+        .then_with(|| b.last_modified.cmp(&a.last_modified))
+        .then_with(|| tree_order(a, b))
+}
+
 async fn nodes(
     state: &AppState,
     base: &str,
@@ -386,6 +419,7 @@ async fn nodes(
     prefix: &str,
     folders: Vec<FolderRow>,
     assets: Vec<(String, store::Asset)>,
+    sort: Sort,
 ) -> Result<Vec<Node>, ApiError> {
     let wanted: BTreeSet<i64> = folders
         .iter()
@@ -412,6 +446,7 @@ async fn nodes(
         .into_iter()
         .map(|row| {
             let path = format!("{prefix}{}/", row.name);
+            let modified = time(row.modified);
             let single = (row.components == 1 && row.loose == Some(false))
                 .then_some(row.component)
                 .flatten()
@@ -423,9 +458,13 @@ async fn nodes(
                     component_id: Some(ids::encode(&found.repository, found.id)),
                     component: Some(coordinates(found)),
                     repository: Some(found.repository.clone()),
+                    last_modified: Some(modified),
                     ..Node::folder(row.name, path, row.children)
                 },
-                None => Node::folder(row.name, path, row.children),
+                None => Node {
+                    last_modified: Some(modified),
+                    ..Node::folder(row.name, path, row.children)
+                },
             }
         })
         .collect();
@@ -455,7 +494,10 @@ async fn nodes(
             path: place,
         }
     }));
-    children.sort_by(tree_order);
+    match sort {
+        Sort::Name => children.sort_by(tree_order),
+        Sort::Recent => children.sort_by(recent_order),
+    }
     Ok(children)
 }
 
@@ -654,5 +696,31 @@ mod tests {
         nodes.sort_by(tree_order);
         let names: Vec<&str> = nodes.iter().map(|node| node.name.as_str()).collect();
         assert_eq!(names, ["b.txt", "1.0.0", "10", "9", "a", "Q", "index.yaml"]);
+    }
+
+    fn dated(kind: &'static str, name: &str, component: bool, stamp: &str) -> Node {
+        Node {
+            last_modified: Some(stamp.to_owned()),
+            ..node(kind, name, component)
+        }
+    }
+
+    #[test]
+    fn recent_order_keeps_ranks_and_puts_newest_first_inside_each() {
+        let mut nodes = [
+            dated("asset", "old.txt", false, "2026-01-01T00:00:00.000+00:00"),
+            dated("folder", "a", false, "2026-01-02T00:00:00.000+00:00"),
+            dated("folder", "b", false, "2026-03-01T00:00:00.000+00:00"),
+            dated("component", "1.0.0", true, "2026-02-01T00:00:00.000+00:00"),
+            dated("component", "2.0.0", true, "2026-02-01T00:00:00.000+00:00"),
+            dated("component", "0.9.0", true, "2026-05-01T00:00:00.000+00:00"),
+            dated("asset", "new.txt", false, "2026-06-01T00:00:00.000+00:00"),
+        ];
+        nodes.sort_by(recent_order);
+        let names: Vec<&str> = nodes.iter().map(|node| node.name.as_str()).collect();
+        assert_eq!(
+            names,
+            ["0.9.0", "1.0.0", "2.0.0", "b", "a", "new.txt", "old.txt"]
+        );
     }
 }

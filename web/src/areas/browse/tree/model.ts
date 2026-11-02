@@ -27,6 +27,18 @@ export function isBranch(node: TreeNode): boolean {
   return node.kind !== 'asset';
 }
 
+const PRE_RELEASE = /^(rc|alpha|beta|pre|preview|snapshot|dev|nightly|canary)\d*$/i;
+
+export function isPreRelease(node: TreeNode, format: string): boolean {
+  if (node.kind !== 'component' && !(node.kind === 'asset' && format === 'docker')) {
+    return false;
+  }
+  return node.name
+    .split(/[._+-]/)
+    .slice(1)
+    .some((token) => PRE_RELEASE.test(token));
+}
+
 function decodeSegment(segment: string): string {
   try {
     return decodeURIComponent(segment);

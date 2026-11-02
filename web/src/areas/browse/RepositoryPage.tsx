@@ -1,4 +1,4 @@
-import { Badge, Button, Heading, IconButton, Text, TextField } from '@radix-ui/themes';
+import { Badge, Button, Heading, IconButton, SegmentedControl, Text, TextField } from '@radix-ui/themes';
 import { useQueries } from '@tanstack/react-query';
 import { Copy, FolderOpen, FolderX, RefreshCw, Search, Settings, X } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
@@ -42,9 +42,11 @@ import {
   type RepositoryItem,
   type TreeListing,
   type TreeNode,
+  type TreeSort,
 } from './types';
 
 export const WIDTH_KEY = 'astrum.browse.treeWidth';
+export const SORT_KEY = 'astrum.browse.treeSort';
 const DEFAULT_WIDTH = 340;
 const MIN_WIDTH = 220;
 
@@ -83,6 +85,20 @@ function useTreeWidth(): [number, (value: number) => void] {
     (value) => {
       setWidth(value);
       writeStored(WIDTH_KEY, String(value));
+    },
+  ];
+}
+
+function useTreeSort(): [TreeSort, (value: TreeSort) => void] {
+  const [sort, setSort] = useState<TreeSort>(() => {
+    const stored = readStored(SORT_KEY);
+    return stored === 'recent' || stored === 'name' ? stored : 'recent';
+  });
+  return [
+    sort,
+    (value) => {
+      setSort(value);
+      writeStored(SORT_KEY, value);
     },
   ];
 }
@@ -329,6 +345,7 @@ function Browser({ repository }: { repository: RepositoryItem }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(opened(selection)));
   const [filter, setFilter] = useState('');
   const [width, setWidth] = useTreeWidth();
+  const [sort, setSort] = useTreeSort();
   const split = useRef<HTMLDivElement>(null);
   const [room, setRoom] = useState(1200);
 
@@ -360,7 +377,7 @@ function Browser({ repository }: { repository: RepositoryItem }) {
   const folders = useMemo(() => [ROOT, ...[...expanded].filter((path) => path !== ROOT)], [expanded]);
   const listings = useQueries({
     queries: folders.map((folder) => {
-      const key = treePath(repository.name, folder);
+      const key = treePath(repository.name, folder, sort);
       return {
         queryKey: apiKey(key),
         queryFn: ({ signal }: { signal: AbortSignal }) => api.get<TreeListing>(key, { signal }),
@@ -440,9 +457,20 @@ function Browser({ repository }: { repository: RepositoryItem }) {
   const treePane = (
     <section className={styles.treePane} id="browse-tree" aria-label={treeLabel}>
       <div className={styles.paneHead}>
-        <Text as="p" size="3" weight="bold">
-          {title}
-        </Text>
+        <div className={styles.paneTitle}>
+          <Text as="p" size="3" weight="bold">
+            {title}
+          </Text>
+          <SegmentedControl.Root
+            size="1"
+            value={sort}
+            onValueChange={(next) => setSort(next === 'name' ? 'name' : 'recent')}
+            aria-label={t('browse.tree.sort.label')}
+          >
+            <SegmentedControl.Item value="recent">{t('browse.tree.sort.recent')}</SegmentedControl.Item>
+            <SegmentedControl.Item value="name">{t('browse.tree.sort.name')}</SegmentedControl.Item>
+          </SegmentedControl.Root>
+        </div>
         <TextField.Root
           type="search"
           value={filter}
