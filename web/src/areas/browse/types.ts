@@ -70,6 +70,8 @@ export interface TreeListing {
   children: TreeNode[];
 }
 
+export type TreeSort = 'recent' | 'name';
+
 export interface Checksums {
   md5?: string | null;
   sha1?: string | null;

@@ -115,7 +115,7 @@ function toggled(values: string[], value: string): string[] {
   return values.includes(value) ? values.filter((known) => known !== value) : [...values, value];
 }
 
-function SortHeader<K extends string>({
+export function SortHeader<K extends string>({
   column,
   label,
   sort,
@@ -185,7 +185,7 @@ function ExportButton({ label, onClick, title }: { label: string; onClick(): voi
   );
 }
 
-function usePaging(total: number, initial = 20) {
+export function usePaging(total: number, initial = 20) {
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(initial);
   const current = Math.min(page, pageCount(total, size) - 1);

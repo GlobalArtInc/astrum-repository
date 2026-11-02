@@ -38,13 +38,21 @@ function details(path: string, extra: Partial<AssetDetails> = {}): AssetDetails 
   };
 }
 
+function listed(query: string, respond: () => Response): Record<string, () => Response> {
+  return {
+    [`GET ${TREE}?${query}`]: respond,
+    [`GET ${TREE}?${query}&sort=recent`]: respond,
+  };
+}
+
 function server(extra: Record<string, () => Response> = {}) {
   const fake = fakeServer({
     [`GET ${LIST}`]: () => jsonResponse([repository('files', 'raw', 'hosted')]),
-    [`GET ${TREE}?path=%2F`]: () => jsonResponse(listing('files', '/', [folder('/a/', 2), file('/c.txt')])),
-    [`GET ${TREE}?path=%2Fa%2F`]: () =>
+    ...listed('path=%2F', () => jsonResponse(listing('files', '/', [folder('/a/', 2), file('/c.txt')]))),
+    ...listed('path=%2Fa%2F', () =>
       jsonResponse(listing('files', '/a/', [folder('/a/b/'), file('/a/one.txt')], true)),
-    [`GET ${TREE}?path=%2Fa%2Fb%2F`]: () => jsonResponse(listing('files', '/a/b/', [file('/a/b/two.txt')])),
+    ),
+    ...listed('path=%2Fa%2Fb%2F', () => jsonResponse(listing('files', '/a/b/', [file('/a/b/two.txt')]))),
     [`GET ${TREE}/asset?path=%2Fa%2Fb%2Ftwo.txt`]: () => jsonResponse(details('/a/b/two.txt')),
     [`GET ${TREE}/asset?path=%2Fc.txt`]: () => jsonResponse(details('/c.txt', { canDelete: false })),
     ...extra,
@@ -73,7 +81,8 @@ describe('the repository page', { timeout: 20_000 }, () => {
     expect(selected).toHaveAttribute('aria-selected', 'true');
     expect(within(tree).getByRole('treeitem', { name: /^a/ })).toHaveAttribute('aria-expanded', 'true');
     expect(await screen.findByRole('heading', { level: 2, name: 'two.txt' })).toBeInTheDocument();
-    expect(screen.getByText('7')).toBeInTheDocument();
+    const card = screen.getByText('Repository', { selector: 'dt' }).closest('dl') as HTMLElement;
+    expect(within(card).getByText('7')).toBeInTheDocument();
     expect(screen.getByText('b'.repeat(64))).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Download/ })).toHaveAttribute(
       'href',
@@ -106,7 +115,8 @@ describe('the repository page', { timeout: 20_000 }, () => {
     expect(screen.getByText('Image size, linux/arm64')).toBeInTheDocument();
     expect(screen.getByText('Unknown')).toBeInTheDocument();
     expect(screen.getByText('Manifest size')).toBeInTheDocument();
-    expect(screen.queryByText('Size')).toBeNull();
+    const card = screen.getByText('Repository', { selector: 'dt' }).closest('dl') as HTMLElement;
+    expect(within(card).queryByText('Size')).toBeNull();
   });
 
   it('moves through the tree with the keyboard and selects with Enter', async () => {
@@ -128,6 +138,21 @@ describe('the repository page', { timeout: 20_000 }, () => {
     await userEvent.click(within(tree).getByText('a', { exact: true }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files/a/'));
     expect(await screen.findByRole('heading', { level: 2, name: 'a' })).toBeInTheDocument();
+  });
+
+  it('lists the newest uploads first and keeps the order chosen by name', async () => {
+    const fake = server();
+    page('/browse/files');
+    await waitFor(() =>
+      expect(fake.calls.map((call) => call.path)).toContain(`${TREE}?path=%2F&sort=recent`),
+    );
+    const before = fake.calls.length;
+    await userEvent.click(await screen.findByRole('radio', { name: 'Name' }));
+    await waitFor(() =>
+      expect(fake.calls.slice(before).map((call) => call.path)).toContain(`${TREE}?path=%2F`),
+    );
+    expect(fake.calls.slice(before).some((call) => call.path.includes('sort='))).toBe(false);
+    expect(window.localStorage.getItem('astrum.browse.treeSort')).toBe('name');
   });
 
   it('deletes a folder after confirming and reports the counts', async () => {
@@ -187,6 +212,45 @@ describe('the repository page', { timeout: 20_000 }, () => {
     const results = await screen.findByRole('list', { name: 'Search results' }, { timeout: 3000 });
     await userEvent.click(within(results).getByRole('button', { name: /two\.txt/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files/a/b/two.txt'));
+  });
+
+  it('shows the tags of a docker image folder in a table, newest first', async () => {
+    const images = '/service/rest/internal/ui/browse/images';
+    server({
+      [`GET ${LIST}`]: () =>
+        jsonResponse([repository('files', 'raw', 'hosted'), repository('images', 'docker', 'hosted')]),
+      [`GET ${images}?path=%2F&sort=recent`]: () => jsonResponse(listing('images', '/', [folder('/app/')])),
+      [`GET ${images}?path=%2Fapp%2F&sort=recent`]: () =>
+        jsonResponse(
+          listing('images', '/app/', [
+            {
+              kind: 'asset',
+              name: '1.0.0',
+              path: '/app/1.0.0',
+              lastModified: '2026-01-02T00:00:00.000Z',
+              size: 2048,
+              downloadCount: 7,
+            },
+            {
+              kind: 'asset',
+              name: '1.1.0-rc1',
+              path: '/app/1.1.0-rc1',
+              lastModified: '2026-03-01T00:00:00.000Z',
+              size: 2048,
+              downloadCount: 1,
+            },
+          ]),
+        ),
+    });
+    page('/browse/images/app/');
+    expect(await screen.findByRole('heading', { name: 'Tags' })).toBeInTheDocument();
+    const table = screen.getByRole('table');
+    expect(
+      within(table)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['1.1.0-rc1', '1.0.0']);
+    expect(within(table).getByText('Newest')).toBeInTheDocument();
   });
 
   it('stacks the tree and the details on a phone', async () => {

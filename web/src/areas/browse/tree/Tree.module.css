@@ -93,6 +93,34 @@
   font-size: 13px;
 }
 
+.label[data-pre="true"] {
+  color: var(--gray-11);
+}
+
+.pre {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  border: 1px solid var(--gray-a6);
+  border-radius: 4px;
+  background: var(--gray-a3);
+  color: var(--gray-11);
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.date {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 13px;
+  color: var(--gray-11);
+  white-space: nowrap;
+}
+
+.item[data-selected="true"] .date {
+  color: var(--accent-11);
+}
+
 .notice {
   display: flex;
   align-items: center;

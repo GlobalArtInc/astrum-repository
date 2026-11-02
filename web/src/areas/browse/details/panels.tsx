@@ -16,12 +16,16 @@ import {
   type RepositoryItem,
   type TreeListing,
   type TreeNode,
+  type TreeSort,
   UI_PATH,
 } from '../types';
 import { supportsUsage, type UsageContext, UsageSnippets } from '../usage';
+import { AssetSummary } from './AssetSummary';
 import { DeleteButton } from './DeleteButton';
 import styles from './Details.module.css';
 import { FilePreview } from './FilePreview';
+import { VersionsTable } from './VersionsTable';
+import { isVersionNode } from './versions';
 
 export const SEARCH_READ = 'astrum:search:read';
 
@@ -30,8 +34,11 @@ export interface PanelProps {
   onNavigate(path: string): void;
 }
 
-export function treePath(repository: string, folder: string): string {
-  return withQuery(`${UI_PATH}${path`/browse/${repository}`}`, { path: folder });
+export function treePath(repository: string, folder: string, sort?: TreeSort): string {
+  return withQuery(`${UI_PATH}${path`/browse/${repository}`}`, {
+    path: folder,
+    sort: sort === 'recent' ? sort : undefined,
+  });
 }
 
 export function assetPath(repository: string, file: string): string {
@@ -219,10 +226,11 @@ export function FolderPanel({ repository, node, onNavigate }: PanelProps & { nod
   const { language } = useI18n();
   const toast = useToast();
   const changed = useContentChanged();
-  const listing = useApi<TreeListing>(treePath(repository.name, node.path));
+  const listing = useApi<TreeListing>(treePath(repository.name, node.path, 'recent'));
   const deletable = repository.permissions.delete && repository.type !== 'group';
   const children = listing.data?.children ?? [];
   const folders = children.filter((child) => child.kind !== 'asset').length;
+  const versions = children.filter((child) => isVersionNode(child, repository.format));
   const count = (value: number) => (listing.data ? formatNumber(language, value) : '—');
   const remove = async () => {
     const result = await api.delete<FolderDeleted>(treePath(repository.name, node.path));
@@ -263,6 +271,13 @@ export function FolderPanel({ repository, node, onNavigate }: PanelProps & { nod
           </Text>
         )}
       </Card>
+      {versions.length > 0 && (
+        <VersionsTable
+          repository={repository}
+          nodes={versions}
+          truncated={listing.data?.truncated ?? false}
+        />
+      )}
       <DetailsCard
         items={[
           { id: 'repository', label: t('browse.details.repository'), value: repository.name },
@@ -611,6 +626,7 @@ function StoredAssetPanel({ repository, node, onNavigate }: PanelProps & { node:
             </>
           }
         />
+        <AssetSummary details={details} />
         <Usage
           context={{
             format: details.format,

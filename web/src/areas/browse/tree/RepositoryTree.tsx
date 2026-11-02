@@ -2,9 +2,9 @@ import { Button, Spinner, Text } from '@radix-ui/themes';
 import { ChevronRight, File, Folder, FolderOpen, Package, Tag } from 'lucide-react';
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { formatNumber, useI18n } from '../../../i18n';
-import { describeError } from '../../../ui';
+import { describeError, RelativeTime } from '../../../ui';
 import type { TreeNode } from '../types';
-import { keyAction, type Row, sameNode } from './model';
+import { isPreRelease, keyAction, type Row, sameNode } from './model';
 import styles from './Tree.module.css';
 
 export interface RepositoryTreeProps {
@@ -189,6 +189,7 @@ export function RepositoryTree({
     const isSelected = node.path === selected;
     const open = row.expanded === true;
     const branchNode = row.expanded !== undefined;
+    const preRelease = isPreRelease(node, format);
     return (
       <div
         key={node.path}
@@ -243,9 +244,16 @@ export function RepositoryTree({
             id={`${base}${encodeURIComponent(node.path)}`}
             className={styles.label}
             data-mono={format === 'docker' && node.kind === 'asset'}
+            data-pre={preRelease}
           >
             {node.name}
           </span>
+          {preRelease && <span className={styles.pre}>{t('browse.version.prerelease')}</span>}
+          {node.lastModified && (
+            <span className={styles.date}>
+              <RelativeTime value={node.lastModified} />
+            </span>
+          )}
         </div>
         {branch.children.length > 0 && (
           <div role="group" className={styles.group}>
