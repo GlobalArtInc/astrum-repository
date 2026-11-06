@@ -85,9 +85,9 @@ configuration objects, 39 MiB of hosted content) showed what to expect:
   refuses a bearer-token block without its token) and the credentials are set again by hand.
 - **Routing rules** of proxies are carried over: Astrum 3 accepts the rule as `routingRule`, as the
   tool sends it, as well as `routingRuleName`.
-- **Cleanup policies that keep the newest versions** (`retain`, `sortBy`) are refused by Astrum 3,
-  which does not have that criterion yet; recreate them with age and download criteria or keep them on the
-  list of open differences.
+- **Cleanup policies that keep the newest components** (`retain`, `sortBy`) are copied as they are, and
+  Astrum 3 accepts them with the meaning described on the [cleanup policies](../repositories/cleanup-policies.md)
+  page.
 - **Maven.** Astrum 3 derives `maven-metadata.xml`, the checksum files and `archetype-catalog.xml` on every
   read instead of storing them, so the REST API of the target lists fewer assets than the source (compare
   component counts, not asset counts). The tool skips these files when the target already serves them and

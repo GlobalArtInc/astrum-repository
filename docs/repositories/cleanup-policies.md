@@ -31,12 +31,20 @@ A component is deleted when it matches every criterion that is turned on.
 | **Release Type** | `criteriaReleaseType` | it is a release (`RELEASES`) or a pre-release (`PRERELEASES`), for the formats in the table below. The form offers **Releases and pre-releases**, **Releases** and **Pre-Releases/Snapshots** |
 | **Asset Name Pattern** | `criteriaAssetRegex` | at least one of its files has a path that matches the regular expression |
 
-Days are whole numbers from 1 to 36500. The form needs at least one of age, usage and pattern; **Release
-Type** narrows them. Over REST a policy may consist of the release type alone, and then deletes every
-component of that release type. A policy without criteria deletes nothing.
+Days are whole numbers from 1 to 36500. The form needs at least one of age, usage, pattern and **Keep the
+newest**; **Release Type** narrows them. Over REST a policy may consist of the release type alone, and then
+deletes every component of that release type. A policy without criteria deletes nothing.
 
-There is no criterion that keeps the newest versions of a package; the REST API refuses `retain` and
-`sortBy`.
+### Keep the newest
+
+**Keep the newest** (`retain`) keeps that many newest components of each name in a repository: components
+are grouped by namespace and name, and the newest are those whose files were stored most recently, the
+time **Component Age** uses. A component the other criteria match is deleted unless it is among them. For
+Docker a component is a tag, so keeping 15 keeps the 15 newest tags of each image. A policy with only
+**Keep the newest** deletes every component beyond the newest ones. Over REST `retain` is a whole number
+from 1 to 1000; `sortBy` may only be `lastBlobUpdated`, the default, and needs `retain`. In a format where
+every component has its own name, such as raw (where a component is a file), a group holds one component,
+so **Keep the newest** never deletes anything there.
 
 ### Release types
 

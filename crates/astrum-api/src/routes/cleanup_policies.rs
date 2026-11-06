@@ -79,7 +79,6 @@ fn public(policy: &Policy) -> Value {
     if let Value::Object(map) = &mut document {
         map.remove("inUseCount");
         map.remove("repositories");
-        map.remove("sortBy");
     }
     document
 }

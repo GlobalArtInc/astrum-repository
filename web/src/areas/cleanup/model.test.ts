@@ -36,6 +36,7 @@ const TEXTS = {
   days: 'days',
   regex: 'regex',
   regexInvalid: 'regexInvalid',
+  keep: 'keep',
 };
 
 function values(change: Partial<PolicyValues>): PolicyValues {
@@ -52,11 +53,12 @@ describe('cleanup policy values', () => {
       criteriaLastDownloaded: null,
       criteriaReleaseType: 'PRERELEASES',
       criteriaAssetRegex: '.*-SNAPSHOT.*',
+      retain: 3,
       inUseCount: 0,
       repositories: [],
     };
     const loaded = fromPolicy(policy);
-    expect(loaded).toMatchObject({ ageOn: true, age: '30', usageOn: false, regexOn: true });
+    expect(loaded).toMatchObject({ ageOn: true, age: '30', usageOn: false, regexOn: true, keep: 3 });
     expect(toRequest(loaded, available(FORMATS, 'maven2'))).toEqual({
       name: 'old-snapshots',
       format: 'maven2',
@@ -65,6 +67,7 @@ describe('cleanup policy values', () => {
       criteriaLastDownloaded: null,
       criteriaReleaseType: 'PRERELEASES',
       criteriaAssetRegex: '.*-SNAPSHOT.*',
+      retain: 3,
     });
   });
 

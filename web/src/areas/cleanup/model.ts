@@ -13,6 +13,7 @@ export const UPDATE = 'astrum:cleanup-policies:update';
 export const DELETE = 'astrum:cleanup-policies:delete';
 export const ALL_FORMATS = '*';
 export const MAX_DAYS = 36500;
+export const MAX_RETAIN = 1000;
 export const PAGE_SIZE = 25;
 
 export type ReleaseType = 'RELEASES' | 'PRERELEASES';
@@ -27,6 +28,7 @@ export interface Policy {
   criteriaLastDownloaded: number | null;
   criteriaReleaseType: ReleaseType | null;
   criteriaAssetRegex: string | null;
+  retain: number | null;
   inUseCount: number;
   repositories: string[];
 }
@@ -77,6 +79,7 @@ export interface PolicyValues {
   releaseType: ReleaseType | typeof ANY_RELEASE;
   regexOn: boolean;
   regex: string;
+  keep: number | null;
 }
 
 export function policyHref(name: string): string {
@@ -98,6 +101,7 @@ export const EMPTY_POLICY: PolicyValues = {
   releaseType: ANY_RELEASE,
   regexOn: false,
   regex: '',
+  keep: null,
 };
 
 export function fromPolicy(policy: Policy): PolicyValues {
@@ -112,6 +116,7 @@ export function fromPolicy(policy: Policy): PolicyValues {
     releaseType: policy.criteriaReleaseType ?? ANY_RELEASE,
     regexOn: policy.criteriaAssetRegex !== null,
     regex: policy.criteriaAssetRegex ?? '',
+    keep: policy.retain,
   };
 }
 
@@ -134,6 +139,7 @@ export function toRequest(values: PolicyValues, criteria: Set<string>) {
       criteria.has('isPrerelease') && values.releaseType !== ANY_RELEASE ? values.releaseType : null,
     criteriaAssetRegex:
       criteria.has('regex') && values.regexOn && values.regex.trim() !== '' ? values.regex.trim() : null,
+    retain: values.keep,
   };
 }
 
@@ -142,7 +148,8 @@ export function hasCriteria(values: PolicyValues, criteria: Set<string>): boolea
   return (
     request.criteriaLastBlobUpdated !== null ||
     request.criteriaLastDownloaded !== null ||
-    request.criteriaAssetRegex !== null
+    request.criteriaAssetRegex !== null ||
+    request.retain !== null
   );
 }
 
@@ -157,6 +164,7 @@ export interface PolicyTexts {
   days: string;
   regex: string;
   regexInvalid: string;
+  keep: string;
 }
 
 const NAME = /^[A-Za-z0-9-][A-Za-z0-9_.-]*$/;
@@ -216,6 +224,12 @@ export function validate(
     }
   }
   if (
+    values.keep !== null &&
+    (!Number.isInteger(values.keep) || values.keep < 1 || values.keep > MAX_RETAIN)
+  ) {
+    problems.keep = texts.keep;
+  }
+  if (
     values.format !== '' &&
     !hasCriteria(values, criteria) &&
     !problems.age &&
@@ -234,7 +248,7 @@ export function csvHref(values: PolicyValues, criteria: Set<string>, repository:
     query.set('name', request.name);
   }
   for (const [key, value] of Object.entries(request)) {
-    if (key.startsWith('criteria') && value !== null) {
+    if ((key.startsWith('criteria') || key === 'retain') && value !== null) {
       query.set(key, String(value));
     }
   }
