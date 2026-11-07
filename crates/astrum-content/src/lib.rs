@@ -14,6 +14,7 @@ pub mod routing;
 mod serve;
 pub mod store;
 pub mod transfer;
+pub mod usage;
 pub mod zip;
 
 use std::collections::HashMap;

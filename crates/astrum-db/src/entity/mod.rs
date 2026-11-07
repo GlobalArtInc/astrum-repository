@@ -16,6 +16,7 @@ pub mod oauth_authorization;
 pub mod oauth_client;
 pub mod oauth_grant;
 pub mod repository;
+pub mod repository_usage;
 pub mod routing_rule;
 pub mod security_oidc_user;
 pub mod security_privilege;

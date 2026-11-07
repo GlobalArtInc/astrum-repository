@@ -318,12 +318,24 @@ async fn record(
         Some(key) => Some(upsert_component(&txn, repository, format, key, now).await?),
         None => None,
     };
-    let previous = asset::Entity::find()
-        .filter(asset::Column::Repository.eq(repository))
-        .filter(asset::Column::Path.eq(&put.path))
-        .lock_exclusive()
-        .one(&txn)
-        .await?;
+    let previous = loop {
+        let seen = find(&txn, repository, &put.path).await?;
+        if let Some(old_component) = seen.as_ref().and_then(|seen| seen.component_id)
+            && Some(old_component) != component_id
+        {
+            lock_component(&txn, old_component).await?;
+        }
+        let locked = asset::Entity::find()
+            .filter(asset::Column::Repository.eq(repository))
+            .filter(asset::Column::Path.eq(&put.path))
+            .lock_exclusive()
+            .one(&txn)
+            .await?;
+        if locked.as_ref().map(|row| row.component_id) == seen.as_ref().map(|row| row.component_id)
+        {
+            break locked;
+        }
+    };
     if previous.is_some() && put.write_policy == Some(WritePolicy::AllowOnce) {
         return Err(redeploy(repository, &put.path));
     }
@@ -517,6 +529,16 @@ async fn insert_component_if_absent(
     Ok(inserted > 0)
 }
 
+async fn lock_component(db: &impl ConnectionTrait, component_id: i64) -> Result<(), ContentError> {
+    db.execute(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "SELECT 1 FROM component WHERE id = $1 FOR UPDATE",
+        [component_id.into()],
+    ))
+    .await?;
+    Ok(())
+}
+
 async fn drop_empty_component(
     db: &impl ConnectionTrait,
     component_id: i64,
@@ -605,8 +627,15 @@ pub async fn delete(ctx: &Ctx, path: &str) -> Result<bool, ContentError> {
 
 pub async fn delete_asset(content: &Content, found: Asset) -> Result<(), ContentError> {
     let txn = content.db().begin().await?;
+    let component_id = asset::Entity::find_by_id(found.id)
+        .one(&txn)
+        .await?
+        .map_or(found.component_id, |current| current.component_id);
+    if let Some(component_id) = component_id {
+        lock_component(&txn, component_id).await?;
+    }
     asset::Entity::delete_by_id(found.id).exec(&txn).await?;
-    if let Some(component_id) = found.component_id {
+    if let Some(component_id) = component_id {
         drop_empty_component(&txn, component_id).await?;
     }
     txn.commit().await?;
