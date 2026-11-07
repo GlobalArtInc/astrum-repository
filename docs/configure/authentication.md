@@ -192,3 +192,15 @@ password with them, and OpenID Connect users use an [access token](#access-token
 create a local service user with only the roles it needs, give it an access token and store the token
 in the CI system's secret store. Format-specific tokens (npm, Docker, NuGet, RubyGems, Terraform) can
 be issued for these users as described on the page of each [format](../formats/README.md).
+
+### Failed password checks
+
+Password checks sent with HTTP Basic authentication, and the Docker token endpoint, are throttled per
+user name and client address. After 10 wrong passwords within 5 minutes the same user name from the same
+address gets `429 Too Many Requests` with a `Retry-After` header (for Docker, the `TOOMANYREQUESTS`
+error), even with the right password; other addresses and other users are not affected. Access tokens
+are not throttled. The counters live in the memory of each node and reset when it restarts. The client
+address is the first `X-Forwarded-For` value, else `X-Real-IP`, else the TCP peer address, so a client
+that can set one of these headers can choose its address, and when no proxy sets any forwarded header all
+clients behind one proxy share a single address. A valid NuGet API key still works as the password while
+the user name and address are blocked.

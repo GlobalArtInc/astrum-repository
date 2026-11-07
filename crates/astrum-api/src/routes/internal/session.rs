@@ -1,6 +1,7 @@
 use astrum_db::audit::Event;
 use astrum_security::Subject;
 use astrum_security::catalogue::DEFAULT_SOURCE;
+use astrum_security::sessions::{KEY_ADDRESS_LENGTH, KEY_USER_LENGTH};
 use axum::Router;
 use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
@@ -53,16 +54,7 @@ async fn sign_in(
             tracing::info!(user, "a sign-in to the user interface failed");
             audit_failed_sign_in(&state, &user, SIGN_IN_PATH, &headers).await;
             if security.sign_in_blocked(&user) {
-                state
-                    .audit(
-                        &Caller(None),
-                        Event::new("security.auth.ratelimit", "blocked", &user).with(json!({
-                            "sourceIp": client_ip(&headers),
-                            "username": user,
-                            "authMethod": "UI",
-                        })),
-                    )
-                    .await;
+                audit_rate_limited(&state, &user, &client_ip(&headers), "UI").await;
             }
             return Ok(refused(
                 StatusCode::UNAUTHORIZED,
@@ -193,6 +185,21 @@ pub(crate) async fn audit_failed_sign_in(
                 "userAgent": user_agent,
                 "wasSuccessful": false,
                 "failureReasons": ["INCORRECT_CREDENTIALS"],
+            })),
+        )
+        .await;
+}
+
+pub(crate) async fn audit_rate_limited(state: &AppState, user: &str, address: &str, method: &str) {
+    let user: String = user.chars().take(KEY_USER_LENGTH).collect();
+    let address: String = address.chars().take(KEY_ADDRESS_LENGTH).collect();
+    state
+        .audit(
+            &Caller(None),
+            Event::new("security.auth.ratelimit", "blocked", &user).with(json!({
+                "sourceIp": address,
+                "username": user,
+                "authMethod": method,
             })),
         )
         .await;

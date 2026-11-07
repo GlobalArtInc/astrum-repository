@@ -24,6 +24,8 @@ pub enum ApiError {
     Unauthorized,
     #[error("{0}")]
     Forbidden(String),
+    #[error("too many failed sign-ins; wait a few minutes")]
+    TooManyAttempts(u64),
     #[error("the request body must be {0}")]
     UnsupportedMediaType(&'static str),
     #[error("{0}")]
@@ -98,6 +100,17 @@ impl IntoResponse for ApiError {
             }
             ApiError::Forbidden(message) => {
                 (StatusCode::FORBIDDEN, message_body(message)).into_response()
+            }
+            ApiError::TooManyAttempts(seconds) => {
+                let mut response = (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    message_body("too many failed sign-ins; wait a few minutes"),
+                )
+                    .into_response();
+                response
+                    .headers_mut()
+                    .insert(header::RETRY_AFTER, HeaderValue::from(seconds));
+                response
             }
             ApiError::UnsupportedMediaType(expected) => (
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,

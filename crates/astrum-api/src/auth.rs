@@ -119,6 +119,9 @@ async fn admit(state: AppState, mut request: Request, next: Next) -> Response {
         Err(ApiError::Unauthorized) if for_agents => {
             return crate::routes::mcp::challenge(request.headers(), request.uri(), true);
         }
+        Err(ApiError::TooManyAttempts(seconds)) if is_registry(request.uri().path()) => {
+            return registry_throttled(seconds);
+        }
         Err(error) => return without_challenge(error.into_response(), from_ui),
     };
     if let Some(client) = client {
@@ -160,14 +163,14 @@ async fn resolve(
                 (user, result)
             }
             Credentials::Basic(user, password) => {
-                let mut result = security.authenticate(&user, &password).await;
-                if matches!(result, Err(AuthError::BadCredentials))
-                    && api_keys::looks_like_api_key(&password)
-                {
-                    result = security
-                        .authenticate_api_key_as(api_keys::NUGET, &user, &password)
-                        .await;
-                }
+                let result = match check_password(state, &user, &password, "Basic", true).await {
+                    Ok(subject) => Ok(subject),
+                    Err(PasswordRefusal::Wrong) => Err(AuthError::BadCredentials),
+                    Err(PasswordRefusal::Throttled(seconds)) => {
+                        return Err(ApiError::TooManyAttempts(seconds));
+                    }
+                    Err(PasswordRefusal::Internal(error)) => Err(AuthError::Internal(error)),
+                };
                 (user, result)
             }
             Credentials::Token(token) => (
@@ -229,6 +232,94 @@ async fn resolve(
         return Ok((Caller(Some(session.subject)), None));
     }
     Ok((Caller(state.security().anonymous()), None))
+}
+
+#[derive(Debug)]
+pub enum PasswordRefusal {
+    Wrong,
+    Throttled(u64),
+    Internal(astrum_security::Error),
+}
+
+pub async fn check_password(
+    state: &AppState,
+    user: &str,
+    password: &str,
+    method: &str,
+    nuget_key_allowed: bool,
+) -> Result<Subject, PasswordRefusal> {
+    let security = state.security();
+    let address = client_address().unwrap_or_default();
+    let by_key = nuget_key_allowed && api_keys::looks_like_api_key(password);
+    if let Err(wait) = security.basic_attempt(user, &address) {
+        if by_key {
+            match security
+                .authenticate_api_key_as(api_keys::NUGET, user, password)
+                .await
+            {
+                Ok(subject) => return Ok(subject),
+                Err(AuthError::Internal(error)) => return Err(PasswordRefusal::Internal(error)),
+                Err(AuthError::BadCredentials) => {}
+            }
+        }
+        return Err(PasswordRefusal::Throttled(
+            wait.as_secs_f64().ceil().max(1.0) as u64,
+        ));
+    }
+    match security.authenticate(user, password).await {
+        Ok(subject) => {
+            security.basic_succeeded(user, &address);
+            return Ok(subject);
+        }
+        Err(AuthError::Internal(error)) => {
+            security.basic_refunded(user, &address);
+            return Err(PasswordRefusal::Internal(error));
+        }
+        Err(AuthError::BadCredentials) => {}
+    }
+    if by_key {
+        match security
+            .authenticate_api_key_as(api_keys::NUGET, user, password)
+            .await
+        {
+            Ok(subject) => {
+                security.basic_refunded(user, &address);
+                return Ok(subject);
+            }
+            Err(AuthError::Internal(error)) => {
+                security.basic_refunded(user, &address);
+                return Err(PasswordRefusal::Internal(error));
+            }
+            Err(AuthError::BadCredentials) => {}
+        }
+    }
+    if security.basic_failed(user, &address) && security.model().users.contains_key(user) {
+        session::audit_rate_limited(state, user, &address, method).await;
+    }
+    Err(PasswordRefusal::Wrong)
+}
+
+fn is_registry(path: &str) -> bool {
+    path == "/v2" || path.starts_with("/v2/")
+}
+
+pub fn registry_throttled(seconds: u64) -> Response {
+    let body = serde_json::json!({
+        "errors": [{
+            "code": "TOOMANYREQUESTS",
+            "message": "too many failed sign-ins; wait a few minutes",
+        }]
+    });
+    let mut response = (
+        axum::http::StatusCode::TOO_MANY_REQUESTS,
+        [(header::CONTENT_TYPE, "application/json")],
+        body.to_string(),
+    )
+        .into_response();
+    response
+        .headers_mut()
+        .insert(header::RETRY_AFTER, axum::http::HeaderValue::from(seconds));
+    response
 }
 
 fn audit_path(path: &str) -> String {

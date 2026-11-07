@@ -536,6 +536,29 @@ async fn hosted_repositories_take_ovsx_publish_and_serve_the_registry_api() {
 }
 
 #[tokio::test]
+async fn wrong_passwords_in_a_token_pause_the_pair() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("closed", "ALLOW")).await;
+    fixture.add_user("deployer", "deployer-password", &[]).await;
+    let wrong = "/repository/closed/api/acme/verify-pat?token=deployer:wrong";
+    for _ in 0..10 {
+        let reply = get(&fixture, wrong, Auth::None).await;
+        assert_eq!(reply.status, StatusCode::UNAUTHORIZED);
+    }
+    for token in ["deployer:wrong", "deployer:deployer-password"] {
+        let reply = get(
+            &fixture,
+            &format!("/repository/closed/api/acme/verify-pat?token={token}"),
+            Auth::None,
+        )
+        .await;
+        assert_eq!(reply.status, StatusCode::TOO_MANY_REQUESTS, "{token}");
+        assert!(reply.headers.contains_key("retry-after"));
+        assert!(reply.json()["error"].is_string());
+    }
+}
+
+#[tokio::test]
 async fn the_gallery_answers_editor_queries() {
     let fixture = ready().await;
     create(&fixture, "hosted", hosted("vsx", "ALLOW_ONCE")).await;
