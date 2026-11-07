@@ -61,6 +61,7 @@ astrum-logging = { path = "crates/astrum-logging" }
 astrum-notify = { path = "crates/astrum-notify" }
 astrum-policy = { path = "crates/astrum-policy" }
 astrum-repo = { path = "crates/astrum-repo" }
+astrum-scan = { path = "crates/astrum-scan" }
 astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }
 astrum-tasks = { path = "crates/astrum-tasks" }

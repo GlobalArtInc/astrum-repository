@@ -1532,6 +1532,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-scan"
+version = "3.0.4"
+
+[[package]]
 name = "astrum-security"
 version = "3.0.4"
 dependencies = [
