@@ -35,6 +35,9 @@ impl Server {
         let secrets = SecretBox::load_or_create(&config.secrets_key)?;
         let state = AppState::load(db, config.data_dir.clone(), secrets).await?;
         state.set_configuration(crate::config::summary(config));
+        state
+            .set_trusted_proxies(config.trusted_proxies.clone())
+            .map_err(|_| anyhow::anyhow!("the trusted proxies were set twice"))?;
         state.security().ldap().set_cache_ttl(config.ldap_cache_ttl);
         crate::formats::register(state.content());
         crate::formats::register_tasks(state.tasks());
@@ -54,6 +57,10 @@ impl Server {
 
     pub fn local_addr(&self) -> SocketAddr {
         self.address
+    }
+
+    pub fn state(&self) -> &AppState {
+        &self.state
     }
 
     pub fn with_logging(self, logging: astrum_logging::Logging) -> Self {

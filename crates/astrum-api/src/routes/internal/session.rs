@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use astrum_db::audit::Event;
 use astrum_security::Subject;
 use astrum_security::catalogue::DEFAULT_SOURCE;
@@ -10,8 +12,8 @@ use axum::routing::get;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::{INTERNAL, client_ip, is_https};
-use crate::auth::{CSRF_COOKIE, SESSION_COOKIE, cookie};
+use super::{INTERNAL, is_https};
+use crate::auth::{CSRF_COOKIE, SESSION_COOKIE, client_address, cookie};
 use crate::{ApiError, AppState, Caller, Json};
 
 const COOKIE_AGE: u64 = 400 * 24 * 60 * 60;
@@ -54,7 +56,7 @@ async fn sign_in(
             tracing::info!(user, "a sign-in to the user interface failed");
             audit_failed_sign_in(&state, &user, SIGN_IN_PATH, &headers).await;
             if security.sign_in_blocked(&user) {
-                audit_rate_limited(&state, &user, &client_ip(&headers), "UI").await;
+                audit_rate_limited(&state, &user, crate::client::current(), "UI").await;
             }
             return Ok(refused(
                 StatusCode::UNAUTHORIZED,
@@ -81,7 +83,7 @@ pub(crate) async fn begin(
         .unwrap_or_default();
     let session = state
         .security()
-        .open_session(subject, &client_ip(headers), user_agent)
+        .open_session(subject, &client_address().unwrap_or_default(), user_agent)
         .await?;
     let caller = Caller(Some(subject.clone()));
     state
@@ -181,7 +183,7 @@ pub(crate) async fn audit_failed_sign_in(
             Event::new("security.user", "authentication", "").with(json!({
                 "path": path,
                 "userId": user,
-                "remoteIp": client_ip(headers),
+                "remoteIp": client_address().unwrap_or_default(),
                 "userAgent": user_agent,
                 "wasSuccessful": false,
                 "failureReasons": ["INCORRECT_CREDENTIALS"],
@@ -190,9 +192,19 @@ pub(crate) async fn audit_failed_sign_in(
         .await;
 }
 
-pub(crate) async fn audit_rate_limited(state: &AppState, user: &str, address: &str, method: &str) {
+pub(crate) async fn audit_rate_limited(
+    state: &AppState,
+    user: &str,
+    address: Option<IpAddr>,
+    method: &str,
+) {
     let user: String = user.chars().take(KEY_USER_LENGTH).collect();
-    let address: String = address.chars().take(KEY_ADDRESS_LENGTH).collect();
+    let address: String = address
+        .map(|address| address.to_string())
+        .unwrap_or_default()
+        .chars()
+        .take(KEY_ADDRESS_LENGTH)
+        .collect();
     state
         .audit(
             &Caller(None),

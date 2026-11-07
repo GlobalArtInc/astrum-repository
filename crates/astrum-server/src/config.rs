@@ -2,6 +2,7 @@ use std::net::{Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use astrum_api::client::TrustedProxies;
 use astrum_db::{
     DEFAULT_MAX_CONNECTIONS, DEFAULT_SCHEMA, DatabaseConfig, DatabaseUrl, check_pool, check_schema,
 };
@@ -26,6 +27,7 @@ pub const ENV_LOG: &str = "ASTRUM_LOG";
 pub const ENV_LOG_FORMAT: &str = "ASTRUM_LOG_FORMAT";
 pub const ENV_SECRETS_KEY_FILE: &str = "ASTRUM_SECRETS_KEY_FILE";
 pub const ENV_WEB_DIR: &str = "ASTRUM_WEB_DIR";
+pub const ENV_TRUSTED_PROXIES: &str = "ASTRUM_TRUSTED_PROXIES";
 pub const ENV_LDAP_CACHE_TTL: &str = "ASTRUM_LDAP_CACHE_TTL";
 pub const ENV_CONNECTOR_TLS_CERTIFICATE: &str = "ASTRUM_CONNECTOR_TLS_CERTIFICATE";
 pub const ENV_CONNECTOR_TLS_KEY: &str = "ASTRUM_CONNECTOR_TLS_KEY";
@@ -40,6 +42,7 @@ pub struct Config {
     pub web_dir: PathBuf,
     pub ldap_cache_ttl: Duration,
     pub connectors: ConnectorConfig,
+    pub trusted_proxies: TrustedProxies,
     pub file: PathBuf,
     pub file_found: bool,
 }
@@ -108,6 +111,7 @@ struct FileConfig {
     listen: Option<String>,
     data_dir: Option<PathBuf>,
     secrets_key_file: Option<PathBuf>,
+    trusted_proxies: Option<Vec<String>>,
     #[serde(default)]
     database: FileDatabase,
     #[serde(default)]
@@ -155,6 +159,7 @@ struct FileLog {
 }
 
 enum Origin<'a> {
+    Flag(&'a str),
     Env(&'a str),
     File(&'a str),
 }
@@ -162,7 +167,7 @@ enum Origin<'a> {
 impl Origin<'_> {
     fn fail(&self, message: impl ToString) -> ConfigError {
         let name = match self {
-            Origin::Env(name) => (*name).to_owned(),
+            Origin::Flag(name) | Origin::Env(name) => (*name).to_owned(),
             Origin::File(key) => format!("{key} in the configuration file"),
         };
         ConfigError::Value {
@@ -186,6 +191,10 @@ pub fn summary(config: &Config) -> Vec<(String, String)> {
         (
             "ldapCacheTtl".to_owned(),
             format!("{}s", config.ldap_cache_ttl.as_secs()),
+        ),
+        (
+            "trustedProxies".to_owned(),
+            config.trusted_proxies.to_string(),
         ),
         ("log.configuredFilter".to_owned(), config.log.filter.clone()),
         (
@@ -272,6 +281,8 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         )));
     }
 
+    let trusted_proxies = trusted_proxies(cli, &env, parsed.trusted_proxies)?;
+
     let filter = match (env(ENV_LOG), parsed.log.filter) {
         (Some(value), _) => check_filter(value, Origin::Env(ENV_LOG))?,
         (None, Some(value)) => check_filter(value, Origin::File("log.filter"))?,
@@ -292,9 +303,34 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         web_dir,
         ldap_cache_ttl,
         connectors,
+        trusted_proxies,
         file,
         file_found,
     })
+}
+
+fn trusted_proxies(
+    cli: &Cli,
+    env: &dyn Fn(&str) -> Option<String>,
+    file: Option<Vec<String>>,
+) -> Result<TrustedProxies, ConfigError> {
+    let named = |entries: &[String]| entries.iter().any(|entry| !entry.trim().is_empty());
+    let from_env: Vec<String> = env(ENV_TRUSTED_PROXIES)
+        .map(|value| value.split(',').map(str::to_owned).collect())
+        .unwrap_or_default();
+    let (entries, origin) = if named(&cli.trusted_proxies) {
+        (
+            cli.trusted_proxies.clone(),
+            Origin::Flag("--trusted-proxies"),
+        )
+    } else if named(&from_env) {
+        (from_env, Origin::Env(ENV_TRUSTED_PROXIES))
+    } else if let Some(entries) = file {
+        (entries, Origin::File("trusted_proxies"))
+    } else {
+        return Ok(TrustedProxies::default());
+    };
+    TrustedProxies::parse(entries.iter().map(String::as_str)).map_err(|error| origin.fail(error))
 }
 
 fn read_file(path: &Path, required: bool) -> Result<Option<FileConfig>, ConfigError> {
@@ -468,6 +504,154 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(error.contains(ENV_CONNECTOR_TLS_KEY), "{error}");
+    }
+
+    #[test]
+    fn trusted_proxies_are_empty_unless_configured() {
+        let config = load(&Cli::default(), &env(&[])).unwrap();
+        assert!(config.trusted_proxies.is_empty());
+        assert!(summary(&config).contains(&("trustedProxies".to_owned(), String::new())));
+    }
+
+    #[test]
+    fn trusted_proxies_come_from_the_flag_the_environment_or_the_file() {
+        let listed = |config: &Config| config.trusted_proxies.to_string();
+        let flag = Cli {
+            trusted_proxies: vec!["10.0.0.0/8".to_owned(), " fd00::/16 ".to_owned()],
+            ..Cli::default()
+        };
+        assert_eq!(
+            listed(&load(&flag, &env(&[])).unwrap()),
+            "10.0.0.0/8, fd00::/16"
+        );
+        let parsed = <Cli as clap::Parser>::try_parse_from([
+            "astrum",
+            "--trusted-proxies",
+            "10.0.0.0/8,fd00::/16",
+        ])
+        .unwrap();
+        assert_eq!(
+            listed(&load(&parsed, &env(&[])).unwrap()),
+            "10.0.0.0/8, fd00::/16"
+        );
+        let variable = env(&[(ENV_TRUSTED_PROXIES, "192.0.2.1, 198.51.100.0/24,")]);
+        assert_eq!(
+            listed(&load(&Cli::default(), &variable).unwrap()),
+            "192.0.2.1/32, 198.51.100.0/24"
+        );
+        let dir = data_dir_with("trusted_proxies = [\"172.16.0.0/12\", \"2001:db8::1\"]\n");
+        assert_eq!(
+            listed(&load(&cli_in(dir.path()), &env(&[])).unwrap()),
+            "172.16.0.0/12, 2001:db8::1/128"
+        );
+        assert_eq!(
+            listed(&load(&cli_in(dir.path()), &variable).unwrap()),
+            "192.0.2.1/32, 198.51.100.0/24"
+        );
+        let flagged = Cli {
+            trusted_proxies: vec!["10.0.0.1".to_owned()],
+            ..cli_in(dir.path())
+        };
+        assert_eq!(listed(&load(&flagged, &variable).unwrap()), "10.0.0.1/32");
+        let blank = Cli {
+            trusted_proxies: vec![String::new()],
+            ..Cli::default()
+        };
+        assert!(load(&blank, &env(&[])).unwrap().trusted_proxies.is_empty());
+    }
+
+    #[test]
+    fn blank_trusted_proxies_count_as_unset_and_fall_through_to_the_next_source() {
+        let listed = |config: &Config| config.trusted_proxies.to_string();
+        let dir = data_dir_with("trusted_proxies = [\"172.16.0.0/12\"]\n");
+        for blank in ["", " ", ",", " , ,"] {
+            let variable = env(&[(ENV_TRUSTED_PROXIES, blank)]);
+            assert_eq!(
+                listed(&load(&cli_in(dir.path()), &variable).unwrap()),
+                "172.16.0.0/12",
+                "{blank:?}"
+            );
+            assert!(
+                load(&Cli::default(), &variable)
+                    .unwrap()
+                    .trusted_proxies
+                    .is_empty()
+            );
+        }
+        let variable = env(&[(ENV_TRUSTED_PROXIES, "192.0.2.1")]);
+        for blank in [vec![String::new()], vec![" ".to_owned(), String::new()]] {
+            let cli = Cli {
+                trusted_proxies: blank,
+                ..cli_in(dir.path())
+            };
+            assert_eq!(listed(&load(&cli, &variable).unwrap()), "192.0.2.1/32");
+            assert_eq!(listed(&load(&cli, &env(&[])).unwrap()), "172.16.0.0/12");
+        }
+    }
+
+    #[test]
+    fn an_invalid_trusted_proxy_is_an_error_naming_its_source() {
+        let flag = Cli {
+            trusted_proxies: vec!["10.0.0.0/8".to_owned(), "gateway".to_owned()],
+            ..Cli::default()
+        };
+        let error = load(&flag, &env(&[])).unwrap_err().to_string();
+        assert!(error.starts_with("--trusted-proxies"), "{error}");
+        assert!(error.contains("\"gateway\""), "{error}");
+        let error = load(
+            &Cli::default(),
+            &env(&[(ENV_TRUSTED_PROXIES, "10.0.0.0/8,10.0.0.0/33")]),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(error.starts_with(ENV_TRUSTED_PROXIES), "{error}");
+        assert!(error.contains("10.0.0.0/33"), "{error}");
+        let dir = data_dir_with("trusted_proxies = [\"10.0.0.0/8\", \"proxy.internal\"]\n");
+        let error = load(&cli_in(dir.path()), &env(&[]))
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.starts_with("trusted_proxies in the configuration file"),
+            "{error}"
+        );
+        assert!(error.contains("proxy.internal"), "{error}");
+        let every = Cli {
+            trusted_proxies: vec!["0.0.0.0/0".to_owned()],
+            ..Cli::default()
+        };
+        let error = load(&every, &env(&[])).unwrap_err().to_string();
+        assert!(error.starts_with("--trusted-proxies"), "{error}");
+        assert!(error.contains("list the proxies"), "{error}");
+        let error = load(&Cli::default(), &env(&[(ENV_TRUSTED_PROXIES, "::/0")]))
+            .unwrap_err()
+            .to_string();
+        assert!(error.starts_with(ENV_TRUSTED_PROXIES), "{error}");
+        assert!(error.contains("list the proxies"), "{error}");
+        let dir = data_dir_with("trusted_proxies = [\"10.0.0.0/8\", \"0.0.0.0/0\"]\n");
+        let error = load(&cli_in(dir.path()), &env(&[]))
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.starts_with("trusted_proxies in the configuration file"),
+            "{error}"
+        );
+        assert!(error.contains("list the proxies"), "{error}");
+        for broad in ["0.0.0.0/1", "::/15"] {
+            let flag = Cli {
+                trusted_proxies: vec![broad.to_owned()],
+                ..Cli::default()
+            };
+            let error = load(&flag, &env(&[])).unwrap_err().to_string();
+            assert!(
+                error.contains(broad) && error.contains("allowed is /"),
+                "{error}"
+            );
+        }
+        let dir = data_dir_with("trusted_proxies = \"10.0.0.0/8\"\n");
+        assert!(matches!(
+            load(&cli_in(dir.path()), &env(&[])),
+            Err(ConfigError::Parse { .. })
+        ));
     }
 
     #[test]

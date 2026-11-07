@@ -55,10 +55,7 @@ pub fn is_endpoint(path: &str) -> bool {
 }
 
 fn client_key(prefix: &str) -> String {
-    format!(
-        "{prefix}:{}",
-        crate::auth::client_address().unwrap_or_default()
-    )
+    format!("{prefix}:{}", crate::client::throttle_bucket())
 }
 
 fn no_store(mut response: Response) -> Response {

@@ -199,8 +199,15 @@ Password checks sent with HTTP Basic authentication, and the Docker token endpoi
 user name and client address. After 10 wrong passwords within 5 minutes the same user name from the same
 address gets `429 Too Many Requests` with a `Retry-After` header (for Docker, the `TOOMANYREQUESTS`
 error), even with the right password; other addresses and other users are not affected. Access tokens
-are not throttled. The counters live in the memory of each node and reset when it restarts. The client
-address is the first `X-Forwarded-For` value, else `X-Real-IP`, else the TCP peer address, so a client
-that can set one of these headers can choose its address, and when no proxy sets any forwarded header all
-clients behind one proxy share a single address. A valid NuGet API key still works as the password while
-the user name and address are blocked.
+are not throttled. The counters live in the memory of each node and reset when it restarts. A valid
+NuGet API key still works as the password while the user name and address are blocked.
+
+The client address is the address of the TCP connection, unless the connection comes from a
+[trusted proxy](reverse-proxy.md#trusted-proxies): then it is the first address of `X-Forwarded-For`,
+read from the right, that does not belong to a trusted proxy. No proxy is trusted by default, so a client
+that sends its own `X-Forwarded-For`, `X-Real-IP` or `Forwarded` header does not change its address, and
+the same address is what the audit log and the uploader of a component record. For IPv6 the counter is
+shared by the whole /64 network of the address, so changing the low bits does not give a fresh allowance.
+When the server runs behind a proxy that is not listed as trusted, all clients share the address of the
+proxy and one client's wrong passwords block that user name for everybody behind it; list the proxy to
+tell clients apart. Requests whose address is unknown share one counter.

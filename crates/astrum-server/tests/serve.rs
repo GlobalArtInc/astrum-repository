@@ -15,6 +15,7 @@ fn config(test: &TestDatabase, data_dir: PathBuf) -> Config {
         web_dir: data_dir.join("web"),
         ldap_cache_ttl: std::time::Duration::from_secs(300),
         connectors: Default::default(),
+        trusted_proxies: Default::default(),
         file: data_dir.join("etc/astrum.toml"),
         file_found: false,
     }
@@ -70,6 +71,50 @@ async fn without_a_database_the_server_does_not_start() {
     };
     let error = Server::start(&config).await.err().unwrap().to_string();
     assert!(error.contains("ASTRUM_DATABASE_URL"), "{error}");
+}
+
+#[test]
+fn an_invalid_trusted_proxy_stops_the_start_before_anything_is_opened() {
+    for (value, shown) in [
+        ("10.0.0.0/8,gateway", "\"gateway\""),
+        ("10.0.0.0/8,::/0", "list the proxies"),
+    ] {
+        let data = tempfile::tempdir().unwrap();
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_astrum"))
+            .env("ASTRUM_DATA_DIR", data.path())
+            .env("ASTRUM_TRUSTED_PROXIES", value)
+            .env_remove("ASTRUM_CONFIG")
+            .env_remove("ASTRUM_DATABASE_URL")
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "{value}");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("ASTRUM_TRUSTED_PROXIES"), "{stderr}");
+        assert!(stderr.contains(shown), "{stderr}");
+    }
+}
+
+#[tokio::test]
+async fn trusted_proxies_reach_the_running_state() {
+    let test = TestDatabase::create().await;
+    let data = tempfile::tempdir().unwrap();
+    let config = Config {
+        trusted_proxies: astrum_api::client::TrustedProxies::parse(["10.0.0.0/8"]).unwrap(),
+        ..config(&test, data.path().to_owned())
+    };
+    let server = Server::start(&config).await.unwrap();
+    assert!(
+        server
+            .state()
+            .trusted_proxies()
+            .contains("10.1.2.3".parse().unwrap())
+    );
+    assert!(
+        !server
+            .state()
+            .trusted_proxies()
+            .contains("192.0.2.1".parse().unwrap())
+    );
 }
 
 #[test]

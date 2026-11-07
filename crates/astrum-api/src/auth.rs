@@ -69,35 +69,15 @@ impl<S: Send + Sync> FromRequestParts<S> for Caller {
     }
 }
 
-tokio::task_local! {
-    static CLIENT: String;
-}
-
 pub fn client_address() -> Option<String> {
-    CLIENT
-        .try_with(Clone::clone)
-        .ok()
-        .filter(|address| !address.is_empty())
+    crate::client::current().map(|address| address.to_string())
 }
 
-fn peer(request: &Request) -> String {
-    let forwarded = crate::routes::internal::client_ip(request.headers());
-    if !forwarded.is_empty() {
-        return forwarded;
-    }
-    request
-        .extensions()
-        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
-        .map(|info| info.0.ip().to_string())
-        .unwrap_or_default()
-}
-
-pub async fn authenticate(State(state): State<AppState>, request: Request, next: Next) -> Response {
-    let address = peer(&request);
-    CLIENT.scope(address, admit(state, request, next)).await
-}
-
-async fn admit(state: AppState, mut request: Request, next: Next) -> Response {
+pub async fn authenticate(
+    State(state): State<AppState>,
+    mut request: Request,
+    next: Next,
+) -> Response {
     let from_ui = is_ui(request.headers());
     if crate::routes::oauth::is_endpoint(request.uri().path()) {
         request.extensions_mut().insert(Caller(None));
@@ -249,9 +229,9 @@ pub async fn check_password(
     nuget_key_allowed: bool,
 ) -> Result<Subject, PasswordRefusal> {
     let security = state.security();
-    let address = client_address().unwrap_or_default();
+    let address = crate::client::current();
     let by_key = nuget_key_allowed && api_keys::looks_like_api_key(password);
-    if let Err(wait) = security.basic_attempt(user, &address) {
+    if let Err(wait) = security.basic_attempt(user, address) {
         if by_key {
             match security
                 .authenticate_api_key_as(api_keys::NUGET, user, password)
@@ -268,11 +248,11 @@ pub async fn check_password(
     }
     match security.authenticate(user, password).await {
         Ok(subject) => {
-            security.basic_succeeded(user, &address);
+            security.basic_succeeded(user, address);
             return Ok(subject);
         }
         Err(AuthError::Internal(error)) => {
-            security.basic_refunded(user, &address);
+            security.basic_refunded(user, address);
             return Err(PasswordRefusal::Internal(error));
         }
         Err(AuthError::BadCredentials) => {}
@@ -283,18 +263,18 @@ pub async fn check_password(
             .await
         {
             Ok(subject) => {
-                security.basic_refunded(user, &address);
+                security.basic_refunded(user, address);
                 return Ok(subject);
             }
             Err(AuthError::Internal(error)) => {
-                security.basic_refunded(user, &address);
+                security.basic_refunded(user, address);
                 return Err(PasswordRefusal::Internal(error));
             }
             Err(AuthError::BadCredentials) => {}
         }
     }
-    if security.basic_failed(user, &address) && security.model().users.contains_key(user) {
-        session::audit_rate_limited(state, user, &address, method).await;
+    if security.basic_failed(user, address) && security.model().users.contains_key(user) {
+        session::audit_rate_limited(state, user, address, method).await;
     }
     Err(PasswordRefusal::Wrong)
 }

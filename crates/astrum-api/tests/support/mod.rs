@@ -1,10 +1,14 @@
 #![allow(dead_code)]
 
+use std::net::{IpAddr, SocketAddr};
+
+use astrum_api::client::TrustedProxies;
 use astrum_api::{AppState, router};
 use astrum_security::SecretBox;
 use astrum_security::catalogue::ADMIN_USER;
 use astrum_testkit::TestDatabase;
 use axum::body::Body;
+use axum::extract::ConnectInfo;
 use axum::http::{HeaderMap, Method, Request, StatusCode, header};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
@@ -18,6 +22,7 @@ pub struct Fixture {
     pub data: TempDir,
     pub state: AppState,
     pub admin_password: String,
+    pub peer: Option<IpAddr>,
 }
 
 pub struct Reply {
@@ -90,6 +95,19 @@ impl Fixture {
             data,
             state,
             admin_password,
+            peer: None,
+        }
+    }
+
+    pub fn trust(&self, proxies: &[&str]) {
+        let proxies = TrustedProxies::parse(proxies.iter().copied()).unwrap();
+        self.state.set_trusted_proxies(proxies).unwrap();
+    }
+
+    fn with_peer(&self, request: axum::http::request::Builder) -> axum::http::request::Builder {
+        match self.peer {
+            Some(peer) => request.extension(ConnectInfo(SocketAddr::new(peer, 40000))),
+            None => request,
         }
     }
 
@@ -111,7 +129,7 @@ impl Fixture {
         body: Body,
         headers: &[(&str, &str)],
     ) -> Reply {
-        let mut request = Request::builder().method(method).uri(path);
+        let mut request = self.with_peer(Request::builder().method(method).uri(path));
         let credentials = match auth {
             Auth::None => None,
             Auth::Admin => Some((ADMIN_USER, self.admin_password.as_str())),
@@ -152,7 +170,7 @@ impl Fixture {
         body: Option<Value>,
         headers: &[(&str, &str)],
     ) -> Reply {
-        let mut request = Request::builder().method(method).uri(path);
+        let mut request = self.with_peer(Request::builder().method(method).uri(path));
         let credentials = match auth {
             Auth::None => None,
             Auth::Admin => Some((ADMIN_USER, self.admin_password.as_str())),

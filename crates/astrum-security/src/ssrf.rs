@@ -81,6 +81,12 @@ impl Network {
     }
 }
 
+impl std::fmt::Display for Network {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}/{}", self.address, self.prefix)
+    }
+}
+
 pub fn valid_domain(value: &str) -> bool {
     let name = value.strip_prefix("*.").unwrap_or(value);
     let name = name.strip_suffix('.').unwrap_or(name);
@@ -317,6 +323,8 @@ mod tests {
         let single = Network::parse("192.168.1.100").unwrap();
         assert!(single.contains("192.168.1.100".parse().unwrap()));
         assert!(!single.contains("192.168.1.101".parse().unwrap()));
+        assert_eq!(single.to_string(), "192.168.1.100/32");
+        assert_eq!(network.to_string(), "10.0.0.0/8");
         let v6 = Network::parse("fd00::/8").unwrap();
         assert!(v6.contains("fd12::1".parse().unwrap()));
         assert!(!v6.contains("fe80::1".parse().unwrap()));

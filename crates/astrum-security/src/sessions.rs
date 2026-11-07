@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::net::IpAddr;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::{Duration as StdDuration, Instant};
 
@@ -24,6 +25,19 @@ const HARD_CAP: usize = 50_000;
 const PRUNE_EVERY: StdDuration = StdDuration::from_secs(30);
 pub const KEY_USER_LENGTH: usize = 256;
 pub const KEY_ADDRESS_LENGTH: usize = 64;
+const UNKNOWN_ADDRESS: &str = "unknown";
+const V6_PREFIX_BITS: u32 = 64;
+
+pub fn throttle_address(address: Option<IpAddr>) -> String {
+    match address.map(|address| address.to_canonical()) {
+        None => UNKNOWN_ADDRESS.to_owned(),
+        Some(IpAddr::V4(address)) => address.to_string(),
+        Some(IpAddr::V6(address)) => {
+            let prefix = u128::from(address) & (u128::MAX << (128 - V6_PREFIX_BITS));
+            format!("{}/{V6_PREFIX_BITS}", std::net::Ipv6Addr::from(prefix))
+        }
+    }
+}
 
 struct Attempts {
     count: u32,
@@ -398,24 +412,29 @@ impl Security {
             .remove(user_id);
     }
 
-    pub fn basic_attempt(&self, user_id: &str, address: &str) -> Result<(), StdDuration> {
-        self.basic_failures.attempt(user_id, address)
+    pub fn basic_attempt(&self, user_id: &str, address: Option<IpAddr>) -> Result<(), StdDuration> {
+        self.basic_failures
+            .attempt(user_id, &throttle_address(address))
     }
 
-    pub fn basic_blocked(&self, user_id: &str, address: &str) -> Option<StdDuration> {
-        self.basic_failures.blocked(user_id, address)
+    pub fn basic_blocked(&self, user_id: &str, address: Option<IpAddr>) -> Option<StdDuration> {
+        self.basic_failures
+            .blocked(user_id, &throttle_address(address))
     }
 
-    pub fn basic_failed(&self, user_id: &str, address: &str) -> bool {
-        self.basic_failures.failed(user_id, address)
+    pub fn basic_failed(&self, user_id: &str, address: Option<IpAddr>) -> bool {
+        self.basic_failures
+            .failed(user_id, &throttle_address(address))
     }
 
-    pub fn basic_refunded(&self, user_id: &str, address: &str) {
-        self.basic_failures.refund(user_id, address);
+    pub fn basic_refunded(&self, user_id: &str, address: Option<IpAddr>) {
+        self.basic_failures
+            .refund(user_id, &throttle_address(address));
     }
 
-    pub fn basic_succeeded(&self, user_id: &str, address: &str) {
-        self.basic_failures.succeeded(user_id, address);
+    pub fn basic_succeeded(&self, user_id: &str, address: Option<IpAddr>) {
+        self.basic_failures
+            .succeeded(user_id, &throttle_address(address));
     }
 }
 
@@ -488,6 +507,31 @@ mod tests {
         }
         assert!(failures.blocked("new", "x").is_none());
         assert_eq!(failures.state().entries.len(), 3);
+    }
+
+    #[test]
+    fn throttle_addresses_are_canonical_and_group_ipv6_by_its_first_64_bits() {
+        let key = |text: &str| throttle_address(Some(text.parse().unwrap()));
+        assert_eq!(key("203.0.113.9"), "203.0.113.9");
+        assert_eq!(key("::ffff:203.0.113.9"), "203.0.113.9");
+        assert_eq!(key("2001:db8:1:2:3:4:5:6"), "2001:db8:1:2::/64");
+        assert_eq!(
+            key("2001:db8:1:2:ffff:ffff:ffff:ffff"),
+            key("2001:0db8:1:2::1")
+        );
+        assert_ne!(key("2001:db8:1:3::1"), key("2001:db8:1:2::1"));
+        assert_eq!(throttle_address(None), "unknown");
+        let failures = BasicFailures::default();
+        for _ in 0..FAILURES_ALLOWED {
+            failures
+                .attempt("ci", &key("2001:db8:1:2:aaaa::1"))
+                .unwrap();
+        }
+        assert!(
+            failures
+                .attempt("ci", &key("2001:db8:1:2:bbbb::2"))
+                .is_err()
+        );
     }
 
     #[test]
