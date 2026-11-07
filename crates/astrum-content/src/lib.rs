@@ -3,6 +3,7 @@ mod downloads;
 mod error;
 pub mod format;
 pub mod group;
+pub mod holds;
 mod http;
 pub mod ids;
 pub mod import;

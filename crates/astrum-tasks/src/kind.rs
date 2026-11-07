@@ -211,5 +211,9 @@ pub trait TaskKind: Send + Sync + 'static {
 pub trait Expiry: Send + Sync + 'static {
     fn name(&self) -> &'static str;
 
+    fn counts_as_upload(&self) -> bool {
+        true
+    }
+
     async fn expire(&self, content: &astrum_content::Content) -> Result<u64, TaskError>;
 }

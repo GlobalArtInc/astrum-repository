@@ -169,7 +169,7 @@ under **Settings → System → Tasks** take care of the rest:
 |---|---|
 | Admin - Cleanup repositories using their associated policies | Runs the cleanup policies assigned to repositories; daily by default |
 | Docker - Delete unused manifests and images | Deletes untagged manifests and unused layers of hosted Docker repositories that are older than the deploy offset (24 hours by default); daily by default |
-| Admin - Compact blob store | Deletes blobs that no asset refers to, such as the leftovers of interrupted uploads, if they are older than the grace period (one day by default); daily by default |
+| Admin - Compact blob store | Deletes blobs that no asset refers to and no running transfer holds, such as the leftovers of interrupted uploads, if they are older than the grace period (one day by default); daily by default |
 | Repair - Recalculate blob store storage | Counts the blobs and bytes of a store again, if the totals shown drifted |
 
 The totals of a store (blob count and bytes) are kept in the database and updated as blobs come and go.

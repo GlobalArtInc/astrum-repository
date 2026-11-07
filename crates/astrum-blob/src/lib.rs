@@ -1,5 +1,6 @@
 pub mod config;
 mod digest;
+mod duplicate;
 pub mod file;
 pub mod group;
 mod id;
@@ -21,7 +22,7 @@ use futures_util::stream::BoxStream;
 
 pub use config::{FileSettings, FillPolicy, GroupSettings, Settings, StoreConfig, StoreKind};
 pub use digest::Digests;
-pub use file::{Adoption, FileBlobStore};
+pub use file::{Adoption, FileBlobStore, LinkFault};
 pub use group::GroupBlobStore;
 pub use id::BlobId;
 pub use metrics::Metrics;
@@ -54,6 +55,20 @@ pub enum Error {
         operation: &'static str,
         message: String,
     },
+    #[error("the blob {id} is not in the blob store \"{store}\"")]
+    Missing { store: String, id: BlobId },
+    #[error(
+        "the blob {id} of the blob store \"{store}\" has {algorithm} {actual}, not the expected {expected}"
+    )]
+    Digest {
+        store: String,
+        id: BlobId,
+        algorithm: &'static str,
+        expected: String,
+        actual: String,
+    },
+    #[error("the blob {id} of the blob store \"{store}\" cannot be duplicated without its SHA-256")]
+    NoDigest { store: String, id: BlobId },
     #[error("the blob store agent of \"{store}\" failed to {operation}: {message}")]
     Remote {
         store: String,
@@ -144,6 +159,10 @@ pub trait BlobStore: Send + Sync {
 
     async fn exists(&self, id: BlobId) -> Result<bool, Error> {
         Ok(self.size(id).await?.is_some())
+    }
+
+    async fn duplicate(&self, id: BlobId, expected: &Digests) -> Result<Written, Error> {
+        duplicate::through(self, id, expected).await
     }
 
     async fn delete(&self, id: BlobId) -> Result<bool, Error>;

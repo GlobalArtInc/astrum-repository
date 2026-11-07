@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use astrum_blob::{BlobId, BlobStore, Settings, StoreConfig};
+use astrum_content::holds;
 use async_trait::async_trait;
 use sea_orm::{DbBackend, FromQueryResult, Statement};
 use uuid::Uuid;
@@ -159,7 +160,7 @@ async fn compact(
     .collect();
     let cutoff = SystemTime::now() - grace;
     let mut after: Option<BlobId> = None;
-    let (mut examined, mut deleted, mut freed) = (0i64, 0i64, 0i64);
+    let (mut examined, mut deleted, mut freed, mut kept) = (0i64, 0i64, 0i64, 0i64);
     loop {
         run.check()?;
         let page = store.list(after, PAGE).await?;
@@ -173,6 +174,7 @@ async fn compact(
             continue;
         }
         let ids: Vec<Uuid> = old.iter().map(|blob| blob.id.uuid()).collect();
+        let held = holds::held(run.db(), owners, &ids).await?;
         let referenced: HashSet<Uuid> =
             Referenced::find_by_statement(Statement::from_sql_and_values(
                 DbBackend::Postgres,
@@ -189,6 +191,10 @@ async fn compact(
             if referenced.contains(&id) || uploading.contains(&id) {
                 continue;
             }
+            if held.contains(&id) {
+                kept += 1;
+                continue;
+            }
             run.check()?;
             if store.delete(blob.id).await? {
                 deleted += 1;
@@ -198,8 +204,12 @@ async fn compact(
             }
         }
     }
+    let held = match kept {
+        0 => String::new(),
+        kept => format!(", kept {kept} held for transfers"),
+    };
     run.info(format!(
-        "{name}: examined {examined} blobs, deleted {deleted} that nothing refers to ({})",
+        "{name}: examined {examined} blobs, deleted {deleted} that nothing refers to ({}){held}",
         size(freed)
     ));
     Ok((deleted, freed))
