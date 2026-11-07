@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use astrum_db::entity::{blob_store, cleanup_policy, repository, routing_rule};
+use astrum_db::entity::{blob_store, cleanup_policy, content_policy, repository, routing_rule};
 use sea_orm::sea_query::{Expr, Func};
 use sea_orm::{
     ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr,
@@ -177,6 +177,7 @@ pub struct Writer {
     blob_stores: BTreeSet<String>,
     grouped: BTreeMap<String, String>,
     cleanup_policies: BTreeMap<String, String>,
+    content_policies: BTreeSet<String>,
     routing_rules: BTreeSet<String>,
     reserved_ports: Vec<u16>,
 }
@@ -217,6 +218,12 @@ impl Writer {
             .into_tuple()
             .all(&txn)
             .await?;
+        let content_policies: Vec<String> = content_policy::Entity::find()
+            .select_only()
+            .column(content_policy::Column::Name)
+            .into_tuple()
+            .all(&txn)
+            .await?;
         let routing_rules: Vec<String> = routing_rule::Entity::find()
             .select_only()
             .column(routing_rule::Column::Name)
@@ -229,6 +236,7 @@ impl Writer {
             blob_stores,
             grouped,
             cleanup_policies: cleanup_policies.into_iter().collect(),
+            content_policies: content_policies.into_iter().collect(),
             routing_rules: routing_rules.into_iter().collect(),
             reserved_ports: Vec::new(),
         })
@@ -512,6 +520,18 @@ impl Writer {
                 ),
                 Some(_) => {}
             }
+        }
+        if let Some(policy) = candidate
+            .attributes
+            .policy
+            .as_ref()
+            .and_then(|policy| policy.name.as_deref())
+            && !self.content_policies.contains(policy)
+        {
+            problems.add(
+                "policyName",
+                format!("the content policy \"{policy}\" does not exist"),
+            );
         }
         if let Some(rule) = &candidate.attributes.routing_rule_name
             && !self.routing_rules.contains(rule)

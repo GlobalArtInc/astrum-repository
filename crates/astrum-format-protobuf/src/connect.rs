@@ -106,6 +106,7 @@ impl From<ContentError> for Status {
                 Code::PermissionDenied,
                 "you do not have the permission this needs",
             ),
+            ContentError::Blocked(message) => Status::new(Code::PermissionDenied, message),
             ContentError::BadRequest(message) => Status::invalid(message),
             ContentError::Conflict(message) => Status::exists(message),
             ContentError::MethodNotAllowed { method, .. } => {
@@ -344,6 +345,10 @@ mod tests {
         );
         assert_eq!(
             Status::from(ContentError::Forbidden).code,
+            Code::PermissionDenied
+        );
+        assert_eq!(
+            Status::from(ContentError::Blocked("blocked by policy".to_owned())).code,
             Code::PermissionDenied
         );
         assert_eq!(

@@ -207,3 +207,38 @@ async fn the_old_default_title_loses_globalart_and_own_titles_stay() {
     }
     assert_eq!(astrum_db::system::DEFAULT_TITLE, "Astrum Repository");
 }
+
+#[tokio::test]
+async fn policy_dirty_rows_follow_their_repository() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    conn.execute_unprepared(
+        "INSERT INTO repository (name, format, type) VALUES ('releases', 'maven2', 'hosted')",
+    )
+    .await
+    .unwrap();
+    conn.execute_unprepared(
+        "INSERT INTO policy_dirty (repository, subject) VALUES ('releases', 'c:1')",
+    )
+    .await
+    .unwrap();
+    let orphan = conn
+        .execute_unprepared(
+            "INSERT INTO policy_dirty (repository, subject) VALUES ('missing', 'c:2')",
+        )
+        .await;
+    assert!(orphan.is_err());
+    conn.execute_unprepared("DELETE FROM repository WHERE name = 'releases'")
+        .await
+        .unwrap();
+    let left = conn
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT count(*) AS n FROM policy_dirty".to_owned(),
+        ))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(left.try_get::<i64>("", "n").unwrap(), 0);
+}

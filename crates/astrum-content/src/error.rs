@@ -18,6 +18,8 @@ pub enum ContentError {
     BadRequest(String),
     #[error("{0}")]
     Conflict(String),
+    #[error("{0}")]
+    Blocked(String),
     #[error("the range is outside a blob of {0} bytes")]
     RangeNotSatisfiable(u64),
     #[error("a precondition of the request does not hold")]
@@ -43,7 +45,7 @@ impl ContentError {
         match self {
             ContentError::NotFound(_) => StatusCode::NOT_FOUND,
             ContentError::Unauthorized => StatusCode::UNAUTHORIZED,
-            ContentError::Forbidden => StatusCode::FORBIDDEN,
+            ContentError::Forbidden | ContentError::Blocked(_) => StatusCode::FORBIDDEN,
             ContentError::MethodNotAllowed { .. } => StatusCode::METHOD_NOT_ALLOWED,
             ContentError::BadRequest(_) => StatusCode::BAD_REQUEST,
             ContentError::Conflict(_) => StatusCode::CONFLICT,
@@ -108,5 +110,19 @@ impl IntoResponse for ContentError {
             _ => {}
         }
         response
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn blocked_answers_forbidden_with_its_reason() {
+        let reason = "blocked by policy strict: critical findings";
+        let error = ContentError::Blocked(reason.to_owned());
+        assert_eq!(error.status(), StatusCode::FORBIDDEN);
+        assert_eq!(error.to_string(), reason);
+        assert_eq!(error.into_response().status(), StatusCode::FORBIDDEN);
     }
 }
