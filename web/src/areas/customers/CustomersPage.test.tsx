@@ -83,4 +83,22 @@ describe('the customers list', () => {
     expect(posts).toHaveLength(2);
     expect(posts[1]?.body).toEqual({ id: 'globex', name: 'Globex Ltd', reference: 'CT-7', note: 'Pilot' });
   });
+
+  it('shows the duplicate id message on the id field', async () => {
+    const fake = fakeServer({
+      [`GET ${CUSTOMERS}`]: () => jsonResponse([customer({})]),
+      [`POST ${CUSTOMERS}`]: () =>
+        jsonResponse({ id: 'id', message: 'a customer with this id already exists' }, 409),
+    });
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<CustomersPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Create Customer' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Create Customer' });
+    await userEvent.type(screen.getByLabelText(/^ID/), 'acme');
+    await userEvent.type(screen.getByLabelText(/^Name/), 'Acme Again');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+    expect(await screen.findByText('a customer with this id already exists')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^ID/)).toHaveAccessibleDescription(/already exists/);
+    expect(dialog).toBeInTheDocument();
+  });
 });

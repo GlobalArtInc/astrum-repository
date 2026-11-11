@@ -1,5 +1,6 @@
 import { Button, Dialog, Flex } from '@radix-ui/themes';
-import { api, useInvalidateApi } from '../../api';
+import { useState } from 'react';
+import { ApiError, api, useInvalidateApi } from '../../api';
 import { useT } from '../../i18n';
 import { FormError, TextAreaField, TextField, useForm, useToast } from '../../ui';
 import { CUSTOMERS } from './api';
@@ -22,11 +23,21 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
   const t = useT();
   const toast = useToast();
   const invalidate = useInvalidateApi();
+  const [idConflict, setIdConflict] = useState<string | null>(null);
   const form = useForm<NewCustomerValues>({
     initial: EMPTY_CUSTOMER,
     validate: (values) => validateNewCustomer(t, values),
     onSubmit: async (values) => {
-      await api.post(CUSTOMERS, toNewCustomerRequest(values));
+      setIdConflict(null);
+      try {
+        await api.post(CUSTOMERS, toNewCustomerRequest(values));
+      } catch (failure) {
+        if (failure instanceof ApiError && failure.status === 409 && failure.id === 'id') {
+          setIdConflict(failure.message);
+          return;
+        }
+        throw failure;
+      }
       toast.success(t('customers.create.created', { id: values.id }));
       await invalidate(CUSTOMERS);
       onOpenChange(false);
@@ -37,6 +48,7 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
     if (!form.submitting) {
       onOpenChange(next);
       form.reset(EMPTY_CUSTOMER);
+      setIdConflict(null);
     }
   };
   return (
@@ -50,9 +62,13 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
           <Flex direction="column" gap="4" mt="4">
             <TextField
               {...form.field('id')}
+              onChange={(value) => {
+                setIdConflict(null);
+                form.set('id', value);
+              }}
               label={t('customers.create.id')}
               hint={t('customers.create.idHint')}
-              error={form.errors.id ?? liveIdError}
+              error={form.errors.id ?? idConflict ?? liveIdError}
               required
               maxLength={64}
               autoComplete="off"

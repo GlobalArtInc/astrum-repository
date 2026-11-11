@@ -41,6 +41,8 @@
   "settings.tile.anonymousText": "What callers without credentials may do",
   "settings.tile.sslCertificates": "SSL Certificates",
   "settings.tile.sslCertificatesText": "Certificates this server trusts",
+  "settings.tile.customers": "Customers",
+  "settings.tile.customersText": "Customers and the read-only tokens that give them downloads",
   "settings.tile.systemInformation": "System Information",
   "settings.tile.systemInformationText": "Version, environment and diagnostics of this server",
   "settings.tile.logs": "Logs",

@@ -10,6 +10,7 @@ import {
   FileKey,
   Funnel,
   Globe,
+  Handshake,
   HardDrive,
   Info,
   KeyRound,
@@ -176,6 +177,15 @@ export const CATALOG: CatalogTile[] = [
     FileKey,
     'settings.tile.sslCertificates',
     'settings.tile.sslCertificatesText',
+  ),
+  tile(
+    'customers',
+    'security',
+    90,
+    '/admin/customers',
+    Handshake,
+    'settings.tile.customers',
+    'settings.tile.customersText',
   ),
   tile(
     'system-information',
