@@ -1005,6 +1005,7 @@ impl OpenVsx {
             Box::pin(limited.into_data_stream().map_err(io::Error::other));
         let written = match store::write_blob(ctx, body).await {
             Ok(written) => written,
+            Err(error @ ContentError::QuotaExceeded { .. }) => return Err(error),
             Err(error) => {
                 tracing::info!(repository = ctx.name(), %error, "an extension package could not be stored");
                 return Err(ContentError::BadRequest(format!(

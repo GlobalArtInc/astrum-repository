@@ -690,12 +690,15 @@ impl Chef {
                 TARBALL_FIELD if uploaded.is_none() => {
                     let body: astrum_blob::ContentStream =
                         Box::pin(part.map_err(std::io::Error::other));
-                    uploaded = Some(store::write_blob(ctx, body).await.map_err(|error| {
-                        tracing::info!(repository = ctx.name(), %error, "a cookbook upload could not be stored");
-                        ContentError::BadRequest(
-                            "the cookbook archive could not be received; check its size and publish again"
-                                .to_owned(),
-                        )
+                    uploaded = Some(store::write_blob(ctx, body).await.map_err(|error| match error {
+                        ContentError::QuotaExceeded { .. } => error,
+                        error => {
+                            tracing::info!(repository = ctx.name(), %error, "a cookbook upload could not be stored");
+                            ContentError::BadRequest(
+                                "the cookbook archive could not be received; check its size and publish again"
+                                    .to_owned(),
+                            )
+                        }
                     })?);
                 }
                 COOKBOOK_FIELD if described.is_none() => match part.text().await {

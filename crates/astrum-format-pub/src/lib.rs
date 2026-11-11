@@ -154,6 +154,7 @@ fn code_of(error: &ContentError) -> &'static str {
         ContentError::MethodNotAllowed { .. } => "MethodNotAllowed",
         ContentError::BadRequest(_) => "InvalidInput",
         ContentError::Conflict(_) => "PackageRejected",
+        ContentError::QuotaExceeded { .. } => "QuotaExceeded",
         ContentError::PreconditionFailed => "PreconditionFailed",
         ContentError::RangeNotSatisfiable(_) => "RangeNotSatisfiable",
         ContentError::Unavailable(_) | ContentError::BadGateway(_) => "ServiceUnavailable",
@@ -660,6 +661,7 @@ impl Pub {
             let body: ContentStream = Box::pin(field.map_err(io::Error::other));
             let written = match store::write_blob(ctx, body).await {
                 Ok(written) => written,
+                Err(error @ ContentError::QuotaExceeded { .. }) => return Err(error),
                 Err(error) => {
                     tracing::info!(repository = ctx.name(), %error, "a pub upload could not be stored");
                     return Ok(rejected(
@@ -681,6 +683,7 @@ impl Pub {
             Some(Err(
                 error @ (ContentError::Unauthorized
                 | ContentError::Forbidden
+                | ContentError::QuotaExceeded { .. }
                 | ContentError::Internal(_)),
             )) => Err(error),
             Some(Err(error)) => Ok(rejected(error.to_string())),

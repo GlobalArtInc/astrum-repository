@@ -1579,3 +1579,38 @@ async fn the_current_user_is_the_owner_of_the_token_so_that_buf_registry_login_w
     .await;
     assert_eq!(wrong.0, StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn a_module_write_over_the_quota_is_a_failed_precondition() {
+    let fixture = ready().await;
+    let updated = fixture
+        .call(
+            Method::PUT,
+            &format!("/service/rest/v1/repositories/protobuf/hosted/{REPOSITORY}"),
+            Auth::Admin,
+            Some(json!({
+                "name": REPOSITORY,
+                "online": true,
+                "storage": {
+                    "blobStoreName": "default",
+                    "strictContentTypeValidation": true,
+                    "writePolicy": "ALLOW",
+                    "quota": {"limitBytes": 1, "enforce": true}
+                }
+            })),
+        )
+        .await;
+    assert_eq!(updated.status, StatusCode::NO_CONTENT, "{}", updated.text());
+    let writer = token(&fixture, Scope::Write).await;
+    let refusal = refused(
+        &fixture,
+        MODULES,
+        "CreateModules",
+        Some(&writer),
+        &create_request("acme", "greeter"),
+    )
+    .await;
+    assert_eq!(refusal.1, "failed_precondition");
+    assert!(refusal.2.contains(REPOSITORY), "{}", refusal.2);
+    assert!(refusal.2.contains("quota"), "{}", refusal.2);
+}

@@ -118,7 +118,9 @@ impl Format for Raw {
                 }
                 let exists = store::find(ctx.db(), ctx.name(), &path).await?.is_some();
                 ctx.require(if exists { View::Edit } else { View::Add }, &path)?;
-                let put = PutAsset::hosted(&ctx, path.clone()).component(component(&path));
+                let put = PutAsset::hosted(&ctx, path.clone())
+                    .component(component(&path))
+                    .declared_size(request.content_length());
                 store::put(&ctx, put, request.into_stream()).await?;
                 Ok(StatusCode::CREATED.into_response())
             }
@@ -203,7 +205,9 @@ impl Format for Raw {
             ctx.require(View::Add, path)?;
         }
         for (path, file) in planned {
-            let put = PutAsset::hosted(&ctx, path.clone()).component(component(&path));
+            let put = PutAsset::hosted(&ctx, path.clone())
+                .component(component(&path))
+                .declared_size(Some(file.size));
             store::put(&ctx, put, UploadForm::stream(file).await?).await?;
         }
         Ok(())

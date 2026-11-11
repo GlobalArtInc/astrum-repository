@@ -11,7 +11,7 @@ use astrum_content::transfer::{
     Bundle, Conflict, DescribeFn, GenericTransfer, LocalSource, Outcome, PROMOTED, Terms, Transfer,
 };
 use astrum_content::{Content, ContentError, Ctx};
-use astrum_repo::config::{Attributes, Group, Repository, Storage, WritePolicy};
+use astrum_repo::config::{Attributes, Group, Quota, Repository, Storage, WritePolicy};
 use astrum_repo::{RepositoryType, format};
 use astrum_security::{SecretBox, SecurityModel};
 use astrum_testkit::TestDatabase;
@@ -69,6 +69,34 @@ pub async fn repository_of(
     policy: WritePolicy,
     kind: RepositoryType,
 ) -> Ctx {
+    repository_with(world, name, store, policy, kind, None).await
+}
+
+pub async fn capped_repository(world: &World, name: &str, limit: i64) -> Ctx {
+    let quota = Quota {
+        limit_bytes: Some(limit),
+        warn_percent: None,
+        enforce: true,
+    };
+    repository_with(
+        world,
+        name,
+        "default",
+        WritePolicy::Allow,
+        RepositoryType::Hosted,
+        Some(quota),
+    )
+    .await
+}
+
+async fn repository_with(
+    world: &World,
+    name: &str,
+    store: &str,
+    policy: WritePolicy,
+    kind: RepositoryType,
+    quota: Option<Quota>,
+) -> Ctx {
     let created = astrum_repo::store::Writer::begin(world.db.conn())
         .await
         .unwrap()
@@ -87,6 +115,7 @@ pub async fn repository_of(
                     strict_content_type_validation: Some(false),
                     write_policy: Some(policy),
                     latest_policy: None,
+                    quota,
                 }),
                 ..Default::default()
             },

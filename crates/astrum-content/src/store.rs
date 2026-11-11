@@ -1,12 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::io;
 use std::pin::Pin;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::task::{Context as TaskContext, Poll};
 
 use astrum_blob::{ContentStream, Written};
 use astrum_db::entity::{asset, component};
-use astrum_repo::config::WritePolicy;
+use astrum_repo::RepositoryType;
+use astrum_repo::config::{Quota, WritePolicy};
 use bytes::Bytes;
 use chrono::{DateTime, FixedOffset, Utc};
 use futures_util::Stream;
@@ -20,7 +22,7 @@ use uuid::Uuid;
 
 use crate::mime;
 use crate::transfer::{AssetOutcome, AssetStatus, Conflict, MAX_COMPONENTS, Outcome, Status};
-use crate::usage::Usage;
+use crate::usage::{self, Usage};
 use crate::{Content, ContentError, Ctx, holds};
 
 pub type Asset = asset::Model;
@@ -47,6 +49,7 @@ pub struct PutAsset {
     pub remote_etag: Option<String>,
     pub remote_last_modified: Option<DateTime<FixedOffset>>,
     pub verified: bool,
+    pub declared_size: Option<u64>,
 }
 
 impl PutAsset {
@@ -93,6 +96,11 @@ impl PutAsset {
 
     pub fn attributes(mut self, attributes: Value) -> Self {
         self.attributes = attributes;
+        self
+    }
+
+    pub fn declared_size(mut self, size: Option<u64>) -> Self {
+        self.declared_size = size;
         self
     }
 }
@@ -199,14 +207,22 @@ pub async fn put(ctx: &Ctx, put: PutAsset, body: ContentStream) -> Result<Asset,
             ))
         })?
         .to_owned();
+    let room = room_for(ctx, existing.as_ref().map_or(0, |found| found.size)).await?;
+    if let (Some(room), Some(declared)) = (&room, put.declared_size)
+        && declared > room.allowed
+    {
+        return Err(room.refusal(&repository));
+    }
     let store = ctx.content.blob_stores().get(&store_name).await?;
     let sample = Arc::new(Mutex::new(Vec::new()));
+    let cap = Cap::new(room, 0);
     let written = store
         .put(Box::pin(Sampled {
-            inner: body,
+            inner: cap.wrap(body),
             sample: sample.clone(),
         }))
-        .await?;
+        .await
+        .map_err(|error| cap.explain(&repository, error))?;
     let sample = sample
         .lock()
         .expect("the sample lock is never poisoned")
@@ -254,14 +270,176 @@ pub(crate) fn content_type_of(put: &PutAsset, sample: &[u8]) -> Result<String, C
 }
 
 pub async fn write_blob(ctx: &Ctx, body: ContentStream) -> Result<Written, ContentError> {
+    write_blob_after(ctx, body, 0).await
+}
+
+pub async fn write_blob_after(
+    ctx: &Ctx,
+    body: ContentStream,
+    already: u64,
+) -> Result<Written, ContentError> {
     let store_name = ctx.repository.blob_store().ok_or_else(|| {
         ContentError::internal(anyhow::anyhow!(
             "the repository {} has no blob store",
             ctx.name()
         ))
     })?;
+    let ceiling = match hard_limit(ctx) {
+        Some(limit) => {
+            let used = usage_bytes(ctx.db(), ctx.name()).await?;
+            Some((limit, used))
+        }
+        None => None,
+    };
+    let room = ceiling.map(|(limit, used)| Room::new(limit, used, used));
     let store = ctx.content.blob_stores().get(store_name).await?;
-    Ok(store.put(body).await?)
+    let cap = Cap::new(room, already);
+    store
+        .put(cap.wrap(body))
+        .await
+        .map_err(|error| cap.explain(ctx.name(), error))
+}
+
+pub async fn require_space(ctx: &Ctx) -> Result<(), ContentError> {
+    let Some(limit) = hard_limit(ctx) else {
+        return Ok(());
+    };
+    let used = usage_bytes(ctx.db(), ctx.name()).await?;
+    match used >= limit {
+        true => Err(quota_exceeded(ctx.name(), limit, used)),
+        false => Ok(()),
+    }
+}
+
+fn hard_limit(ctx: &Ctx) -> Option<i64> {
+    match ctx.kind() {
+        RepositoryType::Hosted => ctx
+            .repository
+            .attributes
+            .storage
+            .as_ref()
+            .and_then(|storage| storage.quota.as_ref())
+            .and_then(Quota::hard_limit),
+        _ => None,
+    }
+}
+
+async fn usage_bytes(db: &impl ConnectionTrait, repository: &str) -> Result<i64, ContentError> {
+    usage::current(db, repository)
+        .await?
+        .map(|usage| usage.bytes)
+        .ok_or_else(|| missing_repository(repository))
+}
+
+fn quota_exceeded(repository: &str, limit_bytes: i64, used_bytes: i64) -> ContentError {
+    ContentError::QuotaExceeded {
+        repository: repository.to_owned(),
+        limit_bytes,
+        used_bytes,
+    }
+}
+
+fn require_growth_to_fit(
+    repository: &str,
+    limit: i64,
+    used: i64,
+    replaced: i64,
+    added: i64,
+) -> Result<(), ContentError> {
+    let used_after = used.saturating_sub(replaced).saturating_add(added);
+    match added > replaced && used_after > limit {
+        true => Err(quota_exceeded(repository, limit, used)),
+        false => Ok(()),
+    }
+}
+
+struct Room {
+    allowed: u64,
+    limit: i64,
+    used: i64,
+}
+
+impl Room {
+    fn new(limit: i64, used: i64, replaceable: i64) -> Self {
+        let free = limit.saturating_sub(used).saturating_add(replaceable);
+        Self {
+            allowed: free.max(replaceable).max(0) as u64,
+            limit,
+            used,
+        }
+    }
+
+    fn refusal(&self, repository: &str) -> ContentError {
+        quota_exceeded(repository, self.limit, self.used)
+    }
+}
+
+async fn room_for(ctx: &Ctx, replaceable: i64) -> Result<Option<Room>, ContentError> {
+    let Some(limit) = hard_limit(ctx) else {
+        return Ok(None);
+    };
+    let used = usage_bytes(ctx.db(), ctx.name()).await?;
+    Ok(Some(Room::new(limit, used, replaceable)))
+}
+
+struct Cap {
+    room: Option<Room>,
+    already: u64,
+    tripped: Arc<AtomicBool>,
+}
+
+impl Cap {
+    fn new(room: Option<Room>, already: u64) -> Self {
+        Self {
+            room,
+            already,
+            tripped: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    fn wrap(&self, body: ContentStream) -> ContentStream {
+        match &self.room {
+            Some(room) => Box::pin(Capped {
+                inner: body,
+                seen: self.already,
+                allowed: room.allowed,
+                tripped: self.tripped.clone(),
+            }),
+            None => body,
+        }
+    }
+
+    fn explain(&self, repository: &str, error: astrum_blob::Error) -> ContentError {
+        match (&self.room, self.tripped.load(Ordering::Acquire)) {
+            (Some(room), true) => room.refusal(repository),
+            _ => error.into(),
+        }
+    }
+}
+
+struct Capped {
+    inner: ContentStream,
+    seen: u64,
+    allowed: u64,
+    tripped: Arc<AtomicBool>,
+}
+
+impl Stream for Capped {
+    type Item = io::Result<Bytes>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut TaskContext<'_>) -> Poll<Option<Self::Item>> {
+        let polled = self.inner.as_mut().poll_next(cx);
+        if let Poll::Ready(Some(Ok(bytes))) = &polled {
+            self.seen = self.seen.saturating_add(bytes.len() as u64);
+            if self.seen > self.allowed {
+                self.tripped.store(true, Ordering::Release);
+                return Poll::Ready(Some(Err(io::Error::other(
+                    "the body exceeds the quota of the repository",
+                ))));
+            }
+        }
+        polled
+    }
 }
 
 pub async fn adopt(ctx: &Ctx, put: PutAsset, written: &Written) -> Result<Asset, ContentError> {
@@ -370,7 +548,7 @@ async fn record_once(
     if component_id != new_component {
         return Ok(None);
     }
-    lock_usage(txn, repository).await?;
+    let usage = lock_usage(txn, repository).await?;
     let previous = asset::Entity::find()
         .filter(asset::Column::Repository.eq(repository))
         .filter(asset::Column::Path.eq(&put.path))
@@ -382,6 +560,15 @@ async fn record_once(
     }
     if previous.is_some() && put.write_policy == Some(WritePolicy::AllowOnce) {
         return Err(redeploy(repository, &put.path));
+    }
+    if let Some(limit) = hard_limit(ctx) {
+        require_growth_to_fit(
+            repository,
+            limit,
+            usage.bytes,
+            previous.as_ref().map_or(0, |row| row.size),
+            size_of(written),
+        )?;
     }
     let stored = upsert_asset(
         txn,
@@ -408,6 +595,10 @@ async fn record_once(
         })
         .map(|previous| (previous.blob_store, previous.blob_id));
     Ok(Some((stored, replaced)))
+}
+
+fn size_of(written: &Written) -> i64 {
+    i64::try_from(written.size).unwrap_or(i64::MAX)
 }
 
 fn asset_row(
@@ -1302,7 +1493,7 @@ async fn write_many(
     {
         return Err(changed_meanwhile(repository));
     }
-    lock_usage(txn, repository).await?;
+    let usage = lock_usage(txn, repository).await?;
     let existing: HashMap<String, Asset> = asset::Entity::find()
         .filter(asset::Column::Repository.eq(repository))
         .filter(asset::Column::Path.is_in(paths))
@@ -1354,6 +1545,21 @@ async fn write_many(
             committed: false,
             unused: Vec::new(),
         });
+    }
+    if let Some(limit) = hard_limit(ctx) {
+        let (mut replaced, mut added) = (0i64, 0i64);
+        for (index, (put, written)) in items.iter().enumerate() {
+            match decision.assets[index].status {
+                AssetStatus::New => added = added.saturating_add(size_of(written)),
+                AssetStatus::Replaced => {
+                    added = added.saturating_add(size_of(written));
+                    replaced = replaced
+                        .saturating_add(existing.get(&put.path).map_or(0, |found| found.size));
+                }
+                AssetStatus::Unchanged | AssetStatus::Conflict => {}
+            }
+        }
+        require_growth_to_fit(repository, limit, usage.bytes, replaced, added)?;
     }
     let mut written_keys: HashSet<ComponentIdentity> = HashSet::new();
     for (index, (put, _)) in items.iter().enumerate() {

@@ -230,7 +230,10 @@ pub async fn upload(ctx: &Ctx, form: UploadForm) -> Result<(), ContentError> {
                 };
                 (put, astrum_blob::content_of(bytes.clone()))
             }
-            (None, Some(file)) => (put, UploadForm::stream(file).await?),
+            (None, Some(file)) => (
+                put.declared_size(Some(file.size)),
+                UploadForm::stream(file).await?,
+            ),
             (None, None) => continue,
         };
         store::put(ctx, put, body).await?;
