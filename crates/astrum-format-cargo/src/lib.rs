@@ -2,7 +2,8 @@ mod hosted;
 pub mod index;
 mod remote;
 
-use astrum_content::store;
+use astrum_content::inventory::{Inventory, PackageRef};
+use astrum_content::store::{self, Component};
 use astrum_content::{
     Asset, BrowseLayout, CHALLENGE, ContentError, ContentRequest, Ctx, Format, Serve, View, group,
     serve,
@@ -47,6 +48,24 @@ enum Route {
     Me,
     Directory,
     Other,
+}
+
+fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let purl = format!("pkg:cargo/{name}@{version}");
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "crates.io".to_owned(),
+            name: name.to_owned(),
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+    })
 }
 
 fn route(path: &str) -> Route {
@@ -565,6 +584,14 @@ impl Format for Cargo {
         ID
     }
 
+    async fn inventory(
+        &self,
+        _ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        Ok(package_inventory(&component.name, &component.version))
+    }
+
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
         let route = route(&request.path);
         let answer = match (&request.method, &route) {
@@ -632,6 +659,17 @@ impl Format for Cargo {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hosted_and_proxy_crates_name_themselves_by_name_and_version() {
+        let hosted = package_inventory("serde", "1.0.200").unwrap();
+        assert_eq!(hosted.key, "pkg:cargo/serde@1.0.200");
+        assert_eq!(hosted.packages[0].ecosystem, "crates.io");
+        assert_eq!(hosted.packages[0].name, "serde");
+        let proxy = package_inventory("tokio-util", "0.7.11").unwrap();
+        assert_eq!(proxy.key, "pkg:cargo/tokio-util@0.7.11");
+        assert!(package_inventory("serde", "").is_none());
+    }
 
     #[test]
     fn paths_route_to_the_index_the_api_and_crate_files() {
