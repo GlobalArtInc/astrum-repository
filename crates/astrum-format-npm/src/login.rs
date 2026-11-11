@@ -21,6 +21,8 @@ const USER_PREFIX: &str = "org.couchdb.user:";
 const OTP_HEADER: &str = "npm-otp";
 const OTP_CHALLENGE: &str = "OTP";
 const TOTP_DIGITS: usize = 6;
+const DIRECTORY_ACCOUNT: &str =
+    "this account signs in through a directory; use an access token instead";
 
 pub fn routes() -> Router<AppState> {
     Router::new().route("/repository/{name}/-/user/{*rest}", any(user))
@@ -165,10 +167,14 @@ async fn login(
         Err(AuthError::Internal(error)) => return Err(ContentError::internal(error)),
     };
     security.sign_in_succeeded(&user);
-    let token = security
-        .issue_format_token(REALM, &subject.user_id, None)
-        .await
-        .map_err(ContentError::internal)?;
+    let token = match security.issue_format_token(REALM, &subject, None).await {
+        Ok(token) => token,
+        Err(astrum_security::Error::NotLocal) => {
+            tracing::info!(user, "an npm sign-in came from an account of a directory");
+            return Ok(refused(StatusCode::UNAUTHORIZED, DIRECTORY_ACCOUNT));
+        }
+        Err(error) => return Err(ContentError::internal(error)),
+    };
     let caller = Caller(Some(subject.clone()));
     let mut event = Event::new("security.npmtoken", "created", &subject.user_id);
     if let Some(method) = verified {

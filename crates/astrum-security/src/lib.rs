@@ -58,6 +58,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("a background job ended early: {0}")]
     Join(#[from] tokio::task::JoinError),
+    #[error("only a signed-in user of the local realm can hold a format token")]
+    NotLocal,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

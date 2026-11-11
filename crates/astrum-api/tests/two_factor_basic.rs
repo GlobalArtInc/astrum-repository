@@ -185,34 +185,29 @@ async fn formats() -> Formats {
         .unwrap();
     let content = fixture.state.content();
     content.register(Arc::new(astrum_format_docker::Docker::default()));
-    content.register(Arc::new(astrum_format_npm::Npm::default()));
     content.register(Arc::new(astrum_format_openvsx::OpenVsx));
     content.register(Arc::new(astrum_format_raw::Raw));
     astrum_db::setting::put(
         fixture.state.db().conn(),
         astrum_security::model::REALMS_KEY,
-        &["AstrumAuthenticatingRealm", "DockerToken", "NpmToken"],
+        &["AstrumAuthenticatingRealm", "DockerToken"],
     )
     .await
     .unwrap();
     fixture.state.security().changed().await.unwrap();
-    for (format, name) in [("npm", "npm-hosted"), ("openvsx", "ovsx-hosted")] {
-        let created = fixture
-            .call(
-                Method::POST,
-                &format!("/service/rest/v1/repositories/{format}/hosted"),
-                Auth::Admin,
-                Some(json!({
-                    "name": name, "online": true,
-                    "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
-                })),
-            )
-            .await;
-        assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
-    }
-    let routes = astrum_format_docker::routes()
-        .merge(astrum_format_openvsx::routes())
-        .merge(astrum_format_npm::routes());
+    let created = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/repositories/openvsx/hosted",
+            Auth::Admin,
+            Some(json!({
+                "name": "ovsx-hosted", "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+            })),
+        )
+        .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    let routes = astrum_format_docker::routes().merge(astrum_format_openvsx::routes());
     let app = astrum_api::router_with(fixture.state.clone(), routes);
     Formats { fixture, app }
 }

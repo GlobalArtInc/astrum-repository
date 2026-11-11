@@ -12,6 +12,9 @@ use tower::ServiceExt;
 
 const HOSTED: &str = "/repository/npm-hosted";
 const WRONG_PASSWORD: &str = "the user name or password is wrong";
+const DIRECTORY_ACCOUNT: &str =
+    "this account signs in through a directory; use an access token instead";
+const BOB: &str = "bob-local-password-1";
 
 async fn ready() -> Fixture {
     let fixture = world().await;
@@ -104,6 +107,19 @@ async fn login(fixture: &Fixture, user: &str, password: &str, otp: Option<&str>)
         &headers,
     )
     .await
+}
+
+type Headers = Vec<(String, Vec<u8>)>;
+
+fn answer(reply: &Reply) -> (StatusCode, Headers, Vec<u8>) {
+    let mut headers: Headers = reply
+        .headers
+        .iter()
+        .filter(|(name, _)| *name != header::DATE)
+        .map(|(name, value)| (name.to_string(), value.as_bytes().to_vec()))
+        .collect();
+    headers.sort();
+    (reply.status, headers, reply.body.clone())
 }
 
 fn challenged(reply: &Reply) -> bool {
@@ -271,4 +287,72 @@ async fn a_user_without_a_second_factor_signs_in_in_one_request() {
     assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
     let created = events(&fixture, "security.npmtoken").await;
     assert!(created[0]["attributes"].get("secondFactor").is_none());
+}
+
+#[tokio::test]
+async fn a_code_of_another_user_does_not_open_the_account_of_the_body() {
+    let fixture = ready().await;
+    let jane = enroll(&fixture, "jane").await;
+    enroll(&fixture, "pat").await;
+    let body = json!({"_id": "org.couchdb.user:pat", "name": "pat", "password": PAT});
+    let reply = send(
+        &fixture,
+        Method::PUT,
+        &format!("{HOSTED}/-/user/org.couchdb.user:jane"),
+        None,
+        Some(body),
+        &[("npm-otp", &jane.code())],
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::UNAUTHORIZED, "{}", reply.text());
+    assert!(challenged(&reply));
+    assert_eq!(
+        number(&fixture, "SELECT count(*) FROM format_token").await,
+        0
+    );
+}
+
+#[tokio::test]
+async fn a_wrong_password_looks_the_same_for_every_kind_of_user() {
+    let fixture = ready().await;
+    let factor = enroll(&fixture, "jane").await;
+    let with_factor = login(&fixture, "jane", "nope", None).await;
+    let with_code = login(&fixture, "jane", "nope", Some(&factor.code())).await;
+    let without_factor = login(&fixture, "pat", "nope", None).await;
+    let unknown = login(&fixture, "ghost", "nope", None).await;
+    assert_eq!(with_factor.status, StatusCode::UNAUTHORIZED);
+    assert_eq!(answer(&with_factor), answer(&with_code));
+    assert_eq!(answer(&with_factor), answer(&without_factor));
+    assert_eq!(answer(&with_factor), answer(&unknown));
+}
+
+#[tokio::test]
+async fn a_directory_account_gets_no_token_even_with_the_right_directory_password() {
+    let fixture = ready().await;
+    let _directory = fixture.directory().await;
+    fixture.add_user("bob", BOB, &[]).await;
+    enroll(&fixture, "bob").await;
+    for user in ["bob", "alice"] {
+        for _ in 0..12 {
+            let reply = login(&fixture, user, &format!("{user}-secret"), None).await;
+            assert_eq!(reply.status, StatusCode::UNAUTHORIZED, "{}", reply.text());
+            assert!(!challenged(&reply));
+            assert_eq!(error_of(&reply), DIRECTORY_ACCOUNT);
+        }
+    }
+    assert_eq!(
+        number(&fixture, "SELECT count(*) FROM format_token").await,
+        0
+    );
+    assert!(events(&fixture, "security.npmtoken").await.is_empty());
+    let whoami = send(
+        &fixture,
+        Method::GET,
+        &format!("{HOSTED}/-/whoami"),
+        None,
+        None,
+        &[],
+    )
+    .await;
+    assert_eq!(whoami.status, StatusCode::UNAUTHORIZED);
 }

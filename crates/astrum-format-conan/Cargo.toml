@@ -10,6 +10,7 @@ astrum-api.workspace = true
 astrum-content.workspace = true
 astrum-db.workspace = true
 astrum-repo.workspace = true
+astrum-security.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 chrono.workspace = true

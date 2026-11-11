@@ -2,6 +2,7 @@ use astrum_api::routes::content::context;
 use astrum_api::{AppState, Caller};
 use astrum_content::{ContentError, ContentRequest};
 use astrum_db::audit::Event;
+use astrum_security::catalogue::DEFAULT_SOURCE;
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, Request, State};
@@ -11,6 +12,9 @@ use axum::routing::any;
 use serde_json::{Value, json};
 
 use crate::{ID, REALM};
+
+const DIRECTORY_ACCOUNT: &str =
+    "this account signs in through a directory; use an access token instead";
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -161,6 +165,11 @@ async fn token(
     };
     let security = state.security();
     match method {
+        Method::DELETE if subject.source != DEFAULT_SOURCE => json_response(
+            &method,
+            StatusCode::FORBIDDEN,
+            &json!({"errors": [DIRECTORY_ACCOUNT]}),
+        ),
         Method::DELETE => match security
             .revoke_format_tokens_of_realm(&subject.user_id, REALM)
             .await
@@ -189,10 +198,7 @@ async fn token(
                     &json!({"errors": ["The Terraform Bearer Token Realm is not active; ask an administrator to activate it in Security > Realms"]}),
                 );
             }
-            match security
-                .issue_format_token(REALM, &subject.user_id, None)
-                .await
-            {
+            match security.issue_format_token(REALM, &subject, None).await {
                 Ok(token) => {
                     state
                         .audit(
@@ -202,6 +208,11 @@ async fn token(
                         .await;
                     json_response(&method, StatusCode::OK, &json!({ "token": token }))
                 }
+                Err(astrum_security::Error::NotLocal) => json_response(
+                    &method,
+                    StatusCode::FORBIDDEN,
+                    &json!({"errors": [DIRECTORY_ACCOUNT]}),
+                ),
                 Err(error) => ContentError::internal(error).into_response(),
             }
         }

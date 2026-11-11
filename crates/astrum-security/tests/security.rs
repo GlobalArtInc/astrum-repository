@@ -1,11 +1,13 @@
-use astrum_db::entity::{repository, security_user};
+use std::collections::BTreeSet;
+
+use astrum_db::entity::{format_token, repository, security_user};
 use astrum_db::revision;
 use astrum_security::bootstrap::ADMIN_PASSWORD_FILE;
 use astrum_security::catalogue::{ADMIN_USER, ANONYMOUS_USER};
 use astrum_security::model::{ANONYMOUS_KEY, AnonymousSettings};
-use astrum_security::{AuthError, Security, bootstrap, password};
+use astrum_security::{AuthError, Error, Security, Subject, bootstrap, ldap, password};
 use astrum_testkit::TestDatabase;
-use sea_orm::{ActiveValue, EntityTrait};
+use sea_orm::{ActiveValue, EntityTrait, PaginatorTrait};
 use serde_json::json;
 
 async fn ready() -> (TestDatabase, astrum_db::Database, tempfile::TempDir) {
@@ -244,4 +246,44 @@ async fn a_server_that_missed_a_change_checks_before_it_refuses() {
         there.authenticate("dave", "first-secret").await,
         Err(AuthError::BadCredentials)
     ));
+}
+
+#[tokio::test]
+async fn format_tokens_go_to_local_sign_ins_only() {
+    let (_test, db, data) = ready().await;
+    bootstrap(db.conn(), data.path()).await.unwrap();
+    let security = Security::load(db.conn().clone()).await.unwrap();
+    let realm = "NpmToken";
+    let local = security.model().local_subject(ADMIN_USER, realm).unwrap();
+    let directory = Subject::new(
+        ADMIN_USER,
+        ldap::SOURCE,
+        realm,
+        BTreeSet::new(),
+        Vec::new(),
+        Vec::new(),
+    );
+    assert!(matches!(
+        security.issue_format_token(realm, &directory, None).await,
+        Err(Error::NotLocal)
+    ));
+    assert!(matches!(
+        security
+            .issue_format_token(realm, &local.clone().as_anonymous(), None)
+            .await,
+        Err(Error::NotLocal)
+    ));
+    assert_eq!(
+        format_token::Entity::find().count(db.conn()).await.unwrap(),
+        0
+    );
+    let token = security
+        .issue_format_token(realm, &local, None)
+        .await
+        .unwrap();
+    assert!(token.starts_with("NpmToken."));
+    assert_eq!(
+        format_token::Entity::find().count(db.conn()).await.unwrap(),
+        1
+    );
 }

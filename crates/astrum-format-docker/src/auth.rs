@@ -19,6 +19,8 @@ pub const REALM: &str = "DockerToken";
 pub const API_VERSION: &str = "registry/2.0";
 pub const ANONYMOUS_TOKEN: &str = "anonymous";
 pub const LIFETIME_SECONDS: i64 = 1800;
+const DIRECTORY_ACCOUNT: &str =
+    "this account signs in through a directory; use an access token instead";
 
 pub fn challenge(security: &SecurityModel, base_url: &str, scope: Option<&str>) -> String {
     if !security.realm_active(REALM) {
@@ -129,11 +131,14 @@ async fn issue(state: &AppState, subject: &Subject) -> Result<String, RegistryEr
         .security()
         .issue_format_token(
             REALM,
-            &subject.user_id,
+            subject,
             Some(chrono::Duration::seconds(LIFETIME_SECONDS)),
         )
         .await
-        .map_err(|error| astrum_content::ContentError::internal(error).into())
+        .map_err(|error| match error {
+            astrum_security::Error::NotLocal => RegistryError::denied(DIRECTORY_ACCOUNT),
+            other => astrum_content::ContentError::internal(other).into(),
+        })
 }
 
 fn inactive() -> Response {

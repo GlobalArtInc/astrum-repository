@@ -12,6 +12,7 @@ use base64::engine::general_purpose::STANDARD;
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
+use support::two_factor::number;
 use support::{Auth, Fixture, Reply};
 use tower::ServiceExt;
 
@@ -788,4 +789,84 @@ async fn proxies_cache_modules_and_provider_files_of_their_remote() {
     )
     .await;
     assert_eq!(other.status, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn a_directory_account_gets_no_terraform_token() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("tf-hosted", "allow")).await;
+    let realms = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/realms/active",
+            Auth::Admin,
+            Some(json!(["AstrumAuthenticatingRealm", "TerraformToken"])),
+        )
+        .await;
+    assert_eq!(realms.status, StatusCode::NO_CONTENT);
+    let _directory = fixture.directory().await;
+    fixture.add_user("bob", "bob-local-password-1", &[]).await;
+    for (user, password) in [("bob", "bob-secret"), ("alice", "alice-secret")] {
+        let reply = get(
+            &fixture,
+            "/repository/tf-hosted/token",
+            Auth::Basic(user, password),
+        )
+        .await;
+        assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
+        assert_eq!(
+            reply.json(),
+            json!({"errors": ["this account signs in through a directory; use an access token instead"]})
+        );
+    }
+    assert_eq!(
+        number(&fixture, "SELECT count(*) FROM format_token").await,
+        0
+    );
+}
+
+#[tokio::test]
+async fn a_directory_account_cannot_revoke_the_token_of_a_local_user_of_its_id() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("tf-hosted", "allow")).await;
+    let realms = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/realms/active",
+            Auth::Admin,
+            Some(json!(["AstrumAuthenticatingRealm", "TerraformToken"])),
+        )
+        .await;
+    assert_eq!(realms.status, StatusCode::NO_CONTENT);
+    let _directory = fixture.directory().await;
+    fixture.add_user("bob", "bob-local-password-1", &[]).await;
+    let local = Auth::Basic("bob", "bob-local-password-1");
+    let issued = get(&fixture, "/repository/tf-hosted/token", local).await;
+    assert_eq!(issued.status, StatusCode::OK, "{}", issued.text());
+    let revoke = |auth| {
+        send(
+            &fixture,
+            Method::DELETE,
+            "/repository/tf-hosted/token",
+            auth,
+            Body::empty(),
+            &[],
+        )
+    };
+    let refused = revoke(Auth::Basic("bob", "bob-secret")).await;
+    assert_eq!(refused.status, StatusCode::FORBIDDEN, "{}", refused.text());
+    assert_eq!(
+        refused.json(),
+        json!({"errors": ["this account signs in through a directory; use an access token instead"]})
+    );
+    assert_eq!(
+        number(&fixture, "SELECT count(*) FROM format_token").await,
+        1
+    );
+    let revoked = revoke(Auth::Basic("bob", "bob-local-password-1")).await;
+    assert_eq!(revoked.status, StatusCode::NO_CONTENT, "{}", revoked.text());
+    assert_eq!(
+        number(&fixture, "SELECT count(*) FROM format_token").await,
+        0
+    );
 }
