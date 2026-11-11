@@ -2,6 +2,7 @@ use astrum_db::audit::Event;
 use astrum_db::entity::{security_oidc_user, security_user, security_user_role};
 use astrum_security::bootstrap::ADMIN_PASSWORD_FILE;
 use astrum_security::catalogue::{ADMIN_USER, DEFAULT_SOURCE};
+use astrum_security::credentials::clear_credentials_of_new_local_user;
 use astrum_security::realm::{self, USER_SOURCES};
 use astrum_security::{SecurityModel, Subject, UserStatus, ldap, oidc, password};
 use axum::Router;
@@ -375,13 +376,23 @@ async fn create(
         }
     }
     put_roles(&txn, &user_id, DEFAULT_SOURCE, &roles).await?;
+    let cleared = clear_credentials_of_new_local_user(&txn, &user_id).await?;
     txn.commit().await?;
 
+    let mut attributes = json!({"status": status.as_str(), "roles": roles});
+    if cleared.total() > 0 {
+        attributes["credentialsCleared"] = json!({
+            "accessTokens": cleared.access_tokens,
+            "apiKeys": cleared.api_keys,
+            "formatTokens": cleared.format_tokens,
+            "oauthGrants": cleared.oauth_grants,
+            "sessions": cleared.sessions,
+        });
+    }
     changed(
         &state,
         &caller,
-        Event::new(DOMAIN, "created", &user_id)
-            .with(json!({"status": status.as_str(), "roles": roles})),
+        Event::new(DOMAIN, "created", &user_id).with(attributes),
     )
     .await?;
     let model = state.security().model();
@@ -533,7 +544,10 @@ async fn remove(
     if source == DEFAULT_SOURCE {
         state.security().close_sessions_of(&user_id).await?;
         state.security().delete_tokens_of(&user_id).await?;
-        state.security().delete_oauth_grants_of(&user_id).await?;
+        state
+            .security()
+            .delete_oauth_grants_of_local_user(&user_id)
+            .await?;
         state.security().revoke_format_tokens_of(&user_id).await?;
         state.security().delete_api_keys_of(&user_id).await?;
     }

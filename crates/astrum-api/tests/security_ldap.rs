@@ -648,8 +648,8 @@ async fn the_local_realm_comes_first_and_ldap_only_while_active() {
         .await;
     assert_eq!(
         directory_password.status,
-        StatusCode::FORBIDDEN,
-        "the LDAP alice signs in but has no roles"
+        StatusCode::UNAUTHORIZED,
+        "a local user's id never signs in through the directory"
     );
     let reply = fixture
         .call(

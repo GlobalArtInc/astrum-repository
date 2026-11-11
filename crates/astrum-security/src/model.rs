@@ -123,6 +123,7 @@ pub struct SecurityModel {
     pub oidc: Option<OidcSettings>,
     pub oidc_users: BTreeMap<String, OidcUser>,
     pub default_role: Option<String>,
+    local_ids: BTreeSet<String>,
 }
 
 async fn tolerant<T: serde::de::DeserializeOwned>(
@@ -259,7 +260,17 @@ impl SecurityModel {
                 },
             );
         }
+        model.index_local_ids();
         Ok(model)
+    }
+
+    pub fn index_local_ids(&mut self) {
+        self.local_ids = self
+            .users
+            .keys()
+            .map(|id| id.to_lowercase())
+            .chain(std::iter::once(self.anonymous.user_id.to_lowercase()))
+            .collect();
     }
 
     pub fn realm_active(&self, id: &str) -> bool {
@@ -403,7 +414,7 @@ impl SecurityModel {
     }
 
     pub fn oidc_subject(&self, user_id: &str) -> Option<Subject> {
-        if !self.realm_active(realm::OIDC) {
+        if !self.realm_active(realm::OIDC) || self.local_id_taken(user_id) {
             return None;
         }
         let user = self.oidc_users.get(user_id)?;
@@ -416,6 +427,10 @@ impl SecurityModel {
             return None;
         }
         Some(self.subject(&user.id, DEFAULT_SOURCE, realm))
+    }
+
+    pub fn local_id_taken(&self, user_id: &str) -> bool {
+        self.local_ids.contains(&user_id.to_lowercase())
     }
 
     pub fn anonymous_subject(&self) -> Option<Subject> {
@@ -519,6 +534,22 @@ mod tests {
         model.users.get_mut("jane").unwrap().status = UserStatus::Disabled;
         assert!(model.local_subject("jane", realm::LOCAL).is_none());
         assert!(model.local_subject("nobody", realm::LOCAL).is_none());
+    }
+
+    #[test]
+    fn local_ids_are_taken_whatever_their_case_or_status() {
+        let mut model = model();
+        model.index_local_ids();
+        assert!(model.local_id_taken("jane"));
+        assert!(model.local_id_taken("JANE"));
+        assert!(model.local_id_taken("anonymous"));
+        assert!(!model.local_id_taken("janet"));
+        model.users.get_mut("jane").unwrap().status = UserStatus::Disabled;
+        model.index_local_ids();
+        assert!(model.local_id_taken("Jane"));
+        model.users.remove("jane");
+        model.index_local_ids();
+        assert!(!model.local_id_taken("jane"));
     }
 
     #[test]

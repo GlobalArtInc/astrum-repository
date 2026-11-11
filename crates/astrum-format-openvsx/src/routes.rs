@@ -126,22 +126,17 @@ async fn with_token(
             Err(response) => return *response,
         }
     }
-    let path = parts
-        .uri
-        .path()
+    let decoded = match percent_encoding::percent_decode_str(parts.uri.path()).decode_utf8() {
+        Ok(decoded) => decoded,
+        Err(_) => {
+            return ContentError::BadRequest("the path is not valid UTF-8".to_owned())
+                .into_response();
+        }
+    };
+    let path = decoded
         .strip_prefix(&format!("/repository/{name}"))
         .unwrap_or("/")
         .to_owned();
-    let rule_path = astrum_repo::routing::request_path(&path);
-    match state
-        .content()
-        .routing_allows(&ctx.repository, &rule_path)
-        .await
-    {
-        Ok(true) => {}
-        Ok(false) => return blocked(),
-        Err(error) => return error.into_response(),
-    }
     let request = match ContentRequest::new(
         parts.method,
         &path,
@@ -152,6 +147,16 @@ async fn with_token(
         Ok(request) => request,
         Err(error) => return error.into_response(),
     };
+    let rule_path = request.path.clone();
+    match state
+        .content()
+        .routing_allows(&ctx.repository, &rule_path)
+        .await
+    {
+        Ok(true) => {}
+        Ok(false) => return blocked(),
+        Err(error) => return error.into_response(),
+    }
     format
         .handle(ctx.with_request_path(&rule_path), request)
         .await

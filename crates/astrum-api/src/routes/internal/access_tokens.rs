@@ -1,5 +1,5 @@
 use astrum_db::audit::Event;
-use astrum_security::{Scope, Subject, TokenError, TokenInfo, realm};
+use astrum_security::{EXTERNAL_CREDENTIALS, Scope, Subject, TokenError, TokenInfo, realm};
 use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -76,6 +76,12 @@ fn owner(caller: &Caller) -> Result<&Subject, ApiError> {
     Ok(subject)
 }
 
+fn own_id(subject: &Subject) -> Result<&str, ApiError> {
+    subject
+        .local_user_id()
+        .ok_or_else(|| ApiError::Forbidden(EXTERNAL_CREDENTIALS.to_owned()))
+}
+
 async fn list(
     State(state): State<AppState>,
     caller: Caller,
@@ -91,7 +97,7 @@ async fn list(
             caller.require("astrum:accesstokens:read")?;
             Some(user.to_owned())
         }
-        _ => Some(subject.user_id.clone()),
+        _ => Some(own_id(subject)?.to_owned()),
     };
     let tokens = state.security().tokens(user.as_deref()).await?;
     Ok(axum::Json(
@@ -104,7 +110,7 @@ async fn create(
     caller: Caller,
     Json(body): Json<NewToken>,
 ) -> Result<Response, ApiError> {
-    let subject = owner(&caller)?;
+    let owner_id = own_id(owner(&caller)?)?;
     let days = body.expires_in_days.ok_or_else(|| {
         ApiError::invalid(
             "expiresInDays",
@@ -113,7 +119,7 @@ async fn create(
     })?;
     let created = state
         .security()
-        .create_token(&subject.user_id, &body.name, body.scope, days)
+        .create_token(owner_id, &body.name, body.scope, days)
         .await;
     let (info, token) = match created {
         Ok(created) => created,
@@ -152,7 +158,9 @@ async fn remove(
     let missing = || ApiError::not_found("there is no such access token");
     let id = Uuid::parse_str(&id).map_err(|_| missing())?;
     let token = state.security().token(id).await?.ok_or_else(missing)?;
-    if token.user_id != subject.user_id && !subject.is_permitted("astrum:accesstokens:delete") {
+    if token.user_id == subject.user_id {
+        own_id(subject)?;
+    } else if !subject.is_permitted("astrum:accesstokens:delete") {
         return Err(missing());
     }
     state.security().delete_token(id).await?;

@@ -1,6 +1,6 @@
 use astrum_db::audit::Event;
 use astrum_security::api_keys::{ApiKey, NUGET};
-use astrum_security::{AuthError, Subject};
+use astrum_security::{AuthError, EXTERNAL_CREDENTIALS, Subject};
 use axum::Router;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
@@ -55,8 +55,15 @@ struct Confirmation {
     password: Option<String>,
 }
 
+fn local(subject: &Subject) -> Result<&Subject, ApiError> {
+    match subject.local_user_id() {
+        Some(_) => Ok(subject),
+        None => Err(ApiError::Forbidden(EXTERNAL_CREDENTIALS.to_owned())),
+    }
+}
+
 fn holder<'a>(caller: &'a Caller, permission: &str) -> Result<&'a Subject, ApiError> {
-    caller.signed_in()?;
+    local(caller.signed_in()?)?;
     caller.require(permission)
 }
 
@@ -190,7 +197,7 @@ async fn authenticate(
     headers: HeaderMap,
     Json(body): Json<Credentials>,
 ) -> Result<Response, ApiError> {
-    let subject = caller.signed_in()?.clone();
+    let subject = local(caller.signed_in()?)?.clone();
     let (Some(user), Some(password)) = (decode(body.u.as_deref()), decode(body.p.as_deref()))
     else {
         return Err(ApiError::BadRequest(
@@ -235,7 +242,7 @@ struct TicketQuery {
 }
 
 fn ticket_holder(state: &AppState, caller: &Caller, query: &TicketQuery) -> Result<(), ApiError> {
-    let subject = caller.signed_in()?;
+    let subject = local(caller.signed_in()?)?;
     let token = query
         .auth_token
         .as_deref()

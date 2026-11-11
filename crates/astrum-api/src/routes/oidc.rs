@@ -1,5 +1,5 @@
 use astrum_security::oidc::{self, Callback, Failure, OidcError, PendingLogin};
-use astrum_security::realm;
+use astrum_security::{OidcSignIn, realm};
 use axum::Router;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
@@ -176,25 +176,27 @@ async fn callback(
                 Err(error) => tracing::warn!(error = %error.message, "the OpenID Connect user info could not be read; the ID token claims are used alone"),
             }
         }
-        let user = oidc::user_from_claims(&settings, &claims)?;
-        if user.user_id == model.anonymous.user_id {
-            return Err(OidcError::denied(format!(
-                "The username '{}' is reserved",
-                user.user_id
-            )));
-        }
-        Ok(user)
+        oidc::user_from_claims(&settings, &claims)
     }
     .await;
     let user = match signed_in {
         Ok(user) => user,
         Err(error) => return Ok(failed(&headers, &error)),
     };
-    let Some(subject) = state.security().oidc_sign_in(&user).await? else {
-        return Ok(failed(
-            &headers,
-            &OidcError::new(Failure::Failed, "the OpenID Connect realm is not active"),
-        ));
+    let subject = match state.security().oidc_sign_in(&user).await? {
+        OidcSignIn::Accepted(subject) => subject,
+        OidcSignIn::Reserved => {
+            return Ok(failed(
+                &headers,
+                &OidcError::denied(format!("The username '{}' is reserved", user.user_id)),
+            ));
+        }
+        OidcSignIn::RealmInactive => {
+            return Ok(failed(
+                &headers,
+                &OidcError::new(Failure::Failed, "the OpenID Connect realm is not active"),
+            ));
+        }
     };
     tracing::info!(user = %subject.user_id, "a user signed in with OpenID Connect");
     let mut response = redirect(pending.return_to.as_deref().unwrap_or("/"));
