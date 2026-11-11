@@ -1,9 +1,8 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use astrum_blob::{BlobId, BlobStore, Settings, StoreConfig};
-use astrum_content::holds;
 use async_trait::async_trait;
 use sea_orm::{DbBackend, FromQueryResult, Statement};
 use uuid::Uuid;
@@ -140,6 +139,20 @@ struct Referenced {
     blob_id: Uuid,
 }
 
+#[derive(FromQueryResult)]
+struct Protected {
+    blob_id: Uuid,
+    named: bool,
+}
+
+const PROTECTED: &str = "SELECT blob_id, bool_or(named) AS named FROM ( \
+     SELECT blob_id, false AS named FROM blob_hold \
+     WHERE blob_store = ANY($1) AND blob_id = ANY($2) \
+     UNION ALL \
+     SELECT blob_id, true AS named FROM asset \
+     WHERE blob_store = ANY($1) AND blob_id = ANY($2)) AS protected \
+     GROUP BY blob_id";
+
 async fn compact(
     run: &Run,
     name: &str,
@@ -174,26 +187,29 @@ async fn compact(
             continue;
         }
         let ids: Vec<Uuid> = old.iter().map(|blob| blob.id.uuid()).collect();
-        let held = holds::held(run.db(), owners, &ids).await?;
-        let referenced: HashSet<Uuid> =
-            Referenced::find_by_statement(Statement::from_sql_and_values(
+        let protected: HashMap<Uuid, bool> =
+            Protected::find_by_statement(Statement::from_sql_and_values(
                 DbBackend::Postgres,
-                "SELECT blob_id FROM asset WHERE blob_store = ANY($1) AND blob_id = ANY($2)",
+                PROTECTED,
                 [owners.to_vec().into(), ids.into()],
             ))
             .all(run.db())
             .await?
             .into_iter()
-            .map(|found| found.blob_id)
+            .map(|found| (found.blob_id, found.named))
             .collect();
         for blob in old {
             let id = blob.id.uuid();
-            if referenced.contains(&id) || uploading.contains(&id) {
+            if uploading.contains(&id) {
                 continue;
             }
-            if held.contains(&id) {
-                kept += 1;
-                continue;
+            match protected.get(&id) {
+                Some(true) => continue,
+                Some(false) => {
+                    kept += 1;
+                    continue;
+                }
+                None => {}
             }
             run.check()?;
             if store.delete(blob.id).await? {
