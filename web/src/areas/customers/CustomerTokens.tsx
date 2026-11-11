@@ -6,11 +6,13 @@ import { type Column, ConfirmDialog, DataTable, RelativeTime, type RowAction, us
 import { CUSTOMERS, type CustomerToken, customerUrl, type RevokeResult, tokensUrl } from './api';
 import styles from './Customers.module.css';
 import { Expiry } from './Expiry';
+import { IssueTokenDialog } from './IssueTokenDialog';
 
 const MAX_REPOSITORIES = 3;
 
 export interface CustomerTokensProps {
   customerId: string;
+  canIssue: boolean;
   canRevoke: boolean;
 }
 
@@ -38,13 +40,14 @@ function Repositories({ names }: RepositoriesProps) {
   );
 }
 
-export function CustomerTokens({ customerId, canRevoke }: CustomerTokensProps) {
+export function CustomerTokens({ customerId, canIssue, canRevoke }: CustomerTokensProps) {
   const t = useT();
   const toast = useToast();
   const invalidate = useInvalidateApi();
   const tokens = useApi<CustomerToken[]>(tokensUrl(customerId));
   const [revoking, setRevoking] = useState<CustomerToken | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
+  const [issuing, setIssuing] = useState(false);
   const rows = tokens.data ?? [];
   const columns: Column<CustomerToken>[] = [
     {
@@ -123,16 +126,19 @@ export function CustomerTokens({ customerId, canRevoke }: CustomerTokensProps) {
         <Heading as="h2" size="3" weight="medium">
           {t('customers.tokens.title')}
         </Heading>
-        {canRevoke && (
-          <Button
-            variant="outline"
-            color="red"
-            disabled={rows.length === 0}
-            onClick={() => setRevokingAll(true)}
-          >
-            {t('customers.tokens.revokeAll')}
-          </Button>
-        )}
+        <Flex gap="2" wrap="wrap">
+          {canIssue && <Button onClick={() => setIssuing(true)}>{t('customers.issue.open')}</Button>}
+          {canRevoke && (
+            <Button
+              variant="outline"
+              color="red"
+              disabled={rows.length === 0}
+              onClick={() => setRevokingAll(true)}
+            >
+              {t('customers.tokens.revokeAll')}
+            </Button>
+          )}
+        </Flex>
       </Flex>
       <DataTable
         label={t('customers.tokens.tableLabel')}
@@ -149,6 +155,7 @@ export function CustomerTokens({ customerId, canRevoke }: CustomerTokensProps) {
           </Text>
         }
       />
+      {canIssue && <IssueTokenDialog customerId={customerId} open={issuing} onOpenChange={setIssuing} />}
       <ConfirmDialog
         open={revoking !== null}
         onOpenChange={(open) => {

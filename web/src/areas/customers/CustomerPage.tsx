@@ -1,4 +1,4 @@
-import { Card, Flex, Heading, Spinner } from '@radix-ui/themes';
+import { Flex, Spinner } from '@radix-ui/themes';
 import { useParams } from 'react-router';
 import { useApi } from '../../api';
 import { useCan } from '../../auth/state';
@@ -7,12 +7,14 @@ import { ErrorState, Page } from '../../ui';
 import { CUSTOMERS_PAGE, type Customer, customerUrl } from './api';
 import { CustomerForm } from './CustomerForm';
 import { CustomerTokens } from './CustomerTokens';
+import { CustomerUsage } from './CustomerUsage';
 import { DeleteCustomer } from './DeleteCustomer';
-import { DELETE, UPDATE } from './model';
+import { CREATE, DELETE, UPDATE } from './model';
 
 export default function CustomerPage() {
   const t = useT();
   const { id = '' } = useParams();
+  const canCreate = useCan(CREATE);
   const canUpdate = useCan(UPDATE);
   const canDelete = useCan(DELETE);
   const customer = useApi<Customer>(customerUrl(id));
@@ -36,12 +38,8 @@ export default function CustomerPage() {
       ) : (
         <Flex direction="column" gap="5">
           <CustomerForm customer={customer.data} canUpdate={canUpdate} />
-          <CustomerTokens customerId={customer.data.id} canRevoke={canDelete} />
-          <Card>
-            <Heading as="h2" size="3" weight="medium">
-              {t('customers.detail.usage')}
-            </Heading>
-          </Card>
+          <CustomerTokens customerId={customer.data.id} canIssue={canCreate} canRevoke={canDelete} />
+          <CustomerUsage customerId={customer.data.id} />
           {canDelete && <DeleteCustomer customer={customer.data} />}
         </Flex>
       )}

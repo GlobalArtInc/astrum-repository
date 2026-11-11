@@ -1,5 +1,6 @@
 import {
   Badge,
+  Box,
   Button,
   Callout,
   Card,
@@ -15,7 +16,7 @@ import {
 } from '@radix-ui/themes';
 import { KeyRound, LogOut, ShieldAlert, Trash2, TriangleAlert } from 'lucide-react';
 import { useId, useMemo, useState } from 'react';
-import { api, path, useApi, useInvalidateApi, withQuery } from '../../api';
+import { api, path, useApi, useInvalidateApi, V1, withQuery } from '../../api';
 import { useCan, useSession } from '../../auth/state';
 import { useSignOut } from '../../auth/useSignOut';
 import { useT } from '../../i18n';
@@ -24,6 +25,9 @@ import {
   CopyButton,
   DateTime,
   ErrorState,
+  type FieldBinding,
+  MultiSelectField,
+  type Option,
   useDocumentTitle,
   useForm,
   useToast,
@@ -50,7 +54,8 @@ import {
 import styles from './Tokens.module.css';
 
 const TOKENS_PAGE_SIZE = 20;
-const INITIAL: TokenValues = { name: '', scope: 'READ', days: 90 };
+const REPOSITORIES = `${V1}/repositories`;
+const INITIAL: TokenForm = { name: '', scope: 'READ', days: 90, repositories: [] };
 const USAGE_LABELS: Record<UsageKind, string> = {
   docker: 'Docker',
   podman: 'Podman',
@@ -60,8 +65,57 @@ const USAGE_LABELS: Record<UsageKind, string> = {
   curl: 'curl',
 };
 
+interface TokenForm extends TokenValues {
+  repositories: string[];
+}
+
+interface ScopedToken extends AccessToken {
+  repositories?: string[];
+}
+
+interface Repository {
+  name: string;
+  format: string;
+  type: string;
+}
+
 function lifetimeKey(days: Lifetime): string {
   return days === null ? 'never' : String(days);
+}
+
+function tokenRequest(values: TokenForm) {
+  const request = toTokenRequest(values);
+  return values.scope === 'READ' && values.repositories.length > 0
+    ? { ...request, repositories: values.repositories }
+    : request;
+}
+
+interface RepositoryLimitProps {
+  binding: FieldBinding<string[]>;
+}
+
+function RepositoryLimit({ binding }: RepositoryLimitProps) {
+  const t = useT();
+  const id = useId();
+  const repositories = useApi<Repository[]>(REPOSITORIES);
+  const options: Option[] = [...(repositories.data ?? [])]
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((repository) => ({
+      value: repository.name,
+      label: `${repository.name} (${repository.format}, ${repository.type})`,
+    }));
+  return (
+    <Box mb="3" minWidth="0">
+      <MultiSelectField
+        {...binding}
+        id={id}
+        label={t('user.tokens.repositories')}
+        hint={t('user.tokens.repositoriesHint')}
+        placeholder={t('user.tokens.allRepositories')}
+        options={options}
+      />
+    </Box>
+  );
 }
 
 function CreateTokenForm({ onCreated }: { onCreated(token: CreatedToken): void }) {
@@ -70,11 +124,11 @@ function CreateTokenForm({ onCreated }: { onCreated(token: CreatedToken): void }
   const nameId = useId();
   const scopeId = useId();
   const daysId = useId();
-  const form = useForm<TokenValues>({
+  const form = useForm<TokenForm>({
     initial: INITIAL,
     validate: (values) => validateToken(t, values),
     onSubmit: async (values) => {
-      const created = await api.post<CreatedToken>(TOKENS, toTokenRequest(values));
+      const created = await api.post<CreatedToken>(TOKENS, tokenRequest(values));
       form.reset(INITIAL);
       await invalidate(TOKENS);
       onCreated(created);
@@ -165,6 +219,7 @@ function CreateTokenForm({ onCreated }: { onCreated(token: CreatedToken): void }
             {t('user.tokens.create')}
           </Button>
         </div>
+        {form.values.scope === 'READ' && <RepositoryLimit binding={form.field('repositories')} />}
         {form.formError && (
           <p className={styles.error} role="alert">
             {form.formError}
@@ -269,10 +324,10 @@ function TokenTable({
   canRevoke,
   onRevoke,
 }: {
-  tokens: AccessToken[];
+  tokens: ScopedToken[];
   everyone: boolean;
-  canRevoke(token: AccessToken): boolean;
-  onRevoke(token: AccessToken): void;
+  canRevoke(token: ScopedToken): boolean;
+  onRevoke(token: ScopedToken): void;
 }) {
   const t = useT();
   return (
@@ -299,9 +354,16 @@ function TokenTable({
             </Table.RowHeaderCell>
             {everyone && <Table.Cell>{token.userId}</Table.Cell>}
             <Table.Cell>
-              <Badge size="1">
-                {token.scope === 'WRITE' ? t('user.tokens.scopeWrite') : t('user.tokens.scopeRead')}
-              </Badge>
+              <Flex gap="1" wrap="wrap">
+                <Badge size="1">
+                  {token.scope === 'WRITE' ? t('user.tokens.scopeWrite') : t('user.tokens.scopeRead')}
+                </Badge>
+                {token.repositories?.map((name) => (
+                  <Badge key={name} size="1" color="gray" variant="outline">
+                    {name}
+                  </Badge>
+                ))}
+              </Flex>
             </Table.Cell>
             <Table.Cell>
               <Code variant="ghost">{`${token.hint}…`}</Code>
@@ -348,9 +410,9 @@ export default function AccessTokensPage() {
   const canDeleteAll = useCan('astrum:accesstokens:delete');
   const [everyone, setEveryone] = useState(false);
   const showAll = everyone && canReadAll;
-  const tokens = useApi<AccessToken[]>(showAll ? withQuery(TOKENS, { userId: '*' }) : TOKENS);
+  const tokens = useApi<ScopedToken[]>(showAll ? withQuery(TOKENS, { userId: '*' }) : TOKENS);
   const [created, setCreated] = useState<CreatedToken | null>(null);
-  const [revoking, setRevoking] = useState<AccessToken | null>(null);
+  const [revoking, setRevoking] = useState<ScopedToken | null>(null);
   const [query, setQuery] = useState('');
   const blocked = needsPasswordSignIn(tokens.error);
   const rows = useMemo(() => filterTokens(sortNewestFirst(tokens.data ?? []), query), [tokens.data, query]);
