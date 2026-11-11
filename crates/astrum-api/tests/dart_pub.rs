@@ -5,8 +5,8 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
 use astrum_format_pub::testing;
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
@@ -449,7 +449,7 @@ async fn tokens_challenges_and_privileges_follow_the_dart_client() {
     let (_, token) = fixture
         .state
         .security()
-        .create_token("admin", "dart", Scope::Write, None)
+        .create_token("admin", NewToken::personal("dart", Scope::Write, None))
         .await
         .unwrap();
     let listed = get_bearer(&fixture, "/repository/closed/api/packages/secret", &token).await;

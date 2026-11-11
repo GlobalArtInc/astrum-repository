@@ -1,5 +1,5 @@
 use astrum_db::audit::Event;
-use astrum_security::{Scope, Subject, TokenError, TokenInfo, realm};
+use astrum_security::{NewToken as TokenDraft, Scope, Subject, TokenError, TokenInfo, realm};
 use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -113,7 +113,13 @@ async fn create(
     })?;
     let created = state
         .security()
-        .create_token(&subject.user_id, &body.name, body.scope, days)
+        .create_token(
+            &subject.user_id,
+            TokenDraft {
+                created_by: Some(subject.user_id.clone()),
+                ..TokenDraft::personal(&body.name, body.scope, days)
+            },
+        )
         .await;
     let (info, token) = match created {
         Ok(created) => created,
@@ -126,8 +132,15 @@ async fn create(
                 TokenError::Days.to_string(),
             ));
         }
-        Err(TokenError::TooMany) => {
-            return Err(ApiError::BadRequest(TokenError::TooMany.to_string()));
+        Err(
+            error @ (TokenError::TooMany
+            | TokenError::TooManyForCustomer
+            | TokenError::Scope
+            | TokenError::Repositories(_)
+            | TokenError::CustomerExpiry
+            | TokenError::UnknownCustomer),
+        ) => {
+            return Err(ApiError::BadRequest(error.to_string()));
         }
         Err(TokenError::Internal(error)) => return Err(error.into()),
     };

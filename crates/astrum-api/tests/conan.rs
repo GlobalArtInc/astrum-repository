@@ -555,3 +555,67 @@ async fn conan_search_keys_find_assets_by_revision() {
         .json();
     assert_eq!(by_revision["items"].as_array().unwrap().len(), 1);
 }
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_gets_no_conan_token() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("conan")).await;
+    let reply = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/realms/active",
+            Auth::Admin,
+            Some(json!([
+                "AstrumAuthenticatingRealm",
+                "AccessTokenRealm",
+                "ConanToken"
+            ])),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::NO_CONTENT);
+    let (_, token) = fixture.customer_token("acme", &["conan"]).await;
+    let refused = call(
+        &fixture,
+        Method::GET,
+        "/repository/conan/v2/users/authenticate",
+        Auth::Basic("acme", &token),
+        Vec::new(),
+        &[],
+    )
+    .await;
+    assert_eq!(refused.status, StatusCode::FORBIDDEN, "{}", refused.text());
+    assert!(!refused.text().contains("ConanToken."));
+    let admin = call(
+        &fixture,
+        Method::GET,
+        "/repository/conan/v2/users/authenticate",
+        Auth::Admin,
+        Vec::new(),
+        &[],
+    )
+    .await;
+    assert_eq!(admin.status, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_is_known_by_its_customer() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("conan")).await;
+    fixture
+        .add_user("olivia", "correct horse battery", &["nx-admin"])
+        .await;
+    let (_, token) = fixture
+        .customer_token_of("olivia", "acme", &["conan"])
+        .await;
+    let checked = call(
+        &fixture,
+        Method::GET,
+        "/repository/conan/v2/users/check_credentials",
+        Auth::Basic("acme", &token),
+        Vec::new(),
+        &[],
+    )
+    .await;
+    assert_eq!(checked.status, StatusCode::OK, "{}", checked.text());
+    assert_eq!(checked.text(), "acme");
+}

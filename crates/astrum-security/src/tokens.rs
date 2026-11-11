@@ -1,17 +1,27 @@
-use astrum_db::entity::access_token;
+use std::collections::BTreeSet;
+use std::net::IpAddr;
+
+use astrum_db::entity::{access_token, customer};
+use astrum_repo::config::valid_name;
 use chrono::{DateTime, Duration, FixedOffset, Utc};
-use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
+use sea_orm::{
+    ActiveValue, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
+    TransactionTrait,
+};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use crate::catalogue::DEFAULT_SOURCE;
-use crate::subject::{Scope, Subject};
+use crate::subject::{Scope, Subject, TokenRef};
 use crate::{AuthError, Error, Security, password, realm};
 
 pub const PREFIX: &str = "astrum_";
 const RANDOM_LENGTH: usize = 40;
 const HINT_LENGTH: usize = 11;
 pub const MAX_PER_USER: u64 = 100;
+pub const MAX_PER_CUSTOMER: u64 = 20;
+pub const MAX_REPOSITORIES: usize = 100;
+const MAX_REPOSITORY_NAME: usize = 200;
 pub const MIN_DAYS: i64 = 1;
 pub const MAX_DAYS: i64 = 3650;
 const TOUCH_EVERY: Duration = Duration::seconds(60);
@@ -26,6 +36,34 @@ pub struct TokenInfo {
     pub created_at: DateTime<FixedOffset>,
     pub expires_at: Option<DateTime<FixedOffset>>,
     pub last_used_at: Option<DateTime<FixedOffset>>,
+    pub customer: Option<String>,
+    pub repositories: Option<Vec<String>>,
+    pub created_by: Option<String>,
+    pub last_used_ip: Option<String>,
+    pub expiry_notice: Option<i16>,
+}
+
+#[derive(Clone, Debug)]
+pub struct NewToken {
+    pub name: String,
+    pub scope: Scope,
+    pub days: Option<i64>,
+    pub repositories: Option<Vec<String>>,
+    pub customer: Option<String>,
+    pub created_by: Option<String>,
+}
+
+impl NewToken {
+    pub fn personal(name: &str, scope: Scope, days: Option<i64>) -> Self {
+        Self {
+            name: name.to_owned(),
+            scope,
+            days,
+            repositories: None,
+            customer: None,
+            created_by: None,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -36,6 +74,16 @@ pub enum TokenError {
     Days,
     #[error("a user can hold at most {MAX_PER_USER} tokens")]
     TooMany,
+    #[error("a customer can hold at most {MAX_PER_CUSTOMER} tokens")]
+    TooManyForCustomer,
+    #[error("a token limited to repositories can only read")]
+    Scope,
+    #[error("{0}")]
+    Repositories(String),
+    #[error("a customer token needs an expiry")]
+    CustomerExpiry,
+    #[error("the customer does not exist")]
+    UnknownCustomer,
     #[error(transparent)]
     Internal(#[from] Error),
 }
@@ -79,30 +127,93 @@ fn info(row: access_token::Model) -> TokenInfo {
         created_at: row.created_at,
         expires_at: row.expires_at,
         last_used_at: row.last_used_at,
+        customer: row.customer,
+        repositories: row.repositories,
+        created_by: row.created_by,
+        last_used_ip: row.last_used_ip,
+        expiry_notice: row.expiry_notice,
     }
+}
+
+fn normalise(repositories: &[String]) -> Result<Vec<String>, TokenError> {
+    let mut names = BTreeSet::new();
+    for name in repositories {
+        if name.len() > MAX_REPOSITORY_NAME || !valid_name(name) {
+            return Err(TokenError::Repositories(format!(
+                "\"{name}\" is not a repository name"
+            )));
+        }
+        names.insert(name.to_ascii_lowercase());
+    }
+    if names.is_empty() {
+        return Err(TokenError::Repositories(
+            "list at least one repository".to_owned(),
+        ));
+    }
+    if names.len() > MAX_REPOSITORIES {
+        return Err(TokenError::Repositories(format!(
+            "a token can be limited to at most {MAX_REPOSITORIES} repositories"
+        )));
+    }
+    Ok(names.into_iter().collect())
 }
 
 impl Security {
     pub async fn create_token(
         &self,
         user_id: &str,
-        name: &str,
-        scope: Scope,
-        days: Option<i64>,
+        new: NewToken,
     ) -> Result<(TokenInfo, String), TokenError> {
-        let name = name.trim();
+        let name = new.name.trim();
         if name.is_empty() || name.len() > 200 {
             return Err(TokenError::Name);
         }
-        if days.is_some_and(|days| !(MIN_DAYS..=MAX_DAYS).contains(&days)) {
+        if new
+            .days
+            .is_some_and(|days| !(MIN_DAYS..=MAX_DAYS).contains(&days))
+        {
             return Err(TokenError::Days);
         }
-        let held = access_token::Entity::find()
-            .filter(access_token::Column::UserId.eq(user_id))
-            .count(&self.db)
-            .await?;
-        if held >= MAX_PER_USER {
-            return Err(TokenError::TooMany);
+        let repositories = new.repositories.as_deref().map(normalise).transpose()?;
+        if repositories.is_some() && new.scope != Scope::Read {
+            return Err(TokenError::Scope);
+        }
+        if new.customer.is_some() {
+            if repositories.is_none() {
+                return Err(TokenError::Repositories(
+                    "a customer token needs a list of repositories".to_owned(),
+                ));
+            }
+            if new.days.is_none() {
+                return Err(TokenError::CustomerExpiry);
+            }
+        }
+        let txn = self.db.begin().await?;
+        match new.customer.as_deref() {
+            Some(customer_id) => {
+                customer::Entity::find_by_id(customer_id)
+                    .lock_exclusive()
+                    .one(&txn)
+                    .await?
+                    .ok_or(TokenError::UnknownCustomer)?;
+                let held = access_token::Entity::find()
+                    .filter(access_token::Column::Customer.eq(customer_id))
+                    .count(&txn)
+                    .await?;
+                if held >= MAX_PER_CUSTOMER {
+                    return Err(TokenError::TooManyForCustomer);
+                }
+            }
+            None => {
+                let held = access_token::Entity::find()
+                    .filter(access_token::Column::UserId.eq(user_id))
+                    .filter(access_token::Column::Customer.is_null())
+                    .count(&txn)
+                    .await?;
+                if held >= MAX_PER_USER {
+                    return Err(TokenError::TooMany);
+                }
+            }
         }
         let token = generate();
         let now = Utc::now().fixed_offset();
@@ -114,24 +225,32 @@ impl Security {
             token_hash: ActiveValue::Set(hash(&token)),
             token_hint: ActiveValue::Set(token[..HINT_LENGTH].to_owned()),
             scope: ActiveValue::Set(
-                match scope {
+                match new.scope {
                     Scope::Read => "READ",
                     Scope::Write => "WRITE",
                 }
                 .to_owned(),
             ),
             created_at: ActiveValue::Set(now),
-            expires_at: ActiveValue::Set(days.map(|days| now + Duration::days(days))),
+            expires_at: ActiveValue::Set(new.days.map(|days| now + Duration::days(days))),
             last_used_at: ActiveValue::Set(None),
+            customer: ActiveValue::Set(new.customer),
+            repositories: ActiveValue::Set(repositories),
+            created_by: ActiveValue::Set(new.created_by),
+            last_used_ip: ActiveValue::Set(None),
+            expiry_notice: ActiveValue::Set(None),
         };
         let stored = access_token::Entity::insert(row)
-            .exec_with_returning(&self.db)
+            .exec_with_returning(&txn)
             .await?;
+        txn.commit().await?;
         Ok((info(stored), token))
     }
 
     pub async fn tokens(&self, user_id: Option<&str>) -> Result<Vec<TokenInfo>, Error> {
-        let mut query = access_token::Entity::find().order_by_asc(access_token::Column::CreatedAt);
+        let mut query = access_token::Entity::find()
+            .filter(access_token::Column::Customer.is_null())
+            .order_by_asc(access_token::Column::CreatedAt);
         if let Some(user_id) = user_id {
             query = query.filter(access_token::Column::UserId.eq(user_id));
         }
@@ -140,16 +259,47 @@ impl Security {
 
     pub async fn token(&self, id: Uuid) -> Result<Option<TokenInfo>, Error> {
         Ok(access_token::Entity::find_by_id(id)
+            .filter(access_token::Column::Customer.is_null())
             .one(&self.db)
             .await?
             .map(info))
     }
 
     pub async fn delete_token(&self, id: Uuid) -> Result<bool, Error> {
-        let deleted = access_token::Entity::delete_by_id(id)
+        let deleted = access_token::Entity::delete_many()
+            .filter(access_token::Column::Id.eq(id))
+            .filter(access_token::Column::Customer.is_null())
             .exec(&self.db)
             .await?;
         Ok(deleted.rows_affected > 0)
+    }
+
+    pub async fn customer_tokens(&self, customer_id: &str) -> Result<Vec<TokenInfo>, Error> {
+        Ok(access_token::Entity::find()
+            .filter(access_token::Column::Customer.eq(customer_id))
+            .order_by_asc(access_token::Column::CreatedAt)
+            .all(&self.db)
+            .await?
+            .into_iter()
+            .map(info)
+            .collect())
+    }
+
+    pub async fn revoke_customer_token(&self, customer_id: &str, id: Uuid) -> Result<bool, Error> {
+        let deleted = access_token::Entity::delete_many()
+            .filter(access_token::Column::Id.eq(id))
+            .filter(access_token::Column::Customer.eq(customer_id))
+            .exec(&self.db)
+            .await?;
+        Ok(deleted.rows_affected > 0)
+    }
+
+    pub async fn revoke_customer_tokens(&self, customer_id: &str) -> Result<u64, Error> {
+        let deleted = access_token::Entity::delete_many()
+            .filter(access_token::Column::Customer.eq(customer_id))
+            .exec(&self.db)
+            .await?;
+        Ok(deleted.rows_affected)
     }
 
     pub async fn delete_tokens_of(&self, user_id: &str) -> Result<u64, Error> {
@@ -164,6 +314,7 @@ impl Security {
         &self,
         user_id: Option<&str>,
         token: &str,
+        address: Option<IpAddr>,
     ) -> Result<Subject, AuthError> {
         let model = self.model();
         if !model.realm_active(realm::ACCESS_TOKEN) || !looks_like_token(token) {
@@ -179,14 +330,43 @@ impl Security {
         if row.expires_at.is_some_and(|expires| expires <= now) {
             return Err(AuthError::BadCredentials);
         }
-        if user_id.is_some_and(|user_id| user_id != row.user_id) {
+        if user_id
+            .is_some_and(|given| given != row.user_id && row.customer.as_deref() != Some(given))
+        {
             return Err(AuthError::BadCredentials);
         }
         let token = info(row);
-        let subject = model
+        if let Some(customer_id) = token.customer.as_deref() {
+            let active = customer::Entity::find_by_id(customer_id)
+                .one(&self.db)
+                .await
+                .map_err(Error::from)?
+                .is_some_and(|found| !found.disabled);
+            if !active {
+                return Err(AuthError::BadCredentials);
+            }
+        }
+        let limit = match (&token.customer, &token.repositories) {
+            (_, Some(repositories)) if !repositories.is_empty() => {
+                Some(repositories.iter().cloned().collect::<BTreeSet<_>>())
+            }
+            (None, None) => None,
+            _ => {
+                tracing::error!(token = %token.id, "a token has a customer or a repository list that cannot be applied; refused");
+                return Err(AuthError::BadCredentials);
+            }
+        };
+        let mut subject = model
             .local_subject(&token.user_id, realm::ACCESS_TOKEN)
             .ok_or(AuthError::BadCredentials)?
-            .with_scope(token.scope);
+            .with_scope(token.scope)
+            .with_token(TokenRef {
+                id: token.id,
+                customer: token.customer.clone(),
+            });
+        if let Some(limit) = limit {
+            subject = subject.narrowed_to(&limit);
+        }
         if token
             .last_used_at
             .is_none_or(|used| now - used > TOUCH_EVERY)
@@ -194,6 +374,10 @@ impl Security {
             access_token::Entity::update(access_token::ActiveModel {
                 id: ActiveValue::Unchanged(token.id),
                 last_used_at: ActiveValue::Set(Some(now)),
+                last_used_ip: match address {
+                    Some(address) => ActiveValue::Set(Some(address.to_string())),
+                    None => ActiveValue::NotSet,
+                },
                 ..Default::default()
             })
             .exec(&self.db)

@@ -72,6 +72,9 @@ async fn authenticate(
     else {
         return ContentError::Unauthorized.into_response();
     };
+    if let Err(error) = subject.require_unnarrowed() {
+        return text(StatusCode::FORBIDDEN, error.to_string());
+    }
     let security = state.security();
     if !security.model().realm_active(REALM) {
         return text(

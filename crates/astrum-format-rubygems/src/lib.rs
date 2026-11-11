@@ -496,6 +496,9 @@ impl Rubygems {
                 ))
                 .map_err(ContentError::internal);
         };
+        subject
+            .require_unnarrowed()
+            .map_err(|_| ContentError::Forbidden)?;
         if request.method == Method::DELETE {
             let deleted = api_keys::delete_kept_api_key(ctx.db(), REALM, &subject.user_id)
                 .await

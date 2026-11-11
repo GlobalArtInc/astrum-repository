@@ -206,7 +206,7 @@ fn authenticated(ctx: &Ctx) -> Result<Response, ContentError> {
     match &ctx.subject {
         Some(subject) if !subject.anonymous => Ok(json_response(
             StatusCode::OK,
-            &json!({"user": {"username": subject.user_id}}),
+            &json!({"user": {"username": subject.public_identity().id}}),
         )),
         _ => Err(ContentError::Unauthorized),
     }

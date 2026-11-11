@@ -14,6 +14,11 @@ pub struct Model {
     pub created_at: DateTimeWithTimeZone,
     pub expires_at: Option<DateTimeWithTimeZone>,
     pub last_used_at: Option<DateTimeWithTimeZone>,
+    pub customer: Option<String>,
+    pub repositories: Option<Vec<String>>,
+    pub created_by: Option<String>,
+    pub last_used_ip: Option<String>,
+    pub expiry_notice: Option<i16>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

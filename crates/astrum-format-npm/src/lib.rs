@@ -211,7 +211,7 @@ fn whoami(ctx: &Ctx) -> Result<Response, ContentError> {
     match &ctx.subject {
         Some(subject) if !subject.anonymous => Ok(reply::json(
             StatusCode::OK,
-            &json!({"username": subject.user_id}),
+            &json!({"username": subject.public_identity().id}),
         )),
         _ => Err(ContentError::Unauthorized),
     }

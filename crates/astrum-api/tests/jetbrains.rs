@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use astrum_format_jetbrains::testing::{bundle, descriptor, jar};
 use astrum_format_jetbrains::xml::{self, Entry};
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, RawQuery, State};
@@ -78,7 +78,7 @@ async fn token(fixture: &Fixture, scope: Scope) -> String {
         fixture
             .state
             .security()
-            .create_token("admin", "jetbrains", scope, None)
+            .create_token("admin", NewToken::personal("jetbrains", scope, None))
             .await
             .unwrap()
             .1

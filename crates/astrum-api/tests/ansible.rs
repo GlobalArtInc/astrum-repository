@@ -5,8 +5,8 @@ use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, RawQuery, State};
@@ -212,7 +212,7 @@ async fn hosted_collections_publish_and_answer_the_v3_api() {
     let (_, token) = fixture
         .state
         .security()
-        .create_token("admin", "galaxy", Scope::Write, None)
+        .create_token("admin", NewToken::personal("galaxy", Scope::Write, None))
         .await
         .unwrap();
     let token_header = format!("Token {token}");

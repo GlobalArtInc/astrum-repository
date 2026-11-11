@@ -159,6 +159,13 @@ async fn token(
     else {
         return ContentError::Unauthorized.into_response();
     };
+    if let Err(error) = subject.require_unnarrowed() {
+        return json_response(
+            &method,
+            StatusCode::FORBIDDEN,
+            &json!({"errors": [error.to_string()]}),
+        );
+    }
     let security = state.security();
     match method {
         Method::DELETE => match security

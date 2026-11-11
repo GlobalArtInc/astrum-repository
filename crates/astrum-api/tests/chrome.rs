@@ -7,8 +7,8 @@ use std::sync::{Arc, Mutex};
 
 use astrum_format_chrome::gupdate::{self, RemoteApp};
 use astrum_format_chrome::testing::{crx, id, manifest};
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, RawQuery, State};
@@ -81,7 +81,7 @@ async fn token(fixture: &Fixture) -> String {
         fixture
             .state
             .security()
-            .create_token("admin", "chrome", Scope::Write, None)
+            .create_token("admin", NewToken::personal("chrome", Scope::Write, None))
             .await
             .unwrap()
             .1

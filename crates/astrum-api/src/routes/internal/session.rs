@@ -83,6 +83,9 @@ pub(crate) async fn begin(
     subject: &Subject,
     response: &mut Response,
 ) -> Result<(), ApiError> {
+    subject
+        .require_unnarrowed()
+        .map_err(|_| ApiError::forbidden())?;
     let user_agent = headers
         .get(header::USER_AGENT)
         .and_then(|value| value.to_str().ok())
@@ -147,8 +150,15 @@ fn describe(state: &AppState, subject: Option<&Subject>) -> Value {
         return json!({"authenticated": false, "anonymous": false, "user": null, "permissions": []});
     };
     let model = state.security().model();
-    let user = model.users.get(&subject.user_id);
-    let profile = state.security().profile(subject);
+    let identity = subject.public_identity();
+    let user = model
+        .users
+        .get(&subject.user_id)
+        .filter(|_| !identity.hidden);
+    let profile = match identity.hidden {
+        true => astrum_security::Profile::default(),
+        false => state.security().profile(subject),
+    };
     let permissions: Vec<String> = subject
         .permissions()
         .iter()
@@ -158,7 +168,7 @@ fn describe(state: &AppState, subject: Option<&Subject>) -> Value {
         "authenticated": !subject.anonymous,
         "anonymous": subject.anonymous,
         "user": {
-            "userId": subject.user_id,
+            "userId": identity.id,
             "firstName": profile.first_name,
             "lastName": profile.last_name,
             "emailAddress": profile.email,

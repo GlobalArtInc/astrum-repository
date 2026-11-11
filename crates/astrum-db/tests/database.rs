@@ -59,6 +59,45 @@ async fn every_migration_can_be_taken_back() {
 }
 
 #[tokio::test]
+async fn taking_back_the_customer_schema_drops_every_narrowed_token() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    conn.execute_unprepared(
+        "INSERT INTO customer (id, name, created_by) VALUES ('acme', 'Acme', 'admin')",
+    )
+    .await
+    .unwrap();
+    let token = |name: &str, customer: &str, repositories: &str| {
+        format!(
+            "INSERT INTO access_token (id, user_id, name, token_hash, token_hint, scope, customer, repositories, expires_at) \
+             VALUES (gen_random_uuid(), 'admin', '{name}', md5('{name}'), 'astrum_xxxx', 'READ', {customer}, {repositories}, now() + interval '1 day')"
+        )
+    };
+    for sql in [
+        token("customer", "'acme'", "ARRAY['a']"),
+        token("limited", "NULL", "ARRAY['a']"),
+        token("plain", "NULL", "NULL"),
+    ] {
+        conn.execute_unprepared(&sql).await.unwrap();
+    }
+    let reverted = MIGRATIONS.revert(conn, 1).await.unwrap();
+    assert!(reverted[0].contains("Customers"), "{reverted:?}");
+    let names: Vec<String> = conn
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT name FROM access_token ORDER BY name".to_owned(),
+        ))
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|row| row.try_get::<String>("", "name").unwrap())
+        .collect();
+    assert_eq!(names, vec!["plain"]);
+    assert_eq!(db.migrate().await.unwrap().len(), 1);
+}
+
+#[tokio::test]
 async fn two_starts_at_once_share_the_work() {
     let test = TestDatabase::create().await;
     let mut config = test.config();
