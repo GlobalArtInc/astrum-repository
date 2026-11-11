@@ -361,6 +361,7 @@ async fn create_policy(
         .await
         .map_err(internal)?;
     writer.commit().await.map_err(internal)?;
+    state.policy_cache().invalidate();
     state
         .audit(
             &caller,
@@ -421,6 +422,7 @@ async fn update_policy(
         .await
         .map_err(internal)?;
     writer.commit().await.map_err(internal)?;
+    state.policy_cache().invalidate();
     state
         .audit(
             &caller,
@@ -466,6 +468,7 @@ async fn remove_policy(
         .await
         .map_err(internal)?;
     writer.commit().await.map_err(internal)?;
+    state.policy_cache().invalidate();
     state
         .audit(
             &caller,
@@ -667,6 +670,7 @@ async fn create_exception(
         .await
         .map_err(internal)?;
     txn.commit().await?;
+    state.policy_cache().invalidate();
     state
         .audit(
             &caller,
@@ -697,6 +701,7 @@ async fn remove_exception(
         .await
         .map_err(internal)?;
     txn.commit().await?;
+    state.policy_cache().invalidate();
     state
         .audit(
             &caller,

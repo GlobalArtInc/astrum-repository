@@ -222,6 +222,7 @@ struct Collected {
     alerts: Vec<(String, String)>,
     scan: Option<astrum_scan::queue::Depth>,
     backlog: Option<astrum_scan::matcher::Backlog>,
+    verdict_queue: Option<astrum_scan::verdict::Depth>,
 }
 
 async fn tasks(
@@ -264,7 +265,7 @@ async fn disk(state: &AppState) -> Option<(u64, u64)> {
 }
 
 async fn collect(state: &AppState) -> Collected {
-    let (stores, checks, repositories, tasks, pending, disk, alerts, scan, backlog) = tokio::join!(
+    let (stores, checks, repositories, tasks, pending, disk, alerts, scan, backlog, verdict_queue) = tokio::join!(
         async { measure_all(state).await.ok() },
         health::run(state),
         async { astrum_repo::store::list(state.db().conn()).await.ok() },
@@ -274,6 +275,7 @@ async fn collect(state: &AppState) -> Collected {
         crate::space::tracked(state),
         async { astrum_scan::queue::depth(state.db().conn()).await.ok() },
         async { astrum_scan::matcher::backlog(state.db().conn()).await.ok() },
+        async { astrum_scan::verdict::depth(state.db().conn()).await.ok() },
     );
     Collected {
         stores,
@@ -285,6 +287,7 @@ async fn collect(state: &AppState) -> Collected {
         alerts,
         scan,
         backlog,
+        verdict_queue,
     }
 }
 
@@ -680,6 +683,117 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
         "Matching or queueing steps of this node that failed and are retried.",
     );
     out.sample("astrum_scan_match_failures_total", &[], matches.failures);
+
+    if let Some(depth) = &collected.verdict_queue {
+        out.family(
+            "astrum_policy_dirty_subjects",
+            "gauge",
+            "Subjects waiting for their verdict to be recomputed, on every node together.",
+        );
+        out.sample("astrum_policy_dirty_subjects", &[], depth.queued);
+        out.family(
+            "astrum_policy_dirty_oldest_seconds",
+            "gauge",
+            "Age of the oldest subject waiting for its verdict, 0 when none waits.",
+        );
+        out.sample(
+            "astrum_policy_dirty_oldest_seconds",
+            &[],
+            depth.oldest_seconds,
+        );
+    }
+    let verdicts = state.verdict_metrics().snapshot();
+    out.family(
+        "astrum_policy_verdict_seconds",
+        "histogram",
+        "Time this node took to judge one batch of subjects.",
+    );
+    for (bound, count) in astrum_scan::worker::BUCKETS.iter().zip(verdicts.buckets) {
+        out.sample(
+            "astrum_policy_verdict_seconds_bucket",
+            &[("le", &bound.to_string())],
+            count,
+        );
+    }
+    out.sample(
+        "astrum_policy_verdict_seconds_bucket",
+        &[("le", "+Inf")],
+        verdicts.count,
+    );
+    out.sample("astrum_policy_verdict_seconds_sum", &[], verdicts.sum);
+    out.sample("astrum_policy_verdict_seconds_count", &[], verdicts.count);
+    out.family(
+        "astrum_policy_verdicts_total",
+        "counter",
+        "Verdicts this node stored, by state; the state error means a policy that cannot be read.",
+    );
+    for (state_of, count) in astrum_scan::verdict::STATES.iter().zip(verdicts.written) {
+        out.sample(
+            "astrum_policy_verdicts_total",
+            &[("state", state_of.as_str())],
+            count,
+        );
+    }
+    out.family(
+        "astrum_policy_verdicts_dropped_total",
+        "counter",
+        "Verdicts this node deleted because the subject has no policy, the policy is off or the component is gone.",
+    );
+    out.sample(
+        "astrum_policy_verdicts_dropped_total",
+        &[],
+        verdicts.dropped,
+    );
+    out.family(
+        "astrum_policy_verdict_failures_total",
+        "counter",
+        "Batches of subjects this node failed to judge; their marks stay queued.",
+    );
+    out.sample(
+        "astrum_policy_verdict_failures_total",
+        &[],
+        verdicts.failures,
+    );
+    out.family(
+        "astrum_policy_exceptions_unreadable",
+        "gauge",
+        "Policy exceptions this node skipped because their stored form cannot be read; skipping only makes verdicts stricter.",
+    );
+    out.sample(
+        "astrum_policy_exceptions_unreadable",
+        &[],
+        state.policy_cache().unreadable_exceptions() as u64,
+    );
+    out.family(
+        "astrum_policy_sweeper_runs_total",
+        "counter",
+        "Sweeps for expired exceptions and changed policies on this node, by result.",
+    );
+    out.sample(
+        "astrum_policy_sweeper_runs_total",
+        &[("result", "done")],
+        verdicts.sweeps_done,
+    );
+    out.sample(
+        "astrum_policy_sweeper_runs_total",
+        &[("result", "busy")],
+        verdicts.sweeps_busy,
+    );
+    out.sample(
+        "astrum_policy_sweeper_runs_total",
+        &[("result", "failed")],
+        verdicts.sweeps_failed,
+    );
+    out.family(
+        "astrum_policy_sweeper_marked_total",
+        "counter",
+        "Subjects this node's sweeps marked for a new verdict.",
+    );
+    out.sample(
+        "astrum_policy_sweeper_marked_total",
+        &[],
+        verdicts.swept_subjects,
+    );
 
     if let Some(at) = state.tasks().last_tick() {
         out.family(

@@ -2,6 +2,7 @@ pub mod cvss;
 pub mod matcher;
 pub mod osv;
 pub mod queue;
+pub mod verdict;
 pub mod version;
 pub mod worker;
 

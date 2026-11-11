@@ -90,6 +90,29 @@ pub async fn list(db: &impl ConnectionTrait) -> Result<Vec<Exception>, Error> {
         .collect()
 }
 
+#[derive(Debug, Default)]
+pub struct Readable {
+    pub exceptions: Vec<Exception>,
+    pub unreadable: Vec<Uuid>,
+}
+
+pub async fn list_readable(db: &impl ConnectionTrait) -> Result<Readable, Error> {
+    let rows = policy_exception::Entity::find()
+        .order_by_asc(policy_exception::Column::CreatedAt)
+        .order_by_asc(policy_exception::Column::Id)
+        .all(db)
+        .await?;
+    let mut readable = Readable::default();
+    for row in rows {
+        let id = row.id;
+        match Exception::from_row(row) {
+            Ok(exception) => readable.exceptions.push(exception),
+            Err(_) => readable.unreadable.push(id),
+        }
+    }
+    Ok(readable)
+}
+
 pub async fn find(db: &impl ConnectionTrait, id: Uuid) -> Result<Option<Exception>, Error> {
     policy_exception::Entity::find_by_id(id)
         .one(db)

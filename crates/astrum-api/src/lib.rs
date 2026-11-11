@@ -61,6 +61,8 @@ struct Inner {
     metrics: metrics::Registry,
     scan_metrics: Arc<astrum_scan::worker::Metrics>,
     matcher_metrics: Arc<astrum_scan::matcher::Metrics>,
+    verdict_metrics: Arc<astrum_scan::verdict::Metrics>,
+    policy_cache: Arc<astrum_policy::cache::Cache>,
     stars: github::Stars,
 }
 
@@ -103,6 +105,8 @@ impl AppState {
                 metrics: metrics::Registry::default(),
                 scan_metrics: Arc::default(),
                 matcher_metrics: Arc::default(),
+                verdict_metrics: Arc::default(),
+                policy_cache: Arc::default(),
                 stars: github::Stars::default(),
             }),
         }
@@ -211,6 +215,14 @@ impl AppState {
 
     pub fn matcher_metrics(&self) -> &Arc<astrum_scan::matcher::Metrics> {
         &self.inner.matcher_metrics
+    }
+
+    pub fn verdict_metrics(&self) -> &Arc<astrum_scan::verdict::Metrics> {
+        &self.inner.verdict_metrics
+    }
+
+    pub fn policy_cache(&self) -> &Arc<astrum_policy::cache::Cache> {
+        &self.inner.policy_cache
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {

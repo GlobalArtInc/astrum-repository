@@ -1518,6 +1518,7 @@ dependencies = [
  "sha2 0.10.9",
  "thiserror",
  "tokio",
+ "tracing",
  "uuid",
  "x509-parser",
 ]

@@ -822,3 +822,48 @@ async fn an_exception_target_must_fit_its_rule() {
         made(&fixture, EXCEPTIONS, body).await;
     }
 }
+
+#[tokio::test]
+async fn a_policy_or_exception_change_reaches_the_policy_cache_at_once() {
+    let fixture = Fixture::new().await;
+    let cache = fixture.state.policy_cache();
+    let conn = fixture.state.db().conn();
+    made(
+        &fixture,
+        POLICIES,
+        json!({"name": "strict", "vulnerabilities": {"mode": "block"}}),
+    )
+    .await;
+    let first = cache.get(conn).await.unwrap();
+    assert_eq!(first.policies["strict"].revision, 1);
+
+    let changed = admin(
+        &fixture,
+        Method::PUT,
+        &format!("{POLICIES}/strict"),
+        json!({"vulnerabilities": {"mode": "report"}}),
+    )
+    .await;
+    assert_eq!(changed.status, StatusCode::OK, "{}", changed.text());
+    let second = cache.get(conn).await.unwrap();
+    assert_eq!(second.policies["strict"].revision, 2);
+
+    let exception = made(
+        &fixture,
+        EXCEPTIONS,
+        json!({"rule": "vulnerability", "advisory": "CVE-1", "reason": "accepted"}),
+    )
+    .await;
+    assert_eq!(cache.get(conn).await.unwrap().exceptions.len(), 1);
+
+    let id = exception["id"].as_str().unwrap();
+    let removed = admin(
+        &fixture,
+        Method::DELETE,
+        &format!("{EXCEPTIONS}/{id}"),
+        json!(null),
+    )
+    .await;
+    assert_eq!(removed.status, StatusCode::NO_CONTENT);
+    assert!(cache.get(conn).await.unwrap().exceptions.is_empty());
+}

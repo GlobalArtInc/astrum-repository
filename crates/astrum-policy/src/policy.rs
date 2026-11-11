@@ -132,6 +132,31 @@ pub async fn list(db: &impl ConnectionTrait) -> Result<Vec<Policy>, Error> {
         .collect()
 }
 
+#[derive(Clone, Debug)]
+pub struct Entry {
+    pub name: String,
+    pub revision: i64,
+    pub policy: Result<Policy, String>,
+}
+
+pub async fn entries(db: &impl ConnectionTrait) -> Result<Vec<Entry>, Error> {
+    let rows = content_policy::Entity::find()
+        .order_by_asc(Expr::cust("\"name\" COLLATE \"C\""))
+        .all(db)
+        .await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| {
+            let (name, revision) = (row.name.clone(), row.revision);
+            Entry {
+                name,
+                revision,
+                policy: Policy::from_row(row).map_err(|error| error.to_string()),
+            }
+        })
+        .collect())
+}
+
 pub async fn find(db: &impl ConnectionTrait, name: &str) -> Result<Option<Policy>, Error> {
     content_policy::Entity::find_by_id(name.to_owned())
         .one(db)
