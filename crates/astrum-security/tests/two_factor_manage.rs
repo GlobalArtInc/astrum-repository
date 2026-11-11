@@ -148,7 +148,7 @@ async fn a_reset_clears_every_factor_and_sets_the_deadline() {
     let subject = world.security.authenticate("jane", PASSWORD).await.unwrap();
     world
         .security
-        .open_session(&subject, "127.0.0.1", "test")
+        .open_session(&subject, "127.0.0.1", "test", false)
         .await
         .unwrap();
     world.enroll("jane").await;

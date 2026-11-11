@@ -4,6 +4,7 @@ use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 use serde_json::json;
 
+pub const ENROLLMENT_REQUIRED: &str = "two-factor-enrollment-required";
 pub const CHALLENGE: &str = "Basic realm=\"Astrum Repository\"";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -26,6 +27,8 @@ pub enum ApiError {
     Forbidden(String),
     #[error("too many failed sign-ins; wait a few minutes")]
     TooManyAttempts(u64),
+    #[error("this session may only set up a second factor")]
+    EnrollmentRequired,
     #[error("the request body must be {0}")]
     UnsupportedMediaType(&'static str),
     #[error("{0}")]
@@ -101,6 +104,15 @@ impl IntoResponse for ApiError {
             ApiError::Forbidden(message) => {
                 (StatusCode::FORBIDDEN, message_body(message)).into_response()
             }
+            ApiError::EnrollmentRequired => (
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "id": "*",
+                    "message": "set up a second factor before using this session for anything else",
+                    "code": ENROLLMENT_REQUIRED,
+                })),
+            )
+                .into_response(),
             ApiError::TooManyAttempts(seconds) => {
                 let mut response = (
                     StatusCode::TOO_MANY_REQUESTS,

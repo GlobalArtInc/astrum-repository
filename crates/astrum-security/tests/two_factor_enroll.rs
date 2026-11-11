@@ -379,7 +379,7 @@ async fn a_failed_model_reload_after_the_commit_keeps_the_codes_and_closes_the_s
     let subject = world.security.authenticate("jane", PASSWORD).await.unwrap();
     world
         .security
-        .open_session(&subject, "127.0.0.1", "test")
+        .open_session(&subject, "127.0.0.1", "test", false)
         .await
         .unwrap();
     let (ceremony, secret) = world.begin("jane").await;
@@ -415,4 +415,75 @@ async fn a_failed_model_reload_after_the_commit_keeps_the_codes_and_closes_the_s
     let outcome = world.security.reset("jane").await.unwrap();
     assert_eq!(outcome.sessions_closed, 1);
     assert_eq!(world.number("SELECT count(*) FROM user_session").await, 0);
+}
+
+fn sign_in<'a>(user: &'a str) -> NewCeremony<'a> {
+    NewCeremony {
+        kind: CeremonyKind::SignIn,
+        user_id: user,
+        realm: REALM,
+        state: None,
+        client_ip: "127.0.0.1",
+        lifetime: Duration::minutes(5),
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_ceremonies_of_users_with_expired_rows_do_not_deadlock() {
+    let world = world().await;
+    world.user("jane", 0).await;
+    world.user("pat", 0).await;
+    for _ in 0..150 {
+        world
+            .sql(
+                "INSERT INTO second_factor_ceremony (handle_hash, kind, user_id, realm, expires_at) \
+                 SELECT md5(random()::text) || u, 'sign-in', u, 'r', now() - interval '1 minute' \
+                 FROM (VALUES ('jane'), ('pat')) AS users (u)",
+            )
+            .await;
+        let (jane, pat) = tokio::join!(
+            world.security.replace_ceremony(sign_in("jane")),
+            world.security.replace_ceremony(sign_in("pat")),
+        );
+        jane.unwrap();
+        pat.unwrap();
+    }
+    assert_eq!(
+        world
+            .number("SELECT count(*) FROM second_factor_ceremony")
+            .await,
+        2
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn parallel_replacements_for_one_user_leave_one_live_ceremony() {
+    let world = world().await;
+    world.user("jane", 0).await;
+    for _ in 0..50 {
+        let (first, second) = tokio::join!(
+            world.security.replace_ceremony(sign_in("jane")),
+            world.security.replace_ceremony(sign_in("jane")),
+        );
+        let (first, second) = (first.unwrap(), second.unwrap());
+        assert_eq!(
+            world
+                .number("SELECT count(*) FROM second_factor_ceremony WHERE user_id = 'jane'")
+                .await,
+            1
+        );
+        let mut alive = 0;
+        for handle in [&first, &second] {
+            if world
+                .security
+                .take_ceremony(handle, CeremonyKind::SignIn)
+                .await
+                .unwrap()
+                .is_some()
+            {
+                alive += 1;
+            }
+        }
+        assert_eq!(alive, 1);
+    }
 }

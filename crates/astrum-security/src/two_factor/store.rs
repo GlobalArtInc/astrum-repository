@@ -272,17 +272,15 @@ fn ceremony_from_row(row: &QueryResult) -> Result<Option<Ceremony>, TryGetError>
     }))
 }
 
+const EXPIRED_CEREMONIES: &str = "DELETE FROM second_factor_ceremony WHERE handle_hash IN \
+     (SELECT handle_hash FROM second_factor_ceremony WHERE expires_at <= now() FOR UPDATE SKIP LOCKED)";
 const CEREMONY_COLUMNS: &str = "kind, user_id, realm, state, attempts, client_ip, expires_at";
 
 async fn insert_ceremony(
     conn: &impl ConnectionTrait,
     new: NewCeremony<'_>,
 ) -> Result<String, StoreError> {
-    conn.execute(statement(
-        "DELETE FROM second_factor_ceremony WHERE expires_at <= now()",
-        [],
-    ))
-    .await?;
+    conn.execute(statement(EXPIRED_CEREMONIES, [])).await?;
     let mut bytes = [0u8; HANDLE_BYTES];
     rand::rng().fill_bytes(&mut bytes);
     let handle = hex(&bytes);
@@ -434,6 +432,21 @@ impl Security {
         Ok(handle)
     }
 
+    pub async fn replace_ceremony(&self, new: NewCeremony<'_>) -> Result<String, StoreError> {
+        let user_id = new.user_id;
+        let kind = new.kind;
+        let txn = self.db().begin().await?;
+        lock_user_row(&txn, user_id, true).await?;
+        txn.execute(statement(
+            "DELETE FROM second_factor_ceremony WHERE user_id = $1 AND kind = $2",
+            [user_id.into(), kind.as_str().into()],
+        ))
+        .await?;
+        let handle = insert_ceremony(&txn, new).await?;
+        txn.commit().await?;
+        Ok(handle)
+    }
+
     pub async fn take_ceremony(
         &self,
         handle: &str,
@@ -492,13 +505,7 @@ impl Security {
     }
 
     pub async fn expire_ceremonies(&self) -> Result<u64, StoreError> {
-        let deleted = self
-            .db()
-            .execute(statement(
-                "DELETE FROM second_factor_ceremony WHERE expires_at <= now()",
-                [],
-            ))
-            .await?;
+        let deleted = self.db().execute(statement(EXPIRED_CEREMONIES, [])).await?;
         Ok(deleted.rows_affected())
     }
 

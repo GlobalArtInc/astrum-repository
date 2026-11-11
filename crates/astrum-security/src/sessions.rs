@@ -203,6 +203,7 @@ pub struct NewSession {
 pub struct ActiveSession {
     pub subject: Subject,
     pub csrf: String,
+    pub restricted: bool,
 }
 
 enum Verdict {
@@ -234,15 +235,9 @@ impl Security {
         subject: &Subject,
         client_ip: &str,
         user_agent: &str,
+        restricted: bool,
     ) -> Result<NewSession, Error> {
-        let model = self.model();
-        let stamp = credential_stamp(
-            model
-                .users
-                .get(&subject.user_id)
-                .filter(|_| subject.source == DEFAULT_SOURCE || subject.source.is_empty())
-                .and_then(|user| user.password_hash.as_deref()),
-        );
+        let stamp = self.sign_in_stamp(subject);
         let token = random_token();
         let csrf = random_token();
         let now = Utc::now().fixed_offset();
@@ -256,11 +251,22 @@ impl Security {
             last_seen_at: ActiveValue::Set(now),
             client_ip: ActiveValue::Set(client_ip.chars().take(100).collect()),
             user_agent: ActiveValue::Set(user_agent.chars().take(300).collect()),
-            restricted: ActiveValue::Set(false),
+            restricted: ActiveValue::Set(restricted),
         })
         .exec(&self.db)
         .await?;
         Ok(NewSession { token, csrf })
+    }
+
+    pub fn sign_in_stamp(&self, subject: &Subject) -> String {
+        let model = self.model();
+        credential_stamp(
+            model
+                .users
+                .get(&subject.user_id)
+                .filter(|_| subject.source == DEFAULT_SOURCE || subject.source.is_empty())
+                .and_then(|user| user.password_hash.as_deref()),
+        )
     }
 
     pub async fn session(&self, token: &str) -> Result<Option<ActiveSession>, Error> {
@@ -299,6 +305,7 @@ impl Security {
         Ok(Some(ActiveSession {
             subject,
             csrf: row.csrf_token,
+            restricted: row.restricted,
         }))
     }
 

@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+pub mod two_factor;
+
 use std::net::{IpAddr, SocketAddr};
 
 use astrum_api::client::TrustedProxies;

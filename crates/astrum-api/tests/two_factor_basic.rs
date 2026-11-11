@@ -374,7 +374,7 @@ async fn confirming_a_nuget_key_request_accepts_the_password_of_an_enrolled_user
 }
 
 #[tokio::test]
-async fn ui_sign_in_with_the_password_of_an_enrolled_user_is_refused_for_now() {
+async fn ui_sign_in_with_the_password_of_an_enrolled_user_waits_for_the_second_step() {
     let fixture = jane().await;
     let wrong = fixture
         .call(
@@ -386,7 +386,7 @@ async fn ui_sign_in_with_the_password_of_an_enrolled_user_is_refused_for_now() {
         .await;
     assert_eq!(wrong.status, StatusCode::UNAUTHORIZED);
     enroll(&fixture, "jane").await;
-    let refused = fixture
+    let pending = fixture
         .call(
             Method::POST,
             SESSION,
@@ -394,14 +394,19 @@ async fn ui_sign_in_with_the_password_of_an_enrolled_user_is_refused_for_now() {
             Some(json!({"username": "jane", "password": SECRET})),
         )
         .await;
-    same_answer(&refused, &wrong);
-    assert!(refused.headers.get(header::SET_COOKIE).is_none());
+    assert_eq!(pending.status, StatusCode::OK);
+    assert_eq!(pending.json()["authenticated"], false);
+    let cookies: Vec<&str> = pending
+        .headers
+        .get_all(header::SET_COOKIE)
+        .iter()
+        .map(|value| value.to_str().unwrap())
+        .collect();
+    assert_eq!(cookies.len(), 1);
+    assert!(cookies[0].starts_with("astrum_signin="));
     assert_eq!(
         failure_reasons(&fixture, "jane").await,
-        [
-            json!("INCORRECT_CREDENTIALS"),
-            json!("SECOND_FACTOR_REQUIRED")
-        ]
+        [json!("INCORRECT_CREDENTIALS")]
     );
 }
 

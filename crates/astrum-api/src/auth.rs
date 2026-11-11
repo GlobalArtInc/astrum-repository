@@ -29,6 +29,13 @@ pub struct Caller(pub Option<Subject>);
 #[derive(Clone, Debug)]
 pub struct AgentClient(pub String);
 
+#[derive(Clone, Copy, Debug)]
+pub struct RestrictedSession;
+
+const RESTRICTED_SESSION_PATH: &str = "/service/rest/internal/session";
+const RESTRICTED_ACCOUNT_PATH: &str = "/service/rest/internal/ui/user";
+const RESTRICTED_FACTORS_PATH: &str = "/service/rest/internal/ui/user/two-factor";
+
 impl Caller {
     pub fn subject(&self) -> Option<&Subject> {
         self.0.as_ref()
@@ -84,7 +91,7 @@ pub async fn authenticate(
         return next.run(request).await;
     }
     let for_agents = request.uri().path() == crate::routes::mcp::PATH;
-    let (caller, client) = match resolve(
+    let (caller, client, restricted) = match resolve(
         &state,
         request.method(),
         request.uri().path(),
@@ -94,7 +101,7 @@ pub async fn authenticate(
     {
         Ok(caller) => caller,
         Err(ApiError::Unauthorized) if is_sign_in(request.uri().path()) => {
-            (Caller(state.security().anonymous()), None)
+            (Caller(state.security().anonymous()), None, false)
         }
         Err(ApiError::Unauthorized) if for_agents => {
             return crate::routes::mcp::challenge(request.headers(), request.uri(), true);
@@ -106,6 +113,9 @@ pub async fn authenticate(
     };
     if let Some(client) = client {
         request.extensions_mut().insert(AgentClient(client));
+    }
+    if restricted {
+        request.extensions_mut().insert(RestrictedSession);
     }
     request.extensions_mut().insert(caller);
     without_challenge(next.run(request).await, from_ui)
@@ -123,14 +133,14 @@ async fn resolve(
     method: &Method,
     path: &str,
     headers: &HeaderMap,
-) -> Result<(Caller, Option<String>), ApiError> {
+) -> Result<(Caller, Option<String>, bool), ApiError> {
     if let Some(credentials) = credentials(headers)? {
         if let Credentials::OAuth(token) = &credentials {
             if path != crate::routes::mcp::PATH {
                 return Err(ApiError::Unauthorized);
             }
             return match state.security().authenticate_oauth(token).await? {
-                Some(found) => Ok((Caller(Some(found.subject)), Some(found.client_name))),
+                Some(found) => Ok((Caller(Some(found.subject)), Some(found.client_name), false)),
                 None => Err(ApiError::Unauthorized),
             };
         }
@@ -180,7 +190,7 @@ async fn resolve(
             Credentials::OAuth(_) => (String::new(), Err(AuthError::BadCredentials)),
         };
         return match result {
-            Ok(subject) => Ok((Caller(Some(subject)), None)),
+            Ok(subject) => Ok((Caller(Some(subject)), None, false)),
             Err(AuthError::BadCredentials) => {
                 tracing::info!(user, "a sign-in failed");
                 if password_given {
@@ -209,7 +219,7 @@ async fn resolve(
             .authenticate_api_key(api_keys::NUGET, key)
             .await
         {
-            Ok(subject) => return Ok((Caller(Some(subject)), None)),
+            Ok(subject) => return Ok((Caller(Some(subject)), None, false)),
             Err(AuthError::BadCredentials) => {
                 tracing::debug!("a NuGet API key was not accepted");
             }
@@ -228,9 +238,26 @@ async fn resolve(
         if !is_safe(method) {
             check_csrf(headers, &session.csrf)?;
         }
-        return Ok((Caller(Some(session.subject)), None));
+        if session.restricted && !restricted_allows(method, path) {
+            return Err(ApiError::EnrollmentRequired);
+        }
+        return Ok((Caller(Some(session.subject)), None, session.restricted));
     }
-    Ok((Caller(state.security().anonymous()), None))
+    Ok((Caller(state.security().anonymous()), None, false))
+}
+
+fn restricted_allows(method: &Method, path: &str) -> bool {
+    match path {
+        RESTRICTED_SESSION_PATH => matches!(*method, Method::GET | Method::DELETE),
+        RESTRICTED_ACCOUNT_PATH | crate::routes::status::STATUS => *method == Method::GET,
+        _ => path
+            .strip_prefix(RESTRICTED_FACTORS_PATH)
+            .is_some_and(|rest| {
+                (rest.is_empty() || rest.starts_with('/'))
+                    && !rest.contains('%')
+                    && !rest.split('/').any(|part| part == "." || part == "..")
+            }),
+    }
 }
 
 #[derive(Debug)]
