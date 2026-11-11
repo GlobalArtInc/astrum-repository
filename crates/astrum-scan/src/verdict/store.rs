@@ -60,8 +60,32 @@ where
     F: FnOnce() -> Fut,
     Fut: Future<Output = ()>,
 {
+    judge(db, cache, config, None, midway).await
+}
+
+pub async fn judge_subject(
+    db: &DatabaseConnection,
+    cache: &Cache,
+    config: &Config,
+    repository: &str,
+    subject: &str,
+) -> Result<Judged, DbErr> {
+    judge(db, cache, config, Some((repository, subject)), || async {}).await
+}
+
+async fn judge<F, Fut>(
+    db: &DatabaseConnection,
+    cache: &Cache,
+    config: &Config,
+    scope: Option<(&str, &str)>,
+    midway: F,
+) -> Result<Judged, DbErr>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = ()>,
+{
     let txn = db.begin().await?;
-    let candidates = peek_repositories(&txn, config.batch).await?;
+    let candidates = peek_repositories(&txn, config.batch, scope).await?;
     let contended = !candidates.is_empty();
     let policies = lock_repositories(&txn, &candidates).await?;
     if policies.is_empty() {
@@ -72,7 +96,7 @@ where
         });
     }
     let names: Vec<String> = policies.keys().cloned().collect();
-    let marks = take_marks(&txn, &names, config.batch).await?;
+    let marks = take_marks(&txn, &names, config.batch, scope).await?;
     let mut judged = Judged {
         taken: marks.len() as u64,
         busy: contended && marks.is_empty(),
@@ -228,9 +252,13 @@ async fn database_time(txn: &DatabaseTransaction) -> Result<DateTime<Utc>, DbErr
     .try_get("", "at")
 }
 
-async fn peek_repositories(txn: &DatabaseTransaction, limit: i64) -> Result<Vec<String>, DbErr> {
-    let rows = txn
-        .query_all(Statement::from_sql_and_values(
+async fn peek_repositories(
+    txn: &DatabaseTransaction,
+    limit: i64,
+    scope: Option<(&str, &str)>,
+) -> Result<Vec<String>, DbErr> {
+    let statement = match scope {
+        None => Statement::from_sql_and_values(
             DbBackend::Postgres,
             format!(
                 "SELECT DISTINCT repository FROM (\
@@ -238,8 +266,14 @@ async fn peek_repositories(txn: &DatabaseTransaction, limit: i64) -> Result<Vec<
                    ORDER BY queued_at LIMIT $1) marks ORDER BY repository"
             ),
             [limit.into()],
-        ))
-        .await?;
+        ),
+        Some((repository, subject)) => Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT repository FROM policy_dirty WHERE repository = $1 AND subject = $2",
+            [repository.into(), subject.into()],
+        ),
+    };
+    let rows = txn.query_all(statement).await?;
     rows.iter()
         .map(|row| row.try_get("", "repository"))
         .collect()
@@ -271,9 +305,10 @@ async fn take_marks(
     txn: &DatabaseTransaction,
     repositories: &[String],
     limit: i64,
+    scope: Option<(&str, &str)>,
 ) -> Result<Vec<(String, String)>, DbErr> {
-    let rows = txn
-        .query_all(Statement::from_sql_and_values(
+    let statement = match scope {
+        None => Statement::from_sql_and_values(
             DbBackend::Postgres,
             format!(
                 "DELETE FROM policy_dirty WHERE (repository, subject) IN (\
@@ -283,8 +318,17 @@ async fn take_marks(
                  RETURNING repository, subject"
             ),
             [repositories.to_vec().into(), limit.into()],
-        ))
-        .await?;
+        ),
+        Some((repository, subject)) => Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "DELETE FROM policy_dirty WHERE (repository, subject) IN (\
+               SELECT repository, subject FROM policy_dirty \
+               WHERE repository = $1 AND subject = $2 FOR UPDATE SKIP LOCKED) \
+             RETURNING repository, subject",
+            [repository.into(), subject.into()],
+        ),
+    };
+    let rows = txn.query_all(statement).await?;
     rows.iter()
         .map(|row| Ok((row.try_get("", "repository")?, row.try_get("", "subject")?)))
         .collect()

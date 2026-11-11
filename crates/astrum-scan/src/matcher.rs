@@ -13,7 +13,7 @@ use tokio::task::JoinHandle;
 pub use evaluate::{Candidate, Evaluation, Found, evaluate, resolve};
 pub use metrics::{Metrics, Snapshot};
 pub use rejudge::{Rejudged, fan_out, sweep};
-pub use store::{Batch, Change, Marked, match_batch, match_batch_with};
+pub use store::{Batch, Change, Marked, match_batch, match_batch_with, match_component};
 
 pub const MATCHERS_KEY: &str = "scan.matchers";
 pub const DEFAULT_MATCHERS: usize = 1;

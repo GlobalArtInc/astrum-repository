@@ -11,7 +11,7 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement};
 use tokio::task::JoinHandle;
 
 pub use metrics::{Metrics, STATES, Snapshot};
-pub use store::{Judged, judge_batch, judge_batch_with};
+pub use store::{Judged, judge_batch, judge_batch_with, judge_subject};
 pub use sweeper::{State as SweepState, sweep};
 
 pub const WORKERS_KEY: &str = "scan.verdictWorkers";

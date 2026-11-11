@@ -4,7 +4,9 @@ use astrum_content::inventory::{Inventory, PackageRef};
 use astrum_testkit::TestDatabase;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, TransactionTrait};
 
-use super::{claim, give_up, record_inventory, record_unsupported, retry_later};
+use super::{
+    Claim, claim, claim_component, give_up, record_inventory, record_unsupported, retry_later,
+};
 use crate::PACKAGE_LOCK;
 use crate::osv::purge;
 use crate::worker::{Claimed, State};
@@ -57,6 +59,46 @@ fn inventory() -> Inventory {
         license: None,
         complete: true,
     }
+}
+
+#[tokio::test]
+async fn claiming_one_component_tells_a_due_row_from_a_lease_a_held_row_and_a_missing_one() {
+    let (test, db, id) = setup().await;
+
+    let Claim::Taken(item) = claim_component(&db, id, LEASE).await.unwrap() else {
+        panic!("a due row is taken");
+    };
+    assert_eq!((item.component_id, item.attempts), (id, 1));
+    assert_eq!(
+        claim_component(&db, id, LEASE).await.unwrap(),
+        Claim::NotDue,
+        "a lease is running"
+    );
+
+    db.execute_unprepared("UPDATE scan_queue SET next_attempt_at = now()")
+        .await
+        .unwrap();
+    let other = test_connection(&test).await;
+    let locker = other.begin().await.unwrap();
+    locker
+        .execute_unprepared("SELECT 1 FROM scan_queue FOR UPDATE")
+        .await
+        .unwrap();
+    assert_eq!(
+        claim_component(&db, id, LEASE).await.unwrap(),
+        Claim::Held,
+        "a due row another session works on is not taken"
+    );
+    locker.rollback().await.unwrap();
+
+    db.execute_unprepared("DELETE FROM scan_queue")
+        .await
+        .unwrap();
+    assert_eq!(claim_component(&db, id, LEASE).await.unwrap(), Claim::Gone);
+}
+
+async fn test_connection(test: &TestDatabase) -> DatabaseConnection {
+    test.connect().await.conn().clone()
 }
 
 #[tokio::test]

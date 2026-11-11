@@ -146,6 +146,9 @@ pub async fn serve(
     headers: &HeaderMap,
     options: Serve,
 ) -> Result<Response, ContentError> {
+    if asset.component_id.is_some() {
+        ctx.content.gate().check(ctx, asset).await?;
+    }
     let size = asset.size.max(0) as u64;
     let etag = format!(
         "\"{}\"",

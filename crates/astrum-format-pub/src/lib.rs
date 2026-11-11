@@ -176,6 +176,7 @@ fn api_error(ctx: &Ctx, error: ContentError) -> Response {
         status,
         &json!({"error": {"code": code_of(&error), "message": message}}),
     );
+    error.mark(&mut response);
     let headers = response.headers_mut();
     match &error {
         ContentError::Unauthorized => {

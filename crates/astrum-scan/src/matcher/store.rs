@@ -58,9 +58,30 @@ where
     F: FnOnce() -> Fut,
     Fut: Future<Output = ()>,
 {
+    run(db, config, None, midway).await
+}
+
+pub async fn match_component(
+    db: &DatabaseConnection,
+    config: &Config,
+    component_id: i64,
+) -> Result<Batch, DbErr> {
+    run(db, config, Some(component_id), || async {}).await
+}
+
+async fn run<F, Fut>(
+    db: &DatabaseConnection,
+    config: &Config,
+    component_id: Option<i64>,
+    midway: F,
+) -> Result<Batch, DbErr>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = ()>,
+{
     let txn = db.begin().await?;
     txn.execute_unprepared(IMPORT_LOCK).await?;
-    let pending = lock_unmatched(&txn, config.batch).await?;
+    let pending = lock_unmatched(&txn, config.batch, component_id).await?;
     if pending.is_empty() {
         txn.commit().await?;
         return Ok(Batch::default());
@@ -169,15 +190,29 @@ struct Job {
     key: (String, String),
 }
 
-async fn lock_unmatched(txn: &DatabaseTransaction, limit: i64) -> Result<Vec<Pending>, DbErr> {
-    let rows = txn
-        .query_all(Statement::from_sql_and_values(
+async fn lock_unmatched(
+    txn: &DatabaseTransaction,
+    limit: i64,
+    component_id: Option<i64>,
+) -> Result<Vec<Pending>, DbErr> {
+    let statement = match component_id {
+        None => Statement::from_sql_and_values(
             DbBackend::Postgres,
             "SELECT id, ecosystem, name, version FROM sca_package WHERE matched_at IS NULL \
              ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED",
             [limit.into()],
-        ))
-        .await?;
+        ),
+        Some(component_id) => Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT id, ecosystem, name, version FROM sca_package WHERE matched_at IS NULL \
+               AND id IN (SELECT ip.package_id FROM component_scan cs \
+                          JOIN sca_inventory_package ip ON ip.inventory_id = cs.inventory_id \
+                          WHERE cs.component_id = $2) \
+             ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED",
+            [limit.into(), component_id.into()],
+        ),
+    };
+    let rows = txn.query_all(statement).await?;
     let mut pending = Vec::with_capacity(rows.len());
     for row in rows {
         pending.push(Pending {

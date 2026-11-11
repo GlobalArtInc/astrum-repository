@@ -794,6 +794,38 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
         &[],
         verdicts.swept_subjects,
     );
+    let gate = state.gate_metrics().snapshot();
+    out.family(
+        "astrum_policy_gate_decisions_total",
+        "counter",
+        "Download checks of repositories with a content policy on this node, by result. pass, blocked and would_block follow the stored verdict; unguarded means the repository of the asset has no policy; inline_scan_pass, inline_scan_blocked and inline_scan_unscanned mean the component was scanned at download (the last one: the scan left it unscanned and the policy lets it pass); inline_scan_timeout and inline_scan_error mean the scan did not finish or failed, so the unscanned setting applied; mark_failed counts a component without a verdict that could not be queued for the workers, besides its decision; error means the check failed and the download was refused.",
+    );
+    for (outcome, count) in crate::gate::Outcome::ALL.iter().zip(gate.results) {
+        out.sample(
+            "astrum_policy_gate_decisions_total",
+            &[("result", outcome.label())],
+            count,
+        );
+    }
+    out.family(
+        "astrum_policy_gate_seconds",
+        "histogram",
+        "Time the download check of this node took, a scan at download included.",
+    );
+    for (bound, count) in crate::gate::BUCKETS.iter().zip(gate.buckets) {
+        out.sample(
+            "astrum_policy_gate_seconds_bucket",
+            &[("le", &bound.to_string())],
+            count,
+        );
+    }
+    out.sample(
+        "astrum_policy_gate_seconds_bucket",
+        &[("le", "+Inf")],
+        gate.count,
+    );
+    out.sample("astrum_policy_gate_seconds_sum", &[], gate.sum);
+    out.sample("astrum_policy_gate_seconds_count", &[], gate.count);
 
     if let Some(at) = state.tasks().last_tick() {
         out.family(

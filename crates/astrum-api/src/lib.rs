@@ -2,6 +2,7 @@ pub mod auth;
 pub mod base_url;
 pub mod domains;
 pub mod error;
+pub mod gate;
 pub mod github;
 pub mod json;
 pub mod limits;
@@ -63,6 +64,7 @@ struct Inner {
     matcher_metrics: Arc<astrum_scan::matcher::Metrics>,
     verdict_metrics: Arc<astrum_scan::verdict::Metrics>,
     policy_cache: Arc<astrum_policy::cache::Cache>,
+    gate_metrics: Arc<gate::Metrics>,
     stars: github::Stars,
 }
 
@@ -74,6 +76,11 @@ impl AppState {
             secrets.clone(),
         ));
         let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
+        let policy_cache: Arc<astrum_policy::cache::Cache> = Arc::default();
+        let gate_metrics: Arc<gate::Metrics> = Arc::default();
+        content.register_gate(Arc::new(
+            gate::PolicyGate::new(policy_cache.clone(), gate_metrics.clone()).sized_for(db.conn()),
+        ));
         let security = security
             .with_secrets(secrets.clone())
             .with_trust_store(Arc::new(content.outbound().clone()));
@@ -106,7 +113,8 @@ impl AppState {
                 scan_metrics: Arc::default(),
                 matcher_metrics: Arc::default(),
                 verdict_metrics: Arc::default(),
-                policy_cache: Arc::default(),
+                policy_cache,
+                gate_metrics,
                 stars: github::Stars::default(),
             }),
         }
@@ -223,6 +231,10 @@ impl AppState {
 
     pub fn policy_cache(&self) -> &Arc<astrum_policy::cache::Cache> {
         &self.inner.policy_cache
+    }
+
+    pub fn gate_metrics(&self) -> &Arc<gate::Metrics> {
+        &self.inner.gate_metrics
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {

@@ -8,19 +8,33 @@ use crate::policy::{Malicious, Mode, Policy, Severity, Unscanned};
 pub const MAX_FINDING_REASONS: usize = 200;
 pub const MAX_REASON_TEXT: usize = 256;
 
+const HIDDEN: [(char, char); 19] = [
+    ('\u{00AD}', '\u{00AD}'),
+    ('\u{0600}', '\u{0605}'),
+    ('\u{061C}', '\u{061C}'),
+    ('\u{06DD}', '\u{06DD}'),
+    ('\u{070F}', '\u{070F}'),
+    ('\u{0890}', '\u{0891}'),
+    ('\u{08E2}', '\u{08E2}'),
+    ('\u{180E}', '\u{180E}'),
+    ('\u{200B}', '\u{200F}'),
+    ('\u{2028}', '\u{202E}'),
+    ('\u{2060}', '\u{206F}'),
+    ('\u{FEFF}', '\u{FEFF}'),
+    ('\u{FFF9}', '\u{FFFB}'),
+    ('\u{110BD}', '\u{110BD}'),
+    ('\u{110CD}', '\u{110CD}'),
+    ('\u{13430}', '\u{1343F}'),
+    ('\u{1BCA0}', '\u{1BCA3}'),
+    ('\u{1D173}', '\u{1D17A}'),
+    ('\u{E0000}', '\u{E007F}'),
+];
+
 fn unsafe_in_text(ch: char) -> bool {
     ch.is_control()
-        || matches!(
-            ch,
-            '\u{061C}'
-                | '\u{180E}'
-                | '\u{200B}'..='\u{200F}'
-                | '\u{2028}'..='\u{202E}'
-                | '\u{2060}'..='\u{206F}'
-                | '\u{FEFF}'
-                | '\u{FFF9}'..='\u{FFFB}'
-                | '\u{E0000}'..='\u{E007F}'
-        )
+        || HIDDEN
+            .iter()
+            .any(|(first, last)| (*first..=*last).contains(&ch))
 }
 
 pub fn clean(text: &str) -> String {
@@ -668,35 +682,63 @@ mod tests {
         );
     }
 
+    const FORMAT_CHARACTERS: [(u32, u32); 21] = [
+        (0x00AD, 0x00AD),
+        (0x0600, 0x0605),
+        (0x061C, 0x061C),
+        (0x06DD, 0x06DD),
+        (0x070F, 0x070F),
+        (0x0890, 0x0891),
+        (0x08E2, 0x08E2),
+        (0x180E, 0x180E),
+        (0x200B, 0x200F),
+        (0x202A, 0x202E),
+        (0x2060, 0x2064),
+        (0x2066, 0x206F),
+        (0xFEFF, 0xFEFF),
+        (0xFFF9, 0xFFFB),
+        (0x110BD, 0x110BD),
+        (0x110CD, 0x110CD),
+        (0x13430, 0x1343F),
+        (0x1BCA0, 0x1BCA3),
+        (0x1D173, 0x1D17A),
+        (0xE0001, 0xE0001),
+        (0xE0020, 0xE007F),
+    ];
+
     #[test]
-    fn reason_text_loses_invisible_format_characters_and_keeps_their_neighbours() {
-        let hidden = [
-            '\u{180E}',
-            '\u{200B}',
-            '\u{200C}',
-            '\u{200D}',
-            '\u{2060}',
-            '\u{2064}',
-            '\u{206F}',
-            '\u{FEFF}',
-            '\u{FFF9}',
-            '\u{FFFA}',
-            '\u{FFFB}',
-            '\u{E0000}',
-            '\u{E0041}',
-            '\u{E007F}',
-        ];
-        for character in hidden {
-            assert_eq!(
-                clean(&format!("a{character}b")),
-                "ab",
-                "U+{:04X}",
-                character as u32
-            );
+    fn reason_text_loses_every_unicode_format_character() {
+        for (first, last) in FORMAT_CHARACTERS {
+            for code in first..=last {
+                let character = char::from_u32(code).unwrap();
+                assert_eq!(
+                    clean(&format!("a{character}b")),
+                    "ab",
+                    "U+{code:04X} is a format character"
+                );
+            }
         }
-        assert_eq!(clean(&hidden.iter().collect::<String>()), "");
-        let visible = "\u{180D}\u{200A}\u{2010}\u{2070}\u{FFF8}\u{FFFC}\u{E0080}";
-        assert_eq!(clean(visible), visible);
+    }
+
+    #[test]
+    fn reason_text_keeps_the_neighbours_of_each_hidden_range() {
+        for (first, last) in HIDDEN {
+            for edge in [first, last] {
+                assert_eq!(clean(&format!("a{edge}b")), "ab", "U+{:04X}", edge as u32);
+            }
+            let before = char::from_u32(first as u32 - 1).unwrap();
+            let after = char::from_u32(last as u32 + 1).unwrap();
+            for neighbour in [before, after] {
+                assert_eq!(
+                    clean(&format!("a{neighbour}b")),
+                    format!("a{neighbour}b"),
+                    "U+{:04X} next to U+{:04X}..U+{:04X}",
+                    neighbour as u32,
+                    first as u32,
+                    last as u32
+                );
+            }
+        }
     }
 
     #[test]

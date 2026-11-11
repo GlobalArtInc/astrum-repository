@@ -708,3 +708,49 @@ async fn zero_matchers_run_nothing_and_the_setting_is_read_and_capped() {
     assert_eq!(scalar(&s, "SELECT count(*) AS n FROM sca_match").await, 1);
     assert_eq!(metrics.snapshot().added, 1);
 }
+
+#[tokio::test]
+async fn matching_one_component_leaves_the_packages_of_the_others_unmatched() {
+    let s = setup().await;
+    advisory(&s, "NPM-1", "npm", "left-pad", BELOW_1_2_3, "{}").await;
+    execute(
+        &s,
+        "INSERT INTO repository (name, format, type) VALUES ('one', 'npm', 'hosted'); \
+         INSERT INTO component (id, repository, format, name, version) VALUES \
+           (1, 'one', 'npm', 'left-pad', '1.0.0'), (2, 'one', 'npm', 'right-pad', '1.0.0')",
+    )
+    .await;
+    let mine = package(&s, "npm", "left-pad", "1.0.0").await;
+    let other = package(&s, "npm", "right-pad", "1.0.0").await;
+    execute(
+        &s,
+        &format!(
+            "INSERT INTO sca_inventory (id, key, source, extractor) VALUES (1, 'a', 'metadata', 1), (2, 'b', 'metadata', 1); \
+             INSERT INTO sca_inventory_package (inventory_id, package_id) VALUES (1, {mine}), (2, {other}); \
+             INSERT INTO component_scan (component_id, repository, inventory_id, state) \
+               VALUES (1, 'one', 1, 'scanned'), (2, 'one', 2, 'scanned')"
+        ),
+    )
+    .await;
+
+    let batch = matcher::match_component(s.db.conn(), &Config::default(), 1)
+        .await
+        .unwrap();
+
+    assert_eq!(batch.matched, 1);
+    assert_eq!(names(&batch.added), [(mine, "NPM-1")]);
+    assert_eq!(
+        scalar(
+            &s,
+            &format!(
+                "SELECT count(*) AS n FROM sca_package WHERE id = {other} AND matched_at IS NULL"
+            )
+        )
+        .await,
+        1
+    );
+    let again = matcher::match_component(s.db.conn(), &Config::default(), 1)
+        .await
+        .unwrap();
+    assert_eq!(again.matched, 0);
+}

@@ -517,6 +517,61 @@ async fn a_new_policy_revision_and_a_changed_exception_mark_the_subjects_even_af
 }
 
 #[tokio::test]
+async fn the_sweeper_marks_scanned_components_without_a_verdict_when_it_starts_or_the_policies_change()
+ {
+    let s = setup().await;
+    world(&s, BLOCK_HIGH).await;
+    component(&s, "one", 1, None).await;
+    execute(&s, "DELETE FROM policy_dirty").await;
+    execute(
+        &s,
+        "INSERT INTO component (id, repository, format, name, version) \
+         VALUES (2, 'one', 'npm', 'c2', '1')",
+    )
+    .await;
+    let mut state = SweepState::default();
+
+    let first = verdict::sweep(s.db.conn(), &config(), &mut state)
+        .await
+        .unwrap();
+
+    assert_eq!(first, Swept::Done { marked: 1 });
+    assert_eq!(
+        scalar(
+            &s,
+            "SELECT count(*) AS n FROM policy_dirty WHERE subject = 'c:1'"
+        )
+        .await,
+        1
+    );
+    assert_eq!(
+        scalar(
+            &s,
+            "SELECT count(*) AS n FROM policy_dirty WHERE subject = 'c:2'"
+        )
+        .await,
+        0,
+        "a component that was never scanned waits in the scan queue, not here"
+    );
+
+    judge(&s, &Cache::default()).await;
+    component(&s, "one", 3, None).await;
+    execute(&s, "DELETE FROM policy_dirty").await;
+    let quiet = verdict::sweep(s.db.conn(), &config(), &mut state)
+        .await
+        .unwrap();
+    assert_eq!(quiet, Swept::Done { marked: 0 });
+
+    astrum_db::revision::bump(s.db.conn(), astrum_db::revision::POLICIES)
+        .await
+        .unwrap();
+    let changed = verdict::sweep(s.db.conn(), &config(), &mut state)
+        .await
+        .unwrap();
+    assert_eq!(changed, Swept::Done { marked: 1 });
+}
+
+#[tokio::test]
 async fn only_one_node_sweeps_at_a_time() {
     let s = setup().await;
     let holder = s.db.conn().begin().await.unwrap();
@@ -791,4 +846,39 @@ async fn a_repository_deleted_while_a_sweep_page_is_queued_is_skipped_not_failed
             "{label}"
         );
     }
+}
+
+#[tokio::test]
+async fn judging_one_subject_takes_only_its_mark() {
+    let s = setup().await;
+    world(&s, BLOCK_HIGH).await;
+    component(&s, "one", 1, Some("GHSA-1")).await;
+    component(&s, "one", 2, Some("GHSA-1")).await;
+    let cache = Cache::default();
+
+    let judged = verdict::judge_subject(s.db.conn(), &cache, &config(), "one", "c:2")
+        .await
+        .unwrap();
+
+    assert_eq!(judged.taken, 1);
+    assert_eq!(
+        text(
+            &s,
+            "SELECT string_agg(subject, ',' ORDER BY subject) AS n FROM policy_verdict"
+        )
+        .await,
+        "c:2"
+    );
+    assert_eq!(
+        text(
+            &s,
+            "SELECT string_agg(subject, ',' ORDER BY subject) AS n FROM policy_dirty"
+        )
+        .await,
+        "c:1"
+    );
+    let nothing = verdict::judge_subject(s.db.conn(), &cache, &config(), "one", "c:2")
+        .await
+        .unwrap();
+    assert_eq!(nothing.taken, 0);
 }

@@ -44,6 +44,66 @@ pub async fn claim(
     Ok(claimed)
 }
 
+pub async fn queue_component(db: &DatabaseConnection, component_id: i64) -> Result<(), DbErr> {
+    db.execute(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "INSERT INTO scan_queue (component_id, reason) \
+         SELECT id, 'gate' FROM component WHERE id = $1 \
+         ON CONFLICT (component_id) DO NOTHING",
+        [component_id.into()],
+    ))
+    .await?;
+    Ok(())
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Claim {
+    Taken(Claimed),
+    NotDue,
+    Held,
+    Gone,
+}
+
+pub async fn claim_component(
+    db: &DatabaseConnection,
+    component_id: i64,
+    lease: Duration,
+) -> Result<Claim, DbErr> {
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "UPDATE scan_queue SET attempts = attempts + 1, \
+               next_attempt_at = now() + make_interval(secs => $2) \
+             WHERE component_id IN (\
+               SELECT component_id FROM scan_queue \
+               WHERE component_id = $1 AND next_attempt_at <= now() FOR UPDATE SKIP LOCKED) \
+             RETURNING component_id, attempts, queued_at",
+            [component_id.into(), lease.as_secs_f64().into()],
+        ))
+        .await?;
+    if let Some(row) = row {
+        return Ok(Claim::Taken(Claimed {
+            component_id: row.try_get("", "component_id")?,
+            attempts: row.try_get("", "attempts")?,
+            queued_at: row.try_get("", "queued_at")?,
+        }));
+    }
+    let waiting = db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT next_attempt_at > now() AS waiting FROM scan_queue WHERE component_id = $1",
+            [component_id.into()],
+        ))
+        .await?;
+    match waiting {
+        None => Ok(Claim::Gone),
+        Some(row) => match row.try_get::<bool>("", "waiting")? {
+            true => Ok(Claim::NotDue),
+            false => Ok(Claim::Held),
+        },
+    }
+}
+
 pub async fn renew(
     db: &DatabaseConnection,
     items: &[Claimed],

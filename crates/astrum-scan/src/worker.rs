@@ -12,6 +12,7 @@ use sea_orm::DbErr;
 use tokio::task::JoinHandle;
 
 pub use metrics::{BUCKETS, Metrics, Snapshot};
+pub use store::{Claim, claim_component, queue_component};
 
 pub const EXTRACTOR: i32 = 1;
 pub const WORKERS_KEY: &str = "scan.workers";
@@ -228,6 +229,14 @@ async fn handle(
     if let Err(error) = outcome {
         tracing::error!(%error, component = item.component_id, "the outcome of a failed scan was not saved");
     }
+}
+
+pub async fn scan_claimed(
+    content: &Content,
+    security: &Arc<SecurityModel>,
+    item: Claimed,
+) -> Result<State, ScanError> {
+    scan(content.clone(), security.clone(), item).await
 }
 
 async fn scan(
