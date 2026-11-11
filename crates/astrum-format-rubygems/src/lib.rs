@@ -17,7 +17,7 @@ use astrum_content::{
     SearchKey, Serve, UploadField, UploadForm, UploadSpec, View, group as members, serve,
 };
 use astrum_repo::RepositoryType;
-use astrum_security::api_keys;
+use astrum_security::{EXTERNAL_CREDENTIALS, api_keys};
 use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
@@ -496,8 +496,11 @@ impl Rubygems {
                 ))
                 .map_err(ContentError::internal);
         };
+        let Some(user_id) = subject.local_user_id() else {
+            return Ok(text(StatusCode::FORBIDDEN, EXTERNAL_CREDENTIALS));
+        };
         if request.method == Method::DELETE {
-            let deleted = api_keys::delete_kept_api_key(ctx.db(), REALM, &subject.user_id)
+            let deleted = api_keys::delete_kept_api_key(ctx.db(), REALM, user_id)
                 .await
                 .map_err(ContentError::internal)?;
             return Ok(match deleted {
@@ -511,13 +514,9 @@ impl Rubygems {
                 "The RubyGems API Key Realm is not active; ask an administrator to activate it, or use 'Basic <base64 of user:password>' as the API key",
             ));
         }
-        let key = api_keys::kept_api_key(
-            ctx.db(),
-            ctx.content.secrets(),
-            REALM,
-            &subject.user_id,
-            || format!("{REALM}.{}", astrum_security::password::random(40)),
-        )
+        let key = api_keys::kept_api_key(ctx.db(), ctx.content.secrets(), REALM, user_id, || {
+            format!("{REALM}.{}", astrum_security::password::random(40))
+        })
         .await
         .map_err(ContentError::internal)?;
         Ok(text(StatusCode::OK, key.key))

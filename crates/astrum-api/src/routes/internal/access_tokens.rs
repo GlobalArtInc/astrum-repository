@@ -1,5 +1,5 @@
 use astrum_db::audit::Event;
-use astrum_security::{Scope, Subject, TokenError, TokenInfo, realm};
+use astrum_security::{EXTERNAL_CREDENTIALS, Scope, Subject, TokenError, TokenInfo, realm};
 use axum::Router;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -72,6 +72,9 @@ fn owner(caller: &Caller) -> Result<&Subject, ApiError> {
         return Err(ApiError::Forbidden(
             "access tokens are managed after signing in with a password".to_owned(),
         ));
+    }
+    if subject.local_user_id().is_none() {
+        return Err(ApiError::Forbidden(EXTERNAL_CREDENTIALS.to_owned()));
     }
     Ok(subject)
 }

@@ -376,3 +376,28 @@ async fn a_directory_user_without_a_local_namesake_still_reads_repositories() {
         .await;
     assert!(reply.text().contains("crates"), "{}", reply.text());
 }
+
+#[tokio::test]
+async fn directory_only_users_get_no_credentials_to_keep() {
+    let world = setup().await;
+    let denied = StatusCode::FORBIDDEN;
+    let token = json!({"name": "dead", "scope": "WRITE", "expiresInDays": null});
+    let reply = world
+        .answer(denied, Method::POST, TOKENS, alice(), Some(token))
+        .await;
+    assert!(
+        reply.text().contains("managed outside Astrum"),
+        "{}",
+        reply.text()
+    );
+    let key = json!({"password": ALICE_PASSWORD});
+    world
+        .answer(denied, Method::POST, NUGET_KEY, alice(), Some(key))
+        .await;
+    world
+        .answer(denied, Method::GET, CARGO_ME, alice(), None)
+        .await;
+    world
+        .answer(denied, Method::GET, GEMS_KEY, alice(), None)
+        .await;
+}

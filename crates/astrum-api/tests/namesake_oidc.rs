@@ -2,9 +2,10 @@ mod support;
 
 use astrum_testkit::oidc::MockProvider;
 use axum::http::{Method, StatusCode, header};
-use serde_json::json;
+use serde_json::{Value, json};
 use support::{Auth, Fixture, Reply};
 
+const TOKENS: &str = "/service/rest/internal/access-tokens";
 const HOST: (&str, &str) = ("host", "astrum.test");
 
 fn pairs(reply: &Reply) -> Vec<(String, String)> {
@@ -82,6 +83,39 @@ async fn sign_in(fixture: &Fixture) -> Reply {
         .await
 }
 
+fn session(callback: &Reply) -> (String, String) {
+    let cookies = pairs(callback);
+    let value = |wanted: &str| {
+        cookies
+            .iter()
+            .find(|(name, value)| name == wanted && !value.is_empty())
+            .map(|(_, value)| value.clone())
+            .unwrap_or_else(|| panic!("no {wanted} cookie after {}", callback.status))
+    };
+    let csrf = value("astrum_csrf");
+    (
+        format!(
+            "astrum_session={}; astrum_csrf={csrf}",
+            value("astrum_session")
+        ),
+        csrf,
+    )
+}
+
+async fn make_token(fixture: &Fixture, callback: &Reply) -> Reply {
+    let (cookies, csrf) = session(callback);
+    let body = json!({"name": "mine", "scope": "WRITE", "expiresInDays": null});
+    fixture
+        .send(
+            Method::POST,
+            TOKENS,
+            Auth::None,
+            Some(body),
+            &[("cookie", &cookies), ("x-astrum-csrf", &csrf)],
+        )
+        .await
+}
+
 #[tokio::test]
 async fn an_oidc_namesake_of_a_local_user_is_refused() {
     let (fixture, provider) = setup().await;
@@ -99,4 +133,19 @@ async fn an_oidc_namesake_of_a_local_user_is_refused() {
     provider.sign_in_as(json!({"sub": "ns-2", "preferred_username": "BOB"}));
     let callback = sign_in(&fixture).await;
     assert_eq!(location(&callback), "/login?sso=denied");
+}
+
+#[tokio::test]
+async fn an_oidc_user_without_a_local_namesake_signs_in_but_keeps_no_credentials() {
+    let (fixture, provider) = setup().await;
+    provider.sign_in_as(json!({"sub": "u-1", "preferred_username": "rita"}));
+    let callback = sign_in(&fixture).await;
+    assert_eq!(location(&callback), "/");
+    let reply = make_token(&fixture, &callback).await;
+    assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
+    let body: Value = reply.json();
+    assert!(
+        body.to_string().contains("managed outside Astrum"),
+        "{body}"
+    );
 }

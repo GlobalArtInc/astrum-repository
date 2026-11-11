@@ -36,7 +36,7 @@ pub use secrets::SecretBox;
 pub use selector::{Selector, SelectorError};
 pub use sessions::{ActiveSession, NewSession};
 pub use ssrf::SsrfProtection;
-pub use subject::{Scope, Subject};
+pub use subject::{EXTERNAL_CREDENTIALS, Scope, Subject};
 pub use tokens::{TokenError, TokenInfo};
 
 const VERIFIED_FOR: Duration = Duration::from_secs(300);

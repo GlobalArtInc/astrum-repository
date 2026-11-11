@@ -8,7 +8,7 @@ use astrum_content::{
     serve,
 };
 use astrum_repo::RepositoryType;
-use astrum_security::api_keys;
+use astrum_security::{EXTERNAL_CREDENTIALS, api_keys};
 use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{HeaderValue, Method, StatusCode, header};
@@ -468,19 +468,21 @@ impl Cargo {
         let Some(subject) = ctx.subject.as_ref().filter(|subject| !subject.anonymous) else {
             return Ok(unauthorized(ctx, "sign in to get a token for cargo login"));
         };
+        let Some(user_id) = subject.local_user_id() else {
+            return Ok(json_response(
+                StatusCode::FORBIDDEN,
+                &json!({"errors": [{"detail": EXTERNAL_CREDENTIALS}]}),
+            ));
+        };
         if !ctx.security.realm_active(REALM) {
             return Ok(json_response(
                 StatusCode::CONFLICT,
                 &json!({"errors": [{"detail": "the Cargo Bearer Token Realm is not active; ask an administrator to activate it, or use 'Basic <base64 of user:password>' as the Cargo token"}]}),
             ));
         }
-        let key = api_keys::kept_api_key(
-            ctx.db(),
-            ctx.content.secrets(),
-            REALM,
-            &subject.user_id,
-            || format!("{REALM}.{}", uuid::Uuid::new_v4()),
-        )
+        let key = api_keys::kept_api_key(ctx.db(), ctx.content.secrets(), REALM, user_id, || {
+            format!("{REALM}.{}", uuid::Uuid::new_v4())
+        })
         .await
         .map_err(ContentError::internal)?;
         Response::builder()

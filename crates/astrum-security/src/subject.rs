@@ -3,8 +3,11 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use crate::catalogue::DEFAULT_SOURCE;
 use crate::permission::Permission;
 use crate::privilege::{Action, SelectorGrant};
+
+pub const EXTERNAL_CREDENTIALS: &str = "credentials of this account are managed outside Astrum";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -50,6 +53,10 @@ impl Subject {
     pub fn as_anonymous(mut self) -> Self {
         self.anonymous = true;
         self
+    }
+
+    pub fn local_user_id(&self) -> Option<&str> {
+        (!self.anonymous && self.source == DEFAULT_SOURCE).then_some(self.user_id.as_str())
     }
 
     pub fn with_scope(mut self, scope: Scope) -> Self {
@@ -136,6 +143,24 @@ mod tests {
         assert!(!jane.is_permitted("astrum:users:delete"));
         assert!(jane.is_permitted("astrum:repository-view:maven2:central:add"));
         assert!(!jane.is_permitted("not a permission::"));
+    }
+
+    #[test]
+    fn only_a_signed_in_local_subject_names_a_local_user() {
+        let jane = subject(&[]);
+        assert_eq!(jane.local_user_id(), Some("jane"));
+        assert_eq!(jane.clone().as_anonymous().local_user_id(), None);
+        for source in ["LDAP", "OAuth2"] {
+            let external = Subject::new(
+                "jane",
+                source,
+                crate::realm::LDAP,
+                BTreeSet::new(),
+                vec![],
+                vec![],
+            );
+            assert_eq!(external.local_user_id(), None, "{source}");
+        }
     }
 
     #[test]
