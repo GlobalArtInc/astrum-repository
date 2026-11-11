@@ -256,6 +256,7 @@ impl Security {
             last_seen_at: ActiveValue::Set(now),
             client_ip: ActiveValue::Set(client_ip.chars().take(100).collect()),
             user_agent: ActiveValue::Set(user_agent.chars().take(300).collect()),
+            restricted: ActiveValue::Set(false),
         })
         .exec(&self.db)
         .await?;

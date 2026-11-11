@@ -184,7 +184,7 @@ async fn change_password(
     }
     validation.finish()?;
     match security.authenticate(&user_id, &current).await {
-        Ok(_) => security.sign_in_succeeded(&user_id),
+        Ok(_) | Err(AuthError::SecondFactor(_)) => security.sign_in_succeeded(&user_id),
         Err(AuthError::BadCredentials) => {
             security.sign_in_failed(&user_id);
             tracing::info!(

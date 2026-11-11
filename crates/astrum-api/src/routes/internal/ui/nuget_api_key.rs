@@ -85,7 +85,7 @@ fn too_many() -> Response {
 async fn confirm(state: &AppState, user_id: &str, password: &str) -> Result<bool, ApiError> {
     let security = state.security();
     match security.authenticate(user_id, password).await {
-        Ok(_) => {
+        Ok(_) | Err(AuthError::SecondFactor(_)) => {
             security.sign_in_succeeded(user_id);
             Ok(true)
         }

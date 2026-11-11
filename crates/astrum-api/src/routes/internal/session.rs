@@ -1,9 +1,9 @@
 use std::net::IpAddr;
 
 use astrum_db::audit::Event;
-use astrum_security::Subject;
 use astrum_security::catalogue::DEFAULT_SOURCE;
 use astrum_security::sessions::{KEY_ADDRESS_LENGTH, KEY_USER_LENGTH};
+use astrum_security::{AuthError, Gate, Subject};
 use axum::Router;
 use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
@@ -49,12 +49,19 @@ async fn sign_in(
             "too many failed sign-ins; wait a few minutes",
         ));
     }
-    let subject = match security.authenticate(&user, &body.password).await {
+    let outcome = match security.authenticate(&user, &body.password).await {
+        Ok(subject) => Ok(subject),
+        Err(AuthError::BadCredentials) => Err(Gate::Open),
+        Err(AuthError::SecondFactor(pending)) => Err(pending.gate),
+        Err(AuthError::Internal(error)) => return Err(error.into()),
+    };
+    let subject = match outcome {
         Ok(subject) => subject,
-        Err(astrum_security::AuthError::BadCredentials) => {
+        Err(gate) => {
             security.sign_in_failed(&user);
             tracing::info!(user, "a sign-in to the user interface failed");
-            audit_failed_sign_in(&state, &user, SIGN_IN_PATH, &headers).await;
+            audit_failed_sign_in(&state, &user, SIGN_IN_PATH, &headers, gate.failure_reason())
+                .await;
             if security.sign_in_blocked(&user) {
                 audit_rate_limited(&state, &user, crate::client::current(), "UI").await;
             }
@@ -63,7 +70,6 @@ async fn sign_in(
                 "the user name or password is wrong",
             ));
         }
-        Err(astrum_security::AuthError::Internal(error)) => return Err(error.into()),
     };
     security.sign_in_succeeded(&user);
     let mut response = axum::Json(describe(&state, Some(&subject))).into_response();
@@ -169,6 +175,7 @@ pub(crate) async fn audit_failed_sign_in(
     user: &str,
     path: &str,
     headers: &HeaderMap,
+    reason: &str,
 ) {
     if !state.security().model().users.contains_key(user) {
         return;
@@ -186,7 +193,7 @@ pub(crate) async fn audit_failed_sign_in(
                 "remoteIp": client_address().unwrap_or_default(),
                 "userAgent": user_agent,
                 "wasSuccessful": false,
-                "failureReasons": ["INCORRECT_CREDENTIALS"],
+                "failureReasons": [reason],
             })),
         )
         .await;

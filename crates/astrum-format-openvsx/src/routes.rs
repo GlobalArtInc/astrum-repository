@@ -57,12 +57,16 @@ fn token_of(query: Option<&str>, headers: &HeaderMap) -> Option<String> {
     given.or_else(bearer).filter(|value| !value.is_empty())
 }
 
-async fn authenticate(state: &AppState, token: &str) -> Result<Subject, Box<Response>> {
+async fn authenticate(
+    state: &AppState,
+    headers: &HeaderMap,
+    token: &str,
+) -> Result<Subject, Box<Response>> {
     let security = state.security();
     if looks_like_token(token) {
         return match security.authenticate_token(None, token).await {
             Ok(subject) => Ok(subject),
-            Err(AuthError::BadCredentials) => Err(refused(
+            Err(AuthError::BadCredentials | AuthError::SecondFactor(_)) => Err(refused(
                 StatusCode::UNAUTHORIZED,
                 "the access token is not valid; create one under Access Tokens in Astrum Repository",
             )),
@@ -79,8 +83,10 @@ async fn authenticate(state: &AppState, token: &str) -> Result<Subject, Box<Resp
     };
     match astrum_api::auth::check_password(state, user, password, "Open VSX", false).await {
         Ok(subject) => Ok(subject),
-        Err(PasswordRefusal::Wrong) => {
+        Err(PasswordRefusal::Wrong(gate)) => {
             tracing::info!(user, "an Open VSX sign-in failed");
+            astrum_api::auth::audit_refused_password(state, user, "/repository", headers, gate)
+                .await;
             Err(refused(
                 StatusCode::UNAUTHORIZED,
                 "the user name or password is wrong",
@@ -122,7 +128,7 @@ async fn with_token(
         && anonymous
         && let Some(token) = token_of(parts.uri.query(), &parts.headers)
     {
-        match authenticate(&state, &token).await {
+        match authenticate(&state, &parts.headers, &token).await {
             Ok(subject) => ctx.subject = Some(subject),
             Err(response) => return *response,
         }

@@ -10,7 +10,7 @@ use astrum_security::api_keys;
 use astrum_security::format_tokens::looks_like_format_token;
 use astrum_security::oauth::looks_like_access_token;
 use astrum_security::tokens::looks_like_token;
-use astrum_security::{AuthError, Subject};
+use astrum_security::{AuthError, Gate, Subject};
 use axum::http::Method;
 use subtle::ConstantTimeEq;
 
@@ -137,6 +137,7 @@ async fn resolve(
         let security = state.security();
         let password_given =
             matches!(&credentials, Credentials::Basic(_, password) if !looks_like_token(password));
+        let mut refused_gate = None;
         let (user, result) = match credentials {
             Credentials::Basic(user, password) if looks_like_token(&password) => {
                 let result = security.authenticate_token(Some(&user), &password).await;
@@ -145,7 +146,10 @@ async fn resolve(
             Credentials::Basic(user, password) => {
                 let result = match check_password(state, &user, &password, "Basic", true).await {
                     Ok(subject) => Ok(subject),
-                    Err(PasswordRefusal::Wrong) => Err(AuthError::BadCredentials),
+                    Err(PasswordRefusal::Wrong(gate)) => {
+                        refused_gate = gate;
+                        Err(AuthError::BadCredentials)
+                    }
                     Err(PasswordRefusal::Throttled(seconds)) => {
                         return Err(ApiError::TooManyAttempts(seconds));
                     }
@@ -180,8 +184,17 @@ async fn resolve(
             Err(AuthError::BadCredentials) => {
                 tracing::info!(user, "a sign-in failed");
                 if password_given {
-                    session::audit_failed_sign_in(state, &user, &audit_path(path), headers).await;
+                    let reason = refused_gate.unwrap_or(Gate::Open).failure_reason();
+                    session::audit_failed_sign_in(state, &user, &audit_path(path), headers, reason)
+                        .await;
                 }
+                Err(ApiError::Unauthorized)
+            }
+            Err(AuthError::SecondFactor(pending)) => {
+                tracing::error!(
+                    user = pending.user_id,
+                    "a credential other than a password raised a second factor demand; refused"
+                );
                 Err(ApiError::Unauthorized)
             }
             Err(AuthError::Internal(error)) => Err(error.into()),
@@ -200,6 +213,12 @@ async fn resolve(
             Err(AuthError::BadCredentials) => {
                 tracing::debug!("a NuGet API key was not accepted");
             }
+            Err(AuthError::SecondFactor(pending)) => {
+                tracing::error!(
+                    user = pending.user_id,
+                    "a NuGet API key raised a second factor demand; refused"
+                );
+            }
             Err(AuthError::Internal(error)) => return Err(error.into()),
         }
     }
@@ -216,7 +235,7 @@ async fn resolve(
 
 #[derive(Debug)]
 pub enum PasswordRefusal {
-    Wrong,
+    Wrong(Option<Gate>),
     Throttled(u64),
     Internal(astrum_security::Error),
 }
@@ -239,13 +258,14 @@ pub async fn check_password(
             {
                 Ok(subject) => return Ok(subject),
                 Err(AuthError::Internal(error)) => return Err(PasswordRefusal::Internal(error)),
-                Err(AuthError::BadCredentials) => {}
+                Err(AuthError::SecondFactor(_)) | Err(AuthError::BadCredentials) => {}
             }
         }
         return Err(PasswordRefusal::Throttled(
             wait.as_secs_f64().ceil().max(1.0) as u64,
         ));
     }
+    let mut refused_gate = None;
     match security.authenticate(user, password).await {
         Ok(subject) => {
             security.basic_succeeded(user, address);
@@ -255,6 +275,7 @@ pub async fn check_password(
             security.basic_refunded(user, address);
             return Err(PasswordRefusal::Internal(error));
         }
+        Err(AuthError::SecondFactor(pending)) => refused_gate = Some(pending.gate),
         Err(AuthError::BadCredentials) => {}
     }
     if by_key {
@@ -270,13 +291,24 @@ pub async fn check_password(
                 security.basic_refunded(user, address);
                 return Err(PasswordRefusal::Internal(error));
             }
-            Err(AuthError::BadCredentials) => {}
+            Err(AuthError::SecondFactor(_)) | Err(AuthError::BadCredentials) => {}
         }
     }
     if security.basic_failed(user, address) && security.model().users.contains_key(user) {
         session::audit_rate_limited(state, user, address, method).await;
     }
-    Err(PasswordRefusal::Wrong)
+    Err(PasswordRefusal::Wrong(refused_gate))
+}
+
+pub async fn audit_refused_password(
+    state: &AppState,
+    user: &str,
+    path: &str,
+    headers: &HeaderMap,
+    gate: Option<Gate>,
+) {
+    let reason = gate.unwrap_or(Gate::Open).failure_reason();
+    session::audit_failed_sign_in(state, user, path, headers, reason).await;
 }
 
 fn is_registry(path: &str) -> bool {

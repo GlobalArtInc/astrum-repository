@@ -108,7 +108,7 @@ async fn login(state: &AppState, user: &str, body: Body) -> Result<Response, Con
     }
     let subject = match security.authenticate(&user, password).await {
         Ok(subject) => subject,
-        Err(AuthError::BadCredentials) => {
+        Err(AuthError::BadCredentials | AuthError::SecondFactor(_)) => {
             security.sign_in_failed(&user);
             tracing::info!(user, "an npm sign-in failed");
             return Ok(refused(

@@ -211,8 +211,10 @@ pub async fn oauth(
             Ok(token) => token_body(&token, LIFETIME_SECONDS, scope),
             Err(error) => error.into_response(),
         },
-        Err(PasswordRefusal::Wrong) => {
+        Err(PasswordRefusal::Wrong(gate)) => {
             tracing::info!(user = %username, "a Docker token request failed");
+            astrum_api::auth::audit_refused_password(&state, username, "/v2/token", &headers, gate)
+                .await;
             oauth_error(StatusCode::UNAUTHORIZED, "invalid_grant")
         }
         Err(PasswordRefusal::Throttled(seconds)) => astrum_api::auth::registry_throttled(seconds),
