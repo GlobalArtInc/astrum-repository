@@ -4,17 +4,18 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use sea_orm::sea_query::Expr;
 use sea_orm::{
-    ActiveValue, ColumnTrait, ConnectionTrait, DbBackend, EntityTrait, QueryFilter, QueryOrder,
-    Statement,
+    ActiveValue, ColumnTrait, Condition, ConnectionTrait, DbBackend, EntityTrait, QueryFilter,
+    QueryOrder, Statement,
 };
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use subtle::ConstantTimeEq;
 use uuid::Uuid;
 
+use crate::catalogue::DEFAULT_SOURCE;
 use crate::subject::{Scope, Subject};
 use crate::tokens::hash;
-use crate::{Error, Security, password, realm};
+use crate::{Error, Security, ldap, oidc, password, realm};
 
 pub const ACCESS_PREFIX: &str = "astrum_at_";
 pub const REFRESH_PREFIX: &str = "astrum_rt_";
@@ -102,6 +103,16 @@ pub struct TokenSet {
     pub refresh_token: String,
     pub expires_in: i64,
     pub scope: String,
+}
+
+fn granted_in(source: &str) -> Condition {
+    let column = oauth_grant::Column::Realm;
+    match source {
+        ldap::SOURCE => Condition::all().add(column.eq(realm::LDAP)),
+        oidc::SOURCE => Condition::all().add(column.eq(realm::OIDC)),
+        DEFAULT_SOURCE => Condition::all().add(column.is_not_in([realm::LDAP, realm::OIDC])),
+        _ => Condition::all().add(Expr::value(false)),
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -631,9 +642,10 @@ impl Security {
         }))
     }
 
-    pub async fn oauth_grants(&self, user_id: &str) -> Result<Vec<GrantInfo>, Error> {
+    pub async fn oauth_grants(&self, subject: &Subject) -> Result<Vec<GrantInfo>, Error> {
         let rows = oauth_grant::Entity::find()
-            .filter(oauth_grant::Column::UserId.eq(user_id))
+            .filter(oauth_grant::Column::UserId.eq(subject.user_id.as_str()))
+            .filter(granted_in(&subject.source))
             .order_by_asc(oauth_grant::Column::CreatedAt)
             .all(self.db())
             .await?;
@@ -647,10 +659,11 @@ impl Security {
     pub async fn delete_oauth_grant(
         &self,
         id: Uuid,
-        user_id: &str,
+        subject: &Subject,
     ) -> Result<Option<GrantInfo>, Error> {
         let Some(row) = oauth_grant::Entity::find_by_id(id)
-            .filter(oauth_grant::Column::UserId.eq(user_id))
+            .filter(oauth_grant::Column::UserId.eq(subject.user_id.as_str()))
+            .filter(granted_in(&subject.source))
             .one(self.db())
             .await?
         else {
@@ -663,9 +676,10 @@ impl Security {
         Ok(Some(info))
     }
 
-    pub async fn delete_oauth_grants_of(&self, user_id: &str) -> Result<u64, Error> {
+    pub async fn delete_oauth_grants_of_local_user(&self, user_id: &str) -> Result<u64, Error> {
         let deleted = oauth_grant::Entity::delete_many()
             .filter(oauth_grant::Column::UserId.eq(user_id))
+            .filter(granted_in(DEFAULT_SOURCE))
             .exec(self.db())
             .await?;
         Ok(deleted.rows_affected)

@@ -542,7 +542,7 @@ async fn deny(
 
 async fn grants(State(state): State<AppState>, caller: Caller) -> Result<Response, ApiError> {
     let subject = caller.signed_in()?;
-    let grants = state.security().oauth_grants(&subject.user_id).await?;
+    let grants = state.security().oauth_grants(subject).await?;
     Ok(axum::Json(
         grants
             .into_iter()
@@ -573,11 +573,7 @@ async fn revoke_grant(
     let Ok(id) = id.parse::<Uuid>() else {
         return Err(ApiError::not_found("there is no such agent access"));
     };
-    match state
-        .security()
-        .delete_oauth_grant(id, &subject.user_id)
-        .await?
-    {
+    match state.security().delete_oauth_grant(id, subject).await? {
         Some(grant) => {
             state
                 .audit(
